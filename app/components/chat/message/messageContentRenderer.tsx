@@ -1,4 +1,5 @@
 import type { Message } from "../../../../api";
+import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
@@ -20,7 +21,6 @@ import {
 } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import { mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
 
 type ReadonlyRenderableMessage = Pick<

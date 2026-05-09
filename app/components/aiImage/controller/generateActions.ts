@@ -40,22 +40,6 @@ type GenerateImageResponse = {
   model: string;
 };
 
-type GenerateRequestOverrides = {
-  prompt?: string;
-  negativePrompt?: string;
-  mode?: AiImageHistoryMode;
-  sourceImageBase64?: string;
-  sourceImageDataUrl?: string;
-  sourceImageWidth?: number;
-  sourceImageHeight?: number;
-  maskBase64?: string;
-  width?: number;
-  height?: number;
-  strength?: number;
-  noise?: number;
-  toolLabel?: string;
-};
-
 export type GenerateContext = {
   effectiveMode: AiImageHistoryMode;
   effectivePrompt: string;

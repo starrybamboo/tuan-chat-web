@@ -1,4 +1,4 @@
-import { Link } from "@/router/utils";
+import { Link } from "@tanstack/react-router";
 
 interface DiscoverProductionPlaceholderProps {
   title?: string;

@@ -204,7 +204,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     if (!didInitFormRef.current)
       return;
     scheduleAutoSave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData]);
 
   // 离开空间资料时自动保存（兜底）
@@ -223,7 +222,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       // 这里不 await，避免阻塞卸载流程。
       void saveNow();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

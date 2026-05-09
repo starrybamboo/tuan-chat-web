@@ -329,9 +329,7 @@ export default function WorkflowWindow() {
           .map(node => [node.id, node]),
       );
       const nextNodes: Node[] = [];
-      const baseNodes = [
-        ...prevNodes.filter(node => node.id !== START_NODE_ID && !isEndNodeId(node.id)),
-      ];
+      const baseNodes = prevNodes.filter(node => node.id !== START_NODE_ID && !isEndNodeId(node.id));
       let changed = false;
 
       allRoomIds.forEach((roomId) => {

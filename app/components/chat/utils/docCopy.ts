@@ -1,10 +1,11 @@
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 
-import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
+
 import { tuanchat } from "../../../../api/instance";
 
 async function getSnapshotForCopy(docId: string): Promise<StoredSnapshot | null> {

@@ -68,7 +68,7 @@ const contentTypeByExt = new Map([
   [".ico", "image/x-icon"],
 ]);
 
-const isHashedAssetPath = (filePath) => {
+function isHashedAssetPath(filePath) {
   const segments = filePath.replaceAll("\\", "/").split("/");
   if (segments.length < 2 || segments.at(-2) !== "assets") {
     return false;
@@ -86,9 +86,9 @@ const isHashedAssetPath = (filePath) => {
   return hash.length >= 6
     && /^[\w-]+$/.test(hash)
     && /^\w+$/.test(extension);
-};
+}
 
-const resolveCacheControl = (filePath, ext) => {
+function resolveCacheControl(filePath, ext) {
   if (ext === ".html") {
     return "no-cache";
   }
@@ -98,9 +98,9 @@ const resolveCacheControl = (filePath, ext) => {
   }
 
   return "public, max-age=3600";
-};
+}
 
-const serveFile = async (res, filePath) => {
+async function serveFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const contentType = contentTypeByExt.get(ext) || "application/octet-stream";
   const buf = await fs.readFile(filePath);
@@ -109,12 +109,12 @@ const serveFile = async (res, filePath) => {
     "Cache-Control": resolveCacheControl(filePath, ext),
   });
   res.end(buf);
-};
+}
 
-const isPathInside = (root, target) => {
+function isPathInside(root, target) {
   const relative = path.relative(root, target);
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-};
+}
 
 const server = createServer(async (req, res) => {
   try {

@@ -119,9 +119,9 @@ function searchNumericValue(node: unknown, candidates: string[], depth = 0, matc
 
 function getAbilitySource(record: AbilityRecord): Record<string, unknown> {
   return {
-    ...(record.ability ?? {}),
-    ...(record.basic ?? {}),
-    ...(record.skill ?? {}),
+    ...record.ability,
+    ...record.basic,
+    ...record.skill,
   };
 }
 

@@ -6,13 +6,13 @@ import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import RoomWindow from "@/components/chat/room/roomWindow";
 import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import {
   BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
 } from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {

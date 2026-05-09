@@ -1,15 +1,15 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { RoomMessagesInfiniteQueryData } from "@tuanchat/query/chat";
 
-import { useAuthSession } from "@/features/auth/auth-session";
-import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getRoomMessagesQueryKey,
   upsertRoomMessagesInfiniteData,
 } from "@tuanchat/query/chat";
+import { useEffect, useMemo, useRef } from "react";
+
+import { useAuthSession } from "@/features/auth/auth-session";
+import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
 const TOKEN_INVALID_PUSH_TYPE = 100;

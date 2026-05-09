@@ -1,7 +1,6 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { startTransition, useMemo, useState } from "react";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,
@@ -10,6 +9,7 @@ import {
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
 import NotificationList from "@/components/notification/notificationList";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 
 export default function NotificationPage() {
   const navigate = useNavigate();

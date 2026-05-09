@@ -39,7 +39,7 @@ const EMPTY_CHARACTER_DATA: CharacterData = {
 
 const hasContent = (section?: Record<string, string>) => Boolean(section && Object.keys(section).length);
 
-const cloneSection = (section?: Record<string, string>) => ({ ...(section ?? {}) });
+const cloneSection = (section?: Record<string, string>) => ({ ...section });
 
 export function useCharacterData(options: UseCharacterDataOptions = {}): CharacterDataHandlers {
   const { initialData, templateMergeStrategy = "replace" } = options;

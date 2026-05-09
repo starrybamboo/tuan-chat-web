@@ -18,7 +18,7 @@ type DocHeaderOverrideState = {
     imageFileId?: number;
     originalImageFileId?: number;
     imageMediaType?: string;
-  } }) => void;
+  }; }) => void;
   clearHeader: (params: { docId: string }) => void;
 };
 

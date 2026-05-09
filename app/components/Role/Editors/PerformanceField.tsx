@@ -72,7 +72,7 @@ export default function PerformanceField({
                   }}
                   data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`grow focus:outline-none border-none outline-none bg-transparent font-semibold ${isCompact ? "text-xs" : "text-base"}`}
-                  autoFocus
+
                 />
               </label>
             )

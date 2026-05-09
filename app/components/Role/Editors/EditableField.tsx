@@ -274,7 +274,7 @@ export default function EditableField({
                     w-full md:w-auto md:max-w-[6em] md:shrink-0
                     max-md:text-base-content/70
                   `}
-                  autoFocus
+
                 />
               )
             : (

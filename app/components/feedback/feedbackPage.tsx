@@ -1,11 +1,11 @@
 import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
-import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { useAppNavigate as useNavigate, useAllParams as useParams } from "@/router/utils";
 
 function parseIssueId(rawIssueId?: string) {
   const issueId = Number(rawIssueId);

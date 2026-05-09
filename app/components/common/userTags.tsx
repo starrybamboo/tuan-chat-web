@@ -224,7 +224,7 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
                         if (e.key === "Escape")
                           cancelAddingTag();
                       }}
-                      autoFocus
+
                     />
                     <button
                       type="button"

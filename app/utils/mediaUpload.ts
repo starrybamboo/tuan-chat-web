@@ -89,7 +89,7 @@ async function createDrawableImage(file: File): Promise<ImageBitmap | HTMLImageE
     return await globalThis.createImageBitmap(file);
   }
   if (typeof document === "undefined") {
-    throw new Error("当前环境不支持图片派生文件生成");
+    throw new TypeError("当前环境不支持图片派生文件生成");
   }
 
   return await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -121,7 +121,7 @@ async function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: nu
 
 async function rasterizeImageToWebp(file: File, quality: Exclude<MediaQuality, "original">, profile: ImageMediaProfile): Promise<File> {
   if (typeof document === "undefined") {
-    throw new Error("当前环境不支持图片派生文件生成");
+    throw new TypeError("当前环境不支持图片派生文件生成");
   }
 
   const image = await createDrawableImage(file);

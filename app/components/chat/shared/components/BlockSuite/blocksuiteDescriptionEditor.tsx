@@ -1,7 +1,6 @@
+import type { BlocksuiteDescriptionEditorProps, DocMode } from "./blocksuiteDescriptionEditor.shared";
 import type { BlockNoteDocBlock } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
-import type { DocMode } from "./blocksuiteDescriptionEditor.shared";
-import type { BlocksuiteDescriptionEditorProps } from "./blocksuiteDescriptionEditor.shared";
 
 import { zh } from "@blocknote/core/locales";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -9,18 +8,18 @@ import { BlockNoteView } from "@blocknote/shadcn";
 import { FileTextIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { createBlockNoteSnapshot, decodeBlockNoteBlocks, readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { uploadMediaFile } from "@/utils/mediaUpload";
-import { imageMediumUrl, imageMediumUrlFromUrl, mediaPreviewUrl } from "@/utils/mediaUrl";
+import { createBlockNoteSnapshot, decodeBlockNoteBlocks, readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
-import { BlocksuiteFrameSkeleton } from "./BlocksuiteFrameSkeleton";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { imageMediumUrl, imageMediumUrlFromUrl, mediaPreviewUrl } from "@/utils/mediaUrl";
 import { BLOCKSUITE_FULL_PANEL_EDITOR_CLASS, getCurrentAppTheme } from "./blocksuiteDescriptionEditor.shared";
+import { BlocksuiteFrameSkeleton } from "./BlocksuiteFrameSkeleton";
 
 import "@blocknote/shadcn/style.css";
 
@@ -53,7 +52,7 @@ function buildSnapshotDigest(snapshot: { updateB64: string; header?: Partial<Blo
 }
 
 function hasExplicitHeightClass(className?: string) {
-  return /(^|\s)(h-|min-h-|max-h-)/.test(className ?? "");
+  return /(?:^|\s)(?:h-|min-h-|max-h-)/.test(className ?? "");
 }
 
 function resolveHeader(
@@ -242,7 +241,7 @@ function BlockNoteDocHeaderPanel(props: {
 
 function BlockNoteDescriptionEditorClient(props: BlocksuiteDescriptionEditorProps) {
   const {
-    workspaceId,
+    workspaceId: _workspaceId,
     docId,
     intentPrewarm = false,
     mode: forcedMode = "page",

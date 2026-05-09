@@ -2,7 +2,6 @@ import type { ChatMessageResponse, Message } from "../../../../../api";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import {
   isImageMessageMarkedAsBackground,
@@ -11,6 +10,7 @@ import {
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { tuanchat } from "../../../../../api/instance";
 

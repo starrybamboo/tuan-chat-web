@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { useAuthSession } from "@/features/auth/auth-session";
-import { clearCachedRoomMessages, readCachedRoomMessages, writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
-import { mobileApiClient } from "@/lib/api";
 import {
   flattenRoomMessagePages,
   mergeRoomMessages,
   useRoomMessagesInfiniteQuery as useSharedRoomMessagesInfiniteQuery,
 } from "@tuanchat/query/chat";
+import { useEffect, useMemo, useState } from "react";
+
+import { useAuthSession } from "@/features/auth/auth-session";
+import { clearCachedRoomMessages, readCachedRoomMessages, writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
+import { mobileApiClient } from "@/lib/api";
 
 export function useRoomMessagesQuery(roomId: number | null, pageSize: number = 20) {
   const { isAuthenticated } = useAuthSession();

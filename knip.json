@@ -15,7 +15,7 @@
     "electron/main.js",
     "electron/preload.js",
     "scripts/**/*.mjs",
-    "vite.config.ts",
+    "vite.config.ts"
   ],
   "project": [
     "app/**/*.{ts,tsx}",

@@ -1,9 +1,9 @@
 import type { Space } from "../../../../api";
 
 import { ChatCircleIcon } from "@phosphor-icons/react";
+import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import React, { useMemo, useRef, useState } from "react";
-import { Link } from "@/router/utils";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import { shouldSelectSpaceFromSidebar } from "@/components/chat/space/chatSpaceSidebarNavigation";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";

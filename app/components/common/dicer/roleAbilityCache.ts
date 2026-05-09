@@ -32,13 +32,13 @@ function cloneRoleAbility(ability: RoleAbility): RoleAbility {
   }
   catch {
     return {
-      ...(ability ?? {}),
-      act: { ...(ability?.act ?? {}) },
-      basic: { ...(ability?.basic ?? {}) },
-      ability: { ...(ability?.ability ?? {}) },
-      skill: { ...(ability?.skill ?? {}) },
-      record: { ...(ability?.record ?? {}) },
-      extra: { ...(ability?.extra ?? {}) },
+      ...ability,
+      act: { ...ability?.act },
+      basic: { ...ability?.basic },
+      ability: { ...ability?.ability },
+      skill: { ...ability?.skill },
+      record: { ...ability?.record },
+      extra: { ...ability?.extra },
     } as RoleAbility;
   }
 }

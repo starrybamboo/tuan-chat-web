@@ -1,5 +1,4 @@
 import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
-import { Link } from "@/router/utils";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,
   FEEDBACK_ISSUE_STATUS_OPTIONS,
@@ -13,6 +12,7 @@ import {
   getFeedbackIssueTypeLabel,
   toArchiveFilterValue,
 } from "@/components/feedback/feedbackTypes";
+import { Link } from "@/router/utils";
 
 function FeedbackStateDot({
   status,

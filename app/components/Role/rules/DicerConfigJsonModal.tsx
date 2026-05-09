@@ -89,13 +89,13 @@ export default function DicerConfigJsonModal({
           return;
         }
         if (key.length > MAX_KEY_LENGTH) {
-          setJsonError(`分组键 \"${key}\" 过长，最多 ${MAX_KEY_LENGTH} 字符`);
+          setJsonError(`分组键 "${key}" 过长，最多 ${MAX_KEY_LENGTH} 字符`);
           return;
         }
 
         // 每组数量限制
         if (value.length > MAX_ITEMS_PER_GROUP) {
-          setJsonError(`分组 \"${key}\" 的条目过多，最多 ${MAX_ITEMS_PER_GROUP} 条`);
+          setJsonError(`分组 "${key}" 的条目过多，最多 ${MAX_ITEMS_PER_GROUP} 条`);
           return;
         }
 
@@ -103,11 +103,11 @@ export default function DicerConfigJsonModal({
         for (const [idx, item] of value.entries()) {
           const trimmed = item.trim();
           if (trimmed.length === 0) {
-            setJsonError(`分组 \"${key}\" 中第 ${idx + 1} 条文案为空，请填写内容`);
+            setJsonError(`分组 "${key}" 中第 ${idx + 1} 条文案为空，请填写内容`);
             return;
           }
           if (trimmed.length > MAX_ITEM_LENGTH) {
-            setJsonError(`分组 \"${key}\" 中第 ${idx + 1} 条文案过长，最多 ${MAX_ITEM_LENGTH} 字符`);
+            setJsonError(`分组 "${key}" 中第 ${idx + 1} 条文案过长，最多 ${MAX_ITEM_LENGTH} 字符`);
             return;
           }
         }

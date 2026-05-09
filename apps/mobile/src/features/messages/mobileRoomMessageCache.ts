@@ -1,3 +1,5 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
 import {
   deleteAsync,
   documentDirectory,
@@ -8,8 +10,6 @@ import {
   writeAsStringAsync,
 } from "expo-file-system/legacy";
 import { Platform } from "react-native";
-
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { buildStoredRoomMessageCache, sanitizeStoredRoomMessageCache } from "./mobileRoomMessageCacheUtils";
 

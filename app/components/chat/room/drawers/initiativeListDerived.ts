@@ -44,9 +44,9 @@ function findRuleRecord(query: InitiativeAbilityQuery, ruleId?: number): Ability
 
 function getAbilitySource(record: AbilityRecord): Record<string, unknown> {
   return {
-    ...(record.ability ?? {}),
-    ...(record.basic ?? {}),
-    ...(record.skill ?? {}),
+    ...record.ability,
+    ...record.basic,
+    ...record.skill,
   };
 }
 

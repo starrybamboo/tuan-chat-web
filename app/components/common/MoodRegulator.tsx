@@ -116,7 +116,6 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
         setLabelKeys(keys);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [labels]);
 
   useEffect(() => {

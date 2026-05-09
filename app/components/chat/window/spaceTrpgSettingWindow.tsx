@@ -206,14 +206,12 @@ function SpaceTrpgSettingWindow() {
     if (!didInitRef.current)
       return;
     scheduleAutoSave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ruleId]);
 
   useEffect(() => {
     if (!didInitRef.current)
       return;
     scheduleAutoSave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diceRollerId]);
 
   useEffect(() => {
@@ -228,7 +226,6 @@ function SpaceTrpgSettingWindow() {
       }
       void saveNow();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDiceMaidenLinkConfirm = (dicerRoleId: number) => {

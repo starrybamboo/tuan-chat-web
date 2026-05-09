@@ -7,15 +7,15 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import React from "react";
 import { toast, Toaster } from "react-hot-toast";
-import {
-  isRouteErrorResponse,
-  useAppNavigate as useNavigate,
-} from "@/router/utils";
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
+import {
+  isRouteErrorResponse,
+  useAppNavigate as useNavigate,
+} from "@/router/utils";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "@/app.css";
@@ -130,8 +130,8 @@ if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window
   });
 }
 
-export const links = () => (
-  import.meta.env.VITE_ENABLE_GOOGLE_FONTS === "true"
+export function links() {
+  return import.meta.env.VITE_ENABLE_GOOGLE_FONTS === "true"
     ? [
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         {
@@ -144,8 +144,8 @@ export const links = () => (
           href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
         },
       ]
-    : []
-);
+    : [];
+}
 
 export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({

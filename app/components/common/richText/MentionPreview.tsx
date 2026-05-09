@@ -77,7 +77,7 @@ function MentionPreview(props: MentionPreviewProps) {
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
-        return `<pre style=\"margin:0;white-space:pre-wrap;\">${esc}</pre>`;
+        return `<pre style="margin:0;white-space:pre-wrap;">${esc}</pre>`;
       }
 
       if (!baseHtml) {

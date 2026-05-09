@@ -1,7 +1,6 @@
 import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
 import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
@@ -16,6 +15,7 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const EMPTY_ARRAY: never[] = [];

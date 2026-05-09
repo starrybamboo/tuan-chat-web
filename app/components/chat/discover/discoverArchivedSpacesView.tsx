@@ -8,9 +8,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 type DiscoverArchivedSpacesMode = "square" | "my";

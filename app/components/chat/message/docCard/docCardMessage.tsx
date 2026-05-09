@@ -4,11 +4,11 @@ import { FileTextIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
-import { readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { getCachedDocSnapshot, subscribeCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
 import { getRemoteSnapshot, prewarmRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { getCachedDocSnapshot, subscribeCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";

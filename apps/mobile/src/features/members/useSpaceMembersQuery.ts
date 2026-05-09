@@ -1,6 +1,7 @@
+import { useGetSpaceMembersQuery as useSharedGetSpaceMembersQuery } from "@tuanchat/query/members";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
-import { useGetSpaceMembersQuery as useSharedGetSpaceMembersQuery } from "@tuanchat/query/members";
 
 export function useSpaceMembersQuery(spaceId: number | null) {
   const { isAuthenticated } = useAuthSession();

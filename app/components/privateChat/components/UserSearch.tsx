@@ -10,8 +10,8 @@ import {
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 type AddFriendSearchMode = "id" | "username";

@@ -22,7 +22,7 @@ type EntityHeaderOverrideState = {
     imageFileId?: number;
     originalImageFileId?: number;
     imageMediaType?: string;
-  } }) => void;
+  }; }) => void;
   clearHeader: (params: { entityType: DescriptionEntityType; entityId: number }) => void;
 };
 

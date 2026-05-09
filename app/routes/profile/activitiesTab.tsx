@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAllParams as useParams } from "@/router/utils";
 import ActivitiesTab from "@/components/profile/profileTab/activitiesTab";
+import { useAllParams as useParams } from "@/router/utils";
 import { createSeoMeta } from "@/utils/seo";
 
-type ProfileActivitiesRouteParams = {
+interface ProfileActivitiesRouteParams {
   params: {
     userId?: string;
   };
-};
+}
 
 export function meta({ params }: ProfileActivitiesRouteParams) {
   return createSeoMeta({

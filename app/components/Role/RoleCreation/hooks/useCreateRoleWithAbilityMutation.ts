@@ -7,9 +7,10 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { invalidateRoleCreateQueries } from "api/hooks/roleMutationInvalidation";
 import { seedUserRoleQueryCache, upsertUserRoleListQueryCache } from "api/roleQueryCache";
-import { ensureCreatedRoleDefaultAvatar } from "./createRoleDefaultAvatar";
 
 import type { Role } from "../../types";
+
+import { ensureCreatedRoleDefaultAvatar } from "./createRoleDefaultAvatar";
 
 export type CreateRoleWithAbilityInput = {
   roleName: string;

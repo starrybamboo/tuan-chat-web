@@ -211,7 +211,7 @@ export default function InitiativeList() {
           if (currentLevel !== normalizedLevel) {
             levelChanged = true;
             nextExtras = {
-              ...(item.extras ?? {}),
+              ...item.extras,
               [levelParam.key]: normalizedLevel,
             };
           }
@@ -267,9 +267,9 @@ export default function InitiativeList() {
 
       if (record) {
         const roleAbility: RoleAbility = {
-          basic: { ...(record.basic || {}) },
-          ability: { ...(record.ability || {}) },
-          skill: { ...((record as any).skill || {}) },
+          basic: { ...record.basic },
+          ability: { ...record.ability },
+          skill: { ...(record as any).skill },
         };
 
         const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
@@ -370,9 +370,9 @@ export default function InitiativeList() {
       return;
 
     const roleAbility: RoleAbility = {
-      basic: { ...(record.basic || {}) },
-      ability: { ...(record.ability || {}) },
-      skill: { ...((record as any).skill || {}) },
+      basic: { ...record.basic },
+      ability: { ...record.ability },
+      skill: { ...(record as any).skill },
     };
 
     const stageKeys = ["攻击修正", "防御修正", "特攻修正", "特防修正", "速度修正"];
@@ -508,7 +508,7 @@ export default function InitiativeList() {
     if (initiativeList.length > 0) {
       setInitiativeList(
         initiativeList.map((i) => {
-          const extras = { ...(i.extras ?? {}) };
+          const extras = { ...i.extras };
           if (extras[key] == null)
             extras[key] = "";
           return { ...i, extras };
@@ -524,7 +524,7 @@ export default function InitiativeList() {
     setParams(params.filter(p => p.key !== key));
     setInitiativeList(
       initiativeList.map((i) => {
-        const extras = { ...(i.extras ?? {}) };
+        const extras = { ...i.extras };
         delete extras[key];
         return { ...i, extras };
       }),
@@ -578,9 +578,9 @@ export default function InitiativeList() {
         }
 
         const roleAbility: RoleAbility = {
-          basic: { ...(record.basic || {}) },
-          ability: { ...(record.ability || {}) },
-          skill: { ...((record as any).skill || {}) },
+          basic: { ...record.basic },
+          ability: { ...record.ability },
+          skill: { ...(record as any).skill },
         };
 
         const actionPointKeys = ["行动点", "行动值", "AP", "ap"];
@@ -639,7 +639,7 @@ export default function InitiativeList() {
       initiativeList.map((i) => {
         if (i.name !== item.name)
           return i;
-        const extras = { ...(i.extras ?? {}) };
+        const extras = { ...i.extras };
         extras[key] = value === "" ? null : value;
         return { ...i, extras };
       }),

@@ -4,8 +4,8 @@ import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, NavLink, useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { Link, NavLink, useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
@@ -528,7 +528,7 @@ export function Sidebar({
                               onNavigate?.();
                             }
                           }}
-                          >
+                        >
                           <RoleListItem
                             role={role}
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
@@ -618,7 +618,7 @@ export function Sidebar({
                               onNavigate?.();
                             }
                           }}
-                          >
+                        >
                           <RoleListItem
                             role={role}
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}

@@ -1,9 +1,9 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { BellIcon } from "@phosphor-icons/react";
+import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useAppNavigate as useNavigate } from "@/router/utils";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import {
   useMarkAllNotificationsReadMutation,
@@ -11,6 +11,7 @@ import {
   useNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const LazyNotificationList = lazy(() => import("@/components/notification/notificationList"));

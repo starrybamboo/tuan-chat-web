@@ -3,13 +3,13 @@ import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIco
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate } from "@/router/utils";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { prepareSpaceDocsForArchive } from "@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 interface SpaceHeaderBarProps {

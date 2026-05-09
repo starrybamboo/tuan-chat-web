@@ -6,9 +6,9 @@ import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { BUSINESS_MEDIA_QUALITY, compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
-import { mediaFileUrl } from "@/utils/mediaUrl";
-import { uploadMediaFile } from "@/utils/mediaUpload";
 import { inferMediaTypeFromMimeType, normalizeFileMimeType } from "@/utils/mediaMime";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
 type PreparedImagePayload = {
@@ -437,7 +437,7 @@ export class UploadUtils {
   async uploadDualImage(
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
-    options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
+    _options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<UploadedDualImageResult> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
     const originalSize = file.size;
@@ -486,7 +486,7 @@ export class UploadUtils {
   async uploadImg(
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
-    options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
+    _options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<string> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
     return (await this.uploadMediaAsset(normalizedFile, scene, "high")).url;

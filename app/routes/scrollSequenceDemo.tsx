@@ -1,9 +1,9 @@
 import type { MotionValue } from "motion/react";
 import type { RefObject } from "react";
-import type { RouteMetaArgs } from "@/router/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
-
 import type { ProceduralRenderer } from "./scrollSequenceDemoShared";
+import type { RouteMetaArgs } from "@/router/routeTypes";
+
+import { createFileRoute } from "@tanstack/react-router";
 import { motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createSeoMeta } from "@/utils/seo";

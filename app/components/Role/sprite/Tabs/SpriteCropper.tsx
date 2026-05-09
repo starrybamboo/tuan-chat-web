@@ -115,7 +115,6 @@ export function SpriteCropper({
         setCurrentSpriteIndex(validIndex);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSpriteIndex, filteredAvatars.length]);
 
   // 操作模式：根据外部多选状态自动确定

@@ -3,9 +3,9 @@ import type { ChatMessageResponse } from "../../../../../api";
 import { ArrowRightIcon, ChatCircleIcon } from "@phosphor-icons/react";
 import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
-import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
+import { useAppNavigate as useNavigate, useUrlSearchParams as useSearchParams } from "@/router/utils";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 

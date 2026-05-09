@@ -1,7 +1,6 @@
 import type { MarkTarget } from "../../../api";
 import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 import toast from "react-hot-toast";
-import { Link } from "@/router/utils";
 import {
   useFeedbackIssueDetailQuery,
   useUpdateFeedbackIssueArchiveMutation,
@@ -23,6 +22,7 @@ import {
   getFeedbackIssueTypeLabel,
   isFeedbackDeveloper,
 } from "@/components/feedback/feedbackTypes";
+import { Link } from "@/router/utils";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {

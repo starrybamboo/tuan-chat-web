@@ -44,7 +44,7 @@ function RubyInputDialog({ onConfirm, onClose, initialText }: {
             placeholder="例如：笑顔"
             value={text}
             onChange={e => setText(e.target.value)}
-            autoFocus
+
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -124,7 +124,7 @@ function ColorTextDialog({ onConfirm, onClose, initialText }: {
             placeholder="输入要着色的文字"
             value={text}
             onChange={e => setText(e.target.value)}
-            autoFocus
+
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -203,7 +203,7 @@ function ItalicTextDialog({ onConfirm, onClose, initialText }: {
             placeholder="输入斜体文字"
             value={text}
             onChange={e => setText(e.target.value)}
-            autoFocus
+
           />
         </label>
       </div>
@@ -281,7 +281,7 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
             placeholder="输入要设置样式的文字"
             value={text}
             onChange={e => setText(e.target.value)}
-            autoFocus
+
           />
         </label>
 

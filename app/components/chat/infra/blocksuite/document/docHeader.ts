@@ -27,7 +27,7 @@ function readString(map: Y.Map<unknown>, key: string): string {
 
 function readNumber(map: Y.Map<unknown>, key: string): number | undefined {
   const v = map.get(key);
-  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : Number.NaN;
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 

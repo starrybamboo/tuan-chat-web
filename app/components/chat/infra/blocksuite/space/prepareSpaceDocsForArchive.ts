@@ -1,10 +1,10 @@
-import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
 import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import { isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
 import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import { tuanchat } from "api/instance";
 
-async function prepareSingleSpaceDocForArchive(spaceId: number, docId: number) {
+async function prepareSingleSpaceDocForArchive(docId: number) {
   const remoteKey = {
     entityType: "space_doc" as const,
     entityId: docId,
@@ -33,11 +33,6 @@ async function prepareSingleSpaceDocForArchive(spaceId: number, docId: number) {
         updatedAt: Date.now(),
       },
     });
-    return;
-  }
-
-  if (!spaceId) {
-    return;
   }
 }
 
@@ -49,6 +44,6 @@ export async function prepareSpaceDocsForArchive(spaceId: number): Promise<void>
   const response = await tuanchat.spaceDocController.listDocs2(spaceId);
   const docs = response?.data?.filter(doc => typeof doc.docId === "number" && doc.docId > 0) ?? [];
   for (const doc of docs) {
-    await prepareSingleSpaceDocForArchive(spaceId, doc.docId!);
+    await prepareSingleSpaceDocForArchive(doc.docId!);
   }
 }

@@ -1,11 +1,11 @@
 import { Plus } from "@phosphor-icons/react";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useAppNavigate as useNavigate } from "@/router/utils";
-
 import { useGlobalUserId } from "@/components/globalContextProvider";
+
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
+import { useAppNavigate as useNavigate } from "@/router/utils";
 
 interface RuleEditorEntryPageProps {
   onBack?: () => void;

@@ -37,6 +37,7 @@ export default antfu(
       "release/**",
       "coverage/**",
       "node_modules/.cache/**",
+      "app/routeTree.gen.ts",
     ],
     plugins: {
       "@tanstack/query": pluginQuery,

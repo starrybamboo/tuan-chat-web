@@ -14,7 +14,7 @@ dns.setDefaultResultOrder("ipv4first");
 function downloadWithPowershell(url) {
   const psScript = [
     "$ProgressPreference = \"SilentlyContinue\"",
-    `$response = Invoke-WebRequest -Uri \"${url}\" -UseBasicParsing`,
+    `$response = Invoke-WebRequest -Uri "${url}" -UseBasicParsing`,
     "$response.Content",
   ].join("; ");
 

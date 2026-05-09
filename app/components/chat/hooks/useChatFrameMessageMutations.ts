@@ -55,9 +55,9 @@ export default function useChatFrameMessageMutations({
         const serverMessage = response?.data;
         const updatedMessage: ChatMessageResponse | null = serverMessage
           ? {
-              ...(targetMessage ?? {}),
+              ...targetMessage,
               message: {
-                ...(targetMessage?.message ?? {}),
+                ...targetMessage?.message,
                 ...serverMessage,
               },
             }

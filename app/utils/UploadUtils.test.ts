@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UploadUtils } from "./UploadUtils";
 import { uploadMediaFile } from "./mediaUpload";
+import { UploadUtils } from "./UploadUtils";
 import { transcodeVideoFileToWebmOrThrow } from "./videoTranscodeUtils";
 
 vi.mock("./mediaUpload", () => ({
