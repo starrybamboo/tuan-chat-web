@@ -33,6 +33,12 @@ export type StoredSnapshot = {
     imageMediaType?: string;
   };
   excerpt?: string;
+} | {
+  // v4: linear message-stream snapshot for lightweight document surfaces
+  v: 4;
+  format: "message-stream";
+  updateB64: string;
+  updatedAt: number;
 };
 
 type RemoteKey = {
@@ -226,6 +232,11 @@ function isStoredSnapshot(v: any): v is StoredSnapshot {
       && v.format === "blocknote"
       && (typeof v.excerpt === "undefined" || typeof v.excerpt === "string")
       && (typeof v.header === "undefined" || typeof v.header === "object");
+  }
+  if (v.v === 4) {
+    return typeof v.updateB64 === "string"
+      && typeof v.updatedAt === "number"
+      && v.format === "message-stream";
   }
   return false;
 }

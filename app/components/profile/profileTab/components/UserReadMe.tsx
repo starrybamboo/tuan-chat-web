@@ -1,8 +1,6 @@
 import React from "react";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
-import {
-  BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
-} from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
+
+import UserReadMeMessageEditor from "./UserReadMeMessageEditor";
 
 interface UserReadMeProps {
   userId: number;
@@ -14,15 +12,15 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
   loginUserId,
 }) => {
   const isOwner = userId === loginUserId;
+  const docId = `user:${userId}:readme`;
 
   return (
-    <div className="flex-1 min-h-0 lg:m-2 p-2">
+    <div className="flex-1 min-h-0 p-2 lg:m-2">
       <div className="h-full min-h-0 transition-all">
-        <BlocksuiteDescriptionEditor
-          workspaceId={`user:${userId}`}
-          docId={`user:${userId}:readme`}
-          className={BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}
-          readOnly={!isOwner}
+        <UserReadMeMessageEditor
+          userId={userId}
+          isOwner={isOwner}
+          docId={docId}
         />
       </div>
     </div>
