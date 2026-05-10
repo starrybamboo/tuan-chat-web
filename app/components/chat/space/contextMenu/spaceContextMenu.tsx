@@ -57,7 +57,7 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
     toast.loading(nextArchived ? "正在归档空间..." : "正在恢复编辑...", { id: toastId });
     try {
       if (nextArchived) {
-        const { prepareSpaceDocsForArchive } = await import("@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive");
+        const { prepareSpaceDocsForArchive } = await import("@/components/chat/infra/doc/space/prepareSpaceDocsForArchive");
         await prepareSpaceDocsForArchive(spaceId);
         await updateArchiveStatus.mutateAsync({ spaceId, archived: true });
       }
@@ -160,8 +160,8 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                 void (async () => {
                   try {
                     const [{ deleteSpaceDoc }, { buildSpaceDocId }] = await Promise.all([
-                      import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc"),
-                      import("@/components/chat/infra/blocksuite/space/spaceDocId"),
+                      import("@/components/chat/infra/doc/space/deleteSpaceDoc"),
+                      import("@/components/chat/infra/doc/space/spaceDocId"),
                     ]);
                     await deleteSpaceDoc({
                       spaceId: target,

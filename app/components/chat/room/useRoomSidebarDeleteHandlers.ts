@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 
-import { deleteSpaceDoc } from "@/components/chat/infra/blocksuite/space/deleteSpaceDoc";
+import { deleteSpaceDoc } from "@/components/chat/infra/doc/space/deleteSpaceDoc";
 
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 import type { DeleteConfirmDocState } from "./sidebarTreeOverlays";

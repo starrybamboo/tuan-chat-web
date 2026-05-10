@@ -2,7 +2,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { buildSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
@@ -132,7 +132,7 @@ export default function ChatPageContextMenu({
               if (typeof window !== "undefined" && typeof spaceId === "number" && spaceId > 0) {
                 void (async () => {
                   try {
-                    const { deleteSpaceDoc } = await import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc");
+                    const { deleteSpaceDoc } = await import("@/components/chat/infra/doc/space/deleteSpaceDoc");
                     await deleteSpaceDoc({
                       spaceId,
                       docId: buildSpaceDocId({ kind: "room_description", roomId: activeDissolveRoomId }),

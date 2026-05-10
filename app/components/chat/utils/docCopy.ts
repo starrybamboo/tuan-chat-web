@@ -1,11 +1,11 @@
-import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
 
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence";
+import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
+import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
+import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
 
 import { tuanchat } from "../../../../api/instance";
 
@@ -88,7 +88,7 @@ export async function copyDocToSpaceDoc(params: {
     throw new Error("创建文档失败");
   }
 
-  const { buildSpaceDocId } = await import("@/components/chat/infra/blocksuite/space/spaceDocId");
+  const { buildSpaceDocId } = await import("@/components/chat/infra/doc/space/spaceDocId");
 
   const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
   const snapshot = buildCopiedSnapshot(sourceSnapshot, {
@@ -150,7 +150,7 @@ export async function copyDocToSpaceUserDoc(params: {
   };
 
   const newEntityId = await createDocWithRetry();
-  const { buildDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
+  const { buildDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
 
   const newDocId = buildDescriptionDocId({
     entityType: "space_user_doc",

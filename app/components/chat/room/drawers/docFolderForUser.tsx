@@ -13,7 +13,7 @@ import {
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildDescriptionDocId, parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
+import { buildDescriptionDocId, parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";

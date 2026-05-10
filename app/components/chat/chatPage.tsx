@@ -26,7 +26,7 @@ import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndica
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
 import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
