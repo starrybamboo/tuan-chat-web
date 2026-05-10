@@ -362,7 +362,7 @@ export default defineConfig(() => {
         },
         {
           // fast-deep-equal 的根入口和 react/es6 子路径都是 CJS。
-          // BlockNote 等依赖会把它当成 ESM default 导入，Vite dev 下会直接炸。
+          // 部分第三方依赖会把它当成 ESM default 导入，Vite dev 下会直接炸。
           find: /^fast-deep-equal$/,
           replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
         },
@@ -422,15 +422,6 @@ export default defineConfig(() => {
       host: "0.0.0.0",
       // Pre-transform requested modules more aggressively in dev.
       preTransformRequests: true,
-      // Warm up the current document editor path in dev.
-      warmup: {
-        clientFiles: [
-          "app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx",
-          "app/components/chat/infra/blocksuite/document/blockNoteSnapshot.ts",
-          "app/components/chat/infra/blocksuite/document/docSnapshotCache.ts",
-          "app/components/chat/infra/blocksuite/description/descriptionDocRemote.ts",
-        ],
-      },
     },
 
     ssr: {

@@ -1,5 +1,4 @@
 import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import {
   useGetMemberListQuery,
   useGetRoomInfoQuery,
@@ -8,14 +7,13 @@ import {
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
 import RoleList from "@/components/chat/shared/components/roleLists";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
-import { avatarThumbUrl, extractMediaFileIdFromUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
@@ -98,21 +96,15 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     }
   }, [defaultTab]);
 
-  const latestHeaderRef = useRef<BlocksuiteDocHeader | null>(null);
-  const syncTimerRef = useRef<number | null>(null);
-
-  const flushRoomRedundant = useCallback((header?: BlocksuiteDocHeader, opts?: { closeAfter?: boolean }) => {
+  const flushRoomRedundant = useCallback((opts?: { closeAfter?: boolean }) => {
     if (!propRoomId || !Number.isFinite(propRoomId) || propRoomId <= 0)
       return;
 
-    const title = (header?.title ?? room?.name ?? "").trim();
-    const avatarFileId = header?.imageFileId ?? extractMediaFileIdFromUrl(header?.imageUrl) ?? room?.avatarFileId;
-
     updateRoomMutation.mutate({
       roomId: propRoomId,
-      name: title,
+      name: (room?.name ?? "").trim(),
       description: room?.description ?? "",
-      avatarFileId,
+      avatarFileId: room?.avatarFileId,
     }, {
       onSuccess: () => {
         if (opts?.closeAfter) {
@@ -122,37 +114,9 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     });
   }, [onClose, propRoomId, room?.avatarFileId, room?.description, room?.name, updateRoomMutation]);
 
-  const scheduleRoomRedundantSync = useCallback((header: BlocksuiteDocHeader) => {
-    if (typeof window === "undefined")
-      return;
-
-    latestHeaderRef.current = header;
-
-    if (syncTimerRef.current) {
-      window.clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-    // 轻量防抖：输入时乐观更新 UI，但把冗余写回 room 延后一点
-    syncTimerRef.current = window.setTimeout(() => {
-      syncTimerRef.current = null;
-      flushRoomRedundant(latestHeaderRef.current ?? undefined);
-    }, 800);
-  }, [flushRoomRedundant]);
-
-  useEffect(() => {
-    return () => {
-      if (typeof window === "undefined")
-        return;
-      if (syncTimerRef.current) {
-        window.clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = null;
-      }
-    };
-  }, []);
-
   // 退出时自动保存
   const handleClose = () => {
-    flushRoomRedundant(latestHeaderRef.current ?? undefined, { closeAfter: true });
+    flushRoomRedundant({ closeAfter: true });
   };
 
   return (
@@ -197,19 +161,10 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                   <div className="p-4 h-full min-h-0">
                     {(propRoomId && (room?.spaceId ?? spaceId))
                       ? (
-                          <BlocksuiteDescriptionEditor
-                            workspaceId={`space:${(room?.spaceId ?? spaceId)!}`}
-                            spaceId={(room?.spaceId ?? spaceId)!}
-                            docId={buildSpaceDocId({ kind: "room_description", roomId: propRoomId })}
-                            tcHeader={{
-                              enabled: true,
-                              fallbackTitle: room?.name ?? "",
-                              fallbackImageUrl: avatarThumbUrl(room?.avatarFileId),
-                              fallbackImageFileId: room?.avatarFileId,
-                            }}
-                            onTcHeaderChange={({ header }) => {
-                              scheduleRoomRedundantSync(header);
-                            }}
+                          <MessageEditor
+                            coverUrl={avatarThumbUrl(room?.avatarFileId)}
+                            docId={propRoomId ? `room:${propRoomId}:description` : undefined}
+                            title={room?.name ?? ""}
                           />
                         )
                       : (

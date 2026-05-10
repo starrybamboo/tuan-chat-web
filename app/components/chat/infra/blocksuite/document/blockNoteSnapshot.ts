@@ -1,12 +1,21 @@
-import type { PartialBlock } from "@blocknote/core";
-
 import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import { base64ToString, stringToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
 
-export type BlockNoteDocBlock = PartialBlock<any, any, any>;
+type BlockNoteBlockProps = Record<string, unknown>;
+
+/**
+ * 为兼容旧 blocknote 快照保留的最小结构类型。
+ */
+export type BlockNoteDocBlock = {
+  children?: BlockNoteDocBlock[];
+  content?: unknown;
+  id?: string;
+  props?: BlockNoteBlockProps;
+  type?: string;
+};
 
 export type StoredBlockNoteSnapshot = {
   v: 3;

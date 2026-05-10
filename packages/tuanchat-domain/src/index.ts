@@ -1,5 +1,6 @@
 export * from "./message-extra";
 export * from "./messageDraft";
+export * from "./messageEditor";
 export * from "./messageType";
 export * from "./open-api-result";
 export * from "./role-api-error";

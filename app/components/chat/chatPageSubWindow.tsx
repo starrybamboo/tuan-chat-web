@@ -6,10 +6,10 @@ import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef"
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
 
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
-const LazyBlocksuiteDescriptionEditor = React.lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
 const LazySpaceMaterialSubWindow = React.lazy(() => import("@/components/chat/space/drawers/spaceMaterialSubWindow"));
 
 type ScreenSize = "sm" | "md" | "lg";
@@ -542,21 +542,20 @@ export default function ChatPageSubWindow({
                   : resolvedDocId
                     ? (
                         <div className="w-full h-full overflow-hidden bg-base-100">
-                          <React.Suspense fallback={<SubWindowLoadingFallback text="正在加载文档副窗口..." />}>
-                            <LazyBlocksuiteDescriptionEditor
-                              workspaceId={`space:${activeSpaceId}`}
-                              spaceId={activeSpaceId}
-                              docId={resolvedDocId}
-                              tcHeader={{
-                                enabled: true,
-                                fallbackTitle: docTitleById.get(resolvedDocId)?.title ?? "文档",
-                                fallbackImageUrl: docTitleById.get(resolvedDocId)?.imageUrl,
-                                fallbackImageFileId: docTitleById.get(resolvedDocId)?.imageFileId,
-                                fallbackOriginalImageFileId: docTitleById.get(resolvedDocId)?.originalImageFileId,
-                                fallbackImageMediaType: docTitleById.get(resolvedDocId)?.imageMediaType,
-                              }}
-                            />
-                          </React.Suspense>
+                          <MessageEditor
+                            docId={resolvedDocId}
+                            spaceId={activeSpaceId}
+                            tcHeader={{
+                              enabled: true,
+                              fallbackTitle: docTitleById.get(resolvedDocId)?.title ?? "文档",
+                              fallbackImageUrl: docTitleById.get(resolvedDocId)?.imageUrl,
+                              fallbackImageFileId: docTitleById.get(resolvedDocId)?.imageFileId,
+                              fallbackOriginalImageFileId: docTitleById.get(resolvedDocId)?.originalImageFileId,
+                              fallbackImageMediaType: docTitleById.get(resolvedDocId)?.imageMediaType,
+                            }}
+                            workspaceId={`space:${activeSpaceId}`}
+                            readOnly
+                          />
                         </div>
                       )
                     : (

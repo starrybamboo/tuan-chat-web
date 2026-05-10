@@ -1,6 +1,5 @@
 import type { SpaceUserDocResponse } from "@tuanchat/openapi-client/models/SpaceUserDocResponse";
 import type { FolderNode } from "./docFolderTagTree";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import { DotsThreeVerticalIcon, FileTextIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,7 +10,7 @@ import {
   useRenameSpaceUserDocMutation,
   useUpdateSpaceUserDocTagMutation,
 } from "api/hooks/spaceUserDocHooks";
-import { lazy, Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildDescriptionDocId, parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
@@ -20,14 +19,13 @@ import { copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag, setDocRefDragData } from "@/components/chat/utils/docRef";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { AddIcon, ChevronDown, FolderIcon } from "@/icons";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { buildFolderNodes, normalizeTagPath, UNTAGGED_KEY } from "./docFolderTagTree";
 
 const LOCAL_TAG_STORAGE_KEY = "tc:space-user-doc-local-tags";
 const TAG_MAX_LENGTH = 64;
-
-const LazyBlocksuiteDescriptionEditor = lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
 
 interface DocFolderForUserProps {
   onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
@@ -51,7 +49,7 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
 
   const docsQuery = useListSpaceUserDocsQuery(spaceId);
   const createDocMutation = useCreateSpaceUserDocMutation();
-  const renameDocMutation = useRenameSpaceUserDocMutation();
+  const _renameDocMutation = useRenameSpaceUserDocMutation();
   const deleteDocMutation = useDeleteSpaceUserDocMutation();
   const updateDocTagMutation = useUpdateSpaceUserDocTagMutation();
 
@@ -114,7 +112,7 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
 
   const [openDocId, setOpenDocId] = useState<number | null>(null);
   const openDocMeta = openDocId != null ? docById.get(openDocId) : null;
-  const openDocBlocksuiteId = useMemo(() => {
+  const openDocEditorId = useMemo(() => {
     if (!openDocId)
       return null;
     return buildDescriptionDocId({ entityType: "space_user_doc", entityId: openDocId, docType: "description" });
@@ -125,41 +123,6 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
     const title = (openDocMeta?.title ?? "").trim();
     return title || `文档 #${openDocId}`;
   }, [openDocId, openDocMeta?.title]);
-
-  const editorRenameTimerRef = useRef<number | null>(null);
-  const editorLatestTitleRef = useRef<string>("");
-
-  const scheduleRenameFromEditor = useCallback((docId: number, title: string) => {
-    if (typeof window === "undefined")
-      return;
-    if (!spaceId || spaceId <= 0)
-      return;
-    editorLatestTitleRef.current = title;
-    if (editorRenameTimerRef.current) {
-      window.clearTimeout(editorRenameTimerRef.current);
-      editorRenameTimerRef.current = null;
-    }
-    editorRenameTimerRef.current = window.setTimeout(() => {
-      editorRenameTimerRef.current = null;
-      const finalTitle = editorLatestTitleRef.current.trim();
-      if (!finalTitle)
-        return;
-      renameDocMutation.mutate({ spaceId, docId, title: finalTitle }, {
-        onError: () => toast.error("更新标题失败"),
-      });
-    }, 700);
-  }, [renameDocMutation, spaceId]);
-
-  useEffect(() => {
-    return () => {
-      if (typeof window === "undefined")
-        return;
-      if (editorRenameTimerRef.current) {
-        window.clearTimeout(editorRenameTimerRef.current);
-        editorRenameTimerRef.current = null;
-      }
-    };
-  }, []);
 
   const [createDocOpen, setCreateDocOpen] = useState(false);
   const [createDocTitleDefaultValue, setCreateDocTitleDefaultValue] = useState("");
@@ -804,7 +767,7 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
       </ToastWindow>
 
       <ToastWindow
-        isOpen={openDocId != null && openDocBlocksuiteId != null}
+        isOpen={openDocId != null && openDocEditorId != null}
         onClose={() => setOpenDocId(null)}
         fullScreen={isMobile}
         disableScroll
@@ -813,39 +776,14 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
           className={`${documentModalShellClassName} ${getDocumentModalFrameClassName(isMobile)}`}
         >
           <div className="flex-1 min-h-0 overflow-hidden">
-            {openDocBlocksuiteId && (
+            {openDocEditorId && (
               <div className="w-full h-full overflow-hidden bg-base-100">
-                <Suspense fallback={<DocFolderEditorFallback />}>
-                  <LazyBlocksuiteDescriptionEditor
-                    workspaceId={`space:${spaceId}`}
-                    spaceId={spaceId}
-                    docId={openDocBlocksuiteId}
-                    readOnly={false}
-                    tcHeader={{ enabled: true, fallbackTitle: openDocTitle }}
-                    onTcHeaderChange={(payload: { header: BlocksuiteDocHeader }) => {
-                      if (openDocId == null)
-                        return;
-                      const nextTitle = (payload.header?.title ?? "").trim();
-                      if (!nextTitle)
-                        return;
-                      scheduleRenameFromEditor(openDocId, nextTitle);
-                    }}
-                  />
-                </Suspense>
+                <MessageEditor className="h-full min-h-0" docId={openDocEditorId} title={openDocTitle} />
               </div>
             )}
           </div>
         </div>
       </ToastWindow>
-    </div>
-  );
-}
-
-function DocFolderEditorFallback() {
-  return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
-      <span className="loading loading-spinner loading-md"></span>
-      <span className="ml-2">正在加载文档编辑器...</span>
     </div>
   );
 }

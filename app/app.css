@@ -1,4 +1,3 @@
-@layer blocksuite;
 @import "tailwindcss";
 @source "./**/*.js";
 @source "./**/*.jsx";

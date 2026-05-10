@@ -1,4 +1,3 @@
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
 import {
   useGetSpaceInfoQuery,
   useGetUserSpacesQuery,
@@ -7,9 +6,8 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
-import { avatarThumbUrl, extractMediaFileIdFromUrl } from "@/utils/mediaUrl";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = React.use(SpaceContext);
@@ -86,18 +84,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     });
     dirtyRef.current = false;
   }, [space, buildSnapshot]);
-
-  const handleBlocksuiteHeaderChange = useCallback((header: BlocksuiteDocHeader) => {
-    setFormData((prev) => {
-      const nextName = header.title;
-      const nextAvatarFileId = header.imageFileId ?? extractMediaFileIdFromUrl(header.imageUrl) ?? prev.avatarFileId;
-      const nextAvatar = avatarThumbUrl(nextAvatarFileId) || header.imageUrl;
-      if (prev.name === nextName && prev.avatar === nextAvatar && prev.avatarFileId === nextAvatarFileId) {
-        return prev;
-      }
-      return { ...prev, name: nextName, avatar: nextAvatar, avatarFileId: nextAvatarFileId };
-    });
-  }, []);
 
   const updateSpaceMutation = useUpdateSpaceMutation();
 
@@ -283,19 +269,10 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
               {/* 右侧：空间描述文档 */}
               <div className="flex-1 min-w-0 min-h-0">
-                <BlocksuiteDescriptionEditor
-                  workspaceId={`space:${spaceId}`}
-                  spaceId={spaceId}
-                  docId={buildSpaceDocId({ kind: "space_description", spaceId })}
-                  tcHeader={{
-                    enabled: true,
-                    fallbackTitle: space?.name ?? "",
-                    fallbackImageUrl: avatarThumbUrl(space?.avatarFileId),
-                    fallbackImageFileId: space?.avatarFileId,
-                  }}
-                  onTcHeaderChange={({ header }) => {
-                    handleBlocksuiteHeaderChange(header);
-                  }}
+                <MessageEditor
+                  coverUrl={avatarThumbUrl(space?.avatarFileId)}
+                  docId={spaceId ? `space:${spaceId}:description` : undefined}
+                  title={space?.name ?? ""}
                 />
               </div>
             </div>
