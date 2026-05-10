@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { prepareSpaceDocsForArchive } from "@/components/chat/infra/blocksuite/space/prepareSpaceDocsForArchive";
+import { prepareSpaceDocsForArchive } from "@/components/chat/infra/doc/space/prepareSpaceDocsForArchive";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
@@ -113,8 +113,8 @@ export default function SpaceHeaderBar({
     }
     try {
       const [{ deleteSpaceDoc }, { buildSpaceDocId }] = await Promise.all([
-        import("@/components/chat/infra/blocksuite/space/deleteSpaceDoc"),
-        import("@/components/chat/infra/blocksuite/space/spaceDocId"),
+        import("@/components/chat/infra/doc/space/deleteSpaceDoc"),
+        import("@/components/chat/infra/doc/space/spaceDocId"),
       ]);
       await deleteSpaceDoc({
         spaceId: targetSpaceId,

@@ -5,8 +5,8 @@ import toast from "react-hot-toast";
 
 import type { MinimalDocMeta, SidebarLeafNode, SidebarTree } from "@/components/chat/room/sidebarTree";
 
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
-import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence";
+import { buildSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
+import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
 import { buildDefaultSidebarTree } from "@/components/chat/room/sidebarTree";
 import { tuanchat } from "api/instance";
 

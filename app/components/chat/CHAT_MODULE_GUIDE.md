@@ -148,7 +148,7 @@ ChatFrame 负责“消息列表的业务协调”：
 - IndexedDB：`infra/indexedDB/useChatHistory.ts` 负责消息缓存。
 - WebSocket：`api/useWebSocket.tsx`（由 globalContext 提供 websocketUtils）。
 - WebGAL：`core/realtimeRenderOrchestrator.tsx` + `webGAL/useRealtimeRender`。
-- Blocksuite：位于 `infra/blocksuite`（文档相关能力）。
+- 文档基础设施：位于 `infra/doc`（文档相关能力）。
 - 音频消息播放：`infra/audioMessage`（含 BGM 切换协调器与消息波形缓存）。
 
 Infra 层通常“不会直接渲染 UI”，但支撑大部分核心功能。

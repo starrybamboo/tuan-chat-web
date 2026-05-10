@@ -1,8 +1,8 @@
-import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 
-import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
-import { base64ToString, stringToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
+import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
+import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shared/base64";
 
 type BlockNoteBlockProps = Record<string, unknown>;
 

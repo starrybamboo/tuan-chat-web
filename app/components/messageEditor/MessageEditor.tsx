@@ -1,8 +1,8 @@
-import type { DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import type { DescriptionEntityType } from "@/components/chat/infra/doc/description/descriptionDocId";
+import type { BlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import { useEffect, useMemo, useRef } from "react";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/blocksuite/document/docHeader";
+import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
+import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 
 interface MessageEditorProps {
   className?: string;

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
+import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { tuanchat } from "api/instance";
 
 import { prepareSpaceDocsForArchive } from "./prepareSpaceDocsForArchive";
@@ -14,11 +14,11 @@ vi.mock("api/instance", () => ({
   },
 }));
 
-vi.mock("@/components/chat/infra/blocksuite/document/docSnapshotCache", () => ({
+vi.mock("@/components/chat/infra/doc/document/docSnapshotCache", () => ({
   getCachedDocSnapshot: vi.fn(),
 }));
 
-vi.mock("@/components/chat/infra/blocksuite/description/descriptionDocRemote", () => ({
+vi.mock("@/components/chat/infra/doc/description/descriptionDocRemote", () => ({
   getRemoteSnapshot: vi.fn(),
   setRemoteSnapshot: vi.fn(),
 }));

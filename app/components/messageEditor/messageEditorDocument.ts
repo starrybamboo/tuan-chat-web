@@ -1,5 +1,5 @@
-import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import type { BlockNoteDocBlock } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
+import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import type { BlockNoteDocBlock } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
 import type { MessageDraft } from "@/types/messageDraft";
 import type {
   MessageEditorBlockType,
@@ -8,8 +8,8 @@ import type {
   MessageEditorPayload,
 } from "@tuanchat/domain/messageEditor";
 
-import { decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { base64ToString, stringToBase64 } from "@/components/chat/infra/blocksuite/shared/base64";
+import { decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
+import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shared/base64";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   createMessageEditorEntityId,

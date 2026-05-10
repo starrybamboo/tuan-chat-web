@@ -34,8 +34,7 @@
     "api/core/request.ts",
     "api/novelai/core/request.ts",
     "api/hooks/RoleAndAvatarHooks.tsx",
-    "app/shims/lzStringCompat.ts",
-    "app/components/chat/infra/blocksuite/spaceWorkspaceRegistry.ts"
+    "app/shims/lzStringCompat.ts"
   ],
   "ignoreDependencies": [
     "@babel/plugin-proposal-class-properties",

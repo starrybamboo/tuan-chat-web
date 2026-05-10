@@ -1,7 +1,7 @@
-import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { isStoredBlockNoteSnapshot } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import { isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
+import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { buildSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { tuanchat } from "api/instance";
 
 async function prepareSingleSpaceDocForArchive(docId: number) {

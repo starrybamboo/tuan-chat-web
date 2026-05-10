@@ -1,4 +1,4 @@
-import type { DescriptionDocType, DescriptionEntityType } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
+import type { DescriptionDocType, DescriptionEntityType } from "@/components/chat/infra/doc/description/descriptionDocId";
 
 export async function deleteSpaceDoc(params: { spaceId: number; docId: string }) {
   // SSR-safe: this function is only meaningful in the browser.
@@ -11,7 +11,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   let remoteKey: { entityType: DescriptionEntityType; entityId: number; docType: DescriptionDocType } | null = null;
 
   try {
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
+    const { parseDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
     remoteKey = parseDescriptionDocId(params.docId);
   }
   catch {
@@ -29,7 +29,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
   // - room/space description：目前主要用于解散后的附带清理
   try {
     if (remoteKey) {
-      const { deleteRemoteSnapshot } = await import("@/components/chat/infra/blocksuite/description/descriptionDocRemote");
+      const { deleteRemoteSnapshot } = await import("@/components/chat/infra/doc/description/descriptionDocRemote");
       await deleteRemoteSnapshot(remoteKey);
     }
   }
@@ -39,7 +39,7 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
 
   // Clear any queued offline updates (otherwise a later debounce flush could re-upload snapshot).
   try {
-    const { clearUpdates } = await import("@/components/chat/infra/blocksuite/description/descriptionDocDb");
+    const { clearUpdates } = await import("@/components/chat/infra/doc/description/descriptionDocDb");
     await clearUpdates(params.docId);
   }
   catch {
@@ -52,9 +52,9 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
       { useDocHeaderOverrideStore },
       { setCachedDocSnapshot },
     ] = await Promise.all([
-      import("@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence"),
+      import("@/components/chat/infra/doc/space/spaceDocMetaPersistence"),
       import("@/components/chat/stores/docHeaderOverrideStore"),
-      import("@/components/chat/infra/blocksuite/document/docSnapshotCache"),
+      import("@/components/chat/infra/doc/document/docSnapshotCache"),
     ]);
 
     removeSpaceDocMetaCacheEntry({ spaceId: params.spaceId, docId: params.docId });

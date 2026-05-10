@@ -20,7 +20,7 @@ vi.mock("api/instance", () => ({
   },
 }));
 
-vi.mock("@/components/chat/infra/blocksuite/shared/docCardShareObservability", () => ({
+vi.mock("@/components/chat/infra/doc/shared/docCardShareObservability", () => ({
   recordDocCardShareObservation: vi.fn(),
 }));
 

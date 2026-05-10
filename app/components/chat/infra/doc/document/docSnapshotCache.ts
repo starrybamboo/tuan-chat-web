@@ -1,4 +1,4 @@
-import type { StoredSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
+import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
 
 type SnapshotListener = (snapshot: StoredSnapshot | null) => void;
 

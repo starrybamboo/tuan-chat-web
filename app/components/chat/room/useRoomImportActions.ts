@@ -10,10 +10,10 @@ import type { MaterialItemDragPayload } from "@/components/chat/utils/materialIt
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { getCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
+import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
+import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
+import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
@@ -90,7 +90,7 @@ export default function useRoomImportActions({
     }
 
     const [{ getRemoteSnapshot, setRemoteSnapshot }] = await Promise.all([
-      import("@/components/chat/infra/blocksuite/description/descriptionDocRemote"),
+      import("@/components/chat/infra/doc/description/descriptionDocRemote"),
     ]);
 
     recordDocCardShareObservation("share-sync-start", {
@@ -366,7 +366,7 @@ export default function useRoomImportActions({
     if (!excerpt) {
       try {
         const snapshot = getCachedDocSnapshot(docId)
-          ?? await import("@/components/chat/infra/blocksuite/description/descriptionDocRemote").then(({ getRemoteSnapshot }) => getRemoteSnapshot(parseDescriptionDocId(docId)!));
+          ?? await import("@/components/chat/infra/doc/description/descriptionDocRemote").then(({ getRemoteSnapshot }) => getRemoteSnapshot(parseDescriptionDocId(docId)!));
         excerpt = readBlockNoteExcerpt(snapshot);
       }
       catch {

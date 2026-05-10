@@ -39,11 +39,11 @@ vi.mock("@/components/common/dicer/utils/utils", () => ({
   },
 }));
 
-vi.mock("@/components/chat/infra/blocksuite/document/docSnapshotCache", () => ({
+vi.mock("@/components/chat/infra/doc/document/docSnapshotCache", () => ({
   getCachedDocSnapshot: mockedGetCachedDocSnapshot,
 }));
 
-vi.mock("@/components/chat/infra/blocksuite/description/descriptionDocRemote", () => ({
+vi.mock("@/components/chat/infra/doc/description/descriptionDocRemote", () => ({
   getRemoteSnapshot: mockedGetRemoteSnapshot,
   setRemoteSnapshot: mockedSetRemoteSnapshot,
 }));

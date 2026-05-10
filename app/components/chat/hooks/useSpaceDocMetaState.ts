@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocTcHeaderPayload } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 
-import { parseSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import {
   isSpaceDocTitleSyncNonRetryableError,
   readPendingSpaceDocTitleSyncMap,
@@ -11,7 +11,7 @@ import {
   removePendingSpaceDocTitleSync,
   upsertPendingSpaceDocTitleSync,
   writeSpaceDocMetaCache,
-} from "@/components/chat/infra/blocksuite/space/spaceDocMetaPersistence";
+} from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { tuanchat } from "api/instance";
 
@@ -314,7 +314,7 @@ export default function useSpaceDocMetaState({
     if (typeof window !== "undefined") {
       try {
         void (async () => {
-          const { parseDescriptionDocId } = await import("@/components/chat/infra/blocksuite/description/descriptionDocId");
+          const { parseDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
           const key = parseDescriptionDocId(docId);
           if (!key || key.entityType !== "space_doc")
             return;
