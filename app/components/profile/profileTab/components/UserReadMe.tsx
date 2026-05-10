@@ -1,6 +1,5 @@
 import React from "react";
-
-import UserReadMeMessageEditor from "./UserReadMeMessageEditor";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 
 interface UserReadMeProps {
   userId: number;
@@ -17,11 +16,7 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
   return (
     <div className="flex-1 min-h-0 p-2 lg:m-2">
       <div className="h-full min-h-0 transition-all">
-        <UserReadMeMessageEditor
-          userId={userId}
-          isOwner={isOwner}
-          docId={docId}
-        />
+        <MessageEditor docId={docId} readOnly={!isOwner} title={isOwner ? "主页" : "个人主页"} />
       </div>
     </div>
   );

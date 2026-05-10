@@ -215,15 +215,6 @@ webgal相关
 
 # 依赖
 
-### Blocksuite 参考仓库
-
-自 2026-04-18 起，团剧共创使用的 Blocksuite 参考仓库统一迁移到：
-
-- `D:\A_blocksuite\AFFiNE`
-- `D:\A_blocksuite\OctoBase`
-
-详细说明见 `docs/integrations/blocksuite.md` 和 `docs/vendors/blocksuite/index.md`。
-
 ### UI库
 
 https://daisyui.com/
@@ -269,6 +260,5 @@ https://reactsvgicons.com/
 https://virtuoso.dev/
 
 虚拟列表的轮子，但ahook中也提供了虚拟列表，可按情况选择
-
 
 

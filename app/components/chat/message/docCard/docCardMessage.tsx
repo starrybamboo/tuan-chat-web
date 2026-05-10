@@ -1,53 +1,41 @@
 import type { ChatMessageResponse } from "../../../../../api";
 
-import { FileTextIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FileTextIcon } from "@phosphor-icons/react";
+import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { parseDescriptionDocId } from "@/components/chat/infra/blocksuite/description/descriptionDocId";
-import { getRemoteSnapshot, prewarmRemoteSnapshot } from "@/components/chat/infra/blocksuite/description/descriptionDocRemote";
-import { readBlockNoteHeader } from "@/components/chat/infra/blocksuite/document/blockNoteSnapshot";
-import { getCachedDocSnapshot, subscribeCachedDocSnapshot } from "@/components/chat/infra/blocksuite/document/docSnapshotCache";
-import { recordDocCardShareObservation } from "@/components/chat/infra/blocksuite/shared/docCardShareObservability";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { getDocCardExtra } from "@/types/messageExtra";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 interface DocCardPayload {
   docId: string;
+  excerpt?: string;
+  imageFileId?: number;
+  imageMediaType?: string;
+  imageUrl?: string;
+  originalImageFileId?: number;
   spaceId?: number;
   title?: string;
-  imageUrl?: string;
-  imageFileId?: number;
-  originalImageFileId?: number;
-  imageMediaType?: string;
-  excerpt?: string;
 }
 
-const LazyBlocksuiteDescriptionEditor = React.lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
-
-function getDocCardPreviewErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    const message = error.message.trim();
-    if (message) {
-      return message;
-    }
-  }
-  return "文档信息加载失败，请稍后重试";
-}
-
+/**
+ * 从文档卡片消息里提取可展示的最小预览信息。
+ */
 function extractDocCardPayload(extra: unknown): DocCardPayload | null {
   const obj = getDocCardExtra(extra);
   const docId = typeof obj?.docId === "string" ? obj.docId.trim() : "";
-  if (!docId)
+  if (!docId) {
     return null;
+  }
 
   const spaceIdRaw = obj?.spaceId;
-  const spaceId = (typeof spaceIdRaw === "number" && Number.isFinite(spaceIdRaw) && spaceIdRaw > 0)
+  const spaceId = typeof spaceIdRaw === "number" && Number.isFinite(spaceIdRaw) && spaceIdRaw > 0
     ? spaceIdRaw
     : undefined;
 
@@ -64,327 +52,76 @@ function extractDocCardPayload(extra: unknown): DocCardPayload | null {
 
   return {
     docId,
+    ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
+    ...(imageFileId ? { imageFileId } : {}),
+    ...(imageMediaType ? { imageMediaType } : {}),
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(originalImageFileId ? { originalImageFileId } : {}),
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
-    ...(imageUrl ? { imageUrl } : {}),
-    ...(imageFileId ? { imageFileId } : {}),
-    ...(originalImageFileId ? { originalImageFileId } : {}),
-    ...(imageMediaType ? { imageMediaType } : {}),
-    ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
   };
 }
 
 function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   const roomContext = use(RoomContext);
+  const isMobile = useIsMobile();
   const { message } = messageResponse;
 
   const payload = useMemo(() => extractDocCardPayload(message.extra), [message.extra]);
-  const docId = payload?.docId ?? "";
+  const [isOpen, setIsOpen] = useState(false);
 
-  const currentSpaceId = roomContext.spaceId;
   const previewSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
     ? payload.spaceId
-    : currentSpaceId;
-  const isSupportedDocId = Boolean(docId && parseDescriptionDocId(docId));
-
-  const [preview, setPreview] = useState<{
-    title: string;
-    imageUrl: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-    excerpt: string;
-  }>({
-    title: payload?.title ?? "",
-    imageUrl: payload?.imageUrl ?? "",
-    imageFileId: payload?.imageFileId,
-    originalImageFileId: payload?.originalImageFileId,
-    imageMediaType: payload?.imageMediaType,
-    excerpt: payload?.excerpt ?? "",
-  });
-  const [previewLoadState, setPreviewLoadState] = useState<{
-    status: "idle" | "loading" | "ready" | "error";
-    errorMessage: string;
-  }>({
-    status: "idle",
-    errorMessage: "",
-  });
-  const [isOpen, setIsOpen] = useState(false);
-  const isMobile = useIsMobile();
-  const prewarmedDocKeyRef = useRef("");
-  const prewarmInFlightDocKeyRef = useRef("");
-  const docRemoteKey = useMemo(() => parseDescriptionDocId(docId), [docId]);
-  const prewarmDocKey = docRemoteKey ? `${docRemoteKey.entityType}:${docRemoteKey.entityId}:${docRemoteKey.docType}` : "";
-
-  const requestSnapshotPrewarm = useCallback((reason: "mount" | "hover" | "focus") => {
-    if (!docRemoteKey || !prewarmDocKey) {
-      return;
-    }
-    if (prewarmedDocKeyRef.current === prewarmDocKey) {
-      return;
-    }
-    if (prewarmInFlightDocKeyRef.current === prewarmDocKey) {
-      return;
-    }
-    prewarmInFlightDocKeyRef.current = prewarmDocKey;
-    recordDocCardShareObservation("preview-snapshot-prewarm-start", {
-      docId,
-      messageId: message.messageId,
-      reason,
-      entityType: docRemoteKey.entityType,
-      entityId: docRemoteKey.entityId,
-      docType: docRemoteKey.docType,
-    });
-    void prewarmRemoteSnapshot(docRemoteKey).then((warmed) => {
-      if (prewarmInFlightDocKeyRef.current === prewarmDocKey) {
-        prewarmInFlightDocKeyRef.current = "";
-      }
-      if (!warmed) {
-        return;
-      }
-      prewarmedDocKeyRef.current = prewarmDocKey;
-      recordDocCardShareObservation("preview-snapshot-prewarm-success", {
-        docId,
-        messageId: message.messageId,
-        reason,
-        entityType: docRemoteKey.entityType,
-        entityId: docRemoteKey.entityId,
-        docType: docRemoteKey.docType,
-      });
-    });
-  }, [docId, docRemoteKey, message.messageId, prewarmDocKey]);
-
-  useEffect(() => {
-    setPreview({
-      title: payload?.title ?? "",
-      imageUrl: payload?.imageUrl ?? "",
-      imageFileId: payload?.imageFileId,
-      originalImageFileId: payload?.originalImageFileId,
-      imageMediaType: payload?.imageMediaType,
-      excerpt: payload?.excerpt ?? "",
-    });
-    setPreviewLoadState({
-      status: "idle",
-      errorMessage: "",
-    });
-  }, [
-    docId,
-    payload?.excerpt,
-    payload?.imageFileId,
-    payload?.imageMediaType,
-    payload?.imageUrl,
-    payload?.originalImageFileId,
-    payload?.title,
-  ]);
-
-  useEffect(() => {
-    if (!prewarmDocKey) {
-      prewarmedDocKeyRef.current = "";
-      prewarmInFlightDocKeyRef.current = "";
-    }
-  }, [prewarmDocKey]);
-
-  useEffect(() => {
-    if (!prewarmDocKey) {
-      return;
-    }
-    const timeoutId = setTimeout(() => {
-      requestSnapshotPrewarm("mount");
-    }, 0);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [prewarmDocKey, requestSnapshotPrewarm]);
-
-  useEffect(() => {
-    if (!docId || !isSupportedDocId)
-      return;
-
-    let cancelled = false;
-    const applySnapshot = (source: "cache" | "network", snapshot: unknown) => {
-      const header = readBlockNoteHeader(snapshot as any);
-      if (!cancelled) {
-        setPreviewLoadState({
-          status: "ready",
-          errorMessage: "",
-        });
-      }
-
-      if (!header) {
-        return;
-      }
-
-      recordDocCardShareObservation("preview-header-sync", {
-        docId,
-        messageId: message.messageId,
-        previewSpaceId,
-        source,
-        hasTitle: Boolean(header.title),
-        hasImageUrl: Boolean(header.imageUrl),
-        hasImageFileId: Boolean(header.imageFileId),
-      });
-
-      setPreview((prev) => {
-        const next = {
-          title: header.title || prev.title || payload?.title || docId,
-          imageUrl: header.imageUrl || prev.imageUrl || payload?.imageUrl || "",
-          imageFileId: header.imageFileId ?? prev.imageFileId ?? payload?.imageFileId,
-          originalImageFileId: header.originalImageFileId ?? prev.originalImageFileId ?? payload?.originalImageFileId,
-          imageMediaType: header.imageMediaType ?? prev.imageMediaType ?? payload?.imageMediaType,
-          excerpt: prev.excerpt,
-        };
-
-        if (next.title === prev.title
-          && next.imageUrl === prev.imageUrl
-          && next.imageFileId === prev.imageFileId
-          && next.originalImageFileId === prev.originalImageFileId
-          && next.imageMediaType === prev.imageMediaType) {
-          return prev;
-        }
-
-        return next;
-      });
-    };
-
-    const cachedSnapshot = getCachedDocSnapshot(docId);
-    if (cachedSnapshot) {
-      applySnapshot("cache", cachedSnapshot);
-    }
-
-    const unsubscribe = subscribeCachedDocSnapshot(docId, snapshot => applySnapshot("cache", snapshot));
-
-    (async () => {
-      try {
-        if (!cancelled) {
-          setPreviewLoadState(prev => (prev.status === "ready" && !prev.errorMessage)
-            ? prev
-            : {
-                status: "loading",
-                errorMessage: "",
-              });
-        }
-        recordDocCardShareObservation("preview-store-load-start", {
-          docId,
-          messageId: message.messageId,
-          previewSpaceId,
-        });
-        const header = await getRemoteSnapshot(docRemoteKey!);
-        recordDocCardShareObservation("preview-store-load-success", {
-          docId,
-          messageId: message.messageId,
-          previewSpaceId,
-          hasHeaderTitle: Boolean(readBlockNoteHeader(header)?.title),
-          hasHeaderImageUrl: Boolean(readBlockNoteHeader(header)?.imageUrl),
-          hasHeaderImageFileId: Boolean(readBlockNoteHeader(header)?.imageFileId),
-        });
-        applySnapshot("network", header);
-      }
-      catch (error) {
-        const errorMessage = getDocCardPreviewErrorMessage(error);
-        recordDocCardShareObservation("preview-store-load-failed", {
-          docId,
-          messageId: message.messageId,
-          previewSpaceId,
-          error: errorMessage,
-        });
-        if (!cancelled) {
-          setPreviewLoadState({
-            status: "error",
-            errorMessage,
-          });
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [
-    docId,
-    docRemoteKey,
-    isSupportedDocId,
-    message.messageId,
-    payload?.imageFileId,
-    payload?.imageMediaType,
-    payload?.imageUrl,
-    payload?.originalImageFileId,
-    payload?.title,
-    previewSpaceId,
-  ]);
-
-  const title = preview.title || payload?.title || (docId ? `文档：${docId}` : "文档");
-  const coverUrl = preview.imageUrl || payload?.imageUrl || "";
-  const coverFileId = preview.imageFileId ?? payload?.imageFileId;
-  const originalCoverFileId = preview.originalImageFileId ?? payload?.originalImageFileId;
-  const imageMediaType = preview.imageMediaType ?? payload?.imageMediaType;
+    : roomContext.spaceId;
+  const title = payload?.title || (payload?.docId ? `文档：${payload.docId}` : "文档");
+  const coverUrl = payload?.imageUrl ?? "";
+  const coverFileId = payload?.imageFileId;
+  const originalCoverFileId = payload?.originalImageFileId;
+  const imageMediaType = payload?.imageMediaType;
   const displayCoverUrl = imageMediumUrl(coverFileId) || imageMediumUrlFromUrl(coverUrl);
-  const excerpt = preview.excerpt;
-
+  const excerpt = payload?.excerpt ?? "";
   const disabledReason = !payload
     ? "无效的文档消息"
-    : (!isSupportedDocId ? "不支持的文档引用" : (!(typeof previewSpaceId === "number" && previewSpaceId > 0) ? "缺少空间信息，无法打开文档预览" : ""));
+    : (!(typeof previewSpaceId === "number" && previewSpaceId > 0) ? "缺少空间信息，无法打开文档预览" : "");
   const isDisabled = Boolean(disabledReason);
 
   const openPreview = () => {
     if (isDisabled) {
-      recordDocCardShareObservation("preview-disabled-click", {
-        docId,
-        messageId: message.messageId,
-        currentSpaceId,
-        previewSpaceId,
-        reason: disabledReason,
-      });
       toast.error(disabledReason || "无法打开文档预览");
       return;
     }
-    requestSnapshotPrewarm("focus");
-    recordDocCardShareObservation("preview-click", {
-      docId,
-      messageId: message.messageId,
-      currentSpaceId,
-      previewSpaceId,
-    });
     setIsOpen(true);
   };
 
   return (
     <>
-      <div className="flex gap-3 p-3 w-full max-w-3xl">
+      <div className="flex w-full max-w-3xl gap-3 p-3">
         <button
           type="button"
-          className={`group w-full text-left rounded-xl border border-base-300 bg-base-100 shadow-sm hover:shadow-md transition-shadow ${
-            isDisabled ? "opacity-70 cursor-not-allowed" : ""
+          className={`group w-full rounded-xl border border-base-300 bg-base-100 text-left shadow-sm transition-shadow hover:shadow-md ${
+            isDisabled ? "cursor-not-allowed opacity-70" : ""
           }`}
           onClick={openPreview}
-          onMouseEnter={() => {
-            requestSnapshotPrewarm("hover");
-          }}
-          onFocus={() => {
-            requestSnapshotPrewarm("focus");
-          }}
           draggable={!isDisabled}
-          onDragStart={(e) => {
-            if (isDisabled || !payload)
+          onDragStart={(event) => {
+            if (isDisabled || !payload) {
               return;
+            }
 
-            // 防止被聊天消息“拖拽移动”逻辑接管（会把 effectAllowed 改成 move，导致侧边栏无法以 copy 接收）。
-            e.stopPropagation();
-
+            event.stopPropagation();
             const spaceId = typeof payload.spaceId === "number" && payload.spaceId > 0
               ? payload.spaceId
               : (typeof previewSpaceId === "number" && previewSpaceId > 0 ? previewSpaceId : undefined);
 
-            e.dataTransfer.effectAllowed = "copyLink";
+            event.dataTransfer.effectAllowed = "copyLink";
             try {
-              e.dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
+              event.dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
             }
             catch {
-              // ignore
+              // ignore drag clipboard errors
             }
 
-            setDocRefDragData(e.dataTransfer, {
+            setDocRefDragData(event.dataTransfer, {
               docId: payload.docId,
               ...(spaceId ? { spaceId } : {}),
               ...(title ? { title } : {}),
@@ -396,43 +133,35 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             });
           }}
           aria-disabled={isDisabled}
-          title={isDisabled ? disabledReason : "点击打开只读预览；支持拖拽复制到侧边栏/再次发送"}
+          title={isDisabled ? disabledReason : "点击打开预览；支持拖拽复制到侧边栏或再次发送"}
         >
           <div className="flex gap-3 p-3">
-            <div className="relative w-24 h-20 rounded-lg overflow-hidden border border-base-300 bg-base-200 flex-shrink-0">
+            <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg border border-base-300 bg-base-200">
               {displayCoverUrl
                 ? (
-                    <img src={displayCoverUrl} alt={title} draggable={false} className="w-full h-full object-cover" />
+                    <img src={displayCoverUrl} alt={title} draggable={false} className="h-full w-full object-cover" />
                   )
                 : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="flex h-full w-full items-center justify-center">
                       <FileTextIcon className="size-6 opacity-60" />
                     </div>
                   )}
               <div className="absolute left-1 top-1">
-                <span className="badge badge-xs badge-info">文档</span>
+                <span className="badge badge-info badge-xs">文档</span>
               </div>
             </div>
 
-            <div className="min-w-0 flex-1 flex flex-col gap-1">
-              <div className="font-semibold text-base-content/90 line-clamp-2">{title}</div>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <div className="line-clamp-2 font-semibold text-base-content/90">{title}</div>
               {excerpt
                 ? (
-                    <div className="text-sm text-base-content/70 leading-relaxed line-clamp-3">{excerpt}</div>
+                    <div className="line-clamp-3 text-sm leading-relaxed text-base-content/70">{excerpt}</div>
                   )
                 : (
-                    <div className="text-sm text-base-content/50 leading-relaxed line-clamp-2">
+                    <div className="line-clamp-2 text-sm leading-relaxed text-base-content/50">
                       {isDisabled ? (disabledReason || "") : "暂无摘要"}
                     </div>
                   )}
-              {previewLoadState.status === "error" && !isDisabled
-                ? (
-                    <div className="flex items-center gap-1 text-xs text-warning mt-1">
-                      <WarningCircleIcon className="size-3.5 shrink-0" />
-                      <span className="line-clamp-1">文档信息同步失败，打开预览后可重试</span>
-                    </div>
-                  )
-                : null}
             </div>
           </div>
         </button>
@@ -444,39 +173,19 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         fullScreen={isMobile}
         disableScroll
       >
-        <div
-          className={`${documentModalShellClassName} ${getDocumentModalFrameClassName(isMobile)}`}
-        >
+        <div className={`${documentModalShellClassName} ${getDocumentModalFrameClassName(isMobile)}`}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            {previewLoadState.status === "error" && !isDisabled
-              ? (
-                  <div className="mx-4 mt-4 flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content">
-                    <WarningCircleIcon className="size-4 shrink-0 text-warning" />
-                    <span className="truncate">{previewLoadState.errorMessage || "文档信息加载失败"}</span>
-                  </div>
-                )
-              : null}
-
             <div className="flex-1 min-h-0 overflow-hidden">
-              {(isOpen && !isDisabled && typeof previewSpaceId === "number" && previewSpaceId > 0) && (
-                <div className="w-full h-full overflow-hidden bg-base-100">
-                  <React.Suspense fallback={<DocCardEditorFallback />}>
-                    <LazyBlocksuiteDescriptionEditor
-                      workspaceId={`space:${previewSpaceId}`}
-                      spaceId={previewSpaceId}
-                      docId={docId}
-                      readOnly
-                      tcHeader={{
-                        enabled: true,
-                        fallbackTitle: title,
-                        fallbackImageUrl: displayCoverUrl || coverUrl,
-                        fallbackImageFileId: coverFileId,
-                        fallbackOriginalImageFileId: originalCoverFileId,
-                        fallbackImageMediaType: imageMediaType,
-                      }}
-                      className="h-full min-h-0"
-                    />
-                  </React.Suspense>
+              {isOpen && !isDisabled && (
+                <div className="h-full w-full overflow-hidden bg-base-100">
+                  <MessageEditor
+                    className="h-full min-h-0"
+                    coverUrl={displayCoverUrl || coverUrl}
+                    docId={payload?.docId}
+                    excerpt={excerpt}
+                    readOnly
+                    title={title}
+                  />
                 </div>
               )}
             </div>
@@ -488,13 +197,5 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 }
 
 const DocCardMessage = React.memo(DocCardMessageImpl);
-export default DocCardMessage;
 
-function DocCardEditorFallback() {
-  return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
-      <span className="loading loading-spinner loading-md"></span>
-      <span className="ml-2">正在加载文档预览...</span>
-    </div>
-  );
-}
+export default DocCardMessage;

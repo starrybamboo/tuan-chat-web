@@ -1,13 +1,13 @@
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 
 import FriendsPage from "@/components/privateChat/FriendsPage";
 import RightChatView from "@/components/privateChat/RightChatView";
 
 // 私聊首页只需要私聊组件，群聊/文档工作台进入对应分支后再加载。
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
-const LazyBlocksuiteDescriptionEditor = React.lazy(() => import("@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor"));
 const LazySpaceDetailPanel = React.lazy(() => import("@/components/chat/space/drawers/spaceDetailPanel"));
 const LazyRoomSettingWindow = React.lazy(() => import("@/components/chat/window/roomSettingWindow"));
 
@@ -163,22 +163,20 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
         {canViewDocs
           ? (
               <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-base-100 border border-base-300 rounded-box">
-                <React.Suspense fallback={<ChatPageLoadingFallback text="正在加载文档编辑器..." />}>
-                  <LazyBlocksuiteDescriptionEditor
-                    workspaceId={`space:${resolvedSpaceId ?? -1}`}
-                    spaceId={resolvedSpaceId ?? -1}
-                    docId={resolvedDocId}
-                    tcHeader={{
-                      enabled: true,
-                      fallbackTitle: tcHeaderTitle,
-                      fallbackImageUrl: props.tcHeaderImageUrl,
-                      fallbackImageFileId: props.tcHeaderImageFileId,
-                      fallbackOriginalImageFileId: props.tcHeaderOriginalImageFileId,
-                      fallbackImageMediaType: props.tcHeaderImageMediaType,
-                    }}
-                    onTcHeaderChange={onDocTcHeaderChange}
-                  />
-                </React.Suspense>
+                <MessageEditor
+                  docId={resolvedDocId}
+                  onTcHeaderChange={onDocTcHeaderChange}
+                  spaceId={resolvedSpaceId ?? -1}
+                  tcHeader={{
+                    enabled: true,
+                    fallbackTitle: tcHeaderTitle,
+                    fallbackImageUrl: props.tcHeaderImageUrl,
+                    fallbackImageFileId: props.tcHeaderImageFileId,
+                    fallbackOriginalImageFileId: props.tcHeaderOriginalImageFileId,
+                    fallbackImageMediaType: props.tcHeaderImageMediaType,
+                  }}
+                  workspaceId={`space:${resolvedSpaceId ?? -1}`}
+                />
               </div>
             )
           : (

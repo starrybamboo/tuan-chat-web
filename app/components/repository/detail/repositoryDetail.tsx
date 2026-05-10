@@ -7,12 +7,8 @@ import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildSpaceDocId } from "@/components/chat/infra/blocksuite/space/spaceDocId";
 import RoomWindow from "@/components/chat/room/roomWindow";
-import BlocksuiteDescriptionEditor from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor";
-import {
-  BLOCKSUITE_FULL_PANEL_EDITOR_CLASS,
-} from "@/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.shared";
+import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
@@ -477,18 +473,12 @@ export default function RepositoryDetailComponent({
                 <div className="h-full min-h-0 overflow-hidden rounded-md">
                   {linkedSpaceId
                     ? (
-                        <BlocksuiteDescriptionEditor
-                          workspaceId={`space:${linkedSpaceId}`}
-                          spaceId={linkedSpaceId}
-                          docId={buildSpaceDocId({ kind: "space_description", spaceId: linkedSpaceId })}
-                          className={BLOCKSUITE_FULL_PANEL_EDITOR_CLASS}
+                        <MessageEditor
+                          className="h-full min-h-0 rounded-md"
+                          coverUrl={avatarThumbUrl(linkedSpace?.avatarFileId) || repositoryData.image}
+                          docId={`space:${linkedSpaceId}:description`}
                           readOnly
-                          tcHeader={{
-                            enabled: true,
-                            fallbackTitle: linkedSpace?.name ?? repositoryData.repositoryName,
-                            fallbackImageUrl: avatarThumbUrl(linkedSpace?.avatarFileId) || repositoryData.image,
-                            fallbackImageFileId: linkedSpace?.avatarFileId,
-                          }}
+                          title={linkedSpace?.name ?? repositoryData.repositoryName}
                         />
                       )
                     : (
