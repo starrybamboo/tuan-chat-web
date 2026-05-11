@@ -517,24 +517,8 @@ export default function MessageEditor({
   }, [clearActiveBlock, hideToolbar, slashMenuState]);
 
   const handleTextInput = useCallback((blockId: string, nextContent: string) => {
-    const root = editorRootRef.current;
-    const selection = window.getSelection();
-    let caret: number | null = null;
-    if (root && selection && selection.rangeCount > 0) {
-      const resolved = resolveMessageEditorSelectionFromRange(root, messagesRef.current, registry, selection.getRangeAt(0));
-      if (resolved && !resolved.multiBlock) {
-        caret = resolved.focus.offset;
-      }
-    }
-
     controllerRef.current?.updateTextContent(blockId, nextContent);
-    if (caret != null) {
-      restoreSelectionRef.current = {
-        blockId,
-        caret,
-      };
-    }
-  }, [registry]);
+  }, []);
 
   const handleTextBlur = useCallback(() => {
     window.setTimeout(() => {
