@@ -84,9 +84,9 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
 function blockClassName(message: MessageDraft, active: boolean, readOnly: boolean) {
   const blockType = getMessageEditorBlockType(message);
   const base = [
-    "relative rounded-md border px-3 py-1.5 transition",
-    active ? "border-primary/40 bg-primary/[0.045]" : "border-transparent bg-transparent",
-    readOnly ? "" : "hover:border-base-300",
+    "relative rounded-md px-3 py-1.5 transition",
+    active ? "bg-primary/[0.045]" : "bg-transparent",
+    readOnly ? "" : "hover:bg-base-200/30",
   ];
 
   if (blockType === "heading1") {

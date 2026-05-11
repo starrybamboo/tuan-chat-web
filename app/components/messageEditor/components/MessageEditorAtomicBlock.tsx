@@ -105,10 +105,10 @@ export function MessageEditorAtomicBlock({
   const uploaded = hasUploadedMedia(message);
 
   const shellClassName = [
-    "rounded-xl border bg-base-100 px-3 py-3 shadow-sm transition",
+    "rounded-xl bg-base-100 px-3 py-3 shadow-sm transition",
     active
-      ? "border-primary/40 bg-primary/[0.045]"
-      : "border-base-300/70",
+      ? "bg-primary/[0.045]"
+      : "bg-base-100",
   ].join(" ");
 
   return (

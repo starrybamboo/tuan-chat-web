@@ -151,7 +151,7 @@ export default function MessageEditor({
   title,
   workspaceId: _workspaceId,
 }: MessageEditorProps) {
-  const frameClassName = className ?? "h-full min-h-0 rounded-md";
+  const frameClassName = className ?? "min-h-screen min-h-[100svh] rounded-md";
   const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
   const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
   const resolvedDocId = docId?.trim() || undefined;
@@ -943,7 +943,7 @@ export default function MessageEditor({
   }
 
   return (
-    <div className={`${frameClassName} overflow-hidden border border-base-300 bg-base-100`}>
+    <div className={`${frameClassName} min-h-screen min-h-[100svh] overflow-hidden border border-base-300 bg-base-100`}>
       <div className="flex h-full min-h-0 flex-col">
         {resolvedCoverUrl
           ? (
@@ -998,7 +998,7 @@ export default function MessageEditor({
             )}
 
             {ready && (
-              <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col gap-0.5 px-8 py-3 md:px-10">
+              <div className="mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col gap-0.5 px-8 py-3 md:px-10">
                 {ready && loadError
                   ? (
                       <div className="rounded-md border border-error/20 bg-error/5 px-3 py-2 text-sm text-error">
@@ -1022,7 +1022,12 @@ export default function MessageEditor({
                       <div
                         key={blockId}
                         ref={node => registerBlockShellRef(blockId, node)}
-                        className="group relative pl-10"
+                        className={[
+                          "group relative rounded-md pl-10 transition",
+                          dragState?.draggedBlockId === blockId
+                            ? "border border-base-300/80 bg-base-100/80"
+                            : "border border-transparent",
+                        ].join(" ")}
                       >
                         {showDropBefore && (
                           <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
@@ -1036,7 +1041,7 @@ export default function MessageEditor({
                             draggable
                             data-me-block-handle="true"
                             className={[
-                              "absolute left-1 top-1 flex size-6 cursor-grab items-center justify-center rounded-md text-base-content/30 transition hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
+                              "absolute left-1 top-1 flex size-6 cursor-grab items-center justify-center rounded-md border border-base-300/80 bg-base-100 text-base-content/35 transition hover:border-base-400 hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
                               dragState?.draggedBlockId === blockId ? "opacity-100" : "opacity-0 group-hover:opacity-100",
                             ].join(" ")}
                             onDragStart={event => handleBlockDragStart(blockId, event)}
@@ -1080,7 +1085,12 @@ export default function MessageEditor({
                     <div
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
-                      className="group relative pl-10"
+                      className={[
+                        "group relative rounded-xl pl-10 transition",
+                        dragState?.draggedBlockId === blockId
+                          ? "border border-base-300/80 bg-base-100/80"
+                          : "border border-transparent",
+                      ].join(" ")}
                     >
                       {showDropBefore && (
                         <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
@@ -1094,7 +1104,7 @@ export default function MessageEditor({
                           draggable
                           data-me-block-handle="true"
                           className={[
-                            "absolute left-1 top-1.5 flex size-6 cursor-grab items-center justify-center rounded-md text-base-content/30 transition hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
+                            "absolute left-1 top-1.5 flex size-6 cursor-grab items-center justify-center rounded-md border border-base-300/80 bg-base-100 text-base-content/35 transition hover:border-base-400 hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
                             dragState?.draggedBlockId === blockId ? "opacity-100" : "opacity-0 group-hover:opacity-100",
                           ].join(" ")}
                           onDragStart={event => handleBlockDragStart(blockId, event)}
