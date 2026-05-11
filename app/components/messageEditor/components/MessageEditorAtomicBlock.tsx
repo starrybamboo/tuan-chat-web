@@ -89,7 +89,6 @@ function hasUploadedMedia(message: MessageDraft) {
  * 原子块编辑壳，负责上传与删除交互。
  */
 export function MessageEditorAtomicBlock({
-  active,
   blockId,
   message,
   onDelete,
@@ -106,9 +105,7 @@ export function MessageEditorAtomicBlock({
 
   const shellClassName = [
     "rounded-xl bg-base-100 px-3 py-3 shadow-sm transition",
-    active
-      ? "bg-primary/[0.045]"
-      : "bg-base-100",
+    "bg-base-100",
   ].join(" ");
 
   return (

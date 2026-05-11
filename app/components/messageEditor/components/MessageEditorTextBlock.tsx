@@ -81,11 +81,11 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
   return segments;
 }
 
-function blockClassName(message: MessageDraft, active: boolean, readOnly: boolean) {
+function blockClassName(message: MessageDraft, readOnly: boolean) {
   const blockType = getMessageEditorBlockType(message);
   const base = [
     "relative rounded-md px-3 py-1.5 transition",
-    active ? "bg-primary/[0.045]" : "bg-transparent",
+    "bg-transparent",
     readOnly ? "" : "hover:bg-base-200/30",
   ];
 
@@ -177,7 +177,7 @@ export function MessageEditorTextBlock({
   }, [active, content, readOnly, segments]);
 
   return (
-    <div className={blockClassName(message, active, readOnly)}>
+    <div className={blockClassName(message, readOnly)}>
       {!content && !active && !readOnly && (
         <div className="pointer-events-none absolute inset-x-3 top-1.5 text-base-content/25">
           {placeholder}
