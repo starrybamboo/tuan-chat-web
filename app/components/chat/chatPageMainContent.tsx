@@ -142,7 +142,6 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
     activeDocId,
     isKPInSpace,
     activeDocTitleForTcHeader,
-    onDocTcHeaderChange,
   } = useChatPageLayoutContext();
   const resolvedSpaceId = props.spaceId ?? activeSpaceId;
   const resolvedDocId = props.docId ?? activeDocId;
@@ -159,13 +158,13 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
 
   return (
     <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-      <div className="w-full h-full overflow-auto flex justify-center">
+      <div className="w-full h-full overflow-hidden flex justify-center">
         {canViewDocs
           ? (
-              <div className="w-full h-full overflow-x-auto overflow-y-hidden bg-base-100 border border-base-300 rounded-box">
+              <div className="w-full h-full min-h-0 overflow-hidden bg-base-100">
                 <MessageEditor
+                  className="h-full min-h-0 rounded-none"
                   docId={resolvedDocId}
-                  onTcHeaderChange={onDocTcHeaderChange}
                   spaceId={resolvedSpaceId ?? -1}
                   tcHeader={{
                     enabled: true,

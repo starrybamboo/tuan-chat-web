@@ -1175,7 +1175,7 @@ export default function MessageEditor({
   }
 
   return (
-    <div className={`${frameClassName} min-h-screen overflow-hidden border border-base-300 bg-base-100`}>
+    <div className={`${frameClassName} overflow-hidden border border-base-300 bg-base-100`}>
       <div className="flex h-full min-h-0 flex-col">
         {resolvedCoverUrl
           ? (
