@@ -1,4 +1,5 @@
-const TEXT_ENHANCE_PATTERN = /\[([^\]]+)\]\(([^)]*)\)/g;
+import { extractTextEnhanceVisibleText as extractVisibleText } from "@/utils/textEnhanceSyntax";
+
 const HALF_WIDTH_RANGES = [
   [0x0000, 0x007F], // ASCII（英文与半角常用符号）
   [0xFF61, 0xFF9F], // 半角日文标点/片假名
@@ -14,11 +15,7 @@ function isHalfWidthCodePoint(codePoint: number): boolean {
  * 例如：[文本](style=color:#FF0000) -> 文本
  */
 export function extractTextEnhanceVisibleText(value: string): string {
-  const content = String(value ?? "");
-  if (!content.includes("[") || !content.includes("](")) {
-    return content;
-  }
-  return content.replace(TEXT_ENHANCE_PATTERN, (_match, text: string) => text);
+  return extractVisibleText(value);
 }
 
 /**

@@ -1,11 +1,13 @@
 // oxlint-disable jsx-a11y/no-static-element-interactions
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { useLayoutEffect, useRef } from "react";
+import ChatInputArea from "@/components/chat/input/chatInputArea";
+import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 
 import {
   getMessageEditorBlockType,
-  getMessageEditorInlineMarks,
   normalizeMessageEditorContent,
 } from "../model/messageEditorTransforms";
 
@@ -22,77 +24,22 @@ interface MessageEditorTextBlockProps {
   readOnly?: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
   selectionSegment?: { start: number; end: number } | null;
-}
-
-interface InlineSegment {
-  text: string;
-  className: string;
-  style?: React.CSSProperties;
+  textInputRef?: React.RefObject<ChatInputAreaHandle | null>;
 }
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
 }
 
-function buildInlineSegments(message: MessageDraft, selectionSegment?: { start: number; end: number } | null): InlineSegment[] {
-  const content = normalizeMessageEditorContent(message.content);
-  const marks = getMessageEditorInlineMarks(message);
-  if (!content) {
-    return [];
-  }
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
-  const breakpoints = Array.from(new Set([
-    0,
-    content.length,
-    ...marks.flatMap(mark => [mark.start, mark.end]),
-    ...(selectionSegment ? [selectionSegment.start, selectionSegment.end] : []),
-  ])).sort((left, right) => left - right);
-  const segments: InlineSegment[] = [];
-
-  for (let index = 0; index < breakpoints.length - 1; index += 1) {
-    const start = breakpoints[index];
-    const end = breakpoints[index + 1];
-    if (end <= start) {
-      continue;
-    }
-
-    const text = content.slice(start, end);
-    const activeMarks = marks.filter(mark => mark.start < end && mark.end > start);
-    const classes = ["text-inherit"];
-    const style: React.CSSProperties = {};
-    const selected = selectionSegment && start < selectionSegment.end && end > selectionSegment.start;
-
-    if (selected) {
-      classes.push("bg-sky-200", "text-slate-950");
-    }
-
-    for (const mark of activeMarks) {
-      if (mark.type === "bold") {
-        classes.push("font-semibold");
-      }
-      if (mark.type === "italic") {
-        classes.push("italic");
-      }
-      if (mark.type === "code") {
-        classes.push("rounded-sm", "bg-base-200", "px-1", "font-mono", "text-[0.92em]");
-      }
-      if (mark.type === "highlight") {
-        classes.push("rounded-sm");
-        style.backgroundColor = "rgba(250, 204, 21, 0.28)";
-      }
-      if (mark.type === "color" && mark.color) {
-        style.color = mark.color;
-      }
-    }
-
-    segments.push({
-      text,
-      className: classes.join(" "),
-      style: Object.keys(style).length > 0 ? style : undefined,
-    });
-  }
-
-  return segments;
+function plainTextToHtml(value: string) {
+  return escapeHtml(value).replace(/\r?\n/g, "<br>");
 }
 
 function blockClassName(message: MessageDraft, readOnly: boolean) {
@@ -122,6 +69,14 @@ function blockClassName(message: MessageDraft, readOnly: boolean) {
   return base.join(" ");
 }
 
+function textContentClassName(message: MessageDraft) {
+  const blockType = getMessageEditorBlockType(message);
+  return [
+    "min-h-6 whitespace-pre-wrap break-words outline-none selection:bg-sky-200 selection:text-slate-950",
+    blockType === "intro" ? "text-white" : "",
+  ].join(" ");
+}
+
 /**
  * 单个文本块视图。
  */
@@ -138,18 +93,24 @@ export function MessageEditorTextBlock({
   readOnly = false,
   registerBlockRef,
   selectionSegment = null,
+  textInputRef,
 }: MessageEditorTextBlockProps) {
   const content = normalizeMessageEditorContent(message.content);
-  const segments = buildInlineSegments(message, selectionSegment);
   const blockContentRef = useRef<HTMLDivElement | null>(null);
+  const localTextInputRef = useRef<ChatInputAreaHandle | null>(null);
+  const effectiveTextInputRef = textInputRef ?? localTextInputRef;
+  const wasEditableSourceModeRef = useRef(false);
+  const sourceMode = active || selectionSegment !== null;
+  const editableSourceMode = sourceMode && active && !readOnly && selectionSegment === null;
 
   useLayoutEffect(() => {
     const node = blockContentRef.current;
-    if (!node) {
+    if (!node || !sourceMode || editableSourceMode) {
       return;
     }
 
     const normalizedDomText = normalizeEditableText(node.textContent ?? "");
+    const alreadyPlainTextNode = node.childNodes.length === 1 && node.firstChild?.nodeType === Node.TEXT_NODE;
     if (!readOnly && active && !selectionSegment) {
       if (!content) {
         if (node.childNodes.length === 1 && node.firstChild instanceof HTMLBRElement) {
@@ -159,7 +120,7 @@ export function MessageEditorTextBlock({
         return;
       }
 
-      if (normalizedDomText === content) {
+      if (alreadyPlainTextNode && normalizedDomText === content) {
         return;
       }
 
@@ -172,39 +133,41 @@ export function MessageEditorTextBlock({
       return;
     }
 
-    if (normalizedDomText === content && node.childNodes.length === segments.length) {
-      const hasSameMarkup = segments.every((segment, index) => {
-        const child = node.childNodes[index];
-        if (!(child instanceof HTMLSpanElement)) {
-          return false;
-        }
-        const backgroundColor = segment.style?.backgroundColor ?? "";
-        const color = segment.style?.color ?? "";
-        return child.textContent === segment.text
-          && child.className === segment.className
-          && child.style.backgroundColor === backgroundColor
-          && child.style.color === color;
-      });
-      if (hasSameMarkup) {
-        return;
-      }
+    if (alreadyPlainTextNode && normalizedDomText === content) {
+      return;
     }
 
-    const fragment = document.createDocumentFragment();
-    for (const segment of segments) {
-      const span = document.createElement("span");
-      span.className = segment.className;
-      span.textContent = segment.text;
-      if (segment.style?.backgroundColor) {
-        span.style.backgroundColor = segment.style.backgroundColor;
-      }
-      if (segment.style?.color) {
-        span.style.color = segment.style.color;
-      }
-      fragment.append(span);
+    node.replaceChildren(document.createTextNode(content));
+  }, [active, content, editableSourceMode, readOnly, selectionSegment, sourceMode]);
+
+  useLayoutEffect(() => {
+    if (!editableSourceMode) {
+      wasEditableSourceModeRef.current = false;
+      return;
     }
-    node.replaceChildren(fragment);
-  }, [active, content, readOnly, segments, selectionSegment]);
+
+    const editor = effectiveTextInputRef.current?.getRawElement();
+    if (!editor) {
+      return;
+    }
+
+    blockContentRef.current = editor;
+    registerBlockRef(blockId, editor);
+    if (normalizeEditableText(editor.textContent ?? "") !== content) {
+      effectiveTextInputRef.current?.setContent(plainTextToHtml(content));
+    }
+    // 预览态首次切入编辑态时要主动聚焦，否则第一次点击只会切换组件，不会出现光标。
+    if (!wasEditableSourceModeRef.current) {
+      effectiveTextInputRef.current?.focus();
+    }
+    wasEditableSourceModeRef.current = true;
+
+    return () => {
+      registerBlockRef(blockId, null);
+    };
+  }, [blockId, content, editableSourceMode, effectiveTextInputRef, registerBlockRef]);
+
+  const contentClassName = textContentClassName(message);
 
   return (
     <div className={blockClassName(message, readOnly)}>
@@ -213,28 +176,89 @@ export function MessageEditorTextBlock({
           {placeholder}
         </div>
       )}
-      <div
-        ref={(node) => {
-          blockContentRef.current = node;
-          registerBlockRef(blockId, node);
-        }}
-        data-me-block-id={blockId}
-        contentEditable={!readOnly}
-        suppressContentEditableWarning
-        className="min-h-6 whitespace-pre-wrap wrap-break-word outline-none selection:bg-sky-200 selection:text-slate-950"
-        onMouseDownCapture={() => {
-          if (!readOnly) {
-            onFocus(blockId);
-          }
-        }}
-        onMouseDown={event => onMouseDown?.(blockId, event)}
-        onFocus={() => onFocus(blockId)}
-        onBlur={() => onBlur?.(blockId)}
-        onInput={(event) => {
-          onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
-        }}
-        onKeyDown={event => onKeyDown(blockId, event)}
-      />
+      {sourceMode
+        ? (editableSourceMode
+            ? (
+                <div
+                  data-me-block-id={blockId}
+                  data-me-text-mode="source"
+                  onMouseDownCapture={() => {
+                    onFocus(blockId);
+                  }}
+                  onMouseDown={event => onMouseDown?.(blockId, event)}
+                >
+                  <ChatInputArea
+                    ref={effectiveTextInputRef}
+                    className={contentClassName}
+                    inputScope="message-edit"
+                    placeholder={placeholder}
+                    disabled={false}
+                    onInputSync={(plainText) => {
+                      onInput(blockId, normalizeEditableText(plainText));
+                    }}
+                    onPasteFiles={() => {}}
+                    onKeyDown={event => onKeyDown(blockId, event)}
+                    onKeyUp={() => {}}
+                    onMouseDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onCompositionStart={() => {}}
+                    onCompositionEnd={() => {}}
+                    onFocus={() => onFocus(blockId)}
+                    onBlur={() => onBlur?.(blockId)}
+                  />
+                </div>
+              )
+            : (
+                <div
+                  ref={(node) => {
+                    blockContentRef.current = node;
+                    registerBlockRef(blockId, node);
+                  }}
+                  data-me-block-id={blockId}
+                  data-me-text-mode="source"
+                  contentEditable={!readOnly && active}
+                  suppressContentEditableWarning
+                  className={contentClassName}
+                  onMouseDownCapture={() => {
+                    if (!readOnly) {
+                      onFocus(blockId);
+                    }
+                  }}
+                  onMouseDown={event => onMouseDown?.(blockId, event)}
+                  onFocus={() => onFocus(blockId)}
+                  onBlur={() => onBlur?.(blockId)}
+                  onInput={(event) => {
+                    onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
+                  }}
+                  onKeyDown={event => onKeyDown(blockId, event)}
+                />
+              )
+          )
+        : (
+            <div
+              ref={(node) => {
+                blockContentRef.current = node;
+                registerBlockRef(blockId, node);
+              }}
+              data-me-block-id={blockId}
+              data-me-text-mode="preview"
+              className={contentClassName}
+              onMouseDownCapture={() => {
+                if (!readOnly) {
+                  onFocus(blockId);
+                }
+              }}
+              onMouseDown={event => onMouseDown?.(blockId, event)}
+            >
+              <EditableMessageContent
+                content={content}
+                canEdit={false}
+                className={contentClassName}
+                onCommit={() => {}}
+              />
+            </div>
+          )}
     </div>
   );
 }
