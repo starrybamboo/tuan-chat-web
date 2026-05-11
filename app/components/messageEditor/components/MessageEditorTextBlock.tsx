@@ -1,5 +1,7 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
+import { useLayoutEffect, useRef } from "react";
+
 import {
   getMessageEditorBlockType,
   getMessageEditorInlineMarks,
@@ -19,7 +21,6 @@ interface MessageEditorTextBlockProps {
 }
 
 interface InlineSegment {
-  key: string;
   text: string;
   className: string;
   style?: React.CSSProperties;
@@ -70,7 +71,6 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
     }
 
     segments.push({
-      key: `${start}:${end}`,
       text,
       className: classes.join(" "),
       style: Object.keys(style).length > 0 ? style : undefined,
@@ -123,6 +123,56 @@ export function MessageEditorTextBlock({
 }: MessageEditorTextBlockProps) {
   const content = normalizeMessageEditorContent(message.content);
   const segments = buildInlineSegments(message);
+  const blockContentRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const node = blockContentRef.current;
+    if (!node) {
+      return;
+    }
+
+    const normalizedDomText = normalizeEditableText(node.textContent ?? "");
+    if (!readOnly && active) {
+      if (normalizedDomText === content && node.childNodes.length <= 1) {
+        return;
+      }
+
+      if (!content) {
+        if (node.childNodes.length === 1 && node.firstChild instanceof HTMLBRElement) {
+          return;
+        }
+        node.replaceChildren(document.createElement("br"));
+        return;
+      }
+
+      node.replaceChildren(document.createTextNode(content));
+      return;
+    }
+
+    if (normalizedDomText === content && node.childNodes.length === segments.length) {
+      return;
+    }
+
+    if (!content) {
+      node.replaceChildren();
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const segment of segments) {
+      const span = document.createElement("span");
+      span.className = segment.className;
+      span.textContent = segment.text;
+      if (segment.style?.backgroundColor) {
+        span.style.backgroundColor = segment.style.backgroundColor;
+      }
+      if (segment.style?.color) {
+        span.style.color = segment.style.color;
+      }
+      fragment.append(span);
+    }
+    node.replaceChildren(fragment);
+  }, [active, content, readOnly, segments]);
 
   return (
     <div className={blockClassName(message, active, readOnly)}>
@@ -132,7 +182,10 @@ export function MessageEditorTextBlock({
         </div>
       )}
       <div
-        ref={node => registerBlockRef(blockId, node)}
+        ref={(node) => {
+          blockContentRef.current = node;
+          registerBlockRef(blockId, node);
+        }}
         data-me-block-id={blockId}
         contentEditable={!readOnly}
         suppressContentEditableWarning
@@ -142,15 +195,7 @@ export function MessageEditorTextBlock({
           onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
         }}
         onKeyDown={event => onKeyDown(blockId, event)}
-      >
-        {segments.length > 0
-          ? segments.map(segment => (
-              <span key={segment.key} className={segment.className} style={segment.style}>
-                {segment.text}
-              </span>
-            ))
-          : (!readOnly ? <br /> : "")}
-      </div>
+      />
     </div>
   );
 }
