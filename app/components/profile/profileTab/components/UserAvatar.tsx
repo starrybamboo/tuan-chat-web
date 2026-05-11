@@ -24,6 +24,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const avatarSizeClass = size === "lg" ? "w-full aspect-square" : "w-16 h-16";
+  const avatarFramePaddingClass = size === "lg" ? "p-1.5" : "p-1";
 
   // 处理图片加载错误
   const handleImageError = () => {
@@ -48,10 +50,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     const bgColor = bgColors[colorIndex];
 
     return (
-      <div className={`${bgColor} flex items-center justify-center text-white font-bold ${
-        size === "sm"
-          ? "w-16 h-16 rounded-full text-lg"
-          : "w-full h-full rounded-full text-4xl"
+      <div className={`${bgColor} flex h-full w-full items-center justify-center rounded-full text-white font-bold ${
+        size === "sm" ? "text-lg" : "text-4xl"
       }`}
       >
         {initials}
@@ -61,7 +61,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   if (isLoading || !user) {
     return (
-      <div className={size === "lg" ? "w-full aspect-square" : "w-16 h-16"}>
+      <div className={avatarSizeClass}>
         <div className="skeleton w-full h-full rounded-full" />
       </div>
     );
@@ -82,22 +82,13 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           <img
             src={avatarSrc}
             alt={user?.username}
-            className={`object-cover transition-all duration-300 ${
+            className={`h-full w-full rounded-full object-cover transition-all duration-300 ${
               canEdit ? "group-hover:brightness-75" : ""
-            } ${
-              size === "sm"
-                ? "w-16 h-16 rounded-full"
-                : "w-full h-full rounded-full"
             }`}
             onError={handleImageError}
           />
           {imageLoading && (
-            <div className={`absolute inset-0 skeleton ${
-              size === "sm"
-                ? "w-16 h-16 rounded-full"
-                : "w-full h-full rounded-full"
-            }`}
-            />
+            <div className="absolute inset-0 skeleton rounded-full" />
           )}
         </div>
       );
@@ -123,32 +114,33 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   );
 
   return (
-    <div className={size === "lg" ? "w-full aspect-square" : "w-16 h-16"}>
+    <div className={avatarSizeClass}>
       <div className="w-full h-full relative">
-        {canEdit
-          ? (
-              <ImgUploaderWithCopper
-                mutate={(payload) => {
-                  if (payload?.avatarFileId) {
-                    onAvatarUpdate({ avatarFileId: payload.avatarFileId });
-                  }
-                }}
-                fileName={`userId-${user?.userId}`}
-                aspect={1}
-              >
-                <div className={`w-full h-full cursor-pointer ${
-                  size === "lg" ? "" : "w-16 h-16"
-                }`}
-                >
-                  {avatarContent}
-                </div>
-              </ImgUploaderWithCopper>
-            )
-          : (
-              <div className={isOwner ? "w-full h-full relative" : "pointer-events-none w-full h-full relative"}>
-                {renderAvatarImage()}
-              </div>
-            )}
+        <div className={`h-full w-full rounded-full border border-base-300/60 bg-base-100 ${avatarFramePaddingClass}`}>
+          <div className="h-full w-full overflow-hidden rounded-full">
+            {canEdit
+              ? (
+                  <ImgUploaderWithCopper
+                    mutate={(payload) => {
+                      if (payload?.avatarFileId) {
+                        onAvatarUpdate({ avatarFileId: payload.avatarFileId });
+                      }
+                    }}
+                    fileName={`userId-${user?.userId}`}
+                    aspect={1}
+                  >
+                    <div className="w-full h-full cursor-pointer">
+                      {avatarContent}
+                    </div>
+                  </ImgUploaderWithCopper>
+                )
+              : (
+                  <div className="pointer-events-none w-full h-full relative">
+                    {renderAvatarImage()}
+                  </div>
+                )}
+          </div>
+        </div>
         <UserStatusDot
           status={user?.activeStatus}
           size={size}
