@@ -19,6 +19,7 @@ interface UserProfileProps {
   isLoading: boolean;
   profileEditing: ProfileEditingState;
   variant?: "mobile" | "desktop";
+  avatar?: React.ReactNode;
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -28,6 +29,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   isLoading,
   profileEditing,
   variant = "desktop",
+  avatar,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isOwner = userId === loginUserId;
@@ -56,53 +58,105 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   return (
     <div className={isMobile ? "w-52" : "w-full"}>
       {/* 用户名 */}
-      <div className={isMobile ? "" : "self-start w-full mt-4"}>
-        {isOwner && isEditingProfile && !isMobile
-          ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={editingUsername}
-                  onChange={e => setEditingUsername(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter")
-                      saveProfile();
-                    if (e.key === "Escape")
-                      cancelEditingProfile();
-                  }}
-                  className={`input input-sm input-bordered flex-1 ${
-                    isMobile ? "text-lg" : "text-lg"
-                  } font-bold ${
-                    editingUsername.length > 30 ? "input-error" : ""
-                  }`}
-                  maxLength={30}
-
-                  placeholder="请输入用户名"
-                />
+      {avatar && !isMobile
+        ? (
+            <div className="flex items-end gap-4">
+              <div className="shrink-0">
+                {avatar}
               </div>
-            )
-          : (
-              <h2 className={`font-bold truncate ${isMobile ? "text-lg" : "text-2xl"}`}>
-                {user?.username
+              <div className="min-w-0 flex-1">
+                {isOwner && isEditingProfile
                   ? (
-                      <>
-                        {user.username}
-                        {" "}
-                        <span className={`text-sm text-gray-400 ${isMobile ? "inline" : "block"}`}>
-                          UID:
-                          {" "}
-                          {userId}
-                        </span>
-                      </>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingUsername}
+                          onChange={e => setEditingUsername(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter")
+                              saveProfile();
+                            if (e.key === "Escape")
+                              cancelEditingProfile();
+                          }}
+                          className={`input input-sm input-bordered flex-1 text-lg font-bold ${
+                            editingUsername.length > 30 ? "input-error" : ""
+                          }`}
+                          maxLength={30}
+                          placeholder="请输入用户名"
+                        />
+                      </div>
                     )
                   : (
-                      "未知用户"
+                      <h2 className="font-bold truncate text-2xl">
+                        {user?.username
+                          ? (
+                              <>
+                                {user.username}
+                                {" "}
+                                <span className="text-sm text-gray-400 block">
+                                  UID:
+                                  {" "}
+                                  {userId}
+                                </span>
+                              </>
+                            )
+                          : (
+                              "未知用户"
+                            )}
+                      </h2>
                     )}
-              </h2>
-            )}
-      </div>
+              </div>
+            </div>
+          )
+        : (
+            <div className={isMobile ? "" : "self-start w-full mt-4"}>
+              {isOwner && isEditingProfile && !isMobile
+                ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editingUsername}
+                        onChange={e => setEditingUsername(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter")
+                            saveProfile();
+                          if (e.key === "Escape")
+                            cancelEditingProfile();
+                        }}
+                        className={`input input-sm input-bordered flex-1 ${
+                          isMobile ? "text-lg" : "text-lg"
+                        } font-bold ${
+                          editingUsername.length > 30 ? "input-error" : ""
+                        }`}
+                        maxLength={30}
+
+                        placeholder="请输入用户名"
+                      />
+                    </div>
+                  )
+                : (
+                    <h2 className={`font-bold truncate ${isMobile ? "text-lg" : "text-2xl"}`}>
+                      {user?.username
+                        ? (
+                            <>
+                              {user.username}
+                              {" "}
+                              <span className={`text-sm text-gray-400 ${isMobile ? "inline" : "block"}`}>
+                                UID:
+                                {" "}
+                                {userId}
+                              </span>
+                            </>
+                          )
+                        : (
+                            "未知用户"
+                          )}
+                    </h2>
+                  )}
+            </div>
+          )}
       {/* 描述 */}
-      <div className={isMobile ? "mt-2" : "w-full mt-4"}>
+      <div className={isMobile ? "mt-2" : "w-full mt-6"}>
         {isOwner && isEditingProfile && !isMobile
           ? (
               <div className="space-y-2">
@@ -159,10 +213,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           : (
               <div>
                 <div
-                  className={`break-words transition-all duration-300 ease-in-out ${
+                  className={`wrap-break-word transition-all duration-300 ease-in-out ${
                     isMobile
-                      ? `text-base ${isExpanded ? "" : "line-clamp-2"}`
-                      : `text-base overflow-hidden ${isExpanded ? "max-h-96" : "max-h-12"}`
+                      ? `text-sm ${isExpanded ? "" : "line-clamp-2"}`
+                      : `text-sm overflow-hidden ${isExpanded ? "max-h-96" : "max-h-12"}`
                   }`}
                   style={
                     isMobile

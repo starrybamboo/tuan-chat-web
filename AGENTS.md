@@ -60,5 +60,3 @@
 - helloagent 不要落文档知识库。
 - 不要调用方案设计。
 - 搜索前必须先明确搜索范围；默认限制在当前主仓库相关目录内，避免全局命中无关文档、.worktrees 或其他代理工作区。
-- BlockSuite 相关目录、文档和生成物都是弃用的旧方案残留，不应被当作有效上下文；在检索、总结或选择实现路径时忽略它们，除非用户明确要求处理这些旧残留。
-- 这些路径默认视为排除项：app/components/chat/infra/blocksuite/**、app/components/chat/shared/components/BlockSuite/**、docs/integrations/blocksuite.md、packages/tuanchat-openapi-client/src/services/BlocksuiteDocControllerService.ts、packages/tuanchat-openapi-client/src/models/BlocksuiteDoc*.ts、packages/tuanchat-openapi-client/src/models/ApiResultBlocksuiteDoc*.ts。
