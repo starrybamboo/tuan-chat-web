@@ -1,3 +1,4 @@
+// oxlint-disable jsx-a11y/no-static-element-interactions
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { useLayoutEffect, useRef } from "react";
@@ -16,9 +17,11 @@ interface MessageEditorTextBlockProps {
   onFocus: (blockId: string) => void;
   onInput: (blockId: string, nextContent: string) => void;
   onKeyDown: (blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => void;
+  onMouseDown?: (blockId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   placeholder?: string;
   readOnly?: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
+  selectionSegment?: { start: number; end: number } | null;
 }
 
 interface InlineSegment {
@@ -31,14 +34,19 @@ function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
 }
 
-function buildInlineSegments(message: MessageDraft): InlineSegment[] {
+function buildInlineSegments(message: MessageDraft, selectionSegment?: { start: number; end: number } | null): InlineSegment[] {
   const content = normalizeMessageEditorContent(message.content);
   const marks = getMessageEditorInlineMarks(message);
   if (!content) {
     return [];
   }
 
-  const breakpoints = Array.from(new Set([0, content.length, ...marks.flatMap(mark => [mark.start, mark.end])])).sort((left, right) => left - right);
+  const breakpoints = Array.from(new Set([
+    0,
+    content.length,
+    ...marks.flatMap(mark => [mark.start, mark.end]),
+    ...(selectionSegment ? [selectionSegment.start, selectionSegment.end] : []),
+  ])).sort((left, right) => left - right);
   const segments: InlineSegment[] = [];
 
   for (let index = 0; index < breakpoints.length - 1; index += 1) {
@@ -52,6 +60,12 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
     const activeMarks = marks.filter(mark => mark.start < end && mark.end > start);
     const classes = ["text-inherit"];
     const style: React.CSSProperties = {};
+    const selected = selectionSegment && start < selectionSegment.end && end > selectionSegment.start;
+
+    if (selected) {
+      classes.push("bg-sky-200", "text-slate-950");
+    }
+
     for (const mark of activeMarks) {
       if (mark.type === "bold") {
         classes.push("font-semibold");
@@ -84,9 +98,9 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
 function blockClassName(message: MessageDraft, readOnly: boolean) {
   const blockType = getMessageEditorBlockType(message);
   const base = [
-    "relative rounded-md px-3 py-1.5 transition selection:bg-sky-200 selection:text-slate-950",
+    "relative rounded-md px-2 py-1.5 transition selection:bg-sky-200 selection:text-slate-950",
     "bg-transparent",
-    readOnly ? "" : "hover:bg-base-200/30",
+    readOnly ? "" : "hover:bg-base-200/80",
   ];
 
   if (blockType === "heading1") {
@@ -119,12 +133,14 @@ export function MessageEditorTextBlock({
   onFocus,
   onInput,
   onKeyDown,
+  onMouseDown,
   placeholder = "",
   readOnly = false,
   registerBlockRef,
+  selectionSegment = null,
 }: MessageEditorTextBlockProps) {
   const content = normalizeMessageEditorContent(message.content);
-  const segments = buildInlineSegments(message);
+  const segments = buildInlineSegments(message, selectionSegment);
   const blockContentRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
@@ -134,7 +150,7 @@ export function MessageEditorTextBlock({
     }
 
     const normalizedDomText = normalizeEditableText(node.textContent ?? "");
-    if (!readOnly && active) {
+    if (!readOnly && active && !selectionSegment) {
       if (!content) {
         if (node.childNodes.length === 1 && node.firstChild instanceof HTMLBRElement) {
           return;
@@ -151,13 +167,27 @@ export function MessageEditorTextBlock({
       return;
     }
 
-    if (normalizedDomText === content && node.childNodes.length === segments.length) {
-      return;
-    }
-
     if (!content) {
       node.replaceChildren();
       return;
+    }
+
+    if (normalizedDomText === content && node.childNodes.length === segments.length) {
+      const hasSameMarkup = segments.every((segment, index) => {
+        const child = node.childNodes[index];
+        if (!(child instanceof HTMLSpanElement)) {
+          return false;
+        }
+        const backgroundColor = segment.style?.backgroundColor ?? "";
+        const color = segment.style?.color ?? "";
+        return child.textContent === segment.text
+          && child.className === segment.className
+          && child.style.backgroundColor === backgroundColor
+          && child.style.color === color;
+      });
+      if (hasSameMarkup) {
+        return;
+      }
     }
 
     const fragment = document.createDocumentFragment();
@@ -174,7 +204,7 @@ export function MessageEditorTextBlock({
       fragment.append(span);
     }
     node.replaceChildren(fragment);
-  }, [active, content, readOnly, segments]);
+  }, [active, content, readOnly, segments, selectionSegment]);
 
   return (
     <div className={blockClassName(message, readOnly)}>
@@ -191,12 +221,13 @@ export function MessageEditorTextBlock({
         data-me-block-id={blockId}
         contentEditable={!readOnly}
         suppressContentEditableWarning
-        className="min-h-6 whitespace-pre-wrap break-words outline-none selection:bg-sky-200 selection:text-slate-950"
+        className="min-h-6 whitespace-pre-wrap wrap-break-word outline-none selection:bg-sky-200 selection:text-slate-950"
         onMouseDownCapture={() => {
           if (!readOnly) {
             onFocus(blockId);
           }
         }}
+        onMouseDown={event => onMouseDown?.(blockId, event)}
         onFocus={() => onFocus(blockId)}
         onBlur={() => onBlur?.(blockId)}
         onInput={(event) => {

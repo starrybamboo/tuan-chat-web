@@ -25,6 +25,10 @@ interface UseFloatingSelectionToolbarOptions {
    */
   visible?: boolean;
   /**
+   * 暂时挂起工具栏显示，但保留选区监听。
+   */
+  suspend?: boolean;
+  /**
    * 基于当前原生选区解析其所属编辑器；若返回 null，表示该选区不应触发工具栏。
    */
   resolveEditorElement: (range: Range) => HTMLElement | null;
@@ -43,6 +47,7 @@ interface FloatingSelectionToolbarState {
  * 管理“选中文本后显示”的浮动工具栏状态。
  */
 export function useFloatingSelectionToolbar({
+  suspend = false,
   visible = true,
   resolveEditorElement,
 }: UseFloatingSelectionToolbarOptions): FloatingSelectionToolbarState {
@@ -64,6 +69,43 @@ export function useFloatingSelectionToolbar({
     }
   }, [hideToolbar, visible]);
 
+  useEffect(() => {
+    if (suspend) {
+      queueMicrotask(hideToolbar);
+      return;
+    }
+    if (!visible) {
+      return;
+    }
+    queueMicrotask(() => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      const editor = resolveEditorElement(range);
+      const text = selection.toString();
+      if (!editor || !text.trim() || range.collapsed) {
+        return;
+      }
+
+      const rects = range.getClientRects();
+      const rect = rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) {
+        return;
+      }
+
+      savedSelectionRef.current = {
+        range: range.cloneRange(),
+        text,
+        editor,
+      };
+      setToolbarPos({ x: rect.left + rect.width / 2, y: rect.top });
+      setIsFloatingVisible(true);
+    });
+  }, [hideToolbar, resolveEditorElement, suspend, visible]);
+
   const saveSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
@@ -84,6 +126,11 @@ export function useFloatingSelectionToolbar({
   }, [resolveEditorElement]);
 
   const updateFloatingFromSelection = useCallback(() => {
+    if (suspend) {
+      hideToolbar();
+      return;
+    }
+
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
       hideToolbar();
@@ -112,7 +159,7 @@ export function useFloatingSelectionToolbar({
     };
     setToolbarPos({ x: rect.left + rect.width / 2, y: rect.top });
     setIsFloatingVisible(true);
-  }, [hideToolbar, resolveEditorElement]);
+  }, [hideToolbar, resolveEditorElement, suspend]);
 
   const scheduleUpdateFloatingFromSelection = useCallback(() => {
     if (typeof window === "undefined") {

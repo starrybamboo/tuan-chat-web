@@ -1,21 +1,22 @@
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
 import type { MessageEditorInsertableBlockKind } from "./model/messageEditorTransforms";
 import type { MessageEditorController } from "./runtime/messageEditorController";
+import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
 import type { DescriptionEntityType } from "@/components/chat/infra/doc/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import type { MessageDraft } from "@/types/messageDraft";
+
 import { DotsSixVerticalIcon } from "@phosphor-icons/react";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { UploadUtils } from "@/utils/UploadUtils";
 
+import { UploadUtils } from "@/utils/UploadUtils";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
 import { MessageEditorTextBlock } from "./components/MessageEditorTextBlock";
@@ -95,6 +96,37 @@ function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
 }
 
+function getOffsetWithinBlock(blockElement: HTMLElement, container: Node, offset: number) {
+  const range = document.createRange();
+  range.selectNodeContents(blockElement);
+  try {
+    range.setEnd(container, offset);
+  }
+  catch {
+    return normalizeMessageEditorContent(blockElement.textContent).length;
+  }
+  return range.toString().length;
+}
+
+function resolveCaretOffsetFromPoint(blockElement: HTMLElement, clientX: number, clientY: number) {
+  const documentWithCaretApis = blockElement.ownerDocument as Document & {
+    caretPositionFromPoint?: (x: number, y: number) => { offset: number; offsetNode: Node } | null;
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+  };
+
+  const caretPosition = documentWithCaretApis.caretPositionFromPoint?.(clientX, clientY);
+  if (caretPosition && blockElement.contains(caretPosition.offsetNode)) {
+    return getOffsetWithinBlock(blockElement, caretPosition.offsetNode, caretPosition.offset);
+  }
+
+  const caretRange = documentWithCaretApis.caretRangeFromPoint?.(clientX, clientY);
+  if (caretRange && blockElement.contains(caretRange.startContainer)) {
+    return getOffsetWithinBlock(blockElement, caretRange.startContainer, caretRange.startOffset);
+  }
+
+  return null;
+}
+
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
   const selectionText = normalizeEditableText(range.toString());
   const prefixRange = document.createRange();
@@ -169,9 +201,18 @@ export default function MessageEditor({
     caret?: number;
     selection?: ReturnType<typeof createMessageEditorSelection>;
   } | null>(null);
+  const pointerSelectionCleanupRef = useRef<(() => void) | null>(null);
+  const pointerSelectionRef = useRef<MessageEditorSelection | null>(null);
+  const pointerSelectionPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [messages, setMessages] = useState<MessageDraft[]>(() => ensureMessageEditorMessages([]));
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [crossBlockSelection, setCrossBlockSelection] = useState<{
+    position: { x: number; y: number };
+    selection: MessageEditorSelection;
+  } | null>(null);
+  const [crossBlockSelectionPreview, setCrossBlockSelectionPreview] = useState<MessageEditorSelection | null>(null);
   const [dragState, setDragState] = useState<MessageEditorDragState | null>(null);
+  const [isPointerSelecting, setIsPointerSelecting] = useState(false);
   const [slashSelectionIndex, setSlashSelectionIndex] = useState(0);
   const [dismissedSlashKey, setDismissedSlashKey] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string>("");
@@ -197,10 +238,18 @@ export default function MessageEditor({
   const lastNotifyDigestRef = useRef("");
   const lastSavedSerializedRef = useRef("");
 
+  const clearCrossBlockSelection = useCallback(() => {
+    pointerSelectionRef.current = null;
+    pointerSelectionPositionRef.current = null;
+    setCrossBlockSelectionPreview(null);
+    setCrossBlockSelection(null);
+  }, []);
+
   const clearActiveBlock = useCallback(() => {
     setActiveBlockId(null);
     controllerRef.current?.setActiveBlock(null);
-  }, []);
+    clearCrossBlockSelection();
+  }, [clearCrossBlockSelection]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -228,6 +277,7 @@ export default function MessageEditor({
   }, [eventBus, getCurrentMessages, registry, setMessagesWithRef]);
 
   const { toolbarRef, isFloatingVisible, toolbarPos, savedSelectionRef, hideToolbar } = useFloatingSelectionToolbar({
+    suspend: isPointerSelecting || crossBlockSelectionPreview !== null || crossBlockSelection !== null,
     visible: !readOnly,
     resolveEditorElement: useCallback((range: Range) => {
       const root = editorRootRef.current;
@@ -405,6 +455,14 @@ export default function MessageEditor({
   }, [messages, readOnly, ready, remoteKey, resolvedDocId]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
+    if (crossBlockSelection?.selection) {
+      eventBus.emit("selectionChanged", {
+        blockIds: crossBlockSelection.selection.blockIds,
+        multiBlock: crossBlockSelection.selection.multiBlock,
+      });
+      return crossBlockSelection.selection;
+    }
+
     const root = editorRootRef.current;
     if (!root) {
       return null;
@@ -435,7 +493,7 @@ export default function MessageEditor({
       });
     }
     return resolved;
-  }, [eventBus, registry, savedSelectionRef]);
+  }, [crossBlockSelection, eventBus, registry, savedSelectionRef]);
 
   const registerBlockRef = useCallback((blockId: string, node: HTMLDivElement | null) => {
     if (node) {
@@ -517,11 +575,15 @@ export default function MessageEditor({
   }, [clearActiveBlock, hideToolbar, slashMenuState]);
 
   const handleTextInput = useCallback((blockId: string, nextContent: string) => {
+    clearCrossBlockSelection();
     controllerRef.current?.updateTextContent(blockId, nextContent);
-  }, []);
+  }, [clearCrossBlockSelection]);
 
   const handleTextBlur = useCallback(() => {
     window.setTimeout(() => {
+      if (pointerSelectionCleanupRef.current) {
+        return;
+      }
       const root = editorRootRef.current;
       const activeElement = document.activeElement;
       if (root && activeElement instanceof Node && root.contains(activeElement)) {
@@ -530,6 +592,192 @@ export default function MessageEditor({
       clearActiveBlock();
     }, 0);
   }, [clearActiveBlock]);
+
+  const resolveTextSelectionPointFromClientPosition = useCallback((clientX: number, clientY: number): MessageEditorSelectionPoint | null => {
+    const root = editorRootRef.current;
+    if (!root) {
+      return null;
+    }
+
+    const currentMessages = ensureMessageEditorMessages(messagesRef.current);
+    const messageByBlockId = new Map(currentMessages.map(message => [getMessageEditorBlockId(message), message] as const));
+
+    const blockIdFromNode = (node: Node | null) => {
+      if (!(node instanceof Element)) {
+        return null;
+      }
+      const blockElement = node.closest<HTMLElement>("[data-me-block-id]");
+      const blockId = blockElement?.dataset.meBlockId;
+      if (!blockId) {
+        return null;
+      }
+      const message = messageByBlockId.get(blockId);
+      if (!message || !registry.isTextBlock(message)) {
+        return null;
+      }
+      return blockId;
+    };
+
+    const resolvePointForBlock = (blockId: string) => {
+      const blockElement = blockRefsRef.current.get(blockId);
+      const message = messageByBlockId.get(blockId);
+      if (!blockElement || !message) {
+        return null;
+      }
+
+      const contentLength = normalizeMessageEditorContent(message.content).length;
+      const bounds = blockElement.getBoundingClientRect();
+      const directOffset = resolveCaretOffsetFromPoint(blockElement, clientX, clientY);
+      if (directOffset != null) {
+        return {
+          blockId,
+          offset: Math.max(0, Math.min(directOffset, contentLength)),
+        };
+      }
+
+      if (clientY <= bounds.top || clientX <= bounds.left) {
+        return { blockId, offset: 0 };
+      }
+      if (clientY >= bounds.bottom || clientX >= bounds.right) {
+        return { blockId, offset: contentLength };
+      }
+
+      return { blockId, offset: contentLength };
+    };
+
+    const directBlockId = blockIdFromNode(root.ownerDocument.elementFromPoint(clientX, clientY));
+    if (directBlockId) {
+      return resolvePointForBlock(directBlockId);
+    }
+
+    const nearestTextBlockId = currentMessages
+      .filter(message => registry.isTextBlock(message))
+      .map((message) => {
+        const blockId = getMessageEditorBlockId(message);
+        const blockElement = blockRefsRef.current.get(blockId);
+        if (!blockElement) {
+          return null;
+        }
+        const bounds = blockElement.getBoundingClientRect();
+        const distance = clientY < bounds.top
+          ? bounds.top - clientY
+          : clientY > bounds.bottom
+            ? clientY - bounds.bottom
+            : 0;
+        return { blockId, distance };
+      })
+      .filter((entry): entry is { blockId: string; distance: number } => entry !== null)
+      .sort((left, right) => left.distance - right.distance)[0]
+      ?.blockId;
+
+    return nearestTextBlockId ? resolvePointForBlock(nearestTextBlockId) : null;
+  }, [registry]);
+
+  const handleTextMouseDown = useCallback((blockId: string, event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const root = editorRootRef.current;
+    if (!root) {
+      return;
+    }
+
+    const anchor = resolveTextSelectionPointFromClientPosition(event.clientX, event.clientY);
+    if (!anchor || anchor.blockId !== blockId) {
+      return;
+    }
+
+    pointerSelectionCleanupRef.current?.();
+    clearCrossBlockSelection();
+    setIsPointerSelecting(true);
+    hideToolbar();
+
+    const documentRef = root.ownerDocument;
+    const currentMessages = ensureMessageEditorMessages(messagesRef.current);
+    const messageIndexByBlockId = new Map(currentMessages.map((message, index) => [getMessageEditorBlockId(message), index] as const));
+    const handleDocumentMouseMove = (moveEvent: MouseEvent) => {
+      if ((moveEvent.buttons & 1) === 0) {
+        return;
+      }
+
+      const resolvedFocus = resolveTextSelectionPointFromClientPosition(moveEvent.clientX, moveEvent.clientY);
+      if (!resolvedFocus) {
+        return;
+      }
+
+      let focus = resolvedFocus;
+      const focusIndex = messageIndexByBlockId.get(focus.blockId);
+      const anchorIndex = messageIndexByBlockId.get(anchor.blockId);
+      const focusMessage = currentMessages.find(message => getMessageEditorBlockId(message) === focus.blockId);
+      if (focusIndex != null && anchorIndex != null && focusIndex !== anchorIndex && focusMessage) {
+        const contentLength = normalizeMessageEditorContent(focusMessage.content).length;
+        focus = {
+          ...focus,
+          offset: focusIndex > anchorIndex ? contentLength : 0,
+        };
+      }
+
+      const selection = createMessageEditorSelection(messagesRef.current, registry, anchor, focus);
+      if (!selection) {
+        return;
+      }
+
+      if (!selection.multiBlock) {
+        pointerSelectionRef.current = null;
+        pointerSelectionPositionRef.current = null;
+        setCrossBlockSelectionPreview(null);
+        return;
+      }
+
+      const focusBlock = blockRefsRef.current.get(selection.focus.blockId);
+      if (!focusBlock) {
+        return;
+      }
+
+      const bounds = focusBlock.getBoundingClientRect();
+      const toolbarX = Math.max(bounds.left, Math.min(moveEvent.clientX, bounds.right));
+      pointerSelectionRef.current = selection;
+      pointerSelectionPositionRef.current = {
+        x: toolbarX,
+        y: bounds.top,
+      };
+      setCrossBlockSelectionPreview(selection);
+      window.getSelection()?.removeAllRanges();
+    };
+
+    const cleanup = () => {
+      documentRef.removeEventListener("mousemove", handleDocumentMouseMove);
+      documentRef.removeEventListener("mouseup", handleDocumentMouseUp);
+      pointerSelectionCleanupRef.current = null;
+      setIsPointerSelecting(false);
+    };
+
+    const handleDocumentMouseUp = () => {
+      const nextSelection = pointerSelectionRef.current;
+      const nextPosition = pointerSelectionPositionRef.current;
+      cleanup();
+      if (nextSelection && nextPosition) {
+        setCrossBlockSelection({
+          position: nextPosition,
+          selection: nextSelection,
+        });
+        window.getSelection()?.removeAllRanges();
+        return;
+      }
+      clearCrossBlockSelection();
+    };
+
+    pointerSelectionCleanupRef.current = cleanup;
+    documentRef.addEventListener("mousemove", handleDocumentMouseMove);
+    documentRef.addEventListener("mouseup", handleDocumentMouseUp, { once: true });
+  }, [clearCrossBlockSelection, hideToolbar, registry, resolveTextSelectionPointFromClientPosition]);
+
+  useEffect(() => {
+    return () => {
+      pointerSelectionCleanupRef.current?.();
+    };
+  }, []);
 
   const handleTextKeyDown = useCallback((blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => {
     const root = editorRootRef.current;
@@ -927,7 +1175,7 @@ export default function MessageEditor({
   }
 
   return (
-    <div className={`${frameClassName} min-h-screen min-h-[100svh] overflow-hidden border border-base-300 bg-base-100`}>
+    <div className={`${frameClassName} min-h-screen overflow-hidden border border-base-300 bg-base-100`}>
       <div className="flex h-full min-h-0 flex-col">
         {resolvedCoverUrl
           ? (
@@ -938,7 +1186,7 @@ export default function MessageEditor({
           : null}
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-center justify-between border-b border-base-300 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-base-300 px-4 py-4 md:px-10">
             <div className="min-w-0">
               <div className="truncate text-base font-medium text-base-content">{resolvedTitle}</div>
               {resolvedDocId
@@ -982,10 +1230,10 @@ export default function MessageEditor({
             )}
 
             {ready && (
-              <div className="mx-auto flex min-h-[100svh] w-full max-w-4xl flex-col gap-0.5 px-8 py-3 md:px-10">
+              <div className="mx-auto flex min-h-svh w-full max-w-4xl flex-col py-2">
                 {ready && loadError
                   ? (
-                      <div className="rounded-md border border-error/20 bg-error/5 px-3 py-2 text-sm text-error">
+                      <div className="rounded-md border border-error/20 bg-error/5 px-2 py-2 text-sm text-error">
                         {loadError}
                       </div>
                     )
@@ -1007,7 +1255,7 @@ export default function MessageEditor({
                         key={blockId}
                         ref={node => registerBlockShellRef(blockId, node)}
                         className={[
-                          "group relative rounded-md pl-10 transition",
+                          "group relative rounded-md px-8 transition",
                           dragState?.draggedBlockId === blockId
                             ? "border border-base-300/80 bg-base-100/80"
                             : "border border-transparent",
@@ -1039,10 +1287,17 @@ export default function MessageEditor({
                           active={activeBlockId === blockId}
                           blockId={blockId}
                           message={message}
+                          onMouseDown={handleTextMouseDown}
                           placeholder="输入内容"
                           readOnly={readOnly}
                           registerBlockRef={registerBlockRef}
+                          selectionSegment={
+                            crossBlockSelectionPreview?.segments.find(segment => segment.blockId === blockId)
+                            ?? crossBlockSelection?.selection.segments.find(segment => segment.blockId === blockId)
+                            ?? null
+                          }
                           onFocus={(nextBlockId) => {
+                            clearCrossBlockSelection();
                             setDismissedSlashKey(null);
                             setActiveBlockId(nextBlockId);
                             controllerRef.current?.setActiveBlock(nextBlockId);
@@ -1070,7 +1325,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        "group relative rounded-xl pl-10 transition",
+                        "group relative rounded-xl px-6 transition",
                         dragState?.draggedBlockId === blockId
                           ? "border border-base-300/80 bg-base-100/80"
                           : "border border-transparent",
@@ -1105,6 +1360,7 @@ export default function MessageEditor({
                           message={message}
                           readOnly={readOnly}
                           onFocus={(nextBlockId) => {
+                            clearCrossBlockSelection();
                             setActiveBlockId(nextBlockId);
                             controllerRef.current?.setActiveBlock(nextBlockId);
                           }}
@@ -1116,6 +1372,7 @@ export default function MessageEditor({
                   );
                 })}
                 {!readOnly && (
+                  // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
                   <div
                     data-me-editor-bottom-space="true"
                     className="min-h-20 flex-1"
@@ -1133,8 +1390,8 @@ export default function MessageEditor({
 
       {!readOnly && (
         <MessageEditorToolbar
-          visible={isFloatingVisible}
-          position={toolbarPos}
+          visible={!isPointerSelecting && (crossBlockSelection !== null || isFloatingVisible)}
+          position={crossBlockSelection?.position ?? toolbarPos}
           toolbarRef={toolbarRef}
           onApplyInlineMark={applyInlineMark}
           onApplyBlockType={applyBlockType}
