@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  parseTextEnhanceCSSString,
+  parseTextEnhanceSegments,
+} from "@/utils/textEnhanceSyntax";
 
 /**
  * WebGAL 文本拓展语法渲染器
@@ -13,117 +17,6 @@ import React from "react";
  * - ruby: 注音文本
  */
 
-/** 文本拓展语法的正则表达式 */
-const TEXT_ENHANCE_PATTERN = /\[([^\]]+)\]\(([^)]*)\)/g;
-
-/** 解析参数字符串，返回键值对 */
-function parseParams(paramsStr: string): Record<string, string> {
-  const params: Record<string, string> = {};
-
-  if (!paramsStr.trim()) {
-    return params;
-  }
-
-  // 检测是否为增强语法（包含 style= 或 ruby= 等）
-  const isEnhancedSyntax = paramsStr.includes("=");
-
-  if (!isEnhancedSyntax) {
-    // 简单注音语法：[文本](注音)
-    params.ruby = paramsStr;
-    return params;
-  }
-
-  // 增强语法解析：使用空格分隔不同参数
-  // 例如: style-alltext=font-style:italic\;font-size:80%\; style=color:#66327C\; ruby=wen ben
-  const parts = paramsStr.split(/(?<!\\)\s+/);
-
-  for (const part of parts) {
-    const eqIndex = part.indexOf("=");
-    if (eqIndex > 0) {
-      const key = part.substring(0, eqIndex).trim();
-      // 将 \; 还原为 ;
-      const value = part.substring(eqIndex + 1).trim().replace(/\\;/g, ";");
-      params[key] = value;
-    }
-  }
-
-  return params;
-}
-
-/** 将 CSS 字符串解析为 React 样式对象 */
-function parseCSSString(cssString: string): React.CSSProperties {
-  const style: Record<string, string> = {};
-
-  if (!cssString)
-    return style;
-
-  const declarations = cssString.split(";").filter(Boolean);
-
-  for (const declaration of declarations) {
-    const colonIndex = declaration.indexOf(":");
-    if (colonIndex > 0) {
-      const property = declaration.substring(0, colonIndex).trim();
-      const value = declaration.substring(colonIndex + 1).trim();
-
-      // 将 kebab-case 转换为 camelCase
-      const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-      style[camelProperty] = value;
-    }
-  }
-
-  return style;
-}
-
-interface TextEnhanceSegment {
-  type: "text" | "enhanced";
-  content: string;
-  params?: Record<string, string>;
-}
-
-/** 解析文本内容，返回文本片段数组 */
-function parseTextContent(content: string): TextEnhanceSegment[] {
-  const segments: TextEnhanceSegment[] = [];
-  let lastIndex = 0;
-
-  // 重置正则表达式
-  TEXT_ENHANCE_PATTERN.lastIndex = 0;
-
-  let match = TEXT_ENHANCE_PATTERN.exec(content);
-  while (match !== null) {
-    // 添加匹配前的普通文本
-    if (match.index > lastIndex) {
-      segments.push({
-        type: "text",
-        content: content.substring(lastIndex, match.index),
-      });
-    }
-
-    // 添加增强文本
-    const text = match[1];
-    const paramsStr = match[2];
-    const params = parseParams(paramsStr);
-
-    segments.push({
-      type: "enhanced",
-      content: text,
-      params,
-    });
-
-    lastIndex = match.index + match[0].length;
-    match = TEXT_ENHANCE_PATTERN.exec(content);
-  }
-
-  // 添加剩余的普通文本
-  if (lastIndex < content.length) {
-    segments.push({
-      type: "text",
-      content: content.substring(lastIndex),
-    });
-  }
-
-  return segments;
-}
-
 interface EnhancedTextProps {
   content: string;
   params: Record<string, string>;
@@ -131,8 +24,8 @@ interface EnhancedTextProps {
 
 /** 渲染增强文本（包含样式和/或注音） */
 function EnhancedText({ content, params }: EnhancedTextProps) {
-  const style = params.style ? parseCSSString(params.style) : {};
-  const styleAllText = params["style-alltext"] ? parseCSSString(params["style-alltext"]) : {};
+  const style = params.style ? parseTextEnhanceCSSString(params.style) : {};
+  const styleAllText = params["style-alltext"] ? parseTextEnhanceCSSString(params["style-alltext"]) : {};
   const ruby = params.ruby;
 
   // 合并样式
@@ -190,7 +83,7 @@ export function TextEnhanceRenderer({ content, className }: TextEnhanceRendererP
     return <span className={className}>{content}</span>;
   }
 
-  const segments = parseTextContent(content);
+  const segments = parseTextEnhanceSegments(content);
 
   // 如果没有解析出任何增强文本，直接返回原文
   if (segments.length === 1 && segments[0].type === "text") {

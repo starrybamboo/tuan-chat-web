@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { countTextEnhanceVisibleLength, extractTextEnhanceVisibleText } from "./textEnhanceMetrics";
+import { visibleOffsetToTextEnhanceRawOffset } from "./textEnhanceSyntax";
 
 describe("textEnhanceMetrics", () => {
   it("普通文本保持不变", () => {
@@ -36,5 +37,14 @@ describe("textEnhanceMetrics", () => {
 
   it("emoji 仍按可见字符计数", () => {
     expect(countTextEnhanceVisibleLength("A😀B")).toBe(2);
+  });
+
+  it("能把预览态可见偏移映射回原始语法偏移", () => {
+    const raw = "A[红字](style=color:#f00)B";
+    expect(visibleOffsetToTextEnhanceRawOffset(raw, 0)).toBe(0);
+    expect(visibleOffsetToTextEnhanceRawOffset(raw, 1)).toBe(1);
+    expect(visibleOffsetToTextEnhanceRawOffset(raw, 2)).toBe(2);
+    expect(visibleOffsetToTextEnhanceRawOffset(raw, 3)).toBe(raw.indexOf("B"));
+    expect(visibleOffsetToTextEnhanceRawOffset(raw, 4)).toBe(raw.length);
   });
 });

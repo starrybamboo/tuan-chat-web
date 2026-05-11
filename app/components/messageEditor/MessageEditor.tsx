@@ -4,6 +4,7 @@ import type { MessageEditorController } from "./runtime/messageEditorController"
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
 import type { DescriptionEntityType } from "@/components/chat/infra/doc/description/descriptionDocId";
 import type { BlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { DotsSixVerticalIcon } from "@phosphor-icons/react";
@@ -13,8 +14,10 @@ import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/d
 import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { visibleOffsetToTextEnhanceRawOffset } from "@/utils/textEnhanceSyntax";
 
 import { UploadUtils } from "@/utils/UploadUtils";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
@@ -195,6 +198,7 @@ export default function MessageEditor({
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
   const messagesRef = useRef<MessageDraft[]>([]);
   const controllerRef = useRef<MessageEditorController | null>(null);
+  const textStyleInputRef = useRef<ChatInputAreaHandle | null>(null);
   const uploadUtils = useMemo(() => new UploadUtils(), []);
   const restoreSelectionRef = useRef<{
     blockId?: string;
@@ -276,7 +280,7 @@ export default function MessageEditor({
     });
   }, [eventBus, getCurrentMessages, registry, setMessagesWithRef]);
 
-  const { toolbarRef, isFloatingVisible, toolbarPos, savedSelectionRef, hideToolbar } = useFloatingSelectionToolbar({
+  const { toolbarRef, toolbarPos, savedSelectionRef, hideToolbar } = useFloatingSelectionToolbar({
     suspend: isPointerSelecting || crossBlockSelectionPreview !== null || crossBlockSelection !== null,
     visible: !readOnly,
     resolveEditorElement: useCallback((range: Range) => {
@@ -299,17 +303,24 @@ export default function MessageEditor({
       return;
     }
 
+    const focusEditableInsideBlock = (block: HTMLElement | null) => {
+      const target = block?.matches("[contenteditable='true']")
+        ? block
+        : block?.querySelector<HTMLElement>("[contenteditable='true']");
+      target?.focus?.({ preventScroll: true });
+    };
+
     restoreSelectionRef.current = null;
     if (pending.selection) {
       const focusBlock = root.querySelector<HTMLElement>(`[data-me-block-id="${pending.selection.focus.blockId}"]`);
-      focusBlock?.focus?.({ preventScroll: true });
+      focusEditableInsideBlock(focusBlock);
       restoreMessageEditorSelection(root, pending.selection);
       return;
     }
 
     if (pending.blockId && typeof pending.caret === "number") {
       const focusBlock = root.querySelector<HTMLElement>(`[data-me-block-id="${pending.blockId}"]`);
-      focusBlock?.focus?.({ preventScroll: true });
+      focusEditableInsideBlock(focusBlock);
       const selection = createMessageEditorSelection(messagesRef.current, registry, {
         blockId: pending.blockId,
         offset: pending.caret,
@@ -328,7 +339,7 @@ export default function MessageEditor({
       return;
     }
     queueMicrotask(restorePendingSelection);
-  }, [messages, ready, restorePendingSelection]);
+  }, [activeBlockId, messages, ready, restorePendingSelection]);
 
   useEffect(() => {
     if (!resolvedDocId || !onTcHeaderChange) {
@@ -589,6 +600,9 @@ export default function MessageEditor({
       if (root && activeElement instanceof Node && root.contains(activeElement)) {
         return;
       }
+      if (activeElement instanceof HTMLElement && (activeElement.closest(".text-style-toolbar") || activeElement.closest(".modal"))) {
+        return;
+      }
       clearActiveBlock();
     }, 0);
   }, [clearActiveBlock]);
@@ -625,13 +639,17 @@ export default function MessageEditor({
         return null;
       }
 
-      const contentLength = normalizeMessageEditorContent(message.content).length;
+      const content = normalizeMessageEditorContent(message.content);
+      const contentLength = content.length;
       const bounds = blockElement.getBoundingClientRect();
       const directOffset = resolveCaretOffsetFromPoint(blockElement, clientX, clientY);
       if (directOffset != null) {
+        const rawOffset = blockElement.dataset.meTextMode === "preview"
+          ? visibleOffsetToTextEnhanceRawOffset(content, directOffset)
+          : directOffset;
         return {
           blockId,
-          offset: Math.max(0, Math.min(directOffset, contentLength)),
+          offset: Math.max(0, Math.min(rawOffset, contentLength)),
         };
       }
 
@@ -685,6 +703,20 @@ export default function MessageEditor({
 
     const anchor = resolveTextSelectionPointFromClientPosition(event.clientX, event.clientY);
     if (!anchor || anchor.blockId !== blockId) {
+      return;
+    }
+
+    const isPreviewMode = event.currentTarget.dataset.meTextMode === "preview";
+    if (isPreviewMode) {
+      event.preventDefault();
+      setActiveBlockId(blockId);
+      controllerRef.current?.setActiveBlock(blockId);
+      restoreSelectionRef.current = {
+        blockId,
+        caret: anchor.offset,
+      };
+    }
+    else if (activeBlockId === blockId) {
       return;
     }
 
@@ -771,7 +803,7 @@ export default function MessageEditor({
     pointerSelectionCleanupRef.current = cleanup;
     documentRef.addEventListener("mousemove", handleDocumentMouseMove);
     documentRef.addEventListener("mouseup", handleDocumentMouseUp, { once: true });
-  }, [clearCrossBlockSelection, hideToolbar, registry, resolveTextSelectionPointFromClientPosition]);
+  }, [activeBlockId, clearCrossBlockSelection, hideToolbar, registry, resolveTextSelectionPointFromClientPosition]);
 
   useEffect(() => {
     return () => {
@@ -881,24 +913,6 @@ export default function MessageEditor({
       }
     }
   }, [activeSlashSelectionIndex, handleSelectSlashItem, registry, slashMenuState]);
-
-  const applyInlineMark = useCallback((type: "bold" | "italic" | "code" | "highlight") => {
-    const selection = resolveEditorSelection(true);
-    if (!selection || selection.collapsed) {
-      return;
-    }
-    controllerRef.current?.applyInlineMark(selection, type);
-    restoreSelectionRef.current = { selection };
-  }, [resolveEditorSelection]);
-
-  const applyColorMark = useCallback((color?: string) => {
-    const selection = resolveEditorSelection(true);
-    if (!selection || selection.collapsed) {
-      return;
-    }
-    controllerRef.current?.applyColorMark(selection, color);
-    restoreSelectionRef.current = { selection };
-  }, [resolveEditorSelection]);
 
   const applyBlockType = useCallback((blockType: "paragraph" | "heading1" | "heading2" | "heading3" | "intro") => {
     const selection = resolveEditorSelection(true);
@@ -1291,6 +1305,7 @@ export default function MessageEditor({
                           placeholder="输入内容"
                           readOnly={readOnly}
                           registerBlockRef={registerBlockRef}
+                          textInputRef={textStyleInputRef}
                           selectionSegment={
                             crossBlockSelectionPreview?.segments.find(segment => segment.blockId === blockId)
                             ?? crossBlockSelection?.selection.segments.find(segment => segment.blockId === blockId)
@@ -1389,14 +1404,19 @@ export default function MessageEditor({
       </div>
 
       {!readOnly && (
-        <MessageEditorToolbar
-          visible={!isPointerSelecting && (crossBlockSelection !== null || isFloatingVisible)}
-          position={crossBlockSelection?.position ?? toolbarPos}
-          toolbarRef={toolbarRef}
-          onApplyInlineMark={applyInlineMark}
-          onApplyBlockType={applyBlockType}
-          onApplyColor={applyColorMark}
-        />
+        <>
+          <TextStyleToolbar
+            chatInputRef={textStyleInputRef}
+            visible={Boolean(activeBlockId)}
+            className="text-style-toolbar"
+          />
+          <MessageEditorToolbar
+            visible={!isPointerSelecting && crossBlockSelection !== null}
+            position={crossBlockSelection?.position ?? toolbarPos}
+            toolbarRef={toolbarRef}
+            onApplyBlockType={applyBlockType}
+          />
+        </>
       )}
     </div>
   );

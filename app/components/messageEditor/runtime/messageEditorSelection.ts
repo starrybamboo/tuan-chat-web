@@ -1,5 +1,7 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
+import { visibleOffsetToTextEnhanceRawOffset } from "@/utils/textEnhanceSyntax";
+
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
 
 import {
@@ -161,13 +163,23 @@ export function resolveMessageEditorSelectionFromRange(
   if (!startBlockId || !endBlockId) {
     return null;
   }
+  const messageByBlockId = new Map(ensureMessageEditorMessages(messages).map(message => [getMessageEditorBlockId(message), message] as const));
+
+  const resolveOffset = (block: HTMLElement, blockId: string, container: Node, offset: number) => {
+    const visibleOffset = getOffsetWithinBlock(block, container, offset);
+    if (block.dataset.meTextMode !== "preview") {
+      return visibleOffset;
+    }
+    const content = normalizeMessageEditorContent(messageByBlockId.get(blockId)?.content);
+    return visibleOffsetToTextEnhanceRawOffset(content, visibleOffset);
+  };
 
   return createMessageEditorSelection(messages, registry, {
     blockId: startBlockId,
-    offset: getOffsetWithinBlock(startBlock, range.startContainer, range.startOffset),
+    offset: resolveOffset(startBlock, startBlockId, range.startContainer, range.startOffset),
   }, {
     blockId: endBlockId,
-    offset: getOffsetWithinBlock(endBlock, range.endContainer, range.endOffset),
+    offset: resolveOffset(endBlock, endBlockId, range.endContainer, range.endOffset),
   });
 }
 

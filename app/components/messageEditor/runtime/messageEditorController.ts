@@ -1,5 +1,5 @@
 import type { MessageDraft } from "@/types/messageDraft";
-import type { MessageEditorBlockType, MessageEditorInlineMarkType } from "@tuanchat/domain";
+import type { MessageEditorBlockType } from "@tuanchat/domain";
 
 import type { MessageEditorEventBus } from "./messageEditorEventBus";
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
@@ -10,14 +10,11 @@ import {
   createMessageEditorTextDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
-  isMessageEditorInlineMarkFullyCovered,
   mergeMessageEditorMessageBackward,
   mergeMessageEditorMessageForward,
   moveMessageEditorMessage,
   moveMessageEditorMessageToIndex,
   setMessageEditorBlockType,
-  setMessageEditorColorMark,
-  setMessageEditorInlineMarkActive,
   splitMessageEditorMessage,
   updateMessageEditorTextContent,
 } from "../model/messageEditorTransforms";
@@ -47,8 +44,6 @@ export type MessageEditorController = {
   ) => { blockId: string; caret: number } | null;
   removeBlock: (blockId: string) => { blockId: string; caret: number } | null;
   ensureTrailingTextBlock: () => { blockId: string; caret: number } | null;
-  applyInlineMark: (selection: MessageEditorSelection, type: Exclude<MessageEditorInlineMarkType, "color">) => void;
-  applyColorMark: (selection: MessageEditorSelection, color?: string) => void;
   applyBlockType: (selection: MessageEditorSelection, blockType: MessageEditorBlockType) => void;
 };
 
@@ -234,61 +229,6 @@ export function createMessageEditorController(params: {
         blockId: getMessageEditorBlockId(nextBlock),
         caret: 0,
       };
-    },
-    applyInlineMark(selection, type) {
-      if (selection.collapsed || selection.segments.length === 0) {
-        return;
-      }
-
-      const currentMessages = ensureMessageEditorMessages(params.getMessages());
-      const shouldEnable = !selection.segments.every((segment) => {
-        const message = currentMessages.find(item => getMessageEditorBlockId(item) === segment.blockId);
-        return message
-          ? isMessageEditorInlineMarkFullyCovered(message, {
-              type,
-              start: segment.start,
-              end: segment.end,
-            })
-          : false;
-      });
-
-      params.setMessages((previous) => {
-        const nextMessages = ensureMessageEditorMessages(previous).map((message) => {
-          const segment = selection.segments.find(item => item.blockId === getMessageEditorBlockId(message));
-          if (!segment) {
-            return message;
-          }
-          return setMessageEditorInlineMarkActive(message, {
-            type,
-            start: segment.start,
-            end: segment.end,
-            active: shouldEnable,
-          });
-        });
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
-    },
-    applyColorMark(selection, color) {
-      if (selection.collapsed || selection.segments.length === 0) {
-        return;
-      }
-
-      params.setMessages((previous) => {
-        const nextMessages = ensureMessageEditorMessages(previous).map((message) => {
-          const segment = selection.segments.find(item => item.blockId === getMessageEditorBlockId(message));
-          if (!segment) {
-            return message;
-          }
-          return setMessageEditorColorMark(message, {
-            color,
-            start: segment.start,
-            end: segment.end,
-          });
-        });
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
     },
     applyBlockType(selection, blockType) {
       params.setMessages((previous) => {

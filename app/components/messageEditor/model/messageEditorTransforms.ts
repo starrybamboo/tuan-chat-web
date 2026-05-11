@@ -1,8 +1,6 @@
 import type { MessageDraft } from "@/types/messageDraft";
 import type {
   MessageEditorBlockType,
-  MessageEditorInlineMark,
-  MessageEditorInlineMarkType,
   MessageEditorPayload,
 } from "@tuanchat/domain";
 
@@ -11,7 +9,6 @@ import {
   createMessageEditorEntityId,
   getMessageEditorPayload,
   isMessageEditorTextMessageType,
-  normalizeMessageEditorInlineMarks,
   setMessageEditorPayload,
 } from "@tuanchat/domain";
 
@@ -124,7 +121,6 @@ function normalizeEditorPayload(
   return {
     blockId: payload?.blockId ?? createMessageEditorEntityId("block"),
     blockType: normalizeBlockType(messageType, payload),
-    inlineMarks: normalizeMessageEditorInlineMarks(payload?.inlineMarks, content.length),
   };
 }
 
@@ -184,10 +180,6 @@ export function createMessageEditorTextDraft(overrides: {
   const payload: MessageEditorPayload = {
     blockId: overrides.blockId ?? createMessageEditorEntityId("block"),
     blockType: overrides.blockType ?? (messageType === MESSAGE_TYPE.INTRO_TEXT ? "intro" : "paragraph"),
-    inlineMarks: normalizeMessageEditorInlineMarks(
-      getMessageEditorPayload(extra, content.length, messageType)?.inlineMarks,
-      content.length,
-    ),
   };
 
   return {
@@ -374,85 +366,7 @@ export function isMessageEditorTextMessage(message: MessageDraft): boolean {
 }
 
 /**
- * 读取单块全部行内标记。
- */
-export function getMessageEditorInlineMarks(message: MessageDraft): MessageEditorInlineMark[] {
-  return normalizeEditorPayload(
-    message.extra,
-    normalizeMessageEditorContent(message.content),
-    message.messageType,
-  ).inlineMarks ?? [];
-}
-
-/**
- * 写回单块全部行内标记。
- */
-export function setMessageEditorInlineMarks(
-  message: MessageDraft,
-  marks: MessageEditorInlineMark[],
-): MessageDraft {
-  const content = normalizeMessageEditorContent(message.content);
-  const payload = normalizeEditorPayload(message.extra, content, message.messageType);
-
-  return {
-    ...message,
-    extra: setMessageEditorPayload(message.extra, {
-      ...payload,
-      inlineMarks: normalizeMessageEditorInlineMarks(marks, content.length),
-    }) as MessageDraft["extra"],
-  };
-}
-
-function transformOffset(start: number, removedEnd: number, insertedLength: number, offset: number, isEnd: boolean): number {
-  if (offset < start) {
-    return offset;
-  }
-  if (offset > removedEnd) {
-    return offset + insertedLength - (removedEnd - start);
-  }
-  if (removedEnd === start) {
-    return start + insertedLength;
-  }
-  return isEnd ? start + insertedLength : start;
-}
-
-/**
- * 按单次连续文本变更调整行内标记位置。
- */
-export function remapMessageEditorInlineMarksForTextChange(
-  marks: MessageEditorInlineMark[],
-  previousContent: string,
-  nextContent: string,
-): MessageEditorInlineMark[] {
-  if (previousContent === nextContent) {
-    return normalizeMessageEditorInlineMarks(marks, nextContent.length);
-  }
-
-  let prefix = 0;
-  const maxPrefix = Math.min(previousContent.length, nextContent.length);
-  while (prefix < maxPrefix && previousContent[prefix] === nextContent[prefix]) {
-    prefix += 1;
-  }
-
-  let previousSuffix = previousContent.length;
-  let nextSuffix = nextContent.length;
-  while (previousSuffix > prefix && nextSuffix > prefix && previousContent[previousSuffix - 1] === nextContent[nextSuffix - 1]) {
-    previousSuffix -= 1;
-    nextSuffix -= 1;
-  }
-
-  const removedEnd = previousSuffix;
-  const insertedLength = nextSuffix - prefix;
-
-  return normalizeMessageEditorInlineMarks(marks.map(mark => ({
-    ...mark,
-    start: transformOffset(prefix, removedEnd, insertedLength, mark.start, false),
-    end: transformOffset(prefix, removedEnd, insertedLength, mark.end, true),
-  })), nextContent.length);
-}
-
-/**
- * 更新文本块内容，并同步修正行内标记位置。
+ * 更新文本块内容。
  */
 export function updateMessageEditorTextContent(
   message: MessageDraft,
@@ -464,184 +378,10 @@ export function updateMessageEditorTextContent(
     return message;
   }
 
-  return setMessageEditorInlineMarks({
+  return {
     ...message,
     content: normalizedNextContent,
-  }, remapMessageEditorInlineMarksForTextChange(
-    getMessageEditorInlineMarks(message),
-    previousContent,
-    normalizedNextContent,
-  ));
-}
-
-/**
- * 判断给定范围是否已被指定类型的 mark 完整覆盖。
- */
-export function isMessageEditorInlineMarkFullyCovered(
-  message: MessageDraft,
-  params: {
-    type: MessageEditorInlineMarkType;
-    start: number;
-    end: number;
-  },
-): boolean {
-  const content = normalizeMessageEditorContent(message.content);
-  const start = Math.max(0, Math.min(params.start, content.length));
-  const end = Math.max(start, Math.min(params.end, content.length));
-  if (end <= start) {
-    return false;
-  }
-
-  return getMessageEditorInlineMarks(message).some((mark) => {
-    return mark.type === params.type && mark.start <= start && mark.end >= end;
-  });
-}
-
-function removeInlineMarkRange(
-  message: MessageDraft,
-  params: {
-    type: MessageEditorInlineMarkType;
-    start: number;
-    end: number;
-  },
-): MessageDraft {
-  const start = params.start;
-  const end = params.end;
-
-  return setMessageEditorInlineMarks(message, getMessageEditorInlineMarks(message).flatMap((mark) => {
-    if (mark.type !== params.type || mark.end <= start || mark.start >= end) {
-      return [mark];
-    }
-
-    const fragments: MessageEditorInlineMark[] = [];
-    if (mark.start < start) {
-      fragments.push({
-        ...mark,
-        end: start,
-      });
-    }
-    if (mark.end > end) {
-      fragments.push({
-        ...mark,
-        start: end,
-      });
-    }
-    return fragments;
-  }));
-}
-
-/**
- * 以显式 active 状态设置非颜色类 mark。
- */
-export function setMessageEditorInlineMarkActive(
-  message: MessageDraft,
-  params: {
-    active: boolean;
-    type: Exclude<MessageEditorInlineMarkType, "color">;
-    start: number;
-    end: number;
-  },
-): MessageDraft {
-  const content = normalizeMessageEditorContent(message.content);
-  const start = Math.max(0, Math.min(params.start, content.length));
-  const end = Math.max(start, Math.min(params.end, content.length));
-  if (end <= start) {
-    return message;
-  }
-
-  if (!params.active) {
-    return removeInlineMarkRange(message, {
-      type: params.type,
-      start,
-      end,
-    });
-  }
-
-  if (isMessageEditorInlineMarkFullyCovered(message, {
-    type: params.type,
-    start,
-    end,
-  })) {
-    return message;
-  }
-
-  return setMessageEditorInlineMarks(message, [
-    ...getMessageEditorInlineMarks(message),
-    {
-      markId: createMessageEditorEntityId("mark"),
-      type: params.type,
-      start,
-      end,
-    },
-  ]);
-}
-
-/**
- * 切换非颜色类行内样式。
- */
-export function toggleMessageEditorInlineMark(
-  message: MessageDraft,
-  params: {
-    type: Exclude<MessageEditorInlineMarkType, "color">;
-    start: number;
-    end: number;
-  },
-): MessageDraft {
-  const active = !isMessageEditorInlineMarkFullyCovered(message, params);
-  return setMessageEditorInlineMarkActive(message, {
-    ...params,
-    active,
-  });
-}
-
-/**
- * 设置或清理颜色样式。
- */
-export function setMessageEditorColorMark(
-  message: MessageDraft,
-  params: {
-    color?: string;
-    start: number;
-    end: number;
-  },
-): MessageDraft {
-  const content = normalizeMessageEditorContent(message.content);
-  const start = Math.max(0, Math.min(params.start, content.length));
-  const end = Math.max(start, Math.min(params.end, content.length));
-  if (end <= start) {
-    return message;
-  }
-
-  const nextMarks = getMessageEditorInlineMarks(message).flatMap((mark) => {
-    if (mark.type !== "color" || mark.end <= start || mark.start >= end) {
-      return [mark];
-    }
-
-    const fragments: MessageEditorInlineMark[] = [];
-    if (mark.start < start) {
-      fragments.push({ ...mark, end: start });
-    }
-    if (mark.end > end) {
-      fragments.push({ ...mark, start: end });
-    }
-    return fragments;
-  });
-
-  const color = toTrimmedString(params.color);
-  if (!color) {
-    return setMessageEditorInlineMarks(message, nextMarks);
-  }
-
-  return setMessageEditorInlineMarks(message, [
-    ...nextMarks,
-    {
-      markId: createMessageEditorEntityId("mark"),
-      type: "color",
-      start,
-      end,
-      color,
-    },
-  ]);
+  };
 }
 
 /**
@@ -695,39 +435,19 @@ export function splitMessageEditorMessage(
   const selectionEnd = Math.max(selectionStart, Math.min(params.selectionEnd, content.length));
   const before = content.slice(0, selectionStart);
   const after = content.slice(selectionEnd);
-  const currentMarks = getMessageEditorInlineMarks(current);
-  const beforeMarks = currentMarks.flatMap((mark) => {
-    if (mark.start >= selectionStart) {
-      return [];
-    }
-    return [{
-      ...mark,
-      end: Math.min(mark.end, selectionStart),
-    }];
-  });
-  const afterMarks = currentMarks.flatMap((mark) => {
-    if (mark.end <= selectionEnd) {
-      return [];
-    }
-    return [{
-      ...mark,
-      start: Math.max(0, mark.start - selectionEnd),
-      end: mark.end - selectionEnd,
-    }];
-  });
 
   const currentBlockType = getMessageEditorBlockType(current);
-  const beforeMessage = setMessageEditorInlineMarks({
+  const beforeMessage = {
     ...current,
     content: before,
-  }, beforeMarks);
-  const nextMessage = setMessageEditorInlineMarks(createMessageEditorTextDraft({
+  };
+  const nextMessage = createMessageEditorTextDraft({
     annotations: current.annotations,
     blockType: currentBlockType === "intro" ? "paragraph" : currentBlockType,
     content: after,
     extra: current.extra,
     messageType: currentBlockType === "intro" ? MESSAGE_TYPE.TEXT : current.messageType,
-  }), afterMarks);
+  });
 
   const nextMessages = [...normalizedMessages];
   nextMessages.splice(index, 1, beforeMessage, nextMessage);
@@ -747,19 +467,11 @@ function mergeMessages(
 ): MessageDraft {
   const leftContent = normalizeMessageEditorContent(left.content);
   const rightContent = normalizeMessageEditorContent(right.content);
-  const offset = leftContent.length;
 
-  return setMessageEditorInlineMarks({
+  return {
     ...left,
     content: `${leftContent}${rightContent}`,
-  }, [
-    ...getMessageEditorInlineMarks(left),
-    ...getMessageEditorInlineMarks(right).map(mark => ({
-      ...mark,
-      start: mark.start + offset,
-      end: mark.end + offset,
-    })),
-  ]);
+  };
 }
 
 /**

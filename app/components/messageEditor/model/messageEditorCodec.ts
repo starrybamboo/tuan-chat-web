@@ -1,7 +1,7 @@
 import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
 import type { BlockNoteDocBlock } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import type { MessageDraft } from "@/types/messageDraft";
-import type { MessageEditorInlineMark, MessageEditorPayload } from "@tuanchat/domain";
+import type { MessageEditorPayload } from "@tuanchat/domain";
 
 import {
   decodeBlockNoteBlocks,
@@ -11,7 +11,6 @@ import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shar
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   createMessageEditorEntityId,
-  normalizeMessageEditorInlineMarks,
   setMessageEditorPayload,
 } from "@tuanchat/domain";
 
@@ -63,13 +62,10 @@ function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageDraft | null {
   const messageType = node.messageType === MESSAGE_TYPE.INTRO_TEXT ? MESSAGE_TYPE.INTRO_TEXT : MESSAGE_TYPE.TEXT;
   const content = normalizeMessageEditorContent(node.content);
   const extraRecord = isRecord(node.extra) ? { ...node.extra } : {};
-  const inlineMarks = Array.isArray(extraRecord.inlineMarks) ? extraRecord.inlineMarks as MessageEditorInlineMark[] : undefined;
-  delete extraRecord.inlineMarks;
 
   const payload: MessageEditorPayload = {
     blockId: toTrimmedString(node.nodeId) ?? createMessageEditorEntityId("block"),
     blockType: messageType === MESSAGE_TYPE.INTRO_TEXT ? "intro" : "paragraph",
-    inlineMarks: normalizeMessageEditorInlineMarks(inlineMarks, content.length),
   };
 
   const extra = setMessageEditorPayload(
@@ -86,7 +82,7 @@ function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageDraft | null {
 }
 
 function isLegacyUserReadMeNode(value: unknown): boolean {
-  return isRecord(value) && ("nodeId" in value || (isRecord(value.extra) && Array.isArray((value.extra as Record<string, unknown>).inlineMarks)));
+  return isRecord(value) && "nodeId" in value;
 }
 
 function collectInlineText(content: unknown, parts: string[]) {
