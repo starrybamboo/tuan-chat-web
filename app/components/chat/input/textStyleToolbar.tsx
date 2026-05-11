@@ -1,5 +1,5 @@
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
@@ -411,6 +411,20 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
  * 提供快速插入 WebGAL 文本拓展语法的按钮
  */
 function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
+  const didRunMouseToolbarActionRef = useRef(false);
+  const runToolbarMouseAction = (event: React.MouseEvent<HTMLButtonElement>, action: () => void) => {
+    event.preventDefault();
+    didRunMouseToolbarActionRef.current = true;
+    action();
+  };
+  const runToolbarClickAction = (action: () => void) => {
+    if (didRunMouseToolbarActionRef.current) {
+      didRunMouseToolbarActionRef.current = false;
+      return;
+    }
+    action();
+  };
+
   const resolveEditorElement = useCallback((range: Range) => {
     const editor = chatInputRef.current?.getRawElement();
     if (!editor || !editor.contains(range.commonAncestorContainer)) {
@@ -601,7 +615,8 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
       <button
         type="button"
         className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAddColor}
+        onMouseDown={event => runToolbarMouseAction(event, handleAddColor)}
+        onClick={() => runToolbarClickAction(handleAddColor)}
         title="添加彩色文字"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
@@ -616,7 +631,8 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
       <button
         type="button"
         className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAddItalic}
+        onMouseDown={event => runToolbarMouseAction(event, handleAddItalic)}
+        onClick={() => runToolbarClickAction(handleAddItalic)}
         title="添加斜体文字"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -629,8 +645,9 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
       <button
         type="button"
         className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAddRuby}
-        title="עꁢ"
+        onMouseDown={event => runToolbarMouseAction(event, handleAddRuby)}
+        onClick={() => runToolbarClickAction(handleAddRuby)}
+        title="添加注音"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <text x="4" y="20" fontSize="12" fill="currentColor" stroke="none">文</text>
@@ -643,7 +660,8 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
       <button
         type="button"
         className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onClick={handleAdvancedStyle}
+        onMouseDown={event => runToolbarMouseAction(event, handleAdvancedStyle)}
+        onClick={() => runToolbarClickAction(handleAdvancedStyle)}
         title="高级样式设置"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
