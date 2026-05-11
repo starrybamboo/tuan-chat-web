@@ -182,7 +182,7 @@ describe("descriptionDocRemote", () => {
       .mockResolvedValueOnce({ data: snapshot });
 
     const firstTask = descriptionDocRemote.getRemoteSnapshot(params);
-    const rejection = expect(firstTask).rejects.toThrow("blocksuite snapshot request timed out");
+    const rejection = expect(firstTask).rejects.toThrow("document snapshot request timed out");
     await vi.advanceTimersByTimeAsync(8000);
     await rejection;
     expect(first.cancel).toHaveBeenCalledTimes(1);
@@ -209,7 +209,7 @@ describe("descriptionDocRemote", () => {
       .mockResolvedValueOnce({ data: updates });
 
     const firstTask = descriptionDocRemote.getRemoteUpdates(params);
-    const rejection = expect(firstTask).rejects.toThrow("blocksuite updates request timed out");
+    const rejection = expect(firstTask).rejects.toThrow("document updates request timed out");
     await vi.advanceTimersByTimeAsync(8000);
     await rejection;
     expect(first.cancel).toHaveBeenCalledTimes(1);

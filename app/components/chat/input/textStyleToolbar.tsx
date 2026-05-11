@@ -1,4 +1,5 @@
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { FloatingSelectionToolbarPosition } from "@/components/common/floatingSelectionToolbar";
 import React, { useCallback, useRef, useState } from "react";
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -6,6 +7,14 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 interface TextStyleToolbarProps {
   /** 输入框的 ref，用于插入文本 */
   chatInputRef: React.RefObject<ChatInputAreaHandle | null>;
+  /** 外部托管的原始字符串选区，例如文档编辑器的跨块选区 */
+  externalSelection?: {
+    position: FloatingSelectionToolbarPosition | null;
+    text: string;
+    visible?: boolean;
+  };
+  /** 外部选区的替换入口。未提供时仍使用聊天室输入框 DOM 选区。 */
+  onInsertText?: (text: string, selectedText: string) => void;
   /** 是否显示工具栏 */
   visible?: boolean;
   /** 额外的 className */
@@ -410,8 +419,14 @@ function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
  * 文本样式工具栏
  * 提供快速插入 WebGAL 文本拓展语法的按钮
  */
-function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: TextStyleToolbarProps) {
+function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visible = true, className = "" }: TextStyleToolbarProps) {
   const didRunMouseToolbarActionRef = useRef(false);
+  const externalSelectionActive = Boolean(
+    visible
+    && externalSelection?.visible !== false
+    && externalSelection?.position
+    && externalSelection.text.trim(),
+  );
   const runToolbarMouseAction = (event: React.MouseEvent<HTMLButtonElement>, action: () => void) => {
     event.preventDefault();
     didRunMouseToolbarActionRef.current = true;
@@ -439,14 +454,29 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
     savedSelectionRef,
     saveSelection,
   } = useFloatingSelectionToolbar({
-    visible,
+    visible: visible && !externalSelectionActive,
     resolveEditorElement,
   });
+
+  const getSelectedTextForDialog = () => {
+    if (externalSelectionActive) {
+      return externalSelection?.text ?? "";
+    }
+    if (!savedSelectionRef.current) {
+      savedSelectionRef.current = saveSelection();
+    }
+    return savedSelectionRef.current?.text || "";
+  };
 
   /**
    * 恢复选区并插入文本（支持撤销）
    */
   const restoreAndInsertText = (text: string) => {
+    if (externalSelectionActive && onInsertText) {
+      onInsertText(text, externalSelection?.text ?? "");
+      return;
+    }
+
     const editor = chatInputRef.current?.getRawElement();
     if (!editor)
       return;
@@ -492,11 +522,7 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
 
   // 添加注音
   const handleAddRuby = () => {
-    // 保存当前选区
-    if (!savedSelectionRef.current) {
-      savedSelectionRef.current = saveSelection();
-    }
-    const selectedText = savedSelectionRef.current?.text || "";
+    const selectedText = getSelectedTextForDialog();
 
     toastWindow(onClose => (
       <RubyInputDialog
@@ -513,11 +539,7 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
 
   // 添加彩色文字
   const handleAddColor = () => {
-    // 保存当前选区
-    if (!savedSelectionRef.current) {
-      savedSelectionRef.current = saveSelection();
-    }
-    const selectedText = savedSelectionRef.current?.text || "";
+    const selectedText = getSelectedTextForDialog();
 
     toastWindow(onClose => (
       <ColorTextDialog
@@ -534,11 +556,7 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
 
   // 添加斜体
   const handleAddItalic = () => {
-    // 保存当前选区
-    if (!savedSelectionRef.current) {
-      savedSelectionRef.current = saveSelection();
-    }
-    const selectedText = savedSelectionRef.current?.text || "";
+    const selectedText = getSelectedTextForDialog();
 
     toastWindow(onClose => (
       <ItalicTextDialog
@@ -555,11 +573,7 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
 
   // 高级样式
   const handleAdvancedStyle = () => {
-    // 保存当前选区
-    if (!savedSelectionRef.current) {
-      savedSelectionRef.current = saveSelection();
-    }
-    const selectedText = savedSelectionRef.current?.text || "";
+    const selectedText = getSelectedTextForDialog();
 
     toastWindow(onClose => (
       <AdvancedStyleDialog
@@ -606,8 +620,8 @@ function TextStyleToolbar({ chatInputRef, visible = true, className = "" }: Text
 
   return (
     <FloatingSelectionToolbar
-      visible={visible && isFloatingVisible}
-      position={toolbarPos}
+      visible={visible && (externalSelectionActive || isFloatingVisible)}
+      position={externalSelectionActive ? externalSelection?.position ?? null : toolbarPos}
       toolbarRef={toolbarRef}
       className={className}
     >

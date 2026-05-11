@@ -1,13 +1,12 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
-import { visibleOffsetToTextEnhanceRawOffset } from "@/utils/textEnhanceSyntax";
-
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
 
 import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
   normalizeMessageEditorContent,
+  previewVisibleOffsetToMessageEditorRawOffset,
 } from "../model/messageEditorTransforms";
 
 /**
@@ -98,7 +97,7 @@ export function createMessageEditorSelection(
     const contentLength = normalizeMessageEditorContent(message.content).length;
     const start = index === startIndex ? ordered.start.offset : 0;
     const end = index === endIndex ? ordered.end.offset : contentLength;
-    if (end > start) {
+    if (end > start || (startIndex !== endIndex && contentLength === 0)) {
       segments.push({
         blockId,
         start,
@@ -116,6 +115,145 @@ export function createMessageEditorSelection(
     blockIds: selectedMessages.map(message => getMessageEditorBlockId(message)),
     multiBlock: startIndex !== endIndex,
     collapsed: normalizedAnchor.blockId === normalizedFocus.blockId && normalizedAnchor.offset === normalizedFocus.offset,
+  };
+}
+
+/**
+ * 读取 editor 级选区对应的原始 message.content 文本。
+ */
+export function getMessageEditorSelectionText(
+  messages: MessageDraft[],
+  selection: MessageEditorSelection,
+): string {
+  const messageByBlockId = new Map(ensureMessageEditorMessages(messages).map(message => [getMessageEditorBlockId(message), message] as const));
+  return selection.blockIds.map((blockId) => {
+    const message = messageByBlockId.get(blockId);
+    const content = normalizeMessageEditorContent(message?.content);
+    if (blockId === selection.start.blockId && blockId === selection.end.blockId) {
+      return content.slice(selection.start.offset, selection.end.offset);
+    }
+    if (blockId === selection.start.blockId) {
+      return content.slice(selection.start.offset);
+    }
+    if (blockId === selection.end.blockId) {
+      return content.slice(0, selection.end.offset);
+    }
+    return content;
+  }).join("\n");
+}
+
+function findTextMessageIndex(
+  messages: MessageDraft[],
+  registry: MessageEditorRegistry,
+  blockId: string,
+) {
+  const index = messages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+  if (index < 0 || !registry.isTextBlock(messages[index])) {
+    return -1;
+  }
+  return index;
+}
+
+/**
+ * 获取当前文本块所属的连续文本 run。遇到原子块即停止。
+ */
+export function createMessageEditorTextRunSelection(
+  messages: MessageDraft[],
+  registry: MessageEditorRegistry,
+  blockId: string,
+): MessageEditorSelection | null {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const currentIndex = findTextMessageIndex(normalizedMessages, registry, blockId);
+  if (currentIndex < 0) {
+    return null;
+  }
+
+  let startIndex = currentIndex;
+  while (startIndex > 0 && registry.isTextBlock(normalizedMessages[startIndex - 1])) {
+    startIndex -= 1;
+  }
+
+  let endIndex = currentIndex;
+  while (endIndex < normalizedMessages.length - 1 && registry.isTextBlock(normalizedMessages[endIndex + 1])) {
+    endIndex += 1;
+  }
+
+  const startMessage = normalizedMessages[startIndex];
+  const endMessage = normalizedMessages[endIndex];
+  return createMessageEditorSelection(normalizedMessages, registry, {
+    blockId: getMessageEditorBlockId(startMessage),
+    offset: 0,
+  }, {
+    blockId: getMessageEditorBlockId(endMessage),
+    offset: normalizeMessageEditorContent(endMessage.content).length,
+  });
+}
+
+/**
+ * 移动到相邻文本块的相近 offset。只在连续文本 run 内移动。
+ */
+export function getAdjacentMessageEditorTextBlockPoint(
+  messages: MessageDraft[],
+  registry: MessageEditorRegistry,
+  point: MessageEditorSelectionPoint,
+  direction: -1 | 1,
+  preferredOffset = point.offset,
+): MessageEditorSelectionPoint | null {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const currentIndex = findTextMessageIndex(normalizedMessages, registry, point.blockId);
+  const nextIndex = currentIndex + direction;
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= normalizedMessages.length) {
+    return null;
+  }
+
+  const nextMessage = normalizedMessages[nextIndex];
+  if (!registry.isTextBlock(nextMessage)) {
+    return null;
+  }
+
+  const nextContentLength = normalizeMessageEditorContent(nextMessage.content).length;
+  return {
+    blockId: getMessageEditorBlockId(nextMessage),
+    offset: Math.max(0, Math.min(preferredOffset, nextContentLength)),
+  };
+}
+
+/**
+ * 按字符移动连续文本光标。跨块时跳到相邻文本块的边界字符。
+ */
+export function moveMessageEditorTextPointByCharacter(
+  messages: MessageDraft[],
+  registry: MessageEditorRegistry,
+  point: MessageEditorSelectionPoint,
+  direction: -1 | 1,
+): MessageEditorSelectionPoint | null {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const currentIndex = findTextMessageIndex(normalizedMessages, registry, point.blockId);
+  if (currentIndex < 0) {
+    return null;
+  }
+
+  const currentMessage = normalizedMessages[currentIndex];
+  const currentLength = normalizeMessageEditorContent(currentMessage.content).length;
+  const currentOffset = Math.max(0, Math.min(point.offset, currentLength));
+  const nextOffset = currentOffset + direction;
+  if (nextOffset >= 0 && nextOffset <= currentLength) {
+    return {
+      blockId: point.blockId,
+      offset: nextOffset,
+    };
+  }
+
+  const adjacent = getAdjacentMessageEditorTextBlockPoint(normalizedMessages, registry, point, direction);
+  if (!adjacent) {
+    return null;
+  }
+
+  const adjacentMessage = normalizedMessages.find(message => getMessageEditorBlockId(message) === adjacent.blockId);
+  const adjacentLength = normalizeMessageEditorContent(adjacentMessage?.content).length;
+  return {
+    blockId: adjacent.blockId,
+    offset: direction < 0 ? Math.max(0, adjacentLength - 1) : Math.min(1, adjacentLength),
   };
 }
 
@@ -171,7 +309,7 @@ export function resolveMessageEditorSelectionFromRange(
       return visibleOffset;
     }
     const content = normalizeMessageEditorContent(messageByBlockId.get(blockId)?.content);
-    return visibleOffsetToTextEnhanceRawOffset(content, visibleOffset);
+    return previewVisibleOffsetToMessageEditorRawOffset(content, visibleOffset);
   };
 
   return createMessageEditorSelection(messages, registry, {
@@ -196,6 +334,13 @@ function findDomPositionByOffset(blockElement: HTMLElement, targetOffset: number
       };
     }
     traversed += textLength;
+  }
+
+  if (targetOffset <= 0) {
+    return {
+      node: blockElement,
+      offset: 0,
+    };
   }
 
   return {

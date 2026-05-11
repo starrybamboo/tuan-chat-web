@@ -5,10 +5,11 @@ import type { MessageDraft } from "@/types/messageDraft";
 import { useLayoutEffect, useRef } from "react";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import {
-  getMessageEditorBlockType,
   normalizeMessageEditorContent,
+  parseMessageEditorMarkdownPreview,
 } from "../model/messageEditorTransforms";
 
 interface MessageEditorTextBlockProps {
@@ -23,7 +24,7 @@ interface MessageEditorTextBlockProps {
   placeholder?: string;
   readOnly?: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
-  selectionSegment?: { start: number; end: number } | null;
+  selectionSegment?: { end: number; showLineBreakAfter?: boolean; start: number } | null;
   textInputRef?: React.RefObject<ChatInputAreaHandle | null>;
 }
 
@@ -42,25 +43,65 @@ function plainTextToHtml(value: string) {
   return escapeHtml(value).replace(/\r?\n/g, "<br>");
 }
 
-function blockClassName(message: MessageDraft, readOnly: boolean) {
-  const blockType = getMessageEditorBlockType(message);
+function renderSelectedLineBreak(showLineBreakAfter: boolean | undefined) {
+  if (!showLineBreakAfter) {
+    return null;
+  }
+
+  return (
+    <span className="rounded-sm bg-sky-200 px-1 text-slate-950/70">
+      ↵
+    </span>
+  );
+}
+
+function renderSourceContentWithSelection(content: string, selectionSegment: { end: number; showLineBreakAfter?: boolean; start: number } | null) {
+  if (!selectionSegment) {
+    return null;
+  }
+
+  const start = Math.max(0, Math.min(selectionSegment.start, content.length));
+  const end = Math.max(start, Math.min(selectionSegment.end, content.length));
+  if (content.length === 0 && start === 0 && end === 0) {
+    return (
+      <span className="block min-h-6 w-full rounded-sm bg-sky-200 text-slate-950">
+        {renderSelectedLineBreak(selectionSegment.showLineBreakAfter)}
+      </span>
+    );
+  }
+
+  return (
+    <>
+      {content.slice(0, start)}
+      <span className="rounded-sm bg-sky-200 text-slate-950">
+        {content.slice(start, end)}
+      </span>
+      {renderSelectedLineBreak(selectionSegment.showLineBreakAfter)}
+      {content.slice(end)}
+    </>
+  );
+}
+
+function blockClassName(message: MessageDraft, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   const base = [
-    "relative rounded-md px-2 py-1.5 transition selection:bg-sky-200 selection:text-slate-950",
+    "relative rounded-md px-0 py-0 transition selection:bg-sky-200 selection:text-slate-950",
     "bg-transparent",
-    readOnly ? "" : "hover:bg-base-200/80",
   ];
 
-  if (blockType === "heading1") {
-    base.push("text-3xl font-semibold tracking-tight");
-  }
-  else if (blockType === "heading2") {
-    base.push("text-2xl font-semibold tracking-tight");
-  }
-  else if (blockType === "heading3") {
-    base.push("text-xl font-semibold");
-  }
-  else if (blockType === "intro") {
+  if (message.messageType === MESSAGE_TYPE.INTRO_TEXT) {
     base.push("bg-black text-white shadow-inner");
+  }
+  else if (previewKind === "heading1") {
+    base.push("text-3xl font-semibold leading-tight");
+  }
+  else if (previewKind === "heading2") {
+    base.push("text-2xl font-semibold leading-tight");
+  }
+  else if (previewKind === "heading3") {
+    base.push("text-xl font-semibold leading-snug");
+  }
+  else if (previewKind === "quote") {
+    base.push("text-[15px] leading-6 text-base-content/80");
   }
   else {
     base.push("text-[15px] leading-6");
@@ -69,11 +110,14 @@ function blockClassName(message: MessageDraft, readOnly: boolean) {
   return base.join(" ");
 }
 
-function textContentClassName(message: MessageDraft) {
-  const blockType = getMessageEditorBlockType(message);
+function textContentClassName(message: MessageDraft, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   return [
-    "min-h-6 whitespace-pre-wrap break-words outline-none selection:bg-sky-200 selection:text-slate-950",
-    blockType === "intro" ? "text-white" : "",
+    "min-h-6 whitespace-pre-wrap break-words [word-break:normal] outline-none selection:bg-sky-200 selection:text-slate-950",
+    message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "text-white" : "",
+    previewKind === "heading1" ? "text-3xl font-semibold leading-tight" : "",
+    previewKind === "heading2" ? "text-2xl font-semibold leading-tight" : "",
+    previewKind === "heading3" ? "text-xl font-semibold leading-snug" : "",
+    previewKind === "quote" ? "text-base-content/80" : "",
   ].join(" ");
 }
 
@@ -102,10 +146,12 @@ export function MessageEditorTextBlock({
   const wasEditableSourceModeRef = useRef(false);
   const sourceMode = active || selectionSegment !== null;
   const editableSourceMode = sourceMode && active && !readOnly && selectionSegment === null;
+  const preview = parseMessageEditorMarkdownPreview(content);
+  const previewKind = message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "paragraph" : preview.kind;
 
   useLayoutEffect(() => {
     const node = blockContentRef.current;
-    if (!node || !sourceMode || editableSourceMode) {
+    if (!node || !sourceMode || editableSourceMode || selectionSegment) {
       return;
     }
 
@@ -152,27 +198,53 @@ export function MessageEditorTextBlock({
     }
 
     blockContentRef.current = editor;
+    editor.dataset.meBlockId = blockId;
+    editor.dataset.meTextMode = "source";
     registerBlockRef(blockId, editor);
-    if (normalizeEditableText(editor.textContent ?? "") !== content) {
-      effectiveTextInputRef.current?.setContent(plainTextToHtml(content));
+    if (!content && editor.childNodes.length === 0) {
+      effectiveTextInputRef.current?.setContent("<br>", {
+        moveCursorToEnd: false,
+      });
+    }
+    else if (normalizeEditableText(editor.textContent ?? "") !== content) {
+      effectiveTextInputRef.current?.setContent(plainTextToHtml(content), {
+        moveCursorToEnd: false,
+      });
     }
     // 预览态首次切入编辑态时要主动聚焦，否则第一次点击只会切换组件，不会出现光标。
     if (!wasEditableSourceModeRef.current) {
-      effectiveTextInputRef.current?.focus();
+      effectiveTextInputRef.current?.focus({
+        moveCursorToEnd: false,
+      });
     }
     wasEditableSourceModeRef.current = true;
 
     return () => {
+      delete editor.dataset.meBlockId;
+      delete editor.dataset.meTextMode;
       registerBlockRef(blockId, null);
     };
   }, [blockId, content, editableSourceMode, effectiveTextInputRef, registerBlockRef]);
 
-  const contentClassName = textContentClassName(message);
+  const contentClassName = textContentClassName(message, previewKind);
+  const previewContent = previewKind === "paragraph" ? content : preview.content;
+  const previewNode = (
+    <EditableMessageContent
+      content={previewContent}
+      canEdit={false}
+      className={contentClassName}
+      onCommit={() => {}}
+    />
+  );
 
   return (
-    <div className={blockClassName(message, readOnly)}>
+    <div
+      className={blockClassName(message, previewKind)}
+      data-me-block-hit={blockId}
+      onMouseDown={event => onMouseDown?.(blockId, event)}
+    >
       {!content && !active && !readOnly && (
-        <div className="pointer-events-none absolute inset-x-3 top-1.5 text-base-content/25">
+        <div className="pointer-events-none absolute inset-x-0 top-0 text-base-content/25">
           {placeholder}
         </div>
       )}
@@ -180,16 +252,13 @@ export function MessageEditorTextBlock({
         ? (editableSourceMode
             ? (
                 <div
-                  data-me-block-id={blockId}
-                  data-me-text-mode="source"
                   onMouseDownCapture={() => {
                     onFocus(blockId);
                   }}
-                  onMouseDown={event => onMouseDown?.(blockId, event)}
                 >
                   <ChatInputArea
                     ref={effectiveTextInputRef}
-                    className={contentClassName}
+                    className={`!overflow-visible !p-0 ${contentClassName}`}
                     inputScope="message-edit"
                     placeholder={placeholder}
                     disabled={false}
@@ -199,9 +268,7 @@ export function MessageEditorTextBlock({
                     onPasteFiles={() => {}}
                     onKeyDown={event => onKeyDown(blockId, event)}
                     onKeyUp={() => {}}
-                    onMouseDown={(event) => {
-                      event.stopPropagation();
-                    }}
+                    onMouseDown={() => {}}
                     onCompositionStart={() => {}}
                     onCompositionEnd={() => {}}
                     onFocus={() => onFocus(blockId)}
@@ -217,22 +284,23 @@ export function MessageEditorTextBlock({
                   }}
                   data-me-block-id={blockId}
                   data-me-text-mode="source"
-                  contentEditable={!readOnly && active}
+                  contentEditable={!readOnly && active && selectionSegment === null}
                   suppressContentEditableWarning
                   className={contentClassName}
                   onMouseDownCapture={() => {
-                    if (!readOnly) {
+                    if (!readOnly && selectionSegment === null) {
                       onFocus(blockId);
                     }
                   }}
-                  onMouseDown={event => onMouseDown?.(blockId, event)}
                   onFocus={() => onFocus(blockId)}
                   onBlur={() => onBlur?.(blockId)}
                   onInput={(event) => {
                     onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
                   }}
                   onKeyDown={event => onKeyDown(blockId, event)}
-                />
+                >
+                  {renderSourceContentWithSelection(content, selectionSegment)}
+                </div>
               )
           )
         : (
@@ -244,19 +312,23 @@ export function MessageEditorTextBlock({
               data-me-block-id={blockId}
               data-me-text-mode="preview"
               className={contentClassName}
-              onMouseDownCapture={() => {
-                if (!readOnly) {
-                  onFocus(blockId);
-                }
-              }}
-              onMouseDown={event => onMouseDown?.(blockId, event)}
             >
-              <EditableMessageContent
-                content={content}
-                canEdit={false}
-                className={contentClassName}
-                onCommit={() => {}}
-              />
+              {previewKind === "bulletedList" && (
+                <ul className="m-0 list-disc pl-6">
+                  <li>{previewNode}</li>
+                </ul>
+              )}
+              {previewKind === "numberedList" && (
+                <ol start={preview.orderedNumber ?? 1} className="m-0 list-decimal pl-6">
+                  <li>{previewNode}</li>
+                </ol>
+              )}
+              {previewKind === "quote" && (
+                <div className="border-l-4 border-base-300 pl-3">
+                  {previewNode}
+                </div>
+              )}
+              {(previewKind === "paragraph" || previewKind === "heading1" || previewKind === "heading2" || previewKind === "heading3") && previewNode}
             </div>
           )}
     </div>

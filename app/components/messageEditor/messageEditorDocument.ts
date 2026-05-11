@@ -7,13 +7,16 @@ export {
 export type {
   MessageEditorFocusTarget,
   MessageEditorMergeResult,
+  MessageEditorSelectionTextResult,
   MessageEditorSplitResult,
+  MessageEditorTextSelection,
+  MessageEditorTextSelectionPoint,
+  MessageEditorTextSelectionSegment,
 } from "./model/messageEditorTransforms";
 export {
   createMessageEditorTextDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
-  getMessageEditorBlockType,
   isMessageEditorTextMessage,
   mergeMessageEditorMessageBackward,
   mergeMessageEditorMessageForward,
@@ -21,8 +24,9 @@ export {
   normalizeMessageEditorAnnotations,
   normalizeMessageEditorContent,
   normalizeMessageEditorDraft,
+  replaceMessageEditorSelectionText,
   serializeMessageEditorMessages,
-  setMessageEditorBlockType,
   splitMessageEditorMessage,
+  transformMessageEditorSelectionText,
   updateMessageEditorTextContent,
 } from "./model/messageEditorTransforms";

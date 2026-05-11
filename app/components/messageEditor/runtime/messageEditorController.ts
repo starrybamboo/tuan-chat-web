@@ -1,5 +1,4 @@
 import type { MessageDraft } from "@/types/messageDraft";
-import type { MessageEditorBlockType } from "@tuanchat/domain";
 
 import type { MessageEditorEventBus } from "./messageEditorEventBus";
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
@@ -14,12 +13,17 @@ import {
   mergeMessageEditorMessageForward,
   moveMessageEditorMessage,
   moveMessageEditorMessageToIndex,
-  setMessageEditorBlockType,
+  normalizeMessageEditorContent,
+  replaceMessageEditorSelectionText,
   splitMessageEditorMessage,
+  transformMessageEditorSelectionText,
   updateMessageEditorTextContent,
 } from "../model/messageEditorTransforms";
 
-type SetMessages = (updater: (previous: MessageDraft[]) => MessageDraft[]) => void;
+type SetMessages = (
+  updater: (previous: MessageDraft[]) => MessageDraft[],
+  historyKind?: "default" | "typing",
+) => void;
 
 /**
  * message editor 命令控制器。
@@ -29,6 +33,11 @@ export type MessageEditorController = {
   updateBlock: (blockId: string, updater: (message: MessageDraft) => MessageDraft) => void;
   updateTextContent: (blockId: string, nextContent: string) => void;
   splitAtSelection: (selection: MessageEditorSelection) => { blockId: string; caret: number } | null;
+  replaceSelectionText: (selection: MessageEditorSelection, replacement: string) => { blockId: string; caret: number } | null;
+  transformSelectionText: (
+    selection: MessageEditorSelection,
+    transform: (selectedText: string) => string,
+  ) => { blockId: string; caret: number } | null;
   mergeBackward: (blockId: string) => { blockId: string; caret: number } | null;
   mergeForward: (blockId: string) => { blockId: string; caret: number } | null;
   moveBlock: (blockId: string, direction: -1 | 1) => void;
@@ -44,7 +53,6 @@ export type MessageEditorController = {
   ) => { blockId: string; caret: number } | null;
   removeBlock: (blockId: string) => { blockId: string; caret: number } | null;
   ensureTrailingTextBlock: () => { blockId: string; caret: number } | null;
-  applyBlockType: (selection: MessageEditorSelection, blockType: MessageEditorBlockType) => void;
 };
 
 /**
@@ -84,7 +92,7 @@ export function createMessageEditorController(params: {
         });
         emitBlocksChanged(nextMessages);
         return nextMessages;
-      });
+      }, "typing");
     },
     splitAtSelection(selection) {
       if (selection.multiBlock) {
@@ -96,6 +104,28 @@ export function createMessageEditorController(params: {
         selectionStart: selection.start.offset,
         selectionEnd: selection.end.offset,
       });
+      params.setMessages(() => {
+        emitBlocksChanged(result.messages);
+        return result.messages;
+      });
+      return result.focus;
+    },
+    replaceSelectionText(selection, replacement) {
+      const result = replaceMessageEditorSelectionText(params.getMessages(), selection, replacement);
+      if (!result) {
+        return null;
+      }
+      params.setMessages(() => {
+        emitBlocksChanged(result.messages);
+        return result.messages;
+      });
+      return result.focus;
+    },
+    transformSelectionText(selection, transform) {
+      const result = transformMessageEditorSelectionText(params.getMessages(), selection, transform);
+      if (!result) {
+        return null;
+      }
       params.setMessages(() => {
         emitBlocksChanged(result.messages);
         return result.messages;
@@ -156,7 +186,7 @@ export function createMessageEditorController(params: {
       return params.registry.isTextBlock(nextBlock)
         ? {
             blockId: getMessageEditorBlockId(nextBlock),
-            caret: 0,
+            caret: normalizeMessageEditorContent(nextBlock.content).length,
           }
         : null;
     },
@@ -229,18 +259,6 @@ export function createMessageEditorController(params: {
         blockId: getMessageEditorBlockId(nextBlock),
         caret: 0,
       };
-    },
-    applyBlockType(selection, blockType) {
-      params.setMessages((previous) => {
-        const nextMessages = ensureMessageEditorMessages(previous).map((message) => {
-          if (!selection.blockIds.includes(getMessageEditorBlockId(message)) || !params.registry.isTextBlock(message)) {
-            return message;
-          }
-          return setMessageEditorBlockType(message, blockType);
-        });
-        emitBlocksChanged(nextMessages);
-        return nextMessages;
-      });
     },
   };
 }
