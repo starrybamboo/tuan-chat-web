@@ -14,7 +14,8 @@ export type ParsedSimpleStateCommand = {
   stateEvent: StateEventExtra;
 };
 
-const SIMPLE_ST_RE = /^[.。/]st\s+(\S+)\s+([+-]?\d+(?:\.\d+)?)\s*$/i;
+const SIMPLE_ST_SPACED_RE = /^[.。/]st\s+(\S+)\s+([+-]?\d+(?:\.\d+)?)\s*$/i;
+const SIMPLE_ST_COMPACT_SIGNED_RE = /^[.。/]st\s+(.+?)([+-]\d+(?:\.\d+)?)\s*$/i;
 const SIMPLE_NEXT_RE = /^[.。/]next\s*$/i;
 
 export function parseSimpleStateCommand({
@@ -38,7 +39,8 @@ export function parseSimpleStateCommand({
     return null;
   }
 
-  const stMatch = SIMPLE_ST_RE.exec(trimmedWithoutMentions);
+  const stMatch = SIMPLE_ST_SPACED_RE.exec(trimmedWithoutMentions)
+    ?? SIMPLE_ST_COMPACT_SIGNED_RE.exec(trimmedWithoutMentions);
   if (!stMatch) {
     return null;
   }

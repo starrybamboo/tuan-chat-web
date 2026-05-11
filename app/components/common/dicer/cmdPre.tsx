@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
+import type { StateEventAtom } from "@/types/stateEvent";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
@@ -13,15 +14,17 @@ import { resolveCommandMessageVisibility } from "@/components/common/dicer/comma
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
 import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimisticReplyMessageLink";
 import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
-import { buildRuntimeStateValues, mergeRuntimeRoleValuesIntoAbility } from "@/components/common/dicer/runtimeAbilityBridge";
+import {
+  buildRoleAbilityStateEventsFromDiff,
+  buildRuntimeStateValues,
+  cloneRoleAbility,
+  mergeRuntimeRoleValuesIntoAbility,
+} from "@/components/common/dicer/runtimeAbilityBridge";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
+import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import {
-  fetchRoleAbilityByRuleWithCache,
-  useSetRoleAbilityMutation,
-  useUpdateRoleAbilityByRoleIdMutation,
-} from "../../../../api/hooks/abilityQueryHooks";
+import { fetchRoleAbilityByRuleWithCache } from "../../../../api/hooks/abilityQueryHooks";
 import { useBatchSendMessageMutation, useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -64,6 +67,11 @@ function buildDiceMessageExtra(result: string, visibility: DicerMessageVisibilit
       ...(visibility === "kp_and_sender" ? { hidden: true } : {}),
     },
   });
+}
+
+function buildStateEventMessageContent(events: StateEventAtom[]): string {
+  const details = events.map(event => formatStateEventAtomDetail(event));
+  return details.length > 0 ? `状态更新：${details.join("；")}` : "状态更新";
 }
 
 function logDicerFlow(step: string, payload: Record<string, unknown>): void {
@@ -202,8 +210,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const role = useGetRoleQuery(roleId).data?.data;
   const space = useGetSpaceInfoQuery(roomContext.spaceId ?? -1).data?.data;
   // 通过以下的mutation来对后端发送引起数据变动的请求
-  const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
-  const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
   const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
   const batchSendMessageMutation = useBatchSendMessageMutation(roomId); // 批量发送消息
   const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段
@@ -425,6 +431,25 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     };
   };
 
+  const sendStateEventMessageWithOptimistic = async (request: ChatMessageRequest): Promise<void> => {
+    const pending = createOptimisticCommandMessage(request);
+    try {
+      const stateEventMsgRes = await sendMessageMutation.mutateAsync(request);
+      const stateEventMessage = stateEventMsgRes.data;
+      if (!stateEventMsgRes.success || !stateEventMessage) {
+        throw new Error("发送状态事件消息失败");
+      }
+      const preferredPosition = typeof request.position === "number" && Number.isFinite(request.position)
+        ? request.position
+        : null;
+      await commitOptimisticCommandMessage(pending, stateEventMessage, preferredPosition);
+    }
+    catch (error) {
+      await discardOptimisticCommandMessage(pending);
+      throw error;
+    }
+  };
+
   const sendDiceMessageBatch = async (
     commandMessageMeta: { commandMessageId?: number; commandPosition: number | null },
     dicerRequests: ChatMessageRequest[],
@@ -560,14 +585,14 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         }
       };
       // 获取所有可能用到的角色能力（并行请求，减少指令等待）
-      const mentionedRoles = new Map<number, RoleAbility>();
+      const baseRoleAbilities = new Map<number, RoleAbility>();
       const mentionedRoleEntries = await Promise.all(
         mentioned
           .filter(mentionedRole => mentionedRole.roleId > 0)
           .map(async mentionedRole => [mentionedRole.roleId, await getRoleAbility(mentionedRole.roleId)] as const),
       );
       for (const [mentionedRoleId, ability] of mentionedRoleEntries) {
-        mentionedRoles.set(mentionedRoleId, ability);
+        baseRoleAbilities.set(mentionedRoleId, ability);
       }
       const runtimeStateValues = buildRuntimeStateValues(
         roomContext.chatHistory?.messages,
@@ -575,6 +600,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       );
       const runtimeRoomValues = runtimeStateValues.room;
       const runtimeRoleValuesByRoleId = runtimeStateValues.rolesByRoleId;
+      const roleAbilitySnapshotsBeforeCommand = new Map<number, RoleAbility>();
+      const commandRoleAbilities = new Map<number, RoleAbility>();
+      const mutatedRoleIds = new Set<number>();
 
       // 初始化 Space dicerData 缓存
       let spaceExtra: Record<string, any> = {};
@@ -613,9 +641,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         copywritingKey = key?.trim() || null;
       };
 
-      const getRoleAbilityList = (roleId: number): RoleAbility => {
+      const buildCurrentRoleAbility = (roleId: number): RoleAbility => {
         const roleRuntimeMergedAbility = mergeRuntimeRoleValuesIntoAbility(
-          mentionedRoles.get(roleId),
+          baseRoleAbilities.get(roleId),
           runtimeRoleValuesByRoleId[roleId],
         );
         // 房间级状态变量作为共享兜底注入，避免覆盖角色自身或角色运行态变量。
@@ -629,10 +657,27 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         return ability;
       };
 
-      const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
+      const getRoleAbilityList = (roleId: number): RoleAbility => {
+        const ability = commandRoleAbilities.has(roleId)
+          ? cloneRoleAbility(commandRoleAbilities.get(roleId))
+          : buildCurrentRoleAbility(roleId);
+        if (!roleAbilitySnapshotsBeforeCommand.has(roleId)) {
+          roleAbilitySnapshotsBeforeCommand.set(roleId, cloneRoleAbility(ability));
+        }
         ability.roleId = ability.roleId ?? roleId;
         ability.ruleId = ability.ruleId ?? ruleId;
-        mentionedRoles.set(roleId, ability);
+        return ability;
+      };
+
+      const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
+        if (!roleAbilitySnapshotsBeforeCommand.has(roleId)) {
+          roleAbilitySnapshotsBeforeCommand.set(roleId, buildCurrentRoleAbility(roleId));
+        }
+        const nextAbility = cloneRoleAbility(ability);
+        nextAbility.roleId = nextAbility.roleId ?? roleId;
+        nextAbility.ruleId = nextAbility.ruleId ?? ruleId;
+        commandRoleAbilities.set(roleId, nextAbility);
+        mutatedRoleIds.add(roleId);
       };
 
       const getSpaceInfo = () => {
@@ -693,39 +738,18 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         dicerMessageCount: dicerMessageQueue.length,
         dicerMessagePreview: dicerMessageQueue.map(item => item.content.slice(0, 80)),
       });
-      // 遍历mentionedRoles，更新或创建角色能力
-      const abilityPersistTasks: Promise<unknown>[] = [];
-      for (const [id, ability] of mentionedRoles) {
-        if (id <= 0) {
+      const stateEventAtoms: StateEventAtom[] = [];
+      for (const id of mutatedRoleIds) {
+        const afterAbility = commandRoleAbilities.get(id);
+        if (!afterAbility) {
           continue;
         }
-        // 构造请求payload时，确保所有字段为非null对象，避免后端校验失败
-        const payload = {
-          roleId: id,
-          ruleId,
-          act: ability?.act ?? {},
-          basic: ability?.basic ?? {},
-          ability: ability?.ability ?? {},
-          skill: ability?.skill ?? {},
-          record: ability?.record ?? {},
-          extra: ability?.extra ?? {},
-        };
-
-        // 如果后端返回了 abilityId，说明已存在记录，调用更新接口；否则调用创建接口
-        if (ability && (ability.abilityId ?? 0) > 0) {
-          abilityPersistTasks.push(updateAbilityMutation.mutateAsync(payload));
-        }
-        else {
-          abilityPersistTasks.push(setAbilityMutation.mutateAsync(payload));
-        }
-        setCachedDicerRoleAbility(ruleId, id, {
-          ...ability,
-          ...payload,
-          roleId: id,
-          ruleId,
-        } as RoleAbility);
+        stateEventAtoms.push(...buildRoleAbilityStateEventsFromDiff(
+          id,
+          roleAbilitySnapshotsBeforeCommand.get(id) ?? buildCurrentRoleAbility(id),
+          afterAbility,
+        ));
       }
-      await Promise.all(abilityPersistTasks);
       // 更新 Space dicerData（如果被修改）
       if (spaceDicerDataModified && space && space.spaceId) {
         setSpaceExtraMutation.mutate({
@@ -734,6 +758,28 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           value: JSON.stringify(spaceDicerData),
         });
       }
+
+      const sendGeneratedStateEvent = async (options?: {
+        replayMessageId?: number;
+        position?: number;
+      }): Promise<void> => {
+        if (stateEventAtoms.length === 0) {
+          return;
+        }
+        const stateEventRequest: ChatMessageRequest = {
+          roomId,
+          messageType: MESSAGE_TYPE.STATE_EVENT,
+          content: buildStateEventMessageContent(stateEventAtoms),
+          roleId: curRoleId,
+          avatarId: curAvatarId,
+          threadId: executorProp.threadId,
+          replayMessageId: options?.replayMessageId ?? executorProp.replyMessageId,
+          position: options?.position,
+          extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra(cmdPart, stateEventAtoms)),
+        };
+        await sendStateEventMessageWithOptimistic(stateEventRequest);
+      };
+
       // 发送消息队列
       if (dicerMessageQueue.length > 0) {
         const commandMessageVisibility = resolveCommandMessageVisibility(
@@ -830,6 +876,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         }
         const commandMessageMeta = await commandMessageMetaPromise;
         commandMessageCommitted = true;
+        const stateEventAnchorPosition = commandMessageMeta.commandPosition ?? fallbackCommandPosition;
+        await sendGeneratedStateEvent({
+          replayMessageId: commandMessageMeta.commandMessageId,
+          position: stateEventAnchorPosition + (DICE_BATCH_POSITION_STEP / 2),
+        });
         const resolvedOptimisticReplyMessageId = typeof optimisticReplyMessageId === "number" && Number.isFinite(optimisticReplyMessageId)
           ? optimisticReplyMessageId
           : null;
@@ -859,6 +910,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       }
       else {
         await discardOptimisticCommandMessage(pendingOptimisticCommandMessage);
+        await sendGeneratedStateEvent({
+          replayMessageId: executorProp.replyMessageId,
+          position: commandAnchorPosition,
+        });
       }
     }
     catch (error) {

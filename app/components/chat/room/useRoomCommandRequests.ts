@@ -111,7 +111,7 @@ export default function useRoomCommandRequests({
   const containsCommandRequestAllToken = useCallback((text: string) => {
     const raw = String(text ?? "");
     return /@all\b/i.test(raw)
-      || raw.includes("@ȫԱ")
+      || raw.includes("@全员")
       || raw.includes("@所有人")
       || raw.includes("@检定请求");
   }, []);
@@ -119,7 +119,7 @@ export default function useRoomCommandRequests({
   const stripCommandRequestAllToken = useCallback((text: string) => {
     return String(text ?? "")
       .replace(/@all\b/gi, " ")
-      .replace(/@ȫԱ/g, " ")
+      .replace(/@全员/g, " ")
       .replace(/@所有人/g, " ")
       .replace(/@检定请求/g, " ")
       .replace(/\s+/g, " ")
