@@ -1,8 +1,10 @@
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import {
+  createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   getMessageEditorInlineMarks,
+  moveMessageEditorMessageToIndex,
   remapMessageEditorInlineMarksForTextChange,
   setMessageEditorInlineMarks,
   splitMessageEditorMessage,
@@ -73,5 +75,25 @@ describe("messageEditorTransforms", () => {
       start: 0,
       end: 4,
     }]);
+  });
+
+  it("creates atomic drafts for slash insertion", () => {
+    const image = createMessageEditorBlockDraft("image");
+    const choose = createMessageEditorBlockDraft("choose");
+
+    expect(image.messageType).toBe(MESSAGE_TYPE.IMG);
+    expect(image.extra?.imageMessage).toEqual({});
+    expect(choose.messageType).toBe(MESSAGE_TYPE.WEBGAL_CHOOSE);
+    expect(choose.extra?.webgalChoose).toEqual({ options: [] });
+  });
+
+  it("moves a block to a target index", () => {
+    const first = createMessageEditorTextDraft({ content: "first" });
+    const second = createMessageEditorTextDraft({ content: "second" });
+    const third = createMessageEditorTextDraft({ content: "third" });
+
+    const nextMessages = moveMessageEditorMessageToIndex([first, second, third], first.extra?.messageEditor?.blockId as string, 2);
+
+    expect(nextMessages.map(message => message.content)).toEqual(["second", "third", "first"]);
   });
 });

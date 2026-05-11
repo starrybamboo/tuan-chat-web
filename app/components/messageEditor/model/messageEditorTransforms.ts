@@ -39,6 +39,22 @@ export type MessageEditorMergeResult = {
   focus: MessageEditorFocusTarget;
 };
 
+/**
+ * slash 菜单可插入的块类型。
+ */
+export type MessageEditorInsertableBlockKind
+  = | "paragraph"
+    | "heading1"
+    | "heading2"
+    | "heading3"
+    | "intro"
+    | "image"
+    | "file"
+    | "audio"
+    | "video"
+    | "dice"
+    | "choose";
+
 type MessageDraftExtra = NonNullable<MessageDraft["extra"]>;
 
 /**
@@ -170,6 +186,74 @@ export function createMessageEditorTextDraft(overrides: {
     ...(overrides.annotations && overrides.annotations.length > 0 ? { annotations: overrides.annotations } : {}),
     extra: setMessageEditorPayload(extra, payload) as MessageDraft["extra"],
   };
+}
+
+/**
+ * 根据 slash 菜单命令创建对应的块草稿。
+ */
+export function createMessageEditorBlockDraft(kind: MessageEditorInsertableBlockKind): MessageDraft {
+  switch (kind) {
+    case "paragraph":
+    case "heading1":
+    case "heading2":
+    case "heading3":
+    case "intro":
+      return createMessageEditorTextDraft({
+        blockType: kind,
+      });
+    case "image":
+      return normalizeMessageEditorDraft({
+        messageType: MESSAGE_TYPE.IMG,
+        content: "",
+        extra: {
+          imageMessage: {},
+        },
+      })!;
+    case "file":
+      return normalizeMessageEditorDraft({
+        messageType: MESSAGE_TYPE.FILE,
+        content: "",
+        extra: {
+          fileMessage: {},
+        },
+      })!;
+    case "audio":
+      return normalizeMessageEditorDraft({
+        messageType: MESSAGE_TYPE.SOUND,
+        content: "",
+        extra: {
+          soundMessage: {},
+        },
+      })!;
+    case "video":
+      return normalizeMessageEditorDraft({
+        messageType: MESSAGE_TYPE.VIDEO,
+        content: "",
+        extra: {
+          videoMessage: {},
+        },
+      })!;
+    case "dice":
+      return normalizeMessageEditorDraft({
+        messageType: MESSAGE_TYPE.DICE,
+        content: "",
+        extra: {
+          diceResult: {},
+        },
+      })!;
+    case "choose":
+      return normalizeMessageEditorDraft({
+        messageType: MESSAGE_TYPE.WEBGAL_CHOOSE,
+        content: "",
+        extra: {
+          webgalChoose: {
+            options: [],
+          },
+        },
+      })!;
+    default:
+      return createMessageEditorTextDraft();
+  }
 }
 
 /**
@@ -688,12 +772,26 @@ export function moveMessageEditorMessage(
   const normalizedMessages = ensureMessageEditorMessages(messages);
   const index = normalizedMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
   const targetIndex = index + direction;
-  if (index < 0 || targetIndex < 0 || targetIndex >= normalizedMessages.length) {
+  return moveMessageEditorMessageToIndex(normalizedMessages, blockId, targetIndex);
+}
+
+/**
+ * 将单个块移动到指定索引。
+ */
+export function moveMessageEditorMessageToIndex(
+  messages: MessageDraft[],
+  blockId: string,
+  targetIndex: number,
+): MessageDraft[] {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const index = normalizedMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+  const normalizedTargetIndex = Math.max(0, Math.min(targetIndex, normalizedMessages.length - 1));
+  if (index < 0 || normalizedTargetIndex === index) {
     return normalizedMessages;
   }
 
   const nextMessages = [...normalizedMessages];
   const [message] = nextMessages.splice(index, 1);
-  nextMessages.splice(targetIndex, 0, message);
+  nextMessages.splice(normalizedTargetIndex, 0, message);
   return nextMessages;
 }

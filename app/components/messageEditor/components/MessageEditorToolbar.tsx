@@ -36,7 +36,7 @@ export function MessageEditorToolbar({
       visible={visible}
       position={position}
       toolbarRef={toolbarRef}
-      className="rounded-xl border border-base-300 bg-base-100/95 p-2 shadow-xl backdrop-blur"
+      shellClassName="rounded-lg"
     >
       <div className="flex items-center gap-1">
         <button type="button" className={toolbarButtonClassName()} onMouseDown={event => event.preventDefault()} onClick={() => onApplyInlineMark("bold")}>B</button>

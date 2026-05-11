@@ -202,6 +202,7 @@ interface FloatingSelectionToolbarProps {
    */
   toolbarRef?: React.RefObject<HTMLDivElement | null>;
   className?: string;
+  shellClassName?: string;
   children: React.ReactNode;
 }
 
@@ -213,6 +214,7 @@ export function FloatingSelectionToolbar({
   position,
   toolbarRef,
   className = "",
+  shellClassName = "",
   children,
 }: FloatingSelectionToolbarProps) {
   if (!visible || !position || typeof document === "undefined") {
@@ -229,7 +231,7 @@ export function FloatingSelectionToolbar({
         transform: "translate(-50%, -100%)",
       }}
     >
-      <div className="flex items-center gap-0.5 rounded-full border border-base-300 bg-base-100/95 px-1.5 py-1 text-xs shadow-lg backdrop-blur">
+      <div className={`flex items-center gap-0.5 rounded-full border border-base-300 bg-base-100/95 px-1.5 py-1 text-xs shadow-lg backdrop-blur ${shellClassName}`}>
         {children}
       </div>
     </div>,

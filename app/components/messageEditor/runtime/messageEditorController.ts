@@ -6,12 +6,14 @@ import type { MessageEditorRegistry } from "./messageEditorRegistry";
 import type { MessageEditorSelection } from "./messageEditorSelection";
 
 import {
+  createMessageEditorBlockDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
   isMessageEditorInlineMarkFullyCovered,
   mergeMessageEditorMessageBackward,
   mergeMessageEditorMessageForward,
   moveMessageEditorMessage,
+  moveMessageEditorMessageToIndex,
   setMessageEditorBlockType,
   setMessageEditorColorMark,
   setMessageEditorInlineMarkActive,
@@ -31,6 +33,16 @@ export type MessageEditorController = {
   mergeBackward: (blockId: string) => { blockId: string; caret: number } | null;
   mergeForward: (blockId: string) => { blockId: string; caret: number } | null;
   moveBlock: (blockId: string, direction: -1 | 1) => void;
+  moveBlockToIndex: (blockId: string, targetIndex: number) => void;
+  replaceBlockWithKind: (
+    blockId: string,
+    kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+  ) => { blockId: string; caret: number } | null;
+  getAdjacentTextBlock: (
+    blockId: string,
+    direction: -1 | 1,
+    preferredOffset?: number,
+  ) => { blockId: string; caret: number } | null;
   applyInlineMark: (selection: MessageEditorSelection, type: Exclude<MessageEditorInlineMarkType, "color">) => void;
   applyColorMark: (selection: MessageEditorSelection, color?: string) => void;
   applyBlockType: (selection: MessageEditorSelection, blockType: MessageEditorBlockType) => void;
@@ -110,6 +122,60 @@ export function createMessageEditorController(params: {
         emitBlocksChanged(nextMessages);
         return nextMessages;
       });
+    },
+    moveBlockToIndex(blockId, targetIndex) {
+      params.setMessages((previous) => {
+        const nextMessages = moveMessageEditorMessageToIndex(previous, blockId, targetIndex);
+        emitBlocksChanged(nextMessages);
+        return nextMessages;
+      });
+    },
+    replaceBlockWithKind(blockId, kind) {
+      const currentMessages = ensureMessageEditorMessages(params.getMessages());
+      const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+      if (index < 0) {
+        return null;
+      }
+
+      const nextBlock = createMessageEditorBlockDraft(kind);
+      params.setMessages(() => {
+        const nextMessages = [...currentMessages];
+        nextMessages.splice(index, 1, nextBlock);
+        emitBlocksChanged(nextMessages);
+        return nextMessages;
+      });
+
+      return params.registry.isTextBlock(nextBlock)
+        ? {
+            blockId: getMessageEditorBlockId(nextBlock),
+            caret: 0,
+          }
+        : null;
+    },
+    getAdjacentTextBlock(blockId, direction, preferredOffset) {
+      const currentMessages = ensureMessageEditorMessages(params.getMessages());
+      const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+      if (index < 0) {
+        return null;
+      }
+
+      for (let nextIndex = index + direction; nextIndex >= 0 && nextIndex < currentMessages.length; nextIndex += direction) {
+        const nextMessage = currentMessages[nextIndex];
+        if (!params.registry.isTextBlock(nextMessage)) {
+          continue;
+        }
+
+        const nextContentLength = String(nextMessage.content ?? "").length;
+        return {
+          blockId: getMessageEditorBlockId(nextMessage),
+          caret: Math.max(
+            0,
+            Math.min(preferredOffset ?? (direction < 0 ? nextContentLength : 0), nextContentLength),
+          ),
+        };
+      }
+
+      return null;
     },
     applyInlineMark(selection, type) {
       if (selection.collapsed || selection.segments.length === 0) {
