@@ -84,7 +84,7 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
 function blockClassName(message: MessageDraft, readOnly: boolean) {
   const blockType = getMessageEditorBlockType(message);
   const base = [
-    "relative rounded-md px-3 py-1.5 transition",
+    "relative rounded-md px-3 py-1.5 transition selection:bg-sky-200 selection:text-slate-950",
     "bg-transparent",
     readOnly ? "" : "hover:bg-base-200/30",
   ];
@@ -191,7 +191,7 @@ export function MessageEditorTextBlock({
         data-me-block-id={blockId}
         contentEditable={!readOnly}
         suppressContentEditableWarning
-        className="min-h-6 whitespace-pre-wrap break-words outline-none"
+        className="min-h-6 whitespace-pre-wrap break-words outline-none selection:bg-sky-200 selection:text-slate-950"
         onMouseDownCapture={() => {
           if (!readOnly) {
             onFocus(blockId);
