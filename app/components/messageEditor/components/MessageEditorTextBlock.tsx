@@ -12,6 +12,7 @@ interface MessageEditorTextBlockProps {
   active: boolean;
   blockId: string;
   message: MessageDraft;
+  onBlur?: (blockId: string) => void;
   onFocus: (blockId: string) => void;
   onInput: (blockId: string, nextContent: string) => void;
   onKeyDown: (blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => void;
@@ -83,8 +84,8 @@ function buildInlineSegments(message: MessageDraft): InlineSegment[] {
 function blockClassName(message: MessageDraft, active: boolean, readOnly: boolean) {
   const blockType = getMessageEditorBlockType(message);
   const base = [
-    "relative rounded-md border px-3 py-2 transition",
-    active ? "border-primary/50 bg-primary/5" : "border-transparent",
+    "relative rounded-md border px-3 py-1 transition",
+    active ? "border-primary/40 bg-primary/[0.045]" : "border-transparent bg-transparent",
     readOnly ? "" : "hover:border-base-300",
   ];
 
@@ -101,7 +102,7 @@ function blockClassName(message: MessageDraft, active: boolean, readOnly: boolea
     base.push("bg-black text-white shadow-inner");
   }
   else {
-    base.push("text-[15px] leading-7");
+    base.push("text-[15px] leading-6");
   }
 
   return base.join(" ");
@@ -114,6 +115,7 @@ export function MessageEditorTextBlock({
   active,
   blockId,
   message,
+  onBlur,
   onFocus,
   onInput,
   onKeyDown,
@@ -133,15 +135,15 @@ export function MessageEditorTextBlock({
 
     const normalizedDomText = normalizeEditableText(node.textContent ?? "");
     if (!readOnly && active) {
-      if (normalizedDomText === content && node.childNodes.length <= 1) {
-        return;
-      }
-
       if (!content) {
         if (node.childNodes.length === 1 && node.firstChild instanceof HTMLBRElement) {
           return;
         }
         node.replaceChildren(document.createElement("br"));
+        return;
+      }
+
+      if (normalizedDomText === content) {
         return;
       }
 
@@ -177,7 +179,7 @@ export function MessageEditorTextBlock({
   return (
     <div className={blockClassName(message, active, readOnly)}>
       {!content && !active && !readOnly && (
-        <div className="pointer-events-none absolute inset-x-3 top-2 text-base-content/25">
+        <div className="pointer-events-none absolute inset-x-3 top-1 text-base-content/25">
           {placeholder}
         </div>
       )}
@@ -190,7 +192,13 @@ export function MessageEditorTextBlock({
         contentEditable={!readOnly}
         suppressContentEditableWarning
         className="min-h-7 whitespace-pre-wrap break-words outline-none"
+        onMouseDownCapture={() => {
+          if (!readOnly) {
+            onFocus(blockId);
+          }
+        }}
         onFocus={() => onFocus(blockId)}
+        onBlur={() => onBlur?.(blockId)}
         onInput={(event) => {
           onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
         }}
