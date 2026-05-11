@@ -1,6 +1,10 @@
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { MaterialMessageItem } from "@tuanchat/openapi-client/models/MaterialMessageItem";
 
+import {
+  getMessageEditorPayload,
+  isMessageEditorTextMessageType,
+} from "./messageEditor";
 import { MESSAGE_TYPE } from "./messageType";
 import { normalizeStateEventExtra } from "./state-event";
 
@@ -399,41 +403,40 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
 }
 
 function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown): MessageExtraRecord {
+  const messageEditorPayload = getMessageEditorPayload(rawExtra, Number.MAX_SAFE_INTEGER, messageType);
+  const editorExtra = messageEditorPayload ? { messageEditor: messageEditorPayload } : {};
+
   switch (messageType) {
     case MESSAGE_TYPE.IMG:
-      return compactRecord({ imageMessage: normalizeImagePayload(rawExtra, { defaultBackground: false }) });
+      return compactRecord({ ...editorExtra, imageMessage: normalizeImagePayload(rawExtra, { defaultBackground: false }) });
     case MESSAGE_TYPE.SOUND:
-      return compactRecord({ soundMessage: normalizeSoundPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, soundMessage: normalizeSoundPayload(rawExtra) });
     case MESSAGE_TYPE.VIDEO:
-      return compactRecord({ videoMessage: normalizeVideoPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, videoMessage: normalizeVideoPayload(rawExtra) });
     case MESSAGE_TYPE.FILE:
-      return compactRecord({ fileMessage: normalizeFilePayload(rawExtra) });
+      return compactRecord({ ...editorExtra, fileMessage: normalizeFilePayload(rawExtra) });
     case MESSAGE_TYPE.DICE:
-      return compactRecord({ diceResult: normalizeDicePayload(rawExtra) });
+      return compactRecord({ ...editorExtra, diceResult: normalizeDicePayload(rawExtra) });
     case MESSAGE_TYPE.FORWARD:
-      return compactRecord({ forwardMessage: normalizeForwardPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, forwardMessage: normalizeForwardPayload(rawExtra) });
     case MESSAGE_TYPE.CLUE_CARD:
-      return compactRecord({ clueMessage: normalizeCluePayload(rawExtra) });
+      return compactRecord({ ...editorExtra, clueMessage: normalizeCluePayload(rawExtra) });
     case MESSAGE_TYPE.WEBGAL_CHOOSE:
-      return compactRecord({ webgalChoose: normalizeWebgalChoosePayload(rawExtra) });
+      return compactRecord({ ...editorExtra, webgalChoose: normalizeWebgalChoosePayload(rawExtra) });
     case MESSAGE_TYPE.COMMAND_REQUEST:
-      return compactRecord({ commandRequest: normalizeCommandRequestPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, commandRequest: normalizeCommandRequestPayload(rawExtra) });
     case MESSAGE_TYPE.DOC_CARD:
-      return compactRecord({ docCard: normalizeDocCardPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, docCard: normalizeDocCardPayload(rawExtra) });
     case MESSAGE_TYPE.ROOM_JUMP:
-      return compactRecord({ roomJump: normalizeRoomJumpPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, roomJump: normalizeRoomJumpPayload(rawExtra) });
     case MESSAGE_TYPE.THREAD_ROOT:
-      return compactRecord({ threadRoot: normalizeThreadRootPayload(rawExtra) });
+      return compactRecord({ ...editorExtra, threadRoot: normalizeThreadRootPayload(rawExtra) });
     case MESSAGE_TYPE.STATE_EVENT:
-      return compactRecord({ stateEvent: normalizeStateEventPayload(rawExtra) });
-    case MESSAGE_TYPE.TEXT:
-    case MESSAGE_TYPE.SYSTEM:
-    case MESSAGE_TYPE.EFFECT:
-    case MESSAGE_TYPE.INTRO_TEXT:
-    case MESSAGE_TYPE.READ_LINE:
-      return {};
+      return compactRecord({ ...editorExtra, stateEvent: normalizeStateEventPayload(rawExtra) });
     default:
-      return compactRecord(rawExtra);
+      return isMessageEditorTextMessageType(messageType)
+        ? compactRecord(editorExtra)
+        : compactRecord(rawExtra);
   }
 }
 
@@ -444,35 +447,40 @@ export function buildMessageExtraForRequest(messageType: number, rawExtra: unkno
 }
 
 export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unknown): unknown {
+  const messageEditorPayload = getMessageEditorPayload(rawExtra, Number.MAX_SAFE_INTEGER, messageType);
+  const editorExtra = messageEditorPayload ? { messageEditor: messageEditorPayload } : {};
+
   switch (messageType) {
     case MESSAGE_TYPE.IMG:
-      return compactValue({ imageMessage: normalizeImagePayload(rawExtra) });
+      return compactValue({ ...editorExtra, imageMessage: normalizeImagePayload(rawExtra) });
     case MESSAGE_TYPE.SOUND:
-      return compactValue({ soundMessage: normalizeSoundPayload(rawExtra) });
+      return compactValue({ ...editorExtra, soundMessage: normalizeSoundPayload(rawExtra) });
     case MESSAGE_TYPE.VIDEO:
-      return compactValue({ videoMessage: normalizeVideoPayload(rawExtra) });
+      return compactValue({ ...editorExtra, videoMessage: normalizeVideoPayload(rawExtra) });
     case MESSAGE_TYPE.FILE:
-      return compactValue({ fileMessage: normalizeFilePayload(rawExtra) });
+      return compactValue({ ...editorExtra, fileMessage: normalizeFilePayload(rawExtra) });
     case MESSAGE_TYPE.DICE:
-      return compactValue({ diceResult: normalizeDicePayload(rawExtra) });
+      return compactValue({ ...editorExtra, diceResult: normalizeDicePayload(rawExtra) });
     case MESSAGE_TYPE.FORWARD:
-      return compactValue({ forwardMessage: normalizeForwardPayload(rawExtra) });
+      return compactValue({ ...editorExtra, forwardMessage: normalizeForwardPayload(rawExtra) });
     case MESSAGE_TYPE.CLUE_CARD:
-      return compactValue({ clueMessage: normalizeCluePayload(rawExtra) });
+      return compactValue({ ...editorExtra, clueMessage: normalizeCluePayload(rawExtra) });
     case MESSAGE_TYPE.WEBGAL_CHOOSE:
-      return compactValue({ webgalChoose: normalizeWebgalChoosePayload(rawExtra) });
+      return compactValue({ ...editorExtra, webgalChoose: normalizeWebgalChoosePayload(rawExtra) });
     case MESSAGE_TYPE.COMMAND_REQUEST:
-      return compactValue({ commandRequest: normalizeCommandRequestPayload(rawExtra) });
+      return compactValue({ ...editorExtra, commandRequest: normalizeCommandRequestPayload(rawExtra) });
     case MESSAGE_TYPE.DOC_CARD:
-      return compactValue({ docCard: normalizeDocCardPayload(rawExtra) });
+      return compactValue({ ...editorExtra, docCard: normalizeDocCardPayload(rawExtra) });
     case MESSAGE_TYPE.ROOM_JUMP:
-      return compactValue({ roomJump: normalizeRoomJumpPayload(rawExtra) });
+      return compactValue({ ...editorExtra, roomJump: normalizeRoomJumpPayload(rawExtra) });
     case MESSAGE_TYPE.THREAD_ROOT:
-      return compactValue({ threadRoot: normalizeThreadRootPayload(rawExtra) });
+      return compactValue({ ...editorExtra, threadRoot: normalizeThreadRootPayload(rawExtra) });
     case MESSAGE_TYPE.STATE_EVENT:
-      return compactValue({ stateEvent: normalizeStateEventPayload(rawExtra) });
+      return compactValue({ ...editorExtra, stateEvent: normalizeStateEventPayload(rawExtra) });
     default:
-      return compactValue(rawExtra);
+      return isMessageEditorTextMessageType(messageType)
+        ? compactValue(editorExtra)
+        : compactValue(rawExtra);
   }
 }
 

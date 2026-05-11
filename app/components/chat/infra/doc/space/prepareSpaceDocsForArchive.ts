@@ -1,6 +1,6 @@
 import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
-import { isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
 import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import { buildSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { tuanchat } from "api/instance";
 
