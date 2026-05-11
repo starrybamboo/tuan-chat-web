@@ -11,8 +11,8 @@ import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
-import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
 import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";

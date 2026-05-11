@@ -2,9 +2,9 @@ import type { StoredSnapshot } from "@/components/chat/infra/doc/description/des
 
 import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
-import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/blockNoteSnapshot";
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
 
 import { tuanchat } from "../../../../api/instance";
