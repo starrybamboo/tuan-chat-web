@@ -109,19 +109,17 @@ describe("messageEditorController", () => {
   });
 
   it("removes an atomic block and focuses the adjacent text block", () => {
+    const imageBlock = {
+      messageType: MESSAGE_TYPE.IMG,
+      content: "",
+      extra: {
+        imageMessage: {},
+      },
+    } as MessageDraft;
+    const imageBlockId = getMessageEditorBlockId(imageBlock);
     let messages: MessageDraft[] = [
       createMessageEditorTextDraft({ content: "before" }),
-      {
-        messageType: MESSAGE_TYPE.IMG,
-        content: "",
-        extra: {
-          imageMessage: {},
-          messageEditor: {
-            blockId: "image-block",
-            blockType: "paragraph",
-          },
-        },
-      } as MessageDraft,
+      imageBlock,
       createMessageEditorTextDraft({ content: "after" }),
     ];
     const registry = createMessageEditorRegistry();
@@ -134,7 +132,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const focus = controller.removeBlock("image-block");
+    const focus = controller.removeBlock(imageBlockId);
 
     expect(messages).toHaveLength(2);
     expect(messages.map(message => message.content)).toEqual(["before", "after"]);
@@ -169,5 +167,64 @@ describe("messageEditorController", () => {
     const secondFocus = controller.ensureTrailingTextBlock();
     expect(messages).toHaveLength(2);
     expect(secondFocus).toEqual(firstFocus);
+  });
+
+  it("transforms a multi-block selection through the controller", () => {
+    let messages: MessageDraft[] = [
+      createMessageEditorTextDraft({ content: "alpha" }),
+      createMessageEditorTextDraft({ content: "beta" }),
+    ];
+    const registry = createMessageEditorRegistry();
+    const controller = createMessageEditorController({
+      eventBus: new MessageEditorEventBus(),
+      registry,
+      getMessages: () => messages,
+      setMessages(updater) {
+        messages = updater(messages);
+      },
+    });
+
+    const focus = controller.transformSelectionText({
+      anchor: {
+        blockId: getMessageEditorBlockId(messages[0]),
+        offset: 1,
+      },
+      focus: {
+        blockId: getMessageEditorBlockId(messages[1]),
+        offset: 2,
+      },
+      start: {
+        blockId: getMessageEditorBlockId(messages[0]),
+        offset: 1,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(messages[1]),
+        offset: 2,
+      },
+      blockIds: messages.map(message => getMessageEditorBlockId(message)),
+      collapsed: false,
+      multiBlock: true,
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(messages[0]),
+          start: 1,
+          end: 5,
+        },
+        {
+          blockId: getMessageEditorBlockId(messages[1]),
+          start: 0,
+          end: 2,
+        },
+      ],
+    }, selectedText => `[${selectedText}](style=color:#FF0000)`);
+
+    expect(messages.map(message => message.content)).toEqual([
+      "a[lpha](style=color:#FF0000)",
+      "[be](style=color:#FF0000)ta",
+    ]);
+    expect(focus).toEqual({
+      blockId: getMessageEditorBlockId(messages[1]),
+      caret: "[be](style=color:#FF0000)".length,
+    });
   });
 });

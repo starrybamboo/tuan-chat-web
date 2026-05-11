@@ -13,11 +13,18 @@ export interface ChatInputAreaHandle {
    * 命令式地设置 contentEditable div 的内容 (HTML)。
    * 用于父组件清空输入框或设置文本。
    */
-  setContent: (htmlContent: string) => void;
+  setContent: (
+    htmlContent: string,
+    options?: {
+      moveCursorToEnd?: boolean;
+    },
+  ) => void;
   /**
    * 让输入框获得焦点
    */
-  focus: () => void;
+  focus: (options?: {
+    moveCursorToEnd?: boolean;
+  }) => void;
   /**
    * 在当前光标位置插入一个 DOM 节点或文本。
    * AI 补全和 @提及 功能需要用到此方法。
@@ -150,7 +157,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       moveCursorToEnd?: boolean;
     },
   ): boolean => {
-    const { moveCursorToEnd = false } = options || {};
+    const { moveCursorToEnd = false, replaceSelection = false } = options || {};
     const selectionInfo = getEditorRange(internalTextareaRef.current);
     const selection = selectionInfo?.selection;
     const range = selectionInfo?.range;
@@ -158,6 +165,9 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       return false;
 
     const insertedNode = typeof node === "string" ? document.createTextNode(node) : node;
+    if (replaceSelection) {
+      range.deleteContents();
+    }
     range.insertNode(insertedNode);
 
     if (moveCursorToEnd) {
@@ -202,6 +212,20 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       return;
     const text = editor.textContent ?? "";
     editor.dataset.hasText = text.trim().length > 0 ? "true" : "false";
+  };
+
+  const moveCaretToEnd = () => {
+    const editor = internalTextareaRef.current;
+    if (!editor) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
   };
 
   /**
@@ -277,36 +301,26 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     /**
      * API: 设置内容
      */
-    setContent: (htmlContent: string) => {
+    setContent: (htmlContent: string, options) => {
       if (internalTextareaRef.current) {
         internalTextareaRef.current.innerHTML = htmlContent;
         updateHasTextFlag();
 
-        // 将光标移动到末尾
-        if (htmlContent) {
-          const range = document.createRange();
-          range.selectNodeContents(internalTextareaRef.current);
-          range.collapse(false);
-          const selection = window.getSelection();
-          selection?.removeAllRanges();
-          selection?.addRange(range);
+        if (htmlContent && options?.moveCursorToEnd !== false) {
+          moveCaretToEnd();
         }
       }
     },
     /**
      * API: 让输入框获得焦点并将光标移到末尾
      */
-    focus: () => {
+    focus: (options) => {
       const editor = internalTextareaRef.current;
       if (editor) {
         editor.focus();
-        // 将光标移到末尾
-        const range = document.createRange();
-        range.selectNodeContents(editor);
-        range.collapse(false);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
+        if (options?.moveCursorToEnd !== false) {
+          moveCaretToEnd();
+        }
       }
     },
     /**

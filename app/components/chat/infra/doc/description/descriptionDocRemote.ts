@@ -317,12 +317,12 @@ export async function getRemoteSnapshot(params: {
   }
 
   const task = (async (): Promise<StoredSnapshot | null> => {
-  // 优先从 blocksuite_doc 表读取
+    // 后端表和 OpenAPI 名称仍沿用 blocksuiteDocController，这里只把用户可见错误描述为通用文档快照。
     const res = await awaitWithTimeout(tuanchat.blocksuiteDocController.getDoc(
       params.entityType,
       params.entityId,
       params.docType,
-    ), REMOTE_SNAPSHOT_REQUEST_TIMEOUT_MS, "blocksuite snapshot request");
+    ), REMOTE_SNAPSHOT_REQUEST_TIMEOUT_MS, "document snapshot request");
     // Most endpoints wrap data inside ApiResult: { code, msg, data }
     // Some deployments may return the snapshot object directly.
     const fromTable = tryParseSnapshot((res as any)?.data ?? res ?? null);
@@ -541,7 +541,7 @@ export async function getRemoteUpdates(params: {
       params.docType,
       params.afterServerTime,
       params.limit,
-    ), REMOTE_UPDATES_REQUEST_TIMEOUT_MS, "blocksuite updates request");
+    ), REMOTE_UPDATES_REQUEST_TIMEOUT_MS, "document updates request");
 
     const raw = (res as any)?.data ?? res ?? null;
     if (isRemoteUpdates(raw)) {

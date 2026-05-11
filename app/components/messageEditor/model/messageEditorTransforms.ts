@@ -1,16 +1,7 @@
 import type { MessageDraft } from "@/types/messageDraft";
-import type {
-  MessageEditorBlockType,
-  MessageEditorPayload,
-} from "@tuanchat/domain";
 
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import {
-  createMessageEditorEntityId,
-  getMessageEditorPayload,
-  isMessageEditorTextMessageType,
-  setMessageEditorPayload,
-} from "@tuanchat/domain";
+import { visibleOffsetToTextEnhanceRawOffset } from "@/utils/textEnhanceSyntax";
 
 /**
  * 文本块拆分或合并后的聚焦位置。
@@ -36,14 +27,48 @@ export type MessageEditorMergeResult = {
   focus: MessageEditorFocusTarget;
 };
 
+export type MessageEditorTextSelectionPoint = {
+  blockId: string;
+  offset: number;
+};
+
+export type MessageEditorTextSelectionSegment = {
+  blockId: string;
+  start: number;
+  end: number;
+};
+
+export type MessageEditorTextSelection = {
+  end: MessageEditorTextSelectionPoint;
+  segments: MessageEditorTextSelectionSegment[];
+  start: MessageEditorTextSelectionPoint;
+};
+
+export type MessageEditorSelectionTextResult = {
+  messages: MessageDraft[];
+  focus: MessageEditorFocusTarget;
+};
+
+export type MessageEditorMarkdownBlockKind = "paragraph" | "heading1" | "heading2" | "heading3" | "bulletedList" | "numberedList" | "quote";
+
+export type MessageEditorMarkdownPreview = {
+  content: string;
+  kind: MessageEditorMarkdownBlockKind;
+  orderedNumber?: number;
+  rawPrefixLength: number;
+};
+
 /**
- * slash 菜单可插入的块类型。
+ * slash 菜单可插入的块类型。只保留聊天室已有消息语义。
  */
 export type MessageEditorInsertableBlockKind
   = | "paragraph"
     | "heading1"
     | "heading2"
     | "heading3"
+    | "bulletedList"
+    | "numberedList"
+    | "quote"
     | "intro"
     | "image"
     | "file"
@@ -63,6 +88,16 @@ export type MessageEditorUploadedMediaPayload = {
 };
 
 type MessageDraftExtra = NonNullable<MessageDraft["extra"]>;
+
+const LEGACY_MESSAGE_EDITOR_EXTRA_KEY = "messageEditor";
+const runtimeBlockIds = new WeakMap<object, string>();
+
+function createMessageEditorEntityId(prefix = "block"): string {
+  const randomPart = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID().replace(/-/g, "")
+    : Math.random().toString(36).slice(2, 12);
+  return `${prefix}_${randomPart}`;
+}
 
 /**
  * 规范化消息注解数组。
@@ -85,6 +120,91 @@ export function normalizeMessageEditorContent(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function countRepeatedPrefix(content: string, marker: string, maxLength: number) {
+  let length = 0;
+  while (length < maxLength && content[length] === marker) {
+    length += 1;
+  }
+  return length;
+}
+
+function countInlineSpaces(content: string, startIndex: number) {
+  let index = startIndex;
+  while (content[index] === " " || content[index] === "\t") {
+    index += 1;
+  }
+  return index - startIndex;
+}
+
+/**
+ * 解析文本块的 Markdown 块级语法。语法只存在于 content 字符串中。
+ */
+export function parseMessageEditorMarkdownPreview(rawContent: unknown): MessageEditorMarkdownPreview {
+  const content = normalizeMessageEditorContent(rawContent);
+  const headingMarkerLength = countRepeatedPrefix(content, "#", 3);
+  if (headingMarkerLength > 0 && content[headingMarkerLength] !== "#") {
+    const spacerLength = countInlineSpaces(content, headingMarkerLength);
+    if (spacerLength > 0 || content.length === headingMarkerLength) {
+      const rawPrefixLength = headingMarkerLength + spacerLength;
+      return {
+        content: content.slice(rawPrefixLength),
+        kind: headingMarkerLength === 1 ? "heading1" : headingMarkerLength === 2 ? "heading2" : "heading3",
+        rawPrefixLength,
+      };
+    }
+  }
+
+  const bulletMarker = content[0];
+  const bulletSpacerLength = bulletMarker === "-" || bulletMarker === "*" ? countInlineSpaces(content, 1) : 0;
+  if (bulletSpacerLength > 0) {
+    return {
+      content: content.slice(1 + bulletSpacerLength),
+      kind: "bulletedList",
+      rawPrefixLength: 1 + bulletSpacerLength,
+    };
+  }
+
+  let digitLength = 0;
+  while (digitLength < 9) {
+    const char = content[digitLength] ?? "";
+    if (char < "0" || char > "9") {
+      break;
+    }
+    digitLength += 1;
+  }
+  const numberedDelimiter = content[digitLength];
+  const numberedSpacerLength = numberedDelimiter === "." || numberedDelimiter === ")" ? countInlineSpaces(content, digitLength + 1) : 0;
+  if (digitLength > 0 && numberedSpacerLength > 0) {
+    return {
+      content: content.slice(digitLength + 1 + numberedSpacerLength),
+      kind: "numberedList",
+      orderedNumber: Number(content.slice(0, digitLength)),
+      rawPrefixLength: digitLength + 1 + numberedSpacerLength,
+    };
+  }
+
+  const quoteSpacerLength = content[0] === ">" ? countInlineSpaces(content, 1) : 0;
+  if (quoteSpacerLength > 0) {
+    return {
+      content: content.slice(1 + quoteSpacerLength),
+      kind: "quote",
+      rawPrefixLength: 1 + quoteSpacerLength,
+    };
+  }
+
+  return {
+    content,
+    kind: "paragraph",
+    rawPrefixLength: 0,
+  };
+}
+
+export function previewVisibleOffsetToMessageEditorRawOffset(rawContent: unknown, visibleOffset: number): number {
+  const preview = parseMessageEditorMarkdownPreview(rawContent);
+  const visibleContent = preview.rawPrefixLength > 0 ? preview.content : normalizeMessageEditorContent(rawContent);
+  return preview.rawPrefixLength + visibleOffsetToTextEnhanceRawOffset(visibleContent, visibleOffset);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -98,34 +218,42 @@ function toTrimmedString(value: unknown): string | undefined {
 }
 
 function toMessageDraftExtra(value: unknown): MessageDraftExtra | undefined {
-  return isRecord(value) ? value as MessageDraftExtra : undefined;
-}
-
-function normalizeBlockType(messageType: number | undefined, payload: MessageEditorPayload | undefined): MessageEditorBlockType {
-  if (messageType === MESSAGE_TYPE.INTRO_TEXT) {
-    return "intro";
+  if (!isRecord(value)) {
+    return undefined;
   }
-  return payload?.blockType === "heading1"
-    || payload?.blockType === "heading2"
-    || payload?.blockType === "heading3"
-    ? payload.blockType
-    : "paragraph";
-}
 
-function normalizeEditorPayload(
-  value: unknown,
-  content: string,
-  messageType: number | undefined,
-): MessageEditorPayload {
-  const payload = getMessageEditorPayload(value, content.length, messageType);
-  return {
-    blockId: payload?.blockId ?? createMessageEditorEntityId("block"),
-    blockType: normalizeBlockType(messageType, payload),
-  };
+  const { [LEGACY_MESSAGE_EDITOR_EXTRA_KEY]: _legacyMessageEditor, ...extra } = value;
+  return Object.keys(extra).length > 0 ? extra as MessageDraftExtra : undefined;
 }
 
 function normalizeMessageType(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : MESSAGE_TYPE.TEXT;
+}
+
+function inheritRuntimeBlockId<T extends MessageDraft>(source: unknown, target: T): T {
+  const sourceId = isRecord(source) ? runtimeBlockIds.get(source) : undefined;
+  const targetKey = target as unknown as object;
+  runtimeBlockIds.set(targetKey, sourceId ?? runtimeBlockIds.get(targetKey) ?? createMessageEditorEntityId("block"));
+  return target;
+}
+
+function assignRuntimeBlockId<T extends MessageDraft>(target: T, blockId?: string): T {
+  runtimeBlockIds.set(target as unknown as object, blockId ?? createMessageEditorEntityId("block"));
+  return target;
+}
+
+/**
+ * 读取编辑器运行时块 ID。ID 只存在于前端内存，不写入 message/extra。
+ */
+export function getMessageEditorBlockId(message: MessageDraft): string {
+  const key = message as unknown as object;
+  const existing = runtimeBlockIds.get(key);
+  if (existing) {
+    return existing;
+  }
+  const nextId = createMessageEditorEntityId("block");
+  runtimeBlockIds.set(key, nextId);
+  return nextId;
 }
 
 /**
@@ -138,9 +266,7 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageDraft |
 
   const messageType = normalizeMessageType(rawMessage.messageType);
   const content = normalizeMessageEditorContent(rawMessage.content);
-  const extra = toMessageDraftExtra(rawMessage.extra);
-  const payload = normalizeEditorPayload(extra, content, messageType);
-  const normalizedExtra = setMessageEditorPayload(extra, payload) as MessageDraft["extra"] | undefined;
+  const normalizedExtra = toMessageDraftExtra(rawMessage.extra);
 
   const nextMessage: MessageDraft = {
     messageType,
@@ -153,14 +279,7 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageDraft |
     ...(toTrimmedString(rawMessage.customRoleName) ? { customRoleName: toTrimmedString(rawMessage.customRoleName) } : {}),
   };
 
-  if (messageType === MESSAGE_TYPE.INTRO_TEXT) {
-    nextMessage.extra = setMessageEditorPayload(nextMessage.extra, {
-      ...payload,
-      blockType: "intro",
-    }) as MessageDraft["extra"];
-  }
-
-  return nextMessage;
+  return inheritRuntimeBlockId(rawMessage, nextMessage);
 }
 
 /**
@@ -169,25 +288,20 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageDraft |
 export function createMessageEditorTextDraft(overrides: {
   annotations?: string[];
   blockId?: string;
-  blockType?: MessageEditorBlockType;
   content?: string;
   extra?: MessageDraft["extra"];
   messageType?: MessageDraft["messageType"];
 } = {}): MessageDraft {
-  const messageType = overrides.messageType ?? (overrides.blockType === "intro" ? MESSAGE_TYPE.INTRO_TEXT : MESSAGE_TYPE.TEXT);
+  const messageType = overrides.messageType ?? MESSAGE_TYPE.TEXT;
   const content = typeof overrides.content === "string" ? overrides.content : "";
   const extra = toMessageDraftExtra(overrides.extra);
-  const payload: MessageEditorPayload = {
-    blockId: overrides.blockId ?? createMessageEditorEntityId("block"),
-    blockType: overrides.blockType ?? (messageType === MESSAGE_TYPE.INTRO_TEXT ? "intro" : "paragraph"),
-  };
 
-  return {
+  return assignRuntimeBlockId({
     messageType,
     content,
     ...(overrides.annotations && overrides.annotations.length > 0 ? { annotations: overrides.annotations } : {}),
-    extra: setMessageEditorPayload(extra, payload) as MessageDraft["extra"],
-  };
+    ...(extra ? { extra } : {}),
+  }, overrides.blockId);
 }
 
 /**
@@ -196,12 +310,22 @@ export function createMessageEditorTextDraft(overrides: {
 export function createMessageEditorBlockDraft(kind: MessageEditorInsertableBlockKind): MessageDraft {
   switch (kind) {
     case "paragraph":
+      return createMessageEditorTextDraft();
     case "heading1":
+      return createMessageEditorTextDraft({ content: "# " });
     case "heading2":
+      return createMessageEditorTextDraft({ content: "## " });
     case "heading3":
+      return createMessageEditorTextDraft({ content: "### " });
+    case "bulletedList":
+      return createMessageEditorTextDraft({ content: "- " });
+    case "numberedList":
+      return createMessageEditorTextDraft({ content: "1. " });
+    case "quote":
+      return createMessageEditorTextDraft({ content: "> " });
     case "intro":
       return createMessageEditorTextDraft({
-        blockType: kind,
+        messageType: MESSAGE_TYPE.INTRO_TEXT,
       });
     case "image":
       return normalizeMessageEditorDraft({
@@ -265,7 +389,7 @@ export function setMessageEditorUploadedMedia(
   message: MessageDraft,
   payload: MessageEditorUploadedMediaPayload,
 ): MessageDraft {
-  const nextExtra = { ...(message.extra ?? {}) } as MessageDraftExtra;
+  const nextExtra = { ...(toMessageDraftExtra(message.extra) ?? {}) } as MessageDraftExtra;
 
   if (message.messageType === MESSAGE_TYPE.IMG) {
     nextExtra.imageMessage = {
@@ -307,10 +431,10 @@ export function setMessageEditorUploadedMedia(
     };
   }
 
-  return normalizeMessageEditorDraft({
+  return inheritRuntimeBlockId(message, {
     ...message,
     extra: nextExtra,
-  }) ?? message;
+  });
 }
 
 /**
@@ -325,44 +449,10 @@ export function ensureMessageEditorMessages(messages: MessageDraft[]): MessageDr
 }
 
 /**
- * 读取块级稳定 ID。
- */
-export function getMessageEditorBlockId(message: MessageDraft): string {
-  return normalizeEditorPayload(message.extra, normalizeMessageEditorContent(message.content), message.messageType).blockId;
-}
-
-/**
- * 读取块级样式类型。
- */
-export function getMessageEditorBlockType(message: MessageDraft): MessageEditorBlockType {
-  return normalizeBlockType(message.messageType, getMessageEditorPayload(message.extra, normalizeMessageEditorContent(message.content).length, message.messageType));
-}
-
-/**
- * 设置块级样式，并同步 intro/text 的 messageType。
- */
-export function setMessageEditorBlockType(
-  message: MessageDraft,
-  blockType: MessageEditorBlockType,
-): MessageDraft {
-  const content = normalizeMessageEditorContent(message.content);
-  const payload = normalizeEditorPayload(message.extra, content, blockType === "intro" ? MESSAGE_TYPE.INTRO_TEXT : MESSAGE_TYPE.TEXT);
-
-  return {
-    ...message,
-    messageType: blockType === "intro" ? MESSAGE_TYPE.INTRO_TEXT : MESSAGE_TYPE.TEXT,
-    extra: setMessageEditorPayload(message.extra, {
-      ...payload,
-      blockType,
-    }) as MessageDraft["extra"],
-  };
-}
-
-/**
  * 判断消息是否属于 editor 内可直接文本编辑的块。
  */
 export function isMessageEditorTextMessage(message: MessageDraft): boolean {
-  return isMessageEditorTextMessageType(message.messageType);
+  return message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT;
 }
 
 /**
@@ -378,10 +468,10 @@ export function updateMessageEditorTextContent(
     return message;
   }
 
-  return {
+  return inheritRuntimeBlockId(message, {
     ...message,
     content: normalizedNextContent,
-  };
+  });
 }
 
 /**
@@ -390,8 +480,7 @@ export function updateMessageEditorTextContent(
 export function serializeMessageEditorMessages(messages: MessageDraft[]): string {
   return JSON.stringify(ensureMessageEditorMessages(messages).map((message) => {
     const content = normalizeMessageEditorContent(message.content);
-    const payload = normalizeEditorPayload(message.extra, content, message.messageType);
-    const nextExtra = setMessageEditorPayload(message.extra, payload);
+    const nextExtra = toMessageDraftExtra(message.extra);
     return {
       annotations: normalizeMessageEditorAnnotations(message.annotations) ?? [],
       avatarId: message.avatarId ?? null,
@@ -436,17 +525,15 @@ export function splitMessageEditorMessage(
   const before = content.slice(0, selectionStart);
   const after = content.slice(selectionEnd);
 
-  const currentBlockType = getMessageEditorBlockType(current);
-  const beforeMessage = {
+  const beforeMessage = inheritRuntimeBlockId(current, {
     ...current,
     content: before,
-  };
+  });
   const nextMessage = createMessageEditorTextDraft({
     annotations: current.annotations,
-    blockType: currentBlockType === "intro" ? "paragraph" : currentBlockType,
     content: after,
     extra: current.extra,
-    messageType: currentBlockType === "intro" ? MESSAGE_TYPE.TEXT : current.messageType,
+    messageType: current.messageType === MESSAGE_TYPE.INTRO_TEXT ? MESSAGE_TYPE.TEXT : current.messageType,
   });
 
   const nextMessages = [...normalizedMessages];
@@ -461,6 +548,124 @@ export function splitMessageEditorMessage(
   };
 }
 
+function clampTextOffset(message: MessageDraft, offset: number) {
+  const contentLength = normalizeMessageEditorContent(message.content).length;
+  return Math.max(0, Math.min(offset, contentLength));
+}
+
+function resolveTextSelectionRange(
+  messages: MessageDraft[],
+  selection: MessageEditorTextSelection,
+) {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const startIndex = normalizedMessages.findIndex(message => getMessageEditorBlockId(message) === selection.start.blockId);
+  const endIndex = normalizedMessages.findIndex(message => getMessageEditorBlockId(message) === selection.end.blockId);
+  if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
+    return null;
+  }
+
+  const selectedMessages = normalizedMessages.slice(startIndex, endIndex + 1);
+  if (selectedMessages.some(message => !isMessageEditorTextMessage(message))) {
+    return null;
+  }
+
+  return {
+    endIndex,
+    normalizedMessages,
+    startIndex,
+  };
+}
+
+/**
+ * 用一段原始字符串替换 editor 级文本选区。跨块替换会合并边界块。
+ */
+export function replaceMessageEditorSelectionText(
+  messages: MessageDraft[],
+  selection: MessageEditorTextSelection,
+  replacement: string,
+): MessageEditorSelectionTextResult | null {
+  const range = resolveTextSelectionRange(messages, selection);
+  if (!range) {
+    return null;
+  }
+
+  const { endIndex, normalizedMessages, startIndex } = range;
+  const startMessage = normalizedMessages[startIndex];
+  const endMessage = normalizedMessages[endIndex];
+  const startContent = normalizeMessageEditorContent(startMessage.content);
+  const endContent = normalizeMessageEditorContent(endMessage.content);
+  const startOffset = clampTextOffset(startMessage, selection.start.offset);
+  const endOffset = clampTextOffset(endMessage, selection.end.offset);
+  const nextContent = `${startContent.slice(0, startOffset)}${replacement}${endContent.slice(endOffset)}`;
+  const nextStartMessage = inheritRuntimeBlockId(startMessage, {
+    ...startMessage,
+    content: nextContent,
+  });
+  const nextMessages = [...normalizedMessages];
+  nextMessages.splice(startIndex, endIndex - startIndex + 1, nextStartMessage);
+
+  return {
+    messages: nextMessages,
+    focus: {
+      blockId: getMessageEditorBlockId(nextStartMessage),
+      caret: startOffset + replacement.length,
+    },
+  };
+}
+
+/**
+ * 对每个选区片段分别做文本变换，用于跨块加聊天室文本增强语法时保留块结构。
+ */
+export function transformMessageEditorSelectionText(
+  messages: MessageDraft[],
+  selection: MessageEditorTextSelection,
+  transform: (selectedText: string, segment: MessageEditorTextSelectionSegment) => string,
+): MessageEditorSelectionTextResult | null {
+  const range = resolveTextSelectionRange(messages, selection);
+  if (!range) {
+    return null;
+  }
+
+  const segmentByBlockId = new Map(selection.segments.map(segment => [segment.blockId, segment] as const));
+  let focus: MessageEditorFocusTarget | null = null;
+  const nextMessages = range.normalizedMessages.map((message, index) => {
+    if (index < range.startIndex || index > range.endIndex) {
+      return message;
+    }
+
+    const blockId = getMessageEditorBlockId(message);
+    const segment = segmentByBlockId.get(blockId);
+    if (!segment || segment.end <= segment.start) {
+      return message;
+    }
+
+    const content = normalizeMessageEditorContent(message.content);
+    const start = clampTextOffset(message, segment.start);
+    const end = Math.max(start, clampTextOffset(message, segment.end));
+    const replacement = transform(content.slice(start, end), {
+      ...segment,
+      end,
+      start,
+    });
+    const nextMessage = inheritRuntimeBlockId(message, {
+      ...message,
+      content: `${content.slice(0, start)}${replacement}${content.slice(end)}`,
+    });
+    focus = {
+      blockId: getMessageEditorBlockId(nextMessage),
+      caret: start + replacement.length,
+    };
+    return nextMessage;
+  });
+
+  return focus
+    ? {
+        messages: nextMessages,
+        focus,
+      }
+    : null;
+}
+
 function mergeMessages(
   left: MessageDraft,
   right: MessageDraft,
@@ -468,10 +673,10 @@ function mergeMessages(
   const leftContent = normalizeMessageEditorContent(left.content);
   const rightContent = normalizeMessageEditorContent(right.content);
 
-  return {
+  return inheritRuntimeBlockId(left, {
     ...left,
     content: `${leftContent}${rightContent}`,
-  };
+  });
 }
 
 /**

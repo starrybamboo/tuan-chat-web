@@ -1,18 +1,8 @@
 import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
-import type { BlockNoteDocBlock } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import type { MessageDraft } from "@/types/messageDraft";
-import type { MessageEditorPayload } from "@tuanchat/domain";
 
-import {
-  decodeBlockNoteBlocks,
-  isStoredBlockNoteSnapshot,
-} from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shared/base64";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import {
-  createMessageEditorEntityId,
-  setMessageEditorPayload,
-} from "@tuanchat/domain";
 
 import {
   createMessageEditorTextDraft,
@@ -63,89 +53,17 @@ function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageDraft | null {
   const content = normalizeMessageEditorContent(node.content);
   const extraRecord = isRecord(node.extra) ? { ...node.extra } : {};
 
-  const payload: MessageEditorPayload = {
-    blockId: toTrimmedString(node.nodeId) ?? createMessageEditorEntityId("block"),
-    blockType: messageType === MESSAGE_TYPE.INTRO_TEXT ? "intro" : "paragraph",
-  };
-
-  const extra = setMessageEditorPayload(
-    Object.keys(extraRecord).length > 0 ? extraRecord : undefined,
-    payload,
-  ) as MessageDraft["extra"] | undefined;
-
-  return {
-    messageType,
+  return createMessageEditorTextDraft({
+    annotations: normalizeMessageEditorAnnotations(node.annotations),
+    blockId: toTrimmedString(node.nodeId),
     content,
-    ...(normalizeMessageEditorAnnotations(node.annotations) ? { annotations: normalizeMessageEditorAnnotations(node.annotations) } : {}),
-    ...(extra ? { extra } : {}),
-  };
+    extra: Object.keys(extraRecord).length > 0 ? extraRecord as MessageDraft["extra"] : undefined,
+    messageType,
+  });
 }
 
 function isLegacyUserReadMeNode(value: unknown): boolean {
   return isRecord(value) && "nodeId" in value;
-}
-
-function collectInlineText(content: unknown, parts: string[]) {
-  if (!content) {
-    return;
-  }
-  if (typeof content === "string") {
-    const normalized = content.replace(/\s+/g, " ").trim();
-    if (normalized) {
-      parts.push(normalized);
-    }
-    return;
-  }
-  if (Array.isArray(content)) {
-    for (const item of content) {
-      collectInlineText(item, parts);
-    }
-    return;
-  }
-  if (!isRecord(content)) {
-    return;
-  }
-
-  const text = typeof content.text === "string" ? content.text.replace(/\s+/g, " ").trim() : "";
-  if (text) {
-    parts.push(text);
-  }
-  collectInlineText(content.content, parts);
-}
-
-function blockNoteHeadingType(block: BlockNoteDocBlock) {
-  if (block.type !== "heading") {
-    return "paragraph";
-  }
-  const level = typeof (block.props as { level?: unknown } | undefined)?.level === "number"
-    ? (block.props as { level: number }).level
-    : 1;
-  if (level === 2) {
-    return "heading2";
-  }
-  if (level >= 3) {
-    return "heading3";
-  }
-  return "heading1";
-}
-
-function flattenBlockNoteBlocks(blocks: BlockNoteDocBlock[], messages: MessageDraft[]) {
-  for (const block of blocks) {
-    const parts: string[] = [];
-    collectInlineText(block.content, parts);
-    const text = parts.join(" ").replace(/\s+/g, " ").trim();
-
-    if (text) {
-      messages.push(createMessageEditorTextDraft({
-        content: text,
-        blockType: blockNoteHeadingType(block),
-      }));
-    }
-
-    if (Array.isArray(block.children) && block.children.length > 0) {
-      flattenBlockNoteBlocks(block.children as BlockNoteDocBlock[], messages);
-    }
-  }
 }
 
 function decodeMessageEditorDrafts(updateB64: string): MessageDraft[] {
@@ -193,12 +111,6 @@ export function decodeMessageEditorMessages(snapshot: StoredSnapshot | null | un
 
   if (snapshot.v === 4 && snapshot.format === "message-stream") {
     return decodeMessageEditorDrafts(snapshot.updateB64);
-  }
-
-  if (isStoredBlockNoteSnapshot(snapshot)) {
-    const messages: MessageDraft[] = [];
-    flattenBlockNoteBlocks(decodeBlockNoteBlocks(snapshot), messages);
-    return messages;
   }
 
   return [];

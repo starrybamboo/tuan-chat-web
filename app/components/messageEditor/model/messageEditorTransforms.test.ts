@@ -3,9 +3,14 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
+  getMessageEditorBlockId,
   moveMessageEditorMessageToIndex,
+  parseMessageEditorMarkdownPreview,
+  previewVisibleOffsetToMessageEditorRawOffset,
+  replaceMessageEditorSelectionText,
   setMessageEditorUploadedMedia,
   splitMessageEditorMessage,
+  transformMessageEditorSelectionText,
 } from "./messageEditorTransforms";
 
 describe("messageEditorTransforms", () => {
@@ -16,7 +21,7 @@ describe("messageEditorTransforms", () => {
     });
 
     const result = splitMessageEditorMessage([source], {
-      blockId: source.extra?.messageEditor?.blockId as string,
+      blockId: getMessageEditorBlockId(source),
       selectionStart: 5,
       selectionEnd: 6,
     });
@@ -27,13 +32,43 @@ describe("messageEditorTransforms", () => {
   });
 
   it("creates atomic drafts for slash insertion", () => {
+    const heading = createMessageEditorBlockDraft("heading2");
+    const bullet = createMessageEditorBlockDraft("bulletedList");
     const image = createMessageEditorBlockDraft("image");
     const choose = createMessageEditorBlockDraft("choose");
 
+    expect(heading.messageType).toBe(MESSAGE_TYPE.TEXT);
+    expect(heading.content).toBe("## ");
+    expect(heading.extra).toBeUndefined();
+    expect(bullet.messageType).toBe(MESSAGE_TYPE.TEXT);
+    expect(bullet.content).toBe("- ");
     expect(image.messageType).toBe(MESSAGE_TYPE.IMG);
     expect(image.extra?.imageMessage).toEqual({});
     expect(choose.messageType).toBe(MESSAGE_TYPE.WEBGAL_CHOOSE);
     expect(choose.extra?.webgalChoose).toEqual({ options: [] });
+  });
+
+  it("parses markdown heading syntax without changing message payload", () => {
+    const preview = parseMessageEditorMarkdownPreview("## [红字](style=color:#FF0000)");
+
+    expect(preview).toEqual({
+      content: "[红字](style=color:#FF0000)",
+      kind: "heading2",
+      rawPrefixLength: 3,
+    });
+    expect(previewVisibleOffsetToMessageEditorRawOffset("## hello", 1)).toBe(4);
+    expect(parseMessageEditorMarkdownPreview("- item").kind).toBe("bulletedList");
+    expect(parseMessageEditorMarkdownPreview("3. item")).toMatchObject({
+      content: "item",
+      kind: "numberedList",
+      orderedNumber: 3,
+      rawPrefixLength: 3,
+    });
+    expect(parseMessageEditorMarkdownPreview("> quote")).toMatchObject({
+      content: "quote",
+      kind: "quote",
+      rawPrefixLength: 2,
+    });
   });
 
   it("moves a block to a target index", () => {
@@ -41,7 +76,7 @@ describe("messageEditorTransforms", () => {
     const second = createMessageEditorTextDraft({ content: "second" });
     const third = createMessageEditorTextDraft({ content: "third" });
 
-    const nextMessages = moveMessageEditorMessageToIndex([first, second, third], first.extra?.messageEditor?.blockId as string, 2);
+    const nextMessages = moveMessageEditorMessageToIndex([first, second, third], getMessageEditorBlockId(first), 2);
 
     expect(nextMessages.map(message => message.content)).toEqual(["second", "third", "first"]);
   });
@@ -79,5 +114,72 @@ describe("messageEditorTransforms", () => {
       mediaType: "text/plain",
       size: 45,
     });
+  });
+
+  it("replaces a cross-block text selection and merges the boundary blocks", () => {
+    const first = createMessageEditorTextDraft({ content: "alpha" });
+    const second = createMessageEditorTextDraft({ content: "beta" });
+
+    const result = replaceMessageEditorSelectionText([first, second], {
+      start: {
+        blockId: getMessageEditorBlockId(first),
+        offset: 2,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(second),
+        offset: 2,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(first),
+          start: 2,
+          end: 5,
+        },
+        {
+          blockId: getMessageEditorBlockId(second),
+          start: 0,
+          end: 2,
+        },
+      ],
+    }, "X");
+
+    expect(result?.messages.map(message => message.content)).toEqual(["alXta"]);
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[0]),
+      caret: 3,
+    });
+  });
+
+  it("transforms each selected text segment without merging blocks", () => {
+    const first = createMessageEditorTextDraft({ content: "alpha" });
+    const second = createMessageEditorTextDraft({ content: "beta" });
+
+    const result = transformMessageEditorSelectionText([first, second], {
+      start: {
+        blockId: getMessageEditorBlockId(first),
+        offset: 1,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(second),
+        offset: 3,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(first),
+          start: 1,
+          end: 5,
+        },
+        {
+          blockId: getMessageEditorBlockId(second),
+          start: 0,
+          end: 3,
+        },
+      ],
+    }, selectedText => `[${selectedText}](style=color:#FF0000)`);
+
+    expect(result?.messages.map(message => message.content)).toEqual([
+      "a[lpha](style=color:#FF0000)",
+      "[bet](style=color:#FF0000)a",
+    ]);
   });
 });
