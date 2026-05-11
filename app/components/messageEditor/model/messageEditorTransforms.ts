@@ -55,6 +55,16 @@ export type MessageEditorInsertableBlockKind
     | "dice"
     | "choose";
 
+export type MessageEditorUploadedMediaPayload = {
+  fileId: number;
+  fileName: string;
+  mediaType: string;
+  second?: number;
+  size: number;
+  height?: number;
+  width?: number;
+};
+
 type MessageDraftExtra = NonNullable<MessageDraft["extra"]>;
 
 /**
@@ -254,6 +264,61 @@ export function createMessageEditorBlockDraft(kind: MessageEditorInsertableBlock
     default:
       return createMessageEditorTextDraft();
   }
+}
+
+/**
+ * 为媒体块写入上传后的资源信息。
+ */
+export function setMessageEditorUploadedMedia(
+  message: MessageDraft,
+  payload: MessageEditorUploadedMediaPayload,
+): MessageDraft {
+  const nextExtra = { ...(message.extra ?? {}) } as MessageDraftExtra;
+
+  if (message.messageType === MESSAGE_TYPE.IMG) {
+    nextExtra.imageMessage = {
+      ...(nextExtra.imageMessage ?? {}),
+      fileId: payload.fileId,
+      fileName: payload.fileName,
+      mediaType: payload.mediaType,
+      size: payload.size,
+      ...(typeof payload.width === "number" ? { width: payload.width } : {}),
+      ...(typeof payload.height === "number" ? { height: payload.height } : {}),
+    };
+  }
+  else if (message.messageType === MESSAGE_TYPE.FILE) {
+    nextExtra.fileMessage = {
+      ...(nextExtra.fileMessage ?? {}),
+      fileId: payload.fileId,
+      fileName: payload.fileName,
+      mediaType: payload.mediaType,
+      size: payload.size,
+    };
+  }
+  else if (message.messageType === MESSAGE_TYPE.SOUND) {
+    nextExtra.soundMessage = {
+      ...(nextExtra.soundMessage ?? {}),
+      fileId: payload.fileId,
+      fileName: payload.fileName,
+      mediaType: payload.mediaType,
+      size: payload.size,
+      ...(typeof payload.second === "number" ? { second: payload.second } : {}),
+    };
+  }
+  else if (message.messageType === MESSAGE_TYPE.VIDEO) {
+    nextExtra.videoMessage = {
+      ...(nextExtra.videoMessage ?? {}),
+      fileId: payload.fileId,
+      fileName: payload.fileName,
+      mediaType: payload.mediaType,
+      size: payload.size,
+    };
+  }
+
+  return normalizeMessageEditorDraft({
+    ...message,
+    extra: nextExtra,
+  }) ?? message;
 }
 
 /**

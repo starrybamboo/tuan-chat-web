@@ -7,6 +7,7 @@ import {
   moveMessageEditorMessageToIndex,
   remapMessageEditorInlineMarksForTextChange,
   setMessageEditorInlineMarks,
+  setMessageEditorUploadedMedia,
   splitMessageEditorMessage,
 } from "./messageEditorTransforms";
 
@@ -95,5 +96,40 @@ describe("messageEditorTransforms", () => {
     const nextMessages = moveMessageEditorMessageToIndex([first, second, third], first.extra?.messageEditor?.blockId as string, 2);
 
     expect(nextMessages.map(message => message.content)).toEqual(["second", "third", "first"]);
+  });
+
+  it("writes uploaded media payloads back into atomic blocks", () => {
+    const image = createMessageEditorBlockDraft("image");
+    const file = createMessageEditorBlockDraft("file");
+
+    const nextImage = setMessageEditorUploadedMedia(image, {
+      fileId: 1,
+      fileName: "cover.png",
+      mediaType: "image/png",
+      size: 123,
+      width: 320,
+      height: 180,
+    });
+    const nextFile = setMessageEditorUploadedMedia(file, {
+      fileId: 2,
+      fileName: "note.txt",
+      mediaType: "text/plain",
+      size: 45,
+    });
+
+    expect(nextImage.extra?.imageMessage).toEqual({
+      fileId: 1,
+      fileName: "cover.png",
+      mediaType: "image/png",
+      size: 123,
+      width: 320,
+      height: 180,
+    });
+    expect(nextFile.extra?.fileMessage).toEqual({
+      fileId: 2,
+      fileName: "note.txt",
+      mediaType: "text/plain",
+      size: 45,
+    });
   });
 });

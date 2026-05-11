@@ -7,6 +7,7 @@ import type { MessageEditorSelection } from "./messageEditorSelection";
 
 import {
   createMessageEditorBlockDraft,
+  createMessageEditorTextDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
   isMessageEditorInlineMarkFullyCovered,
@@ -28,6 +29,7 @@ type SetMessages = (updater: (previous: MessageDraft[]) => MessageDraft[]) => vo
  */
 export type MessageEditorController = {
   setActiveBlock: (blockId: string | null) => void;
+  updateBlock: (blockId: string, updater: (message: MessageDraft) => MessageDraft) => void;
   updateTextContent: (blockId: string, nextContent: string) => void;
   splitAtSelection: (selection: MessageEditorSelection) => { blockId: string; caret: number } | null;
   mergeBackward: (blockId: string) => { blockId: string; caret: number } | null;
@@ -43,6 +45,8 @@ export type MessageEditorController = {
     direction: -1 | 1,
     preferredOffset?: number,
   ) => { blockId: string; caret: number } | null;
+  removeBlock: (blockId: string) => { blockId: string; caret: number } | null;
+  ensureTrailingTextBlock: () => { blockId: string; caret: number } | null;
   applyInlineMark: (selection: MessageEditorSelection, type: Exclude<MessageEditorInlineMarkType, "color">) => void;
   applyColorMark: (selection: MessageEditorSelection, color?: string) => void;
   applyBlockType: (selection: MessageEditorSelection, blockType: MessageEditorBlockType) => void;
@@ -66,6 +70,15 @@ export function createMessageEditorController(params: {
   return {
     setActiveBlock(blockId) {
       params.eventBus?.emit("activeBlockChanged", { blockId });
+    },
+    updateBlock(blockId, updater) {
+      params.setMessages((previous) => {
+        const nextMessages = ensureMessageEditorMessages(previous).map((message) => {
+          return getMessageEditorBlockId(message) === blockId ? updater(message) : message;
+        });
+        emitBlocksChanged(nextMessages);
+        return nextMessages;
+      });
     },
     updateTextContent(blockId, nextContent) {
       params.setMessages((previous) => {
@@ -176,6 +189,51 @@ export function createMessageEditorController(params: {
       }
 
       return null;
+    },
+    removeBlock(blockId) {
+      const currentMessages = ensureMessageEditorMessages(params.getMessages());
+      const index = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+      if (index < 0) {
+        return null;
+      }
+
+      const nextMessages = ensureMessageEditorMessages(currentMessages.filter(message => getMessageEditorBlockId(message) !== blockId));
+      params.setMessages(() => {
+        emitBlocksChanged(nextMessages);
+        return nextMessages;
+      });
+
+      const focusCandidate = nextMessages[index] ?? nextMessages[index - 1] ?? nextMessages[0];
+      if (!focusCandidate || !params.registry.isTextBlock(focusCandidate)) {
+        return null;
+      }
+
+      return {
+        blockId: getMessageEditorBlockId(focusCandidate),
+        caret: String(focusCandidate.content ?? "").length,
+      };
+    },
+    ensureTrailingTextBlock() {
+      const currentMessages = ensureMessageEditorMessages(params.getMessages());
+      const lastMessage = currentMessages.at(-1);
+      if (lastMessage && params.registry.isTextBlock(lastMessage) && String(lastMessage.content ?? "").length === 0) {
+        return {
+          blockId: getMessageEditorBlockId(lastMessage),
+          caret: 0,
+        };
+      }
+
+      const nextBlock = createMessageEditorTextDraft();
+      params.setMessages((previous) => {
+        const nextMessages = [...ensureMessageEditorMessages(previous), nextBlock];
+        emitBlocksChanged(nextMessages);
+        return nextMessages;
+      });
+
+      return {
+        blockId: getMessageEditorBlockId(nextBlock),
+        caret: 0,
+      };
     },
     applyInlineMark(selection, type) {
       if (selection.collapsed || selection.segments.length === 0) {

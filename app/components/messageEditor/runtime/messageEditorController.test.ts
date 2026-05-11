@@ -6,6 +6,7 @@ import {
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
   getMessageEditorInlineMarks,
+  setMessageEditorUploadedMedia,
 } from "../model/messageEditorTransforms";
 import { createMessageEditorController } from "./messageEditorController";
 import { MessageEditorEventBus } from "./messageEditorEventBus";
@@ -117,5 +118,101 @@ describe("messageEditorController", () => {
       blockId: getMessageEditorBlockId(first),
       caret: 2,
     });
+  });
+
+  it("updates a block through the controller", () => {
+    let messages: MessageDraft[] = [
+      createMessageEditorTextDraft({ content: "hello" }),
+    ];
+    const registry = createMessageEditorRegistry();
+    const controller = createMessageEditorController({
+      eventBus: new MessageEditorEventBus(),
+      registry,
+      getMessages: () => messages,
+      setMessages(updater) {
+        messages = updater(messages);
+      },
+    });
+
+    controller.updateBlock(getMessageEditorBlockId(messages[0]), message => setMessageEditorUploadedMedia({
+      ...message,
+      messageType: MESSAGE_TYPE.FILE,
+    }, {
+      fileId: 7,
+      fileName: "demo.txt",
+      mediaType: "text/plain",
+      size: 32,
+    }));
+
+    expect(messages[0].extra?.fileMessage).toEqual({
+      fileId: 7,
+      fileName: "demo.txt",
+      mediaType: "text/plain",
+      size: 32,
+    });
+  });
+
+  it("removes an atomic block and focuses the adjacent text block", () => {
+    let messages: MessageDraft[] = [
+      createMessageEditorTextDraft({ content: "before" }),
+      {
+        messageType: MESSAGE_TYPE.IMG,
+        content: "",
+        extra: {
+          imageMessage: {},
+          messageEditor: {
+            blockId: "image-block",
+            blockType: "paragraph",
+            inlineMarks: [],
+          },
+        },
+      } as MessageDraft,
+      createMessageEditorTextDraft({ content: "after" }),
+    ];
+    const registry = createMessageEditorRegistry();
+    const controller = createMessageEditorController({
+      eventBus: new MessageEditorEventBus(),
+      registry,
+      getMessages: () => messages,
+      setMessages(updater) {
+        messages = updater(messages);
+      },
+    });
+
+    const focus = controller.removeBlock("image-block");
+
+    expect(messages).toHaveLength(2);
+    expect(messages.map(message => message.content)).toEqual(["before", "after"]);
+    expect(focus).toEqual({
+      blockId: getMessageEditorBlockId(messages[1]),
+      caret: "after".length,
+    });
+  });
+
+  it("appends a trailing empty text block only when needed", () => {
+    let messages: MessageDraft[] = [
+      createMessageEditorTextDraft({ content: "filled" }),
+    ];
+    const registry = createMessageEditorRegistry();
+    const controller = createMessageEditorController({
+      eventBus: new MessageEditorEventBus(),
+      registry,
+      getMessages: () => messages,
+      setMessages(updater) {
+        messages = updater(messages);
+      },
+    });
+
+    const firstFocus = controller.ensureTrailingTextBlock();
+    expect(messages).toHaveLength(2);
+    expect(messages[1].content).toBe("");
+    expect(firstFocus).toEqual({
+      blockId: getMessageEditorBlockId(messages[1]),
+      caret: 0,
+    });
+
+    const secondFocus = controller.ensureTrailingTextBlock();
+    expect(messages).toHaveLength(2);
+    expect(secondFocus).toEqual(firstFocus);
   });
 });
