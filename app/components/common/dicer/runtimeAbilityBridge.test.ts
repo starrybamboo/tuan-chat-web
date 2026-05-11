@@ -4,7 +4,12 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 
-import { buildRuntimeRoleValuesByRoleId, buildRuntimeStateValues, mergeRuntimeRoleValuesIntoAbility } from "./runtimeAbilityBridge";
+import {
+  buildRoleAbilityStateEventsFromDiff,
+  buildRuntimeRoleValuesByRoleId,
+  buildRuntimeStateValues,
+  mergeRuntimeRoleValuesIntoAbility,
+} from "./runtimeAbilityBridge";
 
 function createStateEventMessage(
   messageId: number,
@@ -95,5 +100,76 @@ describe("runtimeAbilityBridge", () => {
     expect(mergeRuntimeRoleValuesIntoAbility({}, runtimeStateValues.room, { overrideExisting: false }).skill).toEqual({
       难度: "15",
     });
+  });
+
+  it("会把旧骰子命令写回的数值差异转换为角色状态事件", () => {
+    const events = buildRoleAbilityStateEventsFromDiff(9, {
+      ability: {
+        hp: "10",
+      },
+    }, {
+      ability: {
+        hp: "16",
+      },
+    });
+
+    expect(events).toEqual([{
+      type: "varOp",
+      scope: {
+        kind: "role",
+        roleId: 9,
+      },
+      key: "hp",
+      op: "set",
+      value: 16,
+    }]);
+  });
+
+  it("只为实际变化的数值字段生成状态事件", () => {
+    const events = buildRoleAbilityStateEventsFromDiff(9, {
+      basic: {
+        hp: "10",
+      },
+      ability: {
+        san: "50",
+      },
+      skill: {
+        备注: "稳定",
+      },
+    }, {
+      basic: {
+        hp: "10",
+      },
+      ability: {
+        san: "47",
+      },
+      skill: {
+        备注: "动摇",
+        闪避: "25",
+      },
+    });
+
+    expect(events).toEqual([
+      {
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 9,
+        },
+        key: "san",
+        op: "set",
+        value: 47,
+      },
+      {
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 9,
+        },
+        key: "闪避",
+        op: "set",
+        value: 25,
+      },
+    ]);
   });
 });

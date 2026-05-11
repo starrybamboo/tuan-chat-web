@@ -1,18 +1,22 @@
-import { buildStateRuntime } from "@/components/chat/state/stateRuntime";
-
+import type { StateEventVarOp } from "@/types/stateEvent";
 import type { ChatMessageResponse, RoleAbility } from "../../../../api";
+import { buildStateRuntime } from "@/components/chat/state/stateRuntime";
+import { buildRoleStateEventScope, STATE_EVENT_VAR_OP } from "@/types/stateEvent";
 
 type RuntimeRoleValues = Record<string, number>;
 type MergeRuntimeValuesOptions = {
   overrideExisting?: boolean;
 };
+type NumericAbilitySection = "basic" | "ability" | "skill";
 
 export type RuntimeStateValues = {
   room: RuntimeRoleValues;
   rolesByRoleId: Record<number, RuntimeRoleValues>;
 };
 
-function cloneAbility(ability: RoleAbility | null | undefined): RoleAbility {
+const NUMERIC_ABILITY_SECTIONS: NumericAbilitySection[] = ["basic", "ability", "skill"];
+
+export function cloneRoleAbility(ability: RoleAbility | null | undefined): RoleAbility {
   return {
     ...(ability ?? {}),
     act: { ...(ability?.act ?? {}) },
@@ -22,6 +26,61 @@ function cloneAbility(ability: RoleAbility | null | undefined): RoleAbility {
     record: { ...(ability?.record ?? {}) },
     extra: { ...(ability?.extra ?? {}) },
   };
+}
+
+function readFiniteNumericAbilityValue(value: unknown): number | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+export function collectNumericRoleAbilityValues(ability: RoleAbility | null | undefined): RuntimeRoleValues {
+  const values: RuntimeRoleValues = {};
+  for (const section of NUMERIC_ABILITY_SECTIONS) {
+    const record = ability?.[section];
+    if (!record) {
+      continue;
+    }
+    for (const [key, rawValue] of Object.entries(record)) {
+      if (Object.prototype.hasOwnProperty.call(values, key)) {
+        continue;
+      }
+      const value = readFiniteNumericAbilityValue(rawValue);
+      if (typeof value === "number") {
+        values[key] = value;
+      }
+    }
+  }
+  return values;
+}
+
+export function buildRoleAbilityStateEventsFromDiff(
+  roleId: number,
+  beforeAbility: RoleAbility | null | undefined,
+  afterAbility: RoleAbility | null | undefined,
+): StateEventVarOp[] {
+  if (!Number.isFinite(roleId) || roleId <= 0) {
+    return [];
+  }
+
+  const beforeValues = collectNumericRoleAbilityValues(beforeAbility);
+  const afterValues = collectNumericRoleAbilityValues(afterAbility);
+
+  return Object.entries(afterValues)
+    .filter(([key, afterValue]) => beforeValues[key] !== afterValue)
+    .map(([key, value]) => ({
+      type: "varOp",
+      scope: buildRoleStateEventScope(roleId),
+      key,
+      op: STATE_EVENT_VAR_OP.SET,
+      value,
+    }));
 }
 
 function applyRuntimeValue(
@@ -61,7 +120,7 @@ export function mergeRuntimeRoleValuesIntoAbility(
   runtimeValues: RuntimeRoleValues | null | undefined,
   options: MergeRuntimeValuesOptions = {},
 ): RoleAbility {
-  const nextAbility = cloneAbility(ability);
+  const nextAbility = cloneRoleAbility(ability);
   if (!runtimeValues) {
     return nextAbility;
   }
