@@ -13,8 +13,10 @@ import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/c
 import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
-import MessageContentRenderer from "../chat/message/messageContentRenderer";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import { UploadUtils } from "@/utils/UploadUtils";
 
+import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
 import { MessageEditorTextBlock } from "./components/MessageEditorTextBlock";
 import { MessageEditorToolbar } from "./components/MessageEditorToolbar";
@@ -25,6 +27,7 @@ import {
   getMessageEditorBlockId,
   getMessageEditorBlockType,
   normalizeMessageEditorContent,
+  setMessageEditorUploadedMedia,
 } from "./model/messageEditorTransforms";
 import { createMessageEditorController } from "./runtime/messageEditorController";
 import { MessageEditorEventBus } from "./runtime/messageEditorEventBus";
@@ -69,6 +72,11 @@ interface MessageEditorDragState {
   targetBlockId: string;
 }
 
+interface MessageEditorResolvedDragTarget {
+  position: "before" | "after";
+  targetBlockId: string;
+}
+
 const MESSAGE_EDITOR_SLASH_ITEMS: MessageEditorSlashMenuItem[] = [
   { kind: "paragraph", keyword: "text", label: "正文", description: "普通文本段落" },
   { kind: "heading1", keyword: "h1", label: "大标题", description: "一级标题文本块" },
@@ -108,6 +116,25 @@ function parseSlashQuery(value: string): string | null {
   return match ? match[1].toLowerCase() : null;
 }
 
+async function readImageDimensions(file: File) {
+  return await new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      resolve({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      });
+      URL.revokeObjectURL(url);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("读取图片尺寸失败"));
+    };
+    image.src = url;
+  });
+}
+
 /**
  * 基于 message-stream 的线性文档编辑器。
  */
@@ -133,8 +160,10 @@ export default function MessageEditor({
   }, [resolvedDocId]);
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
+  const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
   const messagesRef = useRef<MessageDraft[]>([]);
   const controllerRef = useRef<MessageEditorController | null>(null);
+  const uploadUtils = useMemo(() => new UploadUtils(), []);
   const restoreSelectionRef = useRef<{
     blockId?: string;
     caret?: number;
@@ -416,6 +445,14 @@ export default function MessageEditor({
     blockRefsRef.current.delete(blockId);
   }, []);
 
+  const registerBlockShellRef = useCallback((blockId: string, node: HTMLDivElement | null) => {
+    if (node) {
+      blockShellRefsRef.current.set(blockId, node);
+      return;
+    }
+    blockShellRefsRef.current.delete(blockId);
+  }, []);
+
   const slashMenuState = useMemo(() => {
     if (readOnly || !activeBlockId) {
       return null;
@@ -678,6 +715,44 @@ export default function MessageEditor({
     };
   }, [clearActiveBlock, readOnly]);
 
+  const resolveDragTarget = useCallback((clientY: number): MessageEditorResolvedDragTarget | null => {
+    const currentMessages = ensureMessageEditorMessages(messagesRef.current);
+    const entries = currentMessages
+      .map((message) => {
+        const blockId = getMessageEditorBlockId(message);
+        const node = blockShellRefsRef.current.get(blockId);
+        if (!node) {
+          return null;
+        }
+        const bounds = node.getBoundingClientRect();
+        return {
+          blockId,
+          top: bounds.top,
+          bottom: bounds.bottom,
+          middle: bounds.top + bounds.height / 2,
+        };
+      })
+      .filter((entry): entry is { blockId: string; top: number; bottom: number; middle: number } => entry !== null);
+
+    if (entries.length === 0) {
+      return null;
+    }
+
+    for (const entry of entries) {
+      if (clientY <= entry.bottom) {
+        return {
+          targetBlockId: entry.blockId,
+          position: clientY <= entry.middle ? "before" : "after",
+        };
+      }
+    }
+
+    return {
+      targetBlockId: entries[entries.length - 1].blockId,
+      position: "after" as const,
+    };
+  }, []);
+
   const handleBlockDragStart = useCallback((blockId: string, event: React.DragEvent<HTMLButtonElement>) => {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", blockId);
@@ -692,31 +767,33 @@ export default function MessageEditor({
     setDragState(null);
   }, []);
 
-  const handleBlockDragOver = useCallback((blockId: string, event: React.DragEvent<HTMLDivElement>) => {
+  const handleBlockDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (!dragState) {
       return;
     }
 
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const position = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+    const nextTarget = resolveDragTarget(event.clientY);
+    if (!nextTarget) {
+      return;
+    }
     setDragState((previous) => {
       if (!previous) {
         return previous;
       }
-      if (previous.targetBlockId === blockId && previous.position === position) {
+      if (previous.targetBlockId === nextTarget.targetBlockId && previous.position === nextTarget.position) {
         return previous;
       }
       return {
         ...previous,
-        targetBlockId: blockId,
-        position,
+        targetBlockId: nextTarget.targetBlockId,
+        position: nextTarget.position,
       };
     });
-  }, [dragState]);
+  }, [dragState, resolveDragTarget]);
 
-  const handleBlockDrop = useCallback((blockId: string, event: React.DragEvent<HTMLDivElement>) => {
+  const handleBlockDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (!dragState) {
       return;
     }
@@ -724,7 +801,7 @@ export default function MessageEditor({
     event.preventDefault();
     const currentMessages = ensureMessageEditorMessages(messagesRef.current);
     const sourceIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === dragState.draggedBlockId);
-    const targetIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+    const targetIndex = currentMessages.findIndex(message => getMessageEditorBlockId(message) === dragState.targetBlockId);
     if (sourceIndex < 0 || targetIndex < 0) {
       setDragState(null);
       return;
@@ -755,6 +832,87 @@ export default function MessageEditor({
 
     setDragState(null);
   }, [clearActiveBlock, dragState, registry, resolveEditorSelection]);
+
+  const handleDeleteAtomicBlock = useCallback((blockId: string) => {
+    const focus = controllerRef.current?.removeBlock(blockId) ?? null;
+    hideToolbar();
+    if (focus) {
+      setActiveBlockId(focus.blockId);
+      restoreSelectionRef.current = focus;
+      return;
+    }
+    clearActiveBlock();
+  }, [clearActiveBlock, hideToolbar]);
+
+  const handleUploadAtomicBlock = useCallback(async (blockId: string, file: File) => {
+    const controller = controllerRef.current;
+    if (!controller) {
+      return;
+    }
+
+    const currentMessage = messagesRef.current.find(message => getMessageEditorBlockId(message) === blockId);
+    if (!currentMessage) {
+      return;
+    }
+
+    if (currentMessage.messageType === MESSAGE_TYPE.IMG) {
+      const [uploadedImage, dimensions] = await Promise.all([
+        uploadUtils.uploadDualImage(file),
+        readImageDimensions(file),
+      ]);
+      controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
+        fileId: uploadedImage.fileId,
+        fileName: file.name,
+        mediaType: uploadedImage.mediaType,
+        size: file.size,
+        width: dimensions.width,
+        height: dimensions.height,
+      }));
+      return;
+    }
+
+    if (currentMessage.messageType === MESSAGE_TYPE.FILE) {
+      const uploadedFile = await uploadUtils.uploadFileAsset(file);
+      controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
+        fileId: uploadedFile.fileId,
+        fileName: file.name,
+        mediaType: uploadedFile.mediaType,
+        size: file.size,
+      }));
+      return;
+    }
+
+    if (currentMessage.messageType === MESSAGE_TYPE.SOUND) {
+      const uploadedAudio = await uploadUtils.uploadAudioAsset(file);
+      controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
+        fileId: uploadedAudio.fileId,
+        fileName: file.name,
+        mediaType: uploadedAudio.mediaType,
+        size: file.size,
+      }));
+      return;
+    }
+
+    if (currentMessage.messageType === MESSAGE_TYPE.VIDEO) {
+      const uploadedVideo = await uploadUtils.uploadVideo(file);
+      controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
+        fileId: uploadedVideo.fileId,
+        fileName: file.name,
+        mediaType: uploadedVideo.mediaType,
+        size: file.size,
+      }));
+    }
+  }, [uploadUtils]);
+
+  const handleAppendTrailingMessage = useCallback(() => {
+    const focus = controllerRef.current?.ensureTrailingTextBlock() ?? null;
+    hideToolbar();
+    if (!focus) {
+      return;
+    }
+    setActiveBlockId(focus.blockId);
+    restoreSelectionRef.current = focus;
+  }, [hideToolbar]);
 
   const atomicMessages = useMemo(() => {
     return messages.map((message) => {
@@ -815,12 +973,19 @@ export default function MessageEditor({
           <div
             ref={editorRootRef}
             className="relative min-h-0 flex-1 overflow-auto"
+            onDragOver={handleBlockDragOver}
+            onDrop={handleBlockDrop}
             onMouseDownCapture={(event) => {
               const target = event.target;
               if (!(target instanceof HTMLElement)) {
                 return;
               }
-              if (target.closest("[data-me-block-id]") || target.closest("[data-me-slash-menu]") || target.closest("[data-me-block-handle]")) {
+              if (
+                target.closest("[data-me-block-id]")
+                || target.closest("[data-me-slash-menu]")
+                || target.closest("[data-me-block-handle]")
+                || target.closest("[data-me-editor-bottom-space]")
+              ) {
                 return;
               }
               clearActiveBlock();
@@ -856,9 +1021,8 @@ export default function MessageEditor({
                     return (
                       <div
                         key={blockId}
+                        ref={node => registerBlockShellRef(blockId, node)}
                         className="group relative pl-10"
-                        onDragOver={event => handleBlockDragOver(blockId, event)}
-                        onDrop={event => handleBlockDrop(blockId, event)}
                       >
                         {showDropBefore && (
                           <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
@@ -871,7 +1035,10 @@ export default function MessageEditor({
                             type="button"
                             draggable
                             data-me-block-handle="true"
-                            className="absolute left-1 top-1 flex size-6 cursor-grab items-center justify-center rounded-md text-base-content/30 opacity-0 transition hover:bg-base-200 hover:text-base-content/70 hover:opacity-100 active:cursor-grabbing group-hover:opacity-100"
+                            className={[
+                              "absolute left-1 top-1 flex size-6 cursor-grab items-center justify-center rounded-md text-base-content/30 transition hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
+                              dragState?.draggedBlockId === blockId ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                            ].join(" ")}
                             onDragStart={event => handleBlockDragStart(blockId, event)}
                             onDragEnd={handleBlockDragEnd}
                             aria-label="拖拽排序"
@@ -912,9 +1079,8 @@ export default function MessageEditor({
                   return (
                     <div
                       key={blockId}
+                      ref={node => registerBlockShellRef(blockId, node)}
                       className="group relative pl-10"
-                      onDragOver={event => handleBlockDragOver(blockId, event)}
-                      onDrop={event => handleBlockDrop(blockId, event)}
                     >
                       {showDropBefore && (
                         <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
@@ -927,7 +1093,10 @@ export default function MessageEditor({
                           type="button"
                           draggable
                           data-me-block-handle="true"
-                          className="absolute left-1 top-1.5 flex size-6 cursor-grab items-center justify-center rounded-md text-base-content/30 opacity-0 transition hover:bg-base-200 hover:text-base-content/70 hover:opacity-100 active:cursor-grabbing group-hover:opacity-100"
+                          className={[
+                            "absolute left-1 top-1.5 flex size-6 cursor-grab items-center justify-center rounded-md text-base-content/30 transition hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
+                            dragState?.draggedBlockId === blockId ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                          ].join(" ")}
                           onDragStart={event => handleBlockDragStart(blockId, event)}
                           onDragEnd={handleBlockDragEnd}
                           aria-label="拖拽排序"
@@ -935,21 +1104,33 @@ export default function MessageEditor({
                           <DotsSixVerticalIcon size={16} weight="bold" />
                         </button>
                       )}
-                      <div
-                        data-me-block-id={blockId}
-                        className="rounded-xl border border-base-300/70 bg-base-100 px-3 py-2 shadow-sm"
-                      >
-                        <MessageContentRenderer
-                          message={{
-                            ...message,
-                            content: message.content ?? "",
-                            messageType: message.messageType ?? 0,
+                      <div data-me-block-id={blockId}>
+                        <MessageEditorAtomicBlock
+                          active={activeBlockId === blockId}
+                          blockId={blockId}
+                          message={message}
+                          readOnly={readOnly}
+                          onFocus={(nextBlockId) => {
+                            setActiveBlockId(nextBlockId);
+                            controllerRef.current?.setActiveBlock(nextBlockId);
                           }}
+                          onDelete={handleDeleteAtomicBlock}
+                          onUpload={handleUploadAtomicBlock}
                         />
                       </div>
                     </div>
                   );
                 })}
+                {!readOnly && (
+                  <div
+                    data-me-editor-bottom-space="true"
+                    className="min-h-20 flex-1"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      handleAppendTrailingMessage();
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
