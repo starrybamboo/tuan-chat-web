@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isInitialQueryReady, isRoomBlocksuitePrewarmReady } from "./roomPrewarmReadiness";
+import { isInitialQueryReady, isRoomDocumentPrewarmReady } from "./roomPrewarmReadiness";
 
 describe("isInitialQueryReady", () => {
   it("查询首次成功或失败后都视为完成，避免预热永久等待失败接口", () => {
@@ -10,7 +10,7 @@ describe("isInitialQueryReady", () => {
   });
 });
 
-describe("isRoomBlocksuitePrewarmReady", () => {
+describe("isRoomDocumentPrewarmReady", () => {
   const readyParams = {
     abilityLoading: false,
     historyLoading: false,
@@ -21,15 +21,15 @@ describe("isRoomBlocksuitePrewarmReady", () => {
   };
 
   it("关键聊天数据和状态能力首载都完成后允许预热", () => {
-    expect(isRoomBlocksuitePrewarmReady(readyParams)).toBe(true);
+    expect(isRoomDocumentPrewarmReady(readyParams)).toBe(true);
   });
 
   it("历史消息或能力还在首载时不允许预热", () => {
-    expect(isRoomBlocksuitePrewarmReady({
+    expect(isRoomDocumentPrewarmReady({
       ...readyParams,
       historyLoading: true,
     })).toBe(false);
-    expect(isRoomBlocksuitePrewarmReady({
+    expect(isRoomDocumentPrewarmReady({
       ...readyParams,
       abilityLoading: true,
     })).toBe(false);

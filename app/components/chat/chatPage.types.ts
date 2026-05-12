@@ -1,4 +1,4 @@
-import type { BlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
+import type { DocumentHeader } from "@/components/chat/infra/doc/document/docHeader";
 
 export type RoomSettingTab = "role" | "setting";
 export type SpaceDetailTab = "members" | "roles" | "workflow" | "trpg" | "webgal" | "setting" | "material";
@@ -22,5 +22,5 @@ export type DocTcHeaderPayload = {
   docId: string;
   entityType?: unknown;
   entityId?: number;
-  header: BlocksuiteDocHeader;
+  header: DocumentHeader;
 };

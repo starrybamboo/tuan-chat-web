@@ -7,13 +7,9 @@ import useRoomImportActions from "./useRoomImportActions";
 
 const {
   mockedGetCachedDocSnapshot,
-  mockedGetRemoteSnapshot,
-  mockedSetRemoteSnapshot,
 } = vi.hoisted(() => {
   return {
     mockedGetCachedDocSnapshot: vi.fn(() => null),
-    mockedGetRemoteSnapshot: vi.fn(async () => null),
-    mockedSetRemoteSnapshot: vi.fn(async () => undefined),
   };
 });
 
@@ -43,11 +39,6 @@ vi.mock("@/components/chat/infra/doc/document/docSnapshotCache", () => ({
   getCachedDocSnapshot: mockedGetCachedDocSnapshot,
 }));
 
-vi.mock("@/components/chat/infra/doc/description/descriptionDocRemote", () => ({
-  getRemoteSnapshot: mockedGetRemoteSnapshot,
-  setRemoteSnapshot: mockedSetRemoteSnapshot,
-}));
-
 function createMessage(messageId: number): ChatMessageResponse["message"] {
   return {
     messageId,
@@ -69,10 +60,6 @@ describe("useRoomImportActions", () => {
     vi.clearAllMocks();
     mockedGetCachedDocSnapshot.mockReset();
     mockedGetCachedDocSnapshot.mockReturnValue(null);
-    mockedGetRemoteSnapshot.mockReset();
-    mockedGetRemoteSnapshot.mockResolvedValue(null);
-    mockedSetRemoteSnapshot.mockReset();
-    mockedSetRemoteSnapshot.mockResolvedValue(undefined);
   });
 
   it("导入链路在发送失败后停止推进进度", async () => {
@@ -160,18 +147,14 @@ describe("useRoomImportActions", () => {
     }));
   });
 
-  it("跨空间发送文档卡片时会同步最新 blocknote 快照并回填摘要", async () => {
+  it("跨空间发送文档卡片时只从本地 message-stream 快照回填摘要", async () => {
     const roomUiStoreApi = createRoomUiStore();
     const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(12));
     mockedGetCachedDocSnapshot.mockReturnValue({
-      v: 3,
-      format: "blocknote",
-      updateB64: "W3sidHlwZSI6InBhcmFncmFwaCIsImNvbnRlbnQiOiLmlrDmj5gifV0=",
+      v: 4,
+      format: "message-stream",
+      updateB64: "W3sibWVzc2FnZVR5cGUiOjEsImNvbnRlbnQiOiLmnIDmlrDmkZjopoHvvIzkuI3oh6rliqjlkIzmraUifV0=",
       updatedAt: 1000,
-      excerpt: "最新摘要",
-      header: {
-        title: "跨空间文档",
-      },
     } as any);
 
     const { handleSendDocCard } = useRoomImportActions({
@@ -195,23 +178,12 @@ describe("useRoomImportActions", () => {
       title: "跨空间文档",
     });
 
-    expect(mockedSetRemoteSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      entityType: "space_user_doc",
-      entityId: 123,
-      docType: "description",
-      snapshot: expect.objectContaining({
-        v: 3,
-        format: "blocknote",
-        updateB64: "W3sidHlwZSI6InBhcmFncmFwaCIsImNvbnRlbnQiOiLmlrDmj5gifV0=",
-        excerpt: "最新摘要",
-      }),
-    }));
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       extra: {
         docCard: expect.objectContaining({
           docId: "udoc:123:description",
           spaceId: 99,
-          excerpt: "最新摘要",
+          excerpt: "最新摘要，不自动同步",
           title: "跨空间文档",
         }),
       },

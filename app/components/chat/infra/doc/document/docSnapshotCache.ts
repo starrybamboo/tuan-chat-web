@@ -1,4 +1,4 @@
-import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 
 type SnapshotListener = (snapshot: StoredSnapshot | null) => void;
 

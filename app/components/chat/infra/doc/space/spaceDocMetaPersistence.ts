@@ -1,6 +1,6 @@
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 
-import { isNonRetryableBlocksuiteDocError } from "@/components/chat/infra/doc/shared/blocksuiteDocError";
+import { isNonRetryableDocEntityError } from "@/components/chat/infra/doc/shared/docEntityError";
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 
 const SPACE_DOC_META_CACHE_KEY_PREFIX = "tc:space-doc-metas:v1:";
@@ -264,5 +264,5 @@ export function removePendingSpaceDocTitleSync(docId: number): void {
 }
 
 export function isSpaceDocTitleSyncNonRetryableError(error: unknown): boolean {
-  return isNonRetryableBlocksuiteDocError(error);
+  return isNonRetryableDocEntityError(error);
 }

@@ -1,7 +1,7 @@
 import { ApiError } from "api";
 
-const NON_RETRYABLE_BLOCKSUITE_DOC_TEXTS = ["文档不存在", "文档已删除"] as const;
-const NON_RETRYABLE_BLOCKSUITE_DOC_ERROR_CODES = new Set([101]);
+const NON_RETRYABLE_DOC_ENTITY_TEXTS = ["文档不存在", "文档已删除"] as const;
+const NON_RETRYABLE_DOC_ENTITY_ERROR_CODES = new Set([101]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -56,23 +56,13 @@ function includesNonRetryableText(value: unknown): boolean {
   if (!text) {
     return false;
   }
-  return NON_RETRYABLE_BLOCKSUITE_DOC_TEXTS.some(keyword => text.includes(keyword));
+  return NON_RETRYABLE_DOC_ENTITY_TEXTS.some(keyword => text.includes(keyword));
 }
 
-export class NonRetryableBlocksuiteDocError extends Error {
-  readonly cause: unknown;
-
-  constructor(error: unknown, message = "blocksuite doc is unavailable") {
-    super(message);
-    this.name = "NonRetryableBlocksuiteDocError";
-    this.cause = error;
-  }
-}
-
-export function isNonRetryableBlocksuiteDocError(error: unknown): boolean {
-  if (error instanceof NonRetryableBlocksuiteDocError) {
-    return true;
-  }
+/**
+ * 判断文档实体请求失败是否无需重试。
+ */
+export function isNonRetryableDocEntityError(error: unknown): boolean {
   if (!(error instanceof ApiError)) {
     return false;
   }
@@ -82,7 +72,7 @@ export function isNonRetryableBlocksuiteDocError(error: unknown): boolean {
   }
 
   const errorCode = readBackendErrorCode(error.body);
-  if (errorCode != null && NON_RETRYABLE_BLOCKSUITE_DOC_ERROR_CODES.has(errorCode)) {
+  if (errorCode != null && NON_RETRYABLE_DOC_ENTITY_ERROR_CODES.has(errorCode)) {
     return true;
   }
 

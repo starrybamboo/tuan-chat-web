@@ -1,60 +1,29 @@
-import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 
-import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
-import { getRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
-import { normalizeBlocksuiteDocHeader } from "@/components/chat/infra/doc/document/docHeader";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
-import { cloneBlockNoteSnapshotWithHeader, createBlockNoteSnapshot, decodeBlockNoteBlocks, isStoredBlockNoteSnapshot } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
-import { upsertSpaceDocMetaCacheEntry } from "@/components/chat/infra/doc/space/spaceDocMetaPersistence";
+import { createMessageEditorSnapshot } from "@/components/messageEditor/model/messageEditorCodec";
+import { createMessageEditorTextDraft } from "@/components/messageEditor/model/messageEditorTransforms";
 
 import { tuanchat } from "../../../../api/instance";
 
-async function getSnapshotForCopy(docId: string): Promise<StoredSnapshot | null> {
-  const cached = getCachedDocSnapshot(docId);
-  if (cached) {
-    return cached;
-  }
-
-  const key = parseDescriptionDocId(docId);
-  if (!key) {
-    return null;
-  }
-
-  return await getRemoteSnapshot(key);
+function getSnapshotForCopy(docId: string): StoredSnapshot | null {
+  return getCachedDocSnapshot(docId);
 }
 
-function buildCopiedSnapshot(
-  sourceSnapshot: StoredSnapshot | null,
-  header: {
-    title: string;
-    imageUrl?: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  },
-) {
-  const normalizedHeader = normalizeBlocksuiteDocHeader({
-    title: header.title,
-    imageUrl: header.imageUrl,
-    imageFileId: header.imageFileId,
-    originalImageFileId: header.originalImageFileId,
-    imageMediaType: header.imageMediaType,
-  });
-
-  if (isStoredBlockNoteSnapshot(sourceSnapshot)) {
-    return cloneBlockNoteSnapshotWithHeader(sourceSnapshot, normalizedHeader)
-      ?? createBlockNoteSnapshot({
-        blocks: decodeBlockNoteBlocks(sourceSnapshot),
-        header: normalizedHeader,
-      });
+function buildCopiedSnapshot(sourceSnapshot: StoredSnapshot | null): StoredSnapshot {
+  if (sourceSnapshot?.v === 4 && sourceSnapshot.format === "message-stream") {
+    return {
+      ...sourceSnapshot,
+      updatedAt: Date.now(),
+    };
   }
 
-  return createBlockNoteSnapshot({
-    blocks: decodeBlockNoteBlocks(sourceSnapshot),
-    header: normalizedHeader,
-  });
+  return createMessageEditorSnapshot([createMessageEditorTextDraft()]);
 }
 
+/**
+ * 复制空间文档实体，并复制当前会话中的 message-stream 快照缓存。
+ */
 export async function copyDocToSpaceDoc(params: {
   spaceId: number;
   sourceDocId: string;
@@ -67,7 +36,7 @@ export async function copyDocToSpaceDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
+  const sourceSnapshot = getSnapshotForCopy(params.sourceDocId);
 
   let createdDocId: number | null = null;
   try {
@@ -91,7 +60,14 @@ export async function copyDocToSpaceDoc(params: {
   const { buildSpaceDocId } = await import("@/components/chat/infra/doc/space/spaceDocId");
 
   const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
-  const snapshot = buildCopiedSnapshot(sourceSnapshot, {
+  const snapshot = buildCopiedSnapshot(sourceSnapshot);
+
+  setCachedDocSnapshot(newDocId, snapshot);
+
+  const { upsertSpaceDocMetaCacheEntry } = await import("@/components/chat/infra/doc/space/spaceDocMetaPersistence");
+  upsertSpaceDocMetaCacheEntry({
+    spaceId: params.spaceId,
+    docId: newDocId,
     title,
     imageUrl: params.imageUrl,
     imageFileId: params.imageFileId,
@@ -99,19 +75,12 @@ export async function copyDocToSpaceDoc(params: {
     imageMediaType: params.imageMediaType,
   });
 
-  setCachedDocSnapshot(newDocId, snapshot);
-  upsertSpaceDocMetaCacheEntry({ spaceId: params.spaceId, docId: newDocId, title });
-
-  await setRemoteSnapshot({
-    entityType: "space_doc",
-    entityId: createdDocId,
-    docType: "description",
-    snapshot,
-  });
-
   return { newDocEntityId: createdDocId, newDocId, title };
 }
 
+/**
+ * 复制用户文档实体，并复制当前会话中的 message-stream 快照缓存。
+ */
 export async function copyDocToSpaceUserDoc(params: {
   spaceId: number;
   sourceDocId: string;
@@ -125,7 +94,7 @@ export async function copyDocToSpaceUserDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
+  const sourceSnapshot = getSnapshotForCopy(params.sourceDocId);
 
   const createDocWithRetry = async (): Promise<number> => {
     let lastErr = "";
@@ -157,23 +126,9 @@ export async function copyDocToSpaceUserDoc(params: {
     entityId: newEntityId,
     docType: "description",
   });
-  const snapshot = buildCopiedSnapshot(sourceSnapshot, {
-    title,
-    imageUrl: params.imageUrl,
-    imageFileId: params.imageFileId,
-    originalImageFileId: params.originalImageFileId,
-    imageMediaType: params.imageMediaType,
-  });
+  const snapshot = buildCopiedSnapshot(sourceSnapshot);
 
   setCachedDocSnapshot(newDocId, snapshot);
-  upsertSpaceDocMetaCacheEntry({ spaceId: params.spaceId, docId: newDocId, title });
-
-  await setRemoteSnapshot({
-    entityType: "space_user_doc",
-    entityId: newEntityId,
-    docType: "description",
-    snapshot,
-  });
 
   return { newDocEntityId: newEntityId, newDocId, title };
 }
