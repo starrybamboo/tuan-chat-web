@@ -8,8 +8,6 @@ import type { MessageDraft } from "@/types/messageDraft";
 import { DotsSixVerticalIcon } from "@phosphor-icons/react";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
-import { getRemoteSnapshot, prewarmRemoteSnapshot, setRemoteSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
@@ -202,7 +200,6 @@ export default function MessageEditor({
   coverUrl,
   docId,
   excerpt: _excerpt,
-  intentPrewarm = false,
   readOnly = false,
   spaceId: _spaceId,
   tcHeader,
@@ -213,9 +210,6 @@ export default function MessageEditor({
   const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
   const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
   const resolvedDocId = docId?.trim() || undefined;
-  const remoteKey = useMemo(() => {
-    return resolvedDocId ? parseDescriptionDocId(resolvedDocId) : null;
-  }, [resolvedDocId]);
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -249,7 +243,6 @@ export default function MessageEditor({
   const [isPointerSelecting, setIsPointerSelecting] = useState(false);
   const [slashSelectionIndex, setSlashSelectionIndex] = useState(0);
   const [dismissedSlashKey, setDismissedSlashKey] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string>("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [ready, setReady] = useState(!resolvedDocId);
   const registry = useMemo(() => createMessageEditorRegistry(), []);
@@ -457,86 +450,36 @@ export default function MessageEditor({
     restoreSelectionRef.current = null;
     hideToolbar();
 
-    if (!resolvedDocId || !remoteKey) {
-      const fallback = ensureMessageEditorMessages(messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
-      resetHistory();
-      messagesRef.current = fallback;
-      lastSavedSerializedRef.current = createMessageEditorSnapshot(fallback).updateB64;
-      queueMicrotask(() => {
-        if (cancelled) {
-          return;
-        }
-        setMessages(fallback);
-        setLoadError("");
-        setSaveState("idle");
-        setReady(true);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }
-
     queueMicrotask(() => {
       if (!cancelled) {
         setReady(false);
       }
     });
-    const cached = getCachedDocSnapshot(resolvedDocId);
-    const hasCachedSnapshot = Boolean(cached?.updateB64);
-    if (cached) {
-      const decoded = ensureMessageEditorMessages(decodeMessageEditorMessages(cached));
-      resetHistory();
-      messagesRef.current = decoded;
-      lastSavedSerializedRef.current = cached.updateB64;
-      queueMicrotask(() => {
-        if (cancelled) {
-          return;
-        }
-        setMessages(decoded);
-        setLoadError("");
-        setSaveState("idle");
-        setReady(true);
-      });
-    }
 
-    if (intentPrewarm) {
-      prewarmRemoteSnapshot(remoteKey).catch(() => {});
-    }
-
-    getRemoteSnapshot(remoteKey).then((snapshot) => {
+    const cached = resolvedDocId ? getCachedDocSnapshot(resolvedDocId) : null;
+    const fallback = resolvedDocId
+      ? [createMessageEditorTextDraft()]
+      : (messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
+    const decoded = ensureMessageEditorMessages(cached ? decodeMessageEditorMessages(cached) : fallback);
+    resetHistory();
+    messagesRef.current = decoded;
+    lastSavedSerializedRef.current = cached?.updateB64 ?? createMessageEditorSnapshot(decoded).updateB64;
+    queueMicrotask(() => {
       if (cancelled) {
         return;
       }
-      setCachedDocSnapshot(resolvedDocId, snapshot);
-      const decoded = ensureMessageEditorMessages(decodeMessageEditorMessages(snapshot));
-      resetHistory();
-      messagesRef.current = decoded;
       setMessages(decoded);
-      lastSavedSerializedRef.current = snapshot?.updateB64 ?? "";
-      setLoadError("");
       setSaveState("idle");
-      setReady(true);
-    }).catch((error) => {
-      if (cancelled) {
-        return;
-      }
-      if (hasCachedSnapshot) {
-        setLoadError("");
-        setSaveState("idle");
-        setReady(true);
-        return;
-      }
-      setLoadError(error instanceof Error ? error.message : String(error));
       setReady(true);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, intentPrewarm, remoteKey, resetHistory, resolvedDocId]);
+  }, [hideToolbar, resetHistory, resolvedDocId]);
 
   useEffect(() => {
-    if (!ready || readOnly || !resolvedDocId || !remoteKey) {
+    if (!ready || readOnly || !resolvedDocId) {
       return;
     }
 
@@ -547,22 +490,15 @@ export default function MessageEditor({
 
     const timer = window.setTimeout(() => {
       setSaveState("saving");
-      setRemoteSnapshot({
-        ...remoteKey,
-        snapshot,
-      }).then(() => {
-        lastSavedSerializedRef.current = snapshot.updateB64;
-        setCachedDocSnapshot(resolvedDocId, snapshot);
-        setSaveState("saved");
-      }).catch(() => {
-        setSaveState("error");
-      });
+      lastSavedSerializedRef.current = snapshot.updateB64;
+      setCachedDocSnapshot(resolvedDocId, snapshot);
+      setSaveState("saved");
     }, 500);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [messages, readOnly, ready, remoteKey, resolvedDocId]);
+  }, [messages, readOnly, ready, resolvedDocId]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {
@@ -1709,14 +1645,6 @@ export default function MessageEditor({
                 className="flex min-h-svh w-full flex-col py-2"
                 onMouseDown={handleEditorSurfaceMouseDown}
               >
-                {ready && loadError
-                  ? (
-                      <div className="rounded-md border border-error/20 bg-error/5 px-2 py-2 text-sm text-error">
-                        {loadError}
-                      </div>
-                    )
-                  : null}
-
                 {atomicMessages.map(({ blockId, message, driver }) => {
                   const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
                   const selectedBlockIndex = activeTextSelection?.blockIds.indexOf(blockId) ?? -1;

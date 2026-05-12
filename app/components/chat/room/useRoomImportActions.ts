@@ -12,12 +12,12 @@ import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
-import { isStoredBlockNoteSnapshot, readBlockNoteExcerpt } from "@/components/chat/infra/doc/document/legacyRichTextSnapshot";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import UTILS from "@/components/common/dicer/utils/utils";
+import { readMessageEditorSnapshotExcerpt } from "@/components/messageEditor/model/messageEditorCodec";
 import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -71,89 +71,6 @@ export default function useRoomImportActions({
   queryClient,
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
-  const ensureLoadedDocSnapshotReadyForSharing = useCallback(async (params: {
-    docId: string;
-    sourceSpaceId?: number;
-  }): Promise<void> => {
-    const docId = String(params.docId ?? "").trim();
-    const parsed = parseDescriptionDocId(docId);
-    const targetSpaceId = typeof params.sourceSpaceId === "number" && params.sourceSpaceId > 0
-      ? params.sourceSpaceId
-      : spaceId;
-    if (!parsed || !targetSpaceId || targetSpaceId <= 0) {
-      recordDocCardShareObservation("share-sync-skip", {
-        docId,
-        reason: !parsed ? "unsupported-doc-id" : "invalid-space",
-        spaceId: targetSpaceId,
-      });
-      return;
-    }
-
-    const [{ getRemoteSnapshot, setRemoteSnapshot }] = await Promise.all([
-      import("@/components/chat/infra/doc/description/descriptionDocRemote"),
-    ]);
-
-    recordDocCardShareObservation("share-sync-start", {
-      docId,
-      spaceId: targetSpaceId,
-      entityType: parsed.entityType,
-      entityId: parsed.entityId,
-      docType: parsed.docType,
-    });
-
-    const cachedSnapshot = getCachedDocSnapshot(docId);
-    const snapshot = isStoredBlockNoteSnapshot(cachedSnapshot)
-      ? {
-          ...cachedSnapshot,
-          updatedAt: Date.now(),
-        }
-      : await getRemoteSnapshot({
-          entityType: parsed.entityType,
-          entityId: parsed.entityId,
-          docType: parsed.docType,
-        });
-
-    if (!isStoredBlockNoteSnapshot(snapshot)) {
-      recordDocCardShareObservation("share-sync-skip", {
-        docId,
-        spaceId: targetSpaceId,
-        reason: "snapshot-missing",
-      });
-      return;
-    }
-
-    try {
-      await setRemoteSnapshot({
-        entityType: parsed.entityType,
-        entityId: parsed.entityId,
-        docType: parsed.docType,
-        snapshot: {
-          ...snapshot,
-          updatedAt: Date.now(),
-        },
-      });
-      recordDocCardShareObservation("share-sync-success", {
-        docId,
-        spaceId: targetSpaceId,
-        entityType: parsed.entityType,
-        entityId: parsed.entityId,
-        docType: parsed.docType,
-        updateBytes: snapshot.updateB64.length,
-      });
-    }
-    catch (error) {
-      recordDocCardShareObservation("share-sync-failed", {
-        docId,
-        spaceId: targetSpaceId,
-        entityType: parsed.entityType,
-        entityId: parsed.entityId,
-        docType: parsed.docType,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
-  }, [spaceId]);
-
   const handleImportChatText = useCallback(async (
     messages: ImportMessageItem[],
     onProgress?: (sent: number, total: number) => void,
@@ -351,27 +268,9 @@ export default function useRoomImportActions({
     }
 
     let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
-    try {
-      await ensureLoadedDocSnapshotReadyForSharing({
-        docId,
-        sourceSpaceId,
-      });
-    }
-    catch (error) {
-      console.error("[DocCard] Failed to publish latest snapshot before share", error);
-      toast.error("文档同步失败，请稍后重试");
-      return;
-    }
 
     if (!excerpt) {
-      try {
-        const snapshot = getCachedDocSnapshot(docId)
-          ?? await import("@/components/chat/infra/doc/description/descriptionDocRemote").then(({ getRemoteSnapshot }) => getRemoteSnapshot(parseDescriptionDocId(docId)!));
-        excerpt = readBlockNoteExcerpt(snapshot);
-      }
-      catch {
-        // ignore
-      }
+      excerpt = readMessageEditorSnapshotExcerpt(getCachedDocSnapshot(docId));
     }
 
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
@@ -452,7 +351,6 @@ export default function useRoomImportActions({
     roomUiStoreApi,
     sendMessageWithInsert,
     spaceId,
-    ensureLoadedDocSnapshotReadyForSharing,
   ]);
 
   const handleSendMaterialItem = useCallback(async (payload: MaterialItemDragPayload) => {

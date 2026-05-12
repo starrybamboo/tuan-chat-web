@@ -127,7 +127,7 @@ export default function ChatPageContextMenu({
               setIsDissolveConfirmOpen(false);
               setDissolveTargetRoomId(null);
 
-              // 业务上的“解散房间”是硬删除：同时清理 room 对应的 Blocksuite 文档（避免 @ 弹窗仍展示已删除房间的 doc）。
+              // 业务上的“解散房间”是硬删除：同时清理 room 对应的文档缓存（避免 @ 弹窗仍展示已删除房间的 doc）。
               const spaceId = spaceContext?.spaceId;
               if (typeof window !== "undefined" && typeof spaceId === "number" && spaceId > 0) {
                 void (async () => {

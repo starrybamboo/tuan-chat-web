@@ -1,9 +1,5 @@
 type DocCardShareEventName
   = | "share-requested"
-    | "share-sync-skip"
-    | "share-sync-start"
-    | "share-sync-success"
-    | "share-sync-failed"
     | "share-message-send-start"
     | "share-message-send-success"
     | "share-message-send-failed"
@@ -12,15 +8,6 @@ type DocCardShareEventName
     | "preview-store-load-start"
     | "preview-store-load-success"
     | "preview-store-load-failed"
-    | "preview-header-sync"
-    | "remote-snapshot-get-start"
-    | "remote-snapshot-get-success"
-    | "remote-snapshot-get-failed"
-    | "remote-snapshot-set-start"
-    | "remote-snapshot-set-success"
-    | "remote-snapshot-set-failed"
-    | "preview-snapshot-prewarm-start"
-    | "preview-snapshot-prewarm-success"
     | "hydration-decision";
 
 export type DocCardShareObservation = {

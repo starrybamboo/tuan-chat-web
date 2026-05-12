@@ -3,7 +3,7 @@ type QueryReadyState = {
   isFetched?: boolean;
 };
 
-type RoomBlocksuitePrewarmReadyParams = {
+type RoomDocumentPrewarmReadyParams = {
   abilityLoading: boolean;
   historyLoading: boolean;
   membersReady: boolean;
@@ -16,14 +16,14 @@ export function isInitialQueryReady(query: QueryReadyState): boolean {
   return Boolean(query.isFetched || query.isError);
 }
 
-export function isRoomBlocksuitePrewarmReady({
+export function isRoomDocumentPrewarmReady({
   abilityLoading,
   historyLoading,
   membersReady,
   roomInfoReady,
   rolesReady,
   spaceInfoReady,
-}: RoomBlocksuitePrewarmReadyParams): boolean {
+}: RoomDocumentPrewarmReadyParams): boolean {
   return spaceInfoReady
     && roomInfoReady
     && membersReady

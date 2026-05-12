@@ -1,4 +1,4 @@
-import type { StoredSnapshot } from "@/components/chat/infra/doc/description/descriptionDocRemote";
+import type { StoredMessageStreamSnapshot, StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shared/base64";
@@ -14,14 +14,9 @@ import {
 } from "./messageEditorTransforms";
 
 /**
- * 线性 message editor 使用的远端快照格式。
+ * message editor 写入缓存的线性消息快照。
  */
-export type MessageEditorSnapshot = {
-  v: 4;
-  format: "message-stream";
-  updateB64: string;
-  updatedAt: number;
-};
+export type MessageEditorSnapshot = StoredMessageStreamSnapshot;
 
 type LegacyUserReadMeNode = {
   nodeId?: string;
@@ -87,7 +82,7 @@ function decodeMessageEditorDrafts(updateB64: string): MessageDraft[] {
 }
 
 /**
- * 创建可持久化的 message-stream 快照。
+ * 创建可缓存的 message-stream 快照。
  */
 export function createMessageEditorSnapshot(
   messages: MessageDraft[],
@@ -102,7 +97,7 @@ export function createMessageEditorSnapshot(
 }
 
 /**
- * 将远端 snapshot 解码为可编辑的 message 流。
+ * 将 snapshot 解码为可编辑的 message 流。
  */
 export function decodeMessageEditorMessages(snapshot: StoredSnapshot | null | undefined): MessageDraft[] {
   if (!snapshot) {
@@ -117,11 +112,32 @@ export function decodeMessageEditorMessages(snapshot: StoredSnapshot | null | un
 }
 
 /**
- * 将消息流规整后再编码，用于缓存比较与远端保存。
+ * 将消息流规整后再编码，用于缓存比较与保存。
  */
 export function normalizeAndCreateMessageEditorSnapshot(
   messages: MessageDraft[],
   updatedAt = Date.now(),
 ): MessageEditorSnapshot {
   return createMessageEditorSnapshot(ensureMessageEditorMessages(messages), updatedAt);
+}
+
+/**
+ * 从 message-stream 快照中提取文档卡片摘要。
+ */
+export function readMessageEditorSnapshotExcerpt(
+  snapshot: StoredSnapshot | null | undefined,
+  maxChars = 220,
+): string {
+  const normalizedMaxChars = Number.isFinite(maxChars) && maxChars > 0 ? Math.floor(maxChars) : 220;
+  const text = decodeMessageEditorMessages(snapshot)
+    .map(message => normalizeMessageEditorContent(message.content))
+    .map(content => content.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  if (!text) {
+    return "";
+  }
+  return text.length > normalizedMaxChars ? `${text.slice(0, normalizedMaxChars)}…` : text;
 }
