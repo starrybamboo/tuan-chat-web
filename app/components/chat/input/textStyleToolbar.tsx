@@ -1,12 +1,26 @@
+import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { FloatingSelectionToolbarPosition } from "@/components/common/floatingSelectionToolbar";
-import React, { useCallback, useRef, useState } from "react";
+
+import {
+  CaretDownIcon,
+  GearSixIcon,
+  PaletteIcon,
+  TextAaIcon,
+  TextBIcon,
+  TextItalicIcon,
+  TextUnderlineIcon,
+} from "@phosphor-icons/react";
+import { useCallback, useState } from "react";
+
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
+import { buildTextStyleSyntax } from "./textStyleSyntax";
+
 interface TextStyleToolbarProps {
   /** 输入框的 ref，用于插入文本 */
-  chatInputRef: React.RefObject<ChatInputAreaHandle | null>;
+  chatInputRef: RefObject<ChatInputAreaHandle | null>;
   /** 外部托管的原始字符串选区，例如文档编辑器的跨块选区 */
   externalSelection?: {
     position: FloatingSelectionToolbarPosition | null;
@@ -21,424 +35,451 @@ interface TextStyleToolbarProps {
   className?: string;
 }
 
-/**
- * 注音输入对话框
- */
-function RubyInputDialog({ onConfirm, onClose, initialText }: {
-  onConfirm: (text: string, ruby: string) => void;
-  onClose: () => void;
-  initialText?: string;
+type ToolbarMenu = "color" | "fontSize" | null;
+
+const DEFAULT_COLOR = "#E11D48";
+const DEFAULT_FONT_SIZE = "120%";
+const COLOR_OPTIONS = [
+  "#111827",
+  "#DC2626",
+  "#EA580C",
+  "#D97706",
+  "#16A34A",
+  "#0284C7",
+  "#4F46E5",
+  "#9333EA",
+  "#DB2777",
+  "#64748B",
+] as const;
+const FONT_SIZE_OPTIONS = ["80%", "90%", "100%", "110%", "120%", "150%", "200%"] as const;
+const LETTER_SPACING_OPTIONS = ["0.02em", "0.05em", "0.1em", "0.2em"] as const;
+const OPACITY_OPTIONS = ["0.55", "0.7", "0.85", "1"] as const;
+
+function preventSelectionLoss(event: ReactMouseEvent<HTMLElement>) {
+  event.preventDefault();
+}
+
+function normalizeTextInput(value: string) {
+  return String(value ?? "").trim();
+}
+
+function ToolbarButton({
+  active = false,
+  children,
+  label,
+  onMouseDown,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  label: string;
+  onMouseDown: (event: ReactMouseEvent<HTMLButtonElement>) => void;
 }) {
-  const [text, setText] = useState(initialText || "");
-  const [ruby, setRuby] = useState("");
-
   return (
-    <div className="flex flex-col gap-3 p-4 min-w-[280px]">
-      <h3 className="text-lg font-medium">添加注音</h3>
-      <div className="flex flex-col gap-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">文本</span>
-          <input
-            type="text"
-            className="input input-bordered input-sm"
-            placeholder="例如：笑顔"
-            value={text}
-            onChange={e => setText(e.target.value)}
+    <button
+      type="button"
+      className={[
+        "flex h-6 min-w-6 items-center gap-1 rounded-md px-1.5 text-xs text-base-content/80 transition hover:bg-base-200 hover:text-base-content",
+        active ? "bg-base-200 text-base-content" : "",
+      ].join(" ")}
+      onMouseDown={onMouseDown}
+      title={label}
+      aria-label={label}
+    >
+      {children}
+    </button>
+  );
+}
 
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">注音</span>
-          <input
-            type="text"
-            className="input input-bordered input-sm"
-            placeholder="磺"
-            value={ruby}
-            onChange={e => setRuby(e.target.value)}
-          />
-        </label>
-      </div>
-      <div className="flex gap-2 justify-end">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={!text.trim() || !ruby.trim()}
-          onClick={() => {
-            if (text.trim() && ruby.trim()) {
-              onConfirm(text.trim(), ruby.trim());
-            }
-          }}
-        >
-          确认
-        </button>
-      </div>
-      <div className="text-xs opacity-60 bg-base-200 rounded p-2">
-        <div>预览效果：</div>
-        {text && ruby
-          ? (
-              <ruby className="text-base">
-                {text}
-                <rp>(</rp>
-                <rt>{ruby}</rt>
-                <rp>)</rp>
-              </ruby>
-            )
-          : <span className="opacity-50">请输入文本和注音</span>}
-      </div>
+function SplitButton({
+  children,
+  menu,
+  menuOpen,
+  onApply,
+  onToggleMenu,
+  title,
+}: {
+  children: ReactNode;
+  menu: ReactNode;
+  menuOpen: boolean;
+  onApply: () => void;
+  onToggleMenu: () => void;
+  title: string;
+}) {
+  return (
+    <div className="relative flex items-center">
+      <button
+        type="button"
+        className="flex h-6 items-center gap-1 rounded-l-md px-1.5 text-xs text-base-content/80 transition hover:bg-base-200 hover:text-base-content"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          onApply();
+        }}
+        title={title}
+        aria-label={title}
+      >
+        {children}
+      </button>
+      <button
+        type="button"
+        className="flex h-6 w-5 items-center justify-center rounded-r-md border-l border-base-300/70 text-base-content/60 transition hover:bg-base-200 hover:text-base-content"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          onToggleMenu();
+        }}
+        title={`${title}选项`}
+        aria-label={`${title}选项`}
+      >
+        <CaretDownIcon size={12} weight="bold" />
+      </button>
+      {menuOpen ? menu : null}
     </div>
   );
 }
 
-/**
- * 彩色文本输入对话框
- */
-function ColorTextDialog({ onConfirm, onClose, initialText }: {
-  onConfirm: (text: string, color: string) => void;
-  onClose: () => void;
+function DropdownPanel({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="absolute left-0 top-8 z-[10000] min-w-44 rounded-md border border-base-300 bg-base-100 p-2 text-xs shadow-xl"
+      onMouseDown={event => event.stopPropagation()}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ColorMenu({
+  selectedColor,
+  onApplyColor,
+  onPickColor,
+}: {
+  selectedColor: string;
+  onApplyColor: (color: string) => void;
+  onPickColor: (color: string) => void;
+}) {
+  return (
+    <DropdownPanel>
+      <div className="grid grid-cols-5 gap-1.5">
+        {COLOR_OPTIONS.map(color => (
+          <button
+            key={color}
+            type="button"
+            className={[
+              "size-6 rounded-md border transition hover:scale-105",
+              selectedColor.toLowerCase() === color.toLowerCase() ? "border-base-content ring-2 ring-primary/25" : "border-base-300",
+            ].join(" ")}
+            style={{ backgroundColor: color }}
+            onMouseDown={(event) => {
+              preventSelectionLoss(event);
+              onApplyColor(color);
+            }}
+            title={color}
+            aria-label={`文字颜色 ${color}`}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex items-center gap-2 border-t border-base-300 pt-2">
+        <input
+          type="color"
+          className="h-7 w-8 cursor-pointer rounded border border-base-300 bg-transparent"
+          value={selectedColor}
+          onChange={(event) => {
+            onPickColor(event.target.value);
+          }}
+          title="自定义颜色"
+          aria-label="自定义颜色"
+        />
+        <button
+          type="button"
+          className="h-7 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200"
+          onMouseDown={(event) => {
+            preventSelectionLoss(event);
+            onApplyColor(selectedColor);
+          }}
+        >
+          应用
+        </button>
+      </div>
+    </DropdownPanel>
+  );
+}
+
+function FontSizeMenu({
+  selectedFontSize,
+  onApplyFontSize,
+}: {
+  selectedFontSize: string;
+  onApplyFontSize: (size: string) => void;
+}) {
+  return (
+    <DropdownPanel>
+      <div className="grid grid-cols-2 gap-1">
+        {FONT_SIZE_OPTIONS.map(size => (
+          <button
+            key={size}
+            type="button"
+            className={[
+              "h-7 rounded-md px-2 text-left transition hover:bg-base-200",
+              selectedFontSize === size ? "bg-primary/10 text-primary" : "text-base-content/80",
+            ].join(" ")}
+            onMouseDown={(event) => {
+              preventSelectionLoss(event);
+              onApplyFontSize(size);
+            }}
+          >
+            {size}
+          </button>
+        ))}
+      </div>
+    </DropdownPanel>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="text-xs text-base-content/60">{children}</span>;
+}
+
+function textInputClassName(extra = "") {
+  return `h-8 rounded-md border border-base-300 bg-base-100 px-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${extra}`;
+}
+
+function AdvancedStyleDialog({
+  initialText,
+  onClose,
+  onConfirm,
+}: {
   initialText?: string;
+  onClose: () => void;
+  onConfirm: (text: string, options: Parameters<typeof buildTextStyleSyntax>[1]) => void;
 }) {
   const [text, setText] = useState(initialText || "");
-  const [color, setColor] = useState("#FF0000");
+  const [ruby, setRuby] = useState("");
+  const [bold, setBold] = useState(false);
+  const [underline, setUnderline] = useState(false);
+  const [backgroundEnabled, setBackgroundEnabled] = useState(false);
+  const [backgroundColor, setBackgroundColor] = useState("#FEF3C7");
+  const [letterSpacing, setLetterSpacing] = useState("");
+  const [opacity, setOpacity] = useState("");
+  const [textShadow, setTextShadow] = useState("");
+  const [margin, setMargin] = useState("");
+  const [padding, setPadding] = useState("");
+  const [customStyle, setCustomStyle] = useState("");
+  const [customStyleAllText, setCustomStyleAllText] = useState("");
 
-  const presetColors = [
-    "#FF0000", // 红
-    "#FF6B00", // 橙
-    "#FFD700", // 金
-    "#00AA00", // 绿
-    "#0088FF", // 蓝
-    "#8B00FF", // 紫
-    "#FF69B4", // 粉
-    "#00CED1", // 青
-  ];
+  const previewStyle: CSSProperties = {
+    ...(bold ? { fontWeight: "bold" } : {}),
+    ...(underline ? { textDecoration: "underline" } : {}),
+    ...(backgroundEnabled ? { backgroundColor } : {}),
+    ...(letterSpacing ? { letterSpacing } : {}),
+    ...(opacity ? { opacity } : {}),
+    ...(textShadow ? { textShadow } : {}),
+    ...(margin ? { margin } : {}),
+    ...(padding ? { padding } : {}),
+  };
 
   return (
-    <div className="flex flex-col gap-3 p-4 min-w-[280px]">
-      <h3 className="text-lg font-medium">彩色文字</h3>
-      <div className="flex flex-col gap-2">
+    <div className="flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3 p-4">
+      <div className="text-base font-medium">高级文本样式</div>
+      <label className="flex flex-col gap-1">
+        <FieldLabel>文本</FieldLabel>
+        <input
+          type="text"
+          className={textInputClassName()}
+          placeholder="输入要设置样式的文字"
+          value={text}
+          onChange={event => setText(event.target.value)}
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <FieldLabel>注音</FieldLabel>
+        <input
+          type="text"
+          className={textInputClassName()}
+          placeholder="wen ben"
+          value={ruby}
+          onChange={event => setRuby(event.target.value)}
+        />
+      </label>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1.5">
+          <input type="checkbox" checked={bold} onChange={event => setBold(event.target.checked)} />
+          <TextBIcon size={15} weight="bold" />
+          <span className="text-sm">粗体</span>
+        </label>
+        <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1.5">
+          <input type="checkbox" checked={underline} onChange={event => setUnderline(event.target.checked)} />
+          <TextUnderlineIcon size={15} weight="bold" />
+          <span className="text-sm">下划线</span>
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">文本</span>
+          <FieldLabel>字距</FieldLabel>
+          <select
+            className={textInputClassName()}
+            value={letterSpacing}
+            onChange={event => setLetterSpacing(event.target.value)}
+          >
+            <option value="">不设置</option>
+            {LETTER_SPACING_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <FieldLabel>透明度</FieldLabel>
+          <select
+            className={textInputClassName()}
+            value={opacity}
+            onChange={event => setOpacity(event.target.value)}
+          >
+            <option value="">不设置</option>
+            {OPACITY_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid grid-cols-[auto_1fr] items-center gap-2 rounded-md border border-base-300 px-2 py-2">
+        <input
+          type="checkbox"
+          checked={backgroundEnabled}
+          onChange={event => setBackgroundEnabled(event.target.checked)}
+          aria-label="启用背景色"
+        />
+        <div className="flex items-center gap-2">
+          <FieldLabel>背景色</FieldLabel>
+          <input
+            type="color"
+            className="h-7 w-8 cursor-pointer rounded border border-base-300 bg-transparent"
+            value={backgroundColor}
+            onChange={event => setBackgroundColor(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1">
+          <FieldLabel>阴影</FieldLabel>
           <input
             type="text"
-            className="input input-bordered input-sm"
-            placeholder="输入要着色的文字"
-            value={text}
-            onChange={e => setText(e.target.value)}
-
+            className={textInputClassName()}
+            placeholder="0 1px 2px #000"
+            value={textShadow}
+            onChange={event => setTextShadow(event.target.value)}
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">颜色</span>
-          <div className="flex gap-2 items-center">
-            <input
-              type="color"
-              className="w-8 h-8 rounded cursor-pointer"
-              value={color}
-              onChange={e => setColor(e.target.value)}
-            />
+          <FieldLabel>外边距</FieldLabel>
+          <input
+            type="text"
+            className={textInputClassName()}
+            placeholder="0 2px"
+            value={margin}
+            onChange={event => setMargin(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <FieldLabel>内边距</FieldLabel>
+        <input
+          type="text"
+          className={textInputClassName()}
+          placeholder="0 2px"
+          value={padding}
+          onChange={event => setPadding(event.target.value)}
+        />
+      </label>
+
+      <details className="rounded-md border border-base-300 px-2 py-2">
+        <summary className="cursor-pointer text-sm text-base-content/75">自定义 CSS</summary>
+        <div className="mt-2 flex flex-col gap-2">
+          <label className="flex flex-col gap-1">
+            <FieldLabel>style</FieldLabel>
             <input
               type="text"
-              className="input input-bordered input-sm flex-1"
-              value={color}
-              onChange={e => setColor(e.target.value)}
-              placeholder="#FF0000"
+              className={textInputClassName()}
+              placeholder="color:#66327C; background-color:#FEF3C7"
+              value={customStyle}
+              onChange={event => setCustomStyle(event.target.value)}
             />
-          </div>
-        </label>
-        <div className="flex gap-1 flex-wrap">
-          {presetColors.map(c => (
-            <button
-              key={c}
-              type="button"
-              className={`w-6 h-6 rounded border-2 ${color === c ? "border-primary" : "border-transparent"}`}
-              style={{ backgroundColor: c }}
-              onClick={() => setColor(c)}
-              title={c}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="flex gap-2 justify-end">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={!text.trim()}
-          onClick={() => {
-            if (text.trim()) {
-              onConfirm(text.trim(), color);
-            }
-          }}
-        >
-          确认
-        </button>
-      </div>
-      <div className="text-xs opacity-60 bg-base-200 rounded p-2">
-        <div>预览效果：</div>
-        {text ? <span style={{ color }}>{text}</span> : <span className="opacity-50">请输入文本</span>}
-      </div>
-    </div>
-  );
-}
-
-/**
- * 斜体文本输入对话框
- */
-function ItalicTextDialog({ onConfirm, onClose, initialText }: {
-  onConfirm: (text: string) => void;
-  onClose: () => void;
-  initialText?: string;
-}) {
-  const [text, setText] = useState(initialText || "");
-
-  return (
-    <div className="flex flex-col gap-3 p-4 min-w-[280px]">
-      <h3 className="text-lg font-medium">斜体文字</h3>
-      <div className="flex flex-col gap-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">文本</span>
-          <input
-            type="text"
-            className="input input-bordered input-sm"
-            placeholder="输入斜体文字"
-            value={text}
-            onChange={e => setText(e.target.value)}
-
-          />
-        </label>
-      </div>
-      <div className="flex gap-2 justify-end">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={!text.trim()}
-          onClick={() => {
-            if (text.trim()) {
-              onConfirm(text.trim());
-            }
-          }}
-        >
-          确认
-        </button>
-      </div>
-      <div className="text-xs opacity-60 bg-base-200 rounded p-2">
-        <div>预览效果：</div>
-        {text ? <span style={{ fontStyle: "italic" }}>{text}</span> : <span className="opacity-50">请输入文本</span>}
-      </div>
-    </div>
-  );
-}
-
-/**
- * 高级样式输入对话框
- */
-function AdvancedStyleDialog({ onConfirm, onClose, initialText }: {
-  onConfirm: (text: string, options: { color?: string; italic?: boolean; fontSize?: string; ruby?: string }) => void;
-  onClose: () => void;
-  initialText?: string;
-}) {
-  const [text, setText] = useState(initialText || "");
-  const [color, setColor] = useState("#000000");
-  const [useColor, setUseColor] = useState(false);
-  const [italic, setItalic] = useState(false);
-  const [fontSize, setFontSize] = useState("100%");
-  const [useFontSize, setUseFontSize] = useState(false);
-  const [ruby, setRuby] = useState("");
-
-  const presetColors = [
-    "#FF0000",
-    "#FF6B00",
-    "#FFD700",
-    "#00AA00",
-    "#0088FF",
-    "#8B00FF",
-    "#FF69B4",
-    "#00CED1",
-  ];
-
-  const fontSizes = ["80%", "90%", "100%", "110%", "120%", "150%"];
-
-  // 构建预览样式
-  const previewStyle: React.CSSProperties = {};
-  if (useColor)
-    previewStyle.color = color;
-  if (italic)
-    previewStyle.fontStyle = "italic";
-  if (useFontSize)
-    previewStyle.fontSize = fontSize;
-
-  return (
-    <div className="flex flex-col gap-3 p-4 min-w-[320px] max-w-[400px]">
-      <h3 className="text-lg font-medium">高级文本样式</h3>
-      <div className="flex flex-col gap-3">
-        {/* 文本输入 */}
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">文本 *</span>
-          <input
-            type="text"
-            className="input input-bordered input-sm"
-            placeholder="输入要设置样式的文字"
-            value={text}
-            onChange={e => setText(e.target.value)}
-
-          />
-        </label>
-
-        {/* 颜色 */}
-        <div className="flex flex-col gap-1">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-xs"
-              checked={useColor}
-              onChange={e => setUseColor(e.target.checked)}
-            />
-            <span className="text-sm opacity-70">颜色</span>
           </label>
-          {useColor && (
-            <div className="flex gap-2 items-center ml-5">
-              <input
-                type="color"
-                title="选择颜色"
-                className="w-6 h-6 rounded cursor-pointer"
-                value={color}
-                onChange={e => setColor(e.target.value)}
-              />
-              <div className="flex gap-1 flex-wrap">
-                {presetColors.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    title={`选择颜色 ${c}`}
-                    className={`w-5 h-5 rounded border ${color === c ? "border-primary border-2" : "border-base-300"}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setColor(c)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 斜体 */}
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-xs"
-            checked={italic}
-            onChange={e => setItalic(e.target.checked)}
-          />
-          <span className="text-sm opacity-70">斜体</span>
-        </label>
-
-        {/* 字体大小 */}
-        <div className="flex flex-col gap-1">
-          <label className="flex items-center gap-2">
+          <label className="flex flex-col gap-1">
+            <FieldLabel>style-alltext</FieldLabel>
             <input
-              type="checkbox"
-              className="checkbox checkbox-xs"
-              checked={useFontSize}
-              onChange={e => setUseFontSize(e.target.checked)}
+              type="text"
+              className={textInputClassName()}
+              placeholder="font-weight:bold; letter-spacing:0.05em"
+              value={customStyleAllText}
+              onChange={event => setCustomStyleAllText(event.target.value)}
             />
-            <span className="text-sm opacity-70">字体大小</span>
           </label>
-          {useFontSize && (
-            <div className="flex gap-1 ml-5">
-              {fontSizes.map(size => (
-                <button
-                  key={size}
-                  type="button"
-                  className={`btn btn-xs ${fontSize === size ? "btn-primary" : "btn-ghost"}`}
-                  onClick={() => setFontSize(size)}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
+      </details>
 
-        {/* 注音 */}
-        <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">注音（可选）</span>
-          <input
-            type="text"
-            className="input input-bordered input-sm"
-            placeholder="磺"
-            value={ruby}
-            onChange={e => setRuby(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div className="flex gap-2 justify-end">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>取消</button>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          disabled={!text.trim()}
-          onClick={() => {
-            if (text.trim()) {
-              onConfirm(text.trim(), {
-                color: useColor ? color : undefined,
-                italic,
-                fontSize: useFontSize ? fontSize : undefined,
-                ruby: ruby.trim() || undefined,
-              });
-            }
-          }}
-        >
-          确认
-        </button>
-      </div>
-
-      {/* 预览 */}
-      <div className="text-xs opacity-60 bg-base-200 rounded p-2">
-        <div>预览效果：</div>
+      <div className="rounded-md bg-base-200 px-2 py-2 text-sm">
         {text
           ? (
               ruby
                 ? (
-                    <ruby style={previewStyle} className="text-base">
+                    <ruby style={previewStyle}>
                       {text}
                       <rp>(</rp>
                       <rt>{ruby}</rt>
                       <rp>)</rp>
                     </ruby>
                   )
-                : <span style={previewStyle} className="text-base">{text}</span>
+                : <span style={previewStyle}>{text}</span>
             )
-          : <span className="opacity-50">请输入文本</span>}
+          : <span className="text-base-content/45">请输入文本</span>}
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <button type="button" className="rounded-md px-3 py-1.5 text-sm hover:bg-base-200" onClick={onClose}>取消</button>
+        <button
+          type="button"
+          className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-content disabled:opacity-50"
+          disabled={!normalizeTextInput(text)}
+          onClick={() => {
+            const normalizedText = normalizeTextInput(text);
+            if (!normalizedText) {
+              return;
+            }
+            onConfirm(normalizedText, {
+              backgroundColor: backgroundEnabled ? backgroundColor : undefined,
+              bold,
+              customStyle,
+              customStyleAllText,
+              letterSpacing: letterSpacing || undefined,
+              margin: normalizeTextInput(margin) || undefined,
+              opacity: opacity || undefined,
+              padding: normalizeTextInput(padding) || undefined,
+              ruby: normalizeTextInput(ruby) || undefined,
+              textShadow: normalizeTextInput(textShadow) || undefined,
+              underline,
+            });
+          }}
+        >
+          确认
+        </button>
       </div>
     </div>
   );
 }
 
 /**
- * 文本样式工具栏
- * 提供快速插入 WebGAL 文本拓展语法的按钮
+ * 文本样式工具栏。
  */
 function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visible = true, className = "" }: TextStyleToolbarProps) {
-  const didRunMouseToolbarActionRef = useRef(false);
+  const [activeMenu, setActiveMenu] = useState<ToolbarMenu>(null);
+  const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
+  const [selectedFontSize, setSelectedFontSize] = useState(DEFAULT_FONT_SIZE);
   const externalSelectionActive = Boolean(
     visible
     && externalSelection?.visible !== false
     && externalSelection?.position
     && externalSelection.text.trim(),
   );
-  const runToolbarMouseAction = (event: React.MouseEvent<HTMLButtonElement>, action: () => void) => {
-    event.preventDefault();
-    didRunMouseToolbarActionRef.current = true;
-    action();
-  };
-  const runToolbarClickAction = (action: () => void) => {
-    if (didRunMouseToolbarActionRef.current) {
-      didRunMouseToolbarActionRef.current = false;
-      return;
-    }
-    action();
-  };
 
   const resolveEditorElement = useCallback((range: Range) => {
     const editor = chatInputRef.current?.getRawElement();
@@ -457,8 +498,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
     visible: visible && !externalSelectionActive,
     resolveEditorElement,
   });
-
-  const getSelectedTextForDialog = () => {
+  const getSelectedText = useCallback(() => {
     if (externalSelectionActive) {
       return externalSelection?.text ?? "";
     }
@@ -466,36 +506,33 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       savedSelectionRef.current = saveSelection();
     }
     return savedSelectionRef.current?.text || "";
-  };
+  }, [externalSelection?.text, externalSelectionActive, saveSelection, savedSelectionRef]);
 
-  /**
-   * 恢复选区并插入文本（支持撤销）
-   */
-  const restoreAndInsertText = (text: string) => {
+  const restoreAndInsertText = useCallback((text: string) => {
     if (externalSelectionActive && onInsertText) {
       onInsertText(text, externalSelection?.text ?? "");
       return;
     }
 
     const editor = chatInputRef.current?.getRawElement();
-    if (!editor)
+    if (!editor) {
       return;
+    }
 
     const saved = savedSelectionRef.current;
     editor.focus();
 
     const selection = window.getSelection();
-    if (!selection)
+    if (!selection) {
       return;
+    }
 
-    // 如果有保存的选区且在编辑器内，恢复它
     if (saved && saved.editor === editor) {
       try {
         selection.removeAllRanges();
         selection.addRange(saved.range);
       }
       catch {
-        // 选区可能已失效，移动到末尾
         const newRange = document.createRange();
         newRange.selectNodeContents(editor);
         newRange.collapse(false);
@@ -504,7 +541,6 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       }
     }
     else {
-      // 没有有效选区，移动到末尾
       const newRange = document.createRange();
       newRange.selectNodeContents(editor);
       newRange.collapse(false);
@@ -512,111 +548,41 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       selection.addRange(newRange);
     }
 
-    // 使用 execCommand 插入文本，支持撤销
     document.execCommand("insertText", false, text);
     chatInputRef.current?.triggerSync();
-
-    // 清除保存的选区
     savedSelectionRef.current = null;
-  };
+  }, [chatInputRef, externalSelection?.text, externalSelectionActive, onInsertText, savedSelectionRef]);
 
-  // 添加注音
-  const handleAddRuby = () => {
-    const selectedText = getSelectedTextForDialog();
+  const applyStyle = useCallback((options: Parameters<typeof buildTextStyleSyntax>[1]) => {
+    const selectedText = getSelectedText();
+    if (!selectedText.trim()) {
+      return;
+    }
+    restoreAndInsertText(buildTextStyleSyntax(selectedText, options));
+    setActiveMenu(null);
+  }, [getSelectedText, restoreAndInsertText]);
 
-    toastWindow(onClose => (
-      <RubyInputDialog
-        onConfirm={(text, ruby) => {
-          const syntax = `[${text}](${ruby})`;
-          restoreAndInsertText(syntax);
-          onClose();
-        }}
-        onClose={onClose}
-        initialText={selectedText}
-      />
-    ));
-  };
+  const toggleMenu = useCallback((menu: Exclude<ToolbarMenu, null>) => {
+    setActiveMenu(previous => previous === menu ? null : menu);
+  }, []);
 
-  // 添加彩色文字
-  const handleAddColor = () => {
-    const selectedText = getSelectedTextForDialog();
-
-    toastWindow(onClose => (
-      <ColorTextDialog
-        initialText={selectedText}
-        onConfirm={(text, color) => {
-          const syntax = `[${text}](style=color:${color})`;
-          restoreAndInsertText(syntax);
-          onClose();
-        }}
-        onClose={onClose}
-      />
-    ));
-  };
-
-  // 添加斜体
-  const handleAddItalic = () => {
-    const selectedText = getSelectedTextForDialog();
-
-    toastWindow(onClose => (
-      <ItalicTextDialog
-        initialText={selectedText}
-        onConfirm={(text) => {
-          const syntax = `[${text}](style=color:inherit style-alltext=font-style:italic\\;)`;
-          restoreAndInsertText(syntax);
-          onClose();
-        }}
-        onClose={onClose}
-      />
-    ));
-  };
-
-  // 高级样式
-  const handleAdvancedStyle = () => {
-    const selectedText = getSelectedTextForDialog();
-
+  const openAdvancedStyle = useCallback(() => {
+    const selectedText = getSelectedText();
+    if (!selectedText.trim()) {
+      return;
+    }
+    setActiveMenu(null);
     toastWindow(onClose => (
       <AdvancedStyleDialog
         initialText={selectedText}
+        onClose={onClose}
         onConfirm={(text, options) => {
-          // 构建语法
-          const params: string[] = [];
-
-          // style-alltext 参数
-          const allTextParts: string[] = [];
-          if (options.italic)
-            allTextParts.push("font-style:italic");
-          if (options.fontSize)
-            allTextParts.push(`font-size:${options.fontSize}`);
-          if (allTextParts.length > 0) {
-            params.push(`style-alltext=${allTextParts.join("\\;")}`);
-          }
-
-          // style 参数
-          if (options.color) {
-            params.push(`style=color:${options.color}`);
-          }
-          else if (allTextParts.length > 0) {
-            // 如果有 style-alltext 但没有 color，需要添加 style=color:inherit 来触发增强语法
-            params.push(`style=color:inherit`);
-          }
-
-          // ruby 参数
-          if (options.ruby) {
-            params.push(`ruby=${options.ruby}`);
-          }
-
-          const syntax = params.length > 0
-            ? `[${text}](${params.join(" ")})`
-            : text;
-
-          restoreAndInsertText(syntax);
+          restoreAndInsertText(buildTextStyleSyntax(text, options));
           onClose();
         }}
-        onClose={onClose}
       />
     ));
-  };
+  }, [getSelectedText, restoreAndInsertText]);
 
   return (
     <FloatingSelectionToolbar
@@ -624,66 +590,67 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       position={externalSelectionActive ? externalSelection?.position ?? null : toolbarPos}
       toolbarRef={toolbarRef}
       className={className}
+      shellClassName="rounded-md"
     >
-      {/* 彩色文字按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onMouseDown={event => runToolbarMouseAction(event, handleAddColor)}
-        onClick={() => runToolbarClickAction(handleAddColor)}
-        title="添加彩色文字"
+      <SplitButton
+        title="文字颜色"
+        menuOpen={activeMenu === "color"}
+        onApply={() => applyStyle({ color: selectedColor })}
+        onToggleMenu={() => toggleMenu("color")}
+        menu={(
+          <ColorMenu
+            selectedColor={selectedColor}
+            onPickColor={setSelectedColor}
+            onApplyColor={(color) => {
+              setSelectedColor(color);
+              applyStyle({ color });
+            }}
+          />
+        )}
       >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
-          <circle cx="8" cy="8" r="4" fill="#FF0000" />
-          <circle cx="16" cy="8" r="4" fill="#00AA00" />
-          <circle cx="12" cy="14" r="4" fill="#0088FF" />
-        </svg>
-        <span>彩色</span>
-      </button>
+        <PaletteIcon size={15} weight="fill" />
+        <span className="size-2 rounded-full" style={{ backgroundColor: selectedColor }} />
+      </SplitButton>
 
-      {/* 斜体按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onMouseDown={event => runToolbarMouseAction(event, handleAddItalic)}
-        onClick={() => runToolbarClickAction(handleAddItalic)}
-        title="添加斜体文字"
+      <ToolbarButton
+        label="斜体"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          applyStyle({ italic: true });
+        }}
       >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M10 5v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V5h-8z" />
-        </svg>
-        <span>斜体</span>
-      </button>
+        <TextItalicIcon size={15} weight="bold" />
+      </ToolbarButton>
 
-      {/* 注音按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onMouseDown={event => runToolbarMouseAction(event, handleAddRuby)}
-        onClick={() => runToolbarClickAction(handleAddRuby)}
-        title="添加注音"
+      <SplitButton
+        title="字号"
+        menuOpen={activeMenu === "fontSize"}
+        onApply={() => applyStyle({ fontSize: selectedFontSize })}
+        onToggleMenu={() => toggleMenu("fontSize")}
+        menu={(
+          <FontSizeMenu
+            selectedFontSize={selectedFontSize}
+            onApplyFontSize={(fontSize) => {
+              setSelectedFontSize(fontSize);
+              applyStyle({ fontSize });
+            }}
+          />
+        )}
       >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <text x="4" y="20" fontSize="12" fill="currentColor" stroke="none">文</text>
-          <text x="14" y="10" fontSize="6" fill="currentColor" stroke="none"></text>
-        </svg>
-        <span>注音</span>
-      </button>
+        <TextAaIcon size={15} weight="bold" />
+        <span>{selectedFontSize}</span>
+      </SplitButton>
 
-      {/* 高级样式按钮 */}
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs px-1.5 gap-0.5 h-6 min-h-0"
-        onMouseDown={event => runToolbarMouseAction(event, handleAdvancedStyle)}
-        onClick={() => runToolbarClickAction(handleAdvancedStyle)}
-        title="高级样式设置"
+      <ToolbarButton
+        label="高级样式"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          openAdvancedStyle();
+        }}
       >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
-          <circle cx="12" cy="12" r="4" />
-        </svg>
+        <GearSixIcon size={15} weight="bold" />
         <span>高级</span>
-      </button>
+      </ToolbarButton>
     </FloatingSelectionToolbar>
   );
 }
