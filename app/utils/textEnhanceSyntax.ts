@@ -39,7 +39,7 @@ export function parseTextEnhanceParams(paramsStr: string): Record<string, string
     }
     const valueStart = (match.index ?? 0) + match[0].length;
     const valueEnd = keyMatches[index + 1]?.index ?? rawParams.length;
-    const value = rawParams.substring(valueStart, valueEnd).trim().replace(/\\;/g, ";");
+    const value = rawParams.substring(valueStart, valueEnd).trim().replace(/\\;/g, ";").replace(/\\,/g, ",");
     params[key] = value;
   }
 
@@ -70,6 +70,59 @@ export function parseTextEnhanceCSSString(cssString: string): Record<string, str
   return style;
 }
 
+function findTextEnhanceParamEnd(content: string, paramsStart: number): number {
+  let parenDepth = 0;
+  for (let index = paramsStart; index < content.length; index += 1) {
+    const char = content[index];
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+    if (char === "(") {
+      parenDepth += 1;
+      continue;
+    }
+    if (char === ")") {
+      if (parenDepth === 0) {
+        return index;
+      }
+      parenDepth -= 1;
+    }
+  }
+  return -1;
+}
+
+function findNextTextEnhanceMatch(content: string, fromIndex: number) {
+  let searchIndex = fromIndex;
+  while (searchIndex < content.length) {
+    const rawStart = content.indexOf("[", searchIndex);
+    if (rawStart < 0) {
+      return null;
+    }
+
+    const textEnd = content.indexOf("](", rawStart + 1);
+    if (textEnd < 0) {
+      return null;
+    }
+
+    const text = content.slice(rawStart + 1, textEnd);
+    const paramsStart = textEnd + 2;
+    const paramsEnd = findTextEnhanceParamEnd(content, paramsStart);
+    if (text.length > 0 && paramsEnd >= 0) {
+      return {
+        params: content.slice(paramsStart, paramsEnd),
+        rawEnd: paramsEnd + 1,
+        rawStart,
+        text,
+      };
+    }
+
+    searchIndex = rawStart + 1;
+  }
+
+  return null;
+}
+
 /**
  * 解析文本增强语法，并保留原始字符串范围和可见文本范围。
  */
@@ -78,35 +131,34 @@ export function parseTextEnhanceSegments(content: string): TextEnhanceSegment[] 
   let lastIndex = 0;
   let visibleOffset = 0;
 
-  TEXT_ENHANCE_PATTERN.lastIndex = 0;
-  let match = TEXT_ENHANCE_PATTERN.exec(content);
+  let match = findNextTextEnhanceMatch(content, lastIndex);
   while (match !== null) {
-    if (match.index > lastIndex) {
-      const text = content.substring(lastIndex, match.index);
+    if (match.rawStart > lastIndex) {
+      const text = content.substring(lastIndex, match.rawStart);
       segments.push({
         type: "text",
         content: text,
         rawStart: lastIndex,
-        rawEnd: match.index,
+        rawEnd: match.rawStart,
         visibleStart: visibleOffset,
         visibleEnd: visibleOffset + text.length,
       });
       visibleOffset += text.length;
     }
 
-    const text = match[1];
+    const text = match.text;
     segments.push({
       type: "enhanced",
       content: text,
-      params: parseTextEnhanceParams(match[2]),
-      rawStart: match.index,
-      rawEnd: match.index + match[0].length,
+      params: parseTextEnhanceParams(match.params),
+      rawStart: match.rawStart,
+      rawEnd: match.rawEnd,
       visibleStart: visibleOffset,
       visibleEnd: visibleOffset + text.length,
     });
     visibleOffset += text.length;
-    lastIndex = match.index + match[0].length;
-    match = TEXT_ENHANCE_PATTERN.exec(content);
+    lastIndex = match.rawEnd;
+    match = findNextTextEnhanceMatch(content, lastIndex);
   }
 
   if (lastIndex < content.length) {
