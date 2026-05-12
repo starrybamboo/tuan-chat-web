@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseTextEnhanceParams } from "@/utils/textEnhanceSyntax";
 
-import { buildTextStyleSyntax } from "./textStyleSyntax";
+import { buildTextStyleSyntax, clearTextStyleSyntax } from "./textStyleSyntax";
 
 describe("textStyleSyntax", () => {
   it("颜色写入 style，斜体和字号写入 style-alltext，并转义 CSS 分号", () => {
@@ -25,6 +25,12 @@ describe("textStyleSyntax", () => {
     })).toBe("[文本](style=background-color:#FEF3C7\\;)");
   });
 
+  it("标题样式写入 style-alltext，仍然只生成 WebGAL 字符串语法", () => {
+    expect(buildTextStyleSyntax("标题", {
+      headingLevel: 1,
+    })).toBe("[标题](style-alltext=font-size:200%\\;font-weight:bold\\;line-height:1.2\\; style=color:inherit\\;)");
+  });
+
   it("保留带空格的 ruby 和 CSS 值", () => {
     const syntax = buildTextStyleSyntax("文本", {
       ruby: "wen ben",
@@ -36,5 +42,9 @@ describe("textStyleSyntax", () => {
       "style": "color:inherit;",
       "ruby": "wen ben",
     });
+  });
+
+  it("清除 WebGAL 文本标记并保留可见文字", () => {
+    expect(clearTextStyleSyntax("A[红字](style=color:#f00\\;)B[笑顔](えがお)")).toBe("A红字B笑顔");
   });
 });

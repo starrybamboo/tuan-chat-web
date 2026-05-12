@@ -1,3 +1,5 @@
+import { extractTextEnhanceVisibleText } from "@/utils/textEnhanceSyntax";
+
 export type TextStyleSyntaxOptions = {
   backgroundColor?: string;
   bold?: boolean;
@@ -5,6 +7,7 @@ export type TextStyleSyntaxOptions = {
   customStyle?: string;
   customStyleAllText?: string;
   fontSize?: string;
+  headingLevel?: 1 | 2 | 3;
   italic?: boolean;
   letterSpacing?: string;
   margin?: string;
@@ -39,6 +42,19 @@ function serializeCssDeclarations(declarations: string[]): string {
   return declarations.map(normalizeCssDeclaration).filter(Boolean).map(item => `${item}\\;`).join("");
 }
 
+function getHeadingCssDeclarations(level: 1 | 2 | 3 | undefined): string[] {
+  switch (level) {
+    case 1:
+      return ["font-size:200%", "font-weight:bold", "line-height:1.2"];
+    case 2:
+      return ["font-size:150%", "font-weight:bold", "line-height:1.25"];
+    case 3:
+      return ["font-size:125%", "font-weight:bold", "line-height:1.35"];
+    default:
+      return [];
+  }
+}
+
 /**
  * 将工具栏选项编码成 WebGAL 文本拓展语法。
  */
@@ -54,6 +70,7 @@ export function buildTextStyleSyntax(text: string, options: TextStyleSyntaxOptio
     ...normalizeCssDeclarations(options.customStyle),
   ];
   const styleAllTextDeclarations = [
+    ...getHeadingCssDeclarations(options.headingLevel),
     ...(options.italic ? ["font-style:italic"] : []),
     ...(options.bold ? ["font-weight:bold"] : []),
     ...(options.underline ? ["text-decoration:underline"] : []),
@@ -84,4 +101,11 @@ export function buildTextStyleSyntax(text: string, options: TextStyleSyntaxOptio
   }
 
   return params.length > 0 ? `[${content}](${params.join(" ")})` : content;
+}
+
+/**
+ * 清除选中文本中的 WebGAL 富文本/注音标记，只保留用户可见文字。
+ */
+export function clearTextStyleSyntax(text: string): string {
+  return extractTextEnhanceVisibleText(String(text ?? ""));
 }
