@@ -15,24 +15,31 @@ export type TextEnhanceSegment = {
  */
 export function parseTextEnhanceParams(paramsStr: string): Record<string, string> {
   const params: Record<string, string> = {};
+  const rawParams = paramsStr.trim();
 
-  if (!paramsStr.trim()) {
+  if (!rawParams) {
     return params;
   }
 
-  if (!paramsStr.includes("=")) {
-    params.ruby = paramsStr;
+  if (!rawParams.includes("=")) {
+    params.ruby = rawParams;
     return params;
   }
 
-  const parts = paramsStr.split(/(?<!\\)\s+/);
-  for (const part of parts) {
-    const eqIndex = part.indexOf("=");
-    if (eqIndex <= 0) {
+  const keyMatches = [...rawParams.matchAll(/(?:^|\s)([a-z][\w-]*)=/gi)];
+  if (keyMatches.length === 0) {
+    return params;
+  }
+
+  for (let index = 0; index < keyMatches.length; index += 1) {
+    const match = keyMatches[index];
+    const key = match[1]?.trim();
+    if (!key) {
       continue;
     }
-    const key = part.substring(0, eqIndex).trim();
-    const value = part.substring(eqIndex + 1).trim().replace(/\\;/g, ";");
+    const valueStart = (match.index ?? 0) + match[0].length;
+    const valueEnd = keyMatches[index + 1]?.index ?? rawParams.length;
+    const value = rawParams.substring(valueStart, valueEnd).trim().replace(/\\;/g, ";");
     params[key] = value;
   }
 
