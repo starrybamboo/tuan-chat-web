@@ -5,6 +5,7 @@ import type { FloatingSelectionToolbarPosition } from "@/components/common/float
 import {
   CaretDownIcon,
   GearSixIcon,
+  HighlighterIcon,
   PaletteIcon,
   TextAaIcon,
   TextBIcon,
@@ -35,9 +36,10 @@ interface TextStyleToolbarProps {
   className?: string;
 }
 
-type ToolbarMenu = "color" | "fontSize" | null;
+type ToolbarMenu = "backgroundColor" | "color" | "fontSize" | null;
 
 const DEFAULT_COLOR = "#E11D48";
+const DEFAULT_BACKGROUND_COLOR = "#FEF3C7";
 const DEFAULT_FONT_SIZE = "120%";
 const COLOR_OPTIONS = [
   "#111827",
@@ -50,6 +52,18 @@ const COLOR_OPTIONS = [
   "#9333EA",
   "#DB2777",
   "#64748B",
+] as const;
+const BACKGROUND_COLOR_OPTIONS = [
+  "#FEF3C7",
+  "#FDE68A",
+  "#DCFCE7",
+  "#CCFBF1",
+  "#DBEAFE",
+  "#EDE9FE",
+  "#FCE7F3",
+  "#FFE4E6",
+  "#E5E7EB",
+  "#F8FAFC",
 ] as const;
 const FONT_SIZE_OPTIONS = ["80%", "90%", "100%", "110%", "120%", "150%", "200%"] as const;
 const LETTER_SPACING_OPTIONS = ["0.02em", "0.05em", "0.1em", "0.2em"] as const;
@@ -141,17 +155,22 @@ function DropdownPanel({ children }: { children: ReactNode }) {
     <div
       className="absolute left-0 top-8 z-[10000] min-w-44 rounded-md border border-base-300 bg-base-100 p-2 text-xs shadow-xl"
       onMouseDown={event => event.stopPropagation()}
+      role="presentation"
     >
       {children}
     </div>
   );
 }
 
-function ColorMenu({
+function SwatchMenu({
+  label,
+  options,
   selectedColor,
   onApplyColor,
   onPickColor,
 }: {
+  label: string;
+  options: readonly string[];
   selectedColor: string;
   onApplyColor: (color: string) => void;
   onPickColor: (color: string) => void;
@@ -159,7 +178,7 @@ function ColorMenu({
   return (
     <DropdownPanel>
       <div className="grid grid-cols-5 gap-1.5">
-        {COLOR_OPTIONS.map(color => (
+        {options.map(color => (
           <button
             key={color}
             type="button"
@@ -173,7 +192,7 @@ function ColorMenu({
               onApplyColor(color);
             }}
             title={color}
-            aria-label={`文字颜色 ${color}`}
+            aria-label={`${label} ${color}`}
           />
         ))}
       </div>
@@ -185,8 +204,8 @@ function ColorMenu({
           onChange={(event) => {
             onPickColor(event.target.value);
           }}
-          title="自定义颜色"
-          aria-label="自定义颜色"
+          title={`自定义${label}`}
+          aria-label={`自定义${label}`}
         />
         <button
           type="button"
@@ -253,10 +272,6 @@ function AdvancedStyleDialog({
 }) {
   const [text, setText] = useState(initialText || "");
   const [ruby, setRuby] = useState("");
-  const [bold, setBold] = useState(false);
-  const [underline, setUnderline] = useState(false);
-  const [backgroundEnabled, setBackgroundEnabled] = useState(false);
-  const [backgroundColor, setBackgroundColor] = useState("#FEF3C7");
   const [letterSpacing, setLetterSpacing] = useState("");
   const [opacity, setOpacity] = useState("");
   const [textShadow, setTextShadow] = useState("");
@@ -266,9 +281,6 @@ function AdvancedStyleDialog({
   const [customStyleAllText, setCustomStyleAllText] = useState("");
 
   const previewStyle: CSSProperties = {
-    ...(bold ? { fontWeight: "bold" } : {}),
-    ...(underline ? { textDecoration: "underline" } : {}),
-    ...(backgroundEnabled ? { backgroundColor } : {}),
     ...(letterSpacing ? { letterSpacing } : {}),
     ...(opacity ? { opacity } : {}),
     ...(textShadow ? { textShadow } : {}),
@@ -302,19 +314,6 @@ function AdvancedStyleDialog({
       </label>
 
       <div className="grid grid-cols-2 gap-2">
-        <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1.5">
-          <input type="checkbox" checked={bold} onChange={event => setBold(event.target.checked)} />
-          <TextBIcon size={15} weight="bold" />
-          <span className="text-sm">粗体</span>
-        </label>
-        <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1.5">
-          <input type="checkbox" checked={underline} onChange={event => setUnderline(event.target.checked)} />
-          <TextUnderlineIcon size={15} weight="bold" />
-          <span className="text-sm">下划线</span>
-        </label>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1">
           <FieldLabel>字距</FieldLabel>
           <select
@@ -337,24 +336,6 @@ function AdvancedStyleDialog({
             {OPACITY_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
-      </div>
-
-      <div className="grid grid-cols-[auto_1fr] items-center gap-2 rounded-md border border-base-300 px-2 py-2">
-        <input
-          type="checkbox"
-          checked={backgroundEnabled}
-          onChange={event => setBackgroundEnabled(event.target.checked)}
-          aria-label="启用背景色"
-        />
-        <div className="flex items-center gap-2">
-          <FieldLabel>背景色</FieldLabel>
-          <input
-            type="color"
-            className="h-7 w-8 cursor-pointer rounded border border-base-300 bg-transparent"
-            value={backgroundColor}
-            onChange={event => setBackgroundColor(event.target.value)}
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -399,7 +380,7 @@ function AdvancedStyleDialog({
             <input
               type="text"
               className={textInputClassName()}
-              placeholder="color:#66327C; background-color:#FEF3C7"
+              placeholder="color:#66327C"
               value={customStyle}
               onChange={event => setCustomStyle(event.target.value)}
             />
@@ -409,7 +390,7 @@ function AdvancedStyleDialog({
             <input
               type="text"
               className={textInputClassName()}
-              placeholder="font-weight:bold; letter-spacing:0.05em"
+              placeholder="letter-spacing:0.05em"
               value={customStyleAllText}
               onChange={event => setCustomStyleAllText(event.target.value)}
             />
@@ -446,8 +427,6 @@ function AdvancedStyleDialog({
               return;
             }
             onConfirm(normalizedText, {
-              backgroundColor: backgroundEnabled ? backgroundColor : undefined,
-              bold,
               customStyle,
               customStyleAllText,
               letterSpacing: letterSpacing || undefined,
@@ -456,7 +435,6 @@ function AdvancedStyleDialog({
               padding: normalizeTextInput(padding) || undefined,
               ruby: normalizeTextInput(ruby) || undefined,
               textShadow: normalizeTextInput(textShadow) || undefined,
-              underline,
             });
           }}
         >
@@ -473,6 +451,7 @@ function AdvancedStyleDialog({
 function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visible = true, className = "" }: TextStyleToolbarProps) {
   const [activeMenu, setActiveMenu] = useState<ToolbarMenu>(null);
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLOR);
+  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState(DEFAULT_BACKGROUND_COLOR);
   const [selectedFontSize, setSelectedFontSize] = useState(DEFAULT_FONT_SIZE);
   const externalSelectionActive = Boolean(
     visible
@@ -592,13 +571,45 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       className={className}
       shellClassName="rounded-md"
     >
+      <ToolbarButton
+        label="粗体"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          applyStyle({ bold: true });
+        }}
+      >
+        <TextBIcon size={15} weight="bold" />
+      </ToolbarButton>
+
+      <ToolbarButton
+        label="斜体"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          applyStyle({ italic: true });
+        }}
+      >
+        <TextItalicIcon size={15} weight="bold" />
+      </ToolbarButton>
+
+      <ToolbarButton
+        label="下划线"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          applyStyle({ underline: true });
+        }}
+      >
+        <TextUnderlineIcon size={15} weight="bold" />
+      </ToolbarButton>
+
       <SplitButton
         title="文字颜色"
         menuOpen={activeMenu === "color"}
         onApply={() => applyStyle({ color: selectedColor })}
         onToggleMenu={() => toggleMenu("color")}
         menu={(
-          <ColorMenu
+          <SwatchMenu
+            label="文字颜色"
+            options={COLOR_OPTIONS}
             selectedColor={selectedColor}
             onPickColor={setSelectedColor}
             onApplyColor={(color) => {
@@ -612,15 +623,27 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
         <span className="size-2 rounded-full" style={{ backgroundColor: selectedColor }} />
       </SplitButton>
 
-      <ToolbarButton
-        label="斜体"
-        onMouseDown={(event) => {
-          preventSelectionLoss(event);
-          applyStyle({ italic: true });
-        }}
+      <SplitButton
+        title="背景色"
+        menuOpen={activeMenu === "backgroundColor"}
+        onApply={() => applyStyle({ backgroundColor: selectedBackgroundColor })}
+        onToggleMenu={() => toggleMenu("backgroundColor")}
+        menu={(
+          <SwatchMenu
+            label="背景色"
+            options={BACKGROUND_COLOR_OPTIONS}
+            selectedColor={selectedBackgroundColor}
+            onPickColor={setSelectedBackgroundColor}
+            onApplyColor={(backgroundColor) => {
+              setSelectedBackgroundColor(backgroundColor);
+              applyStyle({ backgroundColor });
+            }}
+          />
+        )}
       >
-        <TextItalicIcon size={15} weight="bold" />
-      </ToolbarButton>
+        <HighlighterIcon size={15} weight="fill" />
+        <span className="size-2 rounded-full border border-base-content/20" style={{ backgroundColor: selectedBackgroundColor }} />
+      </SplitButton>
 
       <SplitButton
         title="字号"

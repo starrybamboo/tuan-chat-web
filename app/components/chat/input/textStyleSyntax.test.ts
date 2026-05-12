@@ -19,6 +19,12 @@ describe("textStyleSyntax", () => {
     })).toBe("[文本](style-alltext=font-weight:bold\\; style=color:inherit\\;)");
   });
 
+  it("背景色写入 style，适合作为高亮入口直接应用", () => {
+    expect(buildTextStyleSyntax("文本", {
+      backgroundColor: "#FEF3C7",
+    })).toBe("[文本](style=background-color:#FEF3C7\\;)");
+  });
+
   it("保留带空格的 ruby 和 CSS 值", () => {
     const syntax = buildTextStyleSyntax("文本", {
       ruby: "wen ben",
