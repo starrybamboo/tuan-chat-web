@@ -4,11 +4,15 @@ import type { FloatingSelectionToolbarPosition } from "@/components/common/float
 
 import {
   CaretDownIcon,
+  EraserIcon,
   GearSixIcon,
   HighlighterIcon,
   PaletteIcon,
   TextAaIcon,
   TextBIcon,
+  TextHOneIcon,
+  TextHThreeIcon,
+  TextHTwoIcon,
   TextItalicIcon,
   TextUnderlineIcon,
 } from "@phosphor-icons/react";
@@ -17,7 +21,9 @@ import { useCallback, useState } from "react";
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
-import { buildTextStyleSyntax } from "./textStyleSyntax";
+import { buildTextStyleSyntax, clearTextStyleSyntax } from "./textStyleSyntax";
+
+type SelectionTransform = (selectedText: string) => string;
 
 interface TextStyleToolbarProps {
   /** 输入框的 ref，用于插入文本 */
@@ -29,14 +35,14 @@ interface TextStyleToolbarProps {
     visible?: boolean;
   };
   /** 外部选区的替换入口。未提供时仍使用聊天室输入框 DOM 选区。 */
-  onInsertText?: (text: string, selectedText: string) => void;
+  onInsertText?: (text: string, selectedText: string, options?: { transform?: SelectionTransform }) => void;
   /** 是否显示工具栏 */
   visible?: boolean;
   /** 额外的 className */
   className?: string;
 }
 
-type ToolbarMenu = "backgroundColor" | "color" | "fontSize" | null;
+type ToolbarMenu = "backgroundColor" | "color" | "fontSize" | "heading" | null;
 
 const DEFAULT_COLOR = "#E11D48";
 const DEFAULT_BACKGROUND_COLOR = "#FEF3C7";
@@ -66,6 +72,11 @@ const BACKGROUND_COLOR_OPTIONS = [
   "#F8FAFC",
 ] as const;
 const FONT_SIZE_OPTIONS = ["80%", "90%", "100%", "110%", "120%", "150%", "200%"] as const;
+const HEADING_OPTIONS = [
+  { label: "一级标题", level: 1 },
+  { label: "二级标题", level: 2 },
+  { label: "三级标题", level: 3 },
+] as const;
 const LETTER_SPACING_OPTIONS = ["0.02em", "0.05em", "0.1em", "0.2em"] as const;
 const OPACITY_OPTIONS = ["0.55", "0.7", "0.85", "1"] as const;
 
@@ -222,6 +233,16 @@ function SwatchMenu({
   );
 }
 
+function HeadingIcon({ level }: { level: 1 | 2 | 3 }) {
+  if (level === 1) {
+    return <TextHOneIcon size={15} weight="bold" />;
+  }
+  if (level === 2) {
+    return <TextHTwoIcon size={15} weight="bold" />;
+  }
+  return <TextHThreeIcon size={15} weight="bold" />;
+}
+
 function FontSizeMenu({
   selectedFontSize,
   onApplyFontSize,
@@ -246,6 +267,33 @@ function FontSizeMenu({
             }}
           >
             {size}
+          </button>
+        ))}
+      </div>
+    </DropdownPanel>
+  );
+}
+
+function HeadingMenu({
+  onApplyHeading,
+}: {
+  onApplyHeading: (level: 1 | 2 | 3) => void;
+}) {
+  return (
+    <DropdownPanel>
+      <div className="flex min-w-28 flex-col gap-1">
+        {HEADING_OPTIONS.map(option => (
+          <button
+            key={option.level}
+            type="button"
+            className="flex h-7 items-center gap-2 rounded-md px-2 text-left transition hover:bg-base-200"
+            onMouseDown={(event) => {
+              preventSelectionLoss(event);
+              onApplyHeading(option.level);
+            }}
+          >
+            <HeadingIcon level={option.level} />
+            <span>{option.label}</span>
           </button>
         ))}
       </div>
@@ -487,9 +535,9 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
     return savedSelectionRef.current?.text || "";
   }, [externalSelection?.text, externalSelectionActive, saveSelection, savedSelectionRef]);
 
-  const restoreAndInsertText = useCallback((text: string) => {
+  const restoreAndInsertText = useCallback((text: string, options?: { transform?: SelectionTransform }) => {
     if (externalSelectionActive && onInsertText) {
-      onInsertText(text, externalSelection?.text ?? "");
+      onInsertText(text, externalSelection?.text ?? "", options);
       return;
     }
 
@@ -541,6 +589,15 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
     setActiveMenu(null);
   }, [getSelectedText, restoreAndInsertText]);
 
+  const clearStyle = useCallback(() => {
+    const selectedText = getSelectedText();
+    if (!selectedText.trim()) {
+      return;
+    }
+    restoreAndInsertText(clearTextStyleSyntax(selectedText), { transform: clearTextStyleSyntax });
+    setActiveMenu(null);
+  }, [getSelectedText, restoreAndInsertText]);
+
   const toggleMenu = useCallback((menu: Exclude<ToolbarMenu, null>) => {
     setActiveMenu(previous => previous === menu ? null : menu);
   }, []);
@@ -569,8 +626,22 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       position={externalSelectionActive ? externalSelection?.position ?? null : toolbarPos}
       toolbarRef={toolbarRef}
       className={className}
-      shellClassName="rounded-md"
+      shellClassName="max-w-[calc(100vw-1rem)] flex-wrap rounded-md"
     >
+      <SplitButton
+        title="标题"
+        menuOpen={activeMenu === "heading"}
+        onApply={() => applyStyle({ headingLevel: 1 })}
+        onToggleMenu={() => toggleMenu("heading")}
+        menu={(
+          <HeadingMenu
+            onApplyHeading={headingLevel => applyStyle({ headingLevel })}
+          />
+        )}
+      >
+        <TextHOneIcon size={15} weight="bold" />
+      </SplitButton>
+
       <ToolbarButton
         label="粗体"
         onMouseDown={(event) => {
@@ -663,6 +734,16 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
         <TextAaIcon size={15} weight="bold" />
         <span>{selectedFontSize}</span>
       </SplitButton>
+
+      <ToolbarButton
+        label="清除标记"
+        onMouseDown={(event) => {
+          preventSelectionLoss(event);
+          clearStyle();
+        }}
+      >
+        <EraserIcon size={15} weight="bold" />
+      </ToolbarButton>
 
       <ToolbarButton
         label="高级样式"

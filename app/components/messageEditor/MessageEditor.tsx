@@ -663,9 +663,15 @@ export default function MessageEditor({
     focusAfterSelectionEdit(focus);
   }, [focusAfterSelectionEdit]);
 
-  const handleTextStyleInsert = useCallback((replacement: string, selectedText: string) => {
+  const handleTextStyleInsert = useCallback((replacement: string, selectedText: string, options?: { transform?: (selectedPart: string) => string }) => {
     const selection = crossBlockSelection?.selection ?? resolveEditorSelection(true);
     if (!selection || selection.collapsed) {
+      return;
+    }
+
+    if (options?.transform) {
+      const focus = controllerRef.current?.transformSelectionText(selection, options.transform) ?? null;
+      focusAfterSelectionEdit(focus);
       return;
     }
 
