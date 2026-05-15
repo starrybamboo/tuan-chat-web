@@ -452,7 +452,6 @@ export default defineConfig(() => {
         "style-to-js",
         "debug",
         "extend",
-        "bind-event-listener",
         "bytes",
         "dagre",
         "qrcode",
@@ -470,13 +469,11 @@ export default defineConfig(() => {
         "lodash/throttle",
         "lodash/memoize",
         "lodash/isObject",
-        "lodash.ismatch",
         "lodash/isPlainObject",
         "use-sync-external-store/shim/with-selector",
         "use-sync-external-store/shim/with-selector.js",
         "use-sync-external-store/shim/index.js",
         "use-sync-external-store/shim",
-        "simple-xml-to-json",
         "react-fast-compare",
 
         // Fix CJS/ESM interop for minimatch/glob transitive deps.
