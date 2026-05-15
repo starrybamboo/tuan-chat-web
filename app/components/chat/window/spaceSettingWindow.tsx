@@ -270,6 +270,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               {/* 右侧：空间描述文档 */}
               <div className="flex-1 min-w-0 min-h-0">
                 <MessageEditor
+                  className="h-full min-h-0 rounded-md"
                   coverUrl={avatarThumbUrl(space?.avatarFileId)}
                   docId={spaceId ? `space:${spaceId}:description` : undefined}
                   title={space?.name ?? ""}

@@ -543,6 +543,7 @@ export default function ChatPageSubWindow({
                     ? (
                         <div className="w-full h-full overflow-hidden bg-base-100">
                           <MessageEditor
+                            className="h-full min-h-0 rounded-none"
                             docId={resolvedDocId}
                             spaceId={activeSpaceId}
                             tcHeader={{

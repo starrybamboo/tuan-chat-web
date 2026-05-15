@@ -110,9 +110,18 @@ const MESSAGE_EDITOR_HISTORY_LIMIT = 100;
 const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
 const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
+const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-full min-h-0 rounded-md";
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
+}
+
+/**
+ * 解析编辑器外框类名。
+ * 默认值必须适配抽屉、弹窗和分栏容器，避免用 viewport 最小高度把父容器撑爆。
+ */
+export function getMessageEditorFrameClassName(className?: string) {
+  return className ?? MESSAGE_EDITOR_DEFAULT_FRAME_CLASS;
 }
 
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
@@ -228,7 +237,7 @@ export default function MessageEditor({
   title,
   workspaceId: _workspaceId,
 }: MessageEditorProps) {
-  const frameClassName = className ?? "min-h-screen min-h-[100svh] rounded-md";
+  const frameClassName = getMessageEditorFrameClassName(className);
   const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
   const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
   const resolvedDocId = docId?.trim() || undefined;
