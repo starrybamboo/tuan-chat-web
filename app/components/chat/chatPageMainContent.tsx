@@ -1,3 +1,4 @@
+import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
@@ -16,6 +17,26 @@ function ChatPageLoadingFallback({ text }: { text: string }) {
     <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">{text}</span>
+    </div>
+  );
+}
+
+interface ChatPageDocToolbarProps {
+  onBack?: () => void;
+}
+
+function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
+  return (
+    <div className="flex h-10 items-center gap-2 border-b border-gray-300 bg-base-100 px-2 dark:border-gray-700">
+      <button
+        type="button"
+        className="btn btn-ghost btn-square btn-sm rounded-md active:scale-95"
+        onClick={() => onBack?.()}
+        aria-label="返回房间"
+        title="返回房间"
+      >
+        <ArrowLeftIcon className="size-4" weight="bold" />
+      </button>
     </div>
   );
 }
@@ -129,6 +150,7 @@ interface ChatPageDocContentProps {
   spaceId?: number | null;
   docId?: string | null;
   canViewDocs?: boolean;
+  onBack?: () => void;
   tcHeaderTitle?: string;
   tcHeaderImageUrl?: string;
   tcHeaderImageFileId?: number;
@@ -147,6 +169,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   const resolvedDocId = props.docId ?? activeDocId;
   const canViewDocs = props.canViewDocs ?? isKPInSpace;
   const tcHeaderTitle = props.tcHeaderTitle ?? activeDocTitleForTcHeader;
+  const handleBack = props.onBack;
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
@@ -161,21 +184,24 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
       <div className="w-full h-full overflow-hidden flex justify-center">
         {canViewDocs
           ? (
-              <div className="w-full h-full min-h-0 overflow-hidden bg-base-100">
-                <MessageEditor
-                  className="h-full min-h-0 rounded-none"
-                  docId={resolvedDocId}
-                  spaceId={resolvedSpaceId ?? -1}
-                  tcHeader={{
-                    enabled: true,
-                    fallbackTitle: tcHeaderTitle,
-                    fallbackImageUrl: props.tcHeaderImageUrl,
-                    fallbackImageFileId: props.tcHeaderImageFileId,
-                    fallbackOriginalImageFileId: props.tcHeaderOriginalImageFileId,
-                    fallbackImageMediaType: props.tcHeaderImageMediaType,
-                  }}
-                  workspaceId={`space:${resolvedSpaceId ?? -1}`}
-                />
+              <div className="flex w-full h-full min-h-0 flex-col overflow-hidden bg-base-100">
+                <ChatPageDocToolbar onBack={handleBack} />
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <MessageEditor
+                    className="h-full min-h-0 rounded-none !border-t-0"
+                    docId={resolvedDocId}
+                    spaceId={resolvedSpaceId ?? -1}
+                    tcHeader={{
+                      enabled: true,
+                      fallbackTitle: tcHeaderTitle,
+                      fallbackImageUrl: props.tcHeaderImageUrl,
+                      fallbackImageFileId: props.tcHeaderImageFileId,
+                      fallbackOriginalImageFileId: props.tcHeaderOriginalImageFileId,
+                      fallbackImageMediaType: props.tcHeaderImageMediaType,
+                    }}
+                    workspaceId={`space:${resolvedSpaceId ?? -1}`}
+                  />
+                </div>
               </div>
             )
           : (
