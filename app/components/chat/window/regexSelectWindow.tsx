@@ -1,5 +1,5 @@
 import type { ChatMessageResponse } from "../../../../api";
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 

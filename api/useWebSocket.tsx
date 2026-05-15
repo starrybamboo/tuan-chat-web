@@ -2,7 +2,7 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 import { formatLocalDateTime } from "@/utils/dateUtil";
 import { useQueryClient } from "@tanstack/react-query";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef} from "react";
 import { useImmer } from "use-immer";
 import { recoverAuthTokenFromSession } from "./authRecovery";
 import type { ChatStatusEvent, DirectMessageEvent } from "./wsModels";
@@ -56,8 +56,6 @@ const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 const WS_URL = import.meta.env.VITE_API_WS_URL;
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 const OPTIMISTIC_DIRECT_MESSAGE_ID_BASE = Date.now() * 1000;
-const WS_MESSAGE_DEBUG_PREFIX = "[TC_WS_MSG]";
-
 type WsDebugState = {
   implementedTypes: number[];
   unhandledTypes: number[];

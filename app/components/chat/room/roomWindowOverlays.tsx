@@ -1,6 +1,5 @@
 import type { UserRole } from "../../../../api";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
-import React from "react";
 
 import RoomToastWindows from "@/components/chat/room/roomToastWindows";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";

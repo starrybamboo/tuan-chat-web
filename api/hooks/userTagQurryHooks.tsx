@@ -9,7 +9,7 @@ import { tuanchat } from "../instance";
 /**
  * 获取单个标签信息
  */
-function useGetTagQuery(id: number) {
+export function useGetTagQuery(id: number) {
     return useQuery({
         queryKey: ["getTag", id],
         queryFn: () => tuanchat.tagController.getTag(id),
@@ -33,7 +33,7 @@ export function useGetTagsQuery(request: TagGetRequest) {
 /**
  * 获取标签使用次数
  */
-function useGetTagUsageCountQuery(request: TagUsageRequest) {
+export function useGetTagUsageCountQuery(request: TagUsageRequest) {
     return useQuery({
         queryKey: ["getTagUsageCount", request],
         queryFn: () => tuanchat.tagController.getTagUsageCount(request),
@@ -50,7 +50,7 @@ export function useAddTagMutation() {
     return useMutation({
         mutationFn: (req: TagAddRequest) => tuanchat.tagController.addTag(req),
         mutationKey: ["addTag"],
-        onSuccess: (_, variables) => {
+        onSuccess: () => {
             // 刷新相关的查询缓存
             queryClient.invalidateQueries({ queryKey: ["getTags"] });
             // 如果有特定的标签类型，可以更精确地刷新
@@ -62,7 +62,7 @@ export function useAddTagMutation() {
 /**
  * 更新标签
  */
-function useUpdateTagMutation() {
+export function useUpdateTagMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: TagUpdateRequest) => tuanchat.tagController.updateTag(req),
@@ -93,6 +93,5 @@ export function useDeleteTagMutation() {
         },
     });
 }
-
 
 

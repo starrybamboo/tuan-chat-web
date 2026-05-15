@@ -77,7 +77,7 @@ export function useCreateRuleMutation() {
 /**
  * 克隆规则
  */
-function useCloneRuleMutation() {
+export function useCloneRuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RuleCloneRequest) => tuanchat.ruleController.cloneRule(req),
@@ -100,7 +100,7 @@ export function useGetRuleDetailQuery(ruleId: number) {
         enabled: ruleId > 0 // 只有ruleId有效时才启用查询
     });
 }
-function useGetRuleDetailQueries(ruleIds: number[]) {
+export function useGetRuleDetailQueries(ruleIds: number[]) {
     return useQueries({
         queries: ruleIds.map(ruleId => ({
             queryKey: ['getRuleDetail', ruleId],
@@ -186,7 +186,7 @@ async function fetchRules(page: number, keyword?: string, pageSize: number = 4, 
  * @param keyword 搜索关键词
  * @param pageSize 每页大小
  */
-function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
+export function useRulePageQuery(page: number, keyword?: string, pageSize: number = 8) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -283,4 +283,3 @@ export function useAllRuleListQuery(pageSize: number = 100, enabled: boolean = t
     enabled,
   });
 }
-

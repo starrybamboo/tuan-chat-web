@@ -140,7 +140,7 @@ function findEditablePositionByOffset(root: HTMLElement, targetOffset: number): 
       return null;
     }
 
-    node.childNodes.forEach((child, index) => {
+    node.childNodes.forEach((_child, index) => {
       fallback = {
         node,
         offset: index + 1,

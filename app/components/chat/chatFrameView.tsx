@@ -1,5 +1,4 @@
 import type { ComponentProps } from "react";
-import React from "react";
 
 import ChatFrameList from "@/components/chat/chatFrameList";
 import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";

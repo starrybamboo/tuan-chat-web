@@ -1,5 +1,5 @@
 import type { Message } from "../../../../../api";
-import React, { use } from "react";
+import { use } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";

@@ -1,5 +1,5 @@
 import type { ChatMessageResponse } from "../../../api";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { isImageMessageBackground } from "@/types/messageAnnotations";

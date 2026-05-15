@@ -15,7 +15,7 @@ export function useUpdateResourceMutation() {
     return useMutation({
         mutationFn: (req: ResourceUpdateRequest) => tuanchat.resourceController.updateResource(req),
         mutationKey: ["updateResource"],
-        onSuccess: (data, variables) => {
+        onSuccess: (_, variables) => {
             // 更精确的缓存更新 - 更新特定资源的缓存
             queryClient.invalidateQueries({ 
                 queryKey: ["userResources"], 
@@ -35,13 +35,14 @@ export function useUpdateResourceMutation() {
 /**
  * 获取当前用户的资源（按类型）
  */
-export function useGetUserResourcesByTypeQuery(request: ResourcePageRequest, p0: {
+export function useGetUserResourcesByTypeQuery(request: ResourcePageRequest, options: {
     enabled: boolean;
 }) {
     return useQuery({
         queryKey: ["userResources", request],
         queryFn: () => tuanchat.resourceController.getUserResourcesByType(request),
         staleTime: 10000,
+        enabled: options.enabled,
     });
 }
 
@@ -53,7 +54,7 @@ export function useUploadResourceMutation() {
     return useMutation({
         mutationFn: (req: ResourceUploadRequest) => tuanchat.resourceController.uploadResource(req),
         mutationKey: ["uploadResource"],
-        onSuccess: (data, variables) => {
+        onSuccess: (_, variables) => {
             // 根据上传的资源类型和公开性，精确更新相关缓存
             if (variables.isPublic) {
                 queryClient.invalidateQueries({ 
@@ -129,7 +130,7 @@ export function useBatchAddResourcesToCollectionMutation() {
     return useMutation({
         mutationFn: (req: ResourceBatchAddToCollectionRequest) => tuanchat.resourceController.batchAddResourcesToCollection(req),
         mutationKey: ["batchAddResourcesToCollection"],
-        onSuccess: (data, variables) => {
+        onSuccess: (_, variables) => {
             // 精确更新相关缓存
             queryClient.invalidateQueries({ 
                 queryKey: ["userResources"],
@@ -194,7 +195,7 @@ export function useBatchAddResourcesToCollectionMutation() {
 /**
  * 获取资源详情
  */
-function useGetResourceDetailQuery(resourceId: number) {
+export function useGetResourceDetailQuery(resourceId: number) {
     return useQuery({
         queryKey: ["resourceDetail", resourceId],
         queryFn: () => tuanchat.resourceController.getResourceDetail(resourceId),
@@ -211,7 +212,7 @@ export function useDeleteResourceMutation() {
     return useMutation({
         mutationFn: (resourceId: number) => tuanchat.resourceController.deleteResource(resourceId),
         mutationKey: ["deleteResource"],
-        onSuccess: (data, deletedResourceId) => {
+        onSuccess: (_, deletedResourceId) => {
             // 精确更新缓存，移除被删除的资源
             queryClient.invalidateQueries({ 
                 queryKey: ["userResources"],
@@ -270,39 +271,42 @@ export function useDeleteResourceMutation() {
 /**
  * 获取公开资源（按类型）
  */
-export function useGetPublicResourcesByTypeQuery(request: ResourcePageRequest, p0: {
+export function useGetPublicResourcesByTypeQuery(request: ResourcePageRequest, options: {
     enabled: boolean;
 }) {
     return useQuery({
         queryKey: ["publicResources", request],
         queryFn: () => tuanchat.resourceController.getPublicResourcesByType(request),
         staleTime: 10000,
+        enabled: options.enabled,
     });
 }
 
 /**
  * 获取当前用户的资源集合（按类型）
  */
-export function useGetUserResourceCollectionsByTypeQuery(request: ResourcePageRequest, p0: {
+export function useGetUserResourceCollectionsByTypeQuery(request: ResourcePageRequest, options: {
     enabled: boolean;
 }) {
     return useQuery({
         queryKey: ["userResourceCollections", request],
         queryFn: () => tuanchat.resourceController.getUserResourceCollectionsByType(request),
         staleTime: 10000,
+        enabled: options.enabled,
     });
 }
 
 /**
  * 获取公开资源集合（按类型）
  */
-export function useGetPublicResourceCollectionsByTypeQuery(request: ResourcePageRequest, p0: {
+export function useGetPublicResourceCollectionsByTypeQuery(request: ResourcePageRequest, options: {
     enabled: boolean;
 }) {
     return useQuery({
         queryKey: ["publicResourceCollections", request],
         queryFn: () => tuanchat.resourceController.getPublicResourceCollectionsByType(request),
         staleTime: 10000,
+        enabled: options.enabled,
     });
 }
 
@@ -314,7 +318,7 @@ export function useCreateResourceCollectionMutation() {
     return useMutation({
         mutationFn: (req: ResourceCollectionCreateRequest) => tuanchat.resourceController.createResourceCollection(req),
         mutationKey: ["createResourceCollection"],
-        onSuccess: (data, variables) => {
+        onSuccess: (_, variables) => {
             // 根据创建的收藏集是否公开，精确更新相应缓存
             if (variables.isPublic) {
                 queryClient.invalidateQueries({ 
@@ -365,5 +369,4 @@ export function useCreateResourceCollectionMutation() {
         },
     });
 }
-
 

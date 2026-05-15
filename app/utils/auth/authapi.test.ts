@@ -2,14 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { queryClient } from "@/queryClient";
 
-import { loginUser, logoutUser } from "./authapi";
+import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser } from "./authapi";
 
 const {
   getUserInfoByUsernameMock,
+  getMyUserInfoMock,
   loginMock,
   logoutMock,
 } = vi.hoisted(() => ({
   getUserInfoByUsernameMock: vi.fn(),
+  getMyUserInfoMock: vi.fn(),
   loginMock: vi.fn(),
   logoutMock: vi.fn(),
 }));
@@ -18,6 +20,7 @@ vi.mock("../../../api/instance", () => ({
   tuanchat: {
     userController: {
       getUserInfoByUsername: getUserInfoByUsernameMock,
+      getMyUserInfo: getMyUserInfoMock,
       login: loginMock,
       logout: logoutMock,
     },
@@ -77,12 +80,60 @@ describe("authapi query cache boundary", () => {
     installLocalStorage();
     queryClient.setQueryData(["getUserSpaces"], { success: true, data: [{ spaceId: 1 }] });
     loginMock.mockResolvedValueOnce({ success: true, data: "token-new" });
+    getMyUserInfoMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        userId: 1001,
+      },
+    });
 
     await loginUser({ username: "1001", password: "pwd" }, "userId");
 
     expect(queryClient.getQueryData(["getUserSpaces"])).toBeUndefined();
     expect(localStorage.getItem("token")).toBe("token-new");
     expect(localStorage.getItem("uid")).toBe("1001");
+    expect(queryClient.getQueryData(getAuthStatusQueryKey())).toEqual({
+      isLoggedIn: true,
+      token: "token-new",
+      uid: 1001,
+    });
+  });
+
+  it("用户名登录后如果无法补全 uid，不应保留旧账号 uid", async () => {
+    installLocalStorage();
+    localStorage.setItem("uid", "9999");
+    loginMock.mockResolvedValueOnce({ success: true, data: "token-new" });
+    getMyUserInfoMock.mockRejectedValueOnce(new Error("network"));
+    getUserInfoByUsernameMock.mockRejectedValueOnce(new Error("lookup failed"));
+
+    await loginUser({ username: "alice", password: "pwd" }, "username");
+
+    expect(localStorage.getItem("token")).toBe("token-new");
+    expect(localStorage.getItem("uid")).toBeNull();
+    expect(queryClient.getQueryData(getAuthStatusQueryKey())).toEqual({
+      isLoggedIn: true,
+      token: "token-new",
+    });
+  });
+
+  it("checkAuthStatus 会用当前用户信息校准并回填 uid", async () => {
+    installLocalStorage();
+    localStorage.setItem("token", "token-new");
+    getMyUserInfoMock.mockResolvedValueOnce({
+      success: true,
+      data: {
+        userId: 2024,
+      },
+    });
+
+    const result = await checkAuthStatus();
+
+    expect(result).toEqual({
+      isLoggedIn: true,
+      token: "token-new",
+      uid: 2024,
+    });
+    expect(localStorage.getItem("uid")).toBe("2024");
   });
 
   it("退出登录时会清空当前账号的 React Query 缓存", async () => {
@@ -95,6 +146,7 @@ describe("authapi query cache boundary", () => {
 
     expect(queryClient.getQueryData(["getUserSpaces"])).toBeUndefined();
     expect(localStorage.getItem("token")).toBeNull();
+    expect(queryClient.getQueryData(getAuthStatusQueryKey())).toEqual({ isLoggedIn: false });
     expect(logoutMock).toHaveBeenCalledTimes(1);
   });
 });

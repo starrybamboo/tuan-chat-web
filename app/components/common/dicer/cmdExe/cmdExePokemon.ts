@@ -38,7 +38,7 @@ const cmdRi = new CommandExecutor(
   "显示指定角色的速度数值",
   [".ri", ".ri @队友"],
   "ri [@角色]?",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (_args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     // 1. 确定目标角色（优先@提及的角色，无则取操作者）
     const targetRole = mentioned.length > 0 ? mentioned[0] : mentioned[mentioned.length - 1];
     if (!targetRole || !targetRole.roleId) {

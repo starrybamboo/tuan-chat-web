@@ -176,7 +176,7 @@ export function useDeleteSpaceMaterialPackageMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["spaceMaterialPackage", "delete"],
-    mutationFn: ({ spaceId, spacePackageId }: { spaceId: number; spacePackageId: number }) =>
+    mutationFn: ({ spaceId: _spaceId, spacePackageId }: { spaceId: number; spacePackageId: number }) =>
       tuanchat.spaceMaterialPackageController.deletePackage(spacePackageId),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["spaceMaterialPackage", "page"] });
@@ -197,4 +197,3 @@ export function useImportSpaceMaterialPackageMutation() {
     },
   });
 }
-

@@ -51,7 +51,6 @@ export default function RoleAvatarComponent({
   roleState,
   width,
   isRounded,
-  // eslint-disable-next-line unused-imports/no-unused-vars
   withTitle = false,
   stopToastWindow = false,
   alt = "avatar",
@@ -127,9 +126,13 @@ export default function RoleAvatarComponent({
               )}
         </div>
       </div>
-      {/* { */}
-      {/*  withTitle && <div className="text-xs truncate max-w-full">{avatarQuery.data?.data?.avatarTitle}</div> */}
-      {/* } */}
+      {withTitle && (
+        <div className="text-xs truncate max-w-full">
+          {typeof avatarQuery.data?.data?.avatarTitle === "string"
+            ? avatarQuery.data.data.avatarTitle
+            : avatarQuery.data?.data?.avatarTitle?.label ?? ""}
+        </div>
+      )}
       <div className="absolute">
         {
           (isOpen && !stopToastWindow && roomId) && (

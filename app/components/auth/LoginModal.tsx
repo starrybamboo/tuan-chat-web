@@ -1,12 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,
   verifyEmailVerificationCode,
 } from "@/utils/auth/accountSecurityApi";
-import { checkAuthStatus, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
+import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 import { AlertMessage } from "./AlertMessage";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
@@ -45,7 +45,6 @@ function resolveForgotPasswordErrorMessage(error: unknown): string {
 export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const location = useLocation();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const mode = resolveAuthMode(searchParams.get("mode"));
   const [username, setUsername] = useState("");
@@ -57,12 +56,16 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   const [successMessage, setSuccessMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loginMethod, setLoginMethod] = useState<"username" | "userId">("username"); // 默认用户名登录
+  const timeoutIdsRef = useRef<number[]>([]);
 
   const registerCodeCooldown = useVerificationCodeCooldown(60);
 
   const { data: authStatus } = useQuery({
-    queryKey: ["authStatus"],
+    queryKey: getAuthStatusQueryKey(),
     queryFn: checkAuthStatus,
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const isLoggedIn = authStatus?.isLoggedIn || false;
@@ -76,6 +79,45 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     const nextQuery = nextSearchParams.toString();
     router.history.replace(`${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`);
   }, [location.hash, location.pathname, router]);
+
+  const clearPendingTimeouts = useCallback(() => {
+    for (const timeoutId of timeoutIdsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    timeoutIdsRef.current = [];
+  }, []);
+
+  const scheduleTimeout = useCallback((callback: () => void, delayMs: number) => {
+    const timeoutId = window.setTimeout(() => {
+      timeoutIdsRef.current = timeoutIdsRef.current.filter(id => id !== timeoutId);
+      callback();
+    }, delayMs);
+
+    timeoutIdsRef.current.push(timeoutId);
+    return timeoutId;
+  }, []);
+
+  const resetFeedbackState = useCallback(() => {
+    setErrorMessage("");
+    setSuccessMessage("");
+  }, []);
+
+  const handleClose = useCallback(() => {
+    clearPendingTimeouts();
+    resetFeedbackState();
+    onClose();
+  }, [clearPendingTimeouts, onClose, resetFeedbackState]);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    clearPendingTimeouts();
+    resetFeedbackState();
+  }, [clearPendingTimeouts, isOpen, resetFeedbackState]);
+
+  useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
   function applyMode(nextMode: AuthMode) {
     const nextSearchParams = new URLSearchParams();
@@ -97,15 +139,15 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   }
 
   function switchMode(nextMode: AuthMode) {
+    clearPendingTimeouts();
     applyMode(nextMode);
     resetFormState();
-    setErrorMessage("");
-    setSuccessMessage("");
+    resetFeedbackState();
   }
 
   function showTemporaryMessage(message: string, type: "success" | "error") {
-    setErrorMessage("");
-    setSuccessMessage("");
+    clearPendingTimeouts();
+    resetFeedbackState();
 
     if (type === "error") {
       setErrorMessage(message);
@@ -114,27 +156,18 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
       setSuccessMessage(message);
     }
 
-    setTimeout(() => {
-      const messageElement = document.querySelector(
-        type === "error" ? ".alert-error" : ".alert-success",
-      ) as HTMLDivElement;
-      if (messageElement) {
-        messageElement.style.animation = "fadeOut 1s ease-out forwards";
-      }
-    }, 500);
-
-    setTimeout(() => {
+    scheduleTimeout(() => {
       if (type === "error") {
         setErrorMessage("");
       }
       else {
         setSuccessMessage("");
       }
-    }, 1000);
+    }, 1500);
   }
 
   const handleSuccessAndClose = () => {
-    onClose();
+    handleClose();
 
     try {
       const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
@@ -156,7 +189,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     onSuccess: (res) => {
       if (res.data) {
         showTemporaryMessage("登录成功！", "success");
-        setTimeout(handleSuccessAndClose, 1000);
+        scheduleTimeout(handleSuccessAndClose, 1000);
       }
       else {
         showTemporaryMessage(res.errMsg || "登录失败，请重试", "error");
@@ -196,27 +229,21 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     },
     onSuccess: (res, variables) => {
       if (res.success && res.data) {
-        const userId = res.data;
+        const userId = String(res.data);
         const registeredPassword = variables.password;
 
         resetFormState();
         applyMode("login");
+        setUsername(userId);
+        setPassword(registeredPassword);
+        setLoginMethod("userId");
 
         showTemporaryMessage("注册成功！正在登录您的账号", "success");
-
-        setTimeout(() => {
-          setUsername(userId);
-          setPassword(registeredPassword);
-          setLoginMethod("userId");
-
-          setTimeout(() => {
-            loginMutation.mutate({
-              username: userId,
-              password: registeredPassword,
-              loginMethod: "userId",
-            });
-          }, 1000);
-        }, 500);
+        loginMutation.mutate({
+          username: userId,
+          password: registeredPassword,
+          loginMethod: "userId",
+        });
       }
       else {
         showTemporaryMessage(res.errMsg || "注册失败，请重试", "error");
@@ -234,7 +261,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     mutationFn: (targetEmail: string) => requestForgotPasswordByEmail(targetEmail),
     onSuccess: () => {
       showTemporaryMessage("账号信息与重置指引已发送到邮箱，请注意查收", "success");
-      setTimeout(() => {
+      scheduleTimeout(() => {
         switchMode("login");
       }, 1000);
     },
@@ -300,9 +327,8 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
   const handleLogout = () => {
     void logoutUser();
-    queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     showTemporaryMessage("已成功退出登录", "success");
-    setTimeout(handleSuccessAndClose, 1000);
+    scheduleTimeout(handleSuccessAndClose, 1000);
   };
 
   return (
@@ -311,7 +337,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         <button
           type="button"
           className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100"
-          onClick={onClose}
+          onClick={handleClose}
         >
           ✕
         </button>
@@ -382,21 +408,23 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
                 <>
                   <p className="text-center mt-2">
                     还没有账号？
-                    <span
+                    <button
+                      type="button"
                       onClick={() => switchMode("register")}
-                      className="link link-primary cursor-pointer ml-1"
+                      className="link link-primary ml-1"
                     >
                       立即注册
-                    </span>
+                    </button>
                   </p>
                   <p className="text-center mt-2">
                     忘记密码？
-                    <span
+                    <button
+                      type="button"
                       onClick={() => switchMode("forgot")}
-                      className="link link-primary cursor-pointer ml-1"
+                      className="link link-primary ml-1"
                     >
                       找回密码
-                    </span>
+                    </button>
                   </p>
                 </>
               )}
@@ -404,24 +432,26 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
               {isRegisterMode && (
                 <p className="text-center mt-2">
                   已有账号？
-                  <span
+                  <button
+                    type="button"
                     onClick={() => switchMode("login")}
-                    className="link link-primary cursor-pointer ml-1"
+                    className="link link-primary ml-1"
                   >
                     立即登录
-                  </span>
+                  </button>
                 </p>
               )}
 
               {isForgotMode && (
                 <p className="text-center mt-2">
                   想起密码了？
-                  <span
+                  <button
+                    type="button"
                     onClick={() => switchMode("login")}
-                    className="link link-primary cursor-pointer ml-1"
+                    className="link link-primary ml-1"
                   >
                     返回登录
-                  </span>
+                  </button>
                 </p>
               )}
             </>
@@ -434,7 +464,12 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         successMessage={successMessage}
       />
 
-      <div className="modal-backdrop bg-black/50 dark:bg-black/70" onClick={onClose}></div>
+      <button
+        type="button"
+        aria-label="关闭登录弹窗"
+        className="modal-backdrop bg-black/50 dark:bg-black/70"
+        onClick={handleClose}
+      />
     </div>
   );
 }

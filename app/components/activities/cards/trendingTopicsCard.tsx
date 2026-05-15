@@ -1,5 +1,3 @@
-import React from "react";
-
 /**
  * 热榜的卡片 - 纯内容组件，容器由父组件处理
  */

@@ -64,7 +64,7 @@ export function useGetLikeCountQuery(request: LikeRecordRequest) {
  * 批量获取点赞数量
  * @param requestBody 批量查询请求
  */
-function useBatchGetLikeCountQuery(requestBody: LikeCountRequest) {
+export function useBatchGetLikeCountQuery(requestBody: LikeCountRequest) {
   return useQuery({
     queryKey: ["batchGetLikeCount", requestBody],
     queryFn: () => tuanchat.markController.batchGetMarkCount(buildLikeCountRequest(requestBody)),
@@ -112,7 +112,7 @@ export function useUnlikeMutation() {
  * 批量查询是否点赞过
  * @param requestBody 批量查询请求
  */
-function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
+export function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
   return useQuery({
     queryKey: ["batchIsLiked", requestBody],
     queryFn: () =>
@@ -123,4 +123,3 @@ function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
     staleTime: 300000, // 5分钟缓存
   });
 }
-

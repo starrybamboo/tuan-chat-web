@@ -403,7 +403,7 @@ const cmdRh = new CommandExecutor(
   "进行基础暗骰（结果仅自己可见）",
   [".rh", ".rh 20", ".rh 3d6"], // 示例：默认D100 / D20 / 3个D6
   "rh [骰子格式]?", // 格式：可选，默认D100，支持“数字”（Dn）或“ndm”（n个m面骰）
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     // 解析骰子格式（默认D100）
     let diceCount = 1; // 骰子数量
     let diceSides = 100; // 骰子面数
@@ -565,7 +565,6 @@ const cmdEn = new CommandExecutor(
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
-    const _isForceToasted = UTILS.doesHaveArg(args, "h");
     // 解析参数
     // 1. 以正负号开头的数字
     const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
@@ -747,7 +746,7 @@ const cmdTi = new CommandExecutor(
   "抽取临时症状",
   [".ti"],
   "",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (_args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const boutsOfMadnessForRealTimeList = [
       {
         name: "失忆",
@@ -792,7 +791,7 @@ const cmdLi = new CommandExecutor(
   "抽取总结症状",
   [".li"],
   "",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (_args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const boutsOfMadnessForSummaryList = [
       { name: "失忆", desc: "调查员恢复神志时身处陌生地点，连自己是谁都不记得。记忆会随时间流逝逐渐恢复。" },
       {
@@ -922,7 +921,7 @@ const cmdSetCoc = new CommandExecutor(
   "设置COC房规",
   [".setcoc 2", ".setcoc"],
   "setcoc [房规编号]?",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const ruleKey = "cocRule";
 
     if (args.length === 0) {

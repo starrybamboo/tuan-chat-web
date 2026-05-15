@@ -2,7 +2,6 @@ import type { ChatMessageResponse } from "../../../api";
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
-import React from "react";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";

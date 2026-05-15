@@ -1,5 +1,5 @@
 import type { FeedPageRequest } from "../../../api";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";

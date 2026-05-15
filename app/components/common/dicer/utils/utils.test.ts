@@ -211,7 +211,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确替换能力值中的表达式变量", () => {
-      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((_role, key) => {
         const values: Record<string, string> = {
           hp: "(体质*1+体型*1)/10",
           体质: "55",
@@ -228,7 +228,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确替换skill类型的变量", () => {
-      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((_role, key) => {
         if (key === "斗殴") {
           return "40";
         }
@@ -239,7 +239,7 @@ describe("dicer utils 测试", () => {
     });
 
     it("应该正确处理多个中文变量", () => {
-      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((_role, key) => {
         const values: Record<string, string> = {
           力量: "40",
           敏捷: "60",
@@ -252,7 +252,7 @@ describe("dicer utils 测试", () => {
 
     // 测试复杂表达式
     it("应该正确处理包含中文变量的复杂表达式", () => {
-      (UTILS.getRoleAbilityValue as Mock).mockImplementation((role, key) => {
+      (UTILS.getRoleAbilityValue as Mock).mockImplementation((_role, key) => {
         const values: Record<string, string> = {
           力量: "40",
           敏捷: "60",

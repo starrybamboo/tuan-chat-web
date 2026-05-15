@@ -1,6 +1,6 @@
 import type { ComponentProps, SVGProps } from "react";
 import { AddressBookIcon, BookOpenText, CaretDownIcon, CaretLeftIcon, DiscordLogoIcon, FileText, Folder, Graph, HouseIcon, IdentificationCard, ImageIcon, MusicNotesIcon, CardsIcon as PhosphorCardsIcon, SidebarSimpleIcon as PhosphorSidebarSimpleIcon, WrenchIcon as PhosphorWrenchIcon, PlusIcon, QrCodeIcon, SmileyIcon, TrashSimpleIcon, UserIcon, UsersIcon, UserSwitch } from "@phosphor-icons/react";
-import React, { useId } from "react";
+import { useId } from "react";
 
 /**
  * 每个Icon图标都用AI生成了一些关键词方便搜索

@@ -69,39 +69,6 @@ export type IDebugMessage = {
   };
 };
 
-const AUDIO_EXTENSIONS = new Set([
-  "mp3",
-  "wav",
-  "aac",
-  "m4a",
-  "mp4",
-  "ogg",
-  "oga",
-  "opus",
-  "webm",
-  "flac",
-  "caf",
-]);
-
-function getFileExtension(fileName: string): string {
-  const dotIndex = fileName.lastIndexOf(".");
-  if (dotIndex <= 0 || dotIndex >= fileName.length - 1)
-    return "";
-  return fileName.slice(dotIndex + 1).toLowerCase();
-}
-
-function _replaceFileExtension(fileName: string, nextExt: string): string {
-  const dotIndex = fileName.lastIndexOf(".");
-  if (dotIndex > 0)
-    return `${fileName.slice(0, dotIndex)}.${nextExt}`;
-  return `${fileName}.${nextExt}`;
-}
-
-function _isLikelyAudioFileName(fileName: string): boolean {
-  const ext = getFileExtension(fileName);
-  return Boolean(ext && AUDIO_EXTENSIONS.has(ext));
-}
-
 /**
  * 从 URL 中提取文件扩展名
  * 支持处理带查询参数的 URL，以及没有扩展名的情况

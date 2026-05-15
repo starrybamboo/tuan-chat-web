@@ -1,5 +1,5 @@
 import { ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -11,7 +11,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
 import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { DiscordIcon, QQIcon, WebgalIcon } from "@/icons";
-import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
+import { checkAuthStatus, getAuthStatusQueryKey, logoutUser } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
@@ -75,7 +75,6 @@ function TopNavMotionLink({
 
 export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
-  const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -98,8 +97,11 @@ export default function Topbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: authStatus, isLoading } = useQuery({
-    queryKey: ["authStatus"],
+    queryKey: getAuthStatusQueryKey(),
     queryFn: checkAuthStatus,
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
@@ -175,7 +177,6 @@ export default function Topbar() {
   // 处理退出登录并关闭下拉菜单
   const handleLogout = () => {
     void logoutUser();
-    queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     setIsUserDropdownOpen(false);
     // 强制移除焦点
     (document.activeElement as HTMLElement)?.blur();

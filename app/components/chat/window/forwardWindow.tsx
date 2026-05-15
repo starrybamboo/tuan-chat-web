@@ -1,6 +1,6 @@
 import type { ChatMessageResponse } from "../../../../api";
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { avatarThumbUrl, imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";

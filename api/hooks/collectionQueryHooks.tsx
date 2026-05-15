@@ -5,7 +5,6 @@ import type { CollectionAddRequest } from "@tuanchat/openapi-client/models/Colle
 import type { CollectionCheckRequest } from "@tuanchat/openapi-client/models/CollectionCheckRequest";
 import type { CollectionPageRequest } from "@tuanchat/openapi-client/models/CollectionPageRequest";
 import type { PageBaseRequest } from "@tuanchat/openapi-client/models/PageBaseRequest";
-import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
 import type { CollectionListAddRequest } from "@tuanchat/openapi-client/models/CollectionListAddRequest";
 import type { CollectionListItemAddRequest } from "@tuanchat/openapi-client/models/CollectionListItemAddRequest";
 import type { CollectionListItemBatchAddRequest } from "@tuanchat/openapi-client/models/CollectionListItemBatchAddRequest";
@@ -21,7 +20,7 @@ import type {CollectionListUpdateRequest} from "@tuanchat/openapi-client/models/
  * 获取收藏信息
  * @param id 收藏ID
  */
-function useGetCollectionQuery(id: number) {
+export function useGetCollectionQuery(id: number) {
     return useQuery({
         queryKey: ['getCollection', id],
         queryFn: () => tuanchat.collectionController.getCollection(id),
@@ -51,7 +50,7 @@ export function useGetCollectionCountQuery(resourceId: number, resourceType: str
 /**
  * 更新收藏
  */
-function useUpdateCollectionMutation() {
+export function useUpdateCollectionMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: Collection) => tuanchat.collectionController.updateCollection(req),
@@ -97,7 +96,7 @@ export function useDeleteCollectionMutation() {
 /**
  * 获取当前用户收藏
  */
-function useGetUserCollectionsQuery(requestBody: CollectionPageRequest) {
+export function useGetUserCollectionsQuery(requestBody: CollectionPageRequest) {
     return useQuery({
         queryKey: ['getUserCollections', requestBody],
         queryFn: () => tuanchat.collectionController.getUserCollections(requestBody),
@@ -108,7 +107,7 @@ function useGetUserCollectionsQuery(requestBody: CollectionPageRequest) {
 /**
  * 分页查询收藏
  */
-function useGetCollectionPageQuery(requestBody: PageBaseRequest) {
+export function useGetCollectionPageQuery(requestBody: PageBaseRequest) {
     return useQuery({
         queryKey: ['getCollectionPage', requestBody],
         queryFn: () => tuanchat.collectionController.getCollectionPage(requestBody),
@@ -339,7 +338,7 @@ export function useGetListCollectionsQuery(requestBody: CollectionListItemPageRe
 /**
  * 批量添加收藏到列表
  */
-function useBatchAddToListMutation() {
+export function useBatchAddToListMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: CollectionListItemBatchAddRequest) => tuanchat.collectionListItemController.batchAddToList(req),
@@ -564,5 +563,4 @@ export function useRemoveFromListMutation() {
 //         staleTime: 300000 // 5分钟缓存
 //     });
 // }
-
 

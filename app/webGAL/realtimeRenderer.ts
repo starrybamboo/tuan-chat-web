@@ -1345,31 +1345,6 @@ export class RealtimeRenderer {
     return undefined;
   }
 
-  private getAllCachedRoleAvatars(): RoleAvatar[] {
-    if (!this.queryClient) {
-      return [];
-    }
-
-    const queries = this.queryClient.getQueryCache().findAll({ queryKey: ["getRoleAvatar"] });
-    const avatars: RoleAvatar[] = [];
-
-    for (const query of queries) {
-      const data: any = query.state.data;
-      const candidate = data?.data ?? data?.data?.data ?? data;
-      if (candidate && typeof candidate === "object" && candidate.avatarId) {
-        avatars.push(candidate as RoleAvatar);
-      }
-    }
-
-    const deduped = new Map<number, RoleAvatar>();
-    for (const avatar of avatars) {
-      if (avatar.avatarId) {
-        deduped.set(avatar.avatarId, avatar);
-      }
-    }
-    return Array.from(deduped.values());
-  }
-
   /**
    * 设置 TTS 配置
    */

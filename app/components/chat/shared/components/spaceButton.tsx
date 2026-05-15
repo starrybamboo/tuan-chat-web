@@ -1,6 +1,5 @@
 import type { Space } from "../../../../../api";
 import { motion } from "motion/react";
-import React from "react";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { avatarThumbUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";

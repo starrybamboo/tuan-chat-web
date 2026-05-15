@@ -79,7 +79,7 @@ const cmdR = new CommandExecutor(
   "掷骰",
   [".r 1d100", ".r 3d6*5", ".r"],
   ".r [掷骰表达式]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     return executeRollCommand(args, cpi);
   },
 );
@@ -91,7 +91,7 @@ const cmdRd = new CommandExecutor(
   "快捷掷单骰",
   [".rd", ".rd20", ".rd 6"],
   ".rd [骰子面数/表达式]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     return executeRollCommand(args, cpi, {
       fallbackInput: "1d100",
       prependInput: "1d",
@@ -315,7 +315,7 @@ const cmdSetDice = new CommandExecutor(
   "设置默认骰子",
   [".setdice 100", ".setdice 20", ".sd 6"],
   ".setdice [面数]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const input = args.join("").trim();
 
     // 如果没有参数，显示当前默认骰子

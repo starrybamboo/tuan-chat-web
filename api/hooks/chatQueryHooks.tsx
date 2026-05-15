@@ -11,10 +11,8 @@ import type { SpaceOwnerTransferRequest } from "@tuanchat/openapi-client/models/
 import type { PlayerGrantRequest } from "@tuanchat/openapi-client/models/PlayerGrantRequest";
 import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
 import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
-import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
-import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
 import type { RoomMemberDeleteRequest } from "@tuanchat/openapi-client/models/RoomMemberDeleteRequest";
 import type { RoomUpdateRequest } from "@tuanchat/openapi-client/models/RoomUpdateRequest";
@@ -528,7 +526,7 @@ export function useExitSpaceMutation() {
     return useMutation({
         mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(req),
         mutationKey: ['exitSpace'],
-        onSuccess: (_, variables) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
@@ -541,7 +539,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 /**
  * 获取空间中的role
  */
-function useGetSpaceRolesQuery(spaceId: number) {
+export function useGetSpaceRolesQuery(spaceId: number) {
     const queryClient = useQueryClient();
     return useQuery({
         queryKey: spaceRoleQueryKey(spaceId),
@@ -580,7 +578,7 @@ export function useDissolveRoomMutation() {
     return useMutation({
         mutationFn: (req: number) => tuanchat.roomController.dissolveRoom(req),
         mutationKey: ['dissolveRoom'],
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }
     })
@@ -594,7 +592,7 @@ export function useDissolveSpaceMutation() {
     return useMutation({
         mutationFn: (req: number) => tuanchat.spaceController.dissolveSpace(req),
         mutationKey: ['dissolveSpace'],
-        onSuccess: (data) => {
+        onSuccess: () => {
 queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
 queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
         }
@@ -644,7 +642,7 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  * 获取群聊所有消息（实时性要求高）
  * @param roomId 群聊ID
  */
-function useGetAllMessageQuery(roomId: number) {
+export function useGetAllMessageQuery(roomId: number) {
     return useQuery({
         queryKey: ['getAllMessage', roomId],
         queryFn: () => tuanchat.chatController.getAllMessage(roomId),
@@ -672,7 +670,7 @@ export function useBatchSendMessageMutation(roomId: number) {
  * 分页获取消息
  * @param requestBody 分页请求参数
  */
-function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
+export function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
     return useQuery({
         queryKey: ['getMsgPage', requestBody],
         queryFn: () => tuanchat.chatController.getMsgPage(requestBody),
@@ -684,7 +682,6 @@ function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
  * 删除消息
  */
 export function useDeleteMessageMutation() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: number) => tuanchat.chatController.deleteMessage(req),
         mutationKey: ['deleteMessage'],
@@ -694,7 +691,6 @@ export function useDeleteMessageMutation() {
 }
 
 export function useUpdateMessageMutation() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: Message) => tuanchat.chatController.updateMessage(req),
         mutationKey: ["updateMessage"],
@@ -706,7 +702,7 @@ export function useUpdateMessageMutation() {
  * 用于在收到syncId间隔的消息时，重新获取缺失的消息
  * @param requestBody 请求参数
  */
-function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
+export function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
     return useQuery({
         queryKey: ['getMessageBySyncId', requestBody],
         queryFn: () => tuanchat.chatController.getMessageBySyncId(requestBody),
@@ -719,7 +715,7 @@ function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
  * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息
  * @param requestBody 请求参数
  */
-function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
+export function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
     return useQuery({
         queryKey: ['getHistoryMessages', requestBody],
         queryFn: () => tuanchat.chatController.getHistoryMessages(requestBody),
@@ -780,7 +776,7 @@ export function useUpdateSpaceMemberTypeMutation() {
 /**
  * 转让群主
  */
-function useTransferOwnerMutation() {
+export function useTransferOwnerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: SpaceOwnerTransferRequest) => tuanchat.spaceController.transferSpaceOwner(req),
@@ -970,7 +966,7 @@ type CloneSpaceByCommitPayload = {
     commitId: number;
 };
 
-function useCloneSpaceByCommitIdMutation() {
+export function useCloneSpaceByCommitIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationKey: ['cloneSpaceByCommitId'],
@@ -1009,7 +1005,7 @@ export function useGetRoomRoleQuery(roomId: number) {
  * 批量获取群组角色列表
  * @param roomIds 群组ID数组
  */
-function useGetRoomRolesQueries(roomIds: number[]) {
+export function useGetRoomRolesQueries(roomIds: number[]) {
     return useQueries({
         queries: roomIds.map(roomId => ({
             queryKey: roomRoleQueryKey(roomId),
@@ -1096,7 +1092,7 @@ export function useSetRoomExtraMutation() {
 /**
  * 删除房间其他信息
  */
-function useDeleteRoomExtraMutation() {
+export function useDeleteRoomExtraMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RoomExtraRequest) => tuanchat.roomController.deleteRoomExtra(req),
@@ -1106,6 +1102,4 @@ function useDeleteRoomExtraMutation() {
         }
     });
 }
-
-
 

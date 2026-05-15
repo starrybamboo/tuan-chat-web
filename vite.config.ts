@@ -88,7 +88,7 @@ function fixCjsDefaultExportPlugin(): Plugin {
           modified = true;
           result = result.replace(
             importRegex,
-            (match, identifier) => {
+            (_match, identifier) => {
               // Convert to dynamic import + namespace, then extract the default
               // This works around the missing default export by using the CJS wrapper
               return `import * as __module_${identifier} from '${module}'; const ${identifier} = __module_${identifier}.default || __module_${identifier};`;
