@@ -31,7 +31,7 @@ describe("browserAssetCache", () => {
   beforeEach(() => {
     fakeCache = new FakeCache();
     (globalThis as any).caches = {
-      open: vi.fn().mockResolvedValue(fakeCache),
+      open: vi.fn<() => Promise<FakeCache>>().mockResolvedValue(fakeCache),
     };
     fetchSpy = vi.spyOn(globalThis, "fetch");
     resetWebgalAssetCacheForTests();

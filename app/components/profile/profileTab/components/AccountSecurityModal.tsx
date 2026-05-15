@@ -256,6 +256,17 @@ export function AccountSecurityModal({
       || bindEmailMutation.isPending
       || changeEmailMutation.isPending;
 
+  const passwordCurrentEmailInputId = "account-security-password-current-email";
+  const passwordCodeInputId = "account-security-password-code";
+  const newPasswordInputId = "account-security-new-password";
+  const confirmNewPasswordInputId = "account-security-confirm-new-password";
+  const bindEmailInputId = "account-security-bind-email";
+  const bindCodeInputId = "account-security-bind-code";
+  const oldEmailInputId = "account-security-old-email";
+  const oldEmailCodeInputId = "account-security-old-email-code";
+  const newEmailInputId = "account-security-new-email";
+  const newEmailCodeInputId = "account-security-new-email-code";
+
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
       <div className="modal-box relative bg-base-100 dark:bg-base-300 max-w-xl">
@@ -305,10 +316,11 @@ export function AccountSecurityModal({
                       : (
                           <>
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={passwordCurrentEmailInputId}>
                                 <span className="label-text">已绑定邮箱</span>
                               </label>
                               <input
+                                id={passwordCurrentEmailInputId}
                                 type="text"
                                 className="input input-bordered bg-base-200"
                                 value={currentEmail}
@@ -317,11 +329,12 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={passwordCodeInputId}>
                                 <span className="label-text">邮箱验证码</span>
                               </label>
                               <div className="flex gap-2">
                                 <input
+                                  id={passwordCodeInputId}
                                   type="text"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入验证码"
@@ -347,10 +360,11 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={newPasswordInputId}>
                                 <span className="label-text">新密码</span>
                               </label>
                               <input
+                                id={newPasswordInputId}
                                 type="password"
                                 className="input input-bordered"
                                 placeholder="请输入新密码"
@@ -360,10 +374,11 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={confirmNewPasswordInputId}>
                                 <span className="label-text">确认新密码</span>
                               </label>
                               <input
+                                id={confirmNewPasswordInputId}
                                 type="password"
                                 className="input input-bordered"
                                 placeholder="请再次输入新密码"
@@ -391,10 +406,11 @@ export function AccountSecurityModal({
                       ? (
                           <>
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={bindEmailInputId}>
                                 <span className="label-text">邮箱</span>
                               </label>
                               <input
+                                id={bindEmailInputId}
                                 type="email"
                                 className="input input-bordered"
                                 placeholder="请输入要绑定的邮箱"
@@ -404,11 +420,12 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={bindCodeInputId}>
                                 <span className="label-text">邮箱验证码</span>
                               </label>
                               <div className="flex gap-2">
                                 <input
+                                  id={bindCodeInputId}
                                   type="text"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入验证码"
@@ -452,10 +469,11 @@ export function AccountSecurityModal({
                       : (
                           <>
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={oldEmailInputId}>
                                 <span className="label-text">旧邮箱</span>
                               </label>
                               <input
+                                id={oldEmailInputId}
                                 type="text"
                                 className="input input-bordered bg-base-200"
                                 value={currentEmail}
@@ -464,11 +482,12 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={oldEmailCodeInputId}>
                                 <span className="label-text">旧邮箱验证码</span>
                               </label>
                               <div className="flex gap-2">
                                 <input
+                                  id={oldEmailCodeInputId}
                                   type="text"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入旧邮箱验证码"
@@ -494,10 +513,11 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={newEmailInputId}>
                                 <span className="label-text">新邮箱</span>
                               </label>
                               <input
+                                id={newEmailInputId}
                                 type="email"
                                 className="input input-bordered"
                                 placeholder="请输入新邮箱地址"
@@ -507,11 +527,12 @@ export function AccountSecurityModal({
                             </div>
 
                             <div className="form-control">
-                              <label className="label">
+                              <label className="label" htmlFor={newEmailCodeInputId}>
                                 <span className="label-text">新邮箱验证码</span>
                               </label>
                               <div className="flex gap-2">
                                 <input
+                                  id={newEmailCodeInputId}
                                   type="text"
                                   className="input input-bordered flex-1"
                                   placeholder="请输入新邮箱验证码"
@@ -558,7 +579,12 @@ export function AccountSecurityModal({
             )}
       </div>
 
-      <div className="modal-backdrop bg-black/50 dark:bg-black/70" onClick={onClose}></div>
+      <button
+        type="button"
+        className="modal-backdrop bg-black/50 dark:bg-black/70"
+        onClick={onClose}
+        aria-label="关闭账号安全弹窗"
+      />
     </div>
   );
 }

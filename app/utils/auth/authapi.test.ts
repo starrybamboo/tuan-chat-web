@@ -10,10 +10,10 @@ const {
   loginMock,
   logoutMock,
 } = vi.hoisted(() => ({
-  getUserInfoByUsernameMock: vi.fn(),
-  getMyUserInfoMock: vi.fn(),
-  loginMock: vi.fn(),
-  logoutMock: vi.fn(),
+  getUserInfoByUsernameMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  getMyUserInfoMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  loginMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  logoutMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("../../../api/instance", () => ({

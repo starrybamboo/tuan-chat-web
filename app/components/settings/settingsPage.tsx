@@ -146,7 +146,10 @@ export default function SettingsPage() {
 
         <div className="px-6 py-5">
           <h2 className="text-lg font-medium">消息通知</h2>
-          <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3">
+          <label
+            className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3"
+            aria-label="其他群聊新消息弹窗"
+          >
             <div className="min-w-0">
               <div className="font-medium">其他群聊新消息弹窗</div>
               <div className="mt-1 text-sm opacity-70">开启后，当前未打开的其他群聊来消息时会弹出提示，点击可跳转。</div>
@@ -160,7 +163,10 @@ export default function SettingsPage() {
             />
           </label>
 
-          <label className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3">
+          <label
+            className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3"
+            aria-label="反馈站内提醒"
+          >
             <div className="min-w-0">
               <div className="font-medium">反馈站内提醒</div>
               <div className="mt-1 text-sm opacity-70">开启后，收到反馈通知时会在页面内弹出提醒卡片。</div>
@@ -174,7 +180,10 @@ export default function SettingsPage() {
             />
           </label>
 
-          <label className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3">
+          <label
+            className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3"
+            aria-label="反馈桌面通知"
+          >
             <div className="min-w-0">
               <div className="font-medium">反馈桌面通知</div>
               <div className="mt-1 text-sm opacity-70">开启后，后台页签收到反馈通知时会尝试弹系统桌面通知。</div>

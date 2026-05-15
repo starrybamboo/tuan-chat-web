@@ -539,7 +539,7 @@ export function SpriteSettingsPopup({
               >
                 <FunnelIcon className="h-5 w-5" aria-hidden="true" />
               </button>
-              <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2 mt-1">
+              <ul className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2 mt-1">
                 <li>
                   <button
                     type="button"
@@ -1003,7 +1003,12 @@ export function SpriteSettingsPopup({
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={() => setBatchDeleteConfirmOpen(false)}></div>
+          <button
+            type="button"
+            className="modal-backdrop"
+            onClick={() => setBatchDeleteConfirmOpen(false)}
+            aria-label="关闭批量删除确认弹窗"
+          />
         </div>
       )}
     </ToastWindow>

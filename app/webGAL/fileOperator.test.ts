@@ -3,25 +3,32 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { backfillMirroredWebgalAssetCache } from "./browserAssetCache";
 import { uploadFile } from "./fileOperator";
 
-const assetsControllerReadAssetsMock = vi.fn().mockResolvedValue({
+const assetsControllerReadAssetsMock = vi.fn<() => Promise<{
+  readDirPath: string;
+  dirPath: string;
+  dirInfo: never[];
+}>>().mockResolvedValue({
   readDirPath: "",
   dirPath: "",
   dirInfo: [],
 });
-const assetsControllerUploadMock = vi.fn().mockResolvedValue(undefined);
+const assetsControllerUploadMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
 vi.mock("./index", () => ({
-  getTerreApis: vi.fn(() => ({
+  getTerreApis: vi.fn<() => {
+    assetsControllerReadAssets: typeof assetsControllerReadAssetsMock;
+    assetsControllerUpload: typeof assetsControllerUploadMock;
+  }>(() => ({
     assetsControllerReadAssets: assetsControllerReadAssetsMock,
     assetsControllerUpload: assetsControllerUploadMock,
   })),
 }));
 
 vi.mock("./browserAssetCache", () => ({
-  backfillMirroredWebgalAssetCache: vi.fn().mockResolvedValue(undefined),
-  fetchObservedWebgalAssetBlob: vi.fn().mockResolvedValue(null),
-  getMirroredWebgalAssetBlob: vi.fn().mockResolvedValue(null),
-  mirrorWebgalAssetBlob: vi.fn().mockResolvedValue(undefined),
+  backfillMirroredWebgalAssetCache: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  fetchObservedWebgalAssetBlob: vi.fn<() => Promise<Blob | null>>().mockResolvedValue(null),
+  getMirroredWebgalAssetBlob: vi.fn<() => Promise<Blob | null>>().mockResolvedValue(null),
+  mirrorWebgalAssetBlob: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
 }));
 
 describe("fileOperator.uploadFile", () => {

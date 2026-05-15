@@ -4,9 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ensureCreatedRoleDefaultAvatar, ensureRoleAvatarDefaultMedia } from "./createRoleDefaultAvatar";
 
 const { getRoleAvatarMock, updateRoleAvatarMock, uploadMediaFileMock } = vi.hoisted(() => ({
-  getRoleAvatarMock: vi.fn(),
-  updateRoleAvatarMock: vi.fn(),
-  uploadMediaFileMock: vi.fn(),
+  getRoleAvatarMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  updateRoleAvatarMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  uploadMediaFileMock: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("@/../api/instance", () => ({
@@ -90,7 +90,7 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
 
   it("默认头像没有媒体文件时，会上传默认图并同时写入头像和立绘", async () => {
     const queryClient = createQueryClient();
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("cors")));
+    vi.stubGlobal("fetch", vi.fn<() => Promise<Response>>().mockRejectedValue(new Error("cors")));
     uploadMediaFileMock.mockResolvedValueOnce({
       fileId: 91,
       mediaType: "image",

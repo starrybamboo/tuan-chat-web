@@ -5,10 +5,10 @@ import type { RoleAvatar } from "api";
 import { hydrateRoleList, mergeRoleList } from "./roleListData";
 
 function createQueryClientMock(cachedAvatar?: RoleAvatar) {
-  const getQueryData = vi.fn(<T>() => (cachedAvatar ? ({ data: cachedAvatar } as T) : undefined));
+  const getQueryData = vi.fn<() => { data: RoleAvatar } | undefined>(() => (cachedAvatar ? { data: cachedAvatar } : undefined));
   return {
     getQueryData,
-    fetchQuery: vi.fn(),
+    fetchQuery: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   };
 }
 
@@ -53,7 +53,7 @@ describe("roleListData", () => {
       avatarFileId: 1001,
     };
     const queryClient = createQueryClientMock(cachedAvatar);
-    const seedRoleAvatarQueryCaches = vi.fn();
+    const seedRoleAvatarQueryCaches = vi.fn<(...args: unknown[]) => void>();
 
     const roles = await hydrateRoleList({
       previousRoles: [],
@@ -70,7 +70,7 @@ describe("roleListData", () => {
       ],
       queryClient: queryClient as any,
       seedRoleAvatarQueryCaches,
-      fetchRoleAvatar: vi.fn(),
+      fetchRoleAvatar: vi.fn<(avatarId: number) => Promise<{ success: boolean; data?: RoleAvatar }>>(),
     });
 
     expect(roles).toEqual([

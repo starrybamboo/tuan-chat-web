@@ -29,13 +29,13 @@ describe("ffmpegAssetCache", () => {
   beforeEach(() => {
     fakeCache = new FakeCache();
     (globalThis as any).caches = {
-      open: vi.fn().mockResolvedValue(fakeCache),
+      open: vi.fn<() => Promise<FakeCache>>().mockResolvedValue(fakeCache),
     };
     fetchSpy = vi.spyOn(globalThis, "fetch");
 
     blobCounter = 0;
-    createObjectUrlSpy = vi.fn(() => `blob:ffmpeg-${++blobCounter}`);
-    revokeObjectUrlSpy = vi.fn();
+    createObjectUrlSpy = vi.fn<() => string>(() => `blob:ffmpeg-${++blobCounter}`);
+    revokeObjectUrlSpy = vi.fn<(url?: string | URL) => void>();
     (URL as any).createObjectURL = createObjectUrlSpy;
     (URL as any).revokeObjectURL = revokeObjectUrlSpy;
 

@@ -248,7 +248,7 @@ function MentionPreview(props: MentionPreviewProps) {
       data-mention-preview-id={id}
       onMouseEnter={(_e) => {
         mpDbg("container mouseenter", { id });
-        onMouseEnter && onMouseEnter();
+        onMouseEnter?.();
       }}
       onMouseLeave={(e) => {
         const el = containerRef.current;
@@ -271,7 +271,7 @@ function MentionPreview(props: MentionPreviewProps) {
           return;
         }
         mpDbg("container mouseleave -> propagate", { id });
-        onMouseLeave && onMouseLeave();
+        onMouseLeave?.();
       }}
       onWheel={(_e) => {
         // 标记正在滚动，短时间内忽略离开事件

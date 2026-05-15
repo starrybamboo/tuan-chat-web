@@ -131,13 +131,17 @@ function EditForm({ editForm, setEditForm }: {
   editForm: EditFormState;
   setEditForm: (updater: any) => void;
 }) {
+  const collectionListNameInputId = "collection-list-edit-name";
+  const collectionListDescriptionInputId = "collection-list-edit-description";
+
   return (
     <div className="space-y-4">
       <div>
-        <label className="label">
+        <label className="label" htmlFor={collectionListNameInputId}>
           <span className="label-text">收藏列表名称</span>
         </label>
         <input
+          id={collectionListNameInputId}
           type="text"
           className="input input-bordered w-full"
           value={editForm.collectionListName}
@@ -146,10 +150,11 @@ function EditForm({ editForm, setEditForm }: {
         />
       </div>
       <div>
-        <label className="label">
+        <label className="label" htmlFor={collectionListDescriptionInputId}>
           <span className="label-text">描述</span>
         </label>
         <textarea
+          id={collectionListDescriptionInputId}
           className="textarea textarea-bordered w-full"
           rows={3}
           value={editForm.description}
@@ -369,7 +374,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
     if (isMobile) {
       return (
         <div className="fixed inset-0 z-50">
-          <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
+          <button type="button" className="fixed inset-0 bg-black/50" onClick={onClose} aria-label="关闭收藏列表详情弹窗" />
           <div className="fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-2xl animate-slide-up h-5/6 overflow-hidden">
             {LoadingContent}
           </div>
@@ -382,7 +387,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
         <div className="modal-box w-11/12 max-w-2xl">
           {LoadingContent}
         </div>
-        <div className="modal-backdrop bg-black/50" onClick={onClose}></div>
+        <button type="button" className="modal-backdrop bg-black/50" onClick={onClose} aria-label="关闭收藏列表详情弹窗" />
       </div>
     );
   }
@@ -407,7 +412,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
     if (isMobile) {
       return (
         <div className="fixed inset-0 z-50">
-          <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
+          <button type="button" className="fixed inset-0 bg-black/50" onClick={onClose} aria-label="关闭收藏列表详情弹窗" />
           <div className="fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-2xl animate-slide-up h-5/6 overflow-hidden">
             <div className="p-6 h-full flex flex-col justify-center">
               {EmptyContent}
@@ -422,7 +427,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
         <div className="modal-box w-11/12 max-w-2xl">
           {EmptyContent}
         </div>
-        <div className="modal-backdrop bg-black/50" onClick={onClose}></div>
+        <button type="button" className="modal-backdrop bg-black/50" onClick={onClose} aria-label="关闭收藏列表详情弹窗" />
       </div>
     );
   }
@@ -431,7 +436,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
   if (isMobile) {
     return (
       <div className="fixed inset-0 z-50">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
+        <button type="button" className="fixed inset-0 bg-black/50" onClick={onClose} aria-label="关闭收藏列表详情弹窗" />
         <div className="fixed bottom-0 left-0 right-0 bg-base-100 rounded-t-2xl animate-slide-up h-5/6 flex flex-col overflow-hidden">
           {/* 头部 */}
           <div className="flex-shrink-0 p-4 border-b border-base-300">
@@ -661,7 +666,7 @@ export function CollectionListDetail(props: CollectionListDetailProps) {
         </div>
       </div>
 
-      <div className="modal-backdrop bg-black/50" onClick={onClose}></div>
+      <button type="button" className="modal-backdrop bg-black/50" onClick={onClose} aria-label="关闭收藏列表详情弹窗" />
     </div>
   );
 }
