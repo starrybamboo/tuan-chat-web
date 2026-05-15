@@ -344,7 +344,9 @@ export default function ChatFrameList({
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
               if (enableUnreadIndicator) {
-                atBottom && updateLastReadSyncId(roomId);
+                if (atBottom) {
+                  updateLastReadSyncId(roomId);
+                }
               }
               isAtBottomRef.current = atBottom;
               setIsAtBottom(atBottom);
