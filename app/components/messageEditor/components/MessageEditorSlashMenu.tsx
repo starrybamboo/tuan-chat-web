@@ -1,4 +1,5 @@
 import type { MessageEditorInsertableBlockKind } from "../model/messageEditorTransforms";
+import { useEffect, useRef } from "react";
 
 export interface MessageEditorSlashMenuItem {
   description: string;
@@ -23,6 +24,18 @@ export function MessageEditorSlashMenu({
   selectedIndex,
   visible,
 }: MessageEditorSlashMenuProps) {
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    itemRefs.current[selectedIndex]?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [selectedIndex, visible]);
+
   if (!visible || items.length === 0) {
     return null;
   }
@@ -42,6 +55,9 @@ export function MessageEditorSlashMenu({
           return (
             <button
               key={`${item.kind}:${item.keyword}`}
+              ref={(element) => {
+                itemRefs.current[index] = element;
+              }}
               type="button"
               className={[
                 "flex w-full items-start justify-between rounded-lg px-2.5 py-2 text-left transition",
