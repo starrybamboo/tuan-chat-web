@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   getMessageEditorFrameClassName,
-  getMessageEditorScrollViewportClassName,
   shouldIgnoreDocumentSelectionEventTarget,
 } from "./MessageEditor";
 
@@ -32,16 +31,12 @@ function createMockElement(options: {
 }
 
 describe("messageEditor document click guard", () => {
-  it("uses an embedded-safe frame class by default", () => {
-    expect(getMessageEditorFrameClassName()).toBe("h-full min-h-0 rounded-md");
+  it("uses an 80vh frame height by default for standalone document views", () => {
+    expect(getMessageEditorFrameClassName()).toBe("h-[80vh] min-h-0 rounded-md");
   });
 
   it("preserves an explicit frame class override", () => {
     expect(getMessageEditorFrameClassName("h-full rounded-none")).toBe("h-full rounded-none");
-  });
-
-  it("uses one shared scroll viewport for cover, header and content", () => {
-    expect(getMessageEditorScrollViewportClassName()).toBe("relative min-h-0 flex-1 overflow-auto");
   });
 
   it("treats svg descendants inside the text style toolbar as internal clicks", () => {
