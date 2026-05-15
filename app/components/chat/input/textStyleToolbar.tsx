@@ -164,7 +164,7 @@ function SplitButton({
 function DropdownPanel({ children }: { children: ReactNode }) {
   return (
     <div
-      className="absolute left-0 top-10 z-[10000] min-w-48 rounded-md border border-base-300 bg-base-100 p-2.5 text-sm shadow-xl"
+      className="absolute left-0 top-10 z-[41] min-w-48 rounded-md border border-base-300 bg-base-100 p-2.5 text-sm shadow-xl"
       onMouseDown={event => event.stopPropagation()}
       role="presentation"
     >
