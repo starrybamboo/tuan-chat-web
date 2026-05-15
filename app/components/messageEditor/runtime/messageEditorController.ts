@@ -1,5 +1,6 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
+import type { MessageEditorSelectionTextResult } from "../model/messageEditorTransforms";
 import type { MessageEditorEventBus } from "./messageEditorEventBus";
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
 import type { MessageEditorSelection } from "./messageEditorSelection";
@@ -33,11 +34,11 @@ export type MessageEditorController = {
   updateBlock: (blockId: string, updater: (message: MessageDraft) => MessageDraft) => void;
   updateTextContent: (blockId: string, nextContent: string) => void;
   splitAtSelection: (selection: MessageEditorSelection) => { blockId: string; caret: number } | null;
-  replaceSelectionText: (selection: MessageEditorSelection, replacement: string) => { blockId: string; caret: number } | null;
+  replaceSelectionText: (selection: MessageEditorSelection, replacement: string) => MessageEditorSelectionTextResult | null;
   transformSelectionText: (
     selection: MessageEditorSelection,
     transform: (selectedText: string) => string,
-  ) => { blockId: string; caret: number } | null;
+  ) => MessageEditorSelectionTextResult | null;
   mergeBackward: (blockId: string) => { blockId: string; caret: number } | null;
   mergeForward: (blockId: string) => { blockId: string; caret: number } | null;
   moveBlock: (blockId: string, direction: -1 | 1) => void;
@@ -119,7 +120,7 @@ export function createMessageEditorController(params: {
         emitBlocksChanged(result.messages);
         return result.messages;
       });
-      return result.focus;
+      return result;
     },
     transformSelectionText(selection, transform) {
       const result = transformMessageEditorSelectionText(params.getMessages(), selection, transform);
@@ -130,7 +131,7 @@ export function createMessageEditorController(params: {
         emitBlocksChanged(result.messages);
         return result.messages;
       });
-      return result.focus;
+      return result;
     },
     mergeBackward(blockId) {
       const result = mergeMessageEditorMessageBackward(params.getMessages(), blockId);

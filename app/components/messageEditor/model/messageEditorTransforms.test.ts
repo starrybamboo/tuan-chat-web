@@ -148,6 +148,23 @@ describe("messageEditorTransforms", () => {
       blockId: getMessageEditorBlockId(result!.messages[0]),
       caret: 3,
     });
+    expect(result?.selection).toEqual({
+      start: {
+        blockId: getMessageEditorBlockId(result!.messages[0]),
+        offset: 2,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(result!.messages[0]),
+        offset: 3,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(result!.messages[0]),
+          start: 2,
+          end: 3,
+        },
+      ],
+    });
   });
 
   it("transforms each selected text segment without merging blocks", () => {
@@ -181,5 +198,27 @@ describe("messageEditorTransforms", () => {
       "a[lpha](style=color:#FF0000)",
       "[bet](style=color:#FF0000)a",
     ]);
+    expect(result?.selection).toEqual({
+      start: {
+        blockId: getMessageEditorBlockId(result!.messages[0]),
+        offset: 1,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(result!.messages[1]),
+        offset: "[bet](style=color:#FF0000)".length,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(result!.messages[0]),
+          start: 1,
+          end: 1 + "[lpha](style=color:#FF0000)".length,
+        },
+        {
+          blockId: getMessageEditorBlockId(result!.messages[1]),
+          start: 0,
+          end: "[bet](style=color:#FF0000)".length,
+        },
+      ],
+    });
   });
 });

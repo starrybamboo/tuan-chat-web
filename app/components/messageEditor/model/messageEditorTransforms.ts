@@ -47,6 +47,7 @@ export type MessageEditorTextSelection = {
 export type MessageEditorSelectionTextResult = {
   messages: MessageDraft[];
   focus: MessageEditorFocusTarget;
+  selection: MessageEditorTextSelection;
 };
 
 export type MessageEditorMarkdownBlockKind = "paragraph" | "heading1" | "heading2" | "heading3" | "bulletedList" | "numberedList" | "quote";
@@ -610,6 +611,23 @@ export function replaceMessageEditorSelectionText(
       blockId: getMessageEditorBlockId(nextStartMessage),
       caret: startOffset + replacement.length,
     },
+    selection: {
+      start: {
+        blockId: getMessageEditorBlockId(nextStartMessage),
+        offset: startOffset,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(nextStartMessage),
+        offset: startOffset + replacement.length,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(nextStartMessage),
+          start: startOffset,
+          end: startOffset + replacement.length,
+        },
+      ],
+    },
   };
 }
 
@@ -628,6 +646,7 @@ export function transformMessageEditorSelectionText(
 
   const segmentByBlockId = new Map(selection.segments.map(segment => [segment.blockId, segment] as const));
   let focus: MessageEditorFocusTarget | null = null;
+  const nextSegments: MessageEditorTextSelectionSegment[] = [];
   const nextMessages = range.normalizedMessages.map((message, index) => {
     if (index < range.startIndex || index > range.endIndex) {
       return message;
@@ -651,6 +670,11 @@ export function transformMessageEditorSelectionText(
       ...message,
       content: `${content.slice(0, start)}${replacement}${content.slice(end)}`,
     });
+    nextSegments.push({
+      blockId: getMessageEditorBlockId(nextMessage),
+      start,
+      end: start + replacement.length,
+    });
     focus = {
       blockId: getMessageEditorBlockId(nextMessage),
       caret: start + replacement.length,
@@ -662,6 +686,17 @@ export function transformMessageEditorSelectionText(
     ? {
         messages: nextMessages,
         focus,
+        selection: {
+          start: {
+            blockId: nextSegments[0].blockId,
+            offset: nextSegments[0].start,
+          },
+          end: {
+            blockId: nextSegments.at(-1)!.blockId,
+            offset: nextSegments.at(-1)!.end,
+          },
+          segments: nextSegments,
+        },
       }
     : null;
 }
