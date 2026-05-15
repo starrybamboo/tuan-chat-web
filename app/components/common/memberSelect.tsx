@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import MemberInfoComponent from "@/components/common/memberInfo";
 
 interface MemberSelectProps {
@@ -33,10 +33,17 @@ export const MemberSelect: React.FC<MemberSelectProps> = ({
   emptyMessage = "没有可选的成员",
   searchPlaceholder = "请输入成员ID",
 }) => {
+  const searchInputId = useId();
+
   // 处理成员选择
   const handleMemberSelection = (userId: number, checked: boolean) => {
     const newSet = new Set(selectedUserIds);
-    checked ? newSet.add(userId) : newSet.delete(userId);
+    if (checked) {
+      newSet.add(userId);
+    }
+    else {
+      newSet.delete(userId);
+    }
     onSelectionChange(newSet);
   };
 
@@ -50,10 +57,11 @@ export const MemberSelect: React.FC<MemberSelectProps> = ({
     <div className="flex flex-col gap-y-2">
       {/* 搜索框 */}
       <div>
-        <label className="label mb-2">
+        <label htmlFor={searchInputId} className="label mb-2">
           <span className="label-text">搜索成员</span>
         </label>
         <input
+          id={searchInputId}
           type="text"
           placeholder={searchPlaceholder}
           className="input input-bordered w-full mb-2"
@@ -71,18 +79,20 @@ export const MemberSelect: React.FC<MemberSelectProps> = ({
             )
           : (
               displayedMembers.map(member => (
-                <div
+                <label
                   key={member.userId}
+                  htmlFor={`member-select-${member.userId ?? -1}`}
                   className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full hover:bg-base-200 transition-colors"
                 >
                   <input
+                    id={`member-select-${member.userId ?? -1}`}
                     type="checkbox"
                     className="checkbox"
                     checked={selectedUserIds.has(member.userId ?? -1)}
                     onChange={e => handleMemberSelection(member.userId ?? -1, e.target.checked)}
                   />
                   <MemberInfoComponent user={member} />
-                </div>
+                </label>
               ))
             )}
       </div>

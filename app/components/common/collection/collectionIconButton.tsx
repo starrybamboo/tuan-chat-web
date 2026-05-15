@@ -83,10 +83,15 @@ function CollectionListPop({ resourceId, resourceType }: CollectionListPopProps)
                 : (
                     <div className="flex flex-col w-full gap-2 mt-4 sm:mt-2">
                       {collectionLists?.map(collectionList => (
-                        <div key={collectionList.collectionListId} className="flex justify-between w-full sm:h-[3vh] lg:h-[5vh] bg-blue-500/10 hover:text-blue-500 cursor-pointer rounded-sm px-4 py-2" onClick={() => handleAddCollection(resourceId, resourceType, description, collectionList.collectionListId)}>
+                        <button
+                          key={collectionList.collectionListId}
+                          type="button"
+                          className="flex w-full justify-between rounded-sm bg-blue-500/10 px-4 py-2 hover:text-blue-500 sm:h-[3vh] lg:h-[5vh]"
+                          onClick={() => handleAddCollection(resourceId, resourceType, description, collectionList.collectionListId)}
+                        >
                           <span>{collectionList.collectionListName}</span>
                           <span>{formatToMonthDay(collectionList.createTime)}</span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}

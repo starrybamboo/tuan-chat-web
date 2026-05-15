@@ -100,7 +100,6 @@ function SceneNode({ data, selected }: SceneNodeProps) {
               ? "border-2 border-primary"
               : "border border-base-content"
           } ${isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""}`}
-          onClick={handleNodeClick}
         >
           {/* 右下偏移的背景层，仅作用于本内容区 */}
           <div className="absolute inset-0 translate-x-1 translate-y-1 bg-base-300/40 rounded-sm -z-10"></div>
@@ -129,6 +128,12 @@ function SceneNode({ data, selected }: SceneNodeProps) {
                   <div className="text-base-content/60 text-center py-1">暂无描述</div>
                 )}
           </div>
+          <button
+            type="button"
+            className="absolute inset-0 z-10"
+            onClick={handleNodeClick}
+            aria-label={`查看场景${data.label}`}
+          />
         </div>
         {/* 连接点... */}
         <Handle

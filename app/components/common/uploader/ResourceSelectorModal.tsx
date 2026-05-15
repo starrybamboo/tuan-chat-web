@@ -1,7 +1,7 @@
 import type { CollectionList } from "@tuanchat/openapi-client/models/CollectionList";
 import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import { mediaPreviewUrl } from "@/utils/mediaUrl";
@@ -32,10 +32,7 @@ interface CollectionCardProps {
  */
 function CollectionCard({ collection, onSelect }: CollectionCardProps) {
   return (
-    <div
-      className="card bg-base-100 shadow-sm hover:shadow-lg transition-all duration-200 border border-base-300 hover:border-primary/50 cursor-pointer group overflow-hidden"
-      onClick={onSelect}
-    >
+    <div className="card relative overflow-hidden border border-base-300 bg-base-100 shadow-sm transition-all duration-200 group hover:border-primary/50 hover:shadow-lg">
       {/* 素材集封面 */}
       <div className="relative bg-base-200 overflow-hidden aspect-[4/3]">
         <div className="w-full h-full flex items-center justify-center">
@@ -69,6 +66,12 @@ function CollectionCard({ collection, onSelect }: CollectionCardProps) {
           />
         </div>
       </div>
+      <button
+        type="button"
+        className="absolute inset-0 z-10"
+        onClick={onSelect}
+        aria-label={`选择素材集${collection.collectionListName || "未命名素材集"}`}
+      />
     </div>
   );
 }
@@ -98,6 +101,7 @@ export function ResourceSelectorModal({
   const [selectedResource, setSelectedResource] = useState<ResourceResponse | null>(null);
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const searchInputId = useId();
   const pageSize = 20;
 
   // 获取资源列表
@@ -230,9 +234,11 @@ export function ResourceSelectorModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* 背景遮罩 */}
-      <div
+      <button
+        type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
+        aria-label="关闭素材选择器"
       />
       {" "}
       {/* 模态框内容 */}
@@ -301,7 +307,11 @@ export function ResourceSelectorModal({
             )}
 
             <div className="flex-1">
+              <label htmlFor={searchInputId} className="sr-only">
+                搜索素材
+              </label>
               <input
+                id={searchInputId}
                 type="text"
                 placeholder={selectedCollectionId && viewMode === "collection" ? "搜索素材集内的资源..." : "搜索素材..."}
                 value={searchText}
@@ -337,12 +347,11 @@ export function ResourceSelectorModal({
                               return (
                                 <div
                                   key={resource.resourceId}
-                                  className={`card bg-base-100 shadow-sm hover:shadow-lg transition-all duration-200 border cursor-pointer group overflow-hidden ${
+                                  className={`card relative overflow-hidden border bg-base-100 shadow-sm transition-all duration-200 group hover:shadow-lg ${
                                     selectedResource?.resourceId === resource.resourceId
                                       ? "border-primary ring-2 ring-primary/20"
                                       : "border-base-300 hover:border-primary/50"
                                   }`}
-                                  onClick={() => handleResourceSelect(resource)}
                                 >
                                   {/* 资源预览 */}
                                   <div className="relative bg-base-200 overflow-hidden">
@@ -365,7 +374,7 @@ export function ResourceSelectorModal({
 
                                     {/* 选中状态指示器 */}
                                     {selectedResource?.resourceId === resource.resourceId && (
-                                      <div className="absolute top-2 right-2">
+                                      <div className="pointer-events-none absolute top-2 right-2">
                                         <div className="btn btn-sm btn-circle btn-primary">
                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -375,7 +384,7 @@ export function ResourceSelectorModal({
                                     )}
 
                                     {/* 标签 */}
-                                    <div className="absolute top-2 left-2 flex gap-1">
+                                    <div className="pointer-events-none absolute top-2 left-2 flex gap-1">
                                       {resource.isPublic && (
                                         <div className="badge badge-sm text-white bg-green-500 border-green-500">公开</div>
                                       )}
@@ -399,6 +408,12 @@ export function ResourceSelectorModal({
                                       />
                                     </div>
                                   </div>
+                                  <button
+                                    type="button"
+                                    className="absolute inset-0 z-10"
+                                    onClick={() => handleResourceSelect(resource)}
+                                    aria-label={`选择素材${resource.name || "未命名素材"}`}
+                                  />
                                 </div>
                               );
                             })}
@@ -430,12 +445,11 @@ export function ResourceSelectorModal({
                                   return (
                                     <div
                                       key={resource.resourceId}
-                                      className={`card bg-base-100 shadow-sm hover:shadow-lg transition-all duration-200 border cursor-pointer group overflow-hidden ${
+                                      className={`card relative overflow-hidden border bg-base-100 shadow-sm transition-all duration-200 group hover:shadow-lg ${
                                         selectedResource?.resourceId === resource.resourceId
                                           ? "border-primary ring-2 ring-primary/20"
                                           : "border-base-300 hover:border-primary/50"
                                       }`}
-                                      onClick={() => handleResourceSelect(resource)}
                                     >
                                       {/* 资源预览 */}
                                       <div className="relative bg-base-200 overflow-hidden">
@@ -458,7 +472,7 @@ export function ResourceSelectorModal({
 
                                         {/* 选中状态指示器 */}
                                         {selectedResource?.resourceId === resource.resourceId && (
-                                          <div className="absolute top-2 right-2">
+                                          <div className="pointer-events-none absolute top-2 right-2">
                                             <div className="btn btn-sm btn-circle btn-primary">
                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -468,7 +482,7 @@ export function ResourceSelectorModal({
                                         )}
 
                                         {/* 标签 */}
-                                        <div className="absolute top-2 left-2 flex gap-1">
+                                        <div className="pointer-events-none absolute top-2 left-2 flex gap-1">
                                           {resource.isPublic && (
                                             <div className="badge badge-sm text-white bg-green-500 border-green-500">公开</div>
                                           )}
@@ -492,6 +506,12 @@ export function ResourceSelectorModal({
                                           />
                                         </div>
                                       </div>
+                                      <button
+                                        type="button"
+                                        className="absolute inset-0 z-10"
+                                        onClick={() => handleResourceSelect(resource)}
+                                        aria-label={`选择素材${resource.name || "未命名素材"}`}
+                                      />
                                     </div>
                                   );
                                 })}

@@ -18,6 +18,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
   const spaceAvatarThumbUploadId = useId().replace(/:/g, "");
+  const spaceNameInputId = useId().replace(/:/g, "");
   const defaultSpaceAvatarFileId = userInfo?.avatarFileId;
   const defaultSpaceAvatar = avatarThumbUrl(defaultSpaceAvatarFileId);
   const defaultSpaceName = userInfo?.username ? `${String(userInfo.username)}的空间` : "";
@@ -116,10 +117,11 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
 
       {/* 空间名称 */}
       <div className="mb-4">
-        <label className="label mb-2">
+        <label htmlFor={spaceNameInputId} className="label mb-2">
           <span className="label-text">空间名称</span>
         </label>
         <input
+          id={spaceNameInputId}
           type="text"
           value={spaceName}
           placeholder={defaultSpaceName}
@@ -133,11 +135,11 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
 
       {/* 规则选择 */}
       <div className="mb-4">
-        <label className="label mb-2">
+        <p className="label mb-2">
           <span className="label-text">空间规则</span>
-        </label>
+        </p>
         <div className="dropdown w-full">
-          <label tabIndex={0} className="btn btn-outline w-full justify-start">
+          <button type="button" className="btn btn-outline w-full justify-start">
             {rules.find(rule => rule.ruleId === selectedRuleId)?.ruleName ?? "未找到规则"}
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -148,8 +150,8 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
             </svg>
-          </label>
-          <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
+          </button>
+          <ul className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
             {rules.map(rule => (
               <li key={rule.ruleId}>
                 <button
