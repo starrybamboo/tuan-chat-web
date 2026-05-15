@@ -11,9 +11,7 @@ import { use, useCallback, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleList from "@/components/chat/shared/components/roleLists";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
@@ -63,7 +61,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
   // 使用默认的聊天气泡样式设置
   const [useChatBubbleStyle] = useState(true);
-
   // roomContext
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
@@ -96,29 +93,6 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
     }
   }, [defaultTab]);
 
-  const flushRoomRedundant = useCallback((opts?: { closeAfter?: boolean }) => {
-    if (!propRoomId || !Number.isFinite(propRoomId) || propRoomId <= 0)
-      return;
-
-    updateRoomMutation.mutate({
-      roomId: propRoomId,
-      name: (room?.name ?? "").trim(),
-      description: room?.description ?? "",
-      avatarFileId: room?.avatarFileId,
-    }, {
-      onSuccess: () => {
-        if (opts?.closeAfter) {
-          onClose();
-        }
-      },
-    });
-  }, [onClose, propRoomId, room?.avatarFileId, room?.description, room?.name, updateRoomMutation]);
-
-  // 退出时自动保存
-  const handleClose = () => {
-    flushRoomRedundant({ closeAfter: true });
-  };
-
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full min-w-[40vw] bg-base-100 rounded-lg overflow-hidden">
@@ -127,7 +101,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
             type="button"
             className="btn btn-ghost btn-sm btn-square"
             aria-label="返回聊天"
-            onClick={handleClose}
+            onClick={onClose}
           >
             <BaselineArrowBackIosNew className="size-5" />
           </button>
@@ -161,11 +135,28 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                   <div className="h-full min-h-0 overflow-y-auto p-4">
                     {(propRoomId && (room?.spaceId ?? spaceId))
                       ? (
-                          <MessageEditor
-                            className="h-[90vh] min-h-0 rounded-md"
-                            coverUrl={avatarThumbUrl(room?.avatarFileId)}
-                            docId={propRoomId ? `room:${propRoomId}:description` : undefined}
-                            title={room?.name ?? ""}
+                          <RoomSettingForm
+                            key={room.roomId ?? propRoomId}
+                            roomId={propRoomId}
+                            initialName={room.name ?? ""}
+                            initialDescription={room.description ?? ""}
+                            avatarFileId={room.avatarFileId}
+                            isPending={updateRoomMutation.isPending}
+                            onClose={onClose}
+                            onSave={(draft, opts) => {
+                              updateRoomMutation.mutate({
+                                roomId: propRoomId,
+                                name: draft.name.trim(),
+                                description: draft.description,
+                                avatarFileId: room.avatarFileId,
+                              }, {
+                                onSuccess: () => {
+                                  if (opts?.closeAfter) {
+                                    onClose();
+                                  }
+                                },
+                              });
+                            }}
                           />
                         )
                       : (
@@ -178,6 +169,88 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
             )}
       </div>
     </RoomContext>
+  );
+}
+
+function RoomSettingForm({
+  roomId,
+  initialName,
+  initialDescription,
+  avatarFileId,
+  isPending,
+  onClose,
+  onSave,
+}: {
+  roomId?: number;
+  initialName: string;
+  initialDescription: string;
+  avatarFileId?: number;
+  isPending: boolean;
+  onClose: () => void;
+  onSave: (draft: { name: string; description: string; avatarFileId?: number }, opts?: { closeAfter?: boolean }) => void;
+}) {
+  const [roomDraft, setRoomDraft] = useState({
+    name: initialName,
+    description: initialDescription,
+  });
+
+  const flushRoomRedundant = useCallback((opts?: { closeAfter?: boolean }) => {
+    if (!roomId || !Number.isFinite(roomId) || roomId <= 0) {
+      return;
+    }
+    onSave({
+      name: roomDraft.name,
+      description: roomDraft.description,
+      avatarFileId,
+    }, opts);
+  }, [avatarFileId, onSave, roomDraft.description, roomDraft.name, roomId]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <label className="form-control">
+        <div className="label">
+          <span className="label-text">房间名称</span>
+        </div>
+        <input
+          className="input input-bordered w-full"
+          value={roomDraft.name}
+          onChange={(event) => {
+            setRoomDraft(prev => ({ ...prev, name: event.target.value }));
+          }}
+        />
+      </label>
+
+      <label className="form-control">
+        <div className="label">
+          <span className="label-text">房间描述</span>
+        </div>
+        <textarea
+          className="textarea textarea-bordered min-h-40 w-full resize-y"
+          value={roomDraft.description}
+          onChange={(event) => {
+            setRoomDraft(prev => ({ ...prev, description: event.target.value }));
+          }}
+        />
+      </label>
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={onClose}
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={isPending}
+          onClick={() => flushRoomRedundant()}
+        >
+          保存
+        </button>
+      </div>
+    </div>
   );
 }
 

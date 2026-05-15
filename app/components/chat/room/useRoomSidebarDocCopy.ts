@@ -55,10 +55,9 @@ export default function useRoomSidebarDocCopy({
       return;
     }
 
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
-    const key = parseDescriptionDocId(docRef.docId);
-    if (!key) {
-      toast.error("仅支持复制空间文档（描述文档/我的文档）");
+    const sourceDocRoomId = docRef.roomId ?? Number(docRef.docId);
+    if (!Number.isFinite(sourceDocRoomId) || sourceDocRoomId <= 0) {
+      toast.error("仅支持复制空间文档");
       return;
     }
 
@@ -66,7 +65,7 @@ export default function useRoomSidebarDocCopy({
     try {
       const res = await copyDocToSpaceDoc({
         spaceId: activeSpaceId,
-        sourceDocId: docRef.docId,
+        sourceDocId: String(sourceDocRoomId),
         sourceSpaceId: docRef.spaceId,
         title: docRef.title,
         imageUrl: docRef.imageUrl,

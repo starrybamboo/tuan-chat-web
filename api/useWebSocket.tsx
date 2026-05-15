@@ -12,8 +12,6 @@ import {
 } from "./hooks/messageSessionQueryHooks";
 import type {MessageSessionResponse} from "@tuanchat/openapi-client/models/MessageSessionResponse";
 import type {ApiResultListMessageSessionResponse} from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
-import type { ApiResultRoom } from "@tuanchat/openapi-client/models/ApiResultRoom";
-import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
 import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./webSocketRuntimeTypes";
@@ -113,45 +111,8 @@ export function useWebSocket() {
   }, [getCrossTabNotificationGuard]);
 
   const cleanupRoomDescriptionDocOnDissolve = useCallback((roomId: number) => {
-    if (typeof window === "undefined")
-      return;
-
-    const docId = `room:${roomId}:description`;
-
-    // 优先从 roomInfo 缓存拿 spaceId（避免对所有 space 做 best-effort 删除）。
-    const roomInfo = queryClient.getQueryData<ApiResultRoom>(["getRoomInfo", roomId]);
-    const cachedSpaceId = roomInfo?.data?.spaceId;
-    const spaceIdFromRoomInfo = (typeof cachedSpaceId === "number" && Number.isFinite(cachedSpaceId) && cachedSpaceId > 0)
-      ? cachedSpaceId
-      : null;
-
-    void (async () => {
-      try {
-        const { deleteSpaceDoc } = await import("@/components/chat/infra/doc/space/deleteSpaceDoc");
-
-        if (spaceIdFromRoomInfo != null) {
-          await deleteSpaceDoc({ spaceId: spaceIdFromRoomInfo, docId });
-          return;
-        }
-
-        // roomInfo 缓存缺失时，best-effort：对当前缓存中出现过的 space 都尝试删除一次（不存在则 no-op）。
-        const queries = queryClient.getQueriesData<ApiResultRoomListResponse>({ queryKey: ["getUserRooms"] });
-        const spaceIds = new Set<number>();
-        for (const [key] of queries) {
-          const maybeSpaceId = Array.isArray(key) ? key[1] : null;
-          const sid = typeof maybeSpaceId === "number" ? maybeSpaceId : Number(maybeSpaceId);
-          if (Number.isFinite(sid) && sid > 0) {
-            spaceIds.add(sid);
-          }
-        }
-
-        await Promise.allSettled(Array.from(spaceIds).map(spaceId => deleteSpaceDoc({ spaceId, docId })));
-      }
-      catch {
-        // ignore
-      }
-    })();
-  }, [queryClient]);
+    void roomId;
+  }, []);
 
   /**
    * 群聊的未读消息数

@@ -6,7 +6,6 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
@@ -267,14 +266,34 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   )
                 : null}
 
-              {/* 右侧：空间描述文档 */}
-              <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
-                <MessageEditor
-                  className="h-[90vh] min-h-0 rounded-md"
-                  coverUrl={avatarThumbUrl(space?.avatarFileId)}
-                  docId={spaceId ? `space:${spaceId}:description` : undefined}
-                  title={space?.name ?? ""}
-                />
+              <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-4">
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+                  <label className="form-control">
+                    <div className="label">
+                      <span className="label-text">空间名称</span>
+                    </div>
+                    <input
+                      className="input input-bordered w-full"
+                      value={formData.name}
+                      onChange={(event) => {
+                        setFormData(prev => ({ ...prev, name: event.target.value }));
+                      }}
+                    />
+                  </label>
+
+                  <label className="form-control">
+                    <div className="label">
+                      <span className="label-text">空间描述</span>
+                    </div>
+                    <textarea
+                      className="textarea textarea-bordered min-h-40 w-full resize-y"
+                      value={formData.description}
+                      onChange={(event) => {
+                        setFormData(prev => ({ ...prev, description: event.target.value }));
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           )}

@@ -38,7 +38,7 @@
     "backfill:list-avatar": "node ./scripts/backfill-space-avatar-compression.mjs",
     "backfill:space-avatar": "node ./scripts/backfill-space-avatar-compression.mjs",
     "prepare": "husky",
-    "openapi": "openapi --input ./packages/tuanchat-openapi-client/tuanchat_OpenAPI.json --output ./packages/tuanchat-openapi-client/src --client fetch --name TuanChat",
+    "openapi": "node ./scripts/openapi-filter-doc-apis.mjs",
     "electron:dev": "node ./scripts/electron-dev.mjs",
     "electron:dev:only": "electron .",
     "electron:prepare:resources": "node ./scripts/prepare-electron-extra-resources.mjs",

@@ -313,29 +313,26 @@ export default function useSpaceDocMetaState({
 
     if (typeof window !== "undefined") {
       try {
-        void (async () => {
-          const { parseDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
-          const key = parseDescriptionDocId(docId);
-          if (!key || key.entityType !== "space_doc")
-            return;
+        const parsed = parseSpaceDocId(docId);
+        if (parsed?.kind !== "independent")
+          return;
 
-          spaceDocTitleSyncPendingRef.current = { docId: key.entityId, title };
-          if (spaceDocTitleSyncTimerRef.current != null) {
-            window.clearTimeout(spaceDocTitleSyncTimerRef.current);
-          }
-          spaceDocTitleSyncTimerRef.current = window.setTimeout(() => {
-            const pending = spaceDocTitleSyncPendingRef.current;
-            if (!pending)
-              return;
-            const last = spaceDocTitleSyncLastRef.current;
-            if (last && last.docId === pending.docId && last.title === pending.title)
-              return;
-            void syncSpaceDocTitle({
-              docId: pending.docId,
-              title: pending.title,
-            });
-          }, 800);
-        })();
+        spaceDocTitleSyncPendingRef.current = { docId: parsed.docId, title };
+        if (spaceDocTitleSyncTimerRef.current != null) {
+          window.clearTimeout(spaceDocTitleSyncTimerRef.current);
+        }
+        spaceDocTitleSyncTimerRef.current = window.setTimeout(() => {
+          const pending = spaceDocTitleSyncPendingRef.current;
+          if (!pending)
+            return;
+          const last = spaceDocTitleSyncLastRef.current;
+          if (last && last.docId === pending.docId && last.title === pending.title)
+            return;
+          void syncSpaceDocTitle({
+            docId: pending.docId,
+            title: pending.title,
+          });
+        }, 800);
       }
       catch {
         // ignore

@@ -9,7 +9,6 @@ import { AbilityControllerService } from './services/AbilityControllerService';
 import { AiGatewayControllerService } from './services/AiGatewayControllerService';
 import { AiGatewayOpenAiControllerService } from './services/AiGatewayOpenAiControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
-import { BlocksuiteDocControllerService } from './services/BlocksuiteDocControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
 import { CollectionListControllerService } from './services/CollectionListControllerService';
@@ -60,7 +59,6 @@ export class TuanChat {
     public readonly aiGatewayController: AiGatewayControllerService;
     public readonly aiGatewayOpenAiController: AiGatewayOpenAiControllerService;
     public readonly avatarController: AvatarControllerService;
-    public readonly blocksuiteDocController: BlocksuiteDocControllerService;
     public readonly chatController: ChatControllerService;
     public readonly collectionController: CollectionControllerService;
     public readonly collectionListController: CollectionListControllerService;
@@ -122,7 +120,6 @@ export class TuanChat {
         this.aiGatewayController = new AiGatewayControllerService(this.request);
         this.aiGatewayOpenAiController = new AiGatewayOpenAiControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
-        this.blocksuiteDocController = new BlocksuiteDocControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);
         this.collectionListController = new CollectionListControllerService(this.request);
@@ -169,3 +166,4 @@ export class TuanChat {
         this.websocketDoc = new WebsocketDocService(this.request);
     }
 }
+

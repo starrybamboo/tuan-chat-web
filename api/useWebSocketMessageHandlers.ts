@@ -165,8 +165,7 @@ export function useWebSocketMessageHandlers({
       if (m.messageType === MessageType.SYSTEM) {
         const content = (m.content ?? "").toString();
         if (
-          content.includes("[ֹͣBGM]")
-          || content.includes("[停止全员BGM]")
+          content.includes("[停止全员BGM]")
           || content.includes("[停止BGM]")
         ) {
           useAudioMessageAutoPlayStore.getState().markBgmStopFromWs(m.roomId);

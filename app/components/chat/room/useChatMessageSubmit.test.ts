@@ -533,6 +533,71 @@ describe("useChatMessageSubmit", () => {
     }));
   });
 
+  it("连写带符号 .st 会优先编译成 STATE_EVENT(varOp)", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: ".st hp+6",
+      textWithoutMentions: ".st hp+6",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async request => ({
+      ...createMessage(24),
+      messageType: request.messageType,
+      content: request.content,
+      extra: request.extra,
+    }));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).not.toHaveBeenCalled();
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      messageType: MessageType.STATE_EVENT,
+      content: ".st hp+6",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "st",
+            parserVersion: "state-event-v1",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: 3,
+            },
+            key: "hp",
+            op: "add",
+            value: 6,
+          }],
+        },
+      },
+    }));
+  });
+
   it("简单 .next 会生成 STATE_EVENT(nextTurn)", async () => {
     useChatInputUiStore.setState({
       plainText: ".next",

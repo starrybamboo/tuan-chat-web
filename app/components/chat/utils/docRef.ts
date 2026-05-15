@@ -3,6 +3,7 @@ const DOC_REF_FALLBACK_PREFIX = "tc-doc-ref:";
 
 export type DocRefDragPayload = {
   docId: string;
+  roomId?: number;
   /** 源文档所属空间，用于跨空间复制/预览时定位文档工作区 */
   spaceId?: number;
   /** 发送时的标题兜底（预览加载前展示） */
@@ -26,6 +27,10 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
   const spaceId = (typeof spaceIdRaw === "number" && Number.isFinite(spaceIdRaw) && spaceIdRaw > 0)
     ? spaceIdRaw
     : undefined;
+  const roomIdRaw = raw?.roomId;
+  const roomId = (typeof roomIdRaw === "number" && Number.isFinite(roomIdRaw) && roomIdRaw > 0)
+    ? roomIdRaw
+    : undefined;
 
   const title = typeof raw?.title === "string" ? raw.title.trim() : "";
   const imageUrl = typeof raw?.imageUrl === "string" ? raw.imageUrl.trim() : "";
@@ -36,6 +41,7 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
 
   return {
     docId,
+    ...(roomId ? { roomId } : {}),
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
     ...(imageUrl ? { imageUrl } : {}),

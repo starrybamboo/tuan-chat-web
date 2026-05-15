@@ -1,7 +1,7 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { SPACE_DETAIL_TABS } from "@/components/chat/chatPage.types";
-import { buildSpaceDocId, parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
+import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 
 export type DocRouteInfo = {
   decodedDocId: string | null;
@@ -26,14 +26,14 @@ export function getDocRouteInfo(params: { isDocRoute: boolean; rawDocId?: string
     if (Number.isFinite(id) && id > 0) {
       return {
         decodedDocId: decoded,
-        activeDocId: buildSpaceDocId({ kind: "independent", docId: id }),
+        activeDocId: decoded,
         isInvalidSpaceDocId: false,
       };
     }
   }
 
   const parsed = parseSpaceDocId(decoded);
-  if (parsed?.kind === "independent") {
+  if (parsed?.kind !== "independent") {
     return {
       decodedDocId: decoded,
       activeDocId: null,
