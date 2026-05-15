@@ -5,10 +5,10 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import { addDroppedFilesToComposer, getFileDragOverlayText } from "./dndUpload";
 
 const mocks = vi.hoisted(() => ({
-  toastSuccessMock: vi.fn(),
-  toastErrorMock: vi.fn(),
-  preheatChatMediaPreprocessMock: vi.fn(),
-  applyRoomMediaAnnotationPreferenceToComposerMock: vi.fn(),
+  toastSuccessMock: vi.fn<(message: string) => void>(),
+  toastErrorMock: vi.fn<(message: string) => void>(),
+  preheatChatMediaPreprocessMock: vi.fn<(...args: unknown[]) => void>(),
+  applyRoomMediaAnnotationPreferenceToComposerMock: vi.fn<(...args: unknown[]) => void>(),
 }));
 
 vi.mock("react-hot-toast", () => ({

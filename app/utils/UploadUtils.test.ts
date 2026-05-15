@@ -5,11 +5,11 @@ import { UploadUtils } from "./UploadUtils";
 import { transcodeVideoFileToWebmOrThrow } from "./videoTranscodeUtils";
 
 vi.mock("./mediaUpload", () => ({
-  uploadMediaFile: vi.fn(),
+  uploadMediaFile: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("./videoTranscodeUtils", () => ({
-  transcodeVideoFileToWebmOrThrow: vi.fn(),
+  transcodeVideoFileToWebmOrThrow: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 describe("uploadUtils media service adapter", () => {

@@ -8,9 +8,9 @@ type MockAudioElement = {
   volume: number;
   currentTime: number;
   paused: boolean;
-  play: ReturnType<typeof vi.fn>;
-  pause: ReturnType<typeof vi.fn>;
-  load: ReturnType<typeof vi.fn>;
+  play: ReturnType<typeof vi.fn<(this: MockAudioElement) => Promise<void>>>;
+  pause: ReturnType<typeof vi.fn<(this: MockAudioElement) => void>>;
+  load: ReturnType<typeof vi.fn<() => void>>;
 };
 
 function createMockAudioElement(): MockAudioElement {
@@ -22,13 +22,13 @@ function createMockAudioElement(): MockAudioElement {
     volume: 1,
     currentTime: 0,
     paused: true,
-    play: vi.fn(async function (this: MockAudioElement) {
+    play: vi.fn<(this: MockAudioElement) => Promise<void>>(async function (this: MockAudioElement) {
       this.paused = false;
     }),
-    pause: vi.fn(function (this: MockAudioElement) {
+    pause: vi.fn<(this: MockAudioElement) => void>(function (this: MockAudioElement) {
       this.paused = true;
     }),
-    load: vi.fn(),
+    load: vi.fn<() => void>(),
   };
   return audio;
 }
@@ -88,29 +88,29 @@ describe("audioMessageBgmCoordinator", () => {
       id: coordinator.createBgmControllerId(roomId, messageId),
       roomId,
       messageId,
-      play: vi.fn(async () => {
+      play: vi.fn<() => Promise<boolean>>(async () => {
         queueMicrotask(() => {
           visualPlaying = true;
         });
         return true;
       }),
-      playFromStart: vi.fn(async () => {
+      playFromStart: vi.fn<() => Promise<boolean>>(async () => {
         visualCurrentTime = 0;
         queueMicrotask(() => {
           visualPlaying = true;
         });
         return true;
       }),
-      stop: vi.fn(() => {
+      stop: vi.fn<() => void>(() => {
         visualPlaying = false;
       }),
-      isPlaying: vi.fn(() => visualPlaying),
-      getVolumeRatio: vi.fn(() => visualVolumeRatio),
-      setVolumeRatio: vi.fn((value: number) => {
+      isPlaying: vi.fn<() => boolean>(() => visualPlaying),
+      getVolumeRatio: vi.fn<() => number>(() => visualVolumeRatio),
+      setVolumeRatio: vi.fn<(value: number) => void>((value: number) => {
         visualVolumeRatio = value;
       }),
-      getCurrentTimeSec: vi.fn(() => visualCurrentTime),
-      setCurrentTimeSec: vi.fn((value: number) => {
+      getCurrentTimeSec: vi.fn<() => number>(() => visualCurrentTime),
+      setCurrentTimeSec: vi.fn<(value: number) => void>((value: number) => {
         visualCurrentTime = value;
       }),
     };
@@ -147,19 +147,19 @@ describe("audioMessageBgmCoordinator", () => {
       id: coordinator.createBgmControllerId(roomId, messageId),
       roomId,
       messageId,
-      play: vi.fn(async () => true),
-      playFromStart: vi.fn(async () => {
+      play: vi.fn<() => Promise<boolean>>(async () => true),
+      playFromStart: vi.fn<() => Promise<boolean>>(async () => {
         visualPlaying = false;
         return true;
       }),
-      stop: vi.fn(() => {
+      stop: vi.fn<() => void>(() => {
         visualPlaying = false;
       }),
-      isPlaying: vi.fn(() => visualPlaying),
-      getVolumeRatio: vi.fn(() => 1),
-      setVolumeRatio: vi.fn(),
-      getCurrentTimeSec: vi.fn(() => 0),
-      setCurrentTimeSec: vi.fn(),
+      isPlaying: vi.fn<() => boolean>(() => visualPlaying),
+      getVolumeRatio: vi.fn<() => number>(() => 1),
+      setVolumeRatio: vi.fn<(value: number) => void>(),
+      getCurrentTimeSec: vi.fn<() => number>(() => 0),
+      setCurrentTimeSec: vi.fn<(value: number) => void>(),
     };
 
     coordinator.registerBgmMessageController(visualController);

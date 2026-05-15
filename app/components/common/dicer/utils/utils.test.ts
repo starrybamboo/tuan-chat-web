@@ -13,9 +13,9 @@ vi.mock("./utils", async () => {
   return {
     __esModule: true,
     default: {
-      doesHaveArg: vi.fn(),
-      setRoleAbilityValue: vi.fn(),
-      getRoleAbilityValue: vi.fn(),
+      doesHaveArg: vi.fn<(...args: unknown[]) => unknown>(),
+      setRoleAbilityValue: vi.fn<(...args: unknown[]) => unknown>(),
+      getRoleAbilityValue: vi.fn<(...args: unknown[]) => unknown>(),
       calculateExpression: actual.default.calculateExpression,
     },
   };
