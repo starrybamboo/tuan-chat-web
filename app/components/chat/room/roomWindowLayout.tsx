@@ -53,7 +53,7 @@ export default function RoomWindowLayout({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
 
   return (
-    <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-300">
+    <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-100">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500 z-0"
         style={{
