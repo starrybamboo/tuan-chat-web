@@ -271,7 +271,7 @@ export function FloatingSelectionToolbar({
   return createPortal(
     <div
       ref={toolbarRef}
-      className={`fixed z-[9999] ${className}`}
+      className={`fixed z-40 ${className}`}
       style={{
         left: position.x,
         top: position.y - 8,
