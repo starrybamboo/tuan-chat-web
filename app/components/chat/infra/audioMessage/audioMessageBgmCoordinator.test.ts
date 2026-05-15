@@ -50,7 +50,7 @@ describe("audioMessageBgmCoordinator", () => {
     }
 
     vi.stubGlobal("Audio", MockAudio);
-    vi.stubGlobal("requestAnimationFrame", vi.fn((callback: FrameRequestCallback) => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn<(...args: any[]) => any>((callback: FrameRequestCallback) => {
       frameTime += 100;
       queueMicrotask(() => callback(frameTime));
       return 1;

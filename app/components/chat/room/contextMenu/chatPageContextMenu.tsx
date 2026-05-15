@@ -49,60 +49,68 @@ export default function ChatPageContextMenu({
         <div
           className="fixed bg-base-100 shadow-lg rounded-md z-[9999]"
           style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={e => e.stopPropagation()}
         >
           <ul className="menu p-2 w-50">
-            <li
-              className="relative group"
-              onClick={() => {
-                onOpenRoomSetting?.(contextMenu.roomId);
-                onClose();
-              }}
-            >
-              <div className="flex justify-between items-center w-full">
+            <li className="relative group">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between"
+                onClick={() => {
+                  onOpenRoomSetting?.(contextMenu.roomId);
+                  onClose();
+                }}
+              >
                 <span>房间资料</span>
-              </div>
+              </button>
             </li>
 
             {/* --- Invite Player Menu --- */}
             {canInvitePlayer && (
-              <li
-                className="relative group"
-                onClick={() => {
-                  onInvitePlayer?.(contextMenu.roomId);
-                  onClose();
-                }}
-              >
-                <div className="flex justify-between items-center w-full">
+              <li className="relative group">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between"
+                  onClick={() => {
+                    onInvitePlayer?.(contextMenu.roomId);
+                    onClose();
+                  }}
+                >
                   <span>邀请玩家</span>
-                </div>
+                </button>
               </li>
             )}
             {/* --- Notification Settings Menu --- */}
-            <li
-              className="relative group"
-              onClick={() => {
-                isSubscribed ? unsubscribeRoomMutation.mutate(contextMenu.roomId) : subscribeRoomMutation.mutate(contextMenu.roomId);
-                onClose();
-              }}
-            >
-              <div className="flex justify-between items-center w-full">
-                <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
-              </div>
-            </li>
-
-            {canDissolveRoom && (
-              <li
-                className="relative group text-error"
+            <li className="relative group">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between"
                 onClick={() => {
-                  setDissolveTargetRoomId(contextMenu.roomId);
-                  setIsDissolveConfirmOpen(true);
+                  if (isSubscribed) {
+                    unsubscribeRoomMutation.mutate(contextMenu.roomId);
+                  }
+                  else {
+                    subscribeRoomMutation.mutate(contextMenu.roomId);
+                  }
                   onClose();
                 }}
               >
-                <div className="flex justify-between items-center w-full">
+                <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
+              </button>
+            </li>
+
+            {canDissolveRoom && (
+              <li className="relative group text-error">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between"
+                  onClick={() => {
+                    setDissolveTargetRoomId(contextMenu.roomId);
+                    setIsDissolveConfirmOpen(true);
+                    onClose();
+                  }}
+                >
                   <span>解散房间</span>
-                </div>
+                </button>
               </li>
             )}
           </ul>

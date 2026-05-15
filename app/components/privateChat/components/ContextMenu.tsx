@@ -13,24 +13,26 @@ export default function ContextMenu({ allMessages, userId, contextMenu, setConte
             <ul className="menu p-2 w-40">
               {message?.senderId === userId && (
                 <li>
-                  <a onClick={(e) => {
-                    e.preventDefault();
-                    handleRevokeMessage({ messageId: contextMenu.messageId });
-                    setContextMenu(null);
-                  }}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleRevokeMessage({ messageId: contextMenu.messageId });
+                      setContextMenu(null);
+                    }}
                   >
                     撤回
-                  </a>
+                  </button>
                 </li>
               )}
               <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  setContextMenu(null);
-                }}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu(null);
+                  }}
                 >
                   回复
-                </a>
+                </button>
               </li>
             </ul>
           </div>

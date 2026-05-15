@@ -7,13 +7,13 @@ describe("通用骰子指令", () => {
 
   beforeEach(() => {
     cpi = {
-      replyMessage: vi.fn(),
-      sendToast: vi.fn(),
-      getRoleAbilityList: vi.fn(),
-      getSpaceInfo: vi.fn(),
-      getSpaceData: vi.fn(),
-      setRoleAbilityList: vi.fn(),
-      setCopywritingKey: vi.fn(),
+      replyMessage: vi.fn<(...args: any[]) => any>(),
+      sendToast: vi.fn<(...args: any[]) => any>(),
+      getRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      getSpaceInfo: vi.fn<(...args: any[]) => any>(),
+      getSpaceData: vi.fn<(...args: any[]) => any>(),
+      setRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      setCopywritingKey: vi.fn<(...args: any[]) => any>(),
     } as unknown as CPI;
   });
 

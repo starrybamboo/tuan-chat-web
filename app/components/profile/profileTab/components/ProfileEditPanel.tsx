@@ -32,6 +32,8 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
     cancelEditingProfile,
     isSaving,
   } = profileEditing;
+  const usernameInputId = "profile-edit-username";
+  const descriptionInputId = "profile-edit-description";
 
   return (
     <div className="md:hidden p-4 bg-base-100 rounded-2xl mt-2 space-y-4">
@@ -39,10 +41,11 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
 
       {/* 用户名编辑 */}
       <div>
-        <label className="label">
+        <label htmlFor={usernameInputId} className="label">
           <span className="label-text">用户名</span>
         </label>
         <input
+          id={usernameInputId}
           type="text"
           value={editingUsername}
           onChange={e => setEditingUsername(e.target.value)}
@@ -63,10 +66,11 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
 
       {/* 描述编辑 */}
       <div>
-        <label className="label">
+        <label htmlFor={descriptionInputId} className="label">
           <span className="label-text">个人描述</span>
         </label>
         <textarea
+          id={descriptionInputId}
           value={editingDescription}
           onChange={e => setEditingDescription(e.target.value)}
           className={`textarea textarea-bordered w-full ${

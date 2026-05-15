@@ -9,7 +9,7 @@ const {
   mockedGetCachedDocSnapshot,
 } = vi.hoisted(() => {
   return {
-    mockedGetCachedDocSnapshot: vi.fn(() => null),
+    mockedGetCachedDocSnapshot: vi.fn<(...args: any[]) => any>(() => null),
   };
 });
 
@@ -24,14 +24,14 @@ vi.mock("react", async () => {
 
 vi.mock("react-hot-toast", () => ({
   toast: {
-    error: vi.fn(),
-    success: vi.fn(),
+    error: vi.fn<(...args: any[]) => any>(),
+    success: vi.fn<(...args: any[]) => any>(),
   },
 }));
 
 vi.mock("@/components/common/dicer/utils/utils", () => ({
   default: {
-    getDicerRoleId: vi.fn(async () => 1000),
+    getDicerRoleId: vi.fn<(...args: any[]) => any>(async () => 1000),
   },
 }));
 
@@ -69,12 +69,12 @@ describe("useRoomImportActions", () => {
     } as ChatMessageResponse["message"]);
     roomUiStoreApi.getState().setInsertAfterMessageId(300);
 
-    const sendMessageWithInsert = vi.fn()
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>()
       .mockResolvedValueOnce(createMessage(1))
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(createMessage(3));
-    const onProgress = vi.fn();
-    const setIsSubmitting = vi.fn();
+    const onProgress = vi.fn<(...args: any[]) => any>();
+    const setIsSubmitting = vi.fn<(...args: any[]) => any>();
 
     const { handleImportChatText } = useRoomImportActions({
       roomId: 1,
@@ -86,8 +86,8 @@ describe("useRoomImportActions", () => {
       setIsSubmitting,
       roomContext: {} as any,
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       roomUiStoreApi,
     });
 
@@ -108,7 +108,7 @@ describe("useRoomImportActions", () => {
 
   it("发送文档卡片时保留源文档所属空间", async () => {
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(10));
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>().mockResolvedValue(createMessage(10));
 
     const { handleSendDocCard } = useRoomImportActions({
       roomId: 1,
@@ -117,11 +117,11 @@ describe("useRoomImportActions", () => {
       curRoleId: 3,
       notMember: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       roomContext: {} as any,
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       roomUiStoreApi,
     });
 
@@ -149,7 +149,7 @@ describe("useRoomImportActions", () => {
 
   it("跨空间发送文档卡片时只从本地 message-stream 快照回填摘要", async () => {
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(12));
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>().mockResolvedValue(createMessage(12));
     mockedGetCachedDocSnapshot.mockReturnValue({
       v: 4,
       format: "message-stream",
@@ -164,11 +164,11 @@ describe("useRoomImportActions", () => {
       curRoleId: 3,
       notMember: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       roomContext: {} as any,
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       roomUiStoreApi,
     });
 
@@ -192,7 +192,7 @@ describe("useRoomImportActions", () => {
 
   it("发送群聊跳转时保留目标群聊所属空间", async () => {
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(11));
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>().mockResolvedValue(createMessage(11));
 
     const { handleSendRoomJump } = useRoomImportActions({
       roomId: 1,
@@ -201,11 +201,11 @@ describe("useRoomImportActions", () => {
       curRoleId: 3,
       notMember: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       roomContext: {} as any,
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       roomUiStoreApi,
     });
 

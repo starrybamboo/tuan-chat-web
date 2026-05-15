@@ -46,6 +46,13 @@ export function TransformControl({
   setAnchorPosition,
   disabled = false,
 }: TransformControlProps) {
+  const anchorSelectorId = "role-transform-anchor";
+  const scaleInputId = "role-transform-scale";
+  const positionXInputId = "role-transform-position-x";
+  const positionYInputId = "role-transform-position-y";
+  const alphaInputId = "role-transform-alpha";
+  const rotationInputId = "role-transform-rotation";
+
   /**
    * 重置所有Transform参数到默认值
    */
@@ -78,8 +85,8 @@ export function TransformControl({
   return (
     <div className={`w-full p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
       <div className="flex items-center justify-between gap-3">
-        <label className="text-xs w-16 shrink-0">中心点:</label>
-        <div className="join flex-1">
+        <label htmlFor={anchorSelectorId} className="text-xs w-16 shrink-0">中心点:</label>
+        <div id={anchorSelectorId} className="join flex-1">
           {PREVIEW_ANCHOR_ORDER.map(position => (
             <button
               key={position}
@@ -96,8 +103,9 @@ export function TransformControl({
 
       {/* Scale控制 - 调整范围和步长，提供更精细的控制 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 shrink-0">缩放:</label>
+        <label htmlFor={scaleInputId} className="text-xs w-16 shrink-0">缩放:</label>
         <input
+          id={scaleInputId}
           type="range"
           min="0.1" // (修改) 避免完全消失
           max="4" // (修改) 提供更大的放大范围
@@ -135,8 +143,9 @@ export function TransformControl({
 
       {/* Position X控制 - 扩大范围以适应1280px的基准宽度 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 shrink-0">X位移:</label>
+        <label htmlFor={positionXInputId} className="text-xs w-16 shrink-0">X位移:</label>
         <input
+          id={positionXInputId}
           type="range"
           min={-REFERENCE_WIDTH}
           max={REFERENCE_WIDTH}
@@ -174,8 +183,9 @@ export function TransformControl({
 
       {/* Position Y控制 - 扩大范围以适应720px的基准高度 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 shrink-0">Y位移:</label>
+        <label htmlFor={positionYInputId} className="text-xs w-16 shrink-0">Y位移:</label>
         <input
+          id={positionYInputId}
           type="range"
           min={-REFERENCE_HEIGHT}
           max={REFERENCE_HEIGHT}
@@ -213,8 +223,9 @@ export function TransformControl({
 
       {/* Alpha控制 - 步长改为0.05 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 shrink-0">透明度:</label>
+        <label htmlFor={alphaInputId} className="text-xs w-16 shrink-0">透明度:</label>
         <input
+          id={alphaInputId}
           type="range"
           min="0"
           max="1"
@@ -252,8 +263,9 @@ export function TransformControl({
 
       {/* Rotation控制 - 步长改为5度 */}
       <div className="flex items-center gap-3">
-        <label className="text-xs w-16 shrink-0">旋转:</label>
+        <label htmlFor={rotationInputId} className="text-xs w-16 shrink-0">旋转:</label>
         <input
+          id={rotationInputId}
           type="range"
           min="0"
           max="360"

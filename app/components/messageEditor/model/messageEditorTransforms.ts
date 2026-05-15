@@ -390,11 +390,11 @@ export function setMessageEditorUploadedMedia(
   message: MessageDraft,
   payload: MessageEditorUploadedMediaPayload,
 ): MessageDraft {
-  const nextExtra = { ...(toMessageDraftExtra(message.extra) ?? {}) } as MessageDraftExtra;
+  const nextExtra = { ...toMessageDraftExtra(message.extra) } as MessageDraftExtra;
 
   if (message.messageType === MESSAGE_TYPE.IMG) {
     nextExtra.imageMessage = {
-      ...(nextExtra.imageMessage ?? {}),
+      ...nextExtra.imageMessage,
       fileId: payload.fileId,
       fileName: payload.fileName,
       mediaType: payload.mediaType,
@@ -405,7 +405,7 @@ export function setMessageEditorUploadedMedia(
   }
   else if (message.messageType === MESSAGE_TYPE.FILE) {
     nextExtra.fileMessage = {
-      ...(nextExtra.fileMessage ?? {}),
+      ...nextExtra.fileMessage,
       fileId: payload.fileId,
       fileName: payload.fileName,
       mediaType: payload.mediaType,
@@ -414,7 +414,7 @@ export function setMessageEditorUploadedMedia(
   }
   else if (message.messageType === MESSAGE_TYPE.SOUND) {
     nextExtra.soundMessage = {
-      ...(nextExtra.soundMessage ?? {}),
+      ...nextExtra.soundMessage,
       fileId: payload.fileId,
       fileName: payload.fileName,
       mediaType: payload.mediaType,
@@ -424,7 +424,7 @@ export function setMessageEditorUploadedMedia(
   }
   else if (message.messageType === MESSAGE_TYPE.VIDEO) {
     nextExtra.videoMessage = {
-      ...(nextExtra.videoMessage ?? {}),
+      ...nextExtra.videoMessage,
       fileId: payload.fileId,
       fileName: payload.fileName,
       mediaType: payload.mediaType,

@@ -337,10 +337,7 @@ function ErrorBoundary({ error }: { error: Error }) {
           {/* Collapsible Stack Trace for Dev Mode */}
           {stack && (
             <div className="text-left w-full mt-4">
-              <div
-                tabIndex={0}
-                className="collapse collapse-arrow border border-base-300 bg-base-200"
-              >
+              <div className="collapse collapse-arrow border border-base-300 bg-base-200">
                 <div className="collapse-title font-medium">
                   Stack Trace (Development Only)
                 </div>

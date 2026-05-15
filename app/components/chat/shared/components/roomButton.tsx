@@ -32,56 +32,51 @@ export default function RoomButton({
   return (
     <div
       key={room.roomId}
-      className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full
-                               min-w-0 select-none transition-colors ${isActive ? "bg-primary/20 dark:bg-primary/30 ring-1 ring-primary/40 dark:ring-primary/60 text-base-content" : "hover:bg-base-300"}`}
-      role="button"
-      tabIndex={0}
-      aria-pressed={isActive}
+      className={`group relative w-full min-w-0 ${isActive ? "text-base-content" : ""}`}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={onclick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onclick();
-        }
-      }}
     >
-      <div className="indicator">
-        {(!isActive && unreadMessageNumber && unreadMessageNumber > 0)
-          ? (
-              <span
-                className="indicator-item badge badge-xs bg-error"
-              >
-                {unreadMessageNumber}
-              </span>
-            )
-          : null}
-        <div className="mask mask-squircle size-8">
-          <img
-            src={displayAvatar}
-            alt={displayName}
-            draggable={false}
-            onError={(e) => {
-              const img = e.currentTarget;
-              if (img.dataset.fallbackApplied)
-                return;
-              img.dataset.fallbackApplied = "1";
-              img.src = fallbackAvatar;
-            }}
-          />
+      <button
+        type="button"
+        className={`flex w-full min-w-0 items-center justify-start gap-2 rounded-lg p-1 pr-10 text-left text-sm font-bold select-none transition-colors ${
+          isActive ? "bg-primary/20 text-base-content ring-1 ring-primary/40 dark:bg-primary/30 dark:ring-primary/60" : "hover:bg-base-300"
+        }`}
+        aria-pressed={isActive}
+        onClick={onclick}
+      >
+        <div className="indicator">
+          {(!isActive && unreadMessageNumber && unreadMessageNumber > 0)
+            ? (
+                <span
+                  className="indicator-item badge badge-xs bg-error"
+                >
+                  {unreadMessageNumber}
+                </span>
+              )
+            : null}
+          <div className="mask mask-squircle size-8">
+            <img
+              src={displayAvatar}
+              alt={displayName}
+              draggable={false}
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (img.dataset.fallbackApplied)
+                  return;
+                img.dataset.fallbackApplied = "1";
+                img.src = fallbackAvatar;
+              }}
+            />
+          </div>
         </div>
-      </div>
-      <span className="flex-1 min-w-0 truncate text-left">{displayName}</span>
+        <span className="flex-1 min-w-0 truncate text-left">{displayName}</span>
+      </button>
 
       {children
         ? (
             <div
               className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
             >
               {children}
             </div>

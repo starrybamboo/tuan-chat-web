@@ -330,9 +330,8 @@ function ChatToolbar({
 
   const mediaActionButton = (
     <div>
-      <div
-        role="button"
-        tabIndex={3}
+      <button
+        type="button"
         className={richActionDisabledClass}
         aria-label="发送媒体"
         title="发送媒体"
@@ -341,7 +340,7 @@ function ChatToolbar({
         <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送媒体"}>
           <FilePlusIcon className="size-6 jump_icon mt-1 md:mt-0" />
         </div>
-      </div>
+      </button>
       <input
         type="file"
         ref={mediaInputRef}
@@ -377,9 +376,8 @@ function ChatToolbar({
                 ref={emojiDropdownRef}
                 className={`dropdown dropdown-top dropdown-start md:dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
               >
-                <div
-                  role="button"
-                  tabIndex={2}
+                <button
+                  type="button"
                   className={richActionDisabledClass}
                   aria-label="发送表情"
                   title="发送表情"
@@ -397,9 +395,8 @@ function ChatToolbar({
                   >
                     <EmojiIconWhite className="size-6 jump_icon mt-1 md:mt-0"></EmojiIconWhite>
                   </div>
-                </div>
+                </button>
                 <ul
-                  tabIndex={2}
                   className="dropdown-content menu bg-base-100 rounded-box z-9999 w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
                 >
                   <StickerWindow onChoose={async (emoji) => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "react-hot-toast";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { useUploadResourceMutation } from "../../../../api/hooks/resourceQueryHooks";
@@ -10,6 +10,8 @@ interface UploadModalProps {
 }
 
 export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
+  const resourceNameInputId = useId();
+  const resourceFileInputId = useId();
   const [selectedType, setSelectedType] = useState<"5" | "6">("5"); // 5: 图片, 6: 音频
   const [isUploading, setIsUploading] = useState(false);
   const [resourceName, setResourceName] = useState("");
@@ -32,7 +34,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   // 重置文件选择
   const resetFile = () => {
     setSelectedFile(null);
-    const input = document.getElementById("resourceFileInput") as HTMLInputElement;
+    const input = document.getElementById(resourceFileInputId) as HTMLInputElement | null;
     if (input)
       input.value = "";
   };
@@ -156,8 +158,9 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
     return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
-      <div className="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <button type="button" className="absolute inset-0 bg-black/50" onClick={handleClose} aria-label="关闭上传资源弹窗" />
+      <div className="relative bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">上传资源</h3>
@@ -175,7 +178,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
           <div className="space-y-4">
             {/* 资源类型选择 */}
             <div>
-              <label className="block text-sm font-medium mb-2">资源类型</label>
+              <div className="block text-sm font-medium mb-2">资源类型</div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -232,8 +235,9 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
             {/* 资源名称 */}
             <div>
-              <label className="block text-sm font-medium mb-2">资源名称</label>
+              <label htmlFor={resourceNameInputId} className="block text-sm font-medium mb-2">资源名称</label>
               <input
+                id={resourceNameInputId}
                 type="text"
                 value={resourceName}
                 onChange={e => setResourceName(e.target.value)}
@@ -251,8 +255,9 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                     checked={isPublic}
                     onChange={e => setIsPublic(e.target.checked)}
                     className="checkbox checkbox-primary"
+                    aria-label="设为公开资源"
                   />
-                  <div>
+                  <div className="flex flex-col">
                     <span className="label-text font-medium">设为公开资源</span>
                     <div className="text-xs text-base-content/60">其他用户可以使用此资源</div>
                   </div>
@@ -266,8 +271,9 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                     checked={isAI}
                     onChange={e => setIsAI(e.target.checked)}
                     className="checkbox checkbox-secondary"
+                    aria-label="AI生成内容"
                   />
-                  <div>
+                  <div className="flex flex-col">
                     <span className="label-text font-medium">AI生成内容</span>
                     <div className="text-xs text-base-content/60">由AI工具生成</div>
                   </div>
@@ -277,7 +283,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
 
             {/* 文件上传区域 */}
             <div>
-              <label className="block text-sm font-medium mb-2">选择文件</label>
+              <label htmlFor={resourceFileInputId} className="block text-sm font-medium mb-2">选择文件</label>
               <div
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                   isDragOver
@@ -293,7 +299,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                   type="file"
                   accept={selectedType === "5" ? "image/*,.jpg,.jpeg,.png,.gif,.webp" : "audio/*,.mp3,.wav,.m4a,.aac,.ogg,.webm"}
                   className="hidden"
-                  id="resourceFileInput"
+                  id={resourceFileInputId}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -357,7 +363,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={() => document.getElementById("resourceFileInput")?.click()}
+                          onClick={() => document.getElementById(resourceFileInputId)?.click()}
                         >
                           选择文件
                         </button>

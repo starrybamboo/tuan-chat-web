@@ -279,7 +279,8 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
             if (isAtAll) {
               return (
                 <li key={role.roleId} className="mb-1">
-                  <a
+                  <button
+                    type="button"
                     data-at-mention-index={index}
                     aria-selected={isSelected}
                     className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary !text-primary-content" : ""}`}
@@ -295,14 +296,15 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                         {roleNote}
                       </span>
                     )}
-                  </a>
+                  </button>
                 </li>
               );
             }
 
             return (
               <li key={role.roleId}>
-                <a
+                <button
+                  type="button"
                   data-at-mention-index={index}
                   aria-selected={isSelected}
                   className={`gap-3 py-2 ${isSelected ? "active !bg-primary !text-primary-content" : ""}`}
@@ -326,7 +328,7 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                       </span>
                     )}
                   </div>
-                </a>
+                </button>
               </li>
             );
           })}

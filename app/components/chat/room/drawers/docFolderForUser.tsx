@@ -427,10 +427,7 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
     return (
       <div
         key={doc.docId}
-        className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
-        role="button"
-        tabIndex={0}
-        aria-pressed={isActive}
+        className={`group relative w-full min-w-0 ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
         title={tooltip}
         draggable
         onDragStart={(e) => {
@@ -441,44 +438,39 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
             ...(title ? { title } : {}),
           });
         }}
-        onClick={() => setOpenDocId(doc.docId ?? null)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setOpenDocId(doc.docId ?? null);
-          }
-        }}
       >
-        <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
-          <FileTextIcon className="size-4 opacity-70" />
-        </div>
-        <span className="flex-1 min-w-0 truncate text-left">
-          {title}
-        </span>
-
-        <div
-          className="absolute right-1 top-1/2 z-50 -translate-y-1/2 flex items-center opacity-100"
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
+        <button
+          type="button"
+          className="flex w-full min-w-0 items-center justify-start gap-2 rounded-lg p-1 pr-10 text-left text-sm font-bold"
+          aria-pressed={isActive}
+          onClick={() => setOpenDocId(doc.docId ?? null)}
         >
+          <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center">
+            <FileTextIcon className="size-4 opacity-70" />
+          </div>
+          <span className="flex-1 min-w-0 truncate text-left">
+            {title}
+          </span>
+        </button>
+
+        <div className="absolute right-1 top-1/2 z-50 -translate-y-1/2 flex items-center opacity-100">
           <div className="dropdown dropdown-end">
             <button
               type="button"
-              tabIndex={0}
               className="btn btn-ghost btn-xs"
               aria-label="文档操作"
             >
               <DotsThreeVerticalIcon className="size-4" />
             </button>
-            <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
+            <ul className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-44">
               <li>
-                <a onClick={() => void handleSendDocToCurrentRoom(doc)}>
+                <button type="button" onClick={() => void handleSendDocToCurrentRoom(doc)}>
                   发送到群聊
-                </a>
+                </button>
               </li>
               <li>
-                <a
+                <button
+                  type="button"
                   onClick={() => {
                     if (typeof doc.docId !== "number")
                       return;
@@ -486,9 +478,9 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
                   }}
                 >
                   设置标签
-                </a>
+                </button>
               </li>
-              <li><a onClick={() => setDeleteDocConfirmId(doc.docId ?? null)}>删除</a></li>
+              <li><button type="button" onClick={() => setDeleteDocConfirmId(doc.docId ?? null)}>删除</button></li>
             </ul>
           </div>
         </div>

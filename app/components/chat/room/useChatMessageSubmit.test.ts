@@ -11,10 +11,10 @@ import { createRoomUiStore } from "../stores/roomUiStore";
 import useChatMessageSubmit from "./useChatMessageSubmit";
 
 const mocks = vi.hoisted(() => ({
-  buildMessageDraftsFromComposerSnapshotMock: vi.fn(),
-  triggerAudioAutoPlayMock: vi.fn(),
-  toastErrorMock: vi.fn(),
-  isCommandMock: vi.fn(),
+  buildMessageDraftsFromComposerSnapshotMock: vi.fn<(...args: any[]) => any>(),
+  triggerAudioAutoPlayMock: vi.fn<(...args: any[]) => any>(),
+  toastErrorMock: vi.fn<(...args: any[]) => any>(),
+  isCommandMock: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock("react", async () => {
@@ -30,7 +30,7 @@ vi.mock("react", async () => {
 vi.mock("react-hot-toast", () => ({
   toast: {
     error: mocks.toastErrorMock,
-    success: vi.fn(),
+    success: vi.fn<(...args: any[]) => any>(),
   },
 }));
 
@@ -68,7 +68,7 @@ function createMessage(messageId: number): ChatMessageResponse["message"] {
 }
 
 function createSetInputTextMock() {
-  return vi.fn((text: string) => {
+  return vi.fn<(...args: any[]) => any>((text: string) => {
     useChatInputUiStore.setState({
       plainText: text,
       textWithoutMentions: text,
@@ -126,9 +126,9 @@ describe("useChatMessageSubmit", () => {
     } as ChatMessageResponse["message"]);
 
     const setInputText = createSetInputTextMock();
-    const setIsSubmitting = vi.fn();
-    const sendMessageBatch = vi.fn(async () => []);
-    const sendMessageWithInsert = vi.fn(async () => createMessage(10));
+    const setIsSubmitting = vi.fn<(...args: any[]) => any>();
+    const sendMessageBatch = vi.fn<(...args: any[]) => any>(async () => []);
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => createMessage(10));
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -141,11 +141,11 @@ describe("useChatMessageSubmit", () => {
       setIsSubmitting,
       sendMessageWithInsert,
       sendMessageBatch,
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
       setInputText,
       roomUiStoreApi,
     });
@@ -181,7 +181,7 @@ describe("useChatMessageSubmit", () => {
     const ensureAvatarDeferred = createDeferred<number>();
     const roomUiStoreApi = createRoomUiStore();
     const setInputText = createSetInputTextMock();
-    const sendMessageWithInsert = vi.fn(async () => createMessage(30));
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => createMessage(30));
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -191,14 +191,14 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(() => ensureAvatarDeferred.promise),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(() => ensureAvatarDeferred.promise),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
       setInputText,
       roomUiStoreApi,
     });
@@ -229,7 +229,7 @@ describe("useChatMessageSubmit", () => {
 
     const roomUiStoreApi = createRoomUiStore();
     const setInputText = createSetInputTextMock();
-    const sendMessageWithInsert = vi.fn(async () => null);
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => null);
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -239,14 +239,14 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
       setInputText,
       roomUiStoreApi,
     });
@@ -267,8 +267,8 @@ describe("useChatMessageSubmit", () => {
 
     const roomUiStoreApi = createRoomUiStore();
     const setInputText = createSetInputTextMock();
-    const setIsSubmitting = vi.fn();
-    const sendMessageWithInsert = vi.fn(async () => createMessage(31));
+    const setIsSubmitting = vi.fn<(...args: any[]) => any>();
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => createMessage(31));
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -280,12 +280,12 @@ describe("useChatMessageSubmit", () => {
       isSubmitting: false,
       setIsSubmitting,
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
       setInputText,
       roomUiStoreApi,
     });
@@ -317,14 +317,14 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
-      sendMessageWithInsert: vi.fn(async () => createMessage(32)),
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
+      sendMessageWithInsert: vi.fn<(...args: any[]) => any>(async () => createMessage(32)),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
       setInputText,
       roomUiStoreApi,
     });
@@ -366,10 +366,10 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const setInputText = vi.fn();
-    const setIsSubmitting = vi.fn();
-    const sendMessageBatch = vi.fn(async () => []);
-    const sendMessageWithInsert = vi.fn(async () => ({
+    const setInputText = vi.fn<(...args: any[]) => any>();
+    const setIsSubmitting = vi.fn<(...args: any[]) => any>();
+    const sendMessageBatch = vi.fn<(...args: any[]) => any>(async () => []);
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => ({
       ...createMessage(10),
       messageType: MessageType.SOUND,
       extra: {
@@ -396,11 +396,11 @@ describe("useChatMessageSubmit", () => {
       setIsSubmitting,
       sendMessageWithInsert,
       sendMessageBatch,
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
       setInputText,
       roomUiStoreApi,
     });
@@ -432,7 +432,7 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn(async request => ({
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async request => ({
       ...createMessage(11),
       messageType: request.messageType,
       content: request.content,
@@ -447,15 +447,15 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
-      setInputText: vi.fn(),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
+      setInputText: vi.fn<(...args: any[]) => any>(),
       roomUiStoreApi,
     });
 
@@ -477,8 +477,8 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const commandExecutor = vi.fn();
-    const sendMessageWithInsert = vi.fn(async request => ({
+    const commandExecutor = vi.fn<(...args: any[]) => any>();
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async request => ({
       ...createMessage(20),
       messageType: request.messageType,
       content: request.content,
@@ -493,15 +493,15 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       commandExecutor,
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
-      setInputText: vi.fn(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
+      setInputText: vi.fn<(...args: any[]) => any>(),
       roomUiStoreApi,
     });
 
@@ -541,7 +541,7 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const sendMessageWithInsert = vi.fn(async request => ({
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async request => ({
       ...createMessage(21),
       messageType: request.messageType,
       content: request.content,
@@ -556,15 +556,15 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
-      commandExecutor: vi.fn(),
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
-      setInputText: vi.fn(),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      commandExecutor: vi.fn<(...args: any[]) => any>(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
+      setInputText: vi.fn<(...args: any[]) => any>(),
       roomUiStoreApi,
     });
 
@@ -595,8 +595,8 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const commandExecutor = vi.fn();
-    const sendMessageWithInsert = vi.fn(async () => createMessage(22));
+    const commandExecutor = vi.fn<(...args: any[]) => any>();
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => createMessage(22));
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -606,15 +606,15 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: false,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       commandExecutor,
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
-      setInputText: vi.fn(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
+      setInputText: vi.fn<(...args: any[]) => any>(),
       roomUiStoreApi,
     });
 
@@ -640,8 +640,8 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
-    const commandExecutor = vi.fn();
-    const sendMessageWithInsert = vi.fn(async () => createMessage(23));
+    const commandExecutor = vi.fn<(...args: any[]) => any>();
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>(async () => createMessage(23));
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -651,15 +651,15 @@ describe("useChatMessageSubmit", () => {
       notMember: false,
       noRole: true,
       isSubmitting: false,
-      setIsSubmitting: vi.fn(),
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn(async () => []),
-      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       commandExecutor,
-      containsCommandRequestAllToken: vi.fn(() => false),
-      stripCommandRequestAllToken: vi.fn((text: string) => text),
-      extractFirstCommandText: vi.fn(() => null),
-      setInputText: vi.fn(),
+      containsCommandRequestAllToken: vi.fn<(...args: any[]) => any>(() => false),
+      stripCommandRequestAllToken: vi.fn<(...args: any[]) => any>((text: string) => text),
+      extractFirstCommandText: vi.fn<(...args: any[]) => any>(() => null),
+      setInputText: vi.fn<(...args: any[]) => any>(),
       roomUiStoreApi,
     });
 

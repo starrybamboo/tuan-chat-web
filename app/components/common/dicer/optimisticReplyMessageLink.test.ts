@@ -68,7 +68,7 @@ describe("optimisticReplyMessageLink", () => {
   });
 
   it("会把匹配到的乐观消息回填到 chatHistory", async () => {
-    const replaceMessageById = vi.fn(async () => {});
+    const replaceMessageById = vi.fn<(...args: any[]) => any>(async () => {});
 
     await syncOptimisticReplyMessageIds({
       chatHistory: {

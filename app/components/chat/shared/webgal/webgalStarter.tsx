@@ -19,8 +19,12 @@ export default function WebgalStarter({ className, children }: { className: stri
   if (!isElectronEnv())
     return <></>;
   return (
-    <div onClick={startWebgal} className={className}>
+    <button
+      type="button"
+      onClick={startWebgal}
+      className={className}
+    >
       {children}
-    </div>
+    </button>
   );
 }

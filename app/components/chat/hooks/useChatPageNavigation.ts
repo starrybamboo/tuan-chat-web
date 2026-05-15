@@ -33,14 +33,18 @@ export default function useChatPageNavigation({
   const setActiveSpaceId = useCallback((spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
     const newSearchParams = new URLSearchParams(searchParam);
-    screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    if (screenSize === "sm") {
+      newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    }
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
   }, [isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const setActiveRoomId = useCallback((roomId: number | null, options?: { replace?: boolean }) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
-    screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    if (screenSize === "sm") {
+      newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    }
     const nextRoomId = roomId ?? "";
     navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}?${newSearchParams.toString()}`, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);

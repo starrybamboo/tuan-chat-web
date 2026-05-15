@@ -18,7 +18,8 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
 
   return (
     <div className="cursor-pointer w-full">
-      <div
+      <button
+        type="button"
         className="card bg-base-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200 w-full h-full"
         onClick={() => setIsRoleParamsPopOpen(true)}
       >
@@ -43,7 +44,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
             {role.description || "暂无描述"}
           </p>
         </div>
-      </div>
+      </button>
 
       {/* 弹窗 */}
       {isRoleParamsPopOpen && (

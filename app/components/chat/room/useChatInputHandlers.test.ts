@@ -7,9 +7,9 @@ import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore
 import useChatInputHandlers from "./useChatInputHandlers";
 
 const mocks = vi.hoisted(() => ({
-  toastErrorMock: vi.fn(),
-  preheatChatMediaPreprocessMock: vi.fn(),
-  applyRoomMediaAnnotationPreferenceToComposerMock: vi.fn(),
+  toastErrorMock: vi.fn<(...args: any[]) => any>(),
+  preheatChatMediaPreprocessMock: vi.fn<(...args: any[]) => any>(),
+  applyRoomMediaAnnotationPreferenceToComposerMock: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock("react", async () => {
@@ -23,7 +23,7 @@ vi.mock("react", async () => {
 });
 
 vi.mock("react-hot-toast", () => {
-  const toast = Object.assign(vi.fn(), {
+  const toast = Object.assign(vi.fn<(...args: any[]) => any>(), {
     error: mocks.toastErrorMock,
   });
   return { toast };
@@ -43,7 +43,7 @@ function createKeyboardEvent(key: string, options?: { shiftKey?: boolean }) {
     shiftKey: options?.shiftKey ?? false,
     ctrlKey: false,
     metaKey: false,
-    preventDefault: vi.fn(),
+    preventDefault: vi.fn<(...args: any[]) => any>(),
   } as unknown as KeyboardEvent;
 }
 
@@ -54,7 +54,7 @@ describe("useChatInputHandlers", () => {
   });
 
   function useTestHook() {
-    const handleMessageSubmit = vi.fn();
+    const handleMessageSubmit = vi.fn<(...args: any[]) => any>();
     const hook = useChatInputHandlers({
       atMentionRef: { current: null },
       handleMessageSubmit,
