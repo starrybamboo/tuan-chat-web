@@ -43,15 +43,17 @@ export default defineConfig({
     environment: "node",
     include: ["**/*.test.ts"],
     exclude: ["**/*.e2e.test.ts", "node_modules", "dist"],
-    maxThreads: 16,
+    maxWorkers: 16,
     coverage: {
       provider: "v8",
       reportsDirectory: "coverage",
       reporter: ["text", "lcov"],
-      lines: 70,
-      branches: 70,
-      functions: 70,
-      statements: 70,
+      thresholds: {
+        lines: 70,
+        branches: 70,
+        functions: 70,
+        statements: 70,
+      },
     },
   },
 });
