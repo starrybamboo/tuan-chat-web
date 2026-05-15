@@ -110,7 +110,7 @@ const MESSAGE_EDITOR_HISTORY_LIMIT = 100;
 const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
 const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
-const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
+const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[50vh] min-h-0 rounded-md";
 const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
 
 function normalizeEditableText(value: string) {
@@ -119,7 +119,7 @@ function normalizeEditableText(value: string) {
 
 /**
  * 解析编辑器外框类名。
- * 默认值用于独立文档场景，采用 80vh；嵌入抽屉/弹窗时由调用方显式传入 h-full。
+ * 默认值用于独立文档场景，采用 50vh；嵌入抽屉/弹窗时可由调用方覆写。
  */
 export function getMessageEditorFrameClassName(className?: string) {
   return className ?? MESSAGE_EDITOR_DEFAULT_FRAME_CLASS;
