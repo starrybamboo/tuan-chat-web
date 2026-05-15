@@ -182,18 +182,17 @@ export function shouldIgnoreDocumentSelectionEventTarget(target: EventTarget | n
   const element = candidate && typeof candidate.closest === "function"
     ? candidate
     : candidate?.parentElement ?? null;
-  const closest = element?.closest;
   const tagName = element?.tagName;
 
-  if (!element || typeof closest !== "function" || typeof tagName !== "string") {
+  if (!element || typeof element.closest !== "function" || typeof tagName !== "string") {
     return false;
   }
 
   return Boolean(
-    closest(".text-style-toolbar")
-    || closest(".modal")
-    || closest("[role='dialog']")
-    || closest("[contenteditable='true']")
+    element.closest(".text-style-toolbar")
+    || element.closest(".modal")
+    || element.closest("[role='dialog']")
+    || element.closest("[contenteditable='true']")
     || ["INPUT", "TEXTAREA", "SELECT"].includes(tagName),
   );
 }
