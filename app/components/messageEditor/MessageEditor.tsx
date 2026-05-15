@@ -105,6 +105,8 @@ const MESSAGE_EDITOR_SLASH_ITEMS: MessageEditorSlashMenuItem[] = [
 
 const MESSAGE_EDITOR_HISTORY_LIMIT = 100;
 const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
+const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
+const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
@@ -1597,19 +1599,21 @@ export default function MessageEditor({
           : null}
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-center justify-between border-b border-base-300 px-4 py-4 md:px-10">
-            <div className="min-w-0">
-              <div className="truncate text-base font-medium text-base-content">{resolvedTitle}</div>
-              {resolvedDocId
-                ? (
-                    <div className="truncate font-mono text-xs text-base-content/45">
-                      {resolvedDocId}
-                    </div>
-                  )
-                : null}
-            </div>
-            <div className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/55">
-              {statusLabel}
+          <div className="border-b border-base-300 py-4">
+            <div className={`${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} flex items-center justify-between gap-4`}>
+              <div className="min-w-0">
+                <div className="truncate text-base font-medium text-base-content">{resolvedTitle}</div>
+                {resolvedDocId
+                  ? (
+                      <div className="truncate font-mono text-xs text-base-content/45">
+                        {resolvedDocId}
+                      </div>
+                    )
+                  : null}
+              </div>
+              <div className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/55">
+                {statusLabel}
+              </div>
             </div>
           </div>
 
@@ -1673,7 +1677,7 @@ export default function MessageEditor({
                         key={blockId}
                         ref={node => registerBlockShellRef(blockId, node)}
                         className={[
-                          "group relative mx-auto w-full max-w-4xl rounded-md px-8 transition md:px-10",
+                          `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
                           dragState?.draggedBlockId === blockId
                             ? "bg-base-100/80 ring-1 ring-base-300/80"
                             : "",
@@ -1757,7 +1761,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        "group relative mx-auto w-full max-w-4xl rounded-xl px-6 transition",
+                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} rounded-xl px-6 transition`,
                         dragState?.draggedBlockId === blockId
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
