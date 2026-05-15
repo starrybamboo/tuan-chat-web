@@ -114,8 +114,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     }
 
     clearPendingTimeouts();
-    resetFeedbackState();
-  }, [clearPendingTimeouts, isOpen, resetFeedbackState]);
+  }, [clearPendingTimeouts, isOpen]);
 
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 

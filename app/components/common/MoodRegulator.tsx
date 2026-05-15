@@ -77,8 +77,8 @@ function toApiMap(numMap: MoodNumberMap, labels: string[]): MoodMap {
 }
 
 function MoodRegulator({ value, defaultValue, onChange, disabled, className, step = 0.01, labels, debounceMs = 400, lockMs = 300, controlRef, fallbackDefaultLabels = true }: MoodRegulatorProps) {
-  // 计算初始情绪键集合
-  const initialLabels = useMemo(() => {
+  // 计算当前应展示的情绪键集合
+  const derivedLabelKeys = useMemo(() => {
     if (labels && labels.length > 0) {
       return labels;
     }
@@ -90,47 +90,17 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
     return fallbackDefaultLabels ? DEFAULT_LABELS : [];
   }, [labels, value, defaultValue, fallbackDefaultLabels]);
 
-  // 允许在运行期通过 ref.setValue 动态变更 keys
-  const [labelKeys, setLabelKeys] = useState<string[]>(initialLabels);
-
-  const initialNumbers = useMemo(() => normalizeToNumber(value ?? defaultValue ?? null, labelKeys), [value, defaultValue, labelKeys]);
-  const [inner, setInner] = useState<MoodNumberMap>(initialNumbers);
+  // 仅在未显式传入 labels 时，允许通过 ref.setValue 动态变更 keys。
+  const [manualLabelKeys, setManualLabelKeys] = useState<string[] | null>(null);
+  const labelKeys = manualLabelKeys ?? derivedLabelKeys;
+  const propDrivenNumbers = useMemo(() => normalizeToNumber(value ?? defaultValue ?? null, labelKeys), [value, defaultValue, labelKeys]);
+  const [inner, setInner] = useState<MoodNumberMap>(() => normalizeToNumber(value ?? defaultValue ?? null, derivedLabelKeys));
   // 编辑锁：在用户持续编辑期间，优先以内部 state 为准，忽略外部受控回写
   const [isEditing, setIsEditing] = useState(false);
   const editingTimerRef = useRef<number | null>(null);
   // 防抖定时器与挂起的最新值
   const debounceTimerRef = useRef<number | null>(null);
-  const pendingRef = useRef<MoodNumberMap>(initialNumbers);
-  // 通过命令式 setValue 写入时，屏蔽下一次由 props 触发的同步覆盖
-  const manualSetRef = useRef<boolean>(false);
-
-  // 当 prop 驱动的键集合或受控值变化时，与之对齐（未处于编辑）
-  useEffect(() => {
-    if (labels && labels.length > 0) {
-      setLabelKeys(labels);
-    }
-    else if (!labels) {
-      const source = value ?? defaultValue;
-      const keys = source ? Object.keys(source) : [];
-      if (keys.length > 0) {
-        setLabelKeys(keys);
-      }
-    }
-  }, [labels]);
-
-  useEffect(() => {
-    if (manualSetRef.current) {
-      // 跳过一次由 setValue 后的 props 同步，避免覆盖手动写入的值
-      manualSetRef.current = false;
-      return;
-    }
-    if (value == null) {
-      setInner(initialNumbers);
-    }
-    else if (!isEditing) {
-      setInner(initialNumbers);
-    }
-  }, [initialNumbers, isEditing, value]);
+  const pendingRef = useRef<MoodNumberMap>(propDrivenNumbers);
 
   // 卸载时清理定时器
   useEffect(() => () => {
@@ -145,7 +115,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
   }, []);
 
   // 受控：以 value 为准；非受控：以内部 state 为准
-  const effective = value && !isEditing ? normalizeToNumber(value, labelKeys) : inner;
+  const effective = value != null && !isEditing ? propDrivenNumbers : inner;
 
   const handleChange = (key: string, next: number) => {
     const fixed = toFixedStep(next, step);
@@ -178,16 +148,18 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
   useImperativeHandle(controlRef, () => ({
     setValue: (next: MoodMap) => {
       const keys = Object.keys(next ?? {});
-      if (keys.length > 0) {
-        setLabelKeys(keys);
+      const nextLabelKeys = keys.length > 0 ? keys : labelKeys;
+
+      if (!labels || labels.length === 0) {
+        setManualLabelKeys(keys.length > 0 ? keys : null);
       }
-      const normalized = normalizeToNumber(next ?? null, keys.length > 0 ? keys : labelKeys);
+
+      const normalized = normalizeToNumber(next ?? null, nextLabelKeys);
       setInner(normalized);
       pendingRef.current = normalized;
-      manualSetRef.current = true;
     },
     getValue: () => toApiMap(effective, labelKeys),
-  }), [effective, labelKeys]);
+  }), [effective, labelKeys, labels]);
 
   return (
     <div className={className}>
