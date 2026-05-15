@@ -96,7 +96,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
   const initialNumbers = useMemo(() => normalizeToNumber(value ?? defaultValue ?? null, labelKeys), [value, defaultValue, labelKeys]);
   const [inner, setInner] = useState<MoodNumberMap>(initialNumbers);
   // 编辑锁：在用户持续编辑期间，优先以内部 state 为准，忽略外部受控回写
-  const editingRef = useRef<boolean>(false);
+  const [isEditing, setIsEditing] = useState(false);
   const editingTimerRef = useRef<number | null>(null);
   // 防抖定时器与挂起的最新值
   const debounceTimerRef = useRef<number | null>(null);
@@ -127,10 +127,10 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
     if (value == null) {
       setInner(initialNumbers);
     }
-    else if (!editingRef.current) {
+    else if (!isEditing) {
       setInner(initialNumbers);
     }
-  }, [initialNumbers, value]);
+  }, [initialNumbers, isEditing, value]);
 
   // 卸载时清理定时器
   useEffect(() => () => {
@@ -145,7 +145,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
   }, []);
 
   // 受控：以 value 为准；非受控：以内部 state 为准
-  const effective = value && !editingRef.current ? normalizeToNumber(value, labelKeys) : inner;
+  const effective = value && !isEditing ? normalizeToNumber(value, labelKeys) : inner;
 
   const handleChange = (key: string, next: number) => {
     const fixed = toFixedStep(next, step);
@@ -154,13 +154,13 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
     setInner(nextNumberMap);
     pendingRef.current = nextNumberMap;
 
-    editingRef.current = true;
+    setIsEditing(true);
     if (editingTimerRef.current) {
       window.clearTimeout(editingTimerRef.current);
       editingTimerRef.current = null;
     }
     editingTimerRef.current = window.setTimeout(() => {
-      editingRef.current = false;
+      setIsEditing(false);
       editingTimerRef.current = null;
     }, lockMs);
 

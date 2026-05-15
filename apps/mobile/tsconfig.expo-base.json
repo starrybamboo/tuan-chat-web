@@ -7,6 +7,9 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowJs": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noFallthroughCasesInSwitch": true,
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true
