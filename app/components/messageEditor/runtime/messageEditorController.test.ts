@@ -184,7 +184,7 @@ describe("messageEditorController", () => {
       },
     });
 
-    const focus = controller.transformSelectionText({
+    const result = controller.transformSelectionText({
       anchor: {
         blockId: getMessageEditorBlockId(messages[0]),
         offset: 1,
@@ -222,9 +222,31 @@ describe("messageEditorController", () => {
       "a[lpha](style=color:#FF0000)",
       "[be](style=color:#FF0000)ta",
     ]);
-    expect(focus).toEqual({
+    expect(result?.focus).toEqual({
       blockId: getMessageEditorBlockId(messages[1]),
       caret: "[be](style=color:#FF0000)".length,
+    });
+    expect(result?.selection).toEqual({
+      start: {
+        blockId: getMessageEditorBlockId(messages[0]),
+        offset: 1,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(messages[1]),
+        offset: "[be](style=color:#FF0000)".length,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(messages[0]),
+          start: 1,
+          end: 1 + "[lpha](style=color:#FF0000)".length,
+        },
+        {
+          blockId: getMessageEditorBlockId(messages[1]),
+          start: 0,
+          end: "[be](style=color:#FF0000)".length,
+        },
+      ],
     });
   });
 });

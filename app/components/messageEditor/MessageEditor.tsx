@@ -1,5 +1,8 @@
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
-import type { MessageEditorInsertableBlockKind } from "./model/messageEditorTransforms";
+import type {
+  MessageEditorInsertableBlockKind,
+  MessageEditorSelectionTextResult,
+} from "./model/messageEditorTransforms";
 import type { MessageEditorController } from "./runtime/messageEditorController";
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
@@ -606,6 +609,30 @@ export default function MessageEditor({
     });
   }, [focusTextPoint]);
 
+  const restoreSelectionAfterSelectionEdit = useCallback((result: MessageEditorSelectionTextResult | null) => {
+    if (!result) {
+      return;
+    }
+
+    const nextSelection = createMessageEditorSelection(
+      result.messages,
+      registry,
+      result.selection.start,
+      result.selection.end,
+    );
+    if (!nextSelection || nextSelection.collapsed) {
+      focusAfterSelectionEdit(result.focus);
+      return;
+    }
+
+    clearCrossBlockSelection();
+    setActiveBlockId(nextSelection.focus.blockId);
+    controllerRef.current?.setActiveBlock(nextSelection.focus.blockId);
+    restoreSelectionRef.current = {
+      selection: nextSelection,
+    };
+  }, [clearCrossBlockSelection, focusAfterSelectionEdit, registry]);
+
   const restoreHistoryEntry = useCallback((entry: MessageEditorHistoryEntry) => {
     messagesRef.current = entry.messages;
     setMessages(entry.messages);
@@ -661,8 +688,8 @@ export default function MessageEditor({
   }, [performHistoryAction]);
 
   const replaceDocumentSelectionText = useCallback((selection: MessageEditorSelection, replacement: string) => {
-    const focus = controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
-    focusAfterSelectionEdit(focus);
+    const result = controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
+    focusAfterSelectionEdit(result?.focus ?? null);
   }, [focusAfterSelectionEdit]);
 
   const handleTextStyleInsert = useCallback((replacement: string, selectedText: string, options?: { transform?: (selectedPart: string) => string }) => {
@@ -672,17 +699,17 @@ export default function MessageEditor({
     }
 
     if (options?.transform) {
-      const focus = controllerRef.current?.transformSelectionText(selection, options.transform) ?? null;
-      focusAfterSelectionEdit(focus);
+      const result = controllerRef.current?.transformSelectionText(selection, options.transform) ?? null;
+      restoreSelectionAfterSelectionEdit(result);
       return;
     }
 
     const textEnhanceParams = parseWholeTextEnhanceReplacement(replacement, selectedText);
-    const focus = textEnhanceParams
+    const result = textEnhanceParams
       ? controllerRef.current?.transformSelectionText(selection, selectedPart => `[${selectedPart}](${textEnhanceParams})`) ?? null
       : controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
-    focusAfterSelectionEdit(focus);
-  }, [crossBlockSelection, focusAfterSelectionEdit, resolveEditorSelection]);
+    restoreSelectionAfterSelectionEdit(result);
+  }, [crossBlockSelection, resolveEditorSelection, restoreSelectionAfterSelectionEdit]);
 
   const registerBlockRef = useCallback((blockId: string, node: HTMLDivElement | null) => {
     if (node) {
