@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldIgnoreDocumentSelectionEventTarget } from "./MessageEditor";
+import {
+  getMessageEditorFrameClassName,
+  shouldIgnoreDocumentSelectionEventTarget,
+} from "./MessageEditor";
 
 type MockElement = {
   closest?: (selector: string) => MockElement | null;
@@ -28,6 +31,14 @@ function createMockElement(options: {
 }
 
 describe("messageEditor document click guard", () => {
+  it("uses an embedded-safe frame class by default", () => {
+    expect(getMessageEditorFrameClassName()).toBe("h-full min-h-0 rounded-md");
+  });
+
+  it("preserves an explicit frame class override", () => {
+    expect(getMessageEditorFrameClassName("h-full rounded-none")).toBe("h-full rounded-none");
+  });
+
   it("treats svg descendants inside the text style toolbar as internal clicks", () => {
     const toolbar = createMockElement({
       closestSelectors: [".text-style-toolbar"],
