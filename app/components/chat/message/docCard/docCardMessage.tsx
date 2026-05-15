@@ -20,6 +20,7 @@ interface DocCardPayload {
   imageMediaType?: string;
   imageUrl?: string;
   originalImageFileId?: number;
+  roomId?: number;
   spaceId?: number;
   title?: string;
 }
@@ -29,7 +30,11 @@ interface DocCardPayload {
  */
 function extractDocCardPayload(extra: unknown): DocCardPayload | null {
   const obj = getDocCardExtra(extra);
-  const docId = typeof obj?.docId === "string" ? obj.docId.trim() : "";
+  const rawRoomId = Number((obj as any)?.roomId);
+  const roomId = Number.isFinite(rawRoomId) && rawRoomId > 0 ? rawRoomId : undefined;
+  const docId = typeof obj?.docId === "string" && obj.docId.trim()
+    ? obj.docId.trim()
+    : (roomId ? String(roomId) : "");
   if (!docId) {
     return null;
   }
@@ -57,6 +62,7 @@ function extractDocCardPayload(extra: unknown): DocCardPayload | null {
     ...(imageMediaType ? { imageMediaType } : {}),
     ...(imageUrl ? { imageUrl } : {}),
     ...(originalImageFileId ? { originalImageFileId } : {}),
+    ...(roomId ? { roomId } : {}),
     ...(spaceId ? { spaceId } : {}),
     ...(title ? { title } : {}),
   };
@@ -73,6 +79,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   const previewSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
     ? payload.spaceId
     : roomContext.spaceId;
+  const previewDocId = payload?.roomId ? String(payload.roomId) : payload?.docId;
   const title = payload?.title || (payload?.docId ? `文档：${payload.docId}` : "文档");
   const coverUrl = payload?.imageUrl ?? "";
   const coverFileId = payload?.imageFileId;
@@ -115,14 +122,15 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
 
             event.dataTransfer.effectAllowed = "copyLink";
             try {
-              event.dataTransfer.setData("text/plain", `tc-doc-ref:${payload.docId}`);
+              event.dataTransfer.setData("text/plain", `tc-doc-ref:${previewDocId ?? payload.docId}`);
             }
             catch {
               // ignore drag clipboard errors
             }
 
             setDocRefDragData(event.dataTransfer, {
-              docId: payload.docId,
+              docId: previewDocId ?? payload.docId,
+              ...(payload.roomId ? { roomId: payload.roomId } : {}),
               ...(spaceId ? { spaceId } : {}),
               ...(title ? { title } : {}),
               ...(coverUrl ? { imageUrl: coverUrl } : {}),
@@ -181,10 +189,12 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
                   <MessageEditor
                     className="h-full min-h-0"
                     coverUrl={displayCoverUrl || coverUrl}
-                    docId={payload?.docId}
+                    docId={previewDocId}
                     excerpt={excerpt}
                     readOnly
+                    spaceId={previewSpaceId}
                     title={title}
+                    workspaceId={`space:${previewSpaceId}`}
                   />
                 </div>
               )}

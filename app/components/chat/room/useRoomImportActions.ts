@@ -11,7 +11,8 @@ import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
-import { getCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { getPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
@@ -55,6 +56,22 @@ type UseRoomImportActionsResult = {
   handleSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void>;
   handleSendRoomJump: (payload: RoomRefDragPayload) => Promise<void>;
 };
+
+function parseDocRoomId(docId: string): number | null {
+  if (!/^\d+$/.test(docId)) {
+    return null;
+  }
+  const roomId = Number(docId);
+  return Number.isFinite(roomId) && roomId > 0 ? roomId : null;
+}
+
+function isSendableDocRef(docId: string): boolean {
+  if (parseDocRoomId(docId)) {
+    return true;
+  }
+  const parsed = parseDescriptionDocId(docId);
+  return parsed?.entityType === "space_user_doc" && parsed.docType === "description";
+}
 
 export default function useRoomImportActions({
   roomId,
@@ -227,7 +244,10 @@ export default function useRoomImportActions({
   ]);
 
   const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
-    const docId = String(payload?.docId ?? "").trim();
+    const payloadRoomId = typeof payload?.roomId === "number" && Number.isFinite(payload.roomId) && payload.roomId > 0
+      ? payload.roomId
+      : undefined;
+    const docId = payloadRoomId ? String(payloadRoomId) : String(payload?.docId ?? "").trim();
     recordDocCardShareObservation("share-requested", {
       docId,
       spaceId,
@@ -242,8 +262,9 @@ export default function useRoomImportActions({
       return;
     }
 
-    if (!parseDescriptionDocId(docId)) {
-      toast.error("仅支持发送空间文档（我的文档/描述文档）");
+    const docRoomId = parseDocRoomId(docId);
+    if (!isSendableDocRef(docId)) {
+      toast.error("仅支持发送共享文档或我的文档");
       return;
     }
 
@@ -270,7 +291,14 @@ export default function useRoomImportActions({
     let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
 
     if (!excerpt) {
-      excerpt = readMessageEditorSnapshotExcerpt(getCachedDocSnapshot(docId));
+      let snapshot = getCachedDocSnapshot(docId);
+      if (!snapshot) {
+        snapshot = await getPersistedDocSnapshot(docId).catch(() => null);
+        if (snapshot) {
+          setCachedDocSnapshot(docId, snapshot);
+        }
+      }
+      excerpt = readMessageEditorSnapshotExcerpt(snapshot);
     }
 
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
@@ -284,6 +312,7 @@ export default function useRoomImportActions({
       extra: {
         docCard: {
           docId,
+          ...(docRoomId ? { roomId: docRoomId } : {}),
           spaceId: sourceSpaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),

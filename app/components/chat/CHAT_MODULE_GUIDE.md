@@ -41,7 +41,7 @@
     - `useChatPage*`：页面层逻辑（路由、导航、侧栏、空间上下文等）。
     - `useChatFrame*`：列表层逻辑（WS 同步、选中、渲染、拖拽、索引等）。
 - `infra/`
-  - 偏底层的“基础设施”：IndexedDB、WebSocket、Blocksuite、BGM、音频缓存等。
+  - 偏底层的“基础设施”：IndexedDB、WebSocket、文档缓存、BGM、音频缓存等。
 - `input/`
   - 输入框、命令面板、工具栏、富文本工具等。
 - `message/`

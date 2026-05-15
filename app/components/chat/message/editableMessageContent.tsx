@@ -50,12 +50,11 @@ function EditableMessageContent({
   const editContentRef = useRef(editContent);
   const chatInputHandleRef = useRef(chatInputRef);
   const getEditorText = useCallback(() => {
-    const raw = chatInputHandleRef.current.current?.getRawElement();
-    if (!raw) {
+    const plainText = chatInputHandleRef.current.current?.getPlainText();
+    if (typeof plainText !== "string") {
       return editContentRef.current;
     }
-    const text = raw.textContent ?? "";
-    return normalizeEditorText(text);
+    return normalizeEditorText(plainText);
   }, []);
 
   useEffect(() => {

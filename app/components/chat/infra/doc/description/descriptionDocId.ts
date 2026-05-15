@@ -1,14 +1,13 @@
-export type DescriptionEntityType = "space" | "room" | "user" | "space_user_doc" | "space_doc";
+export type DescriptionEntityType = "space" | "room" | "user" | "space_user_doc";
 export type DescriptionDocType = "description" | "readme";
 
 export type DescriptionDocId = string;
 
 /**
- * 兼容旧组件 props 的 docId 构造。
+ * 兼容仍然使用 description docId 约定的旧链路。
  *
- * 新实现中：
- * - Space 是 Workspace（容器）
- * - Room 的“描述文档”是 Space Workspace 内的一个 doc（Room 以引用形态挂载）
+ * 当前共享文档已经改为直接使用 roomId；
+ * 这里只保留 space/room/user/udoc 这类历史 description 标识的解析能力。
  */
 export function buildDescriptionDocId(params: {
   entityType: DescriptionEntityType;
@@ -27,9 +26,6 @@ export function buildDescriptionDocId(params: {
   if (params.entityType === "space_user_doc")
     return `udoc:${params.entityId}:${params.docType}`;
 
-  if (params.entityType === "space_doc")
-    return `sdoc:${params.entityId}:${params.docType}`;
-
   throw new Error(`Unsupported description entity type: ${params.entityType}`);
 }
 
@@ -40,7 +36,7 @@ export function parseDescriptionDocId(docId: string): {
 } | null {
   const parts = docId.split(":");
 
-  // space:<spaceId>:description | room:<roomId>:description | user:<userId>:readme | udoc:<docId>:description | sdoc:<docId>:description
+  // space:<spaceId>:description | room:<roomId>:description | user:<userId>:readme | udoc:<docId>:description
   if (parts.length === 3 && (parts[2] === "description" || parts[2] === "readme")) {
     const [prefix, rawId] = parts;
     const entityId = Number(rawId);
@@ -63,10 +59,6 @@ export function parseDescriptionDocId(docId: string): {
 
     if (prefix === "udoc") {
       return { entityType: "space_user_doc", entityId, docType };
-    }
-
-    if (prefix === "sdoc") {
-      return { entityType: "space_doc", entityId, docType };
     }
 
     return null;

@@ -26,16 +26,16 @@ describe("sidebarTree", () => {
         { roomId: 11, name: "大厅" } as any,
       ],
       docMetas: [
-        { id: "sdoc:22:description", title: "设定集" },
+        { id: "22", title: "设定集" },
       ],
       includeDocs: true,
     });
 
     expect(tree.categories.map(category => category.categoryId)).toEqual(["cat:channels", "cat:docs"]);
     expect(tree.categories[1]?.items[0]).toMatchObject({
-      nodeId: "doc:sdoc:22:description",
+      nodeId: "doc:22",
       type: "doc",
-      targetId: "sdoc:22:description",
+      targetId: "22",
     });
   });
 

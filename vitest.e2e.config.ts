@@ -48,9 +48,6 @@ export default defineConfig({
     maxWorkers: 1,
     testTimeout: 30_000,
     server: {
-      deps: {
-        inline: [/^@blocksuite\//, /[\\/]node_modules[\\/]@blocksuite[\\/]/],
-      },
     },
   },
 });

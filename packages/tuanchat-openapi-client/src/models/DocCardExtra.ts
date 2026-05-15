@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type DocCardExtra = {
     /**
-     * Blocksuite docId
+     * 文档 docId
      */
     docId: string;
     /**

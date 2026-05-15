@@ -4,6 +4,7 @@ import { useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import {
   isImageMessageMarkedAsBackground,
   isSoundMessageMarkedAsBgm,
@@ -101,7 +102,12 @@ export default function ChatFrameContextMenu({
     const fallbackCandidate = !candidate && extraAny && typeof extraAny === "object" ? extraAny : null;
 
     const maybe = candidate ?? fallbackCandidate;
-    const docId = typeof maybe?.docId === "string" ? maybe.docId : "";
+    const roomId = typeof maybe?.roomId === "number" && Number.isFinite(maybe.roomId) && maybe.roomId > 0
+      ? maybe.roomId
+      : undefined;
+    const docId = typeof maybe?.docId === "string" && maybe.docId
+      ? maybe.docId
+      : (roomId ? String(roomId) : "");
     if (!docId)
       return null;
 
@@ -111,7 +117,7 @@ export default function ChatFrameContextMenu({
     const imageFileId = typeof maybe?.imageFileId === "number" && maybe.imageFileId > 0 ? maybe.imageFileId : undefined;
     const originalImageFileId = typeof maybe?.originalImageFileId === "number" && maybe.originalImageFileId > 0 ? maybe.originalImageFileId : undefined;
     const imageMediaType = typeof maybe?.imageMediaType === "string" ? maybe.imageMediaType : undefined;
-    return { docId, spaceId, title, imageUrl, imageFileId, originalImageFileId, imageMediaType };
+    return { docId, roomId, spaceId, title, imageUrl, imageFileId, originalImageFileId, imageMediaType };
   }, [message?.message]);
 
   const canCopyDoc = useMemo(() => {
@@ -129,10 +135,12 @@ export default function ChatFrameContextMenu({
       return null;
     }
 
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
-    const key = parseDescriptionDocId(docCard.docId);
-    if (!key) {
-      toast.error("仅支持复制空间文档（描述文档/我的文档）");
+    const numericDocId = /^\d+$/.test(docCard.docId) ? Number(docCard.docId) : null;
+    const descriptionDoc = parseDescriptionDocId(docCard.docId);
+    const isCopyable = (numericDocId != null && numericDocId > 0)
+      || (descriptionDoc?.entityType === "space_user_doc" && descriptionDoc.docType === "description");
+    if (!isCopyable) {
+      toast.error("仅支持复制共享文档或我的文档");
       return null;
     }
 
