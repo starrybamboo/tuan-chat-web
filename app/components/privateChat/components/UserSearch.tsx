@@ -124,13 +124,16 @@ export default function UserSearch() {
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
         />
-        <div
+        <button
+          type="button"
           className="absolute right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
           onClick={searchInputKeyword}
+          aria-label="搜索用户"
         >
           <Search className="size-5" />
-        </div>
-        <div
+        </button>
+        <button
+          type="button"
           className="absolute right-14 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
           onClick={() => {
             setInputKeyword("");
@@ -141,9 +144,10 @@ export default function UserSearch() {
             setNotice("");
             setVerifyMsg("");
           }}
+          aria-label="清空搜索"
         >
           <XMarkICon className="size-5" />
-        </div>
+        </button>
       </div>
 
       {pendingReceivedRequests.length > 0 && (
@@ -229,17 +233,20 @@ export default function UserSearch() {
                 ? (
                     <div
                       key={searchUserInfo?.userId}
-                      className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
-                      onClick={() => {
-                        if (friendCheck?.canSendMessage === false) {
-                          setNotice("当前无法发送私聊消息，请先成为好友或解除限制");
-                          return;
-                        }
-                        setSearching(false);
-                        router.history.push(`/chat/private/${searchUserInfo?.userId}`);
-                      }}
+                      className="flex items-center justify-between rounded-md border-t-2 border-base-300 p-2 hover:bg-base-300"
                     >
-                      <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        onClick={() => {
+                          if (friendCheck?.canSendMessage === false) {
+                            setNotice("当前无法发送私聊消息，请先成为好友或解除限制");
+                            return;
+                          }
+                          setSearching(false);
+                          router.history.push(`/chat/private/${searchUserInfo?.userId}`);
+                        }}
+                      >
                         <img
                           className="rounded-full"
                           src={avatarThumbUrl(searchUserInfo?.avatarFileId)}
@@ -255,7 +262,7 @@ export default function UserSearch() {
                         {friendCheckQuery.isLoading && (
                           <span className="badge badge-ghost badge-sm">查询中</span>
                         )}
-                      </div>
+                      </button>
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col items-end gap-2">
                           {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
@@ -313,15 +320,17 @@ export default function UserSearch() {
                           )}
                         </div>
 
-                        <div
+                        <button
+                          type="button"
                           className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.history.push(`/profile/${searchUserInfo?.userId}`);
                           }}
+                          aria-label="查看用户主页"
                         >
                           <HomeIcon className="size-5" />
-                        </div>
+                        </button>
                       </div>
                     </div>
                   )
@@ -339,10 +348,13 @@ export default function UserSearch() {
                   return (
                     <div
                       key={friend?.userId || index}
-                      className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
-                      onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
+                      className="flex items-center justify-between rounded-md border-t-2 border-base-300 p-2 hover:bg-base-300"
                     >
-                      <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
+                      >
                         <img
                           className="rounded-full"
                           src={avatarThumbUrl(friend?.avatarFileId)}
@@ -352,16 +364,18 @@ export default function UserSearch() {
                         />
                         <span>{friend?.userId}</span>
                         <span className="font-bold">{friend?.username}</span>
-                      </div>
-                      <div
+                      </button>
+                      <button
+                        type="button"
                         className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.history.push(`/profile/${friend?.userId}`);
                         }}
+                        aria-label="查看用户主页"
                       >
                         <HomeIcon className="size-5" />
-                      </div>
+                      </button>
                     </div>
                   );
                 })

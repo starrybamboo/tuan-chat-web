@@ -53,7 +53,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     <div
       className="w-full h-full bg-base-100 border-l border-base-300 flex flex-col"
       onContextMenu={handleContextMenu}
-      onClick={() => setContextMenu(null)}
+      onPointerDown={() => setContextMenu(null)}
     >
       {/* 顶部信息栏 */}
       <TopInfo

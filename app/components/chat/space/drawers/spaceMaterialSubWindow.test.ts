@@ -6,9 +6,9 @@ import SpaceMaterialSubWindow from "./spaceMaterialSubWindow";
 
 let lastEditorProps: Record<string, unknown> | null = null;
 
-const mockUseSpaceMaterialPackagesQuery = vi.fn();
-const mockUseUpdateSpaceMaterialPackageMutation = vi.fn();
-const mockUseDeleteSpaceMaterialPackageMutation = vi.fn();
+const mockUseSpaceMaterialPackagesQuery = vi.fn<(...args: any[]) => any>();
+const mockUseUpdateSpaceMaterialPackageMutation = vi.fn<(...args: any[]) => any>();
+const mockUseDeleteSpaceMaterialPackageMutation = vi.fn<(...args: any[]) => any>();
 
 vi.mock("../../../../../api/hooks/materialPackageQueryHooks", () => ({
   useSpaceMaterialPackagesQuery: (...args: unknown[]) => mockUseSpaceMaterialPackagesQuery(...args),
@@ -28,11 +28,11 @@ describe("spaceMaterialSubWindow", () => {
     lastEditorProps = null;
     mockUseUpdateSpaceMaterialPackageMutation.mockReturnValue({
       isPending: false,
-      mutateAsync: vi.fn(),
+      mutateAsync: vi.fn<(...args: any[]) => any>(),
     });
     mockUseDeleteSpaceMaterialPackageMutation.mockReturnValue({
       isPending: false,
-      mutateAsync: vi.fn(),
+      mutateAsync: vi.fn<(...args: any[]) => any>(),
     });
     mockUseSpaceMaterialPackagesQuery.mockReturnValue({
       isLoading: false,

@@ -38,16 +38,7 @@ export default function SidebarSection({
 
   return (
     <section className={sectionClassName}>
-      <div
-        className={headerClassName}
-        onClick={(e) => {
-          const target = e.target as HTMLElement | null;
-          if (target?.closest("button")) {
-            return;
-          }
-          handleToggleExpanded();
-        }}
-      >
+      <div className={headerClassName}>
         <button
           type="button"
           className={iconButtonClassName}
@@ -60,7 +51,13 @@ export default function SidebarSection({
           <ChevronDown className={`size-4 ${isExpanded ? "" : "-rotate-90"}`} />
         </button>
 
-        <span className="flex-1 cursor-pointer truncate select-none">{title}</span>
+        <button
+          type="button"
+          className="flex-1 truncate text-left select-none"
+          onClick={handleToggleExpanded}
+        >
+          {title}
+        </button>
 
         {onAction && actionTitle && (
           <button

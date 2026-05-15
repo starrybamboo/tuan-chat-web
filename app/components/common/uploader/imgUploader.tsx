@@ -44,9 +44,13 @@ export function ImgUploader({
         className="hidden"
         accept="image/*"
       />
-      <div onClick={() => fileInputRef.current?.click()}>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="contents"
+      >
         {children}
-      </div>
+      </button>
     </div>
   );
 }

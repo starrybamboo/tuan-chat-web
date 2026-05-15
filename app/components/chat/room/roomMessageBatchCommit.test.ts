@@ -52,8 +52,8 @@ describe("roomMessageBatchCommit", () => {
   });
 
   it("优先用 replaceMessageById 替换批量乐观消息", async () => {
-    const replaceMessageById = vi.fn(async () => {});
-    const addOrUpdateMessages = vi.fn(async () => {});
+    const replaceMessageById = vi.fn<(...args: any[]) => any>(async () => {});
+    const addOrUpdateMessages = vi.fn<(...args: any[]) => any>(async () => {});
 
     const optimisticMessages = [
       createOptimisticMessage(-1, 101),

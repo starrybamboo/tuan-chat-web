@@ -349,9 +349,13 @@ export function ImgUploaderWithCopper({
         title="选择图片文件"
         aria-label="选择图片文件"
       />
-      <div onClick={() => fileInputRef.current?.click()}>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="contents"
+      >
         {children}
-      </div>
+      </button>
       <ToastWindow isOpen={isOpen} onClose={handleClose}>
         <h2 className="text-2xl mt-4 font-bold">上传图像</h2>
         <div className={isMobile ? "flex flex-col items-center gap-4 max-h-[90vh] p-4" : "flex flex-row items-center justify-center gap-8 overflow-auto p-6"}>

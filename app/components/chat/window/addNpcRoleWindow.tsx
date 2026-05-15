@@ -52,7 +52,7 @@ export function AddNpcRoleWindow({
           {availableSpaceRoles.map(role => (
             <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
               <div className="flex flex-col items-center p-3">
-                <div onClick={() => handleAddRole(role.roleId)}>
+                <button type="button" onClick={() => handleAddRole(role.roleId)}>
                   <RoleAvatarByRole
                     role={role}
                     width={24}
@@ -60,12 +60,13 @@ export function AddNpcRoleWindow({
                     withTitle={false}
                     stopToastWindow={true}
                   />
-                </div>
+                </button>
                 <p className="text-center block">{role.roleName}</p>
               </div>
             </div>
           ))}
-          <div
+          <button
+            type="button"
             className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
             onClick={() => setIsCreatingNpc(true)}
           >
@@ -73,7 +74,7 @@ export function AddNpcRoleWindow({
               <AddRingLight className="size-24 jump_icon" />
               <p className="text-center block">创建NPC</p>
             </div>
-          </div>
+          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 import { useCreateResourceCollectionMutation } from "../../../../api/hooks/resourceQueryHooks";
@@ -11,6 +11,9 @@ interface CreateCollectionModalProps {
 }
 
 export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType }: CreateCollectionModalProps) {
+  const collectionNameInputId = useId();
+  const descriptionInputId = useId();
+  const coverImageInputId = useId();
   const [collectionName, setCollectionName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -114,7 +117,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     setCoverImage(undefined);
     setCoverFileId(undefined);
     setCoverImageFile(undefined);
-    const input = document.getElementById("coverImageInput") as HTMLInputElement;
+    const input = document.getElementById(coverImageInputId) as HTMLInputElement | null;
     if (input)
       input.value = "";
   };
@@ -153,8 +156,9 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
     return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
-      <div className="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <button type="button" className="absolute inset-0 bg-black/50" onClick={handleClose} aria-label="关闭新建素材集弹窗" />
+      <div className="relative bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">新建素材集</h3>
@@ -172,10 +176,11 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
           <div className="space-y-4">
             {/* 素材集名称 */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label htmlFor={collectionNameInputId} className="block text-sm font-medium mb-2">
                 素材集名称 *
               </label>
               <input
+                id={collectionNameInputId}
                 type="text"
                 value={collectionName}
                 onChange={e => setCollectionName(e.target.value)}
@@ -186,10 +191,11 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
 
             {/* 描述 */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label htmlFor={descriptionInputId} className="block text-sm font-medium mb-2">
                 描述
               </label>
               <textarea
+                id={descriptionInputId}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="请输入素材集描述（可选）"
@@ -200,7 +206,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
 
             {/* 封面图片上传 */}
             <div>
-              <label className="block text-sm font-medium mb-2">封面图片（可选）</label>
+              <label htmlFor={coverImageInputId} className="block text-sm font-medium mb-2">封面图片（可选）</label>
 
               {/* 图片预览区域 */}
               {(coverImage || coverImageFile)
@@ -247,7 +253,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
                         type="file"
                         accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
                         className="hidden"
-                        id="coverImageInput"
+                        id={coverImageInputId}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -271,7 +277,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={() => document.getElementById("coverImageInput")?.click()}
+                          onClick={() => document.getElementById(coverImageInputId)?.click()}
                         >
                           选择图片
                         </button>
@@ -288,6 +294,7 @@ export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType
                   checked={isPublic}
                   onChange={e => setIsPublic(e.target.checked)}
                   className="checkbox checkbox-primary"
+                  aria-label="设为公开素材集"
                 />
                 <div>
                   <span className="label-text font-medium">设为公开素材集</span>

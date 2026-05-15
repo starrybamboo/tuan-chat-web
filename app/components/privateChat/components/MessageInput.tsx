@@ -198,17 +198,15 @@ function Emoji({
   return (
     <div className="dropdown dropdown-top flex items-center justify-center h-full">
       {/* dropdown 默认展示 */}
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         className="tooltip"
         data-tip="发送表情"
       >
         {children}
-      </div>
+      </button>
       {/* dropdown 表情选择窗口 */}
       <ul
-        tabIndex={0}
         className="dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto w-96 transform -translate-x-1/3 md:translate-x-0"
       >
         <StickerWindow onChoose={onChoose}></StickerWindow>

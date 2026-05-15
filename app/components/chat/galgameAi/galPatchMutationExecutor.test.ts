@@ -37,15 +37,15 @@ function createRequest(overrides: Partial<ChatMessageRequest>): ChatMessageReque
 describe("executeGalPatchMutationPlan", () => {
   it("按 update/delete/insert 顺序复用现有 mutation 回调", async () => {
     const order: string[] = [];
-    const updateMessage = vi.fn(async (message: Message) => {
+    const updateMessage = vi.fn<(...args: any[]) => any>(async (message: Message) => {
       order.push(`update:${message.messageId}`);
       return message;
     });
-    const deleteMessage = vi.fn(async (messageId: number) => {
+    const deleteMessage = vi.fn<(...args: any[]) => any>(async (messageId: number) => {
       order.push(`delete:${messageId}`);
       return createMessage({ messageId, status: 1 });
     });
-    const sendMessages = vi.fn(async (messages: ChatMessageRequest[]) => {
+    const sendMessages = vi.fn<(...args: any[]) => any>(async (messages: ChatMessageRequest[]) => {
       order.push(`insert:${messages.length}`);
       return messages.map((message, index) => createMessage({
         messageId: 100 + index,
@@ -78,9 +78,9 @@ describe("executeGalPatchMutationPlan", () => {
       deleteMessageIds: [],
       insertMessages: [createRequest({ content: "A" }), createRequest({ content: "B" })],
     }, {
-      updateMessage: vi.fn(),
-      deleteMessage: vi.fn(),
-      sendMessages: vi.fn(async () => [createMessage({ messageId: 1 })]),
+      updateMessage: vi.fn<(...args: any[]) => any>(),
+      deleteMessage: vi.fn<(...args: any[]) => any>(),
+      sendMessages: vi.fn<(...args: any[]) => any>(async () => [createMessage({ messageId: 1 })]),
     })).rejects.toThrow("批量新增消息数量与 proposal 不一致");
   });
 });

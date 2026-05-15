@@ -17,14 +17,6 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
-function handleKeyboardClick(event: React.KeyboardEvent<HTMLElement>, onClick: () => void) {
-  if (event.key !== "Enter" && event.key !== " ") {
-    return;
-  }
-  event.preventDefault();
-  onClick();
-}
-
 export function Sidebar({
   roles,
   selectedRoleId,
@@ -212,7 +204,7 @@ export function Sidebar({
       <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col border-t border-gray-300 dark:border-gray-700">
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 sticky top-0 bg-transparent z-50 py-2">
-          <label className="input">
+          <div className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
                 strokeLinejoin="round"
@@ -231,7 +223,7 @@ export function Sidebar({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
-          </label>
+          </div>
           {isSelectionMode
             ? (
                 <>
@@ -343,18 +335,13 @@ export function Sidebar({
                 </button>
                 {!isRuleCollapsed && (
                   <div className="ml-2">
-                    <div
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                       onClick={() => {
                         router.history.push("/role?type=rule&mode=entry");
                         onNavigate?.();
                       }}
-                      onKeyDown={event => handleKeyboardClick(event, () => {
-                        router.history.push("/role?type=rule&mode=entry");
-                        onNavigate?.();
-                      })}
                       title="新建规则模板"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -379,7 +366,7 @@ export function Sidebar({
                         <h3 className="font-medium truncate">新建规则</h3>
                         <p className="text-xs text-base-content/70 mt-1 truncate">创建自定义规则模板</p>
                       </div>
-                    </div>
+                    </button>
 
                     {ruleListQuery.isLoading && (
                       <div className="text-xs text-base-content/60 px-3 py-2">正在加载规则...</div>
@@ -399,53 +386,52 @@ export function Sidebar({
                       return (
                         <div
                           key={`my-${currentRuleId}`}
-                          role="button"
-                          tabIndex={0}
                           className={`block rounded-lg px-1 ${
                             isRuleActive ? "bg-primary/10 text-primary" : ""
                           }`}
-                          onClick={() => {
-                            router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
-                            onNavigate?.();
-                          }}
-                          onKeyDown={event => handleKeyboardClick(event, () => {
-                            router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
-                            onNavigate?.();
-                          })}
                         >
                           <div
                             className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
                               isRuleActive ? "bg-base-100" : "hover:bg-base-100"
                             }`}
                           >
-                            <div className="avatar shrink-0">
-                              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 relative">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="w-6 h-6 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5" />
-                                  <path d="M8 7h8" />
-                                  <path d="M8 11h8" />
-                                  <path d="M8 15h5" />
-                                </svg>
+                            <button
+                              type="button"
+                              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                              onClick={() => {
+                                router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
+                                onNavigate?.();
+                              }}
+                            >
+                              <div className="avatar shrink-0">
+                                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 relative">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-6 h-6 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5" />
+                                    <path d="M8 7h8" />
+                                    <path d="M8 11h8" />
+                                    <path d="M8 15h5" />
+                                  </svg>
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex-1 min-w-0 overflow-hidden">
-                              <h3 className="font-medium truncate">{rule.ruleName || "未命名规则"}</h3>
-                              <p className="text-xs text-base-content/70 mt-1 truncate">
-                                #
-                                {currentRuleId}
-                                {" · "}
-                                {(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}
-                              </p>
-                            </div>
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <h3 className="font-medium truncate">{rule.ruleName || "未命名规则"}</h3>
+                                <p className="text-xs text-base-content/70 mt-1 truncate">
+                                  #
+                                  {currentRuleId}
+                                  {" · "}
+                                  {(rule.ruleDescription || "暂无描述").trim() || "暂无描述"}
+                                </p>
+                              </div>
+                            </button>
                             <button
                               type="button"
                               className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
@@ -501,18 +487,13 @@ export function Sidebar({
                 {!isDiceCollapsed && (
                   <div className="ml-2">
                     {/* 创建骰娘入口 */}
-                    <div
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                       onClick={() => {
                         router.history.push("/role?type=dice");
                         onNavigate?.();
                       }}
-                      onKeyDown={event => handleKeyboardClick(event, () => {
-                        router.history.push("/role?type=dice");
-                        onNavigate?.();
-                      })}
                       title="创建骰娘角色"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -539,40 +520,29 @@ export function Sidebar({
                         <h3 className="font-medium truncate">创建骰娘</h3>
                         <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
                       </div>
-                    </div>
+                    </button>
                     {/* 骰娘角色列表 */}
                     {diceRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
                       return (
                         <div
                           key={role.id}
-                          role="button"
-                          tabIndex={0}
-                          className={`block rounded-lg px-1 ${
+                          className={`rounded-lg px-1 ${
                             (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
                           }`}
-                          onClick={(e) => {
-                            if (isSelectionMode) {
-                              e.preventDefault();
-                              toggleRoleSelection(role.id);
-                            }
-                            else {
-                              router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
-                              onNavigate?.();
-                            }
-                          }}
-                          onKeyDown={event => handleKeyboardClick(event, () => {
-                            if (isSelectionMode) {
-                              toggleRoleSelection(role.id);
-                              return;
-                            }
-                            router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
-                            onNavigate?.();
-                          })}
                         >
                           <RoleListItem
                             role={role}
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                            onSelect={() => {
+                              if (isSelectionMode) {
+                                toggleRoleSelection(role.id);
+                              }
+                              else {
+                                router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
+                                onNavigate?.();
+                              }
+                            }}
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
                           />
@@ -611,18 +581,13 @@ export function Sidebar({
                 </button>
                 {!isNormalCollapsed && (
                   <div className="ml-2">
-                    <div
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
                       onClick={() => {
                         router.history.push("/role?type=normal");
                         onNavigate?.();
                       }}
-                      onKeyDown={event => handleKeyboardClick(event, () => {
-                        router.history.push("/role?type=normal");
-                        onNavigate?.();
-                      })}
                       title="创建普通角色"
                     >
                       <div className="avatar shrink-0 px-1">
@@ -646,40 +611,29 @@ export function Sidebar({
                         <h3 className="font-medium truncate">创建普通角色</h3>
                         <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
                       </div>
-                    </div>
+                    </button>
 
                     {normalRoles.map((role) => {
                       const storedRuleId = getRoleRule(role.id) || 1;
                       return (
                         <div
                           key={role.id}
-                          role="button"
-                          tabIndex={0}
-                          className={`block rounded-lg px-1 ${
+                          className={`rounded-lg px-1 ${
                             (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
                           }`}
-                          onClick={(e) => {
-                            if (isSelectionMode) {
-                              e.preventDefault();
-                              toggleRoleSelection(role.id);
-                            }
-                            else {
-                              router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
-                              onNavigate?.();
-                            }
-                          }}
-                          onKeyDown={event => handleKeyboardClick(event, () => {
-                            if (isSelectionMode) {
-                              toggleRoleSelection(role.id);
-                              return;
-                            }
-                            router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
-                            onNavigate?.();
-                          })}
                         >
                           <RoleListItem
                             role={role}
                             isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                            onSelect={() => {
+                              if (isSelectionMode) {
+                                toggleRoleSelection(role.id);
+                              }
+                              else {
+                                router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
+                                onNavigate?.();
+                              }
+                            }}
                             onDelete={() => handleDelete(role.id)}
                             isSelectionMode={isSelectionMode}
                           />

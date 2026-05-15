@@ -7,21 +7,21 @@ import { buildMessageDraftsFromComposerSnapshot } from "./messageDraftBuilder";
 
 function createUploadUtilsMock() {
   return {
-    uploadImg: vi.fn(),
-    uploadVideo: vi.fn(async (file: File) => ({
+    uploadImg: vi.fn<(...args: any[]) => any>(),
+    uploadVideo: vi.fn<(...args: any[]) => any>(async (file: File) => ({
       fileId: 456,
       fileName: file.name,
       mediaType: "video",
       size: file.size,
     })),
-    uploadAudioAsset: vi.fn(async (file: File) => ({
+    uploadAudioAsset: vi.fn<(...args: any[]) => any>(async (file: File) => ({
       fileId: 123,
       mediaType: "audio",
       fileName: file.name,
       size: file.size,
     })),
-    uploadFile: vi.fn(async (file: File) => `https://static.example.com/${file.name}`),
-    uploadAudio: vi.fn(),
+    uploadFile: vi.fn<(...args: any[]) => any>(async (file: File) => `https://static.example.com/${file.name}`),
+    uploadAudio: vi.fn<(...args: any[]) => any>(),
   } as unknown as UploadUtils & {
     uploadVideo: ReturnType<typeof vi.fn>;
     uploadAudioAsset: ReturnType<typeof vi.fn>;
@@ -68,18 +68,18 @@ describe("messageDraftBuilder", () => {
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       writable: true,
-      value: vi.fn(() => "blob:media"),
+      value: vi.fn<(...args: any[]) => any>(() => "blob:media"),
     });
     Object.defineProperty(URL, "revokeObjectURL", {
       configurable: true,
       writable: true,
-      value: vi.fn(),
+      value: vi.fn<(...args: any[]) => any>(),
     });
     Object.defineProperty(globalThis, "document", {
       configurable: true,
       writable: true,
       value: {
-        createElement: vi.fn((tagName: string) => {
+        createElement: vi.fn<(...args: any[]) => any>((tagName: string) => {
           if (tagName === "video" || tagName === "audio") {
             return createMockMediaElement();
           }
@@ -243,7 +243,7 @@ describe("messageDraftBuilder", () => {
       configurable: true,
       writable: true,
       value: {
-        createElement: vi.fn((tagName: string) => {
+        createElement: vi.fn<(...args: any[]) => any>((tagName: string) => {
           if (tagName === "audio") {
             return createMockMediaElement(Number.NaN);
           }

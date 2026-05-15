@@ -1,6 +1,6 @@
 import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
-import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
+import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
@@ -44,6 +44,7 @@ const MIN_CRF = 10;
 const MAX_CRF = 51;
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
+const bundledWorkerUrl = String((bundledWorkerUrlModule as { default?: string }).default ?? bundledWorkerUrlModule);
 
 function normalizeErrorMessage(error: unknown): string {
   if (error instanceof Error) {

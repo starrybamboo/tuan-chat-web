@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import executorPublic from "./cmdExePublic";
 
 const { openStShowCardWindowMock } = vi.hoisted(() => ({
-  openStShowCardWindowMock: vi.fn(),
+  openStShowCardWindowMock: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock("./stShowCard", () => ({
@@ -17,13 +17,13 @@ describe("通用 st show 指令", () => {
     openStShowCardWindowMock.mockReset();
     openStShowCardWindowMock.mockResolvedValue(undefined);
     cpi = {
-      replyMessage: vi.fn(),
-      sendToast: vi.fn(),
-      getRoleAbilityList: vi.fn(),
-      getSpaceInfo: vi.fn(),
-      getSpaceData: vi.fn(),
-      setRoleAbilityList: vi.fn(),
-      setCopywritingKey: vi.fn(),
+      replyMessage: vi.fn<(...args: any[]) => any>(),
+      sendToast: vi.fn<(...args: any[]) => any>(),
+      getRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      getSpaceInfo: vi.fn<(...args: any[]) => any>(),
+      getSpaceData: vi.fn<(...args: any[]) => any>(),
+      setRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      setCopywritingKey: vi.fn<(...args: any[]) => any>(),
     } as unknown as CPI;
   });
 

@@ -15,8 +15,8 @@ vi.mock("@/components/common/dicer/utils/utils", async () => {
   return {
     default: {
       ...actual.default,
-      getRoleAbilityValue: vi.fn(),
-      calculateExpression: vi.fn(),
+      getRoleAbilityValue: vi.fn<(...args: any[]) => any>(),
+      calculateExpression: vi.fn<(...args: any[]) => any>(),
     },
   };
 });
@@ -29,12 +29,12 @@ describe("d&D 5e 指令集测试", () => {
   beforeEach(() => {
     // 模拟 CPI 对象
     cpi = {
-      replyMessage: vi.fn(),
-      sendToast: vi.fn(),
-      getRoleAbilityList: vi.fn(),
-      getSpaceInfo: vi.fn(),
-      setRoleAbilityList: vi.fn(),
-      setCopywritingKey: vi.fn(),
+      replyMessage: vi.fn<(...args: any[]) => any>(),
+      sendToast: vi.fn<(...args: any[]) => any>(),
+      getRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      getSpaceInfo: vi.fn<(...args: any[]) => any>(),
+      setRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      setCopywritingKey: vi.fn<(...args: any[]) => any>(),
     } as unknown as CPI;
 
     // 默认角色

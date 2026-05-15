@@ -3,8 +3,8 @@ import { vi } from "vitest";
 import useRoomCommandRequests from "./useRoomCommandRequests";
 
 const mocks = vi.hoisted(() => ({
-  toastErrorMock: vi.fn(),
-  isCommandMock: vi.fn(),
+  toastErrorMock: vi.fn<(...args: any[]) => any>(),
+  isCommandMock: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock("react", async () => {
@@ -16,7 +16,7 @@ vi.mock("react", async () => {
     useEffect: (fn: () => void | (() => void)) => fn(),
     useMemo: <T>(fn: () => T) => fn(),
     useRef: <T>(value: T) => ({ current: value }),
-    useState: <T>(value: T | (() => T)) => [typeof value === "function" ? (value as () => T)() : value, vi.fn()] as const,
+    useState: <T>(value: T | (() => T)) => [typeof value === "function" ? (value as () => T)() : value, vi.fn<(...args: any[]) => any>()] as const,
   };
 });
 
@@ -74,7 +74,7 @@ describe("useRoomCommandRequests", () => {
   });
 
   it("首次执行检定请求后会写入本地一次性记录", () => {
-    const commandExecutor = vi.fn(async () => {});
+    const commandExecutor = vi.fn<(...args: any[]) => any>(async () => {});
     const hook = useRoomCommandRequests({
       roomId: 7,
       userId: 11,
@@ -109,7 +109,7 @@ describe("useRoomCommandRequests", () => {
       11: ["7:101"],
     }));
 
-    const commandExecutor = vi.fn(async () => {});
+    const commandExecutor = vi.fn<(...args: any[]) => any>(async () => {});
     const hook = useRoomCommandRequests({
       roomId: 7,
       userId: 11,

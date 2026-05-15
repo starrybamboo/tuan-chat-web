@@ -66,11 +66,12 @@ export function ToastWindowFrame({
           {children}
         </div>
       </div>
-      <div
+      <button
+        type="button"
         className={`modal-backdrop ${transparent ? "bg-black/20 dark:bg-black/30" : "bg-black/50 dark:bg-black/70"}`}
         onClick={(fullScreen && !transparent) ? () => {} : onClose}
-      >
-      </div>
+        aria-label="关闭弹窗"
+      />
     </div>
   );
 }

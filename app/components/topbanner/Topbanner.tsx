@@ -299,7 +299,7 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </motion.button>
-                    <div tabIndex={0} className="dropdown-content z-[10020] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                    <div className="dropdown-content z-[10020] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">
                         <div className="flex items-center gap-3">
@@ -341,11 +341,10 @@ export default function Topbar() {
                           <GearSixIcon className="size-4" />
                           设置
                         </button>
-                        <div
+                        <button
+                          type="button"
                           className="btn btn-ghost btn-sm w-full justify-between gap-2 font-normal"
                           onClick={e => handleClick(e)}
-                          role="button"
-                          tabIndex={0}
                         >
                           <div className="flex items-center gap-2">
                             <div className="scale-75" ref={switchRef}>
@@ -353,7 +352,7 @@ export default function Topbar() {
                             </div>
                             主题切换
                           </div>
-                        </div>
+                        </button>
                         {isElectronEnv() && webgalLinkMode && !runModeEnabled && (
                           <WebgalStarter className="w-full">
                             <button

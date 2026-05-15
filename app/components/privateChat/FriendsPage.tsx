@@ -295,12 +295,11 @@ export default function FriendsPage({
             {tab === "all" && (
               <div className="flex flex-col gap-2 w-full py-2">
                 {filteredFriends.map((friend, index) => (
-                  <div
+                  <button
+                    type="button"
                     key={friend?.userId || index}
                     className="w-full text-left flex items-center justify-between hover:bg-base-300 rounded-md h-16"
                     onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
-                    role="button"
-                    tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.target !== e.currentTarget)
                         return;
@@ -397,7 +396,7 @@ export default function FriendsPage({
                       </div>
                     </div>
                     <div className="w-2"></div>
-                  </div>
+                  </button>
                 ))}
 
                 {filteredFriends.length === 0 && (
@@ -628,17 +627,18 @@ export default function FriendsPage({
                     <div className="mt-4">
                       {searchUserInfo
                         ? (
-                            <div
-                              className="flex items-center justify-between p-3 rounded-md bg-base-200/40 cursor-pointer hover:bg-base-200"
-                              onClick={() => {
-                                if (friendCheck?.canSendMessage === false) {
-                                  return;
-                                }
-                                setSearching(false);
-                                router.history.push(`/chat/private/${searchUserInfo?.userId}`);
-                              }}
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center justify-between rounded-md bg-base-200/40 p-3 hover:bg-base-200">
+                              <button
+                                type="button"
+                                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                                onClick={() => {
+                                  if (friendCheck?.canSendMessage === false) {
+                                    return;
+                                  }
+                                  setSearching(false);
+                                  router.history.push(`/chat/private/${searchUserInfo?.userId}`);
+                                }}
+                              >
                                 <div className="avatar w-10">
                                   <img
                                     className="rounded-full"
@@ -656,22 +656,20 @@ export default function FriendsPage({
                                 {friendCheckQuery.isLoading && (
                                   <span className="badge badge-ghost badge-sm">查询中</span>
                                 )}
-                              </div>
+                              </button>
 
                               <div className="flex items-center gap-2">
                                 {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
-                                  <div
-                                    className="flex items-end gap-2"
-                                    onClick={e => e.stopPropagation()}
-                                  >
+                                  <div className="flex items-end gap-2">
                                     <div className="form-control">
-                                      <label className="label py-0">
+                                      <label htmlFor="friend-search-verify-msg" className="label py-0">
                                         <span className="label-text text-xs">
                                           验证信息
                                           <span className="text-error ml-1">*</span>
                                         </span>
                                       </label>
                                       <input
+                                        id="friend-search-verify-msg"
                                         type="text"
                                         className="input input-sm input-bordered w-64"
                                         placeholder="必填：简单说明你是谁/为何添加"
@@ -736,13 +734,12 @@ export default function FriendsPage({
                                       }
 
                                       return (
-                                        <span
+                                        <div
                                           className="inline-block"
                                           title="请填写验证信息"
-                                          onClick={e => e.stopPropagation()}
                                         >
                                           {buttonNode}
-                                        </span>
+                                        </div>
                                       );
                                     })()}
                                   </div>

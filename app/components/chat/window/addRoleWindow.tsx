@@ -132,22 +132,20 @@ export function AddRoleWindow({
       </p>
 
       <div role="tablist" className="tabs tabs-boxed mb-4 mx-auto w-fit">
-        <a
-          tabIndex={0}
-          role="tab"
+        <button
+          type="button"
           className={`tab ${activeTab === "my" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("my")}
         >
           我的角色
-        </a>
-        <a
-          tabIndex={0}
-          role="tab"
+        </button>
+        <button
+          type="button"
           className={`tab ${activeTab === "space" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("space")}
         >
           空间角色
-        </a>
+        </button>
       </div>
 
       <div className="bg-base-100 rounded-box p-6">
@@ -214,7 +212,7 @@ export function AddRoleWindow({
                       {filteredAvailableRoles.map(role => (
                         <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
-                            <div onClick={() => handleAddRole(role.roleId)}>
+                            <button type="button" onClick={() => handleAddRole(role.roleId)}>
                               <RoleAvatarByRole
                                 role={role}
                                 width={24}
@@ -222,7 +220,7 @@ export function AddRoleWindow({
                                 withTitle={false}
                                 stopToastWindow={true}
                               />
-                            </div>
+                            </button>
                             <p className="text-center block">{role.roleName}</p>
                           </div>
                         </div>
@@ -237,7 +235,7 @@ export function AddRoleWindow({
                   {availableRoles.map(role => (
                     <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
-                        <div onClick={() => handleAddRole(role.roleId)}>
+                        <button type="button" onClick={() => handleAddRole(role.roleId)}>
                           <RoleAvatarByRole
                             role={role}
                             width={24}
@@ -245,12 +243,13 @@ export function AddRoleWindow({
                             withTitle={false}
                             stopToastWindow={true}
                           />
-                        </div>
+                        </button>
                         <p className="text-center block">{role.roleName}</p>
                       </div>
                     </div>
                   ))}
-                  <div
+                  <button
+                    type="button"
                     className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => setIsCreatingRole(true)}
                   >
@@ -258,7 +257,7 @@ export function AddRoleWindow({
                       <AddRingLight className="size-24 jump_icon" />
                       <p className="text-center block">创建角色</p>
                     </div>
-                  </div>
+                  </button>
                 </div>
               </>
             )
@@ -276,7 +275,7 @@ export function AddRoleWindow({
                       {filteredAvailableSpaceRoles.map(role => (
                         <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
-                            <div onClick={() => handleImportSpaceRole(role.roleId)}>
+                            <button type="button" onClick={() => handleImportSpaceRole(role.roleId)}>
                               <RoleAvatarByRole
                                 role={role}
                                 width={24}
@@ -284,7 +283,7 @@ export function AddRoleWindow({
                                 withTitle={false}
                                 stopToastWindow={true}
                               />
-                            </div>
+                            </button>
                             <p className="text-center block">{role.roleName}</p>
                           </div>
                         </div>
@@ -299,7 +298,7 @@ export function AddRoleWindow({
                   {availableSpaceRoles.map(role => (
                     <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
-                        <div onClick={() => handleImportSpaceRole(role.roleId)}>
+                        <button type="button" onClick={() => handleImportSpaceRole(role.roleId)}>
                           <RoleAvatarByRole
                             role={role}
                             width={24}
@@ -307,12 +306,13 @@ export function AddRoleWindow({
                             withTitle={false}
                             stopToastWindow={true}
                           />
-                        </div>
+                        </button>
                         <p className="text-center block">{role.roleName}</p>
                       </div>
                     </div>
                   ))}
-                  <div
+                  <button
+                    type="button"
                     className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => setIsCreatingNpc(true)}
                   >
@@ -320,7 +320,7 @@ export function AddRoleWindow({
                       <AddRingLight className="size-24 jump_icon" />
                       <p className="text-center block">创建NPC</p>
                     </div>
-                  </div>
+                  </button>
                 </div>
               </>
             )}

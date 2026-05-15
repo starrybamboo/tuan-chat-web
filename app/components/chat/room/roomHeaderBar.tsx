@@ -252,7 +252,6 @@ function RoomHeaderBarImpl({
                     <div ref={mobileToolsMenuRef} className={`dropdown dropdown-end ${isMobileToolsMenuOpen ? "dropdown-open" : ""}`}>
                       <button
                         type="button"
-                        tabIndex={0}
                         className="btn btn-ghost btn-square btn-xs"
                         aria-label="工具菜单"
                         aria-expanded={isMobileToolsMenuOpen}
@@ -268,7 +267,7 @@ function RoomHeaderBarImpl({
                       >
                         <DotsThreeVerticalIcon className="size-4" />
                       </button>
-                      <ul tabIndex={0} className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-56 gap-1">
+                      <ul className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-56 gap-1">
                         <li>
                           <button
                             type="button"
@@ -343,7 +342,8 @@ function RoomHeaderBarImpl({
                   )
                 : (
                     <>
-                      <div
+                      <button
+                        type="button"
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
                         data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
                         onClick={() => {
@@ -351,39 +351,43 @@ function RoomHeaderBarImpl({
                         }}
                       >
                         <Bubble2 className="size-6" />
-                      </div>
+                      </button>
                       <ToolbarDivider />
-                      <div
+                      <button
+                        type="button"
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
                         data-tip="导入记录"
                         onClick={handleOpenImport}
                       >
                         <ArrowSquareIn className="size-6" />
-                      </div>
-                      <div
+                      </button>
+                      <button
+                        type="button"
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
                         data-tip="导出/多选"
                         onClick={handleOpenExport}
                       >
                         <ExportIcon className="size-6" />
-                      </div>
+                      </button>
                       <ToolbarDivider />
-                      <div
+                      <button
+                        type="button"
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
                         data-tip="房间成员"
                         data-side-drawer-toggle="true"
                         onClick={handleToggleMemberDrawer}
                       >
                         <MemberIcon className="size-6" />
-                      </div>
-                      <div
+                      </button>
+                      <button
+                        type="button"
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
                         data-tip="房间角色"
                         data-side-drawer-toggle="true"
                         onClick={handleToggleRoleDrawer}
                       >
                         <RoleListIcon className="size-6" />
-                      </div>
+                      </button>
                       <SearchBar className="w-64" />
                     </>
                   )}

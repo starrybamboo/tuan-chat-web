@@ -232,19 +232,12 @@ export default function FeedbackIssueList({
           : (
               <div className="divide-y divide-base-300">
                 {issues.map(issue => (
-                  <div
+                  <button
+                    type="button"
                     key={issue.feedbackIssueId}
-                    role="button"
-                    tabIndex={0}
                     aria-label={`打开反馈 ${issue.title}`}
-                    className="group cursor-pointer px-4 py-4 transition hover:bg-base-200/50 focus:bg-base-200/50 focus:outline-none"
+                    className="group w-full px-4 py-4 text-left transition hover:bg-base-200/50 focus:bg-base-200/50 focus:outline-none"
                     onClick={() => onSelectIssue(issue.feedbackIssueId)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelectIssue(issue.feedbackIssueId);
-                      }
-                    }}
                   >
                     <div className="flex gap-3">
                       <FeedbackStateDot status={issue.status} archived={issue.archived} />
@@ -302,7 +295,7 @@ export default function FeedbackIssueList({
                         <FeedbackAuthorAvatar issue={issue} />
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

@@ -4,7 +4,7 @@ import executorCoc from "./cmdExeCoc";
 import executorFu from "./cmdExeFu";
 
 const { executeStShowCommandMock } = vi.hoisted(() => ({
-  executeStShowCommandMock: vi.fn(),
+  executeStShowCommandMock: vi.fn<(...args: any[]) => any>(),
 }));
 
 vi.mock("./cmdExePublic", async () => {
@@ -22,13 +22,13 @@ describe("规则 st show 委托", () => {
     executeStShowCommandMock.mockReset();
     executeStShowCommandMock.mockResolvedValue(true);
     cpi = {
-      replyMessage: vi.fn(),
-      sendToast: vi.fn(),
-      getRoleAbilityList: vi.fn(),
-      getSpaceInfo: vi.fn(),
-      getSpaceData: vi.fn(),
-      setRoleAbilityList: vi.fn(),
-      setCopywritingKey: vi.fn(),
+      replyMessage: vi.fn<(...args: any[]) => any>(),
+      sendToast: vi.fn<(...args: any[]) => any>(),
+      getRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      getSpaceInfo: vi.fn<(...args: any[]) => any>(),
+      getSpaceData: vi.fn<(...args: any[]) => any>(),
+      setRoleAbilityList: vi.fn<(...args: any[]) => any>(),
+      setCopywritingKey: vi.fn<(...args: any[]) => any>(),
     } as unknown as CPI;
   });
 

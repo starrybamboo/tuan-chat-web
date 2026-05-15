@@ -349,132 +349,135 @@ export default function ChatFrameContextMenu({
     <div
       ref={menuRef}
       className="fixed bg-base-100 shadow-lg rounded-md z-50"
-      onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-40">
         <li>
-          <a onClick={(e) => {
-            e.preventDefault();
-            onToggleSelection(contextMenu.messageId);
-            onClose();
-          }}
+          <button
+            type="button"
+            onClick={() => {
+              onToggleSelection(contextMenu.messageId);
+              onClose();
+            }}
           >
             多选
-          </a>
+          </button>
         </li>
         <li>
-          <a onClick={(e) => {
-            e.preventDefault();
-            message?.message && onReply(message.message);
-            onClose();
-          }}
+          <button
+            type="button"
+            onClick={() => {
+              message?.message && onReply(message.message);
+              onClose();
+            }}
           >
             回复
-          </a>
+          </button>
         </li>
         {canEditMessage && (
           <li>
-            <a
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 onDelete();
                 onClose();
               }}
             >
               删除
-            </a>
+            </button>
           </li>
         )}
 
         {canEditMessage && (
           <li>
-            <a
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 onOpenAnnotations(contextMenu.messageId);
                 onClose();
               }}
             >
               添加标注
-            </a>
+            </button>
           </li>
         )}
         {canToggleBackground && (
           <li>
-            <a
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 onToggleBackground(contextMenu.messageId);
                 onClose();
               }}
             >
               {isBackgroundMessage ? "取消背景" : "设置为背景"}
-            </a>
+            </button>
           </li>
         )}
         {canToggleBgm && (
           <li>
-            <a
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 onToggleBgm(contextMenu.messageId);
                 onClose();
               }}
             >
               {isBgmMessage ? "取消BGM" : "设置为BGM"}
-            </a>
+            </button>
           </li>
         )}
         {canCopyDoc && (
           <li>
-            <a
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 onClose();
                 void handleCopyToMyDocs();
               }}
             >
               复制到我的文档
-            </a>
+            </button>
           </li>
         )}
         {canCopyDoc && spaceContext.isSpaceOwner && (
           <li>
-            <a
-              onClick={(e) => {
-                e.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
                 onClose();
                 void handleCopyToKpSidebarTree();
               }}
             >
               复制到空间侧边栏
-            </a>
+            </button>
           </li>
         )}
         <li>
-          <a onClick={(e) => {
-            e.preventDefault();
-            onInsertAfter(contextMenu.messageId);
-            onClose();
-          }}
+          <button
+            type="button"
+            onClick={() => {
+              onInsertAfter(contextMenu.messageId);
+              onClose();
+            }}
           >
             插入消息
-          </a>
+          </button>
         </li>
         {
           (isSelecting) && (
             <li>
-              <a onClick={(e) => {
-                e.preventDefault();
-                onMoveMessages(
-                  historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
-                  Array.from(selectedMessageIds),
-                );
-                onClose();
-              }}
+              <button
+                type="button"
+                onClick={() => {
+                  onMoveMessages(
+                    historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
+                    Array.from(selectedMessageIds),
+                  );
+                  onClose();
+                }}
               >
                 将选中消息移动到此消息下方
-              </a>
+              </button>
             </li>
           )
         }
@@ -491,15 +494,15 @@ export default function ChatFrameContextMenu({
           if (message.message.messageType !== 2) {
             return (
               <li>
-                <a
-                  onClick={(e) => {
-                    e.preventDefault();
+                <button
+                  type="button"
+                  onClick={() => {
                     onEditMessage(contextMenu.messageId);
                     onClose();
                   }}
                 >
                   编辑文本
-                </a>
+                </button>
               </li>
             );
           }

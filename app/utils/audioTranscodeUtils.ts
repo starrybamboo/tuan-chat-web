@@ -1,6 +1,6 @@
 import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
-import bundledWorkerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
+import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
@@ -29,6 +29,7 @@ export type AudioTranscodeOptions = {
 
 const DEFAULT_BITRATE_KBPS = 64;
 const DEFAULT_EXEC_TIMEOUT_MS = 120_000;
+const bundledWorkerUrl = String((bundledWorkerUrlModule as { default?: string }).default ?? bundledWorkerUrlModule);
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
 let ffmpegDebugConfigLogged = false;
