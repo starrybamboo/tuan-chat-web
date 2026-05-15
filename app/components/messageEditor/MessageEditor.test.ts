@@ -32,8 +32,8 @@ function createMockElement(options: {
 }
 
 describe("messageEditor document click guard", () => {
-  it("uses an 80vh frame height by default for standalone document views", () => {
-    expect(getMessageEditorFrameClassName()).toBe("h-[80vh] min-h-0 rounded-md");
+  it("uses a 50vh frame height by default for standalone document views", () => {
+    expect(getMessageEditorFrameClassName()).toBe("h-[50vh] min-h-0 rounded-md");
   });
 
   it("preserves an explicit frame class override", () => {
