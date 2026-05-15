@@ -5,6 +5,19 @@ import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
 
 /**
+ * 为聊天图片保留稳定的固有尺寸，减少图片加载完成后触发的布局跳动。
+ */
+export function resolveBetterImgIntrinsicSize(size?: { width?: number; height?: number }) {
+  const width = typeof size?.width === "number" && Number.isFinite(size.width) && size.width > 0
+    ? size.width
+    : undefined;
+  const height = typeof size?.height === "number" && Number.isFinite(size.height) && size.height > 0
+    ? size.height
+    : undefined;
+  return { width, height };
+}
+
+/**
  * 更好的img组件，点击可以显示大图，大图状态下可以缩放。
  * @param src 图片源，可以是url，也可以是一个File对象
  * @param className
@@ -22,6 +35,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
   const imgRef = useRef<HTMLImageElement>(null);
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
   const displayImgSrc = typeof imgSrc === "string" ? imageHighUrlFromUrl(imgSrc) : imgSrc;
+  const intrinsicSize = resolveBetterImgIntrinsicSize(size);
   const handleLoad = () => {
     if (typeof displayImgSrc !== "string") {
       return;
@@ -50,7 +64,8 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
         <img
           ref={imgRef}
           src={displayImgSrc}
-          width={size?.width}
+          width={intrinsicSize.width}
+          height={intrinsicSize.height}
           className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
           alt="img"
           onLoad={handleLoad}
