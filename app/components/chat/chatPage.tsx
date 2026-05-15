@@ -347,6 +347,17 @@ export default function ChatPage() {
     searchParam,
     setStoredChatIds,
   });
+  const handleBackFromDoc = useCallback(() => {
+    if (!activeSpaceId || activeSpaceId <= 0) {
+      return;
+    }
+    const storedRoomId = storedIds.spaceId === activeSpaceId
+      && typeof storedIds.roomId === "number"
+      && Number.isFinite(storedIds.roomId)
+      ? storedIds.roomId
+      : null;
+    setActiveRoomId(storedRoomId ?? sidebarTreeFirstRoomId ?? null);
+  }, [activeSpaceId, setActiveRoomId, sidebarTreeFirstRoomId, storedIds.roomId, storedIds.spaceId]);
 
   const {
     roomSettingState,
@@ -791,6 +802,7 @@ export default function ChatPage() {
   };
   const leftDrawerToggleLabel = isOpenLeftDrawer ? "收起侧边栏" : "展开侧边栏";
   const hasMainContentDrawerToggle = isPrivateChatMode
+    || isDocRoute
     || (!isDocRoute && !isRoomSettingRoute && !isSpaceDetailRoute && Boolean(activeSpaceId) && activeRoomId != null);
   const shouldShowLeftDrawerToggle = screenSize === "sm" && !isOpenLeftDrawer && !hasMainContentDrawerToggle;
   const layoutProps = {
@@ -849,6 +861,7 @@ export default function ChatPage() {
             spaceId={docRouteForRender.spaceId}
             docId={docRouteForRender.docId}
             canViewDocs={canViewSubWindowDoc}
+            onBack={handleBackFromDoc}
             tcHeaderTitle={activeDocTitleForTcHeader}
             tcHeaderImageUrl={activeDocTcHeaderFallback.imageUrl}
             tcHeaderImageFileId={activeDocTcHeaderFallback.imageFileId}
@@ -858,7 +871,7 @@ export default function ChatPage() {
         </div>
       )}
       {isDocRoute && !docRouteForRender && (
-        <ChatPageDocContent canViewDocs={canViewSubWindowDoc} />
+        <ChatPageDocContent canViewDocs={canViewSubWindowDoc} onBack={handleBackFromDoc} />
       )}
     </div>
   );
