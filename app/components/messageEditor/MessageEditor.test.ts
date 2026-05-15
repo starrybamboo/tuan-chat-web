@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getMessageEditorFrameClassName,
+  getMessageEditorScrollViewportClassName,
   shouldIgnoreDocumentSelectionEventTarget,
 } from "./MessageEditor";
 
@@ -37,6 +38,10 @@ describe("messageEditor document click guard", () => {
 
   it("preserves an explicit frame class override", () => {
     expect(getMessageEditorFrameClassName("h-full rounded-none")).toBe("h-full rounded-none");
+  });
+
+  it("uses one shared scroll viewport for cover, header and content", () => {
+    expect(getMessageEditorScrollViewportClassName()).toBe("relative min-h-0 flex-1 overflow-auto");
   });
 
   it("treats svg descendants inside the text style toolbar as internal clicks", () => {
