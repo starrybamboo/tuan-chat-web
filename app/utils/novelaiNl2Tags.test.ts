@@ -5,7 +5,7 @@ import { convertNaturalLanguageToNovelAiTags } from "./novelaiNl2Tags";
 
 vi.mock("./aiRelay", () => {
   return {
-    relayAiGatewayText: vi.fn(),
+    relayAiGatewayText: vi.fn<(...args: unknown[]) => Promise<string>>(),
   };
 });
 

@@ -515,7 +515,12 @@ export function SpriteListGrid({
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={handleCancelDelete}></div>
+          <button
+            type="button"
+            className="modal-backdrop"
+            onClick={handleCancelDelete}
+            aria-label="关闭删除确认弹窗"
+          />
         </div>
       )}
     </>

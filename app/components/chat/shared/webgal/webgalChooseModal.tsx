@@ -89,7 +89,7 @@ export default function WebgalChooseModal({
           <button type="button" className="btn btn-primary" onClick={onSubmit}>{submitLabel}</button>
         </div>
       </div>
-      <div className="modal-backdrop" onClick={onClose} />
+      <button type="button" className="modal-backdrop" onClick={onClose} aria-label="关闭 WebGAL 选项弹窗" />
     </div>,
     document.body,
   );

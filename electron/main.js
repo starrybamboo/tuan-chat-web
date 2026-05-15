@@ -165,9 +165,14 @@ function decodeImageInputToBuffer(value) {
 }
 
 function sanitizeDebugSegment(value) {
-  return String(value || "")
-    .trim()
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+  const sanitized = Array.from(String(value || "").trim(), (char) => {
+    if (char.charCodeAt(0) < 0x20) {
+      return "-";
+    }
+    return /[<>:"/\\|?*]/.test(char) ? "-" : char;
+  }).join("");
+
+  return sanitized
     .replace(/\s+/g, "-")
     .slice(0, 48) || "debug";
 }

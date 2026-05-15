@@ -36,7 +36,7 @@ type MockLocation = {
   pathname: string;
   search: string;
   hash: string;
-  assign: ReturnType<typeof vi.fn>;
+  assign: ReturnType<typeof vi.fn<(url: string | URL) => void>>;
 };
 
 function installMockWindow(pathname: string, search = "", hash = ""): MockLocation {
@@ -44,7 +44,7 @@ function installMockWindow(pathname: string, search = "", hash = ""): MockLocati
     pathname,
     search,
     hash,
-    assign: vi.fn(),
+    assign: vi.fn<(url: string | URL) => void>(),
   };
 
   const mockWindow = {

@@ -35,6 +35,8 @@ export function RegisterForm({
   handleSubmit,
   isLoading,
 }: RegisterFormProps) {
+  const verificationCodeInputId = "register-verification-code";
+
   return (
     <form onSubmit={handleSubmit}>
       <div className="form-control w-full mt-2">
@@ -66,11 +68,12 @@ export function RegisterForm({
       </div>
 
       <div className="form-control w-full mt-2">
-        <label className="label pb-1">
+        <label className="label pb-1" htmlFor={verificationCodeInputId}>
           <span className="label-text">邮箱验证码</span>
         </label>
         <div className="flex gap-2">
           <input
+            id={verificationCodeInputId}
             type="text"
             placeholder="请输入验证码"
             className="input input-bordered flex-1 bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"

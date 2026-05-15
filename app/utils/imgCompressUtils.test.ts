@@ -9,7 +9,7 @@ import {
   resolveImageCompressionOptions,
 } from "./imgCompressUtils";
 
-const imageCompressionMock = vi.hoisted(() => vi.fn());
+const imageCompressionMock = vi.hoisted(() => vi.fn<(file: File, options: { fileType: string }) => Promise<Blob>>());
 
 vi.mock("browser-image-compression", () => ({
   default: imageCompressionMock,

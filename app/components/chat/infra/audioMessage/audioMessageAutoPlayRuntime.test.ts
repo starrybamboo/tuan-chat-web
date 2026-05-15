@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { triggerAudioAutoPlay } from "./audioMessageAutoPlayRuntime";
 
 const mocks = vi.hoisted(() => ({
-  enqueueFromWsMock: vi.fn(),
-  enqueueFromLocalSendMock: vi.fn(),
-  requestPlayBgmMessageWithUrlMock: vi.fn(),
+  enqueueFromWsMock: vi.fn<(...args: unknown[]) => unknown>(),
+  enqueueFromLocalSendMock: vi.fn<(...args: unknown[]) => unknown>(),
+  requestPlayBgmMessageWithUrlMock: vi.fn<(...args: unknown[]) => void>(),
 }));
 
 vi.mock("@/components/chat/infra/audioMessage/audioMessageBgmCoordinator", () => ({

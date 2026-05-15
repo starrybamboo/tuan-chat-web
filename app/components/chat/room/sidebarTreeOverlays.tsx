@@ -144,7 +144,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
               <button type="button" className="btn btn-primary" onClick={onSubmitCategoryEditor}>确定</button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={onCloseCategoryEditor} />
+          <button type="button" className="modal-backdrop" onClick={onCloseCategoryEditor} aria-label="关闭分类编辑弹窗" />
         </div>,
       )}
 
@@ -166,23 +166,26 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={onCloseDeleteConfirmCategory} />
+          <button type="button" className="modal-backdrop" onClick={onCloseDeleteConfirmCategory} aria-label="关闭分类删除确认弹窗" />
         </div>,
       )}
 
       {contextMenu && renderOverlay(
-        <div
-          className="fixed inset-0 z-[9999]"
-          onClick={onCloseContextMenu}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            onCloseContextMenu();
-          }}
-        >
+        <div className="fixed inset-0 z-[9999]">
+          <button
+            type="button"
+            className="absolute inset-0"
+            onClick={onCloseContextMenu}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onCloseContextMenu();
+            }}
+            aria-label="关闭侧边栏上下文菜单"
+          />
           <ul
             ref={contextMenuRef}
-            className="menu bg-base-100 rounded-box shadow-xl border border-base-300 w-48 p-2"
-            onClick={e => e.stopPropagation()}
+            className="relative menu bg-base-100 rounded-box shadow-xl border border-base-300 w-48 p-2"
+            onMouseDown={e => e.stopPropagation()}
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -292,7 +295,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={onCloseDeleteConfirmDoc} />
+          <button type="button" className="modal-backdrop" onClick={onCloseDeleteConfirmDoc} aria-label="关闭文档删除确认弹窗" />
         </div>,
       )}
     </>

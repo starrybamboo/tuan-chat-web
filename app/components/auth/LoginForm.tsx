@@ -32,9 +32,9 @@ export function LoginForm({
     <form key={`login-${loginMethod}`} onSubmit={handleSubmit} autoComplete="on">
       {/* 登录方式切换 */}
       <div className="form-control w-full mb-4">
-        <label className="label">
+        <div className="label">
           <span className="label-text">登录方式</span>
-        </label>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
