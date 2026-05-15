@@ -111,6 +111,7 @@ const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
 const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
+const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
@@ -122,6 +123,14 @@ function normalizeEditableText(value: string) {
  */
 export function getMessageEditorFrameClassName(className?: string) {
   return className ?? MESSAGE_EDITOR_DEFAULT_FRAME_CLASS;
+}
+
+/**
+ * 返回承载封面、标题和正文的统一滚动容器类名。
+ * 这样文档头部和正文会处在同一个滚动上下文里。
+ */
+export function getMessageEditorScrollViewportClassName() {
+  return MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS;
 }
 
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
@@ -1643,15 +1652,40 @@ export default function MessageEditor({
   return (
     <div className={`${frameClassName} overflow-hidden border border-base-300 bg-base-100`}>
       <div className="flex h-full min-h-0 flex-col">
-        {resolvedCoverUrl
-          ? (
-              <div className="h-40 w-full shrink-0 overflow-hidden border-b border-base-300 bg-base-200">
-                <img className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
-              </div>
-            )
-          : null}
+        <div
+          ref={editorRootRef}
+          className={getMessageEditorScrollViewportClassName()}
+          onDragOver={handleBlockDragOver}
+          onDrop={handleBlockDrop}
+          onKeyDownCapture={(event) => {
+            handleUndoRedoShortcut(event);
+          }}
+          onMouseDownCapture={(event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+              return;
+            }
+            if (
+              target.closest("[data-me-block-id]")
+              || target.closest("[data-me-block-hit]")
+              || target.closest("[data-me-editor-surface]")
+              || target.closest("[data-me-slash-menu]")
+              || target.closest("[data-me-block-handle]")
+              || target.closest("[data-me-editor-bottom-space]")
+            ) {
+              return;
+            }
+            clearActiveBlock();
+          }}
+        >
+          {resolvedCoverUrl
+            ? (
+                <div className="h-40 w-full shrink-0 overflow-hidden border-b border-base-300 bg-base-200">
+                  <img className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
+                </div>
+              )
+            : null}
 
-        <div className="flex min-h-0 flex-1 flex-col">
           <div className="border-b border-base-300 py-4">
             <div className={`${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} flex items-center justify-between gap-4`}>
               <div className="min-w-0">
@@ -1670,39 +1704,14 @@ export default function MessageEditor({
             </div>
           </div>
 
-          <div
-            ref={editorRootRef}
-            className="relative min-h-0 flex-1 overflow-auto"
-            onDragOver={handleBlockDragOver}
-            onDrop={handleBlockDrop}
-            onKeyDownCapture={(event) => {
-              handleUndoRedoShortcut(event);
-            }}
-            onMouseDownCapture={(event) => {
-              const target = event.target;
-              if (!(target instanceof HTMLElement)) {
-                return;
-              }
-              if (
-                target.closest("[data-me-block-id]")
-                || target.closest("[data-me-block-hit]")
-                || target.closest("[data-me-editor-surface]")
-                || target.closest("[data-me-slash-menu]")
-                || target.closest("[data-me-block-handle]")
-                || target.closest("[data-me-editor-bottom-space]")
-              ) {
-                return;
-              }
-              clearActiveBlock();
-            }}
-          >
-            {!ready && (
-              <div className="flex h-full items-center justify-center text-sm text-base-content/45">
-                载入中
-              </div>
-            )}
+          {!ready && (
+            <div className="flex min-h-[40vh] items-center justify-center text-sm text-base-content/45">
+              载入中
+            </div>
+          )}
 
-            {ready && (
+          {ready && (
+            <div className="flex min-h-0 flex-col">
               <div
                 data-me-editor-surface="true"
                 className="flex min-h-svh w-full flex-col py-2"
@@ -1868,8 +1877,8 @@ export default function MessageEditor({
                   />
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
