@@ -1,9 +1,10 @@
 import type { Plugin } from "vite";
 
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -12,9 +13,6 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
-import babel from "vite-plugin-babel";
-
-const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES: string[] = [];
 
 function splitVendorChunk(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, "/");
@@ -274,6 +272,9 @@ export default defineConfig(() => {
         client: {
           entry: "main",
         },
+        router: {
+          routeFileIgnorePattern: "^(routeTypes|scrollSequenceDemoShared)\\.ts$",
+        },
         spa: {
           enabled: true,
         },
@@ -298,34 +299,8 @@ export default defineConfig(() => {
 
       react(),
       babel({
-        filter: (id) => {
-          const normalizedId = id.split("?")[0].replace(/\\/g, "/");
-          if (!/\.[jt]sx?$/.test(normalizedId)) {
-            return false;
-          }
-          if (
-            normalizedId.includes("/node_modules/")
-            || normalizedId.includes("/build/")
-            || normalizedId.includes("/dist/")
-            || normalizedId.includes("/release/")
-            || normalizedId.includes("/extraResources/")
-          ) {
-            return false;
-          }
-          return !REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES.some(suffix => normalizedId.endsWith(suffix));
-        },
-        babelConfig: {
-          presets: [
-            [
-              "@babel/preset-typescript",
-              {
-                allExtensions: true,
-                isTSX: true,
-              },
-            ],
-          ],
-          plugins: ["babel-plugin-react-compiler"],
-        },
+        exclude: [/[/\\]node_modules[/\\]/, /[/\\](build|dist|release|extraResources)[/\\]/],
+        presets: [reactCompilerPreset()],
       }),
     ],
     base: "/",
