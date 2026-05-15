@@ -27,16 +27,23 @@ interface ChatPageDocToolbarProps {
 
 function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
   return (
-    <div className="flex h-10 items-center gap-2 border-b border-gray-300 bg-base-100 px-2 dark:border-gray-700">
-      <button
-        type="button"
-        className="btn btn-ghost btn-square btn-sm rounded-md active:scale-95"
-        onClick={() => onBack?.()}
-        aria-label="返回房间"
-        title="返回房间"
-      >
-        <ArrowLeftIcon className="size-4" weight="bold" />
-      </button>
+    <div className="relative z-50">
+      <div className="relative z-50 flex items-center justify-between overflow-visible border-y border-gray-300 dark:border-gray-700">
+        <div
+          className="flex h-10 w-full items-center justify-between px-2
+        border border-white/40 bg-white/40 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25"
+        >
+          <button
+            type="button"
+            className="btn btn-ghost btn-square btn-sm rounded-md active:scale-95"
+            onClick={() => onBack?.()}
+            aria-label="返回房间"
+            title="返回房间"
+          >
+            <ArrowLeftIcon className="size-4" weight="bold" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
