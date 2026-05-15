@@ -9,33 +9,43 @@ function CollectionListItem({ c, selectedId, onSelect }: { c: CollectionListType
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   return (
     <div
-      onClick={() => onSelect?.(c.collectionListId!)}
       className={`flex justify-between items-center p-2 rounded-lg cursor-pointer transition-colors ${
         selectedId === c.collectionListId
           ? "bg-purple-200 text-purple-900 font-semibold"
           : "hover:bg-gray-100 text-gray-700 dark:text-white"
       }`}
     >
-      <span>{c.collectionListName ?? "未命名收藏夹"}</span>
+      <button
+        type="button"
+        className="flex-1 text-left"
+        onClick={() => onSelect?.(c.collectionListId!)}
+      >
+        {c.collectionListName ?? "未命名收藏夹"}
+      </button>
       <div className="relative">
-        <button type="button" className="text-sm font-medium" onClick={() => setShowMoreOptions(!showMoreOptions)}>
+        <button
+          type="button"
+          className="text-sm font-medium"
+          onClick={() => setShowMoreOptions(!showMoreOptions)}
+          aria-label={`打开${c.collectionListName ?? "未命名收藏夹"}更多操作`}
+        >
           <EllipsisVertical />
         </button>
         {showMoreOptions
           && (
             <div className="absolute right-0 top-full z-20 flex flex-col bg-base-100 rounded-lg shadow-2xl gap-2 p-2">
-              <span className="flex items-center gap-2 cursor-pointer">
+              <button type="button" className="flex items-center gap-2 cursor-pointer text-left">
                 <Edit2Outline className="w-5 h-5" />
                 <p className="whitespace-nowrap text-sm">重命名</p>
-              </span>
-              <span className="flex items-center gap-2 cursor-pointer">
+              </button>
+              <button type="button" className="flex items-center gap-2 cursor-pointer text-left">
                 {c?.isPublic ? <LockKeyhole className="w-5 h-5" /> : <LockKeyholeOpen />}
                 <p className="whitespace-nowrap text-sm">{c.isPublic ? "私密" : "公开"}</p>
-              </span>
-              <span className="flex items-center gap-2 cursor-pointer">
+              </button>
+              <button type="button" className="flex items-center gap-2 cursor-pointer text-left">
                 <BaselineDeleteOutline className="w-5 h-5" />
                 <p className="whitespace-nowrap text-sm">删除</p>
-              </span>
+              </button>
             </div>
           )}
       </div>

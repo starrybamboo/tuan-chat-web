@@ -18,6 +18,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSucce
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
   const roomAvatarUploadId = useId().replace(/:/g, "");
+  const roomNameInputId = useId().replace(/:/g, "");
 
   // 创建房间
   const createRoomMutation = useCreateRoomMutation(spaceId);
@@ -114,10 +115,11 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSucce
 
       {/* 房间名称 */}
       <div className="mb-4">
-        <label className="label mb-2">
+        <label htmlFor={roomNameInputId} className="label mb-2">
           <span className="label-text">房间名称</span>
         </label>
         <input
+          id={roomNameInputId}
           type="text"
           value={roomName}
           placeholder={defaultRoomName}

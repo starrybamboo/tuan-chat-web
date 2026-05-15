@@ -108,7 +108,7 @@ export default function ChatItem({
     }
   }
 
-  function handleDeletePC(e: React.MouseEvent<HTMLDivElement>) {
+  function handleDeletePC(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
     if (!isSmallScreen) {
       deletedContactId(id);
@@ -175,12 +175,14 @@ export default function ChatItem({
 
       {/* Delete button for PC - shows on hover */}
       {!isSmallScreen && (
-        <div
+        <button
+          type="button"
           className="absolute right-2 top-3 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer hover:bg-base-300 z-10"
           onClick={handleDeletePC}
+          aria-label={`删除与${displayName}的会话`}
         >
           <XMarkICon className="w-4 h-4 text-base-content/50" />
-        </div>
+        </button>
       )}
     </div>
   );

@@ -56,14 +56,7 @@ export function ImgUploaderWithSelector({
 
       {/* 资源选择按钮 - 悬浮在上传组件上方 */}
       {showResourceSelector && (
-        <div
-          className="absolute bottom-2 right-2 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-          onClick={(e) => {
-            // 阻止事件冒泡到父级的上传点击事件
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-        >
+        <div className="absolute bottom-2 right-2 z-50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button
             type="button"
             onClick={(e) => {
