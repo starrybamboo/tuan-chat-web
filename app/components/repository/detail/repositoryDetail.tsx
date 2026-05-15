@@ -474,7 +474,7 @@ export default function RepositoryDetailComponent({
                   {linkedSpaceId
                     ? (
                         <MessageEditor
-                          className="h-[50vh] min-h-0 max-h-full rounded-md"
+                          className="h-[80vh] min-h-0 max-h-full rounded-md"
                           coverUrl={avatarThumbUrl(linkedSpace?.avatarFileId) || repositoryData.image}
                           docId={`space:${linkedSpaceId}:description`}
                           readOnly
