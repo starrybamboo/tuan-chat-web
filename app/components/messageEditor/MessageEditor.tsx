@@ -1602,7 +1602,7 @@ export default function MessageEditor({
           <div className="border-b border-base-300 py-4">
             <div className={`${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} flex items-center justify-between gap-4`}>
               <div className="min-w-0">
-                <div className="truncate text-base font-medium text-base-content">{resolvedTitle}</div>
+                <div className="truncate text-lg font-semibold text-base-content md:text-xl">{resolvedTitle}</div>
                 {resolvedDocId
                   ? (
                       <div className="truncate font-mono text-xs text-base-content/45">
