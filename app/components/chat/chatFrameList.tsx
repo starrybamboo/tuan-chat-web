@@ -104,12 +104,16 @@ const UnreadIndicator = memo(({
     return null;
 
   return (
-    <div className="absolute bottom-4 self-end z-50 cursor-pointer" onClick={onScrollToBottom}>
+    <button
+      type="button"
+      className="absolute bottom-4 self-end z-50 cursor-pointer"
+      onClick={onScrollToBottom}
+    >
       <div className="btn btn-info gap-2 shadow-lg">
         <span>{unreadMessageNumber}</span>
         <span>条新消息</span>
       </div>
-    </div>
+    </button>
   );
 });
 

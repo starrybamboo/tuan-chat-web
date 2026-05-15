@@ -82,9 +82,8 @@ export default function ChatStatusBar({
       <div className="inline-flex items-center gap-2 px-2 rounded-full bg-base-200 border border-base-300">
         {showSelector && (
           <div className="dropdown dropdown-top pointer-events-auto">
-            <div
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               aria-label="切换聊天状态"
               className="min-w-0 cursor-pointer list-none flex items-center text-xs select-none gap-1 hover:text-info"
               title="切换聊天状态"
@@ -104,9 +103,8 @@ export default function ChatStatusBar({
                 {currentChatStatus === "leave" && "暂离"}
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
-            </div>
+            </button>
             <ul
-              tabIndex={0}
               className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm z-[9999] absolute"
             >
               {[
@@ -116,10 +114,10 @@ export default function ChatStatusBar({
                 { value: "leave", label: "暂离", desc: "临时离开" },
               ].map(item => (
                 <li key={item.value}>
-                  <a
+                  <button
+                    type="button"
                     className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
                     onClick={(e) => {
-                      e.preventDefault();
                       e.stopPropagation();
                       onChangeChatStatus(item.value as any);
                       const elem = document.activeElement as HTMLElement;
@@ -130,7 +128,7 @@ export default function ChatStatusBar({
                   >
                     <span className="leading-none">{item.label}</span>
                     <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>

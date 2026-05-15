@@ -121,7 +121,10 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
             {importableSpaceNpcRoles.map(role => (
               <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
                 <div className="flex flex-col items-center p-3">
-                  <div onClick={() => handleImportNpcToRoom(role.roleId)}>
+                  <button
+                    type="button"
+                    onClick={() => handleImportNpcToRoom(role.roleId)}
+                  >
                     <RoleAvatarByRole
                       role={role}
                       width={24}
@@ -129,7 +132,7 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
                       withTitle={false}
                       stopToastWindow={true}
                     />
-                  </div>
+                  </button>
                   <p className="text-center block">{role.roleName}</p>
                 </div>
               </div>

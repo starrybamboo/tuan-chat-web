@@ -140,7 +140,7 @@ function ForwardWindow({
       <div className="mt-4 rounded-xl border border-base-300 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="text-sm font-medium">选择目标房间</div>
-          <label className="input input-bordered input-sm w-full md:w-72">
+          <label aria-label="搜索目标房间" className="input input-bordered input-sm w-full md:w-72">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

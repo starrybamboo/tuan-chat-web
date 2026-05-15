@@ -108,9 +108,14 @@ export default function RoleAvatarComponent({
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <div
+        <button
+          type="button"
           className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
-          onClick={() => { !stopToastWindow && setIsOpen(true); }}
+          onClick={() => {
+            if (!stopToastWindow) {
+              setIsOpen(true);
+            }
+          }}
         >
           {!hasAvatar
             ? (
@@ -124,7 +129,7 @@ export default function RoleAvatarComponent({
                   className={`${!stopToastWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
                 />
               )}
-        </div>
+        </button>
       </div>
       {withTitle && (
         <div className="text-xs truncate max-w-full">

@@ -124,7 +124,7 @@ export default function RegexSelectWindow({ sourceMessages, onApplyFilter, onClo
       </div>
 
       {/* 正则搜索 */}
-      <label className="input input-bordered flex items-center gap-2 w-full">
+      <label aria-label="输入正则表达式" className="input input-bordered flex items-center gap-2 w-full">
         <svg className="w-4 h-4 text-base-content/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>

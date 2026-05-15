@@ -112,7 +112,8 @@ export default function StickerWindow({ onChoose }:
             )
           : (
               stickerList.map(sticker => (
-                <div
+                <button
+                  type="button"
                   key={sticker.stickerId}
                   onClick={() => { onChoose(sticker); }}
                   className={`aspect-square cursor-pointer rounded-lg p-1 transition-transform relative ${deleteButtonVisible ? "" : "hover:scale-105"}`}
@@ -136,11 +137,12 @@ export default function StickerWindow({ onChoose }:
                       ×
                     </button>
                   )}
-                </div>
+                </button>
               ))
             )}
         {stickerList.length !== 0 && (
-          <div
+          <button
+            type="button"
             className="aspect-square cursor-pointer hover:bg-base-200 rounded-lg p-1 transition-transform"
             onClick={() => {
               setDeleteButtonVisible(!deleteButtonVisible);
@@ -149,7 +151,7 @@ export default function StickerWindow({ onChoose }:
             <div className="flex items-center justify-center h-full text-base-content/70">
               <span className="text-xl">×</span>
             </div>
-          </div>
+          </button>
         )}
       </div>
       {/* 选择表情包列表 */}

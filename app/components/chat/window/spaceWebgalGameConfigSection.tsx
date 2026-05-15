@@ -303,7 +303,14 @@ export function SpaceWebgalGameConfigSection({
                       </span>
                     </div>
                     {hasTypingSoundSe && (
-                      <audio className="mt-2 h-8 w-full max-w-sm" controls preload="none" src={typingSoundSeSrc} />
+                      <audio
+                        className="mt-2 h-8 w-full max-w-sm"
+                        controls
+                        preload="none"
+                        src={typingSoundSeSrc}
+                      >
+                        <track kind="captions" />
+                      </audio>
                     )}
                     <input
                       ref={typingSoundSeFileInputRef}
