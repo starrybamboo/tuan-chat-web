@@ -156,7 +156,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           )}
       {/* 描述 */}
-      <div className={isMobile ? "mt-2" : "w-full mt-6"}>
+      <div className="divider" />
+      <div className={isMobile ? "mt-2" : "w-full min-h-24"}>
         {isOwner && isEditingProfile && !isMobile
           ? (
               <div className="space-y-2">
@@ -263,6 +264,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </div>
             )}
       </div>
+      <div className="divider" />
     </div>
   );
 };

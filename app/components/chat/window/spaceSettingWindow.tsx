@@ -217,7 +217,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             <div className="flex items-center justify-center opacity-70">加载中...</div>
           )
         : (
-            <div className="h-full flex flex-col gap-4">
+            <div className="h-full min-h-0 flex flex-col gap-4">
               {/* 左侧：空间信息 */}
               {cloneSourceId
                 ? (
@@ -268,9 +268,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                 : null}
 
               {/* 右侧：空间描述文档 */}
-              <div className="flex-1 min-w-0 min-h-0">
+              <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
                 <MessageEditor
-                  className="h-[80vh] min-h-0 max-h-full rounded-md"
+                  className="h-[90vh] min-h-0 rounded-md"
                   coverUrl={avatarThumbUrl(space?.avatarFileId)}
                   docId={spaceId ? `space:${spaceId}:description` : undefined}
                   title={space?.name ?? ""}
