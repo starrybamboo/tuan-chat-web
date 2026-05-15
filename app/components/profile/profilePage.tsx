@@ -58,7 +58,7 @@ function ProfilePage() {
   }, [location.pathname, userId]);
 
   return (
-    <div className="bg-base-100">
+    <div className="bg-base-100 h-full">
       {/* 导航栏 */}
       <div
         role="tablist"
@@ -91,7 +91,7 @@ function ProfilePage() {
       </div>
 
       {/* 内容区域 */}
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto h-full">
         <Outlet />
       </div>
     </div>
