@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useGetMessageByIdQuery, useGetRoomExtraQuery, useSetRoomExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 
@@ -22,18 +22,32 @@ export function useGetMessageByIdSmartly(messageId: number) {
 }
 
 export function useRoomExtra<T>(roomId: number, key: string, defaultValue: T) {
-  const [value, setValueRaw] = useState<T>(defaultValue);
+  const [localOverride, setLocalOverride] = useState<{
+    key: string;
+    roomId: number;
+    serialized: string;
+    value: T;
+  } | null>(null);
   const extraQuery = useGetRoomExtraQuery({ roomId, key });
   const roomExtraMutation = useSetRoomExtraMutation();
+  const remoteSerialized = extraQuery.data?.data;
 
-  // 加快相应速度，
-  useEffect(() => {
-    setValueRaw(JSON.parse(extraQuery.data?.data || "null") as T || defaultValue);
-  }, [extraQuery.data?.data]);
+  const remoteValue = useMemo(() => {
+    return JSON.parse(remoteSerialized || "null") as T || defaultValue;
+  }, [defaultValue, remoteSerialized]);
+
+  const value
+    = localOverride
+      && localOverride.roomId === roomId
+      && localOverride.key === key
+      && localOverride.serialized !== remoteSerialized
+      ? localOverride.value
+      : remoteValue;
 
   const setValue = (newValue: T) => {
-    setValueRaw(newValue);
-    roomExtraMutation.mutate({ roomId, key, value: JSON.stringify(newValue) });
+    const serialized = JSON.stringify(newValue);
+    setLocalOverride({ roomId, key, serialized, value: newValue });
+    roomExtraMutation.mutate({ roomId, key, value: serialized });
   };
   return [value, setValue] as const;
 }
