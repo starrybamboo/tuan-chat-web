@@ -49,7 +49,7 @@ describe("aiImage api", () => {
 
   it("posts director tool requests to the augment-image proxy", async () => {
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-    const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue(new Response(pngBytes, {
       status: 200,
       headers: {
         "Content-Type": "image/png",
@@ -85,7 +85,7 @@ describe("aiImage api", () => {
 
   it("aligns infill requests with the official request structure", async () => {
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-    const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue(new Response(pngBytes, {
       status: 200,
       headers: {
         "Content-Type": "image/png",
@@ -149,7 +149,7 @@ describe("aiImage api", () => {
 
   it("strips whole-line comments before sending prompt payloads", async () => {
     const pngBytes = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-    const fetchMock = vi.fn().mockResolvedValue(new Response(pngBytes, {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue(new Response(pngBytes, {
       status: 200,
       headers: {
         "Content-Type": "image/png",
