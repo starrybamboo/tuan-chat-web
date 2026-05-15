@@ -192,7 +192,7 @@ export default function Topbar() {
 
   return (
     <div className="w-full">
-      <div className="relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible py-1">
+      <div className="relative z-[10010] px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible py-1">
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           <div className="hidden md:flex">
@@ -299,7 +299,7 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </motion.button>
-                    <div tabIndex={0} className="dropdown-content z-50 card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                    <div tabIndex={0} className="dropdown-content z-[10020] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">
                         <div className="flex items-center gap-3">
