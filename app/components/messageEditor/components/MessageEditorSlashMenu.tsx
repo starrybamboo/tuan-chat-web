@@ -36,7 +36,7 @@ export function MessageEditorSlashMenu({
         {" "}
         选择块类型
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="flex max-h-80 flex-col gap-1 overflow-y-auto pr-1">
         {items.map((item, index) => {
           const active = index === selectedIndex;
           return (
