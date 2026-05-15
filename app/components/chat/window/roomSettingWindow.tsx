@@ -158,11 +158,11 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                 )}
 
                 {defaultTab === "setting" && (
-                  <div className="p-4 h-full min-h-0">
+                  <div className="h-full min-h-0 overflow-y-auto p-4">
                     {(propRoomId && (room?.spaceId ?? spaceId))
                       ? (
                           <MessageEditor
-                            className="h-[80vh] min-h-0 max-h-full rounded-md"
+                            className="h-[90vh] min-h-0 rounded-md"
                             coverUrl={avatarThumbUrl(room?.avatarFileId)}
                             docId={propRoomId ? `room:${propRoomId}:description` : undefined}
                             title={room?.name ?? ""}
