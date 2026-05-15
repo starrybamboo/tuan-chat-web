@@ -45,8 +45,7 @@ export default defineConfig({
     exclude: ["node_modules", "dist"],
     fileParallelism: false,
     hookTimeout: 60_000,
-    minThreads: 1,
-    maxThreads: 1,
+    maxWorkers: 1,
     testTimeout: 30_000,
     server: {
       deps: {
