@@ -103,7 +103,7 @@ function ToolbarButton({
     <button
       type="button"
       className={[
-        "flex h-6 min-w-6 items-center gap-1 rounded-md px-1.5 text-xs text-base-content/80 transition hover:bg-base-200 hover:text-base-content",
+        "flex h-8 min-w-8 items-center gap-1.5 rounded-md px-2 text-sm text-base-content/80 transition hover:bg-base-200 hover:text-base-content",
         active ? "bg-base-200 text-base-content" : "",
       ].join(" ")}
       onMouseDown={onMouseDown}
@@ -134,7 +134,7 @@ function SplitButton({
     <div className="relative flex items-center">
       <button
         type="button"
-        className="flex h-6 items-center gap-1 rounded-l-md px-1.5 text-xs text-base-content/80 transition hover:bg-base-200 hover:text-base-content"
+        className="flex h-8 items-center gap-1.5 rounded-l-md px-2 text-sm text-base-content/80 transition hover:bg-base-200 hover:text-base-content"
         onMouseDown={(event) => {
           preventSelectionLoss(event);
           onApply();
@@ -146,7 +146,7 @@ function SplitButton({
       </button>
       <button
         type="button"
-        className="flex h-6 w-5 items-center justify-center rounded-r-md border-l border-base-300/70 text-base-content/60 transition hover:bg-base-200 hover:text-base-content"
+        className="flex h-8 w-6 items-center justify-center rounded-r-md border-l border-base-300/70 text-base-content/60 transition hover:bg-base-200 hover:text-base-content"
         onMouseDown={(event) => {
           preventSelectionLoss(event);
           onToggleMenu();
@@ -154,7 +154,7 @@ function SplitButton({
         title={`${title}选项`}
         aria-label={`${title}选项`}
       >
-        <CaretDownIcon size={12} weight="bold" />
+        <CaretDownIcon size={14} weight="bold" />
       </button>
       {menuOpen ? menu : null}
     </div>
@@ -164,7 +164,7 @@ function SplitButton({
 function DropdownPanel({ children }: { children: ReactNode }) {
   return (
     <div
-      className="absolute left-0 top-8 z-[10000] min-w-44 rounded-md border border-base-300 bg-base-100 p-2 text-xs shadow-xl"
+      className="absolute left-0 top-10 z-[10000] min-w-48 rounded-md border border-base-300 bg-base-100 p-2.5 text-sm shadow-xl"
       onMouseDown={event => event.stopPropagation()}
       role="presentation"
     >
@@ -194,7 +194,7 @@ function SwatchMenu({
             key={color}
             type="button"
             className={[
-              "size-6 rounded-md border transition hover:scale-105",
+              "size-7 rounded-md border transition hover:scale-105",
               selectedColor.toLowerCase() === color.toLowerCase() ? "border-base-content ring-2 ring-primary/25" : "border-base-300",
             ].join(" ")}
             style={{ backgroundColor: color }}
@@ -210,7 +210,7 @@ function SwatchMenu({
       <div className="mt-2 flex items-center gap-2 border-t border-base-300 pt-2">
         <input
           type="color"
-          className="h-7 w-8 cursor-pointer rounded border border-base-300 bg-transparent"
+          className="h-8 w-10 cursor-pointer rounded border border-base-300 bg-transparent"
           value={selectedColor}
           onChange={(event) => {
             onPickColor(event.target.value);
@@ -220,7 +220,7 @@ function SwatchMenu({
         />
         <button
           type="button"
-          className="h-7 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200"
+          className="h-8 rounded-md border border-base-300 px-2.5 text-sm transition hover:bg-base-200"
           onMouseDown={(event) => {
             preventSelectionLoss(event);
             onApplyColor(selectedColor);
@@ -258,7 +258,7 @@ function FontSizeMenu({
             key={size}
             type="button"
             className={[
-              "h-7 rounded-md px-2 text-left transition hover:bg-base-200",
+              "h-8 rounded-md px-2.5 text-left transition hover:bg-base-200",
               selectedFontSize === size ? "bg-primary/10 text-primary" : "text-base-content/80",
             ].join(" ")}
             onMouseDown={(event) => {
@@ -286,7 +286,7 @@ function HeadingMenu({
           <button
             key={option.level}
             type="button"
-            className="flex h-7 items-center gap-2 rounded-md px-2 text-left transition hover:bg-base-200"
+            className="flex h-8 items-center gap-2.5 rounded-md px-2.5 text-left transition hover:bg-base-200"
             onMouseDown={(event) => {
               preventSelectionLoss(event);
               onApplyHeading(option.level);
@@ -626,7 +626,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       position={externalSelectionActive ? externalSelection?.position ?? null : toolbarPos}
       toolbarRef={toolbarRef}
       className={className}
-      shellClassName="max-w-[calc(100vw-1rem)] flex-wrap rounded-md"
+      shellClassName="max-w-[calc(100vw-1rem)] flex-wrap gap-1 rounded-xl px-2 py-1.5 text-sm"
     >
       <SplitButton
         title="标题"
@@ -639,7 +639,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           />
         )}
       >
-        <TextHOneIcon size={15} weight="bold" />
+        <TextHOneIcon size={18} weight="bold" />
       </SplitButton>
 
       <ToolbarButton
@@ -649,7 +649,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           applyStyle({ bold: true });
         }}
       >
-        <TextBIcon size={15} weight="bold" />
+        <TextBIcon size={18} weight="bold" />
       </ToolbarButton>
 
       <ToolbarButton
@@ -659,7 +659,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           applyStyle({ italic: true });
         }}
       >
-        <TextItalicIcon size={15} weight="bold" />
+        <TextItalicIcon size={18} weight="bold" />
       </ToolbarButton>
 
       <ToolbarButton
@@ -669,7 +669,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           applyStyle({ underline: true });
         }}
       >
-        <TextUnderlineIcon size={15} weight="bold" />
+        <TextUnderlineIcon size={18} weight="bold" />
       </ToolbarButton>
 
       <SplitButton
@@ -690,8 +690,8 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           />
         )}
       >
-        <PaletteIcon size={15} weight="fill" />
-        <span className="size-2 rounded-full" style={{ backgroundColor: selectedColor }} />
+        <PaletteIcon size={18} weight="fill" />
+        <span className="size-3.5 rounded-full" style={{ backgroundColor: selectedColor }} />
       </SplitButton>
 
       <SplitButton
@@ -712,8 +712,8 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           />
         )}
       >
-        <HighlighterIcon size={15} weight="fill" />
-        <span className="size-2 rounded-full border border-base-content/20" style={{ backgroundColor: selectedBackgroundColor }} />
+        <HighlighterIcon size={18} weight="fill" />
+        <span className="size-3.5 rounded-full border border-base-content/20" style={{ backgroundColor: selectedBackgroundColor }} />
       </SplitButton>
 
       <SplitButton
@@ -731,7 +731,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           />
         )}
       >
-        <TextAaIcon size={15} weight="bold" />
+        <TextAaIcon size={18} weight="bold" />
         <span>{selectedFontSize}</span>
       </SplitButton>
 
@@ -742,7 +742,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           clearStyle();
         }}
       >
-        <EraserIcon size={15} weight="bold" />
+        <EraserIcon size={18} weight="bold" />
       </ToolbarButton>
 
       <ToolbarButton
@@ -752,7 +752,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
           openAdvancedStyle();
         }}
       >
-        <GearSixIcon size={15} weight="bold" />
+        <GearSixIcon size={18} weight="bold" />
         <span>高级</span>
       </ToolbarButton>
     </FloatingSelectionToolbar>
