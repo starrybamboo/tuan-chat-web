@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../api";
 
+import { resolveChatFrameFollowOutput } from "./chatFrameList";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function buildMessage(partial: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
@@ -58,5 +59,12 @@ describe("getChatFrameItemKey", () => {
     }));
 
     expect(key).toBe("idx:7");
+  });
+});
+
+describe("resolveChatFrameFollowOutput", () => {
+  it("仅在仍位于底部时允许自动跟随", () => {
+    expect(resolveChatFrameFollowOutput(true)).toBe(true);
+    expect(resolveChatFrameFollowOutput(false)).toBe(false);
   });
 });

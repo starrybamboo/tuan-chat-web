@@ -25,6 +25,29 @@ type UseChatFrameScrollStateResult = {
   scrollToBottom: () => void;
 };
 
+type ResolveAutoScrollAfterLoadParams = {
+  loading: boolean;
+  hasAutoScrolledAfterLoad: boolean;
+  isAtBottom: boolean;
+};
+
+/**
+ * 仅在历史加载完成后的首个稳定时刻自动滚底一次，且前提是用户仍停留在底部。
+ */
+export function resolveShouldAutoScrollAfterHistoryLoad({
+  loading,
+  hasAutoScrolledAfterLoad,
+  isAtBottom,
+}: ResolveAutoScrollAfterLoadParams): boolean {
+  if (loading) {
+    return false;
+  }
+  if (hasAutoScrolledAfterLoad) {
+    return false;
+  }
+  return isAtBottom;
+}
+
 export default function useChatFrameScrollState({
   enableUnreadIndicator,
   historyMessages,
@@ -39,6 +62,7 @@ export default function useChatFrameScrollState({
   const lastAutoSyncUnreadRef = useRef<number | null>(null);
   const lastSyncedMessageSyncIdRef = useRef<number | null>(null);
   const isAtTopRef = useRef(false);
+  const hasAutoScrolledAfterLoadRef = useRef(false);
 
   const unreadMessageNumber = enableUnreadIndicator
     ? (unreadMessagesNumber[roomId] ?? 0)
@@ -95,16 +119,19 @@ export default function useChatFrameScrollState({
   ]);
 
   useEffect(() => {
-    let timer = null;
     if (chatHistory?.loading) {
-      timer = setTimeout(() => {
-        scrollToBottom();
-      }, 1000);
+      hasAutoScrolledAfterLoadRef.current = false;
+      return;
     }
-    return () => {
-      if (timer)
-        clearTimeout(timer);
-    };
+    if (!resolveShouldAutoScrollAfterHistoryLoad({
+      loading: Boolean(chatHistory?.loading),
+      hasAutoScrolledAfterLoad: hasAutoScrolledAfterLoadRef.current,
+      isAtBottom: isAtBottomRef.current,
+    })) {
+      return;
+    }
+    hasAutoScrolledAfterLoadRef.current = true;
+    scrollToBottom();
   }, [chatHistory?.loading, scrollToBottom]);
 
   return {

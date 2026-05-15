@@ -235,6 +235,13 @@ interface ChatFrameListProps {
   galPatchProposalToolbar?: GalPatchProposalToolbarProps | null;
 }
 
+/**
+ * 仅在列表仍停留底部时跟随新消息，避免用户刚开始上滑查看历史时被自动滚动拉回去。
+ */
+export function resolveChatFrameFollowOutput(isAtBottom: boolean): boolean {
+  return isAtBottom;
+}
+
 export default function ChatFrameList({
   historyMessages,
   virtuosoRef,
@@ -319,7 +326,7 @@ export default function ChatFrameList({
             data={historyMessages}
             firstItemIndex={0}
             initialTopMostItemIndex={historyMessages.length - 1}
-            followOutput={true}
+            followOutput={resolveChatFrameFollowOutput}
             // 媒体消息（音频/视频）离开视区后若立即被回收，会导致播放状态丢失或重新加载。
             // 适当增加 overscan，减少短距离滚动造成的卸载重建。
             overscan={480}
