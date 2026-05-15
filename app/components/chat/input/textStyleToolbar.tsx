@@ -691,7 +691,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
         )}
       >
         <PaletteIcon size={18} weight="fill" />
-        <span className="size-3.5 rounded-full" style={{ backgroundColor: selectedColor }} />
+        <span className="ml-0.5 size-4 rounded-full" style={{ backgroundColor: selectedColor }} />
       </SplitButton>
 
       <SplitButton
@@ -713,7 +713,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
         )}
       >
         <HighlighterIcon size={18} weight="fill" />
-        <span className="size-3.5 rounded-full border border-base-content/20" style={{ backgroundColor: selectedBackgroundColor }} />
+        <span className="ml-0.5 size-4 rounded-full border border-base-content/20" style={{ backgroundColor: selectedBackgroundColor }} />
       </SplitButton>
 
       <SplitButton
