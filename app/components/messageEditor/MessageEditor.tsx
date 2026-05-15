@@ -149,17 +149,34 @@ function parseWholeTextEnhanceReplacement(replacement: string, selectedText: str
   return replacement.slice(prefix.length, -1);
 }
 
-function shouldIgnoreDocumentSelectionEventTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) {
+/**
+ * 判断文档级点击是否应被视为编辑器外部点击。
+ * 工具栏内部的 SVG / Path 等元素同样需要被识别为“内部”，否则会误触发清理逻辑。
+ */
+interface MessageEditorSelectionEventElementLike {
+  closest?: (selector: string) => MessageEditorSelectionEventElementLike | null;
+  parentElement?: MessageEditorSelectionEventElementLike | null;
+  tagName?: string;
+}
+
+export function shouldIgnoreDocumentSelectionEventTarget(target: EventTarget | null) {
+  const candidate = target as MessageEditorSelectionEventElementLike | null;
+  const element = candidate && typeof candidate.closest === "function"
+    ? candidate
+    : candidate?.parentElement ?? null;
+  const closest = element?.closest;
+  const tagName = element?.tagName;
+
+  if (!element || typeof closest !== "function" || typeof tagName !== "string") {
     return false;
   }
 
   return Boolean(
-    target.closest(".text-style-toolbar")
-    || target.closest(".modal")
-    || target.closest("[role='dialog']")
-    || target.closest("[contenteditable='true']")
-    || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName),
+    closest(".text-style-toolbar")
+    || closest(".modal")
+    || closest("[role='dialog']")
+    || closest("[contenteditable='true']")
+    || ["INPUT", "TEXTAREA", "SELECT"].includes(tagName),
   );
 }
 
