@@ -20,8 +20,9 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
   onClick,
 }) => {
   return (
-    <div
-      className="border border-base-300 rounded-lg p-4 cursor-pointer hover:shadow-md transition-all hover:border-primary/30 group"
+    <button
+      type="button"
+      className="group w-full rounded-lg border border-base-300 p-4 text-left transition-all hover:border-primary/30 hover:shadow-md"
       onClick={onClick}
     >
       <div className="flex gap-4">
@@ -60,7 +61,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 

@@ -303,9 +303,10 @@ describe("audioTranscodeUtils browser e2e", () => {
 
       const status = await page.getByTestId("status").textContent();
       const errorMessage = (await page.getByTestId("error-message").textContent())?.trim() || "";
-      expect(pageErrors, pageErrors.join("\n")).toEqual([]);
-      expect(consoleErrors, consoleErrors.join("\n")).toEqual([]);
-      expect(status?.trim(), errorMessage).toBe("success");
+      expect(pageErrors).toEqual([]);
+      expect(consoleErrors).toEqual([]);
+      expect(status?.trim()).toBe("success");
+      expect(errorMessage).toBe("");
 
       const outputName = (await page.getByTestId("output-name").textContent())?.trim() || "";
       const outputType = (await page.getByTestId("output-type").textContent())?.trim() || "";
