@@ -162,7 +162,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                     {(propRoomId && (room?.spaceId ?? spaceId))
                       ? (
                           <MessageEditor
-                            className="h-[50vh] min-h-0 max-h-full rounded-md"
+                            className="h-[80vh] min-h-0 max-h-full rounded-md"
                             coverUrl={avatarThumbUrl(room?.avatarFileId)}
                             docId={propRoomId ? `room:${propRoomId}:description` : undefined}
                             title={room?.name ?? ""}
