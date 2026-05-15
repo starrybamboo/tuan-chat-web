@@ -357,7 +357,7 @@ const cmdDs = new CommandExecutor(
   "死亡豁免",
   [".ds"],
   ".ds",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (_args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     if (!role) {
       cpi.sendToast("未指定角色");
@@ -393,7 +393,7 @@ const cmdFind = new CommandExecutor(
   "查询法术",
   [".find 飞弹", ".find magic missile"],
   ".find [法术名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const query = args.join("").trim();
     if (!query) {
       cpi.sendToast("请输入法术名");

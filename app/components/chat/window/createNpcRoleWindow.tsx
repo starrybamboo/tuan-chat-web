@@ -1,7 +1,7 @@
 import type { CharacterData } from "@/components/Role/RoleCreation/types";
 import type { Role } from "@/components/Role/types";
 import { useQueryClient } from "@tanstack/react-query";
-import React, { use, useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 
 import toast from "react-hot-toast";
 

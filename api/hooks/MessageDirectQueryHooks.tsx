@@ -48,12 +48,12 @@ export function useGetInboxMessageWithUserQuery(userId: number, targetUserId: nu
 /**
  * 发送私聊消息
  */
-function useSendMessageDirectMutation() {
+export function useSendMessageDirectMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: MessageDirectSendRequest) => tuanchat.messageDirectController.sendMessage(requestBody),
     mutationKey: ["sendMessageDirect"],
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
       queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
     },
@@ -94,7 +94,7 @@ export function useUpdateReadPositionMutation() {
 /**
  * 获取所有好友的用户信息
  */
-function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
+export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
   return useQueries({
     queries: friends.map(friendId => ({
       queryKey: getUserInfoQueryKey(friendId || -1),
@@ -104,4 +104,3 @@ function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
     }))
   });
 }
-

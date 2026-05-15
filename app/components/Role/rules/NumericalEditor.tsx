@@ -366,7 +366,7 @@ export default function NumericalEditor({
     const direction = e.key.replace("Arrow", "");
 
     const next = controls
-      .filter((el, index) => index !== currentIndex)
+      .filter((_el, index) => index !== currentIndex)
       .map((el) => {
         const rect = el.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;

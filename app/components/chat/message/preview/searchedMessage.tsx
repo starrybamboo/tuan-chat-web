@@ -1,5 +1,4 @@
 import type { ChatMessageResponse } from "../../../../../api";
-import React from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";

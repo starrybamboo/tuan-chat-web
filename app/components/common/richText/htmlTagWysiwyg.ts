@@ -87,24 +87,16 @@ function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
 }
 
 // 调用入口：在空格插入后，提供当前行(到空格前)文本进行检测并输出
-function _logHtmlTagIfAny(lineLeft: string): void {
-  const r = detectHtmlTagOnSpace(lineLeft);
-  if (r) {
-    // 暂时只输出
-    // 控制台格式化显示，便于后续扩展
+export function logHtmlTagIfAny(lineLeft: string): void {
+  const result = detectHtmlTagOnSpace(lineLeft);
+  if (result) {
     // eslint-disable-next-line no-console
-    console.log("[HTML-TAG-DETECT]", r);
+    console.log("[HTML-TAG-DETECT]", result);
   }
 }
 
 // 将检测到的标签转换为富文本文档内容
-// 调用时机：用户在标签末尾或标签内部敲下空格（已经调用 detectHtmlTagOnSpace）后
-// 参数：
-//  editorInstance: 编辑器实例
-//  lineLeft: 当前行（到空格前）文本
-//  globalIndex: 空格的文档 index（即刚刚插入的空格位置）
-// 返回：true 表示已处理并替换；false 表示未处理
-function _convertHtmlTagIfAny(
+export function convertHtmlTagIfAny(
   editorInstance: any,
   lineLeft: string,
   globalIndex: number,
@@ -117,7 +109,6 @@ function _convertHtmlTagIfAny(
     return false;
   }
   const { tag, raw, attrs, isPartial } = detected;
-  // 不处理未闭合（仍然输入中）的标签
   if (isPartial) {
     return false;
   }

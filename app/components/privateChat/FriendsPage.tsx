@@ -13,7 +13,7 @@ import {
   useUnblockFriendMutation,
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BaselineDeleteOutline, ChevronRight, HomeIcon, Search, SearchFilled, XMarkICon } from "@/icons";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 

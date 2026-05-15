@@ -7,7 +7,6 @@ import {
   useCreateSpaceUserDocMutation,
   useDeleteSpaceUserDocMutation,
   useListSpaceUserDocsQuery,
-  useRenameSpaceUserDocMutation,
   useUpdateSpaceUserDocTagMutation,
 } from "api/hooks/spaceUserDocHooks";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,7 +48,6 @@ export default function DocFolderForUser({ onSendDocCard }: DocFolderForUserProp
 
   const docsQuery = useListSpaceUserDocsQuery(spaceId);
   const createDocMutation = useCreateSpaceUserDocMutation();
-  const _renameDocMutation = useRenameSpaceUserDocMutation();
   const deleteDocMutation = useDeleteSpaceUserDocMutation();
   const updateDocTagMutation = useUpdateSpaceUserDocTagMutation();
 

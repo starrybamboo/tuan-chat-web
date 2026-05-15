@@ -5,7 +5,6 @@ import { imageMediumUrl } from "@/utils/mediaUrl";
 interface ResourceCollectionCardProps {
   collectionList: CollectionList;
   onAddToCollection?: (collectionId: number) => void;
-  _onLike?: (collectionId: number) => void;
   onClick?: (collectionId: number) => void;
   onDelete?: (collectionId: number) => void;
 }
@@ -16,7 +15,6 @@ interface ResourceCollectionCardProps {
  */
 export function ResourceCollectionCard({
   collectionList,
-  _onLike,
   onClick,
 }: ResourceCollectionCardProps) {
   const handleCardClick = () => {

@@ -1,6 +1,6 @@
 import type { ChatMessageResponse } from "../../../../../api";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import toastWindow from "@/components/common/toastWindow/toastWindow";

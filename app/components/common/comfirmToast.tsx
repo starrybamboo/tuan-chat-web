@@ -1,4 +1,3 @@
-import React from "react";
 import toast from "react-hot-toast";
 
 export function confirmToast(onConfirm: () => void, info: string, title?: string) {

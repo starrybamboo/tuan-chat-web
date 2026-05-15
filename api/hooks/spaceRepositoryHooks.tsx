@@ -28,7 +28,7 @@ export function useGetSpaceRepositoryRoleQuery(spaceId: number) {
  * 获取当前房间的物品
  * @param roomId 房间ID
  */
-function useGetRoomItemsQuery(roomId: number) {
+export function useGetRoomItemsQuery(roomId: number) {
   return useQuery({
     queryKey: ["roomItems", roomId],
     queryFn: async () => ({ success: true, data: [] } as any),
@@ -41,7 +41,7 @@ function useGetRoomItemsQuery(roomId: number) {
  * 获取当前房间的地点
  * @param roomId 房间ID
  */
-function useGetRoomLocationsQuery(roomId: number) {
+export function useGetRoomLocationsQuery(roomId: number) {
   return useQuery({
     queryKey: ["roomLocations", roomId],
     queryFn: async () => ({ success: true, data: [] } as any),

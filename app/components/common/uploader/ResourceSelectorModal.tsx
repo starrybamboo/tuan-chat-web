@@ -139,10 +139,6 @@ export function ResourceSelectorModal({
             : userCollectionsQuery;
 
   const resources = resourcesData?.data?.list || [];
-  const _collections = (activeTab === "publicCollections" || activeTab === "myCollections")
-    ? (resourcesData?.data?.list || [])
-    : [];
-
   const tabs: { key: TabType; label: string }[] = [
     { key: "publicResources", label: "公开素材" },
     { key: "publicCollections", label: "公开素材集" },

@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function ChatFrameLoadingState() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">

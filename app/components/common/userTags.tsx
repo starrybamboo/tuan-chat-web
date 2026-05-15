@@ -1,6 +1,6 @@
 import type { Tag } from "../../../api";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CheckIcon, PlusOutline, XMarkICon } from "@/icons";
 import { useAddTagMutation, useDeleteTagMutation, useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";

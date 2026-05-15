@@ -28,7 +28,6 @@ import {
   type ApiResultRoleAbility,
   type ApiResultUserRole,
   type ApiResultRoleAvatar,
-  type UserInfoResponse,
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
@@ -1390,7 +1389,7 @@ export function useDeleteRoleAvatarWithOptimisticMutation(roleId?: number) {
 
       return { previousAvatars };
     },
-    onError: (err, avatarId, context) => {
+    onError: (err, _avatarId, context) => {
       console.error("删除头像失败:", err);
 
       // Rollback optimistic update
@@ -1467,7 +1466,7 @@ export function useBatchDeleteRoleAvatarsWithOptimisticMutation(roleId?: number)
 
       return { previousAvatars };
     },
-    onError: (err, avatarIds, context) => {
+    onError: (err, _avatarIds, context) => {
       console.error("批量删除头像失败:", err);
 
       // Rollback optimistic update on failure
@@ -1571,7 +1570,7 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
 
       return { previousAvatars };
     },
-    onError: (err, variables, context) => {
+    onError: (err, _variables, context) => {
       console.error("更新头像名称失败:", err);
 
       // Rollback optimistic update

@@ -1,6 +1,6 @@
 import type { CharacterData } from "@/components/Role/RoleCreation/types";
 import type { Role } from "@/components/Role/types";
-import React, { use, useMemo } from "react";
+import { use, useMemo } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";

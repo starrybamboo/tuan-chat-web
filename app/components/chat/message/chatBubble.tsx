@@ -36,7 +36,6 @@ import {
   getEffectDurationMs,
   hasAnnotation,
   normalizeAnnotations,
-  setAnnotation,
   toggleAnnotation,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -196,7 +195,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   // 获取自定义角色名（如果有）
   const customRoleName = message.customRoleName as string | undefined;
   // 获取黑屏文字的 hold 设置
-  const introHold = hasAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD);
   // 获取显示的角色名（黑屏文字不显示）
   const displayRoleName = getDisplayRoleName({
     roleId: message.roleId,
@@ -688,20 +686,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
 
     updateMessageAndSync(newMessage);
     setIsEditingRoleName(false);
-  }
-
-  // 处理黑屏文字 -hold 设置切换
-  function _handleToggleIntroHold() {
-    if (!canEdit || !isIntroText)
-      return;
-
-    const nextAnnotations = setAnnotation(annotations, ANNOTATION_IDS.INTRO_HOLD, !introHold);
-    const newMessage = {
-      ...message,
-      annotations: nextAnnotations,
-    } as Message;
-
-    updateMessageAndSync(newMessage);
   }
 
   const handleReplyPreviewClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {

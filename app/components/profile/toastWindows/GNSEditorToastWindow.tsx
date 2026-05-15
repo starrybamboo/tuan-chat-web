@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
 
