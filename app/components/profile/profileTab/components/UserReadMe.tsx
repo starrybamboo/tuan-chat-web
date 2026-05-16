@@ -14,9 +14,14 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
   const docId = `user:${userId}:readme`;
 
   return (
-    <div className="flex-1 min-h-0 p-4">
-      <div className="h-full min-h-0 transition-all">
-        <MessageEditor className="h-[80vh] min-h-0 max-h-full rounded-md" docId={docId} readOnly={!isOwner} title={isOwner ? "主页" : "个人主页"} />
+    <div className="flex min-h-[42rem] min-w-0 flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col transition-all">
+        <MessageEditor
+          className="min-h-[42rem] rounded-md"
+          docId={docId}
+          readOnly={!isOwner}
+          title={isOwner ? "主页" : "个人主页"}
+        />
       </div>
     </div>
   );
