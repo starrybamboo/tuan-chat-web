@@ -1,4 +1,4 @@
-import { getDocRouteInfo, getSpaceDetailRouteTab, parsePositiveNumber } from "./chatPageRouteUtils";
+import { getDocRouteInfo, getIsRoomSettingRoute, getSpaceDetailRouteTab, parsePositiveNumber } from "./chatPageRouteUtils";
 
 describe("chatPageRouteUtils", () => {
   describe("parsePositiveNumber", () => {
@@ -66,6 +66,37 @@ describe("chatPageRouteUtils", () => {
         activeDocId: "room:3:description",
         isInvalidSpaceDocId: false,
       });
+    });
+  });
+
+  describe("getIsRoomSettingRoute", () => {
+    it("returns true for legacy messageId based setting routes", () => {
+      expect(getIsRoomSettingRoute({
+        activeRoomId: 3,
+        isDocRoute: false,
+        pathname: "/chat/1/3/setting",
+        roomSettingMatched: false,
+        urlMessageId: "setting",
+      })).toBe(true);
+    });
+
+    it("returns true for direct room setting pathnames when matchRoute misses", () => {
+      expect(getIsRoomSettingRoute({
+        activeRoomId: 3,
+        isDocRoute: false,
+        pathname: "/chat/1/3/setting",
+        roomSettingMatched: false,
+      })).toBe(true);
+    });
+
+    it("returns false for doc routes even if pathname ends with setting", () => {
+      expect(getIsRoomSettingRoute({
+        activeRoomId: null,
+        isDocRoute: true,
+        pathname: "/chat/1/doc/setting",
+        roomSettingMatched: true,
+        urlMessageId: "setting",
+      })).toBe(false);
     });
   });
 });
