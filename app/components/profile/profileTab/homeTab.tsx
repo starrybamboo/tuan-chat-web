@@ -29,8 +29,8 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const followData = useFollowData(userId);
 
   return (
-    <div className="h-full p-2 pl-3 md:pl-4 lg:pl-6 transition-all duration-300 md:flex">
-      <div className="w-full flex flex-col md:w-[30%] lg:w-[27%] p-2">
+    <div className="flex min-h-full flex-col p-2 pl-3 transition-all duration-300 md:flex-row md:pl-4 lg:pl-6">
+      <div className="flex w-full flex-col p-2 md:w-[30%] md:shrink-0 lg:w-[27%]">
         {/* 移动端布局 */}
         <div className="md:hidden">
           {/* 小屏幕布局 - 顶部栏样式 */}

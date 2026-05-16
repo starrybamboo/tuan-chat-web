@@ -58,12 +58,12 @@ function ProfilePage() {
   }, [location.pathname, userId]);
 
   return (
-    <div className="bg-base-100 h-full">
+    <div className="flex min-h-full flex-col bg-base-100">
       {/* 导航栏 */}
       <div
         role="tablist"
         ref={navRef}
-        className="relative flex border-gray-300 dark:border-gray-700 border-y md:pl-10 bg-base-200"
+        className="relative flex border-gray-300 border-y bg-base-200 md:pl-10 dark:border-gray-700"
       >
         {/* 高亮条 */}
         <div
@@ -91,7 +91,7 @@ function ProfilePage() {
       </div>
 
       {/* 内容区域 */}
-      <div className="max-w-7xl mx-auto h-full">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
         <Outlet />
       </div>
     </div>

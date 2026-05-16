@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_dashboard/profile/$userId")({
 
 function Profile() {
   return (
-    <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-hidden">
+    <div className="w-full overflow-x-hidden bg-base-200">
       <ProfilePage />
     </div>
   );
