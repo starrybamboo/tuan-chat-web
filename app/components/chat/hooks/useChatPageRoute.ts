@@ -1,10 +1,10 @@
-import { useMatchRoute, useParams, useRouter } from "@tanstack/react-router";
+import { useLocation, useMatchRoute, useParams, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
-import { getDocRouteInfo, getSpaceDetailRouteTab, parsePositiveNumber } from "@/components/chat/hooks/chatPageRouteUtils";
+import { getDocRouteInfo, getIsRoomSettingRoute, getSpaceDetailRouteTab, parsePositiveNumber } from "@/components/chat/hooks/chatPageRouteUtils";
 
 type ChatPageRouteState = {
   urlSpaceId?: string;
@@ -29,6 +29,7 @@ export default function useChatPageRoute(): ChatPageRouteState {
     messageId: urlMessageId,
     docId: urlDocId,
   } = useParams({ strict: false });
+  const location = useLocation();
   const router = useRouter();
   const matchRoute = useMatchRoute();
   const navigate = useCallback((to: string, options?: { replace?: boolean; state?: unknown }) => {
@@ -71,8 +72,14 @@ export default function useChatPageRoute(): ChatPageRouteState {
   const activeRoomId = isDocRoute ? null : parsePositiveNumber(urlRoomId);
   const targetMessageId = isDocRoute ? null : parsePositiveNumber(urlMessageId);
 
-  const roomSettingMatch = matchRoute({ to: "/chat/$spaceId/$roomId/setting", fuzzy: false });
-  const isRoomSettingRoute = !isDocRoute && (urlMessageId === "setting" || Boolean(roomSettingMatch));
+  const roomSettingMatch = Boolean(matchRoute({ to: "/chat/$spaceId/$roomId/setting", fuzzy: false }));
+  const isRoomSettingRoute = getIsRoomSettingRoute({
+    activeRoomId,
+    isDocRoute,
+    pathname: location.pathname,
+    roomSettingMatched: roomSettingMatch,
+    urlMessageId,
+  });
   const spaceDetailRouteTab: SpaceDetailTab | null = useMemo(() => {
     return getSpaceDetailRouteTab({ isPrivateChatMode, urlMessageId, urlRoomId });
   }, [isPrivateChatMode, urlMessageId, urlRoomId]);

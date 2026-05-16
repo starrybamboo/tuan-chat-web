@@ -69,3 +69,21 @@ export function getSpaceDetailRouteTab(params: {
   const maybeTab = params.urlRoomId as SpaceDetailTab;
   return SPACE_DETAIL_TABS.has(maybeTab) ? maybeTab : null;
 }
+
+export function getIsRoomSettingRoute(params: {
+  activeRoomId: number | null;
+  isDocRoute: boolean;
+  pathname: string;
+  roomSettingMatched: boolean;
+  urlMessageId?: string;
+}) {
+  if (params.isDocRoute) {
+    return false;
+  }
+
+  if (params.urlMessageId === "setting" || params.roomSettingMatched) {
+    return true;
+  }
+
+  return params.activeRoomId != null && params.pathname.endsWith("/setting");
+}
