@@ -25,7 +25,7 @@ export function getMobileMessageModeLabel(mode: MobileMessageMode) {
 export function getMobileMessageInputPlaceholder(mode: MobileMessageMode) {
   switch (mode) {
     case MOBILE_MESSAGE_MODE.COMMAND_REQUEST:
-      return "输入命令文本，例如 .ra 侦查";
+      return "输入先攻指令，例如 .ri";
     case MOBILE_MESSAGE_MODE.STATE_EVENT:
       return "输入 .st hp -2 或 .next";
     case MOBILE_MESSAGE_MODE.TEXT:

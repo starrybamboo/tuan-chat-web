@@ -11,13 +11,11 @@ import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated"
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { AnnotationBar } from "@/features/annotations/AnnotationBar";
 import {
   MOBILE_MESSAGE_ATTACHMENT_KIND,
 } from "@/features/messages/mobileMessageAttachment";
 import {
   getMobileMessageInputPlaceholder,
-  getMobileMessageModeLabel,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
 import { useTheme } from "@/hooks/use-theme";
@@ -118,7 +116,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 40,
   },
-  modeButton: {
+  featureButton: {
     alignItems: "center",
     borderRadius: Radius.full,
     borderWidth: 1,
@@ -185,7 +183,6 @@ function getMentionQuery(text: string): string | null {
 
 interface ChatComposerProps {
   anchorMessage: Message | null;
-  annotations: string[];
   availableRoles?: UserRole[];
   canUseAttachments: boolean;
   canUseExpressionPicker?: boolean;
@@ -193,28 +190,29 @@ interface ChatComposerProps {
   draftMessage: string;
   draftRoleIdInput: string;
   errorMessage: string | null;
+  isInitiativeMode: boolean;
   isSubmitting: boolean;
+  isStateMode: boolean;
   messageAttachments: MobileMessageAttachment[];
   messageMode: MobileMessageMode;
   onChangeDraftMessage: (v: string) => void;
   onChangeDraftRoleIdInput: (v: string) => void;
-  onChangeMessageMode: (v: MobileMessageMode) => void;
   onClearAnchor: () => void;
   onClearAttachments: () => void;
-  onOpenAnnotationPicker: () => void;
   onOpenExpressionPicker?: () => void;
+  onOpenInitiative: () => void;
+  onOpenMap: () => void;
   onOpenRoleSwitch: () => void;
   onPickAttachment: (kind: MobileMessageAttachmentKind) => void;
   onRemoveAttachment: (id: string) => void;
   onSend: () => void;
-  onToggleAnnotation: (id: string) => void;
+  onToggleStateMode: () => void;
   roomName?: string | null;
   submitPhase: MessageSubmitPhase;
 }
 
 export function ChatComposer({
   anchorMessage,
-  annotations,
   availableRoles,
   canUseAttachments,
   canUseExpressionPicker = false,
@@ -222,21 +220,23 @@ export function ChatComposer({
   draftMessage,
   draftRoleIdInput,
   errorMessage,
+  isInitiativeMode,
   isSubmitting,
+  isStateMode,
   messageAttachments,
   messageMode,
   onChangeDraftMessage,
   onChangeDraftRoleIdInput,
-  onChangeMessageMode,
   onClearAnchor,
   onClearAttachments,
-  onOpenAnnotationPicker,
   onOpenExpressionPicker,
+  onOpenInitiative,
+  onOpenMap,
   onOpenRoleSwitch,
   onPickAttachment,
   onRemoveAttachment,
   onSend,
-  onToggleAnnotation,
+  onToggleStateMode,
   roomName,
   submitPhase,
 }: ChatComposerProps) {
@@ -249,11 +249,6 @@ export function ChatComposer({
   }));
 
   const canSend = draftMessage.trim().length > 0 || messageAttachments.length > 0;
-  const messageModes = [
-    MOBILE_MESSAGE_MODE.TEXT,
-    MOBILE_MESSAGE_MODE.COMMAND_REQUEST,
-    MOBILE_MESSAGE_MODE.STATE_EVENT,
-  ] satisfies MobileMessageMode[];
   const inputPlaceholder = messageMode === MOBILE_MESSAGE_MODE.TEXT
     ? `给 #${roomName ?? "频道"}...`
     : getMobileMessageInputPlaceholder(messageMode);
@@ -287,13 +282,6 @@ export function ChatComposer({
       setInputHeight(COMPOSER_MIN_HEIGHT);
     }
     onChangeDraftMessage(nextText);
-  };
-
-  const handleCycleMessageMode = () => {
-    const currentIndex = messageModes.indexOf(messageMode);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % messageModes.length : 0;
-    const nextMode = messageModes[nextIndex] ?? MOBILE_MESSAGE_MODE.TEXT;
-    onChangeMessageMode(nextMode);
   };
 
   return (
@@ -424,15 +412,27 @@ export function ChatComposer({
               )
             : null}
 
-          <Pressable disabled={isSubmitting} onPress={onOpenAnnotationPicker} style={styles.toolButton}>
-            <SymbolView name={{ ios: "slider.horizontal.3", android: "tune", web: "tune" }} size={20} tintColor={theme.textSecondary} weight="medium" />
+          <Pressable
+            disabled={isSubmitting}
+            onPress={onOpenInitiative}
+            style={[
+              styles.featureButton,
+              {
+                backgroundColor: isInitiativeMode ? theme.accentMuted : theme.surface,
+                borderColor: isInitiativeMode ? theme.accent : theme.border,
+              },
+            ]}
+          >
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              先攻
+            </ThemedText>
           </Pressable>
 
           <Pressable
             disabled={isSubmitting}
-            onPress={handleCycleMessageMode}
+            onPress={onOpenMap}
             style={[
-              styles.modeButton,
+              styles.featureButton,
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
@@ -440,7 +440,23 @@ export function ChatComposer({
             ]}
           >
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              {getMobileMessageModeLabel(messageMode)}
+              地图
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            disabled={isSubmitting}
+            onPress={onToggleStateMode}
+            style={[
+              styles.featureButton,
+              {
+                backgroundColor: isStateMode ? theme.accentMuted : theme.surface,
+                borderColor: isStateMode ? theme.accent : theme.border,
+              },
+            ]}
+          >
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              状态
             </ThemedText>
           </Pressable>
 
@@ -480,17 +496,6 @@ export function ChatComposer({
                 )}
           </Pressable>
         </View>
-
-        {annotations.length > 0
-          ? (
-              <AnnotationBar
-                annotations={annotations}
-                canEdit
-                onToggle={onToggleAnnotation}
-                onOpenPicker={onOpenAnnotationPicker}
-              />
-            )
-          : null}
 
         {submitPhase === "uploading"
           ? (

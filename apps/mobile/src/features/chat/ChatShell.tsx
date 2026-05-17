@@ -70,8 +70,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { LEFT_DRAWER_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import { mobileApiClient } from "@/lib/api";
 
-import { AnnotationPickerSheet } from "@/features/annotations/AnnotationPickerSheet";
-import { toggleAnnotation } from "@/features/annotations/annotationCatalog";
 import { CreateSpaceSheet } from "@/features/spaces/CreateSpaceSheet";
 import { CreateRoomSheet } from "@/features/rooms/CreateRoomSheet";
 
@@ -188,8 +186,6 @@ export default function ChatShell() {
   const [roleSwitchVisible, setRoleSwitchVisible] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("rooms");
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
-  const [annotations, setAnnotations] = useState<string[]>([]);
-  const [annotationPickerVisible, setAnnotationPickerVisible] = useState(false);
   const [expressionPickerVisible, setExpressionPickerVisible] = useState(false);
   const [createSpaceVisible, setCreateSpaceVisible] = useState(false);
   const [createRoomVisible, setCreateRoomVisible] = useState(false);
@@ -312,7 +308,6 @@ export default function ChatShell() {
     setSelectedAvatarId(undefined);
     setSelectedAvatarFileId(undefined);
     setDraftCustomRoleName("");
-    setAnnotations([]);
   }, [selectedRoomId]);
 
   useEffect(() => {
@@ -360,7 +355,6 @@ export default function ChatShell() {
       });
       const resolvedDraftMessage = sendIdentity.content ?? draftMessage;
       const messageContext = {
-        annotations: annotations.length > 0 ? annotations : undefined,
         avatarId: sendIdentity.avatarId,
         customRoleName: sendIdentity.customRoleName,
         replayMessageId: selectedAnchorMessage?.messageId,
@@ -418,6 +412,35 @@ export default function ChatShell() {
       return;
     }
     setProfileSheetState(profile);
+  }, []);
+
+  const handleOpenInitiative = useCallback(() => {
+    setMessageError(null);
+    setMessageMode((currentMode) => {
+      if (currentMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST) {
+        if (draftMessage.trim() === ".ri") {
+          setDraftMessage("");
+        }
+        return MOBILE_MESSAGE_MODE.TEXT;
+      }
+      if (!draftMessage.trim()) {
+        setDraftMessage(".ri");
+      }
+      return MOBILE_MESSAGE_MODE.COMMAND_REQUEST;
+    });
+  }, [draftMessage]);
+
+  const handleOpenMap = useCallback(() => {
+    Alert.alert("地图", "移动端地图功能暂未接入，这里先保留地图入口。");
+  }, []);
+
+  const handleToggleStateMode = useCallback(() => {
+    setMessageError(null);
+    setMessageMode(currentMode => (
+      currentMode === MOBILE_MESSAGE_MODE.STATE_EVENT
+        ? MOBILE_MESSAGE_MODE.TEXT
+        : MOBILE_MESSAGE_MODE.STATE_EVENT
+    ));
   }, []);
 
   const invalidateMemberCaches = useCallback(async () => {
@@ -562,7 +585,6 @@ export default function ChatShell() {
         throw new Error("表情内容为空。");
       }
       await sendRoomMessageMutation.sendDraftMessage(draft, {
-        annotations: annotations.length > 0 ? annotations : undefined,
         avatarId: sendIdentity.avatarId,
         customRoleName: sendIdentity.customRoleName,
         replayMessageId: selectedAnchorMessage?.messageId,
@@ -575,7 +597,6 @@ export default function ChatShell() {
       setMessageError(getErrorMessage(error, "发送表情失败。"));
     }
   }, [
-    annotations,
     currentRole?.avatarId,
     draftCustomRoleName,
     draftMessage,
@@ -791,20 +812,27 @@ export default function ChatShell() {
                         availableRoles={selectableRoomRoles}
                         canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
                         canUseExpressionPicker={selectableRoomRoles.some(role => (role.avatarFileId ?? 0) > 0)}
-                        currentAvatarFileId={selectedAvatarFileId}
                         currentRole={currentRole}
                         draftMessage={draftMessage}
+                        draftRoleIdInput={draftRoleIdInput}
                         errorMessage={messageError}
+                        isInitiativeMode={messageMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST}
                         isSubmitting={isSubmittingMessage}
+                        isStateMode={messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT}
                         messageAttachments={messageAttachments}
+                        messageMode={messageMode}
                         onChangeDraftMessage={setDraftMessage}
+                        onChangeDraftRoleIdInput={setDraftRoleIdInput}
                         onClearAnchor={() => setMessageAnchorId(null)}
                         onClearAttachments={() => setMessageAttachments([])}
                         onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
+                        onOpenInitiative={handleOpenInitiative}
+                        onOpenMap={handleOpenMap}
                         onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
                         onPickAttachment={(kind) => void handlePickAttachments(kind)}
                         onRemoveAttachment={(id) => setMessageAttachments((cur) => cur.filter(a => a.id !== id))}
                         onSend={() => void handleSendMessage()}
+                        onToggleStateMode={handleToggleStateMode}
                         roomName={selectedRoom?.name}
                         submitPhase={messageSubmitPhase}
                       />
@@ -854,12 +882,6 @@ export default function ChatShell() {
         onSelectRole={setSelectedRoleId}
         roles={selectableRoomRoles}
         visible={roleSwitchVisible}
-      />
-      <AnnotationPickerSheet
-        annotations={annotations}
-        onClose={() => setAnnotationPickerVisible(false)}
-        onToggle={(id) => setAnnotations(toggleAnnotation(annotations, id))}
-        visible={annotationPickerVisible}
       />
       <ExpressionPickerSheet
         onClose={() => setExpressionPickerVisible(false)}
