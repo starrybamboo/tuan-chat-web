@@ -4,7 +4,7 @@ import type { MessageSubmitPhase } from "./mobileChatUtils";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
-import { ImageSquare, Smiley, X, XCircle } from "phosphor-react-native";
+import { Checkerboard, ImageSquare, Pulse, Smiley, Sword, X, XCircle } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
@@ -118,12 +118,11 @@ const styles = StyleSheet.create({
   },
   featureButton: {
     alignItems: "center",
-    borderRadius: Radius.full,
+    borderRadius: Radius.md,
     borderWidth: 1,
-    flexDirection: "row",
-    height: 36,
+    height: 40,
     justifyContent: "center",
-    paddingHorizontal: Spacing.lg,
+    width: 40,
   },
   input: {
     borderRadius: 22,
@@ -423,9 +422,11 @@ export function ChatComposer({
               },
             ]}
           >
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              先攻
-            </ThemedText>
+            <Sword
+              color={isInitiativeMode ? theme.accent : theme.textSecondary}
+              size={20}
+              weight="regular"
+            />
           </Pressable>
 
           <Pressable
@@ -439,9 +440,7 @@ export function ChatComposer({
               },
             ]}
           >
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              地图
-            </ThemedText>
+            <Checkerboard color={theme.textSecondary} size={20} weight="regular" />
           </Pressable>
 
           <Pressable
@@ -455,9 +454,11 @@ export function ChatComposer({
               },
             ]}
           >
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              状态
-            </ThemedText>
+            <Pulse
+              color={isStateMode ? theme.accent : theme.textSecondary}
+              size={20}
+              weight="regular"
+            />
           </Pressable>
 
           {messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT
