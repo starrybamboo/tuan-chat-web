@@ -61,6 +61,8 @@ import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
+import { readCachedRoomMessages, writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
+import { markCachedRoomMessageDeleted } from "@/features/messages/mobileRoomMessageCacheUtils";
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
@@ -714,8 +716,13 @@ export default function ChatShell() {
               if (selectedRoomId && message.messageId) {
                 queryClient.setQueryData(
                   getAllRoomMessagesQueryKey(selectedRoomId),
-                  current => markRoomMessageDeletedData(current as any, message.messageId!),
+                  (current) => {
+                    return markRoomMessageDeletedData(current as any, message.messageId!);
+                  },
                 );
+                const cachedMessages = await readCachedRoomMessages(selectedRoomId);
+                const nextCachedMessages = markCachedRoomMessageDeleted(cachedMessages, message.messageId);
+                await writeCachedRoomMessages(selectedRoomId, nextCachedMessages);
               }
               await roomMessagesQuery.refetch();
             }

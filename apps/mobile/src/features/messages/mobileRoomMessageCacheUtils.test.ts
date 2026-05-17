@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildStoredRoomMessageCache,
+  markCachedRoomMessageDeleted,
   MOBILE_ROOM_MESSAGE_CACHE_LIMIT,
   sanitizeStoredRoomMessageCache,
 } from "./mobileRoomMessageCacheUtils";
@@ -63,5 +64,17 @@ describe("mobileRoomMessageCacheUtils", () => {
       roomId: 9,
       updatedAt: "1970-01-01T00:00:00.000Z",
     });
+  });
+
+  it("标记删除时会同步保留本地缓存中的删除状态", () => {
+    const nextMessages = markCachedRoomMessageDeleted([
+      createChatMessageResponse(1, 10),
+      createChatMessageResponse(2, 20),
+      createChatMessageResponse(3, 30),
+    ], 2);
+
+    expect(nextMessages).toHaveLength(3);
+    expect(nextMessages[1]?.message.messageId).toBe(2);
+    expect(nextMessages[1]?.message.status).toBe(1);
   });
 });
