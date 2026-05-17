@@ -1,34 +1,23 @@
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { Image, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { useMemo, useState } from "react";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
 
+import { useRoleAvatarsQuery } from "./useRoleAvatarsQuery";
+
 const AVATAR_SIZE = 36;
+const AVATAR_GRID_SIZE = 52;
 
 const styles = StyleSheet.create({
-  overlay: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    flex: 1,
-    justifyContent: "flex-end",
-  },
   sheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    maxHeight: "60%",
-    paddingBottom: Spacing.xxxl,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-  },
-  handle: {
-    alignSelf: "center",
-    borderRadius: 2,
-    height: 4,
-    marginBottom: Spacing.xl,
-    width: 36,
+    maxHeight: "70%",
   },
   title: {
     fontSize: 16,
@@ -82,6 +71,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
   },
+  avatarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+  },
+  avatarGridItem: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: 2,
+    height: AVATAR_GRID_SIZE,
+    justifyContent: "center",
+    width: AVATAR_GRID_SIZE,
+  },
+  avatarGridImage: {
+    borderRadius: Radius.sm,
+    height: AVATAR_GRID_SIZE - 6,
+    width: AVATAR_GRID_SIZE - 6,
+  },
+  avatarSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+  },
 });
 
 const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
@@ -99,40 +117,89 @@ function getRoleTypeLabel(type: number): string {
   }
 }
 
+function groupAvatarsByCategory(avatars: RoleAvatar[]): Map<string, RoleAvatar[]> {
+  const map = new Map<string, RoleAvatar[]>();
+  for (const avatar of avatars) {
+    const cat = avatar.category ?? "默认";
+    const list = map.get(cat);
+    if (list)
+      list.push(avatar);
+    else map.set(cat, [avatar]);
+  }
+  return map;
+}
+
 interface RoleSwitchSheetProps {
+  currentAvatarId: number | undefined;
   currentRoleId: number | undefined;
   customRoleName?: string;
   canSelectNarrator?: boolean;
   onChangeCustomRoleName?: (name: string) => void;
   onClose: () => void;
+  onSelectAvatar: (avatarId: number | undefined, avatarFileId: number | undefined) => void;
   onSelectRole: (roleId: number | undefined) => void;
   roles: UserRole[];
   visible: boolean;
 }
 
 export function RoleSwitchSheet({
+  currentAvatarId,
   currentRoleId,
   customRoleName,
   canSelectNarrator = false,
   onChangeCustomRoleName,
   onClose,
+  onSelectAvatar,
   onSelectRole,
   roles,
   visible,
 }: RoleSwitchSheetProps) {
   const theme = useTheme();
+  const [expandedRoleId, setExpandedRoleId] = useState<number | null>(null);
 
   const myRoles = roles.filter(r => r.state !== 1);
   const isNarrator = currentRoleId === undefined || currentRoleId === -1;
 
-  return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={[styles.sheet, { backgroundColor: theme.surface }]} onStartShouldSetResponder={() => true}>
-          <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.title}>选择角色</ThemedText>
+  const activeExpandedRoleId = expandedRoleId ?? (currentRoleId && currentRoleId > 0 ? currentRoleId : null);
+  const roleAvatarsQuery = useRoleAvatarsQuery(activeExpandedRoleId);
+  const roleAvatars = useMemo(() => roleAvatarsQuery.data ?? [], [roleAvatarsQuery.data]);
+  const groupedAvatars = useMemo(() => groupAvatarsByCategory(roleAvatars), [roleAvatars]);
 
-          {onChangeCustomRoleName != null ? (
+  const handleSelectRole = (roleId: number) => {
+    if (currentRoleId === roleId) {
+      setExpandedRoleId(prev => prev === roleId ? null : roleId);
+    }
+    else {
+      onSelectRole(roleId);
+      onSelectAvatar(undefined, undefined);
+      setExpandedRoleId(roleId);
+    }
+  };
+
+  const handleSelectAvatar = (avatarId: number, avatarFileId: number | undefined) => {
+    onSelectAvatar(avatarId, avatarFileId);
+    onClose();
+  };
+
+  const handleSelectNarrator = () => {
+    onSelectRole(undefined);
+    onSelectAvatar(undefined, undefined);
+    onClose();
+  };
+
+  return (
+    <BottomSheetModal
+      backgroundColor={theme.surface}
+      handleColor={theme.border}
+      maxHeight="70%"
+      onClose={onClose}
+      sheetStyle={styles.sheet}
+      visible={visible}
+    >
+      <ThemedText style={styles.title}>选择角色</ThemedText>
+
+      {onChangeCustomRoleName != null
+        ? (
             <TextInput
               onChangeText={onChangeCustomRoleName}
               placeholder="自定义角色名（可选）"
@@ -147,12 +214,14 @@ export function RoleSwitchSheet({
               ]}
               value={customRoleName ?? ""}
             />
-          ) : null}
+          )
+        : null}
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {canSelectNarrator ? (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {canSelectNarrator
+          ? (
               <Pressable
-                onPress={() => { onSelectRole(undefined); onClose(); }}
+                onPress={handleSelectNarrator}
                 style={({ pressed }) => [styles.narratorItem, pressed && { backgroundColor: theme.backgroundElement }]}
               >
                 <View style={[styles.avatar, { backgroundColor: "#6366f1" }]}>
@@ -164,42 +233,97 @@ export function RoleSwitchSheet({
                 </View>
                 {isNarrator ? <View style={[styles.selectedDot, { backgroundColor: theme.accent }]} /> : null}
               </Pressable>
-            ) : null}
+            )
+          : null}
 
-            {myRoles.map((role) => {
-              const isSelected = currentRoleId === role.roleId;
-              return (
-                <Pressable
-                  key={role.roleId}
-                  onPress={() => { onSelectRole(role.roleId); onClose(); }}
-                  style={({ pressed }) => [styles.roleItem, pressed && { backgroundColor: theme.backgroundElement }]}
-                >
-                  {role.avatarFileId ? (
-                    <Image source={{ uri: avatarThumbUrl(role.avatarFileId) }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, { backgroundColor: getRoleColor(role.roleId) }]}>
-                      <ThemedText style={styles.avatarText}>
-                        {(role.roleName ?? "").slice(0, 1) || "R"}
-                      </ThemedText>
+        {myRoles.map((role) => {
+          const isSelected = currentRoleId === role.roleId;
+          const isExpanded = activeExpandedRoleId === role.roleId;
+          return (
+            <View key={role.roleId}>
+              <Pressable
+                onPress={() => handleSelectRole(role.roleId)}
+                style={({ pressed }) => [styles.roleItem, pressed && { backgroundColor: theme.backgroundElement }]}
+              >
+                {role.avatarFileId
+                  ? (
+                      <Image source={{ uri: avatarThumbUrl(role.avatarFileId) }} style={styles.avatar} />
+                    )
+                  : (
+                      <View style={[styles.avatar, { backgroundColor: getRoleColor(role.roleId) }]}>
+                        <ThemedText style={styles.avatarText}>
+                          {(role.roleName ?? "").slice(0, 1) || "R"}
+                        </ThemedText>
+                      </View>
+                    )}
+                <View style={styles.roleInfo}>
+                  <ThemedText type="smallBold">{role.roleName ?? `角色 #${role.roleId}`}</ThemedText>
+                  <ThemedText type="caption" themeColor="textSecondary">{getRoleTypeLabel(role.type)}</ThemedText>
+                </View>
+                {isSelected ? <View style={[styles.selectedDot, { backgroundColor: theme.accent }]} /> : null}
+              </Pressable>
+
+              {isSelected && isExpanded
+                ? (
+                    <View>
+                      {roleAvatarsQuery.isPending
+                        ? (
+                            <ActivityIndicator style={{ marginVertical: Spacing.md }} size="small" />
+                          )
+                        : roleAvatars.length === 0
+                          ? (
+                              <ThemedText type="caption" themeColor="textSecondary" style={{ paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm }}>
+                                该角色暂无可选头像
+                              </ThemedText>
+                            )
+                          : (
+                              Array.from(groupedAvatars.entries()).map(([category, avatars]) => (
+                                <View key={category}>
+                                  {groupedAvatars.size > 1
+                                    ? (
+                                        <View style={styles.avatarSectionHeader}>
+                                          <ThemedText type="caption" themeColor="textSecondary">{category}</ThemedText>
+                                        </View>
+                                      )
+                                    : null}
+                                  <View style={styles.avatarGrid}>
+                                    {avatars.map((avatar) => {
+                                      const isAvatarSelected = currentAvatarId === avatar.avatarId;
+                                      return (
+                                        <Pressable
+                                          key={avatar.avatarId}
+                                          onPress={() => handleSelectAvatar(avatar.avatarId!, avatar.avatarFileId)}
+                                          style={[
+                                            styles.avatarGridItem,
+                                            { borderColor: isAvatarSelected ? theme.accent : "transparent" },
+                                          ]}
+                                        >
+                                          <Image
+                                            source={{ uri: avatarThumbUrl(avatar.avatarFileId) }}
+                                            style={styles.avatarGridImage}
+                                          />
+                                        </Pressable>
+                                      );
+                                    })}
+                                  </View>
+                                </View>
+                              ))
+                            )}
                     </View>
-                  )}
-                  <View style={styles.roleInfo}>
-                    <ThemedText type="smallBold">{role.roleName ?? `角色 #${role.roleId}`}</ThemedText>
-                    <ThemedText type="caption" themeColor="textSecondary">{getRoleTypeLabel(role.type)}</ThemedText>
-                  </View>
-                  {isSelected ? <View style={[styles.selectedDot, { backgroundColor: theme.accent }]} /> : null}
-                </Pressable>
-              );
-            })}
+                  )
+                : null}
+            </View>
+          );
+        })}
 
-            {myRoles.length === 0 ? (
+        {myRoles.length === 0
+          ? (
               <View style={{ paddingVertical: Spacing.xxl, alignItems: "center" }}>
                 <ThemedText themeColor="textSecondary" type="small">当前房间没有可用角色</ThemedText>
               </View>
-            ) : null}
-          </ScrollView>
-        </View>
-      </Pressable>
-    </Modal>
+            )
+          : null}
+      </ScrollView>
+    </BottomSheetModal>
   );
 }
