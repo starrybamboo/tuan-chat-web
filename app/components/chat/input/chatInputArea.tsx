@@ -224,10 +224,49 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   };
 
   /**
+   * 清理 contentEditable 中浏览器残留的空块元素，
+   * 避免删除换行后高度无法收缩。
+   */
+  const normalizeTrailingEmptyBlocks = () => {
+    const editor = internalTextareaRef.current;
+    if (!editor)
+      return;
+
+    // 内容为空时直接清空，避免残留 <br> 撑高
+    if (!editor.textContent?.trim()) {
+      if (editor.innerHTML !== "") {
+        editor.innerHTML = "";
+      }
+      return;
+    }
+
+    // 从末尾向前移除空的块级子节点（<div><br></div> 或 <div></div>）
+    let lastChild = editor.lastChild;
+    while (lastChild) {
+      if (lastChild.nodeType !== Node.ELEMENT_NODE)
+        break;
+      const el = lastChild as HTMLElement;
+      const tag = el.tagName;
+      if (tag !== "DIV" && tag !== "P" && tag !== "BR")
+        break;
+      if (tag === "BR") {
+        // 末尾单独的 <br> 且前面还有内容，保留一个用于光标定位
+        break;
+      }
+      const innerText = el.textContent ?? "";
+      if (innerText.trim().length > 0)
+        break;
+      const prev = lastChild.previousSibling;
+      editor.removeChild(lastChild);
+      lastChild = prev;
+    }
+  };
+
+  /**
    * [事件] 处理输入。这是连接 DOM 和 React 状态的核心桥梁。
    */
   const handleInputInternal = () => {
-    // 解析内容并将纯文本和提及列表发送给父组件
+    normalizeTrailingEmptyBlocks();
     const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
     props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
     updateHasTextFlag();
