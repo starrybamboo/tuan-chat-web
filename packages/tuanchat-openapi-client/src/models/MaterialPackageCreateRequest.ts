@@ -20,7 +20,7 @@ export type MaterialPackageCreateRequest = {
      */
     coverFileId?: number;
     /**
-     * 是否公开，默认公开
+     * 是否公开，默认非公开
      */
     isPublic?: boolean;
     content: MaterialPackageContent;

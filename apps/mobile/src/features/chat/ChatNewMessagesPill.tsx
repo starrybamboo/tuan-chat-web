@@ -1,0 +1,66 @@
+import { SymbolView } from "expo-symbols";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
+
+import { Radius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
+
+const FAB_SIZE = 40;
+
+const styles = StyleSheet.create({
+  fab: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    bottom: Spacing.xl,
+    elevation: 4,
+    height: FAB_SIZE,
+    justifyContent: "center",
+    position: "absolute",
+    right: Spacing.xl,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    width: FAB_SIZE,
+  },
+  badge: {
+    borderRadius: Radius.full,
+    height: 10,
+    position: "absolute",
+    right: 2,
+    top: 2,
+    width: 10,
+  },
+});
+
+interface ChatNewMessagesPillProps {
+  count: number;
+  onPress: () => void;
+  visible: boolean;
+}
+
+export function ChatNewMessagesPill({ count, onPress, visible }: ChatNewMessagesPillProps) {
+  const theme = useTheme();
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: withTiming(visible ? 1 : 0, { duration: 200 }),
+    transform: [
+      { scale: withTiming(visible ? 1 : 0.8, { duration: 200 }) },
+    ],
+  }));
+
+  return (
+    <Animated.View style={[styles.fab, { backgroundColor: theme.backgroundElement }, animatedStyle]} pointerEvents={visible ? "auto" : "none"}>
+      <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", width: "100%" }}>
+        <SymbolView
+          name={{ ios: "arrow.down", android: "arrow_downward", web: "arrow_downward" }}
+          size={18}
+          tintColor={theme.text}
+          weight="medium"
+        />
+      </Pressable>
+      {count > 0 ? (
+        <View style={[styles.badge, { backgroundColor: theme.danger }]} />
+      ) : null}
+    </Animated.View>
+  );
+}

@@ -1,13 +1,23 @@
 import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import { createMessageEditorSnapshot } from "@/components/messageEditor/model/messageEditorCodec";
 import { createMessageEditorTextDraft } from "@/components/messageEditor/model/messageEditorTransforms";
 
 import { tuanchat } from "../../../../api/instance";
 
-function getSnapshotForCopy(docId: string): StoredSnapshot | null {
-  return getCachedDocSnapshot(docId);
+async function getSnapshotForCopy(docId: string): Promise<StoredSnapshot | null> {
+  const cached = getCachedDocSnapshot(docId);
+  if (cached) {
+    return cached;
+  }
+
+  const persisted = await getPersistedDocSnapshot(docId).catch(() => null);
+  if (persisted) {
+    setCachedDocSnapshot(docId, persisted);
+  }
+  return persisted;
 }
 
 function buildCopiedSnapshot(sourceSnapshot: StoredSnapshot | null): StoredSnapshot {
@@ -36,7 +46,7 @@ export async function copyDocToSpaceDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSnapshot = getSnapshotForCopy(params.sourceDocId);
+  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
 
   let createdDocId: number | null = null;
   try {
@@ -57,12 +67,13 @@ export async function copyDocToSpaceDoc(params: {
     throw new Error("创建文档失败");
   }
 
-  const { buildSpaceDocId } = await import("@/components/chat/infra/doc/space/spaceDocId");
-
-  const newDocId = buildSpaceDocId({ kind: "independent", docId: createdDocId });
+  const newDocId = String(createdDocId);
   const snapshot = buildCopiedSnapshot(sourceSnapshot);
 
   setCachedDocSnapshot(newDocId, snapshot);
+  await setPersistedDocSnapshot(newDocId, snapshot).catch((error) => {
+    console.error("[DocCopy] persist copied space doc snapshot failed", error);
+  });
 
   const { upsertSpaceDocMetaCacheEntry } = await import("@/components/chat/infra/doc/space/spaceDocMetaPersistence");
   upsertSpaceDocMetaCacheEntry({
@@ -94,7 +105,7 @@ export async function copyDocToSpaceUserDoc(params: {
 }): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
   const createTitle = (params.title ?? "").trim();
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSnapshot = getSnapshotForCopy(params.sourceDocId);
+  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
 
   const createDocWithRetry = async (): Promise<number> => {
     let lastErr = "";
@@ -129,6 +140,9 @@ export async function copyDocToSpaceUserDoc(params: {
   const snapshot = buildCopiedSnapshot(sourceSnapshot);
 
   setCachedDocSnapshot(newDocId, snapshot);
+  await setPersistedDocSnapshot(newDocId, snapshot).catch((error) => {
+    console.error("[DocCopy] persist copied user doc snapshot failed", error);
+  });
 
   return { newDocEntityId: newEntityId, newDocId, title };
 }

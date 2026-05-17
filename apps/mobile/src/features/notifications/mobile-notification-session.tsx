@@ -166,6 +166,8 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
         sound: true,
         data: {
           tag,
+          resourceId: payload.resourceId ?? null,
+          resourceType: payload.resourceType ?? null,
           targetPath: targetPath ?? "/chat",
         },
       },

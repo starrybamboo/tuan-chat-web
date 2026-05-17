@@ -493,8 +493,6 @@ export async function uploadMobileMessageAttachments(
       uploadedImages.push({
         fileId: uploaded.fileId,
         mediaType: uploaded.mediaType,
-        originalUrl: uploaded.originalUrl,
-        url: uploaded.previewUrl,
         width: attachment.width,
         height: attachment.height,
         size: uploaded.size,
@@ -507,7 +505,6 @@ export async function uploadMobileMessageAttachments(
       uploadedVideos.push({
         fileId: uploaded.fileId,
         mediaType: uploaded.mediaType,
-        url: uploaded.previewUrl,
         fileName: attachment.fileName,
         size: uploaded.size,
       });
@@ -518,7 +515,6 @@ export async function uploadMobileMessageAttachments(
       uploadedFiles.push({
         fileId: uploaded.fileId,
         mediaType: uploaded.mediaType,
-        url: uploaded.originalUrl,
         fileName: attachment.fileName,
         size: uploaded.size,
       });
@@ -528,7 +524,6 @@ export async function uploadMobileMessageAttachments(
     uploadedSoundMessage = {
       fileId: uploaded.fileId,
       mediaType: uploaded.mediaType,
-      url: uploaded.previewUrl,
       fileName: attachment.fileName,
       size: uploaded.size,
     };

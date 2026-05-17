@@ -1,7 +1,7 @@
 import type { MemberPreviewItem } from "./memberUtils";
 import { useMemo } from "react";
 
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
@@ -12,9 +12,9 @@ import { getMemberDisplayName, getSpaceMemberTypeLabel, sortMemberPreviewItems }
 const styles = StyleSheet.create({
   centerState: {
     alignItems: "center",
-    gap: Spacing.two,
+    gap: Spacing.md,
     justifyContent: "center",
-    paddingVertical: Spacing.four,
+    paddingVertical: Spacing.xxl,
   },
   errorText: {
     color: "#c0392b",
@@ -22,17 +22,17 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     flexDirection: "row",
-    gap: Spacing.two,
+    gap: Spacing.md,
     justifyContent: "space-between",
   },
   item: {
-    borderRadius: Spacing.three,
-    gap: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    borderRadius: Spacing.xl,
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
   },
   list: {
-    gap: Spacing.two,
+    gap: Spacing.md,
   },
 });
 
@@ -44,6 +44,7 @@ interface MemberPreviewListProps {
   isPending: boolean;
   maxVisible?: number;
   members: MemberPreviewItem[];
+  onLongPress?: (member: MemberPreviewItem) => void;
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -62,6 +63,7 @@ export function MemberPreviewList({
   isPending,
   maxVisible = 6,
   members,
+  onLongPress,
 }: MemberPreviewListProps) {
   const visibleMembers = useMemo(() => {
     return sortMemberPreviewItems(members).slice(0, maxVisible);
@@ -93,29 +95,33 @@ export function MemberPreviewList({
   return (
     <View style={styles.list}>
       {visibleMembers.map(member => (
-        <ThemedView
+        <Pressable
           key={String(member.userId ?? getMemberDisplayName(member))}
-          type="backgroundSelected"
-          style={styles.item}
+          onLongPress={onLongPress ? () => onLongPress(member) : undefined}
         >
-          <View style={styles.header}>
-            <ThemedText type="smallBold">
-              {getMemberDisplayName(member)}
-              {member.userId === currentUserId ? "（你）" : ""}
+          <ThemedView
+            type="backgroundSelected"
+            style={styles.item}
+          >
+            <View style={styles.header}>
+              <ThemedText type="smallBold">
+                {getMemberDisplayName(member)}
+                {member.userId === currentUserId ? "（你）" : ""}
+              </ThemedText>
+              {typeof member.memberType === "number"
+                ? (
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {getSpaceMemberTypeLabel(member.memberType)}
+                    </ThemedText>
+                  )
+                : null}
+            </View>
+            <ThemedText type="small" themeColor="textSecondary">
+              用户 #
+              {member.userId ?? "-"}
             </ThemedText>
-            {typeof member.memberType === "number"
-              ? (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {getSpaceMemberTypeLabel(member.memberType)}
-                  </ThemedText>
-                )
-              : null}
-          </View>
-          <ThemedText type="small" themeColor="textSecondary">
-            用户 #
-            {member.userId ?? "-"}
-          </ThemedText>
-        </ThemedView>
+          </ThemedView>
+        </Pressable>
       ))}
       {hiddenCount > 0
         ? (

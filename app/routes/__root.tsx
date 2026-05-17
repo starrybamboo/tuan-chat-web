@@ -168,6 +168,7 @@ function App() {
   const isScrollSequenceStandalone = location.pathname === "/scroll-sequence-demo"
     || location.pathname === "/scroll-sequence-motion-demo";
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
+  const [isBugFeedbackSplashOpen, setIsBugFeedbackSplashOpen] = React.useState(false);
 
   React.useEffect(() => {
     const msg = consumeAuthToast();
@@ -206,6 +207,16 @@ function App() {
     catch {
       // ignore
     }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined")
+      return;
+    setIsBugFeedbackSplashOpen(true);
+  }, []);
+
+  const closeBugFeedbackSplash = React.useCallback(() => {
+    setIsBugFeedbackSplashOpen(false);
   }, []);
 
   if (isScrollSequenceStandalone) {
@@ -254,6 +265,36 @@ function App() {
             className="modal-backdrop"
             aria-label="关闭测试环境提示"
             onClick={closeTestEnvSplash}
+          />
+        </div>
+      )}
+      {isBugFeedbackSplashOpen && (
+        <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Bug反馈指引">
+          <div className="modal-box max-w-2xl">
+            <h3 className="text-lg font-bold">Bug 反馈指引</h3>
+            <div className="mt-4 space-y-3 leading-7">
+              <p>
+                如果你在使用过程中遇到了 Bug，可以通过以下步骤快速反馈，帮助我们尽快修复问题：
+              </p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>点击顶栏右侧的 QQ 图标按钮</li>
+                <li>在弹窗中简要描述你遇到的问题</li>
+                <li>点击「生成现场文件」下载诊断信息文件</li>
+                <li>将该文件和问题描述一起发送到 QQ 反馈群中</li>
+              </ol>
+              <p className="text-sm opacity-80">
+                现场文件包含当前页面地址、浏览器信息等诊断数据，能帮助开发者快速定位问题。如有截图或录屏请一并附上。
+              </p>
+            </div>
+            <div className="modal-action">
+              <button type="button" className="btn btn-primary" onClick={closeBugFeedbackSplash}>我知道了</button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="modal-backdrop"
+            aria-label="关闭Bug反馈指引"
+            onClick={closeBugFeedbackSplash}
           />
         </div>
       )}

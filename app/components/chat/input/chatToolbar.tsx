@@ -22,7 +22,7 @@ import { ALLOWED_IMG_TYPES } from "@/utils/allowedImgFiles";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
 interface ChatToolbarProps {
-  /** 当前房间（用于BGM个人开关/ֹͣȫԱBGM） */
+  /** 当前房间（用于BGM个人开关/停止全员BGM） */
   roomId?: number;
   /** 是否为KP（房主） */
   isKP?: boolean;

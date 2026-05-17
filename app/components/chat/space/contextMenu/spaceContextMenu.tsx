@@ -153,27 +153,6 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
               setIsDissolveConfirmOpen(false);
               setDissolveTargetSpaceId(null);
 
-              // 解散空间会级联解散房间（房间文档会通过 ROOM_DISSOLVE 推送逐个清理）。
-              // 这里额外清理空间自身的描述文档，避免 @ 弹窗仍展示已删除空间的 doc。
-              if (typeof window !== "undefined") {
-                const target = dissolveTargetSpaceId;
-                void (async () => {
-                  try {
-                    const [{ deleteSpaceDoc }, { buildSpaceDocId }] = await Promise.all([
-                      import("@/components/chat/infra/doc/space/deleteSpaceDoc"),
-                      import("@/components/chat/infra/doc/space/spaceDocId"),
-                    ]);
-                    await deleteSpaceDoc({
-                      spaceId: target,
-                      docId: buildSpaceDocId({ kind: "space_description", spaceId: target }),
-                    });
-                  }
-                  catch {
-                    // ignore
-                  }
-                })();
-              }
-
               if (typeof window !== "undefined") {
                 localStorage.removeItem("storedChatIds");
               }

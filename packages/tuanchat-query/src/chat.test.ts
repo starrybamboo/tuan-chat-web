@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { flattenRoomMessagePages, mergeRoomMessages, upsertRoomMessagesInfiniteData } from "./chat";
+import {
+  flattenRoomMessagePages,
+  getRoomMessageSyncGapStart,
+  markRoomMessageDeletedData,
+  mergeRoomMessages,
+  selectVisibleMainRoomMessages,
+  upsertRoomMessagesInfiniteData,
+  upsertRoomMessagesListData,
+} from "./chat";
 
 function createChatMessageResponse(
   messageId: number,
@@ -111,5 +119,56 @@ describe("chat room message helpers", () => {
         },
       }, currentData.pages[1]],
     });
+  });
+
+  it("支持移动端全量列表 upsert 和删除标记", () => {
+    const current = [
+      createChatMessageResponse(1, 10),
+      createChatMessageResponse(2, 20),
+    ];
+
+    const next = upsertRoomMessagesListData(current, [
+      createChatMessageResponse(2, 20, { content: "更新" }),
+      createChatMessageResponse(3, 30),
+    ]);
+
+    expect(next).toEqual([
+      createChatMessageResponse(1, 10),
+      createChatMessageResponse(2, 20, { content: "更新" }),
+      createChatMessageResponse(3, 30),
+    ]);
+
+    expect(markRoomMessageDeletedData(next, 2)[1].message.status).toBe(1);
+  });
+
+  it("过滤 thread reply 和无权查看的暗骰", () => {
+    const visible = createChatMessageResponse(1, 10);
+    const threadReply = createChatMessageResponse(2, 20, { threadId: 99 });
+    const hiddenDice = createChatMessageResponse(3, 30, {
+      extra: { diceResult: { hidden: true, result: "1d20=20" } },
+      messageType: 6,
+      userId: 8,
+    });
+
+    expect(selectVisibleMainRoomMessages([visible, threadReply, hiddenDice], {
+      currentUserId: 7,
+      hasHostPrivileges: false,
+    })).toEqual([visible]);
+
+    expect(selectVisibleMainRoomMessages([hiddenDice], {
+      currentUserId: 7,
+      hasHostPrivileges: true,
+    })).toEqual([hiddenDice]);
+  });
+
+  it("检测实时消息 syncId 缺口", () => {
+    const current = [
+      createChatMessageResponse(1, 10, { syncId: 1 }),
+      createChatMessageResponse(2, 20, { syncId: 2 }),
+    ];
+
+    expect(getRoomMessageSyncGapStart(current, createChatMessageResponse(4, 40, { syncId: 4 }))).toBe(3);
+    expect(getRoomMessageSyncGapStart(current, createChatMessageResponse(3, 30, { syncId: 3 }))).toBeNull();
+    expect(getRoomMessageSyncGapStart(current, createChatMessageResponse(2, 40, { syncId: 4 }))).toBeNull();
   });
 });
