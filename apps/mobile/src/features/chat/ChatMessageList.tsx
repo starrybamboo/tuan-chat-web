@@ -49,7 +49,6 @@ interface ChatMessageListProps {
   multiSelectMode?: boolean;
   multiSelectedIds?: Set<number>;
   onLongPressMessage: (message: Message, pageY: number) => void;
-  onSelectAnchor: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
@@ -69,7 +68,6 @@ export function ChatMessageList({
   multiSelectMode,
   multiSelectedIds,
   onLongPressMessage,
-  onSelectAnchor,
   onToggleMultiSelect,
   roomRoles,
   selectedAnchorId,
@@ -121,13 +119,12 @@ export function ChatMessageList({
         message={item.message}
         multiSelectMode={multiSelectMode}
         onLongPress={onLongPressMessage}
-        onSelectAnchor={onSelectAnchor}
         onToggleMultiSelect={onToggleMultiSelect}
         replyPreviewText={replyPreviewText}
         roomRoles={roomRoles}
       />
     );
-  }, [invertedData, messageMap, multiSelectMode, multiSelectedIds, onLongPressMessage, onSelectAnchor, onToggleMultiSelect, roomRoles, selectedAnchorId]);
+  }, [invertedData, messageMap, multiSelectMode, multiSelectedIds, onLongPressMessage, onToggleMultiSelect, roomRoles, selectedAnchorId]);
 
   const keyExtractor = useCallback((item: MessageItem) => String(item.message.messageId), []);
 

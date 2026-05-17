@@ -33,6 +33,7 @@ import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
@@ -699,7 +700,6 @@ export default function ChatShell() {
                       multiSelectMode={multiSelectMode}
                       multiSelectedIds={multiSelectedIds}
                       selectedAnchorId={messageAnchorId}
-                      onSelectAnchor={handleSelectMessageAnchor}
                       onLongPressMessage={(msg, pageY) => {
                         setActionMenuMessage(msg)
                         setActionMenuPressY(pageY)
