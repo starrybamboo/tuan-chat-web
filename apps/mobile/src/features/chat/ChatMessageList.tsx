@@ -1,6 +1,7 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,8 +12,6 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
@@ -35,15 +34,18 @@ const styles = StyleSheet.create({
 });
 
 function shouldGroupWithPrevious(current: Message, previous: Message | undefined): boolean {
-  if (!previous) return false;
-  if (current.userId !== previous.userId) return false;
-  if ((current.roleId ?? 0) !== (previous.roleId ?? 0)) return false;
-  if ((current.avatarFileId ?? 0) !== (previous.avatarFileId ?? 0)) return false;
+  if (!previous)
+    return false;
+  if (current.userId !== previous.userId)
+    return false;
+  if ((current.roleId ?? 0) !== (previous.roleId ?? 0))
+    return false;
+  if ((current.avatarFileId ?? 0) !== (previous.avatarFileId ?? 0))
+    return false;
   return true;
 }
 
 interface ChatMessageListProps {
-  currentUserId: number | null;
   error: unknown;
   isError: boolean;
   isPending: boolean;
@@ -57,12 +59,12 @@ interface ChatMessageListProps {
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  if (error instanceof Error && error.message.trim())
+    return error.message.trim();
   return fallback;
 }
 
 export function ChatMessageList({
-  currentUserId,
   error,
   isError,
   isPending,
@@ -88,13 +90,17 @@ export function ChatMessageList({
   const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
     const atBottom = e.nativeEvent.contentOffset.y < 50;
     setIsAtBottom(atBottom);
-    if (atBottom) setNewMessageCount(0);
+    if (atBottom)
+      setNewMessageCount(0);
   }, []);
 
-  if (messages.length > prevLengthRef.current && !isAtBottom) {
-    setNewMessageCount((c) => c + (messages.length - prevLengthRef.current));
-  }
-  prevLengthRef.current = messages.length;
+  useEffect(() => {
+    const previousLength = prevLengthRef.current;
+    if (messages.length > previousLength && !isAtBottom) {
+      setNewMessageCount(count => count + (messages.length - previousLength));
+    }
+    prevLengthRef.current = messages.length;
+  }, [isAtBottom, messages.length]);
 
   const scrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -104,7 +110,8 @@ export function ChatMessageList({
   const messageMap = useMemo(() => {
     const map = new Map<number, Message>();
     for (const item of messages) {
-      if (item.message.messageId) map.set(item.message.messageId, item.message);
+      if (item.message.messageId)
+        map.set(item.message.messageId, item.message);
     }
     return map;
   }, [messages]);
@@ -132,7 +139,6 @@ export function ChatMessageList({
   }, [invertedData, messageMap, multiSelectMode, multiSelectedIds, onLongPressMessage, onToggleMultiSelect, roomRoles, selectedAnchorId]);
 
   const keyExtractor = useCallback((item: MessageItem) => String(item.message.messageId), []);
-
 
   if (isPending && messages.length === 0) {
     return (
