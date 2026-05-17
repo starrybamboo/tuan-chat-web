@@ -1,25 +1,15 @@
-import type { DescriptionDocType, DescriptionEntityType } from "@/components/chat/infra/doc/description/descriptionDocId";
-
 export async function deleteSpaceDoc(params: { spaceId: number; docId: string }) {
   // SSR-safe: this function is only meaningful in the browser.
   if (typeof window === "undefined") {
     return;
   }
 
-  let remoteKey: { entityType: DescriptionEntityType; entityId: number; docType: DescriptionDocType } | null = null;
+  const docRoomId = Number(params.docId);
 
-  try {
-    const { parseDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
-    remoteKey = parseDescriptionDocId(params.docId);
-  }
-  catch {
-    remoteKey = null;
-  }
-
-  // space_doc 的业务实体删除是主路径；失败时应终止本地移除，避免 UI 假删。
-  if (remoteKey?.entityType === "space_doc") {
+  // 文档实体就是 DOC_ROOM；远端删除失败时终止本地移除，避免 UI 假删。
+  if (Number.isFinite(docRoomId) && docRoomId > 0) {
     const { tuanchat } = await import("api/instance");
-    await tuanchat.spaceDocController.deleteDoc(remoteKey.entityId);
+    await tuanchat.spaceDocController.deleteDoc(docRoomId);
   }
 
   try {
@@ -27,18 +17,21 @@ export async function deleteSpaceDoc(params: { spaceId: number; docId: string })
       { removeSpaceDocMetaCacheEntry, removePendingSpaceDocTitleSync },
       { useDocHeaderOverrideStore },
       { setCachedDocSnapshot },
+      { removePersistedDocSnapshot },
     ] = await Promise.all([
       import("@/components/chat/infra/doc/space/spaceDocMetaPersistence"),
       import("@/components/chat/stores/docHeaderOverrideStore"),
       import("@/components/chat/infra/doc/document/docSnapshotCache"),
+      import("@/components/chat/infra/doc/document/docSnapshotPersistence"),
     ]);
 
     removeSpaceDocMetaCacheEntry({ spaceId: params.spaceId, docId: params.docId });
     setCachedDocSnapshot(params.docId, null);
+    await removePersistedDocSnapshot(params.docId);
     useDocHeaderOverrideStore.getState().clearHeader({ docId: params.docId });
 
-    if (remoteKey?.entityType === "space_doc") {
-      removePendingSpaceDocTitleSync(remoteKey.entityId);
+    if (Number.isFinite(docRoomId) && docRoomId > 0) {
+      removePendingSpaceDocTitleSync(docRoomId);
     }
   }
   catch {

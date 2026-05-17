@@ -1,6 +1,8 @@
 export type NativeAppNotificationPayload = {
   body?: string;
   tag?: string;
+  resourceId?: number | null;
+  resourceType?: string | null;
   targetPath?: string | null;
   title?: string;
 };

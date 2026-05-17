@@ -8,8 +8,7 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useRef, useState } from "react";
 import RoomWindow from "@/components/chat/room/roomWindow";
-import MessageEditor from "@/components/messageEditor/MessageEditor";
-import { avatarThumbUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -473,13 +472,18 @@ export default function RepositoryDetailComponent({
                 <div className="h-full min-h-0 overflow-hidden rounded-md">
                   {linkedSpaceId
                     ? (
-                        <MessageEditor
-                          className="h-[80vh] min-h-0 max-h-full rounded-md"
-                          coverUrl={avatarThumbUrl(linkedSpace?.avatarFileId) || repositoryData.image}
-                          docId={`space:${linkedSpaceId}:description`}
-                          readOnly
-                          title={linkedSpace?.name ?? repositoryData.repositoryName}
-                        />
+                        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-base-300 bg-base-100">
+                          <div className="border-b border-base-300 px-4 py-3">
+                            <div className="truncate text-base font-medium text-base-content">
+                              {linkedSpace?.name ?? repositoryData.repositoryName}
+                            </div>
+                          </div>
+                          <div className="min-h-0 flex-1 overflow-auto px-4 py-4">
+                            <div className="whitespace-pre-wrap text-sm leading-7 text-base-content/80">
+                              {(linkedSpace?.description ?? "").trim() || "暂无空间描述"}
+                            </div>
+                          </div>
+                        </div>
                       )
                     : (
                         <div className="flex flex-col items-center justify-center text-base-content/60 text-sm py-12">

@@ -44,15 +44,15 @@ describe("chatPageRouteUtils", () => {
       });
     });
 
-    it("parses numeric doc id to space doc id", () => {
+    it("parses numeric doc id directly", () => {
       expect(getDocRouteInfo({ isDocRoute: true, rawDocId: "12" })).toEqual({
         decodedDocId: "12",
-        activeDocId: "sdoc:12:description",
+        activeDocId: "12",
         isInvalidSpaceDocId: false,
       });
     });
 
-    it("flags independent space doc ids as invalid", () => {
+    it("flags legacy composite doc ids as invalid", () => {
       expect(getDocRouteInfo({ isDocRoute: true, rawDocId: "sdoc:5:description" })).toEqual({
         decodedDocId: "sdoc:5:description",
         activeDocId: null,
@@ -60,11 +60,11 @@ describe("chatPageRouteUtils", () => {
       });
     });
 
-    it("keeps non-independent space doc ids", () => {
+    it("flags room description doc ids as invalid", () => {
       expect(getDocRouteInfo({ isDocRoute: true, rawDocId: "room:3:description" })).toEqual({
         decodedDocId: "room:3:description",
-        activeDocId: "room:3:description",
-        isInvalidSpaceDocId: false,
+        activeDocId: null,
+        isInvalidSpaceDocId: true,
       });
     });
   });

@@ -1,25 +1,12 @@
+import { getMemberTypeSortWeight, hasHostPrivileges } from "@tuanchat/domain/member-permissions";
+
 export type MemberPreviewItem = {
+  avatarFileId?: number | null;
+  avatarMediaType?: string | null;
   memberType?: number | null;
   userId?: number | null;
   username?: string | null;
 };
-
-function getMemberTypeSortWeight(memberType?: number | null): number {
-  switch (memberType) {
-    case 1:
-      return 0;
-    case 5:
-      return 1;
-    case 2:
-      return 2;
-    case 3:
-      return 3;
-    case 4:
-      return 4;
-    default:
-      return 99;
-  }
-}
 
 export function getSpaceMemberTypeLabel(memberType?: number | null): string {
   switch (memberType) {
@@ -52,7 +39,7 @@ export function getMemberDisplayName(member: MemberPreviewItem): string {
 }
 
 export function hasHostMemberType(memberType?: number | null): boolean {
-  return memberType === 1 || memberType === 5;
+  return hasHostPrivileges(memberType);
 }
 
 export function sortMemberPreviewItems<T extends MemberPreviewItem>(members: T[]): T[] {

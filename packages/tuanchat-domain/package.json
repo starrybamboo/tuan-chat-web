@@ -4,11 +4,17 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./direct-message": "./src/direct-message.ts",
+    "./member-permissions": "./src/member-permissions.ts",
+    "./message-annotations": "./src/message-annotations.ts",
     "./message-draft": "./src/messageDraft.ts",
     "./message-extra": "./src/message-extra.ts",
+    "./message-preview": "./src/messagePreview.ts",
     "./message-type": "./src/messageType.ts",
+    "./notification": "./src/notification.ts",
     "./open-api-result": "./src/open-api-result.ts",
     "./role-api-error": "./src/role-api-error.ts",
+    "./room-identity": "./src/room-identity.ts",
     "./state-command": "./src/stateCommand.ts",
     "./state-event": "./src/state-event.ts"
   },

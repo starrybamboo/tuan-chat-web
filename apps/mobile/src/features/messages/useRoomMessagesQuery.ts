@@ -1,28 +1,30 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import {
-  flattenRoomMessagePages,
-  mergeRoomMessages,
-  useRoomMessagesInfiniteQuery as useSharedRoomMessagesInfiniteQuery,
-} from "@tuanchat/query/chat";
+import { getAllRoomMessagesQueryKey, mergeRoomMessages } from "@tuanchat/query/chat";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import { clearCachedRoomMessages, readCachedRoomMessages, writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
 import { mobileApiClient } from "@/lib/api";
 
-export function useRoomMessagesQuery(roomId: number | null, pageSize: number = 20) {
+export function useRoomMessagesQuery(roomId: number | null) {
   const { isAuthenticated } = useAuthSession();
   const [cachedMessages, setCachedMessages] = useState<ChatMessageResponse[]>([]);
-  const query = useSharedRoomMessagesInfiniteQuery(mobileApiClient, roomId ?? -1, {
+
+  const query = useQuery<ChatMessageResponse[]>({
     enabled: isAuthenticated && typeof roomId === "number" && roomId > 0,
-    pageSize,
-    staleTime: 30_000,
+    queryFn: async () => {
+      const res = await mobileApiClient.chatController.getAllMessage(roomId!);
+      return (res as any).data ?? res ?? [];
+    },
+    queryKey: getAllRoomMessagesQueryKey(roomId ?? -1),
+    staleTime: 0,
   });
 
   const networkMessages = useMemo(() => {
-    return flattenRoomMessagePages(query.data?.pages);
-  }, [query.data?.pages]);
+    return query.data ?? [];
+  }, [query.data]);
 
   const messages = useMemo(() => {
     return mergeRoomMessages(cachedMessages, networkMessages);

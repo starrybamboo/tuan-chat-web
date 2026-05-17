@@ -1,54 +1,22 @@
 export type SpaceDocId = string;
 
-export type SpaceDocDescriptor
-  = | { kind: "space_description"; spaceId: number }
-    | { kind: "room_description"; roomId: number }
-    | { kind: "independent"; docId: number };
+export type SpaceDocDescriptor = { kind: "independent"; docId: number };
 
 /**
- * Space 内文档的 docId 规范（仅需在一个 space/workspace 内唯一）。
- *
- * 约束：
- * - 仅本地存储（Demo 阶段），因此不需要全局唯一。
- * - 仍建议保持可解析、可演进。
+ * Space 文档现在直接复用 DOC_ROOM 的 roomId。
+ * 前端 docId 保持字符串形态，是为了和本地缓存、路由参数共用一套键。
  */
 export function buildSpaceDocId(desc: SpaceDocDescriptor): SpaceDocId {
-  if (desc.kind === "space_description")
-    return `space:${desc.spaceId}:description`;
-
-  if (desc.kind === "room_description")
-    return `room:${desc.roomId}:description`;
-
-  // independent
-  return `sdoc:${desc.docId}:description`;
+  return String(desc.docId);
 }
 
 export function parseSpaceDocId(docId: string): SpaceDocDescriptor | null {
-  const parts = docId.split(":");
-  if (parts.length < 2)
+  const normalized = typeof docId === "string" ? docId.trim() : "";
+  if (!/^\d+$/.test(normalized))
     return null;
 
-  const [type, idRaw, ...rest] = parts;
-  if (type === "space" && rest.join(":") === "description") {
-    const spaceId = Number(idRaw);
-    if (!Number.isFinite(spaceId) || spaceId <= 0)
-      return null;
-    return { kind: "space_description", spaceId };
-  }
-
-  if (type === "room" && rest.join(":") === "description") {
-    const roomId = Number(idRaw);
-    if (!Number.isFinite(roomId) || roomId <= 0)
-      return null;
-    return { kind: "room_description", roomId };
-  }
-
-  if (type === "sdoc" && rest.join(":") === "description") {
-    const id = Number(idRaw);
-    if (!Number.isFinite(id) || id <= 0)
-      return null;
-    return { kind: "independent", docId: id };
-  }
-
-  return null;
+  const id = Number(normalized);
+  if (!Number.isFinite(id) || id <= 0)
+    return null;
+  return { kind: "independent", docId: id };
 }

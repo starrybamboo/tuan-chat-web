@@ -1,5 +1,6 @@
 import type { UserRole } from "../../../../api";
 import React, { useImperativeHandle, useRef } from "react";
+import { extractEditablePlainText } from "@/components/chat/input/chatInputPlainText";
 import { getEditorRange } from "@/utils/getSelectionCoords";
 
 // --- 外部接口 ---
@@ -112,9 +113,8 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     if (!editorDiv)
       return { mentionedRoles: [], textWithoutMentions: "" };
 
-    const clone = editorDiv.cloneNode(true) as HTMLDivElement;
     const mentionedRoles: UserRole[] = [];
-    const mentionSpans = clone.querySelectorAll<HTMLSpanElement>("span[data-role]");
+    const mentionSpans = editorDiv.querySelectorAll<HTMLSpanElement>("span[data-role]");
 
     mentionSpans.forEach((span) => {
       const roleData = span.dataset.role;
@@ -129,10 +129,9 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
           console.error("Failed to parse role data", e);
         }
       }
-      span.parentNode?.removeChild(span);
     });
 
-    const text = (clone.textContent ?? "").replace(/\u00A0/g, " "); // 将提及 span 留下的非断行空格转换回普通空格
+    const text = extractEditablePlainText(editorDiv, { omitMentions: true });
     return { mentionedRoles, textWithoutMentions: text };
   };
 
@@ -140,11 +139,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
    *  获取纯文本。
    */
   const getPlainText = (): string => {
-    return internalTextareaRef.current?.textContent || "";
-    // return content
-    //   .replace(/<br\s*\/?>/gi, "\n")
-    //   .replace(/&nbsp;/g, " ")
-    //   .replace(/<[^>]+(>|$)/g, ""); // 移除所有其他 HTML
+    return extractEditablePlainText(internalTextareaRef.current);
   };
 
   /**

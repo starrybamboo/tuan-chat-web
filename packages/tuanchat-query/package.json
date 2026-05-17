@@ -5,7 +5,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./chat": "./src/chat.ts",
+    "./direct-message": "./src/direct-message.ts",
+    "./message-sessions": "./src/message-sessions.ts",
     "./members": "./src/members.ts",
+    "./notifications": "./src/notifications.ts",
+    "./room-roles": "./src/room-roles.ts",
     "./spaces": "./src/spaces.ts",
     "./users": "./src/users.ts"
   },

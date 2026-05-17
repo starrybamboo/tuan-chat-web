@@ -1,0 +1,240 @@
+import type { Room } from "@tuanchat/openapi-client/models/Room";
+
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
+
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing } from "@/constants/theme";
+import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments, type MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
+import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
+import { useTheme } from "@/hooks/use-theme";
+import { mobileApiClient } from "@/lib/api";
+
+const ROOM_TYPE_GAME = 1;
+const ROOM_TYPE_ALL_MEMBER = 2;
+
+const ROOM_TYPES = [
+  { label: "全员房间", value: ROOM_TYPE_ALL_MEMBER },
+  { label: "游戏房间", value: ROOM_TYPE_GAME },
+] as const;
+
+const styles = StyleSheet.create({
+  overlay: {
+    backgroundColor: "rgba(0,0,0,0.5)",
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    paddingBottom: Spacing.xxxl,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.xl,
+  },
+  handle: {
+    alignSelf: "center",
+    borderRadius: 2,
+    height: 4,
+    marginBottom: Spacing.xl,
+    width: 36,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: Spacing.lg,
+  },
+  input: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    fontSize: 15,
+    marginBottom: Spacing.lg,
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  typeLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: Spacing.sm,
+  },
+  typeRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  typeChip: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 40,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  avatarButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  button: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+});
+
+interface CreateRoomSheetProps {
+  onClose: () => void;
+  onCreated?: (room: Room) => void;
+  spaceId: number;
+  visible: boolean;
+}
+
+export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: CreateRoomSheetProps) {
+  const theme = useTheme();
+  const [name, setName] = useState("");
+  const [roomType, setRoomType] = useState<number>(ROOM_TYPE_ALL_MEMBER);
+  const [avatarAttachment, setAvatarAttachment] = useState<MobileMessageAttachment | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handlePickAvatar = async () => {
+    setErrorMessage(null);
+    try {
+      const [picked] = await pickMobileMessageAttachments(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE);
+      if (picked) {
+        setAvatarAttachment(picked);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "选择头像失败。");
+    }
+  };
+
+  const handleCreate = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || loading) return;
+
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const uploaded = avatarAttachment
+        ? await uploadMobileMessageAttachments(mobileApiClient, [avatarAttachment])
+        : null;
+      const avatarFileId = uploaded?.uploadedImages[0]?.fileId;
+      const result = await mobileApiClient.spaceController.createRoom({
+        spaceId,
+        roomName: trimmed,
+        ...(avatarFileId ? { avatarFileId } : {}),
+      });
+      const room = result.data;
+      if (!result.success || !room?.roomId) {
+        throw new Error(result.errMsg || "创建房间失败。");
+      }
+      setName("");
+      setRoomType(ROOM_TYPE_ALL_MEMBER);
+      setAvatarAttachment(null);
+      onClose();
+      onCreated?.(room);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "创建房间失败。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface }]} onStartShouldSetResponder={() => true}>
+          <View style={[styles.handle, { backgroundColor: theme.border }]} />
+          <ThemedText style={styles.title}>创建房间</ThemedText>
+
+          <TextInput
+            autoFocus
+            onChangeText={setName}
+            placeholder="房间名称"
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+            value={name}
+          />
+
+          <ThemedText style={styles.typeLabel} themeColor="textSecondary">房间类型</ThemedText>
+          <View style={styles.typeRow}>
+            {ROOM_TYPES.map((t) => {
+              const selected = roomType === t.value;
+              return (
+                <Pressable
+                  key={t.value}
+                  onPress={() => setRoomType(t.value)}
+                  style={[
+                    styles.typeChip,
+                    {
+                      backgroundColor: selected ? theme.accentMuted : theme.background,
+                      borderColor: selected ? theme.accent : theme.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={{ fontSize: 13, fontWeight: selected ? "700" : "400", color: selected ? theme.accent : theme.text }}
+                  >
+                    {t.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Pressable
+            disabled={loading}
+            onPress={() => void handlePickAvatar()}
+            style={[styles.avatarButton, { borderColor: theme.border, backgroundColor: theme.background }]}
+          >
+            <ThemedText type="small" themeColor={avatarAttachment ? "text" : "textSecondary"}>
+              {avatarAttachment ? `头像：${avatarAttachment.fileName}` : "选择房间头像（可选）"}
+            </ThemedText>
+          </Pressable>
+
+          {errorMessage ? (
+            <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
+              {errorMessage}
+            </ThemedText>
+          ) : null}
+
+          <Pressable
+            disabled={!name.trim() || loading}
+            onPress={handleCreate}
+            style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <ThemedText style={styles.buttonText}>创建</ThemedText>
+            )}
+          </Pressable>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}

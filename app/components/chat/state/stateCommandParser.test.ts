@@ -52,6 +52,43 @@ describe("stateCommandParser", () => {
     });
   });
 
+  it("支持带符号数值和属性名连写的 .st 变量增减命令", () => {
+    expect(parseSimpleStateCommand({
+      curRoleId: 3,
+      inputText: ".st hp+6",
+      inputTextWithoutMentions: ".st hp+6",
+      mentionedRoleCount: 0,
+    })).toEqual({
+      content: ".st hp+6",
+      stateEvent: {
+        source: {
+          kind: "command",
+          commandName: "st",
+          parserVersion: "state-event-v1",
+        },
+        events: [{
+          type: "varOp",
+          scope: {
+            kind: "role",
+            roleId: 3,
+          },
+          key: "hp",
+          op: "add",
+          value: 6,
+        }],
+      },
+    });
+  });
+
+  it("保留无空格无符号 .st 直写给旧属性设置命令处理", () => {
+    expect(parseSimpleStateCommand({
+      curRoleId: 3,
+      inputText: ".st hp10",
+      inputTextWithoutMentions: ".st hp10",
+      mentionedRoleCount: 0,
+    })).toBeNull();
+  });
+
   it("在没有角色 ID 时拒绝解析 .st", () => {
     expect(parseSimpleStateCommand({
       curRoleId: 0,

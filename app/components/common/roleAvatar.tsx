@@ -108,28 +108,41 @@ export default function RoleAvatarComponent({
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <button
-          type="button"
-          className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
-          onClick={() => {
-            if (!stopToastWindow) {
-              setIsOpen(true);
-            }
-          }}
-        >
-          {!hasAvatar
-            ? (
-                <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
-              )
-            : (
-                <ImgWithHoverToScale
-                  enableScale={hoverToScale}
-                  src={displayAvatarUrl}
-                  alt={alt}
-                  className={`${!stopToastWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
-                />
-              )}
-        </button>
+        {stopToastWindow
+          ? (
+              <div
+                className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
+              >
+                {!hasAvatar
+                  ? <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
+                  : (
+                      <ImgWithHoverToScale
+                        enableScale={hoverToScale}
+                        src={displayAvatarUrl}
+                        alt={alt}
+                        className="transition-transform w-full h-full object-cover"
+                      />
+                    )}
+              </div>
+            )
+          : (
+              <button
+                type="button"
+                className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
+                onClick={() => setIsOpen(true)}
+              >
+                {!hasAvatar
+                  ? <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
+                  : (
+                      <ImgWithHoverToScale
+                        enableScale={hoverToScale}
+                        src={displayAvatarUrl}
+                        alt={alt}
+                        className="hover:scale-110 transition-transform w-full h-full object-cover"
+                      />
+                    )}
+              </button>
+            )}
       </div>
       {withTitle && (
         <div className="text-xs truncate max-w-full">

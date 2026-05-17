@@ -11,7 +11,13 @@ import type { MessageDraft } from "@/types/messageDraft";
 import { DotsSixVerticalIcon } from "@phosphor-icons/react";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  getRemoteDocRoomSnapshot,
+  readDocRoomSnapshotMessages,
+  syncRemoteDocRoomSnapshot,
+} from "@/components/chat/infra/doc/document/docRoomSyncApi";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -240,15 +246,23 @@ export default function MessageEditor({
   docId,
   excerpt: _excerpt,
   readOnly = false,
-  spaceId: _spaceId,
+  spaceId,
   tcHeader,
   title,
-  workspaceId: _workspaceId,
+  workspaceId,
 }: MessageEditorProps) {
   const frameClassName = getMessageEditorFrameClassName(className);
   const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
   const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
   const resolvedDocId = docId?.trim() || undefined;
+  const resolvedSpaceId = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0 ? spaceId : undefined;
+  const resolvedWorkspaceId = workspaceId?.trim() || undefined;
+  const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : undefined;
+  const shouldSyncRemote = Boolean(
+    resolvedDocRoomId
+    && resolvedSpaceId
+    && (!resolvedWorkspaceId || resolvedWorkspaceId.startsWith("space:")),
+  );
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -287,6 +301,8 @@ export default function MessageEditor({
   const registry = useMemo(() => createMessageEditorRegistry(), []);
   const eventBus = useMemo(() => new MessageEditorEventBus(), []);
   const lastSavedSerializedRef = useRef("");
+  const remoteRevisionRef = useRef<number | null>(null);
+  const saveGenerationRef = useRef(0);
 
   const clearCrossBlockSelection = useCallback(() => {
     pointerSelectionRef.current = null;
@@ -495,27 +511,63 @@ export default function MessageEditor({
       }
     });
 
-    const cached = resolvedDocId ? getCachedDocSnapshot(resolvedDocId) : null;
-    const fallback = resolvedDocId
-      ? [createMessageEditorTextDraft()]
-      : (messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
-    const decoded = ensureMessageEditorMessages(cached ? decodeMessageEditorMessages(cached) : fallback);
-    resetHistory();
-    messagesRef.current = decoded;
-    lastSavedSerializedRef.current = cached?.updateB64 ?? createMessageEditorSnapshot(decoded).updateB64;
-    queueMicrotask(() => {
+    void (async () => {
+      await Promise.resolve();
+      const cached = resolvedDocId ? getCachedDocSnapshot(resolvedDocId) : null;
+      const persisted = cached ?? (resolvedDocId
+        ? await getPersistedDocSnapshot(resolvedDocId).catch(() => null)
+        : null);
+      const remote = shouldSyncRemote && resolvedDocRoomId
+        ? await getRemoteDocRoomSnapshot({ roomId: resolvedDocRoomId }).catch((error) => {
+            console.warn("[MessageEditor] load remote doc room snapshot failed", error);
+            return null;
+          })
+        : null;
+
       if (cancelled) {
         return;
       }
+
+      if (resolvedDocId && persisted && !cached) {
+        setCachedDocSnapshot(resolvedDocId, persisted);
+      }
+
+      const remoteRevision = typeof remote?.revision === "number" ? remote.revision : null;
+      remoteRevisionRef.current = remoteRevision;
+
+      const fallback = resolvedDocId
+        ? [createMessageEditorTextDraft()]
+        : (messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
+      const shouldUseRemote = remoteRevision !== null && remoteRevision > 0;
+      const decoded = shouldUseRemote
+        ? ensureMessageEditorMessages(readDocRoomSnapshotMessages(remote))
+        : ensureMessageEditorMessages(persisted ? decodeMessageEditorMessages(persisted) : fallback);
+      const loadedSnapshot = createMessageEditorSnapshot(decoded, shouldUseRemote ? remote?.updatedAt : undefined);
+      if (shouldUseRemote && resolvedDocId) {
+        setCachedDocSnapshot(resolvedDocId, loadedSnapshot);
+        void setPersistedDocSnapshot(resolvedDocId, loadedSnapshot).catch((error) => {
+          console.warn("[MessageEditor] cache remote doc room snapshot failed", error);
+        });
+      }
+      const shouldUploadLocalAfterLoad = shouldSyncRemote
+        && !readOnly
+        && Boolean(persisted)
+        && remoteRevision === 0
+        && !shouldUseRemote;
+      resetHistory();
+      messagesRef.current = decoded;
+      lastSavedSerializedRef.current = shouldUploadLocalAfterLoad
+        ? ""
+        : (shouldUseRemote ? loadedSnapshot.updateB64 : (persisted?.updateB64 ?? loadedSnapshot.updateB64));
       setMessages(decoded);
       setSaveState("idle");
       setReady(true);
-    });
+    })();
 
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, resetHistory, resolvedDocId]);
+  }, [hideToolbar, readOnly, resetHistory, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
 
   useEffect(() => {
     if (!ready || readOnly || !resolvedDocId) {
@@ -528,16 +580,74 @@ export default function MessageEditor({
     }
 
     const timer = window.setTimeout(() => {
+      const saveGeneration = saveGenerationRef.current + 1;
+      saveGenerationRef.current = saveGeneration;
       setSaveState("saving");
-      lastSavedSerializedRef.current = snapshot.updateB64;
       setCachedDocSnapshot(resolvedDocId, snapshot);
-      setSaveState("saved");
+      void setPersistedDocSnapshot(resolvedDocId, snapshot)
+        .then(async () => {
+          if (shouldSyncRemote && resolvedDocRoomId) {
+            const remote = await syncRemoteDocRoomSnapshot({
+              baseRevision: remoteRevisionRef.current,
+              messages,
+              roomId: resolvedDocRoomId,
+            });
+            if (remote.conflict) {
+              remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
+              throw new Error("文档云端版本已变化");
+            }
+            remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
+          }
+          if (saveGenerationRef.current === saveGeneration) {
+            lastSavedSerializedRef.current = snapshot.updateB64;
+            setSaveState("saved");
+          }
+        })
+        .catch((error) => {
+          console.error("[MessageEditor] persist snapshot failed", error);
+          if (saveGenerationRef.current === saveGeneration) {
+            setSaveState("error");
+          }
+        });
     }, 500);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [messages, readOnly, ready, resolvedDocId]);
+  }, [messages, readOnly, ready, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
+
+  useEffect(() => {
+    return () => {
+      saveGenerationRef.current += 1;
+      if (readOnly || !resolvedDocId) {
+        return;
+      }
+
+      const snapshot = createMessageEditorSnapshot(messagesRef.current);
+      if (snapshot.updateB64 === lastSavedSerializedRef.current) {
+        return;
+      }
+
+      lastSavedSerializedRef.current = snapshot.updateB64;
+      setCachedDocSnapshot(resolvedDocId, snapshot);
+      void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
+        console.error("[MessageEditor] flush snapshot failed", error);
+      });
+      if (shouldSyncRemote && resolvedDocRoomId) {
+        void syncRemoteDocRoomSnapshot({
+          baseRevision: remoteRevisionRef.current,
+          messages: messagesRef.current,
+          roomId: resolvedDocRoomId,
+        }).then((remote) => {
+          if (!remote.conflict && typeof remote.revision === "number") {
+            remoteRevisionRef.current = remote.revision;
+          }
+        }).catch((error) => {
+          console.warn("[MessageEditor] flush remote doc room snapshot failed", error);
+        });
+      }
+    };
+  }, [readOnly, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {

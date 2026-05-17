@@ -106,26 +106,6 @@ export default function SpaceHeaderBar({
     };
   }, [isOptionsMenuOpen]);
 
-  const cleanupDissolvedSpaceDoc = React.useCallback(async (targetSpaceId: number) => {
-    // 解散空间会级联解散房间；这里额外清理空间描述文档，避免本地残留引用。
-    if (typeof window === "undefined") {
-      return;
-    }
-    try {
-      const [{ deleteSpaceDoc }, { buildSpaceDocId }] = await Promise.all([
-        import("@/components/chat/infra/doc/space/deleteSpaceDoc"),
-        import("@/components/chat/infra/doc/space/spaceDocId"),
-      ]);
-      await deleteSpaceDoc({
-        spaceId: targetSpaceId,
-        docId: buildSpaceDocId({ kind: "space_description", spaceId: targetSpaceId }),
-      });
-    }
-    catch {
-      // ignore
-    }
-  }, []);
-
   const handleToggleArchive = async (targetSpaceId: number, nextArchived: boolean) => {
     if (archiveActionPending) {
       return;
@@ -180,7 +160,6 @@ export default function SpaceHeaderBar({
     toast.loading("正在解散空间...", { id: toastId });
     try {
       await dissolveSpace.mutateAsync(targetSpaceId);
-      await cleanupDissolvedSpaceDoc(targetSpaceId);
       clearCurrentSpaceSelection();
       toast.success("空间已解散", { id: toastId });
     }
