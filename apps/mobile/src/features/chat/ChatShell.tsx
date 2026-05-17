@@ -15,7 +15,7 @@ import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
 import { getAllRoomMessagesQueryKey, markRoomMessageDeletedData, selectVisibleMainRoomMessages } from "@tuanchat/query/chat";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import {
   startTransition,
   useCallback,
@@ -33,7 +33,7 @@ import {
   View,
 } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import Animated from "react-native-reanimated";
+import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
@@ -167,7 +167,31 @@ export default function ChatShell() {
     leftDrawerStyle,
     rightDrawerStyle,
     overlayStyle,
+    translateX,
   } = useGestureDrawer();
+  const navigation = useNavigation();
+
+  const applyTabBarVisibility = useCallback((visible: boolean) => {
+    navigation.setOptions({
+      tabBarStyle: visible
+        ? {
+            backgroundColor: "#0d1117",
+            borderTopColor: "#30363d",
+            borderTopWidth: 0.5,
+          }
+        : { display: "none" },
+    });
+  }, [navigation]);
+
+  useAnimatedReaction(
+    () => translateX.value >= LEFT_DRAWER_WIDTH * 0.5,
+    (isShowing, prev) => {
+      if (isShowing !== prev) {
+        runOnJS(applyTabBarVisibility)(isShowing);
+      }
+    },
+    [applyTabBarVisibility],
+  );
 
   const spacesQuery = useUserActiveSpacesQuery();
   const roomsQuery = useUserRoomsQuery(selectedSpaceId);
