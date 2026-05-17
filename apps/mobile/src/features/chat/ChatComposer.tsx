@@ -17,13 +17,12 @@ import {
 } from "@/features/messages/mobileMessageAttachment";
 import {
   getMobileMessageInputPlaceholder,
-  getMobileMessageModeHint,
   getMobileMessageModeLabel,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
 import { useTheme } from "@/hooks/use-theme";
-import { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "@/lib/layout-constants";
 import { SPRING_SNAPPY } from "@/lib/animations";
+import { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
 
 import { getMessagePreview } from "./mobileChatUtils";
@@ -94,18 +93,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
-  modeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.sm,
-  },
-  modeChip: {
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xs,
-  },
   roleIdInput: {
     borderRadius: Radius.full,
     fontSize: 13,
@@ -114,32 +101,49 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   inputRow: {
-    alignItems: "flex-end",
+    alignItems: "center",
     flexDirection: "row",
     gap: Spacing.sm,
+  },
+  toolbarRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
   toolButton: {
     alignItems: "center",
     borderRadius: Radius.full,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
+  modeButton: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    flexDirection: "row",
     height: 36,
     justifyContent: "center",
-    width: 36,
+    paddingHorizontal: Spacing.lg,
   },
   input: {
-    borderRadius: 20,
+    borderRadius: 22,
     flex: 1,
     fontSize: 15,
     maxHeight: COMPOSER_MAX_HEIGHT,
     minHeight: COMPOSER_MIN_HEIGHT,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
+    textAlignVertical: "top",
   },
   sendButton: {
     alignItems: "center",
-    borderRadius: Radius.full,
-    height: 36,
+    borderRadius: 18,
+    height: 44,
     justifyContent: "center",
-    width: 36,
+    minWidth: 64,
+    paddingHorizontal: Spacing.xl,
   },
   roleButton: {
     alignItems: "center",
@@ -167,12 +171,15 @@ function getMentionRoleColor(roleId: number) {
  */
 function getMentionQuery(text: string): string | null {
   const lastAtIndex = text.lastIndexOf("@");
-  if (lastAtIndex === -1) return null;
+  if (lastAtIndex === -1)
+    return null;
   // Only trigger if "@" is at the start or preceded by a space/newline
-  if (lastAtIndex > 0 && !/\s/.test(text[lastAtIndex - 1])) return null;
+  if (lastAtIndex > 0 && !/\s/.test(text[lastAtIndex - 1]))
+    return null;
   const query = text.slice(lastAtIndex + 1);
   // Don't show mention list if there's a space after the query (user finished typing)
-  if (query.includes(" ")) return null;
+  if (query.includes(" "))
+    return null;
   return query;
 }
 
@@ -256,11 +263,13 @@ export function ChatComposer({
   const showMentionList = mentionQuery !== null && (availableRoles?.length ?? 0) > 0;
 
   const filteredMentionRoles = useMemo(() => {
-    if (mentionQuery === null || !availableRoles) return [];
-    if (mentionQuery === "") return availableRoles;
+    if (mentionQuery === null || !availableRoles)
+      return [];
+    if (mentionQuery === "")
+      return availableRoles;
     const q = mentionQuery.toLowerCase();
     return availableRoles.filter(
-      (r) => (r.roleName ?? "").toLowerCase().includes(q),
+      r => (r.roleName ?? "").toLowerCase().includes(q),
     );
   }, [mentionQuery, availableRoles]);
 
@@ -271,153 +280,100 @@ export function ChatComposer({
     onChangeDraftMessage(`${before}@${roleName} `);
   };
 
+  const handleChangeMessageText = (nextText: string) => {
+    // 删除换行或大段文本时，先回到最小高度，再等待 contentSize 重新测量，
+    // 避免 TextInput 保持旧高度不收缩。
+    if (nextText.length < draftMessage.length) {
+      setInputHeight(COMPOSER_MIN_HEIGHT);
+    }
+    onChangeDraftMessage(nextText);
+  };
+
+  const handleCycleMessageMode = () => {
+    const currentIndex = messageModes.indexOf(messageMode);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % messageModes.length : 0;
+    const nextMode = messageModes[nextIndex] ?? MOBILE_MESSAGE_MODE.TEXT;
+    onChangeMessageMode(nextMode);
+  };
+
   return (
     <View style={styles.composerWrapper}>
-      {showMentionList && filteredMentionRoles.length > 0 ? (
-        <FlatList
-          data={filteredMentionRoles}
-          keyExtractor={(item) => String(item.roleId)}
-          keyboardShouldPersistTaps="handled"
-          style={[styles.mentionList, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => handleSelectMention(item)}
-              style={({ pressed }) => [styles.mentionItem, pressed && { backgroundColor: theme.backgroundElement }]}
-            >
-              {item.avatarFileId ? (
-                <Image source={{ uri: avatarThumbUrl(item.avatarFileId) }} style={styles.mentionAvatar} />
-              ) : (
-                <View style={[styles.mentionAvatar, { backgroundColor: getMentionRoleColor(item.roleId) }]}>
-                  <ThemedText style={styles.mentionAvatarText}>
-                    {(item.roleName ?? "").slice(0, 1) || "R"}
-                  </ThemedText>
-                </View>
+      {showMentionList && filteredMentionRoles.length > 0
+        ? (
+            <FlatList
+              data={filteredMentionRoles}
+              keyExtractor={item => String(item.roleId)}
+              keyboardShouldPersistTaps="handled"
+              style={[styles.mentionList, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => handleSelectMention(item)}
+                  style={({ pressed }) => [styles.mentionItem, pressed && { backgroundColor: theme.backgroundElement }]}
+                >
+                  {item.avatarFileId
+                    ? (
+                        <Image source={{ uri: avatarThumbUrl(item.avatarFileId) }} style={styles.mentionAvatar} />
+                      )
+                    : (
+                        <View style={[styles.mentionAvatar, { backgroundColor: getMentionRoleColor(item.roleId) }]}>
+                          <ThemedText style={styles.mentionAvatarText}>
+                            {(item.roleName ?? "").slice(0, 1) || "R"}
+                          </ThemedText>
+                        </View>
+                      )}
+                  <ThemedText type="small">{item.roleName ?? `角色 #${item.roleId}`}</ThemedText>
+                </Pressable>
               )}
-              <ThemedText type="small">{item.roleName ?? `角色 #${item.roleId}`}</ThemedText>
-            </Pressable>
-          )}
-        />
-      ) : null}
+            />
+          )
+        : null}
 
       <View style={styles.container}>
-        {anchorMessage ? (
-          <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
-            <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
-              回复 {getMessagePreview(anchorMessage)}
-            </ThemedText>
-            <Pressable onPress={onClearAnchor}>
-              <SymbolView name={{ ios: "xmark", android: "close", web: "close" }} size={14} tintColor={theme.textSecondary} />
-            </Pressable>
-          </View>
-        ) : null}
-
-        {messageAttachments.length > 0 ? (
-          <View style={styles.attachmentRow}>
-            {messageAttachments.map((a) => (
-              <View key={a.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
-                <ThemedText type="caption" numberOfLines={1}>{a.fileName}</ThemedText>
-                <Pressable onPress={() => onRemoveAttachment(a.id)}>
-                  <SymbolView name={{ ios: "xmark.circle.fill", android: "cancel", web: "close" }} size={14} tintColor={theme.textSecondary} />
+        {anchorMessage
+          ? (
+              <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
+                <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
+                  回复
+                  {" "}
+                  {getMessagePreview(anchorMessage)}
+                </ThemedText>
+                <Pressable onPress={onClearAnchor}>
+                  <SymbolView name={{ ios: "xmark", android: "close", web: "close" }} size={14} tintColor={theme.textSecondary} />
                 </Pressable>
               </View>
-            ))}
-            <Pressable onPress={onClearAttachments} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
-            </Pressable>
-          </View>
-        ) : null}
+            )
+          : null}
 
-        <AnnotationBar
-          annotations={annotations}
-          canEdit
-          onToggle={onToggleAnnotation}
-          onOpenPicker={onOpenAnnotationPicker}
-        />
-
-        <View style={styles.modeRow}>
-          {messageModes.map(mode => (
-            <Pressable
-              disabled={isSubmitting}
-              key={mode}
-              onPress={() => onChangeMessageMode(mode)}
-              style={[
-                styles.modeChip,
-                {
-                  backgroundColor: mode === messageMode ? theme.accentMuted : theme.surface,
-                  borderColor: mode === messageMode ? theme.accent : theme.border,
-                },
-              ]}
-            >
-              <ThemedText
-                type="caption"
-                style={{ color: mode === messageMode ? theme.accent : theme.textSecondary }}
-              >
-                {getMobileMessageModeLabel(mode)}
-              </ThemedText>
-            </Pressable>
-          ))}
-          {messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT ? (
-            <TextInput
-              editable={!isSubmitting}
-              keyboardType="number-pad"
-              onChangeText={onChangeDraftRoleIdInput}
-              placeholder="角色 ID"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.roleIdInput,
-                {
-                  backgroundColor: theme.surface,
-                  color: theme.text,
-                },
-              ]}
-              value={draftRoleIdInput}
-            />
-          ) : null}
-        </View>
-
-        <ThemedText type="caption" themeColor="textSecondary" style={{ marginHorizontal: Spacing.sm }}>
-          {submitPhase === "uploading" ? "正在上传附件..." : getMobileMessageModeHint(messageMode)}
-        </ThemedText>
+        {messageAttachments.length > 0
+          ? (
+              <View style={styles.attachmentRow}>
+                {messageAttachments.map(a => (
+                  <View key={a.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                    <ThemedText type="caption" numberOfLines={1}>{a.fileName}</ThemedText>
+                    <Pressable onPress={() => onRemoveAttachment(a.id)}>
+                      <SymbolView name={{ ios: "xmark.circle.fill", android: "cancel", web: "close" }} size={14} tintColor={theme.textSecondary} />
+                    </Pressable>
+                  </View>
+                ))}
+                <Pressable onPress={onClearAttachments} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                  <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
+                </Pressable>
+              </View>
+            )
+          : null}
 
         <View style={styles.inputRow}>
-          {canUseAttachments ? (
-            <Pressable
-              disabled={isSubmitting}
-              onPress={() => onPickAttachment(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE)}
-              style={styles.toolButton}
-            >
-              <SymbolView name={{ ios: "plus", android: "add", web: "add" }} size={20} tintColor={theme.textSecondary} weight="medium" />
-            </Pressable>
-          ) : null}
-
-          {canUseExpressionPicker && onOpenExpressionPicker ? (
-            <Pressable onPress={onOpenExpressionPicker} style={styles.toolButton}>
-              <SymbolView name={{ ios: "face.smiling", android: "mood", web: "mood" }} size={20} tintColor={theme.textSecondary} weight="medium" />
-            </Pressable>
-          ) : null}
-
-          <Pressable onPress={onOpenRoleSwitch} style={styles.toolButton}>
-            {currentRole?.avatarFileId ? (
-              <Image source={{ uri: avatarThumbUrl(currentRole.avatarFileId) }} style={styles.roleButton} />
-            ) : (
-              <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : "#6366f1" }]}>
-                <ThemedText style={styles.roleButtonText}>
-                  {currentRole ? (currentRole.roleName ?? "").slice(0, 1) || "R" : "旁"}
-                </ThemedText>
-              </View>
-            )}
-          </Pressable>
-
           <TextInput
             editable={!isSubmitting}
             multiline
-            onChangeText={onChangeDraftMessage}
+            onChangeText={handleChangeMessageText}
             onContentSizeChange={(e) => {
               const h = e.nativeEvent.contentSize.height;
               setInputHeight(Math.min(Math.max(h, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT));
             }}
             placeholder={inputPlaceholder}
             placeholderTextColor={theme.textSecondary}
+            scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
             style={[
               styles.input,
               {
@@ -433,20 +389,122 @@ export function ChatComposer({
             <Pressable
               disabled={isSubmitting || !canSend}
               onPress={onSend}
-              style={[styles.sendButton, { backgroundColor: canSend ? theme.accent : "transparent" }]}
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: canSend ? theme.accent : theme.backgroundElement,
+                },
+              ]}
             >
               {isSubmitting
                 ? <ActivityIndicator color="#fff" size="small" />
-                : canSend
-                  ? <SymbolView name={{ ios: "arrow.up", android: "arrow_upward", web: "arrow_upward" }} size={16} tintColor="#fff" weight="bold" />
-                  : <SymbolView name={{ ios: "mic.fill", android: "mic", web: "mic" }} size={18} tintColor={theme.textSecondary} weight="medium" />}
+                : <ThemedText type="smallBold" style={{ color: canSend ? "#fff" : theme.textSecondary }}>发送</ThemedText>}
             </Pressable>
           </Animated.View>
         </View>
 
-        {errorMessage ? (
-          <ThemedText style={{ color: theme.danger, fontSize: 12, marginHorizontal: Spacing.sm }}>{errorMessage}</ThemedText>
-        ) : null}
+        <View style={styles.toolbarRow}>
+          {canUseAttachments
+            ? (
+                <Pressable
+                  disabled={isSubmitting}
+                  onPress={() => onPickAttachment(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE)}
+                  style={styles.toolButton}
+                >
+                  <SymbolView name={{ ios: "photo.on.rectangle", android: "image", web: "image" }} size={20} tintColor={theme.textSecondary} weight="medium" />
+                </Pressable>
+              )
+            : null}
+
+          {canUseExpressionPicker && onOpenExpressionPicker
+            ? (
+                <Pressable disabled={isSubmitting} onPress={onOpenExpressionPicker} style={styles.toolButton}>
+                  <SymbolView name={{ ios: "face.smiling", android: "mood", web: "mood" }} size={20} tintColor={theme.textSecondary} weight="medium" />
+                </Pressable>
+              )
+            : null}
+
+          <Pressable disabled={isSubmitting} onPress={onOpenAnnotationPicker} style={styles.toolButton}>
+            <SymbolView name={{ ios: "slider.horizontal.3", android: "tune", web: "tune" }} size={20} tintColor={theme.textSecondary} weight="medium" />
+          </Pressable>
+
+          <Pressable
+            disabled={isSubmitting}
+            onPress={handleCycleMessageMode}
+            style={[
+              styles.modeButton,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              {getMobileMessageModeLabel(messageMode)}
+            </ThemedText>
+          </Pressable>
+
+          {messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT
+            ? (
+                <TextInput
+                  editable={!isSubmitting}
+                  keyboardType="number-pad"
+                  onChangeText={onChangeDraftRoleIdInput}
+                  placeholder="角色 ID"
+                  placeholderTextColor={theme.textSecondary}
+                  style={[
+                    styles.roleIdInput,
+                    {
+                      backgroundColor: theme.surface,
+                      color: theme.text,
+                    },
+                  ]}
+                  value={draftRoleIdInput}
+                />
+              )
+            : null}
+
+          <View style={{ flex: 1 }} />
+
+          <Pressable onPress={onOpenRoleSwitch} style={styles.toolButton}>
+            {currentRole?.avatarFileId
+              ? (
+                  <Image source={{ uri: avatarThumbUrl(currentRole.avatarFileId) }} style={styles.roleButton} />
+                )
+              : (
+                  <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : "#6366f1" }]}>
+                    <ThemedText style={styles.roleButtonText}>
+                      {currentRole ? (currentRole.roleName ?? "").slice(0, 1) || "R" : "旁"}
+                    </ThemedText>
+                  </View>
+                )}
+          </Pressable>
+        </View>
+
+        {annotations.length > 0
+          ? (
+              <AnnotationBar
+                annotations={annotations}
+                canEdit
+                onToggle={onToggleAnnotation}
+                onOpenPicker={onOpenAnnotationPicker}
+              />
+            )
+          : null}
+
+        {submitPhase === "uploading"
+          ? (
+              <ThemedText type="caption" themeColor="textSecondary" style={{ marginHorizontal: Spacing.sm }}>
+                正在上传附件...
+              </ThemedText>
+            )
+          : null}
+
+        {errorMessage
+          ? (
+              <ThemedText style={{ color: theme.danger, fontSize: 12, marginHorizontal: Spacing.sm }}>{errorMessage}</ThemedText>
+            )
+          : null}
       </View>
     </View>
   );
