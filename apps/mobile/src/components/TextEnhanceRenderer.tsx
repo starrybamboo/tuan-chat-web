@@ -80,26 +80,27 @@ function EnhancedText({ content, params, baseStyle }: EnhancedTextProps) {
 
 interface TextEnhanceRendererProps {
   content: string;
+  numberOfLines?: number;
   style?: StyleProp<TextStyle>;
 }
 
-export function TextEnhanceRenderer({ content, style }: TextEnhanceRendererProps) {
+export function TextEnhanceRenderer({ content, numberOfLines, style }: TextEnhanceRendererProps) {
   if (!content) return null;
 
   if (!content.includes("[") || !content.includes("](")) {
-    return <Text style={style}>{content}</Text>;
+    return <Text numberOfLines={numberOfLines} style={style}>{content}</Text>;
   }
 
   const segments = parseTextEnhanceSegments(content);
 
   if (segments.length === 1 && segments[0].type === "text") {
-    return <Text style={style}>{content}</Text>;
+    return <Text numberOfLines={numberOfLines} style={style}>{content}</Text>;
   }
 
   const flatStyle = StyleSheet.flatten(style) ?? undefined;
 
   return (
-    <Text style={style}>
+    <Text numberOfLines={numberOfLines} style={style}>
       {segments.map((segment, index) => {
         if (segment.type === "text") {
           return <React.Fragment key={index}>{segment.content}</React.Fragment>;
