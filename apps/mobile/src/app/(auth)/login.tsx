@@ -1,4 +1,5 @@
 import type { LoginMethod } from "@/features/auth/auth-session";
+import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
+import { executeLoginAction } from "@/features/auth/login-action";
 import { useTheme } from "@/hooks/use-theme";
 import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
 
@@ -58,7 +60,8 @@ const styles = StyleSheet.create({
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { isSigningIn, signIn } = useAuthSession();
+  const router = useRouter();
+  const { isAuthenticated, isSigningIn, signIn } = useAuthSession();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loginMethod, setLoginMethod] = useState<LoginMethod>("username");
@@ -67,9 +70,20 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setLoginError(null);
     try {
-      await signIn({ identifier, method: loginMethod, password });
+      await executeLoginAction({
+        identifier,
+        loginMethod,
+        password,
+        router: {
+          replace: (href) => {
+            router.replace(href as any);
+          },
+        },
+        signIn,
+      });
       setPassword("");
-    } catch (error) {
+    }
+    catch (error) {
       setLoginError(
         error instanceof Error && error.message.trim()
           ? error.message.trim()
@@ -77,6 +91,10 @@ export default function LoginScreen() {
       );
     }
   };
+
+  if (isAuthenticated) {
+    return <Redirect href={"/(tabs)" as any} />;
+  }
 
   return (
     <ThemedView style={styles.screen}>
@@ -136,7 +154,8 @@ export default function LoginScreen() {
             />
 
             <ThemedText themeColor="textSecondary" type="small">
-              API：{DEFAULT_TUANCHAT_API_BASE_URL}
+              API：
+              {DEFAULT_TUANCHAT_API_BASE_URL}
             </ThemedText>
 
             {loginError ? <ThemedText style={{ color: theme.danger, fontSize: 13 }}>{loginError}</ThemedText> : null}
