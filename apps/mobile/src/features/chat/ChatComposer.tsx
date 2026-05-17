@@ -358,6 +358,7 @@ export function ChatComposer({
                 backgroundColor: theme.surface,
                 color: theme.text,
                 height: inputHeight,
+                textAlignVertical: inputHeight > COMPOSER_MIN_HEIGHT ? "top" : "center",
               },
             ]}
             value={draftMessage}
