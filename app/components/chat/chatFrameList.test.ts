@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../api";
 
-import { resolveChatFrameFollowOutput } from "./chatFrameList";
+import { canReplyToSelection, resolveChatFrameFollowOutput } from "./chatFrameList";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function buildMessage(partial: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
@@ -66,5 +66,13 @@ describe("resolveChatFrameFollowOutput", () => {
   it("仅在仍位于底部时允许自动跟随", () => {
     expect(resolveChatFrameFollowOutput(true)).toBe(true);
     expect(resolveChatFrameFollowOutput(false)).toBe(false);
+  });
+});
+
+describe("多选回复启用条件", () => {
+  it("仅在恰好选中一条消息时允许回复", () => {
+    expect(canReplyToSelection(0)).toBe(false);
+    expect(canReplyToSelection(1)).toBe(true);
+    expect(canReplyToSelection(2)).toBe(false);
   });
 });

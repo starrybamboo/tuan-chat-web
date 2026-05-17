@@ -460,6 +460,15 @@ function ChatFrame(props: ChatFrameProps) {
       .sort(compareChatMessageResponsesByOrder);
   }, [historyMessages, selectedMessageIds]);
 
+  const handleReplySelection = useCallback(() => {
+    if (selectedMessages.length !== 1) {
+      toast.error("请选择 1 条消息进行回复");
+      return;
+    }
+    setReplyMessage(selectedMessages[0].message);
+    exitSelection();
+  }, [exitSelection, selectedMessages, setReplyMessage]);
+
   const handleSelectAll = useCallback(() => {
     const next = new Set(historyMessages.map(message => message.message.messageId));
     updateSelectedMessageIds(next);
@@ -616,6 +625,7 @@ function ChatFrame(props: ChatFrameProps) {
         handleBatchDelete,
         isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
         isSelecting,
+        onReplySelection: handleReplySelection,
         onSelectAll: handleSelectAll,
         onRegexFilter: () => setIsRegexSelectWindowOpen(true),
         onExportFile: handleExportFile,
