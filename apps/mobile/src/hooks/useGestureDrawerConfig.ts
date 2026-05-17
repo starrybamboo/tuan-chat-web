@@ -1,6 +1,6 @@
-export const DRAWER_ACTIVE_OFFSET_X = [-20, 20] as const;
+export const DRAWER_ACTIVE_OFFSET_X: [number, number] = [-20, 20];
 
-const DRAWER_FAIL_OFFSET_Y = [-10, 10] as const;
+const DRAWER_FAIL_OFFSET_Y: [number, number] = [-10, 10];
 
 /**
  * Horizontal drawer drag must yield to clear vertical scrolling so the chat
