@@ -164,7 +164,7 @@ function SplitButton({
 function DropdownPanel({ children }: { children: ReactNode }) {
   return (
     <div
-      className="absolute left-0 top-10 z-[41] min-w-48 rounded-md border border-base-300 bg-base-100 p-2.5 text-sm shadow-xl"
+      className="absolute left-0 top-10 z-41 min-w-48 rounded-md border border-base-300 bg-base-100 p-2.5 text-sm shadow-xl"
       onMouseDown={event => event.stopPropagation()}
       role="presentation"
     >
@@ -337,7 +337,7 @@ function AdvancedStyleDialog({
   };
 
   return (
-    <div className="flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3 p-4">
+    <div className="flex w-90 max-w-[calc(100vw-2rem)] flex-col gap-3 p-4">
       <div className="text-base font-medium">高级文本样式</div>
       <label className="flex flex-col gap-1">
         <FieldLabel>文本</FieldLabel>
