@@ -59,10 +59,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   rowOOC: {
-    borderColor: "rgba(210, 153, 34, 0.45)",
+    borderColor: "rgba(150, 150, 150, 0.2)",
     borderRadius: Radius.md,
     borderStyle: "dashed",
-    borderWidth: 1.5,
+    borderWidth: 1,
     marginHorizontal: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -259,7 +259,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
             !isGrouped && !narrator && !isOOC && styles.rowFull,
             isSelectedAnchor && styles.rowHighlight,
             isSelectedAnchor && { backgroundColor: theme.accentMuted },
-            isOOC && { backgroundColor: "rgba(210, 153, 34, 0.08)" },
+            isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
             animatedStyle,
           ]}
         >
@@ -273,7 +273,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                   </ThemedText>
                 ) : null}
                 {isOOC ? (
-                  <ThemedText style={{ fontSize: 11, color: theme.warning, fontWeight: "600" }}>
+                  <ThemedText style={{ fontSize: 10, color: theme.textSecondary, fontWeight: "500" }}>
                     场外
                   </ThemedText>
                 ) : null}
@@ -295,7 +295,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 content={getMessagePreview(message)}
                 style={[
                   styles.content,
-                  { color: narrator ? theme.textSecondary : isOOC ? theme.warning : theme.text },
+                  { color: narrator ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
                   isOOC && { fontStyle: "italic" },
                 ]}
               />

@@ -222,7 +222,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     : CHAT_MESSAGE_META_ROW_CLASS;
   const outOfCharacterBadge = isOutOfCharacterTextMessage
     ? (
-        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-warning/45 bg-warning/18 px-2.5 py-1 text-[11px] leading-none font-semibold tracking-[0.08em] text-warning shadow-sm">
+        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium text-base-content/50">
           场外
         </span>
       )
@@ -804,8 +804,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
             <EditableMessageContent
               content={message.content}
               onCommit={handleContentUpdate}
-              className={`editable-field whitespace-pre-wrap break-words ${isOutOfCharacterTextMessage ? "italic text-base-content/80" : ""}`}
-              editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/80" : ""}`}
+              className={`editable-field whitespace-pre-wrap break-words ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
+              editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
               onEditingChange={setIsEditingContent}
               editInputRef={editInputRef}
               shouldIgnoreBlur={shouldIgnoreEditBlur}
@@ -966,7 +966,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
                                     className={`block flex-1 min-w-0 truncate text-sm sm:text-sm pb-0.5 sm:pb-1 transition-all duration-200 ${
                                       isOutOfCharacterTextMessage
-                                        ? "font-semibold text-warning/95 cursor-default"
+                                        ? "font-medium text-base-content/60 cursor-default"
                                         : `font-medium text-base-content/85 cursor-pointer hover:text-primary ${canEdit ? "hover:underline" : ""}`
                                     }`}
                                   >
@@ -1002,7 +1002,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     <div
                       className={`${CHAT_MESSAGE_BUBBLE_BASE_CLASS} cursor-pointer ${
                         isOutOfCharacterTextMessage
-                          ? "border-2 border-dashed border-warning/45 bg-warning/12 text-base-content/90 shadow-none hover:bg-warning/18 hover:shadow-none"
+                          ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70 shadow-none hover:bg-base-content/6 hover:shadow-none"
                           : "bg-base-200 hover:shadow-lg hover:bg-base-300"
                       } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                       onClick={triggerEffectPreview}
@@ -1103,7 +1103,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   <div
                                     className={`text-sm sm:text-base min-w-0 flex-1 transition-all duration-200 ${
                                       isOutOfCharacterTextMessage
-                                        ? "font-semibold text-warning/95 cursor-default"
+                                        ? "font-medium text-base-content/60 cursor-default"
                                         : `font-semibold cursor-pointer hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`
                                     }`}
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
@@ -1142,7 +1142,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     <div
                       className={`relative transition-all duration-200 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${
                         isOutOfCharacterTextMessage
-                          ? "border-2 border-dashed border-warning/40 bg-warning/10 text-base-content/90"
+                          ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70"
                           : "hover:bg-base-200/50"
                       } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
                       onClick={triggerEffectPreview}
