@@ -69,6 +69,8 @@ interface ExpressionPickerSheetProps {
   visible: boolean;
 }
 
+type StickerWithFileId = Sticker & { fileId: number };
+
 export function ExpressionPickerSheet({
   onClose,
   onSelectExpression,
@@ -77,7 +79,7 @@ export function ExpressionPickerSheet({
   const theme = useTheme();
   const userStickersQuery = useUserStickersQuery(visible);
   const stickers = (userStickersQuery.data?.data ?? [])
-    .filter((sticker): sticker is Sticker => typeof sticker.fileId === "number" && sticker.fileId > 0);
+    .filter((sticker): sticker is StickerWithFileId => typeof sticker.fileId === "number" && sticker.fileId > 0);
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
