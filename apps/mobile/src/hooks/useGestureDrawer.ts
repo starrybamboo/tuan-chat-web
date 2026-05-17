@@ -11,15 +11,23 @@ import {
   LEFT_DRAWER_WIDTH,
   RIGHT_DRAWER_WIDTH,
 } from "@/lib/layout-constants";
+import { getGestureDrawerAxisConfig } from "./useGestureDrawerConfig";
 
-const SNAP_POINTS = [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH] as const;
+function adjacentSnapPoints(startPosition: number): readonly number[] {
+  "worklet";
+  if (startPosition >= LEFT_DRAWER_WIDTH) return [0, LEFT_DRAWER_WIDTH];
+  if (startPosition <= -RIGHT_DRAWER_WIDTH) return [-RIGHT_DRAWER_WIDTH, 0];
+  return [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH];
+}
 
 export function useGestureDrawer() {
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
+  const axisConfig = getGestureDrawerAxisConfig();
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX(DRAWER_ACTIVE_OFFSET_X)
+    .activeOffsetX(axisConfig.activeOffsetX)
+    .failOffsetY(axisConfig.failOffsetY)
     .onStart(() => {
       context.value = translateX.value;
     })
@@ -31,7 +39,8 @@ export function useGestureDrawer() {
       );
     })
     .onEnd((e) => {
-      const destination = snapPoint(translateX.value, e.velocityX, [...SNAP_POINTS]);
+      const targets = adjacentSnapPoints(context.value);
+      const destination = snapPoint(translateX.value, e.velocityX, targets);
       translateX.value = withSpring(destination, SPRING_CONFIG);
     });
 
