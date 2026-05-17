@@ -1,4 +1,4 @@
-import { SymbolView } from "expo-symbols";
+import { ArrowDown } from "phosphor-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
 
@@ -51,12 +51,7 @@ export function ChatNewMessagesPill({ count, onPress, visible }: ChatNewMessages
   return (
     <Animated.View style={[styles.fab, { backgroundColor: theme.backgroundElement }, animatedStyle]} pointerEvents={visible ? "auto" : "none"}>
       <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", width: "100%" }}>
-        <SymbolView
-          name={{ ios: "arrow.down", android: "arrow_downward", web: "arrow_downward" }}
-          size={18}
-          tintColor={theme.text}
-          weight="medium"
-        />
+        <ArrowDown size={18} color={theme.text} weight="bold" />
       </Pressable>
       {count > 0 ? (
         <View style={[styles.badge, { backgroundColor: theme.danger }]} />

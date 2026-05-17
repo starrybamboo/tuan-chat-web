@@ -1,7 +1,7 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { DmConversation } from "@/features/friends/useDmInboxQuery";
-import { SymbolView } from "expo-symbols";
+import { CaretDown, CaretRight, ChatCircle, Compass, Plus } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -270,23 +270,13 @@ export function LeftDrawer({
             onPress={() => onSwitchMode("dm")}
             style={[styles.railIconButton, { backgroundColor: drawerMode === "dm" ? theme.accentMuted : theme.backgroundElement }]}
           >
-            <SymbolView
-              name={{ ios: "bubble.left.and.bubble.right.fill", android: "chat", web: "chat" }}
-              size={18}
-              tintColor={drawerMode === "dm" ? theme.accent : theme.textSecondary}
-              weight="medium"
-            />
+            <ChatCircle size={18} color={drawerMode === "dm" ? theme.accent : theme.textSecondary} weight="fill" />
           </Pressable>
           <Pressable
             onPress={() => onSwitchMode("rooms")}
             style={[styles.railIconButton, { backgroundColor: drawerMode === "rooms" ? theme.accentMuted : theme.backgroundElement }]}
           >
-            <SymbolView
-              name={{ ios: "safari.fill", android: "explore", web: "explore" }}
-              size={18}
-              tintColor={drawerMode === "rooms" ? theme.accent : theme.textSecondary}
-              weight="medium"
-            />
+            <Compass size={18} color={drawerMode === "rooms" ? theme.accent : theme.textSecondary} weight="fill" />
           </Pressable>
         </View>
 
@@ -328,12 +318,7 @@ export function LeftDrawer({
               onPress={onCreateSpace}
               style={[styles.createSpaceButton, { borderColor: theme.accent }]}
             >
-              <SymbolView
-                name={{ ios: "plus", android: "add", web: "add" }}
-                size={20}
-                tintColor={theme.accent}
-                weight="medium"
-              />
+              <Plus size={20} color={theme.accent} />
             </Pressable>
           </ScrollView>
         ) : (
@@ -366,12 +351,9 @@ export function LeftDrawer({
                         onPress={() => toggleSection(type)}
                         style={styles.sectionHeader}
                       >
-                        <SymbolView
-                          name={{ ios: collapsed ? "chevron.right" : "chevron.down", android: collapsed ? "chevron_right" : "expand_more", web: collapsed ? "chevron_right" : "expand_more" }}
-                          size={12}
-                          tintColor={theme.textSecondary}
-                          weight="medium"
-                        />
+                        {collapsed
+                          ? <CaretRight size={12} color={theme.textSecondary} />
+                          : <CaretDown size={12} color={theme.textSecondary} />}
                         <ThemedText style={styles.sectionLabel} themeColor="textSecondary">
                           {ROOM_TYPE_LABELS[type] ?? `类型 ${type}`}
                         </ThemedText>
@@ -389,12 +371,9 @@ export function LeftDrawer({
                         onPress={() => toggleSection(Number(type))}
                         style={styles.sectionHeader}
                       >
-                        <SymbolView
-                          name={{ ios: collapsedSections[Number(type)] ? "chevron.right" : "chevron.down", android: collapsedSections[Number(type)] ? "chevron_right" : "expand_more", web: collapsedSections[Number(type)] ? "chevron_right" : "expand_more" }}
-                          size={12}
-                          tintColor={theme.textSecondary}
-                          weight="medium"
-                        />
+                        {collapsedSections[Number(type)]
+                          ? <CaretRight size={12} color={theme.textSecondary} />
+                          : <CaretDown size={12} color={theme.textSecondary} />}
                         <ThemedText style={styles.sectionLabel} themeColor="textSecondary">
                           {ROOM_TYPE_LABELS[Number(type)] ?? `其他房间`}
                         </ThemedText>
@@ -407,12 +386,7 @@ export function LeftDrawer({
 
             {onCreateRoom && currentSpaceId ? (
               <Pressable onPress={onCreateRoom} style={[styles.createRoomButton, { borderColor: theme.accent }]}>
-                <SymbolView
-                  name={{ ios: "plus", android: "add", web: "add" }}
-                  size={16}
-                  tintColor={theme.accent}
-                  weight="medium"
-                />
+                <Plus size={16} color={theme.accent} />
                 <ThemedText style={{ fontSize: 12, color: theme.accent }}>创建房间</ThemedText>
               </Pressable>
             ) : null}

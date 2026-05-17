@@ -1,7 +1,7 @@
 import type { AnnotationDefinition } from "./annotationCatalog";
 
+import { Plus } from "phosphor-react-native";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -72,11 +72,7 @@ export function AnnotationBar({ annotations, onToggle, onOpenPicker, canEdit }: 
         })}
         {canEdit ? (
           <Pressable onPress={onOpenPicker} style={[styles.addButton, { borderColor: theme.border }]}>
-            <SymbolView
-              name={{ ios: "plus", android: "add", web: "add" }}
-              size={12}
-              tintColor={theme.textSecondary}
-            />
+            <Plus size={12} color={theme.textSecondary} />
           </Pressable>
         ) : null}
       </ScrollView>

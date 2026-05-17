@@ -5,7 +5,7 @@ import {
   getVideoMessageExtra,
 } from "@tuanchat/domain/message-extra";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { SymbolView } from "expo-symbols";
+import { File, PlayCircle, Waveform } from "phosphor-react-native";
 import { useState } from "react";
 import { Alert, Image, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 
@@ -153,7 +153,7 @@ export function MobileMessageMediaPreview({
         onPress={() => void openMediaUrl(videoUrl)}
         style={[styles.mediaCard, { backgroundColor: theme.backgroundElement }]}
       >
-        <SymbolView name={{ ios: "play.circle.fill", android: "play_circle", web: "play_circle" }} size={compact ? 24 : 30} tintColor={theme.accent} />
+        <PlayCircle size={compact ? 24 : 30} color={theme.accent} weight="fill" />
         <View style={styles.textBlock}>
           <ThemedText type="smallBold" numberOfLines={1}>{video.fileName?.trim() || content?.trim() || "视频消息"}</ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">{meta || "点击播放"}</ThemedText>
@@ -174,7 +174,7 @@ export function MobileMessageMediaPreview({
         onPress={() => void openMediaUrl(audioUrl)}
         style={[styles.mediaCard, { backgroundColor: theme.accentMuted }]}
       >
-        <SymbolView name={{ ios: "waveform.circle.fill", android: "graphic_eq", web: "graphic_eq" }} size={compact ? 24 : 30} tintColor={theme.accent} />
+        <Waveform size={compact ? 24 : 30} color={theme.accent} weight="fill" />
         <View style={styles.textBlock}>
           <ThemedText type="smallBold" numberOfLines={1}>{sound.fileName?.trim() || content?.trim() || "语音消息"}</ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">{meta || "点击播放"}</ThemedText>
@@ -195,7 +195,7 @@ export function MobileMessageMediaPreview({
         onPress={() => void openMediaUrl(fileUrl)}
         style={[styles.fileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
       >
-        <SymbolView name={{ ios: "doc.fill", android: "description", web: "description" }} size={compact ? 22 : 28} tintColor={theme.textSecondary} />
+        <File size={compact ? 22 : 28} color={theme.textSecondary} weight="fill" />
         <View style={styles.textBlock}>
           <ThemedText type="smallBold" numberOfLines={1}>{file.fileName?.trim() || content?.trim() || "文件"}</ThemedText>
           <ThemedText type="caption" themeColor="textSecondary">{size || "点击打开"}</ThemedText>

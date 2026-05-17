@@ -1,6 +1,6 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 
-import { SymbolView } from "expo-symbols";
+import { CaretLeft } from "phosphor-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -247,12 +247,7 @@ export function FriendsManagementView({ onBack }: FriendsManagementViewProps) {
     <ThemedView style={styles.container}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Pressable onPress={onBack} style={styles.backButton}>
-          <SymbolView
-            name={{ ios: "chevron.left", android: "arrow_back", web: "arrow_back" }}
-            size={18}
-            tintColor={theme.text}
-            weight="medium"
-          />
+          <CaretLeft size={18} color={theme.text} weight="bold" />
         </Pressable>
         <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
           好友管理

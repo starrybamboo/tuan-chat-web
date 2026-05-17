@@ -15,6 +15,8 @@ interface WorkspaceSessionContextValue {
   setSelectedSpaceId: (spaceId: number | null) => void;
   setSelectedRoomId: (roomId: number | null) => void;
   clearWorkspaceSelection: () => void;
+  chatTabBarHidden: boolean;
+  setChatTabBarHidden: (hidden: boolean) => void;
 }
 
 const WorkspaceSessionContext = createContext<WorkspaceSessionContextValue | null>(null);
@@ -24,6 +26,7 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
   const [selectedSpaceId, setSelectedSpaceIdState] = useState<number | null>(null);
   const [selectedRoomId, setSelectedRoomIdState] = useState<number | null>(null);
   const [hasHydratedSelection, setHasHydratedSelection] = useState(false);
+  const [chatTabBarHidden, setChatTabBarHidden] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +101,9 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
     setSelectedSpaceId,
     setSelectedRoomId,
     clearWorkspaceSelection,
-  }), [clearWorkspaceSelection, selectedRoomId, selectedSpaceId, setSelectedRoomId, setSelectedSpaceId]);
+    chatTabBarHidden,
+    setChatTabBarHidden,
+  }), [chatTabBarHidden, clearWorkspaceSelection, selectedRoomId, selectedSpaceId, setSelectedRoomId, setSelectedSpaceId]);
 
   return (
     <WorkspaceSessionContext value={value}>

@@ -1,6 +1,7 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
-import { SymbolView } from "expo-symbols";
+import type { IconProps } from "phosphor-react-native";
+import { ArrowBendUpLeft, Copy, Trash } from "phosphor-react-native";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -66,10 +67,10 @@ export function DmMessageActionMenu({
   if (!message) return null;
 
   const isMine = typeof currentUserId === "number" && currentUserId === message.senderId;
-  const actions: { action: DmMessageAction; icon: any; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
-    { action: "reply", icon: { ios: "arrowshape.turn.up.left", android: "reply", web: "reply" }, label: "回复" },
-    { action: "copy", icon: { ios: "doc.on.doc", android: "content_copy", web: "content_copy" }, label: "复制" },
-    { action: "recall", icon: { ios: "trash", android: "delete", web: "delete" }, label: "撤回", danger: true, ownerOnly: true },
+  const actions: { action: DmMessageAction; Icon: React.ComponentType<IconProps>; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
+    { action: "reply", Icon: ArrowBendUpLeft, label: "回复" },
+    { action: "copy", Icon: Copy, label: "复制" },
+    { action: "recall", Icon: Trash, label: "撤回", danger: true, ownerOnly: true },
   ];
 
   const visibleActions = actions.filter((item) => (!item.ownerOnly || isMine) && !(item.action === "recall" && message.status === 1));
@@ -85,7 +86,7 @@ export function DmMessageActionMenu({
               onPress={() => { onAction(item.action, message); onClose(); }}
               style={({ pressed }) => [styles.actionRow, pressed && { backgroundColor: theme.backgroundElement }]}
             >
-              <SymbolView name={item.icon} size={20} tintColor={item.danger ? theme.danger : theme.text} weight="medium" />
+              <item.Icon size={20} color={item.danger ? theme.danger : theme.text} />
               <ThemedText style={item.danger ? [styles.dangerLabel, { color: theme.danger }] : styles.actionLabel}>
                 {item.label}
               </ThemedText>

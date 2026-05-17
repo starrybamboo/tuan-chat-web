@@ -1,5 +1,5 @@
+import { MagnifyingGlass, X } from "phosphor-react-native";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -40,11 +40,7 @@ export function ChatSearchBar({ onChangeQuery, onClose, query, resultCount }: Ch
 
   return (
     <View style={[styles.container, { borderBottomColor: theme.border }]}>
-      <SymbolView
-        name={{ ios: "magnifyingglass", android: "search", web: "search" }}
-        size={16}
-        tintColor={theme.textSecondary}
-      />
+      <MagnifyingGlass size={16} color={theme.textSecondary} />
       <TextInput
         autoFocus
         value={query}
@@ -55,11 +51,7 @@ export function ChatSearchBar({ onChangeQuery, onClose, query, resultCount }: Ch
         returnKeyType="search"
       />
       <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="关闭搜索">
-        <SymbolView
-          name={{ ios: "xmark", android: "close", web: "close" }}
-          size={16}
-          tintColor={theme.textSecondary}
-        />
+        <X size={16} color={theme.textSecondary} />
       </Pressable>
     </View>
   );
