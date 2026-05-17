@@ -7,16 +7,18 @@ import {
 
 import { clamp, snapPoint, SPRING_CONFIG } from "@/lib/animations";
 import {
-  DRAWER_ACTIVE_OFFSET_X,
   LEFT_DRAWER_WIDTH,
   RIGHT_DRAWER_WIDTH,
 } from "@/lib/layout-constants";
+
 import { getGestureDrawerAxisConfig } from "./useGestureDrawerConfig";
 
 function adjacentSnapPoints(startPosition: number): readonly number[] {
   "worklet";
-  if (startPosition >= LEFT_DRAWER_WIDTH) return [0, LEFT_DRAWER_WIDTH];
-  if (startPosition <= -RIGHT_DRAWER_WIDTH) return [-RIGHT_DRAWER_WIDTH, 0];
+  if (startPosition >= LEFT_DRAWER_WIDTH)
+    return [0, LEFT_DRAWER_WIDTH];
+  if (startPosition <= -RIGHT_DRAWER_WIDTH)
+    return [-RIGHT_DRAWER_WIDTH, 0];
   return [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH];
 }
 
@@ -70,7 +72,6 @@ export function useGestureDrawer() {
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: Math.abs(translateX.value) / LEFT_DRAWER_WIDTH * 0.5,
-    pointerEvents: translateX.value === 0 ? "none" : "auto",
   }));
 
   return {

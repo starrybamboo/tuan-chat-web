@@ -170,6 +170,7 @@ export default function ChatShell() {
     translateX,
   } = useGestureDrawer();
   const navigation = useNavigation();
+  const [isOverlayInteractive, setIsOverlayInteractive] = useState(false);
 
   const applyTabBarVisibility = useCallback((visible: boolean) => {
     navigation.setOptions({
@@ -191,6 +192,17 @@ export default function ChatShell() {
       }
     },
     [applyTabBarVisibility],
+  );
+
+  // 只有抽屉真正偏移时才让遮罩接管点击，避免挡住中心区交互。
+  useAnimatedReaction(
+    () => translateX.value !== 0,
+    (isVisible, prev) => {
+      if (isVisible !== prev) {
+        runOnJS(setIsOverlayInteractive)(isVisible);
+      }
+    },
+    [setIsOverlayInteractive],
   );
 
   const spacesQuery = useUserActiveSpacesQuery();
@@ -834,7 +846,6 @@ export default function ChatShell() {
                             )
                           : null}
                         <ChatMessageList
-                          currentUserId={currentUserId}
                           messages={messageSearch.isSearching ? messageSearch.filteredMessages : roomMessages}
                           multiSelectMode={multiSelectMode}
                           multiSelectedIds={multiSelectedIds}
@@ -969,7 +980,10 @@ export default function ChatShell() {
                             )}
                       </>
                     )}
-                <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none">
+                <Animated.View
+                  pointerEvents={isOverlayInteractive ? "auto" : "none"}
+                  style={[styles.overlay, overlayStyle]}
+                >
                   <Pressable style={{ flex: 1 }} onPress={close} />
                 </Animated.View>
               </Animated.View>

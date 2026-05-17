@@ -1,4 +1,5 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 
 import { useState } from "react";
 import {
@@ -12,18 +13,10 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments, type MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
+import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
-
-const ROOM_TYPE_GAME = 1;
-const ROOM_TYPE_ALL_MEMBER = 2;
-
-const ROOM_TYPES = [
-  { label: "全员房间", value: ROOM_TYPE_ALL_MEMBER },
-  { label: "游戏房间", value: ROOM_TYPE_GAME },
-] as const;
 
 const styles = StyleSheet.create({
   overlay: {
@@ -58,26 +51,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-  },
-  typeLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: Spacing.sm,
-  },
-  typeRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  typeChip: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    flex: 1,
-    justifyContent: "center",
-    minHeight: 40,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
   },
   avatarButton: {
     alignItems: "center",
@@ -115,7 +88,6 @@ interface CreateRoomSheetProps {
 export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: CreateRoomSheetProps) {
   const theme = useTheme();
   const [name, setName] = useState("");
-  const [roomType, setRoomType] = useState<number>(ROOM_TYPE_ALL_MEMBER);
   const [avatarAttachment, setAvatarAttachment] = useState<MobileMessageAttachment | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -127,14 +99,16 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
       if (picked) {
         setAvatarAttachment(picked);
       }
-    } catch (error) {
+    }
+    catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "选择头像失败。");
     }
   };
 
   const handleCreate = async () => {
     const trimmed = name.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading)
+      return;
 
     setLoading(true);
     setErrorMessage(null);
@@ -153,13 +127,14 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
         throw new Error(result.errMsg || "创建房间失败。");
       }
       setName("");
-      setRoomType(ROOM_TYPE_ALL_MEMBER);
       setAvatarAttachment(null);
       onClose();
       onCreated?.(room);
-    } catch (err) {
+    }
+    catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "创建房间失败。");
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -180,32 +155,6 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
             value={name}
           />
 
-          <ThemedText style={styles.typeLabel} themeColor="textSecondary">房间类型</ThemedText>
-          <View style={styles.typeRow}>
-            {ROOM_TYPES.map((t) => {
-              const selected = roomType === t.value;
-              return (
-                <Pressable
-                  key={t.value}
-                  onPress={() => setRoomType(t.value)}
-                  style={[
-                    styles.typeChip,
-                    {
-                      backgroundColor: selected ? theme.accentMuted : theme.background,
-                      borderColor: selected ? theme.accent : theme.border,
-                    },
-                  ]}
-                >
-                  <ThemedText
-                    style={{ fontSize: 13, fontWeight: selected ? "700" : "400", color: selected ? theme.accent : theme.text }}
-                  >
-                    {t.label}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-
           <Pressable
             disabled={loading}
             onPress={() => void handlePickAvatar()}
@@ -216,22 +165,26 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
             </ThemedText>
           </Pressable>
 
-          {errorMessage ? (
-            <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
-              {errorMessage}
-            </ThemedText>
-          ) : null}
+          {errorMessage
+            ? (
+                <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
+                  {errorMessage}
+                </ThemedText>
+              )
+            : null}
 
           <Pressable
             disabled={!name.trim() || loading}
             onPress={handleCreate}
             style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <ThemedText style={styles.buttonText}>创建</ThemedText>
-            )}
+            {loading
+              ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                )
+              : (
+                  <ThemedText style={styles.buttonText}>创建</ThemedText>
+                )}
           </Pressable>
         </View>
       </Pressable>
