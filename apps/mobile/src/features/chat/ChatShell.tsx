@@ -81,6 +81,7 @@ import { useGestureDrawer } from "@/hooks/useGestureDrawer";
 
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
+import { confirmAction } from "@/lib/confirm";
 import { LEFT_DRAWER_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import { ChatComposer } from "./ChatComposer";
 import { ChatHeader } from "./ChatHeader";
@@ -705,33 +706,33 @@ export default function ChatShell() {
       }
     }
     else if (action === "delete") {
-      Alert.alert("删除消息", "确定要删除这条消息吗？", [
-        { text: "取消", style: "cancel" },
-        {
-          text: "删除",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await mobileApiClient.chatController.deleteMessage(message.messageId!);
-              if (selectedRoomId && message.messageId) {
-                queryClient.setQueryData(
-                  getAllRoomMessagesQueryKey(selectedRoomId),
-                  (current) => {
-                    return markRoomMessageDeletedData(current as any, message.messageId!);
-                  },
-                );
-                const cachedMessages = await readCachedRoomMessages(selectedRoomId);
-                const nextCachedMessages = markCachedRoomMessageDeleted(cachedMessages, message.messageId);
-                await writeCachedRoomMessages(selectedRoomId, nextCachedMessages);
-              }
-              await roomMessagesQuery.refetch();
-            }
-            catch (error) {
-              setMessageError(getErrorMessage(error, "删除消息失败。"));
-            }
-          },
-        },
-      ]);
+      const confirmed = await confirmAction({
+        title: "删除消息",
+        message: "确定要删除这条消息吗？",
+        confirmText: "删除",
+        destructive: true,
+      });
+      if (!confirmed) {
+        return;
+      }
+      try {
+        await mobileApiClient.chatController.deleteMessage(message.messageId!);
+        if (selectedRoomId && message.messageId) {
+          queryClient.setQueryData(
+            getAllRoomMessagesQueryKey(selectedRoomId),
+            (current) => {
+              return markRoomMessageDeletedData(current as any, message.messageId!);
+            },
+          );
+          const cachedMessages = await readCachedRoomMessages(selectedRoomId);
+          const nextCachedMessages = markCachedRoomMessageDeleted(cachedMessages, message.messageId);
+          await writeCachedRoomMessages(selectedRoomId, nextCachedMessages);
+        }
+        await roomMessagesQuery.refetch();
+      }
+      catch (error) {
+        setMessageError(getErrorMessage(error, "删除消息失败。"));
+      }
     }
   }, [queryClient, roomMessagesQuery, selectedRoomId]);
 
@@ -864,32 +865,34 @@ export default function ChatShell() {
                                 </Pressable>
                                 <Pressable
                                   onPress={() => {
-                                    Alert.alert("删除消息", `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`, [
-                                      { text: "取消", style: "cancel" },
-                                      {
-                                        text: "删除",
-                                        style: "destructive",
-                                        onPress: async () => {
-                                          try {
-                                            for (const msgId of multiSelectedIds) {
-                                              await mobileApiClient.chatController.deleteMessage(msgId);
-                                              if (selectedRoomId) {
-                                                queryClient.setQueryData(
-                                                  getAllRoomMessagesQueryKey(selectedRoomId),
-                                                  current => markRoomMessageDeletedData(current as any, msgId),
-                                                );
-                                              }
-                                            }
-                                            await roomMessagesQuery.refetch();
+                                    void (async () => {
+                                      const confirmed = await confirmAction({
+                                        title: "删除消息",
+                                        message: `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`,
+                                        confirmText: "删除",
+                                        destructive: true,
+                                      });
+                                      if (!confirmed) {
+                                        return;
+                                      }
+                                      try {
+                                        for (const msgId of multiSelectedIds) {
+                                          await mobileApiClient.chatController.deleteMessage(msgId);
+                                          if (selectedRoomId) {
+                                            queryClient.setQueryData(
+                                              getAllRoomMessagesQueryKey(selectedRoomId),
+                                              current => markRoomMessageDeletedData(current as any, msgId),
+                                            );
                                           }
-                                          catch (error) {
-                                            setMessageError(getErrorMessage(error, "删除消息失败。"));
-                                          }
-                                          setMultiSelectMode(false);
-                                          setMultiSelectedIds(new Set());
-                                        },
-                                      },
-                                    ]);
+                                        }
+                                        await roomMessagesQuery.refetch();
+                                      }
+                                      catch (error) {
+                                        setMessageError(getErrorMessage(error, "删除消息失败。"));
+                                      }
+                                      setMultiSelectMode(false);
+                                      setMultiSelectedIds(new Set());
+                                    })();
                                   }}
                                   style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
                                 >
