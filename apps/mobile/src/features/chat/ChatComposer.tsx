@@ -116,14 +116,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 40,
   },
-  featureButton: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
   input: {
     borderRadius: 22,
     flex: 1,
@@ -414,13 +406,7 @@ export function ChatComposer({
           <Pressable
             disabled={isSubmitting}
             onPress={onOpenInitiative}
-            style={[
-              styles.featureButton,
-              {
-                backgroundColor: isInitiativeMode ? theme.accentMuted : theme.surface,
-                borderColor: isInitiativeMode ? theme.accent : theme.border,
-              },
-            ]}
+            style={styles.toolButton}
           >
             <Sword
               color={isInitiativeMode ? theme.accent : theme.textSecondary}
@@ -432,13 +418,7 @@ export function ChatComposer({
           <Pressable
             disabled={isSubmitting}
             onPress={onOpenMap}
-            style={[
-              styles.featureButton,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              },
-            ]}
+            style={styles.toolButton}
           >
             <Checkerboard color={theme.textSecondary} size={20} weight="regular" />
           </Pressable>
@@ -446,13 +426,7 @@ export function ChatComposer({
           <Pressable
             disabled={isSubmitting}
             onPress={onOpenState}
-            style={[
-              styles.featureButton,
-              {
-                backgroundColor: isStateMode ? theme.accentMuted : theme.surface,
-                borderColor: isStateMode ? theme.accent : theme.border,
-              },
-            ]}
+            style={styles.toolButton}
           >
             <Pulse
               color={isStateMode ? theme.accent : theme.textSecondary}
