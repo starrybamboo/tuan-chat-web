@@ -25,18 +25,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.md,
   },
   rowFull: {
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
   },
   rowGrouped: {
     paddingLeft: 40 + Spacing.xl + Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.lg,
   },
   rowNarrator: {
     paddingLeft: Spacing.xl,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.md,
   },
   rowHighlight: {
     borderRadius: Radius.sm,
