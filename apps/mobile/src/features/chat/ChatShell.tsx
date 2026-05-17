@@ -1,4 +1,5 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 import type { MessageSubmitPhase } from "./mobileChatUtils";
@@ -83,6 +84,7 @@ import { LeftDrawer, type DrawerMode } from "@/features/drawer/LeftDrawer";
 import { RightDrawerMembers } from "@/features/members/RightDrawerMembers";
 import { getErrorMessage } from "./mobileChatUtils";
 import { ExpressionPickerSheet } from "./ExpressionPickerSheet";
+import { buildExpressionDraftAsset } from "./expressionSticker";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 
 function readSingleSearchParam(value: string | string[] | undefined): string | null {
@@ -555,9 +557,12 @@ export default function ChatShell() {
     handleUpdateMemberType,
   ]);
 
-  const handleSelectExpression = useCallback(async (fileId: number, roleName?: string | null) => {
+  const handleSelectExpression = useCallback(async (sticker: Sticker) => {
     setMessageError(null);
     try {
+      if (typeof sticker.fileId !== "number" || sticker.fileId <= 0) {
+        throw new Error("表情包文件无效。");
+      }
       const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
       const effectiveRole = effectiveRoleId > 0
         ? roomRoles.find(role => role.roleId === effectiveRoleId)
@@ -572,14 +577,7 @@ export default function ChatShell() {
       });
       const [draft] = buildMessageDraftsFromUploadedMedia({
         inputText: sendIdentity.content ?? draftMessage,
-        uploadedImages: [{
-          fileId,
-          mediaType: "image",
-          width: 256,
-          height: 256,
-          size: 1,
-          fileName: `${roleName?.trim() || "角色头像"}.webp`,
-        }],
+        uploadedImages: [buildExpressionDraftAsset(sticker)],
       });
       if (!draft) {
         throw new Error("表情内容为空。");
@@ -811,7 +809,7 @@ export default function ChatShell() {
                         anchorMessage={selectedAnchorMessage}
                         availableRoles={selectableRoomRoles}
                         canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
-                        canUseExpressionPicker={selectableRoomRoles.some(role => (role.avatarFileId ?? 0) > 0)}
+                        canUseExpressionPicker
                         currentRole={currentRole}
                         draftMessage={draftMessage}
                         draftRoleIdInput={draftRoleIdInput}
@@ -885,8 +883,7 @@ export default function ChatShell() {
       />
       <ExpressionPickerSheet
         onClose={() => setExpressionPickerVisible(false)}
-        onSelectExpression={(fileId, roleName) => void handleSelectExpression(fileId, roleName)}
-        roles={selectableRoomRoles}
+        onSelectExpression={(sticker) => void handleSelectExpression(sticker)}
         visible={expressionPickerVisible}
       />
       <CreateSpaceSheet

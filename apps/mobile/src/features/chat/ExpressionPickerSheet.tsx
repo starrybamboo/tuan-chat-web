@@ -1,13 +1,15 @@
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
-import { Image, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { avatarThumbUrl } from "@/lib/media-url";
+import { mediaFileUrl } from "@/lib/media-url";
 
-const AVATAR_SIZE = 56;
+import { useUserStickersQuery } from "./useUserStickersQuery";
+
+const STICKER_SIZE = 72;
 const GRID_GAP = 12;
 
 const styles = StyleSheet.create({
@@ -19,8 +21,8 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    maxHeight: "50%",
-    paddingBottom: Spacing.xxxl,
+    maxHeight: "42%",
+    paddingBottom: Spacing.xxl,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xl,
   },
@@ -36,6 +38,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: Spacing.lg,
   },
+  scrollContent: {
+    paddingBottom: Spacing.md,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -43,73 +48,86 @@ const styles = StyleSheet.create({
   },
   item: {
     alignItems: "center",
-    gap: 4,
-    width: AVATAR_SIZE,
+    borderRadius: Radius.md,
+    overflow: "hidden",
+    width: STICKER_SIZE,
   },
-  avatar: {
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    width: AVATAR_SIZE,
+  sticker: {
+    borderRadius: Radius.md,
+    height: STICKER_SIZE,
+    width: STICKER_SIZE,
   },
-  avatarFallback: {
+  emptyState: {
     alignItems: "center",
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    justifyContent: "center",
-    width: AVATAR_SIZE,
+    paddingVertical: Spacing.xxl,
   },
 });
 
-const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
-
 interface ExpressionPickerSheetProps {
   onClose: () => void;
-  onSelectExpression: (fileId: number, role: UserRole) => void;
-  roles: UserRole[];
+  onSelectExpression: (sticker: Sticker) => void;
   visible: boolean;
 }
 
 export function ExpressionPickerSheet({
   onClose,
   onSelectExpression,
-  roles,
   visible,
 }: ExpressionPickerSheetProps) {
   const theme = useTheme();
-
-  const rolesWithAvatars = roles.filter(r => r.avatarFileId && r.avatarFileId > 0);
+  const userStickersQuery = useUserStickersQuery(visible);
+  const stickers = (userStickersQuery.data?.data ?? [])
+    .filter((sticker): sticker is Sticker => typeof sticker.fileId === "number" && sticker.fileId > 0);
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <View style={[styles.sheet, { backgroundColor: theme.surface }]} onStartShouldSetResponder={() => true}>
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.title}>表情 / 角色头像</ThemedText>
+          <ThemedText style={styles.title}>表情</ThemedText>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {rolesWithAvatars.length === 0 ? (
-              <View style={{ paddingVertical: Spacing.xxl, alignItems: "center" }}>
-                <ThemedText themeColor="textSecondary" type="small">当前房间没有可用的角色头像</ThemedText>
-              </View>
-            ) : (
-              <View style={styles.grid}>
-                {rolesWithAvatars.map((role) => (
-                  <Pressable
-                    key={role.roleId}
-                    onPress={() => { onSelectExpression(role.avatarFileId!, role); onClose(); }}
-                    style={styles.item}
-                  >
-                    <Image
-                      source={{ uri: avatarThumbUrl(role.avatarFileId) }}
-                      style={styles.avatar}
-                    />
-                    <ThemedText numberOfLines={1} style={{ fontSize: 10, textAlign: "center", width: AVATAR_SIZE }} themeColor="textSecondary">
-                      {role.roleName ?? ""}
-                    </ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-            )}
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {userStickersQuery.isPending
+              ? (
+                  <View style={styles.emptyState}>
+                    <ActivityIndicator color={theme.textSecondary} size="small" />
+                  </View>
+                )
+              : userStickersQuery.isError
+                ? (
+                    <View style={styles.emptyState}>
+                      <ThemedText themeColor="textSecondary" type="small">表情包加载失败</ThemedText>
+                    </View>
+                  )
+                : stickers.length === 0
+                  ? (
+                      <View style={styles.emptyState}>
+                        <ThemedText themeColor="textSecondary" type="small">还没有可用的表情包</ThemedText>
+                      </View>
+                    )
+                  : (
+                      <View style={styles.grid}>
+                        {stickers.map((sticker) => {
+                          const stickerMediaType = sticker.mediaType?.trim() || "image";
+                          return (
+                            <Pressable
+                              key={sticker.stickerId ?? sticker.fileId}
+                              onPress={() => {
+                                onSelectExpression(sticker);
+                                onClose();
+                              }}
+                              style={styles.item}
+                            >
+                              <Image
+                                resizeMode="contain"
+                                source={{ uri: mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low") }}
+                                style={styles.sticker}
+                              />
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    )}
           </ScrollView>
         </View>
       </Pressable>
