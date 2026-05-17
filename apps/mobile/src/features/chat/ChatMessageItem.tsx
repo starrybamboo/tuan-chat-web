@@ -3,19 +3,12 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { memo } from "react";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { runOnJS } from "react-native-reanimated";
 
 import { ThemedText } from "@/components/themed-text";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { SPRING_SNAPPY } from "@/lib/animations";
-import { SWIPE_REPLY_THRESHOLD } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
@@ -27,16 +20,6 @@ import { formatMessageTime, getMessagePreview } from "./mobileChatUtils";
 const AVATAR_SIZE = 40;
 
 const styles = StyleSheet.create({
-  wrapper: { overflow: "visible" },
-  replyIcon: {
-    alignItems: "center",
-    bottom: 0,
-    justifyContent: "center",
-    left: -40,
-    position: "absolute",
-    top: 0,
-    width: 32,
-  },
   row: {
     alignItems: "flex-start",
     flexDirection: "row",
@@ -168,7 +151,6 @@ interface ChatMessageItemProps {
   message: Message;
   multiSelectMode?: boolean;
   onLongPress: (message: Message, pageY: number) => void;
-  onSelectAnchor: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   replyPreviewText?: string | null;
   roomRoles: UserRole[];
@@ -181,33 +163,16 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   message,
   multiSelectMode,
   onLongPress,
-  onSelectAnchor,
   onToggleMultiSelect,
   replyPreviewText,
   roomRoles,
 }: ChatMessageItemProps) {
   const theme = useTheme();
-  const translateX = useSharedValue(0);
   const narrator = isNarrator(message);
   const displayName = getDisplayRoleName(message, roomRoles);
   const isOOC = !narrator && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
   const edited = isMessageEdited(message);
   const timestamp = formatMessageTime(edited ? message.updateTime : message.createTime);
-
-  const swipeGesture = Gesture.Pan()
-    .activeOffsetX([10, 10])
-    .failOffsetY([-5, 5])
-    .onUpdate((e) => {
-      if (e.translationX > 0) {
-        translateX.value = Math.min(e.translationX, SWIPE_REPLY_THRESHOLD + 20);
-      }
-    })
-    .onEnd(() => {
-      if (translateX.value >= SWIPE_REPLY_THRESHOLD) {
-        runOnJS(onSelectAnchor)(message);
-      }
-      translateX.value = withSpring(0, SPRING_SNAPPY);
-    });
 
   const longPressGesture = Gesture.LongPress()
     .minDuration(500)
@@ -216,16 +181,6 @@ export const ChatMessageItem = memo(function ChatMessageItem({
         runOnJS(onLongPress)(message, e.absoluteY);
       }
     });
-
-  const composedGesture = Gesture.Race(swipeGesture, longPressGesture);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
-  const replyIconStyle = useAnimatedStyle(() => ({
-    opacity: translateX.value / SWIPE_REPLY_THRESHOLD,
-  }));
 
   const renderAvatar = () => {
     if (narrator) {
@@ -314,25 +269,20 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   }
 
   return (
-    <View style={styles.wrapper}>
-      <Animated.View style={[styles.replyIcon, replyIconStyle]}>
-        <ThemedText themeColor="textSecondary" type="caption">↩</ThemedText>
-      </Animated.View>
-      <GestureDetector gesture={composedGesture}>
-        <Animated.View
-          style={[
-            narrator
-              ? styles.rowNarrator
-              : isOOC
-                ? styles.rowOOC
-                : isGrouped ? styles.rowGrouped : styles.row,
-            !isGrouped && !narrator && !isOOC && styles.rowFull,
-            isSelectedAnchor && styles.rowHighlight,
-            isSelectedAnchor && { backgroundColor: theme.accentMuted },
-            isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
-            animatedStyle,
-          ]}
-        >
+    <GestureDetector gesture={longPressGesture}>
+      <View
+        style={[
+          narrator
+            ? styles.rowNarrator
+            : isOOC
+              ? styles.rowOOC
+              : isGrouped ? styles.rowGrouped : styles.row,
+          !isGrouped && !narrator && !isOOC && styles.rowFull,
+          isSelectedAnchor && styles.rowHighlight,
+          isSelectedAnchor && { backgroundColor: theme.accentMuted },
+          isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
+        ]}
+      >
           {!isGrouped && !narrator && !isOOC ? renderAvatar() : null}
           <View style={styles.body}>
             {!isGrouped && !narrator ? (
@@ -394,8 +344,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
               </View>
             ) : null}
           </View>
-        </Animated.View>
-      </GestureDetector>
-    </View>
+      </View>
+    </GestureDetector>
   );
 });
