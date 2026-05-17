@@ -2,7 +2,7 @@ import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -13,7 +13,10 @@ import { avatarThumbUrl } from "@/lib/media-url";
 import { useRoleAvatarsQuery } from "./useRoleAvatarsQuery";
 
 const AVATAR_SIZE = 36;
-const AVATAR_GRID_SIZE = 52;
+const AVATAR_GRID_COLUMNS = 4;
+const AVATAR_GRID_GAP = Spacing.md;
+const SHEET_HORIZONTAL_PADDING = Spacing.xl;
+const GRID_HORIZONTAL_PADDING = Spacing.xl;
 
 const styles = StyleSheet.create({
   sheet: {
@@ -74,23 +77,16 @@ const styles = StyleSheet.create({
   avatarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.md,
+    gap: AVATAR_GRID_GAP,
     marginBottom: Spacing.lg,
     marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: GRID_HORIZONTAL_PADDING,
   },
   avatarGridItem: {
     alignItems: "center",
     borderRadius: Radius.md,
     borderWidth: 2,
-    height: AVATAR_GRID_SIZE,
     justifyContent: "center",
-    width: AVATAR_GRID_SIZE,
-  },
-  avatarGridImage: {
-    borderRadius: Radius.sm,
-    height: AVATAR_GRID_SIZE - 6,
-    width: AVATAR_GRID_SIZE - 6,
   },
   avatarSectionHeader: {
     flexDirection: "row",
@@ -155,7 +151,16 @@ export function RoleSwitchSheet({
   visible,
 }: RoleSwitchSheetProps) {
   const theme = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const [expandedRoleId, setExpandedRoleId] = useState<number | null>(null);
+
+  const avatarGridItemSize = useMemo(() => {
+    const horizontalPadding = (SHEET_HORIZONTAL_PADDING + GRID_HORIZONTAL_PADDING) * 2;
+    const totalGap = AVATAR_GRID_GAP * (AVATAR_GRID_COLUMNS - 1);
+    const available = windowWidth - horizontalPadding - totalGap;
+    return Math.floor(available / AVATAR_GRID_COLUMNS);
+  }, [windowWidth]);
+  const avatarGridImageSize = Math.max(0, avatarGridItemSize - 6);
 
   const myRoles = roles.filter(r => r.state !== 1);
   const isNarrator = currentRoleId === undefined || currentRoleId === -1;
@@ -295,12 +300,20 @@ export function RoleSwitchSheet({
                                           onPress={() => handleSelectAvatar(avatar.avatarId!, avatar.avatarFileId)}
                                           style={[
                                             styles.avatarGridItem,
-                                            { borderColor: isAvatarSelected ? theme.accent : "transparent" },
+                                            {
+                                              borderColor: isAvatarSelected ? theme.accent : "transparent",
+                                              height: avatarGridItemSize,
+                                              width: avatarGridItemSize,
+                                            },
                                           ]}
                                         >
                                           <Image
                                             source={{ uri: avatarThumbUrl(avatar.avatarFileId) }}
-                                            style={styles.avatarGridImage}
+                                            style={{
+                                              borderRadius: Radius.sm,
+                                              height: avatarGridImageSize,
+                                              width: avatarGridImageSize,
+                                            }}
                                           />
                                         </Pressable>
                                       );
