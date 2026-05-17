@@ -1,7 +1,7 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { memo } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -63,8 +63,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     borderStyle: "dashed",
     borderWidth: 1,
-    marginHorizontal: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.xl,
+    paddingLeft: AVATAR_SIZE + Spacing.lg,
+    paddingRight: Spacing.lg,
     paddingVertical: Spacing.md,
   },
   avatar: {
@@ -162,20 +163,26 @@ function getAvatarInitial(displayName: string) {
 
 interface ChatMessageItemProps {
   isGrouped: boolean;
+  isMultiSelected?: boolean;
   isSelectedAnchor: boolean;
   message: Message;
+  multiSelectMode?: boolean;
   onLongPress: (message: Message, pageY: number) => void;
   onSelectAnchor: (message: Message) => void;
+  onToggleMultiSelect?: (message: Message) => void;
   replyPreviewText?: string | null;
   roomRoles: UserRole[];
 }
 
 export const ChatMessageItem = memo(function ChatMessageItem({
   isGrouped,
+  isMultiSelected,
   isSelectedAnchor,
   message,
+  multiSelectMode,
   onLongPress,
   onSelectAnchor,
+  onToggleMultiSelect,
   replyPreviewText,
   roomRoles,
 }: ChatMessageItemProps) {
@@ -242,6 +249,69 @@ export const ChatMessageItem = memo(function ChatMessageItem({
       </View>
     );
   };
+
+  if (multiSelectMode) {
+    return (
+      <Pressable
+        onPress={() => onToggleMultiSelect?.(message)}
+        style={[
+          {
+            alignItems: "center",
+            flexDirection: "row",
+            paddingLeft: Spacing.md,
+          },
+          isMultiSelected && { backgroundColor: theme.accentMuted },
+        ]}
+      >
+        <View
+          style={{
+            alignItems: "center",
+            borderColor: isMultiSelected ? theme.accent : theme.border,
+            borderRadius: Radius.full,
+            borderWidth: 2,
+            height: 22,
+            justifyContent: "center",
+            marginRight: Spacing.sm,
+            width: 22,
+            backgroundColor: isMultiSelected ? theme.accent : "transparent",
+          }}
+        >
+          {isMultiSelected ? (
+            <ThemedText style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>✓</ThemedText>
+          ) : null}
+        </View>
+        <View style={{ flex: 1 }}>
+          <View
+            style={[
+              narrator
+                ? styles.rowNarrator
+                : isOOC
+                  ? styles.rowOOC
+                  : isGrouped ? styles.rowGrouped : styles.row,
+              !isGrouped && !narrator && !isOOC && styles.rowFull,
+              isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
+            ]}
+          >
+            {!isGrouped && !narrator && !isOOC ? renderAvatar() : null}
+            <View style={styles.body}>
+              {message.messageType !== MESSAGE_TYPE.IMG && message.messageType !== MESSAGE_TYPE.VIDEO ? (
+                <TextEnhanceRenderer
+                  content={getMessagePreview(message)}
+                  style={[
+                    styles.content,
+                    { color: narrator ? theme.textSecondary : theme.text },
+                  ]}
+                  numberOfLines={2}
+                />
+              ) : (
+                <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[媒体消息]</ThemedText>
+              )}
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <View style={styles.wrapper}>
