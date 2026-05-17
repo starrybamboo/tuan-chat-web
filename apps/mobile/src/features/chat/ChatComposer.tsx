@@ -4,7 +4,7 @@ import type { MessageSubmitPhase } from "./mobileChatUtils";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
-import { Checkerboard, ImageSquare, Pulse, Smiley, Sword, X, XCircle } from "phosphor-react-native";
+import { Checkerboard, ImageSquare, PaperPlaneTilt, Pulse, Smiley, Sword, X, XCircle } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
@@ -127,11 +127,9 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     alignItems: "center",
-    borderRadius: 18,
     height: 44,
     justifyContent: "center",
-    minWidth: 64,
-    paddingHorizontal: Spacing.xl,
+    width: 44,
   },
   roleButton: {
     alignItems: "center",
@@ -370,16 +368,11 @@ export function ChatComposer({
             <Pressable
               disabled={isSubmitting || !canSend}
               onPress={onSend}
-              style={[
-                styles.sendButton,
-                {
-                  backgroundColor: canSend ? theme.accent : theme.backgroundElement,
-                },
-              ]}
+              style={styles.sendButton}
             >
               {isSubmitting
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <ThemedText type="smallBold" style={{ color: canSend ? "#fff" : theme.textSecondary }}>发送</ThemedText>}
+                ? <ActivityIndicator color={theme.accent} size="small" />
+                : <PaperPlaneTilt color={canSend ? theme.accent : theme.textSecondary} size={24} weight="fill" />}
             </Pressable>
           </Animated.View>
         </View>
