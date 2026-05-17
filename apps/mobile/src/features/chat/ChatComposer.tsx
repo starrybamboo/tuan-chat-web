@@ -124,7 +124,6 @@ const styles = StyleSheet.create({
     minHeight: COMPOSER_MIN_HEIGHT,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    textAlignVertical: "top",
   },
   sendButton: {
     alignItems: "center",
