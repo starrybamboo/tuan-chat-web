@@ -2,7 +2,7 @@ import { Dimensions } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-export const LEFT_DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 320);
+export const LEFT_DRAWER_WIDTH = SCREEN_WIDTH;
 export const RIGHT_DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 300);
 
 export const SPACE_RAIL_WIDTH = 56;
