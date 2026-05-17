@@ -14,6 +14,8 @@ import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
 import { SPACE_RAIL_WIDTH } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
 
+import { getLeftDrawerLayoutState } from "./leftDrawerLayout";
+
 const ROOM_AVATAR_SIZE = 32;
 const SQUIRCLE_RADIUS = 8;
 
@@ -209,6 +211,7 @@ export function LeftDrawer({
   const [showFriends, setShowFriends] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<number, boolean>>({});
   const currentSpace = activeSpaces.find(s => s.spaceId === currentSpaceId);
+  const layoutState = getLeftDrawerLayoutState(drawerMode);
 
   // Group rooms by roomType
   const groupedRooms = useMemo(() => {
@@ -290,7 +293,7 @@ export function LeftDrawer({
 
         <View style={[styles.railDivider, { backgroundColor: theme.border }]} />
 
-        {drawerMode === "rooms" ? (
+        {layoutState.showSpaceRail ? (
           <ScrollView
             style={styles.railScroll}
             contentContainerStyle={styles.railScrollContent}
@@ -339,7 +342,7 @@ export function LeftDrawer({
         )}
       </View>
 
-      {drawerMode === "rooms" ? (
+      {layoutState.showRoomsSidebar ? (
         <View style={styles.sidebar}>
           <View style={[styles.sidebarHeader, { borderBottomColor: theme.border }]}>
             <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
