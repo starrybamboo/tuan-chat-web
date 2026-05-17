@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderWidth: 1,
     marginHorizontal: Spacing.xl,
+    marginVertical: Spacing.md,
     paddingLeft: AVATAR_SIZE + Spacing.lg,
     paddingRight: Spacing.lg,
     paddingVertical: Spacing.md,
