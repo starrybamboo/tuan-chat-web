@@ -1,7 +1,8 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
-import { SymbolView } from "expo-symbols";
-import { useEffect } from "react";
-import { Dimensions, Modal, Pressable, StyleSheet } from "react-native";
+import type { IconProps } from "phosphor-react-native";
+import { ArrowBendUpLeft, CheckCircle, Copy, PencilSimple, Trash } from "phosphor-react-native";
+import { useEffect, useRef } from "react";
+import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -20,6 +21,10 @@ const TOOLBAR_MARGIN = 8;
 
 const styles = StyleSheet.create({
   overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  container: {
     flex: 1,
   },
   toolbar: {
@@ -30,6 +35,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     position: "absolute",
     alignSelf: "center",
+    zIndex: 1,
   },
   actionBtn: {
     alignItems: "center",
@@ -66,15 +72,24 @@ export function MessageActionMenu({
 }: MessageActionMenuProps) {
   const theme = useTheme();
   const scale = useSharedValue(0.8);
+  const openedAtRef = useRef(0);
 
   useEffect(() => {
     if (visible) {
+      openedAtRef.current = Date.now();
       scale.value = withSpring(1, SPRING_SNAPPY);
     }
     else {
       scale.value = 0.8;
     }
   }, [visible, scale]);
+
+  const handleOverlayPress = () => {
+    if (Date.now() - openedAtRef.current < 400) {
+      return;
+    }
+    onClose();
+  };
 
   const animatedToolbar = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -85,12 +100,12 @@ export function MessageActionMenu({
 
   const isMine = typeof currentUserId === "number" && currentUserId === message.userId;
 
-  const actions: { action: MessageAction; icon: any; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
-    { action: "copy", icon: { ios: "doc.on.doc", android: "content_copy", web: "content_copy" }, label: "复制" },
-    { action: "reply", icon: { ios: "arrowshape.turn.up.left", android: "reply", web: "reply" }, label: "回复" },
-    { action: "edit", icon: { ios: "pencil", android: "edit", web: "edit" }, label: "编辑", ownerOnly: true },
-    { action: "multiSelect", icon: { ios: "checkmark.circle", android: "check_circle", web: "check_circle" }, label: "多选" },
-    { action: "delete", icon: { ios: "trash", android: "delete", web: "delete" }, label: "删除", danger: true, ownerOnly: true },
+  const actions: { action: MessageAction; Icon: React.ComponentType<IconProps>; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
+    { action: "copy", Icon: Copy, label: "复制" },
+    { action: "reply", Icon: ArrowBendUpLeft, label: "回复" },
+    { action: "edit", Icon: PencilSimple, label: "编辑", ownerOnly: true },
+    { action: "multiSelect", Icon: CheckCircle, label: "多选" },
+    { action: "delete", Icon: Trash, label: "删除", danger: true, ownerOnly: true },
   ];
 
   const visibleActions = actions.filter(a => !a.ownerOnly || isMine);
@@ -103,7 +118,8 @@ export function MessageActionMenu({
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <View style={styles.container}>
+        <Pressable style={styles.overlay} onPress={handleOverlayPress} />
         <Animated.View
           entering={FadeIn.duration(150)}
           exiting={FadeOut.duration(100)}
@@ -124,20 +140,20 @@ export function MessageActionMenu({
           {visibleActions.map(item => (
             <Pressable
               key={item.action}
+              testID={`message-action-${item.action}`}
               onPress={() => {
                 onAction(item.action, message);
                 onClose();
               }}
+              hitSlop={8}
               style={({ pressed }) => [
                 styles.actionBtn,
                 pressed && { backgroundColor: theme.backgroundElement },
               ]}
             >
-              <SymbolView
-                name={item.icon}
+              <item.Icon
                 size={18}
-                tintColor={item.danger ? theme.danger : theme.text}
-                weight="medium"
+                color={item.danger ? theme.danger : theme.text}
               />
               <ThemedText
                 style={[
@@ -150,7 +166,7 @@ export function MessageActionMenu({
             </Pressable>
           ))}
         </Animated.View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
