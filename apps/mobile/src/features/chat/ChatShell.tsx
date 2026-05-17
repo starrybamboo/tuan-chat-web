@@ -1,18 +1,21 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+import type { AlertButton } from "react-native";
+import type { MessageAction } from "./MessageActionMenu";
+import type { MessageSubmitPhase } from "./mobileChatUtils";
+import type { DrawerMode } from "@/features/drawer/LeftDrawer";
+
+import type { MemberPreviewItem } from "@/features/members/memberUtils";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
-import type { MessageSubmitPhase } from "./mobileChatUtils";
-import type { MessageAction } from "./MessageActionMenu";
-
-import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
+import { useQueryClient } from "@tanstack/react-query";
 import { canManageMemberPermissions, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
+import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
 import { getAllRoomMessagesQueryKey, markRoomMessageDeletedData, selectVisibleMainRoomMessages } from "@tuanchat/query/chat";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
-import { useQueryClient } from "@tanstack/react-query";
-import * as Clipboard from "@/lib/clipboard";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   startTransition,
   useCallback,
@@ -22,7 +25,7 @@ import {
 } from "react";
 import {
   Alert,
-  type AlertButton,
+
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -31,19 +34,22 @@ import {
 } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useLocalSearchParams } from "expo-router";
 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
+import { LeftDrawer } from "@/features/drawer/LeftDrawer";
+import { DmChatView } from "@/features/friends/DmChatView";
+import { useDmInboxQuery } from "@/features/friends/useDmInboxQuery";
 import {
   findCurrentMember,
   hasHostMemberType,
+
   mergeRoomMembersWithSpaceMembers,
-  type MemberPreviewItem,
 } from "@/features/members/memberUtils";
+import { RightDrawerMembers } from "@/features/members/RightDrawerMembers";
 import { useRoomMembersQuery } from "@/features/members/useRoomMembersQuery";
 import { useSpaceMembersQuery } from "@/features/members/useSpaceMembersQuery";
 import {
@@ -58,34 +64,34 @@ import {
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
-import { DmChatView } from "@/features/friends/DmChatView";
-import { useDmInboxQuery } from "@/features/friends/useDmInboxQuery";
-import { useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
+import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 import { RoleSwitchSheet } from "@/features/roles/RoleSwitchSheet";
-import { useRoomUnreadCounts } from "@/features/rooms/useRoomUnreadCounts";
+import { useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
+import { CreateRoomSheet } from "@/features/rooms/CreateRoomSheet";
 import { useUserRoomsQuery } from "@/features/rooms/use-user-rooms-query";
+import { useRoomUnreadCounts } from "@/features/rooms/useRoomUnreadCounts";
+import { CreateSpaceSheet } from "@/features/spaces/CreateSpaceSheet";
 import { useUserActiveSpacesQuery } from "@/features/spaces/use-user-active-spaces-query";
 import { useWorkspaceSession } from "@/features/workspace/workspace-session";
-import { useGestureDrawer } from "@/hooks/useGestureDrawer";
+
 import { useTheme } from "@/hooks/use-theme";
-import { LEFT_DRAWER_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+import { useGestureDrawer } from "@/hooks/useGestureDrawer";
+
 import { mobileApiClient } from "@/lib/api";
-
-import { CreateSpaceSheet } from "@/features/spaces/CreateSpaceSheet";
-import { CreateRoomSheet } from "@/features/rooms/CreateRoomSheet";
-
+import * as Clipboard from "@/lib/clipboard";
+import { LEFT_DRAWER_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+import { ChatComposer } from "./ChatComposer";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessageList } from "./ChatMessageList";
-import { ChatComposer } from "./ChatComposer";
 import { ChatSearchBar } from "./ChatSearchBar";
-import { useMessageSearch } from "./useMessageSearch";
-import { MessageActionMenu } from "./MessageActionMenu";
-import { LeftDrawer, type DrawerMode } from "@/features/drawer/LeftDrawer";
-import { RightDrawerMembers } from "@/features/members/RightDrawerMembers";
-import { getErrorMessage } from "./mobileChatUtils";
 import { ExpressionPickerSheet } from "./ExpressionPickerSheet";
 import { buildExpressionDraftAsset } from "./expressionSticker";
-import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
+import { InitiativeSheet } from "./InitiativeSheet";
+import { MapSheet } from "./MapSheet";
+import { MessageActionMenu } from "./MessageActionMenu";
+import { getErrorMessage } from "./mobileChatUtils";
+import { StateSheet } from "./StateSheet";
+import { useMessageSearch } from "./useMessageSearch";
 
 function readSingleSearchParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
@@ -106,11 +112,11 @@ function parsePositiveIntegerSearchParam(value: string | string[] | undefined): 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-type ProfileSheetState = {
+interface ProfileSheetState {
   avatarFileId?: number | null;
   userId: number | null;
   username: string | null;
-};
+}
 
 /* PLACEHOLDER_STYLES */
 const styles = StyleSheet.create({
@@ -146,7 +152,7 @@ const styles = StyleSheet.create({
 export default function ChatShell() {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const { session, signOut } = useAuthSession();
+  const { session } = useAuthSession();
   const { selectedSpaceId, selectedRoomId, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const {
@@ -181,14 +187,16 @@ export default function ChatShell() {
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
   const [actionMenuPressY, setActionMenuPressY] = useState(0);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
-  const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(new Set());
+  const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(() => new Set());
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
-  const [selectedAvatarFileId, setSelectedAvatarFileId] = useState<number | undefined>(undefined);
   const [roleSwitchVisible, setRoleSwitchVisible] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("rooms");
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
   const [expressionPickerVisible, setExpressionPickerVisible] = useState(false);
+  const [initiativeSheetVisible, setInitiativeSheetVisible] = useState(false);
+  const [mapSheetVisible, setMapSheetVisible] = useState(false);
+  const [stateSheetVisible, setStateSheetVisible] = useState(false);
   const [createSpaceVisible, setCreateSpaceVisible] = useState(false);
   const [createRoomVisible, setCreateRoomVisible] = useState(false);
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
@@ -207,6 +215,7 @@ export default function ChatShell() {
   }, [roomMembersQuery.data?.data, spaceMembers]);
   const selectedSpace = useMemo(() => activeSpaces.find(s => s.spaceId === selectedSpaceId) ?? null, [activeSpaces, selectedSpaceId]);
   const selectedRoom = useMemo(() => availableRooms.find(r => r.roomId === selectedRoomId) ?? null, [availableRooms, selectedRoomId]);
+  const selectedRuleId = selectedSpace?.ruleId ?? null;
   const currentSpaceMember = useMemo(() => findCurrentMember(spaceMembers, currentUserId), [currentUserId, spaceMembers]);
   const currentRoomMember = useMemo(() => findCurrentMember(roomMembers, currentUserId), [currentUserId, roomMembers]);
   const isSpaceOwner = hasHostMemberType(currentSpaceMember?.memberType);
@@ -220,7 +229,8 @@ export default function ChatShell() {
   const messageSearch = useMessageSearch(roomMessages);
   const dmConversations = dmInboxQuery.data ?? [];
   const currentDmConversation = useMemo(() => {
-    if (!currentContactId) return null;
+    if (!currentContactId)
+      return null;
     return dmConversations.find(conv => conv.contactId === currentContactId) ?? null;
   }, [currentContactId, dmConversations]);
   const currentDmContactName = currentDmConversation?.contactName ?? (currentContactId ? `用户 #${currentContactId}` : null);
@@ -230,19 +240,23 @@ export default function ChatShell() {
 
   const roomRoles = useMemo(() => roomRolesQuery.data ?? [], [roomRolesQuery.data]);
   const selectableRoomRoles = useMemo(() => {
-    if (isSpectator) return [];
-    if (isSpaceOwner) return roomRoles.filter(role => role.state !== 1);
+    if (isSpectator)
+      return [];
+    if (isSpaceOwner)
+      return roomRoles.filter(role => role.state !== 1);
     return roomRoles.filter(role => role.userId === currentUserId && role.state !== 1);
   }, [currentUserId, isSpaceOwner, isSpectator, roomRoles]);
   const currentRole = useMemo(() => {
-    if (!selectedRoleId) return null;
+    if (!selectedRoleId)
+      return null;
     return roomRoles.find(r => r.roleId === selectedRoleId) ?? null;
   }, [roomRoles, selectedRoleId]);
 
   const isSubmittingMessage = messageSubmitPhase !== "idle" || sendRoomMessageMutation.isPending;
   const currentRoomUnreadCount = selectedRoomId ? (roomUnreadCounts[selectedRoomId] ?? 0) : 0;
   const draftRoleId = useMemo(() => {
-    if (selectedRoleId) return selectedRoleId;
+    if (selectedRoleId)
+      return selectedRoleId;
     const n = Number.parseInt(draftRoleIdInput, 10);
     return Number.isFinite(n) && n > 0 ? n : undefined;
   }, [draftRoleIdInput, selectedRoleId]);
@@ -253,18 +267,31 @@ export default function ChatShell() {
       return;
     }
     const ids = activeSpaces.map(s => s.spaceId).filter((id): id is number => typeof id === "number" && id > 0);
-    if (ids.length === 0) { if (selectedSpaceId !== null) startTransition(() => setSelectedSpaceId(null)); return; }
-    if (!selectedSpaceId || !ids.includes(selectedSpaceId)) startTransition(() => setSelectedSpaceId(ids[0]));
+    if (ids.length === 0) {
+      if (selectedSpaceId !== null) {
+        startTransition(() => setSelectedSpaceId(null));
+      }
+      return;
+    }
+    if (!selectedSpaceId || !ids.includes(selectedSpaceId))
+      startTransition(() => setSelectedSpaceId(ids[0]));
   }, [activeSpaces, hasExplicitTarget, selectedSpaceId, setSelectedSpaceId]);
 
   useEffect(() => {
     if (hasExplicitTarget) {
       return;
     }
-    if (!selectedSpaceId) return;
+    if (!selectedSpaceId)
+      return;
     const ids = availableRooms.map(r => r.roomId).filter((id): id is number => typeof id === "number" && id > 0);
-    if (ids.length === 0) { if (selectedRoomId !== null) startTransition(() => setSelectedRoomId(null)); return; }
-    if (!selectedRoomId || !ids.includes(selectedRoomId)) startTransition(() => setSelectedRoomId(ids[0]));
+    if (ids.length === 0) {
+      if (selectedRoomId !== null) {
+        startTransition(() => setSelectedRoomId(null));
+      }
+      return;
+    }
+    if (!selectedRoomId || !ids.includes(selectedRoomId))
+      startTransition(() => setSelectedRoomId(ids[0]));
   }, [availableRooms, hasExplicitTarget, selectedRoomId, selectedSpaceId, setSelectedRoomId]);
 
   useEffect(() => {
@@ -272,7 +299,8 @@ export default function ChatShell() {
     if (pendingTargetContactId != null) {
       setCurrentContactId(pendingTargetContactId);
       consumedNotificationTarget = true;
-    } else if (pendingTargetSpaceId != null || pendingTargetRoomId != null) {
+    }
+    else if (pendingTargetSpaceId != null || pendingTargetRoomId != null) {
       setCurrentContactId(null);
       consumedNotificationTarget = true;
       if (pendingTargetSpaceId != null && pendingTargetSpaceId !== selectedSpaceId) {
@@ -308,12 +336,15 @@ export default function ChatShell() {
     setMessageSubmitPhase("idle");
     setSelectedRoleId(undefined);
     setSelectedAvatarId(undefined);
-    setSelectedAvatarFileId(undefined);
     setDraftCustomRoleName("");
+    setInitiativeSheetVisible(false);
+    setMapSheetVisible(false);
+    setStateSheetVisible(false);
   }, [selectedRoomId]);
 
   useEffect(() => {
-    if (messageAnchorId && !selectedAnchorMessage) setMessageAnchorId(null);
+    if (messageAnchorId && !selectedAnchorMessage)
+      setMessageAnchorId(null);
   }, [messageAnchorId, selectedAnchorMessage]);
 
   const handleSelectSpace = (spaceId: number | null) => {
@@ -335,8 +366,10 @@ export default function ChatShell() {
 
   const handleRefreshWorkspace = async () => {
     await spacesQuery.refetch();
-    if (selectedSpaceId) await Promise.all([roomsQuery.refetch(), spaceMembersQuery.refetch()]);
-    if (selectedRoomId) await Promise.all([roomMembersQuery.refetch(), roomMessagesQuery.refetch()]);
+    if (selectedSpaceId)
+      await Promise.all([roomsQuery.refetch(), spaceMembersQuery.refetch()]);
+    if (selectedRoomId)
+      await Promise.all([roomMembersQuery.refetch(), roomMessagesQuery.refetch()]);
   };
 
   const handleSendMessage = async () => {
@@ -374,16 +407,20 @@ export default function ChatShell() {
             uploadedSoundMessage: uploaded.uploadedSoundMessage,
             uploadedVideos: uploaded.uploadedVideos,
           });
-          if (drafts.length === 0) throw new Error("消息内容不能为空。");
+          if (drafts.length === 0)
+            throw new Error("消息内容不能为空。");
           await sendRoomMessageMutation.sendDraftMessages(drafts, messageContext);
-        } else {
+        }
+        else {
           setMessageSubmitPhase("sending");
           await sendRoomMessageMutation.sendTextMessage({ content: resolvedDraftMessage, ...messageContext });
         }
-      } else if (messageMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST) {
+      }
+      else if (messageMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST) {
         setMessageSubmitPhase("sending");
         await sendRoomMessageMutation.sendCommandRequestMessage({ command: resolvedDraftMessage, ...messageContext });
-      } else {
+      }
+      else {
         setMessageSubmitPhase("sending");
         await sendRoomMessageMutation.sendStateEventMessage({ content: resolvedDraftMessage, ...messageContext });
       }
@@ -391,9 +428,11 @@ export default function ChatShell() {
       setDraftRoleIdInput("");
       setMessageAnchorId(null);
       setMessageAttachments([]);
-    } catch (error) {
+    }
+    catch (error) {
       setMessageError(getErrorMessage(error, "发送消息失败。"));
-    } finally {
+    }
+    finally {
       setMessageSubmitPhase("idle");
     }
   };
@@ -402,9 +441,11 @@ export default function ChatShell() {
     setMessageError(null);
     try {
       const picked = await pickMobileMessageAttachments(kind);
-      if (picked.length === 0) return;
-      setMessageAttachments((cur) => mergePickedMessageAttachments(cur, picked));
-    } catch (error) {
+      if (picked.length === 0)
+        return;
+      setMessageAttachments(cur => mergePickedMessageAttachments(cur, picked));
+    }
+    catch (error) {
       setMessageError(getErrorMessage(error, "选择附件失败。"));
     }
   };
@@ -418,32 +459,60 @@ export default function ChatShell() {
 
   const handleOpenInitiative = useCallback(() => {
     setMessageError(null);
-    setMessageMode((currentMode) => {
-      if (currentMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST) {
-        if (draftMessage.trim() === ".ri") {
-          setDraftMessage("");
-        }
-        return MOBILE_MESSAGE_MODE.TEXT;
-      }
-      if (!draftMessage.trim()) {
-        setDraftMessage(".ri");
-      }
-      return MOBILE_MESSAGE_MODE.COMMAND_REQUEST;
-    });
-  }, [draftMessage]);
+    setInitiativeSheetVisible(true);
+  }, []);
 
   const handleOpenMap = useCallback(() => {
-    Alert.alert("地图", "移动端地图功能暂未接入，这里先保留地图入口。");
+    setMessageError(null);
+    setMapSheetVisible(true);
   }, []);
 
-  const handleToggleStateMode = useCallback(() => {
+  const handleEnterStateMode = useCallback(() => {
     setMessageError(null);
-    setMessageMode(currentMode => (
-      currentMode === MOBILE_MESSAGE_MODE.STATE_EVENT
-        ? MOBILE_MESSAGE_MODE.TEXT
-        : MOBILE_MESSAGE_MODE.STATE_EVENT
-    ));
+    setStateSheetVisible(false);
+    setMessageMode(MOBILE_MESSAGE_MODE.STATE_EVENT);
   }, []);
+
+  const handleOpenStateSheet = useCallback(() => {
+    setMessageError(null);
+    setStateSheetVisible(true);
+  }, []);
+
+  const handleAdvanceTurn = useCallback(async () => {
+    try {
+      const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
+      const effectiveRole = effectiveRoleId > 0
+        ? roomRoles.find(role => role.roleId === effectiveRoleId)
+        : null;
+      const sendIdentity = resolveSendIdentity({
+        currentAvatarId: selectedAvatarId ?? effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
+        customRoleName: draftCustomRoleName,
+        inputContent: ".next",
+        isSpaceOwner,
+        isSpectator,
+        roleId: effectiveRoleId,
+      });
+      await sendRoomMessageMutation.sendStateEventMessage({
+        avatarId: sendIdentity.avatarId,
+        content: ".next",
+        customRoleName: sendIdentity.customRoleName,
+        roleId: sendIdentity.roleId,
+      });
+    }
+    catch (error) {
+      setMessageError(getErrorMessage(error, "推进回合失败。"));
+    }
+  }, [
+    currentRole?.avatarId,
+    draftCustomRoleName,
+    draftRoleId,
+    isSpaceOwner,
+    isSpectator,
+    roomRoles,
+    selectableRoomRoles,
+    selectedAvatarId,
+    sendRoomMessageMutation,
+  ]);
 
   const invalidateMemberCaches = useCallback(async () => {
     const tasks: Array<Promise<unknown>> = [];
@@ -469,7 +538,8 @@ export default function ChatShell() {
         memberType,
       });
       await invalidateMemberCaches();
-    } catch (error) {
+    }
+    catch (error) {
       Alert.alert("成员操作失败", getErrorMessage(error, "请稍后重试。"));
     }
   }, [invalidateMemberCaches, selectedSpaceId]);
@@ -484,7 +554,8 @@ export default function ChatShell() {
         userIdList: [member.userId],
       });
       await invalidateMemberCaches();
-    } catch (error) {
+    }
+    catch (error) {
       Alert.alert("移除失败", getErrorMessage(error, "请稍后重试。"));
     }
   }, [invalidateMemberCaches, selectedSpaceId]);
@@ -499,7 +570,8 @@ export default function ChatShell() {
         newLeaderId: member.userId,
       });
       await invalidateMemberCaches();
-    } catch (error) {
+    }
+    catch (error) {
       Alert.alert("转让失败", getErrorMessage(error, "请稍后重试。"));
     }
   }, [invalidateMemberCaches, selectedSpaceId]);
@@ -591,7 +663,8 @@ export default function ChatShell() {
       setDraftMessage("");
       setMessageAnchorId(null);
       setExpressionPickerVisible(false);
-    } catch (error) {
+    }
+    catch (error) {
       setMessageError(getErrorMessage(error, "发送表情失败。"));
     }
   }, [
@@ -612,19 +685,24 @@ export default function ChatShell() {
     setActionMenuMessage(null);
     if (action === "reply") {
       handleSelectMessageAnchor(message);
-    } else if (action === "copy") {
+    }
+    else if (action === "copy") {
       const text = message.content?.trim();
-      if (text) await Clipboard.setStringAsync(text);
-    } else if (action === "edit") {
+      if (text)
+        await Clipboard.setStringAsync(text);
+    }
+    else if (action === "edit") {
       const text = message.content ?? "";
       setDraftMessage(text);
       handleSelectMessageAnchor(message);
-    } else if (action === "multiSelect") {
+    }
+    else if (action === "multiSelect") {
       setMultiSelectMode(true);
       if (message.messageId) {
         setMultiSelectedIds(new Set([message.messageId]));
       }
-    } else if (action === "delete") {
+    }
+    else if (action === "delete") {
       Alert.alert("删除消息", "确定要删除这条消息吗？", [
         { text: "取消", style: "cancel" },
         {
@@ -640,7 +718,8 @@ export default function ChatShell() {
                 );
               }
               await roomMessagesQuery.refetch();
-            } catch (error) {
+            }
+            catch (error) {
               setMessageError(getErrorMessage(error, "删除消息失败。"));
             }
           },
@@ -670,7 +749,10 @@ export default function ChatShell() {
                   onCreateRoom={() => setCreateRoomVisible(true)}
                   onCreateSpace={() => setCreateSpaceVisible(true)}
                   onRefresh={() => void handleRefreshWorkspace()}
-                  onSelectConversation={(contactId) => { setCurrentContactId(contactId); close(); }}
+                  onSelectConversation={(contactId) => {
+                    setCurrentContactId(contactId);
+                    close();
+                  }}
                   onSelectRoom={handleSelectRoom}
                   onSelectSpace={handleSelectSpace}
                   onSwitchMode={setDrawerMode}
@@ -686,157 +768,170 @@ export default function ChatShell() {
                   spaceName={selectedSpace?.name ?? null}
                   memberCount={roomMembers.length}
                   onOpenDrawer={openLeft}
-                  onOpenMembers={currentContactId ? (() => undefined) : openRight}
-                  onSearch={currentContactId ? (() => undefined) : messageSearch.openSearch}
+                  onOpenMembers={currentContactId ? () => undefined : openRight}
+                  onSearch={currentContactId ? () => undefined : messageSearch.openSearch}
                   unreadCount={currentContactId ? 0 : currentRoomUnreadCount}
                 />
-                {currentContactId ? (
-                  <DmChatView
-                    contactId={currentContactId}
-                    contactName={currentDmContactName ?? `用户 #${currentContactId}`}
-                    currentUserId={currentUserId}
-                    messages={currentDmConversation?.messages ?? []}
-                    onBack={() => setCurrentContactId(null)}
-                    onOpenProfile={() => handleOpenUserProfile({
-                      avatarFileId: currentDmConversation?.contactAvatarFileId,
-                      userId: currentContactId,
-                      username: currentDmContactName ?? `用户 #${currentContactId}`,
-                    })}
-                  />
-                ) : (
-                  <>
-                    {messageSearch.isSearching ? (
-                      <ChatSearchBar
-                        query={messageSearch.query}
-                        onChangeQuery={messageSearch.setQuery}
-                        onClose={messageSearch.closeSearch}
-                        resultCount={messageSearch.resultCount}
+                {currentContactId
+                  ? (
+                      <DmChatView
+                        contactId={currentContactId}
+                        contactName={currentDmContactName ?? `用户 #${currentContactId}`}
+                        currentUserId={currentUserId}
+                        messages={currentDmConversation?.messages ?? []}
+                        onBack={() => setCurrentContactId(null)}
+                        onOpenProfile={() => handleOpenUserProfile({
+                          avatarFileId: currentDmConversation?.contactAvatarFileId,
+                          userId: currentContactId,
+                          username: currentDmContactName ?? `用户 #${currentContactId}`,
+                        })}
                       />
-                    ) : null}
-                    <ChatMessageList
-                      currentUserId={currentUserId}
-                      messages={messageSearch.isSearching ? messageSearch.filteredMessages : roomMessages}
-                      multiSelectMode={multiSelectMode}
-                      multiSelectedIds={multiSelectedIds}
-                      selectedAnchorId={messageAnchorId}
-                      onLongPressMessage={(msg, pageY) => {
-                        setActionMenuMessage(msg)
-                        setActionMenuPressY(pageY)
-                      }}
-                      onToggleMultiSelect={(msg) => {
-                        if (!msg.messageId) return
-                        setMultiSelectedIds(prev => {
-                          const next = new Set(prev)
-                          if (next.has(msg.messageId!)) {
-                            next.delete(msg.messageId!)
-                          }
-                          else {
-                            next.add(msg.messageId!)
-                          }
-                          return next
-                        })
-                      }}
-                      isPending={roomMessagesQuery.isPending}
-                      isError={roomMessagesQuery.isError}
-                      error={roomMessagesQuery.error}
-                      roomRoles={roomRoles}
-                    />
-                    {multiSelectMode ? (
-                      <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
-                        <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
-                          已选 {multiSelectedIds.size} 条
-                        </ThemedText>
-                        <View style={{ flex: 1 }} />
-                        <Pressable
-                          onPress={async () => {
-                            const selected = roomMessages
-                              .filter(item => item.message.messageId && multiSelectedIds.has(item.message.messageId))
-                              .map(item => item.message.content?.trim())
-                              .filter(Boolean)
-                              .join("\n");
-                            if (selected) await Clipboard.setStringAsync(selected);
-                            setMultiSelectMode(false);
-                            setMultiSelectedIds(new Set());
+                    )
+                  : (
+                      <>
+                        {messageSearch.isSearching
+                          ? (
+                              <ChatSearchBar
+                                query={messageSearch.query}
+                                onChangeQuery={messageSearch.setQuery}
+                                onClose={messageSearch.closeSearch}
+                                resultCount={messageSearch.resultCount}
+                              />
+                            )
+                          : null}
+                        <ChatMessageList
+                          currentUserId={currentUserId}
+                          messages={messageSearch.isSearching ? messageSearch.filteredMessages : roomMessages}
+                          multiSelectMode={multiSelectMode}
+                          multiSelectedIds={multiSelectedIds}
+                          selectedAnchorId={messageAnchorId}
+                          onLongPressMessage={(msg, pageY) => {
+                            setActionMenuMessage(msg);
+                            setActionMenuPressY(pageY);
                           }}
-                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                        >
-                          <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => {
-                            Alert.alert("删除消息", `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`, [
-                              { text: "取消", style: "cancel" },
-                              {
-                                text: "删除",
-                                style: "destructive",
-                                onPress: async () => {
-                                  try {
-                                    for (const msgId of multiSelectedIds) {
-                                      await mobileApiClient.chatController.deleteMessage(msgId);
-                                      if (selectedRoomId) {
-                                        queryClient.setQueryData(
-                                          getAllRoomMessagesQueryKey(selectedRoomId),
-                                          current => markRoomMessageDeletedData(current as any, msgId),
-                                        );
-                                      }
-                                    }
-                                    await roomMessagesQuery.refetch();
-                                  } catch (error) {
-                                    setMessageError(getErrorMessage(error, "删除消息失败。"));
-                                  }
-                                  setMultiSelectMode(false);
-                                  setMultiSelectedIds(new Set());
-                                },
-                              },
-                            ]);
+                          onToggleMultiSelect={(msg) => {
+                            if (!msg.messageId)
+                              return;
+                            setMultiSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(msg.messageId!)) {
+                                next.delete(msg.messageId!);
+                              }
+                              else {
+                                next.add(msg.messageId!);
+                              }
+                              return next;
+                            });
                           }}
-                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                        >
-                          <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => {
-                            setMultiSelectMode(false);
-                            setMultiSelectedIds(new Set());
-                          }}
-                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                        >
-                          <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
-                        </Pressable>
-                      </View>
-                    ) : (
-                      <ChatComposer
-                        anchorMessage={selectedAnchorMessage}
-                        availableRoles={selectableRoomRoles}
-                        canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
-                        canUseExpressionPicker
-                        currentRole={currentRole}
-                        draftMessage={draftMessage}
-                        draftRoleIdInput={draftRoleIdInput}
-                        errorMessage={messageError}
-                        isInitiativeMode={messageMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST}
-                        isSubmitting={isSubmittingMessage}
-                        isStateMode={messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT}
-                        messageAttachments={messageAttachments}
-                        messageMode={messageMode}
-                        onChangeDraftMessage={setDraftMessage}
-                        onChangeDraftRoleIdInput={setDraftRoleIdInput}
-                        onClearAnchor={() => setMessageAnchorId(null)}
-                        onClearAttachments={() => setMessageAttachments([])}
-                        onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
-                        onOpenInitiative={handleOpenInitiative}
-                        onOpenMap={handleOpenMap}
-                        onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
-                        onPickAttachment={(kind) => void handlePickAttachments(kind)}
-                        onRemoveAttachment={(id) => setMessageAttachments((cur) => cur.filter(a => a.id !== id))}
-                        onSend={() => void handleSendMessage()}
-                        onToggleStateMode={handleToggleStateMode}
-                        roomName={selectedRoom?.name}
-                        submitPhase={messageSubmitPhase}
-                      />
+                          isPending={roomMessagesQuery.isPending}
+                          isError={roomMessagesQuery.isError}
+                          error={roomMessagesQuery.error}
+                          roomRoles={roomRoles}
+                        />
+                        {multiSelectMode
+                          ? (
+                              <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
+                                <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
+                                  已选
+                                  {" "}
+                                  {multiSelectedIds.size}
+                                  {" "}
+                                  条
+                                </ThemedText>
+                                <View style={{ flex: 1 }} />
+                                <Pressable
+                                  onPress={async () => {
+                                    const selected = roomMessages
+                                      .filter(item => item.message.messageId && multiSelectedIds.has(item.message.messageId))
+                                      .map(item => item.message.content?.trim())
+                                      .filter(Boolean)
+                                      .join("\n");
+                                    if (selected)
+                                      await Clipboard.setStringAsync(selected);
+                                    setMultiSelectMode(false);
+                                    setMultiSelectedIds(new Set());
+                                  }}
+                                  style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                >
+                                  <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => {
+                                    Alert.alert("删除消息", `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`, [
+                                      { text: "取消", style: "cancel" },
+                                      {
+                                        text: "删除",
+                                        style: "destructive",
+                                        onPress: async () => {
+                                          try {
+                                            for (const msgId of multiSelectedIds) {
+                                              await mobileApiClient.chatController.deleteMessage(msgId);
+                                              if (selectedRoomId) {
+                                                queryClient.setQueryData(
+                                                  getAllRoomMessagesQueryKey(selectedRoomId),
+                                                  current => markRoomMessageDeletedData(current as any, msgId),
+                                                );
+                                              }
+                                            }
+                                            await roomMessagesQuery.refetch();
+                                          }
+                                          catch (error) {
+                                            setMessageError(getErrorMessage(error, "删除消息失败。"));
+                                          }
+                                          setMultiSelectMode(false);
+                                          setMultiSelectedIds(new Set());
+                                        },
+                                      },
+                                    ]);
+                                  }}
+                                  style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                >
+                                  <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => {
+                                    setMultiSelectMode(false);
+                                    setMultiSelectedIds(new Set());
+                                  }}
+                                  style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                >
+                                  <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
+                                </Pressable>
+                              </View>
+                            )
+                          : (
+                              <ChatComposer
+                                anchorMessage={selectedAnchorMessage}
+                                availableRoles={selectableRoomRoles}
+                                canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
+                                canUseExpressionPicker
+                                currentRole={currentRole}
+                                draftMessage={draftMessage}
+                                draftRoleIdInput={draftRoleIdInput}
+                                errorMessage={messageError}
+                                isInitiativeMode={messageMode === MOBILE_MESSAGE_MODE.COMMAND_REQUEST}
+                                isSubmitting={isSubmittingMessage}
+                                isStateMode={messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT}
+                                messageAttachments={messageAttachments}
+                                messageMode={messageMode}
+                                onChangeDraftMessage={setDraftMessage}
+                                onChangeDraftRoleIdInput={setDraftRoleIdInput}
+                                onClearAnchor={() => setMessageAnchorId(null)}
+                                onClearAttachments={() => setMessageAttachments([])}
+                                onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
+                                onOpenInitiative={handleOpenInitiative}
+                                onOpenMap={handleOpenMap}
+                                onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
+                                onOpenState={handleOpenStateSheet}
+                                onPickAttachment={kind => void handlePickAttachments(kind)}
+                                onRemoveAttachment={id => setMessageAttachments(cur => cur.filter(a => a.id !== id))}
+                                onSend={() => void handleSendMessage()}
+                                roomName={selectedRoom?.name}
+                                submitPhase={messageSubmitPhase}
+                              />
+                            )}
+                      </>
                     )}
-                  </>
-                )}
                 <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none">
                   <Pressable style={{ flex: 1 }} onPress={close} />
                 </Animated.View>
@@ -876,37 +971,67 @@ export default function ChatShell() {
         canSelectNarrator={isSpaceOwner}
         onChangeCustomRoleName={setDraftCustomRoleName}
         onClose={() => setRoleSwitchVisible(false)}
-        onSelectAvatar={(avatarId, avatarFileId) => { setSelectedAvatarId(avatarId); setSelectedAvatarFileId(avatarFileId); }}
+        onSelectAvatar={(avatarId) => {
+          setSelectedAvatarId(avatarId);
+        }}
         onSelectRole={setSelectedRoleId}
         roles={selectableRoomRoles}
         visible={roleSwitchVisible}
       />
       <ExpressionPickerSheet
         onClose={() => setExpressionPickerVisible(false)}
-        onSelectExpression={(sticker) => void handleSelectExpression(sticker)}
+        onSelectExpression={sticker => void handleSelectExpression(sticker)}
         visible={expressionPickerVisible}
+      />
+      <InitiativeSheet
+        onClose={() => setInitiativeSheetVisible(false)}
+        roomId={selectedRoomId}
+        roomRoles={roomRoles}
+        ruleId={selectedRuleId}
+        visible={initiativeSheetVisible}
+      />
+      <MapSheet
+        onClose={() => setMapSheetVisible(false)}
+        roomId={selectedRoomId}
+        roomRoles={roomRoles}
+        visible={mapSheetVisible}
+      />
+      <StateSheet
+        currentRoleId={draftRoleId ?? currentRole?.roleId ?? null}
+        isStateCommandMode={messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT}
+        messages={roomMessages.map(item => item.message)}
+        onAdvanceTurn={() => void handleAdvanceTurn()}
+        onClose={() => setStateSheetVisible(false)}
+        onEnterStateCommandMode={handleEnterStateMode}
+        roomRoles={roomRoles}
+        ruleId={selectedRuleId}
+        visible={stateSheetVisible}
       />
       <CreateSpaceSheet
         onClose={() => setCreateSpaceVisible(false)}
         onCreated={(space) => {
           upsertUserActiveSpaceQueryData(queryClient, space);
-          if (space.spaceId) startTransition(() => setSelectedSpaceId(space.spaceId!));
+          if (space.spaceId)
+            startTransition(() => setSelectedSpaceId(space.spaceId!));
           void spacesQuery.refetch();
         }}
         visible={createSpaceVisible}
       />
-      {selectedSpaceId ? (
-        <CreateRoomSheet
-          onClose={() => setCreateRoomVisible(false)}
-          onCreated={(room) => {
-            upsertUserRoomQueryData(queryClient, selectedSpaceId, room);
-            if (room.roomId) startTransition(() => setSelectedRoomId(room.roomId!));
-            void roomsQuery.refetch();
-          }}
-          spaceId={selectedSpaceId}
-          visible={createRoomVisible}
-        />
-      ) : null}
+      {selectedSpaceId
+        ? (
+            <CreateRoomSheet
+              onClose={() => setCreateRoomVisible(false)}
+              onCreated={(room) => {
+                upsertUserRoomQueryData(queryClient, selectedSpaceId, room);
+                if (room.roomId)
+                  startTransition(() => setSelectedRoomId(room.roomId!));
+                void roomsQuery.refetch();
+              }}
+              spaceId={selectedSpaceId}
+              visible={createRoomVisible}
+            />
+          )
+        : null}
       <UserProfileSheet
         avatarFileId={profileSheetState?.avatarFileId}
         onClose={() => setProfileSheetState(null)}

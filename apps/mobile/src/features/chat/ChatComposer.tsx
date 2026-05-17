@@ -4,7 +4,7 @@ import type { MessageSubmitPhase } from "./mobileChatUtils";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
-import { SymbolView } from "expo-symbols";
+import { ImageSquare, Smiley, X, XCircle } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
@@ -203,10 +203,10 @@ interface ChatComposerProps {
   onOpenInitiative: () => void;
   onOpenMap: () => void;
   onOpenRoleSwitch: () => void;
+  onOpenState: () => void;
   onPickAttachment: (kind: MobileMessageAttachmentKind) => void;
   onRemoveAttachment: (id: string) => void;
   onSend: () => void;
-  onToggleStateMode: () => void;
   roomName?: string | null;
   submitPhase: MessageSubmitPhase;
 }
@@ -233,10 +233,10 @@ export function ChatComposer({
   onOpenInitiative,
   onOpenMap,
   onOpenRoleSwitch,
+  onOpenState,
   onPickAttachment,
   onRemoveAttachment,
   onSend,
-  onToggleStateMode,
   roomName,
   submitPhase,
 }: ChatComposerProps) {
@@ -326,7 +326,7 @@ export function ChatComposer({
                   {getMessagePreview(anchorMessage)}
                 </ThemedText>
                 <Pressable onPress={onClearAnchor}>
-                  <SymbolView name={{ ios: "xmark", android: "close", web: "close" }} size={14} tintColor={theme.textSecondary} />
+                  <X size={14} color={theme.textSecondary} />
                 </Pressable>
               </View>
             )
@@ -339,7 +339,7 @@ export function ChatComposer({
                   <View key={a.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
                     <ThemedText type="caption" numberOfLines={1}>{a.fileName}</ThemedText>
                     <Pressable onPress={() => onRemoveAttachment(a.id)}>
-                      <SymbolView name={{ ios: "xmark.circle.fill", android: "cancel", web: "close" }} size={14} tintColor={theme.textSecondary} />
+                      <XCircle size={14} color={theme.textSecondary} weight="fill" />
                     </Pressable>
                   </View>
                 ))}
@@ -399,7 +399,7 @@ export function ChatComposer({
                   onPress={() => onPickAttachment(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE)}
                   style={styles.toolButton}
                 >
-                  <SymbolView name={{ ios: "photo.on.rectangle", android: "image", web: "image" }} size={20} tintColor={theme.textSecondary} weight="medium" />
+                  <ImageSquare size={20} color={theme.textSecondary} />
                 </Pressable>
               )
             : null}
@@ -407,7 +407,7 @@ export function ChatComposer({
           {canUseExpressionPicker && onOpenExpressionPicker
             ? (
                 <Pressable disabled={isSubmitting} onPress={onOpenExpressionPicker} style={styles.toolButton}>
-                  <SymbolView name={{ ios: "face.smiling", android: "mood", web: "mood" }} size={20} tintColor={theme.textSecondary} weight="medium" />
+                  <Smiley size={20} color={theme.textSecondary} />
                 </Pressable>
               )
             : null}
@@ -446,7 +446,7 @@ export function ChatComposer({
 
           <Pressable
             disabled={isSubmitting}
-            onPress={onToggleStateMode}
+            onPress={onOpenState}
             style={[
               styles.featureButton,
               {
