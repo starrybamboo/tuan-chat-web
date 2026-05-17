@@ -1,17 +1,27 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
-import type { RoomMessagesInfiniteQueryData } from "@tuanchat/query/chat";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getRoomMessagesQueryKey,
-  upsertRoomMessagesInfiniteData,
+  getRoomMessageSyncGapStart,
+  getAllRoomMessagesQueryKey,
+  upsertRoomMessagesListData,
 } from "@tuanchat/query/chat";
+import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
+import {
+  bumpRoomSessionLatestSyncInCache,
+  markRoomSessionReadInCache,
+} from "@tuanchat/query/message-sessions";
+import { getNotificationsUnreadCountQueryKey, prependNotificationToCaches } from "@tuanchat/query/notifications";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
+import { mobileApiClient } from "@/lib/api";
 import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
+const DIRECT_MESSAGE_PUSH_TYPE = 1;
+const USER_NOTIFICATION_PUSH_TYPE = 23;
 const TOKEN_INVALID_PUSH_TYPE = 100;
 
 type WebSocketEnvelope = {
@@ -35,7 +45,7 @@ function createWebSocketUrl(token: string) {
   const normalizedBaseUrl = (explicitWebSocketUrl || fallbackWebSocketUrl || DEFAULT_TUANCHAT_API_BASE_URL)
     .trim()
     .replace(/\/$/, "");
-  const webSocketBaseUrl = explicitWebSocketUrl
+  const webSocketBaseUrl = (explicitWebSocketUrl || fallbackWebSocketUrl)
     ? normalizedBaseUrl
     : `${normalizedBaseUrl.replace(/^http/i, "ws")}/ws`;
   const separator = webSocketBaseUrl.includes("?") ? "&" : "?";
@@ -59,7 +69,6 @@ function parseWebSocketEnvelope(rawData: unknown): WebSocketEnvelope | null {
 
 function parseIncomingRoomMessage(
   rawData: unknown,
-  roomId: number,
 ): { message: ChatMessageResponse | null; type: number | null } {
   const envelope = parseWebSocketEnvelope(rawData);
   const type = typeof envelope?.type === "number" ? envelope.type : null;
@@ -71,7 +80,7 @@ function parseIncomingRoomMessage(
   }
 
   const nextMessage = (envelope?.data as { message?: ChatMessageResponse["message"] } | undefined)?.message;
-  if (!nextMessage || nextMessage.roomId !== roomId || (nextMessage.threadId && nextMessage.threadId > 0)) {
+  if (!nextMessage || (nextMessage.threadId && nextMessage.threadId > 0)) {
     return {
       message: null,
       type,
@@ -84,6 +93,27 @@ function parseIncomingRoomMessage(
     },
     type,
   };
+}
+
+function extractChatMessageResponses(result: unknown): ChatMessageResponse[] {
+  const data = (result as { data?: unknown } | null)?.data;
+  return Array.isArray(data) ? data as ChatMessageResponse[] : [];
+}
+
+function parseIncomingDirectMessage(rawData: unknown): MessageDirectResponse | null {
+  const envelope = parseWebSocketEnvelope(rawData);
+  if (envelope?.type !== DIRECT_MESSAGE_PUSH_TYPE || !envelope.data || typeof envelope.data !== "object") {
+    return null;
+  }
+  return envelope.data as MessageDirectResponse;
+}
+
+function parseIncomingNotification(rawData: unknown): Record<string, unknown> | null {
+  const envelope = parseWebSocketEnvelope(rawData);
+  if (envelope?.type !== USER_NOTIFICATION_PUSH_TYPE || !envelope.data || typeof envelope.data !== "object") {
+    return null;
+  }
+  return envelope.data as Record<string, unknown>;
 }
 
 export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number = 20) {
@@ -163,14 +193,56 @@ export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number 
       };
 
       socket.onmessage = (event) => {
-        const { message, type } = parseIncomingRoomMessage(event.data, resolvedRoomId);
-        if (message) {
-          queryClient.setQueryData<RoomMessagesInfiniteQueryData>(
-            getRoomMessagesQueryKey(resolvedRoomId, pageSize),
-            currentData => (
-              upsertRoomMessagesInfiniteData(currentData, resolvedRoomId, [message], pageSize)
-            ),
+        const directMessage = parseIncomingDirectMessage(event.data);
+        if (directMessage) {
+          const currentUserId = session?.userId ?? directMessage.userId ?? null;
+          queryClient.setQueryData<MessageDirectResponse[]>(
+            getDirectInboxQueryKey(currentUserId),
+            current => upsertDirectInboxMessagesData(current, [directMessage]),
           );
+          return;
+        }
+
+        const notification = parseIncomingNotification(event.data);
+        if (notification) {
+          prependNotificationToCaches(queryClient, notification as any);
+          queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
+          return;
+        }
+
+        const { message, type } = parseIncomingRoomMessage(event.data);
+        if (message) {
+          const messageRoomId = message.message.roomId;
+          const messageSyncId = message.message.syncId;
+          if (typeof messageRoomId === "number" && messageRoomId > 0 && typeof messageSyncId === "number") {
+            bumpRoomSessionLatestSyncInCache(queryClient, messageRoomId, messageSyncId);
+          }
+          if (messageRoomId === resolvedRoomId) {
+            const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
+            const currentMessages = queryClient.getQueryData<ChatMessageResponse[]>(queryKey);
+            const gapStartSyncId = getRoomMessageSyncGapStart(currentMessages, message);
+            if (gapStartSyncId != null) {
+              void mobileApiClient.chatController.getHistoryMessages({
+                roomId: resolvedRoomId,
+                syncId: gapStartSyncId,
+              }).then((result: unknown) => {
+                const missingMessages = extractChatMessageResponses(result);
+                if (missingMessages.length > 0) {
+                  queryClient.setQueryData<ChatMessageResponse[]>(
+                    queryKey,
+                    currentData => upsertRoomMessagesListData(currentData, missingMessages),
+                  );
+                }
+              });
+            }
+            queryClient.setQueryData<ChatMessageResponse[]>(
+              queryKey,
+              currentData => upsertRoomMessagesListData(currentData, [message]),
+            );
+            if (typeof messageSyncId === "number") {
+              markRoomSessionReadInCache(queryClient, resolvedRoomId, messageSyncId);
+            }
+          }
           return;
         }
 
@@ -201,5 +273,5 @@ export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number 
       disposed = true;
       closeSocket();
     };
-  }, [isAuthenticated, pageSize, queryClient, roomId, signOut, webSocketUrl]);
+  }, [isAuthenticated, pageSize, queryClient, roomId, session?.userId, signOut, webSocketUrl]);
 }

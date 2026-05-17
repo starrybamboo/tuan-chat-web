@@ -10,12 +10,15 @@ import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
 import {
   getRoomMessagesQueryKey,
+  getAllRoomMessagesQueryKey,
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
 
 import { mobileApiClient } from "@/lib/api";
 
 type SendMessageContext = {
+  annotations?: string[];
+  avatarId?: number;
   customRoleName?: string;
   replayMessageId?: number;
   roleId?: number;
@@ -46,6 +49,9 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
   const invalidateRoomMessages = async () => {
     const resolvedRoomId = requirePositiveRoomId(roomId);
     await queryClient.invalidateQueries({
+      queryKey: getAllRoomMessagesQueryKey(resolvedRoomId),
+    });
+    await queryClient.invalidateQueries({
       queryKey: getRoomMessagesQueryKey(resolvedRoomId, pageSize),
     });
   };
@@ -71,13 +77,17 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
     context: SendMessageContext = {},
   ) => {
     const request = buildChatMessageRequestFromDraft(draft, {
-      avatarId: undefined,
+      avatarId: context.avatarId,
       customRoleName: context.customRoleName?.trim() || undefined,
       replayMessageId: context.replayMessageId,
       roleId: context.roleId,
       roomId: requirePositiveRoomId(roomId),
       threadId: context.threadId,
     });
+
+    if (context.annotations && context.annotations.length > 0) {
+      request.annotations = context.annotations;
+    }
 
     return sendRequest(request);
   };
@@ -93,7 +103,7 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
 
     const requests = drafts.map((draft, index) => {
       return buildChatMessageRequestFromDraft(draft, {
-        avatarId: undefined,
+        avatarId: context.avatarId,
         customRoleName: context.customRoleName?.trim() || undefined,
         replayMessageId: index === 0 ? context.replayMessageId : undefined,
         roleId: context.roleId,

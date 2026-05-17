@@ -1,6 +1,6 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 
@@ -45,32 +45,7 @@ export function getMessageAuthorLabel(message: Message) {
 }
 
 export function getMessagePreview(message: Message) {
-  const content = message.content?.trim() ?? "";
-
-  switch (message.messageType) {
-    case MESSAGE_TYPE.TEXT:
-      return content || "空文本消息";
-    case MESSAGE_TYPE.IMG:
-      return content || "[图片]";
-    case MESSAGE_TYPE.FILE:
-      return content || "[文件]";
-    case MESSAGE_TYPE.SYSTEM:
-      return content ? `[系统] ${content}` : "[系统消息]";
-    case MESSAGE_TYPE.SOUND:
-      return content || "[语音]";
-    case MESSAGE_TYPE.COMMAND_REQUEST:
-      return content ? `[指令请求] ${content}` : "[指令请求]";
-    case MESSAGE_TYPE.VIDEO:
-      return content || "[视频]";
-    case MESSAGE_TYPE.STATE_EVENT:
-      return content || "[状态事件]";
-    case MESSAGE_TYPE.ROOM_JUMP:
-      return content || "[群聊跳转]";
-    case MESSAGE_TYPE.THREAD_ROOT:
-      return content || "[子区]";
-    default:
-      return content || `消息类型 #${message.messageType}`;
-  }
+  return getMessagePreviewText(message);
 }
 
 export function formatMessageTime(value?: string | null) {
