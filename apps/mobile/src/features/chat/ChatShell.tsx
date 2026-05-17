@@ -193,6 +193,7 @@ export default function ChatShell() {
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(() => new Set());
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
+  const [selectedAvatarFileId, setSelectedAvatarFileId] = useState<number | undefined>(undefined);
   const [roleSwitchVisible, setRoleSwitchVisible] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("rooms");
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
@@ -339,6 +340,7 @@ export default function ChatShell() {
     setMessageSubmitPhase("idle");
     setSelectedRoleId(undefined);
     setSelectedAvatarId(undefined);
+    setSelectedAvatarFileId(undefined);
     setDraftCustomRoleName("");
     setInitiativeSheetVisible(false);
     setMapSheetVisible(false);
@@ -916,6 +918,7 @@ export default function ChatShell() {
                                 canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
                                 canUseExpressionPicker
                                 currentRole={currentRole}
+                                currentAvatarFileId={selectedAvatarFileId}
                                 draftMessage={draftMessage}
                                 draftRoleIdInput={draftRoleIdInput}
                                 errorMessage={messageError}
@@ -981,8 +984,9 @@ export default function ChatShell() {
         canSelectNarrator={isSpaceOwner}
         onChangeCustomRoleName={setDraftCustomRoleName}
         onClose={() => setRoleSwitchVisible(false)}
-        onSelectAvatar={(avatarId) => {
+        onSelectAvatar={(avatarId, avatarFileId) => {
           setSelectedAvatarId(avatarId);
+          setSelectedAvatarFileId(avatarFileId);
         }}
         onSelectRole={setSelectedRoleId}
         roles={selectableRoomRoles}

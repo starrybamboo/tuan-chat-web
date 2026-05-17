@@ -177,6 +177,7 @@ interface ChatComposerProps {
   canUseAttachments: boolean;
   canUseExpressionPicker?: boolean;
   currentRole: UserRole | null;
+  currentAvatarFileId?: number;
   draftMessage: string;
   draftRoleIdInput: string;
   errorMessage: string | null;
@@ -207,6 +208,7 @@ export function ChatComposer({
   canUseAttachments,
   canUseExpressionPicker = false,
   currentRole,
+  currentAvatarFileId,
   draftMessage,
   draftRoleIdInput,
   errorMessage,
@@ -458,17 +460,20 @@ export function ChatComposer({
           <View style={{ flex: 1 }} />
 
           <Pressable onPress={onOpenRoleSwitch} style={styles.toolButton}>
-            {currentRole?.avatarFileId
-              ? (
-                  <Image source={{ uri: avatarThumbUrl(currentRole.avatarFileId) }} style={styles.roleButton} />
-                )
-              : (
-                  <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : "#6366f1" }]}>
-                    <ThemedText style={styles.roleButtonText}>
-                      {currentRole ? (currentRole.roleName ?? "").slice(0, 1) || "R" : "旁"}
-                    </ThemedText>
-                  </View>
-                )}
+            {(() => {
+              const displayAvatarFileId = currentAvatarFileId ?? currentRole?.avatarFileId;
+              return displayAvatarFileId
+                ? (
+                    <Image source={{ uri: avatarThumbUrl(displayAvatarFileId) }} style={styles.roleButton} />
+                  )
+                : (
+                    <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : "#6366f1" }]}>
+                      <ThemedText style={styles.roleButtonText}>
+                        {currentRole ? (currentRole.roleName ?? "").slice(0, 1) || "R" : "旁"}
+                      </ThemedText>
+                    </View>
+                  );
+            })()}
           </Pressable>
         </View>
 
