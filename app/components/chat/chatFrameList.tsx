@@ -14,12 +14,18 @@ function Header() {
   );
 }
 
+/** 多选模式下仅允许对单条已选消息进入回复态。 */
+export function canReplyToSelection(selectedCount: number): boolean {
+  return selectedCount === 1;
+}
+
 interface SelectionToolbarProps {
   selectedCount: number;
   totalCount: number;
   isSelecting: boolean;
   isSpaceOwner: boolean;
   onCancel: () => void;
+  onReply: () => void;
   onSelectAll: () => void;
   onRegexFilter: () => void;
   onExportFile: () => void;
@@ -35,6 +41,7 @@ const SelectionToolbar = memo(({
   isSelecting,
   isSpaceOwner,
   onCancel,
+  onReply,
   onSelectAll,
   onRegexFilter,
   onExportFile,
@@ -46,12 +53,16 @@ const SelectionToolbar = memo(({
   if (!isSelecting)
     return null;
   const hasSelection = selectedCount > 0;
+  const canReply = canReplyToSelection(selectedCount);
   const canSelectAll = totalCount > 0;
 
   return (
     <div className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded">
       <span>{`已选择${selectedCount} 条消息`}</span>
       <div className="gap-2 flex flex-wrap justify-end">
+        <button className="btn btn-sm btn-primary" onClick={onReply} type="button" disabled={!canReply}>
+          回复
+        </button>
         <button className="btn btn-sm" onClick={onSelectAll} type="button" disabled={!canSelectAll}>
           全选
         </button>
@@ -223,6 +234,7 @@ interface ChatFrameListProps {
   onContextMenu: (e: React.MouseEvent) => void;
   selectedMessageIds: Set<number>;
   isSelecting: boolean;
+  onReplySelection: () => void;
   onSelectAll: () => void;
   onRegexFilter: () => void;
   onExportFile: () => void;
@@ -258,6 +270,7 @@ export default function ChatFrameList({
   onContextMenu,
   selectedMessageIds,
   isSelecting,
+  onReplySelection,
   onSelectAll,
   onRegexFilter,
   onExportFile,
@@ -313,6 +326,7 @@ export default function ChatFrameList({
           isSelecting={isSelecting}
           isSpaceOwner={isSpaceOwner}
           onCancel={onCancelSelection}
+          onReply={onReplySelection}
           onSelectAll={onSelectAll}
           onRegexFilter={onRegexFilter}
           onExportFile={onExportFile}
