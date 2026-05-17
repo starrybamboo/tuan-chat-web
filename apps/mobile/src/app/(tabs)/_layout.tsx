@@ -1,13 +1,24 @@
+import { Redirect, Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { Tabs } from "expo-router";
 
 import { useAuthSession } from "@/features/auth/auth-session";
+import { resolveMobileAuthRedirect } from "@/features/auth/mobile-auth-redirect";
 import { useUnreadCountQuery } from "@/features/notifications/useUnreadCountQuery";
 
 export default function TabLayout() {
-  const { isAuthenticated } = useAuthSession();
+  const { isAuthenticated, isBootstrapping } = useAuthSession();
+  const redirectHref = resolveMobileAuthRedirect({
+    isAuthenticated,
+    isBootstrapping,
+    unauthenticatedHref: "/(auth)/login",
+  });
   const unreadQuery = useUnreadCountQuery(isAuthenticated);
   const unreadCount = unreadQuery.data ?? 0;
+
+  if (redirectHref) {
+    return <Redirect href={redirectHref as any} />;
+  }
+
   return (
     <Tabs
       screenOptions={{
