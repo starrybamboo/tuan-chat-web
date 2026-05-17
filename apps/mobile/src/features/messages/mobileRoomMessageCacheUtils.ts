@@ -1,6 +1,6 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { mergeRoomMessages } from "@tuanchat/query/chat";
+import { markRoomMessageDeletedData, mergeRoomMessages } from "@tuanchat/query/chat";
 
 export const MOBILE_ROOM_MESSAGE_CACHE_LIMIT = 80;
 
@@ -72,4 +72,15 @@ export function buildStoredRoomMessageCache(
     roomId,
     updatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * 标记缓存消息为已删除，保证本地缓存与 query cache 的删除状态一致。
+ */
+export function markCachedRoomMessageDeleted(
+  messages: ChatMessageResponse[],
+  messageId: number,
+  limit: number = MOBILE_ROOM_MESSAGE_CACHE_LIMIT,
+): ChatMessageResponse[] {
+  return limitStoredRoomMessages(markRoomMessageDeletedData(messages, messageId), limit);
 }
