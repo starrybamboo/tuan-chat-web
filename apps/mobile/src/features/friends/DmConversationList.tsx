@@ -1,6 +1,6 @@
 import type { DmConversation } from "./useDmInboxQuery";
 
-import { SymbolView } from "expo-symbols";
+import { UsersThree } from "phosphor-react-native";
 import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -82,12 +82,7 @@ export function DmConversationList({
           onPress={onOpenFriends}
           style={[styles.friendsButton, { backgroundColor: theme.backgroundElement }]}
         >
-          <SymbolView
-            name={{ ios: "person.2.fill", android: "group", web: "group" }}
-            size={16}
-            tintColor={theme.textSecondary}
-            weight="medium"
-          />
+          <UsersThree size={16} color={theme.textSecondary} />
         </Pressable>
       </View>
 

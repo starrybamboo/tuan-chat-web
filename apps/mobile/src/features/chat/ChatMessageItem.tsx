@@ -24,7 +24,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     flexDirection: "row",
     gap: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
+    paddingLeft: Spacing.xl,
+    paddingRight: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
   rowFull: {
@@ -32,10 +33,12 @@ const styles = StyleSheet.create({
   },
   rowGrouped: {
     paddingLeft: 40 + Spacing.xl + Spacing.lg,
+    paddingRight: Spacing.xxl,
     paddingTop: Spacing.lg,
   },
   rowNarrator: {
     paddingLeft: Spacing.xl,
+    paddingRight: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
   rowHighlight: {
@@ -49,7 +52,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.xl,
     marginVertical: Spacing.md,
     paddingLeft: AVATAR_SIZE + Spacing.lg,
-    paddingRight: Spacing.lg,
+    paddingRight: Spacing.md,
     paddingVertical: Spacing.md,
   },
   avatar: {

@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
-import { SymbolView } from "expo-symbols";
+import { ChatCircle, Gear, UserCircle } from "phosphor-react-native";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import { resolveMobileAuthRedirect } from "@/features/auth/mobile-auth-redirect";
@@ -38,12 +38,7 @@ export default function TabLayout() {
         options={{
           title: "聊天",
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: "message.fill", android: "chat", web: "chat" }}
-              tintColor={color}
-              size={22}
-              weight="medium"
-            />
+            <ChatCircle size={22} color={color} weight="fill" />
           ),
         }}
       />
@@ -52,12 +47,7 @@ export default function TabLayout() {
         options={{
           title: "角色",
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: "person.crop.circle.fill", android: "account_circle", web: "account_circle" }}
-              tintColor={color}
-              size={22}
-              weight="medium"
-            />
+            <UserCircle size={22} color={color} weight="fill" />
           ),
         }}
       />
@@ -68,12 +58,7 @@ export default function TabLayout() {
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           tabBarBadgeStyle: { backgroundColor: "#f85149", fontSize: 10 },
           tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: "gearshape.fill", android: "settings", web: "settings" }}
-              tintColor={color}
-              size={22}
-              weight="medium"
-            />
+            <Gear size={22} color={color} weight="fill" />
           ),
         }}
       />

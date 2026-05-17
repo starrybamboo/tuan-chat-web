@@ -12,6 +12,8 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
 
@@ -78,7 +80,10 @@ export function ChatMessageList({
   const [newMessageCount, setNewMessageCount] = useState(0);
   const prevLengthRef = useRef(messages.length);
 
-  const invertedData = useMemo(() => [...messages].reverse(), [messages]);
+  const invertedData = useMemo(
+    () => messages.filter(item => item.message.messageType !== MESSAGE_TYPE.EFFECT).reverse(),
+    [messages],
+  );
 
   const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
     const atBottom = e.nativeEvent.contentOffset.y < 50;

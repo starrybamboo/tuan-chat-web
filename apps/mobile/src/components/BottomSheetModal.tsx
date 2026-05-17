@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
-import { useEffect, useState } from "react";
-import { Animated, Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Radius, Spacing } from "@/constants/theme";
 
 const ENTER_BACKDROP_DURATION_MS = 250;
 const EXIT_BACKDROP_DURATION_MS = 200;
 const EXIT_SHEET_DURATION_MS = 200;
+const DISMISS_THRESHOLD = 120;
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -17,21 +19,21 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: "flex-end",
+  },
+  handleArea: {
+    alignItems: "center",
+    paddingVertical: Spacing.md,
   },
   handle: {
-    alignSelf: "center",
     borderRadius: Radius.full,
     height: 4,
-    marginBottom: Spacing.xl,
     width: 36,
   },
   sheet: {
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    paddingBottom: Spacing.xxxl,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.sm,
   },
 });
 
@@ -39,10 +41,6 @@ function getScreenHeight() {
   return Dimensions.get("window").height;
 }
 
-/**
- * Mobile bottom sheet modal with a fixed backdrop and independently animated panel.
- * The backdrop only fades, so it stays visually stable while the sheet slides.
- */
 export interface BottomSheetModalProps {
   backgroundColor: string;
   children: ReactNode;
@@ -53,9 +51,6 @@ export interface BottomSheetModalProps {
   visible: boolean;
 }
 
-/**
- * Renders a reusable mobile bottom sheet with decoupled backdrop and panel animations.
- */
 export function BottomSheetModal({
   backgroundColor,
   children,
@@ -65,9 +60,37 @@ export function BottomSheetModal({
   sheetStyle,
   visible,
 }: BottomSheetModalProps) {
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(visible);
   const [backdropOpacity] = useState(() => new Animated.Value(0));
   const [sheetTranslateY] = useState(() => new Animated.Value(getScreenHeight()));
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          sheetTranslateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > DISMISS_THRESHOLD || gestureState.vy > 0.5) {
+          onCloseRef.current();
+        } else {
+          Animated.spring(sheetTranslateY, {
+            damping: 20,
+            mass: 0.8,
+            stiffness: 200,
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     if (visible) {
@@ -127,9 +150,11 @@ export function BottomSheetModal({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
           <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: backdropOpacity }]} />
         </Pressable>
-        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
-          <View style={[styles.sheet, { backgroundColor, maxHeight }, sheetStyle]}>
-            <View style={[styles.handle, { backgroundColor: handleColor }]} />
+        <Animated.View style={{ position: "absolute", bottom: 0, left: 0, right: 0, transform: [{ translateY: sheetTranslateY }] }}>
+          <View style={[styles.sheet, { backgroundColor, maxHeight, paddingBottom: insets.bottom || Spacing.xl }, sheetStyle]}>
+            <View {...panResponder.panHandlers} style={styles.handleArea}>
+              <View style={[styles.handle, { backgroundColor: handleColor }]} />
+            </View>
             {children}
           </View>
         </Animated.View>

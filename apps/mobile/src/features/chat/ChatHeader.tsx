@@ -1,4 +1,4 @@
-import { SymbolView } from "expo-symbols";
+import { CaretLeft, CaretRight, MagnifyingGlass } from "phosphor-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -65,12 +65,7 @@ export function ChatHeader({ onOpenDrawer, onOpenMembers, onSearch, roomName, un
   return (
     <View style={[styles.header, { borderBottomColor: theme.border }]}>
       <Pressable onPress={onOpenDrawer} style={styles.backButton} accessibilityLabel="打开菜单">
-        <SymbolView
-          name={{ ios: "chevron.left", android: "arrow_back", web: "arrow_back" }}
-          size={22}
-          tintColor={theme.text}
-          weight="medium"
-        />
+        <CaretLeft size={22} color={theme.text} weight="bold" />
         {unreadCount > 0 ? (
           <View style={[styles.badge, { backgroundColor: theme.danger }]}>
             <ThemedText style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
@@ -85,20 +80,11 @@ export function ChatHeader({ onOpenDrawer, onOpenMembers, onSearch, roomName, un
         <ThemedText numberOfLines={1} type="heading" style={{ fontSize: 16, flex: 1 }}>
           {roomName ?? "未选择房间"}
         </ThemedText>
-        <SymbolView
-          name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
-          size={14}
-          tintColor={theme.textSecondary}
-        />
+        <CaretRight size={14} color={theme.textSecondary} />
       </Pressable>
 
       <Pressable style={styles.searchButton} onPress={onSearch} accessibilityLabel="搜索">
-        <SymbolView
-          name={{ ios: "magnifyingglass", android: "search", web: "search" }}
-          size={20}
-          tintColor={theme.text}
-          weight="medium"
-        />
+        <MagnifyingGlass size={20} color={theme.text} weight="bold" />
       </Pressable>
     </View>
   );

@@ -2,7 +2,7 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 
 import { DIRECT_MESSAGE_READ_LINE_TYPE, buildDirectMessageSendRequestsFromUploadedMedia, getDirectMessagePreviewText, isDirectReadLineMessage, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
-import { SymbolView } from "expo-symbols";
+import { ArrowUp, CaretLeft, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -386,7 +386,7 @@ export function DmChatView({ contactId, contactName, currentUserId, messages, on
     <View style={styles.container}>
       <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <Pressable onPress={onBack}>
-          <SymbolView name={{ ios: "chevron.left", android: "arrow_back", web: "arrow_back" }} size={20} tintColor={theme.text} />
+          <CaretLeft size={20} color={theme.text} weight="bold" />
         </Pressable>
         <Pressable style={styles.headerMeta} onPress={onOpenProfile}>
           <ThemedText type="heading" numberOfLines={1}>{contactName}</ThemedText>
@@ -402,7 +402,7 @@ export function DmChatView({ contactId, contactName, currentUserId, messages, on
             回复 {getDirectMessagePreviewText(replyMessage)}
           </ThemedText>
           <Pressable onPress={() => setReplyMessage(null)}>
-            <SymbolView name={{ ios: "xmark", android: "close", web: "close" }} size={14} tintColor={theme.textSecondary} />
+            <X size={14} color={theme.textSecondary} />
           </Pressable>
         </View>
       ) : null}
@@ -413,7 +413,7 @@ export function DmChatView({ contactId, contactName, currentUserId, messages, on
             <View key={attachment.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
               <ThemedText type="caption" numberOfLines={1}>{attachment.fileName}</ThemedText>
               <Pressable onPress={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}>
-                <SymbolView name={{ ios: "xmark.circle.fill", android: "cancel", web: "close" }} size={14} tintColor={theme.textSecondary} />
+                <XCircle size={14} color={theme.textSecondary} weight="fill" />
               </Pressable>
             </View>
           ))}
@@ -468,7 +468,7 @@ export function DmChatView({ contactId, contactName, currentUserId, messages, on
           {isSending ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <SymbolView name={{ ios: "arrow.up", android: "arrow_upward", web: "arrow_upward" }} size={16} tintColor={canSend ? "#fff" : theme.textSecondary} weight="bold" />
+            <ArrowUp size={16} color={canSend ? "#fff" : theme.textSecondary} weight="bold" />
           )}
         </Pressable>
       </View>
