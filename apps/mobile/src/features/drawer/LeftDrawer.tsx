@@ -36,7 +36,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRightWidth: StyleSheet.hairlineWidth,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.lg,
     width: SPACE_RAIL_WIDTH,
   },
   railFixedTop: {
@@ -57,7 +56,7 @@ const styles = StyleSheet.create({
     width: 28,
   },
   railScroll: { flex: 1 },
-  railScrollContent: { alignItems: "center", gap: Spacing.md, paddingVertical: Spacing.sm },
+  railScrollContent: { alignItems: "center", gap: Spacing.md, paddingTop: Spacing.sm },
   spaceButton: {
     alignItems: "center",
     borderRadius: Radius.md,
