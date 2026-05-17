@@ -46,8 +46,11 @@ interface ChatMessageListProps {
   isError: boolean;
   isPending: boolean;
   messages: MessageItem[];
+  multiSelectMode?: boolean;
+  multiSelectedIds?: Set<number>;
   onLongPressMessage: (message: Message, pageY: number) => void;
   onSelectAnchor: (message: Message) => void;
+  onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
 }
@@ -63,8 +66,11 @@ export function ChatMessageList({
   isError,
   isPending,
   messages,
+  multiSelectMode,
+  multiSelectedIds,
   onLongPressMessage,
   onSelectAnchor,
+  onToggleMultiSelect,
   roomRoles,
   selectedAnchorId,
 }: ChatMessageListProps) {
@@ -110,15 +116,18 @@ export function ChatMessageList({
     return (
       <ChatMessageItem
         isGrouped={isGrouped}
+        isMultiSelected={multiSelectedIds?.has(item.message.messageId!)}
         isSelectedAnchor={selectedAnchorId === item.message.messageId}
         message={item.message}
+        multiSelectMode={multiSelectMode}
         onLongPress={onLongPressMessage}
         onSelectAnchor={onSelectAnchor}
+        onToggleMultiSelect={onToggleMultiSelect}
         replyPreviewText={replyPreviewText}
         roomRoles={roomRoles}
       />
     );
-  }, [invertedData, messageMap, onLongPressMessage, onSelectAnchor, roomRoles, selectedAnchorId]);
+  }, [invertedData, messageMap, multiSelectMode, multiSelectedIds, onLongPressMessage, onSelectAnchor, onToggleMultiSelect, roomRoles, selectedAnchorId]);
 
   const keyExtractor = useCallback((item: MessageItem) => String(item.message.messageId), []);
 

@@ -179,6 +179,8 @@ export default function ChatShell() {
   const [messageAttachments, setMessageAttachments] = useState<MobileMessageAttachment[]>([]);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
   const [actionMenuPressY, setActionMenuPressY] = useState(0);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(new Set());
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
   const [selectedAvatarFileId, setSelectedAvatarFileId] = useState<number | undefined>(undefined);
@@ -598,7 +600,10 @@ export default function ChatShell() {
       setDraftMessage(text);
       handleSelectMessageAnchor(message);
     } else if (action === "multiSelect") {
-      // TODO: multi-select mode
+      setMultiSelectMode(true);
+      if (message.messageId) {
+        setMultiSelectedIds(new Set([message.messageId]));
+      }
     } else if (action === "delete") {
       Alert.alert("删除消息", "确定要删除这条消息吗？", [
         { text: "取消", style: "cancel" },
@@ -691,39 +696,119 @@ export default function ChatShell() {
                     <ChatMessageList
                       currentUserId={currentUserId}
                       messages={messageSearch.isSearching ? messageSearch.filteredMessages : roomMessages}
+                      multiSelectMode={multiSelectMode}
+                      multiSelectedIds={multiSelectedIds}
                       selectedAnchorId={messageAnchorId}
                       onSelectAnchor={handleSelectMessageAnchor}
                       onLongPressMessage={(msg, pageY) => {
                         setActionMenuMessage(msg)
                         setActionMenuPressY(pageY)
                       }}
+                      onToggleMultiSelect={(msg) => {
+                        if (!msg.messageId) return
+                        setMultiSelectedIds(prev => {
+                          const next = new Set(prev)
+                          if (next.has(msg.messageId!)) {
+                            next.delete(msg.messageId!)
+                          }
+                          else {
+                            next.add(msg.messageId!)
+                          }
+                          return next
+                        })
+                      }}
                       isPending={roomMessagesQuery.isPending}
                       isError={roomMessagesQuery.isError}
                       error={roomMessagesQuery.error}
                       roomRoles={roomRoles}
                     />
-                    <ChatComposer
-                      anchorMessage={selectedAnchorMessage}
-                      availableRoles={selectableRoomRoles}
-                      canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
-                      canUseExpressionPicker={selectableRoomRoles.some(role => (role.avatarFileId ?? 0) > 0)}
-                      currentAvatarFileId={selectedAvatarFileId}
-                      currentRole={currentRole}
-                      draftMessage={draftMessage}
-                      errorMessage={messageError}
-                      isSubmitting={isSubmittingMessage}
-                      messageAttachments={messageAttachments}
-                      onChangeDraftMessage={setDraftMessage}
-                      onClearAnchor={() => setMessageAnchorId(null)}
-                      onClearAttachments={() => setMessageAttachments([])}
-                      onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
-                      onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
-                      onPickAttachment={(kind) => void handlePickAttachments(kind)}
-                      onRemoveAttachment={(id) => setMessageAttachments((cur) => cur.filter(a => a.id !== id))}
-                      onSend={() => void handleSendMessage()}
-                      roomName={selectedRoom?.name}
-                      submitPhase={messageSubmitPhase}
-                    />
+                    {multiSelectMode ? (
+                      <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
+                        <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
+                          已选 {multiSelectedIds.size} 条
+                        </ThemedText>
+                        <View style={{ flex: 1 }} />
+                        <Pressable
+                          onPress={async () => {
+                            const selected = roomMessages
+                              .filter(item => item.message.messageId && multiSelectedIds.has(item.message.messageId))
+                              .map(item => item.message.content?.trim())
+                              .filter(Boolean)
+                              .join("\n");
+                            if (selected) await Clipboard.setStringAsync(selected);
+                            setMultiSelectMode(false);
+                            setMultiSelectedIds(new Set());
+                          }}
+                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                        >
+                          <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => {
+                            Alert.alert("删除消息", `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`, [
+                              { text: "取消", style: "cancel" },
+                              {
+                                text: "删除",
+                                style: "destructive",
+                                onPress: async () => {
+                                  try {
+                                    for (const msgId of multiSelectedIds) {
+                                      await mobileApiClient.chatController.deleteMessage(msgId);
+                                      if (selectedRoomId) {
+                                        queryClient.setQueryData(
+                                          getAllRoomMessagesQueryKey(selectedRoomId),
+                                          current => markRoomMessageDeletedData(current as any, msgId),
+                                        );
+                                      }
+                                    }
+                                    await roomMessagesQuery.refetch();
+                                  } catch (error) {
+                                    setMessageError(getErrorMessage(error, "删除消息失败。"));
+                                  }
+                                  setMultiSelectMode(false);
+                                  setMultiSelectedIds(new Set());
+                                },
+                              },
+                            ]);
+                          }}
+                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                        >
+                          <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => {
+                            setMultiSelectMode(false);
+                            setMultiSelectedIds(new Set());
+                          }}
+                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                        >
+                          <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <ChatComposer
+                        anchorMessage={selectedAnchorMessage}
+                        availableRoles={selectableRoomRoles}
+                        canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
+                        canUseExpressionPicker={selectableRoomRoles.some(role => (role.avatarFileId ?? 0) > 0)}
+                        currentAvatarFileId={selectedAvatarFileId}
+                        currentRole={currentRole}
+                        draftMessage={draftMessage}
+                        errorMessage={messageError}
+                        isSubmitting={isSubmittingMessage}
+                        messageAttachments={messageAttachments}
+                        onChangeDraftMessage={setDraftMessage}
+                        onClearAnchor={() => setMessageAnchorId(null)}
+                        onClearAttachments={() => setMessageAttachments([])}
+                        onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
+                        onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
+                        onPickAttachment={(kind) => void handlePickAttachments(kind)}
+                        onRemoveAttachment={(id) => setMessageAttachments((cur) => cur.filter(a => a.id !== id))}
+                        onSend={() => void handleSendMessage()}
+                        roomName={selectedRoom?.name}
+                        submitPhase={messageSubmitPhase}
+                      />
+                    )}
                   </>
                 )}
                 <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none">
@@ -778,7 +863,7 @@ export default function ChatShell() {
       />
       <ExpressionPickerSheet
         onClose={() => setExpressionPickerVisible(false)}
-        onSelectExpression={(fileId, role) => void handleSelectExpression(fileId, role.roleName)}
+        onSelectExpression={(fileId, roleName) => void handleSelectExpression(fileId, roleName)}
         roles={selectableRoomRoles}
         visible={expressionPickerVisible}
       />
