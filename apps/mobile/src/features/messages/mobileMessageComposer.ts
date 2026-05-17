@@ -42,7 +42,7 @@ export function getMobileMessageModeHint(mode: MobileMessageMode) {
       return "当前支持 .next，发送 .st 时需要填写角色 ID。";
     case MOBILE_MESSAGE_MODE.TEXT:
     default:
-      return "可选回复某条消息，也支持图片 / 视频 / 音频附件；角色 ID 为空时按普通用户发送。";
+      return "可选回复某条消息，也支持图片 / 视频附件；角色 ID 为空时按普通用户发送。";
   }
 }
 
