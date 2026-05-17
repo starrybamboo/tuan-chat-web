@@ -136,13 +136,13 @@ const styles = StyleSheet.create({
   roleButton: {
     alignItems: "center",
     borderRadius: Radius.full,
-    height: 28,
+    height: 36,
     justifyContent: "center",
-    width: 28,
+    width: 36,
   },
   roleButtonText: {
     color: "#fff",
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "700",
   },
 });
