@@ -178,7 +178,10 @@ export default function ChatShell() {
   const [messageSubmitPhase, setMessageSubmitPhase] = useState<MessageSubmitPhase>("idle");
   const [messageAttachments, setMessageAttachments] = useState<MobileMessageAttachment[]>([]);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
+  const [actionMenuPressY, setActionMenuPressY] = useState(0);
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
+  const [selectedAvatarFileId, setSelectedAvatarFileId] = useState<number | undefined>(undefined);
   const [roleSwitchVisible, setRoleSwitchVisible] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("rooms");
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
@@ -303,6 +306,8 @@ export default function ChatShell() {
     setMessageMode(MOBILE_MESSAGE_MODE.TEXT);
     setMessageSubmitPhase("idle");
     setSelectedRoleId(undefined);
+    setSelectedAvatarId(undefined);
+    setSelectedAvatarFileId(undefined);
     setDraftCustomRoleName("");
     setAnnotations([]);
   }, [selectedRoomId]);
@@ -343,7 +348,7 @@ export default function ChatShell() {
         ? roomRoles.find(role => role.roleId === effectiveRoleId)
         : null;
       const sendIdentity = resolveSendIdentity({
-        currentAvatarId: effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
+        currentAvatarId: selectedAvatarId ?? effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
         customRoleName: draftCustomRoleName,
         inputContent: draftMessage,
         isSpaceOwner,
@@ -532,7 +537,7 @@ export default function ChatShell() {
         ? roomRoles.find(role => role.roleId === effectiveRoleId)
         : null;
       const sendIdentity = resolveSendIdentity({
-        currentAvatarId: effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
+        currentAvatarId: selectedAvatarId ?? effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
         customRoleName: draftCustomRoleName,
         inputContent: draftMessage,
         isSpaceOwner,
@@ -577,6 +582,7 @@ export default function ChatShell() {
     roomRoles,
     selectableRoomRoles,
     selectedAnchorMessage?.messageId,
+    selectedAvatarId,
     sendRoomMessageMutation,
   ]);
 
@@ -587,6 +593,12 @@ export default function ChatShell() {
     } else if (action === "copy") {
       const text = message.content?.trim();
       if (text) await Clipboard.setStringAsync(text);
+    } else if (action === "edit") {
+      const text = message.content ?? "";
+      setDraftMessage(text);
+      handleSelectMessageAnchor(message);
+    } else if (action === "multiSelect") {
+      // TODO: multi-select mode
     } else if (action === "delete") {
       Alert.alert("删除消息", "确定要删除这条消息吗？", [
         { text: "取消", style: "cancel" },
@@ -618,31 +630,31 @@ export default function ChatShell() {
     <ThemedView style={styles.shell}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <KeyboardAvoidingView behavior={keyboardBehavior} style={styles.kav}>
-          <View style={styles.panelContainer}>
-            <Animated.View style={[styles.leftDrawer, leftDrawerStyle]}>
-              <LeftDrawer
-                activeSpaces={activeSpaces}
-                availableRooms={availableRooms}
-                currentContactId={currentContactId}
-                currentRoomId={selectedRoomId}
-                currentSpaceId={selectedSpaceId}
-                dmConversations={dmConversations}
-                dmIsPending={dmInboxQuery.isPending}
-                drawerMode={drawerMode}
-                onCreateRoom={() => setCreateRoomVisible(true)}
-                onCreateSpace={() => setCreateSpaceVisible(true)}
-                onRefresh={() => void handleRefreshWorkspace()}
-                onSelectConversation={(contactId) => { setCurrentContactId(contactId); close(); }}
-                onSelectRoom={handleSelectRoom}
-                onSelectSpace={handleSelectSpace}
-                onSwitchMode={setDrawerMode}
-                roomsIsPending={roomsQuery.isPending}
-                spacesIsPending={spacesQuery.isPending}
-                unreadCounts={roomUnreadCounts}
-              />
-            </Animated.View>
+          <GestureDetector gesture={panGesture}>
+            <View style={styles.panelContainer}>
+              <Animated.View style={[styles.leftDrawer, leftDrawerStyle]}>
+                <LeftDrawer
+                  activeSpaces={activeSpaces}
+                  availableRooms={availableRooms}
+                  currentContactId={currentContactId}
+                  currentRoomId={selectedRoomId}
+                  currentSpaceId={selectedSpaceId}
+                  dmConversations={dmConversations}
+                  dmIsPending={dmInboxQuery.isPending}
+                  drawerMode={drawerMode}
+                  onCreateRoom={() => setCreateRoomVisible(true)}
+                  onCreateSpace={() => setCreateSpaceVisible(true)}
+                  onRefresh={() => void handleRefreshWorkspace()}
+                  onSelectConversation={(contactId) => { setCurrentContactId(contactId); close(); }}
+                  onSelectRoom={handleSelectRoom}
+                  onSelectSpace={handleSelectSpace}
+                  onSwitchMode={setDrawerMode}
+                  roomsIsPending={roomsQuery.isPending}
+                  spacesIsPending={spacesQuery.isPending}
+                  unreadCounts={roomUnreadCounts}
+                />
+              </Animated.View>
 
-            <GestureDetector gesture={panGesture}>
               <Animated.View style={[styles.center, centerStyle]}>
                 <ChatHeader
                   roomName={currentContactId ? (currentDmContactName ?? `用户 #${currentContactId}`) : (selectedRoom?.name ?? null)}
@@ -681,7 +693,10 @@ export default function ChatShell() {
                       messages={messageSearch.isSearching ? messageSearch.filteredMessages : roomMessages}
                       selectedAnchorId={messageAnchorId}
                       onSelectAnchor={handleSelectMessageAnchor}
-                      onLongPressMessage={setActionMenuMessage}
+                      onLongPressMessage={(msg, pageY) => {
+                        setActionMenuMessage(msg)
+                        setActionMenuPressY(pageY)
+                      }}
                       isPending={roomMessagesQuery.isPending}
                       isError={roomMessagesQuery.isError}
                       error={roomMessagesQuery.error}
@@ -689,29 +704,23 @@ export default function ChatShell() {
                     />
                     <ChatComposer
                       anchorMessage={selectedAnchorMessage}
-                      annotations={annotations}
                       availableRoles={selectableRoomRoles}
                       canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
                       canUseExpressionPicker={selectableRoomRoles.some(role => (role.avatarFileId ?? 0) > 0)}
+                      currentAvatarFileId={selectedAvatarFileId}
                       currentRole={currentRole}
                       draftMessage={draftMessage}
-                      draftRoleIdInput={draftRoleIdInput}
                       errorMessage={messageError}
                       isSubmitting={isSubmittingMessage}
                       messageAttachments={messageAttachments}
-                      messageMode={messageMode}
                       onChangeDraftMessage={setDraftMessage}
-                      onChangeDraftRoleIdInput={setDraftRoleIdInput}
-                      onChangeMessageMode={(mode) => { if (!isSubmittingMessage) { setMessageMode(mode); setMessageError(null); if (!canMobileMessageModeUseAttachments(mode)) setMessageAttachments([]); } }}
                       onClearAnchor={() => setMessageAnchorId(null)}
                       onClearAttachments={() => setMessageAttachments([])}
-                      onOpenAnnotationPicker={() => setAnnotationPickerVisible(true)}
                       onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
                       onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
                       onPickAttachment={(kind) => void handlePickAttachments(kind)}
                       onRemoveAttachment={(id) => setMessageAttachments((cur) => cur.filter(a => a.id !== id))}
                       onSend={() => void handleSendMessage()}
-                      onToggleAnnotation={(id) => setAnnotations(toggleAnnotation(annotations, id))}
                       roomName={selectedRoom?.name}
                       submitPhase={messageSubmitPhase}
                     />
@@ -721,24 +730,24 @@ export default function ChatShell() {
                   <Pressable style={{ flex: 1 }} onPress={close} />
                 </Animated.View>
               </Animated.View>
-            </GestureDetector>
 
-            <Animated.View style={[styles.rightDrawer, rightDrawerStyle]}>
-              <RightDrawerMembers
-                currentUserId={currentUserId}
-                currentRoomMember={currentRoomMember}
-                currentSpaceMember={currentSpaceMember}
-                members={roomMembers}
-                roles={roomRoles}
-                roomName={selectedRoom?.name ?? "未选择房间"}
-                isPending={roomMembersQuery.isPending}
-                isError={roomMembersQuery.isError}
-                error={roomMembersQuery.error}
-                onClose={close}
-                onLongPressMember={handleLongPressMember}
-              />
-            </Animated.View>
-          </View>
+              <Animated.View style={[styles.rightDrawer, rightDrawerStyle]}>
+                <RightDrawerMembers
+                  currentUserId={currentUserId}
+                  currentRoomMember={currentRoomMember}
+                  currentSpaceMember={currentSpaceMember}
+                  members={roomMembers}
+                  roles={roomRoles}
+                  roomName={selectedRoom?.name ?? "未选择房间"}
+                  isPending={roomMembersQuery.isPending}
+                  isError={roomMembersQuery.isError}
+                  error={roomMembersQuery.error}
+                  onClose={close}
+                  onLongPressMember={handleLongPressMember}
+                />
+              </Animated.View>
+            </View>
+          </GestureDetector>
         </KeyboardAvoidingView>
       </SafeAreaView>
       <MessageActionMenu
@@ -746,14 +755,17 @@ export default function ChatShell() {
         message={actionMenuMessage}
         onAction={(action, msg) => void handleMessageAction(action, msg)}
         onClose={() => setActionMenuMessage(null)}
+        pressY={actionMenuPressY}
         visible={actionMenuMessage !== null}
       />
       <RoleSwitchSheet
+        currentAvatarId={selectedAvatarId}
         currentRoleId={selectedRoleId}
         customRoleName={draftCustomRoleName}
         canSelectNarrator={isSpaceOwner}
         onChangeCustomRoleName={setDraftCustomRoleName}
         onClose={() => setRoleSwitchVisible(false)}
+        onSelectAvatar={(avatarId, avatarFileId) => { setSelectedAvatarId(avatarId); setSelectedAvatarFileId(avatarFileId); }}
         onSelectRole={setSelectedRoleId}
         roles={selectableRoomRoles}
         visible={roleSwitchVisible}

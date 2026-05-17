@@ -20,7 +20,6 @@ import { avatarThumbUrl } from "@/lib/media-url";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
-import { AnnotationBar } from "@/features/annotations/AnnotationBar";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
 
 import { formatMessageTime, getMessagePreview } from "./mobileChatUtils";
@@ -50,6 +49,7 @@ const styles = StyleSheet.create({
   },
   rowGrouped: {
     paddingLeft: 40 + Spacing.xl + Spacing.lg,
+    paddingTop: Spacing.md,
   },
   rowNarrator: {
     paddingLeft: Spacing.xl,
@@ -164,7 +164,7 @@ interface ChatMessageItemProps {
   isGrouped: boolean;
   isSelectedAnchor: boolean;
   message: Message;
-  onLongPress: (message: Message) => void;
+  onLongPress: (message: Message, pageY: number) => void;
   onSelectAnchor: (message: Message) => void;
   replyPreviewText?: string | null;
   roomRoles: UserRole[];
@@ -204,9 +204,9 @@ export const ChatMessageItem = memo(function ChatMessageItem({
 
   const longPressGesture = Gesture.LongPress()
     .minDuration(500)
-    .onEnd((_e, success) => {
+    .onEnd((e, success) => {
       if (success) {
-        runOnJS(onLongPress)(message);
+        runOnJS(onLongPress)(message, e.absoluteY);
       }
     });
 
@@ -290,14 +290,16 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 </ThemedText>
               </View>
             ) : null}
-            <TextEnhanceRenderer
-              content={getMessagePreview(message)}
-              style={[
-                styles.content,
-                { color: narrator ? theme.textSecondary : isOOC ? theme.warning : theme.text },
-                isOOC && { fontStyle: "italic" },
-              ]}
-            />
+            {message.messageType !== MESSAGE_TYPE.IMG && message.messageType !== MESSAGE_TYPE.VIDEO ? (
+              <TextEnhanceRenderer
+                content={getMessagePreview(message)}
+                style={[
+                  styles.content,
+                  { color: narrator ? theme.textSecondary : isOOC ? theme.warning : theme.text },
+                  isOOC && { fontStyle: "italic" },
+                ]}
+              />
+            ) : null}
             <MobileMessageMediaPreview
               content={message.content}
               extra={message.extra}
@@ -321,7 +323,6 @@ export const ChatMessageItem = memo(function ChatMessageItem({
                 </ThemedText>
               </View>
             ) : null}
-            <AnnotationBar annotations={message.annotations} />
           </View>
         </Animated.View>
       </GestureDetector>

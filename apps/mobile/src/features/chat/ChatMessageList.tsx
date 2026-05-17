@@ -46,7 +46,7 @@ interface ChatMessageListProps {
   isError: boolean;
   isPending: boolean;
   messages: MessageItem[];
-  onLongPressMessage: (message: Message) => void;
+  onLongPressMessage: (message: Message, pageY: number) => void;
   onSelectAnchor: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
