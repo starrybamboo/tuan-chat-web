@@ -11,10 +11,11 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
 import { uploadMediaFile } from "@/utils/mediaUpload";
-import { avatarUrl as buildAvatarUrl, imageHighUrl } from "@/utils/mediaUrl";
+import { avatarUrl as buildAvatarUrl, imageMediumUrl } from "@/utils/mediaUrl";
 import { AvatarPreview } from "../Preview/AvatarPreview";
 import { RenderPreview } from "../Preview/RenderPreview";
 import { TransformControl } from "../sprite/TransformControl";
+import { runAvatarBatchUpload } from "./avatarBatchUpload";
 import "react-image-crop/dist/ReactCrop.css";
 
 function createDefaultTransform(): Transform {
@@ -34,6 +35,13 @@ export interface UploadContext {
   batch?: boolean;
   index?: number;
   total?: number;
+}
+
+interface PreparedBatchAvatarUpload {
+  avatarFileId: number;
+  spriteFileId: number;
+  originFileId?: number;
+  transform: Transform;
 }
 
 interface ImgUploaderWithCopperProps {
@@ -218,12 +226,10 @@ export function CharacterCopper({
     reader.readAsDataURL(file);
   }, [setIsOpen, setCrop]);
 
-  const uploadFileWithDefaults = useCallback(async (file: File, index: number, total: number, baseName: string, toastId: string) => {
+  const uploadFileWithDefaults = useCallback(async (file: File, index: number, total: number, baseName: string) => {
     if (!file.type.startsWith("image/")) {
-      return;
+      throw new Error("仅支持图片文件");
     }
-
-    toast.loading(`正在上传头像 (${index + 1}/${total})...`, { id: toastId });
 
     const img = await loadImageFromFile(file);
     const fileBaseName = total > 1 ? `${baseName}-${index + 1}` : baseName;
@@ -237,30 +243,26 @@ export function CharacterCopper({
     await canvasPreview(img, avatarCanvas, avatarPixelCrop, 1, 0, { previewMode: false });
     const avatarFile = await getCroppedImageFile(avatarCanvas, `${fileBaseName}-cropped.png`);
 
-    let originFileId: number | undefined;
-    try {
-      originFileId = (await uploadMediaFile(file)).fileId;
-    }
-    catch (error) {
-      console.error("originFileId 上传失败:", error);
-    }
+    const originFileIdPromise = uploadMediaFile(file)
+      .then(result => result.fileId)
+      .catch((error) => {
+        console.error("originFileId 上传失败:", error);
+        return undefined;
+      });
 
-    const [spriteUpload, avatarUpload] = await Promise.all([
+    const [originFileId, spriteUpload, avatarUpload] = await Promise.all([
+      originFileIdPromise,
       uploadMediaFile(spriteFile),
       uploadMediaFile(avatarFile),
     ]);
 
-    await Promise.resolve(mutate?.({
+    return {
       avatarFileId: avatarUpload.fileId,
       spriteFileId: spriteUpload.fileId,
       originFileId,
       transform: createDefaultTransform(),
-    }, {
-      batch: true,
-      index,
-      total,
-    }));
-  }, [loadImageFromFile, mutate]);
+    } satisfies PreparedBatchAvatarUpload;
+  }, [loadImageFromFile]);
 
   const handleFiles = useCallback(async (files: File[]) => {
     const imageFiles = files.filter(file => file.type.startsWith("image/"));
@@ -275,18 +277,23 @@ export function CharacterCopper({
     const baseName = fileName || `avatar-upload-${Date.now()}`;
     const toastId = `avatar-batch-upload-${Date.now()}`;
     setisSubmiting(true);
+    toast.loading(`正在上传头像 (0/${imageFiles.length})...`, { id: toastId });
     try {
-      let hasError = false;
-      for (let i = 0; i < imageFiles.length; i += 1) {
-        try {
-          await uploadFileWithDefaults(imageFiles[i], i, imageFiles.length, baseName, toastId);
-        }
-        catch (error) {
-          hasError = true;
+      const { errorCount } = await runAvatarBatchUpload({
+        files: imageFiles,
+        prepareUpload: (file, index, total) => uploadFileWithDefaults(file, index, total, baseName),
+        commitUpload: async (payload, context) => {
+          await Promise.resolve(mutate?.(payload, context));
+        },
+        onProgress: (completed, total) => {
+          toast.loading(`正在上传头像 (${completed}/${total})...`, { id: toastId });
+        },
+        onItemError: (error) => {
           console.error("批量上传失败:", error);
-        }
-      }
-      if (hasError) {
+        },
+      });
+
+      if (errorCount > 0) {
         toast.error("部分头像上传失败，请重试", { id: toastId });
       }
       else {
@@ -300,7 +307,7 @@ export function CharacterCopper({
     finally {
       setisSubmiting(false);
     }
-  }, [fileName, handleSingleFile, uploadFileWithDefaults]);
+  }, [fileName, handleSingleFile, mutate, uploadFileWithDefaults]);
 
   const externalFilesHandledRef = useRef<number | null>(null);
 
@@ -381,7 +388,7 @@ export function CharacterCopper({
         let avatarFileId: number | undefined;
         if (shouldUploadSprite) {
           spriteFileId = (await uploadMediaFile(fileWithNewName)).fileId;
-          downloadUrl = imageHighUrl(spriteFileId);
+          downloadUrl = imageMediumUrl(spriteFileId);
           setDownloadUrl?.(downloadUrl);
         }
         if (shouldUploadAvatar) {
