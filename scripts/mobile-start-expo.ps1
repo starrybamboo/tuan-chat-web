@@ -1,6 +1,7 @@
 param(
     [int]$Port,
-    [switch]$Android
+    [switch]$Android,
+    [switch]$ReverseAndroid
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,7 +13,17 @@ if ($Port -le 0) {
     $Port = $config.MetroPort
 }
 
-Set-TuanChatMobileAndroidBuildEnvironment -Config $config
+Set-AndroidDevBuildEnvironment -Config $config
+
+if ($Android -or $ReverseAndroid) {
+    $onlineDevices = @(Get-AndroidDevAdbDevices -Config $config | Where-Object { $_.State -eq "device" })
+    if ($onlineDevices.Count -eq 0) {
+        Write-Warning "No online Android device found for adb reverse."
+    }
+    foreach ($device in $onlineDevices) {
+        Invoke-TuanChatAndroidReversePorts -Config $config -DeviceSerial $device.Serial -MetroPort $Port
+    }
+}
 
 Push-Location $config.WorkspaceRoot
 try {
@@ -20,7 +31,7 @@ try {
         "--filter", "@tuanchat/mobile",
         "exec", "expo", "start",
         "--port", "$Port",
-        "--localhost"
+        "--host", "lan"
     )
 
     if ($Android) {

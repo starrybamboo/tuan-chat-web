@@ -12,6 +12,7 @@ import {
   clearMessagesByRoomId as dbClearMessages,
   deleteMessagesByIds as dbDeleteMessagesByIds,
   getMessagesByRoomId as dbGetMessagesByRoomId,
+  markMessagesDeletedByIds as dbMarkMessagesDeletedByIds,
 } from "./chatHistoryDb";
 import { collectPersistedOptimisticDuplicateIds } from "./chatHistoryOptimistic";
 import { logMessageOrderChange } from "./messageOrderDebug";
@@ -450,7 +451,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   );
 
   /**
-   * 删除单条消息（本地状态 + IndexedDB）
+   * 删除单条消息（本地状态 + SQLite tombstone）
    */
   const removeMessageById = useCallback(async (messageId: number) => {
     if (!Number.isFinite(messageId))
@@ -471,7 +472,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     });
 
     try {
-      await dbDeleteMessagesByIds([messageId]);
+      await dbMarkMessagesDeletedByIds([messageId]);
     }
     catch (err) {
       setError(err as Error);
@@ -625,7 +626,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
     const loadAndFetch = async () => {
       try {
-        // IndexedDB 加载本地历史记录
+        // SQLite 加载本地历史记录
         const persistedLocalHistory = await dbGetMessagesByRoomId(roomId);
         const localHistory = await stripPersistedOptimisticDuplicates(persistedLocalHistory);
         if (isCancelled)

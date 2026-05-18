@@ -1,7 +1,7 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import type { IconProps } from "phosphor-react-native";
-import { ArrowBendUpLeft, Copy, Trash } from "phosphor-react-native";
+import { ArrowBendUpLeft, Copy, ShareNetwork, Trash, WarningCircle } from "phosphor-react-native";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export type DmMessageAction = "reply" | "copy" | "recall";
+export type DmMessageAction = "reply" | "copy" | "forward" | "recall" | "report";
 
 interface DmMessageActionMenuProps {
   currentUserId: number | null;
@@ -70,14 +70,22 @@ export function DmMessageActionMenu({
   const actions: { action: DmMessageAction; Icon: React.ComponentType<IconProps>; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
     { action: "reply", Icon: ArrowBendUpLeft, label: "回复" },
     { action: "copy", Icon: Copy, label: "复制" },
+    { action: "forward", Icon: ShareNetwork, label: "转发" },
     { action: "recall", Icon: Trash, label: "撤回", danger: true, ownerOnly: true },
+    { action: "report", Icon: WarningCircle, label: "举报", danger: true, ownerOnly: false },
   ];
 
-  const visibleActions = actions.filter((item) => (!item.ownerOnly || isMine) && !(item.action === "recall" && message.status === 1));
+  const visibleActions = actions.filter((item) => {
+    if (item.ownerOnly && !isMine) return false;
+    if (item.action === "recall" && message.status === 1) return false;
+    if (item.action === "report" && isMine) return false;
+    return true;
+  });
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <View style={styles.overlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="关闭菜单" />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
           {visibleActions.map((item) => (
@@ -85,6 +93,8 @@ export function DmMessageActionMenu({
               key={item.action}
               onPress={() => { onAction(item.action, message); onClose(); }}
               style={({ pressed }) => [styles.actionRow, pressed && { backgroundColor: theme.backgroundElement }]}
+              accessibilityLabel={item.label}
+              accessibilityRole="button"
             >
               <item.Icon size={20} color={item.danger ? theme.danger : theme.text} />
               <ThemedText style={item.danger ? [styles.dangerLabel, { color: theme.danger }] : styles.actionLabel}>
@@ -93,7 +103,7 @@ export function DmMessageActionMenu({
             </Pressable>
           ))}
         </View>
-      </Pressable>
+      </View>
     </Modal>
   );
 }

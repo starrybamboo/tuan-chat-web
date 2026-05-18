@@ -21,6 +21,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./packages/tuanchat-query/src/$1"),
       },
       {
+        find: /^@tuanchat\/local-db$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-local-db/src/index.ts"),
+      },
+      {
+        find: /^@tuanchat\/local-db\/(.*)$/,
+        replacement: path.resolve(__dirname, "./packages/tuanchat-local-db/src/$1"),
+      },
+      {
         find: /^api$/,
         replacement: path.resolve(__dirname, "./api/index.ts"),
       },

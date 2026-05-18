@@ -64,7 +64,7 @@ jobs:
         uses: appleboy/scp-action@v1
         with:
           # 优先使用新版 SERVER_* secrets；保留 SSH_* 兼容旧配置
-          host: 38.14.195.6
+          host: 101.126.143.129
           username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
           source: build/client/**
@@ -75,7 +75,7 @@ jobs:
       - name: 发布到站点目录并校验
         uses: appleboy/ssh-action@v1
         with:
-          host: 38.14.195.6
+          host: 101.126.143.129
           username: ${{ secrets.SERVER_USERNAME || secrets.SSH_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD || secrets.SSH_PASSWORD }}
           script: |

@@ -1,6 +1,14 @@
 import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
+import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
+import {
+  prependNotificationToCaches as prependSharedNotificationToCaches,
+  useMarkAllNotificationsReadMutation as useSharedMarkAllNotificationsReadMutation,
+  useMarkNotificationsReadMutation as useSharedMarkNotificationsReadMutation,
+  useNotificationUnreadCountQuery as useSharedNotificationUnreadCountQuery,
+  useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
+} from "@tuanchat/query/notifications";
 
 import type {
   NotificationListFilters,
@@ -11,12 +19,7 @@ import type {
   UserNotificationItem,
 } from "@/components/notification/notificationTypes";
 
-import {
-  getNotificationUnreadCount,
-  markAllNotificationsRead,
-  markNotificationsRead,
-  pageNotifications,
-} from "@/components/notification/notificationApi";
+import { tuanchat } from "../../../api/instance";
 
 const NOTIFICATIONS_QUERY_KEY = ["notifications"] as const;
 const NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY = ["notificationsUnreadCount"] as const;
@@ -25,12 +28,76 @@ type NotificationQueryOptions = {
   enabled?: boolean;
 };
 
+type SharedNotificationPageData = InfiniteData<ApiResultCursorPageBaseResponseNotificationItemResponse, unknown>;
+
 function normalizeNotificationFilters(filters: NotificationListFilters): Required<Pick<NotificationListFilters, "pageSize">> & NotificationListFilters {
   return {
     pageSize: filters.pageSize ?? 20,
     unreadOnly: filters.unreadOnly ?? false,
     category: filters.category ?? null,
   };
+}
+
+function toSharedNotificationFilters(filters: NotificationListFilters) {
+  const normalized = normalizeNotificationFilters(filters);
+  return {
+    ...normalized,
+    category: normalized.category ?? undefined,
+  };
+}
+
+function toWebNotificationItem(item: NotificationItemResponse): UserNotificationItem {
+  return {
+    notificationId: Number(item.notificationId ?? 0),
+    category: item.category ?? "",
+    title: item.title ?? "",
+    content: item.content ?? "",
+    targetPath: item.targetPath ?? "",
+    resourceType: Number(item.resourceType ?? 0),
+    resourceId: Number(item.resourceId ?? 0),
+    isRead: Boolean(item.isRead),
+    readTime: item.readTime ?? null,
+    createTime: item.createTime ?? "",
+    payload: item.payload && typeof item.payload === "object" ? item.payload as UserNotificationItem["payload"] : null,
+  };
+}
+
+function toSharedNotificationItem(item: UserNotificationItem): NotificationItemResponse {
+  return {
+    notificationId: item.notificationId,
+    category: item.category,
+    title: item.title,
+    content: item.content,
+    targetPath: item.targetPath,
+    resourceType: String(item.resourceType),
+    resourceId: item.resourceId,
+    isRead: item.isRead,
+    readTime: item.readTime ?? undefined,
+    createTime: item.createTime,
+    payload: item.payload as NotificationItemResponse["payload"],
+  };
+}
+
+function toWebNotificationPageData(
+  data: SharedNotificationPageData | undefined,
+): InfiniteData<NotificationPageResponse, unknown> | undefined {
+  if (!data) {
+    return undefined;
+  }
+
+  return {
+    ...data,
+    pages: data.pages.map(page => ({
+      cursor: page.data?.cursor ?? null,
+      isLast: page.data?.isLast ?? true,
+      list: (page.data?.list ?? []).map(toWebNotificationItem),
+    })),
+  };
+}
+
+function isSharedNotificationPageData(data: unknown): data is SharedNotificationPageData {
+  const firstPage = (data as { pages?: unknown[] } | undefined)?.pages?.[0];
+  return Boolean(firstPage && typeof firstPage === "object" && "data" in firstPage);
 }
 
 function extractFiltersFromQueryKey(queryKey: QueryKey): NotificationListFilters {
@@ -191,6 +258,17 @@ export function markAllNotificationsReadInPageData(
 }
 
 export function prependNotificationToCaches(queryClient: QueryClient, item: UserNotificationItem) {
+  const sharedItem = toSharedNotificationItem(item);
+  const sharedQueryEntries = queryClient.getQueriesData<SharedNotificationPageData>({
+    queryKey: NOTIFICATIONS_QUERY_KEY,
+  });
+
+  const hasSharedCache = sharedQueryEntries.some(([, data]) => isSharedNotificationPageData(data));
+  if (hasSharedCache) {
+    prependSharedNotificationToCaches(queryClient, sharedItem);
+    return;
+  }
+
   const queryEntries = queryClient.getQueriesData<InfiniteData<NotificationPageResponse>>({
     queryKey: NOTIFICATIONS_QUERY_KEY,
   });
@@ -212,81 +290,35 @@ export function prependNotificationToCaches(queryClient: QueryClient, item: User
   }
 }
 
-function markNotificationIdsAsReadInCaches(queryClient: QueryClient, notificationIdList: number[]) {
-  const queryEntries = queryClient.getQueriesData<InfiniteData<NotificationPageResponse>>({
-    queryKey: NOTIFICATIONS_QUERY_KEY,
-  });
-
-  queryEntries.forEach(([queryKey, data]) => {
-    const filters = extractFiltersFromQueryKey(queryKey);
-    const nextData = markNotificationsReadInPageData(data, notificationIdList, filters);
-    if (nextData !== data) {
-      queryClient.setQueryData(queryKey, nextData);
-    }
-  });
-}
-
-function markAllNotificationsAsReadInCaches(queryClient: QueryClient, category?: string | null) {
-  const queryEntries = queryClient.getQueriesData<InfiniteData<NotificationPageResponse>>({
-    queryKey: NOTIFICATIONS_QUERY_KEY,
-  });
-
-  queryEntries.forEach(([queryKey, data]) => {
-    const filters = extractFiltersFromQueryKey(queryKey);
-    const nextData = markAllNotificationsReadInPageData(data, filters, category);
-    if (nextData !== data) {
-      queryClient.setQueryData(queryKey, nextData);
-    }
-  });
-}
-
 export function useNotificationsInfiniteQuery(filters: NotificationListFilters, options: NotificationQueryOptions = {}) {
-  const normalizedFilters = normalizeNotificationFilters(filters);
-  return useInfiniteQuery({
-    queryKey: [...NOTIFICATIONS_QUERY_KEY, normalizedFilters],
-    initialPageParam: undefined as number | undefined,
-    queryFn: ({ pageParam }) => pageNotifications({ ...normalizedFilters, cursor: pageParam }),
-    getNextPageParam: lastPage => (lastPage.isLast ? undefined : (lastPage.cursor ?? undefined)),
-    refetchOnWindowFocus: false,
+  const query = useSharedNotificationsInfiniteQuery(tuanchat, toSharedNotificationFilters(filters), {
     enabled: options.enabled ?? true,
   });
+
+  return {
+    ...query,
+    data: toWebNotificationPageData(query.data),
+  };
 }
 
 export function useNotificationUnreadCountQuery(enabled = true) {
-  return useQuery({
-    queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-    queryFn: getNotificationUnreadCount,
-    enabled,
-    refetchOnWindowFocus: false,
-  });
+  const query = useSharedNotificationUnreadCountQuery(tuanchat, enabled);
+  return {
+    ...query,
+    data: query.data?.data
+      ? { unreadCount: Number(query.data.data.unreadCount ?? 0) }
+      : undefined,
+  };
 }
 
 export function useMarkNotificationsReadMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: NotificationReadPayload) => markNotificationsRead(payload),
-    onSuccess: async (_result, payload) => {
-      markNotificationIdsAsReadInCaches(queryClient, payload.notificationIdList);
-      await queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY });
-    },
-  });
+  return useSharedMarkNotificationsReadMutation(tuanchat) as ReturnType<typeof useSharedMarkNotificationsReadMutation> & {
+    mutate: (variables: NotificationReadPayload, options?: Parameters<ReturnType<typeof useSharedMarkNotificationsReadMutation>["mutate"]>[1]) => void;
+  };
 }
 
 export function useMarkAllNotificationsReadMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: NotificationReadAllPayload = {}) => markAllNotificationsRead(payload),
-    onSuccess: async (_result, payload) => {
-      markAllNotificationsAsReadInCaches(queryClient, payload.category ?? null);
-      if (!payload.category) {
-        queryClient.setQueryData<NotificationUnreadCountResponse>(
-          NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY,
-          { unreadCount: 0 },
-        );
-      }
-      else {
-        await queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_UNREAD_COUNT_QUERY_KEY });
-      }
-    },
-  });
+  return useSharedMarkAllNotificationsReadMutation(tuanchat) as ReturnType<typeof useSharedMarkAllNotificationsReadMutation> & {
+    mutate: (variables?: NotificationReadAllPayload, options?: Parameters<ReturnType<typeof useSharedMarkAllNotificationsReadMutation>["mutate"]>[1]) => void;
+  };
 }

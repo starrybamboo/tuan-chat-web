@@ -3,7 +3,7 @@ import type { VirtuosoHandle } from "react-virtuoso";
 
 import { useCallback, useEffect, useRef } from "react";
 
-import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 
 import type { ChatMessageResponse } from "../../../../api";
 

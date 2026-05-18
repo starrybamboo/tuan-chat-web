@@ -1,16 +1,4 @@
-export type AnnotationTone = "neutral" | "info" | "success" | "warning" | "accent" | "primary";
-
-export type AnnotationDefinition = {
-  id: string;
-  label: string;
-  category?: string;
-  iconUrl?: string;
-  tone?: AnnotationTone;
-  showInNormalMode?: boolean;
-  source?: "builtin" | "custom";
-  hideLabel?: boolean;
-  effectFrames?: number;
-};
+import type { AnnotationDefinition } from "./types";
 
 export const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "sys:bgm", label: "BGM", category: "音频", tone: "info", source: "builtin" },
@@ -20,20 +8,20 @@ export const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "sys:bg", label: "背景", category: "图片", tone: "primary", source: "builtin" },
   { id: "image.show", label: "展示", category: "图片", tone: "primary", source: "builtin" },
 
-  { id: "effect.en_hmm.webp", label: "en_hmm", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 36, showInNormalMode: true },
-  { id: "effect.en_doubt.webp", label: "en_doubt", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 22, showInNormalMode: true },
-  { id: "effect.en_answer.webp", label: "en_answer", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 26, showInNormalMode: true },
-  { id: "effect.en_sad.webp", label: "en_sad", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 42, showInNormalMode: true },
-  { id: "effect.en_sweat.webp", label: "en_sweat", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 33, showInNormalMode: true },
-  { id: "effect.en_shiny.webp", label: "en_shiny", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 54, showInNormalMode: true },
-  { id: "effect.en_upset.webp", label: "en_upset", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 47, showInNormalMode: true },
-  { id: "effect.en_shy.webp", label: "en_shy", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 33, showInNormalMode: true },
-  { id: "effect.en_suki.webp", label: "en_suki", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 34, showInNormalMode: true },
-  { id: "effect.en_warning.webp", label: "en_warning", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 38, showInNormalMode: true },
-  { id: "effect.en_omit.webp", label: "en_omit", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 26, showInNormalMode: true },
-  { id: "effect.en_chat.webp", label: "en_chat", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 35, showInNormalMode: true },
-  { id: "effect.en_getit.webp", label: "en_getit", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 20, showInNormalMode: true },
-  { id: "effect.en_angry.webp", label: "en_angry", category: "特效", tone: "accent", source: "builtin", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_hmm.webp", label: "en_hmm", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_hmm.webp", hideLabel: true, effectFrames: 36, showInNormalMode: true },
+  { id: "effect.en_doubt.webp", label: "en_doubt", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_doubt.webp", hideLabel: true, effectFrames: 22, showInNormalMode: true },
+  { id: "effect.en_answer.webp", label: "en_answer", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_answer.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_sad.webp", label: "en_sad", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_sad.webp", hideLabel: true, effectFrames: 42, showInNormalMode: true },
+  { id: "effect.en_sweat.webp", label: "en_sweat", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_sweat.webp", hideLabel: true, effectFrames: 33, showInNormalMode: true },
+  { id: "effect.en_shiny.webp", label: "en_shiny", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_shiny.webp", hideLabel: true, effectFrames: 54, showInNormalMode: true },
+  { id: "effect.en_upset.webp", label: "en_upset", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_upset.webp", hideLabel: true, effectFrames: 47, showInNormalMode: true },
+  { id: "effect.en_shy.webp", label: "en_shy", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_shy.webp", hideLabel: true, effectFrames: 33, showInNormalMode: true },
+  { id: "effect.en_suki.webp", label: "en_suki", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_suki.webp", hideLabel: true, effectFrames: 34, showInNormalMode: true },
+  { id: "effect.en_warning.webp", label: "en_warning", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_warning.webp", hideLabel: true, effectFrames: 38, showInNormalMode: true },
+  { id: "effect.en_omit.webp", label: "en_omit", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_omit.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
+  { id: "effect.en_chat.webp", label: "en_chat", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_chat.webp", hideLabel: true, effectFrames: 35, showInNormalMode: true },
+  { id: "effect.en_getit.webp", label: "en_getit", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_getit.webp", hideLabel: true, effectFrames: 20, showInNormalMode: true },
+  { id: "effect.en_angry.webp", label: "en_angry", category: "特效", tone: "accent", source: "builtin", iconUrl: "/annotations/effects/en_angry.webp", hideLabel: true, effectFrames: 26, showInNormalMode: true },
 
   { id: "figure.mini-avatar", label: "小头像", category: "立绘", tone: "accent", source: "builtin", showInNormalMode: true },
   { id: "figure.anim.ba-exit-to-left", label: "从左退场", category: "立绘", tone: "accent", source: "builtin", showInNormalMode: true },
@@ -69,7 +57,7 @@ export const BUILTIN_ANNOTATIONS: AnnotationDefinition[] = [
   { id: "figure.clear", label: "清除立绘", category: "控制", tone: "warning", source: "builtin" },
 ];
 
-const NORMAL_MODE_HIDDEN_ANNOTATION_IDS = new Set([
+export const NORMAL_MODE_HIDDEN_ANNOTATION_IDS = new Set([
   "figure.pos.left",
   "figure.pos.left-center",
   "figure.pos.center",
@@ -81,35 +69,3 @@ const NORMAL_MODE_HIDDEN_ANNOTATION_IDS = new Set([
   "video.skipoff",
   "figure.clear",
 ]);
-
-export function getAnnotationCatalog(): AnnotationDefinition[] {
-  return BUILTIN_ANNOTATIONS.map(item => ({
-    ...item,
-    showInNormalMode: item.showInNormalMode ?? !NORMAL_MODE_HIDDEN_ANNOTATION_IDS.has(item.id),
-  }));
-}
-
-export function buildAnnotationMap(): Map<string, AnnotationDefinition> {
-  return new Map(getAnnotationCatalog().map(item => [item.id, item]));
-}
-
-export function getAnnotationsByCategory(catalog: AnnotationDefinition[]): Map<string, AnnotationDefinition[]> {
-  const map = new Map<string, AnnotationDefinition[]>();
-  for (const item of catalog) {
-    const cat = item.category ?? "其他";
-    const list = map.get(cat) ?? [];
-    list.push(item);
-    map.set(cat, list);
-  }
-  return map;
-}
-
-export function normalizeAnnotations(annotations?: string[]): string[] {
-  if (!Array.isArray(annotations)) return [];
-  return annotations.filter((item): item is string => typeof item === "string" && item.length > 0);
-}
-
-export function toggleAnnotation(annotations: string[] | undefined, id: string): string[] {
-  const list = normalizeAnnotations(annotations);
-  return list.includes(id) ? list.filter(item => item !== id) : [...list, id];
-}

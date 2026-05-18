@@ -1,6 +1,7 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import * as SplashScreen from "expo-splash-screen";
 import { Slot } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -14,6 +15,10 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   useNotificationInit();
+
+  useEffect(() => {
+    void SplashScreen.hideAsync();
+  }, []);
 
   return (
     <GestureHandlerRootView style={styles.root}>

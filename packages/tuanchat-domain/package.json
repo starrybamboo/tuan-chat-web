@@ -16,7 +16,12 @@
     "./role-api-error": "./src/role-api-error.ts",
     "./room-identity": "./src/room-identity.ts",
     "./state-command": "./src/stateCommand.ts",
-    "./state-event": "./src/state-event.ts"
+    "./state-event": "./src/state-event.ts",
+    "./state-runtime": "./src/state-runtime/index.ts",
+    "./annotation-catalog": "./src/annotation-catalog/index.ts",
+    "./media-url": "./src/media-url/index.ts",
+    "./ability-extractors": "./src/ability-extractors/index.ts",
+    "./display-labels": "./src/display-labels/index.ts"
   },
   "dependencies": {
     "@tuanchat/openapi-client": "workspace:*"

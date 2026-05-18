@@ -1,5 +1,7 @@
 import type { FeedPageRequest } from "../../../api";
+import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
@@ -166,28 +168,35 @@ function ActivitiesPage() {
                 const contentType = item?.type || 3;
                 const key = `feed-${feedId ?? idx}`;
 
-                // 将 sentinelRef 挂载在倒数第 RENDER_MIN 个 item（或长度 <= RENDER_MIN 时挂在第 0 个）
                 if (idx === sentinelIndex) {
                   return (
-                    <div key={key} ref={(el) => { sentinelRef.current = el as HTMLElement; }}>
+                    <motion.div
+                      key={key}
+                      ref={(el) => { sentinelRef.current = el as HTMLElement; }}
+                      {...listItemMotionProps(idx)}
+                    >
                       <PostsCard
                         res={item.response}
                         stats={item.stats}
                         displayType="default"
                         contentTypeNumber={contentType}
                       />
-                    </div>
+                    </motion.div>
                   );
                 }
 
                 return (
-                  <PostsCard
+                  <motion.div
                     key={key}
-                    res={item.response}
-                    stats={item.stats}
-                    displayType="default"
-                    contentTypeNumber={contentType}
-                  />
+                    {...listItemMotionProps(idx)}
+                  >
+                    <PostsCard
+                      res={item.response}
+                      stats={item.stats}
+                      displayType="default"
+                      contentTypeNumber={contentType}
+                    />
+                  </motion.div>
                 );
               })}
 

@@ -12,7 +12,7 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "flex-end" },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
-  sheet: { borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, maxHeight: "70%", paddingBottom: 40 },
+  sheet: { borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, maxHeight: SCREEN_HEIGHT * 0.7, paddingBottom: 40 },
   handle: { alignSelf: "center", backgroundColor: "#555", borderRadius: 3, height: 4, marginTop: Spacing.md, width: 36 },
   header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg },
   content: { gap: Spacing.xl, paddingHorizontal: Spacing.xl },

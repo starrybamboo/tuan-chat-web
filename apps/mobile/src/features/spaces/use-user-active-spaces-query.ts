@@ -8,6 +8,5 @@ export function useUserActiveSpacesQuery() {
 
   return useSharedGetUserActiveSpacesQuery(mobileApiClient, {
     enabled: isAuthenticated,
-    staleTime: 300_000,
   });
 }

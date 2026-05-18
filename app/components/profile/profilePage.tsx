@@ -1,5 +1,6 @@
 import { HouseIcon, ImageIcon } from "@phosphor-icons/react";
 import { Link, Outlet, useLocation, useParams } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 function ProfilePage() {
@@ -92,7 +93,18 @@ function ProfilePage() {
 
       {/* 内容区域 */}
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            className="flex-1"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

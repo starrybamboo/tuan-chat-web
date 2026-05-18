@@ -11,6 +11,8 @@
       "@/*": ["./app/*"],
       "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
       "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
+      "@tuanchat/local-db": ["./packages/tuanchat-local-db/src/index.ts"],
+      "@tuanchat/local-db/*": ["./packages/tuanchat-local-db/src/*"],
       "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
       "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
       "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],

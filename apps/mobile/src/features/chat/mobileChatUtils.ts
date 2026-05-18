@@ -19,17 +19,7 @@ export function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function getRoomTypeLabel(roomType?: number | null) {
-  if (roomType === 2) {
-    return "全员房间";
-  }
-
-  return "游戏房间";
-}
-
-export function getSpaceStatusLabel(status?: number | null) {
-  return status === 2 ? "已归档" : "活跃中";
-}
+export { getRoomTypeLabel, getSpaceStatusLabel } from "@tuanchat/domain/display-labels";
 
 export function getMessageAuthorLabel(message: Message) {
   const customRoleName = message.customRoleName?.trim();

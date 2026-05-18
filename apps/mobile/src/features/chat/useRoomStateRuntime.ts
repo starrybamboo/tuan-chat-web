@@ -3,7 +3,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { useMemo } from "react";
 
-import { buildStateRuntime, EMPTY_STATE_DEFINITION_RESOLVER } from "./stateRuntime";
+import { buildStateRuntime, EMPTY_STATE_DEFINITION_RESOLVER } from "@tuanchat/domain/state-runtime";
 import { useRoleAbilitiesByRule } from "./useRoleAbilitiesByRule";
 
 function collectReferencedRoleIds(messages: Message[], currentRoleId: number | null, roomRoles: UserRole[]) {

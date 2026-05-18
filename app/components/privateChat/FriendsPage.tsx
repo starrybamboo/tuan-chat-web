@@ -1,5 +1,6 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import { useLocation, useRouter } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "motion/react";
 import {
   useAcceptFriendRequestMutation,
   useBlockFriendMutation,
@@ -291,7 +292,15 @@ export default function FriendsPage({
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-auto pb-2">
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            className="flex-1 min-h-0 overflow-auto pb-2"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
             {tab === "all" && (
               <div className="flex flex-col gap-2 w-full py-2">
                 {filteredFriends.map((friend, index) => (
@@ -774,7 +783,8 @@ export default function FriendsPage({
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* 右侧：当前活动（Discord 风格，桌面展示） */}

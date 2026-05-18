@@ -462,6 +462,7 @@ export default defineConfig(() => {
         "deepmerge",
         "picocolors",
         "eventemitter3",
+        "sql.js",
 
         // Fix CJS/ESM interop for upstream deps used by the playground.
         "lodash",

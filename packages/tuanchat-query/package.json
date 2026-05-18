@@ -6,15 +6,23 @@
     ".": "./src/index.ts",
     "./chat": "./src/chat.ts",
     "./direct-message": "./src/direct-message.ts",
+    "./friends": "./src/friends.ts",
     "./message-sessions": "./src/message-sessions.ts",
     "./members": "./src/members.ts",
     "./notifications": "./src/notifications.ts",
+    "./role-abilities": "./src/role-abilities.ts",
+    "./roles": "./src/roles.ts",
+    "./room-dnd-map": "./src/room-dnd-map.ts",
+    "./room-extra": "./src/room-extra.ts",
+    "./room-message": "./src/room-message.ts",
     "./room-roles": "./src/room-roles.ts",
     "./spaces": "./src/spaces.ts",
+    "./stickers": "./src/stickers.ts",
     "./users": "./src/users.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.69.0",
+    "@tuanchat/domain": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*"
   }
 }

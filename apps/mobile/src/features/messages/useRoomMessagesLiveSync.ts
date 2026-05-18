@@ -2,11 +2,11 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import {
   getRoomMessageSyncGapStart,
-  getAllRoomMessagesQueryKey,
   upsertRoomMessagesListData,
-} from "@tuanchat/query/chat";
+} from "@tuanchat/query/room-message";
 import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
 import {
   bumpRoomSessionLatestSyncInCache,

@@ -6,8 +6,10 @@ import type { MobileMessageMode } from "@/features/messages/mobileMessageCompose
 
 import { Checkerboard, ImageSquare, PaperPlaneTilt, Pulse, Smiley, Sword, X, XCircle } from "phosphor-react-native";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
+
+import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -266,11 +268,6 @@ export function ChatComposer({
   };
 
   const handleChangeMessageText = (nextText: string) => {
-    // 删除换行或大段文本时，先回到最小高度，再等待 contentSize 重新测量，
-    // 避免 TextInput 保持旧高度不收缩。
-    if (nextText.length < draftMessage.length) {
-      setInputHeight(COMPOSER_MIN_HEIGHT);
-    }
     onChangeDraftMessage(nextText);
   };
 

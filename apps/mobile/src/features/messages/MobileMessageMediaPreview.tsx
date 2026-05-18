@@ -5,9 +5,10 @@ import {
   getVideoMessageExtra,
 } from "@tuanchat/domain/message-extra";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { Image } from "expo-image";
 import { File, PlayCircle, Waveform } from "phosphor-react-native";
 import { useState } from "react";
-import { Alert, Image, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -122,7 +123,7 @@ export function MobileMessageMediaPreview({
           <Image
             source={{ uri: thumbUrl }}
             style={[styles.image, { height, width }]}
-            resizeMode="cover"
+            contentFit="cover"
           />
         </Pressable>
         <Modal
@@ -133,7 +134,7 @@ export function MobileMessageMediaPreview({
         >
           <Pressable style={styles.modalOverlay} onPress={() => setPreviewImageUrl(null)}>
             {previewImageUrl ? (
-              <Image source={{ uri: previewImageUrl }} style={styles.modalImage} resizeMode="contain" />
+              <Image source={{ uri: previewImageUrl }} style={styles.modalImage} contentFit="contain" />
             ) : null}
           </Pressable>
         </Modal>

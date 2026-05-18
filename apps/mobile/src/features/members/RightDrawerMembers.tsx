@@ -2,7 +2,9 @@ import type { MemberPreviewItem } from "@/features/members/memberUtils";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+
+import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";

@@ -1,14 +1,11 @@
+import type { AbilityRecord } from "@tuanchat/domain/ability-extractors";
+
+import { getAbilitySource, searchNumericValue } from "@tuanchat/domain/ability-extractors";
+
 import {
   applyPokemonStageModifier,
   formatPokemonModifiedStat,
 } from "./initiativePokemonRules";
-
-type AbilityRecord = {
-  ruleId?: number;
-  ability?: Record<string, unknown>;
-  basic?: Record<string, unknown>;
-  skill?: Record<string, unknown>;
-};
 
 type AbilityQueryLike = {
   data?: {
@@ -52,77 +49,6 @@ function findRuleRecord(query: AbilityQueryLike, ruleId: number | undefined): Ab
   if (!res?.success || !Array.isArray(res.data) || !ruleId)
     return null;
   return res.data.find(item => item.ruleId === ruleId) ?? null;
-}
-
-function lower(value: string): string {
-  return String(value).toLowerCase();
-}
-
-function tryPickScalar(obj: unknown): number | null {
-  if (obj == null)
-    return null;
-  if (typeof obj === "number")
-    return Number.isFinite(obj) ? obj : null;
-  if (typeof obj === "string") {
-    const num = Number(obj);
-    return Number.isFinite(num) ? num : null;
-  }
-  return null;
-}
-
-function searchNumericValue(node: unknown, candidates: string[], depth = 0, matchNamedFields = false): number | null {
-  if (node == null || depth > 3)
-    return null;
-
-  if (typeof node === "object" && !Array.isArray(node)) {
-    const record = node as Record<string, unknown>;
-    const keys = Object.keys(record);
-
-    if (matchNamedFields) {
-      const nameField = record.name ?? record.label ?? record.title;
-      if (typeof nameField === "string") {
-        const normalizedName = lower(nameField);
-        if (candidates.some(c => normalizedName.includes(lower(c)))) {
-          const val = tryPickScalar(record.value ?? record.val ?? record.score ?? record.num);
-          if (val != null)
-            return val;
-        }
-      }
-    }
-
-    for (const key of keys) {
-      const normalizedKey = lower(key);
-      if (candidates.some(c => normalizedKey.includes(lower(c)))) {
-        const val = tryPickScalar(record[key]) ?? searchNumericValue(record[key], candidates, depth + 1, matchNamedFields);
-        if (val != null)
-          return val;
-      }
-    }
-
-    for (const key of keys) {
-      const found = searchNumericValue(record[key], candidates, depth + 1, matchNamedFields);
-      if (found != null)
-        return found;
-    }
-  }
-
-  if (Array.isArray(node)) {
-    for (const item of node) {
-      const found = searchNumericValue(item, candidates, depth + 1, matchNamedFields);
-      if (found != null)
-        return found;
-    }
-  }
-
-  return null;
-}
-
-function getAbilitySource(record: AbilityRecord): Record<string, unknown> {
-  return {
-    ...record.ability,
-    ...record.basic,
-    ...record.skill,
-  };
 }
 
 export function extractAgilityFromQuery(ruleId: number | undefined, query: AbilityQueryLike): number | null {

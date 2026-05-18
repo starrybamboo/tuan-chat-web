@@ -1,4 +1,4 @@
-import { CaretLeft, CaretRight, MagnifyingGlass } from "phosphor-react-native";
+import { CaretLeft, MagnifyingGlass } from "phosphor-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -50,16 +50,13 @@ const styles = StyleSheet.create({
 });
 
 interface ChatHeaderProps {
-  memberCount: number;
   onOpenDrawer: () => void;
-  onOpenMembers: () => void;
   onSearch: () => void;
   roomName: string | null;
-  spaceName: string | null;
   unreadCount?: number;
 }
 
-export function ChatHeader({ onOpenDrawer, onOpenMembers, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
+export function ChatHeader({ onOpenDrawer, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
   const theme = useTheme();
 
   return (
@@ -75,13 +72,12 @@ export function ChatHeader({ onOpenDrawer, onOpenMembers, onSearch, roomName, un
         ) : null}
       </Pressable>
 
-      <Pressable style={styles.titleSection} onPress={onOpenMembers}>
+      <View style={styles.titleSection}>
         <ThemedText style={[styles.hashText, { color: theme.textSecondary }]}>#</ThemedText>
         <ThemedText numberOfLines={1} type="heading" style={{ fontSize: 16, flex: 1 }}>
           {roomName ?? "未选择房间"}
         </ThemedText>
-        <CaretRight size={14} color={theme.textSecondary} />
-      </Pressable>
+      </View>
 
       <Pressable style={styles.searchButton} onPress={onSearch} accessibilityLabel="搜索">
         <MagnifyingGlass size={20} color={theme.text} weight="bold" />

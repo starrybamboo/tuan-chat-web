@@ -6,6 +6,7 @@ import {
   flattenRoomMessagePages,
   getRoomMessageSyncGapStart,
   markRoomMessageDeletedData,
+  markRoomMessagesDeleted,
   mergeRoomMessages,
   selectVisibleMainRoomMessages,
   upsertRoomMessagesInfiniteData,
@@ -139,6 +140,20 @@ describe("chat room message helpers", () => {
     ]);
 
     expect(markRoomMessageDeletedData(next, 2)[1].message.status).toBe(1);
+  });
+
+  it("支持批量标记消息删除", () => {
+    const next = markRoomMessagesDeleted([
+      createChatMessageResponse(1, 10),
+      createChatMessageResponse(2, 20),
+      createChatMessageResponse(3, 30),
+    ], [1, 3]);
+
+    expect(next.map(item => [item.message.messageId, item.message.status])).toEqual([
+      [1, 1],
+      [2, 0],
+      [3, 1],
+    ]);
   });
 
   it("过滤 thread reply 和无权查看的暗骰", () => {

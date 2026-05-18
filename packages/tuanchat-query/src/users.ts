@@ -1,9 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
 
 export type UserQueryOptions = {
   enabled?: boolean;
@@ -87,5 +88,19 @@ export function fetchMyUserInfoWithCache(queryClient: QueryClient, client: UserC
     queryKey: getMyUserInfoQueryKey(),
     queryFn: () => client.userController.getMyUserInfo(),
     staleTime: options?.staleTime ?? USER_INFO_STALE_TIME_MS,
+  });
+}
+
+export function useUpdateUserInfoMutation(client: UserClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: UserUpdateInfoRequest) => client.userController.updateUserInfo(request),
+    mutationKey: ["updateUserInfo"],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getUserInfo"] });
+      queryClient.invalidateQueries({ queryKey: ["getUserProfileInfo"] });
+      queryClient.invalidateQueries({ queryKey: getMyUserInfoQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["getUserInfoByUsername"] });
+    },
   });
 }

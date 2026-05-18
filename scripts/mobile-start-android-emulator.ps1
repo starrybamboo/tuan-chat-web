@@ -12,5 +12,5 @@ if ([string]::IsNullOrWhiteSpace($AvdName)) {
     $AvdName = $config.DefaultAvdName
 }
 
-$deviceSerial = Start-TuanChatAndroidEmulator -Config $config -AvdName $AvdName -TimeoutSeconds $TimeoutSeconds
+$deviceSerial = Start-AndroidDevEmulator -Config $config -AvdName $AvdName -TimeoutSeconds $TimeoutSeconds
 Write-Host "Android emulator is ready: $AvdName -> $deviceSerial"

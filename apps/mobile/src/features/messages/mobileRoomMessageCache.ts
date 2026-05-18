@@ -1,101 +1,41 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import {
-  deleteAsync,
-  documentDirectory,
-  EncodingType,
-  getInfoAsync,
-  makeDirectoryAsync,
-  readAsStringAsync,
-  writeAsStringAsync,
-} from "expo-file-system/legacy";
-import { Platform } from "react-native";
+  createRoomMessageRepository,
+  type RoomMessageRepository,
+} from "@tuanchat/local-db";
+import * as SQLite from "expo-sqlite";
 
-import { buildStoredRoomMessageCache, sanitizeStoredRoomMessageCache } from "./mobileRoomMessageCacheUtils";
-
-const ROOM_MESSAGE_CACHE_DIRECTORY_NAME = "tuanchat-mobile-room-messages";
-const ROOM_MESSAGE_CACHE_STORAGE_KEY_PREFIX = "tuanchat.mobile.room-messages";
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+let repositoryPromise: Promise<RoomMessageRepository> | null = null;
 
 function isPositiveRoomId(roomId: number): boolean {
   return Number.isInteger(roomId) && roomId > 0;
 }
 
-function isWebStorageAvailable() {
-  return Platform.OS === "web" && typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+async function openRoomMessageDb(): Promise<SQLite.SQLiteDatabase> {
+  dbPromise ??= SQLite.openDatabaseAsync("tuanchat-local.db");
+  return dbPromise;
 }
 
-function buildRoomMessageCacheStorageKey(roomId: number) {
-  return `${ROOM_MESSAGE_CACHE_STORAGE_KEY_PREFIX}.${roomId}`;
+let operationQueue: Promise<unknown> = Promise.resolve();
+
+function enqueue<T>(task: () => Promise<T>): Promise<T> {
+  const result = operationQueue.then(task, task);
+  operationQueue = result.then(() => undefined, () => undefined);
+  return result;
 }
 
-function buildNativeRoomMessageCacheDirectoryUri() {
-  if (!documentDirectory) {
-    return null;
-  }
-
-  return `${documentDirectory}${ROOM_MESSAGE_CACHE_DIRECTORY_NAME}`;
-}
-
-function buildNativeRoomMessageCacheFileUri(roomId: number) {
-  const directoryUri = buildNativeRoomMessageCacheDirectoryUri();
-  if (!directoryUri) {
-    return null;
-  }
-
-  return `${directoryUri}/${roomId}.json`;
-}
-
-async function ensureNativeRoomMessageCacheDirectory() {
-  const directoryUri = buildNativeRoomMessageCacheDirectoryUri();
-  if (!directoryUri) {
-    return null;
-  }
-
-  const directoryInfo = await getInfoAsync(directoryUri);
-  if (!directoryInfo.exists) {
-    await makeDirectoryAsync(directoryUri, {
-      intermediates: true,
+async function getRoomMessageRepository(): Promise<RoomMessageRepository> {
+  repositoryPromise ??= (async () => {
+    const db = await openRoomMessageDb();
+    return createRoomMessageRepository({
+      all: (sql, params = []) => enqueue(() => db.getAllAsync(sql, ...params)),
+      exec: sql => enqueue(() => db.execAsync(sql)),
+      run: (sql, params = []) => enqueue(() => db.runAsync(sql, ...params).then(() => undefined)),
     });
-  }
-
-  return directoryUri;
-}
-
-async function readRoomMessageCacheRaw(roomId: number) {
-  if (isWebStorageAvailable()) {
-    return window.localStorage.getItem(buildRoomMessageCacheStorageKey(roomId));
-  }
-
-  const fileUri = buildNativeRoomMessageCacheFileUri(roomId);
-  if (!fileUri) {
-    return null;
-  }
-
-  const fileInfo = await getInfoAsync(fileUri);
-  if (!fileInfo.exists) {
-    return null;
-  }
-
-  return await readAsStringAsync(fileUri, {
-    encoding: EncodingType.UTF8,
-  });
-}
-
-async function writeRoomMessageCacheRaw(roomId: number, value: string) {
-  if (isWebStorageAvailable()) {
-    window.localStorage.setItem(buildRoomMessageCacheStorageKey(roomId), value);
-    return;
-  }
-
-  await ensureNativeRoomMessageCacheDirectory();
-  const fileUri = buildNativeRoomMessageCacheFileUri(roomId);
-  if (!fileUri) {
-    return;
-  }
-
-  await writeAsStringAsync(fileUri, value, {
-    encoding: EncodingType.UTF8,
-  });
+  })();
+  return repositoryPromise;
 }
 
 export async function readCachedRoomMessages(roomId: number): Promise<ChatMessageResponse[]> {
@@ -103,31 +43,26 @@ export async function readCachedRoomMessages(roomId: number): Promise<ChatMessag
     return [];
   }
 
-  try {
-    const raw = await readRoomMessageCacheRaw(roomId);
-    if (!raw) {
-      return [];
-    }
-
-    const cached = sanitizeStoredRoomMessageCache(JSON.parse(raw));
-    if (!cached || cached.roomId !== roomId) {
-      return [];
-    }
-
-    return cached.messages;
-  }
-  catch {
-    return [];
-  }
+  const repository = await getRoomMessageRepository();
+  return repository.getMessagesByRoomId(roomId);
 }
 
 export async function writeCachedRoomMessages(roomId: number, messages: ChatMessageResponse[]) {
-  const cache = buildStoredRoomMessageCache(roomId, messages);
-  if (!cache) {
+  if (!isPositiveRoomId(roomId)) {
     return;
   }
 
-  await writeRoomMessageCacheRaw(roomId, JSON.stringify(cache));
+  const repository = await getRoomMessageRepository();
+  await repository.upsertMessages(messages.filter(message => message.message?.roomId === roomId));
+}
+
+export async function markCachedRoomMessagesDeleted(roomId: number, messageIds: number[]) {
+  if (!isPositiveRoomId(roomId)) {
+    return;
+  }
+
+  const repository = await getRoomMessageRepository();
+  await repository.markMessagesDeleted(messageIds);
 }
 
 export async function clearCachedRoomMessages(roomId: number) {
@@ -135,22 +70,6 @@ export async function clearCachedRoomMessages(roomId: number) {
     return;
   }
 
-  if (isWebStorageAvailable()) {
-    window.localStorage.removeItem(buildRoomMessageCacheStorageKey(roomId));
-    return;
-  }
-
-  const fileUri = buildNativeRoomMessageCacheFileUri(roomId);
-  if (!fileUri) {
-    return;
-  }
-
-  const fileInfo = await getInfoAsync(fileUri);
-  if (!fileInfo.exists) {
-    return;
-  }
-
-  await deleteAsync(fileUri, {
-    idempotent: true,
-  });
+  const repository = await getRoomMessageRepository();
+  await repository.clearRoomMessages(roomId);
 }

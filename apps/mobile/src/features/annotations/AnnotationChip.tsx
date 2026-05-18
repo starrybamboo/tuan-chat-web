@@ -1,4 +1,4 @@
-import type { AnnotationDefinition, AnnotationTone } from "./annotationCatalog";
+import type { AnnotationDefinition, AnnotationTone } from "@tuanchat/domain/annotation-catalog";
 
 import { Pressable, StyleSheet } from "react-native";
 

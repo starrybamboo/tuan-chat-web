@@ -1,6 +1,7 @@
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -121,7 +122,7 @@ export function ExpressionPickerSheet({
                               style={styles.item}
                             >
                               <Image
-                                resizeMode="contain"
+                                contentFit="contain"
                                 source={{ uri: mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low") }}
                                 style={styles.sticker}
                               />

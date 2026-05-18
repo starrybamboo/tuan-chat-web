@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 
-import type { UseChatHistoryReturn } from "@/components/chat/infra/indexedDB/useChatHistory";
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";

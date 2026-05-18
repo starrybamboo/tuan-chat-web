@@ -8,6 +8,5 @@ export function useRoomMembersQuery(roomId: number | null) {
 
   return useSharedGetRoomMembersQuery(mobileApiClient, roomId ?? -1, {
     enabled: isAuthenticated && typeof roomId === "number" && roomId > 0,
-    staleTime: 300_000,
   });
 }

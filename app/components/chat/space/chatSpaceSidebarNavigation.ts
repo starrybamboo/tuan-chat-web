@@ -5,6 +5,13 @@ type ShouldSelectSpaceFromSidebarParams = {
   isDragging: boolean;
 };
 
+type ShouldShowSpaceAsActiveParams = {
+  activeSpaceId: number | null;
+  spaceId?: number | null;
+  isDiscoverMode?: boolean;
+  isPrivateChatMode?: boolean;
+};
+
 export function shouldSelectSpaceFromSidebar({
   activeSpaceId,
   targetSpaceId,
@@ -21,4 +28,16 @@ export function shouldSelectSpaceFromSidebar({
     return true;
   }
   return activeSpaceId !== targetSpaceId;
+}
+
+export function shouldShowSpaceAsActive({
+  activeSpaceId,
+  spaceId,
+  isDiscoverMode = false,
+  isPrivateChatMode = false,
+}: ShouldShowSpaceAsActiveParams): boolean {
+  if (isDiscoverMode || isPrivateChatMode) {
+    return false;
+  }
+  return activeSpaceId != null && spaceId != null && activeSpaceId === spaceId;
 }

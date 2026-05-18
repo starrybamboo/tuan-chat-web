@@ -1,15 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useBlacklistQuery as useSharedBlacklistQuery } from "@tuanchat/query/friends";
 
 import { mobileApiClient } from "@/lib/api";
 
 export function useBlacklistQuery(enabled: boolean) {
-  return useQuery({
-    enabled,
-    queryFn: async () => {
-      const res = await mobileApiClient.friendController.getBlackList({ pageNo: 1, pageSize: 50 });
-      return (res as any).data?.list ?? res ?? [];
-    },
-    queryKey: ["blacklist"],
-    staleTime: 30_000,
-  });
+  return useSharedBlacklistQuery(mobileApiClient, enabled);
 }

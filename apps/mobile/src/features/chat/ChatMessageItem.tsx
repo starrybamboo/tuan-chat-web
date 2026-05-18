@@ -1,9 +1,11 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { Image } from "expo-image";
 import { memo } from "react";
 
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Vibration, View } from "react-native";
+import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -11,7 +13,7 @@ import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMedi
 
 import { useTheme } from "@/hooks/use-theme";
 
-import { avatarThumbUrl } from "@/lib/media-url";
+import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 
 import { formatMessageTime, getMessagePreview } from "./mobileChatUtils";
 
@@ -161,8 +163,9 @@ interface ChatMessageItemProps {
   isSelectedAnchor: boolean;
   message: Message;
   multiSelectMode?: boolean;
-  onLongPress: (message: Message, pageY: number) => void;
+  onLongPress: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
+  replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRoles: UserRole[];
 }
@@ -175,6 +178,7 @@ export const ChatMessageItem = memo(({
   multiSelectMode,
   onLongPress,
   onToggleMultiSelect,
+  replyAuthorName,
   replyPreviewText,
   roomRoles,
 }: ChatMessageItemProps) => {
@@ -254,20 +258,26 @@ export const ChatMessageItem = memo(({
           >
             {!isGrouped && !narrator && !isOOC ? renderAvatar() : null}
             <View style={styles.body}>
-              {message.messageType !== MESSAGE_TYPE.IMG && message.messageType !== MESSAGE_TYPE.VIDEO
-                ? (
-                    <TextEnhanceRenderer
-                      content={getMessagePreview(message)}
-                      style={[
-                        styles.content,
-                        { color: narrator ? theme.textSecondary : theme.text },
-                      ]}
-                      numberOfLines={2}
-                    />
-                  )
-                : (
-                    <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[媒体消息]</ThemedText>
-                  )}
+              {message.messageType === MESSAGE_TYPE.IMG
+                ? (() => {
+                    const img = getImageMessageExtra(message.extra);
+                    const thumbUri = img?.fileId ? mediaFileUrl(img.fileId, "image", "low") : null;
+                    return thumbUri
+                      ? <Image source={{ uri: thumbUri }} style={{ borderRadius: Radius.sm, height: 40, width: 40 }} />
+                      : <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[图片]</ThemedText>;
+                  })()
+                : message.messageType === MESSAGE_TYPE.VIDEO
+                  ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[视频]</ThemedText>
+                  : (
+                      <TextEnhanceRenderer
+                        content={getMessagePreview(message)}
+                        style={[
+                          styles.content,
+                          { color: narrator ? theme.textSecondary : theme.text },
+                        ]}
+                        numberOfLines={2}
+                      />
+                    )}
             </View>
           </View>
         </View>
@@ -278,7 +288,10 @@ export const ChatMessageItem = memo(({
   return (
     <Pressable
       delayLongPress={500}
-      onLongPress={event => onLongPress(message, event.nativeEvent.pageY)}
+      onLongPress={() => {
+        Vibration.vibrate(10);
+        onLongPress(message);
+      }}
       style={[
         narrator
           ? styles.rowNarrator
@@ -321,7 +334,7 @@ export const ChatMessageItem = memo(({
           ? (
               <View style={[styles.replyPreview, { borderLeftColor: theme.accent, backgroundColor: theme.accentMuted }]}>
                 <ThemedText style={{ fontSize: 12, color: theme.textSecondary }} numberOfLines={1}>
-                  回复:
+                  回复 {replyAuthorName ?? ""}:
                   {" "}
                   {replyPreviewText}
                 </ThemedText>

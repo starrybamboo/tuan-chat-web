@@ -1,9 +1,11 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { DmConversation } from "@/features/friends/useDmInboxQuery";
-import { CaretDown, CaretRight, ChatCircle, Compass, Plus } from "phosphor-react-native";
+import { CaretDown, CaretRight, ChatCircle, Plus } from "phosphor-react-native";
 import { useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+
+import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -271,12 +273,6 @@ export function LeftDrawer({
             style={[styles.railIconButton, { backgroundColor: drawerMode === "dm" ? theme.accentMuted : theme.backgroundElement }]}
           >
             <ChatCircle size={18} color={drawerMode === "dm" ? theme.accent : theme.textSecondary} weight="fill" />
-          </Pressable>
-          <Pressable
-            onPress={() => onSwitchMode("rooms")}
-            style={[styles.railIconButton, { backgroundColor: drawerMode === "rooms" ? theme.accentMuted : theme.backgroundElement }]}
-          >
-            <Compass size={18} color={drawerMode === "rooms" ? theme.accent : theme.textSecondary} weight="fill" />
           </Pressable>
         </View>
 

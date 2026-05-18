@@ -1,5 +1,6 @@
 import { Gesture } from "react-native-gesture-handler";
 import {
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -13,11 +14,17 @@ import {
 
 import { getGestureDrawerAxisConfig } from "./useGestureDrawerConfig";
 
-function adjacentSnapPoints(startPosition: number): readonly number[] {
+function logGestureDrawer(event: string, detail?: Record<string, number>) {
+  if (!__DEV__)
+    return;
+  console.log("[gesture-drawer]", event, detail ?? {});
+}
+
+function adjacentSnapPoints(position: number): readonly number[] {
   "worklet";
-  if (startPosition >= LEFT_DRAWER_WIDTH)
+  if (position > LEFT_DRAWER_WIDTH * 0.5)
     return [0, LEFT_DRAWER_WIDTH];
-  if (startPosition <= -RIGHT_DRAWER_WIDTH)
+  if (position < -RIGHT_DRAWER_WIDTH * 0.5)
     return [-RIGHT_DRAWER_WIDTH, 0];
   return [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH];
 }
@@ -30,6 +37,12 @@ export function useGestureDrawer() {
   const panGesture = Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
     .failOffsetY(axisConfig.failOffsetY)
+    .onBegin((e) => {
+      runOnJS(logGestureDrawer)("pan-begin", {
+        translateX: translateX.value,
+        absoluteX: e.absoluteX,
+      });
+    })
     .onStart(() => {
       context.value = translateX.value;
     })
@@ -41,8 +54,12 @@ export function useGestureDrawer() {
       );
     })
     .onEnd((e) => {
-      const targets = adjacentSnapPoints(context.value);
+      const targets = adjacentSnapPoints(translateX.value);
       const destination = snapPoint(translateX.value, e.velocityX, targets);
+      runOnJS(logGestureDrawer)("pan-end", {
+        velocityX: e.velocityX,
+        destination,
+      });
       translateX.value = withSpring(destination, SPRING_CONFIG);
     });
 
