@@ -17,6 +17,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 import { ChatMessageItem } from "./ChatMessageItem";
 import { collectChatAvatarThumbUrls } from "./chat-avatar-prefetch";
+import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
 import { Image } from "expo-image";
 
@@ -37,11 +38,11 @@ const styles = StyleSheet.create({
   },
 });
 
-function getReplyAuthorName(msg: Message, roles: UserRole[]): string {
+function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
   if (!msg.roleId || msg.roleId <= 0) return "旁白";
   const custom = (msg.customRoleName ?? "").trim();
   if (custom) return custom;
-  const role = roles.find(r => r.roleId === msg.roleId);
+  const role = roomRolesById.get(msg.roleId);
   return (role?.roleName ?? "").trim() || "未知角色";
 }
 
@@ -97,14 +98,15 @@ export function ChatMessageList({
   const prevLengthRef = useRef(messages.length);
   const prefetchedAvatarUrlsRef = useRef(new Set<string>());
   const prefetchingAvatarUrlsRef = useRef(new Set<string>());
+  const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
 
   const invertedData = useMemo(
     () => messages.filter(item => item.message.messageType !== MESSAGE_TYPE.EFFECT).reverse(),
     [messages],
   );
   const avatarThumbUrls = useMemo(
-    () => collectChatAvatarThumbUrls(messages.map(item => item.message)),
-    [messages],
+    () => collectChatAvatarThumbUrls(messages.map(item => item.message), roomRolesById),
+    [messages, roomRolesById],
   );
 
   const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
@@ -173,7 +175,7 @@ export function ChatMessageList({
     const replyId = item.message.replyMessageId;
     const replyMsg = replyId ? messageMap.get(replyId) : undefined;
     const replyPreviewText = replyMsg?.content?.trim().slice(0, 60) ?? null;
-    const replyAuthorName = replyMsg ? getReplyAuthorName(replyMsg, roomRoles) : null;
+    const replyAuthorName = replyMsg ? getReplyAuthorName(replyMsg, roomRolesById) : null;
 
     return (
       <ChatMessageItem
@@ -186,10 +188,10 @@ export function ChatMessageList({
         onToggleMultiSelect={onToggleMultiSelect}
         replyAuthorName={replyAuthorName}
         replyPreviewText={replyPreviewText}
-        roomRoles={roomRoles}
+        roomRolesById={roomRolesById}
       />
     );
-  }, [invertedData, messageMap, multiSelectMode, multiSelectedIds, onLongPressMessage, onToggleMultiSelect, roomRoles, selectedAnchorId]);
+  }, [invertedData, messageMap, multiSelectMode, multiSelectedIds, onLongPressMessage, onToggleMultiSelect, roomRolesById, selectedAnchorId]);
 
   const keyExtractor = useCallback((item: MessageItem) => String(item.message.messageId), []);
 
@@ -233,9 +235,11 @@ export function ChatMessageList({
           contentContainerStyle={styles.listContent}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          windowSize={10}
-          maxToRenderPerBatch={15}
+          initialNumToRender={12}
+          maxToRenderPerBatch={20}
           maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          removeClippedSubviews={false}
+          windowSize={15}
         />
       </GestureDetector>
       <ChatNewMessagesPill
