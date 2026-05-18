@@ -1,22 +1,22 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { Image } from "expo-image";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 
 import { StyleSheet, Vibration, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
-import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
 
 import { useTheme } from "@/hooks/use-theme";
+import { mediaFileUrl } from "@/lib/media-url";
 
-import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
-
-import { formatMessageTime, getMessagePreview } from "./mobileChatUtils";
+import { getMessagePreview } from "./mobileChatUtils";
+import { MessageAvatar } from "./MessageAvatar";
+import { type RoomRolesById } from "./chat-avatar-utils";
 
 const AVATAR_SIZE = 40;
 
@@ -56,18 +56,6 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.md,
     paddingVertical: Spacing.md,
   },
-  avatar: {
-    alignItems: "center",
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    justifyContent: "center",
-    width: AVATAR_SIZE,
-  },
-  avatarText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-  },
   narratorAvatar: {
     alignItems: "center",
     backgroundColor: "rgba(139, 148, 158, 0.15)",
@@ -103,14 +91,6 @@ const styles = StyleSheet.create({
   },
 });
 
-const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
-
-function getAvatarColor(userId: number | undefined) {
-  if (!userId)
-    return AVATAR_COLORS[0];
-  return AVATAR_COLORS[userId % AVATAR_COLORS.length];
-}
-
 function isNarrator(message: Message): boolean {
   return !message.roleId || message.roleId <= 0;
 }
@@ -126,17 +106,7 @@ function isOutOfCharacterSpeech(content?: string | null): boolean {
   return openBrackets.has(content[0]) && closeBrackets.has(trimmedEnd[trimmedEnd.length - 1]);
 }
 
-function isMessageEdited(message: Message): boolean {
-  if (!message.createTime || !message.updateTime)
-    return false;
-  const create = new Date(message.createTime).getTime();
-  const update = new Date(message.updateTime).getTime();
-  if (Number.isNaN(create) || Number.isNaN(update))
-    return false;
-  return update > create;
-}
-
-function getDisplayRoleName(message: Message, roomRoles: UserRole[]): string {
+function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): string {
   if (isNarrator(message))
     return "";
 
@@ -144,18 +114,12 @@ function getDisplayRoleName(message: Message, roomRoles: UserRole[]): string {
   if (customName)
     return customName;
 
-  const role = roomRoles.find(r => r.roleId === message.roleId);
+  const role = typeof message.roleId === "number" ? roomRolesById.get(message.roleId) : undefined;
   const roleName = (role?.roleName ?? "").trim();
   if (roleName)
     return roleName;
 
   return "未选择角色";
-}
-
-function getAvatarInitial(displayName: string) {
-  if (displayName)
-    return displayName.slice(0, 1);
-  return "?";
 }
 
 interface ChatMessageItemProps {
@@ -168,7 +132,7 @@ interface ChatMessageItemProps {
   onToggleMultiSelect?: (message: Message) => void;
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
-  roomRoles: UserRole[];
+  roomRolesById: RoomRolesById;
 }
 
 export const ChatMessageItem = memo(({
@@ -181,16 +145,12 @@ export const ChatMessageItem = memo(({
   onToggleMultiSelect,
   replyAuthorName,
   replyPreviewText,
-  roomRoles,
+  roomRolesById,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const narrator = isNarrator(message);
-  const displayName = getDisplayRoleName(message, roomRoles);
+  const displayName = getDisplayRoleName(message, roomRolesById);
   const isOOC = !narrator && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
-  const edited = isMessageEdited(message);
-  const timestamp = formatMessageTime(edited ? message.updateTime : message.createTime);
-  const avatarUrl = message.avatarFileId ? avatarThumbUrl(message.avatarFileId) : null;
-  const avatarSource = useMemo(() => (avatarUrl ? { uri: avatarUrl } : null), [avatarUrl]);
 
   const renderAvatar = () => {
     if (narrator) {
@@ -200,20 +160,15 @@ export const ChatMessageItem = memo(({
         </View>
       );
     }
-    if (avatarSource) {
-      return (
-        <Image
-          cachePolicy="memory-disk"
-          recyclingKey={avatarUrl}
-          source={avatarSource}
-          style={styles.avatar}
-        />
-      );
-    }
     return (
-      <View style={[styles.avatar, { backgroundColor: getAvatarColor(message.userId) }]}>
-        <ThemedText style={styles.avatarText}>{getAvatarInitial(displayName)}</ThemedText>
-      </View>
+      <MessageAvatar
+        avatarFileId={message.avatarFileId}
+        displayName={displayName}
+        roleId={message.roleId}
+        roomRolesById={roomRolesById}
+        size={AVATAR_SIZE}
+        userId={message.userId}
+      />
     );
   };
 
@@ -328,10 +283,6 @@ export const ChatMessageItem = memo(({
                       </ThemedText>
                     )
                   : null}
-                <ThemedText style={{ fontSize: 11, color: theme.textSecondary, marginLeft: "auto" }}>
-                  {edited ? <ThemedText style={{ fontSize: 11, color: theme.warning }}>(已编辑) </ThemedText> : null}
-                  {timestamp}
-                </ThemedText>
               </View>
             )
           : null}
@@ -339,7 +290,10 @@ export const ChatMessageItem = memo(({
           ? (
               <View style={[styles.replyPreview, { borderLeftColor: theme.accent, backgroundColor: theme.accentMuted }]}>
                 <ThemedText style={{ fontSize: 12, color: theme.textSecondary }} numberOfLines={1}>
-                  回复 {replyAuthorName ?? ""}:
+                  回复
+                  {" "}
+                  {replyAuthorName ?? ""}
+                  :
                   {" "}
                   {replyPreviewText}
                 </ThemedText>
