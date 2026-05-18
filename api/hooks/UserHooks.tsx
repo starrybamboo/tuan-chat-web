@@ -1,10 +1,9 @@
-import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useGetMyUserInfoQuery as useSharedGetMyUserInfoQuery,
   useGetUserInfoByUsernameQuery as useSharedGetUserInfoByUsernameQuery,
   useGetUserInfoQuery as useSharedGetUserInfoQuery,
   useGetUserProfileQuery as useSharedGetUserProfileQuery,
+  useUpdateUserInfoMutation as useSharedUpdateUserInfoMutation,
 } from "@tuanchat/query/users";
 import { tuanchat } from "../instance";
 
@@ -49,16 +48,5 @@ export function useGetUserInfoByUsernameQuery(username: string) {
  * 修改用户信息
  */
 export function useUpdateUserInfoMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (req: UserUpdateInfoRequest) => tuanchat.userController.updateUserInfo(req),
-    mutationKey: ["updateUserInfo"],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["getUserInfo"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserProfileInfo"] });
-      queryClient.invalidateQueries({ queryKey: ["getMyUserInfo"] });
-      queryClient.invalidateQueries({ queryKey: ["getUserInfoByUsername"] });
-    },
-  });
+  return useSharedUpdateUserInfoMutation(tuanchat);
 }
-

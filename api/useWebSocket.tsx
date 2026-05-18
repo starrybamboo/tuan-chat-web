@@ -157,24 +157,17 @@ export function useWebSocket() {
    * @param lastReadSyncId
    */
   const updateLastReadSyncId = useCallback((roomId: number, lastReadSyncId?: number) => {
-    // Reduce updates to avoid render loops.
     const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"]);
     if (!oldData?.data) return;
     const session = oldData.data.find(session => session.roomId === roomId);
     if (!session) return;
 
-    // If lastReadSyncId is missing, fall back to latestSyncId.
     const targetReadySyncId = lastReadSyncId ?? session.latestSyncId ?? session.lastReadSyncId ?? 0;
     if (targetReadySyncId === (session.lastReadSyncId ?? 0))
       return;
 
-    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
-      if (!oldData?.data) return;
-      // Best-effort async update; ok if it occasionally misses.
-      updateReadPosition1({
-        roomId,
-        syncId: targetReadySyncId,
-      });
+    queryClient.setQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"], (oldData) => {
+      if (!oldData?.data) return oldData;
       return {
         ...oldData,
         data: oldData.data.map(session => {
@@ -187,6 +180,10 @@ export function useWebSocket() {
           return session;
         }),
       };
+    });
+    updateReadPosition1({
+      roomId,
+      syncId: targetReadySyncId,
     });
   }, [queryClient, updateReadPosition1]);
   // 输入状态, 按照roomId进行分组

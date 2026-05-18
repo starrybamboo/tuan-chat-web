@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
-import { shouldSelectSpaceFromSidebar } from "@/components/chat/space/chatSpaceSidebarNavigation";
+import { shouldSelectSpaceFromSidebar, shouldShowSpaceAsActive } from "@/components/chat/space/chatSpaceSidebarNavigation";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
@@ -268,7 +268,12 @@ export default function ChatSpaceSidebar({
                 }
                 onSelectSpace(targetSpaceId);
               }}
-              isActive={!isDiscoverMode && activeSpaceId === space.spaceId}
+              isActive={shouldShowSpaceAsActive({
+                activeSpaceId,
+                spaceId: space.spaceId,
+                isDiscoverMode,
+                isPrivateChatMode,
+              })}
             >
             </SpaceButton>
           </div>

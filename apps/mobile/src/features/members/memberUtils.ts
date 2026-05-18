@@ -1,4 +1,5 @@
 import { getMemberTypeSortWeight, hasHostPrivileges } from "@tuanchat/domain/member-permissions";
+import { getSpaceMemberTypeLabel } from "@tuanchat/domain/display-labels";
 
 export type MemberPreviewItem = {
   avatarFileId?: number | null;
@@ -8,22 +9,7 @@ export type MemberPreviewItem = {
   username?: string | null;
 };
 
-export function getSpaceMemberTypeLabel(memberType?: number | null): string {
-  switch (memberType) {
-    case 1:
-      return "主持";
-    case 5:
-      return "副主持";
-    case 2:
-      return "玩家";
-    case 3:
-      return "观战";
-    case 4:
-      return "骰娘";
-    default:
-      return "待识别";
-  }
-}
+export { getSpaceMemberTypeLabel };
 
 export function getMemberDisplayName(member: MemberPreviewItem): string {
   const username = member.username?.trim();

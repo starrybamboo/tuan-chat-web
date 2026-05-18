@@ -1,5 +1,6 @@
-import type { AnnotationDefinition } from "./annotationCatalog";
+import type { AnnotationDefinition } from "@tuanchat/domain/annotation-catalog";
 
+import { getAnnotationCatalog, getAnnotationsByCategory, normalizeAnnotations } from "@tuanchat/domain/annotation-catalog";
 import { useMemo } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -8,7 +9,6 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 import { AnnotationChip } from "./AnnotationChip";
-import { getAnnotationCatalog, getAnnotationsByCategory, normalizeAnnotations } from "./annotationCatalog";
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" },

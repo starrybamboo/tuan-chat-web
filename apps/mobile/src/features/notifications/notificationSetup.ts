@@ -26,13 +26,11 @@ export async function setupNotificationChannel() {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#58a6ff",
-      sound: "default",
     });
 
     await Notifications.setNotificationChannelAsync("system", {
       name: "系统通知",
       importance: Notifications.AndroidImportance.DEFAULT,
-      sound: "default",
     });
   }
 }
@@ -48,7 +46,6 @@ export async function scheduleLocalNotification(params: {
       title: params.title,
       body: params.body,
       data: params.data,
-      sound: "default",
       ...(Platform.OS === "android" ? { channelId: params.channelId ?? "messages" } : {}),
     },
     trigger: null,

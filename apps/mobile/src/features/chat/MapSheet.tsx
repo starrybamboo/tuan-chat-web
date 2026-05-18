@@ -1,7 +1,9 @@
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { useMemo, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+
+import { Image } from "expo-image";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -198,7 +200,7 @@ export function MapSheet({
         <View style={styles.section}>
           {mapImageUrl
             ? (
-                <Image resizeMode="contain" source={{ uri: mapImageUrl }} style={[styles.mapPreview, { backgroundColor: theme.backgroundElement }]} />
+                <Image contentFit="contain" source={{ uri: mapImageUrl }} style={[styles.mapPreview, { backgroundColor: theme.backgroundElement }]} />
               )
             : (
                 <View style={[styles.mapPreview, { alignItems: "center", backgroundColor: theme.backgroundElement, justifyContent: "center" }]}>

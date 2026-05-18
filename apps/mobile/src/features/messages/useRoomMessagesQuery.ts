@@ -1,6 +1,7 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { getAllRoomMessagesQueryKey, mergeRoomMessages } from "@tuanchat/query/chat";
+import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
+import { mergeRoomMessages } from "@tuanchat/query/room-message";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
@@ -19,7 +20,6 @@ export function useRoomMessagesQuery(roomId: number | null) {
       return (res as any).data ?? res ?? [];
     },
     queryKey: getAllRoomMessagesQueryKey(roomId ?? -1),
-    staleTime: 0,
   });
 
   const networkMessages = useMemo(() => {

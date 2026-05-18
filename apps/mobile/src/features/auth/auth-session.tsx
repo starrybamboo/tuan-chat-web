@@ -14,6 +14,8 @@ import {
   writeStoredAuthSession,
 } from "./auth-storage";
 
+const AUTH_SESSION_BOOTSTRAP_TIMEOUT_MS = 1500;
+
 export type LoginMethod = "username" | "userId";
 
 interface LoginInput {
@@ -118,6 +120,17 @@ async function enrichStoredAuthSession(session: StoredAuthSession): Promise<Stor
   }
 }
 
+async function readStoredAuthSessionWithTimeout() {
+  return await Promise.race([
+    readStoredAuthSession(),
+    new Promise<null>((resolve) => {
+      setTimeout(() => {
+        resolve(null);
+      }, AUTH_SESSION_BOOTSTRAP_TIMEOUT_MS);
+    }),
+  ]);
+}
+
 export function AuthSessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<StoredAuthSession | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
@@ -127,7 +140,14 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     let cancelled = false;
 
     void (async () => {
-      const storedSession = await readStoredAuthSession();
+      let storedSession: StoredAuthSession | null = null;
+      try {
+        storedSession = await readStoredAuthSessionWithTimeout();
+      }
+      catch {
+        storedSession = null;
+      }
+
       if (!cancelled) {
         setSession(storedSession);
         setIsBootstrapping(false);

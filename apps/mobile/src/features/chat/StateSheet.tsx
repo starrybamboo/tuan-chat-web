@@ -11,7 +11,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-import { compareStateValueText } from "./stateRuntime";
+import { compareStateValueText } from "@tuanchat/domain/state-runtime";
 import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 const styles = StyleSheet.create({

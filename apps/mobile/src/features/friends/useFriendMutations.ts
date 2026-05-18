@@ -1,75 +1,39 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useAcceptFriendRequestMutation as useSharedAcceptFriendRequestMutation,
+  useBlockFriendMutation as useSharedBlockFriendMutation,
+  useCheckFriendMutation as useSharedCheckFriendMutation,
+  useDeleteFriendMutation as useSharedDeleteFriendMutation,
+  useRejectFriendRequestMutation as useSharedRejectFriendRequestMutation,
+  useSendFriendRequestMutation as useSharedSendFriendRequestMutation,
+  useUnblockFriendMutation as useSharedUnblockFriendMutation,
+} from "@tuanchat/query/friends";
 
 import { mobileApiClient } from "@/lib/api";
 
 export function useSendFriendRequestMutation() {
-  return useMutation({
-    mutationFn: (params: { targetUserId: number; verifyMsg: string }) =>
-      mobileApiClient.friendController.sendFriendRequest(params),
-  });
+  return useSharedSendFriendRequestMutation(mobileApiClient);
 }
 
 export function useAcceptFriendRequestMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (friendReqId: number) =>
-      mobileApiClient.friendController.acceptFriendRequest({ friendReqId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["friends"] });
-      void queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
-    },
-  });
+  return useSharedAcceptFriendRequestMutation(mobileApiClient);
 }
 
 export function useRejectFriendRequestMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (friendReqId: number) =>
-      mobileApiClient.friendController.rejectFriendRequest({ friendReqId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
-    },
-  });
+  return useSharedRejectFriendRequestMutation(mobileApiClient);
 }
 
 export function useDeleteFriendMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (targetUserId: number) =>
-      mobileApiClient.friendController.deleteFriend({ targetUserId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["friends"] });
-      void queryClient.invalidateQueries({ queryKey: ["dmInbox"] });
-    },
-  });
+  return useSharedDeleteFriendMutation(mobileApiClient);
 }
 
 export function useBlockFriendMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (targetUserId: number) =>
-      mobileApiClient.friendController.blockFriend({ targetUserId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["friends"] });
-      void queryClient.invalidateQueries({ queryKey: ["blacklist"] });
-    },
-  });
+  return useSharedBlockFriendMutation(mobileApiClient);
 }
 
 export function useUnblockFriendMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (targetUserId: number) =>
-      mobileApiClient.friendController.unblockFriend({ targetUserId }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["blacklist"] });
-    },
-  });
+  return useSharedUnblockFriendMutation(mobileApiClient);
 }
 
 export function useCheckFriendMutation() {
-  return useMutation({
-    mutationFn: (targetUserId: number) =>
-      mobileApiClient.friendController.checkFriend({ targetUserId }),
-  });
+  return useSharedCheckFriendMutation(mobileApiClient);
 }

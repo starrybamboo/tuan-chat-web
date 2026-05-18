@@ -1,5 +1,6 @@
-import type { AnnotationDefinition } from "./annotationCatalog";
+import type { AnnotationDefinition } from "@tuanchat/domain/annotation-catalog";
 
+import { buildAnnotationMap, normalizeAnnotations } from "@tuanchat/domain/annotation-catalog";
 import { Plus } from "phosphor-react-native";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -8,7 +9,6 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 import { AnnotationChip } from "./AnnotationChip";
-import { buildAnnotationMap, normalizeAnnotations } from "./annotationCatalog";
 
 const styles = StyleSheet.create({
   container: {

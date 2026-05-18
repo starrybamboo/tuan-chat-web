@@ -1,13 +1,14 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   StyleSheet,
   View,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -33,6 +34,14 @@ const styles = StyleSheet.create({
   },
 });
 
+function getReplyAuthorName(msg: Message, roles: UserRole[]): string {
+  if (!msg.roleId || msg.roleId <= 0) return "旁白";
+  const custom = (msg.customRoleName ?? "").trim();
+  if (custom) return custom;
+  const role = roles.find(r => r.roleId === msg.roleId);
+  return (role?.roleName ?? "").trim() || "未知角色";
+}
+
 function shouldGroupWithPrevious(current: Message, previous: Message | undefined): boolean {
   if (!previous)
     return false;
@@ -52,7 +61,7 @@ interface ChatMessageListProps {
   messages: MessageItem[];
   multiSelectMode?: boolean;
   multiSelectedIds?: Set<number>;
-  onLongPressMessage: (message: Message, pageY: number) => void;
+  onLongPressMessage: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
@@ -122,16 +131,18 @@ export function ChatMessageList({
     const replyId = item.message.replyMessageId;
     const replyMsg = replyId ? messageMap.get(replyId) : undefined;
     const replyPreviewText = replyMsg?.content?.trim().slice(0, 60) ?? null;
+    const replyAuthorName = replyMsg ? getReplyAuthorName(replyMsg, roomRoles) : null;
 
     return (
       <ChatMessageItem
         isGrouped={isGrouped}
-        isMultiSelected={multiSelectedIds?.has(item.message.messageId!)}
+        isMultiSelected={item.message.messageId != null && multiSelectedIds?.has(item.message.messageId)}
         isSelectedAnchor={selectedAnchorId === item.message.messageId}
         message={item.message}
         multiSelectMode={multiSelectMode}
         onLongPress={onLongPressMessage}
         onToggleMultiSelect={onToggleMultiSelect}
+        replyAuthorName={replyAuthorName}
         replyPreviewText={replyPreviewText}
         roomRoles={roomRoles}
       />
@@ -173,19 +184,19 @@ export function ChatMessageList({
         ref={flatListRef}
         data={invertedData}
         inverted
+        keyboardDismissMode="interactive"
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-
         windowSize={10}
         maxToRenderPerBatch={15}
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
       />
       <ChatNewMessagesPill
         count={newMessageCount}
-        visible={!isAtBottom && newMessageCount > 0}
+        visible={!isAtBottom}
         onPress={scrollToBottom}
       />
     </View>

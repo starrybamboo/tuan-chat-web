@@ -15,7 +15,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildGalPatchMutationPlan, executeGalPatchMutationPlan } from "@/components/chat/galgameAi";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
-import { useChatHistory } from "@/components/chat/infra/indexedDB/useChatHistory";
+import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
 import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";

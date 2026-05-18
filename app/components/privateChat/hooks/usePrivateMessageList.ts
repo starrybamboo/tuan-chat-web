@@ -32,7 +32,7 @@ export function usePrivateMessageList({
   );
 
   // 从消息信箱获取私聊列表
-  const inboxQuery = useGetInboxMessagePageQuery(enabled);
+  const inboxQuery = useGetInboxMessagePageQuery(enabled, userId);
   // 私聊列表应优先展示（头像/昵称可以逐步补齐），避免好友列表接口变慢导致左侧一直卡 loading
   const isLoading = inboxQuery.isLoading;
   const isInboxReady = inboxQuery.isSuccess;

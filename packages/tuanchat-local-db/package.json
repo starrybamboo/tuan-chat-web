@@ -1,0 +1,13 @@
+{
+  "name": "@tuanchat/local-db",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tuanchat/openapi-client": "workspace:*",
+    "@tuanchat/query": "workspace:*",
+    "sql.js": "1.14.1"
+  }
+}

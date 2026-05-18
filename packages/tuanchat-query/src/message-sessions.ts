@@ -123,3 +123,27 @@ export function useUpdateRoomReadPositionMutation(client: MessageSessionClient) 
     },
   });
 }
+
+export function useSubscribeRoomMutation(client: MessageSessionClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (roomId: number) => client.messageSession.subscribeRoom(roomId),
+    mutationKey: ["subscribeRoom"],
+    onSuccess: (_result, roomId) => {
+      queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getRoomMessageSessionQueryKey(roomId) });
+    },
+  });
+}
+
+export function useUnsubscribeRoomMutation(client: MessageSessionClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (roomId: number) => client.messageSession.unsubscribeRoom(roomId),
+    mutationKey: ["unsubscribeRoom"],
+    onSuccess: (_result, roomId) => {
+      queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getRoomMessageSessionQueryKey(roomId) });
+    },
+  });
+}

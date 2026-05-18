@@ -51,6 +51,14 @@ export interface BottomSheetModalProps {
   visible: boolean;
 }
 
+function resolveMaxHeight(maxHeight: number | `${number}%`): number {
+  if (typeof maxHeight === "number") {
+    return maxHeight;
+  }
+  const percent = Number.parseFloat(maxHeight);
+  return (percent / 100) * getScreenHeight();
+}
+
 export function BottomSheetModal({
   backgroundColor,
   children,
@@ -66,6 +74,7 @@ export function BottomSheetModal({
   const [sheetTranslateY] = useState(() => new Animated.Value(getScreenHeight()));
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const resolvedMaxHeight = resolveMaxHeight(maxHeight);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -151,7 +160,7 @@ export function BottomSheetModal({
           <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: backdropOpacity }]} />
         </Pressable>
         <Animated.View style={{ position: "absolute", bottom: 0, left: 0, right: 0, transform: [{ translateY: sheetTranslateY }] }}>
-          <View style={[styles.sheet, { backgroundColor, maxHeight, paddingBottom: insets.bottom || Spacing.xl }, sheetStyle]}>
+          <View style={[styles.sheet, { backgroundColor, maxHeight: resolvedMaxHeight, paddingBottom: insets.bottom || Spacing.xl }, sheetStyle]}>
             <View {...panResponder.panHandlers} style={styles.handleArea}>
               <View style={[styles.handle, { backgroundColor: handleColor }]} />
             </View>

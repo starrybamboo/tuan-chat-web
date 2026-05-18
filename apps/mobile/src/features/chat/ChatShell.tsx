@@ -12,8 +12,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { canManageMemberPermissions, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
-import { getAllRoomMessagesQueryKey, markRoomMessageDeletedData, selectVisibleMainRoomMessages } from "@tuanchat/query/chat";
+import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
+import { markRoomMessagesDeleted, selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import {
@@ -41,6 +42,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
 import { LeftDrawer } from "@/features/drawer/LeftDrawer";
+import { DmContactDrawer } from "@/features/friends/DmContactDrawer";
 import { DmChatView } from "@/features/friends/DmChatView";
 import { useDmInboxQuery } from "@/features/friends/useDmInboxQuery";
 import {
@@ -61,8 +63,7 @@ import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
-import { readCachedRoomMessages, writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
-import { markCachedRoomMessageDeleted } from "@/features/messages/mobileRoomMessageCacheUtils";
+import { markCachedRoomMessagesDeleted } from "@/features/messages/mobileRoomMessageCache";
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
@@ -224,7 +225,6 @@ export default function ChatShell() {
   const [messageSubmitPhase, setMessageSubmitPhase] = useState<MessageSubmitPhase>("idle");
   const [messageAttachments, setMessageAttachments] = useState<MobileMessageAttachment[]>([]);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
-  const [actionMenuPressY, setActionMenuPressY] = useState(0);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(() => new Set());
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
@@ -388,30 +388,29 @@ export default function ChatShell() {
       setMessageAnchorId(null);
   }, [messageAnchorId, selectedAnchorMessage]);
 
-  const handleSelectSpace = (spaceId: number | null) => {
-    setCurrentContactId(null);
+  const handleSelectSpace = useCallback((spaceId: number | null) => {
     startTransition(() => setSelectedSpaceId(spaceId));
-    close();
-  };
+    setDrawerMode("rooms");
+  }, [setSelectedSpaceId]);
 
-  const handleSelectRoom = (roomId: number) => {
+  const handleSelectRoom = useCallback((roomId: number) => {
     setCurrentContactId(null);
-    startTransition(() => setSelectedRoomId(roomId));
+    setSelectedRoomId(roomId);
     close();
-  };
+  }, [close, setSelectedRoomId]);
 
-  const handleSelectMessageAnchor = (message: Message) => {
+  const handleSelectMessageAnchor = useCallback((message: Message) => {
     setMessageAnchorId(message.messageId ?? null);
     setMessageError(null);
-  };
+  }, []);
 
-  const handleRefreshWorkspace = async () => {
+  const handleRefreshWorkspace = useCallback(async () => {
     await spacesQuery.refetch();
     if (selectedSpaceId)
       await Promise.all([roomsQuery.refetch(), spaceMembersQuery.refetch()]);
     if (selectedRoomId)
       await Promise.all([roomMembersQuery.refetch(), roomMessagesQuery.refetch()]);
-  };
+  }, [roomMembersQuery, roomMessagesQuery, roomsQuery, selectedRoomId, selectedSpaceId, spaceMembersQuery, spacesQuery]);
 
   const handleSendMessage = async () => {
     setMessageError(null);
@@ -722,6 +721,30 @@ export default function ChatShell() {
     sendRoomMessageMutation,
   ]);
 
+  const markDeletedRoomMessagesLocally = useCallback(async (messageIds: number | number[]) => {
+    if (!selectedRoomId) {
+      return;
+    }
+
+    const ids = Array.isArray(messageIds) ? messageIds : [messageIds];
+    const validIds = ids.filter(id => Number.isInteger(id) && id > 0);
+    if (validIds.length === 0) {
+      return;
+    }
+
+    queryClient.setQueryData(
+      getAllRoomMessagesQueryKey(selectedRoomId),
+      (current) => {
+        if (!Array.isArray(current)) {
+          return current;
+        }
+        return markRoomMessagesDeleted(current, validIds);
+      },
+    );
+
+    await markCachedRoomMessagesDeleted(selectedRoomId, validIds);
+  }, [queryClient, selectedRoomId]);
+
   const handleMessageAction = useCallback(async (action: MessageAction, message: Message) => {
     setActionMenuMessage(null);
     if (action === "reply") {
@@ -754,33 +777,26 @@ export default function ChatShell() {
         return;
       }
       try {
-        await mobileApiClient.chatController.deleteMessage(message.messageId!);
-        if (selectedRoomId && message.messageId) {
-          queryClient.setQueryData(
-            getAllRoomMessagesQueryKey(selectedRoomId),
-            (current) => {
-              return markRoomMessageDeletedData(current as any, message.messageId!);
-            },
-          );
-          const cachedMessages = await readCachedRoomMessages(selectedRoomId);
-          const nextCachedMessages = markCachedRoomMessageDeleted(cachedMessages, message.messageId);
-          await writeCachedRoomMessages(selectedRoomId, nextCachedMessages);
+        const messageId = message.messageId;
+        if (!messageId) {
+          return;
         }
-        await roomMessagesQuery.refetch();
+        await mobileApiClient.chatController.deleteMessage(messageId);
+        await markDeletedRoomMessagesLocally(messageId);
       }
       catch (error) {
         setMessageError(getErrorMessage(error, "删除消息失败。"));
       }
     }
-  }, [queryClient, roomMessagesQuery, selectedRoomId]);
+  }, [handleSelectMessageAnchor, markDeletedRoomMessagesLocally]);
 
-  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ default: undefined, ios: "padding" });
+  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "padding", ios: "padding" });
 
   return (
-    <ThemedView style={styles.shell}>
-      <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={keyboardBehavior} style={styles.kav}>
-          <GestureDetector gesture={panGesture}>
+      <ThemedView style={styles.shell}>
+        <SafeAreaView edges={["top"]} style={styles.safeArea}>
+          <KeyboardAvoidingView behavior={keyboardBehavior} style={styles.kav}>
+            <GestureDetector gesture={panGesture}>
             <View style={styles.panelContainer}>
               <Animated.View style={[styles.leftDrawer, leftDrawerStyle]}>
                 <LeftDrawer
@@ -809,15 +825,14 @@ export default function ChatShell() {
               </Animated.View>
 
               <Animated.View style={[styles.center, centerStyle]}>
-                <ChatHeader
-                  roomName={currentContactId ? (currentDmContactName ?? `用户 #${currentContactId}`) : (selectedRoom?.name ?? null)}
-                  spaceName={selectedSpace?.name ?? null}
-                  memberCount={roomMembers.length}
-                  onOpenDrawer={openLeft}
-                  onOpenMembers={currentContactId ? () => undefined : openRight}
-                  onSearch={currentContactId ? () => undefined : messageSearch.openSearch}
-                  unreadCount={currentContactId ? 0 : currentRoomUnreadCount}
-                />
+                {!currentContactId && (
+                  <ChatHeader
+                    roomName={selectedRoom?.name ?? null}
+                    onOpenDrawer={openLeft}
+                    onSearch={messageSearch.openSearch}
+                    unreadCount={currentRoomUnreadCount}
+                  />
+                )}
                 {currentContactId
                   ? (
                       <DmChatView
@@ -825,7 +840,11 @@ export default function ChatShell() {
                         contactName={currentDmContactName ?? `用户 #${currentContactId}`}
                         currentUserId={currentUserId}
                         messages={currentDmConversation?.messages ?? []}
-                        onBack={() => setCurrentContactId(null)}
+                        onBack={() => {
+                          setCurrentContactId(null);
+                          setDrawerMode("dm");
+                          openLeft();
+                        }}
                         onOpenProfile={() => handleOpenUserProfile({
                           avatarFileId: currentDmConversation?.contactAvatarFileId,
                           userId: currentContactId,
@@ -850,9 +869,8 @@ export default function ChatShell() {
                           multiSelectMode={multiSelectMode}
                           multiSelectedIds={multiSelectedIds}
                           selectedAnchorId={messageAnchorId}
-                          onLongPressMessage={(msg, pageY) => {
+                          onLongPressMessage={(msg) => {
                             setActionMenuMessage(msg);
-                            setActionMenuPressY(pageY);
                           }}
                           onToggleMultiSelect={(msg) => {
                             if (!msg.messageId)
@@ -913,16 +931,9 @@ export default function ChatShell() {
                                         return;
                                       }
                                       try {
-                                        for (const msgId of multiSelectedIds) {
-                                          await mobileApiClient.chatController.deleteMessage(msgId);
-                                          if (selectedRoomId) {
-                                            queryClient.setQueryData(
-                                              getAllRoomMessagesQueryKey(selectedRoomId),
-                                              current => markRoomMessageDeletedData(current as any, msgId),
-                                            );
-                                          }
-                                        }
-                                        await roomMessagesQuery.refetch();
+                                        const messageIds = Array.from(multiSelectedIds);
+                                        await Promise.all(messageIds.map(msgId => mobileApiClient.chatController.deleteMessage(msgId)));
+                                        await markDeletedRoomMessagesLocally(messageIds);
                                       }
                                       catch (error) {
                                         setMessageError(getErrorMessage(error, "删除消息失败。"));
@@ -989,22 +1000,31 @@ export default function ChatShell() {
               </Animated.View>
 
               <Animated.View style={[styles.rightDrawer, rightDrawerStyle]}>
-                <RightDrawerMembers
-                  currentUserId={currentUserId}
-                  currentRoomMember={currentRoomMember}
-                  currentSpaceMember={currentSpaceMember}
-                  members={roomMembers}
-                  roles={roomRoles}
-                  roomName={selectedRoom?.name ?? "未选择房间"}
-                  isPending={roomMembersQuery.isPending}
-                  isError={roomMembersQuery.isError}
-                  error={roomMembersQuery.error}
-                  onClose={close}
-                  onLongPressMember={handleLongPressMember}
-                />
+                {currentContactId ? (
+                  <DmContactDrawer
+                    contactId={currentContactId}
+                    contactName={currentDmContactName ?? `用户 #${currentContactId}`}
+                    contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
+                    onClose={close}
+                  />
+                ) : (
+                  <RightDrawerMembers
+                    currentUserId={currentUserId}
+                    currentRoomMember={currentRoomMember}
+                    currentSpaceMember={currentSpaceMember}
+                    members={roomMembers}
+                    roles={roomRoles}
+                    roomName={selectedRoom?.name ?? "未选择房间"}
+                    isPending={roomMembersQuery.isPending}
+                    isError={roomMembersQuery.isError}
+                    error={roomMembersQuery.error}
+                    onClose={close}
+                    onLongPressMember={handleLongPressMember}
+                  />
+                )}
               </Animated.View>
             </View>
-          </GestureDetector>
+            </GestureDetector>
         </KeyboardAvoidingView>
       </SafeAreaView>
       <MessageActionMenu
@@ -1012,7 +1032,6 @@ export default function ChatShell() {
         message={actionMenuMessage}
         onAction={(action, msg) => void handleMessageAction(action, msg)}
         onClose={() => setActionMenuMessage(null)}
-        pressY={actionMenuPressY}
         visible={actionMenuMessage !== null}
       />
       <RoleSwitchSheet

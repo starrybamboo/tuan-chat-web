@@ -1,14 +1,25 @@
 import { Image } from "expo-image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, { Easing, Keyframe } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 const INITIAL_SCALE_FACTOR = Dimensions.get("screen").height / 90;
 const DURATION = 600;
+const SPLASH_OVERLAY_FALLBACK_MS = 1200;
 
 export function AnimatedSplashOverlay() {
   const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setVisible(false);
+    }, SPLASH_OVERLAY_FALLBACK_MS);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
 
   if (!visible)
     return null;

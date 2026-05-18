@@ -1,5 +1,7 @@
 import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 import { Link } from "@tanstack/react-router";
+import { motion } from "motion/react";
+import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,
   FEEDBACK_ISSUE_STATUS_OPTIONS,
@@ -231,13 +233,15 @@ export default function FeedbackIssueList({
             )
           : (
               <div className="divide-y divide-base-300">
-                {issues.map(issue => (
-                  <button
+                {issues.map((issue, index) => (
+                  <motion.button
                     type="button"
                     key={issue.feedbackIssueId}
                     aria-label={`打开反馈 ${issue.title}`}
                     className="group w-full px-4 py-4 text-left transition hover:bg-base-200/50 focus:bg-base-200/50 focus:outline-none"
                     onClick={() => onSelectIssue(issue.feedbackIssueId)}
+                    {...listItemMotionProps(index, { direction: "left", distance: 10, duration: 0.25, staggerDelay: 0.03, maxDelay: 0.3 })}
+                    whileHover={{ scale: 1.005 }}
                   >
                     <div className="flex gap-3">
                       <FeedbackStateDot status={issue.status} archived={issue.archived} />
@@ -295,7 +299,7 @@ export default function FeedbackIssueList({
                         <FeedbackAuthorAvatar issue={issue} />
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             )}

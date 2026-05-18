@@ -223,6 +223,9 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     selection?.addRange(range);
   };
 
+  const isVisuallyEmpty = (text: string) =>
+    !text.replace(/[\s\u200B]/g, "");
+
   /**
    * 清理 contentEditable 中浏览器残留的空块元素，
    * 避免删除换行后高度无法收缩。
@@ -232,17 +235,24 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     if (!editor)
       return;
 
-    // 内容为空时直接清空，避免残留 <br> 撑高
-    if (!editor.textContent?.trim()) {
+    if (isVisuallyEmpty(editor.textContent ?? "")) {
       if (editor.innerHTML !== "") {
         editor.innerHTML = "";
       }
       return;
     }
 
-    // 从末尾向前移除空的块级子节点（<div><br></div> 或 <div></div>）
     let lastChild = editor.lastChild;
     while (lastChild) {
+      if (lastChild.nodeType === Node.TEXT_NODE) {
+        if (isVisuallyEmpty(lastChild.textContent ?? "")) {
+          const prev = lastChild.previousSibling;
+          editor.removeChild(lastChild);
+          lastChild = prev;
+          continue;
+        }
+        break;
+      }
       if (lastChild.nodeType !== Node.ELEMENT_NODE)
         break;
       const el = lastChild as HTMLElement;
@@ -250,11 +260,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       if (tag !== "DIV" && tag !== "P" && tag !== "BR")
         break;
       if (tag === "BR") {
-        // 末尾单独的 <br> 且前面还有内容，保留一个用于光标定位
-        break;
+        const prev = lastChild.previousSibling;
+        editor.removeChild(lastChild);
+        lastChild = prev;
+        continue;
       }
-      const innerText = el.textContent ?? "";
-      if (innerText.trim().length > 0)
+      if (!isVisuallyEmpty(el.textContent ?? ""))
         break;
       const prev = lastChild.previousSibling;
       editor.removeChild(lastChild);
@@ -267,6 +278,16 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
    */
   const handleInputInternal = () => {
     normalizeTrailingEmptyBlocks();
+
+    // 移动端 WebKit 在 DOM 节点被移除后不一定重新计算高度，
+    // 通过短暂切换 overflow 强制触发 reflow。
+    const editor = internalTextareaRef.current;
+    if (editor) {
+      editor.style.overflow = "hidden";
+      void editor.scrollHeight;
+      editor.style.overflow = "";
+    }
+
     const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
     props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
     updateHasTextFlag();

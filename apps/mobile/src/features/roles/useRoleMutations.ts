@@ -1,42 +1,19 @@
-import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
-import type { RoleUpdateRequest } from "@tuanchat/openapi-client/models/RoleUpdateRequest";
-
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useCreateRoleMutation as useSharedCreateRoleMutation,
+  useDeleteRoleMutation as useSharedDeleteRoleMutation,
+  useUpdateRoleMutation as useSharedUpdateRoleMutation,
+} from "@tuanchat/query/roles";
 
 import { mobileApiClient } from "@/lib/api";
 
 export function useCreateRoleMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: RoleCreateRequest) =>
-      mobileApiClient.roleController.createRole(request),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["myRoles"] });
-    },
-  });
+  return useSharedCreateRoleMutation(mobileApiClient);
 }
 
 export function useUpdateRoleMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (request: RoleUpdateRequest) =>
-      mobileApiClient.roleController.updateRole(request),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["myRoles"] });
-    },
-  });
+  return useSharedUpdateRoleMutation(mobileApiClient);
 }
 
 export function useDeleteRoleMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (roleIds: number[]) =>
-      mobileApiClient.roleController.deleteRole1(roleIds),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["myRoles"] });
-    },
-  });
+  return useSharedDeleteRoleMutation(mobileApiClient);
 }

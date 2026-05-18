@@ -1,11 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import {
   getMaxRoomMessageSyncId,
   getRoomUnreadCountsFromSessions,
+  markRoomSessionReadInCache,
   useUpdateRoomReadPositionMutation,
   useUserMessageSessionsQuery,
 } from "@tuanchat/query";
+
+import { useQueryClient } from "@tanstack/react-query";
 
 import { mobileApiClient } from "@/lib/api";
 import { useAuthSession } from "@/features/auth/auth-session";
@@ -13,9 +16,11 @@ import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 
 export function useRoomUnreadCounts(currentRoomId?: number | null): Record<number, number> {
   const { isAuthenticated } = useAuthSession();
+  const queryClient = useQueryClient();
   const sessionsQuery = useUserMessageSessionsQuery(mobileApiClient, { enabled: isAuthenticated });
-  const updateReadPositionMutation = useUpdateRoomReadPositionMutation(mobileApiClient);
+  const { mutate: updateReadPosition } = useUpdateRoomReadPositionMutation(mobileApiClient);
   const currentRoomMessagesQuery = useRoomMessagesQuery(currentRoomId ?? null);
+  const lastSentSyncIdRef = useRef<Record<number, number>>({});
 
   const unreadCounts = useMemo(() => {
     return getRoomUnreadCountsFromSessions(sessionsQuery.data?.data);
@@ -31,12 +36,18 @@ export function useRoomUnreadCounts(currentRoomId?: number | null): Record<numbe
     if (targetSyncId <= 0 || targetSyncId <= (session?.lastReadSyncId ?? 0)) {
       return;
     }
-    updateReadPositionMutation.mutate({ roomId: currentRoomId, syncId: targetSyncId });
+    if (lastSentSyncIdRef.current[currentRoomId] === targetSyncId) {
+      return;
+    }
+    lastSentSyncIdRef.current[currentRoomId] = targetSyncId;
+    markRoomSessionReadInCache(queryClient, currentRoomId, targetSyncId);
+    updateReadPosition({ roomId: currentRoomId, syncId: targetSyncId });
   }, [
     currentRoomId,
     currentRoomMessagesQuery.messages,
     sessionsQuery.data?.data,
-    updateReadPositionMutation,
+    updateReadPosition,
+    queryClient,
   ]);
 
   return unreadCounts;

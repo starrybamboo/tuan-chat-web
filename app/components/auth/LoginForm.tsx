@@ -1,3 +1,5 @@
+import { motion } from "motion/react";
+
 interface LoginFormProps {
   username?: string;
   setUsername: (value: string) => void;
@@ -5,7 +7,7 @@ interface LoginFormProps {
   setPassword: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
-  loginMethod: "username" | "userId"; // 登录方式：用户名或用户ID
+  loginMethod: "username" | "userId";
   setLoginMethod: (method: "username" | "userId") => void;
 }
 
@@ -31,7 +33,12 @@ export function LoginForm({
   return (
     <form key={`login-${loginMethod}`} onSubmit={handleSubmit} autoComplete="on">
       {/* 登录方式切换 */}
-      <div className="form-control w-full mb-4">
+      <motion.div
+        className="form-control w-full mb-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+      >
         <div className="label">
           <span className="label-text">登录方式</span>
         </div>
@@ -65,10 +72,14 @@ export function LoginForm({
             用户ID登录
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* 输入字段 */}
-      <div className="form-control w-full mt-4">
+      <motion.div
+        className="form-control w-full mt-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
         <label className="floating-label">
           <span className="label-text">
             {loginMethod === "username" ? "用户名" : "用户ID"}
@@ -87,9 +98,14 @@ export function LoginForm({
             onChange={e => setUsername(e.target.value)}
           />
         </label>
-      </div>
+      </motion.div>
 
-      <div className="form-control w-full mt-2">
+      <motion.div
+        className="form-control w-full mt-2"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+      >
         <label className="floating-label">
           <span className="label-text">密码</span>
           <input
@@ -103,9 +119,14 @@ export function LoginForm({
             required
           />
         </label>
-      </div>
+      </motion.div>
 
-      <div className="form-control mt-6">
+      <motion.div
+        className="form-control mt-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
         <button
           type="submit"
           className="btn btn-primary hover:brightness-110 transition-all"
@@ -122,7 +143,7 @@ export function LoginForm({
                 "登录"
               )}
         </button>
-      </div>
+      </motion.div>
     </form>
   );
 }

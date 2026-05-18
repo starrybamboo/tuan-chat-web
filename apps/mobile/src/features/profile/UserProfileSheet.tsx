@@ -1,4 +1,5 @@
-import { Image, Modal, Pressable, StyleSheet, View } from "react-native";
+import { Image } from "expo-image";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useGetUserProfileQuery } from "@tuanchat/query/users";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";

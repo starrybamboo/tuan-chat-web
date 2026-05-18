@@ -8,6 +8,5 @@ export function useUserRoomsQuery(spaceId: number | null) {
 
   return useSharedGetUserRoomsQuery(mobileApiClient, spaceId ?? -1, {
     enabled: isAuthenticated && typeof spaceId === "number" && spaceId > 0,
-    staleTime: 300_000,
   });
 }

@@ -1,5 +1,7 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
+import { motion } from "motion/react";
+import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { formatNotificationTime } from "@/components/notification/notificationTypes";
 
 interface NotificationListProps {
@@ -35,13 +37,14 @@ export default function NotificationList({
 
   return (
     <div className="space-y-2">
-      {items.map(item => (
-        <button
+      {items.map((item, index) => (
+        <motion.button
           key={item.notificationId}
           type="button"
           className="w-full rounded-2xl border border-base-300 bg-base-100 px-4 py-3 text-left transition hover:border-primary/35 hover:bg-base-200 disabled:cursor-wait disabled:opacity-70"
           disabled={busyNotificationId === item.notificationId}
           onClick={() => void onItemClick(item)}
+          {...listItemMotionProps(index, { direction: "left", distance: 20, duration: 0.25, staggerDelay: 0.04 })}
         >
           <div className="flex items-start gap-3">
             <span
@@ -58,7 +61,7 @@ export default function NotificationList({
               </div>
             </div>
           </div>
-        </button>
+        </motion.button>
       ))}
     </div>
   );

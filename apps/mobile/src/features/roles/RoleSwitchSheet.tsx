@@ -2,7 +2,9 @@ import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+
+import { Image } from "expo-image";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -19,9 +21,7 @@ const SHEET_HORIZONTAL_PADDING = Spacing.xl;
 const GRID_HORIZONTAL_PADDING = Spacing.xl;
 
 const styles = StyleSheet.create({
-  sheet: {
-    maxHeight: "70%",
-  },
+  sheet: {},
   title: {
     fontSize: 16,
     fontWeight: "600",
