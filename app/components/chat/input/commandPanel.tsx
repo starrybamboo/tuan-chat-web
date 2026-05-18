@@ -1,5 +1,7 @@
+import { motion } from "motion/react";
 import React from "react";
 import { getCommandList } from "@/components/common/dicer/cmdPre";
+import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 
 /**
  * 定义命令面板支持的命令模式类型
@@ -61,7 +63,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
       .slice(0, 1)
       .map(([cmd]) => cmd);
     return (
-      <div className={className}>
+      <motion.div className={className} {...floatingPanelMotionProps}>
         {onDismiss && (
           <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200 dark:bg-base-800">
             <span className="text-xs opacity-60 dark:opacity-80">指令详情 (ESC 关闭)</span>
@@ -75,10 +77,11 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             </button>
           </div>
         )}
-        {suggestions.map(cmd => (
-          <div
+        {suggestions.map((cmd, index) => (
+          <motion.div
             key={cmd}
             className="p-2 w-full last:border-0 hover:bg-base-300 dark:hover:bg-base-700 bg-base-100 dark:bg-base-900"
+            {...floatingListItemMotionProps(index)}
           >
             <div className="transform origin-left">
               <span className="font-mono text-blue-600 dark:text-cyan-400">
@@ -118,9 +121,9 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     );
   }
   const hasSpace = prefix.includes(" ");
@@ -194,7 +197,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
     .slice(0, suggestionNumber)
     .map(item => item.name);
   return (
-    <div className={className}>
+    <motion.div className={className} {...floatingPanelMotionProps}>
       {onDismiss && (
         <div className="flex justify-between items-center px-3 py-2 border-b border-base-300 bg-base-200 dark:bg-base-800">
           <span className="text-xs opacity-60 dark:opacity-80">指令提示 (ESC 关闭)</span>
@@ -215,11 +218,12 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             </div>
           )
         : null}
-      {suggestions.map(cmd => (
-        <div
+      {suggestions.map((cmd, index) => (
+        <motion.div
           key={cmd}
           onClick={() => handleSelectCommand(cmd)}
           className="p-2 w-full last:border-0 hover:bg-base-300 dark:hover:bg-base-700 cursor-pointer bg-base-100 dark:bg-base-900"
+          {...floatingListItemMotionProps(index)}
         >
           <div className="transform origin-left">
             <span className="font-mono text-blue-600 dark:text-cyan-400">
@@ -235,8 +239,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             )}
             <span className="ml-2 text-sm dark:text-gray-300">{commands.get(cmd)?.description}</span>
           </div>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
