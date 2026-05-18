@@ -29,7 +29,7 @@ import { resolveMobileNotificationRoute } from "@/features/notifications/mobile-
 import { useUpdateProfileMutation } from "@/features/profile/useUpdateProfileMutation";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
-import { avatarThumbUrl, avatarUrl } from "@/lib/media-url";
+import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 
 const AVATAR_SIZE = 120;
 
@@ -140,7 +140,7 @@ export default function ProfileScreen() {
   };
 
   const avatarThumbSrc = avatarThumbUrl(user?.avatarFileId);
-  const avatarPreviewSrc = avatarUrl(user?.avatarFileId);
+  const avatarPreviewSrc = user?.avatarFileId ? mediaFileUrl(user.avatarFileId, "image", "original") : "";
   const unreadCount = unreadQuery.data ?? 0;
   const notifications = notificationsQuery.data ?? [];
   const filteredNotifications = notifFilter === "unread"

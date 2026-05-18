@@ -2,7 +2,7 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { Image } from "expo-image";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import { StyleSheet, Vibration, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
@@ -189,6 +189,8 @@ export const ChatMessageItem = memo(({
   const isOOC = !narrator && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
   const edited = isMessageEdited(message);
   const timestamp = formatMessageTime(edited ? message.updateTime : message.createTime);
+  const avatarUrl = message.avatarFileId ? avatarThumbUrl(message.avatarFileId) : null;
+  const avatarSource = useMemo(() => (avatarUrl ? { uri: avatarUrl } : null), [avatarUrl]);
 
   const renderAvatar = () => {
     if (narrator) {
@@ -198,10 +200,12 @@ export const ChatMessageItem = memo(({
         </View>
       );
     }
-    if (message.avatarFileId) {
+    if (avatarSource) {
       return (
         <Image
-          source={{ uri: avatarThumbUrl(message.avatarFileId) }}
+          cachePolicy="memory-disk"
+          recyclingKey={avatarUrl}
+          source={avatarSource}
           style={styles.avatar}
         />
       );

@@ -16,7 +16,9 @@ import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
 import { ChatMessageItem } from "./ChatMessageItem";
+import { collectChatAvatarThumbUrls } from "./chat-avatar-prefetch";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
+import { Image } from "expo-image";
 
 interface MessageItem {
   message: Message;
@@ -93,9 +95,15 @@ export function ChatMessageList({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMessageCount, setNewMessageCount] = useState(0);
   const prevLengthRef = useRef(messages.length);
+  const prefetchedAvatarUrlsRef = useRef(new Set<string>());
+  const prefetchingAvatarUrlsRef = useRef(new Set<string>());
 
   const invertedData = useMemo(
     () => messages.filter(item => item.message.messageType !== MESSAGE_TYPE.EFFECT).reverse(),
+    [messages],
+  );
+  const avatarThumbUrls = useMemo(
+    () => collectChatAvatarThumbUrls(messages.map(item => item.message)),
     [messages],
   );
 
@@ -113,6 +121,37 @@ export function ChatMessageList({
     }
     prevLengthRef.current = messages.length;
   }, [isAtBottom, messages.length]);
+
+  useEffect(() => {
+    const pendingAvatarUrls = avatarThumbUrls.filter(
+      url => !prefetchedAvatarUrlsRef.current.has(url) && !prefetchingAvatarUrlsRef.current.has(url),
+    );
+    if (pendingAvatarUrls.length === 0) {
+      return;
+    }
+
+    for (const url of pendingAvatarUrls) {
+      prefetchingAvatarUrlsRef.current.add(url);
+    }
+
+    let cancelled = false;
+    void Image.prefetch(pendingAvatarUrls, { cachePolicy: "memory-disk" }).then((success) => {
+      for (const url of pendingAvatarUrls) {
+        prefetchingAvatarUrlsRef.current.delete(url);
+      }
+      if (cancelled || !success) {
+        return;
+      }
+
+      for (const url of pendingAvatarUrls) {
+        prefetchedAvatarUrlsRef.current.add(url);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [avatarThumbUrls]);
 
   const scrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
