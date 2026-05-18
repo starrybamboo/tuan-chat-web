@@ -4,8 +4,9 @@ import { DIRECT_MESSAGE_READ_LINE_TYPE, buildDirectMessageSendRequestsFromUpload
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
 import { ArrowUp, CaretLeft, Check, Checks, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
+import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
+
 
 import { Image } from "expo-image";
 

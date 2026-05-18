@@ -56,8 +56,6 @@ type UseWebSocketMessageHandlersOptions = {
   updateReceivedMessages: ImmerUpdater<Record<number, ChatMessageResponse[]>>;
 };
 
-const WS_MESSAGE_DEBUG_PREFIX = "[TC_WS_MSG]";
-
 function normalizeExtraForMatch(extra: unknown): string {
   try {
     return JSON.stringify(extra ?? {});
@@ -118,14 +116,6 @@ export function useWebSocketMessageHandlers({
     }
 
     const roomId = chatMessageResponse.message.roomId;
-    console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.incoming", {
-      roomId,
-      messageId: chatMessageResponse.message.messageId,
-      syncId: chatMessageResponse.message.syncId,
-      position: chatMessageResponse.message.position ?? null,
-      replyMessageId: chatMessageResponse.message.replyMessageId ?? null,
-      messageType: chatMessageResponse.message.messageType,
-    });
     if (chatMessageResponse.message.status === 0) {
       updateLatestSyncId(roomId, chatMessageResponse.message.syncId);
     }
@@ -189,13 +179,6 @@ export function useWebSocketMessageHandlers({
 
     updateReceivedMessages((draft) => {
       draft[roomId] = mergedRoomMessages;
-      console.log(WS_MESSAGE_DEBUG_PREFIX, "handleChatMessage.afterMerge", {
-        roomId,
-        roomMessageLength: mergedRoomMessages.length,
-        appendedCount,
-        replacedCount,
-        mergedMessageIds: messagesToAdd.map(item => item?.message?.messageId ?? null),
-      });
     });
 
     const sendingUserId = chatMessageResponse.message.userId;

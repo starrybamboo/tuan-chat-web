@@ -96,7 +96,6 @@ export function CharacterCopper({
   const originalFileRef = useRef<File | null>(null);
 
   const [originFileId, setOriginFileId] = useState<number | undefined>();
-  const originUploadPromiseRef = useRef<Promise<number | undefined> | null>(null);
 
   // 提交状态
   const [isSubmiting, setisSubmiting] = useState(false);
@@ -175,7 +174,6 @@ export function CharacterCopper({
     // 清除原图与 originUrl
     originalFileRef.current = null;
     setOriginFileId(undefined);
-    originUploadPromiseRef.current = null;
   }
 
   // 使用防抖 Hook 更新预览画布（已集成在 useCropPreview 中）
@@ -211,19 +209,7 @@ export function CharacterCopper({
     imgFile.current = file;
     originalFileRef.current = file;
 
-    // 选择文件后立即上传未裁剪源图，提交很快时也能拿到 originFileId。
     setOriginFileId(undefined);
-    originUploadPromiseRef.current = (async () => {
-      try {
-        const uploadedOrigin = await uploadMediaFile(file);
-        setOriginFileId(uploadedOrigin.fileId);
-        return uploadedOrigin.fileId;
-      }
-      catch (error) {
-        console.error("originFileId 上传失败:", error);
-        return undefined;
-      }
-    })();
 
     setCrop(undefined); // Makes crop preview update between images.
     const reader = new FileReader();
@@ -405,9 +391,6 @@ export function CharacterCopper({
         }
 
         let resolvedOriginFileId = originFileId;
-        if (!resolvedOriginFileId && originUploadPromiseRef.current) {
-          resolvedOriginFileId = await originUploadPromiseRef.current;
-        }
         if (!resolvedOriginFileId && originalFileRef.current) {
           try {
             resolvedOriginFileId = (await uploadMediaFile(originalFileRef.current)).fileId;

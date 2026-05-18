@@ -9,6 +9,10 @@ import {
   MOBILE_MESSAGE_ATTACHMENT_KIND,
 } from "@/features/messages/mobileMessageAttachment";
 
+export { getMessageAuthorLabel, getRoomTypeLabel, getSpaceStatusLabel } from "@tuanchat/domain/display-labels";
+export { buildMessageSearchText } from "@tuanchat/domain/message-search";
+export { formatMessageDateTime, formatMessageTime } from "@tuanchat/domain/message-time";
+
 export type MessageSubmitPhase = "idle" | "uploading" | "sending";
 
 export function getErrorMessage(error: unknown, fallback: string) {
@@ -19,52 +23,8 @@ export function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export { getRoomTypeLabel, getSpaceStatusLabel } from "@tuanchat/domain/display-labels";
-
-export function getMessageAuthorLabel(message: Message) {
-  const customRoleName = message.customRoleName?.trim();
-  if (customRoleName) {
-    return customRoleName;
-  }
-
-  if (message.roleId && message.roleId > 0) {
-    return `角色 #${message.roleId}`;
-  }
-
-  return `用户 #${message.userId}`;
-}
-
 export function getMessagePreview(message: Message) {
   return getMessagePreviewText(message);
-}
-
-export function formatMessageTime(value?: string | null) {
-  if (!value) {
-    return "刚刚";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-export function formatMessageDateTime(value?: string | null) {
-  if (!value) {
-    return "刚刚";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${month}-${day} ${formatMessageTime(value)}`;
 }
 
 export function getMessageSubmitPhaseText(phase: MessageSubmitPhase) {
@@ -112,14 +72,4 @@ export function parsePositiveIntegerInput(value: string) {
 
   const parsed = Number(trimmed);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-export function buildMessageSearchText(message: Message) {
-  const parts = [
-    getMessageAuthorLabel(message),
-    getMessagePreview(message),
-    `消息 #${message.messageId ?? "-"}`,
-  ];
-
-  return parts.join(" ").toLocaleLowerCase("zh-CN");
 }

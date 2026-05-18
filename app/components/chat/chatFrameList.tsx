@@ -304,12 +304,6 @@ export default function ChatFrameList({
     if (!import.meta.env.DEV || changedKeyCount === 0) {
       return;
     }
-    console.warn("[TC_MSG_RENDER]", {
-      renderCount: renderDebugRef.current.renderCount,
-      messageLength: historyMessages.length,
-      changedKeyCount,
-      tailKeys: nextKeys.slice(-8),
-    });
   }, [computeItemKey, historyMessages]);
 
   return (

@@ -1,21 +1,22 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { buildMessageSearchText } from "@tuanchat/domain/message-search";
 import { useMemo, useState } from "react";
 
-interface MessageItem {
+type MessageItem = {
   message: Message;
-}
+};
 
 export function useMessageSearch(messages: MessageItem[]) {
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
   const filteredMessages = useMemo(() => {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return messages;
+    const trimmed = query.trim().toLocaleLowerCase("zh-CN");
+    if (!trimmed)
+      return messages;
     return messages.filter((item) => {
-      const content = item.message.content?.toLowerCase() ?? "";
-      const roleName = item.message.customRoleName?.toLowerCase() ?? "";
-      return content.includes(trimmed) || roleName.includes(trimmed);
+      return buildMessageSearchText(item.message).includes(trimmed);
     });
   }, [messages, query]);
 

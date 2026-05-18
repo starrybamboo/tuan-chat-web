@@ -1,3 +1,18 @@
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+export function getMessageAuthorLabel(message: Message): string {
+  const customRoleName = message.customRoleName?.trim();
+  if (customRoleName) {
+    return customRoleName;
+  }
+
+  if (message.roleId && message.roleId > 0) {
+    return `角色 #${message.roleId}`;
+  }
+
+  return `用户 #${message.userId}`;
+}
+
 export function getSpaceMemberTypeLabel(memberType?: number | null): string {
   switch (memberType) {
     case 1:

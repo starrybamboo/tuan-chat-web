@@ -50,18 +50,19 @@ const styles = StyleSheet.create({
 });
 
 interface ChatHeaderProps {
+  onBackToRoutePage?: () => void;
   onOpenDrawer: () => void;
   onSearch: () => void;
   roomName: string | null;
   unreadCount?: number;
 }
 
-export function ChatHeader({ onOpenDrawer, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
+export function ChatHeader({ onBackToRoutePage, onOpenDrawer, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
   const theme = useTheme();
 
   return (
     <View style={[styles.header, { borderBottomColor: theme.border }]}>
-      <Pressable onPress={onOpenDrawer} style={styles.backButton} accessibilityLabel="打开菜单">
+      <Pressable onPress={onBackToRoutePage ?? onOpenDrawer} style={styles.backButton} accessibilityLabel="返回">
         <CaretLeft size={22} color={theme.text} weight="bold" />
         {unreadCount > 0 ? (
           <View style={[styles.badge, { backgroundColor: theme.danger }]}>

@@ -2,7 +2,9 @@ import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import {
+  patchRoomRoleAvatarFieldsInListQueryCache,
   optimisticRemoveUserRolesFromListQueryCache,
+  patchUserRoleAvatarFieldsInListQueryCache,
   rollbackUserRoleListQueryCache,
   upsertUserRoleListQueryCache,
 } from "./roleQueryCache";
@@ -69,5 +71,63 @@ describe("roleQueryCache", () => {
 
     expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([7, 6]);
     expect(queryClient.getQueryData<any>(["roleInfiniteByType", 1, 0])?.pages[0].data.list.map((role: UserRole) => role.roleId)).toEqual([7, 6]);
+  });
+
+  it("会把头像字段补写到匹配的角色列表缓存中", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getUserRolesByType", 1, 0], [
+      makeRole({ roleId: 7, avatarId: 55, avatarFileId: 1001 }),
+    ]);
+
+    patchUserRoleAvatarFieldsInListQueryCache(queryClient, {
+      userId: 1,
+      roleId: 7,
+      roleName: "role",
+      type: 0,
+      avatarId: 55,
+      avatarFileId: 2002,
+      avatarMediaType: "image",
+    });
+
+    expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])).toEqual([
+      expect.objectContaining({
+        roleId: 7,
+        avatarId: 55,
+        avatarFileId: 2002,
+        avatarUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
+        avatarThumbUrl: "https://tuan.chat/media/v1/files/002/2002/image/low.webp",
+      }),
+    ]);
+  });
+
+  it("会把头像字段补写到房间角色缓存中", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["roomRole", 9], {
+      success: true,
+      data: [
+        makeRole({ roleId: 7, avatarId: 55, avatarFileId: 1001 }),
+      ],
+    });
+
+    patchRoomRoleAvatarFieldsInListQueryCache(queryClient, {
+      userId: 1,
+      roleId: 7,
+      roleName: "role",
+      type: 0,
+      avatarId: 55,
+      avatarFileId: 3003,
+      avatarMediaType: "image",
+    });
+
+    expect(queryClient.getQueryData<any>(["roomRole", 9])).toMatchObject({
+      data: [
+        expect.objectContaining({
+          roleId: 7,
+          avatarFileId: 3003,
+          avatarUrl: "https://tuan.chat/media/v1/files/003/3003/image/medium.webp",
+          avatarThumbUrl: "https://tuan.chat/media/v1/files/003/3003/image/low.webp",
+        }),
+      ],
+    });
   });
 });

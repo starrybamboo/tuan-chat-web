@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,9 +29,9 @@ import { resolveMobileNotificationRoute } from "@/features/notifications/mobile-
 import { useUpdateProfileMutation } from "@/features/profile/useUpdateProfileMutation";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
-import { avatarThumbUrl } from "@/lib/media-url";
+import { avatarThumbUrl, avatarUrl } from "@/lib/media-url";
 
-const AVATAR_SIZE = 72;
+const AVATAR_SIZE = 120;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -44,7 +45,6 @@ const styles = StyleSheet.create({
   fieldRow: { gap: Spacing.sm },
   fieldLabel: { fontSize: 12 },
   fieldInput: { borderRadius: Radius.md, borderWidth: 1, fontSize: 15, minHeight: 40, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  genderRow: { flexDirection: "row", gap: Spacing.md },
   genderChip: { borderRadius: Radius.full, borderWidth: 1, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm },
   saveButton: { alignItems: "center", borderRadius: Radius.md, minHeight: 44, justifyContent: "center", paddingHorizontal: Spacing.xl },
   notifRow: { borderRadius: Radius.md, gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg },
@@ -52,12 +52,6 @@ const styles = StyleSheet.create({
   logoutButton: { alignItems: "center", borderRadius: Radius.md, minHeight: 48, justifyContent: "center" },
   emptyText: { fontSize: 13, paddingVertical: Spacing.lg },
 });
-
-const GENDER_OPTIONS = [
-  { label: "隐藏", value: "" },
-  { label: "男", value: "男" },
-  { label: "女", value: "女" },
-];
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -76,14 +70,13 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [editGender, setEditGender] = useState("");
   const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
   const startEditing = () => {
     setEditUsername(user?.username ?? "");
     setEditDescription(user?.description ?? "");
-    setEditGender(user?.gender ?? "");
     setEditing(true);
   };
 
@@ -94,7 +87,6 @@ export default function ProfileScreen() {
         userId,
         username: editUsername.trim() || undefined,
         description: editDescription.trim() || undefined,
-        gender: editGender || undefined,
       });
       setEditing(false);
     } catch (e: any) {
@@ -147,7 +139,8 @@ export default function ProfileScreen() {
     }
   };
 
-  const avatarUrl = avatarThumbUrl(user?.avatarFileId);
+  const avatarThumbSrc = avatarThumbUrl(user?.avatarFileId);
+  const avatarPreviewSrc = avatarUrl(user?.avatarFileId);
   const unreadCount = unreadQuery.data ?? 0;
   const notifications = notificationsQuery.data ?? [];
   const filteredNotifications = notifFilter === "unread"
@@ -175,10 +168,10 @@ export default function ProfileScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* Profile Header */}
-          <View style={styles.profileHeader}>
-            <Pressable onPress={() => void handlePickAvatar()} disabled={avatarUploading}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          <View style={[styles.profileHeader]}>
+            <Pressable onPress={() => avatarThumbSrc && setAvatarPreviewVisible(true)}>
+              {avatarThumbSrc ? (
+                <Image source={{ uri: avatarThumbSrc }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarFallback}>
                   <ThemedText style={{ color: "#fff", fontSize: 28, fontWeight: "700" }}>
@@ -195,75 +188,6 @@ export default function ProfileScreen() {
               <ThemedText themeColor="textSecondary">{user.description}</ThemedText>
             ) : null}
           </View>
-
-          {/* Profile Edit Card */}
-          <ThemedView type="backgroundElement" style={styles.card}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <ThemedText type="smallBold" style={styles.cardTitle}>个人资料</ThemedText>
-              {!editing ? (
-                <Pressable onPress={startEditing}>
-                  <ThemedText themeColor="accent" type="small">编辑</ThemedText>
-                </Pressable>
-              ) : null}
-            </View>
-
-            {editing ? (
-              <>
-                <View style={styles.fieldRow}>
-                  <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>用户名</ThemedText>
-                  <TextInput
-                    value={editUsername}
-                    onChangeText={setEditUsername}
-                    style={[styles.fieldInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
-                    placeholderTextColor={theme.textSecondary}
-                    placeholder="输入用户名"
-                  />
-                </View>
-                <View style={styles.fieldRow}>
-                  <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>个人简介</ThemedText>
-                  <TextInput
-                    value={editDescription}
-                    onChangeText={setEditDescription}
-                    style={[styles.fieldInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background, minHeight: 60 }]}
-                    placeholderTextColor={theme.textSecondary}
-                    placeholder="介绍一下自己"
-                    multiline
-                  />
-                </View>
-                <View style={styles.fieldRow}>
-                  <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>性别</ThemedText>
-                  <View style={styles.genderRow}>
-                    {GENDER_OPTIONS.map((opt) => (
-                      <Pressable
-                        key={opt.value}
-                        onPress={() => setEditGender(opt.value)}
-                        style={[styles.genderChip, { borderColor: editGender === opt.value ? theme.accent : theme.border, backgroundColor: editGender === opt.value ? theme.accentMuted : "transparent" }]}
-                      >
-                        <ThemedText type="small" themeColor={editGender === opt.value ? "accent" : "textSecondary"}>{opt.label}</ThemedText>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-                <View style={{ flexDirection: "row", gap: Spacing.md, marginTop: Spacing.md }}>
-                  <Pressable onPress={() => setEditing(false)} style={[styles.saveButton, { flex: 1, backgroundColor: theme.backgroundSelected }]}>
-                    <ThemedText>取消</ThemedText>
-                  </Pressable>
-                  <Pressable onPress={() => void handleSave()} disabled={updateMutation.isPending} style={[styles.saveButton, { flex: 1, backgroundColor: theme.accent }]}>
-                    <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
-                      {updateMutation.isPending ? "保存中…" : "保存"}
-                    </ThemedText>
-                  </Pressable>
-                </View>
-              </>
-            ) : (
-              <View style={{ gap: Spacing.md }}>
-                <ThemedText>用户名：{user?.username ?? "-"}</ThemedText>
-                <ThemedText>简介：{user?.description ?? "未填写"}</ThemedText>
-                <ThemedText>性别：{user?.gender || "隐藏"}</ThemedText>
-                <ThemedText themeColor="textSecondary">邮箱：{user?.email ?? "未绑定"}</ThemedText>
-              </View>
-            )}
-          </ThemedView>
 
           {/* Notifications Card */}
           <ThemedView type="backgroundElement" style={styles.card}>
@@ -331,23 +255,105 @@ export default function ProfileScreen() {
             onUpdate={(patch) => void notifPrefs.update(patch)}
           />
 
+          {/* Edit Profile */}
+          <ThemedView type="backgroundElement" style={styles.card}>
+            <ThemedText type="smallBold" style={styles.cardTitle}>编辑个人信息</ThemedText>
+            {editing ? (
+              <View style={{ gap: Spacing.lg }}>
+                <View style={styles.fieldRow}>
+                  <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>用户名</ThemedText>
+                  <TextInput
+                    value={editUsername}
+                    onChangeText={setEditUsername}
+                    style={[styles.fieldInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background }]}
+                    placeholderTextColor={theme.textSecondary}
+                    placeholder="输入用户名"
+                  />
+                </View>
+                <View style={styles.fieldRow}>
+                  <ThemedText themeColor="textSecondary" style={styles.fieldLabel}>个人简介</ThemedText>
+                  <TextInput
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    style={[styles.fieldInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.background, minHeight: 60 }]}
+                    placeholderTextColor={theme.textSecondary}
+                    placeholder="介绍一下自己"
+                    multiline
+                  />
+                </View>
+                <View style={{ flexDirection: "row", gap: Spacing.md }}>
+                  <Pressable onPress={() => setEditing(false)} style={[styles.saveButton, { flex: 1, backgroundColor: theme.backgroundSelected }]}>
+                    <ThemedText>取消</ThemedText>
+                  </Pressable>
+                  <Pressable onPress={() => void handleSave()} disabled={updateMutation.isPending} style={[styles.saveButton, { flex: 1, backgroundColor: theme.accent }]}>
+                    <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
+                      {updateMutation.isPending ? "保存中…" : "保存"}
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View style={{ gap: Spacing.md }}>
+                <View style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                  <ThemedText themeColor="textSecondary">用户名</ThemedText>
+                  <ThemedText>{user?.username ?? "-"}</ThemedText>
+                </View>
+                <View style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                  <ThemedText themeColor="textSecondary">简介</ThemedText>
+                  <ThemedText numberOfLines={1} style={{ flex: 1, textAlign: "right", marginLeft: Spacing.md }}>{user?.description || "未填写"}</ThemedText>
+                </View>
+                <Pressable
+                  onPress={startEditing}
+                  style={[styles.saveButton, { backgroundColor: theme.backgroundSelected }]}
+                >
+                  <ThemedText>编辑</ThemedText>
+                </Pressable>
+              </View>
+            )}
+          </ThemedView>
+
           {/* Account Security */}
           <ThemedView type="backgroundElement" style={styles.card}>
             <ThemedText type="smallBold" style={styles.cardTitle}>账号安全</ThemedText>
             <View style={{ gap: Spacing.md }}>
+              <View style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                <ThemedText themeColor="textSecondary">账号ID</ThemedText>
+                <ThemedText>{userId ?? "-"}</ThemedText>
+              </View>
+              {user?.email ? (
+                <View style={[styles.saveButton, { backgroundColor: theme.backgroundSelected, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}>
+                  <ThemedText themeColor="textSecondary">邮箱</ThemedText>
+                  <ThemedText>{user.email}</ThemedText>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => Alert.alert("绑定邮箱", "请在网页端完成邮箱绑定操作。")}
+                  style={[styles.saveButton, { backgroundColor: theme.backgroundSelected }]}
+                >
+                  <ThemedText>绑定邮箱</ThemedText>
+                </Pressable>
+              )}
               <Pressable
                 onPress={() => Alert.alert("修改密码", "请在网页端完成密码修改操作。")}
                 style={[styles.saveButton, { backgroundColor: theme.backgroundSelected }]}
               >
                 <ThemedText>修改密码</ThemedText>
               </Pressable>
-              <Pressable
-                onPress={() => Alert.alert("绑定邮箱", "请在网页端完成邮箱绑定操作。")}
-                style={[styles.saveButton, { backgroundColor: theme.backgroundSelected }]}
-              >
-                <ThemedText>绑定邮箱</ThemedText>
-              </Pressable>
             </View>
+          </ThemedView>
+
+          {/* Feedback */}
+          <ThemedView type="backgroundElement" style={styles.card}>
+            <ThemedText type="smallBold" style={styles.cardTitle}>问题反馈</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              遇到问题时可以在这里查看运行日志并分享给开发者
+            </ThemedText>
+            <Pressable
+              onPress={() => router.push("/feedback" as any)}
+              style={[styles.saveButton, { backgroundColor: theme.backgroundSelected }]}
+            >
+              <ThemedText>查看日志 / 反馈问题</ThemedText>
+            </Pressable>
           </ThemedView>
 
           {/* Logout */}
@@ -355,6 +361,29 @@ export default function ProfileScreen() {
             <ThemedText style={{ color: theme.danger, fontWeight: "600" }}>退出登录</ThemedText>
           </Pressable>
         </ScrollView>
+
+        {/* Avatar Preview Modal */}
+        <Modal
+          visible={avatarPreviewVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setAvatarPreviewVisible(false)}
+        >
+          <Pressable
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.9)", alignItems: "center", justifyContent: "center" }}
+            onPress={() => setAvatarPreviewVisible(false)}
+          >
+            {avatarPreviewSrc ? (
+              <Image source={{ uri: avatarPreviewSrc }} style={{ width: 280, height: 280, borderRadius: Radius.lg }} resizeMode="cover" />
+            ) : null}
+            <Pressable
+              onPress={() => { setAvatarPreviewVisible(false); void handlePickAvatar(); }}
+              style={[styles.saveButton, { borderWidth: 1, borderColor: "rgba(255,255,255,0.5)", backgroundColor: "transparent", marginTop: Spacing.xxl, paddingHorizontal: Spacing.xxl }]}
+            >
+              <ThemedText style={{ color: "rgba(255,255,255,0.8)" }}>更换头像</ThemedText>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     </ThemedView>
   );

@@ -37,9 +37,12 @@ import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } fr
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import {
   optimisticRemoveUserRolesFromListQueryCache,
+  patchRoomRoleAvatarFieldsInListQueryCache,
+  patchUserRoleAvatarFieldsInListQueryCache,
   rollbackUserRoleListQueryCache,
   seedUserRoleListQueryCache,
   seedUserRoleQueryCache,
+  upsertUserRoleListQueryCache,
 } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
 import { invalidateRoleCreateQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
@@ -261,9 +264,6 @@ function invalidateRoleAppearanceCaches(queryClient: QueryClient, roleId?: numbe
     queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", roleId] });
     queryClient.invalidateQueries({ queryKey: roleQueryKey(roleId) });
     queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
-    invalidateUserRoleListQueries(queryClient);
-    queryClient.invalidateQueries({ queryKey: ["roomRole"] });
-    queryClient.invalidateQueries({ queryKey: ["roomNpcRole"] });
   }
 
   if (isPositiveId(avatarId)) {
@@ -357,6 +357,29 @@ function patchRoleAvatarIdCaches(queryClient: QueryClient, roleId: number, avata
     { queryKey: ["getUserRoles"] },
     (old: any) => patchUserRoleQueryCache(old, { avatarId }, roleId),
   );
+}
+
+function syncRoleAvatarCaches(
+  queryClient: QueryClient,
+  avatar: RoleAvatar,
+  fallbackRoleId?: number,
+): void {
+  const resolvedRoleId = avatar.roleId ?? fallbackRoleId;
+  if (!isPositiveId(resolvedRoleId)) {
+    return;
+  }
+
+  const userRoleAvatarFields = {
+    roleId: resolvedRoleId,
+    avatarId: avatar.avatarId,
+    avatarFileId: avatar.avatarFileId,
+    avatarMediaType: avatar.avatarMediaType,
+  };
+
+  seedUserRoleQueryCache(queryClient, userRoleAvatarFields);
+  upsertUserRoleListQueryCache(queryClient, userRoleAvatarFields);
+  patchUserRoleAvatarFieldsInListQueryCache(queryClient, userRoleAvatarFields);
+  patchRoomRoleAvatarFieldsInListQueryCache(queryClient, userRoleAvatarFields);
 }
 
 function toSpriteTransformPayload(transform: Transform | undefined): SpriteTransform | undefined {
@@ -814,11 +837,11 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
 
           return old;
         });
-        queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', resolvedRoleId] });
       }
       if (nextAvatar?.avatarId) {
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, resolvedRoleId);
         setRoleAvatarDetailCache(queryClient, nextAvatar);
+        syncRoleAvatarCaches(queryClient, nextAvatar, resolvedRoleId);
         emitWebgalAvatarUpdated({ avatarId: nextAvatar.avatarId, avatar: nextAvatar });
         invalidateRoleAppearanceCaches(queryClient, resolvedRoleId, nextAvatar.avatarId);
       }
@@ -963,6 +986,7 @@ export function useApplyCropMutation() {
           spriteTransform: toSpriteTransformPayload(finalTransform),
         };
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
+        syncRoleAvatarCaches(queryClient, nextAvatar, roleId);
         emitWebgalAvatarUpdated({ avatarId, avatar: nextAvatar });
         invalidateRoleAppearanceCaches(queryClient, roleId, avatarId);
         return updateRes;
@@ -1035,6 +1059,7 @@ export function useApplyCropAvatarMutation() {
         avatarId: variables.avatarId,
       };
       upsertRoleAvatarQueryCaches(queryClient, nextAvatar, variables.roleId);
+      syncRoleAvatarCaches(queryClient, nextAvatar, variables.roleId);
       emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
       invalidateRoleAppearanceCaches(queryClient, variables.roleId, variables.avatarId);
     },
@@ -1092,6 +1117,7 @@ export function useUpdateAvatarTransformMutation() {
         spriteTransform: toSpriteTransformPayload(variables.transform),
       };
       upsertRoleAvatarQueryCaches(queryClient, nextAvatar, variables.roleId);
+      syncRoleAvatarCaches(queryClient, nextAvatar, variables.roleId);
       emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
       invalidateRoleAppearanceCaches(queryClient, variables.roleId, variables.avatarId);
     },
@@ -1210,6 +1236,7 @@ export function useUploadAvatarMutation() {
             spriteTransform: toSpriteTransformPayload(t),
           };
           upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
+          syncRoleAvatarCaches(queryClient, nextAvatar, roleId);
           emitWebgalAvatarUpdated({ avatarId, avatar: nextAvatar });
           invalidateRoleAppearanceCaches(queryClient, roleId, avatarId);
           return uploadRes;
@@ -1281,6 +1308,7 @@ export function useUpdateAvatarTitleMutation(roleId: number) {
         : undefined);
       if (nextAvatar) {
         upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
+        syncRoleAvatarCaches(queryClient, nextAvatar, roleId);
         emitWebgalAvatarUpdated({ avatarId: variables.avatarId, avatar: nextAvatar });
       }
       queryClient.invalidateQueries({
@@ -1591,6 +1619,7 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
       };
       upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
       if (variables.avatar.avatarId) {
+        syncRoleAvatarCaches(queryClient, nextAvatar, roleId);
         emitWebgalAvatarUpdated({ avatarId: variables.avatar.avatarId, avatar: nextAvatar });
       }
       console.warn("更新头像名称成功");

@@ -7,7 +7,7 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type FriendClient = Pick<TuanChat, "friendController">;
 
-export function getFriendsQueryKey(request: FriendListRequest = { pageNo: 1, pageSize: 200 }) {
+export function getFriendsQueryKey(request: FriendListRequest = { pageNo: 1, pageSize: 100 }) {
   return ["friends", request] as const;
 }
 
@@ -25,7 +25,7 @@ export function getFriendCheckQueryKey(targetUserId: number) {
 
 export function useFriendsQuery(
   client: FriendClient,
-  request: FriendListRequest = { pageNo: 1, pageSize: 200 },
+  request: FriendListRequest = { pageNo: 1, pageSize: 100 },
   options: { enabled?: boolean; staleTime?: number } = {},
 ) {
   return useQuery<FriendResponse[]>({

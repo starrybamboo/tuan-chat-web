@@ -4,7 +4,8 @@ import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { Image } from "expo-image";
 import { memo } from "react";
 
-import { Pressable, StyleSheet, Vibration, View } from "react-native";
+import { StyleSheet, Vibration, View } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
 import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";

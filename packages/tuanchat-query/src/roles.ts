@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { RoleAvatarCreateRequest } from "@tuanchat/openapi-client/models/RoleAvatarCreateRequest";
 import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
 import type { RoleUpdateRequest } from "@tuanchat/openapi-client/models/RoleUpdateRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -76,5 +77,43 @@ export function useRoleAvatarsQuery(
     },
     queryKey: getRoleAvatarListQueryKey(roleId),
     staleTime: options.staleTime ?? 86_400_000,
+  });
+}
+
+export function useCreateAvatarMutation(client: RoleClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: RoleAvatar) => client.avatarController.setRoleAvatar(request as any),
+    mutationKey: ["createAvatar"],
+    onSuccess: (_result, request) => {
+      if (typeof request.roleId === "number") {
+        queryClient.invalidateQueries({ queryKey: getRoleAvatarListQueryKey(request.roleId) });
+      }
+    },
+  });
+}
+
+export function useUpdateAvatarMutation(client: RoleClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (request: RoleAvatar) => client.avatarController.updateRoleAvatar(request),
+    mutationKey: ["updateAvatar"],
+    onSuccess: (_result, request) => {
+      if (typeof request.roleId === "number") {
+        queryClient.invalidateQueries({ queryKey: getRoleAvatarListQueryKey(request.roleId) });
+      }
+    },
+  });
+}
+
+export function useDeleteAvatarMutation(client: RoleClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ avatarId, roleId }: { avatarId: number; roleId: number }) =>
+      client.avatarController.deleteRoleAvatar(avatarId),
+    mutationKey: ["deleteAvatar"],
+    onSuccess: (_result, { roleId }) => {
+      queryClient.invalidateQueries({ queryKey: getRoleAvatarListQueryKey(roleId) });
+    },
   });
 }

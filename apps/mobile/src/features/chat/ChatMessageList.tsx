@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   StyleSheet,
   View,
 } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
