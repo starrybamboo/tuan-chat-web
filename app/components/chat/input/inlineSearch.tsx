@@ -1,11 +1,13 @@
 import type { UserRole } from "../../../../api";
 import { useDebounce } from "ahooks";
+import { AnimatePresence, motion } from "motion/react";
 import { memo, use, useEffect, useMemo, useRef, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
+import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import { SearchFilled, XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
@@ -191,50 +193,62 @@ function SearchBar({ className = "" }: SearchBarProps) {
       </div>
 
       {/* 搜索结果下拉 */}
-      {isSearching && debouncedSearchText && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
-          {/* 结果统计 */}
-          <div className="px-4 py-2 text-xs text-base-content/70 bg-base-200 border-b border-base-300">
-            找到
-            {" "}
-            {searchResult.length}
-            {" "}
-            条相关记录
-            <button
-              onClick={() => setIsSearching(false)}
-              className="float-right text-base-content/60 hover:text-base-content"
-              type="button"
-            >
-              <XMarkICon className="size-3" />
-            </button>
-          </div>
+      <AnimatePresence initial={false}>
+        {isSearching && debouncedSearchText && (
+          <motion.div
+            className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden"
+            {...floatingPanelMotionProps}
+          >
+            {/* 结果统计 */}
+            <div className="px-4 py-2 text-xs text-base-content/70 bg-base-200 border-b border-base-300">
+              找到
+              {" "}
+              {searchResult.length}
+              {" "}
+              条相关记录
+              <button
+                onClick={() => setIsSearching(false)}
+                className="float-right text-base-content/60 hover:text-base-content"
+                type="button"
+              >
+                <XMarkICon className="size-3" />
+              </button>
+            </div>
 
-          {/* 结果列表 */}
-          <div className="overflow-y-auto max-h-64">
-            {searchResult.length > 0
-              ? (
-                  searchResult.map(message => (
-                    <SearchedMessage
-                      message={message}
-                      keyword={debouncedSearchText}
-                      key={message.message.messageId}
-                      onClick={() => {
-                        roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageId);
-                        setIsSearching(false);
-                      }}
-                      className="px-4 py-3 border-b border-base-300/50 hover:bg-base-100 cursor-pointer transition-colors last:border-b-0"
-                    />
-                  ))
-                )
-              : (
-                  <div className="flex flex-col items-center justify-center py-8 text-base-content/50">
-                    <SearchFilled className="size-8 mb-2" />
-                    <p className="text-sm">没有找到匹配的聊天记录</p>
-                  </div>
-                )}
-          </div>
-        </div>
-      )}
+            {/* 结果列表 */}
+            <div className="overflow-y-auto max-h-64">
+              {searchResult.length > 0
+                ? (
+                    searchResult.map((message, index) => (
+                      <motion.div
+                        key={message.message.messageId}
+                        {...floatingListItemMotionProps(index)}
+                      >
+                        <SearchedMessage
+                          message={message}
+                          keyword={debouncedSearchText}
+                          onClick={() => {
+                            roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageId);
+                            setIsSearching(false);
+                          }}
+                          className="px-4 py-3 border-b border-base-300/50 hover:bg-base-100 cursor-pointer transition-colors last:border-b-0"
+                        />
+                      </motion.div>
+                    ))
+                  )
+                : (
+                    <motion.div
+                      className="flex flex-col items-center justify-center py-8 text-base-content/50"
+                      {...floatingListItemMotionProps(0)}
+                    >
+                      <SearchFilled className="size-8 mb-2" />
+                      <p className="text-sm">没有找到匹配的聊天记录</p>
+                    </motion.div>
+                  )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
