@@ -3,9 +3,13 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import type { GalMessageView, GalPatchProposal } from "./authoringTypes";
 
+import { getGalPatchProposalChangedMessageIds } from "./galPatchSelection";
+
 export type GalProposalMessagePreview = {
   messages: ChatMessageResponse[];
   baseMessageByPreviewId: Map<number, ChatMessageResponse>;
+  proposalMessageIdByPreviewId: Map<number, string>;
+  changedMessageIds: string[];
 };
 
 function toNumberId(value: string | undefined, fallback: number) {
@@ -77,10 +81,16 @@ export function buildGalProposalMessagePreview(params: {
   const baseById = new Map(proposal.baseSnapshot.map(message => [message.messageId, message]));
   const projectedById = new Map(proposal.projectedSnapshot.map(message => [message.messageId, message]));
   const baseMessageByPreviewId = new Map<number, ChatMessageResponse>();
+  const proposalMessageIdByPreviewId = new Map<number, string>();
+  const changedMessageIds = getGalPatchProposalChangedMessageIds(proposal);
+  const changedMessageIdSet = new Set(changedMessageIds);
 
   const projectedResponses = proposal.projectedSnapshot.map((projected, index) => {
     const original = originalById.get(projected.messageId)?.message;
     const response = toResponse(toMessageFromView(projected, index, original));
+    if (changedMessageIdSet.has(projected.messageId)) {
+      proposalMessageIdByPreviewId.set(response.message.messageId, projected.messageId);
+    }
     const base = baseById.get(projected.messageId);
     if (!base) {
       baseMessageByPreviewId.set(response.message.messageId, toResponse({
@@ -112,6 +122,7 @@ export function buildGalProposalMessagePreview(params: {
         deletedPreview.message.messageId,
         toResponse(beforeMessage),
       );
+      proposalMessageIdByPreviewId.set(deletedPreview.message.messageId, base.messageId);
       return deletedPreview;
     });
 
@@ -124,5 +135,7 @@ export function buildGalProposalMessagePreview(params: {
         return a.message.messageId - b.message.messageId;
       }),
     baseMessageByPreviewId,
+    proposalMessageIdByPreviewId,
+    changedMessageIds,
   };
 }

@@ -1,3 +1,4 @@
+import type { GestureType } from "react-native-gesture-handler";
 import { Gesture } from "react-native-gesture-handler";
 import {
   runOnJS,
@@ -29,12 +30,12 @@ function adjacentSnapPoints(position: number): readonly number[] {
   return [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH];
 }
 
-export function useGestureDrawer() {
+export function useGestureDrawer(scrollGesture?: GestureType) {
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
   const axisConfig = getGestureDrawerAxisConfig();
 
-  const panGesture = Gesture.Pan()
+  const basePanGesture = Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
     .failOffsetY(axisConfig.failOffsetY)
     .onBegin((e) => {
@@ -62,6 +63,9 @@ export function useGestureDrawer() {
       });
       translateX.value = withSpring(destination, SPRING_CONFIG);
     });
+  const panGesture = scrollGesture
+    ? basePanGesture.simultaneousWithExternalGesture(scrollGesture)
+    : basePanGesture;
 
   const openLeft = () => {
     translateX.value = withSpring(LEFT_DRAWER_WIDTH, SPRING_CONFIG);

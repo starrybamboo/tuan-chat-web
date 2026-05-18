@@ -57,22 +57,6 @@ describe("runtimeAbilityBridge", () => {
     expect(merged.skill).toEqual({ 设计: "20" });
   });
 
-  it("会从房间 STATE_EVENT 中解析目标角色当前数值", () => {
-    const roleId = 9;
-    const fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined> = {
-      [roleId]: {},
-    };
-
-    const runtimeValuesByRoleId = buildRuntimeRoleValuesByRoleId([
-      createStateEventMessage(1, { kind: "role", roleId }, "设计", 20),
-    ], fallbackRoleAbilitiesByRoleId);
-
-    expect(runtimeValuesByRoleId[roleId]).toEqual({ 设计: 20 });
-    expect(mergeRuntimeRoleValuesIntoAbility({}, runtimeValuesByRoleId[roleId]).skill).toEqual({
-      设计: "20",
-    });
-  });
-
   it("注入房间级共享变量时不会覆盖已有角色字段", () => {
     const merged = mergeRuntimeRoleValuesIntoAbility({
       skill: {
@@ -88,6 +72,22 @@ describe("runtimeAbilityBridge", () => {
     expect(merged.skill).toEqual({
       设计: "70",
       难度: "15",
+    });
+  });
+
+  it("会从房间 STATE_EVENT 中解析目标角色当前数值", () => {
+    const roleId = 9;
+    const fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined> = {
+      [roleId]: {},
+    };
+
+    const runtimeValuesByRoleId = buildRuntimeRoleValuesByRoleId([
+      createStateEventMessage(1, { kind: "role", roleId }, "设计", 20),
+    ], fallbackRoleAbilitiesByRoleId);
+
+    expect(runtimeValuesByRoleId[roleId]).toEqual({ 设计: 20 });
+    expect(mergeRuntimeRoleValuesIntoAbility({}, runtimeValuesByRoleId[roleId]).skill).toEqual({
+      设计: "20",
     });
   });
 

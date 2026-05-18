@@ -88,6 +88,7 @@ interface ChatToolbarProps {
   showSendButton?: boolean;
   showWebgalControls?: boolean;
   showRunControls?: boolean;
+  showCopilotControl?: boolean;
 }
 
 function ChatToolbar({
@@ -129,6 +130,7 @@ function ChatToolbar({
   showSendButton = true,
   showWebgalControls = false,
   showRunControls = false,
+  showCopilotControl = false,
 }: ChatToolbarProps) {
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
@@ -528,7 +530,7 @@ function ChatToolbar({
         )}
       </div>
 
-      {(showWebgalControls || showRunControls) && (
+      {(showWebgalControls || showRunControls || showCopilotControl) && (
         <div className={isInline ? "mt-1" : "mt-2"}>
           <ChatToolbarDock
             isInline={isInline}
@@ -543,6 +545,7 @@ function ChatToolbar({
             onOpenFullMessageDiff={onOpenFullMessageDiff}
             isFullMessageDiffOpen={isFullMessageDiffOpen}
             showRunControls={showRunControls}
+            showCopilotControl={showCopilotControl}
           />
         </div>
       )}

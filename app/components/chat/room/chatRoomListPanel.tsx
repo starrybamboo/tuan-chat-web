@@ -522,6 +522,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                               onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
                               className="flex h-full min-h-0 flex-col"
                               contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+                              fillContent
                             >
                               {roomDocSectionContent}
                             </SidebarSection>
@@ -551,6 +552,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                                 actionIcon={<PackageIcon className="size-4" weight="regular" />}
                                 className="flex h-full min-h-0 flex-col"
                                 contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+                                fillContent
                               >
                                 {materialSectionContent}
                               </SidebarSection>
@@ -566,6 +568,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                             onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
                             className={isRoomDocSectionExpanded ? fillSectionClassName : undefined}
                             contentClassName={isRoomDocSectionExpanded ? fillSectionContentClassName : undefined}
+                            fillContent={isRoomDocSectionExpanded}
                           >
                             {roomDocSectionContent}
                           </SidebarSection>
@@ -581,6 +584,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                               actionIcon={<PackageIcon className="size-4" weight="regular" />}
                               className={materialSectionClassName}
                               contentClassName={stretchMaterialSection ? fillSectionContentClassName : undefined}
+                              fillContent={stretchMaterialSection}
                             >
                               {materialSectionContent}
                             </SidebarSection>

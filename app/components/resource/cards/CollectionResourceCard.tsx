@@ -1,6 +1,6 @@
 import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
-import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
+import { resolveResourcePreviewUrl } from "../utils/resourceMedia";
 import MoreBetterImg from "../utils/MoreBetterImg";
 
 interface CollectionResourceCardProps {
@@ -29,7 +29,7 @@ export function CollectionResourceCard({
   onRemoveResource,
   isMobile = false,
 }: CollectionResourceCardProps) {
-  const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
+  const resourceUrl = resolveResourcePreviewUrl(resource);
   const handleRemoveClick = () => {
     if (resource.resourceId) {
       onRemoveResource(resource.resourceId);

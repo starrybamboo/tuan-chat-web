@@ -1,0 +1,214 @@
+type RuntimeWindowLike = {
+  isSecureContext?: boolean;
+  location: {
+    href: string;
+    origin: string;
+    protocol?: string;
+  };
+};
+
+const LOOPBACK_HOSTNAMES = new Set([
+  "localhost",
+  "127.0.0.1",
+  "::1",
+  "[::1]",
+]);
+
+function getRuntimeWindow(): RuntimeWindowLike | null {
+  if (typeof window === "undefined" || !window.location?.href || !window.location?.origin) {
+    return null;
+  }
+  return window;
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+function normalizePathname(pathname: string): string {
+  const normalized = pathname.replace(/\/$/, "");
+  return normalized || "/";
+}
+
+function normalizeUrl(url: URL): URL {
+  const normalized = new URL(url.toString());
+  normalized.hash = "";
+  normalized.pathname = normalizePathname(normalized.pathname);
+  return normalized;
+}
+
+function toNormalizedAbsoluteUrl(url: URL): string {
+  return trimTrailingSlash(normalizeUrl(url).toString());
+}
+
+function toNormalizedSameOriginPath(url: URL): string {
+  const normalized = normalizeUrl(url);
+  const pathname = normalized.pathname === "/" ? "" : normalized.pathname;
+  return `${pathname}${normalized.search}`;
+}
+
+function createRuntimeUrl(rawUrl: string, runtimeWindow: RuntimeWindowLike): URL | null {
+  try {
+    return new URL(rawUrl, runtimeWindow.location.href);
+  }
+  catch {
+    return null;
+  }
+}
+
+function isHttpsPage(runtimeWindow: RuntimeWindowLike): boolean {
+  return runtimeWindow.location.protocol === "https:";
+}
+
+function isSecureRuntimeContext(runtimeWindow: RuntimeWindowLike): boolean {
+  return runtimeWindow.isSecureContext === true || isHttpsPage(runtimeWindow);
+}
+
+function getCurrentHost(runtimeWindow: RuntimeWindowLike): string {
+  return new URL(runtimeWindow.location.origin).host;
+}
+
+function buildCurrentOriginUrl(
+  runtimeWindow: RuntimeWindowLike,
+  pathname: string,
+  search: string = "",
+): URL {
+  const current = new URL(runtimeWindow.location.origin);
+  current.pathname = pathname || "/";
+  current.search = search;
+  current.hash = "";
+  return current;
+}
+
+function buildCurrentOriginWebSocketUrl(
+  runtimeWindow: RuntimeWindowLike,
+  pathname: string,
+  search: string = "",
+): URL {
+  const current = buildCurrentOriginUrl(runtimeWindow, pathname, search);
+  current.protocol = isHttpsPage(runtimeWindow) ? "wss:" : "ws:";
+  return current;
+}
+
+function warnOnInsecureLoopbackRequest(url: URL, runtimeWindow: RuntimeWindowLike) {
+  if (!LOOPBACK_HOSTNAMES.has(url.hostname) || isSecureRuntimeContext(runtimeWindow)) {
+    return;
+  }
+
+  console.warn(
+    "[TuanChat] 当前页面不是安全上下文(HTTPS)，请求本机 loopback(例如 localhost) 可能被浏览器 PNA 拦截。"
+    + "建议将站点切换为 HTTPS，并确保本机服务支持 PNA 预检/跨域头。",
+  );
+}
+
+function toCurrentOriginAbsoluteUrl(url: URL, runtimeWindow: RuntimeWindowLike): string {
+  return toNormalizedAbsoluteUrl(buildCurrentOriginUrl(runtimeWindow, url.pathname, url.search));
+}
+
+function toCurrentOriginWebSocketBaseUrl(
+  url: URL,
+  runtimeWindow: RuntimeWindowLike,
+  fallbackPath: string,
+): string {
+  const pathname = url.pathname && url.pathname !== "/" ? url.pathname : fallbackPath;
+  return toNormalizedAbsoluteUrl(buildCurrentOriginWebSocketUrl(runtimeWindow, pathname, url.search));
+}
+
+export function resolveRuntimeApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow) {
+    return envBaseUrl;
+  }
+
+  const fallback = runtimeWindow.location.origin;
+  const rawUrl = String(envBaseUrl ?? "").trim();
+  if (!rawUrl) {
+    return fallback;
+  }
+
+  const url = createRuntimeUrl(rawUrl, runtimeWindow);
+  if (!url) {
+    return fallback;
+  }
+
+  if (url.origin === runtimeWindow.location.origin) {
+    return toNormalizedSameOriginPath(url);
+  }
+
+  warnOnInsecureLoopbackRequest(url, runtimeWindow);
+
+  if (isHttpsPage(runtimeWindow) && url.protocol === "http:") {
+    return toNormalizedSameOriginPath(url);
+  }
+
+  return toNormalizedAbsoluteUrl(url);
+}
+
+export function resolveRuntimeMediaBaseUrl(
+  envBaseUrl: string | undefined,
+  fallbackAbsoluteUrl: string,
+): string {
+  const runtimeWindow = getRuntimeWindow();
+  const rawUrl = String(envBaseUrl ?? "").trim();
+  if (!runtimeWindow) {
+    return rawUrl ? trimTrailingSlash(rawUrl) : fallbackAbsoluteUrl;
+  }
+  if (!rawUrl) {
+    return fallbackAbsoluteUrl;
+  }
+
+  const url = createRuntimeUrl(rawUrl, runtimeWindow);
+  if (!url) {
+    return fallbackAbsoluteUrl;
+  }
+
+  if (isHttpsPage(runtimeWindow) && url.protocol === "http:") {
+    return toCurrentOriginAbsoluteUrl(url, runtimeWindow);
+  }
+
+  return toNormalizedAbsoluteUrl(url);
+}
+
+export function resolveRuntimeWebSocketBaseUrl(
+  envBaseUrl: string | undefined,
+  fallbackPath: string = "/ws",
+): string | undefined {
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow) {
+    return envBaseUrl;
+  }
+
+  const normalizedFallbackPath = fallbackPath.startsWith("/") ? fallbackPath : `/${fallbackPath}`;
+  const fallback = toNormalizedAbsoluteUrl(buildCurrentOriginWebSocketUrl(runtimeWindow, normalizedFallbackPath));
+  const rawUrl = String(envBaseUrl ?? "").trim();
+  if (!rawUrl) {
+    return fallback;
+  }
+
+  const url = createRuntimeUrl(rawUrl, runtimeWindow);
+  if (!url) {
+    return fallback;
+  }
+
+  if (url.protocol === "http:") {
+    url.protocol = "ws:";
+  }
+  else if (url.protocol === "https:") {
+    url.protocol = "wss:";
+  }
+
+  if (url.host === getCurrentHost(runtimeWindow)) {
+    return toCurrentOriginWebSocketBaseUrl(url, runtimeWindow, normalizedFallbackPath);
+  }
+
+  if (isHttpsPage(runtimeWindow) && url.protocol === "ws:") {
+    return toCurrentOriginWebSocketBaseUrl(url, runtimeWindow, normalizedFallbackPath);
+  }
+
+  return toNormalizedAbsoluteUrl(url);
+}
+
+export function appendUrlQueryParam(baseUrl: string, key: string, value: string): string {
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+}

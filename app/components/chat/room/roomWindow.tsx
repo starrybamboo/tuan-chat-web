@@ -1,7 +1,7 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { GalPatchProposal } from "@/components/chat/galgameAi";
+import type { GalAuthoringLocalSnapshot, GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildGalPatchMutationPlan, executeGalPatchMutationPlan } from "@/components/chat/galgameAi";
+import { buildGalPatchMutationPlan, executeGalPatchMutationPlan, galPatchProposalStore } from "@/components/chat/galgameAi";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
@@ -251,8 +251,53 @@ function RoomWindow({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
   const [isApplyingGalPatchProposal, setIsApplyingGalPatchProposal] = useState(false);
+  const [generatedGalPatchProposal, setGeneratedGalPatchProposal] = useState<GalPatchProposal | null>(null);
   const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
+  const isGalPatchProposalControlled = galPatchProposal !== undefined;
+  const activeGalPatchProposal = isGalPatchProposalControlled ? (galPatchProposal ?? null) : generatedGalPatchProposal;
   const noRole = curRoleId <= 0;
+
+  useEffect(() => {
+    if (isGalPatchProposalControlled) {
+      return;
+    }
+
+    let ignore = false;
+    void galPatchProposalStore.getActive(String(roomId)).then((proposal) => {
+      if (ignore) {
+        return;
+      }
+      setGeneratedGalPatchProposal(proposal?.status === "draft" ? proposal : null);
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [isGalPatchProposalControlled, roomId]);
+
+  const handleGalPatchProposalGenerated = useCallback((proposal: GalPatchProposal) => {
+    if (!isGalPatchProposalControlled) {
+      setGeneratedGalPatchProposal(proposal);
+    }
+  }, [isGalPatchProposalControlled]);
+
+  const handleGalPatchProposalApplied = useCallback((proposal: GalPatchProposal) => {
+    void galPatchProposalStore.updateStatus(proposal.proposalId, "accepted");
+    void galPatchProposalStore.setActive(proposal.roomId, null);
+    if (!isGalPatchProposalControlled) {
+      setGeneratedGalPatchProposal(current => current?.proposalId === proposal.proposalId ? null : current);
+    }
+    onGalPatchProposalApplied?.(proposal);
+  }, [isGalPatchProposalControlled, onGalPatchProposalApplied]);
+
+  const handleGalPatchProposalDiscard = useCallback((proposal: GalPatchProposal) => {
+    void galPatchProposalStore.updateStatus(proposal.proposalId, "discarded");
+    void galPatchProposalStore.setActive(proposal.roomId, null);
+    if (!isGalPatchProposalControlled) {
+      setGeneratedGalPatchProposal(current => current?.proposalId === proposal.proposalId ? null : current);
+    }
+    onGalPatchProposalDiscard?.(proposal);
+  }, [isGalPatchProposalControlled, onGalPatchProposalDiscard]);
 
   const {
     containsCommandRequestAllToken,
@@ -939,7 +984,10 @@ function RoomWindow({
     }
   }, [chatHistory, deleteMessageMutation, historyMessages, roomUiStore]);
 
-  const handleApplyGalPatchProposal = useCallback(async (proposal: GalPatchProposal) => {
+  const handleApplyGalPatchProposal = useCallback(async (
+    proposal: GalPatchProposal,
+    options?: GalPatchProposalApplyOptions,
+  ) => {
     if (isApplyingGalPatchProposal) {
       return;
     }
@@ -952,12 +1000,17 @@ function RoomWindow({
     const plan = buildGalPatchMutationPlan({
       proposal,
       currentMessages,
+      acceptedMessageIds: options?.acceptedMessageIds,
     });
 
     const totalChangeCount = plan.insertMessages.length + plan.updateMessages.length + plan.deleteMessageIds.length;
+    if (options?.acceptedMessageIds && options.acceptedMessageIds.length === 0) {
+      toast.error("请至少接受一行改动");
+      return;
+    }
     if (totalChangeCount === 0) {
       toast("没有可应用的变更", { icon: "ℹ️" });
-      onGalPatchProposalApplied?.(proposal);
+      handleGalPatchProposalApplied(proposal);
       return;
     }
 
@@ -969,7 +1022,7 @@ function RoomWindow({
         updateMessage: applyGalPatchUpdateMessage,
         deleteMessage: applyGalPatchDeleteMessage,
       });
-      onGalPatchProposalApplied?.(proposal);
+      handleGalPatchProposalApplied(proposal);
       toast.success(`已应用：新增 ${result.inserted}，修改 ${result.updated}，删除 ${result.deleted}`, { id: toastId });
       if (isRealtimeRenderActive) {
         void rerenderHistoryInWebGAL();
@@ -988,13 +1041,25 @@ function RoomWindow({
     isApplyingGalPatchProposal,
     isRealtimeRenderActive,
     mainHistoryMessages,
-    onGalPatchProposalApplied,
+    handleGalPatchProposalApplied,
     rerenderHistoryInWebGAL,
     sendMessageBatch,
   ]);
 
   const roomName = roomHeaderOverride?.title ?? room?.name;
   const spaceName = space?.name;
+  const galAuthoringLocalSnapshot = React.useMemo((): GalAuthoringLocalSnapshot => ({
+    ...(space ? { space } : {}),
+    ...(room ? { room } : {}),
+    ...(!chatHistory?.loading
+      ? {
+          messages: mainHistoryMessages
+            .map(message => message.message)
+            .filter((message): message is Message => Boolean(message)),
+        }
+      : {}),
+    ...(isRoleDataReady ? { roomRoles: roomAllRoles } : {}),
+  }), [chatHistory?.loading, isRoleDataReady, mainHistoryMessages, room, roomAllRoles, space]);
 
   const chatFrameProps = React.useMemo(() => ({
     virtuosoRef,
@@ -1010,19 +1075,19 @@ function RoomWindow({
     sendMessageWithInsert,
     onExportPremiere: handleExportPremiere,
     showFullMessageDiff: isFullMessageDiffOpen,
-    galPatchProposal,
+    galPatchProposal: activeGalPatchProposal,
     isApplyingGalPatchProposal,
     onApplyGalPatchProposal: handleApplyGalPatchProposal,
-    onDiscardGalPatchProposal: onGalPatchProposalDiscard,
+    onDiscardGalPatchProposal: handleGalPatchProposalDiscard,
   }), [
-    galPatchProposal,
+    activeGalPatchProposal,
+    handleGalPatchProposalDiscard,
     handleApplyGalPatchProposal,
     handleExecuteCommandRequest,
     handleExportPremiere,
     isFullMessageDiffOpen,
     isApplyingGalPatchProposal,
     isCommandRequestConsumed,
-    onGalPatchProposalDiscard,
     setBackgroundUrl,
     setCurrentEffect,
     roomName,
@@ -1099,6 +1164,7 @@ function RoomWindow({
             onSendRoomJump={handleSendRoomJump}
           >
             <RoomWindowLayout
+              spaceId={spaceId}
               roomId={roomId}
               roomName={roomName}
               room={room}
@@ -1115,6 +1181,8 @@ function RoomWindow({
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
               isReloadingAllMessages={isReloadingAllMessages}
               onSendDocCard={handleSendDocCard}
+              galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
+              onGalPatchProposalGenerated={handleGalPatchProposalGenerated}
             />
           </RoomDocRefDropLayer>
           {!viewMode && (

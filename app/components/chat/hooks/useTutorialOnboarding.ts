@@ -1,3 +1,5 @@
+import type { NavigateFunction } from "react-router";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -7,13 +9,18 @@ import {
   fetchTutorialBootstrap,
   useTutorialPullMutation,
 } from "api/hooks/tutorialOnboardingHooks";
-
-const TUTORIAL_PROMPT_SEEN_STORAGE_KEY = "tc:tutorial:onboarding:seen";
-
-type TutorialPromptType = "missing" | "update";
+import {
+  buildTutorialPromptSeenKey,
+  hasSeenTutorialPrompt,
+  markTutorialPromptSeen,
+} from "@/components/chat/tutorial/tutorialPromptSeenStorage";
 
 function debugTutorialOnboarding(event: string, payload?: Record<string, unknown>) {
   if (!import.meta.env.DEV || typeof window === "undefined") {
+    return;
+  }
+  const debugStore = (window as any).__TC_TUTORIAL_DEBUG__;
+  if (!debugStore) {
     return;
   }
   const debugEntry = {
@@ -21,79 +28,17 @@ function debugTutorialOnboarding(event: string, payload?: Record<string, unknown
     event,
     payload: payload ?? {},
   };
-  const debugStore = ((window as any).__TC_TUTORIAL_DEBUG__ ??= { entries: [] as typeof debugEntry[] });
+  debugStore.entries ??= [];
   debugStore.entries.push(debugEntry);
   if (debugStore.entries.length > 100) {
     debugStore.entries.splice(0, debugStore.entries.length - 100);
   }
 }
 
-function isBrowserStorageAvailable() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
-}
-
-function readTutorialPromptSeenMap(): Record<string, true> {
-  if (!isBrowserStorageAvailable()) {
-    return {};
-  }
-  try {
-    const raw = window.localStorage.getItem(TUTORIAL_PROMPT_SEEN_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
-    }
-    return parsed as Record<string, true>;
-  }
-  catch {
-    return {};
-  }
-}
-
-function hasSeenTutorialPrompt(seenKey: string | null) {
-  if (!seenKey) {
-    return false;
-  }
-  const seenMap = readTutorialPromptSeenMap();
-  return seenMap[seenKey] === true;
-}
-
-function markTutorialPromptSeen(seenKey: string | null) {
-  if (!seenKey || !isBrowserStorageAvailable()) {
-    return;
-  }
-  const seenMap = readTutorialPromptSeenMap();
-  seenMap[seenKey] = true;
-  try {
-    window.localStorage.setItem(TUTORIAL_PROMPT_SEEN_STORAGE_KEY, JSON.stringify(seenMap));
-  }
-  catch {
-    // ignore localStorage write failures
-  }
-}
-
-function buildTutorialPromptSeenKey(
-  userId: number,
-  promptType: TutorialPromptType,
-  data: TutorialBootstrapResponse,
-) {
-  if (userId <= 0) {
-    return null;
-  }
-  const tutorialRepositoryId = data.tutorialRepositoryId;
-  if (typeof tutorialRepositoryId !== "number" || tutorialRepositoryId <= 0) {
-    return null;
-  }
-  const latestCommitIdPart = data.latestCommitId ?? "none";
-  return `u:${userId}:repo:${tutorialRepositoryId}:type:${promptType}:latest:${latestCommitIdPart}`;
-}
-
 type UseTutorialOnboardingParams = {
   userId: number;
   enabled: boolean;
-  navigate: (to: string, options?: { replace?: boolean; state?: unknown }) => void;
+  navigate: NavigateFunction;
 };
 
 type UseTutorialOnboardingResult = {

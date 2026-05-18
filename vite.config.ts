@@ -1,10 +1,9 @@
 import type { Plugin } from "vite";
 
-import babel from "@rolldown/plugin-babel";
+import * as babelCore from "@babel/core";
+import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -13,6 +12,13 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
+import babel from "vite-plugin-babel";
+
+const REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES = [
+  "/app/components/chat/infra/blocksuite/spec/tcMentionElement.client.ts",
+  "/app/components/chat/infra/blocksuite/editors/tcAffineEditorContainer.ts",
+  "/app/components/chat/infra/blocksuite/editors/extensions/embed/embedIframeNoCredentiallessElements.ts",
+];
 
 function splitVendorChunk(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, "/");
@@ -69,7 +75,6 @@ function fixCjsDefaultExportPlugin(): Plugin {
         "safe-buffer",
         "dayjs",
         "dayjs/dayjs.min.js",
-        "fast-deep-equal",
         "react-fast-compare",
         "screenfull",
       ];
@@ -88,7 +93,7 @@ function fixCjsDefaultExportPlugin(): Plugin {
           modified = true;
           result = result.replace(
             importRegex,
-            (_match, identifier) => {
+            (match, identifier) => {
               // Convert to dynamic import + namespace, then extract the default
               // This works around the missing default export by using the CJS wrapper
               return `import * as __module_${identifier} from '${module}'; const ${identifier} = __module_${identifier}.default || __module_${identifier};`;
@@ -265,31 +270,73 @@ export default defineConfig(() => {
     return existsSync(abs) ? realpathSync(abs) : abs;
   };
 
+  // Some BlockSuite packages still ship auto-accessor syntax through either:
+  // - prebuilt `dist/*.js`
+  // - exported `src/*.ts`
+  // Browsers that don't support `accessor foo = ...` will fail at parse time.
+  const blocksuiteAutoAccessorRE = /@blocksuite[\\/][^\\/]+[\\/](?:dist[\\/].*\.js|src[\\/].*\.[jt]sx?)(?:\?.*)?$/;
+
   return {
     plugins: [
-      ...tanstackStart({
-        srcDirectory: "app",
-        client: {
-          entry: "main",
-        },
-        router: {
-          routeFileIgnorePattern: "^(routeTypes|scrollSequenceDemoShared)\\.ts$",
-        },
-        spa: {
-          enabled: true,
-        },
-        start: {
-          entry: "start",
-        },
-      }),
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
+      // Downlevel BlockSuite auto-accessor syntax before Vite/rolldown emits browser bundles.
+      // Example crashing syntax:
+      // - `accessor menu = ...` from dist context-menu files
+      // - `protected override accessor blockContainerStyles = ...` from src TypeScript exports
+      {
+        name: "tc-downlevel-blocksuite-auto-accessor",
+        enforce: "pre",
+        async transform(code, id) {
+          if (!blocksuiteAutoAccessorRE.test(id))
+            return null;
+          if (!/\b(?:override\s+)?accessor\s+[A-Za-z_$]/.test(code))
+            return null;
+
+          const filename = id.split("?")[0];
+          const result = await babelCore.transformAsync(code, {
+            filename,
+            // BlockSuite 发布包的 *.map 指向了未随 npm 分发的 src/* 文件。
+            // 一旦继续传递 sourcemap，Rollup 在报告 warning 时会反复尝试回溯并产生日志噪音。
+            // 这里显式关闭输入/输出 sourcemap，保持构建可读性。
+            sourceMaps: false,
+            presets: [
+              [
+                "@babel/preset-env",
+                {
+                  targets: { esmodules: true },
+                  bugfixes: true,
+                  modules: false,
+                  loose: true,
+                },
+              ],
+              [
+                "@babel/preset-typescript",
+                {
+                  allowDeclareFields: true,
+                },
+              ],
+            ],
+            plugins: [
+              ["@babel/plugin-proposal-decorators", { version: "2023-05" }],
+              ["@babel/plugin-proposal-class-properties", { loose: true }],
+            ],
+          });
+
+          if (!result?.code)
+            return null;
+          // 防止上游文件尾部 `//# sourceMappingURL=...` 继续触发 sourcemap 回溯。
+          const codeWithoutSourceMapUrl = result.code.replace(/\n\/\/# sourceMappingURL=.*$/gm, "");
+          return { code: codeWithoutSourceMapUrl, map: null };
+        },
+      },
+
       // NOTE:
-      // Some upstream packages ship vanilla-extract sources or runtime that can
-      // reference `document`. In production builds, `emitCss`
+      // Some upstream packages (e.g. BlockSuite/AFFiNE) ship vanilla-extract sources
+      // or runtime that can reference `document`. In production builds, `emitCss`
       // evaluates style modules and may crash with `document is not defined`.
       //
       // Using `transform` avoids executing those modules at build time.
@@ -297,10 +344,36 @@ export default defineConfig(() => {
         unstable_mode: "transform",
       }),
 
-      react(),
+      reactRouter(),
       babel({
-        exclude: [/[/\\]node_modules[/\\]/, /[/\\](build|dist|release|extraResources)[/\\]/],
-        presets: [reactCompilerPreset()],
+        filter: (id) => {
+          const normalizedId = id.split("?")[0].replace(/\\/g, "/");
+          if (!/\.[jt]sx?$/.test(normalizedId)) {
+            return false;
+          }
+          if (
+            normalizedId.includes("/node_modules/")
+            || normalizedId.includes("/build/")
+            || normalizedId.includes("/dist/")
+            || normalizedId.includes("/release/")
+            || normalizedId.includes("/extraResources/")
+          ) {
+            return false;
+          }
+          return !REACT_COMPILER_EXCLUDED_SOURCE_SUFFIXES.some(suffix => normalizedId.endsWith(suffix));
+        },
+        babelConfig: {
+          presets: [
+            [
+              "@babel/preset-typescript",
+              {
+                allExtensions: true,
+                isTSX: true,
+              },
+            ],
+          ],
+          plugins: ["babel-plugin-react-compiler"],
+        },
       }),
     ],
     base: "/",
@@ -312,18 +385,44 @@ export default defineConfig(() => {
       // This mirrors the upstream playground Vite config.
       extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json"],
 
+      // BlockSuite pulls in lit/lit-html. Ensure we don't end up with nested copies like
+      // `lit/node_modules/lit-html`, which increases module count and can exhaust
+      // browser/dev-server resources on Windows.
       dedupe: [
         "react",
         "react-dom",
-        "react-dom/client",
-        "scheduler",
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        "@tanstack/react-router",
+        "react-router",
         "zustand",
+
+        // Ensure BlockSuite/Yjs are singletons. Multiple module instances can
+        // break DI tokens (e.g. StoreSelectionExtension) and instance checks
+        // (e.g. "store is invalid").
+        "yjs",
+        "@blocksuite/global",
+        "@blocksuite/store",
+        "@blocksuite/std",
+        "@blocksuite/sync",
+        "@blocksuite/affine",
+        "@blocksuite/affine-model",
+        "@blocksuite/affine-shared",
+        "@blocksuite/integration-test",
+
+        "lit",
+        "lit-element",
+        "lit-html",
+        "@lit/context",
+        "@lit/reactive-element",
+        "@lit/react",
       ],
       alias: [
+        // BlockSuite packages export TypeScript sources (`./src/*.ts`) by default.
+        // In Vite dev this can lead to:
+        // - decorators not being applied (custom elements not defined) -> "Illegal constructor"
+        // - mixed module instances (src vs dist) -> DI token mismatch / Yjs store issues
+        // Force them to use prebuilt dist outputs.
         // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
         {
           find: /^@ffmpeg\/ffmpeg$/,
@@ -336,24 +435,129 @@ export default defineConfig(() => {
           replacement: resolve(__dirname, "app/shims/lzStringCompat.ts"),
         },
         {
-          // fast-deep-equal 的根入口和 react/es6 子路径都是 CJS。
-          // 部分第三方依赖会把它当成 ESM default 导入，Vite dev 下会直接炸。
-          find: /^fast-deep-equal$/,
-          replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
-        },
-        {
-          find: /^fast-deep-equal\/react\.js$/,
-          replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
-        },
-        {
-          find: /^fast-deep-equal\/es6\/react\.js$/,
-          replacement: resolve(__dirname, "app/shims/fastDeepEqualCompat.ts"),
-        },
-        {
           find: /^@ffmpeg\/util$/,
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
         },
+        {
+          find: /^@blocksuite\/std$/,
+          replacement: nm("node_modules/@blocksuite/std/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/std\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/std/dist")}/$1`,
+        },
+        {
+          find: /^@blocksuite\/store$/,
+          replacement: nm("node_modules/@blocksuite/store/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/store\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/store/dist")}/$1`,
+        },
+        {
+          find: /^@blocksuite\/global$/,
+          replacement: nm("node_modules/@blocksuite/global/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/global\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/global/dist")}/$1`,
+        },
+        {
+          find: /^@blocksuite\/sync$/,
+          replacement: nm("node_modules/@blocksuite/sync/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/sync\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/sync/dist")}/$1`,
+        },
+        {
+          find: /^@blocksuite\/affine$/,
+          replacement: nm("node_modules/@blocksuite/affine/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/affine\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/affine/dist")}/$1`,
+        },
+        {
+          find: /^@blocksuite\/affine-model$/,
+          replacement: nm("node_modules/@blocksuite/affine-model/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/affine-model\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/affine-model/dist")}/$1`,
+        },
+        {
+          find: /^@blocksuite\/affine-shared$/,
+          replacement: nm("node_modules/@blocksuite/affine-shared/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/affine-shared\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/affine-shared/dist")}/$1`,
+        },
 
+        // Some BlockSuite packages export vanilla-extract `*.css.ts` sources in `exports`.
+        // In production/SSR builds this can crash with `document is not defined`.
+        // Force them to use prebuilt dist outputs.
+        {
+          find: /^@blocksuite\/affine-block-note$/,
+          replacement: nm("node_modules/@blocksuite/affine-block-note/dist/index.js"),
+        },
+        {
+          find: /^@blocksuite\/affine-block-note\/(.+)$/,
+          replacement: `${nm("node_modules/@blocksuite/affine-block-note/dist")}/$1`,
+        },
+
+        // Force Lit ecosystem to resolve to a single physical copy.
+        // This helps avoid runtime warnings like "Multiple versions of Lit loaded"
+        // when the same version is loaded from different paths (e.g. pnpm virtual store).
+        {
+          find: /^lit$/,
+          replacement: nm("node_modules/lit/index.js"),
+        },
+        {
+          find: /^lit\/(.+)$/,
+          replacement: `${nm("node_modules/lit")}/$1`,
+        },
+        {
+          find: /^lit-html$/,
+          replacement: nm("node_modules/lit-html/lit-html.js"),
+        },
+        {
+          find: /^lit-html\/(.+)$/,
+          replacement: `${nm("node_modules/lit-html")}/$1`,
+        },
+        {
+          find: /^lit-element$/,
+          replacement: nm("node_modules/lit-element/index.js"),
+        },
+        {
+          find: /^lit-element\/(.+)$/,
+          replacement: `${nm("node_modules/lit-element")}/$1`,
+        },
+        {
+          find: /^@lit\/reactive-element$/,
+          replacement: nm("node_modules/@lit/reactive-element/reactive-element.js"),
+        },
+        {
+          find: /^@lit\/reactive-element\/(.+)$/,
+          replacement: `${nm("node_modules/@lit/reactive-element")}/$1`,
+        },
+        {
+          find: /^@lit\/context$/,
+          replacement: nm("node_modules/@lit/context/index.js"),
+        },
+        {
+          find: /^@lit\/context\/(.+)$/,
+          replacement: `${nm("node_modules/@lit/context")}/$1`,
+        },
+        {
+          find: /^@lit\/react$/,
+          replacement: nm("node_modules/@lit/react/index.js"),
+        },
+        {
+          find: /^@lit\/react\/(.+)$/,
+          replacement: `${nm("node_modules/@lit/react")}/$1`,
+        },
         {
           find: "@",
           replacement: resolve(__dirname, "app"),
@@ -369,21 +573,7 @@ export default defineConfig(() => {
     // 导致请求到不存在的 `chunk-*.js` 文件。
     cacheDir: "node_modules/.vite-tuan-chat-web",
 
-    environments: {
-      client: {
-        build: {
-          outDir: "build/client",
-        },
-      },
-      server: {
-        build: {
-          outDir: "build/server",
-        },
-      },
-    },
-
     build: {
-      outDir: "build",
       rollupOptions: {
         output: {
           manualChunks: splitVendorChunk,
@@ -396,9 +586,41 @@ export default defineConfig(() => {
       strictPort: true,
       host: "0.0.0.0",
       // Pre-transform requested modules more aggressively in dev.
+      // This often helps heavy ESM graphs (like BlockSuite) on first open.
       preTransformRequests: true,
+      // Warm up the most expensive routes/modules in dev to reduce the first-load latency.
+      // This does NOT change module resolution (unlike optimizeDeps for @blocksuite/*).
+      warmup: {
+        clientFiles: [
+          // iframe route entry
+          "app/routes/blocksuiteFrame.tsx",
+
+          // iframe host
+          "app/components/chat/shared/components/BlockSuite/blocksuiteDescriptionEditor.tsx",
+
+          // route client chunk + browser runtime
+          "app/components/chat/infra/blocksuite/BlocksuiteRouteFrameClient.tsx",
+          "app/components/chat/infra/blocksuite/BlocksuiteDescriptionEditorRuntime.browser.tsx",
+          "app/components/chat/infra/blocksuite/bootstrap/browser.ts",
+          "app/components/chat/infra/blocksuite/runtime/runtimeLoader.browser.ts",
+          "app/components/chat/infra/blocksuite/editors/createBlocksuiteEditor.browser.ts",
+          "app/components/chat/infra/blocksuite/space/spaceWorkspaceRegistry.ts",
+
+          // core bootstrap modules
+          "app/components/chat/infra/blocksuite/spec/coreElements.browser.ts",
+          "app/components/chat/infra/blocksuite/styles/frameBase.css",
+          "app/components/chat/infra/blocksuite/styles/tcHeader.css",
+
+          // common doc sources/providers
+          "app/components/chat/infra/blocksuite/space/runtime/remoteDocSource.ts",
+        ],
+      },
     },
 
+    // React Router dev loads route modules in SSR. Some upstream packages (e.g. BlockSuite)
+    // export TypeScript sources in `exports`, which Node cannot execute if externalized.
+    // Force Vite SSR to bundle/transpile them to avoid runtime syntax errors like:
+    // "SyntaxError: Unexpected identifier 'lineStyle'".
     ssr: {
       // `dagre` is pure CommonJS (module.exports). If we bundle it into SSR ESM,
       // it may be evaluated without a CJS wrapper and crash with `module is not defined`.
@@ -407,6 +629,8 @@ export default defineConfig(() => {
         "qrcode",
       ],
       noExternal: [
+        /^@blocksuite\//,
+        /^@toeverything\//,
         "lodash",
         "fast-diff",
         "use-sync-external-store",
@@ -416,72 +640,11 @@ export default defineConfig(() => {
     },
 
     optimizeDeps: {
-      // Prevent Vite from auto-optimizing discovered deps (which can accidentally
-      // pull in vanilla-extract `*.css.ts` sources from node_modules).
+      // 临时下掉依赖预打包优化：让开发期按真实解析结果全量加载，
+      // 避免手工 include/exclude 与 BlockSuite/Lit 单例 alias 混用时产生重复实例。
+      // Vite 8 中 noDiscovery=true 且 include 为空即禁用 deps optimizer。
       noDiscovery: true,
-
-      // Explicitly pre-bundle only the deps we know are safe/needed.
-      include: [
-        // Ensure React JSX runtime is properly converted to ESM for browser.
-        "react",
-        "react-dom",
-        "react-dom/client",
-        "react/compiler-runtime",
-        "react/jsx-runtime",
-        "react/jsx-dev-runtime",
-
-        // Ensure TanStack Router runtime is pre-bundled with the same React instance.
-        "@tanstack/react-router",
-        "@tanstack/react-router-devtools",
-        "zustand",
-
-        // Pixi has a very large module graph; without pre-bundling it can trigger
-        // browser resource exhaustion (ERR_INSUFFICIENT_RESOURCES) in dev.
-        "pixi.js",
-        "zod",
-        "rxjs",
-        "@preact/signals-core",
-
-        // Markdown/code highlighting (CJS interop)
-        "lowlight",
-        "react-syntax-highlighter",
-
-        // Fix CJS/ESM interop for packages that are imported as ESM but are CJS.n
-        // This prevents runtime errors like:
-        // ".../style-to-js/cjs/index.js ... does not provide an export named 'default'".
-        "style-to-js",
-        "debug",
-        "extend",
-        "bytes",
-        "dagre",
-        "qrcode",
-        "fast-diff",
-        "pngjs",
-        "safe-buffer",
-        "cssesc",
-        "deepmerge",
-        "picocolors",
-        "eventemitter3",
-        "sql.js",
-
-        // Fix CJS/ESM interop for upstream deps used by the playground.
-        "lodash",
-        "lodash/debounce",
-        "lodash/throttle",
-        "lodash/memoize",
-        "lodash/isObject",
-        "lodash/isPlainObject",
-        "use-sync-external-store/shim/with-selector",
-        "use-sync-external-store/shim/with-selector.js",
-        "use-sync-external-store/shim/index.js",
-        "use-sync-external-store/shim",
-        "react-fast-compare",
-
-        // Fix CJS/ESM interop for minimatch/glob transitive deps.
-        "brace-expansion",
-        "screenfull",
-      ],
-
+      include: [],
     },
   };
 });

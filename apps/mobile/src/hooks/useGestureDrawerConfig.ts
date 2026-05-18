@@ -1,5 +1,5 @@
 export const DRAWER_ACTIVE_OFFSET_X: [number, number] = [-8, 8];
-export const DRAWER_FAIL_OFFSET_Y: [number, number] = [-10, 10];
+export const DRAWER_FAIL_OFFSET_Y: [number, number] = [-24, 24];
 
 export function getGestureDrawerAxisConfig() {
   return {

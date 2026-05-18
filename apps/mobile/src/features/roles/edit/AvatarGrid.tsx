@@ -1,7 +1,7 @@
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 
 import { useCallback, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
@@ -24,6 +24,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.xxl,
   },
+  sectionHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -38,9 +43,23 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     width: GRID_ITEM_SIZE,
   },
+  avatarWrapper: {
+    position: "relative",
+  },
   avatarImage: {
     height: "100%",
     width: "100%",
+  },
+  deleteBadge: {
+    alignItems: "center",
+    borderRadius: 10,
+    height: 20,
+    justifyContent: "center",
+    position: "absolute",
+    right: -6,
+    top: -6,
+    width: 20,
+    zIndex: 1,
   },
   addButton: {
     alignItems: "center",
@@ -70,6 +89,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
   const updateAvatarMutation = useUpdateAvatarMutation();
   const deleteAvatarMutation = useDeleteAvatarMutation();
   const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [cropSource, setCropSource] = useState<{
     uri: string;
     width: number;
@@ -131,21 +151,31 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
 
   const handleDelete = useCallback((avatar: RoleAvatar) => {
     if (!avatar.avatarId) return;
-    Alert.alert("删除头像", "确定要删除这个头像吗？", [
-      { text: "取消", style: "cancel" },
-      {
-        text: "删除",
-        style: "destructive",
-        onPress: () => {
-          deleteAvatarMutation.mutate({ avatarId: avatar.avatarId!, roleId });
-        },
-      },
-    ]);
+    const doDelete = () => deleteAvatarMutation.mutate({ avatarId: avatar.avatarId!, roleId });
+    if (Platform.OS === "web") {
+      if (window.confirm("确定要删除这个头像吗？")) doDelete();
+    } else {
+      Alert.alert("删除头像", "确定要删除这个头像吗？", [
+        { text: "取消", style: "cancel" },
+        { text: "删除", style: "destructive", onPress: doDelete },
+      ]);
+    }
   }, [deleteAvatarMutation, roleId]);
+
+  const toggleEditing = useCallback(() => setEditing(prev => !prev), []);
 
   return (
     <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-      <ThemedText type="heading">头像</ThemedText>
+      <View style={styles.sectionHeader}>
+        <ThemedText type="heading">头像</ThemedText>
+        {avatars.length > 0 && (
+          <Pressable onPress={toggleEditing}>
+            <ThemedText themeColor="accent" type="small">
+              {editing ? "完成" : "编辑"}
+            </ThemedText>
+          </Pressable>
+        )}
+      </View>
 
       {avatars.length === 0 && !uploading ? (
         <View style={styles.emptyState}>
@@ -157,22 +187,30 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
         {avatars.map((avatar) => {
           const isCurrent = avatar.avatarId === currentAvatarId;
           return (
-            <Pressable
-              key={avatar.avatarId}
-              onPress={() => avatar.avatarId && onAvatarSelect?.(avatar.avatarId)}
-              onLongPress={() => handleDelete(avatar)}
-              style={[styles.avatarItem, { borderColor: isCurrent ? theme.accent : theme.border }]}
-            >
-              {avatar.avatarFileId ? (
-                <Image
-                  source={{ uri: avatarThumbUrl(avatar.avatarFileId) }}
-                  style={styles.avatarImage}
-                  contentFit="cover"
-                />
-              ) : (
-                <ThemedText themeColor="textSecondary" type="small">?</ThemedText>
+            <View key={avatar.avatarId} style={styles.avatarWrapper}>
+              {editing && (
+                <Pressable
+                  onPress={() => handleDelete(avatar)}
+                  style={[styles.deleteBadge, { backgroundColor: "#ef4444" }]}
+                >
+                  <ThemedText style={{ color: "#fff", fontSize: 12, lineHeight: 14 }}>×</ThemedText>
+                </Pressable>
               )}
-            </Pressable>
+              <Pressable
+                onPress={() => !editing && avatar.avatarId && onAvatarSelect?.(avatar.avatarId)}
+                style={[styles.avatarItem, { borderColor: isCurrent ? theme.accent : theme.border }]}
+              >
+                {avatar.avatarFileId ? (
+                  <Image
+                    source={{ uri: avatarThumbUrl(avatar.avatarFileId) }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <ThemedText themeColor="textSecondary" type="small">?</ThemedText>
+                )}
+              </Pressable>
+            </View>
           );
         })}
 

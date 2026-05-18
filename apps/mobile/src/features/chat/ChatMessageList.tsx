@@ -1,14 +1,15 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { GestureType } from "react-native-gesture-handler";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   StyleSheet,
   View,
 } from "react-native";
+import { FlatList, GestureDetector } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -61,6 +62,7 @@ interface ChatMessageListProps {
   messages: MessageItem[];
   multiSelectMode?: boolean;
   multiSelectedIds?: Set<number>;
+  nativeScrollGesture: GestureType;
   onLongPressMessage: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
@@ -80,6 +82,7 @@ export function ChatMessageList({
   messages,
   multiSelectMode,
   multiSelectedIds,
+  nativeScrollGesture,
   onLongPressMessage,
   onToggleMultiSelect,
   roomRoles,
@@ -180,20 +183,22 @@ export function ChatMessageList({
 
   return (
     <View style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={invertedData}
-        inverted
-        keyboardDismissMode="interactive"
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        windowSize={10}
-        maxToRenderPerBatch={15}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-      />
+      <GestureDetector gesture={nativeScrollGesture}>
+        <FlatList
+          ref={flatListRef}
+          data={invertedData}
+          inverted
+          keyboardDismissMode="interactive"
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          windowSize={10}
+          maxToRenderPerBatch={15}
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        />
+      </GestureDetector>
       <ChatNewMessagesPill
         count={newMessageCount}
         visible={!isAtBottom}

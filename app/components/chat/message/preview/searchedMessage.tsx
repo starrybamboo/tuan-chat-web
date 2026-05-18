@@ -47,6 +47,7 @@ export default function SearchedMessage({
     roleName: role?.roleName,
     customRoleName: message.message.customRoleName,
     isIntroText: message.message.messageType === MESSAGE_TYPE.INTRO_TEXT,
+    zeroRoleIsNarrator: true,
   });
   const isOutOfCharacterText = message.message.messageType === MESSAGE_TYPE.TEXT
     && isOutOfCharacterSpeech(message.message.content);

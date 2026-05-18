@@ -78,6 +78,11 @@ describe("buildGalProposalMessagePreview", () => {
     expect(preview?.baseMessageByPreviewId.get(preview.messages[1].message.messageId)?.message.content).toBe("");
     expect(preview?.baseMessageByPreviewId.get(2)?.message.content).toBe("删除我");
     expect(preview?.baseMessageByPreviewId.has(3)).toBe(false);
+    expect(preview?.changedMessageIds).toEqual(["1", "2", "new:1"]);
+    expect(preview?.proposalMessageIdByPreviewId.get(1)).toBe("1");
+    expect(preview?.proposalMessageIdByPreviewId.get(preview.messages[1].message.messageId)).toBe("new:1");
+    expect(preview?.proposalMessageIdByPreviewId.get(2)).toBe("2");
+    expect(preview?.proposalMessageIdByPreviewId.has(3)).toBe(false);
   });
 
   it("有校验错误时不生成预览", () => {
