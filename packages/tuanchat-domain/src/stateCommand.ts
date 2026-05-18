@@ -15,27 +15,8 @@ export type ParsedSimpleStateCommand = {
 };
 
 const SIMPLE_ST_SPACED_RE = /^[.。/]st\s+(\S+)\s+([+-]?\d+(?:\.\d+)?)\s*$/i;
-const SIMPLE_ST_PREFIX_RE = /^[.。/]st\s/i;
-const SIMPLE_SIGNED_NUMBER_RE = /^[+-]\d+(?:\.\d+)?$/;
+const SIMPLE_ST_COMPACT_SIGNED_RE = /^[.。/]st\s+(.+?)([+-]\d+(?:\.\d+)?)\s*$/i;
 const SIMPLE_NEXT_RE = /^[.。/]next\s*$/i;
-
-function parseCompactSignedStateCommand(inputText: string): [rawKey: string, rawValue: string] | null {
-  if (!SIMPLE_ST_PREFIX_RE.test(inputText)) {
-    return null;
-  }
-  const body = inputText.slice(3).trim();
-  const valueStartIndex = Math.max(body.lastIndexOf("+"), body.lastIndexOf("-"));
-  if (valueStartIndex <= 0) {
-    return null;
-  }
-
-  const rawKey = body.slice(0, valueStartIndex).trim();
-  const rawValue = body.slice(valueStartIndex).trim();
-  if (!rawKey || !SIMPLE_SIGNED_NUMBER_RE.test(rawValue)) {
-    return null;
-  }
-  return [rawKey, rawValue];
-}
 
 export function parseSimpleStateCommand({
   inputText,
@@ -58,14 +39,13 @@ export function parseSimpleStateCommand({
     return null;
   }
 
-  const stMatch = SIMPLE_ST_SPACED_RE.exec(trimmedWithoutMentions);
-  const compactMatch = stMatch ? null : parseCompactSignedStateCommand(trimmedWithoutMentions);
-  if (!stMatch && !compactMatch) {
+  const stMatch = SIMPLE_ST_SPACED_RE.exec(trimmedWithoutMentions)
+    ?? SIMPLE_ST_COMPACT_SIGNED_RE.exec(trimmedWithoutMentions);
+  if (!stMatch) {
     return null;
   }
 
-  const rawKey = stMatch?.[1] ?? compactMatch?.[0] ?? "";
-  const rawValue = stMatch?.[2] ?? compactMatch?.[1] ?? "";
+  const [, rawKey, rawValue] = stMatch;
   const key = rawKey.trim();
   if (!key) {
     return null;

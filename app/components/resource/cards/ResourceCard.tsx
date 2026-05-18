@@ -1,10 +1,10 @@
 import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { mediaPreviewUrl } from "@/utils/mediaUrl";
 import { UserAvatarByUser } from "../../common/userAccess";
 import { AddToCollectionModal } from "../modals/AddToCollectionModal";
 import { EditResourceModal } from "../modals/EditResourceModal";
+import { resolveResourcePreviewUrl } from "../utils/resourceMedia";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
 import MoreBetterImg from "../utils/MoreBetterImg";
 
@@ -30,7 +30,7 @@ export function ResourceCard({
 }: ResourceCardProps) {
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
+  const resourceUrl = resolveResourcePreviewUrl(resource);
 
   const handleDeleteClick = () => {
     if (onDelete && resource.resourceId) {

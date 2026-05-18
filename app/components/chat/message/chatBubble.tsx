@@ -86,7 +86,7 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
   );
 }
 
-function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true, messageAction }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -99,6 +99,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   baseVersionMessage?: ChatMessageResponse | null;
   showFullMessageDiff?: boolean;
   showAddedMessageDiff?: boolean;
+  /** 附着在消息正文里的操作，例如 Gal Copilot 单行接受/不接受 */
+  messageAction?: React.ReactNode;
 }) {
   const message = chatMessageResponse.message;
   const annotations = useMemo(() => {
@@ -201,6 +203,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     roleName: role?.roleName,
     customRoleName,
     isIntroText,
+    zeroRoleIsNarrator: true,
     fallback: roleDeleted ? "角色已删除" : "未选择角色",
   });
   const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
@@ -244,9 +247,12 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const versionDiffPreview = canShowVersionDiff && showFullMessageDiff && versionDiff
     ? (
         <div className="mt-2 w-full max-w-3xl">
-          <MessageTextDiffPreview diff={versionDiff} />
+          <MessageTextDiffPreview diff={versionDiff} footerAction={messageAction} />
         </div>
       )
+    : null;
+  const messageActionFallback = messageAction && !versionDiffPreview
+    ? <div className="mt-2 flex justify-end">{messageAction}</div>
     : null;
   const shouldHideOriginalContentInFullDiff = Boolean(versionDiffPreview);
 
@@ -1018,6 +1024,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     </div>
                   )}
                   {versionDiffPreview}
+                  {messageActionFallback}
                   {renderAnnotationsBar(CHAT_MESSAGE_ANNOTATIONS_CLASS)}
                 </div>
               </div>
@@ -1158,6 +1165,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     </div>
                   )}
                   {versionDiffPreview}
+                  {messageActionFallback}
                   {renderAnnotationsBar("mt-1.5")}
                 </div>
               </div>
@@ -1194,6 +1202,7 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     && prevProps.showFullMessageDiff === nextProps.showFullMessageDiff
     && prevProps.showAddedMessageDiff === nextProps.showAddedMessageDiff
     && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
+    && prevProps.messageAction === nextProps.messageAction
   );
 
   // 如果基础属性不相等,直接返回 false

@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright";
-import { afterAll, beforeAll, describe, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let browser: Browser;
 let tempDir = "";
@@ -115,6 +115,30 @@ describe("sidebar section browser e2e", () => {
       await expectText(page, "expanded-state", "expanded");
       await expectText(page, "toggle-count", "2");
       await expectText(page, "action-count", "1");
+    }
+    finally {
+      await context.close();
+    }
+  }, 30_000);
+
+  it("fillContent 模式下超长内容会落在可滚动容器里", async () => {
+    const { context, page } = await createPage();
+    try {
+      const metrics = await page.locator(".sidebar-section-scroll-region").evaluate((node) => {
+        const element = node as HTMLDivElement;
+        const initialScrollTop = element.scrollTop;
+        element.scrollTop = 120;
+        return {
+          clientHeight: element.clientHeight,
+          initialScrollTop,
+          scrollHeight: element.scrollHeight,
+          scrollTopAfterSet: element.scrollTop,
+        };
+      });
+
+      expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+      expect(metrics.initialScrollTop).toBe(0);
+      expect(metrics.scrollTopAfterSet).toBeGreaterThan(0);
     }
     finally {
       await context.close();

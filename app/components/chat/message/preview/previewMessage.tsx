@@ -94,6 +94,7 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
         roleName: role?.roleName,
         customRoleName: previewMessage.customRoleName,
         isIntroText,
+        zeroRoleIsNarrator: true,
       })
     : "";
 

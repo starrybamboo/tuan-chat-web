@@ -2,12 +2,26 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "incremental": true,
-    "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo"
+    "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo",
+    "paths": {
+      "*": ["./*"],
+      "@/*": ["./app/*"],
+      "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
+      "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
+      "@tuanchat/galgame-ai-contract": ["./packages/galgame-ai-contract/src/index.ts"],
+      "@tuanchat/galgame-ai-contract/*": ["./packages/galgame-ai-contract/src/*"],
+      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
+      "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
+      "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
+      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"],
+      "@blocksuite/integration-test": ["./app/types/blocksuite-integration-test.d.ts"],
+      "@blocksuite/integration-test/*": ["./app/types/blocksuite-integration-test.d.ts"]
+    }
   },
   "include": [
     "app/**/*",
-    "vitest.config.ts",
-    "vitest.e2e.config.ts",
+    ".react-router/types/**/*",
+    "react-router.config.ts",
     "vite.config.ts",
     "electron/**/*"
   ],

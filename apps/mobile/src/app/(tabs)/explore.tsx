@@ -257,7 +257,7 @@ export default function ProfileScreen() {
 
           {/* Edit Profile */}
           <ThemedView type="backgroundElement" style={styles.card}>
-            <ThemedText type="smallBold" style={styles.cardTitle}>编辑个人信息</ThemedText>
+            <ThemedText type="smallBold" style={styles.cardTitle}>个人信息</ThemedText>
             {editing ? (
               <View style={{ gap: Spacing.lg }}>
                 <View style={styles.fieldRow}>

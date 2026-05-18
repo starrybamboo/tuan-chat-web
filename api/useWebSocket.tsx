@@ -14,6 +14,7 @@ import type {MessageSessionResponse} from "@tuanchat/openapi-client/models/Messa
 import type {ApiResultListMessageSessionResponse} from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
 import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
+import { appendUrlQueryParam, resolveRuntimeWebSocketBaseUrl } from "@/utils/runtimeUrl";
 import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./webSocketRuntimeTypes";
 import { useWebSocketMessageHandlers } from "./useWebSocketMessageHandlers";
 import { useWebSocketNotifications } from "./useWebSocketNotifications";
@@ -51,7 +52,7 @@ export interface WebsocketUtils {
 
 const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 
-const WS_URL = import.meta.env.VITE_API_WS_URL;
+const WS_URL = resolveRuntimeWebSocketBaseUrl(import.meta.env.VITE_API_WS_URL);
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 const OPTIMISTIC_DIRECT_MESSAGE_ID_BASE = Date.now() * 1000;
 type WsDebugState = {
@@ -304,7 +305,11 @@ export function useWebSocket() {
     // 连接前，先重置消息
     queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
-      const wsUrl = currentToken ? `${WS_URL}?token=${encodeURIComponent(currentToken)}` : WS_URL;
+      if (!WS_URL) {
+        console.error("WebSocket base URL is not configured");
+        return;
+      }
+      const wsUrl = currentToken ? appendUrlQueryParam(WS_URL, "token", currentToken) : WS_URL;
       wsRef.current = new WebSocket(wsUrl);
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");

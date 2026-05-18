@@ -21,14 +21,6 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./packages/tuanchat-query/src/$1"),
       },
       {
-        find: /^@tuanchat\/local-db$/,
-        replacement: path.resolve(__dirname, "./packages/tuanchat-local-db/src/index.ts"),
-      },
-      {
-        find: /^@tuanchat\/local-db\/(.*)$/,
-        replacement: path.resolve(__dirname, "./packages/tuanchat-local-db/src/$1"),
-      },
-      {
         find: /^api$/,
         replacement: path.resolve(__dirname, "./api/index.ts"),
       },
@@ -41,6 +33,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./app/$1"),
       },
       {
+        find: /^@tuanchat\/galgame-ai-contract$/,
+        replacement: path.resolve(__dirname, "./packages/galgame-ai-contract/src/index.ts"),
+      },
+      {
+        find: /^@tuanchat\/galgame-ai-contract\/(.*)$/,
+        replacement: path.resolve(__dirname, "./packages/galgame-ai-contract/src/$1"),
+      },
+      {
         find: /^@\//,
         replacement: `${path.resolve(__dirname, "./app")}/`,
       },
@@ -50,18 +50,21 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["**/*.test.ts"],
-    exclude: ["**/*.e2e.test.ts", "node_modules", "dist"],
-    maxWorkers: 16,
+    exclude: ["**/*.e2e.test.ts", "**/node_modules/**", "**/dist/**"],
+    maxThreads: 16,
+    server: {
+      deps: {
+        inline: [/^@blocksuite\//, /[\\/]node_modules[\\/]@blocksuite[\\/]/],
+      },
+    },
     coverage: {
       provider: "v8",
       reportsDirectory: "coverage",
       reporter: ["text", "lcov"],
-      thresholds: {
-        lines: 70,
-        branches: 70,
-        functions: 70,
-        statements: 70,
-      },
+      lines: 70,
+      branches: 70,
+      functions: 70,
+      statements: 70,
     },
   },
 });

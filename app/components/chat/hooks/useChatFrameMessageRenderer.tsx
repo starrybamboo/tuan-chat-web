@@ -13,6 +13,8 @@ interface UseChatFrameMessageRendererParams {
   getBaseVersionMessage?: (message: ChatMessageResponse) => ChatMessageResponse | null;
   showFullMessageDiff?: boolean;
   showAddedMessageDiff?: boolean;
+  getMessageAction?: (message: ChatMessageResponse) => React.ReactNode;
+  disableInsertAction?: boolean;
   isMessageMovable?: (message: Message) => boolean;
   onExecuteCommandRequest?: (payload: {
     command: string;
@@ -40,6 +42,8 @@ export default function useChatFrameMessageRenderer({
   getBaseVersionMessage,
   showFullMessageDiff = false,
   showAddedMessageDiff = true,
+  getMessageAction,
+  disableInsertAction = false,
   isMessageMovable,
   onExecuteCommandRequest,
   isCommandRequestConsumed,
@@ -74,6 +78,8 @@ export default function useChatFrameMessageRenderer({
         baseVersionMessage={getBaseVersionMessage?.(chatMessageResponse) ?? null}
         showFullMessageDiff={showFullMessageDiff}
         showAddedMessageDiff={showAddedMessageDiff}
+        messageAction={getMessageAction?.(chatMessageResponse) ?? null}
+        disableInsertAction={disableInsertAction}
         onToggleSelection={onToggleSelection}
         onMessageClick={event => onMessageClick(event, messageId)}
         onDragOver={onDragOver}
@@ -87,6 +93,8 @@ export default function useChatFrameMessageRenderer({
     baseDraggable,
     canJumpToWebGAL,
     getBaseVersionMessage,
+    getMessageAction,
+    disableInsertAction,
     showAddedMessageDiff,
     showFullMessageDiff,
     isDragging,

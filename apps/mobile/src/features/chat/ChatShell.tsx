@@ -1,6 +1,7 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { AlertButton } from "react-native";
+import type { GestureType } from "react-native-gesture-handler";
 import type { MessageAction } from "./MessageActionMenu";
 import type { MessageSubmitPhase } from "./mobileChatUtils";
 import type { DrawerMode } from "@/features/drawer/LeftDrawer";
@@ -33,7 +34,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -159,17 +160,17 @@ export default function ChatShell() {
   const { session } = useAuthSession();
   const { selectedSpaceId, selectedRoomId, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
+  const messageListScrollGesture = useMemo<GestureType>(() => Gesture.Native(), []);
   const {
     panGesture,
     openLeft,
-    openRight,
     close,
     centerStyle,
     leftDrawerStyle,
     rightDrawerStyle,
     overlayStyle,
     translateX,
-  } = useGestureDrawer();
+  } = useGestureDrawer(messageListScrollGesture);
 
   const [isOverlayInteractive, setIsOverlayInteractive] = useState(false);
 
@@ -875,6 +876,7 @@ export default function ChatShell() {
                           messages={messageSearch.isSearching ? messageSearch.filteredMessages : roomMessages}
                           multiSelectMode={multiSelectMode}
                           multiSelectedIds={multiSelectedIds}
+                          nativeScrollGesture={messageListScrollGesture}
                           selectedAnchorId={messageAnchorId}
                           onLongPressMessage={(msg) => {
                             setActionMenuMessage(msg);

@@ -32,6 +32,11 @@ const context: GalPatchValidationContext = {
         { roleId: "7", avatarId: "71", avatarTitle: { zh: "微笑" } },
       ],
     },
+    {
+      roleId: "8",
+      roleName: "雨宫",
+      avatarVariants: [],
+    },
   ],
   annotations: [
     { id: "dialog.next", label: "立即下一句", source: "builtin" },
@@ -85,7 +90,85 @@ describe("galgame story patch", () => {
     });
   });
 
-  it("拒绝房间外角色和不存在的 annotation", () => {
+  it("应用角色更新并把角色变化计入 metadata diff", () => {
+    const result = applyGalStoryPatch([
+      createMessage({ messageId: "1", roleId: "7", customRoleName: "千夏" }),
+    ], {
+      operations: [
+        {
+          op: "update_role",
+          messageId: "1",
+          roleId: "8",
+          customRoleName: "雨中的人",
+        },
+      ],
+    }, context);
+
+    expect(result.validationErrors).toEqual([]);
+    expect(result.projectedSnapshot[0]).toMatchObject({
+      roleId: "8",
+      customRoleName: "雨中的人",
+    });
+    expect(result.diff.items).toEqual([
+      expect.objectContaining({
+        kind: "modified",
+        fields: expect.arrayContaining(["roleId", "customRoleName"]),
+      }),
+    ]);
+    expect(result.summary).toMatchObject({
+      modified: 1,
+      metadataChanged: 1,
+    });
+  });
+
+  it("按 operation 顺序投影角色与差分更新", () => {
+    const result = applyGalStoryPatch([
+      createMessage({ messageId: "1", roleId: "narrator", purpose: "narration", avatarId: "-1" }),
+    ], {
+      operations: [
+        {
+          op: "update_role",
+          messageId: "1",
+          roleId: "7",
+          customRoleName: "千夏",
+        },
+        {
+          op: "update_avatar",
+          messageId: "1",
+          avatarId: "70",
+        },
+      ],
+    }, context);
+
+    expect(result.validationErrors).toEqual([]);
+    expect(result.projectedSnapshot[0]).toMatchObject({
+      roleId: "7",
+      customRoleName: "千夏",
+      avatarId: "70",
+    });
+  });
+
+  it("角色切换不在客户端校验旧差分是否属于新角色", () => {
+    const result = applyGalStoryPatch([
+      createMessage({ messageId: "1", roleId: "7", avatarId: "70" }),
+    ], {
+      operations: [
+        {
+          op: "update_role",
+          messageId: "1",
+          roleId: "8",
+        },
+      ],
+    }, context);
+
+    expect(result.validationErrors).toEqual([]);
+    expect(result.projectedSnapshot[0]).toMatchObject({
+      roleId: "8",
+      avatarId: "70",
+    });
+  });
+
+  it("不在客户端校验房间外角色和未知 annotation", () => {
     const result = applyGalStoryPatch([
       createMessage({ messageId: "1" }),
     ], {
@@ -103,14 +186,14 @@ describe("galgame story patch", () => {
       ],
     }, context);
 
-    expect(result.projectedSnapshot).toHaveLength(1);
-    expect(result.validationErrors.map(error => error.code)).toEqual([
-      "unknown_role",
-      "unknown_annotation",
+    expect(result.validationErrors).toEqual([]);
+    expect(result.projectedSnapshot.map(message => message.content)).toEqual([
+      "原文",
+      "越权对白",
     ]);
   });
 
-  it("校验 avatarId 必须属于同一个角色", () => {
+  it("不在客户端校验 avatarId 是否属于同一个角色", () => {
     const result = applyGalStoryPatch([
       createMessage({ messageId: "1", avatarId: "70" }),
     ], {
@@ -123,12 +206,8 @@ describe("galgame story patch", () => {
       ],
     }, context);
 
-    expect(result.validationErrors).toEqual([
-      expect.objectContaining({
-        code: "unknown_avatar",
-        messageId: "1",
-      }),
-    ]);
+    expect(result.validationErrors).toEqual([]);
+    expect(result.projectedSnapshot[0]?.avatarId).toBe("999");
   });
 
   it("创建 proposal 时记录 base fingerprint 和 validation errors", () => {

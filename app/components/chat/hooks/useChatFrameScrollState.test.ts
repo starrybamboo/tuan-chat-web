@@ -1,37 +1,46 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveShouldAutoScrollAfterHistoryLoad } from "./useChatFrameScrollState";
+import { resolveReadSyncIdOnRoomExit } from "./useChatFrameScrollState";
 
-describe("resolveShouldAutoScrollAfterHistoryLoad", () => {
-  it("loading 期间不会触发自动滚底", () => {
-    expect(resolveShouldAutoScrollAfterHistoryLoad({
-      loading: true,
-      hasAutoScrolledAfterLoad: false,
+function createHistoryMessage(syncId: number) {
+  return {
+    message: {
+      syncId,
+    },
+  } as any;
+}
+
+describe("useChatFrameScrollState", () => {
+  it("用户离开房间时若仍在底部，会补记最后一条消息为已读", () => {
+    const syncId = resolveReadSyncIdOnRoomExit({
+      enableUnreadIndicator: true,
+      historyMessages: [createHistoryMessage(3), createHistoryMessage(5)],
       isAtBottom: true,
-    })).toBe(false);
+      lastSyncedMessageSyncId: 3,
+    });
+
+    expect(syncId).toBe(5);
   });
 
-  it("加载完成后仍在底部时只允许自动滚底", () => {
-    expect(resolveShouldAutoScrollAfterHistoryLoad({
-      loading: false,
-      hasAutoScrolledAfterLoad: false,
-      isAtBottom: true,
-    })).toBe(true);
-  });
-
-  it("已经自动滚过一次后不再重复触发", () => {
-    expect(resolveShouldAutoScrollAfterHistoryLoad({
-      loading: false,
-      hasAutoScrolledAfterLoad: true,
-      isAtBottom: true,
-    })).toBe(false);
-  });
-
-  it("用户已离开底部时不会自动拉回底部", () => {
-    expect(resolveShouldAutoScrollAfterHistoryLoad({
-      loading: false,
-      hasAutoScrolledAfterLoad: false,
+  it("用户不在底部离开房间时，不会强行清掉红点", () => {
+    const syncId = resolveReadSyncIdOnRoomExit({
+      enableUnreadIndicator: true,
+      historyMessages: [createHistoryMessage(3), createHistoryMessage(5)],
       isAtBottom: false,
-    })).toBe(false);
+      lastSyncedMessageSyncId: 3,
+    });
+
+    expect(syncId).toBeNull();
+  });
+
+  it("最后消息已同步过时，不会重复触发离开兜底已读", () => {
+    const syncId = resolveReadSyncIdOnRoomExit({
+      enableUnreadIndicator: true,
+      historyMessages: [createHistoryMessage(7)],
+      isAtBottom: true,
+      lastSyncedMessageSyncId: 7,
+    });
+
+    expect(syncId).toBeNull();
   });
 });

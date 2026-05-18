@@ -1,5 +1,6 @@
 import type { UserRole } from "../../../../../api";
 
+import { setRoleRefDragData } from "@/components/chat/utils/roleRef";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 
@@ -9,12 +10,14 @@ export default function RoleList({
   isNpcRole = false,
   allowKickOut,
   kickOutByManagerOnly = false,
+  sourceRoomId,
 }: {
   roles: UserRole[];
   className?: string;
   isNpcRole?: boolean;
   allowKickOut?: boolean;
   kickOutByManagerOnly?: boolean;
+  sourceRoomId?: number;
 }) {
   const resolvedAllowKickOut = typeof allowKickOut === "boolean" ? allowKickOut : !isNpcRole;
 
@@ -24,6 +27,19 @@ export default function RoleList({
         <div
           key={role.roleId}
           className={`flex gap-3 p-3 bg-base-200 rounded-lg items-center ${className}`}
+          draggable={role.roleId > 0}
+          onDragStart={(event) => {
+            if (role.roleId <= 0) {
+              event.preventDefault();
+              return;
+            }
+            event.dataTransfer.effectAllowed = "copy";
+            setRoleRefDragData(event.dataTransfer, {
+              roleId: role.roleId,
+              ...(sourceRoomId && sourceRoomId > 0 ? { roomId: sourceRoomId } : {}),
+              ...(role.roleName ? { roleName: role.roleName } : {}),
+            });
+          }}
         >
           <div className="flex flex-row gap-3 items-center">
             <RoleAvatarByRole

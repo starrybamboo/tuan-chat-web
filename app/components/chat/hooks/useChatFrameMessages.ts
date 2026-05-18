@@ -27,6 +27,70 @@ type UseChatFrameMessagesResult = {
   historyMessages: ChatMessageResponse[];
 };
 
+type MissingMessageSyncRangeParams = {
+  historyMessages: ChatMessageResponse[];
+  previousReceivedMessages: ChatMessageResponse[];
+  appendedMessages: ChatMessageResponse[];
+  latestHistorySyncId?: number;
+};
+
+export function detectMissingMessageSyncRange({
+  historyMessages,
+  previousReceivedMessages,
+  appendedMessages,
+  latestHistorySyncId = -1,
+}: MissingMessageSyncRangeParams): { missingStartSyncId: number; gapIncomingSyncId: number } | null {
+  if (historyMessages.length === 0 || appendedMessages.length === 0) {
+    return null;
+  }
+
+  let maxHistorySyncId = Number.isFinite(latestHistorySyncId) ? latestHistorySyncId : -1;
+  const knownMessageIds = new Set<number>();
+
+  for (const msg of historyMessages) {
+    const syncId = msg.message.syncId ?? -1;
+    if (syncId > maxHistorySyncId)
+      maxHistorySyncId = syncId;
+    knownMessageIds.add(msg.message.messageId);
+  }
+
+  let maxProcessedSyncId = -1;
+  for (const msg of previousReceivedMessages) {
+    const syncId = msg.message.syncId ?? -1;
+    if (syncId > maxProcessedSyncId)
+      maxProcessedSyncId = syncId;
+    knownMessageIds.add(msg.message.messageId);
+  }
+
+  let maxKnownSyncId = Math.max(maxHistorySyncId, maxProcessedSyncId);
+
+  for (const msg of appendedMessages) {
+    const syncId = msg.message.syncId ?? -1;
+    const messageId = msg.message.messageId;
+
+    if (knownMessageIds.has(messageId)) {
+      if (syncId > maxKnownSyncId) {
+        maxKnownSyncId = syncId;
+      }
+      continue;
+    }
+
+    if (syncId > maxKnownSyncId + 1) {
+      return {
+        missingStartSyncId: maxKnownSyncId + 1,
+        gapIncomingSyncId: syncId,
+      };
+    }
+
+    if (syncId > maxKnownSyncId) {
+      maxKnownSyncId = syncId;
+    }
+    knownMessageIds.add(messageId);
+  }
+
+  return null;
+}
+
 export default function useChatFrameMessages({
   messagesOverride,
   messageScope = "main",
@@ -101,57 +165,19 @@ export default function useChatFrameMessages({
       // 补洞逻辑只针对真正新增的 tail 消息；同 ID 更新不需要补洞。
       const historyMsgs = chatHistory.messages;
       if (historyMsgs.length > 0 && appendedMessages.length > 0) {
-        let maxHistorySyncId = -1;
-        const knownMessageIds = new Set<number>();
+        const missingRange = detectMissingMessageSyncRange({
+          historyMessages: historyMsgs,
+          previousReceivedMessages,
+          appendedMessages,
+          latestHistorySyncId: chatHistory.latestSyncId,
+        });
 
-        for (const msg of historyMsgs) {
-          const syncId = msg.message.syncId ?? -1;
-          if (syncId > maxHistorySyncId)
-            maxHistorySyncId = syncId;
-          knownMessageIds.add(msg.message.messageId);
-        }
-
-        let maxProcessedSyncId = -1;
-        for (const msg of previousReceivedMessages) {
-          const syncId = msg.message.syncId ?? -1;
-          if (syncId > maxProcessedSyncId)
-            maxProcessedSyncId = syncId;
-          knownMessageIds.add(msg.message.messageId);
-        }
-
-        let maxKnownSyncId = Math.max(maxHistorySyncId, maxProcessedSyncId);
-        let missingStartSyncId: number | null = null;
-        let gapIncomingSyncId: number | null = null;
-
-        for (const msg of appendedMessages) {
-          const syncId = msg.message.syncId ?? -1;
-          const messageId = msg.message.messageId;
-
-          if (knownMessageIds.has(messageId)) {
-            if (syncId > maxKnownSyncId) {
-              maxKnownSyncId = syncId;
-            }
-            continue;
-          }
-
-          if (syncId > maxKnownSyncId + 1) {
-            missingStartSyncId = maxKnownSyncId + 1;
-            gapIncomingSyncId = syncId;
-            break;
-          }
-
-          if (syncId > maxKnownSyncId) {
-            maxKnownSyncId = syncId;
-          }
-          knownMessageIds.add(messageId);
-        }
-
-        if (missingStartSyncId !== null && gapIncomingSyncId !== null) {
-          console.warn(`[ChatFrame] Detected gap from syncId ${missingStartSyncId} before incoming message syncId ${gapIncomingSyncId}. Fetching missing messages...`);
+        if (missingRange) {
+          console.warn(`[ChatFrame] Detected gap from syncId ${missingRange.missingStartSyncId} before incoming message syncId ${missingRange.gapIncomingSyncId}. Fetching missing messages...`);
           try {
             const missingMessagesRes = await tuanchat.chatController.getHistoryMessages({
               roomId,
-              syncId: missingStartSyncId,
+              syncId: missingRange.missingStartSyncId,
             });
             if (missingMessagesRes.data && missingMessagesRes.data.length > 0) {
               await chatHistory.addOrUpdateMessages(missingMessagesRes.data);

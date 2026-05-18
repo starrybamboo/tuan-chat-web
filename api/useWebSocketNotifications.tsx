@@ -19,6 +19,7 @@ import { useCallback } from "react";
 import toast from "react-hot-toast";
 import { fetchRoomInfoWithCache } from "./hooks/chatQueryHooks";
 import { tuanchat } from "./instance";
+import { isGroupRoomMessageReminderEnabled } from "./webSocketNotificationPolicy";
 import {
   DirectMessageToastContent,
   FriendRequestToastContent,
@@ -217,6 +218,10 @@ export function useWebSocketNotifications({
 
     const selfUserId = resolveSelfUserId();
     if (selfUserId > 0 && message.userId === selfUserId) {
+      return;
+    }
+
+    if (!isGroupRoomMessageReminderEnabled(queryClient, message.roomId)) {
       return;
     }
 

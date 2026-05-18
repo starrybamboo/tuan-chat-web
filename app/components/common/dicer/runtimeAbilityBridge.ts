@@ -1,9 +1,7 @@
 import type { StateEventVarOp } from "@/types/stateEvent";
-
+import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 import { buildStateRuntime } from "@/components/chat/state/stateRuntime";
 import { buildRoleStateEventScope, STATE_EVENT_VAR_OP } from "@/types/stateEvent";
-
-import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 
 type RuntimeRoleValues = Record<string, number>;
 type MergeRuntimeValuesOptions = {
@@ -20,13 +18,13 @@ const NUMERIC_ABILITY_SECTIONS: NumericAbilitySection[] = ["basic", "ability", "
 
 export function cloneRoleAbility(ability: RoleAbility | null | undefined): RoleAbility {
   return {
-    ...ability,
-    act: { ...ability?.act },
-    basic: { ...ability?.basic },
-    ability: { ...ability?.ability },
-    skill: { ...ability?.skill },
-    record: { ...ability?.record },
-    extra: { ...ability?.extra },
+    ...(ability ?? {}),
+    act: { ...(ability?.act ?? {}) },
+    basic: { ...(ability?.basic ?? {}) },
+    ability: { ...(ability?.ability ?? {}) },
+    skill: { ...(ability?.skill ?? {}) },
+    record: { ...(ability?.record ?? {}) },
+    extra: { ...(ability?.extra ?? {}) },
   };
 }
 

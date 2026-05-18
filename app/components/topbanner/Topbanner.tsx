@@ -1,8 +1,9 @@
-import { ChatsIcon, CheckCircleIcon, CopySimpleIcon, DownloadSimpleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useRouter } from "@tanstack/react-router";
+import { BugBeetleIcon, ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, useAnimationControls } from "motion/react";
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import { Link, useLocation, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
@@ -10,8 +11,9 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
 import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
-import { WebgalIcon } from "@/icons";
-import { checkAuthStatus, getAuthStatusQueryKey, logoutUser } from "@/utils/auth/authapi";
+import { QQIcon, WebgalIcon } from "@/icons";
+import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
+import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
@@ -75,7 +77,9 @@ function TopNavMotionLink({
 
 export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
   const [isBugQqOpen, setIsBugQqOpen] = useState(false);
+  const [bugReportExportStatus, setBugReportExportStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
@@ -91,17 +95,14 @@ export default function Topbar() {
     }
   };
 
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: authStatus, isLoading } = useQuery({
-    queryKey: getAuthStatusQueryKey(),
+    queryKey: ["authStatus"],
     queryFn: checkAuthStatus,
-    retry: false,
-    staleTime: 0,
-    refetchOnMount: "always",
   });
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
@@ -168,7 +169,7 @@ export default function Topbar() {
 
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
-    router.history.push(path);
+    navigate(path);
     setIsUserDropdownOpen(false);
     // 强制移除焦点
     (document.activeElement as HTMLElement)?.blur();
@@ -177,11 +178,36 @@ export default function Topbar() {
   // 处理退出登录并关闭下拉菜单
   const handleLogout = () => {
     void logoutUser();
+    queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     setIsUserDropdownOpen(false);
     // 强制移除焦点
     (document.activeElement as HTMLElement)?.blur();
     window.location.reload();
   };
+
+  const exportBugReportLog = useCallback(() => {
+    const result = exportDiagnosticConsoleFile();
+    if (!result.ok) {
+      return {
+        ok: false,
+        message: `控制台日志下载失败：${result.error}`,
+      };
+    }
+
+    return {
+      ok: true,
+      message: `已自动下载控制台日志：${result.fileName}`,
+    };
+  }, []);
+
+  const handleOpenBugReport = useCallback(() => {
+    const status = exportBugReportLog();
+    setBugReportExportStatus(status);
+    if (!status.ok) {
+      toast.error(status.message);
+    }
+    setIsBugQqOpen(true);
+  }, [exportBugReportLog]);
 
   const navItems = [
     { to: "/chat/discover/material", label: "聊天", icon: ChatsIcon },
@@ -192,7 +218,7 @@ export default function Topbar() {
 
   return (
     <div className="w-full">
-      <div className="relative z-[10010] px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible py-1">
+      <div className="relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible py-1">
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           <div className="hidden md:flex">
@@ -251,16 +277,27 @@ export default function Topbar() {
               <div className="mx-2 border h-5 opacity-40" />
             </div>
             <div className="flex items-center gap-1">
-              <div className="tooltip tooltip-bottom" data-tip="Bug反馈">
+              <div className="tooltip tooltip-bottom" data-tip="下载日志并打开 QQ 群反馈">
                 <motion.button
                   type="button"
-                  aria-label="Bug反馈"
-                  className="btn btn-error btn-sm gap-1 px-2 text-error-content shadow-sm"
+                  aria-label="Bug反馈：下载日志并打开 QQ 群"
+                  className="btn btn-error btn-sm gap-1 px-2 shadow-sm"
+                  onClick={handleOpenBugReport}
+                  {...interactiveButtonMotionProps}
+                >
+                  <BugBeetleIcon className="size-5" weight="fill" />
+                  <span className="hidden sm:inline text-sm whitespace-nowrap">Bug反馈</span>
+                </motion.button>
+              </div>
+              <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
+                <motion.button
+                  type="button"
+                  aria-label="QQ Bug反馈"
+                  className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
                   onClick={() => setIsBugQqOpen(true)}
                   {...interactiveButtonMotionProps}
                 >
-                  <CheckCircleIcon className="size-4" weight="fill" />
-                  <span className="text-xs font-semibold">Bug反馈</span>
+                  <QQIcon className="size-6 opacity-80" />
                 </motion.button>
               </div>
             </div>
@@ -287,7 +324,7 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </motion.button>
-                    <div className="dropdown-content z-[10020] card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                    <div tabIndex={0} className="dropdown-content z-50 card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">
                         <div className="flex items-center gap-3">
@@ -329,10 +366,11 @@ export default function Topbar() {
                           <GearSixIcon className="size-4" />
                           设置
                         </button>
-                        <button
-                          type="button"
+                        <div
                           className="btn btn-ghost btn-sm w-full justify-between gap-2 font-normal"
                           onClick={e => handleClick(e)}
+                          role="button"
+                          tabIndex={0}
                         >
                           <div className="flex items-center gap-2">
                             <div className="scale-75" ref={switchRef}>
@@ -340,7 +378,7 @@ export default function Topbar() {
                             </div>
                             主题切换
                           </div>
-                        </button>
+                        </div>
                         {isElectronEnv() && webgalLinkMode && !runModeEnabled && (
                           <WebgalStarter className="w-full">
                             <button
@@ -379,232 +417,28 @@ export default function Topbar() {
       <UpdatesToastWindow></UpdatesToastWindow>
 
       <ToastWindow isOpen={isBugQqOpen} onClose={() => setIsBugQqOpen(false)}>
-        <BugFeedbackContent />
+        <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="text-lg font-bold">Bug反馈（QQ）</div>
+          </div>
+
+          <div className="w-full flex justify-center">
+            <img
+              src="/bug-feedback/qq-qrcode.webp"
+              alt="QQ Bug反馈二维码"
+              className="w-64 h-64 object-contain"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6">
+            <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
+            {bugReportExportStatus?.message ?? "已尝试自动下载控制台日志。"}
+            <br />
+            请加群提交日志反馈 bug，并尽量说明具体场景和复现步骤；提供截图或录屏能够加快解决 bug 的速度。
+          </div>
+        </div>
       </ToastWindow>
-    </div>
-  );
-}
-
-function collectDiagnosticInfo() {
-  const now = new Date();
-  return {
-    url: window.location.href,
-    timestamp: now.toISOString(),
-    localTime: now.toLocaleString("zh-CN"),
-    userAgent: navigator.userAgent,
-    screenSize: `${window.screen.width}x${window.screen.height}`,
-    viewportSize: `${window.innerWidth}x${window.innerHeight}`,
-    language: navigator.language,
-    platform: navigator.platform,
-    devicePixelRatio: window.devicePixelRatio,
-    online: navigator.onLine,
-    mode: import.meta.env.MODE,
-  };
-}
-
-interface BugFeedbackConsoleEntry {
-  level: "log" | "info" | "warn" | "error" | "debug";
-  timestamp: string;
-  message: string;
-  args: string[];
-}
-
-interface BugFeedbackReport {
-  type: "bug-feedback-report";
-  createdAt: string;
-  description: string;
-  environment: ReturnType<typeof collectDiagnosticInfo>;
-  consoleLogs: BugFeedbackConsoleEntry[];
-}
-
-const BUG_FEEDBACK_CONSOLE_MAX_ENTRIES = 80;
-
-function formatConsoleArg(arg: unknown): string {
-  if (typeof arg === "string")
-    return arg;
-  if (typeof arg === "number" || typeof arg === "boolean" || typeof arg === "bigint")
-    return String(arg);
-  if (arg instanceof Error) {
-    return `${arg.name}: ${arg.message}${arg.stack ? `\n${arg.stack}` : ""}`;
-  }
-
-  try {
-    return JSON.stringify(arg);
-  }
-  catch {
-    return Object.prototype.toString.call(arg);
-  }
-}
-
-function getBugFeedbackConsoleStore(): BugFeedbackConsoleEntry[] {
-  if (typeof window === "undefined")
-    return [];
-
-  const globalWindow = window as Window & {
-    __tcBugFeedbackConsoleLogs__?: BugFeedbackConsoleEntry[];
-    __tcBugFeedbackConsolePatched__?: boolean;
-  };
-
-  if (!globalWindow.__tcBugFeedbackConsoleLogs__) {
-    globalWindow.__tcBugFeedbackConsoleLogs__ = [];
-  }
-
-  if (!globalWindow.__tcBugFeedbackConsolePatched__) {
-    globalWindow.__tcBugFeedbackConsolePatched__ = true;
-    const consoleRef = globalThis.console;
-    const originalConsole = {
-      log: consoleRef.log.bind(consoleRef),
-      info: consoleRef.info.bind(consoleRef),
-      warn: consoleRef.warn.bind(consoleRef),
-      error: consoleRef.error.bind(consoleRef),
-      debug: consoleRef.debug.bind(consoleRef),
-    };
-
-    const pushEntry = (level: BugFeedbackConsoleEntry["level"], args: unknown[]) => {
-      const entries = globalWindow.__tcBugFeedbackConsoleLogs__!;
-      entries.push({
-        level,
-        timestamp: new Date().toISOString(),
-        message: args.map(formatConsoleArg).join(" "),
-        args: args.map(formatConsoleArg),
-      });
-      if (entries.length > BUG_FEEDBACK_CONSOLE_MAX_ENTRIES) {
-        entries.splice(0, entries.length - BUG_FEEDBACK_CONSOLE_MAX_ENTRIES);
-      }
-    };
-
-    consoleRef.log = (...args: unknown[]) => {
-      pushEntry("log", args);
-      originalConsole.log(...args);
-    };
-    consoleRef.info = (...args: unknown[]) => {
-      pushEntry("info", args);
-      originalConsole.info(...args);
-    };
-    consoleRef.warn = (...args: unknown[]) => {
-      pushEntry("warn", args);
-      originalConsole.warn(...args);
-    };
-    consoleRef.error = (...args: unknown[]) => {
-      pushEntry("error", args);
-      originalConsole.error(...args);
-    };
-    consoleRef.debug = (...args: unknown[]) => {
-      pushEntry("debug", args);
-      originalConsole.debug(...args);
-    };
-  }
-
-  return globalWindow.__tcBugFeedbackConsoleLogs__;
-}
-
-getBugFeedbackConsoleStore();
-
-function buildBugFeedbackReport(description: string): BugFeedbackReport {
-  return {
-    type: "bug-feedback-report",
-    createdAt: new Date().toISOString(),
-    description: description || "(未填写)",
-    environment: collectDiagnosticInfo(),
-    consoleLogs: [...getBugFeedbackConsoleStore()],
-  };
-}
-
-function generateSceneFileContent(description: string) {
-  return JSON.stringify(buildBugFeedbackReport(description), null, 2);
-}
-
-function BugFeedbackContent() {
-  const [description, setDescription] = useState("");
-  const [copied, setCopied] = useState(false);
-
-  const sceneContent = useMemo(
-    () => generateSceneFileContent(description),
-    [description],
-  );
-
-  const handleDownload = useCallback(() => {
-    const content = generateSceneFileContent(description);
-    const blob = new Blob([content], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    a.href = url;
-    a.download = `bug-report-${timestamp}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [description]);
-
-  const handleCopy = useCallback(async () => {
-    const content = generateSceneFileContent(description);
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-    catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = content;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }, [description]);
-
-  return (
-    <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="text-lg font-bold">Bug反馈（QQ）</div>
-        <div className="text-sm opacity-70">
-          请点击下方按钮反馈 Bug
-        </div>
-      </div>
-
-      <div className="w-full flex justify-center">
-        <img
-          src="/bug-feedback/qq-qrcode.webp"
-          alt="QQ Bug反馈二维码"
-          className="w-64 h-64 object-contain"
-          loading="lazy"
-        />
-      </div>
-
-      <div className="border-t border-base-300 pt-4 space-y-3">
-        <div className="text-sm font-medium">生成反馈 JSON</div>
-        <textarea
-          className="textarea textarea-bordered w-full h-20 text-sm"
-          placeholder="简要描述你遇到的问题..."
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <pre className="bg-base-200 rounded-lg p-3 text-xs overflow-x-auto max-h-32 whitespace-pre-wrap break-all">
-          {sceneContent}
-        </pre>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm flex-1 gap-1"
-            onClick={handleDownload}
-          >
-            <DownloadSimpleIcon className="size-4" />
-            生成 JSON
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm flex-1 gap-1 ${copied ? "btn-success" : "btn-outline"}`}
-            onClick={handleCopy}
-          >
-            <CopySimpleIcon className="size-4" />
-            {copied ? "已复制" : "复制到剪贴板"}
-          </button>
-        </div>
-        <div className="text-xs opacity-60">
-          JSON 中包含问题描述、环境信息和最近的控制台日志。
-        </div>
-      </div>
     </div>
   );
 }

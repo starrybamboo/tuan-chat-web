@@ -8,7 +8,7 @@ type UseChatFrameWebSocketResult = {
   send: (message: ChatMessageRequest) => void;
   receivedMessages: ChatMessageResponse[];
   unreadMessagesNumber: Record<number, number>;
-  updateLastReadSyncId: (roomId: number) => void;
+  updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
 };
 
 export default function useChatFrameWebSocket(roomId: number): UseChatFrameWebSocketResult {

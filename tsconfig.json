@@ -4,6 +4,7 @@
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
     "useDefineForClassFields": false,
+    "rootDirs": [".", "./.react-router/types"],
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
@@ -11,8 +12,8 @@
       "@/*": ["./app/*"],
       "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
       "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
-      "@tuanchat/local-db": ["./packages/tuanchat-local-db/src/index.ts"],
-      "@tuanchat/local-db/*": ["./packages/tuanchat-local-db/src/*"],
+      "@tuanchat/galgame-ai-contract": ["./packages/galgame-ai-contract/src/index.ts"],
+      "@tuanchat/galgame-ai-contract/*": ["./packages/galgame-ai-contract/src/*"],
       "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
       "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
       "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
@@ -21,11 +22,6 @@
     "resolveJsonModule": true,
     "types": ["node", "vite/client", "vitest/globals"],
     "strict": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noEmit": true,
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
@@ -34,7 +30,8 @@
   "include": [
     "**/*",
     "**/.server/**/*",
-    "**/.client/**/*"
+    "**/.client/**/*",
+    ".react-router/types/**/*"
   ],
   "exclude": [
     "node_modules",

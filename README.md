@@ -3,9 +3,11 @@
 > 文档维护人：降星驰（QQ：735845305，Email：735845305@qq.com）
 
 这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面设计。使用electron构建pc客户端，使用混合开发模式构建安卓客户端。基于webgal导出跑团replay。
+
 ## 在开始之前
 
 ### node版本
+
 请确保你的node版本在22及以上。
 
 ### 安装依赖
@@ -15,19 +17,24 @@ pnpm install
 ```
 
 ### electron安装与配置
+
 如果你的开发不涉及electron，可跳过此步。
 
 在安装electron依赖的时候，如果遇到
+
 ```
 Electron failed to install correctly,
  please delete node_modules/electron and try installing again
 ```
+
 尝试
+
 ```bash
 node node_modules/electron/install.js
 ```
 
 如果要执行 electron 打包（electron-builder）：
+
 - 安装包会携带 `WebGAL_Terre` 运行时。
 - `pnpm electron:prepare:resources` 默认会从 `D:\A_webgal\WebGAL_Terre\release` 同步运行时到 `extraResources/`（按仓库相对路径等价于 `..\..\A_webgal\WebGAL_Terre\release`）。
 - 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
@@ -53,6 +60,7 @@ pnpm release:electron -- --bump patch
 ```
 
 该命令会按顺序执行：
+
 - 校验工作区干净且当前分支为 `main`
 - `git pull --rebase origin main`
 - 更新 `package.json` 版本号
@@ -61,18 +69,18 @@ pnpm release:electron -- --bump patch
 - 触发云端增量更新工作流（`main` 推送自动触发）
 
 常用参数：
+
 - `--bump patch|minor|major`：按语义版本递增
 - `--version x.y.z`：直接指定版本号（与 `--bump` 二选一）
 - `--local-build all|zip|nsis|none`：本地打包策略（默认 `all`）
 - `--no-push`：只做本地提交，不推送
 - `--message "..."`：自定义提交信息
 
-
 ### 配置环境
 
 在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
 
-```plain&#x20;text
+```plain text
 VITE_API_BASE_URL=https://tuan.chat/api
 VITE_API_WS_URL=wss://tuan.chat/ws
 VITE_TERRE_URL=http://localhost:3001
@@ -115,8 +123,6 @@ const context = await browser.newContext({
 
 **由于 Vscode 的限制，在你克隆仓库并安装依赖后，需要在终端中运行 `pnpm lint`以完成 eslint 的设置。**
 
-
-
 #### Webstorm 设置
 
 注意将设置中开启 `Run eslint --fix on save` 就可以，无需装别的插件（万一tailwind没提示就装一个tailwind的插件）。
@@ -124,6 +130,7 @@ const context = await browser.newContext({
 ![开启Run eslint --fix on save](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=NmJlMTFkOWRmNTBlOWYxMTUxYzk1ZDhkM2Y5OGIyMDBfYUttUVd1TWtYcEVzQld6d3lZQlFHTGdqbnUzck5uclZfVG9rZW46TGF0aGJmdEtqb2F3V3h4cGkySGNpQ2ZYbmxnXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
 
 ### 启动！！！
+
 ```bash
 pnpm dev
 ```
@@ -138,17 +145,18 @@ pnpm lint:fix
 
 这将对整个仓库进行 lint，修复 `eslint` 可修复的错误，并显示其余的错误。
 
-
-
 ## CI/CD 流程
 
 自动化测试
 
 自动部署：
+
 - `main` 推送：生产部署到 `https://tuan.chat/`
 - `dev` 推送：测试部署到 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）
+- 前端 CD 的 SSH 连接优先读取 `SERVER_HOST` / `SERVER_PORT` / `SERVER_USERNAME` / `SERVER_PASSWORD`，兼容旧的 `SSH_*`，并会回退到 `UPDATE_SERVER_*`；若都未配置，默认主机与端口为 `38.14.195.6:22`
 
 Electron 增量更新发布：
+
 - `main` 推送会触发 `.github/workflows/electron-update-publish.yml`
 - 工作流会构建 NSIS 包并发布以下文件：`latest.yml`、`*Setup*.exe`、`*Setup*.exe.blockmap`
 - 客户端更新地址（electron-builder `publish.url`）：`https://tuan.chat/updates/`
@@ -156,7 +164,7 @@ Electron 增量更新发布：
 - 工作流优先读取 `UPDATE_*`，未配置时会回退到 CD 使用的 `SERVER_*` / `SSH_*` 凭据。
 - 若 `UPDATE_SERVER_PATH` 填的是站点根目录（如 `/www/wwwroot/tuan-chat-web`），工作流会自动追加 `/updates`。
 - 可选 Secrets：
-- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `38.14.195.6`）
+- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `101.126.143.129`）
 - `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（默认 `22`）
 - `UPDATE_SERVER_USERNAME`：SSH 用户名（默认回退 `SERVER_USERNAME` / `SSH_USERNAME`）
 - `UPDATE_SERVER_PASSWORD`：SSH 密码（默认回退 `SERVER_PASSWORD` / `SSH_PASSWORD`）
@@ -207,13 +215,20 @@ webgal相关
 
 存放各种工具类
 
-
-
 ## ./android
 
 安卓客户端的工程文件夹，用android studio打开。使用混合开发模式。
 
 # 依赖
+
+### Blocksuite 参考仓库
+
+自 2026-04-18 起，团剧共创使用的 Blocksuite 参考仓库统一迁移到：
+
+- `D:\A_blocksuite\AFFiNE`
+- `D:\A_blocksuite\OctoBase`
+
+详细说明见 `docs/integrations/blocksuite.md` 和 `docs/vendors/blocksuite/index.md`。
 
 ### UI库
 
@@ -260,5 +275,3 @@ https://reactsvgicons.com/
 https://virtuoso.dev/
 
 虚拟列表的轮子，但ahook中也提供了虚拟列表，可按情况选择
-
-

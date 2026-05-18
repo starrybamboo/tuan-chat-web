@@ -23,6 +23,7 @@ const MESSAGE_ID_ALIAS_MAX_AGE_MS = 10 * 60 * 1000;
 
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
+  latestSyncId: number;
   loading: boolean;
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
@@ -273,6 +274,12 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [messagesRaw, setMessages] = useState<ChatMessageResponse[]>([]);
   const messagesWithoutDeletedMessages = useMemo(() => {
     return (messagesRaw ?? []).filter(msg => msg.message.status !== 1);
+  }, [messagesRaw]);
+  const latestSyncId = useMemo(() => {
+    return (messagesRaw ?? []).reduce((max, item) => {
+      const syncId = item.message.syncId;
+      return typeof syncId === "number" && Number.isFinite(syncId) ? Math.max(max, syncId) : max;
+    }, -1);
   }, [messagesRaw]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -708,6 +715,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
   return {
     messages: messagesWithoutDeletedMessages,
+    latestSyncId,
     loading,
     error,
     addOrUpdateMessage, // 用于单条消息

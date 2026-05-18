@@ -13,6 +13,7 @@ interface SidebarSectionProps {
   actionIcon?: ReactNode;
   className?: string;
   contentClassName?: string;
+  fillContent?: boolean;
   children: ReactNode;
 }
 
@@ -26,6 +27,7 @@ export default function SidebarSection({
   actionIcon,
   className,
   contentClassName,
+  fillContent = false,
   children,
 }: SidebarSectionProps) {
   const handleToggleExpanded = () => {
@@ -89,9 +91,10 @@ export default function SidebarSection({
               opacity: { duration: 0.12 },
               y: { type: "spring", stiffness: 520, damping: 36, mass: 0.6 },
             }}
-            className="overflow-hidden"
+            // 可滚动分区需要让动画容器本身参与高度分配，否则内部 overflow 不会生效。
+            className={fillContent ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "overflow-hidden"}
           >
-            <div className={`mt-0.5 space-y-1 ${contentClassName ?? ""}`}>{children}</div>
+            <div className={`mt-0.5 space-y-1 ${fillContent ? "min-h-0 flex-1" : ""} ${contentClassName ?? ""}`}>{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
