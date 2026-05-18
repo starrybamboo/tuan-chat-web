@@ -102,6 +102,11 @@ function isUserRoleListQueryKey(queryKey: readonly unknown[]): boolean {
     || scope === "roleInfiniteByType";
 }
 
+function isRoomRoleListQueryKey(queryKey: readonly unknown[]): boolean {
+  const scope = queryKey[0];
+  return scope === "roomRole" || scope === "roomNpcRole";
+}
+
 function shouldContainRole(queryKey: readonly unknown[], role: UserRoleWithAvatarUrls): boolean {
   const scope = queryKey[0];
   const roleType = role.type ?? 0;
@@ -275,6 +280,76 @@ export function upsertUserRoleListQueryCache(queryClient: QueryClient, role?: Us
       queryClient.setQueryData(query.queryKey, old => updateRoleListCacheData(
         old,
         list => upsertUserRoleList(list, role),
+      ));
+    });
+}
+
+export function patchUserRoleAvatarFieldsInListQueryCache(
+  queryClient: QueryClient,
+  role?: UserRoleWithAvatarUrls | null,
+): void {
+  if (!hasRoleId(role)) {
+    return;
+  }
+
+  const roleAvatarUrls = resolveRoleAvatarUrls(role);
+  queryClient
+    .getQueryCache()
+    .findAll({
+      predicate: query => isUserRoleListQueryKey(query.queryKey) && shouldContainRole(query.queryKey, role),
+    })
+    .forEach((query) => {
+      queryClient.setQueryData(query.queryKey, old => updateRoleListCacheData(
+        old,
+        list => list.map((item) => {
+          if (item.roleId !== role.roleId) {
+            return item;
+          }
+
+          return {
+            ...item,
+            avatarId: role.avatarId ?? item.avatarId,
+            avatarFileId: role.avatarFileId ?? item.avatarFileId,
+            avatarMediaType: role.avatarMediaType ?? item.avatarMediaType,
+            avatarUrl: roleAvatarUrls.avatarUrl || item.avatarUrl,
+            avatarThumbUrl: roleAvatarUrls.avatarThumbUrl || item.avatarThumbUrl || roleAvatarUrls.avatarUrl,
+          };
+        }),
+      ));
+    });
+}
+
+export function patchRoomRoleAvatarFieldsInListQueryCache(
+  queryClient: QueryClient,
+  role?: UserRoleWithAvatarUrls | null,
+): void {
+  if (!hasRoleId(role)) {
+    return;
+  }
+
+  const roleAvatarUrls = resolveRoleAvatarUrls(role);
+  queryClient
+    .getQueryCache()
+    .findAll({
+      predicate: query => isRoomRoleListQueryKey(query.queryKey),
+    })
+    .forEach((query) => {
+      queryClient.setQueryData(query.queryKey, old => updateRoleListCacheData(
+        old,
+        list => list.map((item) => {
+          if (item.roleId !== role.roleId) {
+            return item;
+          }
+
+          return {
+            ...item,
+            avatarId: role.avatarId ?? item.avatarId,
+            avatarFileId: role.avatarFileId ?? item.avatarFileId,
+            avatarMediaType: role.avatarMediaType ?? item.avatarMediaType,
+            avatarUrl: roleAvatarUrls.avatarUrl || item.avatarUrl,
+            avatarThumbUrl: roleAvatarUrls.avatarThumbUrl || item.avatarThumbUrl || roleAvatarUrls.avatarUrl,
+          };
+        }),
       ));
     });
 }

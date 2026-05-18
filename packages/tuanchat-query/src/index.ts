@@ -6,6 +6,7 @@ export * from "./members";
 export * from "./notifications";
 export * from "./role-abilities";
 export * from "./roles";
+export * from "./rules";
 export * from "./room-dnd-map";
 export * from "./room-extra";
 export * from "./room-message";

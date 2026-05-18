@@ -21,7 +21,9 @@
     "./annotation-catalog": "./src/annotation-catalog/index.ts",
     "./media-url": "./src/media-url/index.ts",
     "./ability-extractors": "./src/ability-extractors/index.ts",
-    "./display-labels": "./src/display-labels/index.ts"
+    "./display-labels": "./src/display-labels/index.ts",
+    "./message-time": "./src/messageTime.ts",
+    "./message-search": "./src/messageSearch.ts"
   },
   "dependencies": {
     "@tuanchat/openapi-client": "workspace:*"

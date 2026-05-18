@@ -10,6 +10,7 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { AbilityBatchQueryRequest } from './models/AbilityBatchQueryRequest';
 export type { AbilityFieldUpdateRequest } from './models/AbilityFieldUpdateRequest';
 export type { AbilityFieldUpdateRequest2 } from './models/AbilityFieldUpdateRequest2';
 export type { AbilityPageRequest } from './models/AbilityPageRequest';
@@ -58,6 +59,7 @@ export type { ApiResultListUserRole } from './models/ApiResultListUserRole';
 export type { ApiResultLong } from './models/ApiResultLong';
 export type { ApiResultMapLongInteger } from './models/ApiResultMapLongInteger';
 export type { ApiResultMapStringInteger } from './models/ApiResultMapStringInteger';
+export type { ApiResultMapStringRoleAbility } from './models/ApiResultMapStringRoleAbility';
 export type { ApiResultMaterialPackageResponse } from './models/ApiResultMaterialPackageResponse';
 export type { ApiResultMediaCompleteUploadResponse } from './models/ApiResultMediaCompleteUploadResponse';
 export type { ApiResultMediaPrepareUploadResponse } from './models/ApiResultMediaPrepareUploadResponse';

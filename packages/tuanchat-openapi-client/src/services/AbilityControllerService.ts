@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AbilityBatchQueryRequest } from '../models/AbilityBatchQueryRequest';
 import type { AbilityFieldUpdateRequest } from '../models/AbilityFieldUpdateRequest';
 import type { AbilityFieldUpdateRequest2 } from '../models/AbilityFieldUpdateRequest2';
 import type { AbilityPageRequest } from '../models/AbilityPageRequest';
@@ -10,6 +11,7 @@ import type { AbilityUpdateRequest } from '../models/AbilityUpdateRequest';
 import type { AbilityUpdateRequest2 } from '../models/AbilityUpdateRequest2';
 import type { ApiResultListRoleAbility } from '../models/ApiResultListRoleAbility';
 import type { ApiResultLong } from '../models/ApiResultLong';
+import type { ApiResultMapStringRoleAbility } from '../models/ApiResultMapStringRoleAbility';
 import type { ApiResultPageBaseRespRoleAbility } from '../models/ApiResultPageBaseRespRoleAbility';
 import type { ApiResultRoleAbility } from '../models/ApiResultRoleAbility';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
@@ -191,6 +193,23 @@ export class AbilityControllerService {
                 'ruleId': ruleId,
                 'roleId': roleId,
             },
+        });
+    }
+    /**
+     * 批量查询角色能力
+     * 根据规则ID和多个角色ID批量查询能力
+     * @param requestBody
+     * @returns ApiResultMapStringRoleAbility OK
+     * @throws ApiError
+     */
+    public batchGetByRuleAndRoles(
+        requestBody: AbilityBatchQueryRequest,
+    ): CancelablePromise<ApiResultMapStringRoleAbility> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/role/ability/batch',
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
 }

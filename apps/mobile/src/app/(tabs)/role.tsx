@@ -1,8 +1,8 @@
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 
 import { Image } from "expo-image";
 
@@ -10,9 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
-import { RoleEditSheet } from "@/features/roles/RoleEditSheet";
 import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
-import { useCreateRoleMutation, useDeleteRoleMutation, useUpdateRoleMutation } from "@/features/roles/useRoleMutations";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
 
@@ -97,55 +95,17 @@ export default function RoleScreen() {
   const { session } = useAuthSession();
   const userId = session?.userId ?? null;
   const myRolesQuery = useMyRolesQuery(userId);
-  const createMutation = useCreateRoleMutation();
-  const updateMutation = useUpdateRoleMutation();
-  const deleteMutation = useDeleteRoleMutation();
-
-  const [editSheetVisible, setEditSheetVisible] = useState(false);
-  const [editingRole, setEditingRole] = useState<UserRole | null>(null);
 
   const allRoles = myRolesQuery.data ?? [];
   const normalRoles = allRoles.filter(r => r.type === 0 && r.state !== 1);
   const diceRoles = allRoles.filter(r => r.type === 1 && r.state !== 1);
 
   const handleOpenCreate = () => {
-    setEditingRole(null);
-    setEditSheetVisible(true);
+    router.push("/role-edit");
   };
 
   const handleOpenEdit = (role: UserRole) => {
-    setEditingRole(role);
-    setEditSheetVisible(true);
-  };
-
-  const handleSave = async (data: { roleName: string; description: string; type: number }) => {
-    try {
-      if (editingRole) {
-        await updateMutation.mutateAsync({
-          roleId: editingRole.roleId,
-          roleName: data.roleName,
-          description: data.description,
-        });
-      } else {
-        await createMutation.mutateAsync({
-          roleName: data.roleName,
-          description: data.description,
-          type: data.type,
-        });
-      }
-      setEditSheetVisible(false);
-    } catch (e: any) {
-      Alert.alert("操作失败", e?.message ?? "请稍后重试");
-    }
-  };
-
-  const handleDelete = async (roleId: number) => {
-    try {
-      await deleteMutation.mutateAsync([roleId]);
-      setEditSheetVisible(false);
-    } catch (e: any) {
-      Alert.alert("删除失败", e?.message ?? "请稍后重试");
-    }
+    router.push({ pathname: "/role-edit", params: { roleId: String(role.roleId) } });
   };
 
   return (
@@ -191,14 +151,6 @@ export default function RoleScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
-      <RoleEditSheet
-        visible={editSheetVisible}
-        role={editingRole}
-        onClose={() => setEditSheetVisible(false)}
-        onSave={(data) => void handleSave(data)}
-        onDelete={(id) => void handleDelete(id)}
-        isSaving={createMutation.isPending || updateMutation.isPending}
-      />
     </ThemedView>
   );
 }

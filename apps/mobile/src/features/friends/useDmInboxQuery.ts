@@ -2,6 +2,7 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 
 import { groupDirectConversations } from "@tuanchat/domain/direct-message";
 import { useDirectInboxMessagesQuery } from "@tuanchat/query/direct-message";
+import { useMemo } from "react";
 
 import { mobileApiClient } from "@/lib/api";
 
@@ -19,8 +20,10 @@ export function useDmInboxQuery(currentUserId: number | null) {
     enabled: typeof currentUserId === "number" && currentUserId > 0,
   });
 
-  return {
-    ...query,
-    data: groupDirectConversations(query.data ?? [], currentUserId) as DmConversation[],
-  };
+  const data = useMemo(
+    () => groupDirectConversations(query.data ?? [], currentUserId) as DmConversation[],
+    [query.data, currentUserId],
+  );
+
+  return { ...query, data };
 }

@@ -16,7 +16,7 @@ import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { markRoomMessagesDeleted, selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
-import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   startTransition,
   useCallback,
@@ -170,30 +170,9 @@ export default function ChatShell() {
     overlayStyle,
     translateX,
   } = useGestureDrawer();
-  const navigation = useNavigation();
+
   const [isOverlayInteractive, setIsOverlayInteractive] = useState(false);
 
-  const applyTabBarVisibility = useCallback((visible: boolean) => {
-    navigation.setOptions({
-      tabBarStyle: visible
-        ? {
-            backgroundColor: "#0d1117",
-            borderTopColor: "#30363d",
-            borderTopWidth: 0.5,
-          }
-        : { display: "none" },
-    });
-  }, [navigation]);
-
-  useAnimatedReaction(
-    () => translateX.value >= LEFT_DRAWER_WIDTH * 0.5,
-    (isShowing, prev) => {
-      if (isShowing !== prev) {
-        runOnJS(applyTabBarVisibility)(isShowing);
-      }
-    },
-    [applyTabBarVisibility],
-  );
 
   // 只有抽屉真正偏移时才让遮罩接管点击，避免挡住中心区交互。
   useAnimatedReaction(
@@ -301,7 +280,7 @@ export default function ChatShell() {
     return Number.isFinite(n) && n > 0 ? n : undefined;
   }, [draftRoleIdInput, selectedRoleId]);
 
-  // Auto-select first space/room
+  // Auto-select first space (for route page to show rooms)
   useEffect(() => {
     if (hasExplicitTarget) {
       return;
@@ -317,21 +296,15 @@ export default function ChatShell() {
       startTransition(() => setSelectedSpaceId(ids[0]));
   }, [activeSpaces, hasExplicitTarget, selectedSpaceId, setSelectedSpaceId]);
 
+  // Clear stale room selection if room no longer exists in current space
   useEffect(() => {
-    if (hasExplicitTarget) {
+    if (hasExplicitTarget || !selectedSpaceId || !selectedRoomId) {
       return;
     }
-    if (!selectedSpaceId)
-      return;
     const ids = availableRooms.map(r => r.roomId).filter((id): id is number => typeof id === "number" && id > 0);
-    if (ids.length === 0) {
-      if (selectedRoomId !== null) {
-        startTransition(() => setSelectedRoomId(null));
-      }
-      return;
+    if (ids.length > 0 && !ids.includes(selectedRoomId)) {
+      startTransition(() => setSelectedRoomId(null));
     }
-    if (!selectedRoomId || !ids.includes(selectedRoomId))
-      startTransition(() => setSelectedRoomId(ids[0]));
   }, [availableRooms, hasExplicitTarget, selectedRoomId, selectedSpaceId, setSelectedRoomId]);
 
   useEffect(() => {
@@ -398,6 +371,11 @@ export default function ChatShell() {
     setSelectedRoomId(roomId);
     close();
   }, [close, setSelectedRoomId]);
+
+  const handleBackToRoutePage = useCallback(() => {
+    setSelectedRoomId(null);
+    setCurrentContactId(null);
+  }, [setSelectedRoomId]);
 
   const handleSelectMessageAnchor = useCallback((message: Message) => {
     setMessageAnchorId(message.messageId ?? null);
@@ -791,11 +769,39 @@ export default function ChatShell() {
   }, [handleSelectMessageAnchor, markDeletedRoomMessagesLocally]);
 
   const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "padding", ios: "padding" });
+  const isRoutePage = !selectedRoomId && !currentContactId;
+
 
   return (
       <ThemedView style={styles.shell}>
         <SafeAreaView edges={["top"]} style={styles.safeArea}>
           <KeyboardAvoidingView behavior={keyboardBehavior} style={styles.kav}>
+            {isRoutePage ? (
+            <View style={styles.panelContainer}>
+              <LeftDrawer
+                activeSpaces={activeSpaces}
+                availableRooms={availableRooms}
+                currentContactId={currentContactId}
+                currentRoomId={selectedRoomId}
+                currentSpaceId={selectedSpaceId}
+                dmConversations={dmConversations}
+                dmIsPending={dmInboxQuery.isPending}
+                drawerMode={drawerMode}
+                onCreateRoom={isSpaceOwner ? () => setCreateRoomVisible(true) : undefined}
+                onCreateSpace={() => setCreateSpaceVisible(true)}
+                onRefresh={() => void handleRefreshWorkspace()}
+                onSelectConversation={(contactId) => {
+                  setCurrentContactId(contactId);
+                }}
+                onSelectRoom={handleSelectRoom}
+                onSelectSpace={handleSelectSpace}
+                onSwitchMode={setDrawerMode}
+                roomsIsPending={roomsQuery.isPending}
+                spacesIsPending={spacesQuery.isPending}
+                unreadCounts={roomUnreadCounts}
+              />
+            </View>
+            ) : (
             <GestureDetector gesture={panGesture}>
             <View style={styles.panelContainer}>
               <Animated.View style={[styles.leftDrawer, leftDrawerStyle]}>
@@ -808,7 +814,7 @@ export default function ChatShell() {
                   dmConversations={dmConversations}
                   dmIsPending={dmInboxQuery.isPending}
                   drawerMode={drawerMode}
-                  onCreateRoom={() => setCreateRoomVisible(true)}
+                  onCreateRoom={isSpaceOwner ? () => setCreateRoomVisible(true) : undefined}
                   onCreateSpace={() => setCreateSpaceVisible(true)}
                   onRefresh={() => void handleRefreshWorkspace()}
                   onSelectConversation={(contactId) => {
@@ -829,6 +835,7 @@ export default function ChatShell() {
                   <ChatHeader
                     roomName={selectedRoom?.name ?? null}
                     onOpenDrawer={openLeft}
+                    onBackToRoutePage={handleBackToRoutePage}
                     onSearch={messageSearch.openSearch}
                     unreadCount={currentRoomUnreadCount}
                   />
@@ -992,8 +999,7 @@ export default function ChatShell() {
                       </>
                     )}
                 <Animated.View
-                  pointerEvents={isOverlayInteractive ? "auto" : "none"}
-                  style={[styles.overlay, overlayStyle]}
+                  style={[styles.overlay, overlayStyle, { pointerEvents: isOverlayInteractive ? "auto" : "none" }]}
                 >
                   <Pressable style={{ flex: 1 }} onPress={close} />
                 </Animated.View>
@@ -1025,6 +1031,7 @@ export default function ChatShell() {
               </Animated.View>
             </View>
             </GestureDetector>
+            )}
         </KeyboardAvoidingView>
       </SafeAreaView>
       <MessageActionMenu

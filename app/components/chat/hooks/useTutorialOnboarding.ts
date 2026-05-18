@@ -26,7 +26,6 @@ function debugTutorialOnboarding(event: string, payload?: Record<string, unknown
   if (debugStore.entries.length > 100) {
     debugStore.entries.splice(0, debugStore.entries.length - 100);
   }
-  console.warn("[TutorialOnboarding]", event, payload ?? {});
 }
 
 function isBrowserStorageAvailable() {

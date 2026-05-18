@@ -210,11 +210,10 @@ async function generateImageUploadFiles(file: File): Promise<GeneratedMediaUploa
       : await compressImage(normalizedFile, MEDIA_COMPRESSION_PROFILES.image.high);
   assertMaxBytes(original, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
 
-  const [low, medium, high] = await Promise.all([
-    buildImageVariantFile(original, "low", MEDIA_COMPRESSION_PROFILES.image.low),
-    buildImageVariantFile(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium),
-    buildImageVariantFile(original, "high", MEDIA_COMPRESSION_PROFILES.image.high),
-  ]);
+  // 图片派生串行执行，避免一次上传同时拉起多个压缩 worker，降低前端请求和 CPU 抖动。
+  const low = await buildImageVariantFile(original, "low", MEDIA_COMPRESSION_PROFILES.image.low);
+  const medium = await buildImageVariantFile(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium);
+  const high = await buildImageVariantFile(original, "high", MEDIA_COMPRESSION_PROFILES.image.high);
 
   return {
     original,

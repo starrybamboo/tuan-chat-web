@@ -1,7 +1,7 @@
 import type { DmConversation } from "./useDmInboxQuery";
 
 import { UsersThree } from "phosphor-react-native";
-import { useCallback } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 
 import { Image } from "expo-image";
@@ -110,11 +110,17 @@ export function DmConversationList({
 }: DmConversationListProps) {
   const theme = useTheme();
 
-  const sortedConversations = [...conversations].sort((a, b) => {
-    const timeA = a.lastMessage.createTime ? new Date(a.lastMessage.createTime).getTime() : 0;
-    const timeB = b.lastMessage.createTime ? new Date(b.lastMessage.createTime).getTime() : 0;
-    return timeB - timeA;
-  });
+  const onSelectRef = useRef(onSelectConversation);
+  onSelectRef.current = onSelectConversation;
+
+  const sortedConversations = useMemo(
+    () => [...conversations].sort((a, b) => {
+      const timeA = a.lastMessage.createTime ? new Date(a.lastMessage.createTime).getTime() : 0;
+      const timeB = b.lastMessage.createTime ? new Date(b.lastMessage.createTime).getTime() : 0;
+      return timeB - timeA;
+    }),
+    [conversations],
+  );
 
   const renderItem = useCallback(({ item: conv }: { item: DmConversation }) => {
     const active = conv.contactId === currentContactId;
@@ -123,7 +129,7 @@ export function DmConversationList({
 
     return (
       <Pressable
-        onPress={() => onSelectConversation(conv.contactId)}
+        onPress={() => onSelectRef.current(conv.contactId)}
         style={[styles.row, active ? { backgroundColor: theme.backgroundSelected } : null]}
         accessibilityLabel={`与 ${conv.contactName} 的对话${conv.unreadCount > 0 ? `，${conv.unreadCount} 条未读` : ""}`}
         accessibilityRole="button"
@@ -159,7 +165,7 @@ export function DmConversationList({
         </View>
       </Pressable>
     );
-  }, [currentContactId, onSelectConversation, theme]);
+  }, [currentContactId, theme]);
 
   return (
     <View style={styles.container}>
@@ -181,6 +187,8 @@ export function DmConversationList({
         data={sortedConversations}
         keyExtractor={(item) => String(item.contactId)}
         renderItem={renderItem}
+        initialNumToRender={15}
+        maxToRenderPerBatch={10}
         contentContainerStyle={styles.listContent}
         style={styles.list}
         refreshControl={
