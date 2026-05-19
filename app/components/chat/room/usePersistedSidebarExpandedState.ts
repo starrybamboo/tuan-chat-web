@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { getSidebarExpandedMap, setSidebarExpandedMap } from "@/components/chat/infra/indexedDB/sidebarTreeUiDb";
+import { getSidebarExpandedMap, setSidebarExpandedMap } from "@/components/chat/infra/localDb/sidebarTreeUiDb";
 
 type UsePersistedSidebarExpandedStateParams = {
   activeSpaceId: number | null;

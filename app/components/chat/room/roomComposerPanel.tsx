@@ -6,7 +6,7 @@ import type { WebgalChoosePayload } from "@/types/webgalChoose";
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/indexedDB/composerAnnotationsDb";
+import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/localDb/composerAnnotationsDb";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbarFromStore from "@/components/chat/input/chatToolbarFromStore";
 import CommandPanelFromStore from "@/components/chat/input/commandPanelFromStore";

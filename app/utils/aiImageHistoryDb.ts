@@ -1,4 +1,10 @@
-import { openDB } from "idb";
+import {
+  addLocalCollectionItem,
+  clearLocalCollection,
+  listLocalCollectionItems,
+  removeLocalCollectionItem,
+  trimLocalCollection,
+} from "@/components/chat/infra/localDb/chatHistoryDb";
 
 export type AiImageHistoryMode = "txt2img" | "img2img" | "infill";
 
@@ -57,64 +63,33 @@ export type AiImageHistoryRow = {
   batchSize?: number;
 };
 
-const DB_NAME = "aiImageHistoryDB";
-const DB_VERSION = 1;
-const STORE = "images";
-
-async function getDb() {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, {
-          keyPath: "id",
-          autoIncrement: true,
-        });
-        store.createIndex("byCreatedAt", "createdAt");
-      }
-    },
-  });
-}
+const COLLECTION = "ai-image-history";
 
 export async function addAiImageHistoryBatch(rows: Array<Omit<AiImageHistoryRow, "id">>, options?: { maxItems?: number }) {
   if (!rows.length)
     return;
 
-  const db = await getDb();
-  const tx = db.transaction(STORE, "readwrite");
-  await Promise.all(rows.map(row => tx.store.add(row)));
-  await tx.done;
+  await Promise.all(rows.map(row => addLocalCollectionItem(COLLECTION, row, { sortAt: row.createdAt })));
 
   const maxItems = options?.maxItems ?? 30;
   if (!Number.isFinite(maxItems) || maxItems <= 0)
     return;
 
-  const all = await listAiImageHistory({ limit: maxItems + 50 });
-  if (all.length <= maxItems)
-    return;
-
-  const toDelete = all.slice(maxItems);
-  await Promise.all(
-    toDelete
-      .filter(item => typeof item.id === "number")
-      .map(item => db.delete(STORE, item.id as number)),
-  );
+  await trimLocalCollection(COLLECTION, maxItems);
 }
 
 export async function listAiImageHistory(params?: { limit?: number }): Promise<AiImageHistoryRow[]> {
-  const db = await getDb();
-  const tx = db.transaction(STORE, "readonly");
-  const rows = (await tx.store.getAll()) as AiImageHistoryRow[];
-  rows.sort((a, b) => b.createdAt - a.createdAt);
-  const limit = params?.limit;
-  return typeof limit === "number" ? rows.slice(0, limit) : rows;
+  const rows = await listLocalCollectionItems<Omit<AiImageHistoryRow, "id">>(COLLECTION, params);
+  return rows.map(row => ({
+    ...row.payload,
+    id: row.id,
+  }));
 }
 
 export async function deleteAiImageHistory(id: number) {
-  const db = await getDb();
-  await db.delete(STORE, id);
+  await removeLocalCollectionItem(COLLECTION, id);
 }
 
 export async function clearAiImageHistory() {
-  const db = await getDb();
-  await db.clear(STORE);
+  await clearLocalCollection(COLLECTION);
 }

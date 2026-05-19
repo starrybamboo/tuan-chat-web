@@ -13,7 +13,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 - **消息 Thread**：支持基于 message.threadId 的线程聚合与回复（类似 Discord Thread）
 - **骰子系统**：内置 TRPG 骰子命令系统，支持多种游戏规则
 - **实时状态同步**：通过 WebSocket 实时同步成员状态（输入中、等待扮演、暂离等）
-- **历史消息管理**：基于 IndexedDB 的本地缓存，支持离线查看和快速加载
+- **历史消息管理**：基于本地 SQLite 的缓存，支持离线查看和快速加载
 
 ---
 
@@ -71,7 +71,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
                                            ↓
                                     后端处理并广播
                                            ↓
-前端接收 ← WebSocket ← ChatFrame/RoomWindow ← IndexedDB缓存
+前端接收 ← WebSocket ← ChatFrame/RoomWindow ← SQLite 缓存
     ↓
 ChatBubble 渲染
     ↓
@@ -236,7 +236,7 @@ const spaceContextValue: SpaceContextType = {
 
 1. **初始化**：
    - 连接 WebSocket，订阅房间消息
-   - 从 IndexedDB 加载历史消息
+   - 从本地 SQLite 加载历史消息
    - 初始化 RealtimeRenderer（WebGAL 联动）
 
 2. **消息发送**：
@@ -840,7 +840,7 @@ interface RoomContextType {
   jumpToMessageInWebGAL?: (messageId: number) => boolean;  // 在 WebGAL 中跳转
   
   // 历史消息
-  chatHistory?: UseChatHistoryReturn;  // IndexedDB 历史消息管理
+  chatHistory?: UseChatHistoryReturn;  // SQLite 历史消息管理
   
   // 消息渲染更新
   updateAndRerenderMessageInWebGAL?: (message: ChatMessageResponse, regenerateTTS?: boolean) => Promise<boolean>;
@@ -1051,11 +1051,11 @@ if (msg.extra?.voiceRenderSettings?.enableTTS) {
 
 ## 数据管理
 
-### IndexedDB 历史消息缓存
+### SQLite 历史消息缓存
 
-**文件**：`indexedDB/useChatHistory.ts`
+**文件**：`localDb/useChatHistory.ts`
 
-**作用**：使用 IndexedDB 缓存历史消息，实现离线查看和快速加载。
+**作用**：使用本地 SQLite 缓存历史消息，实现离线查看和快速加载。
 
 **数据结构**：
 
@@ -1186,12 +1186,12 @@ webSocket.on("chat.status", (data) => {
 
 ### 2. 消息缓存
 
-使用 IndexedDB 缓存历史消息：
+使用 SQLite 缓存历史消息：
 
 ```typescript
 // 首次加载从服务器获取
 const messages = await fetchMessagesFromServer(roomId);
-// 缓存到 IndexedDB
+// 缓存到 SQLite
 await chatHistory.saveMessages(messages);
 
 // 后续加载从缓存读取
@@ -1451,7 +1451,7 @@ await sendMessage(message);
 
 ### 4. 历史消息加载慢
 
-**原因**：未使用 IndexedDB 缓存
+**原因**：未使用 SQLite 缓存
 
 **解决方案**：
 ```typescript
@@ -1513,7 +1513,7 @@ await chatHistory.loadHistory(roomId, 100);
 - **TanStack Query**：数据获取和缓存
 - **Zustand**：轻量级状态管理
 - **react-virtuoso**：虚拟滚动
-- **IndexedDB**：本地数据库
+- **SQLite**：本地数据库
 - **WebSocket**：实时通信
 - **DaisyUI**：UI 组件库
 - **Tailwind CSS**：样式框架
@@ -1570,7 +1570,6 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
 
 
 

@@ -232,6 +232,9 @@ importers:
       '@tuanchat/galgame-ai-contract':
         specifier: workspace:*
         version: link:packages/galgame-ai-contract
+      '@tuanchat/local-db':
+        specifier: workspace:*
+        version: link:packages/tuanchat-local-db
       '@tuanchat/openapi-client':
         specifier: workspace:*
         version: link:packages/tuanchat-openapi-client
@@ -250,6 +253,9 @@ importers:
       motion:
         specifier: ^12.38.0
         version: 12.38.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      sql.js:
+        specifier: 1.14.1
+        version: 1.14.1
     devDependencies:
       '@antfu/eslint-config':
         specifier: ^4.11.0
@@ -440,9 +446,6 @@ importers:
       husky:
         specifier: ^9.1.7
         version: 9.1.7
-      idb:
-        specifier: ^8.0.3
-        version: 8.0.3
       immer:
         specifier: 10.1.1
         version: 10.1.1
@@ -663,6 +666,18 @@ importers:
       '@tuanchat/openapi-client':
         specifier: workspace:*
         version: link:../tuanchat-openapi-client
+
+  packages/tuanchat-local-db:
+    dependencies:
+      '@tuanchat/openapi-client':
+        specifier: workspace:*
+        version: link:../tuanchat-openapi-client
+      '@tuanchat/query':
+        specifier: workspace:*
+        version: link:../tuanchat-query
+      sql.js:
+        specifier: 1.14.1
+        version: 1.14.1
 
   packages/tuanchat-openapi-client: {}
 
@@ -6392,6 +6407,9 @@ packages:
 
   idb@8.0.3:
     resolution: {integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==}
+
+  sql.js@1.14.1:
+    resolution: {integrity: sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -18940,6 +18958,8 @@ snapshots:
   idb-keyval@6.2.2: {}
 
   idb@8.0.3: {}
+
+  sql.js@1.14.1: {}
 
   ieee754@1.2.1: {}
 
