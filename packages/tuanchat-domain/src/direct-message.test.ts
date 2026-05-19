@@ -65,6 +65,32 @@ describe("direct message helpers", () => {
     });
   });
 
+  it("联系人最后一条消息缺少头像时回溯使用最近可用头像", () => {
+    const conversations = groupDirectConversations([
+      createDirectMessage({
+        messageId: 1,
+        senderAvatarFileId: 88,
+        senderId: 42,
+        senderUsername: "Alice",
+        syncId: 1,
+      }),
+      createDirectMessage({
+        messageId: 2,
+        receiverId: 42,
+        receiverUsername: "Alice",
+        senderId: 7,
+        syncId: 2,
+      }),
+    ], 7);
+
+    expect(conversations[0]).toMatchObject({
+      contactAvatarFileId: 88,
+      contactId: 42,
+      contactName: "Alice",
+      lastMessage: { messageId: 2 },
+    });
+  });
+
   it("会把已删除私聊消息转换成撤回预览", () => {
     expect(getDirectMessagePreviewText(createDirectMessage({ status: 1 }))).toBe("[消息已撤回]");
   });
