@@ -846,6 +846,7 @@ export default function ChatShell() {
                       <DmChatView
                         contactId={currentContactId}
                         contactName={currentDmContactName ?? `用户 #${currentContactId}`}
+                        contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
                         currentUserId={currentUserId}
                         messages={currentDmConversation?.messages ?? []}
                         onBack={() => {

@@ -171,6 +171,30 @@ export function getDirectUnreadCount(
   ).length;
 }
 
+function isPositiveFileId(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function getContactAvatarFileIdFromMessage(message: DirectMessageLike, contactId: number): number | undefined {
+  if (message.senderId === contactId && isPositiveFileId(message.senderAvatarFileId)) {
+    return message.senderAvatarFileId;
+  }
+  if (message.receiverId === contactId && isPositiveFileId(message.receiverAvatarFileId)) {
+    return message.receiverAvatarFileId;
+  }
+  return undefined;
+}
+
+function getLatestContactAvatarFileId(messages: readonly DirectMessageLike[], contactId: number): number | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const avatarFileId = getContactAvatarFileIdFromMessage(messages[index], contactId);
+    if (avatarFileId) {
+      return avatarFileId;
+    }
+  }
+  return undefined;
+}
+
 export function groupDirectConversations<T extends DirectMessageLike>(
   messages: readonly T[],
   currentUserId: number | null | undefined,
@@ -199,9 +223,7 @@ export function groupDirectConversations<T extends DirectMessageLike>(
       const contactName = lastMessage?.senderId === contactId
         ? (lastMessage.senderUsername ?? `用户 #${contactId}`)
         : (lastMessage?.receiverUsername ?? `用户 #${contactId}`);
-      const contactAvatarFileId = lastMessage?.senderId === contactId
-        ? lastMessage.senderAvatarFileId
-        : lastMessage?.receiverAvatarFileId;
+      const contactAvatarFileId = getLatestContactAvatarFileId(visibleMessages, contactId);
 
       return {
         contactAvatarFileId,
