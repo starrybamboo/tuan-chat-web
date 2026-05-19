@@ -468,7 +468,7 @@ async function uploadAttachmentThroughMediaService(
     fileId,
     mediaType,
     originalUrl: mediaFileUrl(fileId, mediaType, "original"),
-    previewUrl: mediaFileUrl(fileId, mediaType, mediaType === "document" || mediaType === "other" ? "original" : "high"),
+    previewUrl: mediaFileUrl(fileId, mediaType, mediaType === "document" || mediaType === "other" ? "original" : "low"),
     size: payload.size,
   };
 }
