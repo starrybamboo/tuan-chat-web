@@ -443,8 +443,8 @@ export default function useChatMessageSubmit({
 
         const requestExtra = request.extra as { soundMessage?: { fileId?: number; mediaType?: string } } | undefined;
         const createdExtra = createdMessage.extra as { soundMessage?: { fileId?: number; mediaType?: string } } | undefined;
-        const requestUrl = mediaFileUrl(requestExtra?.soundMessage?.fileId, requestExtra?.soundMessage?.mediaType, "high");
-        const createdUrl = mediaFileUrl(createdExtra?.soundMessage?.fileId, createdExtra?.soundMessage?.mediaType, "high");
+        const requestUrl = mediaFileUrl(requestExtra?.soundMessage?.fileId, requestExtra?.soundMessage?.mediaType, "low");
+        const createdUrl = mediaFileUrl(createdExtra?.soundMessage?.fileId, createdExtra?.soundMessage?.mediaType, "low");
         const autoplayUrl = requestUrl || createdUrl;
         if (!autoplayUrl) {
           return;

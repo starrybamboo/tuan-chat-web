@@ -109,8 +109,8 @@ export function MobileMessageMediaPreview({
     const image = getImageMessageExtra(extra);
     if (!image?.fileId) return null;
     const mediaType = normalizeMediaType(image.mediaType, "image");
-    const thumbUrl = mediaFileUrl(image.fileId, mediaType, "medium");
-    const highUrl = mediaFileUrl(image.fileId, mediaType, "high");
+    const thumbUrl = mediaFileUrl(image.fileId, mediaType, "low");
+    const fullSizeUrl = mediaFileUrl(image.fileId, mediaType, "medium");
     const rawWidth = image.width && image.width > 0 ? image.width : MAX_IMAGE_WIDTH;
     const rawHeight = image.height && image.height > 0 ? image.height : MAX_IMAGE_WIDTH;
     const scale = Math.min(MAX_IMAGE_WIDTH / rawWidth, MAX_IMAGE_HEIGHT / rawHeight, 1);
@@ -119,7 +119,7 @@ export function MobileMessageMediaPreview({
 
     return (
       <>
-        <Pressable onPress={() => setPreviewImageUrl(highUrl)}>
+        <Pressable onPress={() => setPreviewImageUrl(fullSizeUrl)}>
           <Image
             source={{ uri: thumbUrl }}
             style={[styles.image, { height, width }]}
@@ -146,7 +146,7 @@ export function MobileMessageMediaPreview({
     const video = getVideoMessageExtra(extra);
     if (!video?.fileId) return null;
     const mediaType = normalizeMediaType(video.mediaType, "video");
-    const videoUrl = mediaFileUrl(video.fileId, mediaType, "high");
+    const videoUrl = mediaFileUrl(video.fileId, mediaType, "low");
     const meta = [formatDuration(video.second), formatSize(video.size)].filter(Boolean).join(" · ");
 
     return (
@@ -167,7 +167,7 @@ export function MobileMessageMediaPreview({
     const sound = getSoundMessageExtra(extra);
     if (!sound?.fileId) return null;
     const mediaType = normalizeMediaType(sound.mediaType, "audio");
-    const audioUrl = mediaFileUrl(sound.fileId, mediaType, "high");
+    const audioUrl = mediaFileUrl(sound.fileId, mediaType, "low");
     const meta = [formatDuration(sound.second), formatSize(sound.size)].filter(Boolean).join(" · ");
 
     return (

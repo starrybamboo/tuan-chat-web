@@ -100,7 +100,7 @@ export default function MessageContentRenderer({
         </div>
       );
     case MESSAGE_TYPE.IMG: {
-      const imgUrl = resolveMediaPayloadUrl(imagePayload, "high", "image");
+      const imgUrl = resolveMediaPayloadUrl(imagePayload, "low", "image");
       const imgWidth = typeof imagePayload?.width === "number" ? imagePayload.width : undefined;
       const imgHeight = typeof imagePayload?.height === "number" ? imagePayload.height : undefined;
 
@@ -154,7 +154,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.VIDEO: {
       const videoMessage = getVideoMessageExtra(message.extra);
-      const videoUrl = resolveMediaPayloadUrl(videoMessage, "high", "video");
+      const videoUrl = resolveMediaPayloadUrl(videoMessage, "low", "video");
       return (
         <div className="flex min-w-0 w-full max-w-[420px] flex-col gap-2">
           {videoUrl
@@ -196,7 +196,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.SOUND: {
       const soundMessage = getSoundMessageExtra(message.extra);
-      const audioUrl = resolveMediaPayloadUrl(soundMessage, "high", "audio");
+      const audioUrl = resolveMediaPayloadUrl(soundMessage, "low", "audio");
       const duration = soundMessage?.second;
       const purpose = resolveRenderedSoundMessagePurpose({
         annotations: effectiveAnnotations,
