@@ -1,7 +1,10 @@
+import { getLocalValue, removeLocalValue, setLocalValue } from "@/components/chat/infra/localDb/chatHistoryDb";
+
 import type { GalPatchProposal, GalPatchProposalSummary } from "./authoringTypes";
 
 const DB_NAME = "tuanChatGalPatchProposalDB";
 const STORE_NAME = "proposals";
+const PROPOSAL_KEY_PREFIX = "gal-patch-proposal:";
 const ACTIVE_KEY_PREFIX = "tc:gal-patch-proposal:active:";
 const CLIENT_BLOCKING_VALIDATION_ERROR_CODES = new Set([
   "message_not_found",
@@ -25,7 +28,15 @@ function canUseLocalStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-function openDb(): Promise<IDBDatabase> {
+function makeProposalKey(proposalId: string): string {
+  return `${PROPOSAL_KEY_PREFIX}${proposalId}`;
+}
+
+function makeActiveKey(roomId: string): string {
+  return `${ACTIVE_KEY_PREFIX}${roomId}`;
+}
+
+function openLegacyDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => {
@@ -39,8 +50,8 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-async function withStore<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T> | void): Promise<T | undefined> {
-  const db = await openDb();
+async function withLegacyStore<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T> | void): Promise<T | undefined> {
+  const db = await openLegacyDb();
   try {
     return await new Promise<T | undefined>((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, mode);
@@ -67,6 +78,34 @@ async function withStore<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore
   }
 }
 
+async function getLegacyProposal(proposalId: string): Promise<GalPatchProposal | null> {
+  if (!canUseIndexedDb()) {
+    return null;
+  }
+  const proposal = await withLegacyStore<GalPatchProposal>("readonly", store => store.get(proposalId));
+  return proposal ?? null;
+}
+
+async function removeLegacyProposal(proposalId: string): Promise<void> {
+  if (!canUseIndexedDb()) {
+    return;
+  }
+  await withLegacyStore("readwrite", store => store.delete(proposalId));
+}
+
+function getLegacyActiveProposalId(roomId: string): string | null {
+  if (!canUseLocalStorage()) {
+    return null;
+  }
+  return window.localStorage.getItem(makeActiveKey(roomId));
+}
+
+function removeLegacyActiveProposalId(roomId: string): void {
+  if (canUseLocalStorage()) {
+    window.localStorage.removeItem(makeActiveKey(roomId));
+  }
+}
+
 function summarizeProposal(proposal: GalPatchProposal): GalPatchProposalSummary {
   return {
     proposalId: proposal.proposalId,
@@ -88,41 +127,46 @@ export function normalizePersistedGalPatchProposal(proposal: GalPatchProposal): 
   };
 }
 
-export class IndexedDbGalPatchProposalStore implements GalPatchProposalStore {
+export class SqliteGalPatchProposalStore implements GalPatchProposalStore {
   async save(proposal: GalPatchProposal): Promise<void> {
-    if (!canUseIndexedDb()) {
-      throw new Error("IndexedDB is not available");
-    }
-    await withStore("readwrite", store => store.put(proposal));
+    await setLocalValue(makeProposalKey(proposal.proposalId), proposal);
+    await removeLegacyProposal(proposal.proposalId);
   }
 
   async get(proposalId: string): Promise<GalPatchProposal | null> {
-    if (!canUseIndexedDb()) {
+    const proposal = await getLocalValue<GalPatchProposal>(makeProposalKey(proposalId));
+    if (proposal) {
+      return normalizePersistedGalPatchProposal(proposal);
+    }
+
+    const legacyProposal = await getLegacyProposal(proposalId);
+    if (!legacyProposal) {
       return null;
     }
-    const proposal = await withStore<GalPatchProposal>("readonly", store => store.get(proposalId));
-    return proposal ? normalizePersistedGalPatchProposal(proposal) : null;
+    const normalizedProposal = normalizePersistedGalPatchProposal(legacyProposal);
+    await this.save(normalizedProposal);
+    return normalizedProposal;
   }
 
   async setActive(roomId: string, proposalId: string | null): Promise<void> {
-    if (!canUseLocalStorage()) {
-      return;
-    }
-    const key = `${ACTIVE_KEY_PREFIX}${roomId}`;
     if (proposalId) {
-      window.localStorage.setItem(key, proposalId);
+      await setLocalValue(makeActiveKey(roomId), proposalId);
     }
     else {
-      window.localStorage.removeItem(key);
+      await removeLocalValue(makeActiveKey(roomId));
     }
+    removeLegacyActiveProposalId(roomId);
   }
 
   async getActive(roomId: string): Promise<GalPatchProposal | null> {
-    if (!canUseLocalStorage()) {
+    const activeKey = makeActiveKey(roomId);
+    const proposalId = await getLocalValue<string>(activeKey) ?? getLegacyActiveProposalId(roomId);
+    if (!proposalId) {
       return null;
     }
-    const proposalId = window.localStorage.getItem(`${ACTIVE_KEY_PREFIX}${roomId}`);
-    return proposalId ? this.get(proposalId) : null;
+    await setLocalValue(activeKey, proposalId);
+    removeLegacyActiveProposalId(roomId);
+    return this.get(proposalId);
   }
 
   async updateStatus(proposalId: string, status: GalPatchProposal["status"]): Promise<GalPatchProposal | null> {
@@ -140,10 +184,8 @@ export class IndexedDbGalPatchProposalStore implements GalPatchProposalStore {
   }
 
   async delete(proposalId: string): Promise<void> {
-    if (!canUseIndexedDb()) {
-      return;
-    }
-    await withStore("readwrite", store => store.delete(proposalId));
+    await removeLocalValue(makeProposalKey(proposalId));
+    await removeLegacyProposal(proposalId);
   }
 }
 
@@ -202,4 +244,4 @@ export function createGalPatchProposalSummary(proposal: GalPatchProposal): GalPa
   return summarizeProposal(proposal);
 }
 
-export const galPatchProposalStore: GalPatchProposalStore = new IndexedDbGalPatchProposalStore();
+export const galPatchProposalStore: GalPatchProposalStore = new SqliteGalPatchProposalStore();

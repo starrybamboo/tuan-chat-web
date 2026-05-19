@@ -88,12 +88,14 @@
   "dependencies": {
     "@react-router/node": "^7.15.0",
     "@tuanchat/galgame-ai-contract": "workspace:*",
+    "@tuanchat/local-db": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*",
     "detect-port": "^2.1.0",
     "electron-updater": "^6.7.3",
     "fflate": "0.8.2",
     "isbot": "^5",
-    "motion": "^12.38.0"
+    "motion": "^12.38.0",
+    "sql.js": "1.14.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.11.0",
@@ -159,7 +161,6 @@
     "fast-glob": "^3.3.3",
     "html-to-image": "^1.11.13",
     "husky": "^9.1.7",
-    "idb": "^8.0.3",
     "immer": "10.1.1",
     "katex": "0.16.27",
     "lint-staged": "^15.5.0",

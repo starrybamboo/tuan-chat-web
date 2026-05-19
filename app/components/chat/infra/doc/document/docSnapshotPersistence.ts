@@ -1,5 +1,7 @@
 import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 
+import { getDocSnapshot, removeDocSnapshot, setDocSnapshot } from "@/components/chat/infra/localDb/chatHistoryDb";
+
 type DocSnapshotRow = {
   docId: string;
   snapshot: StoredSnapshot;
@@ -44,91 +46,98 @@ function openDocSnapshotDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function getPersistedDocSnapshot(docId: string): Promise<StoredSnapshot | null> {
+function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function transactionDone(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error);
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+async function getLegacyIndexedDbSnapshot(docId: string): Promise<StoredSnapshot | null> {
   const key = normalizeDocId(docId);
   if (!key || !canUseIndexedDB()) {
     return null;
   }
 
   const db = await openDocSnapshotDb();
-  const tx = db.transaction(STORE_NAME, "readonly");
-  const store = tx.objectStore(STORE_NAME);
-  const request = store.get(key);
-
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => {
-      const row = request.result as DocSnapshotRow | undefined;
-      resolve(isStoredSnapshot(row?.snapshot) ? row.snapshot : null);
-    };
-    request.onerror = () => reject(request.error);
-    tx.oncomplete = () => db.close();
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-    tx.onabort = () => {
-      db.close();
-      reject(tx.error);
-    };
-  });
+  try {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const request = tx.objectStore(STORE_NAME).get(key);
+    const row = await requestToPromise<DocSnapshotRow | undefined>(request);
+    await transactionDone(tx);
+    return isStoredSnapshot(row?.snapshot) ? row.snapshot : null;
+  }
+  finally {
+    db.close();
+  }
 }
 
-export async function setPersistedDocSnapshot(docId: string, snapshot: StoredSnapshot): Promise<void> {
+async function removeLegacyIndexedDbSnapshot(docId: string): Promise<void> {
   const key = normalizeDocId(docId);
   if (!key || !canUseIndexedDB()) {
     return;
   }
 
   const db = await openDocSnapshotDb();
-  const tx = db.transaction(STORE_NAME, "readwrite");
-  const store = tx.objectStore(STORE_NAME);
+  try {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(key);
+    await transactionDone(tx);
+  }
+  finally {
+    db.close();
+  }
+}
 
-  store.put({
-    docId: key,
-    snapshot,
-    updatedAt: Date.now(),
-  } satisfies DocSnapshotRow);
+export async function getPersistedDocSnapshot(docId: string): Promise<StoredSnapshot | null> {
+  const key = normalizeDocId(docId);
+  if (!key) {
+    return null;
+  }
 
-  return new Promise((resolve, reject) => {
-    tx.oncomplete = () => {
-      db.close();
-      resolve();
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-    tx.onabort = () => {
-      db.close();
-      reject(tx.error);
-    };
+  const sqliteSnapshot = await getDocSnapshot<StoredSnapshot>(key);
+  if (isStoredSnapshot(sqliteSnapshot)) {
+    return sqliteSnapshot;
+  }
+
+  const legacySnapshot = await getLegacyIndexedDbSnapshot(key);
+  if (legacySnapshot) {
+    await setDocSnapshot(key, legacySnapshot);
+    await removeLegacyIndexedDbSnapshot(key).catch((error) => {
+      console.warn("[DocSnapshot] remove legacy IndexedDB snapshot failed", error);
+    });
+  }
+  return legacySnapshot;
+}
+
+export async function setPersistedDocSnapshot(docId: string, snapshot: StoredSnapshot): Promise<void> {
+  const key = normalizeDocId(docId);
+  if (!key) {
+    return;
+  }
+
+  await setDocSnapshot(key, snapshot);
+  await removeLegacyIndexedDbSnapshot(key).catch((error) => {
+    console.warn("[DocSnapshot] remove legacy IndexedDB snapshot failed", error);
   });
 }
 
 export async function removePersistedDocSnapshot(docId: string): Promise<void> {
   const key = normalizeDocId(docId);
-  if (!key || !canUseIndexedDB()) {
+  if (!key) {
     return;
   }
 
-  const db = await openDocSnapshotDb();
-  const tx = db.transaction(STORE_NAME, "readwrite");
-  const store = tx.objectStore(STORE_NAME);
-
-  store.delete(key);
-
-  return new Promise((resolve, reject) => {
-    tx.oncomplete = () => {
-      db.close();
-      resolve();
-    };
-    tx.onerror = () => {
-      db.close();
-      reject(tx.error);
-    };
-    tx.onabort = () => {
-      db.close();
-      reject(tx.error);
-    };
+  await removeDocSnapshot(key);
+  await removeLegacyIndexedDbSnapshot(key).catch((error) => {
+    console.warn("[DocSnapshot] remove legacy IndexedDB snapshot failed", error);
   });
 }
