@@ -244,8 +244,12 @@ jobs:
 
           "${SSH_CMD[@]}" "${SSH_DEST}" "rm -rf '${DEPLOY_STAGING}' && mkdir -p '${DEPLOY_STAGING}'"
 
+          DEPLOY_ARTIFACT_DIR="dist"
+          test -f "${DEPLOY_ARTIFACT_DIR}/index.html"
+          test -d "${DEPLOY_ARTIFACT_DIR}/assets"
+
           # 直接通过 tar 流上传，绕开 scp-action 在跨境链路上长时间卡死的问题。
-          tar -C build/client -czf - . |
+          tar -C "${DEPLOY_ARTIFACT_DIR}" -czf - . |
             "${SSH_CMD[@]}" "${SSH_DEST}" "tar -xzf - -C '${DEPLOY_STAGING}'"
 
           STAGING_ASSET_COUNT="$("${SSH_CMD[@]}" "${SSH_DEST}" "test -f '${DEPLOY_STAGING}/index.html' && test -d '${DEPLOY_STAGING}/assets' && find '${DEPLOY_STAGING}/assets' -type f | wc -l")"
