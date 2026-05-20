@@ -40,25 +40,29 @@ export function useRulePageQuery(
   page: number,
   keyword?: string,
   pageSize: number = 8,
+  options: { enabled?: boolean } = {},
 ) {
   const queryClient = useQueryClient();
+  const enabled = options.enabled ?? true;
 
   const query = useQuery({
-    queryKey: getRulePageQueryKey(page, keyword, pageSize),
+    queryKey: [...getRulePageQueryKey(page, keyword, pageSize), client],
     queryFn: () => fetchRulePage(client, page, keyword, pageSize),
-    placeholderData: (previousData) => previousData,
+    placeholderData: previousData => previousData,
     staleTime: 10_000,
+    enabled,
   });
 
   const isLast = query.data?.meta?.isLast;
 
   useEffect(() => {
-    if (isLast) return;
+    if (!enabled || isLast)
+      return;
     queryClient.prefetchQuery({
-      queryKey: getRulePageQueryKey(page + 1, keyword, pageSize),
+      queryKey: [...getRulePageQueryKey(page + 1, keyword, pageSize), client],
       queryFn: () => fetchRulePage(client, page + 1, keyword, pageSize),
     });
-  }, [page, keyword, pageSize, isLast, queryClient, client]);
+  }, [page, keyword, pageSize, isLast, queryClient, client, enabled]);
 
   return {
     ...query,

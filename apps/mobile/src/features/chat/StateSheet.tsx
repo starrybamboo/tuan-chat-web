@@ -1,17 +1,17 @@
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
-
-import { useMemo } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-
+import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
 import { compareStateValueText } from "@tuanchat/domain/state-runtime";
+
 import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 const styles = StyleSheet.create({
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface StateSheetProps {
+type StateSheetProps = {
   currentRoleId: number | null;
   isStateCommandMode: boolean;
   messages: Message[];
@@ -63,7 +63,7 @@ interface StateSheetProps {
   roomRoles: UserRole[];
   ruleId: number | null | undefined;
   visible: boolean;
-}
+};
 
 export function StateSheet({
   currentRoleId,

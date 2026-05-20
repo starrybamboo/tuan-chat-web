@@ -1,10 +1,10 @@
-import type { RoomRolesById } from "./chat-avatar-utils";
-
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { StyleSheet, View } from "react-native";
-import { Image } from "expo-image";
 
+import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
+
+import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { resolveMessageAvatarUrl } from "./chat-avatar-utils";
 
@@ -29,14 +29,14 @@ function getAvatarInitial(displayName: string) {
   return displayName ? displayName.slice(0, 1) : "?";
 }
 
-interface MessageAvatarProps {
+type MessageAvatarProps = {
   avatarFileId?: number | null;
   displayName?: string | null;
   roleId?: number | null;
   roomRolesById?: RoomRolesById;
   size?: number;
   userId?: number | null;
-}
+};
 
 export const MessageAvatar = memo(({
   avatarFileId,
@@ -53,16 +53,13 @@ export const MessageAvatar = memo(({
     },
     roomRolesById,
   );
-  const avatarSource = useMemo(() => (avatarUrl ? { uri: avatarUrl } : null), [avatarUrl]);
   const borderRadius = size / 2;
 
-  if (avatarSource) {
+  if (avatarUrl) {
     return (
-      <Image
-        cachePolicy="memory-disk"
+      <CachedImage
+        uri={avatarUrl}
         contentFit="cover"
-        recyclingKey={avatarUrl ?? undefined}
-        source={avatarSource}
         style={{ borderRadius, height: size, width: size }}
       />
     );

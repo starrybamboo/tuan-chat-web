@@ -11,6 +11,10 @@ interface ImgUploaderProps {
   children: React.ReactNode;
 }
 
+type TriggerElementProps = React.HTMLAttributes<HTMLElement> & {
+  disabled?: boolean;
+};
+
 /**
  * 图片上传组件
  * @param setImg 当图片文件加载成功时调用的函数
@@ -35,6 +39,56 @@ export function ImgUploader({
     }
   };
 
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const renderTrigger = () => {
+    if (!React.isValidElement<TriggerElementProps>(children)) {
+      return (
+        <span
+          className="contents"
+          role="button"
+          tabIndex={0}
+          onClick={openFilePicker}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openFilePicker();
+            }
+          }}
+        >
+          {children}
+        </span>
+      );
+    }
+
+    const childProps = children.props;
+    const isNativeButton = children.type === "button";
+    const isDisabled = childProps.disabled === true;
+
+    return React.cloneElement(children, {
+      role: isNativeButton ? childProps.role : (childProps.role ?? "button"),
+      tabIndex: isNativeButton ? childProps.tabIndex : (childProps.tabIndex ?? 0),
+      onClick: (event: React.MouseEvent<HTMLElement>) => {
+        childProps.onClick?.(event);
+        if (!event.defaultPrevented && !isDisabled) {
+          openFilePicker();
+        }
+      },
+      onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+        childProps.onKeyDown?.(event);
+        if (event.defaultPrevented || isNativeButton || isDisabled) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openFilePicker();
+        }
+      },
+    });
+  };
+
   return (
     <div>
       <input
@@ -44,13 +98,7 @@ export function ImgUploader({
         className="hidden"
         accept="image/*"
       />
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        className="contents"
-      >
-        {children}
-      </button>
+      {renderTrigger()}
     </div>
   );
 }

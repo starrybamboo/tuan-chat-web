@@ -4,7 +4,7 @@ import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceR
 import { useId, useState } from "react";
 import { toast } from "react-hot-toast";
 
-import { mediaPreviewUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import {
   useGetPublicResourceCollectionsByTypeQuery,
   useGetPublicResourcesByTypeQuery,
@@ -167,7 +167,7 @@ export function ResourceSelectorModal({
   };
 
   const handleConfirmSelect = () => {
-    const selectedResourceUrl = mediaPreviewUrl(selectedResource?.fileId, selectedResource?.mediaType);
+    const selectedResourceUrl = mediaFileUrl(selectedResource?.fileId, selectedResource?.mediaType, "medium");
     if (selectedResourceUrl) {
       onSelect(selectedResourceUrl, selectedResource ?? undefined);
       // 重置状态
@@ -343,7 +343,7 @@ export function ResourceSelectorModal({
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                             {filteredItems.map((item) => {
                               const resource = item as ResourceResponse;
-                              const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
+                              const resourceUrl = mediaFileUrl(resource.fileId, resource.mediaType, "medium");
                               return (
                                 <div
                                   key={resource.resourceId}
@@ -441,7 +441,7 @@ export function ResourceSelectorModal({
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                                 {filteredItems.map((item) => {
                                   const resource = item as ResourceResponse;
-                                  const resourceUrl = mediaPreviewUrl(resource.fileId, resource.mediaType);
+                                  const resourceUrl = mediaFileUrl(resource.fileId, resource.mediaType, "medium");
                                   return (
                                     <div
                                       key={resource.resourceId}

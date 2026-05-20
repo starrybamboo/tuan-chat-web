@@ -1,7 +1,8 @@
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
 import { useRouter } from "@tanstack/react-router";
-import { startTransition, useMemo, useState } from "react";
+import { lazy, startTransition, Suspense, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,
@@ -9,7 +10,9 @@ import {
   useNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
-import NotificationList from "@/components/notification/notificationList";
+import { normalizeNotificationTargetPath } from "@/components/notification/notificationNavigation";
+
+const LazyNotificationList = lazy(() => import("@/components/notification/notificationList"));
 
 export default function NotificationPage() {
   const router = useRouter();
@@ -29,13 +32,19 @@ export default function NotificationPage() {
   }, [notificationsQuery.data?.pages]);
 
   const openNotification = async (item: UserNotificationItem) => {
+    const targetPath = normalizeNotificationTargetPath(item.targetPath);
+    if (!targetPath) {
+      toast.error("通知目标链接无效，请稍后重试");
+      return;
+    }
+
     setBusyNotificationId(item.notificationId);
     try {
       if (!item.isRead) {
         await markReadMutation.mutateAsync({ notificationIdList: [item.notificationId] });
       }
       startTransition(() => {
-        router.history.push(item.targetPath);
+        router.history.push(targetPath);
       });
     }
     finally {
@@ -93,13 +102,15 @@ export default function NotificationPage() {
           </div>
 
           <div className="px-6 py-5">
-            <NotificationList
-              items={notifications}
-              emptyText={unreadOnly ? "当前没有未读通知。" : "还没有通知。"}
-              loading={notificationsQuery.isLoading}
-              busyNotificationId={busyNotificationId}
-              onItemClick={openNotification}
-            />
+            <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载通知...</div>}>
+              <LazyNotificationList
+                items={notifications}
+                emptyText={unreadOnly ? "当前没有未读通知。" : "还没有通知。"}
+                loading={notificationsQuery.isLoading}
+                busyNotificationId={busyNotificationId}
+                onItemClick={openNotification}
+              />
+            </Suspense>
 
             {notificationsQuery.hasNextPage
               ? (

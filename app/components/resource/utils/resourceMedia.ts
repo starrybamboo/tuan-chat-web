@@ -1,7 +1,7 @@
-import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 import type { MediaType } from "@/utils/imgCompressUtils";
+import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 
-import { mediaPreviewUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 const VALID_MEDIA_TYPES = new Set<MediaType>(["image", "audio", "video", "document", "other"]);
 
@@ -25,5 +25,5 @@ export function resolveResourceMediaType(resource: Pick<ResourceResponse, "media
 export function resolveResourcePreviewUrl(
   resource: Pick<ResourceResponse, "fileId" | "mediaType" | "type">,
 ) {
-  return mediaPreviewUrl(resource.fileId, resolveResourceMediaType(resource));
+  return mediaFileUrl(resource.fileId, resolveResourceMediaType(resource), "medium");
 }

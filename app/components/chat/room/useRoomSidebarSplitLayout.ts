@@ -27,6 +27,7 @@ type UseRoomSidebarSplitLayoutResult = {
   containerRef: RefCallback<HTMLDivElement>;
   isDragging: boolean;
   topPaneStyle?: CSSProperties;
+  bottomPaneStyle?: CSSProperties;
   handlePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   handleKeyDown: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
   resetSplitRatio: () => void;
@@ -308,6 +309,9 @@ export default function useRoomSidebarSplitLayout({
     isDragging,
     topPaneStyle: enabled && metrics.topHeight > 0
       ? { height: `${metrics.topHeight}px` }
+      : undefined,
+    bottomPaneStyle: enabled && metrics.bottomHeight > 0
+      ? { height: `${metrics.bottomHeight}px` }
       : undefined,
     handlePointerDown,
     handleKeyDown,

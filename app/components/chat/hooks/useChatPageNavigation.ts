@@ -2,6 +2,8 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { useCallback } from "react";
 
+import type { SelectRoomOptions } from "@/components/chat/chatPage.types";
+
 type StoredChatIds = {
   spaceId?: number | null;
   roomId?: number | null;
@@ -18,7 +20,7 @@ type UseChatPageNavigationParams = {
 
 type UseChatPageNavigationResult = {
   handleOpenPrivate: () => void;
-  setActiveRoomId: (roomId: number | null, options?: { replace?: boolean }) => void;
+  setActiveRoomId: (roomId: number | null, options?: SelectRoomOptions) => void;
   setActiveSpaceId: (spaceId: number | null) => void;
 };
 
@@ -39,14 +41,15 @@ export default function useChatPageNavigation({
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
   }, [isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
-  const setActiveRoomId = useCallback((roomId: number | null, options?: { replace?: boolean }) => {
+  const setActiveRoomId = useCallback((roomId: number | null, options?: SelectRoomOptions) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
     if (screenSize === "sm") {
       newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     }
     const nextRoomId = roomId ?? "";
-    navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}?${newSearchParams.toString()}`, { replace: options?.replace });
+    const messagePath = roomId && options?.targetMessageId ? `/${options.targetMessageId}` : "";
+    navigate(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}?${newSearchParams.toString()}`, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const handleOpenPrivate = useCallback(() => {

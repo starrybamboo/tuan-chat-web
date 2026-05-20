@@ -50,8 +50,8 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["**/*.test.ts"],
-    exclude: ["**/*.e2e.test.ts", "**/node_modules/**", "**/dist/**"],
-    maxThreads: 16,
+    exclude: ["**/*.e2e.test.ts", "**/.codex-tmp/**", "**/node_modules/**", "**/dist/**"],
+    maxWorkers: 8,
     server: {
       deps: {
         inline: [/^@blocksuite\//, /[\\/]node_modules[\\/]@blocksuite[\\/]/],
@@ -61,10 +61,12 @@ export default defineConfig({
       provider: "v8",
       reportsDirectory: "coverage",
       reporter: ["text", "lcov"],
-      lines: 70,
-      branches: 70,
-      functions: 70,
-      statements: 70,
+      thresholds: {
+        lines: 70,
+        branches: 70,
+        functions: 70,
+        statements: 70,
+      },
     },
   },
 });

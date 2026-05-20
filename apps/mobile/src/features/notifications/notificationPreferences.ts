@@ -29,11 +29,13 @@ export async function readNotificationPreferences(): Promise<NotificationPrefere
   let raw: string | null = null;
   if (isWebStorageAvailable()) {
     raw = window.localStorage.getItem(STORAGE_KEY);
-  } else {
+  }
+  else {
     raw = await SecureStore.getItemAsync(STORAGE_KEY);
   }
 
-  if (!raw) return { ...DEFAULT_PREFERENCES };
+  if (!raw)
+    return { ...DEFAULT_PREFERENCES };
 
   try {
     const parsed = JSON.parse(raw) as Partial<NotificationPreferences>;
@@ -45,7 +47,8 @@ export async function readNotificationPreferences(): Promise<NotificationPrefere
       sound: parsed.sound ?? DEFAULT_PREFERENCES.sound,
       vibration: parsed.vibration ?? DEFAULT_PREFERENCES.vibration,
     };
-  } catch {
+  }
+  catch {
     return { ...DEFAULT_PREFERENCES };
   }
 }
@@ -54,7 +57,8 @@ export async function writeNotificationPreferences(prefs: NotificationPreference
   const value = JSON.stringify(prefs);
   if (isWebStorageAvailable()) {
     window.localStorage.setItem(STORAGE_KEY, value);
-  } else {
+  }
+  else {
     await SecureStore.setItemAsync(STORAGE_KEY, value);
   }
 }

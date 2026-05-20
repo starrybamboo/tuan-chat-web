@@ -45,6 +45,26 @@ describe("messageDraft request normalization", () => {
     expect(request.customRoleName).toBe("旁白");
   });
 
+  it("旧草稿里的身份字段不会进入发送请求", () => {
+    const request = buildChatMessageRequestFromDraft({
+      content: "历史素材",
+      messageType: MESSAGE_TYPE.TEXT,
+      extra: {},
+      roleId: 99,
+      avatarId: 88,
+      customRoleName: "旧身份",
+    } as any, {
+      roomId: 1,
+      roleId: 2,
+      avatarId: 3,
+      customRoleName: " 当前身份 ",
+    });
+
+    expect(request.roleId).toBe(2);
+    expect(request.avatarId).toBe(3);
+    expect(request.customRoleName).toBe("当前身份");
+  });
+
   it("音频草稿缺少 second 时直接抛出前端错误", () => {
     expect(() => buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.SOUND,
@@ -81,6 +101,41 @@ describe("messageDraft request normalization", () => {
         roomId: 12,
         spaceId: 34,
         label: "去大厅",
+      },
+    });
+  });
+
+  it("保留 clue card 的消息快照", () => {
+    const request = buildChatMessageRequestFromDraft({
+      messageType: MESSAGE_TYPE.CLUE_CARD,
+      extra: {
+        clueMessage: {
+          snapshot: {
+            messageType: MESSAGE_TYPE.TEXT,
+            content: " 旧钥匙 ",
+            extra: {
+              diceResult: {
+                result: " 1d20=18 ",
+              },
+            },
+          },
+        },
+      },
+    } as any, {
+      roomId: 1,
+    });
+
+    expect(request.extra).toEqual({
+      clueMessage: {
+        snapshot: {
+          messageType: MESSAGE_TYPE.TEXT,
+          content: " 旧钥匙 ",
+          extra: {
+            diceResult: {
+              result: " 1d20=18 ",
+            },
+          },
+        },
       },
     });
   });
@@ -266,11 +321,6 @@ describe("messageDraft request normalization", () => {
 
   it("上传后的多媒体与文件素材会复用首条文本并按类型组装草稿", () => {
     expect(buildMessageDraftsFromUploadedMedia({
-      baseMessage: {
-        roleId: 2,
-        avatarId: 3,
-        customRoleName: " 旁白 ",
-      },
       fileAnnotations: ["file-annotation"],
       inputText: "开场白",
       imageAnnotations: ["image-annotation"],
@@ -308,9 +358,6 @@ describe("messageDraft request normalization", () => {
         size: 16384,
       }],
     })).toEqual([{
-      roleId: 2,
-      avatarId: 3,
-      customRoleName: "旁白",
       annotations: ["image-annotation"],
       content: "开场白",
       messageType: MESSAGE_TYPE.IMG,
@@ -326,9 +373,6 @@ describe("messageDraft request normalization", () => {
         },
       },
     }, {
-      roleId: 2,
-      avatarId: 3,
-      customRoleName: "旁白",
       annotations: ["sound-annotation"],
       content: "",
       messageType: MESSAGE_TYPE.SOUND,
@@ -343,9 +387,6 @@ describe("messageDraft request normalization", () => {
         },
       },
     }, {
-      roleId: 2,
-      avatarId: 3,
-      customRoleName: "旁白",
       annotations: ["video-annotation"],
       content: "",
       messageType: MESSAGE_TYPE.VIDEO,
@@ -359,9 +400,6 @@ describe("messageDraft request normalization", () => {
         },
       },
     }, {
-      roleId: 2,
-      avatarId: 3,
-      customRoleName: "旁白",
       annotations: ["file-annotation"],
       content: "",
       messageType: MESSAGE_TYPE.FILE,

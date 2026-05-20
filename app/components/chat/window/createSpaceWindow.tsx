@@ -7,7 +7,7 @@ import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 
 interface CreateSpaceWindowProps {
   onSuccess?: () => void;
@@ -20,7 +20,7 @@ export default function CreateSpaceWindow({ onSuccess }: CreateSpaceWindowProps)
   const spaceAvatarThumbUploadId = useId().replace(/:/g, "");
   const spaceNameInputId = useId().replace(/:/g, "");
   const defaultSpaceAvatarFileId = userInfo?.avatarFileId;
-  const defaultSpaceAvatar = avatarThumbUrl(defaultSpaceAvatarFileId);
+  const defaultSpaceAvatar = imageLowUrl(defaultSpaceAvatarFileId);
   const defaultSpaceName = userInfo?.username ? `${String(userInfo.username)}的空间` : "";
 
   // 创建空间

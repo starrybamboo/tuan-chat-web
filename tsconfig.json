@@ -4,7 +4,6 @@
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
     "useDefineForClassFields": false,
-    "rootDirs": [".", "./.react-router/types"],
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
@@ -14,6 +13,8 @@
       "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
       "@tuanchat/galgame-ai-contract": ["./packages/galgame-ai-contract/src/index.ts"],
       "@tuanchat/galgame-ai-contract/*": ["./packages/galgame-ai-contract/src/*"],
+      "@tuanchat/local-db": ["./packages/tuanchat-local-db/src/index.ts"],
+      "@tuanchat/local-db/*": ["./packages/tuanchat-local-db/src/*"],
       "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
       "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
       "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
@@ -30,8 +31,7 @@
   "include": [
     "**/*",
     "**/.server/**/*",
-    "**/.client/**/*",
-    ".react-router/types/**/*"
+    "**/.client/**/*"
   ],
   "exclude": [
     "node_modules",

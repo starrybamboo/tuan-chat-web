@@ -9,6 +9,7 @@ import { AbilityControllerService } from './services/AbilityControllerService';
 import { AiGatewayControllerService } from './services/AiGatewayControllerService';
 import { AiGatewayOpenAiControllerService } from './services/AiGatewayOpenAiControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
+import { BlocksuiteDocControllerService } from './services/BlocksuiteDocControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
 import { CollectionListControllerService } from './services/CollectionListControllerService';
@@ -18,6 +19,7 @@ import { CommunityService } from './services/CommunityService';
 import { CommunityPostControllerService } from './services/CommunityPostControllerService';
 import { CounterService } from './services/CounterService';
 import { DatabaseBackupService } from './services/DatabaseBackupService';
+import { DocRoomControllerService } from './services/DocRoomControllerService';
 import { FeedbackIssueControllerService } from './services/FeedbackIssueControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { FriendControllerService } from './services/FriendControllerService';
@@ -59,6 +61,7 @@ export class TuanChat {
     public readonly aiGatewayController: AiGatewayControllerService;
     public readonly aiGatewayOpenAiController: AiGatewayOpenAiControllerService;
     public readonly avatarController: AvatarControllerService;
+    public readonly blocksuiteDocController: BlocksuiteDocControllerService;
     public readonly chatController: ChatControllerService;
     public readonly collectionController: CollectionControllerService;
     public readonly collectionListController: CollectionListControllerService;
@@ -68,6 +71,7 @@ export class TuanChat {
     public readonly communityPostController: CommunityPostControllerService;
     public readonly counter: CounterService;
     public readonly databaseBackup: DatabaseBackupService;
+    public readonly docRoomController: DocRoomControllerService;
     public readonly feedbackIssueController: FeedbackIssueControllerService;
     public readonly feedController: FeedControllerService;
     public readonly friendController: FriendControllerService;
@@ -120,6 +124,7 @@ export class TuanChat {
         this.aiGatewayController = new AiGatewayControllerService(this.request);
         this.aiGatewayOpenAiController = new AiGatewayOpenAiControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
+        this.blocksuiteDocController = new BlocksuiteDocControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);
         this.collectionListController = new CollectionListControllerService(this.request);
@@ -129,6 +134,7 @@ export class TuanChat {
         this.communityPostController = new CommunityPostControllerService(this.request);
         this.counter = new CounterService(this.request);
         this.databaseBackup = new DatabaseBackupService(this.request);
+        this.docRoomController = new DocRoomControllerService(this.request);
         this.feedbackIssueController = new FeedbackIssueControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.friendController = new FriendControllerService(this.request);

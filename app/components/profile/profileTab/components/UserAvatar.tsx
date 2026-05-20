@@ -3,7 +3,7 @@ import React, { useState } from "react";
 
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 
 interface UserAvatarProps {
   user: UserInfoResponse | undefined;
@@ -84,7 +84,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   // 渲染头像图片内容（不包含交互层）
   const renderAvatarImage = () => {
     // 修改：优化渲染逻辑
-    const avatarSrc = avatarThumbUrl(user.avatarFileId);
+    const avatarSrc = imageLowUrl(user.avatarFileId);
     const hasAvatar = avatarSrc && !imageError;
 
     if (hasAvatar) {

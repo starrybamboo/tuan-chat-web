@@ -1,12 +1,14 @@
 import type { PropsWithChildren } from "react";
-import type { NativeAppNotificationPayload } from "./mobileNotificationTypes";
+
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import { Platform } from "react-native";
 
 import { useAuthSession } from "@/features/auth/auth-session";
+
+import type { NativeAppNotificationPayload } from "./mobileNotificationTypes";
+
 import { MobileNotificationSessionContext } from "./mobileNotificationSessionContext";
 import { normalizeNotificationTargetPath } from "./mobileNotificationTypes";
 
@@ -22,11 +24,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export interface MobileNotificationSessionContextValue {
+export type MobileNotificationSessionContextValue = {
   acknowledgeTargetPath: (targetPath: string | null) => void;
   pendingTargetPath: string | null;
   presentNotification: (payload: NativeAppNotificationPayload) => Promise<void>;
-}
+};
 
 async function ensureNotificationPermissionAsync() {
   if (Platform.OS === "web") {

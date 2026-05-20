@@ -1,7 +1,6 @@
 import type { UserRole } from "../../../../api";
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import React from "react";
 import AtMentionController from "@/components/atMentionController";
@@ -17,8 +16,6 @@ import ChatAttachmentsPreviewFromStore from "@/components/chat/message/chatAttac
 import RepliedMessage from "@/components/chat/message/preview/repliedMessage";
 import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
-import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
@@ -26,7 +23,6 @@ import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
-import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 interface RoomComposerPanelProps {
@@ -49,7 +45,6 @@ interface RoomComposerPanelProps {
   onSendEffect: (effectName: string) => void;
   onClearBackground: () => void;
   onClearFigure: () => void;
-  onSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void> | void;
   onOpenFullMessageDiff?: () => void;
   isFullMessageDiffOpen?: boolean;
   onOpenImportChatText?: () => void;
@@ -101,7 +96,6 @@ function RoomComposerPanelImpl({
   onSendEffect,
   onClearBackground,
   onClearFigure,
-  onSendWebgalChoose,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen,
   onOpenImportChatText,
@@ -314,13 +308,6 @@ function RoomComposerPanelImpl({
     }
     return "输入消息…（Shift+Enter 换行）";
   }, [composerTarget, curAvatarId, insertAfterMessageId, isKP, noRole, notMember, threadRootMessageId]);
-  const inputPlainText = useChatInputUiStore(state => state.plainText);
-  const inputTextLength = React.useMemo(() => countTextEnhanceVisibleLength(inputPlainText), [inputPlainText]);
-  const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
-  const shouldShowThresholdHint = webgalLinkMode && roomContentAlertThreshold > 0;
-  const thresholdCounterText = `${formatTextEnhanceVisibleLength(inputTextLength)}/${formatTextEnhanceVisibleLength(roomContentAlertThreshold)}`;
-  const isMessageOverThreshold = shouldShowThresholdHint && inputTextLength > roomContentAlertThreshold;
-
   React.useEffect(() => {
     let isActive = true;
     const key = `${roomId}:${curRoleId}`;
@@ -395,7 +382,6 @@ function RoomComposerPanelImpl({
     onSendEffect,
     onClearBackground,
     onClearFigure,
-    onSendWebgalChoose,
     onOpenFullMessageDiff,
     isFullMessageDiffOpen,
     isKP,
@@ -420,7 +406,6 @@ function RoomComposerPanelImpl({
     onClearFigure,
     onOpenFullMessageDiff,
     onSendEffect,
-    onSendWebgalChoose,
     onStopBgmForAll,
     onToggleRealtimeRender,
     runModeEnabled,
@@ -456,7 +441,7 @@ function RoomComposerPanelImpl({
           showWhenEmpty={true}
           alwaysShowAddButton={true}
           showNormalModeAnnotationsOnly={!webgalLinkMode}
-          compact={screenSize === "sm"}
+          compact={true}
           className="mt-0"
         />
       )
@@ -478,21 +463,9 @@ function RoomComposerPanelImpl({
           onCompositionEnd={onCompositionEnd}
           disabled={inputDisabled}
           placeholder={placeholderText}
-          className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1 ${isMessageOverThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+          className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1`}
         />
-        {shouldShowThresholdHint && !isMessageOverThreshold && (
-          <div className="pointer-events-none absolute right-2 bottom-1 rounded px-1 text-[11px] leading-4 bg-base-200/80 text-base-content/60">
-            {thresholdCounterText}
-          </div>
-        )}
       </div>
-      {shouldShowThresholdHint && isMessageOverThreshold && (
-        <div className="mt-1 flex justify-end">
-          <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-            {thresholdCounterText}
-          </span>
-        </div>
-      )}
     </div>
   );
 
@@ -502,7 +475,7 @@ function RoomComposerPanelImpl({
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
           ruleId={ruleId}
-          className="absolute bottom-full w-full mb-2 bg-base-200 rounded-md overflow-hidden z-10"
+          className="absolute bottom-full w-full bg-base-200 rounded-md overflow-hidden z-10"
         />
 
         <div

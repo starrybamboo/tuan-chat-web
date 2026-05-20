@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { normalizeMessageExtraForMatch } from "@/types/messageDraft";
+import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
@@ -170,7 +171,7 @@ function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
 
   for (const item of messages) {
     const message = item.message;
-    if (!message || message.messageId >= 0 || message.status === 1) {
+    if (!message || message.status === 1 || !isOptimisticRoomMessage(message)) {
       continue;
     }
     const createTimeMs = parseTimeToMs(message.createTime);
@@ -232,7 +233,7 @@ function mergeMessageForLocalState(
   const mergedMessage = {
     ...existingMessage,
     ...incomingMessage,
-  };
+  } as ChatMessageResponse["message"] & { tcLocalSyncState?: string };
 
   const incomingCreateTimeMs = parseTimeToMs(incomingMessage.createTime);
   const existingCreateTimeMs = parseTimeToMs(existingMessage.createTime);
@@ -257,6 +258,12 @@ function mergeMessageForLocalState(
   }
   if (!Array.isArray(incomingMessage.annotations) && Array.isArray(existingMessage.annotations)) {
     mergedMessage.annotations = existingMessage.annotations;
+  }
+  if (isOptimisticRoomMessage(incomingMessage)) {
+    mergedMessage.tcLocalSyncState = "optimistic";
+  }
+  else {
+    delete mergedMessage.tcLocalSyncState;
   }
 
   return {

@@ -123,7 +123,7 @@ export default function useChatFrameVisualEffects({
     // 从清除背景之后（或从头）开始寻找新的背景图片
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
-        newBgUrl = mediaFileUrl(bg.imageMessage?.fileId, bg.imageMessage?.mediaType, "high") || null;
+        newBgUrl = mediaFileUrl(bg.imageMessage?.fileId, bg.imageMessage?.mediaType, "medium") || null;
       }
       else if (bg.index > currentMessageIndex) {
         break;

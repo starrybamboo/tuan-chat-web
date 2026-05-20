@@ -1,7 +1,31 @@
-import { useFriendRequestsQuery as useSharedFriendRequestsQuery } from "@tuanchat/query/friends";
-
+import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
+import {
+  canUseMobileUserScopedSnapshot,
+  createMobileQuerySnapshotKey,
+  useMobileQuerySnapshot,
+} from "@/lib/use-mobile-query-snapshot";
+import {
+  getFriendRequestsQueryKey,
+  useFriendRequestsQuery as useSharedFriendRequestsQuery,
+} from "@tuanchat/query/friends";
+
+const FRIEND_REQUESTS_SNAPSHOT_TTL_MS = 2 * 60_000;
 
 export function useFriendRequestsQuery() {
-  return useSharedFriendRequestsQuery(mobileApiClient);
+  const { isAuthenticated, session } = useAuthSession();
+  const query = useSharedFriendRequestsQuery(mobileApiClient, undefined, {
+    enabled: isAuthenticated,
+  });
+
+  return useMobileQuerySnapshot(query, {
+    enabled: canUseMobileUserScopedSnapshot({
+      isAuthenticated,
+      userId: session?.userId,
+    }),
+    key: createMobileQuerySnapshotKey(getFriendRequestsQueryKey()),
+    scope: "friend-requests",
+    ttlMs: FRIEND_REQUESTS_SNAPSHOT_TTL_MS,
+    userId: session?.userId,
+  });
 }

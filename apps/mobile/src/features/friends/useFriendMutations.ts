@@ -1,3 +1,4 @@
+import { mobileApiClient } from "@/lib/api";
 import {
   useAcceptFriendRequestMutation as useSharedAcceptFriendRequestMutation,
   useBlockFriendMutation as useSharedBlockFriendMutation,
@@ -7,8 +8,6 @@ import {
   useSendFriendRequestMutation as useSharedSendFriendRequestMutation,
   useUnblockFriendMutation as useSharedUnblockFriendMutation,
 } from "@tuanchat/query/friends";
-
-import { mobileApiClient } from "@/lib/api";
 
 export function useSendFriendRequestMutation() {
   return useSharedSendFriendRequestMutation(mobileApiClient);

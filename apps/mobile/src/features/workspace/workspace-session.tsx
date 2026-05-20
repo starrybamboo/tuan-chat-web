@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from "react";
+
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
@@ -9,7 +10,7 @@ import {
   writeStoredWorkspaceSelection,
 } from "./workspaceStorage";
 
-interface WorkspaceSessionContextValue {
+type WorkspaceSessionContextValue = {
   selectedSpaceId: number | null;
   selectedRoomId: number | null;
   setSelectedSpaceId: (spaceId: number | null) => void;
@@ -17,7 +18,7 @@ interface WorkspaceSessionContextValue {
   clearWorkspaceSelection: () => void;
   chatTabBarHidden: boolean;
   setChatTabBarHidden: (hidden: boolean) => void;
-}
+};
 
 const WorkspaceSessionContext = createContext<WorkspaceSessionContextValue | null>(null);
 

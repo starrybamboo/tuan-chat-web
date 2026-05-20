@@ -103,10 +103,10 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
       </div>
 
       {/* 桌面端样式 */}
-      <div className="hidden md:flex flex-col w-full border-t border-base-300 px-6 pt-4 pb-2">
+      <div className="hidden md:flex w-full flex-col border-t border-base-300 px-6 py-3">
         {/* 预览要发送的图片 */}
         {(imgFiles.length > 0 || emojiUrls.length > 0) && (
-          <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+          <div className="mb-2 flex flex-row gap-x-3 overflow-x-auto">
             {imgFiles.map((file, index) => (
               <BetterImg
                 src={file}
@@ -128,33 +128,34 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
             ))}
           </div>
         )}
-        {/* 上方输入框 */}
-        <div className="flex-1 w-full">
+
+        <div className="flex min-h-11 w-full items-end gap-2 rounded-xl border border-base-300 bg-base-200/60 px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="flex h-8 shrink-0 items-center gap-1">
+            <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
+              <EmojiIcon className="size-5 cursor-pointer text-base-content/60 transition-colors hover:text-blue-500" />
+            </Emoji>
+            <Image updateImgFiles={updateImgFiles}>
+              <Image2Fill className="size-5 cursor-pointer text-base-content/60 transition-colors hover:text-blue-500" />
+            </Image>
+          </div>
+
+          <label htmlFor="private-message-input" className="sr-only">私聊消息</label>
           <textarea
-            className="w-full h-full resize-none px-2 py-1 rounded-lg focus:outline-none"
+            id="private-message-input"
+            name="privateMessage"
+            className="max-h-28 min-h-8 flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-6 outline-none placeholder:text-base-content/45"
             placeholder="Enter 发送，Shift+Enter 换行"
             onChange={(e) => {
               setMessageInput(e.target.value);
             }}
             value={messageInput}
             onKeyDown={handleKeyDown}
+            rows={1}
           />
-        </div>
-        {/* 下方工具栏 */}
-        <div className="h-12 w-full flex items-center justify-between px-2">
-          {/* 工具 */}
-          <div className="h-full flex items-center gap-4">
-            <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
-              <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
-            </Emoji>
-            <Image updateImgFiles={updateImgFiles}>
-              <Image2Fill className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
-            </Image>
-          </div>
-          {/* 发送按钮 */}
+
           <button
             type="button"
-            className="btn btn-info"
+            className="btn btn-primary btn-sm min-h-8 h-8 shrink-0"
             onClick={handleSendMessage}
             disabled={!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0}
           >

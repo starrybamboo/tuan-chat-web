@@ -7,7 +7,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import UTILS from "@/components/common/dicer/utils/utils";
 
-import executorDnd from "./cmdExeDnd";
+import executorDnd, { resetDndSpellsCacheForTest } from "./cmdExeDnd";
 
 // Mock UTILS
 vi.mock("@/components/common/dicer/utils/utils", async () => {
@@ -79,7 +79,8 @@ describe("d&D 5e 指令集测试", () => {
         return Number.NaN;
       }
       try {
-        return eval(expr);
+        // eslint-disable-next-line no-new-func
+        return new Function(`return (${expr})`)();
       }
       catch {
         return Number.NaN;
@@ -92,6 +93,8 @@ describe("d&D 5e 指令集测试", () => {
   });
 
   afterEach(() => {
+    resetDndSpellsCacheForTest();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -293,6 +296,55 @@ describe("d&D 5e 指令集测试", () => {
       expect(cpi.replyMessage).toHaveBeenCalledWith(
         expect.stringMatching(/失败$/), // 以失败结尾，且不是大失败
       );
+    });
+  });
+
+  describe("find (查询法术)", () => {
+    it("应该按需加载法术表并返回完全匹配的法术", async () => {
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        json: async () => [
+          {
+            name: "Magic Missile",
+            source: "PHB",
+            page: "257",
+            level: "1st-level",
+            castingTime: "1 action",
+            duration: "Instantaneous",
+            school: "evocation",
+            range: "120 feet",
+            components: "V, S",
+            classes: "wizard",
+            optionalClasses: "",
+            subclasses: "",
+            text: "You create three glowing darts of magical force.",
+            atHigherLevels: "",
+          },
+        ],
+      }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const executor = executorDnd.cmdMap.get("find");
+      await executor?.solve(["magic", "missile"], [mockRole], cpi);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("dndSpellsData"), { cache: "force-cache" });
+      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("Magic Missile"));
+      expect(cpi.replyMessage).toHaveBeenCalledWith(expect.stringContaining("施法时间: 1 action"));
+    });
+
+    it("法术表加载失败时应该提示重试", async () => {
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => [],
+      })));
+
+      const executor = executorDnd.cmdMap.get("find");
+      await executor?.solve(["magic"], [mockRole], cpi);
+
+      expect(cpi.sendToast).toHaveBeenCalledWith("法术数据加载失败，请稍后重试");
+      expect(cpi.replyMessage).not.toHaveBeenCalled();
     });
   });
 });

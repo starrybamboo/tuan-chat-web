@@ -6,8 +6,7 @@ import { fetchUserRoomsWithCache, useGetUserRoomsQuery, useGetUserSpacesQuery } 
 import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
-import { useEffect, useMemo, useRef, useState } from "react";
-import RoomWindow from "@/components/chat/room/roomWindow";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
@@ -21,6 +20,8 @@ import {
 } from "./repositoryDetail.helpers";
 import "@/components/common/message/messageAnimations.css";
 // import IssueTab from "./issueTab";
+
+const LazyRoomWindow = lazy(() => import("@/components/chat/room/roomWindow"));
 
 interface RepositoryDetailComponentProps {
   repositoryData?: RepositoryData;
@@ -598,11 +599,20 @@ export default function RepositoryDetailComponent({
                     )}
                     {linkedSpaceId && viewRoomId && (
                       <div className="h-full min-h-0">
-                        <RoomWindow
-                          roomId={viewRoomId}
-                          spaceId={linkedSpaceId}
-                          viewMode
-                        />
+                        <Suspense
+                          fallback={(
+                            <div className="flex h-full items-center justify-center gap-3 text-base-content/60">
+                              <span className="loading loading-spinner loading-md" />
+                              <span className="text-sm">加载房间预览中...</span>
+                            </div>
+                          )}
+                        >
+                          <LazyRoomWindow
+                            roomId={viewRoomId}
+                            spaceId={linkedSpaceId}
+                            viewMode
+                          />
+                        </Suspense>
                       </div>
                     )}
                   </div>

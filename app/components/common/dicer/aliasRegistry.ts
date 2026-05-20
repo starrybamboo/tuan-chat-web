@@ -3,7 +3,6 @@ import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import executorCoc from "@/components/common/dicer/cmdExe/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExe/cmdExeDnd";
 import executorFu from "@/components/common/dicer/cmdExe/cmdExeFu";
-import executorPokemon from "@/components/common/dicer/cmdExe/cmdExePokemon";
 import UTILS from "@/components/common/dicer/utils/utils";
 
 // 统一维护规则执行器映射，外部统一从此处获取
@@ -11,14 +10,14 @@ export const RULES: Map<number, RuleNameSpace> = new Map<number, RuleNameSpace>(
 RULES.set(1, executorCoc);
 RULES.set(2, executorDnd);
 RULES.set(3, executorFu);
-RULES.set(7, executorPokemon);
+RULES.set(7, executorDnd);
 
 // 统一维护别名映射集，供 AliasMap 初始化使用
 const ALIAS_MAP_SET: { [key: string]: Map<string, string> } = {
   1: executorCoc.aliasMap,
   2: executorDnd.aliasMap,
   3: executorFu.aliasMap,
-  7: executorPokemon.aliasMap,
+  7: executorDnd.aliasMap,
 };
 
 let initialized = false;

@@ -1,7 +1,6 @@
 import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
-import { Platform } from "react-native";
 
-import { getStoredAuthToken } from "@/features/auth/auth-storage";
+import { getStoredAuthToken } from "../features/auth/auth-storage";
 
 function resolveDefaultApiBaseUrl() {
   const explicitBaseUrl = process.env.EXPO_PUBLIC_TUANCHAT_API_BASE_URL;
@@ -9,12 +8,7 @@ function resolveDefaultApiBaseUrl() {
     return explicitBaseUrl.trim();
   }
 
-  if (Platform.OS === "web") {
-    return "https://tuan.chat/api";
-  }
-
-  // 真机和模拟器都通过脚本配置 adb reverse，把设备 localhost 转到电脑后端。
-  return "http://127.0.0.1:8081";
+  return "https://tuan.chat/api";
 }
 
 export const DEFAULT_TUANCHAT_API_BASE_URL = resolveDefaultApiBaseUrl();

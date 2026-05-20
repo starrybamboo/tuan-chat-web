@@ -14,7 +14,7 @@ import {
   createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
-import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";
@@ -83,7 +83,7 @@ export function SpriteCropper({
   }, []);
 
   const getStrictSpriteSourceUrl = useCallback((avatar?: RoleAvatar): string => {
-    const spriteUrl = imageHighUrl(avatar?.spriteFileId);
+    const spriteUrl = imageMediumUrl(avatar?.spriteFileId);
     const spriteOriginalUrl = getStrictSpriteOriginalUrl(avatar);
     if (sourceMode === "origin") {
       return spriteOriginalUrl;
@@ -94,7 +94,7 @@ export function SpriteCropper({
   // 头像裁剪必须来自立绘链路；立绘裁剪保持现有兼容策略。
   const filteredAvatars = roleAvatars.filter((avatar) => {
     if (isAvatarMode) {
-      return Boolean(imageHighUrl(avatar?.spriteFileId) || getStrictSpriteOriginalUrl(avatar));
+      return Boolean(imageMediumUrl(avatar?.spriteFileId) || getStrictSpriteOriginalUrl(avatar));
     }
     return Boolean(getEffectiveSpriteUrl(avatar)) || Boolean(getEffectiveSpriteOriginalUrl(avatar));
   });

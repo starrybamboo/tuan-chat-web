@@ -1,29 +1,26 @@
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
-import { CheckerboardIcon, FileTextIcon, PulseIcon, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 import React from "react";
-import InitiativeList from "@/components/chat/room/drawers/initiativeList";
-import StateDrawer from "@/components/chat/room/drawers/stateDrawer";
+import ClueDrawer from "@/components/chat/clues/clueDrawer";
+import CombatDrawer from "@/components/chat/room/drawers/combatDrawer";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
 import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import { WebgalIcon, XMarkICon } from "@/icons";
+import { FolderIcon, WebgalIcon, XMarkICon } from "@/icons";
 
-type SubPane = "map" | "initiative" | "state" | "webgal" | "doc";
+type SubPane = "map" | "combat" | "clue" | "webgal";
 
-const LazyDocFolderForUser = React.lazy(() => import("@/components/chat/room/drawers/docFolderForUser"));
-
-function isSubRoomDrawerState(state: string): state is "map" | "initiative" | "state" | "webgal" | "doc" {
-  return state === "map" || state === "initiative" || state === "state" || state === "webgal" || state === "doc";
+function isCombatDrawerState(state: string): boolean {
+  return state === "combat" || state === "initiative" || state === "state";
 }
 
-interface SubRoomWindowProps {
-  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
+function isSubRoomDrawerState(state: string): state is "map" | "combat" | "clue" | "initiative" | "state" | "webgal" {
+  return state === "map" || state === "clue" || isCombatDrawerState(state) || state === "webgal";
 }
 
-function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
+function SubRoomWindowImpl() {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
@@ -31,11 +28,9 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
   const setSubRoomWindowWidth = useDrawerPreferenceStore(state => state.setSubRoomWindowWidth);
   const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
   const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
-  const docFolderDrawerWidth = useDrawerPreferenceStore(state => state.docFolderDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const resolvedUserDrawerWidth = Math.min(620, Math.max(240, userDrawerWidth));
   const resolvedRoleDrawerWidth = Math.min(620, Math.max(240, roleDrawerWidth));
-  const resolvedDocFolderDrawerWidth = Math.min(760, Math.max(280, docFolderDrawerWidth));
   const resolvedExportDrawerWidth = Math.min(760, Math.max(280, exportDrawerWidth));
 
   const [isOpen, setIsOpen] = React.useState(false);
@@ -54,21 +49,17 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
       setIsOpen(true);
       setActivePane("map");
     }
-    else if (sideDrawerState === "initiative") {
+    else if (isCombatDrawerState(sideDrawerState)) {
       setIsOpen(true);
-      setActivePane("initiative");
+      setActivePane("combat");
     }
-    else if (sideDrawerState === "state") {
+    else if (sideDrawerState === "clue") {
       setIsOpen(true);
-      setActivePane("state");
+      setActivePane("clue");
     }
     else if (sideDrawerState === "webgal") {
       setIsOpen(true);
       setActivePane("webgal");
-    }
-    else if (sideDrawerState === "doc") {
-      setIsOpen(true);
-      setActivePane("doc");
     }
     else if (sideDrawerState === "none" && isSubRoomDrawerState(prevSideDrawerState)) {
       setIsOpen(false);
@@ -80,7 +71,7 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
 
   // 预留左侧聊天区的“最小可用宽度”。当左侧已经无法继续缩小时，
   // SubRoomWindow 也不允许继续拖宽，避免整体溢出。
-  // 这里额外考虑了 RoomSideDrawers（user/role/docFolder/export）当前占用宽度。
+  // 这里额外考虑了 RoomSideDrawers（user/role/export）当前占用宽度。
   const minRemainingWidth = React.useMemo(() => {
     const baseMinChatWidth = 520;
 
@@ -91,15 +82,11 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
     else if (sideDrawerState === "role") {
       lightDrawerWidth = resolvedRoleDrawerWidth;
     }
-    else if (sideDrawerState === "docFolder") {
-      lightDrawerWidth = resolvedDocFolderDrawerWidth;
-    }
     else if (sideDrawerState === "export") {
       lightDrawerWidth = resolvedExportDrawerWidth;
     }
     return baseMinChatWidth + lightDrawerWidth;
   }, [
-    resolvedDocFolderDrawerWidth,
     resolvedExportDrawerWidth,
     resolvedRoleDrawerWidth,
     resolvedUserDrawerWidth,
@@ -110,14 +97,14 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
     const w = typeof window === "undefined" ? 1200 : window.innerWidth;
 
     switch (activePane) {
-      case "initiative": {
-        const min = 380;
-        const max = 640;
+      case "combat": {
+        const min = 560;
+        const max = 820;
         return { minWidth: min, maxWidth: max };
       }
-      case "state": {
-        const min = 420;
-        const max = 720;
+      case "clue": {
+        const min = 360;
+        const max = 620;
         return { minWidth: min, maxWidth: max };
       }
       case "webgal":
@@ -131,13 +118,11 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
 
   const title = activePane === "map"
     ? "地图"
-    : activePane === "initiative"
-      ? "先攻栏"
-      : activePane === "state"
-        ? "状态"
-        : activePane === "doc"
-          ? "文档"
-          : "WebGAL 预览";
+    : activePane === "combat"
+      ? "战斗"
+      : activePane === "clue"
+        ? "线索"
+        : "WebGAL 预览";
 
   const close = React.useCallback(() => {
     setIsOpen(false);
@@ -159,15 +144,15 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
       minRemainingWidth={minRemainingWidth}
       onWidthChange={setSubRoomWindowWidth}
       handlePosition="left"
+      animationDuration={0.16}
     >
       <div className="h-full flex flex-col min-h-0 bg-base-200 dark:bg-slate-950/25 backdrop-blur-xl border-l border-base-300 shadow-none">
         <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-50">
           <div className="flex justify-between items-center w-full px-2 h-10">
             <div className="flex items-center gap-2 min-w-0">
               {activePane === "map" && <CheckerboardIcon className="size-5 opacity-80" />}
-              {activePane === "initiative" && <SwordIcon className="size-5 opacity-80" />}
-              {activePane === "state" && <PulseIcon className="size-5 opacity-80" />}
-              {activePane === "doc" && <FileTextIcon className="size-5 opacity-80" />}
+              {activePane === "combat" && <SwordIcon className="size-5 opacity-80" />}
+              {activePane === "clue" && <FolderIcon className="size-5 opacity-80" />}
               {activePane === "webgal" && <WebgalIcon className="size-5 opacity-80" />}
               <span className="text-center font-semibold line-clamp-1 truncate min-w-0 text-sm sm:text-base">
                 {title}
@@ -191,21 +176,14 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
               <DNDMap />
             </div>
           )}
-          {activePane === "initiative" && (
-            <div className="overflow-auto h-full">
-              <InitiativeList />
+          {activePane === "combat" && (
+            <div className="h-full overflow-hidden">
+              <CombatDrawer />
             </div>
           )}
-          {activePane === "state" && (
+          {activePane === "clue" && (
             <div className="h-full overflow-hidden">
-              <StateDrawer />
-            </div>
-          )}
-          {activePane === "doc" && (
-            <div className="h-full overflow-hidden">
-              <React.Suspense fallback={<SubRoomWindowFallback text="正在加载文档..." />}>
-                <LazyDocFolderForUser onSendDocCard={onSendDocCard} />
-              </React.Suspense>
+              <ClueDrawer />
             </div>
           )}
           {activePane === "webgal" && (
@@ -223,12 +201,3 @@ function SubRoomWindowImpl({ onSendDocCard }: SubRoomWindowProps) {
 
 const SubRoomWindow = React.memo(SubRoomWindowImpl);
 export default SubRoomWindow;
-
-function SubRoomWindowFallback({ text }: { text: string }) {
-  return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
-      <span className="loading loading-spinner loading-md"></span>
-      <span className="ml-2">{text}</span>
-    </div>
-  );
-}

@@ -5,7 +5,7 @@ import checkBack from "@/components/common/autoContrastText";
 import { MemberSelect } from "@/components/common/memberSelect";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 
 interface CreateRoomWindowProps {
   spaceId: number;
@@ -25,7 +25,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, onSucce
   const getSpaceInfo = useGetSpaceInfoQuery(spaceId);
   const spaceInfo = getSpaceInfo.data?.data;
   const defaultRoomAvatarFileId = spaceInfo?.avatarFileId;
-  const defaultRoomAvatar = avatarThumbUrl(defaultRoomAvatarFileId) || spaceAvatarThumbUrl || "";
+  const defaultRoomAvatar = imageLowUrl(defaultRoomAvatarFileId) || spaceAvatarThumbUrl || undefined;
   const defaultRoomName = userInfo?.username ? `${String(userInfo.username)}的房间` : "";
 
   // 创建房间的头像

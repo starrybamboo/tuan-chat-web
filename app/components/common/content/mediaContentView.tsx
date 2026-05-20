@@ -1,5 +1,10 @@
+import { lazy, Suspense } from "react";
 import { hasMeaningfulMediaContent, normalizeMediaContent } from "@/components/common/content/mediaContent";
-import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+
+const LazyMarkDownViewer = lazy(async () => {
+  const module = await import("@/components/common/markdown/markDownViewer");
+  return { default: module.MarkDownViewer };
+});
 
 export default function MediaContentView({
   content,
@@ -20,5 +25,9 @@ export default function MediaContentView({
     );
   }
 
-  return <MarkDownViewer content={normalizedContent} className={className} />;
+  return (
+    <Suspense fallback={<div className={`text-sm text-base-content/50 ${className ?? ""}`}>正在加载内容...</div>}>
+      <LazyMarkDownViewer content={normalizedContent} className={className} />
+    </Suspense>
+  );
 }

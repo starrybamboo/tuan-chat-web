@@ -66,7 +66,7 @@ export type UserRole = {
     createTime?: string;
     updateTime?: string;
     role?: boolean;
-    npc?: boolean;
     diceMaiden?: boolean;
+    npc?: boolean;
 };
 

@@ -1,9 +1,9 @@
 import { BugBeetleIcon, ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Link, useLocation, useNavigate } from "react-router";
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
@@ -169,7 +169,7 @@ export default function Topbar() {
 
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
-    navigate(path);
+    navigate({ to: path });
     setIsUserDropdownOpen(false);
     // 强制移除焦点
     (document.activeElement as HTMLElement)?.blur();
@@ -182,7 +182,7 @@ export default function Topbar() {
     setIsUserDropdownOpen(false);
     // 强制移除焦点
     (document.activeElement as HTMLElement)?.blur();
-    window.location.reload();
+    navigate({ to: "/login" });
   };
 
   const exportBugReportLog = useCallback(() => {

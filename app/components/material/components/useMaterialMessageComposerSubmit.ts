@@ -7,7 +7,6 @@ import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/
 import { UploadUtils } from "@/utils/UploadUtils";
 
 type UseMaterialMessageComposerSubmitParams = {
-  baseMessage?: Partial<MessageDraft>;
   inputText: string;
   imgFiles: File[];
   emojiUrls: string[];
@@ -28,7 +27,6 @@ type UseMaterialMessageComposerSubmitResult = {
 };
 
 export default function useMaterialMessageComposerSubmit({
-  baseMessage,
   inputText,
   imgFiles,
   emojiUrls,
@@ -56,7 +54,6 @@ export default function useMaterialMessageComposerSubmit({
 
     try {
       const nextMessages = await buildMessageDraftsFromComposerSnapshot({
-        baseMessage,
         inputText,
         imgFiles,
         emojiUrls,
@@ -88,7 +85,6 @@ export default function useMaterialMessageComposerSubmit({
     }
   }, [
     audioFile,
-    baseMessage,
     composerAnnotations,
     emojiMetaByUrl,
     emojiUrls,

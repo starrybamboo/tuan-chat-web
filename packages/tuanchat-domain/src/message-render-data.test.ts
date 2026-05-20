@@ -1,0 +1,134 @@
+import { describe, expect, it } from "vitest";
+
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
+import {
+  getClueCardRenderData,
+  getDocCardRenderData,
+  getForwardMessageRenderData,
+  getRoomJumpRenderData,
+  getThreadRootRenderData,
+  getWebgalChooseRenderData,
+} from "./message-render-data";
+import { MESSAGE_TYPE } from "./messageType";
+
+function createForwardItem(messageId: number, status = 0): ChatMessageResponse {
+  return {
+    message: {
+      content: `消息 ${messageId}`,
+      messageId,
+      messageType: MESSAGE_TYPE.TEXT,
+      roomId: 1,
+      status,
+      userId: 7,
+    },
+  };
+}
+
+describe("message-render-data", () => {
+  it("builds forward summaries and hides deleted preview items", () => {
+    const data = getForwardMessageRenderData({
+      forwardMessage: {
+        messageList: [
+          createForwardItem(1),
+          createForwardItem(2, 1),
+          createForwardItem(3),
+          createForwardItem(4),
+        ],
+      },
+    }, 2);
+
+    expect(data).toMatchObject({
+      count: 4,
+      hiddenDeletedCount: 1,
+      remainingCount: 1,
+      title: "转发消息",
+    });
+    expect(data.previewMessages.map(item => item.message.messageId)).toEqual([1, 3]);
+  });
+
+  it("builds WebGAL choice summaries from prompt and options", () => {
+    expect(getWebgalChooseRenderData({
+      webgalChoose: {
+        prompt: "选择路线",
+        options: [
+          { text: "去图书馆", code: "library" },
+          { text: "回旅馆" },
+          { label: "继续观察" },
+        ],
+      },
+    })).toEqual({
+      options: [
+        { text: "去图书馆", code: "library" },
+        { text: "回旅馆" },
+        { text: "继续观察" },
+      ],
+      prompt: "选择路线",
+      summary: "选择路线：去图书馆 / 回旅馆 / 继续观察",
+      title: "选择",
+    });
+  });
+
+  it("builds doc, clue, thread, and room jump fallback data", () => {
+    expect(getDocCardRenderData({
+      docCard: {
+        docId: "42",
+        excerpt: "第一页摘要",
+        imageFileId: 9,
+        imageMediaType: "image",
+        roomId: 12,
+        spaceId: 3,
+        title: "调查笔记",
+      },
+    })).toMatchObject({
+      docId: "42",
+      excerpt: "第一页摘要",
+      imageFileId: 9,
+      imageMediaType: "image",
+      roomId: 12,
+      spaceId: 3,
+      title: "调查笔记",
+    });
+
+    expect(getClueCardRenderData({
+      clueMessage: {
+        snapshot: {
+          messageType: "6",
+          content: "1d20=18",
+          extra: {
+            diceResult: { result: "1d20=18" },
+          },
+        },
+      },
+    })).toEqual({
+      snapshot: {
+        messageType: 6,
+        content: "1d20=18",
+        extra: {
+          diceResult: { result: "1d20=18" },
+        },
+      },
+    });
+
+    expect(getThreadRootRenderData({ threadRoot: { title: "支线讨论" } })).toEqual({
+      title: "支线讨论",
+    });
+
+    expect(getRoomJumpRenderData({ roomJump: { roomId: 8, roomName: "作战频道" } })).toMatchObject({
+      label: "作战频道",
+      roomId: 8,
+      roomName: "作战频道",
+    });
+  });
+
+  it("uses stable fallback labels for incomplete payloads", () => {
+    expect(getDocCardRenderData(undefined).title).toBe("文档");
+    expect(getClueCardRenderData(undefined).snapshot).toEqual({
+      content: "",
+      messageType: 1,
+    });
+    expect(getThreadRootRenderData(undefined).title).toBe("子区");
+    expect(getRoomJumpRenderData(undefined).label).toBe("群聊跳转");
+    expect(getWebgalChooseRenderData(undefined).summary).toBe("选择消息");
+  });
+});

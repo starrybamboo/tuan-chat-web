@@ -1,6 +1,6 @@
 import type { RoleAvatar } from "api";
 
-import { avatarOriginalUrl, avatarThumbUrl, avatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { avatarOriginalUrl, avatarUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 
 import type { Transform } from "./TransformControl";
 
@@ -28,7 +28,7 @@ export function getEffectiveAvatarUrl(avatar: RoleAvatar | null | undefined): st
 }
 
 export function getEffectiveAvatarThumbUrl(avatar: RoleAvatar | null | undefined): string {
-  return avatarThumbUrl(avatar?.avatarFileId) || getEffectiveAvatarUrl(avatar);
+  return imageLowUrl(avatar?.avatarFileId) || getEffectiveAvatarUrl(avatar);
 }
 
 export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatar | null | undefined): string {
@@ -46,7 +46,7 @@ export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatar | null | undefi
 }
 
 export function getEffectiveSpriteUrl(avatar: RoleAvatar | null | undefined): string {
-  const spriteUrl = imageHighUrl(avatar?.spriteFileId);
+  const spriteUrl = imageMediumUrl(avatar?.spriteFileId);
   if (spriteUrl) {
     return spriteUrl;
   }
@@ -72,7 +72,7 @@ export function getEffectiveSpriteUrl(avatar: RoleAvatar | null | undefined): st
     return originUrl;
   }
 
-  return "";
+  return undefined as unknown as string;
 }
 
 export function parseTransformFromAvatar(avatar: RoleAvatar | null): Transform {

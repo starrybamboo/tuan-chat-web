@@ -1,8 +1,9 @@
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
-import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
+import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
+import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
+import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
 /**
  * 为聊天图片保留稳定的固有尺寸，减少图片加载完成后触发的布局跳动。
@@ -15,6 +16,30 @@ export function resolveBetterImgIntrinsicSize(size?: { width?: number; height?: 
     ? size.height
     : undefined;
   return { width, height };
+}
+
+function isFileSource(src: string | File | undefined): src is File {
+  return typeof File !== "undefined" && src instanceof File;
+}
+
+export function useFileObjectUrl(src: string | File | undefined): string | undefined {
+  const objectUrl = useMemo(() => {
+    if (!isFileSource(src)) {
+      return undefined;
+    }
+    return URL.createObjectURL(src);
+  }, [src]);
+
+  useEffect(() => {
+    if (!objectUrl) {
+      return;
+    }
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [objectUrl]);
+
+  return isFileSource(src) ? objectUrl : src;
 }
 
 /**
@@ -33,20 +58,45 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
   transparent?: boolean;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
-  const displayImgSrc = typeof imgSrc === "string" ? imageHighUrlFromUrl(imgSrc) : imgSrc;
+  const [fallbackObjectUrl, setFallbackObjectUrl] = useState<string | undefined>();
+  const imgSrc = useFileObjectUrl(src);
+  const displayImgSrc = fallbackObjectUrl ?? imgSrc;
+  const zoomImgSrc = fallbackObjectUrl ?? (typeof imgSrc === "string" ? imagePreviewUrlFromUrl(imgSrc) : imgSrc);
   const intrinsicSize = resolveBetterImgIntrinsicSize(size);
+
+  useEffect(() => {
+    setFallbackObjectUrl(undefined);
+  }, [src]);
+
+  useEffect(() => {
+    if (!fallbackObjectUrl) {
+      return;
+    }
+    return () => {
+      URL.revokeObjectURL(fallbackObjectUrl);
+    };
+  }, [fallbackObjectUrl]);
+
   const handleLoad = () => {
     if (typeof displayImgSrc !== "string") {
       return;
     }
     markObservedWebgalAsset(displayImgSrc);
-    void primeWebgalAssetCache(displayImgSrc);
+  };
+  const handleError = () => {
+    if (!isFileSource(src) || fallbackObjectUrl) {
+      return;
+    }
+    void compressImage(src, MEDIA_COMPRESSION_PROFILES.image.low)
+      .then((previewFile) => {
+        setFallbackObjectUrl(URL.createObjectURL(previewFile));
+      })
+      .catch(() => {});
   };
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => <ResizableImg src={displayImgSrc ?? ""} size={size} onClose={onClose} />,
+      onClose => <ResizableImg src={zoomImgSrc} onClose={onClose} />,
       {
         fullScreen: true,
         transparent,
@@ -69,6 +119,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
           className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
           alt="img"
           onLoad={handleLoad}
+          onError={handleError}
         />
       </button>
 

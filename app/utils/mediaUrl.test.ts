@@ -2,12 +2,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   avatarThumbUrl,
-  imageHighUrlFromUrl,
+  imageHighUrl,
   imageLowUrlFromUrl,
+  imageMediumUrl,
   imageMediumUrlFromUrl,
   imageOriginalUrlFromUrl,
+  imagePreviewUrl,
+  imagePreviewUrlFromUrl,
+  mediaFileUrl,
   mediaFileUrlWithQuality,
+  mediaPreviewUrl,
   mediaShard,
+  mediaThumbUrl,
   mediaUrl,
 } from "./mediaUrl";
 
@@ -49,20 +55,33 @@ describe("mediaUrl", () => {
   });
 
   it("将已有媒体 URL 改写为适合展示场景的图片档位", () => {
-    expect(imageHighUrlFromUrl("/media/v1/files/007/7/original")).toBe("/media/v1/files/007/7/image/medium.webp");
+    expect(imagePreviewUrlFromUrl("/media/v1/files/007/7/original")).toBe("/media/v1/files/007/7/image/medium.webp");
     expect(imageMediumUrlFromUrl("/media/v1/files/007/7/image/high.webp")).toBe("/media/v1/files/007/7/image/medium.webp");
     expect(imageLowUrlFromUrl("https://cdn.example.com/media/v1/files/007/7/original?token=old")).toBe("https://cdn.example.com/media/v1/files/007/7/image/low.webp");
     expect(imageOriginalUrlFromUrl("/media/v1/files/007/7/image/low.webp")).toBe("/media/v1/files/007/7/original");
   });
 
   it("非媒体系统 URL 原样返回", () => {
-    expect(imageHighUrlFromUrl("https://img.example.com/original.webp")).toBe("https://img.example.com/original.webp");
+    expect(imagePreviewUrlFromUrl("https://img.example.com/original.webp")).toBe("https://img.example.com/original.webp");
     expect(imageMediumUrlFromUrl("data:image/png;base64,abc")).toBe("data:image/png;base64,abc");
-    expect(imageLowUrlFromUrl("")).toBe("");
+    expect(imageLowUrlFromUrl("")).toBeUndefined();
   });
 
   it("按媒体类型改写已有音视频媒体 URL", () => {
     expect(mediaFileUrlWithQuality("/media/v1/files/009/9/original", "audio", "high")).toBe("/media/v1/files/009/9/audio/low.webm");
     expect(mediaFileUrlWithQuality("/media/v1/files/010/10/video/low.webm", "video", "medium")).toBe("/media/v1/files/010/10/video/low.webm");
+  });
+
+  it("high 质量级别统一映射为 medium", () => {
+    expect(mediaUrl(45, "image", "high")).toBe("https://tuan.chat/media/v1/files/045/45/image/medium.webp");
+    expect(imageHighUrl(45)).toBe(imageMediumUrl(45));
+    expect(mediaFileUrl(45, "image", "high")).toBe(mediaUrl(45, "image", "medium"));
+  });
+
+  it("deprecated 便捷函数保持兼容", () => {
+    expect(imagePreviewUrl(45)).toBe(imageMediumUrl(45));
+    expect(mediaPreviewUrl(45, "image")).toBe(imageMediumUrl(45));
+    expect(mediaThumbUrl(45, "image")).toBe("https://tuan.chat/media/v1/files/045/45/image/low.webp");
+    expect(avatarThumbUrl(45)).toBe("https://tuan.chat/media/v1/files/045/45/image/low.webp");
   });
 });

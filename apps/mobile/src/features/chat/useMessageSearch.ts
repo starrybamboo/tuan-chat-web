@@ -1,7 +1,7 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-
 import { buildMessageSearchText } from "@tuanchat/domain/message-search";
 import { useMemo, useState } from "react";
+
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 type MessageItem = {
   message: Message;

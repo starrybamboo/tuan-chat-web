@@ -1,41 +1,9 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import {
-  createRoomMessageRepository,
-  type RoomMessageRepository,
-} from "@tuanchat/local-db";
-import * as SQLite from "expo-sqlite";
-
-let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
-let repositoryPromise: Promise<RoomMessageRepository> | null = null;
+import { getMobileRoomMessageRepository } from "../../lib/mobile-local-db";
 
 function isPositiveRoomId(roomId: number): boolean {
   return Number.isInteger(roomId) && roomId > 0;
-}
-
-async function openRoomMessageDb(): Promise<SQLite.SQLiteDatabase> {
-  dbPromise ??= SQLite.openDatabaseAsync("tuanchat-local.db");
-  return dbPromise;
-}
-
-let operationQueue: Promise<unknown> = Promise.resolve();
-
-function enqueue<T>(task: () => Promise<T>): Promise<T> {
-  const result = operationQueue.then(task, task);
-  operationQueue = result.then(() => undefined, () => undefined);
-  return result;
-}
-
-async function getRoomMessageRepository(): Promise<RoomMessageRepository> {
-  repositoryPromise ??= (async () => {
-    const db = await openRoomMessageDb();
-    return createRoomMessageRepository({
-      all: (sql, params = []) => enqueue(() => db.getAllAsync(sql, ...params)),
-      exec: sql => enqueue(() => db.execAsync(sql)),
-      run: (sql, params = []) => enqueue(() => db.runAsync(sql, ...params).then(() => undefined)),
-    });
-  })();
-  return repositoryPromise;
 }
 
 export async function readCachedRoomMessages(roomId: number): Promise<ChatMessageResponse[]> {
@@ -43,8 +11,27 @@ export async function readCachedRoomMessages(roomId: number): Promise<ChatMessag
     return [];
   }
 
-  const repository = await getRoomMessageRepository();
-  return repository.getMessagesByRoomId(roomId);
+  const repository = await getMobileRoomMessageRepository();
+  const messages = await repository.getMessagesByRoomId(roomId);
+  return messages.filter(m => typeof m.message?.messageId === "number" && m.message.messageId > 0);
+}
+
+export async function readCachedRoomMessagesSinceSyncId(roomId: number, syncId: number): Promise<ChatMessageResponse[]> {
+  if (!isPositiveRoomId(roomId)) {
+    return [];
+  }
+
+  const repository = await getMobileRoomMessageRepository();
+  return repository.getMessagesSinceSyncId(roomId, syncId);
+}
+
+export async function getCachedRoomMessagesMaxSyncId(roomId: number): Promise<number> {
+  if (!isPositiveRoomId(roomId)) {
+    return -1;
+  }
+
+  const repository = await getMobileRoomMessageRepository();
+  return repository.getMaxSyncId(roomId);
 }
 
 export async function writeCachedRoomMessages(roomId: number, messages: ChatMessageResponse[]) {
@@ -52,8 +39,14 @@ export async function writeCachedRoomMessages(roomId: number, messages: ChatMess
     return;
   }
 
-  const repository = await getRoomMessageRepository();
-  await repository.upsertMessages(messages.filter(message => message.message?.roomId === roomId));
+  const repository = await getMobileRoomMessageRepository();
+  await repository.upsertMessages(
+    messages.filter(message =>
+      message.message?.roomId === roomId
+      && typeof message.message?.messageId === "number"
+      && message.message.messageId > 0,
+    ),
+  );
 }
 
 export async function markCachedRoomMessagesDeleted(roomId: number, messageIds: number[]) {
@@ -61,7 +54,7 @@ export async function markCachedRoomMessagesDeleted(roomId: number, messageIds: 
     return;
   }
 
-  const repository = await getRoomMessageRepository();
+  const repository = await getMobileRoomMessageRepository();
   await repository.markMessagesDeleted(messageIds);
 }
 
@@ -70,6 +63,6 @@ export async function clearCachedRoomMessages(roomId: number) {
     return;
   }
 
-  const repository = await getRoomMessageRepository();
+  const repository = await getMobileRoomMessageRepository();
   await repository.clearRoomMessages(roomId);
 }

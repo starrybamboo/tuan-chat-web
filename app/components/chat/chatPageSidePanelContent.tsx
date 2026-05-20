@@ -1,6 +1,6 @@
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { Room } from "api";
-import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
 import React from "react";
 import LeftChatList from "@/components/privateChat/LeftChatList";
@@ -38,7 +38,7 @@ interface ChatPageSidePanelContentProps {
   onContextMenu: (e: React.MouseEvent, roomId?: number | null) => void;
   onInviteMember: () => void;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
-  onSelectRoom: (roomId: number) => void;
+  onSelectRoom: (roomId: number, options?: SelectRoomOptions) => void;
   onOpenRoomSetting: (roomId: number, tab?: RoomSettingTab) => void;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
   onOpenCreateInCategory: (categoryId: string) => void;

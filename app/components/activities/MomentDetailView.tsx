@@ -4,7 +4,7 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
-import { avatarThumbUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
@@ -45,7 +45,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
   const userData = userInfoData?.data;
   const data = {
     name: userData?.username || "未知用户",
-    avatar: avatarThumbUrl(userData?.avatarFileId) || "favicon.ico",
+    avatar: imageLowUrl(userData?.avatarFileId) || "favicon.ico",
   };
 
   const deleteMutation = useDeleteMomentFeedMutation();

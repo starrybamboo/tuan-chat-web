@@ -156,6 +156,23 @@ export class AbilityControllerService {
         });
     }
     /**
+     * 批量查询角色能力
+     * 根据规则ID和多个角色ID批量查询能力
+     * @param requestBody
+     * @returns ApiResultMapStringRoleAbility OK
+     * @throws ApiError
+     */
+    public batchGetByRuleAndRoles(
+        requestBody: AbilityBatchQueryRequest,
+    ): CancelablePromise<ApiResultMapStringRoleAbility> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/role/ability/batch',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * 根据角色id获得角色的所有能力
      * @param roleId
      * @param commitId
@@ -193,23 +210,6 @@ export class AbilityControllerService {
                 'ruleId': ruleId,
                 'roleId': roleId,
             },
-        });
-    }
-    /**
-     * 批量查询角色能力
-     * 根据规则ID和多个角色ID批量查询能力
-     * @param requestBody
-     * @returns ApiResultMapStringRoleAbility OK
-     * @throws ApiError
-     */
-    public batchGetByRuleAndRoles(
-        requestBody: AbilityBatchQueryRequest,
-    ): CancelablePromise<ApiResultMapStringRoleAbility> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/role/ability/batch',
-            body: requestBody,
-            mediaType: 'application/json',
         });
     }
 }

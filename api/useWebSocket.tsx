@@ -16,6 +16,7 @@ import type { CrossTabNotificationGuard } from "@/utils/crossTabNotificationGuar
 import { createCrossTabNotificationGuard } from "@/utils/crossTabNotificationGuard";
 import { appendUrlQueryParam, resolveRuntimeWebSocketBaseUrl } from "@/utils/runtimeUrl";
 import type { ChatStatus, OptimisticDirectMessagePending, WsMessage } from "./webSocketRuntimeTypes";
+import { AUTH_SESSION_CHANGED_EVENT } from "@/utils/auth/sessionEvents";
 import { useWebSocketMessageHandlers } from "./useWebSocketMessageHandlers";
 import { useWebSocketNotifications } from "./useWebSocketNotifications";
 
@@ -55,6 +56,7 @@ const EMPTY_SESSIONS: MessageSessionResponse[] = [];
 const WS_URL = resolveRuntimeWebSocketBaseUrl(import.meta.env.VITE_API_WS_URL);
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
 const OPTIMISTIC_DIRECT_MESSAGE_ID_BASE = Date.now() * 1000;
+const WS_DEBUG_LOG_ENABLED = import.meta.env.DEV;
 type WsDebugState = {
   implementedTypes: number[];
   unhandledTypes: number[];
@@ -312,7 +314,9 @@ export function useWebSocket() {
       const wsUrl = currentToken ? appendUrlQueryParam(WS_URL, "token", currentToken) : WS_URL;
       wsRef.current = new WebSocket(wsUrl);
       wsRef.current.onopen = () => {
-        console.log("WebSocket connected");
+        if (WS_DEBUG_LOG_ENABLED) {
+          console.info("WebSocket connected");
+        }
         syncWsDebugToWindow();
         const isReconnected = hasOpenedOnceRef.current;
         hasOpenedOnceRef.current = true;
@@ -331,7 +335,9 @@ export function useWebSocket() {
         if (closingRef.current) {
           return;
         }
-        console.log(`Close code: ${event.code}, Reason: ${event.reason}`);
+        if (WS_DEBUG_LOG_ENABLED) {
+          console.info(`Close code: ${event.code}, Reason: ${event.reason}`);
+        }
         stopHeartbeat();
         wsRef.current = null;
 
@@ -349,7 +355,9 @@ export function useWebSocket() {
         const attempt = reconnectAttempts.current;
         const delay = Math.min(200 * (2 ** attempt), 60000);
 
-        console.log(`WebSocket closed. Attempting to reconnect in ${delay / 1000} seconds.`);
+        if (WS_DEBUG_LOG_ENABLED) {
+          console.info(`WebSocket closed. Attempting to reconnect in ${delay / 1000} seconds.`);
+        }
 
         if (reconnectTimer.current) {
           clearTimeout(reconnectTimer.current);
@@ -507,6 +515,42 @@ export function useWebSocket() {
     heartbeatTimer.current && clearInterval(heartbeatTimer.current);
   }, []);
 
+  const closeSocket = useCallback(() => {
+    stopHeartbeat();
+    if (connectTimerRef.current) {
+      clearTimeout(connectTimerRef.current);
+      connectTimerRef.current = null;
+    }
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = null;
+    }
+    reconnectAttempts.current = 0;
+    closingRef.current = true;
+    if (wsRef.current) {
+      wsRef.current.onopen = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onclose = null;
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, [stopHeartbeat]);
+
+  useEffect(() => {
+    const handleAuthSessionChanged = () => {
+      if (readCurrentToken()) {
+        closingRef.current = false;
+        connect();
+        return;
+      }
+      closeSocket();
+    };
+
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, handleAuthSessionChanged);
+    return () => window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleAuthSessionChanged);
+  }, [closeSocket, connect, readCurrentToken]);
+
   /**
    * 发送消息给后端
    * @param request 要发送的对象
@@ -521,7 +565,6 @@ export function useWebSocket() {
     if (!isConnected()) {
       connect();
     }
-    console.log("发送消息: ",request);
     for (let i = 0; i < 50; i++) {
       if (wsRef.current?.readyState === WebSocket.OPEN)
         break;

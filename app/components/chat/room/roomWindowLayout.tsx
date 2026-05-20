@@ -1,23 +1,31 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { Message } from "../../../../api";
 import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import type { RoomContentMode } from "@/components/chat/room/roomHeaderBar";
 import React from "react";
 import ChatFrame from "@/components/chat/chatFrame";
+import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
 import SubRoomWindow from "@/components/chat/room/subRoomWindow";
-import PixiOverlay from "@/components/chat/shared/components/pixiOverlay";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
 type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
+
+const LazyPixiOverlay = React.lazy(() => import("@/components/chat/shared/components/pixiOverlay"));
 
 interface RoomWindowLayoutProps {
   spaceId: number;
   roomId: number;
   roomName?: string;
   room?: Room | null;
+  contentMode: RoomContentMode;
+  onToggleContentMode: () => void;
+  canViewDocContent: boolean;
+  initialDocMessages: Message[];
+  onRemoteDocMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   backgroundUrl: string | null;
@@ -31,7 +39,6 @@ interface RoomWindowLayoutProps {
   chatAreaComposerTarget?: "main" | "thread";
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
-  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
   galAuthoringLocalSnapshot?: GalAuthoringLocalSnapshot;
   onGalPatchProposalGenerated?: (proposal: GalPatchProposal) => void;
 }
@@ -41,6 +48,11 @@ export default function RoomWindowLayout({
   roomId,
   roomName,
   room,
+  contentMode,
+  onToggleContentMode,
+  canViewDocContent,
+  initialDocMessages,
+  onRemoteDocMessagesSaved,
   toggleLeftDrawer,
   onCloseSubWindow,
   backgroundUrl,
@@ -53,11 +65,18 @@ export default function RoomWindowLayout({
   chatAreaComposerTarget = "main",
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
-  onSendDocCard,
   galAuthoringLocalSnapshot,
   onGalPatchProposalGenerated,
 }: RoomWindowLayoutProps) {
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
+  const shouldRenderEffectOverlay = Boolean(currentEffect && currentEffect !== "none");
+
+  React.useEffect(() => {
+    if (!canViewDocContent) {
+      return;
+    }
+    void import("@/components/messageEditor/MessageEditor");
+  }, [canViewDocContent]);
 
   return (
     <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-100">
@@ -75,47 +94,73 @@ export default function RoomWindowLayout({
         }}
       />
 
-      <PixiOverlay effectName={currentEffect} />
+      {shouldRenderEffectOverlay && (
+        <React.Suspense fallback={null}>
+          <LazyPixiOverlay effectName={currentEffect} />
+        </React.Suspense>
+      )}
 
       <div className="relative z-10 flex h-full min-h-0">
         <div className="flex-1 min-w-0 flex flex-col h-full min-h-0">
           <RoomHeaderBar
             roomName={roomName}
             room={room}
+            contentMode={contentMode}
+            onToggleContentMode={onToggleContentMode}
             toggleLeftDrawer={toggleLeftDrawer}
             onCloseSubWindow={onCloseSubWindow}
             onClearAndReloadAllMessages={onClearAndReloadAllMessages}
             isReloadingAllMessages={isReloadingAllMessages}
           />
           <div className="flex-1 w-full flex bg-transparent relative min-h-0">
-            <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
-              <div
-                className="bg-transparent flex-1 min-w-0 min-h-0"
-                onMouseDown={() => setComposerTarget(chatAreaComposerTarget)}
-              >
-                <ChatFrame
-                  key={roomId}
-                  {...chatFrameProps}
-                />
-              </div>
+            {contentMode === "doc"
+              ? (
+                  <div className="flex-1 min-w-0 min-h-0 overflow-hidden bg-base-100">
+                    <ChatPageDocContent
+                      spaceId={spaceId}
+                      docId={String(roomId)}
+                      canViewDocs={canViewDocContent}
+                      initialMessages={initialDocMessages}
+                      onRemoteMessagesSaved={onRemoteDocMessagesSaved}
+                      remoteSource="room-cache"
+                      showToolbar={false}
+                      tcHeaderTitle={roomName}
+                      tcHeaderImageFileId={room?.avatarFileId}
+                      tcHeaderImageMediaType={room?.avatarMediaType}
+                    />
+                  </div>
+                )
+              : (
+                  <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
+                    <div
+                      className="bg-transparent flex-1 min-w-0 min-h-0"
+                      onMouseDown={() => setComposerTarget(chatAreaComposerTarget)}
+                    >
+                      <ChatFrame
+                        key={roomId}
+                        {...chatFrameProps}
+                      />
+                    </div>
 
-              {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
-            </div>
+                    {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
+                  </div>
+                )}
 
-            {!hideSecondaryPanels && (
+            {contentMode === "room" && !hideSecondaryPanels && (
               <RoomSideDrawers
                 spaceId={spaceId}
                 roomId={roomId}
                 galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
-                onSendDocCard={onSendDocCard}
                 onGalPatchProposalGenerated={onGalPatchProposalGenerated}
               />
             )}
           </div>
         </div>
 
-        {!hideSecondaryPanels && <SubRoomWindow onSendDocCard={onSendDocCard} />}
+        {contentMode === "room" && !hideSecondaryPanels && <SubRoomWindow />}
       </div>
     </div>
   );
 }
+
+export type { RoomContentMode };

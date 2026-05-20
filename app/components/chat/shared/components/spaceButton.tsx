@@ -2,7 +2,7 @@ import type { Space } from "../../../../../api";
 import { motion } from "motion/react";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
-import { avatarThumbUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 
 export default function SpaceButton({ space, unreadMessageNumber, onclick, isActive }: {
@@ -13,7 +13,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 }) {
   const displayName = space.name || "未命名空间";
   const fallbackAvatar = "/favicon.ico";
-  const displayAvatar = imageLowUrlFromUrl(resolveEntityImageUrl(avatarThumbUrl(space.avatarFileId), fallbackAvatar));
+  const displayAvatar = imageLowUrlFromUrl(resolveEntityImageUrl(imageLowUrl(space.avatarFileId), fallbackAvatar));
   const isDev = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
 
   return (

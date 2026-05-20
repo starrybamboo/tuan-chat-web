@@ -1,9 +1,15 @@
 import type { ChatMessageResponse } from "../../../api";
 
+import { getRoomMessageLocalRenderKey } from "@tuanchat/query/room-message-lifecycle";
+
 const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
 
 export function getChatFrameItemKey(index: number, item: ChatMessageResponse): string {
   const message = item?.message as (ChatMessageResponse["message"] & { [STABLE_MESSAGE_KEY_FIELD]?: unknown }) | undefined;
+  const localRenderKey = getRoomMessageLocalRenderKey(message);
+  if (localRenderKey) {
+    return `local:${localRenderKey}`;
+  }
   const stableKey = message?.[STABLE_MESSAGE_KEY_FIELD];
   if ((typeof stableKey === "string" && stableKey.length > 0) || typeof stableKey === "number") {
     return `stable:${stableKey}`;

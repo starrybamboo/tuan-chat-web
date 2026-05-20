@@ -19,4 +19,10 @@ describe("mobile-notification-routing", () => {
   it("会把未知通知兜底到个人 tab", () => {
     expect(resolveMobileNotificationRoute({ targetPath: "/feedback/12", resourceId: 12 })).toBe("/(tabs)/explore");
   });
+
+  it("会安全处理无法识别或非法的 targetPath", () => {
+    expect(resolveMobileNotificationRoute({ targetPath: "/unknown/mobile/path" })).toBe("/(tabs)/explore");
+    expect(resolveMobileNotificationRoute({ targetPath: "https://tuan.chat/chat" })).toBeNull();
+    expect(resolveMobileNotificationRoute({ targetPath: "//chat/private/42" })).toBeNull();
+  });
 });

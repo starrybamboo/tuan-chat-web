@@ -3,6 +3,7 @@ import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
+import type { ApiResultNotificationUnreadCountResponse } from "@tuanchat/openapi-client/models/ApiResultNotificationUnreadCountResponse";
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
 import type { NotificationPageRequest } from "@tuanchat/openapi-client/models/NotificationPageRequest";
 import type { NotificationReadAllRequest } from "@tuanchat/openapi-client/models/NotificationReadAllRequest";
@@ -11,6 +12,7 @@ import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type NotificationClient = Pick<TuanChat, "notificationController">;
 type NotificationPageData = InfiniteData<ApiResultCursorPageBaseResponseNotificationItemResponse, number | undefined>;
+type NotificationUnreadCountData = ApiResultNotificationUnreadCountResponse;
 
 export function getNotificationsQueryKey(filters: NotificationPageRequest = {}) {
   return ["notifications", filters] as const;
@@ -34,6 +36,47 @@ function notificationMatchesFilters(item: NotificationItemResponse, filters: Not
     return false;
   }
   return true;
+}
+
+function getUnreadCount(data: NotificationUnreadCountData | undefined): number {
+  return Math.max(0, Number(data?.data?.unreadCount ?? 0));
+}
+
+function updateUnreadCountData(
+  data: NotificationUnreadCountData | undefined,
+  updater: (currentUnreadCount: number) => number,
+): NotificationUnreadCountData {
+  return {
+    ...(data ?? { success: true }),
+    data: {
+      ...data?.data,
+      unreadCount: Math.max(0, updater(getUnreadCount(data))),
+    },
+    success: data?.success ?? true,
+  };
+}
+
+function collectUnreadNotificationIds(
+  queryEntries: Array<[readonly unknown[], NotificationPageData | undefined]>,
+  notificationIdList: number[],
+): Set<number> {
+  if (notificationIdList.length === 0) {
+    return new Set();
+  }
+
+  const targetIds = new Set(notificationIdList);
+  const unreadIds = new Set<number>();
+  for (const [, data] of queryEntries) {
+    for (const page of data?.pages ?? []) {
+      for (const item of page.data?.list ?? []) {
+        const notificationId = getNotificationId(item);
+        if (notificationId != null && targetIds.has(notificationId) && !item.isRead) {
+          unreadIds.add(notificationId);
+        }
+      }
+    }
+  }
+  return unreadIds;
 }
 
 export function prependNotificationToPageData(
@@ -130,9 +173,25 @@ export function prependNotificationToCaches(queryClient: QueryClient, item: Noti
     queryClient.setQueryData(queryKey, prependNotificationToPageData(data, item, filters));
   }
   if (!known && !item.isRead) {
-    queryClient.setQueryData<{ unreadCount?: number }>(
+    queryClient.setQueryData<NotificationUnreadCountData>(
       getNotificationsUnreadCountQueryKey(),
-      current => ({ unreadCount: (current?.unreadCount ?? 0) + 1 }),
+      current => updateUnreadCountData(current, count => count + 1),
+    );
+  }
+}
+
+export function markNotificationsReadInCaches(queryClient: QueryClient, notificationIdList: number[]) {
+  const queryEntries = queryClient.getQueriesData<NotificationPageData>({ queryKey: ["notifications"] });
+  const unreadIds = collectUnreadNotificationIds(queryEntries, notificationIdList);
+
+  for (const [queryKey, data] of queryEntries) {
+    queryClient.setQueryData(queryKey, markNotificationsReadInPageData(data, notificationIdList, (queryKey[1] ?? {}) as NotificationPageRequest));
+  }
+
+  if (unreadIds.size > 0) {
+    queryClient.setQueryData<NotificationUnreadCountData>(
+      getNotificationsUnreadCountQueryKey(),
+      current => updateUnreadCountData(current, count => count - unreadIds.size),
     );
   }
 }
@@ -180,9 +239,7 @@ export function useMarkNotificationsReadMutation(client: NotificationClient) {
     mutationFn: (payload: NotificationReadRequest) => client.notificationController.markRead(payload),
     onSuccess: (_result, payload) => {
       const ids = payload.notificationIdList ?? [];
-      for (const [queryKey, data] of queryClient.getQueriesData<NotificationPageData>({ queryKey: ["notifications"] })) {
-        queryClient.setQueryData(queryKey, markNotificationsReadInPageData(data, ids, (queryKey[1] ?? {}) as NotificationPageRequest));
-      }
+      markNotificationsReadInCaches(queryClient, ids);
       queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
     },
   });
@@ -200,7 +257,10 @@ export function useMarkAllNotificationsReadMutation(client: NotificationClient) 
         queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
       }
       else {
-        queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), { unreadCount: 0 });
+        queryClient.setQueryData<NotificationUnreadCountData>(
+          getNotificationsUnreadCountQueryKey(),
+          current => updateUnreadCountData(current, () => 0),
+        );
       }
     },
   });

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -41,7 +41,7 @@ function getScreenHeight() {
   return Dimensions.get("window").height;
 }
 
-export interface BottomSheetModalProps {
+export type BottomSheetModalProps = {
   backgroundColor: string;
   children: ReactNode;
   handleColor: string;
@@ -49,7 +49,7 @@ export interface BottomSheetModalProps {
   onClose: () => void;
   sheetStyle?: StyleProp<ViewStyle>;
   visible: boolean;
-}
+};
 
 function resolveMaxHeight(maxHeight: number | `${number}%`): number {
   if (typeof maxHeight === "number") {
@@ -73,33 +73,34 @@ export function BottomSheetModal({
   const [backdropOpacity] = useState(() => new Animated.Value(0));
   const [sheetTranslateY] = useState(() => new Animated.Value(getScreenHeight()));
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => { onCloseRef.current = onClose; });
   const resolvedMaxHeight = resolveMaxHeight(maxHeight);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          sheetTranslateY.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > DISMISS_THRESHOLD || gestureState.vy > 0.5) {
-          onCloseRef.current();
-        } else {
-          Animated.spring(sheetTranslateY, {
-            damping: 20,
-            mass: 0.8,
-            stiffness: 200,
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    }),
-  ).current;
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 5,
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dy > 0) {
+        sheetTranslateY.setValue(gestureState.dy);
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dy > DISMISS_THRESHOLD || gestureState.vy > 0.5) {
+        onCloseRef.current();
+      }
+      else {
+        Animated.spring(sheetTranslateY, {
+          damping: 20,
+          mass: 0.8,
+          stiffness: 200,
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  }),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  []);
 
   useEffect(() => {
     if (visible) {

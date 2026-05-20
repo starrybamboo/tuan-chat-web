@@ -11,6 +11,7 @@ import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import {
+  ArticleIcon,
   BaselineArrowBackIosNew,
   Bubble2,
   MemberIcon,
@@ -23,9 +24,13 @@ function ToolbarDivider() {
   return <div className="mx-0.5 h-5 w-px shrink-0 bg-base-content/20" aria-hidden="true" />;
 }
 
+export type RoomContentMode = "room" | "doc";
+
 interface RoomHeaderBarProps {
   roomName?: string;
   room?: Room | null;
+  contentMode: RoomContentMode;
+  onToggleContentMode: () => void;
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
@@ -35,6 +40,8 @@ interface RoomHeaderBarProps {
 function RoomHeaderBarImpl({
   roomName,
   room,
+  contentMode,
+  onToggleContentMode,
   toggleLeftDrawer,
   onCloseSubWindow,
   onClearAndReloadAllMessages,
@@ -59,7 +66,8 @@ function RoomHeaderBarImpl({
   const canClearAndReloadMessages = canUseDevTools && Boolean(onClearAndReloadAllMessages);
   const roomDescriptionPreview = room?.description?.trim() || "暂无房间描述";
   const hasRoomDescription = Boolean(room?.description?.trim());
-
+  const chatBubbleStyleLabel = useChatBubbleStyle ? "当前：气泡样式" : "当前：传统样式";
+  const chatBubbleStyleToggleLabel = useChatBubbleStyle ? "切换到传统样式" : "切换到气泡样式";
   const closeThreadPane = () => {
     setComposerTarget("main");
     setThreadRootMessageId(undefined);
@@ -147,7 +155,7 @@ function RoomHeaderBarImpl({
   React.useEffect(() => {
     setIsMobileSearchOpen(false);
     setIsMobileToolsMenuOpen(false);
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.searchStr]);
 
   React.useEffect(() => {
     if (!isMobile || !isMobileToolsMenuOpen) {
@@ -271,6 +279,19 @@ function RoomHeaderBarImpl({
                         <li>
                           <button
                             type="button"
+                            aria-label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                            title={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                            onClick={() => {
+                              closeMobileToolsMenu();
+                              onToggleContentMode();
+                            }}
+                          >
+                            {contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            type="button"
                             onClick={() => {
                               closeMobileToolsMenu();
                               handleOpenImport();
@@ -299,7 +320,7 @@ function RoomHeaderBarImpl({
                               blurActiveElement();
                             }}
                           >
-                            {`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+                            {`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
                           </button>
                         </li>
                         <li>
@@ -345,12 +366,32 @@ function RoomHeaderBarImpl({
                       <button
                         type="button"
                         className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip={`切换到${useChatBubbleStyle ? "传统" : "气泡"}样式`}
+                        data-tip={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                        aria-label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                        title={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
+                        onClick={onToggleContentMode}
+                      >
+                        {contentMode === "doc"
+                          ? <Bubble2 className="size-6" />
+                          : <ArticleIcon className="size-6" />}
+                      </button>
+                      <ToolbarDivider />
+                      <button
+                        type="button"
+                        className={[
+                          "tooltip tooltip-bottom relative z-50 inline-flex size-8 items-center justify-center rounded-md transition-all duration-150",
+                          useChatBubbleStyle
+                            ? "bg-info/15 text-info shadow-[inset_0_0_0_1px_color-mix(in_oklab,currentColor_35%,transparent)] hover:bg-info/20"
+                            : "text-base-content/70 hover:bg-base-300/60 hover:text-info",
+                        ].join(" ")}
+                        data-tip={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
+                        aria-label={`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
+                        aria-pressed={useChatBubbleStyle}
                         onClick={() => {
                           toggleUseChatBubbleStyle();
                         }}
                       >
-                        <Bubble2 className="size-6" />
+                        <Bubble2 className={useChatBubbleStyle ? "size-6 drop-shadow-[0_0_6px_currentColor]" : "size-6"} />
                       </button>
                       <ToolbarDivider />
                       <button

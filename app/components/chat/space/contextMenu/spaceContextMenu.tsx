@@ -5,7 +5,7 @@ import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
-interface SpaceContextMenuProps {
+export interface SpaceContextMenuProps {
   contextMenu: { x: number; y: number; spaceId: number } | null;
   isSpaceOwner: boolean;
   isArchived: boolean;

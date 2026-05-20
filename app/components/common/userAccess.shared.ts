@@ -1,4 +1,4 @@
-import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
+import { avatarUrl, imageLowUrl } from "@/utils/mediaUrl";
 
 import type { UserInfoResponse } from "../../../api";
 
@@ -11,7 +11,7 @@ export function getUserAvatarComponentProps(user?: Partial<UserAvatarSource> | n
     userId: user?.userId ?? -1,
     username: user?.username,
     avatar: avatarUrl(user?.avatarFileId),
-    avatarThumbUrl: avatarThumbUrl(user?.avatarFileId),
+    avatarThumbUrl: imageLowUrl(user?.avatarFileId),
   };
 }
 
@@ -33,7 +33,7 @@ export function useResolvedUserInfo(user?: Partial<UserAvatarSource> | null, fal
     userId,
     username: user?.username?.trim() || queryUser?.username || "",
     avatar: avatarUrl(resolvedAvatarFileId),
-    avatarThumbUrl: avatarThumbUrl(resolvedAvatarFileId),
+    avatarThumbUrl: imageLowUrl(resolvedAvatarFileId),
     isLoading: userQuery.isLoading,
   };
 }

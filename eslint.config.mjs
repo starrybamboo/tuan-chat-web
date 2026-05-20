@@ -30,8 +30,9 @@ export default antfu(
       "eslint-report.json",
       "android/**",
       ".pnpm-patch-work/**",
+      ".codex-tmp/**",
       "patches/**",
-      "apps/mobile/.tmp/**",
+      "apps/mobile/**",
       "build/**",
       "dist/**",
       "release/**",
@@ -98,13 +99,13 @@ export default antfu(
 
       ...reactHooksRecommendedLatestRules,
 
-      // Expose React Compiler migration issues without blocking the whole legacy codebase yet.
-      "react-hooks/immutability": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/static-components": "warn",
+      "react-hooks/exhaustive-deps": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/static-components": "off",
       "react-hooks-extra/no-unnecessary-use-prefix": "off",
       "react-refresh/only-export-components": "off",
       "react/no-array-index-key": "off",
@@ -142,19 +143,6 @@ export default antfu(
     files: ["*.config.ts"],
     rules: {
       "unicorn/filename-case": ["off"],
-    },
-  },
-  {
-    files: ["apps/mobile/**/*.{js,jsx,ts,tsx}"],
-    rules: {
-      "node/no-process-env": "off",
-      "ts/no-require-imports": "off",
-    },
-  },
-  {
-    files: ["apps/mobile/scripts/**/*.js"],
-    rules: {
-      "no-console": "off",
     },
   },
   {

@@ -3,7 +3,7 @@ import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageAct
 import { useMemo, useState } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
-import { avatarThumbUrl, imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 import {
   useGetUserRoomsQuery,
 } from "../../../../api/hooks/chatQueryHooks";
@@ -182,7 +182,7 @@ function ForwardWindow({
             const header = headers[`room:${roomId}`];
             const displayName = header?.title || room.name || "未命名房间";
             const avatar = imageLowUrl(header?.imageFileId)
-              || imageLowUrlFromUrl(header?.imageUrl || avatarThumbUrl(room.avatarFileId))
+              || imageLowUrlFromUrl(header?.imageUrl || imageLowUrl(room.avatarFileId))
               || "/favicon.ico";
             const isCurrentRoomForwarding = forwardingRoomId === roomId;
 

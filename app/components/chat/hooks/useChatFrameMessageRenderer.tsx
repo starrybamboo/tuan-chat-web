@@ -28,9 +28,14 @@ interface UseChatFrameMessageRendererParams {
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   onDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
   onDrop: (event: React.DragEvent<HTMLDivElement>, indexInHistoryMessages: number) => void;
-  onDragStart: (event: React.DragEvent<HTMLDivElement>, indexInHistoryMessages: number) => void;
-  onDragEnd: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragStart: (event: React.DragEvent<HTMLElement>, indexInHistoryMessages: number) => void;
+  onDragEnd: () => void;
   virtuosoIndexToMessageIndex: (virtuosoIndex: number) => number;
+  webgalModeEntryAnimation?: {
+    token: number;
+    startIndex: number;
+    endIndex: number;
+  } | null;
 }
 
 export default function useChatFrameMessageRenderer({
@@ -56,12 +61,21 @@ export default function useChatFrameMessageRenderer({
   onDragStart,
   onDragEnd,
   virtuosoIndexToMessageIndex,
+  webgalModeEntryAnimation,
 }: UseChatFrameMessageRendererParams) {
   return useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
     const messageId = chatMessageResponse.message.messageId;
     const isSelected = selectedMessageIds.has(messageId);
     const movable = baseDraggable && (!isMessageMovable || isMessageMovable(chatMessageResponse.message));
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
+    const webgalModeEntryAnimationDelayMs = webgalModeEntryAnimation
+      && index >= webgalModeEntryAnimation.startIndex
+      && index <= webgalModeEntryAnimation.endIndex
+      ? Math.min((index - webgalModeEntryAnimation.startIndex) * 25, 160)
+      : undefined;
+    const webgalModeEntryAnimationOffsetPx = webgalModeEntryAnimationDelayMs === undefined
+      ? undefined
+      : 6;
 
     return (
       <ChatFrameMessageItem
@@ -87,6 +101,8 @@ export default function useChatFrameMessageRenderer({
         onDrop={event => onDrop(event, indexInHistoryMessages)}
         onDragStart={event => onDragStart(event, indexInHistoryMessages)}
         onDragEnd={onDragEnd}
+        webgalModeEntryAnimationDelayMs={webgalModeEntryAnimationDelayMs}
+        webgalModeEntryAnimationOffsetPx={webgalModeEntryAnimationOffsetPx}
       />
     );
   }, [
@@ -112,5 +128,6 @@ export default function useChatFrameMessageRenderer({
     onToggleSelection,
     selectedMessageIds,
     virtuosoIndexToMessageIndex,
+    webgalModeEntryAnimation,
   ]);
 }

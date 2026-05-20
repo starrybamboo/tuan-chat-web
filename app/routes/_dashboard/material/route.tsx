@@ -1,7 +1,9 @@
 import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
-import MaterialLibraryPage from "@/components/material/pages/materialLibraryPage";
+import { lazy, Suspense } from "react";
 import { createSeoMeta } from "@/utils/seo";
+
+const LazyMaterialLibraryPage = lazy(() => import("@/components/material/pages/materialLibraryPage"));
 
 export function meta(_args: RouteMetaArgs) {
   return createSeoMeta({
@@ -27,7 +29,9 @@ function MaterialRoute() {
 
   return (
     <div className="h-full overflow-hidden bg-base-200">
-      <MaterialLibraryPage initialTab={initialTab} />
+      <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-base-content/60">正在加载素材库...</div>}>
+        <LazyMaterialLibraryPage initialTab={initialTab} />
+      </Suspense>
     </div>
   );
 }

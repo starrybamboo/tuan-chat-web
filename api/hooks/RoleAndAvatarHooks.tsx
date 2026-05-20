@@ -42,7 +42,6 @@ import {
   rollbackUserRoleListQueryCache,
   seedUserRoleListQueryCache,
   seedUserRoleQueryCache,
-  upsertUserRoleListQueryCache,
 } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
 import { invalidateRoleCreateQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
@@ -373,11 +372,8 @@ function syncRoleAvatarCaches(
     roleId: resolvedRoleId,
     avatarId: avatar.avatarId,
     avatarFileId: avatar.avatarFileId,
-    avatarMediaType: avatar.avatarMediaType,
   };
 
-  seedUserRoleQueryCache(queryClient, userRoleAvatarFields);
-  upsertUserRoleListQueryCache(queryClient, userRoleAvatarFields);
   patchUserRoleAvatarFieldsInListQueryCache(queryClient, userRoleAvatarFields);
   patchRoomRoleAvatarFieldsInListQueryCache(queryClient, userRoleAvatarFields);
 }
@@ -1859,7 +1855,6 @@ export function useRoleAbility(roleId: number) {
           res.success
           && res.data !== null
         ) {
-          console.log(res.data);
           return res;
         }
         else {

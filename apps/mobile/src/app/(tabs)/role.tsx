@@ -1,11 +1,11 @@
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-
+import { router } from "expo-router";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 
-import { Image } from "expo-image";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
@@ -58,6 +58,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: Spacing.xl,
   },
+  sectionHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  collapseArrow: {
+    fontSize: 12,
+    paddingHorizontal: Spacing.sm,
+  },
 });
 
 const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
@@ -69,25 +78,37 @@ function getRoleColor(roleId: number) {
 function RoleListItem({ role, theme, onPress }: { role: UserRole; theme: ReturnType<typeof useTheme>; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.roleItem, { backgroundColor: theme.background }]}>
-      {role.avatarFileId ? (
-        <Image source={{ uri: avatarThumbUrl(role.avatarFileId) }} style={styles.roleAvatar} />
-      ) : (
-        <View style={[styles.roleAvatar, { backgroundColor: getRoleColor(role.roleId) }]}>
-          <ThemedText style={styles.avatarText}>
-            {(role.roleName ?? "").slice(0, 1) || "R"}
-          </ThemedText>
-        </View>
-      )}
+      {role.avatarFileId
+        ? (
+            <CachedImage uri={avatarThumbUrl(role.avatarFileId)} style={styles.roleAvatar} />
+          )
+        : (
+            <View style={[styles.roleAvatar, { backgroundColor: getRoleColor(role.roleId) }]}>
+              <ThemedText style={styles.avatarText}>
+                {(role.roleName ?? "").slice(0, 1) || "R"}
+              </ThemedText>
+            </View>
+          )}
       <View style={{ flex: 1 }}>
         <ThemedText type="smallBold">{role.roleName ?? `角色 #${role.roleId}`}</ThemedText>
-        {role.description ? (
-          <ThemedText themeColor="textSecondary" type="caption" numberOfLines={1}>
-            {role.description}
-          </ThemedText>
-        ) : null}
+        {role.description
+          ? (
+              <ThemedText themeColor="textSecondary" type="caption" numberOfLines={1}>
+                {role.description}
+              </ThemedText>
+            )
+          : null}
       </View>
     </Pressable>
   );
+}
+
+function sortByTimeDesc(roles: UserRole[]) {
+  return [...roles].sort((a, b) => {
+    const ta = a.createTime ?? "";
+    const tb = b.createTime ?? "";
+    return tb.localeCompare(ta);
+  });
 }
 
 export default function RoleScreen() {
@@ -97,8 +118,11 @@ export default function RoleScreen() {
   const myRolesQuery = useMyRolesQuery(userId);
 
   const allRoles = myRolesQuery.data ?? [];
-  const normalRoles = allRoles.filter(r => r.type === 0 && r.state !== 1);
-  const diceRoles = allRoles.filter(r => r.type === 1 && r.state !== 1);
+  const normalRoles = sortByTimeDesc(allRoles.filter(r => r.type === 0 && r.state !== 1));
+  const diceRoles = sortByTimeDesc(allRoles.filter(r => r.type === 1 && r.state !== 1));
+
+  const [rolesCollapsed, setRolesCollapsed] = useState(false);
+  const [diceCollapsed, setDiceCollapsed] = useState(false);
 
   const handleOpenCreate = () => {
     router.push("/role-edit");
@@ -107,6 +131,9 @@ export default function RoleScreen() {
   const handleOpenEdit = (role: UserRole) => {
     router.push({ pathname: "/role-edit", params: { roleId: String(role.roleId) } });
   };
+
+  const toggleRoles = useCallback(() => setRolesCollapsed(v => !v), []);
+  const toggleDice = useCallback(() => setDiceCollapsed(v => !v), []);
 
   return (
     <ThemedView style={styles.container}>
@@ -122,33 +149,59 @@ export default function RoleScreen() {
             </Pressable>
           </View>
 
-          {myRolesQuery.isPending ? (
-            <View style={styles.stateBlock}>
-              <ActivityIndicator color={theme.accent} />
-            </View>
-          ) : (
-            <>
-              <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-                <ThemedText type="heading">角色 ({normalRoles.length})</ThemedText>
-                {normalRoles.length === 0 ? (
-                  <ThemedText themeColor="textSecondary" type="small">暂无角色</ThemedText>
-                ) : (
-                  normalRoles.map((role) => (
-                    <RoleListItem key={role.roleId} role={role} theme={theme} onPress={() => handleOpenEdit(role)} />
-                  ))
-                )}
-              </View>
-
-              {diceRoles.length > 0 ? (
-                <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText type="heading">骰娘 ({diceRoles.length})</ThemedText>
-                  {diceRoles.map((role) => (
-                    <RoleListItem key={role.roleId} role={role} theme={theme} onPress={() => handleOpenEdit(role)} />
-                  ))}
+          {myRolesQuery.isPending
+            ? (
+                <View style={styles.stateBlock}>
+                  <ActivityIndicator color={theme.accent} />
                 </View>
-              ) : null}
-            </>
-          )}
+              )
+            : (
+                <>
+                  <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+                    <Pressable onPress={toggleRoles} style={styles.sectionHeader}>
+                      <ThemedText type="heading">
+                        角色 (
+                        {normalRoles.length}
+                        )
+                      </ThemedText>
+                      <ThemedText themeColor="textSecondary" style={styles.collapseArrow}>
+                        {rolesCollapsed ? "▶" : "▼"}
+                      </ThemedText>
+                    </Pressable>
+                    {!rolesCollapsed && (
+                      normalRoles.length === 0
+                        ? (
+                            <ThemedText themeColor="textSecondary" type="small">暂无角色</ThemedText>
+                          )
+                        : (
+                            normalRoles.map(role => (
+                              <RoleListItem key={role.roleId} role={role} theme={theme} onPress={() => handleOpenEdit(role)} />
+                            ))
+                          )
+                    )}
+                  </View>
+
+                  {diceRoles.length > 0
+                    ? (
+                        <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+                          <Pressable onPress={toggleDice} style={styles.sectionHeader}>
+                            <ThemedText type="heading">
+                              骰娘 (
+                              {diceRoles.length}
+                              )
+                            </ThemedText>
+                            <ThemedText themeColor="textSecondary" style={styles.collapseArrow}>
+                              {diceCollapsed ? "▶" : "▼"}
+                            </ThemedText>
+                          </Pressable>
+                          {!diceCollapsed && diceRoles.map(role => (
+                            <RoleListItem key={role.roleId} role={role} theme={theme} onPress={() => handleOpenEdit(role)} />
+                          ))}
+                        </View>
+                      )
+                    : null}
+                </>
+              )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>

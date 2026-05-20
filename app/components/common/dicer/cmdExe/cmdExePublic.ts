@@ -35,6 +35,14 @@ export async function executeStShowCommand(
   }
 
   const showProps = args.slice(1).filter(arg => arg.trim() !== "");
+  if (cpi.showRoleAbilityCard) {
+    await cpi.showRoleAbilityCard({
+      ability: curAbility,
+      roleName: role.roleName || "当前角色",
+      requestedKeys: showProps,
+    });
+    return true;
+  }
   await openStShowCardWindow({
     ability: curAbility,
     roleName: role.roleName || "当前角色",

@@ -1,6 +1,6 @@
-import type { AnnotationDefinition, AnnotationTone } from "@tuanchat/domain/annotation-catalog";
-
 import { Pressable, StyleSheet } from "react-native";
+
+import type { AnnotationDefinition, AnnotationTone } from "@tuanchat/domain/annotation-catalog";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -29,11 +29,11 @@ function getToneColor(tone: AnnotationTone | undefined, theme: ReturnType<typeof
   }
 }
 
-interface AnnotationChipProps {
+type AnnotationChipProps = {
   annotation: AnnotationDefinition;
   active?: boolean;
   onPress?: () => void;
-}
+};
 
 export function AnnotationChip({ annotation, active, onPress }: AnnotationChipProps) {
   const theme = useTheme();

@@ -37,7 +37,7 @@ export function buildUserExtraWithNotificationSettings(
   settings: NotificationSettings,
 ): Record<string, unknown> {
   return {
-    ...(toRecord(extra) ?? {}),
+    ...toRecord(extra),
     [USER_EXTRA_NOTIFICATION_SETTINGS_KEY]: settings,
   };
 }

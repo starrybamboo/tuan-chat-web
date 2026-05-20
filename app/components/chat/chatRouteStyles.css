@@ -67,18 +67,163 @@
 }
 
 @keyframes highlight-fade-out {
-  from {
+  0% {
     background-color: hsla(207, 90%, 54%, 0.4);
+    transform: scale(1.008);
   }
 
-  to {
+  15% {
+    transform: scale(1);
+  }
+
+  100% {
     background-color: transparent;
+    transform: scale(1);
   }
 }
 
 .highlight-animation {
   border-radius: 0.5rem;
   animation: highlight-fade-out 3s ease-out;
+  transform-origin: center;
+}
+
+@keyframes message-sending-enter {
+  0% {
+    opacity: 0.72;
+    transform: translateY(8px) scale(0.982);
+    filter: saturate(0.9);
+  }
+
+  62% {
+    opacity: 0.98;
+    transform: translateY(-1px) scale(1.002);
+    filter: saturate(1);
+  }
+
+  100% {
+    opacity: 0.99;
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
+}
+
+.message-sending {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.message-sent {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+@keyframes message-send-failed {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-4px);
+  }
+
+  40% {
+    transform: translateX(4px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.message-send-failed {
+  animation: message-send-failed 0.4s ease-in-out;
+}
+
+@keyframes webgal-mode-message-entry {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--webgal-mode-message-entry-y, 8px));
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.webgal-mode-message-entry {
+  animation: webgal-mode-message-entry 0.16s ease-out both;
+  animation-delay: var(--webgal-mode-message-entry-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+@keyframes private-chat-panel-entry {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.private-chat-panel-entry {
+  animation: private-chat-panel-entry 0.16s ease-out both;
+  will-change: opacity, transform;
+}
+
+@keyframes private-direct-message-list-entry {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.private-direct-message-list-entry {
+  animation: private-direct-message-list-entry 0.16s ease-out both;
+  will-change: opacity, transform;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.78;
+  }
+}
+
+.chat-skeleton-line {
+  animation: skeleton-pulse 1.25s ease-in-out infinite;
+  border-radius: 0.25rem;
+  background-color: currentColor;
+  opacity: 0.35;
+}
+
+.chatInputTextarea {
+  transition: height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body.avatar-sampler-active,

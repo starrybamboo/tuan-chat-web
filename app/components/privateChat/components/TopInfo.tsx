@@ -1,8 +1,11 @@
+import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { ChevronRight } from "@/icons";
 
-export default function TopInfo({ setIsOpenLeftDrawer, currentContactUserInfo }: { setIsOpenLeftDrawer: (isOpen: boolean) => void; currentContactUserInfo: any }) {
+export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawer?: (isOpen: boolean) => void; currentContactUserInfo: any }) {
+  const { handleOpenPrivate } = useChatPageLayoutContext();
+
   return (
-    <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-10">
+    <div className="border-gray-300 dark:border-gray-700 border-b flex justify-between items-center overflow-visible relative z-10">
       <div
         className="flex justify-between items-center w-full px-2 h-10
         bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
@@ -12,9 +15,9 @@ export default function TopInfo({ setIsOpenLeftDrawer, currentContactUserInfo }:
           <div className="sm:hidden">
             <button
               type="button"
-              aria-label="打开左侧边栏"
+              aria-label="返回好友列表"
               className="btn btn-ghost btn-square btn-sm"
-              onClick={() => setIsOpenLeftDrawer(true)}
+              onClick={() => handleOpenPrivate()}
             >
               <ChevronRight className="size-6" />
             </button>
@@ -23,7 +26,7 @@ export default function TopInfo({ setIsOpenLeftDrawer, currentContactUserInfo }:
             {currentContactUserInfo ? `「 ${currentContactUserInfo.username} 」` : "好友列表"}
           </span>
         </div>
-        <div className="flex gap-2 items-center overflow-visible flex-shrink-0" />
+        <div className="flex gap-2 items-center overflow-visible shrink-0" />
       </div>
     </div>
   );

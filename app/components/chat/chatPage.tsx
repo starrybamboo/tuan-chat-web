@@ -1,3 +1,5 @@
+import type { SelectRoomOptions } from "@/components/chat/chatPage.types";
+import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 import { Outlet, useLocation } from "@tanstack/react-router";
 import { useGetSpaceInfoQuery, useGetSpaceMembersQuery, useGetUserActiveSpacesQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useSpaceMaterialPackagesQuery } from "api/hooks/materialPackageQueryHooks";
@@ -65,6 +67,25 @@ export default function ChatPage() {
   } = useChatPageRoute();
   const searchParam = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
   const screenSize = useScreenSize();
+
+  const [privateChatTab, setPrivateChatTab] = useState<PrivateChatTab>(() => {
+    const tabParam = new URLSearchParams(location.searchStr).get("tab");
+    if (tabParam === "friends")
+      return "friends";
+    if (tabParam === "new-friends")
+      return "new-friends";
+    return "chat";
+  });
+
+  useEffect(() => {
+    if (!isPrivateChatMode)
+      return;
+    const tabParam = searchParam.get("tab");
+    if (tabParam === "friends")
+      setPrivateChatTab("friends");
+    else if (tabParam === "new-friends")
+      setPrivateChatTab("new-friends");
+  }, [isPrivateChatMode, searchParam]);
   const {
     isOpenLeftDrawer,
     setIsOpenLeftDrawer,
@@ -419,8 +440,8 @@ export default function ChatPage() {
     subWindowMaterialPathKey,
     subWindowTab,
   ]);
-  const handleSelectRoom = useCallback((roomId: number) => {
-    setActiveRoomId(roomId);
+  const handleSelectRoom = useCallback((roomId: number, options?: SelectRoomOptions) => {
+    setActiveRoomId(roomId, options);
   }, [setActiveRoomId]);
 
   const handleSelectDoc = useCallback((docId: string) => {
@@ -666,7 +687,7 @@ export default function ChatPage() {
     spaceDocMetas,
   });
 
-  useSearchParamsState<"none" | "user" | "role" | "copilot" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  useSearchParamsState<"none" | "user" | "role" | "copilot" | "search" | "combat" | "initiative" | "state" | "map">("rightSideDrawer", "none");
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
     webSocketUtils,
@@ -725,6 +746,8 @@ export default function ChatPage() {
       activeDocId,
       targetMessageId,
       setIsOpenLeftDrawer,
+      setActiveRoomId,
+      handleOpenPrivate,
       isSpaceDetailRoute,
       spaceDetailTab,
       closeSpaceDetailPanel,
@@ -733,6 +756,8 @@ export default function ChatPage() {
       isKPInSpace,
       activeDocTitleForTcHeader,
       onDocTcHeaderChange: handleDocTcHeaderChange,
+      privateChatTab,
+      setPrivateChatTab,
     };
   }, [
     activeDocId,
@@ -742,10 +767,13 @@ export default function ChatPage() {
     closeRoomSettingPage,
     closeSpaceDetailPanel,
     handleDocTcHeaderChange,
+    handleOpenPrivate,
     isKPInSpace,
     isPrivateChatMode,
     isSpaceDetailRoute,
+    privateChatTab,
     roomSettingState,
+    setActiveRoomId,
     setIsOpenLeftDrawer,
     spaceDetailTab,
     targetMessageId,

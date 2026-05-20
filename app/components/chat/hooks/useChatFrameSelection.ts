@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
@@ -12,9 +13,12 @@ type SelectMessageRangeParams = {
   preserveExisting?: boolean;
 };
 
+const SELECTION_SHORTCUTS_TOAST_ID = "chat-selection-shortcuts";
+
 export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameSelectionParams) {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorMessageId, setSelectionAnchorMessageId] = useState<number | null>(null);
+  const wasSelectingRef = useRef(false);
   const isMultiSelecting = useRoomUiStore(state => state.isMultiSelecting);
   const setMultiSelecting = useRoomUiStore(state => state.setMultiSelecting);
   const isSelecting = isMultiSelecting || selectedMessageIds.size > 0;
@@ -34,6 +38,17 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
       queueMicrotask(() => setSelectionAnchorMessageId(null));
     }
   }, [selectedMessageIds.size]);
+
+  useEffect(() => {
+    const wasSelecting = wasSelectingRef.current;
+    wasSelectingRef.current = isSelecting;
+    if (!wasSelecting && isSelecting) {
+      toast("多选模式支持 Windows 文件系统式选择：Ctrl 点选增删，Shift 连选，Ctrl + Shift 追加范围。", {
+        id: SELECTION_SHORTCUTS_TOAST_ID,
+        duration: 5000,
+      });
+    }
+  }, [isSelecting]);
 
   const toggleMessageSelection = useCallback((messageId: number) => {
     setSelectionAnchorMessageId(messageId);

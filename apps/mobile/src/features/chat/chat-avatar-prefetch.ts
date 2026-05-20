@@ -1,7 +1,9 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+import type { RoomRolesById } from "./chat-avatar-utils";
+
 import { avatarThumbUrl } from "../../lib/media-url";
-import { resolveMessageAvatarFileId, type RoomRolesById } from "./chat-avatar-utils";
+import { resolveMessageAvatarFileId } from "./chat-avatar-utils";
 
 /**
  * 收集当前消息列表里需要预取的唯一头像 URL。

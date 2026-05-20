@@ -67,7 +67,7 @@ describe("imgCompressUtils", () => {
     }));
   });
 
-  it("头像缩略图预设用于所有 128px 头像", async () => {
+  it("头像缩略图预设用于所有 200px 头像", async () => {
     const file = new File([new Uint8Array(2048)], "space-avatar.png", { type: "image/png" });
 
     await compressAvatarThumbImage(file);

@@ -85,6 +85,23 @@ export function useAcceptFriendRequestMutation(client: FriendClient) {
     mutationFn: (friendReqId: number) =>
       client.friendController.acceptFriendRequest({ friendReqId } satisfies FriendReqHandleRequest),
     mutationKey: ["acceptFriendRequest"],
+    onMutate: async (friendReqId) => {
+      await queryClient.cancelQueries({ queryKey: ["friendRequests"] });
+      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequests"] });
+      queryClient.setQueriesData({ queryKey: ["friendRequests"] }, (old: any) => {
+        if (!Array.isArray(old))
+          return old;
+        return old.filter((r: any) => r?.id !== friendReqId);
+      });
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        for (const [key, data] of context.previousData) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friends"] });
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
@@ -98,6 +115,23 @@ export function useRejectFriendRequestMutation(client: FriendClient) {
     mutationFn: (friendReqId: number) =>
       client.friendController.rejectFriendRequest({ friendReqId } satisfies FriendReqHandleRequest),
     mutationKey: ["rejectFriendRequest"],
+    onMutate: async (friendReqId) => {
+      await queryClient.cancelQueries({ queryKey: ["friendRequests"] });
+      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequests"] });
+      queryClient.setQueriesData({ queryKey: ["friendRequests"] }, (old: any) => {
+        if (!Array.isArray(old))
+          return old;
+        return old.filter((r: any) => r?.id !== friendReqId);
+      });
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        for (const [key, data] of context.previousData) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
     },

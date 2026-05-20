@@ -24,7 +24,7 @@ import { Drawer } from "vaul";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
-import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
@@ -191,7 +191,7 @@ export function SpriteSettingsPopup({
   // 当前选中的立绘 URL
   const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
   const currentAvatarCropSourceUrl = currentAvatar
-    ? (imageHighUrl(currentAvatar.spriteFileId) || imageOriginalUrl(currentAvatar.spriteFileId) || null)
+    ? (imageMediumUrl(currentAvatar.spriteFileId) || imageOriginalUrl(currentAvatar.spriteFileId) || null)
     : null;
 
   // ========== 上传和删除功能 ==========

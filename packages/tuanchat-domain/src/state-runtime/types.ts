@@ -1,6 +1,13 @@
-import type { StateEventScope, StateEventStackMode, StateStatusModifierOp } from "../state-event";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
+
+import type {
+  StateEventCombatColumnSource,
+  StateEventCombatValue,
+  StateEventScope,
+  StateEventStackMode,
+  StateStatusModifierOp,
+} from "../state-event";
 
 export type StateDefinitionModifier = {
   key: string;
@@ -69,3 +76,41 @@ export type BuildStateRuntimeParams = {
   fallbackRoleAbilitiesByRoleId?: Record<number, RoleAbility | null | undefined>;
   resolver?: StateDefinitionResolver;
 };
+
+export type CombatParticipant = {
+  participantId: string;
+  name: string;
+  roleId?: number;
+  initiative: number;
+  values: Record<string, StateEventCombatValue>;
+  baseValues: StateValueMap;
+  derivedValues: StateValueMap;
+  activeStates: ActiveStateInstance[];
+};
+
+export type CombatColumn = {
+  key: string;
+  label: string;
+  source: StateEventCombatColumnSource;
+  attrKey?: string;
+  stateKey?: string;
+};
+
+export type CombatMapToken = {
+  roleId: number;
+  rowIndex: number;
+  colIndex: number;
+};
+
+export type CombatStateRuntime = StateRuntime & {
+  participants: CombatParticipant[];
+  participantsById: Record<string, CombatParticipant>;
+  columns: CombatColumn[];
+  columnsByKey: Record<string, CombatColumn>;
+  activeParticipantId: string | null;
+  mapTokens: CombatMapToken[];
+  mapTokensByRoleId: Record<number, CombatMapToken>;
+  hasMapState: boolean;
+};
+
+export type BuildCombatStateRuntimeParams = BuildStateRuntimeParams;

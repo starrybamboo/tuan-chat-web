@@ -12,7 +12,7 @@ import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/Us
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 
 type AddFriendSearchMode = "id" | "username";
 
@@ -170,7 +170,7 @@ export default function UserSearch() {
                       <div className="flex items-center gap-2">
                         <img
                           className="rounded-full"
-                          src={avatarThumbUrl(user?.avatarFileId)}
+                          src={imageLowUrl(user?.avatarFileId)}
                           alt="UserAvatar"
                           width={32}
                           height={32}
@@ -249,7 +249,7 @@ export default function UserSearch() {
                       >
                         <img
                           className="rounded-full"
-                          src={avatarThumbUrl(searchUserInfo?.avatarFileId)}
+                          src={imageLowUrl(searchUserInfo?.avatarFileId)}
                           alt="FriendAvatar"
                           width={40}
                           height={40}
@@ -357,7 +357,7 @@ export default function UserSearch() {
                       >
                         <img
                           className="rounded-full"
-                          src={avatarThumbUrl(friend?.avatarFileId)}
+                          src={imageLowUrl(friend?.avatarFileId)}
                           alt="FriendAvatar"
                           width={40}
                           height={40}

@@ -74,7 +74,7 @@ export function upsertUserRoomData(
   return {
     ...(currentData ?? { success: true }),
     data: {
-      ...(currentData?.data ?? {}),
+      ...currentData?.data,
       spaceId,
       rooms: nextRooms,
     },

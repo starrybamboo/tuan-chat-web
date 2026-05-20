@@ -11,38 +11,16 @@ import {
   getClueMessageExtra,
   getCommandRequestExtra,
   getDocCardExtra,
-  getFileMessageExtra,
   getForwardMessageExtra,
-  getImageMessageExtra,
   getRoomJumpExtra,
   getSoundMessageExtra,
   getThreadRootExtra,
-  getVideoMessageExtra,
 } from "./message-extra";
 import { MESSAGE_TYPE } from "./messageType";
 import { formatStateEventPreviewText } from "./state-event";
 
 function safeTrim(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function isProbablyOpaqueFileName(fileName: string): boolean {
-  const raw = fileName.trim();
-  if (!raw) {
-    return true;
-  }
-
-  const lastDot = raw.lastIndexOf(".");
-  const base = (lastDot > 0 ? raw.slice(0, lastDot) : raw).trim();
-  if (!base) {
-    return true;
-  }
-
-  if (/^[0-9a-f]+$/i.test(base) && base.length >= 24) {
-    return true;
-  }
-
-  return /^\d+$/.test(base) && base.length >= 16;
 }
 
 function withTag(tag: string, text: string): string {
@@ -97,30 +75,19 @@ export function getMessagePreviewText(message?: Message | null): string {
       return content;
     case MESSAGE_TYPE.SYSTEM:
       return content || "[系统消息]";
-    case MESSAGE_TYPE.IMG: {
-      const imageMessage = getImageMessageExtra(message.extra);
-      const fileName = safeTrim(imageMessage?.fileName);
-      const label = trimmedContent || (!isProbablyOpaqueFileName(fileName) ? fileName : "");
-      return withTag("图片", label);
-    }
-    case MESSAGE_TYPE.FILE: {
-      const fileMessage = getFileMessageExtra(message.extra);
-      const fileName = safeTrim(fileMessage?.fileName) || trimmedContent || "文件";
-      return withTag("文件", fileName);
-    }
-    case MESSAGE_TYPE.VIDEO: {
-      const videoMessage = getVideoMessageExtra(message.extra);
-      const fileName = safeTrim(videoMessage?.fileName) || trimmedContent || "视频";
-      return withTag("视频", fileName);
-    }
+    case MESSAGE_TYPE.IMG:
+      return withTag("图片", trimmedContent);
+    case MESSAGE_TYPE.FILE:
+      return withTag("文件", trimmedContent);
+    case MESSAGE_TYPE.VIDEO:
+      return withTag("视频", trimmedContent);
     case MESSAGE_TYPE.SOUND: {
       const soundMessage = getSoundMessageExtra(message.extra);
-      const fileName = safeTrim(soundMessage?.fileName) || trimmedContent;
       const purpose = resolveSoundPurposeFromAnnotations(
         message.annotations,
         (soundMessage as { purpose?: unknown } | undefined)?.purpose,
       );
-      return withTag(purpose === "bgm" ? "BGM" : "语音", fileName);
+      return withTag(purpose === "bgm" ? "BGM" : "语音", trimmedContent);
     }
     case MESSAGE_TYPE.EFFECT: {
       const sceneEffectName = getSceneEffectFromAnnotations(message.annotations);
@@ -138,7 +105,7 @@ export function getMessagePreviewText(message?: Message | null): string {
     }
     case MESSAGE_TYPE.DICE: {
       const result = safeTrim((message.extra as { diceResult?: { result?: unknown } } | null)?.diceResult?.result) || trimmedContent;
-      return withTag("骰娘", result);
+      return result || "骰子结果";
     }
     case MESSAGE_TYPE.WEBGAL_CHOOSE:
       return withTag("选择", formatWebgalChooseSummary(message.extra, trimmedContent));
@@ -149,8 +116,11 @@ export function getMessagePreviewText(message?: Message | null): string {
       return withTag("检定请求", commandText);
     }
     case MESSAGE_TYPE.CLUE_CARD: {
-      const name = safeTrim(getClueMessageExtra(message.extra)?.name) || trimmedContent || "线索";
-      return withTag("线索", name);
+      const snapshot = (getClueMessageExtra(message.extra) as { snapshot?: Message } | undefined)?.snapshot;
+      const preview = snapshot?.messageType
+        ? getMessagePreviewText({ ...snapshot, status: 0 } as Message)
+        : trimmedContent;
+      return withTag("线索", preview || "线索");
     }
     case MESSAGE_TYPE.DOC_CARD: {
       const docCard = getDocCardExtra(message.extra);

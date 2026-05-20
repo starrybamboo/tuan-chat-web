@@ -25,11 +25,12 @@ import { Route as DashboardRoleRouteRouteImport } from './routes/_dashboard/role
 import { Route as DashboardMaterialRouteRouteImport } from './routes/_dashboard/material/route'
 import { Route as DashboardRoleIndexRouteImport } from './routes/_dashboard/role/index'
 import { Route as DashboardRepositoryIndexRouteImport } from './routes/_dashboard/repository/index'
+import { Route as DashboardFeedbackIndexRouteImport } from './routes/_dashboard/feedback/index'
 import { Route as RoomMapSpaceIdRoomIdRouteImport } from './routes/room-map/$spaceId/$roomId'
 import { Route as DashboardRoleChar123RoleIdChar125RouteImport } from './routes/_dashboard/role/{-$roleId}'
 import { Route as DashboardRepositoryCreateRouteImport } from './routes/_dashboard/repository/create'
 import { Route as DashboardRepositoryCommitChainRouteImport } from './routes/_dashboard/repository/commit-chain'
-import { Route as DashboardFeedbackChar123IssueIdChar125RouteImport } from './routes/_dashboard/feedback/{-$issueId}'
+import { Route as DashboardFeedbackIssueIdRouteImport } from './routes/_dashboard/feedback/$issueId'
 import { Route as DashboardProfileUserIdRouteRouteImport } from './routes/_dashboard/profile/$userId/route'
 import { Route as DashboardChatChatLayoutRouteRouteImport } from './routes/_dashboard/chat/_chat-layout/route'
 import { Route as DashboardProfileUserIdIndexRouteImport } from './routes/_dashboard/profile/$userId/index'
@@ -128,6 +129,11 @@ const DashboardRepositoryIndexRoute =
     path: '/repository/',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
+const DashboardFeedbackIndexRoute = DashboardFeedbackIndexRouteImport.update({
+  id: '/feedback/',
+  path: '/feedback/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const RoomMapSpaceIdRoomIdRoute = RoomMapSpaceIdRoomIdRouteImport.update({
   id: '/room-map/$spaceId/$roomId',
   path: '/room-map/$spaceId/$roomId',
@@ -151,10 +157,10 @@ const DashboardRepositoryCommitChainRoute =
     path: '/repository/commit-chain',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
-const DashboardFeedbackChar123IssueIdChar125Route =
-  DashboardFeedbackChar123IssueIdChar125RouteImport.update({
-    id: '/feedback/{-$issueId}',
-    path: '/feedback/{-$issueId}',
+const DashboardFeedbackIssueIdRoute =
+  DashboardFeedbackIssueIdRouteImport.update({
+    id: '/feedback/$issueId',
+    path: '/feedback/$issueId',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
 const DashboardProfileUserIdRouteRoute =
@@ -271,11 +277,12 @@ export interface FileRoutesByFullPath {
   '/invite/$code': typeof InviteCodeRoute
   '/chat': typeof DashboardChatChatLayoutRouteRouteWithChildren
   '/profile/$userId': typeof DashboardProfileUserIdRouteRouteWithChildren
-  '/feedback/{-$issueId}': typeof DashboardFeedbackChar123IssueIdChar125Route
+  '/feedback/$issueId': typeof DashboardFeedbackIssueIdRoute
   '/repository/commit-chain': typeof DashboardRepositoryCommitChainRoute
   '/repository/create': typeof DashboardRepositoryCreateRoute
   '/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
   '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
+  '/feedback/': typeof DashboardFeedbackIndexRoute
   '/repository/': typeof DashboardRepositoryIndexRoute
   '/role/': typeof DashboardRoleIndexRoute
   '/chat/discover/my': typeof DashboardChatDiscoverMyRoute
@@ -306,11 +313,12 @@ export interface FileRoutesByTo {
   '/settings': typeof DashboardSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/': typeof DashboardIndexRoute
-  '/feedback/{-$issueId}': typeof DashboardFeedbackChar123IssueIdChar125Route
+  '/feedback/$issueId': typeof DashboardFeedbackIssueIdRoute
   '/repository/commit-chain': typeof DashboardRepositoryCommitChainRoute
   '/repository/create': typeof DashboardRepositoryCreateRoute
   '/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
   '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
+  '/feedback': typeof DashboardFeedbackIndexRoute
   '/repository': typeof DashboardRepositoryIndexRoute
   '/role': typeof DashboardRoleIndexRoute
   '/chat/discover/my': typeof DashboardChatDiscoverMyRoute
@@ -346,11 +354,12 @@ export interface FileRoutesById {
   '/_dashboard/': typeof DashboardIndexRoute
   '/_dashboard/chat/_chat-layout': typeof DashboardChatChatLayoutRouteRouteWithChildren
   '/_dashboard/profile/$userId': typeof DashboardProfileUserIdRouteRouteWithChildren
-  '/_dashboard/feedback/{-$issueId}': typeof DashboardFeedbackChar123IssueIdChar125Route
+  '/_dashboard/feedback/$issueId': typeof DashboardFeedbackIssueIdRoute
   '/_dashboard/repository/commit-chain': typeof DashboardRepositoryCommitChainRoute
   '/_dashboard/repository/create': typeof DashboardRepositoryCreateRoute
   '/_dashboard/role/{-$roleId}': typeof DashboardRoleChar123RoleIdChar125Route
   '/room-map/$spaceId/$roomId': typeof RoomMapSpaceIdRoomIdRoute
+  '/_dashboard/feedback/': typeof DashboardFeedbackIndexRoute
   '/_dashboard/repository/': typeof DashboardRepositoryIndexRoute
   '/_dashboard/role/': typeof DashboardRoleIndexRoute
   '/_dashboard/chat/discover/my': typeof DashboardChatDiscoverMyRoute
@@ -386,11 +395,12 @@ export interface FileRouteTypes {
     | '/invite/$code'
     | '/chat'
     | '/profile/$userId'
-    | '/feedback/{-$issueId}'
+    | '/feedback/$issueId'
     | '/repository/commit-chain'
     | '/repository/create'
     | '/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
+    | '/feedback/'
     | '/repository/'
     | '/role/'
     | '/chat/discover/my'
@@ -421,11 +431,12 @@ export interface FileRouteTypes {
     | '/settings'
     | '/invite/$code'
     | '/'
-    | '/feedback/{-$issueId}'
+    | '/feedback/$issueId'
     | '/repository/commit-chain'
     | '/repository/create'
     | '/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
+    | '/feedback'
     | '/repository'
     | '/role'
     | '/chat/discover/my'
@@ -460,11 +471,12 @@ export interface FileRouteTypes {
     | '/_dashboard/'
     | '/_dashboard/chat/_chat-layout'
     | '/_dashboard/profile/$userId'
-    | '/_dashboard/feedback/{-$issueId}'
+    | '/_dashboard/feedback/$issueId'
     | '/_dashboard/repository/commit-chain'
     | '/_dashboard/repository/create'
     | '/_dashboard/role/{-$roleId}'
     | '/room-map/$spaceId/$roomId'
+    | '/_dashboard/feedback/'
     | '/_dashboard/repository/'
     | '/_dashboard/role/'
     | '/_dashboard/chat/discover/my'
@@ -606,6 +618,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRepositoryIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/_dashboard/feedback/': {
+      id: '/_dashboard/feedback/'
+      path: '/feedback'
+      fullPath: '/feedback/'
+      preLoaderRoute: typeof DashboardFeedbackIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/room-map/$spaceId/$roomId': {
       id: '/room-map/$spaceId/$roomId'
       path: '/room-map/$spaceId/$roomId'
@@ -634,11 +653,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRepositoryCommitChainRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/_dashboard/feedback/{-$issueId}': {
-      id: '/_dashboard/feedback/{-$issueId}'
-      path: '/feedback/{-$issueId}'
-      fullPath: '/feedback/{-$issueId}'
-      preLoaderRoute: typeof DashboardFeedbackChar123IssueIdChar125RouteImport
+    '/_dashboard/feedback/$issueId': {
+      id: '/_dashboard/feedback/$issueId'
+      path: '/feedback/$issueId'
+      fullPath: '/feedback/$issueId'
+      preLoaderRoute: typeof DashboardFeedbackIssueIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/profile/$userId': {
@@ -838,9 +857,10 @@ interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardChatChatLayoutRouteRoute: typeof DashboardChatChatLayoutRouteRouteWithChildren
   DashboardProfileUserIdRouteRoute: typeof DashboardProfileUserIdRouteRouteWithChildren
-  DashboardFeedbackChar123IssueIdChar125Route: typeof DashboardFeedbackChar123IssueIdChar125Route
+  DashboardFeedbackIssueIdRoute: typeof DashboardFeedbackIssueIdRoute
   DashboardRepositoryCommitChainRoute: typeof DashboardRepositoryCommitChainRoute
   DashboardRepositoryCreateRoute: typeof DashboardRepositoryCreateRoute
+  DashboardFeedbackIndexRoute: typeof DashboardFeedbackIndexRoute
   DashboardRepositoryIndexRoute: typeof DashboardRepositoryIndexRoute
   DashboardChatDiscoverMyRoute: typeof DashboardChatDiscoverMyRoute
   DashboardDocSpaceIdDocIdRoute: typeof DashboardDocSpaceIdDocIdRoute
@@ -864,10 +884,10 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
     DashboardChatChatLayoutRouteRouteWithChildren,
   DashboardProfileUserIdRouteRoute:
     DashboardProfileUserIdRouteRouteWithChildren,
-  DashboardFeedbackChar123IssueIdChar125Route:
-    DashboardFeedbackChar123IssueIdChar125Route,
+  DashboardFeedbackIssueIdRoute: DashboardFeedbackIssueIdRoute,
   DashboardRepositoryCommitChainRoute: DashboardRepositoryCommitChainRoute,
   DashboardRepositoryCreateRoute: DashboardRepositoryCreateRoute,
+  DashboardFeedbackIndexRoute: DashboardFeedbackIndexRoute,
   DashboardRepositoryIndexRoute: DashboardRepositoryIndexRoute,
   DashboardChatDiscoverMyRoute: DashboardChatDiscoverMyRoute,
   DashboardDocSpaceIdDocIdRoute: DashboardDocSpaceIdDocIdRoute,
@@ -894,13 +914,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

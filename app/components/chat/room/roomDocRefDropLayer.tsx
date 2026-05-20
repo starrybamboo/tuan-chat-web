@@ -1,16 +1,19 @@
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
+import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";
+import { getClueRefDragData, isClueRefDrag } from "@/components/chat/utils/clueRef";
 import { getFileDragOverlayText, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getRoomRefDragData, isRoomRefDrag } from "@/components/chat/utils/roomRef";
 
 interface RoomDocRefDropLayerProps {
+  onSendClueCard: (payload: ClueRefDragPayload) => Promise<void> | void;
   onSendDocCard: (payload: DocRefDragPayload) => Promise<void> | void;
   onSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void> | void;
   onSendRoomJump: (payload: RoomRefDragPayload) => Promise<void> | void;
@@ -18,6 +21,7 @@ interface RoomDocRefDropLayerProps {
 }
 
 export default function RoomDocRefDropLayer({
+  onSendClueCard,
   onSendDocCard,
   onSendMaterialItem,
   onSendRoomJump,
@@ -48,6 +52,7 @@ export default function RoomDocRefDropLayer({
     const isDocRef = isDocRefDrag(event.dataTransfer);
     const isMaterialItem = isMaterialItemDrag(event.dataTransfer);
     const isRoomRef = isRoomRefDrag(event.dataTransfer);
+    const isClueRef = isClueRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
     const inCopilotContextDropZone = isCopilotContextDropZone(event.target);
@@ -62,6 +67,12 @@ export default function RoomDocRefDropLayer({
     }
     if (isRoomRef) {
       updateDragOverlayLabel("松开发送群聊跳转");
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      return;
+    }
+    if (isClueRef) {
+      updateDragOverlayLabel("松开发送线索");
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
       return;
@@ -109,6 +120,7 @@ export default function RoomDocRefDropLayer({
     const isDocRef = isDocRefDrag(event.dataTransfer);
     const isMaterialItem = isMaterialItemDrag(event.dataTransfer);
     const isRoomRef = isRoomRefDrag(event.dataTransfer);
+    const isClueRef = isClueRefDrag(event.dataTransfer);
     const isFile = isFileDrag(event.dataTransfer);
     const inSubWindowDropZone = isSubWindowDropZone(event.target);
     const inCopilotContextDropZone = isCopilotContextDropZone(event.target);
@@ -124,6 +136,13 @@ export default function RoomDocRefDropLayer({
     if (isFile) {
       // 文件拖拽交由子组件（ChatFrame/Composer）处理，这里仅负责遮罩状态。
       event.preventDefault();
+      return;
+    }
+    const clueRef = getClueRefDragData(event.dataTransfer);
+    if (clueRef && isClueRef) {
+      event.preventDefault();
+      event.stopPropagation();
+      void onSendClueCard(clueRef);
       return;
     }
     const roomRef = getRoomRefDragData(event.dataTransfer);
@@ -147,7 +166,7 @@ export default function RoomDocRefDropLayer({
     event.preventDefault();
     event.stopPropagation();
     void onSendDocCard(docRef);
-  }, [getDragOverTargetZone, isCopilotContextDropZone, isSubWindowDropZone, onSendDocCard, onSendMaterialItem, onSendRoomJump, updateDragOverlayLabel]);
+  }, [getDragOverTargetZone, isCopilotContextDropZone, isSubWindowDropZone, onSendClueCard, onSendDocCard, onSendMaterialItem, onSendRoomJump, updateDragOverlayLabel]);
 
   useEffect(() => {
     const handleGlobalDragEnd = () => {

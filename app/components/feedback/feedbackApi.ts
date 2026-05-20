@@ -12,7 +12,7 @@ import type {
 } from "@/components/feedback/feedbackTypes";
 import type { FeedbackIssueAuthorResponse } from "api";
 
-import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
+import { avatarUrl, imageLowUrl } from "@/utils/mediaUrl";
 import {
   compactRequestBody,
   extractOpenApiErrorMessage,
@@ -35,7 +35,7 @@ function normalizeFeedbackAuthor(author?: FeedbackIssueAuthorResponse | null): F
     userId: Number(author.userId ?? 0),
     username: typeof author.username === "string" && author.username.trim() ? author.username.trim() : "未知用户",
     avatar: avatarUrl(author.avatarFileId) || null,
-    avatarThumbUrl: avatarThumbUrl(author.avatarFileId) || null,
+    avatarThumbUrl: imageLowUrl(author.avatarFileId) || null,
   };
 }
 

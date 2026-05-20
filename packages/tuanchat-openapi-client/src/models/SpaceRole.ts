@@ -11,7 +11,7 @@ export type SpaceRole = {
      */
     spaceId?: number;
     /**
-     * 角色id（历史字段名 stage_entity_id）
+     * 角色id
      */
     roleId?: number;
     /**

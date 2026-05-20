@@ -5,12 +5,13 @@ interface AnnotationChipProps {
   active?: boolean;
   interactive?: boolean;
   onClick?: () => void;
-  compact?: boolean;
   showActiveHighlight?: boolean;
+  subtle?: boolean;
 }
 
-// Use a frosted surface so chips stay legible even on image-heavy backgrounds.
-const CHIP_SURFACE_CLASS = "shadow-sm supports-[backdrop-filter]:backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
+const CHIP_SURFACE_CLASS = "supports-[backdrop-filter]:backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35";
+const CHIP_SURFACE_ELEVATED_CLASS = `${CHIP_SURFACE_CLASS} shadow-sm`;
+const CHIP_SURFACE_SUBTLE_CLASS = `${CHIP_SURFACE_CLASS} shadow-none`;
 
 const TONE_STYLES: Record<AnnotationTone, string> = {
   neutral: "border-base-300/55 bg-base-100/78 text-base-content/75 hover:border-base-200/75 hover:bg-base-100/88 hover:text-base-content",
@@ -30,13 +31,29 @@ function getToneClass(annotation: AnnotationDefinition) {
   return TONE_STYLES[annotation.tone ?? "neutral"] ?? TONE_STYLES.neutral;
 }
 
+function getSubtleToneClass(annotation: AnnotationDefinition) {
+  const base = getToneClass(annotation);
+  return base
+    .replaceAll("border-base-300/55", "border-base-content/12")
+    .replaceAll("border-base-300/65", "border-base-content/12")
+    .replaceAll("border-info/40", "border-info/28")
+    .replaceAll("border-success/40", "border-success/28")
+    .replaceAll("border-warning/40", "border-warning/28")
+    .replaceAll("border-accent/40", "border-accent/28")
+    .replaceAll("border-primary/40", "border-primary/28")
+    .replaceAll("bg-base-100/78", "bg-base-content/4")
+    .replaceAll("bg-base-100/64", "bg-base-content/4")
+    .replaceAll("hover:bg-base-100/88", "hover:bg-base-content/7")
+    .replaceAll("hover:bg-base-100/76", "hover:bg-base-content/7");
+}
+
 export default function AnnotationChip({
   annotation,
   active = false,
   interactive = true,
   onClick,
-  compact = false,
   showActiveHighlight = true,
+  subtle = false,
 }: AnnotationChipProps) {
   const Icon = annotation.icon;
   const hasLabel = !annotation.hideLabel;
@@ -44,29 +61,31 @@ export default function AnnotationChip({
   const isEffect = annotation.category === "特效" && hasImage;
   const isFigurePositionTag = annotation.id.startsWith("figure.pos.");
   const sizeClass = hasLabel
-    ? (isFigurePositionTag ? (compact ? "px-1.5 min-w-[28px]" : "px-2 min-w-[36px]") : (compact ? "px-2 min-w-[40px]" : "px-3 min-w-[52px]"))
-    : (compact ? "w-8" : "w-10");
+    ? (isFigurePositionTag ? "px-1 min-w-[26px]" : "px-1.5 min-w-[36px]")
+    : "w-6";
   const interactiveClass = interactive ? "active:scale-95" : "";
   const activeClass = active && showActiveHighlight ? "ring-2 ring-primary/35 shadow-md" : "";
+  const surfaceClass = subtle ? CHIP_SURFACE_SUBTLE_CLASS : CHIP_SURFACE_ELEVATED_CLASS;
+  const toneClass = subtle ? getSubtleToneClass(annotation) : getToneClass(annotation);
 
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center ${compact ? "h-7" : "h-9"} rounded-md border transition-all select-none ${CHIP_SURFACE_CLASS} ${sizeClass} ${interactiveClass} ${getToneClass(annotation)} ${activeClass}`}
+      className={`inline-flex items-center justify-center h-6 rounded-md border transition-all select-none ${surfaceClass} ${sizeClass} ${interactiveClass} ${toneClass} ${activeClass}`}
       onClick={onClick}
       title={annotation.label}
     >
       {Icon
         ? (
-            <Icon className={compact ? "w-4 h-4" : "w-5 h-5"} aria-hidden="true" />
+            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
           )
         : hasImage
           ? (
-              <img src={annotation.iconUrl} alt="" className={isEffect ? (compact ? "w-6 h-6 object-contain" : "w-7 h-7 object-contain") : (compact ? "w-5 h-5 object-contain" : "w-6 h-6 object-contain")} />
+              <img src={annotation.iconUrl} alt="" className={isEffect ? "w-5 h-5 object-contain" : "w-4 h-4 object-contain"} />
             )
           : hasLabel
             ? (
-                <span className={`${compact ? "text-[11px]" : "text-xs"} font-semibold leading-none whitespace-nowrap`}>{annotation.label}</span>
+                <span className="text-[11px] font-semibold leading-none whitespace-nowrap">{annotation.label}</span>
               )
             : (
                 <span className="sr-only">{annotation.label}</span>

@@ -5,12 +5,12 @@ import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
-import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { getPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
@@ -52,6 +52,7 @@ type ImportMessageItem = {
 
 type UseRoomImportActionsResult = {
   handleImportChatText: (messages: ImportMessageItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
+  handleSendClueCard: (payload: ClueRefDragPayload) => Promise<void>;
   handleSendDocCard: (payload: DocRefDragPayload) => Promise<void>;
   handleSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void>;
   handleSendRoomJump: (payload: RoomRefDragPayload) => Promise<void>;
@@ -66,11 +67,7 @@ function parseDocRoomId(docId: string): number | null {
 }
 
 function isSendableDocRef(docId: string): boolean {
-  if (parseDocRoomId(docId)) {
-    return true;
-  }
-  const parsed = parseDescriptionDocId(docId);
-  return parsed?.entityType === "space_user_doc" && parsed.docType === "description";
+  return parseDocRoomId(docId) != null;
 }
 
 export default function useRoomImportActions({
@@ -243,6 +240,61 @@ export default function useRoomImportActions({
     setIsSubmitting,
   ]);
 
+  const handleSendClueCard = useCallback(async (payload: ClueRefDragPayload) => {
+    const snapshot = payload?.snapshot;
+    if (!snapshot || typeof snapshot.messageType !== "number" || !Number.isFinite(snapshot.messageType) || snapshot.messageType <= 0) {
+      toast.error("未检测到可用线索");
+      return;
+    }
+
+    const isKP = isSpaceOwner;
+    const isNarrator = curRoleId <= 0;
+
+    if (isNarrator && !isKP && !notMember) {
+      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("正在提交中，请稍后");
+      return;
+    }
+
+    const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+
+    const request: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      avatarId: resolvedAvatarId,
+      content: "",
+      messageType: MESSAGE_TYPE.CLUE_CARD,
+      extra: {
+        clueMessage: {
+          snapshot: {
+            messageType: Math.floor(snapshot.messageType),
+            content: typeof snapshot.content === "string" ? snapshot.content : "",
+            ...(snapshot.extra !== undefined ? { extra: snapshot.extra } : {}),
+          },
+        },
+      } as any,
+    };
+
+    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
+    if (composerTarget === "thread" && threadRootMessageId) {
+      request.threadId = threadRootMessageId;
+    }
+
+    await sendMessageWithInsert(request);
+  }, [
+    curRoleId,
+    ensureRuntimeAvatarIdForRole,
+    isSpaceOwner,
+    isSubmitting,
+    notMember,
+    roomId,
+    roomUiStoreApi,
+    sendMessageWithInsert,
+  ]);
+
   const handleSendDocCard = useCallback(async (payload: DocRefDragPayload) => {
     const payloadRoomId = typeof payload?.roomId === "number" && Number.isFinite(payload.roomId) && payload.roomId > 0
       ? payload.roomId
@@ -263,7 +315,7 @@ export default function useRoomImportActions({
     }
 
     const docRoomId = parseDocRoomId(docId);
-    if (!isSendableDocRef(docId)) {
+    if (!docRoomId || !isSendableDocRef(docId)) {
       toast.error("仅支持发送共享文档或我的文档");
       return;
     }
@@ -312,7 +364,7 @@ export default function useRoomImportActions({
       extra: {
         docCard: {
           docId,
-          ...(docRoomId ? { roomId: docRoomId } : {}),
+          roomId: docRoomId,
           spaceId: sourceSpaceId,
           ...(payload?.title ? { title: payload.title } : {}),
           ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
@@ -552,6 +604,7 @@ export default function useRoomImportActions({
 
   return {
     handleImportChatText,
+    handleSendClueCard,
     handleSendDocCard,
     handleSendMaterialItem,
     handleSendRoomJump,

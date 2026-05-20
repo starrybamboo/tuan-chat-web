@@ -1,6 +1,8 @@
+import type { InfiniteData } from "@tanstack/react-query";
+
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
-import { QueryClient, type InfiniteData } from "@tanstack/react-query";
 import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
 
@@ -8,6 +10,7 @@ import {
   getNotificationsQueryKey,
   getNotificationsUnreadCountQueryKey,
   markAllNotificationsReadInPageData,
+  markNotificationsReadInCaches,
   markNotificationsReadInPageData,
   prependNotificationToCaches,
   prependNotificationToPageData,
@@ -36,6 +39,13 @@ function pageData(items: NotificationItemResponse[]): NotificationData {
         list: items,
       },
     }],
+  };
+}
+
+function unreadCountData(unreadCount: number) {
+  return {
+    success: true,
+    data: { unreadCount },
   };
 }
 
@@ -73,11 +83,56 @@ describe("notification cache helpers", () => {
   it("推送缓存遇到已存在通知时不重复增加未读数", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20 }), pageData([notification(1)]));
-    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), { unreadCount: 3 });
+    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), unreadCountData(3));
 
     prependNotificationToCaches(queryClient, notification(1, { title: "updated" }));
 
-    expect(queryClient.getQueryData<{ unreadCount?: number }>(getNotificationsUnreadCountQueryKey())?.unreadCount).toBe(3);
+    expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(3);
     expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20 }))?.pages[0].data?.list[0].title).toBe("updated");
+  });
+
+  it("推送新未读通知会用 OpenAPI 返回形状增加未读数", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20 }), pageData([notification(1)]));
+    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), unreadCountData(3));
+
+    prependNotificationToCaches(queryClient, notification(2));
+
+    expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(4);
+  });
+
+  it("标记已读后只按缓存中确认的未读通知扣减未读数并夹到零", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20 }), pageData([
+      notification(1),
+      notification(2),
+      notification(3, { isRead: true }),
+    ]));
+    queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20, unreadOnly: true } as any), pageData([
+      notification(1),
+      notification(2),
+    ]));
+    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), unreadCountData(1));
+
+    markNotificationsReadInCaches(queryClient, [1, 2, 3]);
+
+    expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(0);
+    expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20 }))?.pages[0].data?.list.map(item => item.isRead)).toEqual([true, true, true]);
+    expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20, unreadOnly: true } as any))?.pages[0].data?.list).toEqual([]);
+  });
+
+  it("重复标记同一批通知已读不会重复扣减未读数", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20 }), pageData([
+      notification(1),
+      notification(2),
+    ]));
+    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), unreadCountData(2));
+
+    markNotificationsReadInCaches(queryClient, [1, 2]);
+    markNotificationsReadInCaches(queryClient, [1, 2]);
+
+    expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(0);
+    expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20 }))?.pages[0].data?.list.map(item => item.isRead)).toEqual([true, true]);
   });
 });

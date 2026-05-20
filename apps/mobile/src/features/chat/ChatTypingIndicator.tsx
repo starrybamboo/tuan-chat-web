@@ -11,17 +11,18 @@ const styles = StyleSheet.create({
   },
 });
 
-interface ChatTypingIndicatorProps {
+type ChatTypingIndicatorProps = {
   typingUsers: string[];
-}
+};
 
 export function ChatTypingIndicator({ typingUsers }: ChatTypingIndicatorProps) {
   const theme = useTheme();
 
-  if (typingUsers.length === 0) return null;
+  if (typingUsers.length === 0)
+    return null;
 
-  const label =
-    typingUsers.length === 1
+  const label
+    = typingUsers.length === 1
       ? `${typingUsers[0]} 正在输入...`
       : `${typingUsers[0]} 等人正在输入...`;
 

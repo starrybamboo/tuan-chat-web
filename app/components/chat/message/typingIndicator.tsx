@@ -1,0 +1,25 @@
+import { motion } from "motion/react";
+import { typingDotMotionProps } from "@/components/common/motion/chatMessageMotion";
+
+export default function TypingIndicator({
+  name,
+  compact = false,
+  accentClassName = "text-info",
+  dotClassName = "bg-info/70",
+}: {
+  accentClassName?: string;
+  compact?: boolean;
+  dotClassName?: string;
+  name?: string;
+}) {
+  return (
+    <div className={compact ? "flex items-center gap-1" : "flex items-center gap-2 px-4 py-2"}>
+      {name && <span className={compact ? `text-[11px] ${accentClassName}` : `text-xs ${accentClassName}`}>{name}</span>}
+      <div className={compact ? "flex items-center gap-0.5" : "flex items-center gap-1"}>
+        <motion.span className={compact ? `h-1 w-1 rounded-full ${dotClassName}` : `h-1.5 w-1.5 rounded-full ${dotClassName}`} {...typingDotMotionProps(0)} />
+        <motion.span className={compact ? `h-1 w-1 rounded-full ${dotClassName}` : `h-1.5 w-1.5 rounded-full ${dotClassName}`} {...typingDotMotionProps(1)} />
+        <motion.span className={compact ? `h-1 w-1 rounded-full ${dotClassName}` : `h-1.5 w-1.5 rounded-full ${dotClassName}`} {...typingDotMotionProps(2)} />
+      </div>
+    </div>
+  );
+}

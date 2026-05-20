@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
-import { imageHighUrlFromUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrlFromUrl, imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 
 interface ImagePreviewProps {
   images: string[];
@@ -88,7 +88,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
 
   // 放大模式
   if (enlargedIndex !== null) {
-    const currentImage = imageHighUrlFromUrl(images[enlargedIndex]);
+    const currentImage = imagePreviewUrlFromUrl(images[enlargedIndex]);
     const hasPrev = enlargedIndex > 0;
     const hasNext = enlargedIndex < images.length - 1;
 

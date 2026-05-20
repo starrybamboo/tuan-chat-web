@@ -22,9 +22,14 @@ export type AudioTranscodeOptions = {
   compressionLevel?: number;
   /**
    * 期望转码后文件严格小于该字节数；若无法做到将抛错并阻止上传。
-   * 用于“比输入更小”的强约束策略。
+   * 用于”比输入更小”的强约束策略。
    */
   preferSmallerThanBytes?: number;
+  /**
+   * 创建独立 FFmpeg 实例而非复用单例，用完即销毁。
+   * 用于 Promise.all 并行转码场景——每个调用各自持有独立 WASM worker。
+   */
+  isolated?: boolean;
 };
 
 const DEFAULT_BITRATE_KBPS = 64;
@@ -190,107 +195,105 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
   });
 }
 
+async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
+  if (typeof window === "undefined") {
+    throw new TypeError("当前环境不支持音频转码（需要浏览器环境）");
+  }
+
+  const debugEnabled = isAudioUploadDebugEnabled();
+  const debugPrefix = "[tc-audio-upload]";
+  logFfmpegDebugConfig(debugEnabled, debugPrefix, loadTimeoutMs);
+
+  const { FFmpeg } = await loadFfmpegModule(debugEnabled, debugPrefix);
+
+  const candidates = getFfmpegCoreBaseUrlCandidates();
+  const bundledCandidates = shouldUseBundledFfmpegCore()
+    ? [
+        {
+          label: "bundled",
+          coreJs: bundledCoreJsUrl,
+          wasm: bundledCoreWasmUrl,
+        },
+      ]
+    : [];
+  const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
+
+  const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
+
+  if (debugEnabled) {
+    try {
+      ffmpeg.on("progress", ({ progress, time }: any) => {
+        const p = typeof progress === "number" && Number.isFinite(progress) ? progress : undefined;
+        const t = typeof time === "number" && Number.isFinite(time) ? time : undefined;
+        console.warn(`${debugPrefix} ffmpeg progress`, { progress: p, time: t });
+      });
+      ffmpeg.on("log", ({ type, message }: any) => {
+        console.warn(`${debugPrefix} ffmpeg log`, { type, message });
+      });
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  const errors: string[] = [];
+  for (const c of bundledCandidates) {
+    try {
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg core candidate`, c.label);
+
+      const coreURL = c.coreJs;
+      const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(c.wasm, "application/wasm", loadTimeoutMs);
+
+      await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
+
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg loaded`, { label: c.label });
+
+      return ffmpeg;
+    }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`${c.label}: ${msg}`);
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg core candidate failed`, { label: c.label, msg });
+    }
+  }
+
+  for (const baseUrl of candidates) {
+    try {
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg core candidate`, baseUrl);
+
+      const coreURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
+      const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
+
+      await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
+
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg loaded`, { baseUrl });
+
+      return ffmpeg;
+    }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`${baseUrl}: ${msg}`);
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg core candidate failed`, { baseUrl, msg });
+    }
+  }
+
+  throw new Error(`FFmpeg 核心加载失败（已尝试 ${bundledCandidates.length + candidates.length} 个源）：\n${errors.join("\n")}`);
+}
+
 async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
   if (ffmpegSingletonPromise)
     return ffmpegSingletonPromise;
 
-  ffmpegSingletonPromise = (async () => {
-    try {
-      if (typeof window === "undefined") {
-        throw new TypeError("当前环境不支持音频转码（需要浏览器环境）");
-      }
-
-      const debugEnabled = isAudioUploadDebugEnabled();
-      const debugPrefix = "[tc-audio-upload]";
-      logFfmpegDebugConfig(debugEnabled, debugPrefix, loadTimeoutMs);
-
-      const { FFmpeg } = await loadFfmpegModule(debugEnabled, debugPrefix);
-
-      const candidates = getFfmpegCoreBaseUrlCandidates();
-      const bundledCandidates = shouldUseBundledFfmpegCore()
-        ? [
-            {
-              label: "bundled",
-              coreJs: bundledCoreJsUrl,
-              wasm: bundledCoreWasmUrl,
-            },
-          ]
-        : [];
-      const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
-
-      const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
-
-      if (debugEnabled) {
-        try {
-          ffmpeg.on("progress", ({ progress, time }: any) => {
-            const p = typeof progress === "number" && Number.isFinite(progress) ? progress : undefined;
-            const t = typeof time === "number" && Number.isFinite(time) ? time : undefined;
-            console.warn(`${debugPrefix} ffmpeg progress`, { progress: p, time: t });
-          });
-          ffmpeg.on("log", ({ type, message }: any) => {
-            console.warn(`${debugPrefix} ffmpeg log`, { type, message });
-          });
-        }
-        catch {
-          // ignore
-        }
-      }
-
-      const errors: string[] = [];
-      for (const c of bundledCandidates) {
-        try {
-          if (debugEnabled)
-            console.warn(`${debugPrefix} ffmpeg core candidate`, c.label);
-
-          // core.js 保持同源直链，wasm 走持久缓存后的 blob URL，避免每次重新回源下载大文件。
-          const coreURL = c.coreJs;
-          const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(c.wasm, "application/wasm", loadTimeoutMs);
-
-          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
-
-          if (debugEnabled)
-            console.warn(`${debugPrefix} ffmpeg loaded`, { label: c.label });
-
-          return ffmpeg;
-        }
-        catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          errors.push(`${c.label}: ${msg}`);
-          if (debugEnabled)
-            console.warn(`${debugPrefix} ffmpeg core candidate failed`, { label: c.label, msg });
-        }
-      }
-
-      for (const baseUrl of candidates) {
-        try {
-          if (debugEnabled)
-            console.warn(`${debugPrefix} ffmpeg core candidate`, baseUrl);
-
-          const coreURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
-          const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
-
-          await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
-
-          if (debugEnabled)
-            console.warn(`${debugPrefix} ffmpeg loaded`, { baseUrl });
-
-          return ffmpeg;
-        }
-        catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          errors.push(`${baseUrl}: ${msg}`);
-          if (debugEnabled)
-            console.warn(`${debugPrefix} ffmpeg core candidate failed`, { baseUrl, msg });
-        }
-      }
-
-      throw new Error(`FFmpeg 核心加载失败（已尝试 ${bundledCandidates.length + candidates.length} 个源）：\n${errors.join("\n")}`);
-    }
-    catch (e) {
-      ffmpegSingletonPromise = null;
-      throw e;
-    }
-  })();
+  ffmpegSingletonPromise = createFfmpegInstance(loadTimeoutMs).catch((e) => {
+    ffmpegSingletonPromise = null;
+    throw e;
+  });
 
   return ffmpegSingletonPromise;
 }
@@ -327,8 +330,13 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
   const execTimeoutMs = options.execTimeoutMs && options.execTimeoutMs > 0 ? options.execTimeoutMs : DEFAULT_EXEC_TIMEOUT_MS;
   const debugEnabled = isAudioUploadDebugEnabled();
   const debugPrefix = "[tc-audio-upload]";
+  const isolated = options.isolated === true;
 
-  let ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化");
+  let ffmpeg = await withTimeout(
+    isolated ? createFfmpegInstance(loadTimeoutMs) : getFfmpeg(loadTimeoutMs),
+    loadTimeoutMs,
+    "FFmpeg 初始化",
+  );
   const { fetchFile } = await import("@ffmpeg/util");
 
   const runOnce = async (params: TranscodePreset) => {
@@ -460,12 +468,20 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
       if (debugEnabled)
         console.error(`${debugPrefix} ffmpeg transcode failed`, { tag: preset.tag, error });
 
-      // 常见：WASM 内存越界（某些输入/环境下会发生），尝试重置 worker，并用同一 preset 重跑一次
       if (isWasmMemoryOutOfBounds(error)) {
         if (debugEnabled)
           console.warn(`${debugPrefix} retry after wasm memory OOB`, { tag: preset.tag });
-        await terminateFfmpegAndResetSingleton(ffmpeg);
-        ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（重试）");
+        if (isolated) {
+          try {
+            ffmpeg.terminate();
+          }
+          catch {}
+          ffmpeg = await withTimeout(createFfmpegInstance(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（隔离重试）");
+        }
+        else {
+          await terminateFfmpegAndResetSingleton(ffmpeg);
+          ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（重试）");
+        }
         try {
           const out = await runOnce({ ...preset, tag: `${preset.tag}-retry` });
           if (smallestBytes == null || out.size < smallestBytes)
@@ -483,26 +499,36 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
     }
   };
 
-  for (const preset of presets) {
-    try {
-      const out = await attemptOnce(preset);
-      if (!inputTargetBytes || out.size < inputTargetBytes)
-        return out;
-      if (debugEnabled)
-        console.warn(`${debugPrefix} output not smaller than input`, { tag: preset.tag, outBytes: out.size, inputBytes: inputTargetBytes });
+  try {
+    for (const preset of presets) {
+      try {
+        const out = await attemptOnce(preset);
+        if (!inputTargetBytes || out.size < inputTargetBytes)
+          return out;
+        if (debugEnabled)
+          console.warn(`${debugPrefix} output not smaller than input`, { tag: preset.tag, outBytes: out.size, inputBytes: inputTargetBytes });
+      }
+      catch {
+        // ignore and try next preset
+      }
     }
-    catch {
-      // ignore and try next preset
+
+    if (inputTargetBytes && smallestBytes != null) {
+      const inputKb = (inputTargetBytes / 1024).toFixed(1);
+      const outKb = (smallestBytes / 1024).toFixed(1);
+      throw new Error(`音频转码后未变小（原始 ${inputKb}KB，最小 ${outKb}KB），已阻止上传`);
+    }
+
+    throw new Error(`音频转码失败，已阻止上传: ${normalizeErrorMessage(lastError)}`);
+  }
+  finally {
+    if (isolated) {
+      try {
+        ffmpeg.terminate();
+      }
+      catch {}
     }
   }
-
-  if (inputTargetBytes && smallestBytes != null) {
-    const inputKb = (inputTargetBytes / 1024).toFixed(1);
-    const outKb = (smallestBytes / 1024).toFixed(1);
-    throw new Error(`音频转码后未变小（原始 ${inputKb}KB，最小 ${outKb}KB），已阻止上传`);
-  }
-
-  throw new Error(`音频转码失败，已阻止上传: ${normalizeErrorMessage(lastError)}`);
 }
 
 export async function transcodeAudioBlobToOpusOrThrow(inputBlob: Blob, fileName: string, options: AudioTranscodeOptions = {}): Promise<File> {

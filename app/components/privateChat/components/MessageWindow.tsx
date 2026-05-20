@@ -2,6 +2,10 @@ import { useScroll } from "../hooks/useScroll";
 import MessageBubble from "./MessageBubble";
 import UserSearch from "./UserSearch";
 
+function isSameSender(previousMessage: any | undefined, message: any) {
+  return previousMessage?.senderId != null && previousMessage.senderId === message.senderId;
+}
+
 export default function MessageWindow({
   currentContactUserId,
   allMessages,
@@ -22,15 +26,19 @@ export default function MessageWindow({
       {currentContactUserId
       // 1. 与当前联系人的聊天页面
         ? (
-            <div className="space-y-4">
+            <div key={currentContactUserId} className="private-direct-message-list-entry flex flex-col gap-1 px-1 py-2">
               {/* 消息列表项 */}
-              {allMessages.map(msg => (
-                <MessageBubble
-                  key={msg.messageId}
-                  message={msg}
-                  isOwn={msg.senderId === userId}
-                />
-              ))}
+              {allMessages.map((msg, index) => {
+                const groupedWithPrevious = isSameSender(allMessages[index - 1], msg);
+                return (
+                  <MessageBubble
+                    key={msg.messageId}
+                    message={msg}
+                    isOwn={msg.senderId === userId}
+                    groupedWithPrevious={groupedWithPrevious}
+                  />
+                );
+              })}
 
               {/* 滚动锚点 */}
               <div ref={messagesLatestRef} />

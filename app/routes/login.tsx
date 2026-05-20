@@ -33,8 +33,16 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen bg-base-200">
+      {!isOpen && (
+        <div className="flex min-h-screen items-center justify-center text-base-content/70">
+          <span className="loading loading-spinner loading-md" aria-label="Loading" />
+        </div>
+      )}
       <LoginModal
         isOpen={isOpen}
+        onAuthenticated={() => {
+          router.history.replace(redirect);
+        }}
         onClose={() => {
           setIsOpen(false);
           router.history.replace(redirect);

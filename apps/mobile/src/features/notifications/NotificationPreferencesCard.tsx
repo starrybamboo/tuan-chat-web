@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Switch, View } from "react-native";
+import { StyleSheet, Switch, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -15,10 +15,10 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth },
 });
 
-interface NotificationPreferencesCardProps {
+type NotificationPreferencesCardProps = {
   prefs: NotificationPreferences;
   onUpdate: (patch: Partial<NotificationPreferences>) => void;
-}
+};
 
 export function NotificationPreferencesCard({ prefs, onUpdate }: NotificationPreferencesCardProps) {
   const theme = useTheme();
@@ -44,7 +44,7 @@ export function NotificationPreferencesCard({ prefs, onUpdate }: NotificationPre
               <ThemedText style={[styles.rowLabel, disabled && { opacity: 0.4 }]}>{item.label}</ThemedText>
               <Switch
                 value={prefs[item.key]}
-                onValueChange={(val) => onUpdate({ [item.key]: val })}
+                onValueChange={val => onUpdate({ [item.key]: val })}
                 disabled={disabled}
                 trackColor={{ false: theme.backgroundSelected, true: theme.accent }}
                 thumbColor="#fff"

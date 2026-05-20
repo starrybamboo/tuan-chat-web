@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import type { SpaceContextMenuProps } from "@/components/chat/space/contextMenu/spaceContextMenu";
 import React from "react";
 
 import ChatPageLayout from "@/components/chat/chatPageLayout";
@@ -6,7 +7,8 @@ import ChatPageModals from "@/components/chat/chatPageModals";
 import ChatPageSidePanelContent from "@/components/chat/chatPageSidePanelContent";
 import ChatPageContextMenu from "@/components/chat/room/contextMenu/chatPageContextMenu";
 import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
-import SpaceContextMenu from "@/components/chat/space/contextMenu/spaceContextMenu";
+
+const LazySpaceContextMenu = React.lazy(() => import("@/components/chat/space/contextMenu/spaceContextMenu"));
 
 interface ChatPagePanelsProps {
   layoutProps: Omit<ComponentProps<typeof ChatPageLayout>, "mainContent" | "sidePanelContent" | "spaceSidebar" | "subWindowContent">;
@@ -37,7 +39,7 @@ export function ChatPagePanels({
 interface ChatPageOverlaysProps {
   modalsProps: ComponentProps<typeof ChatPageModals>;
   contextMenuProps: ComponentProps<typeof ChatPageContextMenu>;
-  spaceContextMenuProps: ComponentProps<typeof SpaceContextMenu>;
+  spaceContextMenuProps: SpaceContextMenuProps;
 }
 
 export function ChatPageOverlays({
@@ -45,11 +47,26 @@ export function ChatPageOverlays({
   contextMenuProps,
   spaceContextMenuProps,
 }: ChatPageOverlaysProps) {
+  const [hasOpenedSpaceContextMenu, setHasOpenedSpaceContextMenu] = React.useState(Boolean(spaceContextMenuProps.contextMenu));
+  React.useEffect(() => {
+    if (spaceContextMenuProps.contextMenu) {
+      setHasOpenedSpaceContextMenu(true);
+    }
+  }, [spaceContextMenuProps.contextMenu]);
+
+  const shouldRenderSpaceContextMenu = hasOpenedSpaceContextMenu || Boolean(spaceContextMenuProps.contextMenu);
+
   return (
     <>
       <ChatPageModals {...modalsProps} />
       <ChatPageContextMenu {...contextMenuProps} />
-      <SpaceContextMenu {...spaceContextMenuProps} />
+      {shouldRenderSpaceContextMenu
+        ? (
+            <React.Suspense fallback={null}>
+              <LazySpaceContextMenu {...spaceContextMenuProps} />
+            </React.Suspense>
+          )
+        : null}
     </>
   );
 }

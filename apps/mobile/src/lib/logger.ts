@@ -1,13 +1,13 @@
-import { Share, Platform } from "react-native";
+import { Platform, Share } from "react-native";
 
 import { setStringAsync } from "@/lib/clipboard";
 
-export interface LogEntry {
+export type LogEntry = {
   timestamp: string;
   level: "error" | "warn" | "info";
   message: string;
   stack?: string;
-}
+};
 
 const MAX_ENTRIES = 100;
 const entries: LogEntry[] = [];
@@ -29,7 +29,8 @@ export function getLogEntries(): readonly LogEntry[] {
 }
 
 export function getFormattedLogs(): string {
-  if (entries.length === 0) return "暂无日志";
+  if (entries.length === 0)
+    return "暂无日志";
   return entries.map(formatEntry).join("\n\n");
 }
 
@@ -54,7 +55,7 @@ export function installGlobalHandlers(): void {
     push({
       timestamp: new Date().toISOString(),
       level: "error",
-      message: args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "),
+      message: args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" "),
     });
     originalConsoleError.apply(console, args);
   };
@@ -64,7 +65,7 @@ export function installGlobalHandlers(): void {
     push({
       timestamp: new Date().toISOString(),
       level: "warn",
-      message: args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "),
+      message: args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" "),
     });
     originalConsoleWarn.apply(console, args);
   };

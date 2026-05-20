@@ -109,7 +109,7 @@ export default function useChatFrameMessages({
       return;
     }
     let isCancelled = false;
-    let timeoutId: NodeJS.Timeout | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     async function syncMessages() {
       const checkLoading = async (): Promise<void> => {

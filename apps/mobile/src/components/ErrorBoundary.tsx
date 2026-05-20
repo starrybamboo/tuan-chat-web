@@ -19,10 +19,10 @@ const styles = StyleSheet.create({
   btn: { flex: 1, alignItems: "center", borderRadius: Radius.md, minHeight: 44, justifyContent: "center" },
 });
 
-interface State {
+type State = {
   hasError: boolean;
   error?: Error;
-}
+};
 
 export class ErrorBoundary extends React.Component<React.PropsWithChildren, State> {
   state: State = { hasError: false };

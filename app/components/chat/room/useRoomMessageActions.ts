@@ -2,23 +2,15 @@ import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
-import type { WebgalChoosePayload } from "@/types/webgalChoose";
 
 import { buildCommittedResponseFromOptimistic, commitBatchOptimisticMessages } from "@/components/chat/room/roomMessageBatchCommit";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
-import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { createOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
 
-import { MessageType } from "../../../../api/wsModels";
-
 type UseRoomMessageActionsParams = {
-  roomId: number;
   currentUserId: number;
-  isSpaceOwner: boolean;
-  curRoleId: number;
-  isSubmitting: boolean;
-  notMember: boolean;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
   batchSendMessages?: (messages: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: ChatMessageResponse["message"][] }>;
@@ -26,23 +18,19 @@ type UseRoomMessageActionsParams = {
   addOrUpdateMessages?: (messages: ChatMessageResponse[]) => Promise<void> | void;
   removeMessageById?: (messageId: number) => Promise<void>;
   replaceMessageById?: (fromMessageId: number, message: ChatMessageResponse) => Promise<void>;
-  ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   roomUiStoreApi: RoomUiStoreApi;
 };
 
 type UseRoomMessageActionsResult = {
+  discardLocalOptimisticMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+  insertLocalOptimisticMessages: (messages: ChatMessageRequest[]) => ChatMessageResponse[];
+  sendMessageBatchWithLocalOptimistic: (messages: ChatMessageRequest[], optimisticMessages: ChatMessageResponse[]) => Promise<ChatMessageResponse["message"][]>;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
-  handleSendWebgalChoose: (payload: WebgalChoosePayload) => Promise<void>;
 };
 
 export default function useRoomMessageActions({
-  roomId,
   currentUserId,
-  isSpaceOwner,
-  curRoleId,
-  isSubmitting,
-  notMember,
   mainHistoryMessages,
   sendMessage,
   batchSendMessages,
@@ -50,10 +38,8 @@ export default function useRoomMessageActions({
   addOrUpdateMessages,
   removeMessageById,
   replaceMessageById,
-  ensureRuntimeAvatarIdForRole,
   roomUiStoreApi,
 }: UseRoomMessageActionsParams): UseRoomMessageActionsResult {
-  const webgalChooseSendingRef = useRef(false);
   const optimisticMessageIdRef = useRef(-1);
 
   const getNextMainFlowPosition = useCallback(() => {
@@ -63,33 +49,15 @@ export default function useRoomMessageActions({
   const createOptimisticMessage = useCallback((request: ChatMessageRequest): ChatMessageResponse => {
     const optimisticMessageId = optimisticMessageIdRef.current;
     optimisticMessageIdRef.current -= 1;
-    const nowIso = new Date().toISOString();
     const resolvedPosition = typeof request.position === "number"
       ? request.position
       : getNextMainFlowPosition();
 
-    return {
-      message: {
-        messageId: optimisticMessageId,
-        syncId: optimisticMessageId,
-        roomId: request.roomId,
-        userId: currentUserId > 0 ? currentUserId : 0,
-        roleId: request.roleId,
-        content: request.content ?? "",
-        customRoleName: request.customRoleName,
-        annotations: request.annotations,
-        avatarId: request.avatarId,
-        webgal: request.webgal,
-        replyMessageId: request.replayMessageId,
-        status: 0,
-        messageType: request.messageType,
-        threadId: request.threadId,
-        position: resolvedPosition,
-        extra: request.extra as any,
-        createTime: nowIso,
-        updateTime: nowIso,
-      },
-    };
+    return createOptimisticRoomMessage(request, {
+      currentUserId,
+      optimisticId: optimisticMessageId,
+      position: resolvedPosition,
+    }) as ChatMessageResponse;
   }, [currentUserId, getNextMainFlowPosition]);
 
   const createOptimisticMessages = useCallback((requests: ChatMessageRequest[]): ChatMessageResponse[] => {
@@ -125,6 +93,23 @@ export default function useRoomMessageActions({
       await revertOptimisticMessage(optimisticMessage);
     }
   }, [revertOptimisticMessage]);
+
+  const insertLocalOptimisticMessages = useCallback((requests: ChatMessageRequest[]): ChatMessageResponse[] => {
+    if (requests.length === 0) {
+      return [];
+    }
+
+    const optimisticMessages = createOptimisticMessages(requests);
+    if (addOrUpdateMessages) {
+      void addOrUpdateMessages(optimisticMessages);
+    }
+    else if (addOrUpdateMessage) {
+      optimisticMessages.forEach((message) => {
+        void addOrUpdateMessage(message);
+      });
+    }
+    return optimisticMessages;
+  }, [addOrUpdateMessage, addOrUpdateMessages, createOptimisticMessages]);
 
   const commitOptimisticMessage = useCallback(async (
     optimisticMessage: ChatMessageResponse,
@@ -175,6 +160,43 @@ export default function useRoomMessageActions({
     addOrUpdateMessage,
     commitOptimisticMessage,
     createOptimisticMessage,
+    revertOptimisticMessage,
+    roomUiStoreApi,
+    sendMessage,
+  ]);
+
+  const sendWithExistingOptimistic = useCallback(async (
+    request: ChatMessageRequest,
+    optimisticMessage: ChatMessageResponse,
+    errorLogLabel: string,
+  ) => {
+    const requestWithStablePosition = typeof request.position === "number"
+      ? request
+      : {
+          ...request,
+          position: optimisticMessage.message.position,
+        };
+
+    try {
+      const result = await sendMessage(requestWithStablePosition);
+      if (!result.success || !result.data) {
+        await revertOptimisticMessage(optimisticMessage);
+        toast.error("发送消息失败");
+        return null;
+      }
+
+      const created = await commitOptimisticMessage(optimisticMessage, result.data);
+      roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: created });
+      return created;
+    }
+    catch (error) {
+      console.error(errorLogLabel, error);
+      await revertOptimisticMessage(optimisticMessage);
+      toast.error("发送消息失败");
+      return null;
+    }
+  }, [
+    commitOptimisticMessage,
     revertOptimisticMessage,
     roomUiStoreApi,
     sendMessage,
@@ -249,6 +271,97 @@ export default function useRoomMessageActions({
     sendWithOptimistic,
   ]);
 
+  const sendMessageBatchWithLocalOptimistic = useCallback(async (
+    requests: ChatMessageRequest[],
+    optimisticMessages: ChatMessageResponse[],
+  ): Promise<ChatMessageResponse["message"][]> => {
+    if (requests.length === 0) {
+      await revertOptimisticMessages(optimisticMessages);
+      return [];
+    }
+
+    if (optimisticMessages.length === 0) {
+      return await sendBatchWithOptimistic(requests, "批量发送消息失败");
+    }
+
+    if (requests.length === 1) {
+      const created = await sendWithExistingOptimistic(requests[0], optimisticMessages[0], "发送消息失败");
+      if (optimisticMessages.length > 1) {
+        await revertOptimisticMessages(optimisticMessages.slice(1));
+      }
+      return created ? [created] : [];
+    }
+
+    if (!batchSendMessages || optimisticMessages.length !== requests.length) {
+      const createdMessages: ChatMessageResponse["message"][] = [];
+      for (let index = 0; index < requests.length; index += 1) {
+        const request = requests[index];
+        const optimisticMessage = optimisticMessages[index];
+        const created = optimisticMessage
+          ? await sendWithExistingOptimistic(request, optimisticMessage, "发送消息失败")
+          : await sendWithOptimistic(request, "发送消息失败");
+        if (!created) {
+          await revertOptimisticMessages(optimisticMessages.slice(index + 1));
+          return [];
+        }
+        createdMessages.push(created);
+      }
+      if (optimisticMessages.length > requests.length) {
+        await revertOptimisticMessages(optimisticMessages.slice(requests.length));
+      }
+      return createdMessages;
+    }
+
+    const requestsWithStablePositions = requests.map((request, index) => {
+      if (typeof request.position === "number") {
+        return request;
+      }
+      return {
+        ...request,
+        position: optimisticMessages[index]?.message.position,
+      };
+    });
+
+    try {
+      const result = await batchSendMessages(requestsWithStablePositions);
+      const createdMessages = Array.isArray(result?.data) ? result.data : [];
+      if (!result?.success || createdMessages.length !== requests.length) {
+        await revertOptimisticMessages(optimisticMessages);
+        toast.error("批量发送消息失败");
+        return [];
+      }
+
+      const committedResponses = await commitBatchOptimisticMessages({
+        optimisticMessages,
+        createdMessages,
+        addOrUpdateMessage,
+        addOrUpdateMessages,
+        replaceMessageById,
+      });
+
+      committedResponses.forEach((response) => {
+        roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: response.message });
+      });
+      return committedResponses.map(response => response.message);
+    }
+    catch (error) {
+      console.error("批量发送消息失败", error);
+      await revertOptimisticMessages(optimisticMessages);
+      toast.error("批量发送消息失败");
+      return [];
+    }
+  }, [
+    addOrUpdateMessage,
+    addOrUpdateMessages,
+    batchSendMessages,
+    replaceMessageById,
+    revertOptimisticMessages,
+    roomUiStoreApi,
+    sendBatchWithOptimistic,
+    sendWithExistingOptimistic,
+    sendWithOptimistic,
+  ]);
+
   const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
     const insertAfterMessageId = roomUiStoreApi.getState().insertAfterMessageId;
 
@@ -278,68 +391,11 @@ export default function useRoomMessageActions({
     return await sendBatchWithOptimistic(messages, "批量发送消息失败");
   }, [sendBatchWithOptimistic]);
 
-  const handleSendWebgalChoose = useCallback(async (payload: WebgalChoosePayload) => {
-    const options = payload?.options ?? [];
-    const normalizedOptions = options.map(option => ({
-      text: String(option.text ?? "").trim(),
-      code: option.code ? String(option.code).trim() : "",
-    }));
-
-    const isNarrator = curRoleId <= 0;
-
-    if (isNarrator && !isSpaceOwner && !notMember) {
-      toast.error("旁白仅主持可用，请先选择/拉入你的角色");
-      return;
-    }
-    if (isSubmitting || webgalChooseSendingRef.current) {
-      toast.error("正在提交中，请稍候");
-      return;
-    }
-    if (normalizedOptions.length === 0) {
-      toast.error("请至少添加一个选项");
-      return;
-    }
-    if (normalizedOptions.some(option => !option.text)) {
-      toast.error("选项文本不能为空");
-      return;
-    }
-
-    const finalPayload: WebgalChoosePayload = {
-      options: normalizedOptions.map(option => ({
-        text: option.text,
-        ...(option.code ? { code: option.code } : {}),
-      })),
-    };
-
-    webgalChooseSendingRef.current = true;
-    try {
-      const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
-      const chooseMsg: ChatMessageRequest = {
-        roomId,
-        roleId: curRoleId,
-        avatarId: resolvedAvatarId,
-        content: "",
-        messageType: MessageType.WEBGAL_CHOOSE,
-        extra: {
-          webgalChoose: finalPayload,
-        },
-      };
-
-      const draftCustomRoleName = useRoomPreferenceStore.getState().draftCustomRoleNameMap[curRoleId];
-      if (draftCustomRoleName?.trim()) {
-        chooseMsg.customRoleName = draftCustomRoleName.trim();
-      }
-
-      await sendMessageWithInsert(chooseMsg);
-    }
-    finally {
-      webgalChooseSendingRef.current = false;
-    }
-  }, [curRoleId, ensureRuntimeAvatarIdForRole, isSpaceOwner, isSubmitting, notMember, roomId, sendMessageWithInsert]);
-
   return {
+    discardLocalOptimisticMessages: revertOptimisticMessages,
+    insertLocalOptimisticMessages,
+    sendMessageBatchWithLocalOptimistic,
     sendMessageWithInsert,
     sendMessageBatch,
-    handleSendWebgalChoose,
   };
 }

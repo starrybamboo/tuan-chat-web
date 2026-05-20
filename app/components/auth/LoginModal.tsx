@@ -7,8 +7,8 @@ import {
   verifyEmailVerificationCode,
 } from "@/utils/auth/accountSecurityApi";
 import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
-import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 import { AlertMessage } from "./AlertMessage";
+import { runAuthSuccessFlow } from "./authSuccessFlow";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
@@ -16,6 +16,12 @@ import { RegisterForm } from "./RegisterForm";
 import { useVerificationCodeCooldown } from "./useVerificationCodeCooldown";
 
 type AuthMode = "login" | "register" | "forgot";
+
+interface LoginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAuthenticated?: () => void;
+}
 
 function resolveAuthMode(modeValue: string | null): AuthMode {
   if (modeValue === "register" || modeValue === "forgot") {
@@ -42,7 +48,7 @@ function resolveForgotPasswordErrorMessage(error: unknown): string {
 }
 
 // 登录弹窗组件
-export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginModalProps) {
   const location = useLocation();
   const router = useRouter();
   const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
@@ -165,22 +171,18 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     }, 1500);
   }
 
-  const handleSuccessAndClose = () => {
+  const handleAuthenticated = useCallback(() => {
+    runAuthSuccessFlow({
+      invalidateRouter: () => router.invalidate(),
+      onClose: handleClose,
+      onSuccess: onAuthenticated,
+    });
+  }, [handleClose, onAuthenticated, router]);
+
+  const handleLogoutComplete = useCallback(() => {
     handleClose();
-
-    try {
-      const redirect = normalizeAuthRedirectPath(searchParams.get("redirect"));
-      if (window.location.pathname === "/login") {
-        window.location.assign(redirect);
-        return;
-      }
-    }
-    catch {
-      // ignore
-    }
-
-    window.location.reload();
-  };
+    void router.invalidate();
+  }, [handleClose, router]);
 
   const loginMutation = useMutation({
     mutationFn: (data: { username: string; password: string; loginMethod: "username" | "userId" }) =>
@@ -188,7 +190,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     onSuccess: (res) => {
       if (res.data) {
         showTemporaryMessage("登录成功！", "success");
-        scheduleTimeout(handleSuccessAndClose, 1000);
+        scheduleTimeout(handleAuthenticated, 1000);
       }
       else {
         showTemporaryMessage(res.errMsg || "登录失败，请重试", "error");
@@ -327,7 +329,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   const handleLogout = () => {
     void logoutUser();
     showTemporaryMessage("已成功退出登录", "success");
-    scheduleTimeout(handleSuccessAndClose, 1000);
+    scheduleTimeout(handleLogoutComplete, 1000);
   };
 
   return (

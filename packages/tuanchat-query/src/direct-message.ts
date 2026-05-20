@@ -6,6 +6,7 @@ import type { MessageDirectRecallRequest } from "@tuanchat/openapi-client/models
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
 import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 
 type DirectMessageClient = Pick<TuanChat, "messageDirectController">;

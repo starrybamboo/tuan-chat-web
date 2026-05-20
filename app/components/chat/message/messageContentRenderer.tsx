@@ -62,6 +62,9 @@ function resolveMediaPayloadUrl(
   quality: MediaQuality,
   expectedMediaType?: MediaType,
 ) {
+  if (typeof payload?.fileId === "number" && payload.fileId <= 0) {
+    return "";
+  }
   const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
   return mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
 }
@@ -127,7 +130,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.FILE: {
       const fileMessage = getFileMessageExtra(message.extra);
-      const fileUrl = resolveMediaPayloadUrl(fileMessage, "original");
+      const fileUrl = resolveMediaPayloadUrl(fileMessage, "low");
       const fileName = fileMessage?.fileName || message.content || "文件";
       const sizeLabel = formatFileSize(fileMessage?.size);
       const contentNode = (
@@ -186,9 +189,8 @@ export default function MessageContentRenderer({
       const diceResult = message.extra?.diceResult;
       const result = diceResult?.result || message.content || "";
       return (
-        <div className="relative text-sm">
-          <span className="badge badge-accent badge-xs absolute right-0 top-0">骰娘</span>
-          <div className="whitespace-pre-wrap break-words pr-10 pt-1">
+        <div className="text-sm">
+          <div className="whitespace-pre-wrap break-words">
             {result || "[骰子结果]"}
           </div>
         </div>

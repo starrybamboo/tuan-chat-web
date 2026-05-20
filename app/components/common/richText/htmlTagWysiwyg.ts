@@ -89,9 +89,9 @@ function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
 // 调用入口：在空格插入后，提供当前行(到空格前)文本进行检测并输出
 export function logHtmlTagIfAny(lineLeft: string): void {
   const result = detectHtmlTagOnSpace(lineLeft);
-  if (result) {
+  if (result && import.meta.env.DEV) {
     // eslint-disable-next-line no-console
-    console.log("[HTML-TAG-DETECT]", result);
+    console.info("[HTML-TAG-DETECT]", result);
   }
 }
 

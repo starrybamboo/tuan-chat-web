@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
-import { markObservedWebgalAsset, primeWebgalAssetCache } from "@/webGAL/browserAssetCache";
+import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
+import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
 interface ImgWithHoverProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   enableScale?: boolean;
@@ -35,7 +35,7 @@ export default function ImgWithHoverToScale({
   const [previewSize, setPreviewSize] = useState({ width: 300, height: 300 }); // 默认尺寸
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const previewSrc = typeof src === "string" ? imageHighUrlFromUrl(src) : src;
+  const previewSrc = typeof src === "string" ? imagePreviewUrlFromUrl(src) : src;
 
   const handleMouseEnter = () => {
     if (!enableScale) {
@@ -127,7 +127,6 @@ export default function ImgWithHoverToScale({
   const handleImageLoad: React.ReactEventHandler<HTMLImageElement> = (event) => {
     if (typeof src === "string") {
       markObservedWebgalAsset(src);
-      void primeWebgalAssetCache(src);
     }
     onLoad?.(event);
   };

@@ -1,5 +1,8 @@
 import { useRouter } from "@tanstack/react-router";
-import { useRef } from "react";
+import { motion } from "motion/react";
+import { useEffect, useRef } from "react";
+import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -54,9 +57,10 @@ export default function ChatItem({
   openContextMenu: (x: number, y: number, id: number) => void;
 }) {
   const resolvedUser = useResolvedUserInfo(user, id);
-  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || "";
+  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || undefined;
   const displayName = resolveUserDisplayName({ username: resolvedUser.username }, `用户${id}`);
   const router = useRouter();
+  const { setActiveRoomId } = useChatPageLayoutContext();
 
   // 初始化未读消息数
   let showedUnreadMessageNumber = unreadMessageNumber;
@@ -66,7 +70,7 @@ export default function ChatItem({
     showedUnreadMessageNumber = 0;
   }
 
-  const timer = useRef<NodeJS.Timeout | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function EndTouchScroll() {
     if (timer.current) {
@@ -94,11 +98,18 @@ export default function ChatItem({
     EndTouchScroll();
   }
 
+  useEffect(() => {
+    return () => {
+      EndTouchScroll();
+    };
+  }, []);
+
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
     if (currentContactUserId === id) {
       return;
     }
+    setActiveRoomId(id);
     router.history.push(`/chat/private/${id}`);
     updateReadlinePosition(id);
     if (getScreenSize() === "sm") {
@@ -130,58 +141,71 @@ export default function ChatItem({
   return (
     <div className="relative group w-full">
       <button
-        className={`btn btn-ghost flex flex-row flex-nowrap items-center justify-start w-full h-16 px-2 gap-3 ${currentContactUserId === id ? "bg-base-200" : ""}`}
+        className={[
+          "flex flex-row flex-nowrap items-center w-full h-14 px-2 gap-3 rounded-lg transition-colors duration-150 cursor-pointer",
+          currentContactUserId === id
+            ? "bg-base-200 dark:bg-base-300/40"
+            : "hover:bg-base-200/60 dark:hover:bg-base-300/20",
+        ].join(" ")}
         type="button"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchCancel}
         onClick={handleClick}
       >
-        <div className="avatar mask mask-squircle w-10 h-10 flex-shrink-0">
-          <img
-            src={avatarSrc}
-            alt={displayName}
-          />
+        <div className="avatar mask mask-squircle w-9 h-9 flex-shrink-0 bg-base-300 text-xs font-semibold text-base-content/60">
+          {avatarSrc
+            ? (
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              )
+            : (
+                <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
+                  {displayName.slice(0, 1)}
+                </div>
+              )}
         </div>
 
-        <div className="flex flex-col flex-1 min-w-0 h-full justify-center gap-1">
+        <div className="flex flex-col flex-1 min-w-0 justify-center gap-0.5">
           <div className="flex items-center w-full min-w-0">
-            <span className="font-bold truncate text-base min-w-0 text-left">
+            <span className="font-medium truncate text-sm min-w-0 text-left">
               {resolvedUser.isLoading
-                ? <div className="skeleton h-4 w-20"></div>
+                ? <div className="skeleton h-3.5 w-20"></div>
                 : displayName}
             </span>
           </div>
 
           <div className="flex items-center w-full gap-2">
-            <span className="text-sm text-base-content/60 truncate text-left flex-1 min-w-0">
+            <span className="text-xs text-base-content/50 truncate text-left flex-1 min-w-0">
               {getMessagePreview(lastMessage)}
             </span>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {showedUnreadMessageNumber > 0 && (
-                <div className="badge badge-sm badge-error">
-                  {showedUnreadMessageNumber > 99 ? "99+" : showedUnreadMessageNumber}
-                </div>
-              )}
-              {/* {lastMessage?.createTime && (
-                <span className="text-xs text-base-content/50 whitespace-nowrap group-hover:opacity-0 transition-opacity duration-200">
-                  {formatTimeSmartly(lastMessage.createTime)}
-                </span>
-              )} */}
-            </div>
+            {showedUnreadMessageNumber > 0 && (
+              <motion.span
+                className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-error text-error-content flex-shrink-0"
+                {...unreadBadgeBounceMotionProps}
+              >
+                {showedUnreadMessageNumber > 99 ? "99+" : showedUnreadMessageNumber}
+              </motion.span>
+            )}
           </div>
         </div>
       </button>
 
-      {/* Delete button for PC - shows on hover */}
+      {/* Delete button for PC - shows on hover or keyboard focus. */}
       {!isSmallScreen && (
         <button
           type="button"
-          className="absolute right-2 top-3 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer hover:bg-base-300 z-10"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md opacity-0 transition-opacity duration-150 cursor-pointer hover:bg-base-300 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 group-hover:opacity-100 z-10"
           onClick={handleDeletePC}
           aria-label={`删除与${displayName}的会话`}
         >
-          <XMarkICon className="w-4 h-4 text-base-content/50" />
+          <XMarkICon className="w-3.5 h-3.5 text-base-content/50" />
         </button>
       )}
     </div>

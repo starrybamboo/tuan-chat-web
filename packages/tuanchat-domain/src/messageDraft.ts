@@ -1,12 +1,17 @@
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
-import type { MaterialMessageItem } from "@tuanchat/openapi-client/models/MaterialMessageItem";
+import type { MessageDraft as OpenApiMessageDraft } from "@tuanchat/openapi-client/models/MessageDraft";
 
 import { MESSAGE_TYPE } from "./messageType";
 import { normalizeStateEventExtra } from "./state-event";
 
-export type MessageDraft = MaterialMessageItem;
+export type MessageDraftLocalSyncState = "optimistic";
 
-export type MessageDraftIdentity = Pick<MessageDraft, "avatarId" | "customRoleName" | "roleId">;
+export type MessageDraft = OpenApiMessageDraft & {
+  avatarId?: number;
+  customRoleName?: string;
+  roleId?: number;
+  tcLocalSyncState?: MessageDraftLocalSyncState;
+};
 
 export type UploadedImageMessageDraftAsset = {
   background?: boolean;
@@ -56,7 +61,6 @@ type BuildChatMessageRequestFromDraftContext = {
 
 type BuildMessageDraftsFromUploadedMediaParams = {
   allowEmptyTextMessage?: boolean;
-  baseMessage?: Partial<MessageDraft>;
   fileAnnotations?: string[];
   imageAnnotations?: string[];
   inputText: string;
@@ -228,11 +232,17 @@ function normalizeForwardPayload(rawExtra: unknown): MessageExtraRecord {
 
 function normalizeCluePayload(rawExtra: unknown): MessageExtraRecord {
   const clue = pickPayload(rawExtra, "clueMessage");
-  return compactRecord({
-    img: toTrimmedString(clue.img),
-    name: toTrimmedString(clue.name),
-    description: toTrimmedString(clue.description),
-  });
+  const snapshot = toRecord(clue.snapshot);
+  const messageType = toPositiveNumber(snapshot.messageType);
+  const content = typeof snapshot.content === "string" ? snapshot.content : "";
+  const normalizedSnapshot: MessageExtraRecord = {
+    ...(messageType ? { messageType } : {}),
+    content,
+  };
+  if (snapshot.extra !== undefined && snapshot.extra !== null) {
+    normalizedSnapshot.extra = snapshot.extra;
+  }
+  return { snapshot: normalizedSnapshot };
 }
 
 function normalizeWebgalChoosePayload(rawExtra: unknown): MessageExtraRecord {
@@ -395,8 +405,8 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
       }
       return;
     case MESSAGE_TYPE.CLUE_CARD:
-      if (!toTrimmedString(normalizeCluePayload(extra).name)) {
-        throw new Error("线索卡片缺少名称");
+      if (!toPositiveNumber(toRecord(normalizeCluePayload(extra).snapshot).messageType)) {
+        throw new Error("线索卡片缺少快照消息类型");
       }
       break;
     default:
@@ -489,24 +499,7 @@ export function buildThreadRootTitleFromMessageContent(
   return trimmed ? trimmed.slice(0, maxLength) : fallback;
 }
 
-function buildDraftIdentityFields(baseMessage?: Partial<MessageDraft>): Partial<MessageDraft> {
-  const roleId = typeof baseMessage?.roleId === "number" ? baseMessage.roleId : undefined;
-  const avatarId = typeof roleId === "number" && roleId > 0 && typeof baseMessage?.avatarId === "number" && baseMessage.avatarId > 0
-    ? baseMessage.avatarId
-    : undefined;
-  const customRoleName = typeof baseMessage?.customRoleName === "string" && baseMessage.customRoleName.trim()
-    ? baseMessage.customRoleName.trim()
-    : undefined;
-
-  return {
-    roleId,
-    avatarId,
-    customRoleName,
-  };
-}
-
 export function buildMessageDraftsFromUploadedMedia({
-  baseMessage,
   fileAnnotations = [],
   inputText,
   imageAnnotations = [],
@@ -524,12 +517,10 @@ export function buildMessageDraftsFromUploadedMedia({
   const isBlankInput = trimmedInputText.length === 0;
   const hasRawTextInput = inputText.length > 0;
   const nextMessages: MessageDraft[] = [];
-  const identityFields = buildDraftIdentityFields(baseMessage);
   let textContent = isBlankInput && hasRawTextInput ? inputText : trimmedInputText;
 
   uploadedImages.forEach((image) => {
     nextMessages.push({
-      ...identityFields,
       ...(imageAnnotations.length > 0 ? { annotations: imageAnnotations } : {}),
       content: textContent,
       messageType: MESSAGE_TYPE.IMG,
@@ -550,7 +541,6 @@ export function buildMessageDraftsFromUploadedMedia({
 
   if (uploadedSoundMessage) {
     nextMessages.push({
-      ...identityFields,
       ...(soundAnnotations.length > 0 ? { annotations: soundAnnotations } : {}),
       content: textContent,
       messageType: MESSAGE_TYPE.SOUND,
@@ -570,7 +560,6 @@ export function buildMessageDraftsFromUploadedMedia({
 
   uploadedVideos.forEach((video) => {
     nextMessages.push({
-      ...identityFields,
       ...(videoAnnotations.length > 0 ? { annotations: videoAnnotations } : {}),
       content: textContent,
       messageType: MESSAGE_TYPE.VIDEO,
@@ -589,7 +578,6 @@ export function buildMessageDraftsFromUploadedMedia({
 
   uploadedFiles.forEach((file) => {
     nextMessages.push({
-      ...identityFields,
       ...(fileAnnotations.length > 0 ? { annotations: fileAnnotations } : {}),
       content: textContent,
       messageType: MESSAGE_TYPE.FILE,
@@ -614,7 +602,6 @@ export function buildMessageDraftsFromUploadedMedia({
 
   if (textContent || shouldSendEmptyTextMessage) {
     nextMessages.push({
-      ...identityFields,
       ...(textAnnotations.length > 0 ? { annotations: textAnnotations } : {}),
       content: textContent,
       messageType: textMessageType,
@@ -638,16 +625,14 @@ export function buildChatMessageRequestFromDraft(
   }: BuildChatMessageRequestFromDraftContext,
 ): ChatMessageRequest {
   const resolvedMessageType = draft.messageType ?? MESSAGE_TYPE.TEXT;
-  const resolvedCustomRoleName = typeof customRoleName === "string"
-    ? customRoleName.trim()
-    : (typeof draft.customRoleName === "string" ? draft.customRoleName.trim() : "");
+  const resolvedCustomRoleName = typeof customRoleName === "string" ? customRoleName.trim() : "";
   const normalizedExtra = buildMessageExtraForRequest(resolvedMessageType, draft.extra);
 
   const request: ChatMessageRequest = {
     roomId,
     messageType: resolvedMessageType,
-    roleId: roleId ?? draft.roleId,
-    avatarId: avatarId ?? draft.avatarId,
+    roleId,
+    avatarId,
     content: draft.content ?? "",
     extra: normalizedExtra,
   };

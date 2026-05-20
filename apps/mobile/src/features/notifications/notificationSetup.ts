@@ -1,5 +1,5 @@
-import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,7 +13,8 @@ Notifications.setNotificationHandler({
 
 export async function requestNotificationPermissions(): Promise<boolean> {
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  if (existingStatus === "granted") return true;
+  if (existingStatus === "granted")
+    return true;
 
   const { status } = await Notifications.requestPermissionsAsync();
   return status === "granted";

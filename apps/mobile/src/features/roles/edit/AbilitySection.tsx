@@ -1,14 +1,16 @@
-import { useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
+import type { ReactNode } from "react";
 
-import { ThemedText } from "@/components/themed-text";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+
 import { BottomSheetModal } from "@/components/BottomSheetModal";
+import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import {
   useAbilityByRuleAndRoleQuery,
   useSetRoleAbilityMutation,
-  useUpdateRoleAbilityByRoleIdMutation,
   useUpdateKeyFieldByRoleIdMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
 } from "@/features/roles/useAbilityMutations";
 import { useRuleDetailQuery } from "@/features/roles/useRuleQueries";
 import { useTheme } from "@/hooks/use-theme";
@@ -25,32 +27,49 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  grid: {
+  tagGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
   },
-  fieldItem: {
+  tagItem: {
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 6,
+  },
+  numericColumns: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  numericColumn: {
+    flex: 1,
+    gap: Spacing.sm,
+  },
+  numericRow: {
     alignItems: "center",
     borderRadius: Radius.md,
     flexDirection: "row",
     justifyContent: "space-between",
-    minWidth: "48%",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
-  fieldKey: {
-    flex: 1,
-    marginRight: Spacing.sm,
+  sheetContent: {
+    gap: Spacing.xl,
+    paddingBottom: Spacing.xxl,
+    paddingHorizontal: Spacing.xxl,
+    paddingTop: Spacing.lg,
   },
-  fieldValue: {
-    maxWidth: 80,
-    textAlign: "right",
+  sheetKeyboardAvoiding: {
+    maxHeight: "100%",
+  },
+  sheetLabel: {
+    marginBottom: Spacing.xs,
   },
   sheetInput: {
     borderRadius: Radius.md,
+    borderWidth: 1,
     fontSize: 15,
-    marginTop: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
@@ -58,12 +77,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.md,
     justifyContent: "flex-end",
-    marginTop: Spacing.lg,
+    alignItems: "center",
   },
   sheetButton: {
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
+  },
+  createSection: {
+    alignItems: "center",
+    borderRadius: Radius.xl,
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.xxxl,
   },
 });
 
@@ -78,10 +104,34 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   extra: "额外",
 };
 
-interface AbilitySectionProps {
+const NUMERIC_SECTIONS: SectionKey[] = ["basic", "ability", "skill"];
+
+function isNumericValue(value: string): boolean {
+  return /^-?\d+(?:\.\d+)?$/.test(value.trim());
+}
+
+function AbilitySheetContent({ children }: { children: ReactNode }) {
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={24}
+      style={styles.sheetKeyboardAvoiding}
+    >
+      <ScrollView
+        contentContainerStyle={styles.sheetContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+type AbilitySectionProps = {
   roleId: number;
   ruleId: number;
-}
+};
 
 export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   const theme = useTheme();
@@ -114,11 +164,15 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
 
     for (const key of sectionKeys) {
       const data = (ability as any)?.[key] as Record<string, string> | undefined;
-      const template = key === "act" ? rule?.actTemplate
-        : key === "basic" ? rule?.basicDefault
-        : key === "ability" ? rule?.abilityFormula
-        : key === "skill" ? rule?.skillDefault
-        : undefined;
+      const template = key === "act"
+        ? rule?.actTemplate
+        : key === "basic"
+          ? rule?.basicDefault
+          : key === "ability"
+            ? rule?.abilityFormula
+            : key === "skill"
+              ? rule?.skillDefault
+              : undefined;
 
       const merged = { ...(template as Record<string, string> ?? {}), ...(data ?? {}) };
       if (Object.keys(merged).length > 0) {
@@ -134,7 +188,8 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   }, []);
 
   const handleFieldSave = useCallback(async () => {
-    if (!editingField) return;
+    if (!editingField)
+      return;
     try {
       await updateAbilityMutation.mutateAsync({
         roleId,
@@ -142,37 +197,44 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         [editingField.section]: { [editingField.key]: editValue },
       });
       setEditingField(null);
-    } catch (e: any) {
+    }
+    catch (e: any) {
       Alert.alert("保存失败", e?.message ?? "请稍后重试");
     }
   }, [editingField, editValue, roleId, ruleId, updateAbilityMutation]);
 
   const handleFieldDelete = useCallback(async () => {
-    if (!editingField) return;
-    Alert.alert("删除字段", `确定要删除 "${editingField.key}" 吗？`, [
-      { text: "取消", style: "cancel" },
-      {
-        text: "删除",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const fieldKey = `${editingField.section}Fields` as const;
-            await updateFieldMutation.mutateAsync({
-              roleId,
-              ruleId,
-              [fieldKey]: { [editingField.key]: null },
-            } as any);
-            setEditingField(null);
-          } catch (e: any) {
-            Alert.alert("删除失败", e?.message ?? "请稍后重试");
-          }
-        },
-      },
-    ]);
+    if (!editingField)
+      return;
+    const doDelete = async () => {
+      try {
+        const fieldKey = `${editingField.section}Fields` as const;
+        await updateFieldMutation.mutateAsync({
+          roleId,
+          ruleId,
+          [fieldKey]: { [editingField.key]: null },
+        } as any);
+        setEditingField(null);
+      }
+      catch (e: any) {
+        Alert.alert("删除失败", e?.message ?? "请稍后重试");
+      }
+    };
+    if (Platform.OS === "web") {
+      if (window.confirm(`确定要删除 "${editingField.key}" 吗？`))
+        void doDelete();
+    }
+    else {
+      Alert.alert("删除字段", `确定要删除 "${editingField.key}" 吗？`, [
+        { text: "取消", style: "cancel" },
+        { text: "删除", style: "destructive", onPress: () => void doDelete() },
+      ]);
+    }
   }, [editingField, roleId, ruleId, updateFieldMutation]);
 
   const handleFieldRename = useCallback(() => {
-    if (!editingField) return;
+    if (!editingField)
+      return;
     setRenamingField({ section: editingField.section, key: editingField.key });
     setRenameValue(editingField.key);
     setEditingField(null);
@@ -191,13 +253,15 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         [fieldKey]: { [renamingField.key]: renameValue.trim() },
       } as any);
       setRenamingField(null);
-    } catch (e: any) {
+    }
+    catch (e: any) {
       Alert.alert("重命名失败", e?.message ?? "请稍后重试");
     }
   }, [renamingField, renameValue, roleId, ruleId, updateFieldMutation]);
 
   const handleAddField = useCallback(async () => {
-    if (!addingSection || !newFieldName.trim()) return;
+    if (!addingSection || !newFieldName.trim())
+      return;
     try {
       await updateAbilityMutation.mutateAsync({
         roleId,
@@ -206,7 +270,8 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
       });
       setAddingSection(null);
       setNewFieldName("");
-    } catch (e: any) {
+    }
+    catch (e: any) {
       Alert.alert("添加失败", e?.message ?? "请稍后重试");
     }
   }, [addingSection, newFieldName, roleId, ruleId, updateAbilityMutation]);
@@ -221,71 +286,120 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         ability: (rule?.abilityFormula as Record<string, string>) ?? {},
         skill: (rule?.skillDefault as Record<string, string>) ?? {},
       });
-    } catch (e: any) {
+    }
+    catch (e: any) {
       Alert.alert("创建失败", e?.message ?? "请稍后重试");
     }
   }, [roleId, ruleId, rule, setAbilityMutation]);
 
-  if (!ability && !abilityQuery.isLoading) {
-    return (
-      <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-        <ThemedText type="heading">能力值</ThemedText>
-        <ThemedText themeColor="textSecondary" type="small">
-          该角色在此规则下尚无能力数据
-        </ThemedText>
-        <Pressable
-          onPress={handleCreateAbility}
-          style={[styles.sheetButton, { backgroundColor: theme.accent }]}
-        >
-          <ThemedText style={{ color: "#fff" }} type="small">从模板创建</ThemedText>
-        </Pressable>
-      </View>
-    );
+  const autoCreatedRef = useRef(false);
+  useEffect(() => {
+    if (!ability && !abilityQuery.isLoading && rule && !autoCreatedRef.current) {
+      autoCreatedRef.current = true;
+      void handleCreateAbility();
+    }
+  }, [ability, abilityQuery.isLoading, rule, handleCreateAbility]);
+
+  useEffect(() => {
+    autoCreatedRef.current = false;
+  }, [ruleId]);
+
+  if (!ability) {
+    return null;
   }
 
   return (
     <>
-      {sections.map(({ key, label, fields }) => (
-        <View key={key} style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="heading">{label}</ThemedText>
-            <Pressable onPress={() => { setAddingSection(key); setNewFieldName(""); }}>
-              <ThemedText themeColor="accent" type="small">+ 添加</ThemedText>
-            </Pressable>
-          </View>
-          <View style={styles.grid}>
-            {Object.entries(fields).map(([fieldKey, fieldValue]) => (
-              <Pressable
-                key={fieldKey}
-                onPress={() => handleFieldPress(key, fieldKey, String(fieldValue ?? ""))}
-                style={[styles.fieldItem, { backgroundColor: theme.background }]}
-              >
-                <ThemedText type="caption" style={styles.fieldKey} numberOfLines={1}>
-                  {fieldKey}
-                </ThemedText>
-                <ThemedText type="smallBold" style={styles.fieldValue} numberOfLines={1}>
-                  {String(fieldValue ?? "")}
-                </ThemedText>
+      {sections.map(({ key: sectionKey, label, fields }) => {
+        const entries = Object.entries(fields);
+        const useNumericLayout = NUMERIC_SECTIONS.includes(sectionKey)
+          && entries.some(([, v]) => isNumericValue(String(v ?? "")));
+
+        return (
+          <View key={sectionKey} style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="heading">{label}</ThemedText>
+              <Pressable onPress={() => { setAddingSection(sectionKey); setNewFieldName(""); }}>
+                <ThemedText themeColor="accent" type="small">+ 添加</ThemedText>
               </Pressable>
-            ))}
+            </View>
+
+            {useNumericLayout
+              ? (
+                  <View style={styles.numericColumns}>
+                    <View style={styles.numericColumn}>
+                      {entries.filter((_, i) => i % 2 === 0).map(([fieldKey, fieldValue]) => (
+                        <Pressable
+                          key={fieldKey}
+                          onPress={() => handleFieldPress(sectionKey, fieldKey, String(fieldValue ?? ""))}
+                          style={[styles.numericRow, { backgroundColor: theme.background }]}
+                        >
+                          <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
+                            {fieldKey}
+                          </ThemedText>
+                          <ThemedText type="smallBold" themeColor="accent">
+                            {String(fieldValue ?? "0")}
+                          </ThemedText>
+                        </Pressable>
+                      ))}
+                    </View>
+                    <View style={styles.numericColumn}>
+                      {entries.filter((_, i) => i % 2 === 1).map(([fieldKey, fieldValue]) => (
+                        <Pressable
+                          key={fieldKey}
+                          onPress={() => handleFieldPress(sectionKey, fieldKey, String(fieldValue ?? ""))}
+                          style={[styles.numericRow, { backgroundColor: theme.background }]}
+                        >
+                          <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
+                            {fieldKey}
+                          </ThemedText>
+                          <ThemedText type="smallBold" themeColor="accent">
+                            {String(fieldValue ?? "0")}
+                          </ThemedText>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                )
+              : (
+                  <View style={styles.tagGrid}>
+                    {entries.map(([fieldKey, fieldValue]) => {
+                      const displayText = fieldValue
+                        ? `${fieldKey}: ${String(fieldValue).slice(0, 12)}${String(fieldValue).length > 12 ? "…" : ""}`
+                        : fieldKey;
+                      return (
+                        <Pressable
+                          key={fieldKey}
+                          onPress={() => handleFieldPress(sectionKey, fieldKey, String(fieldValue ?? ""))}
+                          style={[styles.tagItem, { borderColor: theme.border }]}
+                        >
+                          <ThemedText type="small" numberOfLines={1}>{displayText}</ThemedText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
           </View>
-        </View>
-      ))}
+        );
+      })}
 
       {/* Edit field sheet */}
       <BottomSheetModal visible={!!editingField} onClose={() => setEditingField(null)} backgroundColor={theme.backgroundElement} handleColor={theme.border}>
-        <View style={{ padding: Spacing.xxl }}>
-          <ThemedText type="heading">编辑: {editingField?.key}</ThemedText>
-          <TextInput
-            style={[styles.sheetInput, { backgroundColor: theme.background, color: theme.text }]}
-            value={editValue}
-            onChangeText={setEditValue}
-            placeholder="输入值"
-            placeholderTextColor={theme.textSecondary}
-            autoFocus
-          />
+        <AbilitySheetContent>
+          <ThemedText type="heading">{editingField?.key}</ThemedText>
+          <View>
+            <ThemedText themeColor="textSecondary" type="caption" style={styles.sheetLabel}>值</ThemedText>
+            <TextInput
+              style={[styles.sheetInput, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
+              value={editValue}
+              onChangeText={setEditValue}
+              placeholder="输入值"
+              placeholderTextColor={theme.textSecondary}
+              autoFocus
+            />
+          </View>
           <View style={styles.sheetActions}>
-            <Pressable onPress={handleFieldDelete}>
+            <Pressable onPress={handleFieldDelete} style={{ marginRight: "auto" }}>
               <ThemedText style={{ color: "#ef4444" }} type="small">删除</ThemedText>
             </Pressable>
             <Pressable onPress={handleFieldRename}>
@@ -298,21 +412,24 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
               <ThemedText style={{ color: "#fff" }} type="small">保存</ThemedText>
             </Pressable>
           </View>
-        </View>
+        </AbilitySheetContent>
       </BottomSheetModal>
 
       {/* Rename field sheet */}
       <BottomSheetModal visible={!!renamingField} onClose={() => setRenamingField(null)} backgroundColor={theme.backgroundElement} handleColor={theme.border}>
-        <View style={{ padding: Spacing.xxl }}>
+        <AbilitySheetContent>
           <ThemedText type="heading">重命名字段</ThemedText>
-          <TextInput
-            style={[styles.sheetInput, { backgroundColor: theme.background, color: theme.text }]}
-            value={renameValue}
-            onChangeText={setRenameValue}
-            placeholder="新字段名称"
-            placeholderTextColor={theme.textSecondary}
-            autoFocus
-          />
+          <View>
+            <ThemedText themeColor="textSecondary" type="caption" style={styles.sheetLabel}>新名称</ThemedText>
+            <TextInput
+              style={[styles.sheetInput, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
+              value={renameValue}
+              onChangeText={setRenameValue}
+              placeholder="新字段名称"
+              placeholderTextColor={theme.textSecondary}
+              autoFocus
+            />
+          </View>
           <View style={styles.sheetActions}>
             <Pressable onPress={() => setRenamingField(null)}>
               <ThemedText themeColor="textSecondary" type="small">取消</ThemedText>
@@ -320,26 +437,33 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
             <Pressable
               onPress={handleRenameConfirm}
               disabled={!renameValue.trim() || renameValue.trim() === renamingField?.key}
-              style={[styles.sheetButton, { backgroundColor: theme.accent }]}
+              style={[styles.sheetButton, { backgroundColor: theme.accent, opacity: (!renameValue.trim() || renameValue.trim() === renamingField?.key) ? 0.5 : 1 }]}
             >
               <ThemedText style={{ color: "#fff" }} type="small">确认</ThemedText>
             </Pressable>
           </View>
-        </View>
+        </AbilitySheetContent>
       </BottomSheetModal>
 
       {/* Add field sheet */}
       <BottomSheetModal visible={!!addingSection} onClose={() => setAddingSection(null)} backgroundColor={theme.backgroundElement} handleColor={theme.border}>
-        <View style={{ padding: Spacing.xxl }}>
-          <ThemedText type="heading">添加字段 ({addingSection ? SECTION_LABELS[addingSection] : ""})</ThemedText>
-          <TextInput
-            style={[styles.sheetInput, { backgroundColor: theme.background, color: theme.text }]}
-            value={newFieldName}
-            onChangeText={setNewFieldName}
-            placeholder="字段名称"
-            placeholderTextColor={theme.textSecondary}
-            autoFocus
-          />
+        <AbilitySheetContent>
+          <ThemedText type="heading">
+            添加到「
+            {addingSection ? SECTION_LABELS[addingSection] : ""}
+            」
+          </ThemedText>
+          <View>
+            <ThemedText themeColor="textSecondary" type="caption" style={styles.sheetLabel}>字段名称</ThemedText>
+            <TextInput
+              style={[styles.sheetInput, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
+              value={newFieldName}
+              onChangeText={setNewFieldName}
+              placeholder="输入字段名称"
+              placeholderTextColor={theme.textSecondary}
+              autoFocus
+            />
+          </View>
           <View style={styles.sheetActions}>
             <Pressable onPress={() => setAddingSection(null)}>
               <ThemedText themeColor="textSecondary" type="small">取消</ThemedText>
@@ -347,12 +471,12 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
             <Pressable
               onPress={handleAddField}
               disabled={!newFieldName.trim()}
-              style={[styles.sheetButton, { backgroundColor: theme.accent }]}
+              style={[styles.sheetButton, { backgroundColor: theme.accent, opacity: !newFieldName.trim() ? 0.5 : 1 }]}
             >
               <ThemedText style={{ color: "#fff" }} type="small">添加</ThemedText>
             </Pressable>
           </View>
-        </View>
+        </AbilitySheetContent>
       </BottomSheetModal>
     </>
   );

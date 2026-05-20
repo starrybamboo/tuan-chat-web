@@ -13,8 +13,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
  */
 import type { RealtimeWebgalGameConfig } from "@/components/chat/stores/realtimeRenderStore";
 
-import { avatarUrl, imageHighUrl } from "@/utils/mediaUrl";
-
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeTTSConfig } from "./realtimeRenderer";
 
@@ -26,6 +24,7 @@ import {
   DEFAULT_REALTIME_ASSET_CONCURRENCY,
   runWithConcurrencyLimit,
 } from "./realtimeRenderAssetWarmup";
+import { debugRealtimeRender } from "./realtimeRenderDebug";
 import { RealtimeRenderer } from "./realtimeRenderer";
 
 export type RealtimeRenderStatus = "idle" | "initializing" | "connected" | "disconnected" | "error";
@@ -180,7 +179,7 @@ function useRealtimeRender({
     ttsConfigRef.current = ttsConfig;
     if (rendererRef.current && ttsConfig) {
       rendererRef.current.setTTSConfig(ttsConfig);
-      console.warn(`[useRealtimeRender] TTS 配置变化: enabled=${ttsConfig.enabled}`);
+      debugRealtimeRender(`[useRealtimeRender] TTS 配置变化: enabled=${ttsConfig.enabled}`);
     }
   }, [ttsConfig]);
 
@@ -321,7 +320,7 @@ function useRealtimeRender({
         renderer.setRoleCache(roles);
 
         // 全量获取所有角色的头像信息
-        console.warn("[useRealtimeRender] 正在获取角色头像信息...");
+        debugRealtimeRender("[useRealtimeRender] 正在获取角色头像信息...");
         const avatarIdsToFetch = collectMissingAvatarIdsFromRoles(roles, hasCachedAvatar);
 
         // 更新进度: 正在获取头像信息
@@ -341,33 +340,33 @@ function useRealtimeRender({
           });
         });
 
-        console.warn(`[useRealtimeRender] 已检查 ${roles.length} 个角色的头像信息`);
+        debugRealtimeRender(`[useRealtimeRender] 已检查 ${roles.length} 个角色的头像信息`);
       }
 
       // 设置房间列表（用于创建多个场景）- 使用 ref 获取最新值
       const currentRooms = roomsRef.current;
       if (currentRooms.length > 0) {
         renderer.setRooms(currentRooms);
-        console.warn(`[useRealtimeRender] 设置了 ${currentRooms.length} 个房间`);
+        debugRealtimeRender(`[useRealtimeRender] 设置了 ${currentRooms.length} 个房间`);
       }
 
       // 设置 TTS 配置
       const currentTTSConfig = ttsConfigRef.current;
       if (currentTTSConfig) {
         renderer.setTTSConfig(currentTTSConfig);
-        console.warn(`[useRealtimeRender] TTS 已${currentTTSConfig.enabled ? "启用" : "禁用"}`);
+        debugRealtimeRender(`[useRealtimeRender] TTS 已${currentTTSConfig.enabled ? "启用" : "禁用"}`);
       }
 
       // 设置参考音频文件
       const currentVoiceFiles = voiceFilesRef.current;
       if (currentVoiceFiles && currentVoiceFiles.size > 0) {
         renderer.setVoiceFiles(currentVoiceFiles);
-        console.warn(`[useRealtimeRender] 设置了 ${currentVoiceFiles.size} 个角色的参考音频`);
+        debugRealtimeRender(`[useRealtimeRender] 设置了 ${currentVoiceFiles.size} 个角色的参考音频`);
       }
 
       // 如果启用了 TTS 但没有提供参考音频，尝试从角色的 voiceUrl 获取
       if (currentTTSConfig?.enabled && (!currentVoiceFiles || currentVoiceFiles.size === 0)) {
-        console.warn("[useRealtimeRender] 正在从角色 voiceUrl 获取参考音频...");
+        debugRealtimeRender("[useRealtimeRender] 正在从角色 voiceUrl 获取参考音频...");
         await renderer.fetchVoiceFilesFromRoles();
       }
 
@@ -428,21 +427,19 @@ function useRealtimeRender({
   // 渲染单条消息
   const renderMessage = useCallback(async (message: ChatMessageResponse, roomId?: number): Promise<void> => {
     if (!rendererRef.current) {
-      console.warn("实时渲染器未就绪，无法渲染消息");
+      debugRealtimeRender("实时渲染器未就绪，无法渲染消息");
       return;
     }
 
     // 获取头像信息（优先从 React Query 缓存读取）
     const avatarId = message.message.avatarId;
     const cached = avatarId ? queryClient.getQueryData<any>(["getRoleAvatar", avatarId]) : null;
-    console.warn(`[useRealtimeRender] 渲染消息, avatarId=${avatarId}, queryCache=${Boolean(cached)}`);
+    debugRealtimeRender(`[useRealtimeRender] 渲染消息, avatarId=${avatarId}, queryCache=${Boolean(cached)}`);
 
     if (!cached?.data && avatarId && avatarId > 0) {
       try {
-        const avatarResponse = await fetchRoleAvatarWithCache(queryClient, avatarId);
-        if (avatarResponse.data) {
-          console.warn(`[useRealtimeRender] 成功获取头像 ${avatarId}:`, avatarUrl(avatarResponse.data.avatarFileId) || imageHighUrl(avatarResponse.data.spriteFileId));
-        }
+        await fetchRoleAvatarWithCache(queryClient, avatarId);
+        debugRealtimeRender(`[useRealtimeRender] 成功获取头像 ${avatarId}`);
       }
       catch (error) {
         console.error("获取头像信息失败:", error);
@@ -456,7 +453,7 @@ function useRealtimeRender({
   // 渲染历史消息
   const renderHistory = useCallback(async (messages: ChatMessageResponse[], roomId?: number): Promise<void> => {
     if (!rendererRef.current) {
-      console.warn("实时渲染器未就绪，无法渲染历史消息");
+      debugRealtimeRender("实时渲染器未就绪，无法渲染历史消息");
       return;
     }
 
@@ -469,7 +466,7 @@ function useRealtimeRender({
     });
     const idsToFetch = warmupPlan.avatarIds.filter(avatarId => !hasCachedAvatar(avatarId));
 
-    console.warn(`[useRealtimeRender] 需要获取 ${idsToFetch.length} 个头像信息:`, idsToFetch);
+    debugRealtimeRender(`[useRealtimeRender] 需要获取 ${idsToFetch.length} 个头像信息:`, idsToFetch);
     await fetchAndCacheAvatars(idsToFetch);
 
     await rendererRef.current.preloadMessageAssets(messages);
@@ -482,7 +479,7 @@ function useRealtimeRender({
     roomId?: number,
   ): Promise<void> => {
     if (!rendererRef.current) {
-      console.warn("实时渲染器未就绪，无法重渲染历史后缀");
+      debugRealtimeRender("实时渲染器未就绪，无法重渲染历史后缀");
       return;
     }
 
@@ -567,7 +564,7 @@ function useRealtimeRender({
   // 跳转到指定消息
   const jumpToMessage = useCallback((messageId: number, roomId?: number): boolean => {
     if (!rendererRef.current) {
-      console.warn("实时渲染器未就绪，无法跳转");
+      debugRealtimeRender("实时渲染器未就绪，无法跳转");
       return false;
     }
     return rendererRef.current.jumpToMessage(messageId, roomId);
@@ -603,7 +600,7 @@ function useRealtimeRender({
     regenerateTTS: boolean = false,
   ): Promise<boolean> => {
     if (!rendererRef.current) {
-      console.warn("实时渲染器未就绪，无法更新渲染");
+      debugRealtimeRender("实时渲染器未就绪，无法更新渲染");
       return false;
     }
 

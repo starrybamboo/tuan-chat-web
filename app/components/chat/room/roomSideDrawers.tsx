@@ -1,5 +1,4 @@
 import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
-import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import React from "react";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import RoomUserList from "@/components/chat/room/drawers/roomUserList";
@@ -11,30 +10,25 @@ interface RoomSideDrawersProps {
   spaceId: number;
   roomId: number;
   galAuthoringLocalSnapshot?: GalAuthoringLocalSnapshot;
-  onSendDocCard?: (payload: DocRefDragPayload) => Promise<void> | void;
   onGalPatchProposalGenerated?: (proposal: GalPatchProposal) => void;
 }
 
-const LazyDocFolderForUser = React.lazy(() => import("@/components/chat/room/drawers/docFolderForUser"));
 const LazyRoomCopilotDrawer = React.lazy(() => import("@/components/chat/room/drawers/roomCopilotDrawer"));
 
 function RoomSideDrawersImpl({
   spaceId,
   roomId,
   galAuthoringLocalSnapshot,
-  onSendDocCard,
   onGalPatchProposalGenerated,
 }: RoomSideDrawersProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const userDrawerWidth = useDrawerPreferenceStore(state => state.userDrawerWidth);
   const roleDrawerWidth = useDrawerPreferenceStore(state => state.roleDrawerWidth);
   const copilotDrawerWidth = useDrawerPreferenceStore(state => state.copilotDrawerWidth);
-  const docFolderDrawerWidth = useDrawerPreferenceStore(state => state.docFolderDrawerWidth);
   const exportDrawerWidth = useDrawerPreferenceStore(state => state.exportDrawerWidth);
   const setUserDrawerWidth = useDrawerPreferenceStore(state => state.setUserDrawerWidth);
   const setRoleDrawerWidth = useDrawerPreferenceStore(state => state.setRoleDrawerWidth);
   const setCopilotDrawerWidth = useDrawerPreferenceStore(state => state.setCopilotDrawerWidth);
-  const setDocFolderDrawerWidth = useDrawerPreferenceStore(state => state.setDocFolderDrawerWidth);
   const setExportDrawerWidth = useDrawerPreferenceStore(state => state.setExportDrawerWidth);
 
   const sidebarPanelClassName = "shadow-none border-l border-base-300";
@@ -103,24 +97,6 @@ function RoomSideDrawersImpl({
       >
         <div className="overflow-auto flex-1">
           <ExportChatDrawer />
-        </div>
-      </VaulSideDrawer>
-
-      <VaulSideDrawer
-        isOpen={sideDrawerState === "docFolder"}
-        overlayOnMobile
-        width={docFolderDrawerWidth}
-        minWidth={280}
-        maxWidth={760}
-        onWidthChange={setDocFolderDrawerWidth}
-        panelClassName={sidebarPanelClassName}
-      >
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {sideDrawerState === "docFolder" && (
-            <React.Suspense fallback={<RoomSideDrawerFallback text="正在加载文档..." />}>
-              <LazyDocFolderForUser onSendDocCard={onSendDocCard} />
-            </React.Suspense>
-          )}
         </div>
       </VaulSideDrawer>
 

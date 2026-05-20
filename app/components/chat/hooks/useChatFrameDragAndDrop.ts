@@ -11,6 +11,7 @@ import {
   isChatMessageDrag,
   setChatMessageDragData,
 } from "@/components/chat/utils/chatMessageDrag";
+import { cleanupDragPreview, setDragPreview } from "@/components/chat/utils/dragPreview";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 
 import type { ChatMessageResponse, Message } from "../../../../api";
@@ -23,13 +24,14 @@ type UseChatFrameDragAndDropParams = {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   isSelecting: boolean;
   selectedMessageIds: Set<number>;
+  canMoveMessagesInRoom: boolean;
 };
 
 type UseChatFrameDragAndDropResult = {
   isDragging: boolean;
   scrollerRef: React.MutableRefObject<HTMLElement | null>;
   handleMoveMessages: (targetIndex: number, messageIds: number[]) => void;
-  handleDragStart: (e: React.DragEvent<HTMLDivElement>, index: number) => void;
+  handleDragStart: (e: React.DragEvent<HTMLElement>, index: number) => void;
   handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDragLeave: (e: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => Promise<void>;
@@ -50,69 +52,24 @@ function resolveLocalMoveMessageIds({
     : [anchorMessageId];
 }
 
-const MESSAGE_DRAG_GHOST_SELECTOR = "[data-message-drag-ghost=\"true\"]";
-
 function cleanupMessageDragGhost() {
-  document.querySelectorAll(MESSAGE_DRAG_GHOST_SELECTOR).forEach(element => element.remove());
+  cleanupDragPreview();
 }
 
-function removeDragOnlyControls(ghost: HTMLElement) {
-  ghost.querySelectorAll("[data-message-drag-handle=\"true\"], [data-message-insert-action=\"true\"]")
-    .forEach(element => element.remove());
-}
-
-function setMessageDragImage(e: React.DragEvent<HTMLDivElement>, messageCount: number) {
+function setMessageDragImage(e: React.DragEvent<HTMLElement>, messageCount: number) {
   const sourceElement = e.currentTarget.closest<HTMLElement>("[data-message-id]");
   if (!sourceElement) {
     return;
   }
 
-  cleanupMessageDragGhost();
-
-  const sourceRect = sourceElement.getBoundingClientRect();
-  const ghost = sourceElement.cloneNode(true) as HTMLElement;
-  const ghostWidth = Math.min(520, Math.max(260, sourceRect.width));
-  ghost.dataset.messageDragGhost = "true";
-  ghost.setAttribute("aria-hidden", "true");
-  removeDragOnlyControls(ghost);
-
-  Object.assign(ghost.style, {
-    position: "fixed",
-    top: "-10000px",
-    left: "-10000px",
-    width: `${ghostWidth}px`,
-    maxHeight: "320px",
-    overflow: "hidden",
-    pointerEvents: "none",
-    opacity: "0.78",
-    transform: "scale(0.96)",
-    transformOrigin: "top left",
-    filter: "drop-shadow(0 18px 28px rgba(0, 0, 0, 0.34))",
-    zIndex: "2147483647",
+  setDragPreview({
+    dataTransfer: e.dataTransfer,
+    sourceElement,
+    title: messageCount > 1 ? "移动多条消息" : "移动消息",
+    subtitle: messageCount > 1 ? `${messageCount} 条消息` : "拖到目标位置或 AI 对话区",
+    variant: "message",
+    count: messageCount,
   });
-
-  if (messageCount > 1) {
-    const countBadge = document.createElement("div");
-    countBadge.textContent = `${messageCount} 条`;
-    Object.assign(countBadge.style, {
-      position: "absolute",
-      top: "4px",
-      right: "4px",
-      padding: "2px 6px",
-      borderRadius: "999px",
-      background: "rgba(15, 23, 42, 0.82)",
-      color: "white",
-      fontSize: "11px",
-      lineHeight: "16px",
-      fontWeight: "600",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.28)",
-    });
-    ghost.appendChild(countBadge);
-  }
-
-  document.body.appendChild(ghost);
-  e.dataTransfer.setDragImage(ghost, Math.min(24, ghostWidth / 2), 18);
-  window.setTimeout(() => ghost.remove(), 0);
 }
 
 export default function useChatFrameDragAndDrop({
@@ -123,6 +80,7 @@ export default function useChatFrameDragAndDrop({
   virtuosoRef,
   isSelecting,
   selectedMessageIds,
+  canMoveMessagesInRoom,
 }: UseChatFrameDragAndDropParams): UseChatFrameDragAndDropResult {
   const dragStartMessageIdRef = useRef(-1);
   const [isDragging, setIsDragging] = useState(false);
@@ -176,7 +134,7 @@ export default function useChatFrameDragAndDrop({
     }
   }, [historyMessages, isMessageMovable, updateMessage]);
 
-  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLElement>, index: number) => {
     const anchorMessageId = historyMessages[index]?.message.messageId;
     if (typeof anchorMessageId !== "number") {
       return;
@@ -216,6 +174,9 @@ export default function useChatFrameDragAndDrop({
     if (!hasMessageDrag) {
       return;
     }
+    if (!canMoveMessagesInRoom) {
+      return;
+    }
 
     if (
       dragStartMessageIdRef.current < 0
@@ -231,7 +192,14 @@ export default function useChatFrameDragAndDrop({
     e.dataTransfer.dropEffect = "move";
     updateAutoScroll(e.clientY);
     scheduleCheckPosition(e.currentTarget, e.clientY);
-  }, [attachWindowDragOver, roomId, scheduleCheckPosition, startAutoScroll, updateAutoScroll]);
+  }, [
+    attachWindowDragOver,
+    canMoveMessagesInRoom,
+    roomId,
+    scheduleCheckPosition,
+    startAutoScroll,
+    updateAutoScroll,
+  ]);
 
   const handleDragEnd = useCallback(() => {
     resetMessageDragState();
@@ -257,6 +225,10 @@ export default function useChatFrameDragAndDrop({
     }
     e.preventDefault();
     e.stopPropagation();
+    if (!canMoveMessagesInRoom) {
+      resetMessageDragState();
+      return;
+    }
 
     if (messageDragPayload && messageDragPayload.sourceRoomId !== roomId) {
       toast.error("暂不支持跨房间移动消息");
@@ -274,6 +246,7 @@ export default function useChatFrameDragAndDrop({
 
     resetMessageDragState();
   }, [
+    canMoveMessagesInRoom,
     dropPositionRef,
     handleMoveMessages,
     isSelecting,

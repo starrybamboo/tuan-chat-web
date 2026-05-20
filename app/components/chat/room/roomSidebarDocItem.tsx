@@ -3,6 +3,7 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { FileTextIcon } from "@phosphor-icons/react";
+import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
@@ -136,6 +137,13 @@ export default function RoomSidebarDocItem({
         e.dataTransfer.effectAllowed = canEdit ? "all" : "copy";
         e.dataTransfer.setData(DOC_DRAG_MIME, docId);
         e.dataTransfer.setData("text/plain", `doc:${docId}`);
+        setDragPreview({
+          dataTransfer: e.dataTransfer,
+          sourceElement: e.currentTarget,
+          title: canEdit ? "移动文档" : "拖动文档",
+          subtitle: canEdit ? "拖到目标位置或副窗口" : "拖到副窗口",
+          variant: "doc",
+        });
         setSubWindowDragPayload({ tab: "doc", docId });
         setDocRefDragData(e.dataTransfer, {
           docId,

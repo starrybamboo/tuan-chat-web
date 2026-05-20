@@ -15,6 +15,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
  * @param minWidth 最小宽度（仅在大屏时生效）
  * @param maxWidth 最大宽度（仅在大屏时生效）
  * @param onWidthChange 宽度变化回调
+ * @param animationDuration 打开/关闭动画时长。默认保持很快，用于频道树等即时侧栏。
  * @constructor
  */
 export function OpenAbleDrawer({
@@ -29,6 +30,7 @@ export function OpenAbleDrawer({
   minRemainingWidth = 0,
   onWidthChange,
   handlePosition = "left",
+  animationDuration = 0.02,
 }: {
   isOpen: boolean;
   children: React.ReactNode;
@@ -46,6 +48,7 @@ export function OpenAbleDrawer({
   minRemainingWidth?: number;
   onWidthChange?: (width: number) => void;
   handlePosition?: "left" | "right";
+  animationDuration?: number;
 }) {
   // IMPORTANT: 避免 SSR hydration mismatch。
   // 服务器端无法获知真实屏幕尺寸，首屏统一按 "lg" 渲染；客户端 mount 后再计算真实值并触发一次更新。
@@ -199,7 +202,7 @@ export function OpenAbleDrawer({
             initial={{ opacity: 0, x: handlePosition === "right" ? -18 : 18 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: handlePosition === "right" ? -18 : 18 }}
-            transition={{ duration: 0.02, ease: "easeOut" }}
+            transition={{ duration: animationDuration, ease: "easeOut" }}
           >
             {children}
           </motion.div>
@@ -219,8 +222,8 @@ export function OpenAbleDrawer({
           animate={{ width: Math.max(0, renderedWidth), opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{
-            width: { duration: 0.02, ease: "easeOut" },
-            opacity: { duration: 0.02 },
+            width: { duration: animationDuration, ease: "easeOut" },
+            opacity: { duration: Math.min(animationDuration, 0.12) },
           }}
           style={{ maxWidth: "100%" }}
         >

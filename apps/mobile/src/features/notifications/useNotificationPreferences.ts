@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 
+import type { NotificationPreferences } from "./notificationPreferences";
+
 import {
-  type NotificationPreferences,
   getDefaultPreferences,
+
   readNotificationPreferences,
   writeNotificationPreferences,
 } from "./notificationPreferences";
 
 export function useNotificationPreferences() {
-  const [prefs, setPrefs] = useState<NotificationPreferences>(getDefaultPreferences());
+  const [prefs, setPrefs] = useState<NotificationPreferences>(() => getDefaultPreferences());
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {

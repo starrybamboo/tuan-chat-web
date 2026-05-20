@@ -14,7 +14,8 @@ export type ParsedSimpleStateCommand = {
   stateEvent: StateEventExtra;
 };
 
-const SIMPLE_ST_SPACED_RE = /^[.。/]st\s+(\S+)\s+([+-]?\d+(?:\.\d+)?)\s*$/i;
+const SIMPLE_ST_SPACED_RE = /^[.。/]st\s+(\S+) +([+-]?\d+(?:\.\d+)?)\s*$/i;
+// eslint-disable-next-line regexp/no-super-linear-backtracking -- anchored regex on short user input, no real risk
 const SIMPLE_ST_COMPACT_SIGNED_RE = /^[.。/]st\s+(.+?)([+-]\d+(?:\.\d+)?)\s*$/i;
 const SIMPLE_NEXT_RE = /^[.。/]next\s*$/i;
 

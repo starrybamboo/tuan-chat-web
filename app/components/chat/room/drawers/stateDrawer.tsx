@@ -1,13 +1,17 @@
 import type { UserRole } from "../../../../../api";
+import type { Initiative } from "./initiativeListTypes";
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
+import type { StateEventAtom } from "@/types/stateEvent";
 
 import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   buildCommandStateEventExtra,
   formatStateKeyLabel,
@@ -15,7 +19,16 @@ import {
   formatStateScopeLabel,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
+import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
+import { InitiativeImportDialog } from "./initiativeImportDialog";
+import {
+  extractAgilityFromQuery,
+  extractHpFromQuery,
+} from "./initiativeListAbilityExtractors";
+import {
+  buildImportRoleInitiativeEvents,
+} from "./initiativeListEvents";
 
 interface StateValueRow {
   key: string;
@@ -40,6 +53,7 @@ interface RoleStateRowViewModel {
   roleName: string;
   avatarId: number;
   isCurrent: boolean;
+  initiative: number | null;
   primaryStats: PrimaryStatViewModel[];
   secondaryRows: StateValueRow[];
   activeStates: ActiveStateInstance[];
@@ -68,6 +82,22 @@ const PRIMARY_STAT_CONFIGS: PrimaryStatConfig[] = [
     className: "border-success/20 bg-success/10 text-success",
   },
 ];
+
+function readNumber(values: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    const raw = values[key];
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return raw;
+    }
+    if (typeof raw === "string") {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+}
 
 function normalizeStateKeyToken(key: string): string {
   return key.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -168,6 +198,12 @@ function formatPrimaryStatText(item: PrimaryStatViewModel): string {
   return `${item.config.label} ${currentValue}/${formatStateNumericValue(item.maxRow.displayValue)}`;
 }
 
+function formatInitiativeText(initiative: number | null): string {
+  return typeof initiative === "number" && Number.isFinite(initiative)
+    ? `先攻 ${formatStateNumericValue(initiative)}`
+    : "先攻 --";
+}
+
 function EmptyStateSection({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-dashed border-base-300/70 bg-base-100/55 px-3 py-3 text-xs text-base-content/55">
@@ -230,6 +266,7 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
                 当前
               </span>
             )}
+            <StatPill text={formatInitiativeText(row.initiative)} />
             {!row.hasRoomContent && (
               <span className="text-[11px] text-base-content/45">无房间态</span>
             )}
@@ -262,8 +299,102 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
 
 export default function StateDrawer() {
   const roomContext = React.use(RoomContext);
+  const spaceContext = React.use(SpaceContext);
   const runtime = useStateRuntimeContext();
+  const currentUserId = useGlobalUserId();
   const [isAdvancingTurn, setIsAdvancingTurn] = React.useState(false);
+  const [isImportPopupOpen, setIsImportPopupOpen] = React.useState(false);
+  const spaceOwner = Boolean(spaceContext.isSpaceOwner);
+  const curUserId = currentUserId ?? -1;
+  const roomRolesThatUserOwn = roomContext.roomRolesThatUserOwn ?? [];
+  const importableRoles = spaceOwner
+    ? roomRolesThatUserOwn
+    : roomRolesThatUserOwn.filter(role => role.userId === curUserId);
+  const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(role => role.roleId));
+
+  const initiativeList = React.useMemo<Initiative[]>(() => {
+    return runtime.participants.map((participant) => {
+      const stateValues = {
+        ...participant.baseValues,
+        ...participant.derivedValues,
+      };
+      const hp = readNumber(participant.derivedValues, ["hp"])
+        ?? readNumber(participant.values, ["hp"]);
+      const maxHp = readNumber(stateValues, ["maxHp", "maxhp", "hpMax", "hpmax"])
+        ?? readNumber(participant.values, ["maxHp", "maxhp"]);
+      return {
+        participantId: participant.participantId,
+        name: participant.name,
+        value: participant.initiative,
+        hp,
+        maxHp,
+        extras: participant.values,
+        roleId: participant.roleId,
+        activeStates: participant.activeStates.map(state => (
+          `${state.statusName}${typeof state.remainingTurns === "number" ? ` ${state.remainingTurns}T` : ""}`
+        )),
+      };
+    });
+  }, [runtime.participants]);
+
+  const sendCombatEvents = React.useCallback(async (events: StateEventAtom[], content = ".combat") => {
+    if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
+      toast.error("当前房间暂不能写入先攻事件");
+      return false;
+    }
+
+    try {
+      const createdMessage = await roomContext.sendMessageWithInsert({
+        roomId: roomContext.roomId,
+        roleId: roomContext.curRoleId ?? -1,
+        avatarId: roomContext.curAvatarId ?? -1,
+        content,
+        messageType: MessageType.STATE_EVENT,
+        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", events)),
+      });
+      if (!createdMessage) {
+        toast.error("写入先攻事件失败");
+        return false;
+      }
+      return true;
+    }
+    catch (error) {
+      console.error("写入先攻事件失败", error);
+      toast.error("写入先攻事件失败");
+      return false;
+    }
+  }, [roomContext]);
+
+  const handleImportSingle = React.useCallback(async (roleId: number) => {
+    const idx = importableRoles.findIndex(role => role.roleId === roleId);
+    if (idx === -1) {
+      return;
+    }
+
+    const query = abilityQueries[idx];
+    const res = query?.data;
+    if (res?.success && Array.isArray(res.data) && spaceContext.ruleId) {
+      const hasMatchingRule = res.data.some(item => item.ruleId === spaceContext.ruleId);
+      if (!hasMatchingRule && res.data.length > 0) {
+        toast.error("导入失败：请检查角色卡规则与空间设置的规则是否一致");
+        return;
+      }
+    }
+
+    const ruleId = spaceContext.ruleId ?? undefined;
+    const initiative = extractAgilityFromQuery(ruleId, query) ?? 0;
+    const hpData = extractHpFromQuery(ruleId, query);
+    const role = importableRoles[idx];
+    const name = role.roleName ?? `角色${role.roleId}`;
+    await sendCombatEvents(buildImportRoleInitiativeEvents({
+      currentList: initiativeList,
+      hp: hpData?.hp ?? null,
+      initiative,
+      maxHp: hpData?.maxHp ?? null,
+      roleId,
+      name,
+    }), ".combat import");
+  }, [abilityQueries, importableRoles, initiativeList, sendCombatEvents, spaceContext.ruleId]);
 
   const roleNameById = React.useMemo(() => {
     const nextMap: Record<number, string> = {};
@@ -374,17 +505,23 @@ export default function StateDrawer() {
       })
       .map((roleId): RoleStateRowViewModel => {
         const role = roleById.get(roleId);
+        const participant = runtime.participants.find(item => item.roleId === roleId);
         const activeStates = runtime.activeStates.filter(
           state => state.scope.kind === "role" && state.scope.roleId === roleId,
         );
         const rows = buildRoleValueRows(runtime, roleId, activeStates);
         const { primaryStats, secondaryRows } = splitRoleRows(rows);
-        const hasRoomContent = primaryStats.length > 0 || secondaryRows.length > 0 || activeStates.length > 0;
+        // 先攻本身也是战斗状态的一部分；只有先攻的角色也要进入主卡片区。
+        const hasRoomContent = primaryStats.length > 0
+          || secondaryRows.length > 0
+          || activeStates.length > 0
+          || typeof participant?.initiative === "number";
         return {
           roleId,
           roleName: role?.roleName?.trim() || `角色 #${roleId}`,
           avatarId: role?.avatarId ?? -1,
           isCurrent: roleId === runtime.currentRoleId,
+          initiative: participant?.initiative ?? null,
           primaryStats,
           secondaryRows,
           activeStates,
@@ -399,6 +536,15 @@ export default function StateDrawer() {
 
   const rolesWithContent = roleRows.filter(row => row.hasRoomContent);
   const rolesWithoutContent = roleRows.filter(row => !row.hasRoomContent);
+  const looseParticipants = React.useMemo(() => {
+    const roleIdsWithContent = new Set(rolesWithContent.map(row => row.roleId));
+    return runtime.participants.filter((participant) => {
+      if (typeof participant.roleId !== "number" || participant.roleId <= 0) {
+        return true;
+      }
+      return !roleIdsWithContent.has(participant.roleId);
+    });
+  }, [rolesWithContent, runtime.participants]);
   const shouldShowRoomSummary = roomRows.length > 0 || roomStates.length > 0;
   const shouldShowUnresolvedStates = runtime.unresolvedStates.length > 0;
 
@@ -411,16 +557,27 @@ export default function StateDrawer() {
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/42">回合</span>
               <span className="text-2xl font-semibold leading-none text-base-content">{runtime.turn}</span>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px] font-semibold"
-              onClick={() => {
-                void handleAdvanceTurn();
-              }}
-              disabled={isAdvancingTurn || !roomContext.sendMessageWithInsert || !roomContext.roomId}
-            >
-              {isAdvancingTurn ? "推进中..." : "下一回合"}
-            </button>
+            <div className="flex items-center gap-2">
+              {importableRoles.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]"
+                  onClick={() => setIsImportPopupOpen(true)}
+                >
+                  导入先攻
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px] font-semibold"
+                onClick={() => {
+                  void handleAdvanceTurn();
+                }}
+                disabled={isAdvancingTurn || !roomContext.sendMessageWithInsert || !roomContext.roomId}
+              >
+                {isAdvancingTurn ? "推进中..." : "下一回合"}
+              </button>
+            </div>
           </div>
           {runtime.isAbilityLoading && (
             <div className="mt-1.5 text-[11px] text-base-content/50">正在同步房间角色基础变量…</div>
@@ -464,6 +621,34 @@ export default function StateDrawer() {
               </>
             )}
 
+        {looseParticipants.length > 0 && (
+          <section className="space-y-2">
+            <div className="text-xs font-semibold text-base-content/55">其他战斗参与者</div>
+            <div className="space-y-2">
+              {looseParticipants.map(participant => (
+                <div
+                  key={participant.participantId}
+                  className="rounded-2xl border border-base-300/75 bg-base-100/70 px-3 py-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-medium text-base-content">
+                      {participant.name || participant.participantId}
+                    </span>
+                    <StatPill text={formatInitiativeText(participant.initiative)} />
+                  </div>
+                  {participant.activeStates.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {participant.activeStates.map(state => (
+                        <StatusPill key={state.instanceId} state={state} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {shouldShowUnresolvedStates && (
           <section className="space-y-2">
             {runtime.unresolvedStates.map((item, index) => (
@@ -485,6 +670,14 @@ export default function StateDrawer() {
           </section>
         )}
       </div>
+      <InitiativeImportDialog
+        isOpen={isImportPopupOpen}
+        importableRoles={importableRoles}
+        abilityQueries={abilityQueries}
+        initiativeList={initiativeList}
+        onClose={() => setIsImportPopupOpen(false)}
+        onImportSingle={roleId => void handleImportSingle(roleId)}
+      />
     </div>
   );
 }

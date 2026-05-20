@@ -27,11 +27,13 @@ export type TutorialBootstrapResponse = {
      */
     currentCommitId?: number;
     /**
-     * 本次是否自动完成了首克隆
+     * 废弃：当前方案不再由 bootstrap 自动克隆，固定为 false
+     * @deprecated
      */
     autoCloned?: boolean;
     /**
-     * 自动克隆后创建的新空间ID
+     * 废弃：当前方案不再由 bootstrap 自动克隆，固定为空
+     * @deprecated
      */
     newSpaceId?: number;
     /**

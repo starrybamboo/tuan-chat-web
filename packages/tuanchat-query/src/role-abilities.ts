@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef } from "react";
 
 import type { AbilityFieldUpdateRequest2 } from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest2";
 import type { AbilitySetRequest } from "@tuanchat/openapi-client/models/AbilitySetRequest";
@@ -48,11 +48,11 @@ export function useRoleAbilitiesByRule(
       if (!ruleId || ruleId <= 0) {
         return {};
       }
-      const response = await client.abilityController.batchGetByRuleAndRoles({
-        ruleId,
-        roleIds: sortedRoleIds,
-      });
-      return response.data ?? {};
+      const entries = await Promise.all(sortedRoleIds.map(async (roleId) => {
+        const response = await client.abilityController.getByRuleAndRole(ruleId, roleId);
+        return [String(roleId), response.data ?? null] as const;
+      }));
+      return Object.fromEntries(entries.filter((entry): entry is readonly [string, RoleAbility] => Boolean(entry[1])));
     },
     staleTime: options.staleTime ?? 300_000,
     enabled,
@@ -82,6 +82,22 @@ export function useRoleAbilitiesByRule(
     isLoading: query.isLoading,
     query,
   };
+}
+
+export function useRoleAbilityListQuery(
+  client: AbilityClient,
+  roleId: number,
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery<RoleAbility[]>({
+    queryKey: roleAbilityListQueryKey(roleId),
+    queryFn: async () => {
+      const res = await client.abilityController.listRoleAbility(roleId);
+      return res.data ?? [];
+    },
+    staleTime: 60_000,
+    enabled: (options.enabled ?? true) && roleId > 0,
+  });
 }
 
 export function useAbilityByRuleAndRoleQuery(

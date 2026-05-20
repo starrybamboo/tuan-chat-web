@@ -126,26 +126,6 @@ export default function ChatSpaceSidebar({
         </div>
       )}
       <div className="flex flex-col gap-1">
-        {/* 发现入口 */}
-        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
-          <div
-            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
-              isDiscoverMode ? "scale-y-100" : "scale-y-0"
-            }`}
-          />
-          <PortalTooltip label="发现" placement="right">
-            <MotionLink
-              to="/chat/discover/material"
-              className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
-              aria-label="发现"
-              aria-current={isDiscoverMode ? "page" : undefined}
-              {...interactiveButtonMotionProps}
-            >
-              <CompassIcon className="size-6" />
-            </MotionLink>
-          </PortalTooltip>
-        </div>
-
         {/* 私信入口 */}
         <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
           <div
@@ -171,6 +151,26 @@ export default function ChatSpaceSidebar({
                 <ChatCircleIcon className="size-6" weight="bold" />
               </div>
             </motion.button>
+          </PortalTooltip>
+        </div>
+
+        {/* 发现入口 */}
+        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+          <div
+            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
+              isDiscoverMode ? "scale-y-100" : "scale-y-0"
+            }`}
+          />
+          <PortalTooltip label="发现" placement="right">
+            <MotionLink
+              to="/chat/discover/material"
+              className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
+              aria-label="发现"
+              aria-current={isDiscoverMode ? "page" : undefined}
+              {...interactiveButtonMotionProps}
+            >
+              <CompassIcon className="size-6" />
+            </MotionLink>
           </PortalTooltip>
         </div>
       </div>

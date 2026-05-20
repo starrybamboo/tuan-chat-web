@@ -1,10 +1,11 @@
 import type { ChatMessageResponse, Message } from "../../../../../api";
+import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
+import { canCopyMessageToClueFolder } from "@/components/chat/clues/clueRooms";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { parseDescriptionDocId } from "@/components/chat/infra/doc/description/descriptionDocId";
 import {
   isImageMessageMarkedAsBackground,
   isSoundMessageMarkedAsBgm,
@@ -30,6 +31,7 @@ interface ContextMenuProps {
   onToggleBgm: (messageId: number) => void;
   onOpenAnnotations: (messageId: number) => void;
   onInsertAfter: (messageId: number) => void;
+  onCopyMessageToClueFolder?: (message: Message, scope: ClueFolderScope) => void | Promise<void>;
   onToggleNarrator?: (messageId: number) => void;
 }
 
@@ -48,6 +50,7 @@ export default function ChatFrameContextMenu({
   onToggleBgm,
   onOpenAnnotations,
   onInsertAfter,
+  onCopyMessageToClueFolder,
 }: ContextMenuProps) {
   const currentUserId = useGlobalUserId();
   const spaceContext = use(SpaceContext);
@@ -105,9 +108,9 @@ export default function ChatFrameContextMenu({
     const roomId = typeof maybe?.roomId === "number" && Number.isFinite(maybe.roomId) && maybe.roomId > 0
       ? maybe.roomId
       : undefined;
-    const docId = typeof maybe?.docId === "string" && maybe.docId
-      ? maybe.docId
-      : (roomId ? String(roomId) : "");
+    const rawDocId = typeof maybe?.docId === "string" ? maybe.docId.trim() : "";
+    const numericDocId = /^\d+$/.test(rawDocId) ? rawDocId : "";
+    const docId = roomId ? String(roomId) : numericDocId;
     if (!docId)
       return null;
 
@@ -123,6 +126,19 @@ export default function ChatFrameContextMenu({
   const canCopyDoc = useMemo(() => {
     return Boolean(docCard?.docId && spaceContext?.spaceId && spaceContext.spaceId > 0);
   }, [docCard?.docId, spaceContext?.spaceId]);
+  const canCopyClue = Boolean(
+    onCopyMessageToClueFolder
+    && message?.message
+    && canCopyMessageToClueFolder(message.message),
+  );
+
+  const handleCopyClue = useCallback((scope: ClueFolderScope) => {
+    if (!message?.message || !onCopyMessageToClueFolder) {
+      return;
+    }
+    onClose();
+    void onCopyMessageToClueFolder(message.message, scope);
+  }, [message?.message, onClose, onCopyMessageToClueFolder]);
 
   const ensureCanCopyDoc = useCallback(async () => {
     const spaceId = spaceContext.spaceId ?? -1;
@@ -136,10 +152,7 @@ export default function ChatFrameContextMenu({
     }
 
     const numericDocId = /^\d+$/.test(docCard.docId) ? Number(docCard.docId) : null;
-    const descriptionDoc = parseDescriptionDocId(docCard.docId);
-    const isCopyable = (numericDocId != null && numericDocId > 0)
-      || (descriptionDoc?.entityType === "space_user_doc" && descriptionDoc.docType === "description");
-    if (!isCopyable) {
+    if (numericDocId == null || numericDocId <= 0) {
       toast.error("仅支持复制共享文档或我的文档");
       return null;
     }
@@ -282,7 +295,7 @@ export default function ChatFrameContextMenu({
         imageMediaType: docCard?.imageMediaType,
       });
       toast.success("已复制到我的文档", { id: toastId });
-      setSideDrawerState("doc");
+      setSideDrawerState("none");
     }
     catch (err) {
       console.error("[DocCopy] copyToMyDocs failed", err);
@@ -374,7 +387,8 @@ export default function ChatFrameContextMenu({
           <button
             type="button"
             onClick={() => {
-              message?.message && onReply(message.message);
+              if (message?.message)
+                onReply(message.message);
               onClose();
             }}
           >
@@ -457,6 +471,26 @@ export default function ChatFrameContextMenu({
               }}
             >
               复制到空间侧边栏
+            </button>
+          </li>
+        )}
+        {canCopyClue && (
+          <li>
+            <button
+              type="button"
+              onClick={() => handleCopyClue("private")}
+            >
+              收藏到我的线索
+            </button>
+          </li>
+        )}
+        {canCopyClue && (
+          <li>
+            <button
+              type="button"
+              onClick={() => handleCopyClue("public")}
+            >
+              收藏到公共线索
             </button>
           </li>
         )}

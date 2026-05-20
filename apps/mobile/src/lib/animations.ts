@@ -19,7 +19,7 @@ export function snapPoint(
 ): number {
   "worklet";
   const point = value + 0.2 * velocity;
-  const deltas = points.map((p) => Math.abs(point - p));
+  const deltas = points.map(p => Math.abs(point - p));
   const minDelta = Math.min(...deltas);
   return points[deltas.indexOf(minDelta)];
 }

@@ -48,7 +48,7 @@ describe("buildPreviewRenderState", () => {
       canViewMessage: false,
     })).toEqual({
       previewMessage: fallbackPreviewMessage,
-      previewText: "[骰娘] .rc 射击",
+      previewText: ".rc 射击",
       isPlainTextOnly: false,
     });
   });

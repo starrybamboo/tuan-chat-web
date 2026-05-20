@@ -1,21 +1,22 @@
+import { Prohibit, Trash } from "phosphor-react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
-
-import { ChatCircle, Trash } from "phosphor-react-native";
-import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
-
-import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
 
+import { ContactListAvatar } from "./ContactListAvatar";
+
 const AVATAR_SIZE = 36;
-const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
+const ACTION_WIDTH = 64;
 
 const styles = StyleSheet.create({
-  scrollContent: { gap: Spacing.sm, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.xl },
+  listContent: { gap: Spacing.sm, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.xl },
   input: {
     borderRadius: Radius.md,
     borderWidth: 1,
@@ -33,107 +34,147 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  avatar: { borderRadius: Radius.full, height: AVATAR_SIZE, width: AVATAR_SIZE },
-  avatarFallback: {
-    alignItems: "center",
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    justifyContent: "center",
-    width: AVATAR_SIZE,
-  },
   friendInfo: { flex: 1, gap: 2 },
-  actions: { flexDirection: "row", gap: Spacing.sm },
-  actionBtn: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    height: 32,
-    justifyContent: "center",
-    width: 32,
-  },
   emptyText: { fontSize: 13, paddingVertical: Spacing.xl, textAlign: "center" },
+  swipeActions: { flexDirection: "row" },
+  swipeBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: ACTION_WIDTH,
+  },
 });
 
-interface AllFriendsTabProps {
+type AllFriendsTabProps = {
   friends: FriendResponse[];
   isPending: boolean;
   onDeleteFriend: (userId: number) => void;
+  onBlockFriend: (userId: number) => void;
+  isBlocking?: boolean;
   onStartChat: (userId: number) => void;
-}
+};
 
-export function AllFriendsTab({ friends, isPending, onDeleteFriend, onStartChat }: AllFriendsTabProps) {
+export function AllFriendsTab({ friends, isPending, onDeleteFriend, onBlockFriend, isBlocking, onStartChat }: AllFriendsTabProps) {
   const theme = useTheme();
   const [searchText, setSearchText] = useState("");
+  const openSwipeableRef = useRef<Swipeable | null>(null);
 
-  const filteredFriends = searchText.trim()
-    ? friends.filter(f =>
-        (f.username ?? "").toLowerCase().includes(searchText.toLowerCase()) ||
-        String(f.userId).includes(searchText),
-      )
-    : friends;
+  const filteredFriends = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) {
+      return friends;
+    }
 
-  const handleDelete = (friend: FriendResponse) => {
+    return friends.filter(f =>
+      (f.username ?? "").toLowerCase().includes(query)
+      || String(f.userId).includes(query),
+    );
+  }, [friends, searchText]);
+
+  const handleDelete = useCallback((friend: FriendResponse) => {
+    openSwipeableRef.current?.close();
     Alert.alert("删除好友", `确定要删除好友 ${friend.username ?? ""} 吗？`, [
       { text: "取消", style: "cancel" },
       { text: "删除", style: "destructive", onPress: () => onDeleteFriend(friend.userId!) },
     ]);
-  };
+  }, [onDeleteFriend]);
+
+  const handleBlock = useCallback((friend: FriendResponse) => {
+    openSwipeableRef.current?.close();
+    Alert.alert("拉黑好友", `确定要拉黑「${friend.username ?? friend.userId}」吗？拉黑后将自动解除好友关系。`, [
+      { text: "取消", style: "cancel" },
+      { text: "拉黑", style: "destructive", onPress: () => onBlockFriend(friend.userId!) },
+    ]);
+  }, [onBlockFriend]);
+
+  const renderRightActions = useCallback((friend: FriendResponse) => (
+    <View style={styles.swipeActions}>
+      <Pressable
+        onPress={() => handleBlock(friend)}
+        disabled={isBlocking}
+        style={[styles.swipeBtn, { backgroundColor: theme.textSecondary, opacity: isBlocking ? 0.5 : 1 }]}
+        accessibilityLabel="拉黑"
+        accessibilityRole="button"
+      >
+        <Prohibit size={20} color="#fff" />
+        <ThemedText style={{ color: "#fff", fontSize: 11, marginTop: 2 }}>拉黑</ThemedText>
+      </Pressable>
+      <Pressable
+        onPress={() => handleDelete(friend)}
+        style={[styles.swipeBtn, { backgroundColor: theme.danger }]}
+        accessibilityLabel={`删除好友 ${friend.username}`}
+        accessibilityRole="button"
+      >
+        <Trash size={20} color="#fff" />
+        <ThemedText style={{ color: "#fff", fontSize: 11, marginTop: 2 }}>删除</ThemedText>
+      </Pressable>
+    </View>
+  ), [handleBlock, handleDelete, isBlocking, theme.danger, theme.textSecondary]);
+
+  const renderFriend = useCallback(({ item: friend }: { item: FriendResponse }) => {
+    const url = avatarThumbUrl(friend.avatarFileId);
+    return (
+      <Swipeable
+        renderRightActions={() => renderRightActions(friend)}
+        overshootRight={false}
+        onSwipeableOpen={() => { openSwipeableRef.current?.close(); }}
+        ref={(ref) => {
+          if (ref) {
+            openSwipeableRef.current = ref;
+          }
+        }}
+      >
+        <Pressable
+          onPress={() => onStartChat(friend.userId!)}
+          style={[styles.friendRow, { backgroundColor: theme.backgroundElement }]}
+          accessibilityLabel={`和 ${friend.username} 聊天`}
+          accessibilityRole="button"
+        >
+          <ContactListAvatar
+            colorSeed={friend.userId}
+            displayName={friend.username}
+            labelFontSize={13}
+            size={AVATAR_SIZE}
+            uri={url}
+          />
+          <View style={styles.friendInfo}>
+            <ThemedText numberOfLines={1}>{friend.username ?? `用户 #${friend.userId}`}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              ID:
+              {" "}
+              {friend.userId}
+            </ThemedText>
+          </View>
+        </Pressable>
+      </Swipeable>
+    );
+  }, [onStartChat, renderRightActions, theme.backgroundElement]);
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <TextInput
-        value={searchText}
-        onChangeText={setSearchText}
-        placeholder="搜索好友..."
-        placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surface }]}
-        accessibilityLabel="搜索好友"
-      />
-      {isPending ? (
-        <ActivityIndicator color={theme.accent} />
-      ) : filteredFriends.length === 0 ? (
-        <ThemedText themeColor="textSecondary" style={styles.emptyText}>
-          {searchText ? "未找到匹配的好友" : "暂无好友"}
-        </ThemedText>
-      ) : (
-        filteredFriends.map((friend) => {
-          const url = avatarThumbUrl(friend.avatarFileId);
-          return (
-            <View key={friend.userId} style={[styles.friendRow, { backgroundColor: theme.backgroundElement }]}>
-              {url ? (
-                <Image source={{ uri: url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatarFallback, { backgroundColor: AVATAR_COLORS[(friend.userId ?? 0) % AVATAR_COLORS.length] }]}>
-                  <ThemedText style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>
-                    {(friend.username ?? "").slice(0, 1) || "U"}
-                  </ThemedText>
-                </View>
-              )}
-              <View style={styles.friendInfo}>
-                <ThemedText numberOfLines={1}>{friend.username ?? `用户 #${friend.userId}`}</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">ID: {friend.userId}</ThemedText>
-              </View>
-              <View style={styles.actions}>
-                <Pressable
-                  onPress={() => onStartChat(friend.userId!)}
-                  style={[styles.actionBtn, { backgroundColor: theme.accentMuted }]}
-                  accessibilityLabel={`给 ${friend.username} 发消息`}
-                  accessibilityRole="button"
-                >
-                  <ChatCircle size={16} color={theme.accent} />
-                </Pressable>
-                <Pressable
-                  onPress={() => handleDelete(friend)}
-                  style={[styles.actionBtn, { backgroundColor: theme.dangerMuted }]}
-                  accessibilityLabel={`删除好友 ${friend.username}`}
-                  accessibilityRole="button"
-                >
-                  <Trash size={16} color={theme.danger} />
-                </Pressable>
-              </View>
-            </View>
-          );
-        })
+    <FlatList
+      data={isPending ? [] : filteredFriends}
+      contentContainerStyle={styles.listContent}
+      keyExtractor={friend => `friend:${friend.userId ?? friend.username ?? "unknown"}`}
+      renderItem={renderFriend}
+      ListHeaderComponent={(
+        <TextInput
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholder="搜索好友..."
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.surface }]}
+          accessibilityLabel="搜索好友"
+        />
       )}
-    </ScrollView>
+      ListEmptyComponent={isPending
+        ? (
+            <ActivityIndicator color={theme.accent} />
+          )
+        : (
+            <ThemedText themeColor="textSecondary" style={styles.emptyText}>
+              {searchText ? "未找到匹配的好友" : "暂无好友"}
+            </ThemedText>
+          )}
+      removeClippedSubviews={false}
+    />
   );
 }

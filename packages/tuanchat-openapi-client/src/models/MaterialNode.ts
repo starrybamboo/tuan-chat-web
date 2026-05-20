@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { MaterialMessageItem } from './MaterialMessageItem';
+import type { MessageDraft } from './MessageDraft';
 /**
  * 素材包节点；folder 表示文件夹节点，material 表示素材节点
  */
@@ -24,9 +24,9 @@ export type MaterialNode = {
      */
     children?: Array<MaterialNode>;
     /**
-     * 消息列表，仅 material 节点使用
+     * 准备态消息列表，仅 material 节点使用
      */
-    messages?: Array<MaterialMessageItem>;
+    messages?: Array<MessageDraft>;
 };
 export namespace MaterialNode {
     /**

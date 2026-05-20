@@ -1,9 +1,9 @@
-import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
-import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
-
 import { CaretLeft } from "phosphor-react-native";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+
+import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -17,6 +17,7 @@ import { PendingRequestsTab } from "./PendingRequestsTab";
 import { useBlacklistQuery } from "./useBlacklistQuery";
 import {
   useAcceptFriendRequestMutation,
+  useBlockFriendMutation,
   useDeleteFriendMutation,
   useRejectFriendRequestMutation,
   useUnblockFriendMutation,
@@ -47,10 +48,10 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
 });
 
-interface FriendsManagementViewProps {
+type FriendsManagementViewProps = {
   onBack: () => void;
   onStartChat?: (userId: number) => void;
-}
+};
 
 export function FriendsManagementView({ onBack, onStartChat }: FriendsManagementViewProps) {
   const theme = useTheme();
@@ -62,6 +63,7 @@ export function FriendsManagementView({ onBack, onStartChat }: FriendsManagement
   const acceptMutation = useAcceptFriendRequestMutation();
   const rejectMutation = useRejectFriendRequestMutation();
   const deleteMutation = useDeleteFriendMutation();
+  const blockMutation = useBlockFriendMutation();
   const unblockMutation = useUnblockFriendMutation();
 
   const friends: FriendResponse[] = friendsQuery.data ?? [];
@@ -87,7 +89,7 @@ export function FriendsManagementView({ onBack, onStartChat }: FriendsManagement
       </View>
 
       <View style={[styles.tabs, { borderBottomColor: theme.border }]}>
-        {tabs.map((tab) => (
+        {tabs.map(tab => (
           <Pressable
             key={tab.key}
             onPress={() => setActiveTab(tab.key)}
@@ -108,32 +110,40 @@ export function FriendsManagementView({ onBack, onStartChat }: FriendsManagement
       </View>
 
       <View style={styles.content}>
-        {activeTab === "all" ? (
-          <AllFriendsTab
-            friends={friends}
-            isPending={friendsQuery.isPending}
-            onDeleteFriend={(userId) => deleteMutation.mutate(userId)}
-            onStartChat={(userId) => onStartChat?.(userId)}
-          />
-        ) : activeTab === "pending" ? (
-          <PendingRequestsTab
-            requests={requests}
-            isPending={requestsQuery.isPending}
-            onAccept={(id) => acceptMutation.mutate(id)}
-            onReject={(id) => rejectMutation.mutate(id)}
-            isAccepting={acceptMutation.isPending}
-            isRejecting={rejectMutation.isPending}
-          />
-        ) : activeTab === "add" ? (
-          <AddFriendTab />
-        ) : (
-          <BlacklistTab
-            blacklist={blacklist}
-            isPending={blacklistQuery.isPending}
-            onUnblock={(userId) => unblockMutation.mutate(userId)}
-            isUnblocking={unblockMutation.isPending}
-          />
-        )}
+        {activeTab === "all"
+          ? (
+              <AllFriendsTab
+                friends={friends}
+                isPending={friendsQuery.isPending}
+                onDeleteFriend={userId => deleteMutation.mutate(userId)}
+                onBlockFriend={userId => blockMutation.mutate(userId)}
+                isBlocking={blockMutation.isPending}
+                onStartChat={userId => onStartChat?.(userId)}
+              />
+            )
+          : activeTab === "pending"
+            ? (
+                <PendingRequestsTab
+                  requests={requests}
+                  isPending={requestsQuery.isPending}
+                  onAccept={id => acceptMutation.mutate(id)}
+                  onReject={id => rejectMutation.mutate(id)}
+                  isAccepting={acceptMutation.isPending}
+                  isRejecting={rejectMutation.isPending}
+                />
+              )
+            : activeTab === "add"
+              ? (
+                  <AddFriendTab />
+                )
+              : (
+                  <BlacklistTab
+                    blacklist={blacklist}
+                    isPending={blacklistQuery.isPending}
+                    onUnblock={userId => unblockMutation.mutate(userId)}
+                    isUnblocking={unblockMutation.isPending}
+                  />
+                )}
       </View>
     </ThemedView>
   );

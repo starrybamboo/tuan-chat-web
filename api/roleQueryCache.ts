@@ -13,7 +13,20 @@ export type UserRoleWithAvatarUrls = UserRole & {
   avatarThumbUrl?: string;
 };
 
+export type RoleAvatarFieldPatch = {
+  roleId: number;
+  avatarId?: number;
+  avatarFileId?: number;
+  avatarMediaType?: string;
+  avatarUrl?: string;
+  avatarThumbUrl?: string;
+};
+
 function hasRoleId(role?: UserRoleWithAvatarUrls | null): role is UserRoleWithAvatarUrls & { roleId: number } {
+  return typeof role?.roleId === "number" && role.roleId > 0;
+}
+
+function hasPatchRoleId(role?: RoleAvatarFieldPatch | null): role is RoleAvatarFieldPatch {
   return typeof role?.roleId === "number" && role.roleId > 0;
 }
 
@@ -21,7 +34,7 @@ function hasAvatarId(role?: UserRoleWithAvatarUrls | null): role is UserRoleWith
   return typeof role?.avatarId === "number" && role.avatarId > 0;
 }
 
-function resolveRoleAvatarUrls(role: UserRoleWithAvatarUrls): { avatarUrl: string; avatarThumbUrl: string } {
+function resolveRoleAvatarUrls(role: Pick<UserRoleWithAvatarUrls, "avatarFileId" | "avatarUrl" | "avatarThumbUrl">): { avatarUrl: string; avatarThumbUrl: string } {
   const avatarUrl = role.avatarUrl?.trim() || buildAvatarUrl(role.avatarFileId);
   const avatarThumbUrl = role.avatarThumbUrl?.trim() || buildAvatarThumbUrl(role.avatarFileId) || avatarUrl;
   return {
@@ -286,9 +299,9 @@ export function upsertUserRoleListQueryCache(queryClient: QueryClient, role?: Us
 
 export function patchUserRoleAvatarFieldsInListQueryCache(
   queryClient: QueryClient,
-  role?: UserRoleWithAvatarUrls | null,
+  role?: RoleAvatarFieldPatch | null,
 ): void {
-  if (!hasRoleId(role)) {
+  if (!hasPatchRoleId(role)) {
     return;
   }
 
@@ -296,7 +309,7 @@ export function patchUserRoleAvatarFieldsInListQueryCache(
   queryClient
     .getQueryCache()
     .findAll({
-      predicate: query => isUserRoleListQueryKey(query.queryKey) && shouldContainRole(query.queryKey, role),
+      predicate: query => isUserRoleListQueryKey(query.queryKey),
     })
     .forEach((query) => {
       queryClient.setQueryData(query.queryKey, old => updateRoleListCacheData(
@@ -321,9 +334,9 @@ export function patchUserRoleAvatarFieldsInListQueryCache(
 
 export function patchRoomRoleAvatarFieldsInListQueryCache(
   queryClient: QueryClient,
-  role?: UserRoleWithAvatarUrls | null,
+  role?: RoleAvatarFieldPatch | null,
 ): void {
-  if (!hasRoleId(role)) {
+  if (!hasPatchRoleId(role)) {
     return;
   }
 

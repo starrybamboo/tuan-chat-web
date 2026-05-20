@@ -1,12 +1,20 @@
-import { StartClient } from "@tanstack/react-start/client";
+import { RouterProvider } from "@tanstack/react-router";
 import { startTransition, StrictMode } from "react";
-import { hydrateRoot } from "react-dom/client";
+import { createRoot } from "react-dom/client";
+import { getRouter } from "./router";
+
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Missing #root element for SPA mount.");
+}
+
+const router = getRouter();
 
 startTransition(() => {
-  hydrateRoot(
-    document,
+  createRoot(rootElement).render(
     <StrictMode>
-      <StartClient />
+      <RouterProvider router={router} />
     </StrictMode>,
   );
 });

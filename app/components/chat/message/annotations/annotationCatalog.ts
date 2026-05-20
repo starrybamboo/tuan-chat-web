@@ -17,6 +17,12 @@ import {
   FadeInIcon,
   FadeOutIcon,
 } from "@/components/chat/message/annotations/annotationIcons";
+import {
+  BUILTIN_ANNOTATIONS as BASE_BUILTIN_ANNOTATIONS,
+  isValidAnnotation,
+  NORMAL_MODE_HIDDEN_ANNOTATION_IDS,
+  withNormalModeVisibilityDefaults,
+} from "@tuanchat/domain/annotation-catalog";
 
 export type { AnnotationTone } from "@tuanchat/domain/annotation-catalog";
 
@@ -24,16 +30,9 @@ export {
   buildCustomAnnotationId,
   getAnnotationsByCategory,
   getFrequentAnnotations,
+  NORMAL_MODE_HIDDEN_ANNOTATION_IDS,
   normalizeAnnotations,
-  NORMAL_MODE_HIDDEN_ANNOTATION_IDS,
   toggleAnnotation,
-  withNormalModeVisibilityDefaults,
-} from "@tuanchat/domain/annotation-catalog";
-
-import {
-  BUILTIN_ANNOTATIONS as BASE_BUILTIN_ANNOTATIONS,
-  isValidAnnotation,
-  NORMAL_MODE_HIDDEN_ANNOTATION_IDS,
   withNormalModeVisibilityDefaults,
 } from "@tuanchat/domain/annotation-catalog";
 

@@ -15,6 +15,7 @@ import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
+import { debugRealtimeRender } from "@/webGAL/realtimeRenderDebug";
 import {
   getRealtimeRenderChangedMessageIndices,
   getRealtimeRenderMessageFingerprint,
@@ -82,7 +83,7 @@ export default function RealtimeRenderOrchestrator({
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
-  const prevSideDrawerStateRef = useRef<SideDrawerState>(sideDrawerState);
+  const prevSideDrawerStateRef = useRef<SideDrawerState>("none");
 
   const realtimeTTSEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const realtimeMiniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
@@ -224,7 +225,7 @@ export default function RealtimeRenderOrchestrator({
 
     isRenderingHistoryRef.current = true;
     try {
-      console.warn(`[RealtimeRender] 开始渲染历史消息, 共 ${orderedHistoryMessages.length} 条`);
+      debugRealtimeRender(`[RealtimeRender] 开始渲染历史消息, 共 ${orderedHistoryMessages.length} 条`);
       toast.loading(`正在渲染历史消息...`, { id: "webgal-history" });
 
       const messagesToRender = orderedHistoryMessages;
@@ -237,7 +238,7 @@ export default function RealtimeRenderOrchestrator({
 
       commitRenderedHistoryState(messagesToRender);
       toast.success(`历史消息渲染完成`, { id: "webgal-history" });
-      console.warn(`[RealtimeRender] 历史消息渲染完成`);
+      debugRealtimeRender(`[RealtimeRender] 历史消息渲染完成`);
     }
     catch (error) {
       if (sessionId !== roomSessionRef.current) {
@@ -318,11 +319,11 @@ export default function RealtimeRenderOrchestrator({
     lastBackgroundMessageIdRef.current = latestBackgroundMessageId;
 
     if (latestBackgroundMessage) {
-      console.warn("[RealtimeRender] 检测到背景更新，重新渲染背景消息:", latestBackgroundMessageId);
+      debugRealtimeRender("[RealtimeRender] 检测到背景更新，重新渲染背景消息:", latestBackgroundMessageId);
       realtimeRender.renderMessage(latestBackgroundMessage, roomId);
     }
     else if (previousBackgroundMessageId !== null) {
-      console.warn("[RealtimeRender] 检测到背景被取消，清除背景");
+      debugRealtimeRender("[RealtimeRender] 检测到背景被取消，清除背景");
       realtimeRender.clearBackground(roomId);
     }
   }, [orderedHistoryMessages, realtimeRender, roomId]);

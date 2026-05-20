@@ -4,7 +4,7 @@ import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 
 export default function Author({ userId }: { userId?: number }) {
   // 获取全局用户ID
@@ -20,7 +20,7 @@ export default function Author({ userId }: { userId?: number }) {
   const userData = userInfoData?.data;
   const data = {
     name: userData?.username || "未知用户",
-    avatar: avatarThumbUrl(userData?.avatarFileId) || "favicon.ico",
+    avatar: imageLowUrl(userData?.avatarFileId) || "favicon.ico",
     description: userData?.description || "暂无简介",
   };
 

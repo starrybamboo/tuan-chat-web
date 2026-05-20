@@ -78,6 +78,28 @@ export function useAcceptFriendRequestMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: FriendReqHandleRequest) => tuanchat.friendController.acceptFriendRequest(requestBody),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["friendRequestPage"] });
+      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequestPage"] });
+      queryClient.setQueriesData({ queryKey: ["friendRequestPage"] }, (old: any) => {
+        if (!old?.data?.list) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            list: old.data.list.filter((r: any) => r?.id !== variables.friendReqId),
+          },
+        };
+      });
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        for (const [key, data] of context.previousData) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
       queryClient.invalidateQueries({ queryKey: ["friendList"] });
@@ -93,6 +115,28 @@ export function useRejectFriendRequestMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: FriendReqHandleRequest) => tuanchat.friendController.rejectFriendRequest(requestBody),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["friendRequestPage"] });
+      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequestPage"] });
+      queryClient.setQueriesData({ queryKey: ["friendRequestPage"] }, (old: any) => {
+        if (!old?.data?.list) return old;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            list: old.data.list.filter((r: any) => r?.id !== variables.friendReqId),
+          },
+        };
+      });
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        for (const [key, data] of context.previousData) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
       queryClient.invalidateQueries({ queryKey: ["friendCheck"] });

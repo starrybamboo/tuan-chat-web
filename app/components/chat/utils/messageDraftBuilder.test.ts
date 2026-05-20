@@ -5,8 +5,23 @@ import type { UploadUtils } from "@/utils/UploadUtils";
 import { MessageType } from "../../../../api/wsModels";
 import { buildMessageDraftsFromComposerSnapshot } from "./messageDraftBuilder";
 
+const { getImageSizeMock } = vi.hoisted(() => ({
+  getImageSizeMock: vi.fn(),
+}));
+
+vi.mock("@/utils/getImgSize", () => ({
+  getImageSize: getImageSizeMock,
+}));
+
 function createUploadUtilsMock() {
   return {
+    uploadDualImage: vi.fn<(...args: any[]) => any>(async (file: File) => ({
+      fileId: file.name === "a.png" ? 101 : 202,
+      mediaType: "image",
+      originalSize: file.size,
+      originalUrl: `https://example.com/${file.name}/original`,
+      url: `https://example.com/${file.name}/medium`,
+    })),
     uploadImg: vi.fn<(...args: any[]) => any>(),
     uploadVideo: vi.fn<(...args: any[]) => any>(async (file: File) => ({
       fileId: 456,
@@ -23,6 +38,7 @@ function createUploadUtilsMock() {
     uploadFile: vi.fn<(...args: any[]) => any>(async (file: File) => `https://static.example.com/${file.name}`),
     uploadAudio: vi.fn<(...args: any[]) => any>(),
   } as unknown as UploadUtils & {
+    uploadDualImage: ReturnType<typeof vi.fn>;
     uploadVideo: ReturnType<typeof vi.fn>;
     uploadAudioAsset: ReturnType<typeof vi.fn>;
     uploadFile: ReturnType<typeof vi.fn>;
@@ -86,6 +102,16 @@ describe("messageDraftBuilder", () => {
           throw new Error(`Unexpected element request: ${tagName}`);
         }),
       },
+    });
+    getImageSizeMock.mockImplementation(async (input: File | string) => {
+      const name = typeof input === "string" ? input : input.name;
+      if (name === "a.png") {
+        return { width: 800, height: 600, size: 1234 };
+      }
+      if (name === "b.png") {
+        return { width: 640, height: 480, size: 2345 };
+      }
+      return { width: 128, height: 96, size: 2048 };
     });
   });
 
@@ -160,6 +186,73 @@ describe("messageDraftBuilder", () => {
     expect(uploadUtils.uploadVideo).toHaveBeenCalledTimes(1);
     expect(uploadUtils.uploadVideo).toHaveBeenCalledWith(videoFile, 1);
     expect(uploadUtils.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it("多张图片会并行上传并保持草稿顺序", async () => {
+    const uploadUtils = createUploadUtilsMock();
+    const fileA = new File(["a"], "a.png", { type: "image/png" });
+    const fileB = new File(["b"], "b.png", { type: "image/png" });
+    const resolvers = new Map<string, (value: any) => void>();
+
+    uploadUtils.uploadDualImage.mockImplementation((file: File) => {
+      return new Promise((resolve) => {
+        resolvers.set(file.name, resolve);
+      });
+    });
+
+    const draftsPromise = buildMessageDraftsFromComposerSnapshot({
+      inputText: "",
+      imgFiles: [fileA, fileB],
+      emojiUrls: [],
+      emojiMetaByUrl: {},
+      fileAttachments: [],
+      audioFile: null,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    });
+
+    await Promise.resolve();
+    expect(uploadUtils.uploadDualImage).toHaveBeenCalledTimes(2);
+    expect(uploadUtils.uploadDualImage).toHaveBeenNthCalledWith(1, fileA, 1);
+    expect(uploadUtils.uploadDualImage).toHaveBeenNthCalledWith(2, fileB, 1);
+
+    resolvers.get("a.png")?.({
+      fileId: 101,
+      mediaType: "image",
+      originalSize: fileA.size,
+      originalUrl: "https://example.com/a.png/original",
+      url: "https://example.com/a.png/medium",
+    });
+    resolvers.get("b.png")?.({
+      fileId: 202,
+      mediaType: "image",
+      originalSize: fileB.size,
+      originalUrl: "https://example.com/b.png/original",
+      url: "https://example.com/b.png/medium",
+    });
+
+    const drafts = await draftsPromise;
+
+    expect(drafts).toHaveLength(2);
+    expect(drafts[0]?.extra).toMatchObject({
+      imageMessage: {
+        fileId: 101,
+        fileName: "a.png",
+        width: 800,
+        height: 600,
+        size: 1234,
+      },
+    });
+    expect(drafts[1]?.extra).toMatchObject({
+      imageMessage: {
+        fileId: 202,
+        fileName: "b.png",
+        width: 640,
+        height: 480,
+        size: 2345,
+      },
+    });
   });
 
   it("表情消息会保留媒体 fileId 和 mediaType", async () => {

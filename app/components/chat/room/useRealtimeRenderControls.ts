@@ -1,13 +1,16 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
+import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 
 import type { ChatMessageResponse } from "../../../../api";
 
 type UseRealtimeRenderControlsResult = {
   isRealtimeRenderActive: boolean;
+  shouldMountRealtimeRender: boolean;
   handleRealtimeRenderApiChange: (api: RealtimeRenderOrchestratorApi) => void;
   handleToggleRealtimeRender: () => Promise<void>;
   jumpToMessageInWebGAL: (messageId: number) => boolean;
@@ -20,17 +23,58 @@ type UseRealtimeRenderControlsResult = {
   clearFigure: () => void;
 };
 
+type RealtimeRenderMountInput = {
+  isActive: boolean;
+  isEnabled: boolean;
+  sideDrawerState: SideDrawerState;
+  loadRequested: boolean;
+};
+
+export function shouldMountRealtimeRenderOrchestrator({
+  isActive,
+  isEnabled,
+  sideDrawerState,
+  loadRequested,
+}: RealtimeRenderMountInput): boolean {
+  return loadRequested || isActive || isEnabled || sideDrawerState === "webgal";
+}
+
 export default function useRealtimeRenderControls(): UseRealtimeRenderControlsResult {
   const realtimeRenderApiRef = useRef<RealtimeRenderOrchestratorApi | null>(null);
+  const pendingToggleRef = useRef(false);
+  const [loadRequested, setLoadRequested] = useState(false);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
+  const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
+  const sideDrawerState = useSideDrawerStore(state => state.state);
+  const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const shouldMountRealtimeRender = shouldMountRealtimeRenderOrchestrator({
+    isActive: isRealtimeRenderActive,
+    isEnabled: isRealtimeRenderEnabled,
+    sideDrawerState,
+    loadRequested,
+  });
 
   const handleRealtimeRenderApiChange = useCallback((api: RealtimeRenderOrchestratorApi) => {
     realtimeRenderApiRef.current = api;
+    if (!pendingToggleRef.current) {
+      return;
+    }
+    pendingToggleRef.current = false;
+    void api.toggleRealtimeRender();
   }, []);
 
   const handleToggleRealtimeRender = useCallback(async () => {
-    await realtimeRenderApiRef.current?.toggleRealtimeRender();
-  }, []);
+    const api = realtimeRenderApiRef.current;
+    if (api) {
+      await api.toggleRealtimeRender();
+      return;
+    }
+
+    // The orchestrator is lazy-loaded so普通聊天室首屏不会拉起 WebGAL renderer。
+    pendingToggleRef.current = true;
+    setLoadRequested(true);
+    setSideDrawerState("webgal");
+  }, [setSideDrawerState]);
 
   const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
     return realtimeRenderApiRef.current?.jumpToMessage(messageId) ?? false;
@@ -56,6 +100,7 @@ export default function useRealtimeRenderControls(): UseRealtimeRenderControlsRe
 
   return {
     isRealtimeRenderActive,
+    shouldMountRealtimeRender,
     handleRealtimeRenderApiChange,
     handleToggleRealtimeRender,
     jumpToMessageInWebGAL,

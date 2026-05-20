@@ -263,7 +263,7 @@ export default function RoomComposerHeader({
             )}
           </div>
           {leftToolbar && (
-            <div className={`flex items-center gap-2 min-w-0 ${isMobile ? "overflow-x-auto pb-0.5" : ""}`}>
+            <div className={`flex items-center gap-1 min-w-0 ${isMobile ? "overflow-x-auto pb-0.5" : ""}`}>
               {leftToolbar}
             </div>
           )}

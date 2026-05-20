@@ -14,7 +14,8 @@ export function meta(_args: RouteMetaArgs) {
 export const Route = createFileRoute("/_dashboard/")({
   beforeLoad: () => {
     throw redirect({
-      to: "/chat/discover/material",
+      to: "/chat/$spaceId/{-$roomId}/{-$messageId}",
+      params: { spaceId: "private" },
       replace: true,
     });
   },

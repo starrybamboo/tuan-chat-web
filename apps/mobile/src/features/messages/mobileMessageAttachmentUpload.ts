@@ -4,19 +4,21 @@ import type {
   UploadedSoundMessageDraftAsset,
   UploadedVideoMessageDraftAsset,
 } from "@tuanchat/domain/message-draft";
-import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
-import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMediaType as MediaType } from "@/lib/media-url";
+import type { ImageDerivativeResult } from "@/lib/mobile-image-compress";
+import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
+import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "@/features/messages/mobileMessageAttachment";
 import { mediaFileUrl } from "@/lib/media-url";
+import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "@/lib/mobile-image-compress";
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 
 const CHAT_ATTACHMENT_UPLOAD_SCENE = 1 as const;
 const CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY = "originalCopy";
@@ -371,7 +373,7 @@ function sha256Hex(bytes: Uint8Array): string {
 
 async function uploadAttachmentBinary(
   target: MediaUploadTarget,
-  attachment: MobileMessageAttachment,
+  fileUri: string,
   payload: AttachmentUploadPayload,
 ): Promise<void> {
   const uploadUrl = target.uploadUrl?.trim();
@@ -381,10 +383,11 @@ async function uploadAttachmentBinary(
 
   const headers = target.uploadHeaders ?? {};
   if (Platform.OS === "web") {
+    const blob = payload.webBlob ?? await fetch(fileUri).then(r => r.blob());
     const response = await fetch(uploadUrl, {
       method: "PUT",
       headers,
-      body: payload.webBlob,
+      body: blob,
     });
     if (!response.ok) {
       throw new Error(`文件传输失败: ${response.status}`);
@@ -392,7 +395,7 @@ async function uploadAttachmentBinary(
     return;
   }
 
-  const response = await uploadAsync(uploadUrl, attachment.uri, {
+  const response = await uploadAsync(uploadUrl, fileUri, {
     headers,
     httpMethod: "PUT",
     uploadType: FileSystemUploadType.BINARY_CONTENT,
@@ -407,8 +410,13 @@ async function prepareMediaUpload(
   attachment: MobileMessageAttachment,
   payload: AttachmentUploadPayload,
   mimeType: string,
+  useOriginalCopy: boolean,
 ): Promise<MediaPrepareUploadResponse> {
   try {
+    const metadata: Record<string, unknown> = { clientPlatform: Platform.OS };
+    if (useOriginalCopy) {
+      metadata.clientVariantStrategy = CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY;
+    }
     const result = await client.mediaController.prepareUpload({
       fileName: attachment.fileName,
       scene: CHAT_ATTACHMENT_UPLOAD_SCENE,
@@ -417,10 +425,7 @@ async function prepareMediaUpload(
       mimeType,
       contentType: mimeType,
       hasNovelAiMetadata: false,
-      metadata: {
-        clientVariantStrategy: CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY,
-        clientPlatform: Platform.OS,
-      } as any,
+      metadata: metadata as any,
     });
     if (!result.success || !result.data?.fileId || !result.data.mediaType) {
       throw new Error(result.errMsg || "准备媒体上传失败。");
@@ -444,31 +449,55 @@ async function completeMediaUpload(client: MediaUploadClient, sessionId: number)
   }
 }
 
+type ImageDerivatives = {
+  low: ImageDerivativeResult;
+  medium: ImageDerivativeResult;
+};
+
+async function generateImageDerivatives(uri: string): Promise<ImageDerivatives> {
+  const [low, medium] = await Promise.all([
+    compressImageToWebp(uri, IMAGE_COMPRESS_PROFILES.low),
+    compressImageToWebp(uri, IMAGE_COMPRESS_PROFILES.medium),
+  ]);
+  return { low, medium };
+}
+
 async function uploadAttachmentThroughMediaService(
   client: MediaUploadClient,
   attachment: MobileMessageAttachment,
 ): Promise<{ fileId: number; mediaType: MediaType; originalUrl: string; previewUrl: string; size: number }> {
   const mimeType = resolveAttachmentMimeType(attachment);
   const payload = await resolveAttachmentUploadPayload(attachment);
-  const prepared = await prepareMediaUpload(client, attachment, payload, mimeType);
+  const mediaType = inferMediaTypeFromMimeType(mimeType);
+  const isImage = mediaType === "image";
+
+  const derivatives = isImage ? await generateImageDerivatives(attachment.uri) : null;
+
+  const prepared = await prepareMediaUpload(client, attachment, payload, mimeType, false);
   const fileId = prepared.fileId!;
-  const mediaType = normalizeMediaType(prepared.mediaType, mimeType);
+  const resolvedMediaType = normalizeMediaType(prepared.mediaType, mimeType);
 
   if (prepared.uploadRequired) {
     if (!prepared.sessionId || !prepared.uploadTargets) {
       throw new Error("媒体上传响应缺少上传会话。");
     }
-    await Promise.all(Object.values(prepared.uploadTargets).map(async (target) => {
-      await uploadAttachmentBinary(target, attachment, payload);
+    await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
+      if (isImage && derivatives && (quality === "low" || quality === "medium")) {
+        const derivativeUri = derivatives[quality].uri;
+        await uploadAttachmentBinary(target, derivativeUri, payload);
+      }
+      else {
+        await uploadAttachmentBinary(target, attachment.uri, payload);
+      }
     }));
     await completeMediaUpload(client, prepared.sessionId);
   }
 
   return {
     fileId,
-    mediaType,
-    originalUrl: mediaFileUrl(fileId, mediaType, "original"),
-    previewUrl: mediaFileUrl(fileId, mediaType, mediaType === "document" || mediaType === "other" ? "original" : "low"),
+    mediaType: resolvedMediaType,
+    originalUrl: mediaFileUrl(fileId, resolvedMediaType, resolvedMediaType === "image" ? "medium" : "low"),
+    previewUrl: mediaFileUrl(fileId, resolvedMediaType, "low"),
     size: payload.size,
   };
 }
@@ -482,9 +511,14 @@ export async function uploadMobileMessageAttachments(
   const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
   let uploadedSoundMessage: UploadedSoundMessageDraftAsset | null = null;
 
-  for (const attachment of attachments) {
-    const uploaded = await uploadAttachmentThroughMediaService(client, attachment);
+  const uploadedAttachments = await Promise.all(attachments.map(async (attachment) => {
+    return {
+      attachment,
+      uploaded: await uploadAttachmentThroughMediaService(client, attachment),
+    };
+  }));
 
+  for (const { attachment, uploaded } of uploadedAttachments) {
     if (attachment.kind === MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE) {
       if (!(attachment.width && attachment.width > 0) || !(attachment.height && attachment.height > 0)) {
         throw new Error("读取图片尺寸失败。");

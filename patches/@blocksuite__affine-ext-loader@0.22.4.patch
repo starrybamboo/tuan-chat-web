@@ -1,0 +1,1 @@
+diff --git a/package.json b/package.json index daf589fdaeeb3a05a5f8413578c93649a62152b8..66afa15217c4e6eb43482046a7ac35629b9bdfb5 100644 --- a/package.json +++ b/package.json @@ -18,7 +18,7 @@      "vitest": "3.1.3"    },    "exports": { -    ".": "./src/index.ts" +    ".": "./dist/index.js"    },    "files": [      "src",

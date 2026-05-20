@@ -4,12 +4,15 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./clue-folder": "./src/clue-folder.ts",
     "./direct-message": "./src/direct-message.ts",
     "./member-permissions": "./src/member-permissions.ts",
+    "./message-action-permissions": "./src/message-action-permissions.ts",
     "./message-annotations": "./src/message-annotations.ts",
     "./message-draft": "./src/messageDraft.ts",
     "./message-extra": "./src/message-extra.ts",
     "./message-preview": "./src/messagePreview.ts",
+    "./message-render-data": "./src/message-render-data.ts",
     "./message-type": "./src/messageType.ts",
     "./notification": "./src/notification.ts",
     "./open-api-result": "./src/open-api-result.ts",
@@ -23,7 +26,11 @@
     "./ability-extractors": "./src/ability-extractors/index.ts",
     "./display-labels": "./src/display-labels/index.ts",
     "./message-time": "./src/messageTime.ts",
-    "./message-search": "./src/messageSearch.ts"
+    "./message-search": "./src/messageSearch.ts",
+    "./command-request": "./src/command-request.ts",
+    "./command-catalog": "./src/command-catalog.ts",
+    "./dicer": "./src/dicer/index.ts",
+    "./dicer/*": "./src/dicer/*"
   },
   "dependencies": {
     "@tuanchat/openapi-client": "workspace:*"

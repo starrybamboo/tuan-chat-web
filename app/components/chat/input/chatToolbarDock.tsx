@@ -1,9 +1,9 @@
-import { CheckerboardIcon, FileTextIcon, FilmSlateIcon, ListChecks, PulseIcon, Sparkle, SwordIcon } from "@phosphor-icons/react";
+import { CheckerboardIcon, FilmSlateIcon, Sparkle, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { BranchIcon, WebgalIcon } from "@/icons";
+import { BranchIcon, FolderIcon, WebgalIcon } from "@/icons";
 
 interface ChatToolbarDockProps {
   isInline: boolean;
@@ -12,7 +12,6 @@ interface ChatToolbarDockProps {
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
-  onOpenWebgalChooseModal?: () => void;
   isSpectator?: boolean;
   onToggleRealtimeRender?: () => void;
   onOpenFullMessageDiff?: () => void;
@@ -26,7 +25,6 @@ export default function ChatToolbarDock({
   isRunModeOnly,
   showWebgalControls,
   onSendEffect,
-  onOpenWebgalChooseModal,
   onToggleRealtimeRender,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen = false,
@@ -40,6 +38,9 @@ export default function ChatToolbarDock({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const isCombatDrawerOpen = sideDrawerState === "combat" || sideDrawerState === "initiative" || sideDrawerState === "state";
+  const isClueDrawerOpen = sideDrawerState === "clue";
+  const isCopilotControlTemporarilyHidden = true;
   const handleToggleCopilotDrawer = () => {
     setComposerTarget("main");
     setThreadRootMessageId(undefined);
@@ -52,7 +53,8 @@ export default function ChatToolbarDock({
         isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
       }`}
     >
-      {showCopilotControl && (
+      {/* 暂时隐藏：AI 对话按钮后续继续开发时再恢复显示。 */}
+      {showCopilotControl && !isCopilotControlTemporarilyHidden && (
         <div
           className={`tooltip tooltip-top mt-0.5 md:mt-1 ${sideDrawerState === "copilot" ? "text-info" : "hover:text-info"}`}
           data-tip={sideDrawerState === "copilot" ? "关闭 AI 对话" : "AI 对话"}
@@ -66,19 +68,6 @@ export default function ChatToolbarDock({
       )}
 
       {/* WebGAL 导演控制台 */}
-      {showWebgalControls && webgalLinkMode && onOpenWebgalChooseModal && (
-        <button
-          type="button"
-          className="tooltip tooltip-top hover:text-info mt-0.5 md:mt-1"
-          data-tip="选择"
-          aria-label="选择"
-          title="选择"
-          onClick={onOpenWebgalChooseModal}
-        >
-          <ListChecks className="size-6 cursor-pointer" />
-        </button>
-      )}
-
       {showWebgalControls && webgalLinkMode && onSendEffect && (
         <div className="dropdown dropdown-top dropdown-center md:dropdown-end mt-0.5 md:mt-1">
           <button type="button" className="tooltip tooltip-top hover:text-info" data-tip="导演控制台" aria-label="导演控制台" title="导演控制台">
@@ -126,26 +115,16 @@ export default function ChatToolbarDock({
         <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
           <button
             type="button"
-            className="tooltip tooltip-top hover:text-info"
-            data-tip="我的文档"
-            data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "doc" ? "none" : "doc")}
-          >
-            <FileTextIcon className="size-6" />
-          </button>
-
-          <button type="button" className="tooltip tooltip-top" data-tip="展示先攻表" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}>
-            <SwordIcon className="size-6 jump_icon" />
-          </button>
-
-          <button
-            type="button"
             className="tooltip tooltip-top"
-            data-tip="状态面板"
+            data-tip="线索"
             data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "state" ? "none" : "state")}
+            onClick={() => setSideDrawerState(isClueDrawerOpen ? "none" : "clue")}
           >
-            <PulseIcon className="size-6 jump_icon" />
+            <FolderIcon className="size-6 jump_icon" />
+          </button>
+
+          <button type="button" className="tooltip tooltip-top" data-tip="战斗面板" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(isCombatDrawerOpen ? "none" : "combat")}>
+            <SwordIcon className="size-6 jump_icon" />
           </button>
 
           <button

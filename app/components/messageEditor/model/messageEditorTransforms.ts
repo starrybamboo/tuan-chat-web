@@ -114,6 +114,10 @@ export function normalizeMessageEditorAnnotations(value: unknown): string[] | un
   return annotations.length > 0 ? annotations : undefined;
 }
 
+function normalizeMessageEditorLocalSyncState(value: unknown): MessageDraft["tcLocalSyncState"] {
+  return value === "optimistic" ? "optimistic" : undefined;
+}
+
 /**
  * 规范化文本块内容。
  */
@@ -218,6 +222,26 @@ function toTrimmedString(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function toFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    if (!normalized) {
+      return undefined;
+    }
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function toPositiveNumber(value: unknown): number | undefined {
+  const normalized = toFiniteNumber(value);
+  return typeof normalized === "number" && normalized > 0 ? normalized : undefined;
+}
+
 function toMessageDraftExtra(value: unknown): MessageDraftExtra | undefined {
   if (!isRecord(value)) {
     return undefined;
@@ -268,6 +292,9 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageDraft |
   const messageType = normalizeMessageType(rawMessage.messageType);
   const content = normalizeMessageEditorContent(rawMessage.content);
   const normalizedExtra = toMessageDraftExtra(rawMessage.extra);
+  const roleId = toPositiveNumber(rawMessage.roleId);
+  const avatarId = toPositiveNumber(rawMessage.avatarId);
+  const customRoleName = toTrimmedString(rawMessage.customRoleName);
 
   const nextMessage: MessageDraft = {
     messageType,
@@ -275,10 +302,29 @@ export function normalizeMessageEditorDraft(rawMessage: unknown): MessageDraft |
     ...(normalizeMessageEditorAnnotations(rawMessage.annotations) ? { annotations: normalizeMessageEditorAnnotations(rawMessage.annotations) } : {}),
     ...(normalizedExtra ? { extra: normalizedExtra } : {}),
     ...(isRecord(rawMessage.webgal) ? { webgal: rawMessage.webgal as Record<string, Record<string, any>> } : {}),
-    ...(typeof rawMessage.roleId === "number" ? { roleId: rawMessage.roleId } : {}),
-    ...(typeof rawMessage.avatarId === "number" ? { avatarId: rawMessage.avatarId } : {}),
-    ...(toTrimmedString(rawMessage.customRoleName) ? { customRoleName: toTrimmedString(rawMessage.customRoleName) } : {}),
+    ...(roleId ? { roleId } : {}),
+    ...(avatarId ? { avatarId } : {}),
+    ...(customRoleName ? { customRoleName } : {}),
   };
+
+  const runtimeFields: Record<string, unknown> = {};
+  for (const key of ["messageId", "syncId", "roomId", "userId", "status", "threadId", "replyMessageId", "position"] as const) {
+    const value = rawMessage[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      runtimeFields[key] = value;
+    }
+  }
+  const localSyncState = normalizeMessageEditorLocalSyncState(rawMessage.tcLocalSyncState);
+  if (localSyncState) {
+    runtimeFields.tcLocalSyncState = localSyncState;
+  }
+  if (typeof rawMessage.createTime === "string") {
+    runtimeFields.createTime = rawMessage.createTime;
+  }
+  if (typeof rawMessage.updateTime === "string") {
+    runtimeFields.updateTime = rawMessage.updateTime;
+  }
+  Object.assign(nextMessage, runtimeFields);
 
   return inheritRuntimeBlockId(rawMessage, nextMessage);
 }
@@ -490,6 +536,7 @@ export function serializeMessageEditorMessages(messages: MessageDraft[]): string
       extra: nextExtra ?? null,
       messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
       roleId: message.roleId ?? null,
+      tcLocalSyncState: normalizeMessageEditorLocalSyncState(message.tcLocalSyncState) ?? null,
       webgal: message.webgal ?? {},
     };
   }));

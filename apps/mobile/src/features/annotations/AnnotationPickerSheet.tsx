@@ -1,12 +1,12 @@
-import type { AnnotationDefinition } from "@tuanchat/domain/annotation-catalog";
-
-import { getAnnotationCatalog, getAnnotationsByCategory, normalizeAnnotations } from "@tuanchat/domain/annotation-catalog";
 import { useMemo } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+
+import type { AnnotationDefinition } from "@tuanchat/domain/annotation-catalog";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { getAnnotationCatalog, getAnnotationsByCategory, normalizeAnnotations } from "@tuanchat/domain/annotation-catalog";
 
 import { AnnotationChip } from "./AnnotationChip";
 
@@ -19,12 +19,12 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
 });
 
-interface AnnotationPickerSheetProps {
+type AnnotationPickerSheetProps = {
   visible: boolean;
   annotations: string[];
   onToggle: (id: string) => void;
   onClose: () => void;
-}
+};
 
 export function AnnotationPickerSheet({ visible, annotations, onToggle, onClose }: AnnotationPickerSheetProps) {
   const theme = useTheme();
@@ -37,7 +37,7 @@ export function AnnotationPickerSheet({ visible, annotations, onToggle, onClose 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={[styles.sheet, { backgroundColor: theme.surface }]} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.sheet, { backgroundColor: theme.surface }]} onPress={e => e.stopPropagation()}>
           <View style={styles.handle} />
           <View style={styles.header}>
             <ThemedText type="heading">消息标注</ThemedText>

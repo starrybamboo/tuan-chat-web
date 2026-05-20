@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useGetMomentFeedStatsQuery,
   useGetUserMomentFeedInfiniteQuery,
@@ -104,7 +104,7 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                   : (
                       <div className="flex flex-col items-center space-y-4">
                         <img
-                          src={avatarThumbUrl(userData?.avatarFileId) || "favicon.ico"}
+                          src={imageLowUrl(userData?.avatarFileId) || "favicon.ico"}
                           alt="用户头像"
                           className="w-20 h-20 rounded-full object-cover border-2 border-base-300"
                         />

@@ -1,120 +1,120 @@
 - generic [ref=e12]:
-  - generic [ref=e21]:
-    - generic [ref=e23]:
-      - generic [ref=e24]:
-        - generic [ref=e25]:
-          - img [ref=e27] [cursor=pointer]
-          - img [ref=e31] [cursor=pointer]
-        - img [ref=e77] [cursor=pointer]
-      - generic [ref=e80]:
-        - generic [ref=e82]: 潮汐
-        - generic [ref=e84]:
-          - generic [ref=e85]:
-            - generic [ref=e86] [cursor=pointer]:
-              - img [ref=e87]
-              - generic [ref=e90]: 游戏房间
-            - generic [ref=e95] [cursor=pointer]: ERP
-            - generic [ref=e100] [cursor=pointer]: 【放弃】开端（晾衣服）
-            - generic [ref=e105] [cursor=pointer]: 灵感
-            - generic [ref=e110] [cursor=pointer]: 初见
-            - generic [ref=e115] [cursor=pointer]: 被捡回来
-            - generic [ref=e120] [cursor=pointer]: 第二幕
-            - generic [ref=e125] [cursor=pointer]: （废弃）调教
-            - generic [ref=e130] [cursor=pointer]: 开头1：女主醒来
-            - generic [ref=e135] [cursor=pointer]: 人设
-            - generic [ref=e140] [cursor=pointer]: 瞎写
-            - generic [ref=e141] [cursor=pointer]:
-              - generic [ref=e146]: "19"
-              - generic [ref=e147]: 伊甸园
-            - generic [ref=e152] [cursor=pointer]: 寻找
-            - generic [ref=e157] [cursor=pointer]: 第一幕
-          - generic [ref=e158] [cursor=pointer]:
-            - img [ref=e159]
-            - generic [ref=e162]: 创建房间
-    - generic [ref=e163]:
-      - generic [ref=e164]:
-        - generic "打开菜单" [ref=e165] [cursor=pointer]:
-          - img [ref=e166]
-        - generic [ref=e169] [cursor=pointer]:
-          - generic [ref=e170]: "#"
-          - generic [ref=e171]: 【放弃】开端（晾衣服）
-          - img [ref=e172]
-        - generic "搜索" [ref=e175] [cursor=pointer]:
-          - img [ref=e176]
-      - generic [ref=e179]:
-        - generic [ref=e181]:
-          - generic [ref=e188]:
-            - generic [ref=e189]: 汐
-            - generic [ref=e190]: 16:49
-          - generic [ref=e198]: 汐麻利的干起了活，娇小的身影背靠着蓝天，随着随风飘荡的白色，成了屋顶一道亮丽的风景线
-          - generic [ref=e203]: 一年前的我，也许怎么也想不到，一年后的我居然能过得这么幸福。
-          - generic [ref=e208]: 沐浴在这篇蓝天之下的我，也许是这个世界上最幸福的人。现在的我生活美满，有着自己的工作，吃着自己做的饭，照顾着自己敬重的人。人生已经无悔了。
-          - generic [ref=e213]: 望着眼前飘动的白色，心中充满了成就感。
-          - generic [ref=e218]: 洗衣服，做饭，打扫卫生，倾倒垃圾，这座房子的所有家务都由我一人操持。
-          - generic [ref=e223]: 学园都市的人造太阳高高的悬挂在空中，与之同行的是永恒的蓝。
-          - generic [ref=e228]: 但就是这样的大小姐，前几天对我发了很大的脾气。
-          - generic [ref=e233]: 对她而言也许只是微不足道的小事。但是对我而言，则是整个世界的全部。
-          - generic [ref=e238]: 但我并不是出于胁迫或利益而做的这种事。只是单纯的，很感谢大小姐愿意接纳无依无靠的我，想为大小姐做一份她力所能及的事情。
-          - generic [ref=e243]: 虽说在这个时代，做家务更多是被当作观赏的存在，而不是做家务本身。大小姐也从来没有安排我去做家务之类的事情。
-          - generic [ref=e248]: 一定要好好干活，回报这份恩情。
-          - generic [ref=e253]: 帮我埋葬了我的外婆，给了我容身的家的大小姐，对我而言简直是再造世界的恩人一样。
-          - generic [ref=e258]: 女仆麻利的做着有关晾衣服的一切，熟练的动作不禁让人怀疑她是以此为生的。
-          - generic [ref=e264]:
-            - generic [ref=e265]:
-              - generic [ref=e266]: 汐
-              - generic [ref=e267]: (已编辑) 16:05
-            - generic [ref=e268]: 嘿咻
-          - generic [ref=e280]: 习惯性地甩了甩头，感受着马尾在脑后那个熟悉的重力落点，确认它不会松脱后，结束了绑马尾的流程，整个人也随之利落了起来。
-          - generic [ref=e285]: 指腹贴着头皮向后滑动。左手握住聚拢的发束，右手利索地将发圈套入，翻转，再套入。
-          - generic [ref=e290]: 手指熟练地没入发间，将长发聚拢在手心，原本被遮盖的后颈立刻拥抱了空气。
-          - generic [ref=e295]: 晴空舍，房顶，尽职尽责的女仆今天也在忙碌的进行着她的家务。
-        - generic:
-          - generic:
-            - img
-      - generic [ref=e304]:
-        - generic [ref=e305]:
-          - 'textbox "给 #【放弃】开端（晾衣服）..." [ref=e306]'
-          - generic [ref=e308]: 发送
-        - generic [ref=e309]:
-          - img [ref=e311] [cursor=pointer]
-          - img [ref=e315] [cursor=pointer]
-          - img [ref=e319] [cursor=pointer]
-          - img [ref=e323] [cursor=pointer]
-          - img [ref=e327] [cursor=pointer]
-          - generic [ref=e332] [cursor=pointer]: 旁
-    - generic [ref=e334]:
-      - generic [ref=e335]:
-        - generic [ref=e336]: 成员
-        - generic [ref=e337]: 【放弃】开端（晾衣服）
-        - generic [ref=e338]: 当前身份：副主持
-        - generic [ref=e339]: 你已在当前房间成员列表中。
-      - generic [ref=e340]:
-        - generic [ref=e342] [cursor=pointer]: 成员 (2)
-        - generic [ref=e344] [cursor=pointer]: 角色 (1)
-      - generic [ref=e347]:
-        - generic [ref=e349] [cursor=pointer]:
-          - generic [ref=e350]:
-            - generic [ref=e351]: 降星驰
-            - generic [ref=e352]: 主持
-          - generic [ref=e353]: "用户 #10001"
-        - generic [ref=e355] [cursor=pointer]:
-          - generic [ref=e356]:
-            - generic [ref=e357]: 馬鹿（你）
-            - generic [ref=e358]: 副主持
-          - generic [ref=e359]: "用户 #10018"
-  - tablist [ref=e361]:
-    - tab "聊天" [selected] [ref=e363] [cursor=pointer]:
-      - generic [ref=e364]:
-        - img [ref=e366]
-        - img [ref=e370]
-      - generic [ref=e373]: 聊天
-    - tab "角色" [ref=e375] [cursor=pointer]:
-      - generic [ref=e376]:
-        - img [ref=e378]
-        - img [ref=e382]
-      - generic [ref=e385]: 角色
-    - tab "个人" [ref=e387] [cursor=pointer]:
-      - generic [ref=e388]:
-        - img [ref=e390]
-        - img [ref=e394]
-      - generic [ref=e397]: 个人
+    - generic [ref=e21]:
+        - generic [ref=e23]:
+            - generic [ref=e24]:
+                - generic [ref=e25]:
+                    - img [ref=e27] [cursor=pointer]
+                    - img [ref=e31] [cursor=pointer]
+                - img [ref=e77] [cursor=pointer]
+            - generic [ref=e80]:
+                - generic [ref=e82]: 潮汐
+                - generic [ref=e84]:
+                    - generic [ref=e85]:
+                        - generic [ref=e86] [cursor=pointer]:
+                            - img [ref=e87]
+                            - generic [ref=e90]: 游戏房间
+                        - generic [ref=e95] [cursor=pointer]: ERP
+                        - generic [ref=e100] [cursor=pointer]: 【放弃】开端（晾衣服）
+                        - generic [ref=e105] [cursor=pointer]: 灵感
+                        - generic [ref=e110] [cursor=pointer]: 初见
+                        - generic [ref=e115] [cursor=pointer]: 被捡回来
+                        - generic [ref=e120] [cursor=pointer]: 第二幕
+                        - generic [ref=e125] [cursor=pointer]: （废弃）调教
+                        - generic [ref=e130] [cursor=pointer]: 开头1：女主醒来
+                        - generic [ref=e135] [cursor=pointer]: 人设
+                        - generic [ref=e140] [cursor=pointer]: 瞎写
+                        - generic [ref=e141] [cursor=pointer]:
+                            - generic [ref=e146]: "19"
+                            - generic [ref=e147]: 伊甸园
+                        - generic [ref=e152] [cursor=pointer]: 寻找
+                        - generic [ref=e157] [cursor=pointer]: 第一幕
+                    - generic [ref=e158] [cursor=pointer]:
+                        - img [ref=e159]
+                        - generic [ref=e162]: 创建房间
+        - generic [ref=e163]:
+            - generic [ref=e164]:
+                - generic "打开菜单" [ref=e165] [cursor=pointer]:
+                    - img [ref=e166]
+                - generic [ref=e169] [cursor=pointer]:
+                    - generic [ref=e170]: "#"
+                    - generic [ref=e171]: 【放弃】开端（晾衣服）
+                    - img [ref=e172]
+                - generic "搜索" [ref=e175] [cursor=pointer]:
+                    - img [ref=e176]
+            - generic [ref=e179]:
+                - generic [ref=e181]:
+                    - generic [ref=e188]:
+                        - generic [ref=e189]: 汐
+                        - generic [ref=e190]: 16:49
+                    - generic [ref=e198]: 汐麻利的干起了活，娇小的身影背靠着蓝天，随着随风飘荡的白色，成了屋顶一道亮丽的风景线
+                    - generic [ref=e203]: 一年前的我，也许怎么也想不到，一年后的我居然能过得这么幸福。
+                    - generic [ref=e208]: 沐浴在这篇蓝天之下的我，也许是这个世界上最幸福的人。现在的我生活美满，有着自己的工作，吃着自己做的饭，照顾着自己敬重的人。人生已经无悔了。
+                    - generic [ref=e213]: 望着眼前飘动的白色，心中充满了成就感。
+                    - generic [ref=e218]: 洗衣服，做饭，打扫卫生，倾倒垃圾，这座房子的所有家务都由我一人操持。
+                    - generic [ref=e223]: 学园都市的人造太阳高高的悬挂在空中，与之同行的是永恒的蓝。
+                    - generic [ref=e228]: 但就是这样的大小姐，前几天对我发了很大的脾气。
+                    - generic [ref=e233]: 对她而言也许只是微不足道的小事。但是对我而言，则是整个世界的全部。
+                    - generic [ref=e238]: 但我并不是出于胁迫或利益而做的这种事。只是单纯的，很感谢大小姐愿意接纳无依无靠的我，想为大小姐做一份她力所能及的事情。
+                    - generic [ref=e243]: 虽说在这个时代，做家务更多是被当作观赏的存在，而不是做家务本身。大小姐也从来没有安排我去做家务之类的事情。
+                    - generic [ref=e248]: 一定要好好干活，回报这份恩情。
+                    - generic [ref=e253]: 帮我埋葬了我的外婆，给了我容身的家的大小姐，对我而言简直是再造世界的恩人一样。
+                    - generic [ref=e258]: 女仆麻利的做着有关晾衣服的一切，熟练的动作不禁让人怀疑她是以此为生的。
+                    - generic [ref=e264]:
+                        - generic [ref=e265]:
+                            - generic [ref=e266]: 汐
+                            - generic [ref=e267]: (已编辑) 16:05
+                        - generic [ref=e268]: 嘿咻
+                    - generic [ref=e280]: 习惯性地甩了甩头，感受着马尾在脑后那个熟悉的重力落点，确认它不会松脱后，结束了绑马尾的流程，整个人也随之利落了起来。
+                    - generic [ref=e285]: 指腹贴着头皮向后滑动。左手握住聚拢的发束，右手利索地将发圈套入，翻转，再套入。
+                    - generic [ref=e290]: 手指熟练地没入发间，将长发聚拢在手心，原本被遮盖的后颈立刻拥抱了空气。
+                    - generic [ref=e295]: 晴空舍，房顶，尽职尽责的女仆今天也在忙碌的进行着她的家务。
+                - generic:
+                    - generic:
+                        - img
+            - generic [ref=e304]:
+                - generic [ref=e305]:
+                    - 'textbox "给 #【放弃】开端（晾衣服）..." [ref=e306]'
+                    - generic [ref=e308]: 发送
+                - generic [ref=e309]:
+                    - img [ref=e311] [cursor=pointer]
+                    - img [ref=e315] [cursor=pointer]
+                    - img [ref=e319] [cursor=pointer]
+                    - img [ref=e323] [cursor=pointer]
+                    - img [ref=e327] [cursor=pointer]
+                    - generic [ref=e332] [cursor=pointer]: 旁
+        - generic [ref=e334]:
+            - generic [ref=e335]:
+                - generic [ref=e336]: 成员
+                - generic [ref=e337]: 【放弃】开端（晾衣服）
+                - generic [ref=e338]: 当前身份：副主持
+                - generic [ref=e339]: 你已在当前房间成员列表中。
+            - generic [ref=e340]:
+                - generic [ref=e342] [cursor=pointer]: 成员 (2)
+                - generic [ref=e344] [cursor=pointer]: 角色 (1)
+            - generic [ref=e347]:
+                - generic [ref=e349] [cursor=pointer]:
+                    - generic [ref=e350]:
+                        - generic [ref=e351]: 降星驰
+                        - generic [ref=e352]: 主持
+                    - generic [ref=e353]: "用户 #10001"
+                - generic [ref=e355] [cursor=pointer]:
+                    - generic [ref=e356]:
+                        - generic [ref=e357]: 馬鹿（你）
+                        - generic [ref=e358]: 副主持
+                    - generic [ref=e359]: "用户 #10018"
+    - tablist [ref=e361]:
+        - tab "聊天" [selected] [ref=e363] [cursor=pointer]:
+            - generic [ref=e364]:
+                - img [ref=e366]
+                - img [ref=e370]
+            - generic [ref=e373]: 聊天
+        - tab "角色" [ref=e375] [cursor=pointer]:
+            - generic [ref=e376]:
+                - img [ref=e378]
+                - img [ref=e382]
+            - generic [ref=e385]: 角色
+        - tab "个人" [ref=e387] [cursor=pointer]:
+            - generic [ref=e388]:
+                - img [ref=e390]
+                - img [ref=e394]
+            - generic [ref=e397]: 个人

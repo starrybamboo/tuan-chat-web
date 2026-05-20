@@ -1,9 +1,11 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
 import { Check, X } from "@phosphor-icons/react";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import React, { memo, useCallback, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { scrollToBottomButtonMotionProps, unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function Header() {
@@ -111,20 +113,28 @@ const UnreadIndicator = memo(({
   isAtBottom,
   onScrollToBottom,
 }: UnreadIndicatorProps) => {
-  if (!enabled || unreadMessageNumber <= 0 || historyLength <= 2 || isAtBottom)
-    return null;
+  const show = enabled && unreadMessageNumber > 0 && historyLength > 2 && !isAtBottom;
 
   return (
-    <button
-      type="button"
-      className="absolute bottom-4 self-end z-50 cursor-pointer"
-      onClick={onScrollToBottom}
-    >
-      <div className="btn btn-info gap-2 shadow-lg">
-        <span>{unreadMessageNumber}</span>
-        <span>条新消息</span>
-      </div>
-    </button>
+    <AnimatePresence>
+      {show && (
+        <motion.button
+          type="button"
+          className="absolute bottom-4 right-4 z-50 cursor-pointer rounded-full bg-base-100/75 backdrop-blur-md px-3 py-1.5 text-xs shadow-sm"
+          onClick={onScrollToBottom}
+          {...scrollToBottomButtonMotionProps}
+        >
+          <motion.span
+            key={unreadMessageNumber}
+            {...unreadBadgeBounceMotionProps}
+            className="inline-block font-medium text-info"
+          >
+            {unreadMessageNumber}
+          </motion.span>
+          <span className="ml-1 text-base-content/70">条新消息</span>
+        </motion.button>
+      )}
+    </AnimatePresence>
   );
 });
 
@@ -257,6 +267,7 @@ interface ChatFrameListProps {
   isAtBottomRef: React.MutableRefObject<boolean>;
   isAtTopRef: React.MutableRefObject<boolean>;
   setCurrentVirtuosoIndex: (index: number) => void;
+  onVisibleRangeChange?: (range: { startIndex: number; endIndex: number }) => void;
   enableUnreadIndicator: boolean;
   unreadMessageNumber: number;
   scrollToBottom: () => void;
@@ -293,6 +304,7 @@ export default function ChatFrameList({
   isAtBottomRef,
   isAtTopRef,
   setCurrentVirtuosoIndex,
+  onVisibleRangeChange,
   enableUnreadIndicator,
   unreadMessageNumber,
   scrollToBottom,
@@ -316,32 +328,12 @@ export default function ChatFrameList({
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
-  const renderDebugRef = useRef<{ renderCount: number; keys: string[] }>({ renderCount: 0, keys: [] });
   const [isAtBottom, setIsAtBottom] = useState(true);
-
-  useEffect(() => {
-    const nextKeys = historyMessages.map((item, index) => computeItemKey(index, item));
-    const prevKeys = renderDebugRef.current.keys;
-    let changedKeyCount = 0;
-    const maxLen = Math.max(prevKeys.length, nextKeys.length);
-    for (let index = 0; index < maxLen; index++) {
-      if (prevKeys[index] !== nextKeys[index]) {
-        changedKeyCount += 1;
-      }
-    }
-    renderDebugRef.current = {
-      renderCount: renderDebugRef.current.renderCount + 1,
-      keys: nextKeys,
-    };
-    if (!import.meta.env.DEV || changedKeyCount === 0) {
-      return;
-    }
-  }, [computeItemKey, historyMessages]);
 
   return (
     <>
       <div
-        className="overflow-y-auto flex flex-col relative h-full"
+        className="overflow-hidden flex flex-col relative h-full"
         onContextMenu={onContextMenu}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
@@ -378,8 +370,9 @@ export default function ChatFrameList({
             context={{
               isAtTopRef,
             }}
-            rangeChanged={({ endIndex }) => {
+            rangeChanged={({ startIndex, endIndex }) => {
               setCurrentVirtuosoIndex(endIndex);
+              onVisibleRangeChange?.({ startIndex, endIndex });
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {

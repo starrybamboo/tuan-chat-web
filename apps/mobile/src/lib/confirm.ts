@@ -25,7 +25,6 @@ export async function confirmAction({
     if (typeof window === "undefined" || typeof window.confirm !== "function") {
       throw new TypeError("当前环境不支持确认弹窗。");
     }
-    // eslint-disable-next-line no-alert -- react-native-web Alert.alert is a no-op; web must use confirm for destructive actions.
     return window.confirm(`${title}\n\n${message}`);
   }
 

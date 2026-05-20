@@ -1,16 +1,14 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-import type { MessageSubmitPhase } from "./mobileChatUtils";
+import { ImageSquare, PaperPlaneTilt, Smiley, X, XCircle } from "phosphor-react-native";
+import { useMemo, useState } from "react";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
+import type { CommandInfo } from "@tuanchat/domain/command-request";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { Checkerboard, ImageSquare, PaperPlaneTilt, Pulse, Smiley, Sword, X, XCircle } from "phosphor-react-native";
-import { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
-import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
-
-import { Image } from "expo-image";
-
+import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import {
@@ -21,11 +19,11 @@ import {
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
 import { useTheme } from "@/hooks/use-theme";
-import { SPRING_SNAPPY } from "@/lib/animations";
 import { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
 
 import { getMessagePreview } from "./mobileChatUtils";
+import { MobileCommandPanel } from "./MobileCommandPanel";
 
 const MENTION_LIST_MAX_HEIGHT = 180;
 
@@ -119,13 +117,17 @@ const styles = StyleSheet.create({
     width: 40,
   },
   input: {
-    borderRadius: 22,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     flex: 1,
     fontSize: 15,
+    includeFontPadding: false,
+    lineHeight: 20,
     maxHeight: COMPOSER_MAX_HEIGHT,
     minHeight: COMPOSER_MIN_HEIGHT,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    paddingTop: 10,
   },
   sendButton: {
     alignItems: "center",
@@ -171,7 +173,7 @@ function getMentionQuery(text: string): string | null {
   return query;
 }
 
-interface ChatComposerProps {
+type ChatComposerProps = {
   anchorMessage: Message | null;
   availableRoles?: UserRole[];
   canUseAttachments: boolean;
@@ -181,9 +183,7 @@ interface ChatComposerProps {
   draftMessage: string;
   draftRoleIdInput: string;
   errorMessage: string | null;
-  isInitiativeMode: boolean;
   isSubmitting: boolean;
-  isStateMode: boolean;
   messageAttachments: MobileMessageAttachment[];
   messageMode: MobileMessageMode;
   onChangeDraftMessage: (v: string) => void;
@@ -191,16 +191,13 @@ interface ChatComposerProps {
   onClearAnchor: () => void;
   onClearAttachments: () => void;
   onOpenExpressionPicker?: () => void;
-  onOpenInitiative: () => void;
-  onOpenMap: () => void;
   onOpenRoleSwitch: () => void;
-  onOpenState: () => void;
   onPickAttachment: (kind: MobileMessageAttachmentKind) => void;
   onRemoveAttachment: (id: string) => void;
   onSend: () => void;
   roomName?: string | null;
-  submitPhase: MessageSubmitPhase;
-}
+  ruleId?: number | null;
+};
 
 export function ChatComposer({
   anchorMessage,
@@ -212,9 +209,7 @@ export function ChatComposer({
   draftMessage,
   draftRoleIdInput,
   errorMessage,
-  isInitiativeMode,
   isSubmitting,
-  isStateMode,
   messageAttachments,
   messageMode,
   onChangeDraftMessage,
@@ -222,23 +217,15 @@ export function ChatComposer({
   onClearAnchor,
   onClearAttachments,
   onOpenExpressionPicker,
-  onOpenInitiative,
-  onOpenMap,
   onOpenRoleSwitch,
-  onOpenState,
   onPickAttachment,
   onRemoveAttachment,
   onSend,
   roomName,
-  submitPhase,
+  ruleId,
 }: ChatComposerProps) {
   const theme = useTheme();
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
-
-  const sendButtonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(isSubmitting ? 0.85 : 1, SPRING_SNAPPY) }],
-    opacity: withSpring(isSubmitting ? 0.6 : 1, SPRING_SNAPPY),
-  }));
 
   const canSend = draftMessage.trim().length > 0 || messageAttachments.length > 0;
   const inputPlaceholder = messageMode === MOBILE_MESSAGE_MODE.TEXT
@@ -267,9 +254,19 @@ export function ChatComposer({
     onChangeDraftMessage(`${before}@${roleName} `);
   };
 
+  const handleSelectCommand = (cmd: CommandInfo) => {
+    setInputHeight(COMPOSER_MIN_HEIGHT);
+    onChangeDraftMessage(`.${cmd.name} `);
+  };
+
   const handleChangeMessageText = (nextText: string) => {
+    if (nextText.length < draftMessage.length) {
+      setInputHeight(COMPOSER_MIN_HEIGHT);
+    }
     onChangeDraftMessage(nextText);
   };
+
+  const resolvedInputHeight = draftMessage.length === 0 ? COMPOSER_MIN_HEIGHT : inputHeight;
 
   return (
     <View style={styles.composerWrapper}>
@@ -287,7 +284,7 @@ export function ChatComposer({
                 >
                   {item.avatarFileId
                     ? (
-                        <Image source={{ uri: avatarThumbUrl(item.avatarFileId) }} style={styles.mentionAvatar} />
+                        <CachedImage uri={avatarThumbUrl(item.avatarFileId)} style={styles.mentionAvatar} />
                       )
                     : (
                         <View style={[styles.mentionAvatar, { backgroundColor: getMentionRoleColor(item.roleId) }]}>
@@ -299,6 +296,16 @@ export function ChatComposer({
                   <ThemedText type="small">{item.roleName ?? `角色 #${item.roleId}`}</ThemedText>
                 </Pressable>
               )}
+            />
+          )
+        : null}
+
+      {!showMentionList && messageMode === MOBILE_MESSAGE_MODE.TEXT
+        ? (
+            <MobileCommandPanel
+              draftMessage={draftMessage}
+              onSelectCommand={handleSelectCommand}
+              ruleId={ruleId ?? null}
             />
           )
         : null}
@@ -348,30 +355,29 @@ export function ChatComposer({
             }}
             placeholder={inputPlaceholder}
             placeholderTextColor={theme.textSecondary}
-            scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
+            scrollEnabled={resolvedInputHeight >= COMPOSER_MAX_HEIGHT}
             style={[
               styles.input,
               {
                 backgroundColor: theme.surface,
+                borderColor: theme.border,
                 color: theme.text,
-                height: inputHeight,
-                textAlignVertical: inputHeight > COMPOSER_MIN_HEIGHT ? "top" : "center",
+                height: resolvedInputHeight,
+                textAlignVertical: "top",
               },
             ]}
             value={draftMessage}
           />
 
-          <Animated.View style={sendButtonStyle}>
+          <View>
             <Pressable
               disabled={isSubmitting || !canSend}
               onPress={onSend}
               style={styles.sendButton}
             >
-              {isSubmitting
-                ? <ActivityIndicator color={theme.accent} size="small" />
-                : <PaperPlaneTilt color={canSend ? theme.accent : theme.textSecondary} size={24} weight="fill" />}
+              <PaperPlaneTilt color={canSend ? theme.accent : theme.textSecondary} size={24} weight="fill" />
             </Pressable>
-          </Animated.View>
+          </View>
         </View>
 
         <View style={styles.toolbarRow}>
@@ -394,38 +400,6 @@ export function ChatComposer({
                 </Pressable>
               )
             : null}
-
-          <Pressable
-            disabled={isSubmitting}
-            onPress={onOpenInitiative}
-            style={styles.toolButton}
-          >
-            <Sword
-              color={isInitiativeMode ? theme.accent : theme.textSecondary}
-              size={20}
-              weight="regular"
-            />
-          </Pressable>
-
-          <Pressable
-            disabled={isSubmitting}
-            onPress={onOpenMap}
-            style={styles.toolButton}
-          >
-            <Checkerboard color={theme.textSecondary} size={20} weight="regular" />
-          </Pressable>
-
-          <Pressable
-            disabled={isSubmitting}
-            onPress={onOpenState}
-            style={styles.toolButton}
-          >
-            <Pulse
-              color={isStateMode ? theme.accent : theme.textSecondary}
-              size={20}
-              weight="regular"
-            />
-          </Pressable>
 
           {messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT
             ? (
@@ -454,7 +428,7 @@ export function ChatComposer({
               const displayAvatarFileId = currentAvatarFileId ?? currentRole?.avatarFileId;
               return displayAvatarFileId
                 ? (
-                    <Image source={{ uri: avatarThumbUrl(displayAvatarFileId) }} style={styles.roleButton} />
+                    <CachedImage uri={avatarThumbUrl(displayAvatarFileId)} style={styles.roleButton} />
                   )
                 : (
                     <View style={[styles.roleButton, { backgroundColor: currentRole ? "#8b5cf6" : "#6366f1" }]}>
@@ -466,14 +440,6 @@ export function ChatComposer({
             })()}
           </Pressable>
         </View>
-
-        {submitPhase === "uploading"
-          ? (
-              <ThemedText type="caption" themeColor="textSecondary" style={{ marginHorizontal: Spacing.sm }}>
-                正在上传附件...
-              </ThemedText>
-            )
-          : null}
 
         {errorMessage
           ? (

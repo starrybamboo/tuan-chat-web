@@ -1,15 +1,5 @@
 import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
 
-import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
-import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
-import {
-  prependNotificationToCaches as prependSharedNotificationToCaches,
-  useMarkAllNotificationsReadMutation as useSharedMarkAllNotificationsReadMutation,
-  useMarkNotificationsReadMutation as useSharedMarkNotificationsReadMutation,
-  useNotificationUnreadCountQuery as useSharedNotificationUnreadCountQuery,
-  useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
-} from "@tuanchat/query/notifications";
-
 import type {
   NotificationListFilters,
   NotificationPageResponse,
@@ -18,6 +8,16 @@ import type {
   NotificationUnreadCountResponse,
   UserNotificationItem,
 } from "@/components/notification/notificationTypes";
+import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
+import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
+
+import {
+  prependNotificationToCaches as prependSharedNotificationToCaches,
+  useMarkAllNotificationsReadMutation as useSharedMarkAllNotificationsReadMutation,
+  useMarkNotificationsReadMutation as useSharedMarkNotificationsReadMutation,
+  useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
+  useNotificationUnreadCountQuery as useSharedNotificationUnreadCountQuery,
+} from "@tuanchat/query/notifications";
 
 import { tuanchat } from "../../../api/instance";
 

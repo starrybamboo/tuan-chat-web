@@ -11,6 +11,7 @@ import {
   getRoomJumpExtra,
   getVideoMessageExtra,
 } from "@/types/messageExtra";
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { ChatMessageResponse, Message } from "../../api";
 
@@ -156,10 +157,8 @@ function formatMessageContent(
       return `[群聊跳转] ${title}`;
     }
     case MessageType.CLUE_CARD: {
-      const clue = extra?.clueMessage as { name?: string; description?: string } | undefined;
-      const name = clue?.name || content || "线索卡";
-      const description = clue?.description ? ` - ${clue.description}` : "";
-      return `[线索卡] ${name}${description}`;
+      const snapshot = (extra?.clueMessage as { snapshot?: Partial<Message> } | undefined)?.snapshot;
+      return `[线索卡] ${snapshot?.messageType ? getMessagePreviewText({ ...snapshot, status: 0 } as Message) : content || "线索"}`;
     }
     case MessageType.SYSTEM:
       return content || "[系统消息]";

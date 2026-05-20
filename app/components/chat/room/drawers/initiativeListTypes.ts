@@ -1,4 +1,5 @@
 export type Initiative = {
+  participantId: string;
   name: string;
   value: number;
   // 当前 HP 和最大 HP 可为空，空值表示未同步或未填写。
@@ -6,13 +7,15 @@ export type Initiative = {
   maxHp?: number | null;
   extras?: Record<string, string | number | null>;
   roleId?: number;
+  activeStates?: string[];
 };
 
 export type InitiativeParam = {
   key: string;
   label: string;
-  source: "manual" | "roleAttr";
+  source: "manual" | "roleAttr" | "stateKey";
   attrKey?: string;
+  stateKey?: string;
 };
 
 export type InitiativeDraft = {
@@ -27,6 +30,7 @@ export type InitiativeParamDraft = {
   label: string;
   source: InitiativeParam["source"];
   attrKey: string;
+  stateKey: string;
 };
 
 export type SortKey = "name" | "value" | "hp" | "maxHp" | { paramKey: string };

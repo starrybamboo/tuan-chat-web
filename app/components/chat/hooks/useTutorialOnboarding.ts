@@ -1,19 +1,17 @@
-import type { NavigateFunction } from "react-router";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { TutorialBootstrapResponse } from "api/hooks/tutorialOnboardingHooks";
 
 import {
-  fetchTutorialBootstrap,
-  useTutorialPullMutation,
-} from "api/hooks/tutorialOnboardingHooks";
-import {
   buildTutorialPromptSeenKey,
   hasSeenTutorialPrompt,
   markTutorialPromptSeen,
 } from "@/components/chat/tutorial/tutorialPromptSeenStorage";
+import {
+  fetchTutorialBootstrap,
+  useTutorialPullMutation,
+} from "api/hooks/tutorialOnboardingHooks";
 
 function debugTutorialOnboarding(event: string, payload?: Record<string, unknown>) {
   if (!import.meta.env.DEV || typeof window === "undefined") {
@@ -38,7 +36,7 @@ function debugTutorialOnboarding(event: string, payload?: Record<string, unknown
 type UseTutorialOnboardingParams = {
   userId: number;
   enabled: boolean;
-  navigate: NavigateFunction;
+  navigate: (to: string, options?: { replace?: boolean; state?: unknown }) => void;
 };
 
 type UseTutorialOnboardingResult = {

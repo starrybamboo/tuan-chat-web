@@ -1,5 +1,3 @@
-import type { PokemonDefensiveMatchups } from "./initiativeListDerived";
-
 import type { Initiative, InitiativeParam } from "./initiativeListTypes";
 import { Fragment } from "react";
 
@@ -9,15 +7,8 @@ interface InitiativeListTableProps {
   initiativeList: Initiative[];
   sortedList: Initiative[];
   displayParams: InitiativeParam[];
-  levelParam?: InitiativeParam;
-  isPokemonRule: boolean;
   editingKey: string | null;
   editingValue: string;
-  pokemonDefensiveByRoleId: Map<number, PokemonDefensiveMatchups>;
-  pokemonTraitByRoleId: Map<number, string>;
-  pokemonStatusByRoleId: Map<number, string>;
-  pokemonItemByRoleId: Map<number, string>;
-  pokemonActionPointByRoleId: Map<number, string>;
   getEditingRef: (key: string) => (node: HTMLInputElement | null) => void;
   setEditingValue: (value: string) => void;
   startEditing: (key: string, value: string) => void;
@@ -28,19 +19,38 @@ interface InitiativeListTableProps {
   handleDelete: (item: Initiative) => void;
 }
 
+function formatCellValue(value: string | number | null | undefined): string {
+  if (value == null || value === "") {
+    return "--";
+  }
+  return String(value);
+}
+
+function StatusPills({ item }: { item: Initiative }) {
+  if (!item.activeStates || item.activeStates.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {item.activeStates.map(state => (
+        <span
+          key={state}
+          className="rounded-full border border-base-300 bg-base-100 px-1.5 py-0.5 text-[10px] leading-none text-base-content/60"
+        >
+          {state}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function InitiativeListTable({
   initiativeList,
   sortedList,
   displayParams,
-  levelParam,
-  isPokemonRule,
   editingKey,
   editingValue,
-  pokemonDefensiveByRoleId,
-  pokemonTraitByRoleId,
-  pokemonStatusByRoleId,
-  pokemonItemByRoleId,
-  pokemonActionPointByRoleId,
   getEditingRef,
   setEditingValue,
   startEditing,
@@ -55,10 +65,8 @@ export function InitiativeListTable({
       <table className="table table-sm">
         <thead>
           <tr>
-            {isPokemonRule && <th className="text-xs font-semibold text-base-content/70">等级</th>}
             <th className="text-xs font-semibold text-base-content/70">角色名</th>
             <th className="text-xs font-semibold text-base-content/70">HP</th>
-            {isPokemonRule && <th className="text-xs font-semibold text-base-content/70">行动点</th>}
             <th className="text-xs font-semibold text-base-content/70">先攻</th>
           </tr>
         </thead>
@@ -66,8 +74,8 @@ export function InitiativeListTable({
           {initiativeList.length === 0
             ? (
                 <tr>
-                  <td colSpan={isPokemonRule ? 5 : 3} className="text-xs text-base-content/50 text-center py-4">
-                    暂无先攻记录，添加一个吧。
+                  <td colSpan={3} className="text-xs text-base-content/50 text-center py-4">
+                    暂无先攻记录，添加或导入一个参与者吧。
                   </td>
                 </tr>
               )
@@ -75,33 +83,7 @@ export function InitiativeListTable({
                 sortedList.map((item, index) => {
                   const hp = item.hp ?? null;
                   const maxHp = item.maxHp ?? null;
-                  const levelValue = levelParam ? item.extras?.[levelParam.key] : null;
-                  const defensiveMatchup = typeof item.roleId === "number"
-                    ? pokemonDefensiveByRoleId.get(item.roleId)
-                    : undefined;
-                  const traitText = typeof item.roleId === "number"
-                    ? (pokemonTraitByRoleId.get(item.roleId) ?? "--")
-                    : "--";
-                  const itemText = typeof item.roleId === "number"
-                    ? pokemonItemByRoleId.get(item.roleId)
-                    : undefined;
-                  const statusText = typeof item.roleId === "number"
-                    ? pokemonStatusByRoleId.get(item.roleId)
-                    : undefined;
-                  const actionPointText = typeof item.roleId === "number"
-                    ? (pokemonActionPointByRoleId.get(item.roleId) ?? "--")
-                    : "--";
-                  const multiplierText = (() => {
-                    if (!defensiveMatchup)
-                      return "--";
-                    const order: Array<"4" | "2" | "0.5" | "0.25" | "0"> = ["4", "2", "0.5", "0.25", "0"];
-                    const spacing = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0";
-                    const segments = order
-                      .filter(multiplier => defensiveMatchup[multiplier].length > 0)
-                      .map(multiplier => `${multiplier}：${defensiveMatchup[multiplier].join("/")}`);
-                    return segments.length > 0 ? segments.join(spacing) : "--";
-                  })();
-                  const rowKey = item.name || `${index}`;
+                  const rowKey = item.participantId || item.name || `${index}`;
                   const nameEditKey = `${rowKey}:name`;
                   const hpEditKey = `${rowKey}:hp`;
                   const maxHpEditKey = `${rowKey}:maxHp`;
@@ -110,11 +92,6 @@ export function InitiativeListTable({
                   return (
                     <Fragment key={rowKey}>
                       <tr className="group hover">
-                        {isPokemonRule && (
-                          <td className="align-top">
-                            <div className="text-sm tabular-nums min-h-6 leading-6 px-1">{levelValue != null && levelValue !== "" ? String(levelValue) : "--"}</div>
-                          </td>
-                        )}
                         <td className="align-top">
                           {editingKey === nameEditKey
                             ? (
@@ -149,6 +126,7 @@ export function InitiativeListTable({
                                   {item.name}
                                 </button>
                               )}
+                          <StatusPills item={item} />
                         </td>
                         <td className="align-top">
                           <div className="flex items-center gap-0.5 text-xs text-base-content/70 leading-5">
@@ -253,10 +231,10 @@ export function InitiativeListTable({
                                         <button
                                           type="button"
                                           className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                          onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, (item.extras?.[param.key] ?? "").toString())}
+                                          onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, formatCellValue(item.extras?.[param.key] === "--" ? "" : item.extras?.[param.key]))}
                                           title="双击编辑"
                                         >
-                                          {(item.extras?.[param.key] ?? "--").toString()}
+                                          {formatCellValue(item.extras?.[param.key])}
                                         </button>
                                       )}
                                 </div>
@@ -264,13 +242,6 @@ export function InitiativeListTable({
                             </div>
                           )}
                         </td>
-                        {isPokemonRule && (
-                          <td className="align-top">
-                            <div className="text-sm tabular-nums min-h-6 leading-6 px-1">
-                              {actionPointText}
-                            </div>
-                          </td>
-                        )}
                         <td className="align-top">
                           <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">
                             {editingKey === valueEditKey
@@ -313,55 +284,11 @@ export function InitiativeListTable({
                               className="btn btn-ghost btn-square btn-xs text-error hover:bg-error/5 border-none px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                               title="删除"
                             >
-                              ✕
+                              x
                             </button>
                           </div>
                         </td>
                       </tr>
-                      {isPokemonRule && (
-                        <tr key={`${rowKey}:multiplier`}>
-                          <td colSpan={5} className="pt-0 pb-1">
-                            <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                              属性克制倍率
-                              {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                              {multiplierText}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      {isPokemonRule && (
-                        <tr key={`${rowKey}:trait`}>
-                          <td colSpan={5} className="pt-0 pb-1">
-                            <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                              特性
-                              {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                              {traitText}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      {isPokemonRule && itemText && (
-                        <tr key={`${rowKey}:item`}>
-                          <td colSpan={5} className="pt-0 pb-1">
-                            <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                              道具
-                              {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                              {itemText}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      {isPokemonRule && statusText && (
-                        <tr key={`${rowKey}:status`}>
-                          <td colSpan={5} className="pt-0 pb-1">
-                            <div className="text-[11px] text-base-content/60 px-1 whitespace-normal wrap-break-word">
-                              状态
-                              {"\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                              {statusText}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </Fragment>
                   );
                 })

@@ -28,12 +28,18 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(createMessage({
       messageType: MESSAGE_TYPE.IMG,
       extra: { imageMessage: { fileName: "scene.png" } },
-    }))).toBe("[图片] scene.png");
+    }))).toBe("[图片]");
 
     expect(getMessagePreviewText(createMessage({
       messageType: MESSAGE_TYPE.FILE,
       extra: { fileMessage: { fileName: "handout.pdf" } },
-    }))).toBe("[文件] handout.pdf");
+    }))).toBe("[文件]");
+
+    expect(getMessagePreviewText(createMessage({
+      content: "手写地图",
+      messageType: MESSAGE_TYPE.IMG,
+      extra: { imageMessage: { fileName: "scene.png" } },
+    }))).toBe("[图片] 手写地图");
   });
 
   it("音频和演出特效预览会读取 annotation 语义", () => {
@@ -41,7 +47,7 @@ describe("getMessagePreviewText", () => {
       annotations: [ANNOTATION_IDS.SE],
       extra: { soundMessage: { fileName: "mystery.mp3", purpose: "bgm" } },
       messageType: MESSAGE_TYPE.SOUND,
-    }))).toBe("[语音] mystery.mp3");
+    }))).toBe("[语音]");
 
     expect(getMessagePreviewText(createMessage({
       annotations: [ANNOTATION_IDS.SCENE_EFFECT_RAIN],
@@ -60,6 +66,14 @@ describe("getMessagePreviewText", () => {
         },
       },
     }))).toBe("[状态] 下一回合");
+  });
+
+  it("骰子消息直接预览结果文本", () => {
+    expect(getMessagePreviewText(createMessage({
+      content: "fallback",
+      messageType: MESSAGE_TYPE.DICE,
+      extra: { diceResult: { result: "D100=63/100 成功" } },
+    }))).toBe("D100=63/100 成功");
   });
 
   it("支持房间跳转、子区和文档卡片", () => {

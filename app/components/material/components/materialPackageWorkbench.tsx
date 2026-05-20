@@ -1,6 +1,5 @@
 import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 import type { DragEvent } from "react";
-import type { UserRole } from "../../../../api";
 import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
 import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
@@ -18,14 +17,11 @@ import {
 import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
-import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
-import { useGetUserRolesQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MaterialComposerProvider } from "./materialComposerContext";
 import MaterialMessageComposer from "./materialMessageComposer";
 import MaterialMessageEditorCard from "./materialMessageEditorCard";
@@ -65,31 +61,12 @@ interface MaterialPackageWorkbenchProps {
   onCoverUpload: (file: File) => void;
 }
 
-function resolveDefaultAvatarId(
-  roles: UserRole[],
-  avatarIdMap: Record<number, number>,
-  roleId: number,
-): number | undefined {
-  if (roleId <= 0) {
-    return undefined;
-  }
-  const storedAvatarId = avatarIdMap[roleId];
-  if (typeof storedAvatarId === "number" && storedAvatarId > 0) {
-    return storedAvatarId;
-  }
-  const role = roles.find(item => item.roleId === roleId);
-  return typeof role?.avatarId === "number" && role.avatarId > 0 ? role.avatarId : undefined;
-}
-
 function getMessageDraftKey(messages: MessageDraft[], index: number, nodeKey: string): string {
   const serializeDraft = (message: MessageDraft) => JSON.stringify({
     annotations: message.annotations ?? [],
-    avatarId: message.avatarId ?? null,
     content: message.content ?? "",
-    customRoleName: message.customRoleName ?? "",
     extra: message.extra ?? {},
     messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
-    roleId: message.roleId ?? null,
     webgal: message.webgal ?? {},
   });
 
@@ -201,10 +178,6 @@ export default function MaterialPackageWorkbench({
   onUpdateDraft,
   onCoverUpload,
 }: MaterialPackageWorkbenchProps) {
-  const userId = useGlobalUserId();
-  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
-  const availableRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
-  const curAvatarIdMap = useRoomRoleSelectionStore(state => state.curAvatarIdMap);
   const [selectedNodeKey, setSelectedNodeKey] = useState(ROOT_NODE_KEY);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [hasInitializedTree, setHasInitializedTree] = useState(false);
@@ -225,14 +198,6 @@ export default function MaterialPackageWorkbench({
     [rootNodes, selectedNodeKey, selectedNodePath],
   );
   const selectedIsFolder = !selectedNode || selectedNode.type === MaterialNodeModel.type.FOLDER;
-  const firstAvailableRoleId = availableRoles[0]?.roleId;
-  const fallbackRoleId = useMemo(() => firstAvailableRoleId ?? 0, [firstAvailableRoleId]);
-  const fallbackAvatarId = useMemo(() => {
-    if (fallbackRoleId <= 0) {
-      return -1;
-    }
-    return resolveDefaultAvatarId(availableRoles, curAvatarIdMap, fallbackRoleId) ?? -1;
-  }, [availableRoles, curAvatarIdMap, fallbackRoleId]);
   const fieldClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-2.5 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
   const textareaClassName = "w-full rounded-md border border-base-300 bg-base-200/80 px-3 py-3 text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60";
   const displayCoverUrl = imageMediumUrlFromUrl(draft.coverUrl);
@@ -953,9 +918,6 @@ export default function MaterialPackageWorkbench({
                               <MaterialMessageEditorCard
                                 message={message}
                                 index={index}
-                                availableRoles={availableRoles}
-                                fallbackRoleId={fallbackRoleId}
-                                fallbackAvatarId={fallbackAvatarId}
                                 onChange={updater => updateSelectedMaterialMessage(index, updater)}
                                 onDelete={() => removeSelectedMaterialMessage(index)}
                               />

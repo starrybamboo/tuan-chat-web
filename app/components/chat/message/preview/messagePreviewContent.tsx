@@ -2,7 +2,7 @@ import type { Message } from "../../../../../api";
 
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { imageLowUrlFromUrl, mediaFileUrl } from "@/utils/mediaUrl";
 
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
@@ -13,6 +13,31 @@ interface MessagePreviewContentProps {
    * 默认不展示，避免在列表预览中导致布局抖动。
    */
   withMediaPreview?: boolean;
+}
+
+function getStringField(value: unknown, key: string): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "";
+  }
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" ? field.trim() : "";
+}
+
+function resolveImagePreviewUrl(imageMessage: unknown): string {
+  const imageRecord = imageMessage && typeof imageMessage === "object" && !Array.isArray(imageMessage)
+    ? imageMessage as { fileId?: number; mediaType?: string }
+    : undefined;
+  const fileUrl = typeof imageRecord?.fileId === "number" && imageRecord.fileId <= 0
+    ? ""
+    : mediaFileUrl(imageRecord?.fileId, imageRecord?.mediaType, "low");
+  if (fileUrl) {
+    return fileUrl;
+  }
+
+  const legacyUrl = getStringField(imageMessage, "imageUrl")
+    || getStringField(imageMessage, "url")
+    || getStringField(imageMessage, "src");
+  return imageLowUrlFromUrl(legacyUrl);
 }
 
 export function MessagePreviewContent({
@@ -27,7 +52,7 @@ export function MessagePreviewContent({
 
   if (withMediaPreview && message.messageType === MESSAGE_TYPE.IMG) {
     const imageMessage = getImageMessageExtra(message.extra);
-    const imgUrl = mediaFileUrl(imageMessage?.fileId, imageMessage?.mediaType, "low");
+    const imgUrl = resolveImagePreviewUrl(imageMessage);
     const width = typeof imageMessage?.width === "number" ? imageMessage.width : undefined;
     const height = typeof imageMessage?.height === "number" ? imageMessage.height : undefined;
 

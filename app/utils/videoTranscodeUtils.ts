@@ -25,6 +25,11 @@ export type VideoTranscodeOptions = {
    * 最大帧率。可选，用于降低体积。
    */
   maxFps?: number;
+  /**
+   * 创建独立 FFmpeg 实例而非复用单例，用完即销毁。
+   * 用于 Promise.all 并行转码场景——每个调用各自持有独立 WASM worker。
+   */
+  isolated?: boolean;
 };
 
 type VideoTranscodePreset = {
@@ -242,70 +247,72 @@ function buildVideoTranscodePresets(base: { maxHeight?: number; maxFps?: number;
   return deduped;
 }
 
+async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
+  if (typeof window === "undefined") {
+    throw new TypeError("当前环境不支持视频转码（需要浏览器环境）");
+  }
+
+  const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+  const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
+  const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
+  const candidates = getFfmpegCoreBaseUrlCandidates();
+  const bundledCandidates = shouldUseBundledFfmpegCore()
+    ? [{
+        label: "bundled",
+        coreJs: bundledCoreJsUrl,
+        wasm: bundledCoreWasmUrl,
+      }]
+    : [];
+  const errors: string[] = [];
+
+  for (const candidate of bundledCandidates) {
+    try {
+      const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(candidate.wasm, "application/wasm", loadTimeoutMs);
+      await withTimeout(
+        ffmpeg.load({
+          coreURL: candidate.coreJs,
+          wasmURL,
+          classWorkerURL,
+        }),
+        loadTimeoutMs,
+        "FFmpeg 核心加载",
+      );
+      return ffmpeg;
+    }
+    catch (error) {
+      errors.push(`${candidate.label}: ${normalizeErrorMessage(error)}`);
+    }
+  }
+
+  for (const baseUrl of candidates) {
+    try {
+      const coreURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
+      const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
+      await withTimeout(
+        ffmpeg.load({
+          coreURL,
+          wasmURL,
+          classWorkerURL,
+        }),
+        loadTimeoutMs,
+        "FFmpeg 核心加载",
+      );
+      return ffmpeg;
+    }
+    catch (error) {
+      errors.push(`${baseUrl}: ${normalizeErrorMessage(error)}`);
+    }
+  }
+
+  throw new Error(`FFmpeg 核心加载失败：${errors.join("\n")}`);
+}
+
 async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
   if (ffmpegSingletonPromise) {
     return ffmpegSingletonPromise;
   }
 
-  ffmpegSingletonPromise = (async () => {
-    if (typeof window === "undefined") {
-      throw new TypeError("当前环境不支持视频转码（需要浏览器环境）");
-    }
-
-    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
-    const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
-    const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
-    const candidates = getFfmpegCoreBaseUrlCandidates();
-    const bundledCandidates = shouldUseBundledFfmpegCore()
-      ? [{
-          label: "bundled",
-          coreJs: bundledCoreJsUrl,
-          wasm: bundledCoreWasmUrl,
-        }]
-      : [];
-    const errors: string[] = [];
-
-    for (const candidate of bundledCandidates) {
-      try {
-        const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(candidate.wasm, "application/wasm", loadTimeoutMs);
-        await withTimeout(
-          ffmpeg.load({
-            coreURL: candidate.coreJs,
-            wasmURL,
-            classWorkerURL,
-          }),
-          loadTimeoutMs,
-          "FFmpeg 核心加载",
-        );
-        return ffmpeg;
-      }
-      catch (error) {
-        errors.push(`${candidate.label}: ${normalizeErrorMessage(error)}`);
-      }
-    }
-
-    for (const baseUrl of candidates) {
-      try {
-        const coreURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.js`, "text/javascript", loadTimeoutMs);
-        const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(`${baseUrl}/ffmpeg-core.wasm`, "application/wasm", loadTimeoutMs);
-        await withTimeout(
-          ffmpeg.load({
-            coreURL,
-            wasmURL,
-            classWorkerURL,
-          }),
-          loadTimeoutMs,
-          "FFmpeg 核心加载",
-        );
-        return ffmpeg;
-      }
-      catch (error) {
-        errors.push(`${baseUrl}: ${normalizeErrorMessage(error)}`);
-      }
-    }
-
-    throw new Error(`FFmpeg 核心加载失败：${errors.join("\n")}`);
-  })().catch((error) => {
+  ffmpegSingletonPromise = createFfmpegInstance(loadTimeoutMs).catch((error) => {
     ffmpegSingletonPromise = null;
     throw error;
   });
@@ -469,48 +476,71 @@ export async function transcodeVideoFileToWebmOrThrow(inputFile: File, options: 
   const maxHeight = toPositiveInt(options.maxHeight);
   const maxFps = toPositiveInt(options.maxFps);
   const crf = Number.isFinite(options.crf) ? clamp(Math.round(options.crf!), MIN_CRF, MAX_CRF) : DEFAULT_CRF;
+  const isolated = options.isolated === true;
 
-  let ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化");
+  let ffmpeg = await withTimeout(
+    isolated ? createFfmpegInstance(loadTimeoutMs) : getFfmpeg(loadTimeoutMs),
+    loadTimeoutMs,
+    "FFmpeg 初始化",
+  );
   const { fetchFile } = await import("@ffmpeg/util");
   const presets = buildVideoTranscodePresets({ maxHeight, maxFps, crf });
 
   let lastError: unknown = null;
 
-  for (const preset of presets) {
-    try {
-      return await runVideoTranscodeOnce({
-        ffmpeg,
-        inputFile,
-        outputName,
-        execTimeoutMs,
-        preset,
-        fetchFile,
-      });
-    }
-    catch (error) {
-      lastError = error;
+  try {
+    for (const preset of presets) {
+      try {
+        return await runVideoTranscodeOnce({
+          ffmpeg,
+          inputFile,
+          outputName,
+          execTimeoutMs,
+          preset,
+          fetchFile,
+        });
+      }
+      catch (error) {
+        lastError = error;
 
-      // 常见：WASM 内存越界。重建 worker 后对同一档参数重试一次，再继续降档。
-      if (isWasmMemoryOutOfBounds(error)) {
-        await terminateFfmpegAndResetSingleton(ffmpeg);
-        try {
-          ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（重试）");
-          return await runVideoTranscodeOnce({
-            ffmpeg,
-            inputFile,
-            outputName,
-            execTimeoutMs,
-            preset: { ...preset, tag: `${preset.tag}-retry` },
-            fetchFile,
-          });
-        }
-        catch (retryError) {
-          lastError = retryError;
-          continue;
+        if (isWasmMemoryOutOfBounds(error)) {
+          if (isolated) {
+            try {
+              ffmpeg.terminate();
+            }
+            catch {}
+            ffmpeg = await withTimeout(createFfmpegInstance(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（隔离重试）");
+          }
+          else {
+            await terminateFfmpegAndResetSingleton(ffmpeg);
+            ffmpeg = await withTimeout(getFfmpeg(loadTimeoutMs), loadTimeoutMs, "FFmpeg 初始化（重试）");
+          }
+          try {
+            return await runVideoTranscodeOnce({
+              ffmpeg,
+              inputFile,
+              outputName,
+              execTimeoutMs,
+              preset: { ...preset, tag: `${preset.tag}-retry` },
+              fetchFile,
+            });
+          }
+          catch (retryError) {
+            lastError = retryError;
+            continue;
+          }
         }
       }
     }
-  }
 
-  throw new TypeError(`视频转码失败，已尝试 ${presets.length} 组参数：${normalizeErrorMessage(lastError)}`);
+    throw new TypeError(`视频转码失败，已尝试 ${presets.length} 组参数：${normalizeErrorMessage(lastError)}`);
+  }
+  finally {
+    if (isolated) {
+      try {
+        ffmpeg.terminate();
+      }
+      catch {}
+    }
+  }
 }

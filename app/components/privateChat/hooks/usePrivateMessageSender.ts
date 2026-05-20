@@ -77,22 +77,33 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
     try {
       // 发送图片消息
       if (imgFiles.length > 0) {
-        for (let i = 0; i < imgFiles.length; i++) {
-          const uploadedImage = await uploadUtils.uploadDualImage(imgFiles[i]);
-          const { width, height, size } = await getImageSize(imgFiles[i]);
+        const uploadedImages = await Promise.all(imgFiles.map(async (imgFile) => {
+          const [uploadedImage, { width, height, size }] = await Promise.all([
+            uploadUtils.uploadDualImage(imgFile),
+            getImageSize(imgFile),
+          ]);
+          return {
+            file: imgFile,
+            uploadedImage,
+            width,
+            height,
+            size,
+          };
+        }));
 
+        for (const image of uploadedImages) {
           const imageMessage: MessageDirectSendRequest = {
             receiverId: currentContactUserId,
             content: "",
             messageType: MESSAGE_TYPE.IMG,
             extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
               imageMessage: {
-                fileId: uploadedImage.fileId,
-                mediaType: uploadedImage.mediaType,
-                size: size > 0 ? size : imgFiles[i].size,
-                fileName: imgFiles[i].name || `${userId}-${Date.now()}`,
-                width,
-                height,
+                fileId: image.uploadedImage.fileId,
+                mediaType: image.uploadedImage.mediaType,
+                size: image.size > 0 ? image.size : image.file.size,
+                fileName: image.file.name || `${userId}-${Date.now()}`,
+                width: image.width,
+                height: image.height,
               },
             }),
           };

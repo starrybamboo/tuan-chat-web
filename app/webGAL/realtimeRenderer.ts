@@ -27,7 +27,7 @@ import {
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
-import { avatarOriginalUrl, avatarThumbUrl, avatarUrl as buildAvatarUrl, imageHighUrl, imageOriginalUrl, mediaFileUrl } from "@/utils/mediaUrl";
+import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl, mediaFileUrl } from "@/utils/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -57,6 +57,7 @@ import {
   DEFAULT_REALTIME_ASSET_CONCURRENCY,
   runWithConcurrencyLimit,
 } from "./realtimeRenderAssetWarmup";
+import { debugRealtimeRender } from "./realtimeRenderDebug";
 import {
   buildRoleAvatarCacheKey,
   deleteAvatarScopedCacheEntries,
@@ -147,7 +148,7 @@ function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
   if (!avatar) {
     return "";
   }
-  return imageHighUrl(avatar.spriteFileId)
+  return imageMediumUrl(avatar.spriteFileId)
     || imageOriginalUrl(avatar.spriteFileId)
     || buildAvatarUrl(avatar.avatarFileId)
     || avatarOriginalUrl(avatar.avatarFileId);
@@ -157,7 +158,7 @@ function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
   if (!avatar) {
     return "";
   }
-  return avatarThumbUrl(avatar.avatarFileId)
+  return imageLowUrl(avatar.avatarFileId)
     || buildAvatarUrl(avatar.avatarFileId)
     || avatarOriginalUrl(avatar.avatarFileId);
 }
@@ -171,7 +172,7 @@ type PendingDiceMergeEntry = {
   message: ChatMessageResponse;
   roomId: number;
   syncToFile: boolean;
-  timer: NodeJS.Timeout;
+  timer: ReturnType<typeof setTimeout>;
 };
 
 type RendererContext = {
@@ -222,7 +223,7 @@ export class RealtimeRenderer {
   private roomMap = new Map<number, Room>(); // roomId -> Room
   private onStatusChange?: (status: "connected" | "disconnected" | "error") => void;
   private onProgressChange?: (progress: InitProgress) => void;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageQueue: string[] = [];
   private currentSpriteStateMap = new Map<number, Set<string>>(); // roomId -> 当前场景显示的立绘
   private messageLineMap = new Map<string, { startLine: number; endLine: number }>(); // `${roomId}_${messageId}` -> { startLine, endLine } (消息在场景中的行号范围)
@@ -562,7 +563,7 @@ export class RealtimeRenderer {
       // 检查游戏是否存在
       let gameExists = await checkGameExist(this.gameName);
       ensureInitActive();
-      console.warn(`[RealtimeRenderer] 游戏 ${this.gameName} 存在: ${gameExists}`);
+      debugRealtimeRender(`[RealtimeRenderer] 游戏 ${this.gameName} 存在: ${gameExists}`);
 
       if (gameExists) {
         const currentTemplatePreset = await this.getCurrentTemplatePreset();
@@ -574,7 +575,7 @@ export class RealtimeRenderer {
             templateDir: BLACK_TEMPLATE_DIR,
           });
           ensureInitActive();
-          console.warn(`[RealtimeRenderer] 已切换到底层模板: black`);
+          debugRealtimeRender(`[RealtimeRenderer] 已切换到底层模板: black`);
         }
         else if (desiredBaseTemplate === "none" && currentTemplatePreset === "black") {
           // 目标是 none 且当前为 black 时，需要重建 realtime 工程才能恢复默认模板。
@@ -582,7 +583,7 @@ export class RealtimeRenderer {
           ensureInitActive();
           this.clearUploadCaches();
           gameExists = false;
-          console.warn(`[RealtimeRenderer] 已按模板配置重建游戏: ${this.gameName}`);
+          debugRealtimeRender(`[RealtimeRenderer] 已按模板配置重建游戏: ${this.gameName}`);
         }
       }
 
@@ -590,17 +591,17 @@ export class RealtimeRenderer {
       if (gameExists) {
         const markerMatched = await this.hasExpectedEngineMarker();
         if (!markerMatched) {
-          console.warn(`[RealtimeRenderer] 未命中当前 realtime 模板标记，保留现有游戏不自动重建: ${this.gameName}`);
+          debugRealtimeRender(`[RealtimeRenderer] 未命中当前 realtime 模板标记，保留现有游戏不自动重建: ${this.gameName}`);
         }
       }
 
       // 创建游戏实例（如果不存在）
       if (!gameExists) {
-        console.warn(`[RealtimeRenderer] 正在创建游戏: ${this.gameName}`);
+        debugRealtimeRender(`[RealtimeRenderer] 正在创建游戏: ${this.gameName}`);
         this.clearUploadCaches();
         await this.createGameWithTemplate(desiredBaseTemplate);
         ensureInitActive();
-        console.warn(`[RealtimeRenderer] 游戏创建成功`);
+        debugRealtimeRender(`[RealtimeRenderer] 游戏创建成功`);
       }
 
       await this.syncGameConfigWithRoomContext();
@@ -627,7 +628,7 @@ export class RealtimeRenderer {
     }
     catch (error) {
       if (error instanceof Error && error.message === REALTIME_RENDERER_INIT_ABORT_ERROR) {
-        console.warn("[RealtimeRenderer] 初始化已取消");
+        debugRealtimeRender("[RealtimeRenderer] 初始化已取消");
         return false;
       }
       console.error("[RealtimeRenderer] 初始化失败:", error);
@@ -687,7 +688,7 @@ export class RealtimeRenderer {
     }
 
     if (preloadTasks.length === 0) {
-      console.warn("[RealtimeRenderer] 没有角色资源需要预加载");
+      debugRealtimeRender("[RealtimeRenderer] 没有角色资源需要预加载");
       return;
     }
 
@@ -704,7 +705,7 @@ export class RealtimeRenderer {
       try {
         await task.run();
         ensureInitActive();
-        console.warn(`[RealtimeRenderer] 预加载${task.kind === "sprite" ? "立绘" : "小头像"}: role=${task.roleId}, avatar=${task.avatarId}`);
+        debugRealtimeRender(`[RealtimeRenderer] 预加载${task.kind === "sprite" ? "立绘" : "小头像"}: role=${task.roleId}, avatar=${task.avatarId}`);
       }
       catch (error) {
         if (error instanceof Error && error.message === REALTIME_RENDERER_INIT_ABORT_ERROR) {
@@ -858,11 +859,11 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
     const avatarUrl = buildAvatarUrl(primaryRoom?.avatarFileId) || avatarOriginalUrl(primaryRoom?.avatarFileId);
-    const titleImageUrl = mediaFileUrl(this.gameConfig.titleImageFileId, "image", "high")
+    const titleImageUrl = mediaFileUrl(this.gameConfig.titleImageFileId, "image", "medium")
       || String(this.gameConfig.titleImageUrl ?? "").trim();
     const originalTitleImageUrl = mediaFileUrl(this.gameConfig.originalTitleImageFileId ?? this.gameConfig.titleImageFileId, "image", "original")
       || String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
-    const startupLogoUrl = mediaFileUrl(this.gameConfig.startupLogoFileId, "image", "high")
+    const startupLogoUrl = mediaFileUrl(this.gameConfig.startupLogoFileId, "image", "medium")
       || String(this.gameConfig.startupLogoUrl ?? "").trim();
     const originalStartupLogoUrl = mediaFileUrl(this.gameConfig.originalStartupLogoFileId ?? this.gameConfig.startupLogoFileId, "image", "original")
       || String(this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl ?? "").trim();
@@ -973,7 +974,7 @@ export class RealtimeRenderer {
         gameName: this.gameName,
         newConfig: nextConfig,
       });
-      console.warn("[RealtimeRenderer] config.txt 已同步聊天室设置");
+      debugRealtimeRender("[RealtimeRenderer] config.txt 已同步聊天室设置");
     }
     catch (error) {
       console.warn("[RealtimeRenderer] 写入 config.txt 失败:", error);
@@ -997,7 +998,7 @@ export class RealtimeRenderer {
       this.renderedMiniAvatarVisibleMap.delete(roomId);
       this.lastFigureSlotIdMap.delete(roomId);
       this.clearMessageRenderStateSnapshotsForRoom(roomId);
-      console.warn(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
+      debugRealtimeRender(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
     }
     catch (error) {
       console.error(`[RealtimeRenderer] 房间场景初始化失败: ${sceneName}`, error);
@@ -1013,7 +1014,7 @@ export class RealtimeRenderer {
 
     if (rooms.length === 0) {
       // 如果没有房间，创建一个默认场景
-      console.warn(`[RealtimeRenderer] 没有房间信息，创建默认场景`);
+      debugRealtimeRender(`[RealtimeRenderer] 没有房间信息，创建默认场景`);
       const path = `games/${this.gameName}/game/scene/start.txt`;
       const initLines = buildSceneInitLines();
       await getTerreApis().manageGameControllerEditTextFile({
@@ -1057,7 +1058,7 @@ export class RealtimeRenderer {
       textFile: startContent,
     });
 
-    console.warn(`[RealtimeRenderer] 入口场景创建成功，包含 ${rooms.length} 个房间选项`);
+    debugRealtimeRender(`[RealtimeRenderer] 入口场景创建成功，包含 ${rooms.length} 个房间选项`);
   }
 
   /**
@@ -1098,7 +1099,7 @@ export class RealtimeRenderer {
         if (this.disposed) {
           return;
         }
-        console.warn("WebGAL 实时渲染 WebSocket 已连接");
+        debugRealtimeRender("WebGAL 实时渲染 WebSocket 已连接");
         this.isConnected = true;
         this.onStatusChange?.("connected");
 
@@ -1114,7 +1115,7 @@ export class RealtimeRenderer {
         if (this.disposed) {
           return;
         }
-        console.warn("WebGAL 实时渲染 WebSocket 已断开");
+        debugRealtimeRender("WebGAL 实时渲染 WebSocket 已断开");
         this.isConnected = false;
         this.onStatusChange?.("disconnected");
 
@@ -1150,7 +1151,7 @@ export class RealtimeRenderer {
       if (this.disposed) {
         return;
       }
-      console.warn("尝试重连 WebGAL WebSocket...");
+      debugRealtimeRender("尝试重连 WebGAL WebSocket...");
       this.connectWebSocket();
     }, 3000);
   }
@@ -1351,11 +1352,11 @@ export class RealtimeRenderer {
   public setTTSConfig(config: RealtimeTTSConfig): void {
     const wasEnabled = this.ttsConfig.enabled;
     this.ttsConfig = config;
-    console.warn(`[RealtimeRenderer] TTS 配置已更新: enabled=${config.enabled}`);
+    debugRealtimeRender(`[RealtimeRenderer] TTS 配置已更新: enabled=${config.enabled}`);
 
     // 如果从禁用变为启用，且没有参考音频，尝试获取
     if (!wasEnabled && config.enabled && this.voiceFileMap.size === 0) {
-      console.warn(`[RealtimeRenderer] TTS 已启用，正在获取参考音频...`);
+      debugRealtimeRender(`[RealtimeRenderer] TTS 已启用，正在获取参考音频...`);
       this.fetchVoiceFilesFromRoles();
     }
   }
@@ -1776,7 +1777,7 @@ export class RealtimeRenderer {
           videoMessage?: { fileId?: number; mediaType?: string; fileName?: string };
         } | undefined);
         const videoMsg = messageExtra?.videoMessage;
-        const url = mediaFileUrl(videoMsg?.fileId, videoMsg?.mediaType, "high");
+        const url = mediaFileUrl(videoMsg?.fileId, videoMsg?.mediaType, "medium");
         if (!url) {
           finalizeMessageLineRange();
           return;
@@ -1800,7 +1801,7 @@ export class RealtimeRenderer {
       const soundMsg = msg.extra?.soundMessage;
 
       if (soundMsg) {
-        const url = mediaFileUrl(soundMsg.fileId, soundMsg.mediaType, "high");
+        const url = mediaFileUrl(soundMsg.fileId, soundMsg.mediaType, "medium");
         if (!url) {
           finalizeMessageLineRange();
           return;
@@ -2306,7 +2307,7 @@ export class RealtimeRenderer {
     // 批量处理消息，不进行文件同步和 WebSocket 同步
     for (let index = 0; index < messages.length; index += 1) {
       if (this.disposed) {
-        console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
+        debugRealtimeRender("[RealtimeRenderer] 渲染中止：实例已销毁");
         return;
       }
       const current = messages[index];
@@ -2315,7 +2316,7 @@ export class RealtimeRenderer {
         const mergedMessage = buildMergedTrpgDiceMessage(current, next);
         await this.renderMessage(mergedMessage, targetRoomId, false, { bypassDiceMerge: true });
         if (this.disposed) {
-          console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
+          debugRealtimeRender("[RealtimeRenderer] 渲染中止：实例已销毁");
           return;
         }
         index += 1;
@@ -2323,7 +2324,7 @@ export class RealtimeRenderer {
       }
       await this.renderMessage(current, targetRoomId, false, { bypassDiceMerge: true });
       if (this.disposed) {
-        console.warn("[RealtimeRenderer] 渲染中止：实例已销毁");
+        debugRealtimeRender("[RealtimeRenderer] 渲染中止：实例已销毁");
         return;
       }
     }

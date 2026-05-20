@@ -69,16 +69,16 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[群聊] 群聊跳转");
   });
 
-  it("骰娘消息优先使用 diceResult.result", () => {
+  it("骰子消息优先使用 diceResult.result 且不加骰娘前缀", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.DICE,
       content: "fallback",
       extra: { diceResult: { result: "D100=63/100 成功" } } as any,
     });
-    expect(getMessagePreviewText(msg)).toBe("[骰娘] D100=63/100 成功");
+    expect(getMessagePreviewText(msg)).toBe("D100=63/100 成功");
   });
 
-  it("图片消息显示文件名（不区分背景）", () => {
+  it("图片消息预览不显示文件名（不区分背景）", () => {
     const img = createBaseMessage({
       messageType: MESSAGE_TYPE.IMG,
       extra: { imageMessage: { fileName: "a.png", background: false } } as any,
@@ -87,13 +87,14 @@ describe("getMessagePreviewText", () => {
       messageType: MESSAGE_TYPE.IMG,
       extra: { imageMessage: { fileName: "bg.jpg", background: true } } as any,
     });
-    expect(getMessagePreviewText(img)).toBe("[图片] a.png");
-    expect(getMessagePreviewText(bg)).toBe("[图片] bg.jpg");
+    expect(getMessagePreviewText(img)).toBe("[图片]");
+    expect(getMessagePreviewText(bg)).toBe("[图片]");
   });
 
-  it("图片消息遇到疑似哈希文件名时只显示类型标签", () => {
+  it("图片消息有说明时显示说明而不是文件名", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.IMG,
+      content: "现场照片",
       extra: {
         imageMessage: {
           fileName: "1b49d9c3af4decd18dd3c3b84000d932699708.jpg",
@@ -101,25 +102,25 @@ describe("getMessagePreviewText", () => {
         },
       } as any,
     });
-    expect(getMessagePreviewText(msg)).toBe("[图片]");
+    expect(getMessagePreviewText(msg)).toBe("[图片] 现场照片");
   });
 
-  it("视频消息显示文件名", () => {
+  it("视频消息预览不显示文件名", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.VIDEO,
       extra: { videoMessage: { fileName: "clip.webm" } } as any,
     });
-    expect(getMessagePreviewText(msg)).toBe("[视频] clip.webm");
+    expect(getMessagePreviewText(msg)).toBe("[视频]");
   });
 
-  it("音频预览优先使用 annotation 判定 BGM", () => {
+  it("音频预览优先使用 annotation 判定 BGM 且不显示文件名", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.SOUND,
       annotations: [ANNOTATION_IDS.SE],
       content: "",
       extra: { soundMessage: { fileName: "mystery.mp3", purpose: "bgm" } } as any,
     });
-    expect(getMessagePreviewText(msg)).toBe("[语音] mystery.mp3");
+    expect(getMessagePreviewText(msg)).toBe("[语音]");
   });
 
   it("子区消息优先读取 threadRoot.title", () => {

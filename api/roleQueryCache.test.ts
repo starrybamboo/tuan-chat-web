@@ -80,10 +80,7 @@ describe("roleQueryCache", () => {
     ]);
 
     patchUserRoleAvatarFieldsInListQueryCache(queryClient, {
-      userId: 1,
       roleId: 7,
-      roleName: "role",
-      type: 0,
       avatarId: 55,
       avatarFileId: 2002,
       avatarMediaType: "image",
@@ -110,10 +107,7 @@ describe("roleQueryCache", () => {
     });
 
     patchRoomRoleAvatarFieldsInListQueryCache(queryClient, {
-      userId: 1,
       roleId: 7,
-      roleName: "role",
-      type: 0,
       avatarId: 55,
       avatarFileId: 3003,
       avatarMediaType: "image",
@@ -129,5 +123,20 @@ describe("roleQueryCache", () => {
         }),
       ],
     });
+  });
+
+  it("头像字段补丁不会把不完整角色插入列表缓存", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getUserRolesByType", 1, 0], [
+      makeRole({ roleId: 8, avatarId: 66, avatarFileId: 1001 }),
+    ]);
+
+    patchUserRoleAvatarFieldsInListQueryCache(queryClient, {
+      roleId: 7,
+      avatarId: 55,
+      avatarFileId: 2002,
+    });
+
+    expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([8]);
   });
 });

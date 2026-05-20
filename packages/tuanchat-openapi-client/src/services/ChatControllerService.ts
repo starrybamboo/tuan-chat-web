@@ -6,11 +6,13 @@ import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessag
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
 import type { ApiResultListMessage } from '../models/ApiResultListMessage';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
+import type { ApiResultRoomMessageStreamResponse } from '../models/ApiResultRoomMessageStreamResponse';
 import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
 import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';
 import type { Message } from '../models/Message';
 import type { MessageBySyncIdRequest } from '../models/MessageBySyncIdRequest';
+import type { RoomMessageStreamSyncRequest } from '../models/RoomMessageStreamSyncRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class ChatControllerService {
@@ -170,6 +172,28 @@ export class ChatControllerService {
         });
     }
     /**
+     * 批量同步 room message-stream
+     * 一次性替换指定 room 的主消息流，用于 doc view 等批量编辑场景
+     * @param roomId
+     * @param requestBody
+     * @returns ApiResultRoomMessageStreamResponse OK
+     * @throws ApiError
+     */
+    public syncRoomMessageStream(
+        roomId: number,
+        requestBody: RoomMessageStreamSyncRequest,
+    ): CancelablePromise<ApiResultRoomMessageStreamResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/chat/message-stream/{roomId}/sync',
+            path: {
+                'roomId': roomId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * 获取一个群的所有消息
      * 根据 position 降序排序，返回gzip压缩的数据
      * @param roomId
@@ -183,6 +207,24 @@ export class ChatControllerService {
             method: 'GET',
             url: '/chat/message/all',
             query: {
+                'roomId': roomId,
+            },
+        });
+    }
+    /**
+     * 获取 room message-stream
+     * 返回指定 room 当前完整运行态消息流
+     * @param roomId
+     * @returns ApiResultRoomMessageStreamResponse OK
+     * @throws ApiError
+     */
+    public getRoomMessageStream(
+        roomId: number,
+    ): CancelablePromise<ApiResultRoomMessageStreamResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/chat/message-stream/{roomId}',
+            path: {
                 'roomId': roomId,
             },
         });

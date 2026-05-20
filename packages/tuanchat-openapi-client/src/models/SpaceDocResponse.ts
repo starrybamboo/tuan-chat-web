@@ -3,13 +3,17 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Space 共享文档返回
+ * Space 文档房间返回
  */
 export type SpaceDocResponse = {
     /**
-     * 文档ID
+     * 文档房间 ID
      */
     docId?: number;
+    /**
+     * 正文所在的文档房间 ID
+     */
+    roomId?: number;
     /**
      * 空间ID
      */
