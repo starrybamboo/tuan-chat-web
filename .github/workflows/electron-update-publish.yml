@@ -28,16 +28,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-
       - name: Resolve WebGAL Terre runtime
         id: resolve_webgal_terre_runtime
         shell: pwsh
@@ -54,6 +44,18 @@ jobs:
 
           .\scripts\resolve-webgal-terre-release.ps1
           "publish_enabled=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Install pnpm
+        if: steps.resolve_webgal_terre_runtime.outputs.publish_enabled == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        if: steps.resolve_webgal_terre_runtime.outputs.publish_enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         if: steps.resolve_webgal_terre_runtime.outputs.publish_enabled == 'true'
