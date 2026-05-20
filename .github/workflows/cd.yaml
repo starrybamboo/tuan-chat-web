@@ -115,7 +115,6 @@ jobs:
               "${SSH_HOST_SECRET:-}" \
               "${UPDATE_SERVER_HOST_SECRET:-}" \
               "38.14.195.6"
-              "38.14.195.6"
           )"
 
           DEPLOY_SERVER_PORT="$(
