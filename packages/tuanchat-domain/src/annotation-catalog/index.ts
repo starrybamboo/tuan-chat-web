@@ -1,7 +1,3 @@
-export type { AnnotationDefinition, AnnotationTone } from "./types";
-
-export { BUILTIN_ANNOTATIONS, NORMAL_MODE_HIDDEN_ANNOTATION_IDS } from "./data";
-
 export {
   buildAnnotationMap,
   buildCustomAnnotationId,
@@ -13,3 +9,7 @@ export {
   toggleAnnotation,
   withNormalModeVisibilityDefaults,
 } from "./catalog";
+
+export { BUILTIN_ANNOTATIONS, NORMAL_MODE_HIDDEN_ANNOTATION_IDS } from "./data";
+
+export type { AnnotationDefinition, AnnotationTone } from "./types";

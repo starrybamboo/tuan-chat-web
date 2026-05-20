@@ -1,11 +1,13 @@
 import type { InfiniteData } from "@tanstack/react-query";
+
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseChatMessageResponse";
 import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { getDiceResultExtra } from "@tuanchat/domain/message-extra";
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 export type RoomMessagesInfiniteQueryData = InfiniteData<
   ApiResultCursorPageBaseResponseChatMessageResponse,

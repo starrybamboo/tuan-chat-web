@@ -1,5 +1,6 @@
 import { getSoundMessagePurposeFromAnnotations, normalizeSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ANNOTATION_IDS, hasAnnotation } from "@/types/messageAnnotations";
+import { buildCommittedRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -78,12 +79,8 @@ export function buildCommittedResponseFromOptimistic(
   createdMessage: ChatMessageResponse["message"],
 ): ChatMessageResponse {
   const optimistic = optimisticMessage?.message;
-  const nextMessage = {
-    ...createdMessage,
-    position: typeof createdMessage.position === "number"
-      ? createdMessage.position
-      : optimistic?.position,
-  } as ChatMessageResponse["message"];
+  const committed = buildCommittedRoomMessage(optimisticMessage, createdMessage);
+  const nextMessage = committed.message as ChatMessageResponse["message"];
 
   if (optimistic?.messageType === MessageType.SOUND && createdMessage.messageType === MessageType.SOUND) {
     nextMessage.annotations = mergeCommittedSoundAnnotations(optimistic.annotations, createdMessage.annotations);

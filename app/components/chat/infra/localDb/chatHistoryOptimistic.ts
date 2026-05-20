@@ -1,4 +1,5 @@
 import { normalizeMessageExtraForMatch } from "@/types/messageDraft";
+import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
@@ -91,7 +92,7 @@ export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResp
 
   for (const item of messages) {
     const message = item.message;
-    if (!message || message.messageId <= 0 || message.status === 1) {
+    if (!message || message.status === 1 || isOptimisticRoomMessage(message)) {
       continue;
     }
     positiveLooseKeys.add(buildOptimisticLooseKey(message));
@@ -112,7 +113,7 @@ export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResp
   const duplicateIds: number[] = [];
   for (const item of messages) {
     const message = item.message;
-    if (!message || message.messageId >= 0 || message.status === 1) {
+    if (!message || message.status === 1 || !isOptimisticRoomMessage(message)) {
       continue;
     }
 

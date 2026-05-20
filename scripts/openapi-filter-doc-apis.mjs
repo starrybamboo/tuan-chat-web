@@ -1,12 +1,13 @@
+import { spawnSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
 const specPath = resolve(repoRoot, "packages/tuanchat-openapi-client/tuanchat_OpenAPI.json");
-const outputDir = resolve(repoRoot, "packages/tuanchat-openapi-client/src");
+const _outputDir = resolve(repoRoot, "packages/tuanchat-openapi-client/src");
 
 function filterOpenApiSpec(spec) {
   if (!spec || typeof spec !== "object") {

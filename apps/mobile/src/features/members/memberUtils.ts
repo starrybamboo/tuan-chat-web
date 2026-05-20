@@ -1,5 +1,5 @@
-import { getMemberTypeSortWeight, hasHostPrivileges } from "@tuanchat/domain/member-permissions";
 import { getSpaceMemberTypeLabel } from "@tuanchat/domain/display-labels";
+import { getMemberTypeSortWeight, hasHostPrivileges } from "@tuanchat/domain/member-permissions";
 
 export type MemberPreviewItem = {
   avatarFileId?: number | null;

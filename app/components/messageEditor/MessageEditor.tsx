@@ -1,3 +1,4 @@
+import type { Message } from "../../../api";
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
 import type {
   MessageEditorInsertableBlockKind,
@@ -5,21 +6,23 @@ import type {
 } from "./model/messageEditorTransforms";
 import type { MessageEditorController } from "./runtime/messageEditorController";
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
+import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
 import type { MessageDraft } from "@/types/messageDraft";
 
-import { DotsSixVerticalIcon } from "@phosphor-icons/react";
-
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {
-  getRemoteDocRoomSnapshot,
-  readDocRoomSnapshotMessages,
-  syncRemoteDocRoomSnapshot,
-} from "@/components/chat/infra/doc/document/docRoomSyncApi";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
+import {
+  getRemoteRoomMessageStream,
+  patchRemoteRoomMessageStream,
+  readRoomMessageStreamMessages,
+  syncRemoteRoomMessageStream,
+} from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
+import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -54,8 +57,11 @@ interface MessageEditorProps {
   coverUrl?: string;
   docId?: string;
   excerpt?: string;
+  initialMessages?: Message[];
   intentPrewarm?: boolean;
+  onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   readOnly?: boolean;
+  remoteSource?: "self" | "room-cache";
   spaceId?: number;
   tcHeader?: {
     enabled?: boolean;
@@ -114,7 +120,179 @@ const MESSAGE_EDITOR_SLASH_ITEMS: MessageEditorSlashMenuItem[] = [
 
 const MESSAGE_EDITOR_HISTORY_LIMIT = 100;
 const MESSAGE_EDITOR_TYPING_HISTORY_INTERVAL_MS = 1000;
+const MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS = 500;
+const MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS = 10000;
 const MESSAGE_EDITOR_CONTENT_WIDTH_CLASS = "mx-auto w-full max-w-4xl";
+const MESSAGE_EDITOR_BLOCK_GUTTER_CLASS = "pl-6";
+const MESSAGE_EDITOR_BLOCK_HANDLE_CLASS = [
+  "absolute left-0 z-30 flex size-6 cursor-grab items-center justify-center text-base-content/35",
+  "opacity-0 transition-opacity duration-150",
+  "group-hover:opacity-100 group-focus-within:opacity-100 hover:text-base-content/70 active:cursor-grabbing",
+].join(" ");
+
+function hasMeaningfulMessageEditorContent(messages: MessageDraft[]): boolean {
+  return ensureMessageEditorMessages(messages).some((message) => {
+    if (message.messageType !== MESSAGE_TYPE.TEXT && message.messageType !== MESSAGE_TYPE.INTRO_TEXT) {
+      return true;
+    }
+    return normalizeMessageEditorContent(message.content).trim().length > 0;
+  });
+}
+
+type RuntimeMessageDraft = MessageDraft & Partial<Message>;
+
+type RuntimeMessageIdState = "new" | "optimistic" | "persisted";
+
+function isRuntimeOptimisticMessage(message: MessageDraft): boolean {
+  const value = (message as RuntimeMessageDraft).tcLocalSyncState;
+  if (value === "optimistic") {
+    return true;
+  }
+  const runtimeMessageId = (message as RuntimeMessageDraft).messageId;
+  return typeof runtimeMessageId === "number" && Number.isFinite(runtimeMessageId) && runtimeMessageId < 0;
+}
+
+function getRuntimeMessageIdState(message: MessageDraft): RuntimeMessageIdState {
+  if (isRuntimeOptimisticMessage(message)) {
+    return "optimistic";
+  }
+  const value = (message as RuntimeMessageDraft).messageId;
+  if (typeof value !== "number" || !Number.isFinite(value) || value === 0) {
+    return "new";
+  }
+  return "persisted";
+}
+
+function getRuntimeMessageId(message: MessageDraft): number | undefined {
+  const value = (message as RuntimeMessageDraft).messageId;
+  return getRuntimeMessageIdState(message) === "persisted" ? value : undefined;
+}
+
+function getRuntimePosition(message: MessageDraft, fallback: number): number {
+  const value = (message as RuntimeMessageDraft).position;
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function stableSerializeMessageEditorValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "null";
+  }
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(item => stableSerializeMessageEditorValue(item)).join(",")}]`;
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stableSerializeMessageEditorValue(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(String(value));
+}
+
+function serializeMessageEditorPatchContent(message: MessageDraft): string {
+  return stableSerializeMessageEditorValue({
+    annotations: message.annotations ?? null,
+    avatarId: message.avatarId ?? null,
+    content: message.content ?? "",
+    customRoleName: message.customRoleName ?? null,
+    extra: message.extra ?? null,
+    messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
+    roleId: message.roleId ?? null,
+    webgal: message.webgal ?? null,
+  });
+}
+
+export function buildRoomMessagePatchOperations(
+  baselineMessages: MessageDraft[],
+  nextMessages: MessageDraft[],
+): RoomMessageStreamPatchOperation[] {
+  const baselineById = new Map<number, MessageDraft>();
+  ensureMessageEditorMessages(baselineMessages).forEach((message) => {
+    const messageId = getRuntimeMessageId(message);
+    if (messageId !== undefined) {
+      baselineById.set(messageId, message);
+    }
+  });
+
+  const seenIds = new Set<number>();
+  const operations: RoomMessageStreamPatchOperation[] = [];
+  ensureMessageEditorMessages(nextMessages).forEach((message, index) => {
+    const messageIdState = getRuntimeMessageIdState(message);
+    const messageId = getRuntimeMessageId(message);
+    const position = getRuntimePosition(message, index + 1);
+    if (messageIdState === "optimistic") {
+      // 本地乐观消息还没真正进云端，文档 patch 只处理已确认的消息。
+      return;
+    }
+    if (messageIdState === "new") {
+      operations.push({
+        op: "insert",
+        clientId: getMessageEditorBlockId(message),
+        message: {
+          ...message,
+          position,
+        },
+        position,
+      });
+      return;
+    }
+    if (messageId === undefined) {
+      return;
+    }
+
+    seenIds.add(messageId);
+    const baseline = baselineById.get(messageId);
+    if (!baseline) {
+      operations.push({
+        op: "insert",
+        clientId: getMessageEditorBlockId(message),
+        message: {
+          ...message,
+          position,
+        },
+        position,
+      });
+      return;
+    }
+
+    const contentChanged = serializeMessageEditorPatchContent(baseline) !== serializeMessageEditorPatchContent(message);
+    const positionChanged = getRuntimePosition(baseline, index + 1) !== position;
+    if (contentChanged) {
+      operations.push({
+        op: "update",
+        messageId,
+        message: {
+          ...message,
+          position,
+        },
+        position,
+      });
+      return;
+    }
+    if (positionChanged) {
+      operations.push({
+        op: "move",
+        messageId,
+        position,
+      });
+    }
+  });
+
+  for (const messageId of baselineById.keys()) {
+    if (!seenIds.has(messageId)) {
+      operations.push({
+        op: "delete",
+        messageId,
+      });
+    }
+  }
+
+  return operations;
+}
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
 const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
@@ -245,7 +423,10 @@ export default function MessageEditor({
   coverUrl,
   docId,
   excerpt: _excerpt,
+  initialMessages,
+  onRemoteMessagesSaved,
   readOnly = false,
+  remoteSource = "self",
   spaceId,
   tcHeader,
   title,
@@ -258,15 +439,25 @@ export default function MessageEditor({
   const resolvedSpaceId = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0 ? spaceId : undefined;
   const resolvedWorkspaceId = workspaceId?.trim() || undefined;
   const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : undefined;
+  const normalizedInitialMessages = useMemo(
+    () => ensureMessageEditorMessages(initialMessages ?? []),
+    [initialMessages],
+  );
+  const isRoomCacheSource = remoteSource === "room-cache";
   const shouldSyncRemote = Boolean(
     resolvedDocRoomId
     && resolvedSpaceId
     && (!resolvedWorkspaceId || resolvedWorkspaceId.startsWith("space:")),
   );
+  const shouldLoadRemote = shouldSyncRemote && remoteSource === "self";
+  const initialEditorMessages = useMemo(
+    () => isRoomCacheSource ? normalizedInitialMessages : ensureMessageEditorMessages([]),
+    [isRoomCacheSource, normalizedInitialMessages],
+  );
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
   const blockShellRefsRef = useRef(new Map<string, HTMLDivElement>());
-  const messagesRef = useRef<MessageDraft[]>([]);
+  const messagesRef = useRef<MessageDraft[]>(initialEditorMessages);
   const controllerRef = useRef<MessageEditorController | null>(null);
   const textStyleInputRef = useRef<ChatInputAreaHandle | null>(null);
   const undoStackRef = useRef<MessageEditorHistoryEntry[]>([]);
@@ -285,7 +476,7 @@ export default function MessageEditor({
   const pointerSelectionCleanupRef = useRef<(() => void) | null>(null);
   const pointerSelectionRef = useRef<MessageEditorSelection | null>(null);
   const pointerSelectionPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const [messages, setMessages] = useState<MessageDraft[]>(() => ensureMessageEditorMessages([]));
+  const [messages, setMessages] = useState<MessageDraft[]>(() => initialEditorMessages);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [crossBlockSelection, setCrossBlockSelection] = useState<{
     position: { x: number; y: number };
@@ -297,12 +488,70 @@ export default function MessageEditor({
   const [slashSelectionIndex, setSlashSelectionIndex] = useState(0);
   const [dismissedSlashKey, setDismissedSlashKey] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [ready, setReady] = useState(!resolvedDocId);
+  const [ready, setReady] = useState(!resolvedDocId || isRoomCacheSource);
   const registry = useMemo(() => createMessageEditorRegistry(), []);
   const eventBus = useMemo(() => new MessageEditorEventBus(), []);
-  const lastSavedSerializedRef = useRef("");
+  const lastSavedSerializedRef = useRef(isRoomCacheSource ? serializeMessageEditorMessages(initialEditorMessages) : "");
   const remoteRevisionRef = useRef<number | null>(null);
   const saveGenerationRef = useRef(0);
+  const activeRemoteSaveGenerationRef = useRef<number | null>(null);
+  const dirtySinceLoadRef = useRef(false);
+  const initialMessagesSeedRef = useRef(normalizedInitialMessages);
+  const loadSeedKeyRef = useRef<string | null>(null);
+  const baselineMessagesRef = useRef<MessageDraft[]>(isRoomCacheSource ? initialEditorMessages : []);
+
+  useEffect(() => {
+    const loadSeedKey = `${resolvedDocId ?? ""}|${remoteSource}`;
+    if (loadSeedKeyRef.current !== loadSeedKey) {
+      loadSeedKeyRef.current = loadSeedKey;
+      initialMessagesSeedRef.current = normalizedInitialMessages;
+    }
+  }, [normalizedInitialMessages, remoteSource, resolvedDocId]);
+
+  useEffect(() => {
+    if (!ready || !resolvedDocId || !isRoomCacheSource || dirtySinceLoadRef.current) {
+      return;
+    }
+
+    const nextMessages = ensureMessageEditorMessages(normalizedInitialMessages);
+    const nextSerialized = serializeMessageEditorMessages(nextMessages);
+    const currentSerialized = stableSerializeMessageEditorValue(messagesRef.current);
+    const nextRuntimeSerialized = stableSerializeMessageEditorValue(nextMessages);
+    if (currentSerialized === nextRuntimeSerialized) {
+      return;
+    }
+
+    baselineMessagesRef.current = nextMessages;
+    messagesRef.current = nextMessages;
+    lastSavedSerializedRef.current = nextSerialized;
+    setMessages(nextMessages);
+  }, [isRoomCacheSource, normalizedInitialMessages, ready, resolvedDocId]);
+
+  const reconcileRoomCacheRemoteMessages = useCallback(async (
+    remoteMessages: Message[],
+    options: { updateState?: boolean } = {},
+  ) => {
+    const savedMessages = ensureMessageEditorMessages(remoteMessages);
+    if (savedMessages.length === 0) {
+      return false;
+    }
+
+    // 服务端会给新增块分配真实 messageId；这里立即回填，避免下一次 diff 把同一块再次当作 insert。
+    baselineMessagesRef.current = savedMessages;
+    messagesRef.current = savedMessages;
+    lastSavedSerializedRef.current = serializeMessageEditorMessages(savedMessages);
+    dirtySinceLoadRef.current = false;
+    if (options.updateState !== false) {
+      setMessages(savedMessages);
+    }
+    await onRemoteMessagesSaved?.(remoteMessages);
+    return true;
+  }, [onRemoteMessagesSaved]);
+
+  const isActiveRemoteSaveGeneration = useCallback((generation: number) => {
+    return activeRemoteSaveGenerationRef.current === generation
+      && saveGenerationRef.current === generation;
+  }, []);
 
   const clearCrossBlockSelection = useCallback(() => {
     pointerSelectionRef.current = null;
@@ -420,11 +669,14 @@ export default function MessageEditor({
       const next = ensureMessageEditorMessages(updater(normalizedPrevious));
       if (serializeMessageEditorMessages(normalizedPrevious) !== serializeMessageEditorMessages(next)) {
         pushUndoHistoryEntry(createHistoryEntry(normalizedPrevious), historyKind);
+        if (ready) {
+          dirtySinceLoadRef.current = true;
+        }
       }
       messagesRef.current = next;
       return next;
     });
-  }, [createHistoryEntry, pushUndoHistoryEntry]);
+  }, [createHistoryEntry, pushUndoHistoryEntry, ready]);
 
   const getCurrentMessages = useCallback(() => {
     return messagesRef.current;
@@ -505,6 +757,23 @@ export default function MessageEditor({
     restoreSelectionRef.current = null;
     hideToolbar();
 
+    if (isRoomCacheSource) {
+      const nextMessages = ensureMessageEditorMessages(initialMessagesSeedRef.current);
+      const nextSerialized = serializeMessageEditorMessages(nextMessages);
+      remoteRevisionRef.current = null;
+      resetHistory();
+      dirtySinceLoadRef.current = false;
+      baselineMessagesRef.current = nextMessages;
+      messagesRef.current = nextMessages;
+      lastSavedSerializedRef.current = nextSerialized;
+      setMessages(nextMessages);
+      setSaveState("idle");
+      setReady(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     queueMicrotask(() => {
       if (!cancelled) {
         setReady(false);
@@ -513,13 +782,13 @@ export default function MessageEditor({
 
     void (async () => {
       await Promise.resolve();
-      const cached = resolvedDocId ? getCachedDocSnapshot(resolvedDocId) : null;
-      const persisted = cached ?? (resolvedDocId
+      const cached = resolvedDocId && !shouldSyncRemote && !isRoomCacheSource ? getCachedDocSnapshot(resolvedDocId) : null;
+      const persisted = cached ?? (resolvedDocId && !shouldSyncRemote && !isRoomCacheSource
         ? await getPersistedDocSnapshot(resolvedDocId).catch(() => null)
         : null);
-      const remote = shouldSyncRemote && resolvedDocRoomId
-        ? await getRemoteDocRoomSnapshot({ roomId: resolvedDocRoomId }).catch((error) => {
-            console.warn("[MessageEditor] load remote doc room snapshot failed", error);
+      const remote = shouldLoadRemote && resolvedDocRoomId
+        ? await getRemoteRoomMessageStream({ roomId: resolvedDocRoomId }).catch((error) => {
+            console.warn("[MessageEditor] load remote room message stream failed", error);
             return null;
           })
         : null;
@@ -528,37 +797,42 @@ export default function MessageEditor({
         return;
       }
 
-      if (resolvedDocId && persisted && !cached) {
+      if (resolvedDocId && !shouldSyncRemote && !isRoomCacheSource && persisted && !cached) {
         setCachedDocSnapshot(resolvedDocId, persisted);
       }
 
       const remoteRevision = typeof remote?.revision === "number" ? remote.revision : null;
       remoteRevisionRef.current = remoteRevision;
+      const hasRemoteMessages = Array.isArray(remote?.messages) && remote.messages.length > 0;
+      const seededInitialMessages = initialMessagesSeedRef.current;
 
       const fallback = resolvedDocId
-        ? [createMessageEditorTextDraft()]
+        ? (isRoomCacheSource
+            ? (seededInitialMessages.length > 0 ? seededInitialMessages : [createMessageEditorTextDraft()])
+            : (seededInitialMessages.length > 0 ? seededInitialMessages : [createMessageEditorTextDraft()]))
         : (messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
-      const shouldUseRemote = remoteRevision !== null && remoteRevision > 0;
+      const shouldUseRemote = remoteRevision !== null && (remoteRevision > 0 || hasRemoteMessages);
       const decoded = shouldUseRemote
-        ? ensureMessageEditorMessages(readDocRoomSnapshotMessages(remote))
-        : ensureMessageEditorMessages(persisted ? decodeMessageEditorMessages(persisted) : fallback);
+        ? ensureMessageEditorMessages(readRoomMessageStreamMessages(remote))
+        : ensureMessageEditorMessages(
+            isRoomCacheSource
+              ? fallback
+              : (persisted ? decodeMessageEditorMessages(persisted) : fallback),
+          );
       const loadedSnapshot = createMessageEditorSnapshot(decoded, shouldUseRemote ? remote?.updatedAt : undefined);
-      if (shouldUseRemote && resolvedDocId) {
+      if (shouldUseRemote && resolvedDocId && !shouldSyncRemote && !isRoomCacheSource) {
         setCachedDocSnapshot(resolvedDocId, loadedSnapshot);
         void setPersistedDocSnapshot(resolvedDocId, loadedSnapshot).catch((error) => {
           console.warn("[MessageEditor] cache remote doc room snapshot failed", error);
         });
       }
-      const shouldUploadLocalAfterLoad = shouldSyncRemote
-        && !readOnly
-        && Boolean(persisted)
-        && remoteRevision === 0
-        && !shouldUseRemote;
       resetHistory();
+      dirtySinceLoadRef.current = false;
+      baselineMessagesRef.current = decoded;
       messagesRef.current = decoded;
-      lastSavedSerializedRef.current = shouldUploadLocalAfterLoad
-        ? ""
-        : (shouldUseRemote ? loadedSnapshot.updateB64 : (persisted?.updateB64 ?? loadedSnapshot.updateB64));
+      lastSavedSerializedRef.current = shouldUseRemote
+        ? loadedSnapshot.updateB64
+        : (persisted?.updateB64 ?? loadedSnapshot.updateB64);
       setMessages(decoded);
       setSaveState("idle");
       setReady(true);
@@ -567,10 +841,10 @@ export default function MessageEditor({
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, readOnly, resetHistory, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
+  }, [hideToolbar, isRoomCacheSource, resetHistory, resolvedDocId, resolvedDocRoomId, shouldLoadRemote, shouldSyncRemote]);
 
   useEffect(() => {
-    if (!ready || readOnly || !resolvedDocId) {
+    if (!ready || readOnly || !resolvedDocId || !dirtySinceLoadRef.current) {
       return;
     }
 
@@ -579,28 +853,75 @@ export default function MessageEditor({
       return;
     }
 
+    if (shouldSyncRemote && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messages)) {
+      console.warn("[MessageEditor] skip empty room message-stream sync to avoid clearing content");
+      return;
+    }
+
     const timer = window.setTimeout(() => {
       const saveGeneration = saveGenerationRef.current + 1;
       saveGenerationRef.current = saveGeneration;
+      activeRemoteSaveGenerationRef.current = saveGeneration;
       setSaveState("saving");
-      setCachedDocSnapshot(resolvedDocId, snapshot);
-      void setPersistedDocSnapshot(resolvedDocId, snapshot)
-        .then(async () => {
-          if (shouldSyncRemote && resolvedDocRoomId) {
-            const remote = await syncRemoteDocRoomSnapshot({
-              baseRevision: remoteRevisionRef.current,
-              messages,
-              roomId: resolvedDocRoomId,
-            });
-            if (remote.conflict) {
-              remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
-              throw new Error("文档云端版本已变化");
-            }
-            remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
-          }
+      const persistTask = shouldSyncRemote && resolvedDocRoomId
+        ? (isRoomCacheSource
+            ? (() => {
+                const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messages);
+                if (operations.length === 0) {
+                  return Promise.resolve();
+                }
+                return patchRemoteRoomMessageStream({
+                  operations,
+                  roomId: resolvedDocRoomId,
+                }).then(async (remote) => {
+                  if (!isActiveRemoteSaveGeneration(saveGeneration)) {
+                    return;
+                  }
+                  const savedMessages = readRoomMessageStreamMessages(remote);
+                  if (savedMessages.length > 0) {
+                    remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
+                    await reconcileRoomCacheRemoteMessages(savedMessages);
+                  }
+                });
+              })()
+            : syncRemoteRoomMessageStream({
+                baseRevision: remoteRevisionRef.current,
+                messages,
+                roomId: resolvedDocRoomId,
+              }).then(async (remote) => {
+                if (!isActiveRemoteSaveGeneration(saveGeneration)) {
+                  return;
+                }
+                if (remote.conflict) {
+                  remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
+                  throw new Error("文档云端版本已变化");
+                }
+                remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
+                const savedMessages = readRoomMessageStreamMessages(remote);
+                if (savedMessages.length > 0) {
+                  await onRemoteMessagesSaved?.(savedMessages);
+                }
+                else {
+                  console.warn("[MessageEditor] remote sync returned no usable messages, keep local room cache untouched");
+                }
+              }))
+        : setPersistedDocSnapshot(resolvedDocId, snapshot).then(() => {
+            setCachedDocSnapshot(resolvedDocId, snapshot);
+          });
+
+      void persistTask
+        .then(() => {
           if (saveGenerationRef.current === saveGeneration) {
-            lastSavedSerializedRef.current = snapshot.updateB64;
+            const savedBaseline = isRoomCacheSource ? messagesRef.current : messages;
+            lastSavedSerializedRef.current = isRoomCacheSource
+              ? serializeMessageEditorMessages(savedBaseline)
+              : snapshot.updateB64;
+            dirtySinceLoadRef.current = false;
+            baselineMessagesRef.current = savedBaseline;
             setSaveState("saved");
+          }
+          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
+            activeRemoteSaveGenerationRef.current = null;
           }
         })
         .catch((error) => {
@@ -608,18 +929,21 @@ export default function MessageEditor({
           if (saveGenerationRef.current === saveGeneration) {
             setSaveState("error");
           }
+          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
+            activeRemoteSaveGenerationRef.current = null;
+          }
         });
-    }, 500);
+    }, shouldSyncRemote ? MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS : MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [messages, readOnly, ready, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
+  }, [isActiveRemoteSaveGeneration, isRoomCacheSource, messages, onRemoteMessagesSaved, readOnly, ready, reconcileRoomCacheRemoteMessages, remoteSource, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
 
   useEffect(() => {
     return () => {
       saveGenerationRef.current += 1;
-      if (readOnly || !resolvedDocId) {
+      if (readOnly || !resolvedDocId || !dirtySinceLoadRef.current) {
         return;
       }
 
@@ -628,26 +952,72 @@ export default function MessageEditor({
         return;
       }
 
+      if (shouldSyncRemote && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messagesRef.current)) {
+        console.warn("[MessageEditor] skip empty room message-stream flush to avoid clearing content");
+        return;
+      }
+
       lastSavedSerializedRef.current = snapshot.updateB64;
+      if (shouldSyncRemote && resolvedDocRoomId) {
+        const saveGeneration = saveGenerationRef.current;
+        activeRemoteSaveGenerationRef.current = saveGeneration;
+        const persistRemote = isRoomCacheSource
+          ? (() => {
+              const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messagesRef.current);
+              if (operations.length === 0) {
+                return Promise.resolve();
+              }
+              return patchRemoteRoomMessageStream({
+                operations,
+                roomId: resolvedDocRoomId,
+              }).then((remote) => {
+                if (!isActiveRemoteSaveGeneration(saveGeneration)) {
+                  return;
+                }
+                const savedMessages = readRoomMessageStreamMessages(remote);
+                if (savedMessages.length > 0) {
+                  remoteRevisionRef.current = typeof remote.revision === "number" ? remote.revision : remoteRevisionRef.current;
+                  void reconcileRoomCacheRemoteMessages(savedMessages, { updateState: false });
+                }
+              });
+            })()
+          : syncRemoteRoomMessageStream({
+              baseRevision: remoteRevisionRef.current,
+              messages: messagesRef.current,
+              roomId: resolvedDocRoomId,
+            }).then((remote) => {
+              if (!isActiveRemoteSaveGeneration(saveGeneration)) {
+                return;
+              }
+              if (!remote.conflict && typeof remote.revision === "number") {
+                remoteRevisionRef.current = remote.revision;
+              }
+              if (!remote.conflict) {
+                const savedMessages = readRoomMessageStreamMessages(remote);
+                if (savedMessages.length > 0) {
+                  void onRemoteMessagesSaved?.(savedMessages);
+                }
+                else {
+                  console.warn("[MessageEditor] remote flush returned no usable messages, keep local room cache untouched");
+                }
+              }
+            });
+        void persistRemote.catch((error) => {
+          console.warn("[MessageEditor] flush remote room message stream failed", error);
+        }).finally(() => {
+          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
+            activeRemoteSaveGenerationRef.current = null;
+          }
+        });
+        return;
+      }
+
       setCachedDocSnapshot(resolvedDocId, snapshot);
       void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
         console.error("[MessageEditor] flush snapshot failed", error);
       });
-      if (shouldSyncRemote && resolvedDocRoomId) {
-        void syncRemoteDocRoomSnapshot({
-          baseRevision: remoteRevisionRef.current,
-          messages: messagesRef.current,
-          roomId: resolvedDocRoomId,
-        }).then((remote) => {
-          if (!remote.conflict && typeof remote.revision === "number") {
-            remoteRevisionRef.current = remote.revision;
-          }
-        }).catch((error) => {
-          console.warn("[MessageEditor] flush remote doc room snapshot failed", error);
-        });
-      }
     };
-  }, [readOnly, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
+  }, [isActiveRemoteSaveGeneration, isRoomCacheSource, onRemoteMessagesSaved, readOnly, reconcileRoomCacheRemoteMessages, remoteSource, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {
@@ -1823,6 +2193,7 @@ export default function MessageEditor({
             <div className="flex min-h-0 flex-col">
               <div
                 data-me-editor-surface="true"
+                role="presentation"
                 className="flex min-h-svh w-full flex-col py-2"
                 onMouseDown={handleEditorSurfaceMouseDown}
               >
@@ -1848,7 +2219,7 @@ export default function MessageEditor({
                         key={blockId}
                         ref={node => registerBlockShellRef(blockId, node)}
                         className={[
-                          `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
+                          `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
                           dragState?.draggedBlockId === blockId
                             ? "bg-base-100/80 ring-1 ring-base-300/80"
                             : "",
@@ -1866,14 +2237,15 @@ export default function MessageEditor({
                             draggable
                             data-me-block-handle="true"
                             className={[
-                              "absolute left-1 top-0 flex size-6 cursor-grab items-center justify-center rounded-md border border-base-300/80 bg-base-100 text-base-content/35 transition hover:border-base-400 hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
-                              dragState?.draggedBlockId === blockId ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                              `${MESSAGE_EDITOR_BLOCK_HANDLE_CLASS} top-0`,
+                              dragState?.draggedBlockId === blockId ? "!opacity-100" : "",
                             ].join(" ")}
                             onDragStart={event => handleBlockDragStart(blockId, event)}
                             onDragEnd={handleBlockDragEnd}
                             aria-label="拖拽排序"
+                            title="拖拽排序"
                           >
-                            <DotsSixVerticalIcon size={16} weight="bold" />
+                            <DraggableIcon className="size-6" />
                           </button>
                         )}
                         <MessageEditorTextBlock
@@ -1932,7 +2304,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} rounded-xl px-6 transition`,
+                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-6 transition`,
                         dragState?.draggedBlockId === blockId
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
@@ -1950,14 +2322,15 @@ export default function MessageEditor({
                           draggable
                           data-me-block-handle="true"
                           className={[
-                            "absolute left-1 top-1.5 flex size-6 cursor-grab items-center justify-center rounded-md border border-base-300/80 bg-base-100 text-base-content/35 transition hover:border-base-400 hover:bg-base-200 hover:text-base-content/70 active:cursor-grabbing",
-                            dragState?.draggedBlockId === blockId ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                            `${MESSAGE_EDITOR_BLOCK_HANDLE_CLASS} top-1.5`,
+                            dragState?.draggedBlockId === blockId ? "!opacity-100" : "",
                           ].join(" ")}
                           onDragStart={event => handleBlockDragStart(blockId, event)}
                           onDragEnd={handleBlockDragEnd}
                           aria-label="拖拽排序"
+                          title="拖拽排序"
                         >
-                          <DotsSixVerticalIcon size={16} weight="bold" />
+                          <DraggableIcon className="size-6" />
                         </button>
                       )}
                       <div data-me-block-id={blockId}>

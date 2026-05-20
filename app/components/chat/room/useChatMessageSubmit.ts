@@ -15,6 +15,7 @@ import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/u
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
+import { toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 import { UploadUtils } from "@/utils/UploadUtils";
 
@@ -39,6 +40,9 @@ type UseChatMessageSubmitParams = {
   noRole: boolean;
   isSubmitting: boolean;
   setIsSubmitting: (value: boolean) => void;
+  discardLocalOptimisticMessages?: (messages: ChatMessageResponse[]) => Promise<void>;
+  insertLocalOptimisticMessages?: (messages: ChatMessageRequest[]) => ChatMessageResponse[];
+  sendMessageBatchWithLocalOptimistic?: (messages: ChatMessageRequest[], optimisticMessages: ChatMessageResponse[]) => Promise<ChatMessageResponse["message"][]>;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
   sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
@@ -84,6 +88,164 @@ function shouldRestoreOptimisticallyClearedComposer(current: SubmittedComposerSn
     && current.tempAnnotations.length === 0;
 }
 
+function isVideoAttachment(file: File) {
+  if (file.type.startsWith("video/")) {
+    return true;
+  }
+  if (file.type.startsWith("audio/")) {
+    return false;
+  }
+  return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
+}
+
+function resolvePendingMediaContent(inputText: string) {
+  const trimmed = inputText.trim();
+  return trimmed.length === 0 && inputText.length > 0 ? inputText : trimmed;
+}
+
+function positiveOrFallback(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function applyRequestContext(
+  request: ChatMessageRequest,
+  context: {
+    customRoleName?: string;
+    replayMessageId?: number;
+    threadId?: number;
+  },
+) {
+  if (typeof context.threadId === "number") {
+    request.threadId = context.threadId;
+  }
+  if (typeof context.replayMessageId === "number") {
+    request.replayMessageId = context.replayMessageId;
+  }
+  if (context.customRoleName) {
+    request.customRoleName = context.customRoleName;
+  }
+  return request;
+}
+
+function buildPendingAttachmentRequests(params: {
+  audioFile: File | null;
+  avatarId: number;
+  content: string;
+  customRoleName?: string;
+  emojiMetaByUrl: Record<string, { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string }>;
+  emojiUrls: string[];
+  fileAttachments: File[];
+  hasConsumedFirstMessage: boolean;
+  imgFiles: File[];
+  mergedComposerAnnotations: string[];
+  replayMessageId?: number;
+  roleId: number;
+  roomId: number;
+  threadId?: number;
+}): ChatMessageRequest[] {
+  const requests: ChatMessageRequest[] = [];
+  let content = resolvePendingMediaContent(params.content);
+
+  const pushRequest = (request: ChatMessageRequest) => {
+    if (params.mergedComposerAnnotations.length > 0) {
+      request.annotations = params.mergedComposerAnnotations;
+    }
+    applyRequestContext(request, {
+      customRoleName: params.customRoleName,
+      replayMessageId: !params.hasConsumedFirstMessage && requests.length === 0 ? params.replayMessageId : undefined,
+      threadId: params.threadId,
+    });
+    requests.push(request);
+    content = "";
+  };
+
+  for (const imgFile of params.imgFiles) {
+    pushRequest({
+      roomId: params.roomId,
+      roleId: params.roleId,
+      avatarId: params.avatarId,
+      content,
+      messageType: MessageType.IMG,
+      extra: {
+        imageMessage: {
+          fileId: -1,
+          fileName: imgFile.name,
+          mediaType: imgFile.type || "image",
+          size: positiveOrFallback(imgFile.size, 1),
+          background: false,
+          width: 1,
+          height: 1,
+        },
+      },
+    });
+  }
+
+  for (const emojiUrl of params.emojiUrls) {
+    const meta = params.emojiMetaByUrl[emojiUrl];
+    pushRequest({
+      roomId: params.roomId,
+      roleId: params.roleId,
+      avatarId: params.avatarId,
+      content,
+      messageType: MessageType.IMG,
+      extra: {
+        imageMessage: {
+          fileId: positiveOrFallback(meta?.fileId, -1),
+          fileName: meta?.fileName || "emoji",
+          height: positiveOrFallback(meta?.height, 1),
+          mediaType: meta?.mediaType || "image",
+          size: positiveOrFallback(meta?.size, 1),
+          width: positiveOrFallback(meta?.width, 1),
+          background: false,
+        },
+      },
+    });
+  }
+
+  if (params.audioFile) {
+    pushRequest({
+      roomId: params.roomId,
+      roleId: params.roleId,
+      avatarId: params.avatarId,
+      content,
+      messageType: MessageType.SOUND,
+      extra: {
+        soundMessage: {
+          fileId: -1,
+          fileName: params.audioFile.name,
+          mediaType: params.audioFile.type || "audio",
+          size: positiveOrFallback(params.audioFile.size, 1),
+          second: 1,
+        },
+      },
+    });
+  }
+
+  for (const attachment of params.fileAttachments) {
+    if (!isVideoAttachment(attachment)) {
+      continue;
+    }
+    pushRequest({
+      roomId: params.roomId,
+      roleId: params.roleId,
+      avatarId: params.avatarId,
+      content,
+      messageType: MessageType.VIDEO,
+      extra: {
+        videoMessage: {
+          fileId: -1,
+          fileName: attachment.name,
+          mediaType: attachment.type || "video",
+          size: positiveOrFallback(attachment.size, 1),
+          second: 1,
+        },
+      },
+    });
+  }
+
+  return requests;
+}
+
 export default function useChatMessageSubmit({
   roomId,
   spaceId,
@@ -91,8 +253,9 @@ export default function useChatMessageSubmit({
   curRoleId,
   notMember,
   noRole,
-  isSubmitting,
-  setIsSubmitting,
+  discardLocalOptimisticMessages,
+  insertLocalOptimisticMessages,
+  sendMessageBatchWithLocalOptimistic,
   sendMessageWithInsert,
   sendMessageBatch,
   ensureRuntimeAvatarIdForRole,
@@ -146,14 +309,11 @@ export default function useChatMessageSubmit({
       || Boolean(audioFile)
     );
 
-    const disableSendMessage = isSubmitting
-      || (isNarrator && !isKP && !isSpectator);
+    const disableSendMessage = isNarrator && !isKP && !isSpectator;
 
     if (disableSendMessage) {
       if (isNarrator && !isKP)
         toast.error("旁白仅主持可用，请先选择/拉入你的角色");
-      else if (isSubmitting)
-        toast.error("正在提交中，请稍后");
       return;
     }
     if (inputText.length > 1024) {
@@ -186,10 +346,11 @@ export default function useChatMessageSubmit({
       audioFile,
       tempAnnotations,
     };
-    let didOptimisticClear = false;
     let hasCommittedOutboundMessage = false;
+    let didUseLocalOptimisticBatch = false;
+    let pendingAttachmentOptimisticHandled = false;
+    let pendingAttachmentOptimisticMessages: ChatMessageResponse[] = [];
 
-    setIsSubmitting(true);
     try {
       const {
         replyMessage,
@@ -256,7 +417,6 @@ export default function useChatMessageSubmit({
       setFileAttachments([]);
       setAudioFile(null);
       setTempAnnotations([]);
-      didOptimisticClear = true;
 
       const resolvedAvatarId = senderRoleId > 0
         ? await ensureRuntimeAvatarIdForRole(senderRoleId)
@@ -269,9 +429,7 @@ export default function useChatMessageSubmit({
           roomId,
           roleId: senderRoleId,
           avatarId: resolvedAvatarId,
-          extra: {
-            stateEvent: parsedStateCommand.stateEvent,
-          },
+          extra: toApiMessageExtraWithStateEvent(parsedStateCommand.stateEvent),
         };
         if (typeof activeThreadId === "number") {
           stateEventMsg.threadId = activeThreadId;
@@ -378,12 +536,27 @@ export default function useChatMessageSubmit({
         regularInputText = "";
       }
 
-      const regularDrafts = await buildMessageDraftsFromComposerSnapshot({
-        baseMessage: {
-          roleId: senderRoleId,
+      if (hasPendingAttachmentPayload && !insertAfterMessageId && insertLocalOptimisticMessages) {
+        const pendingAttachmentRequests = buildPendingAttachmentRequests({
+          audioFile,
           avatarId: resolvedAvatarId,
+          content: regularInputText,
           customRoleName: draftCustomRoleName,
-        },
+          emojiMetaByUrl,
+          emojiUrls,
+          fileAttachments,
+          hasConsumedFirstMessage,
+          imgFiles,
+          mergedComposerAnnotations,
+          replayMessageId: finalReplyId,
+          roleId: senderRoleId,
+          roomId,
+          threadId: activeThreadId,
+        });
+        pendingAttachmentOptimisticMessages = insertLocalOptimisticMessages(pendingAttachmentRequests);
+      }
+
+      const regularDrafts = await buildMessageDraftsFromComposerSnapshot({
         inputText: regularInputText,
         imgFiles,
         emojiUrls,
@@ -406,7 +579,24 @@ export default function useChatMessageSubmit({
       }));
 
       const createdRegularMessages: Array<ChatMessageResponse["message"] | null> = [];
-      if (regularRequests.length > 1 && !insertAfterMessageId) {
+      if (pendingAttachmentOptimisticMessages.length > 0 && sendMessageBatchWithLocalOptimistic) {
+        if (regularRequests.length !== pendingAttachmentOptimisticMessages.length) {
+          await discardLocalOptimisticMessages?.(pendingAttachmentOptimisticMessages);
+          pendingAttachmentOptimisticHandled = true;
+        }
+        else {
+          const createdMessages = await sendMessageBatchWithLocalOptimistic(regularRequests, pendingAttachmentOptimisticMessages);
+          pendingAttachmentOptimisticHandled = true;
+          if (createdMessages.length !== regularRequests.length) {
+            return;
+          }
+          hasCommittedOutboundMessage = createdMessages.length > 0;
+          didUseLocalOptimisticBatch = true;
+          createdRegularMessages.push(...createdMessages);
+        }
+      }
+
+      if (!didUseLocalOptimisticBatch && regularRequests.length > 1 && !insertAfterMessageId) {
         const createdBatchMessages = await sendMessageBatch(regularRequests);
         if (createdBatchMessages.length !== regularRequests.length) {
           return;
@@ -414,7 +604,7 @@ export default function useChatMessageSubmit({
         hasCommittedOutboundMessage = createdBatchMessages.length > 0;
         createdRegularMessages.push(...createdBatchMessages);
       }
-      else {
+      else if (!didUseLocalOptimisticBatch) {
         for (const request of regularRequests) {
           const createdMessage = await sendMessageWithInsert(request);
           if (!createdMessage) {
@@ -467,12 +657,16 @@ export default function useChatMessageSubmit({
       }
     }
     catch (error) {
+      if (pendingAttachmentOptimisticMessages.length > 0 && !pendingAttachmentOptimisticHandled) {
+        await discardLocalOptimisticMessages?.(pendingAttachmentOptimisticMessages);
+        pendingAttachmentOptimisticHandled = true;
+      }
       console.error("发送消息失败", error);
       const message = error instanceof Error ? error.message : "发送消息失败";
       toast.error(message, { duration: 3000 });
     }
     finally {
-      if (didOptimisticClear && !hasCommittedOutboundMessage) {
+      if (!hasCommittedOutboundMessage) {
         const currentInputSnapshot = useChatInputUiStore.getState();
         const currentComposerState = useChatComposerStore.getState();
         const inputCanRestore = shouldRestoreOptimisticallyClearedInput(currentInputSnapshot);
@@ -499,24 +693,24 @@ export default function useChatMessageSubmit({
           setTempAnnotations(submittedComposerSnapshot.tempAnnotations);
         }
       }
-      setIsSubmitting(false);
     }
   }, [
     commandExecutor,
     containsCommandRequestAllToken,
     curRoleId,
+    discardLocalOptimisticMessages,
     ensureRuntimeAvatarIdForRole,
     extractFirstCommandText,
+    insertLocalOptimisticMessages,
     isSpaceOwner,
-    isSubmitting,
     noRole,
     notMember,
     roomId,
     roomUiStoreApi,
+    sendMessageBatchWithLocalOptimistic,
     sendMessageBatch,
     sendMessageWithInsert,
     setInputText,
-    setIsSubmitting,
     spaceId,
     stripCommandRequestAllToken,
   ]);

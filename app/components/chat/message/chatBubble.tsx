@@ -2,6 +2,7 @@ import type { ChatMessageResponse, Message } from "../../../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getNextSyncedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
@@ -15,9 +16,9 @@ import MessageTextDiffPreview from "@/components/chat/message/diff/MessageTextDi
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import ForwardMessage from "@/components/chat/message/preview/forwardMessage";
+import { MessagePreviewContent } from "@/components/chat/message/preview/messagePreviewContent";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage";
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
@@ -29,7 +30,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
+import { CloseIcon, CommentOutline, Edit2Outline, EmojiIconWhite, InsertLineBelow, ListUnordered, MoreMenu, NarratorIcon, ScreenIcon } from "@/icons";
 import {
   ANNOTATION_IDS,
   areAnnotationsEqual,
@@ -42,7 +43,6 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { isRoleNotFoundApiError } from "@/utils/roleApiError";
-import { countTextEnhanceVisibleLength, formatTextEnhanceVisibleLength } from "@/utils/textEnhanceMetrics";
 import { areRealtimeRenderMessagesEquivalent } from "@/webGAL/realtimeRenderMessageDelta";
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -69,6 +69,8 @@ interface HoverToolbarActionButtonProps {
 }
 
 const EFFECT_PREVIEW_DURATION_MS = 2000;
+const narratorAvatarFrameClassName = "flex items-center justify-center rounded-full bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85";
+const narratorAvatarIconClassName = "transition-transform duration-150 ease-out motion-reduce:transition-none group-hover/narrator:scale-105";
 
 function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActionButtonProps) {
   return (
@@ -83,6 +85,89 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
         {children}
       </button>
     </div>
+  );
+}
+
+function ClueCardReadonlyModal({
+  message,
+  onClose,
+}: {
+  message: Message;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal modal-open z-[9999]">
+      <div className="modal-box max-w-2xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold">查看线索</h3>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-square"
+            aria-label="关闭"
+            onClick={onClose}
+          >
+            <CloseIcon className="size-5" />
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
+          <MessageContentRenderer
+            message={{
+              ...message,
+              status: message.status ?? 0,
+            }}
+            cacheKeyBase={`clue-card-modal:${message.messageId ?? "snapshot"}`}
+          />
+        </div>
+
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+          >
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClueCardMessage({ message }: { message: Message }) {
+  const clue = getClueCardRenderData(message.extra, message.content);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const snapshotMessage = {
+    ...clue.snapshot,
+    messageId: message.messageId,
+    roomId: message.roomId,
+    status: 0,
+  } as Message;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="flex w-[min(36rem,100%)] min-w-0 flex-col gap-1 rounded-lg border border-info/25 bg-info/8 px-3 py-2 text-left text-base-content shadow-sm transition hover:border-info/45 hover:bg-info/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-info/60"
+        title="查看线索"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsModalOpen(true);
+        }}
+      >
+        <span className="badge badge-info badge-xs w-fit">线索</span>
+        <div className="min-w-0 break-words text-sm">
+          <MessagePreviewContent message={snapshotMessage} withMediaPreview />
+        </div>
+      </button>
+      {isModalOpen && (
+        <ClueCardReadonlyModal
+          message={snapshotMessage}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -206,9 +291,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     zeroRoleIsNarrator: true,
     fallback: roleDeleted ? "角色已删除" : "未选择角色",
   });
-  const roomContentAlertThreshold = useRealtimeRenderStore(state => state.roomContentAlertThreshold);
   const messageContent = (message.content ?? "").toString();
-  const messageContentLength = countTextEnhanceVisibleLength(messageContent);
   const isOutOfCharacterTextMessage = message.messageType === MESSAGE_TYPE.TEXT
     && isOutOfCharacterSpeech(message.content);
   const shouldUseUserAvatar = isOutOfCharacterTextMessage;
@@ -219,7 +302,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const speakerDisplayName = isOutOfCharacterTextMessage
     ? (outOfCharacterUser?.username?.trim() || `用户${message.userId}`)
     : displayRoleName;
-  const showRoleNameEditor = !isIntroText && !isOutOfCharacterTextMessage && isEditingRoleName;
+  const showRoleNameEditor = !isIntroText && !isStateEventMessage && !isOutOfCharacterTextMessage && isEditingRoleName;
   const chatMessageMetaRowClass = isOutOfCharacterTextMessage
     ? "flex items-center gap-2 w-full min-w-0 relative"
     : CHAT_MESSAGE_META_ROW_CLASS;
@@ -230,13 +313,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
         </span>
       )
     : null;
-  const isThresholdTrackedMessageType = (message.messageType === MESSAGE_TYPE.TEXT
-    || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && message.roleId !== 2;
-  const shouldTrackRoomContentThreshold = webgalLinkMode && roomContentAlertThreshold > 0;
-  const isMessageOverRoomContentThreshold = shouldTrackRoomContentThreshold
-    && isThresholdTrackedMessageType
-    && messageContentLength > roomContentAlertThreshold;
-  const thresholdCounterText = `${formatTextEnhanceVisibleLength(messageContentLength)}/${formatTextEnhanceVisibleLength(roomContentAlertThreshold)}`;
   const versionDiff = useMemo(() => {
     if (!baseVersionMessage) {
       return showFullMessageDiff && showAddedMessageDiff ? buildMessageTextDiff("", message.content ?? "") : null;
@@ -724,6 +800,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     const extra = message.extra as any;
     const docCardPayload = extra?.docCard;
     const hasDocCard = message.messageType === MESSAGE_TYPE.DOC_CARD || Boolean(docCardPayload);
+    const hasClueCard = message.messageType === MESSAGE_TYPE.CLUE_CARD || Boolean(extra?.clueMessage);
     const roomJumpPayload = extractRoomJumpPayload(message.extra);
     const hasRoomJump = message.messageType === MESSAGE_TYPE.ROOM_JUMP || Boolean(roomJumpPayload);
 
@@ -733,6 +810,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     const bodyNode = (() => {
       if (hasDocCard) {
         return <DocCardMessage messageResponse={chatMessageResponse} />;
+      }
+
+      if (hasClueCard) {
+        return <ClueCardMessage message={message} />;
       }
 
       if (hasRoomJump) {
@@ -839,9 +920,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           const diceResult = extra?.diceResult;
           const result = diceResult?.result || message.content || "";
           return (
-            <div className="relative text-sm">
-              <span className="badge badge-accent badge-xs absolute top-0 right-0">骰娘</span>
-              <div className="pr-10 pt-1">
+            <div className="text-sm">
+              <div>
                 <EditableMessageContent
                   content={result}
                   onCommit={handleDiceContentUpdate}
@@ -879,17 +959,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       {isStateEventMessage
         ? (
             <div
-              className="group relative flex w-full justify-center py-0.5 sm:py-1"
+              className="group relative flex w-full justify-center"
               key={message.messageId}
             >
               {messageHoverToolbar}
               <div className="flex w-full max-w-4xl items-start justify-center gap-1.5 px-1.5 sm:px-3">
                 <div className="min-w-0 max-w-full shrink">
                   {renderedContent}
-                </div>
-                <div className="pt-px text-[10px] leading-5 text-base-content/32">
-                  {isEdited && <span className="text-warning/70 mr-1">(已编辑)</span>}
-                  {formattedTime}
                 </div>
               </div>
             </div>
@@ -924,8 +1000,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       )
                     : isNarrator
                       ? (
-                          <div className={`flex items-center justify-center rounded-full bg-base-200/60 ${isMobile ? "w-10 h-10" : "w-12 h-12"}`}>
-                            <NarratorIcon className="w-4 h-4 text-base-content/70" />
+                          <div className={`group/narrator ${narratorAvatarFrameClassName} ${isMobile ? "w-10 h-10" : "w-12 h-12"}`}>
+                            <NarratorIcon className={`w-4 h-4 ${narratorAvatarIconClassName}`} />
                           </div>
                         )
                       : (
@@ -1010,17 +1086,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         isOutOfCharacterTextMessage
                           ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70 shadow-none hover:bg-base-content/6 hover:shadow-none"
                           : "bg-base-200 hover:shadow-lg hover:bg-base-300"
-                      } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                      }`}
                       onClick={triggerEffectPreview}
                     >
                       {renderedContent}
-                      {isMessageOverRoomContentThreshold && (
-                        <div className="mt-1 flex justify-end">
-                          <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-                            {thresholdCounterText}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   )}
                   {versionDiffPreview}
@@ -1059,8 +1128,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         )
                       : isNarrator
                         ? (
-                            <div className="w-full h-full flex items-center justify-center bg-base-200/60">
-                              <NarratorIcon className="w-5 h-5 text-base-content/70" />
+                            <div className="group/narrator w-full h-full flex items-center justify-center bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85">
+                              <NarratorIcon className="w-5 h-5 transition-transform duration-150 ease-out motion-reduce:transition-none group-hover/narrator:scale-105" />
                             </div>
                           )
                         : (
@@ -1078,7 +1147,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   </div>
                 </div>
                 {/* 消息内容 */}
-                <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
+                <div className="flex-1 min-w-0 pt-0.5 pb-0.5 pr-2 sm:pr-5">
                   {/* 角色名 */}
                   <div className="flex items-center w-full gap-2 sm:pr-80 relative">
                     {showRoleNameEditor
@@ -1108,7 +1177,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                 <div className="relative flex items-center gap-2 min-w-0 flex-1">
                                   {outOfCharacterBadge}
                                   <div
-                                    className={`text-sm sm:text-base min-w-0 flex-1 transition-all duration-200 ${
+                                    className={`text-sm sm:text-base leading-5 sm:leading-6 min-w-0 flex-1 transition-all duration-200 ${
                                       isOutOfCharacterTextMessage
                                         ? "font-medium text-base-content/60 cursor-default"
                                         : `font-semibold cursor-pointer hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`
@@ -1147,21 +1216,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
-                      className={`relative transition-all duration-200 rounded-lg p-1.5 sm:p-2 cursor-pointer break-words text-base sm:text-sm lg:text-base ${
+                      className={`relative transition-all duration-200 rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 cursor-pointer break-words text-base sm:text-sm lg:text-base leading-normal ${
                         isOutOfCharacterTextMessage
                           ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70"
                           : "hover:bg-base-200/50"
-                      } ${isMessageOverRoomContentThreshold ? "outline outline-1 outline-warning/70" : ""}`}
+                      }`}
                       onClick={triggerEffectPreview}
                     >
                       {renderedContent}
-                      {isMessageOverRoomContentThreshold && (
-                        <div className="mt-1 flex justify-end">
-                          <span className="rounded px-1 text-[11px] leading-4 font-medium bg-warning/20 text-warning shadow-sm">
-                            {thresholdCounterText}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   )}
                   {versionDiffPreview}

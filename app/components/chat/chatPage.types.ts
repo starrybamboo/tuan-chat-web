@@ -14,6 +14,11 @@ export type ActiveMaterialSelection = {
   materialPathKey?: string | null;
 };
 
+export type SelectRoomOptions = {
+  replace?: boolean;
+  targetMessageId?: number | null;
+};
+
 export const SPACE_DETAIL_TABS = new Set<SpaceDetailTab>(["members", "roles", "workflow", "trpg", "webgal", "setting", "material"]);
 
 export type RoomSettingState = { roomId: number; tab: RoomSettingTab } | null;

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -8,7 +9,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -39,7 +39,8 @@ export default function FeedbackScreen() {
       : logs;
     try {
       await shareLogs(text);
-    } catch {
+    }
+    catch {
       Alert.alert("分享失败", "请稍后重试");
     }
   };
@@ -51,7 +52,8 @@ export default function FeedbackScreen() {
     try {
       await copyLogs(text);
       Alert.alert("已复制", "日志已复制到剪贴板");
-    } catch {
+    }
+    catch {
       Alert.alert("复制失败", "请稍后重试");
     }
   };

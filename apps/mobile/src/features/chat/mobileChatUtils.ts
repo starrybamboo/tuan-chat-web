@@ -1,8 +1,7 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import {
   formatMobileMessageAttachmentSize,
@@ -12,8 +11,6 @@ import {
 export { getMessageAuthorLabel, getRoomTypeLabel, getSpaceStatusLabel } from "@tuanchat/domain/display-labels";
 export { buildMessageSearchText } from "@tuanchat/domain/message-search";
 export { formatMessageDateTime, formatMessageTime } from "@tuanchat/domain/message-time";
-
-export type MessageSubmitPhase = "idle" | "uploading" | "sending";
 
 export function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -25,17 +22,6 @@ export function getErrorMessage(error: unknown, fallback: string) {
 
 export function getMessagePreview(message: Message) {
   return getMessagePreviewText(message);
-}
-
-export function getMessageSubmitPhaseText(phase: MessageSubmitPhase) {
-  switch (phase) {
-    case "uploading":
-      return "正在上传附件…";
-    case "sending":
-      return "正在发送消息…";
-    default:
-      return null;
-  }
 }
 
 function getAttachmentFileExtension(fileName: string) {

@@ -3,8 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ClueMessage = {
-    img?: string;
-    name: string;
-    description?: string;
+    snapshot: {
+        messageType: number;
+        content: string;
+        extra?: Record<string, any>;
+    };
 };
 

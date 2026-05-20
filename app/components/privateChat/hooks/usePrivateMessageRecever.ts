@@ -4,6 +4,7 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 import type { DirectMessageEvent } from "api/wsModels";
 
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
+import { mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 
 export function usePrivateMessageReceiver(userId: number, currentContactUserId: number | null, historyMessages: MessageDirectResponse[]) {
@@ -14,38 +15,46 @@ export function usePrivateMessageReceiver(userId: number, currentContactUserId: 
 
   // 当前选中联系人从 WebSocket 接收到的实时消息
   const currentContactMessages = useMemo(() => {
-    if (!currentContactUserId)
-      return [];
-    const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
-    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
-    // 筛选出与当前联系人相关的消息
-    const filteredUserMessages = userMessages.filter(msg =>
-      msg.receiverId === currentContactUserId, // 用户发给当前联系人的消息
+    return getDirectMessagesForConversation(
+      webSocketUtils.receivedDirectMessages,
+      userId,
+      currentContactUserId,
     );
-    const filteredContactMessages = contactUserMessages.filter(msg =>
-      msg.senderId === currentContactUserId && msg.receiverId === userId, // 当前联系人发给用户的消息
-    );
-    return [...filteredUserMessages, ...filteredContactMessages];
   }, [webSocketUtils.receivedDirectMessages, userId, currentContactUserId]);
 
   // 合并历史消息和实时消息
   const allMessages = useMemo(() => {
-    return mergeMessages(historyMessages, currentContactMessages);
+    return mergeConversationMessages(historyMessages, currentContactMessages);
   }, [historyMessages, currentContactMessages]);
 
   return { currentContactUserId, currentContactUserInfo, allMessages };
 }
 
-function mergeMessages(historyMessages: MessageDirectResponse[], currentContactMessages: DirectMessageEvent[]) {
-  const messageMap = new Map<number, MessageDirectResponse>();
+export function getDirectMessagesForConversation(
+  receivedDirectMessages: Record<number, DirectMessageEvent[]>,
+  userId: number,
+  currentContactUserId: number | null,
+): DirectMessageEvent[] {
+  if (!currentContactUserId || userId <= 0) {
+    return [];
+  }
 
-  historyMessages.forEach(msg => messageMap.set(msg.messageId || 0, msg));
-  currentContactMessages.forEach(msg => messageMap.set(msg.messageId, msg));
+  const channelMessages = receivedDirectMessages[currentContactUserId] ?? [];
+  const legacySelfKeyMessages = receivedDirectMessages[userId] ?? [];
+  const messages = mergeDirectMessages(channelMessages, legacySelfKeyMessages);
+  return messages.filter((msg) => {
+    return (
+      msg.senderId === userId && msg.receiverId === currentContactUserId
+    ) || (
+      msg.senderId === currentContactUserId && msg.receiverId === userId
+    );
+  });
+}
 
-  // 按消息位置排序，确保消息显示顺序正确
-  const allMessages = Array.from(messageMap.values())
-    .sort((a, b) => (a.messageId ?? 0) - (b.messageId ?? 0))
+export function mergeConversationMessages(
+  historyMessages: MessageDirectResponse[],
+  currentContactMessages: DirectMessageEvent[],
+): Array<MessageDirectResponse | DirectMessageEvent> {
+  return mergeDirectMessages(historyMessages, currentContactMessages)
     .filter(msg => msg.messageType !== 10000);
-
-  return allMessages;
 }

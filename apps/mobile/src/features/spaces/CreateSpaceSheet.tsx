@@ -1,5 +1,3 @@
-import type { Space } from "@tuanchat/openapi-client/models/Space";
-
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -10,9 +8,12 @@ import {
   View,
 } from "react-native";
 
+import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
+
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments, type MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
+import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
@@ -77,11 +78,11 @@ const styles = StyleSheet.create({
   },
 });
 
-interface CreateSpaceSheetProps {
+type CreateSpaceSheetProps = {
   onClose: () => void;
   onCreated?: (space: Space) => void;
   visible: boolean;
-}
+};
 
 export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceSheetProps) {
   const theme = useTheme();
@@ -97,14 +98,16 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
       if (picked) {
         setAvatarAttachment(picked);
       }
-    } catch (error) {
+    }
+    catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "选择头像失败。");
     }
   };
 
   const handleCreate = async () => {
     const trimmed = name.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading)
+      return;
 
     setLoading(true);
     setErrorMessage(null);
@@ -126,9 +129,11 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
       setAvatarAttachment(null);
       onClose();
       onCreated?.(space);
-    } catch (err) {
+    }
+    catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "创建空间失败。");
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -159,22 +164,26 @@ export function CreateSpaceSheet({ onClose, onCreated, visible }: CreateSpaceShe
             </ThemedText>
           </Pressable>
 
-          {errorMessage ? (
-            <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
-              {errorMessage}
-            </ThemedText>
-          ) : null}
+          {errorMessage
+            ? (
+                <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
+                  {errorMessage}
+                </ThemedText>
+              )
+            : null}
 
           <Pressable
             disabled={!name.trim() || loading}
             onPress={handleCreate}
             style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <ThemedText style={styles.buttonText}>创建</ThemedText>
-            )}
+            {loading
+              ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                )
+              : (
+                  <ThemedText style={styles.buttonText}>创建</ThemedText>
+                )}
           </Pressable>
         </View>
       </Pressable>

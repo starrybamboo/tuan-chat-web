@@ -1,9 +1,9 @@
-import type { MessageDirectType } from "./types/messageDirect";
-
 import {
   getDirectUnreadCount,
   getLatestIncomingSync as getSharedLatestIncomingSync,
 } from "@tuanchat/domain/direct-message";
+
+import type { MessageDirectType } from "./types/messageDirect";
 
 type ReadTrackedMessage = Pick<MessageDirectType, "messageType" | "senderId" | "syncId">;
 

@@ -10,11 +10,14 @@ export function openMessageAnnotationPicker({
   initialSelected = [],
   onChange,
 }: OpenMessageAnnotationPickerParams) {
-  return toastWindow(close => (
-    <AnnotationPicker
-      initialSelected={initialSelected}
-      onChange={onChange}
-      onClose={close}
-    />
-  ));
+  return toastWindow(
+    close => (
+      <AnnotationPicker
+        initialSelected={initialSelected}
+        onChange={onChange}
+        onClose={close}
+      />
+    ),
+    { disableScroll: true },
+  );
 }

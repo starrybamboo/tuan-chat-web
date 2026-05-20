@@ -2,13 +2,13 @@ import type { MotionProps } from "motion/react";
 
 type SlideDirection = "up" | "left";
 
-interface ListItemMotionOptions {
+type ListItemMotionOptions = {
   direction?: SlideDirection;
   distance?: number;
   duration?: number;
   staggerDelay?: number;
   maxDelay?: number;
-}
+};
 
 export function listItemMotionProps(
   index: number,

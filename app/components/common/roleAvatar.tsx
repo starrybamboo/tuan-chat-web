@@ -6,7 +6,7 @@ import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import {
   useGetRoleAvatarQuery,
   useGetRoleAvatarsQuery,
@@ -26,6 +26,9 @@ const sizeMap = {
   32: "w-32 h-32", // 128px
   36: "w-36 h-36", // 144px
 } as const;
+
+const avatarShellHoverClassName = "transition-all duration-200 ease-out motion-reduce:transition-none hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:shadow-base-content/10";
+const avatarImageHoverClassName = "transition-transform duration-200 ease-out motion-reduce:transition-none group-hover/avatar:scale-105";
 
 /**
  * 用户头像组件
@@ -107,11 +110,11 @@ export default function RoleAvatarComponent({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="avatar">
+      <div className="avatar group/avatar">
         {stopToastWindow
           ? (
               <div
-                className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
+                className={`${avatarShellHoverClassName} ${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
               >
                 {!hasAvatar
                   ? <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
@@ -120,7 +123,7 @@ export default function RoleAvatarComponent({
                         enableScale={hoverToScale}
                         src={displayAvatarUrl}
                         alt={alt}
-                        className="transition-transform w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${avatarImageHoverClassName}`}
                       />
                     )}
               </div>
@@ -128,7 +131,7 @@ export default function RoleAvatarComponent({
           : (
               <button
                 type="button"
-                className={`${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
+                className={`${avatarShellHoverClassName} ${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
                 onClick={() => setIsOpen(true)}
               >
                 {!hasAvatar
@@ -138,7 +141,7 @@ export default function RoleAvatarComponent({
                         enableScale={hoverToScale}
                         src={displayAvatarUrl}
                         alt={alt}
-                        className="hover:scale-110 transition-transform w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${avatarImageHoverClassName}`}
                       />
                     )}
               </button>

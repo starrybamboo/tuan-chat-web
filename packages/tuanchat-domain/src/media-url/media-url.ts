@@ -1,4 +1,4 @@
-import type { MediaQuality, MediaType } from "./types";
+import type { MediaQuality, MediaQualityInput, MediaType } from "./types";
 
 const MEDIA_EXT: Partial<Record<MediaType, string>> = {
   image: "webp",
@@ -8,7 +8,31 @@ const MEDIA_EXT: Partial<Record<MediaType, string>> = {
 
 const DEFAULT_MEDIA_CDN_BASE_URL = "https://tuan.chat";
 const FALLBACK_MEDIA_TYPE: MediaType = "image";
-const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)\/(?:(?<mediaType>image|audio|video)\/(?<quality>low|medium|high)\.[^/?#]+|original)(?:[?#].*)?$/;
+const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)\/(?:(?<mediaType>image|audio|video|document|other)\/(?<quality>low|medium|high)(?:\.[^/?#]+)?|original)(?:[?#].*)?$/;
+
+function normalizeQuality(quality: MediaQualityInput): MediaQuality {
+  if (quality === "high")
+    return "medium";
+  return quality;
+}
+
+function resolveAvailableQuality(mediaType: MediaType, quality: MediaQuality): MediaQuality {
+  if (quality !== "original" && (mediaType === "audio" || mediaType === "video" || mediaType === "document" || mediaType === "other")) {
+    return "low";
+  }
+  return quality;
+}
+
+function mediaQualityPath(mediaType: MediaType, quality: MediaQuality): string | null {
+  const ext = MEDIA_EXT[mediaType];
+  if (ext) {
+    return `${mediaType}/${quality}.${ext}`;
+  }
+  if (mediaType === "document" || mediaType === "other") {
+    return `${mediaType}/${quality}`;
+  }
+  return null;
+}
 
 export function mediaShard(fileId: number | string): string {
   return (BigInt(String(fileId)) % 1000n).toString().padStart(3, "0");
@@ -24,28 +48,29 @@ export function normalizeMediaType(mediaType: string | null | undefined): MediaT
 export function mediaUrl(
   fileId: number | string | null | undefined,
   mediaType: MediaType,
-  quality: MediaQuality,
+  quality: MediaQualityInput,
   cdnBaseUrl?: string,
 ): string {
   if (fileId == null || String(fileId).trim() === "") {
-    return "";
+    return undefined as unknown as string;
   }
   const shard = mediaShard(fileId);
   const base = `${(cdnBaseUrl ?? DEFAULT_MEDIA_CDN_BASE_URL).replace(/\/$/, "")}/media/v1/files/${shard}/${fileId}`;
-  if (quality === "original") {
+  const resolvedQuality = resolveAvailableQuality(mediaType, normalizeQuality(quality));
+  if (resolvedQuality === "original") {
     return `${base}/original`;
   }
-  const ext = MEDIA_EXT[mediaType];
-  if (!ext) {
+  const qualityPath = mediaQualityPath(mediaType, resolvedQuality);
+  if (!qualityPath) {
     return `${base}/original`;
   }
-  return `${base}/${mediaType}/${quality}.${ext}`;
+  return `${base}/${qualityPath}`;
 }
 
 export function mediaFileUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
-  quality: MediaQuality,
+  quality: MediaQualityInput,
   cdnBaseUrl?: string,
 ): string {
   return mediaUrl(fileId, normalizeMediaType(mediaType), quality, cdnBaseUrl);
@@ -54,11 +79,11 @@ export function mediaFileUrl(
 export function mediaFileUrlWithQuality(
   rawUrl: string | null | undefined,
   mediaType: MediaType,
-  quality: MediaQuality,
+  quality: MediaQualityInput,
 ): string {
   const value = String(rawUrl ?? "").trim();
   if (!value) {
-    return "";
+    return undefined as unknown as string;
   }
   const match = value.match(MEDIA_FILE_URL_PATTERN);
   const groups = match?.groups;
@@ -66,33 +91,33 @@ export function mediaFileUrlWithQuality(
     return value;
   }
 
-  const ext = MEDIA_EXT[mediaType];
   const base = `${groups.prefix}${groups.shard}/${groups.fileId}`;
-  if (quality === "original" || !ext) {
+  const resolvedQuality = resolveAvailableQuality(mediaType, normalizeQuality(quality));
+  if (resolvedQuality === "original") {
     return `${base}/original`;
   }
-  return `${base}/${mediaType}/${quality}.${ext}`;
+  const qualityPath = mediaQualityPath(mediaType, resolvedQuality);
+  if (!qualityPath) {
+    return `${base}/original`;
+  }
+  return `${base}/${qualityPath}`;
 }
 
-export function imageUrlWithQuality(rawUrl: string | null | undefined, quality: MediaQuality): string {
+export function imageUrlWithQuality(rawUrl: string | null | undefined, quality: MediaQualityInput): string {
   return mediaFileUrlWithQuality(rawUrl, "image", quality);
 }
 
+/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "medium")` instead. */
 export function mediaPreviewUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
   cdnBaseUrl?: string,
 ): string {
   const resolvedType = normalizeMediaType(mediaType);
-  if (resolvedType === "image") {
-    return mediaUrl(fileId, resolvedType, "medium", cdnBaseUrl);
-  }
-  if (resolvedType === "audio" || resolvedType === "video") {
-    return mediaUrl(fileId, resolvedType, "high", cdnBaseUrl);
-  }
-  return mediaUrl(fileId, resolvedType, "original", cdnBaseUrl);
+  return mediaUrl(fileId, resolvedType, resolvedType === "image" ? "medium" : "low", cdnBaseUrl);
 }
 
+/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "low")` instead. */
 export function mediaThumbUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
@@ -119,13 +144,20 @@ export function extractMediaFileIdFromUrl(rawUrl: string | null | undefined): nu
 }
 
 export const imageLowUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "low", cdnBaseUrl);
+/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. */
+export const imagePreviewUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const imageMediumUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
-export const imageHighUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "high", cdnBaseUrl);
+/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. "high" maps to "medium". */
+export const imageHighUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const imageOriginalUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "original", cdnBaseUrl);
 export const imageLowUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "low");
+/** @deprecated Use `imageUrlWithQuality(url, "medium")` instead. */
+export const imagePreviewUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
 export const imageMediumUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
-export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "high");
+/** @deprecated Use `imageUrlWithQuality(url, "medium")` instead. "high" maps to "medium". */
+export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
 export const imageOriginalUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "original");
+/** @deprecated Use `mediaUrl(fileId, "image", "low")` instead. */
 export const avatarThumbUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "low", cdnBaseUrl);
 export const avatarUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const avatarOriginalUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "original", cdnBaseUrl);

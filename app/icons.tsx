@@ -69,6 +69,17 @@ export function ArticleIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 文件文本图标
+// 其他关键词：文件，附件，txt，文档
+export function FileTextIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <FileText {...props} />
+  );
+}
+
+// 兼容直接按磷光图标原名导入的旧代码
+export { ImageIcon, MusicNotesIcon, PlusIcon };
+
 // 卡片图标
 // 其他关键词：卡片，收起，列表
 function CardsIcon(props: SVGProps<SVGSVGElement>) {

@@ -12,7 +12,8 @@ export function parseTextEnhanceParams(paramsStr: string): Record<string, string
   const params: Record<string, string> = {};
   const rawParams = paramsStr.trim();
 
-  if (!rawParams) return params;
+  if (!rawParams)
+    return params;
 
   if (!rawParams.includes("=")) {
     params.ruby = rawParams;
@@ -20,12 +21,14 @@ export function parseTextEnhanceParams(paramsStr: string): Record<string, string
   }
 
   const keyMatches = [...rawParams.matchAll(/(?:^|\s)([a-z][\w-]*)=/gi)];
-  if (keyMatches.length === 0) return params;
+  if (keyMatches.length === 0)
+    return params;
 
   for (let index = 0; index < keyMatches.length; index += 1) {
     const match = keyMatches[index];
     const key = match[1]?.trim();
-    if (!key) continue;
+    if (!key)
+      continue;
     const valueStart = (match.index ?? 0) + match[0].length;
     const valueEnd = keyMatches[index + 1]?.index ?? rawParams.length;
     const value = rawParams.substring(valueStart, valueEnd).trim().replace(/\\;/g, ";").replace(/\\,/g, ",");
@@ -37,12 +40,14 @@ export function parseTextEnhanceParams(paramsStr: string): Record<string, string
 
 export function parseTextEnhanceCSSString(cssString: string): Record<string, string> {
   const style: Record<string, string> = {};
-  if (!cssString) return style;
+  if (!cssString)
+    return style;
 
   const declarations = cssString.split(";").filter(Boolean);
   for (const declaration of declarations) {
     const colonIndex = declaration.indexOf(":");
-    if (colonIndex <= 0) continue;
+    if (colonIndex <= 0)
+      continue;
     const property = declaration.substring(0, colonIndex).trim();
     const value = declaration.substring(colonIndex + 1).trim();
     const camelProperty = property.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
@@ -65,7 +70,8 @@ function findTextEnhanceParamEnd(content: string, paramsStart: number): number {
       continue;
     }
     if (char === ")") {
-      if (parenDepth === 0) return index;
+      if (parenDepth === 0)
+        return index;
       parenDepth -= 1;
     }
   }
@@ -76,10 +82,12 @@ function findNextTextEnhanceMatch(content: string, fromIndex: number) {
   let searchIndex = fromIndex;
   while (searchIndex < content.length) {
     const rawStart = content.indexOf("[", searchIndex);
-    if (rawStart < 0) return null;
+    if (rawStart < 0)
+      return null;
 
     const textEnd = content.indexOf("](", rawStart + 1);
-    if (textEnd < 0) return null;
+    if (textEnd < 0)
+      return null;
 
     const text = content.slice(rawStart + 1, textEnd);
     const paramsStart = textEnd + 2;
@@ -124,6 +132,7 @@ export function parseTextEnhanceSegments(content: string): TextEnhanceSegment[] 
 
 export function extractTextEnhanceVisibleText(value: string): string {
   const content = String(value ?? "");
-  if (!content.includes("[") || !content.includes("](")) return content;
+  if (!content.includes("[") || !content.includes("]("))
+    return content;
   return parseTextEnhanceSegments(content).map(segment => segment.content).join("");
 }

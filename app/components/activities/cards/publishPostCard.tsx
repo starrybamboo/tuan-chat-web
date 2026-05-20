@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
-import { avatarThumbUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
@@ -222,7 +222,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
       <div className="flex items-start space-x-4">
         <div className="pointer-events-none relative flex-shrink-0">
           <img
-            src={avatarThumbUrl(user?.avatarFileId) || undefined}
+            src={imageLowUrl(user?.avatarFileId) || undefined}
             alt={user?.username}
             className="mask mask-circle w-12 h-12 sm:w-14 sm:h-14 object-cover"
           />

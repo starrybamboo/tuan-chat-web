@@ -1,7 +1,7 @@
 import type { Room } from "../../../../../api";
 import React from "react";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
-import { avatarThumbUrl, imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 
 export default function RoomButton({
@@ -27,7 +27,7 @@ export default function RoomButton({
   const displayName = headerOverride?.title || room.name;
   const fallbackAvatar = "/favicon.ico";
   const displayAvatar = imageLowUrl(headerOverride?.imageFileId)
-    || imageLowUrlFromUrl(resolveEntityImageUrl(headerOverride?.imageUrl || avatarThumbUrl(room.avatarFileId), fallbackAvatar));
+    || imageLowUrlFromUrl(resolveEntityImageUrl(headerOverride?.imageUrl || imageLowUrl(room.avatarFileId), fallbackAvatar));
 
   return (
     <div

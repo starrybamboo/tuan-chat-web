@@ -4,8 +4,8 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 
 import {
   buildDirectMessageSendRequestsFromUploadedMedia,
-  getDirectUnreadCount,
   getDirectMessagePreviewText,
+  getDirectUnreadCount,
   groupDirectConversations,
   mergeDirectMessages,
 } from "./direct-message";
@@ -36,6 +36,50 @@ describe("direct message helpers", () => {
       createDirectMessage({ messageId: 1, syncId: 1 }),
       createDirectMessage({ messageId: 2, syncId: 2, content: "new" }),
     ]);
+  });
+
+  it("同一同步消息收到服务端确认后会替换旧项，避免重复气泡", () => {
+    expect(mergeDirectMessages([
+      createDirectMessage({ content: "pending", messageId: -1, syncId: 8 }),
+    ], [
+      createDirectMessage({ content: "confirmed", messageId: 88, syncId: 8 }),
+    ])).toEqual([
+      createDirectMessage({ content: "confirmed", messageId: 88, syncId: 8 }),
+    ]);
+  });
+
+  it("同一 messageId 即使同步位置变化也只保留后到消息", () => {
+    expect(mergeDirectMessages([
+      createDirectMessage({ content: "old", messageId: 9, syncId: 7 }),
+    ], [
+      createDirectMessage({ content: "new", messageId: 9, syncId: 9 }),
+    ])).toEqual([
+      createDirectMessage({ content: "new", messageId: 9, syncId: 9 }),
+    ]);
+  });
+
+  it("确认消息同时命中旧 messageId 和旧同步键时会合并成一条", () => {
+    expect(mergeDirectMessages([
+      createDirectMessage({ content: "server-old", messageId: 9, syncId: 7 }),
+      createDirectMessage({ content: "pending", messageId: -1, syncId: 8 }),
+    ], [
+      createDirectMessage({ content: "confirmed", messageId: 9, syncId: 8 }),
+    ])).toEqual([
+      createDirectMessage({ content: "confirmed", messageId: 9, syncId: 8 }),
+    ]);
+  });
+
+  it("同 syncId 的普通消息和已读线不会互相吞掉", () => {
+    const message = createDirectMessage({ messageId: 8, senderId: 42, syncId: 8 });
+    const readLine = createDirectMessage({
+      messageId: -42,
+      messageType: 10000,
+      receiverId: 42,
+      senderId: 7,
+      syncId: 8,
+    });
+
+    expect(mergeDirectMessages([message], [readLine])).toEqual([message, readLine]);
   });
 
   it("基于已读线和乐观已读 sync 计算未读", () => {

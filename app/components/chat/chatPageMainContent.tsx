@@ -1,16 +1,23 @@
+import type { Message } from "../../../api";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
 
-import FriendsPage from "@/components/privateChat/FriendsPage";
+import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
+import NewFriendsPanel from "@/components/privateChat/components/NewFriendsPanel";
 import RightChatView from "@/components/privateChat/RightChatView";
 
 // 私聊首页只需要私聊组件，群聊/文档工作台进入对应分支后再加载。
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
 const LazySpaceDetailPanel = React.lazy(() => import("@/components/chat/space/drawers/spaceDetailPanel"));
 const LazyRoomSettingWindow = React.lazy(() => import("@/components/chat/window/roomSettingWindow"));
+
+function RoomWindowLoadingFallback() {
+  return <RoomWindowLoadingState />;
+}
 
 function ChatPageLoadingFallback({ text }: { text: string }) {
   return (
@@ -48,6 +55,28 @@ function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
   );
 }
 
+function PrivateChatEmptyState() {
+  const { setPrivateChatTab } = useChatPageLayoutContext();
+  return (
+    <div className="flex h-full w-full items-center justify-center px-6 text-base-content/60">
+      <div className="flex max-w-sm flex-col items-center gap-3 text-center">
+        <svg xmlns="http://www.w3.org/2000/svg" className="size-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        <h2 className="text-sm font-semibold text-base-content/80">选择一个对话开始聊天</h2>
+        <p className="text-xs leading-5 opacity-70">从左侧会话继续聊天，或从好友列表发起新的私聊。</p>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm mt-1"
+          onClick={() => setPrivateChatTab("friends")}
+        >
+          查看好友
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ChatPageMainContent() {
   const { isSpaceDetailRoute } = useChatPageLayoutContext();
 
@@ -61,6 +90,7 @@ function ChatPageChatContent() {
     setIsOpenLeftDrawer,
     activeSpaceId,
     targetMessageId,
+    privateChatTab,
   } = useChatPageLayoutContext();
   const location = useLocation();
   const searchParams = React.useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
@@ -68,17 +98,34 @@ function ChatPageChatContent() {
   const isPreviewMode = previewParam === "1" || previewParam === "true";
 
   if (isPrivateChatMode) {
-    return activeRoomId
-      ? (
-          <RightChatView
-            setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-          />
-        )
-      : (
-          <FriendsPage
-            setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-          />
-        );
+    const privateChatContent = (() => {
+      if (privateChatTab === "friends") {
+        return <FriendsListPanel />;
+      }
+
+      if (privateChatTab === "new-friends") {
+        return <NewFriendsPanel />;
+      }
+
+      return activeRoomId
+        ? (
+            <RightChatView
+              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+            />
+          )
+        : <PrivateChatEmptyState />;
+    })();
+
+    return (
+      <div className="h-full w-full overflow-hidden border-t border-gray-300 dark:border-gray-700">
+        <div
+          key={privateChatTab}
+          className="private-chat-panel-entry h-full w-full"
+        >
+          {privateChatContent}
+        </div>
+      </div>
+    );
   }
 
   if (!activeSpaceId) {
@@ -98,7 +145,7 @@ function ChatPageChatContent() {
   }
 
   return (
-    <React.Suspense fallback={<ChatPageLoadingFallback text="正在加载聊天房间..." />}>
+    <React.Suspense fallback={<RoomWindowLoadingFallback />}>
       <LazyRoomWindow
         roomId={activeRoomId}
         spaceId={activeSpaceId ?? -1}
@@ -158,6 +205,10 @@ interface ChatPageDocContentProps {
   docId?: string | null;
   canViewDocs?: boolean;
   onBack?: () => void;
+  showToolbar?: boolean;
+  initialMessages?: Message[];
+  onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
+  remoteSource?: "self" | "room-cache";
   tcHeaderTitle?: string;
   tcHeaderImageUrl?: string;
   tcHeaderImageFileId?: number;
@@ -177,6 +228,8 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   const canViewDocs = props.canViewDocs ?? isKPInSpace;
   const tcHeaderTitle = props.tcHeaderTitle ?? activeDocTitleForTcHeader;
   const handleBack = props.onBack;
+  const showToolbar = props.showToolbar ?? true;
+  const initialMessages = props.initialMessages ?? [];
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
@@ -192,11 +245,14 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
         {canViewDocs
           ? (
               <div className="flex w-full h-full min-h-0 flex-col overflow-hidden bg-base-100">
-                <ChatPageDocToolbar onBack={handleBack} />
+                {showToolbar && <ChatPageDocToolbar onBack={handleBack} />}
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <MessageEditor
                     className="h-full min-h-0 rounded-none !border-t-0"
                     docId={resolvedDocId}
+                    initialMessages={initialMessages}
+                    onRemoteMessagesSaved={props.onRemoteMessagesSaved}
+                    remoteSource={props.remoteSource}
                     spaceId={resolvedSpaceId ?? -1}
                     tcHeader={{
                       enabled: true,

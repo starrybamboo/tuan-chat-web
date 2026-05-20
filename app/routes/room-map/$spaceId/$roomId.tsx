@@ -10,7 +10,6 @@ export const Route = createFileRoute("/room-map/$spaceId/$roomId")({
 function RoomMapFrameRoute() {
   const params = useParams({ strict: false });
   const roomId = useMemo(() => Number(params.roomId), [params.roomId]);
-  const spaceId = useMemo(() => Number(params.spaceId), [params.spaceId]);
 
   if (!Number.isFinite(roomId) || roomId <= 0) {
     return (
@@ -22,7 +21,7 @@ function RoomMapFrameRoute() {
 
   return (
     <div className="w-full h-full bg-base-200">
-      <DNDMap roomId={roomId} spaceId={spaceId} variant="frame" />
+      <DNDMap roomId={roomId} variant="frame" />
     </div>
   );
 }

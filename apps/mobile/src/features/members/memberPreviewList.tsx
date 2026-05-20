@@ -1,11 +1,11 @@
-import type { MemberPreviewItem } from "./memberUtils";
 import { useMemo } from "react";
-
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-
 import { Spacing } from "@/constants/theme";
+
+import type { MemberPreviewItem } from "./memberUtils";
 
 import { getMemberDisplayName, getSpaceMemberTypeLabel, sortMemberPreviewItems } from "./memberUtils";
 
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface MemberPreviewListProps {
+type MemberPreviewListProps = {
   currentUserId?: number | null;
   emptyText: string;
   error: unknown;
@@ -45,7 +45,7 @@ interface MemberPreviewListProps {
   maxVisible?: number;
   members: MemberPreviewItem[];
   onLongPress?: (member: MemberPreviewItem) => void;
-}
+};
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim().length > 0) {

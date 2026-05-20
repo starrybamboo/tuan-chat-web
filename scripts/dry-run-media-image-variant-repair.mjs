@@ -60,7 +60,8 @@ async function main() {
       if (result.kind === "candidate") {
         candidateResults.push(result);
       }
-    } catch (error) {
+    }
+    catch (error) {
       stats.failedGroups += 1;
       if (stats.failedSamples.length < sampleLimit) {
         stats.failedSamples.push({
@@ -335,9 +336,11 @@ function mergeStats(stats, result) {
 
   if (result.maxEdge <= IMAGE_PROFILES.low.maxEdge) {
     stats.maxEdgeBuckets.le200 += 1;
-  } else if (result.maxEdge <= IMAGE_PROFILES.medium.maxEdge) {
+  }
+  else if (result.maxEdge <= IMAGE_PROFILES.medium.maxEdge) {
     stats.maxEdgeBuckets.le512 += 1;
-  } else {
+  }
+  else {
     stats.maxEdgeBuckets.gt512 += 1;
   }
 }
@@ -409,11 +412,12 @@ async function hashFile(filePath) {
 }
 
 async function existsAll(...paths) {
-  const checks = await Promise.all(paths.map(async entry => {
+  const checks = await Promise.all(paths.map(async (entry) => {
     try {
       const stat = await fs.stat(entry);
       return stat.isFile();
-    } catch {
+    }
+    catch {
       return false;
     }
   }));

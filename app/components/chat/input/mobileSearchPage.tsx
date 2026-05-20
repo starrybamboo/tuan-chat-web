@@ -216,7 +216,8 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
                               keyword={debouncedSearchText}
                               key={message.message.messageId}
                               onClick={() => {
-                                roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageId);
+                                if (roomContext.scrollToGivenMessage)
+                                  roomContext.scrollToGivenMessage(message.message.messageId);
                                 onClose();
                               }}
                               className="px-4 py-4 hover:bg-base-200 active:bg-base-300 cursor-pointer transition-colors"

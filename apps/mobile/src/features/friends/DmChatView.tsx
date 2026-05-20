@@ -1,31 +1,38 @@
-import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
-import { DIRECT_MESSAGE_READ_LINE_TYPE, buildDirectMessageSendRequestsFromUploadedMedia, getDirectMessagePreviewText, isDirectReadLineMessage, mergeDirectMessages } from "@tuanchat/domain/direct-message";
-import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
-import { ArrowUp, CaretLeft, Check, Checks, Warning, X, XCircle } from "phosphor-react-native";
+import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
+import type { DmMessageAction } from "@/features/friends/DmMessageActionMenu";
+import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
-import { Image } from "expo-image";
-
+import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { DmMessageActionMenu, type DmMessageAction } from "@/features/friends/DmMessageActionMenu";
-import { mergePickedMessageAttachments, pickMobileMessageAttachments, type MobileMessageAttachment, type MobileMessageAttachmentKind, MOBILE_MESSAGE_ATTACHMENT_KIND } from "@/features/messages/mobileMessageAttachment";
+import { resolveBottomThresholdTransition } from "@/features/chat/messageListScrollState";
+import { DmMessageActionMenu } from "@/features/friends/DmMessageActionMenu";
+import { mergePickedMessageAttachments, MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
-import { useRecallDirectMessageMutation, useUpdateDirectReadPositionMutation } from "@tuanchat/query/direct-message";
+import { useTheme } from "@/hooks/use-theme";
+import { SPRING_SNAPPY } from "@/lib/animations";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
+import { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
-import { useTheme } from "@/hooks/use-theme";
+import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
 
-import { useSendDmMutation } from "./useSendDmMutation";
 import { getErrorMessage } from "../chat/mobileChatUtils";
+import { getVisibleDirectMessageTimeline, selectDirectMessagePage } from "./dmChatViewModel";
+import { useRecallDmMutation, useSendDmMutation, useUpdateDmReadPositionMutation } from "./useSendDmMutation";
 
 const PAGE_SIZE = 30;
+const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -111,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     flexDirection: "row",
     gap: Spacing.md,
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
@@ -120,8 +127,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
+    marginHorizontal: Spacing.sm,
   },
   attachmentChip: {
     alignItems: "center",
@@ -135,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
   },
   toolRow: {
@@ -152,27 +158,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.xs,
   },
+  composerContainer: {
+    gap: Spacing.sm,
+    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
   inputRow: {
-    alignItems: "flex-end",
+    alignItems: "center",
     flexDirection: "row",
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
   },
   input: {
-    borderRadius: 20,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     flex: 1,
     fontSize: 15,
-    height: 36,
+    includeFontPadding: false,
+    lineHeight: 20,
+    maxHeight: COMPOSER_MAX_HEIGHT,
+    minHeight: COMPOSER_MIN_HEIGHT,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: 0,
+    paddingBottom: Spacing.sm,
+    paddingTop: 10,
   },
   sendBtn: {
     alignItems: "center",
-    borderRadius: Radius.full,
-    height: 36,
+    height: 44,
     justifyContent: "center",
-    width: 36,
+    width: 44,
   },
   emptyState: {
     alignItems: "center",
@@ -191,33 +205,37 @@ const styles = StyleSheet.create({
   },
 });
 
-interface DmChatViewProps {
+type DmChatViewProps = {
   contactId: number;
   contactName: string;
   contactAvatarFileId?: number;
   currentUserId: number | null;
   messages: MessageDirectResponse[];
   onBack: () => void;
-  onOpenProfile?: () => void;
-}
+};
 
 function formatMessageTimeLabel(createTime?: string | null) {
-  if (!createTime) return "";
+  if (!createTime)
+    return "";
   const parsed = new Date(createTime);
-  if (Number.isNaN(parsed.getTime())) return "";
+  if (Number.isNaN(parsed.getTime()))
+    return "";
   return parsed.toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" });
 }
 
 function formatDateSeparator(createTime: string): string {
   const date = new Date(createTime);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime()))
+    return "";
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diff = today.getTime() - target.getTime();
   const dayMs = 86400000;
-  if (diff < dayMs) return "今天";
-  if (diff < dayMs * 2) return "昨天";
+  if (diff < dayMs)
+    return "今天";
+  if (diff < dayMs * 2)
+    return "昨天";
   if (diff < dayMs * 7) {
     const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
     return weekdays[date.getDay()];
@@ -226,15 +244,57 @@ function formatDateSeparator(createTime: string): string {
 }
 
 function isSameDay(a?: string | null, b?: string | null): boolean {
-  if (!a || !b) return false;
+  if (!a || !b)
+    return false;
   const da = new Date(a);
   const db = new Date(b);
   return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
 }
 
-type DirectMessageRenderContent =
-  | { kind: "media"; text: string }
-  | { kind: "text"; text: string };
+function getDirectMessageListItemKey(message: MessageDirectResponse, index: number): string {
+  if (typeof message.messageId === "number" && Number.isFinite(message.messageId)) {
+    return `message:${message.messageId}`;
+  }
+  if (typeof message.syncId === "number" && Number.isFinite(message.syncId)) {
+    return `sync:${message.syncId}`;
+  }
+  const fallbackParts = [
+    message.senderId,
+    message.receiverId,
+    message.createTime,
+    message.messageType,
+    message.content?.slice(0, 24),
+    index,
+  ];
+  return `fallback:${fallbackParts.map(value => value ?? "").join(":")}`;
+}
+
+function summarizeDirectMessageForDebug(message?: MessageDirectResponse | null) {
+  if (!message) {
+    return null;
+  }
+
+  return {
+    content: message.content?.slice(0, 24) ?? null,
+    createTime: message.createTime ?? null,
+    messageId: message.messageId ?? null,
+    messageType: message.messageType ?? null,
+    receiverId: message.receiverId ?? null,
+    senderId: message.senderId ?? null,
+    syncId: message.syncId ?? null,
+  };
+}
+
+function logDmChatViewDebug(event: string, detail: Record<string, unknown>) {
+  if (!__DEV__) {
+    return;
+  }
+  console.warn(DM_CHAT_VIEW_DEBUG_PREFIX, event, detail);
+}
+
+type DirectMessageRenderContent
+  = | { kind: "media"; text: string }
+    | { kind: "text"; text: string };
 
 function getDirectMessageContent(message: MessageDirectResponse): DirectMessageRenderContent {
   if (message.status === 1) {
@@ -268,50 +328,61 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
 
 type MessageSendStatus = "sending" | "sent" | "delivered" | "failed";
 
-export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenProfile }: DmChatViewProps) {
+export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack }: DmChatViewProps) {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
   const readSyncRef = useRef(0);
-  const needsInitialScrollRef = useRef(true);
   const [draft, setDraft] = useState("");
+  const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
   const [attachments, setAttachments] = useState<MobileMessageAttachment[]>([]);
   const [replyMessage, setReplyMessage] = useState<MessageDirectResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const sendInFlightRef = useRef(false);
+  const scrollDebugCountRef = useRef(0);
+  const previousPaginatedLengthRef = useRef<number | null>(null);
   const [actionMenuMessage, setActionMenuMessage] = useState<MessageDirectResponse | null>(null);
-  const [pendingMessageIds, setPendingMessageIds] = useState<Set<number>>(new Set());
-  const [failedMessageIds, setFailedMessageIds] = useState<Set<number>>(new Set());
+  const [pendingMessageIds, setPendingMessageIds] = useState<Set<number>>(() => new Set());
+  const [failedMessageIds, setFailedMessageIds] = useState<Set<number>>(() => new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const isAtBottomRef = useRef(true);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const sendMutation = useSendDmMutation(currentUserId);
-  const recallMutation = useRecallDirectMessageMutation(mobileApiClient, currentUserId);
-  const updateReadPositionMutation = useUpdateDirectReadPositionMutation(mobileApiClient);
+  const recallMutation = useRecallDmMutation(currentUserId);
+  const updateReadPositionMutation = useUpdateDmReadPositionMutation(currentUserId);
+
+  const sendButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: withSpring(isSending ? 0.85 : 1, SPRING_SNAPPY) }],
+    opacity: withSpring(isSending ? 0.6 : 1, SPRING_SNAPPY),
+  }));
 
   const mergedMessages = useMemo(() => {
     return mergeDirectMessages(messages);
   }, [messages]);
 
-  const sortedMessages = useMemo(() => {
-    return mergedMessages.filter((message) => !isDirectReadLineMessage(message));
+  const visibleTimelineMessages = useMemo(() => {
+    return getVisibleDirectMessageTimeline(mergedMessages);
   }, [mergedMessages]);
 
   const paginatedMessages = useMemo(() => {
-    const total = sortedMessages.length;
-    const start = Math.max(0, total - visibleCount);
-    return sortedMessages.slice(start);
-  }, [sortedMessages, visibleCount]);
+    return selectDirectMessagePage(visibleTimelineMessages, visibleCount);
+  }, [visibleTimelineMessages, visibleCount]);
 
-  const hasMoreMessages = visibleCount < sortedMessages.length;
+  const invertedMessages = useMemo(() => {
+    return [...paginatedMessages].reverse();
+  }, [paginatedMessages]);
+
+  const hasMoreMessages = visibleCount < visibleTimelineMessages.length;
 
   const latestIncomingSync = useMemo(() => {
-    return sortedMessages.reduce((max, message) => {
+    return visibleTimelineMessages.reduce((max, message) => {
       if (message.senderId === contactId && message.status !== 1) {
         return Math.max(max, message.syncId ?? 0);
       }
       return max;
     }, 0);
-  }, [contactId, sortedMessages]);
+  }, [contactId, visibleTimelineMessages]);
 
   const currentReadSync = useMemo(() => {
     return mergedMessages.reduce((max, message) => {
@@ -323,23 +394,60 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
   }, [currentUserId, mergedMessages]);
 
   useEffect(() => {
+    logDmChatViewDebug("enter-contact", {
+      contactId,
+    });
     setDraft("");
+    setInputHeight(COMPOSER_MIN_HEIGHT);
     setAttachments([]);
     setReplyMessage(null);
     setErrorMessage(null);
+    sendInFlightRef.current = false;
     setActionMenuMessage(null);
     setPendingMessageIds(new Set());
     setFailedMessageIds(new Set());
+    isAtBottomRef.current = true;
     setIsAtBottom(true);
     setVisibleCount(PAGE_SIZE);
     readSyncRef.current = 0;
-    needsInitialScrollRef.current = true;
+    scrollDebugCountRef.current = 0;
+    previousPaginatedLengthRef.current = null;
   }, [contactId]);
 
   useEffect(() => {
-    if (!contactId || latestIncomingSync <= 0) return;
+    if (draft.length === 0) {
+      setInputHeight(COMPOSER_MIN_HEIGHT);
+    }
+  }, [draft]);
+
+  useEffect(() => {
+    logDmChatViewDebug("timeline-snapshot", {
+      contactId,
+      firstChronologicalVisible: summarizeDirectMessageForDebug(paginatedMessages[0]),
+      hasMoreMessages,
+      firstInvertedVisible: summarizeDirectMessageForDebug(invertedMessages[0]),
+      lastChronologicalVisible: summarizeDirectMessageForDebug(paginatedMessages.at(-1)),
+      mergedCount: mergedMessages.length,
+      paginatedCount: paginatedMessages.length,
+      visibleCount,
+      visibleTimelineCount: visibleTimelineMessages.length,
+    });
+  }, [
+    contactId,
+    hasMoreMessages,
+    invertedMessages,
+    mergedMessages.length,
+    paginatedMessages,
+    visibleCount,
+    visibleTimelineMessages.length,
+  ]);
+
+  useEffect(() => {
+    if (!contactId || latestIncomingSync <= 0)
+      return;
     const effectiveReadSync = Math.max(currentReadSync, readSyncRef.current);
-    if (latestIncomingSync <= effectiveReadSync) return;
+    if (latestIncomingSync <= effectiveReadSync)
+      return;
     readSyncRef.current = latestIncomingSync;
     updateReadPositionMutation.mutate(contactId, {
       onError: () => { readSyncRef.current = effectiveReadSync; },
@@ -347,27 +455,68 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
   }, [contactId, currentReadSync, latestIncomingSync, updateReadPositionMutation]);
 
   useEffect(() => {
-    if (isAtBottom && flatListRef.current && paginatedMessages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    const previousLength = previousPaginatedLengthRef.current;
+    previousPaginatedLengthRef.current = paginatedMessages.length;
+    if (previousLength == null || !isAtBottomRef.current || paginatedMessages.length === 0) {
+      return;
     }
-  }, [paginatedMessages.length, isAtBottom]);
+    if (paginatedMessages.length > previousLength && flatListRef.current) {
+      const timer = setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [paginatedMessages.length]);
 
-  const handleScroll = useCallback((event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    const distanceFromBottom = contentSize.height - contentOffset.y - layoutMeasurement.height;
-    setIsAtBottom(distanceFromBottom < 50);
+  const commitBottomState = useCallback((nextIsAtBottom: boolean) => {
+    if (isAtBottomRef.current === nextIsAtBottom) {
+      return;
+    }
+
+    isAtBottomRef.current = nextIsAtBottom;
+    setIsAtBottom(nextIsAtBottom);
   }, []);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom = contentOffset.y;
+    const transition = resolveBottomThresholdTransition(isAtBottomRef.current, distanceFromBottom);
+    if (transition.changed) {
+      commitBottomState(transition.isAtBottom);
+    }
+    if (__DEV__ && scrollDebugCountRef.current < 6) {
+      scrollDebugCountRef.current += 1;
+      logDmChatViewDebug("scroll", {
+        contentHeight: contentSize.height,
+        contentWidth: contentSize.width,
+        distanceFromBottom,
+        layoutHeight: layoutMeasurement.height,
+        offsetY: contentOffset.y,
+      });
+    }
+  }, [commitBottomState]);
 
   const handleLoadMore = useCallback(() => {
     if (hasMoreMessages) {
-      setVisibleCount((prev) => prev + PAGE_SIZE);
+      setVisibleCount(prev => prev + PAGE_SIZE);
     }
   }, [hasMoreMessages]);
 
-  const handleSend = useCallback(async () => {
-    const text = draft.trim();
-    if (!text && attachments.length === 0) return;
+  const handleChangeDraft = useCallback((nextDraft: string) => {
+    if (nextDraft.length < draft.length) {
+      setInputHeight(COMPOSER_MIN_HEIGHT);
+    }
+    setDraft(nextDraft);
+  }, [draft.length]);
 
+  const handleSend = useCallback(async () => {
+    if (sendInFlightRef.current) {
+      return;
+    }
+
+    const text = draft.trim();
+    if (!text && attachments.length === 0)
+      return;
+
+    sendInFlightRef.current = true;
     setErrorMessage(null);
     setIsSending(true);
     try {
@@ -395,21 +544,27 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
       setDraft("");
       setAttachments([]);
       setReplyMessage(null);
+      isAtBottomRef.current = true;
       setIsAtBottom(true);
-    } catch (error) {
+    }
+    catch (error) {
       setErrorMessage(getErrorMessage(error, "发送私聊消息失败。"));
-    } finally {
+    }
+    finally {
+      sendInFlightRef.current = false;
       setIsSending(false);
     }
   }, [attachments, contactId, draft, replyMessage?.messageId, sendMutation]);
 
-  const handlePickAttachments = useCallback(async (kind: MobileMessageAttachmentKind) => {
+  const _handlePickAttachments = useCallback(async (kind: MobileMessageAttachmentKind) => {
     setErrorMessage(null);
     try {
       const picked = await pickMobileMessageAttachments(kind);
-      if (picked.length === 0) return;
-      setAttachments((current) => mergePickedMessageAttachments(current, picked));
-    } catch (error) {
+      if (picked.length === 0)
+        return;
+      setAttachments(current => mergePickedMessageAttachments(current, picked));
+    }
+    catch (error) {
       setErrorMessage(getErrorMessage(error, "选择附件失败。"));
     }
   }, []);
@@ -429,7 +584,8 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
 
     if (action === "recall") {
       const messageId = message.messageId;
-      if (typeof messageId !== "number") return;
+      if (typeof messageId !== "number")
+        return;
 
       Alert.alert("撤回消息", "确定要撤回这条消息吗？", [
         { text: "取消", style: "cancel" },
@@ -447,11 +603,15 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
   }, [recallMutation]);
 
   const getMessageStatus = useCallback((message: MessageDirectResponse): MessageSendStatus | null => {
-    if (message.senderId !== currentUserId) return null;
-    if (message.status === 1) return null;
+    if (message.senderId !== currentUserId)
+      return null;
+    if (message.status === 1)
+      return null;
     const msgId = message.messageId;
-    if (typeof msgId === "number" && failedMessageIds.has(msgId)) return "failed";
-    if (typeof msgId === "number" && pendingMessageIds.has(msgId)) return "sending";
+    if (typeof msgId === "number" && failedMessageIds.has(msgId))
+      return "failed";
+    if (typeof msgId === "number" && pendingMessageIds.has(msgId))
+      return "sending";
     return "sent";
   }, [currentUserId, failedMessageIds, pendingMessageIds]);
 
@@ -463,29 +623,35 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     const content = getDirectMessageContent(item);
     const status = getMessageStatus(item);
 
-    const showDateSeparator = index === 0 || !isSameDay(item.createTime, paginatedMessages[index - 1]?.createTime);
+    const showDateSeparator = index === invertedMessages.length - 1 || !isSameDay(item.createTime, invertedMessages[index + 1]?.createTime);
 
     return (
       <View>
-        {showDateSeparator && item.createTime ? (
-          <View style={styles.dateSeparator}>
-            <ThemedText themeColor="textSecondary" type="caption">
-              {formatDateSeparator(item.createTime)}
-            </ThemedText>
-          </View>
-        ) : null}
-        <View style={[styles.row, isMine ? styles.rowMine : styles.rowTheirs]}>
-          {!isMine ? (
-            contactAvatarUrl ? (
-              <Image source={{ uri: contactAvatarUrl }} style={styles.messageAvatar} />
-            ) : (
-              <View style={[styles.messageAvatarFallback, { backgroundColor: theme.accent }]}>
-                <ThemedText style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
-                  {(contactName ?? "").slice(0, 1) || "U"}
+        {showDateSeparator && item.createTime
+          ? (
+              <View style={styles.dateSeparator}>
+                <ThemedText themeColor="textSecondary" type="caption">
+                  {formatDateSeparator(item.createTime)}
                 </ThemedText>
               </View>
             )
-          ) : null}
+          : null}
+        <View style={[styles.row, isMine ? styles.rowMine : styles.rowTheirs]}>
+          {!isMine
+            ? (
+                contactAvatarUrl
+                  ? (
+                      <CachedImage uri={contactAvatarUrl} style={styles.messageAvatar} />
+                    )
+                  : (
+                      <View style={[styles.messageAvatarFallback, { backgroundColor: theme.accent }]}>
+                        <ThemedText style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+                          {(contactName ?? "").slice(0, 1) || "U"}
+                        </ThemedText>
+                      </View>
+                    )
+              )
+            : null}
           <View style={styles.bubbleWrapper}>
             <Pressable
               onLongPress={item.status !== 1 ? () => setActionMenuMessage(item) : undefined}
@@ -498,44 +664,54 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
                 },
               ]}
             >
-              {content.kind === "media" ? (
-                <MobileMessageMediaPreview
-                  compact
-                  content={item.content}
-                  extra={item.extra}
-                  messageType={item.messageType}
-                />
-              ) : (
-                <ThemedText style={{ color: isMine && item.status !== 1 ? "#fff" : theme.text, fontSize: 15 }}>
-                  {content.text}
-                </ThemedText>
-              )}
+              {content.kind === "media"
+                ? (
+                    <MobileMessageMediaPreview
+                      compact
+                      content={item.content}
+                      extra={item.extra}
+                      messageType={item.messageType}
+                    />
+                  )
+                : (
+                    <ThemedText style={{ color: isMine && item.status !== 1 ? "#fff" : theme.text, fontSize: 15 }}>
+                      {content.text}
+                    </ThemedText>
+                  )}
             </Pressable>
             <View style={[styles.messageFooter, { justifyContent: isMine ? "flex-end" : "flex-start" }]}>
               <ThemedText themeColor="textSecondary" style={styles.time}>
                 {formatMessageTimeLabel(item.createTime)}
               </ThemedText>
-              {isMine && status ? (
-                <View style={styles.statusIcon}>
-                  {status === "sending" ? (
-                    <ActivityIndicator size={10} color={theme.textSecondary} />
-                  ) : status === "failed" ? (
-                    <Warning size={12} color={theme.danger} weight="fill" />
-                  ) : status === "delivered" ? (
-                    <Checks size={12} color={theme.accent} />
-                  ) : (
-                    <Check size={12} color={theme.textSecondary} />
-                  )}
-                </View>
-              ) : null}
+              {isMine && status
+                ? (
+                    <View style={styles.statusIcon}>
+                      {status === "sending"
+                        ? (
+                            <ActivityIndicator size={10} color={theme.textSecondary} />
+                          )
+                        : status === "failed"
+                          ? (
+                              <Warning size={12} color={theme.danger} weight="fill" />
+                            )
+                          : status === "delivered"
+                            ? (
+                                <Checks size={12} color={theme.accent} />
+                              )
+                            : (
+                                <Check size={12} color={theme.textSecondary} />
+                              )}
+                    </View>
+                  )
+                : null}
             </View>
           </View>
         </View>
       </View>
     );
-  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, paginatedMessages]);
+  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, invertedMessages]);
 
-  const attachmentKinds = [
+  const _attachmentKinds = [
     { label: "图片", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE },
     { label: "视频", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.VIDEO },
     { label: "文件", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.FILE },
@@ -548,119 +724,163 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         <Pressable onPress={onBack} accessibilityLabel="返回" accessibilityRole="button">
           <CaretLeft size={20} color={theme.text} weight="bold" />
         </Pressable>
-        {contactAvatarUrl ? (
-          <Image source={{ uri: contactAvatarUrl }} style={styles.headerAvatar} />
-        ) : (
-          <View style={[styles.headerAvatarFallback, { backgroundColor: theme.accent }]}>
-            <ThemedText style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
-              {(contactName ?? "").slice(0, 1) || "U"}
-            </ThemedText>
-          </View>
-        )}
-        <Pressable style={styles.headerMeta} onPress={onOpenProfile} accessibilityLabel={`查看 ${contactName} 的资料`}>
+        {contactAvatarUrl
+          ? (
+              <CachedImage uri={contactAvatarUrl} style={styles.headerAvatar} />
+            )
+          : (
+              <View style={[styles.headerAvatarFallback, { backgroundColor: theme.accent }]}>
+                <ThemedText style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
+                  {(contactName ?? "").slice(0, 1) || "U"}
+                </ThemedText>
+              </View>
+            )}
+        <View style={styles.headerMeta}>
           <ThemedText type="heading" numberOfLines={1}>{contactName}</ThemedText>
-        </Pressable>
+        </View>
       </View>
 
       <FlatList
         ref={flatListRef}
-        data={paginatedMessages}
-        keyExtractor={(item) => String(item.messageId ?? `${item.syncId}-${item.createTime}`)}
+        data={invertedMessages}
+        inverted
+        keyExtractor={getDirectMessageListItemKey}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={hasMoreMessages ? (
-          <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
-            <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
-          </Pressable>
-        ) : null}
+        initialNumToRender={PAGE_SIZE}
+        ListFooterComponent={hasMoreMessages
+          ? (
+              <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
+                <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
+              </Pressable>
+            )
+          : null}
         ListEmptyComponent={(
           <View style={styles.emptyState}>
             <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
           </View>
         )}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        maxToRenderPerBatch={PAGE_SIZE}
         onScroll={handleScroll}
-        onContentSizeChange={() => {
-          if (needsInitialScrollRef.current && paginatedMessages.length > 0) {
-            needsInitialScrollRef.current = false;
-            flatListRef.current?.scrollToEnd({ animated: false });
-          }
+        onContentSizeChange={(contentWidth, contentHeight) => {
+          logDmChatViewDebug("content-size", {
+            contentHeight,
+            contentWidth,
+            paginatedCount: paginatedMessages.length,
+          });
         }}
+        removeClippedSubviews={false}
         scrollEventThrottle={100}
         style={styles.list}
       />
 
-      {!isAtBottom && paginatedMessages.length > 0 ? (
-        <Pressable
-          onPress={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          style={[styles.newMessagesPill, { backgroundColor: theme.accent }]}
-        >
-          <ThemedText style={{ color: "#fff", fontSize: 12 }}>新消息</ThemedText>
-        </Pressable>
-      ) : null}
+      {!isAtBottom && paginatedMessages.length > 0
+        ? (
+            <Pressable
+              onPress={() => {
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+                isAtBottomRef.current = true;
+                setIsAtBottom(true);
+              }}
+              style={[styles.newMessagesPill, { backgroundColor: theme.accent }]}
+            >
+              <ThemedText style={{ color: "#fff", fontSize: 12 }}>新消息</ThemedText>
+            </Pressable>
+          )
+        : null}
 
-      {replyMessage ? (
-        <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
-          <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
-            回复 {getDirectMessagePreviewText(replyMessage)}
-          </ThemedText>
-          <Pressable onPress={() => setReplyMessage(null)} accessibilityLabel="取消回复">
-            <X size={14} color={theme.textSecondary} />
-          </Pressable>
+      <View style={[styles.composerContainer, { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth, backgroundColor: theme.surface }]}>
+        {replyMessage
+          ? (
+              <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
+                <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
+                  回复
+                  {" "}
+                  {getDirectMessagePreviewText(replyMessage)}
+                </ThemedText>
+                <Pressable onPress={() => setReplyMessage(null)} accessibilityLabel="取消回复">
+                  <X size={14} color={theme.textSecondary} />
+                </Pressable>
+              </View>
+            )
+          : null}
+
+        {attachments.length > 0
+          ? (
+              <View style={styles.attachmentRow}>
+                {attachments.map(attachment => (
+                  <View key={attachment.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                    <ThemedText type="caption" numberOfLines={1}>{attachment.fileName}</ThemedText>
+                    <Pressable onPress={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}>
+                      <XCircle size={14} color={theme.textSecondary} weight="fill" />
+                    </Pressable>
+                  </View>
+                ))}
+                <Pressable onPress={() => setAttachments([])} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                  <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
+                </Pressable>
+              </View>
+            )
+          : null}
+
+        {errorMessage
+          ? (
+              <View style={styles.errorBar}>
+                <Warning size={14} color={theme.danger} />
+                <ThemedText style={{ color: theme.danger, fontSize: 12, flex: 1 }}>
+                  {errorMessage}
+                </ThemedText>
+                <Pressable onPress={() => setErrorMessage(null)}>
+                  <X size={12} color={theme.danger} />
+                </Pressable>
+              </View>
+            )
+          : null}
+
+        <View style={styles.inputRow}>
+          <TextInput
+            editable={!isSending}
+            multiline
+            value={draft}
+            onChangeText={handleChangeDraft}
+            onContentSizeChange={(event) => {
+              const nextHeight = event.nativeEvent.contentSize.height;
+              setInputHeight(Math.min(Math.max(nextHeight, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT));
+            }}
+            placeholder={`给 ${contactName}...`}
+            placeholderTextColor={theme.textSecondary}
+            scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+                height: inputHeight,
+                textAlignVertical: "top",
+              },
+            ]}
+            accessibilityLabel="输入消息"
+          />
+          <Animated.View style={sendButtonStyle}>
+            <Pressable
+              disabled={!canSend}
+              onPress={() => void handleSend()}
+              style={styles.sendBtn}
+              accessibilityLabel="发送消息"
+              accessibilityRole="button"
+            >
+              {isSending
+                ? (
+                    <ActivityIndicator color={theme.accent} size="small" />
+                  )
+                : (
+                    <PaperPlaneTilt size={24} color={canSend ? theme.accent : theme.textSecondary} weight="fill" />
+                  )}
+            </Pressable>
+          </Animated.View>
         </View>
-      ) : null}
-
-      {attachments.length > 0 ? (
-        <View style={styles.attachmentRow}>
-          {attachments.map((attachment) => (
-            <View key={attachment.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText type="caption" numberOfLines={1}>{attachment.fileName}</ThemedText>
-              <Pressable onPress={() => setAttachments((current) => current.filter((item) => item.id !== attachment.id))}>
-                <XCircle size={14} color={theme.textSecondary} weight="fill" />
-              </Pressable>
-            </View>
-          ))}
-          <Pressable onPress={() => setAttachments([])} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {errorMessage ? (
-        <View style={styles.errorBar}>
-          <Warning size={14} color={theme.danger} />
-          <ThemedText style={{ color: theme.danger, fontSize: 12, flex: 1 }}>
-            {errorMessage}
-          </ThemedText>
-          <Pressable onPress={() => setErrorMessage(null)}>
-            <X size={12} color={theme.danger} />
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View style={[styles.inputRow, { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth, backgroundColor: theme.surface }]}>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder={`给 ${contactName}...`}
-          placeholderTextColor={theme.textSecondary}
-          style={[styles.input, { backgroundColor: theme.backgroundElement, color: theme.text }]}
-          accessibilityLabel="输入消息"
-          returnKeyType="send"
-          onSubmitEditing={() => { if (canSend) void handleSend(); }}
-        />
-        <Pressable
-          disabled={!canSend}
-          onPress={() => void handleSend()}
-          style={[styles.sendBtn, { backgroundColor: canSend ? theme.accent : "transparent" }]}
-          accessibilityLabel="发送消息"
-          accessibilityRole="button"
-        >
-          {isSending ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <ArrowUp size={16} color={canSend ? "#fff" : theme.textSecondary} weight="bold" />
-          )}
-        </Pressable>
       </View>
 
       <DmMessageActionMenu

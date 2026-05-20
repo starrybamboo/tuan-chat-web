@@ -6,7 +6,6 @@ type DrawerPreferenceState = {
   userDrawerWidth: number;
   roleDrawerWidth: number;
   copilotDrawerWidth: number;
-  docFolderDrawerWidth: number;
   threadDrawerWidth: number;
   initiativeDrawerWidth: number;
   mapDrawerWidth: number;
@@ -21,7 +20,6 @@ type DrawerPreferenceState = {
   setUserDrawerWidth: (width: number) => void;
   setRoleDrawerWidth: (width: number) => void;
   setCopilotDrawerWidth: (width: number) => void;
-  setDocFolderDrawerWidth: (width: number) => void;
   setThreadDrawerWidth: (width: number) => void;
   setInitiativeDrawerWidth: (width: number) => void;
   setMapDrawerWidth: (width: number) => void;
@@ -68,7 +66,6 @@ const DEFAULT_DRAWER_WIDTHS = {
   userDrawerWidth: 320,
   roleDrawerWidth: 320,
   copilotDrawerWidth: 380,
-  docFolderDrawerWidth: 320,
   threadDrawerWidth: 420,
   initiativeDrawerWidth: 320,
   mapDrawerWidth: 600,
@@ -86,7 +83,6 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   userDrawerWidth: DEFAULT_DRAWER_WIDTHS.userDrawerWidth,
   roleDrawerWidth: DEFAULT_DRAWER_WIDTHS.roleDrawerWidth,
   copilotDrawerWidth: DEFAULT_DRAWER_WIDTHS.copilotDrawerWidth,
-  docFolderDrawerWidth: DEFAULT_DRAWER_WIDTHS.docFolderDrawerWidth,
   threadDrawerWidth: DEFAULT_DRAWER_WIDTHS.threadDrawerWidth,
   initiativeDrawerWidth: DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth,
   mapDrawerWidth: DEFAULT_DRAWER_WIDTHS.mapDrawerWidth,
@@ -104,7 +100,6 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
       userDrawerWidth: readNumber("userDrawerWidth", DEFAULT_DRAWER_WIDTHS.userDrawerWidth),
       roleDrawerWidth: readNumber("roleDrawerWidth", DEFAULT_DRAWER_WIDTHS.roleDrawerWidth),
       copilotDrawerWidth: readNumber("copilotDrawerWidth", DEFAULT_DRAWER_WIDTHS.copilotDrawerWidth),
-      docFolderDrawerWidth: readNumber("docFolderDrawerWidth", DEFAULT_DRAWER_WIDTHS.docFolderDrawerWidth),
       threadDrawerWidth: readNumber("threadDrawerWidth", DEFAULT_DRAWER_WIDTHS.threadDrawerWidth),
       initiativeDrawerWidth: readNumber("initiativeDrawerWidth", DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth),
       mapDrawerWidth: readNumber("mapDrawerWidth", DEFAULT_DRAWER_WIDTHS.mapDrawerWidth),
@@ -169,14 +164,6 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
         return state;
       writeNumber("copilotDrawerWidth", width);
       return { copilotDrawerWidth: width };
-    });
-  },
-  setDocFolderDrawerWidth: (width) => {
-    set((state) => {
-      if (state.docFolderDrawerWidth === width)
-        return state;
-      writeNumber("docFolderDrawerWidth", width);
-      return { docFolderDrawerWidth: width };
     });
   },
   setThreadDrawerWidth: (width) => {

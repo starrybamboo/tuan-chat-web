@@ -36,7 +36,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     gap: Spacing.sm,
-    marginLeft: Spacing.md,
   },
   hashText: {
     fontSize: 16,
@@ -49,32 +48,34 @@ const styles = StyleSheet.create({
   },
 });
 
-interface ChatHeaderProps {
-  onBackToRoutePage?: () => void;
+type ChatHeaderProps = {
+  onBackToRoutePage: () => void;
   onOpenDrawer: () => void;
   onSearch: () => void;
   roomName: string | null;
   unreadCount?: number;
-}
+};
 
-export function ChatHeader({ onBackToRoutePage, onOpenDrawer, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
+export function ChatHeader({ onBackToRoutePage, onOpenDrawer: _onOpenDrawer, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
   const theme = useTheme();
 
   return (
     <View style={[styles.header, { borderBottomColor: theme.border }]}>
-      <Pressable onPress={onBackToRoutePage ?? onOpenDrawer} style={styles.backButton} accessibilityLabel="返回">
+      <Pressable onPress={onBackToRoutePage} style={styles.backButton} accessibilityLabel="返回路由页">
         <CaretLeft size={22} color={theme.text} weight="bold" />
-        {unreadCount > 0 ? (
-          <View style={[styles.badge, { backgroundColor: theme.danger }]}>
-            <ThemedText style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
-              {unreadCount > 99 ? "99" : String(unreadCount)}
-            </ThemedText>
-          </View>
-        ) : null}
+        {unreadCount > 0
+          ? (
+              <View style={[styles.badge, { backgroundColor: theme.danger }]}>
+                <ThemedText style={{ color: "#fff", fontSize: 9, fontWeight: "700" }}>
+                  {unreadCount > 99 ? "99" : String(unreadCount)}
+                </ThemedText>
+              </View>
+            )
+          : null}
       </Pressable>
 
       <View style={styles.titleSection}>
-        <ThemedText style={[styles.hashText, { color: theme.textSecondary }]}>#</ThemedText>
+        <ThemedText style={styles.hashText}>#</ThemedText>
         <ThemedText numberOfLines={1} type="heading" style={{ fontSize: 16, flex: 1 }}>
           {roomName ?? "未选择房间"}
         </ThemedText>

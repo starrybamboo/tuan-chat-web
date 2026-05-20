@@ -11,7 +11,7 @@ interface MemberInfoProps {
 
 export default function MemberInfoComponent({ user }: MemberInfoProps) {
   const resolvedUser = useResolvedUserInfo(user, user.userId ?? -1);
-  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || "";
+  const avatarSrc = resolvedUser.avatarThumbUrl || resolvedUser.avatar || undefined;
   const displayName = resolveUserDisplayName({ username: resolvedUser.username }, resolvedUser.userId > 0 ? `用户${resolvedUser.userId}` : "未知用户");
 
   return (

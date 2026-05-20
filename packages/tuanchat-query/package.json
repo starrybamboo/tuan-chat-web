@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./chat": "./src/chat.ts",
+    "./clue-folder": "./src/clue-folder.ts",
     "./direct-message": "./src/direct-message.ts",
     "./friends": "./src/friends.ts",
     "./message-sessions": "./src/message-sessions.ts",
@@ -15,6 +16,7 @@
     "./room-dnd-map": "./src/room-dnd-map.ts",
     "./room-extra": "./src/room-extra.ts",
     "./room-message": "./src/room-message.ts",
+    "./room-message-lifecycle": "./src/room-message-lifecycle.ts",
     "./room-roles": "./src/room-roles.ts",
     "./spaces": "./src/spaces.ts",
     "./stickers": "./src/stickers.ts",

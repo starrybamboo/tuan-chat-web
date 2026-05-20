@@ -22,7 +22,6 @@ type EmojiAttachmentMeta = {
 };
 
 type BuildMessageDraftsFromComposerSnapshotParams = {
-  baseMessage?: Partial<MessageDraft>;
   inputText: string;
   imgFiles: File[];
   emojiUrls: string[];
@@ -79,24 +78,7 @@ function isVideoAttachment(file: File) {
   return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
 }
 
-function buildMessageDraftIdentityFields(baseMessage?: Partial<MessageDraft>): Partial<MessageDraft> {
-  const roleId = typeof baseMessage?.roleId === "number" ? baseMessage.roleId : undefined;
-  const avatarId = typeof roleId === "number" && roleId > 0 && typeof baseMessage?.avatarId === "number" && baseMessage.avatarId > 0
-    ? baseMessage.avatarId
-    : undefined;
-  const customRoleName = typeof baseMessage?.customRoleName === "string" && baseMessage.customRoleName.trim()
-    ? baseMessage.customRoleName.trim()
-    : undefined;
-
-  return {
-    roleId,
-    avatarId,
-    customRoleName,
-  };
-}
-
 export async function buildMessageDraftsFromComposerSnapshot({
-  baseMessage,
   inputText,
   imgFiles,
   emojiUrls,
@@ -121,22 +103,22 @@ export async function buildMessageDraftsFromComposerSnapshot({
       ? "se"
       : undefined;
 
-  const identityFields = buildMessageDraftIdentityFields(baseMessage);
-  const uploadedImages: UploadedImageMessageDraftAsset[] = [];
-  const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
-
-  for (const imgFile of imgFiles) {
-    const uploadedImage = await uploadUtils.uploadDualImage(imgFile, 1);
-    const { width, height, size } = await getImageSize(imgFile);
-    uploadedImages.push({
+  // 多图发送时保持输入顺序，但让每张图片的尺寸读取和上传并行执行。
+  const uploadedImages: UploadedImageMessageDraftAsset[] = await Promise.all(imgFiles.map(async (imgFile) => {
+    const [uploadedImage, { width, height, size }] = await Promise.all([
+      uploadUtils.uploadDualImage(imgFile, 1),
+      getImageSize(imgFile),
+    ]);
+    return {
       fileId: uploadedImage.fileId,
       mediaType: uploadedImage.mediaType,
       width,
       height,
       size,
       fileName: imgFile.name,
-    });
-  }
+    };
+  }));
+  const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
 
   for (const emojiUrl of emojiUrls) {
     const meta = emojiMetaByUrl[emojiUrl];
@@ -215,7 +197,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
   }
 
   return buildMessageDraftsFromUploadedMedia({
-    baseMessage: identityFields,
     inputText: isBlankInput && hasRawTextInput ? inputText : trimmedInputText,
     imageAnnotations,
     soundAnnotations,

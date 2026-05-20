@@ -1,22 +1,37 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { Image } from "expo-image";
-import { memo } from "react";
+import type { GestureType } from "react-native-gesture-handler";
 
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { memo, useMemo } from "react";
 import { StyleSheet, Vibration, View } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, Pressable } from "react-native-gesture-handler";
+
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { CachedImage } from "@/components/CachedImage";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
-
 import { useTheme } from "@/hooks/use-theme";
 import { mediaFileUrl } from "@/lib/media-url";
+import { getDiceResultExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
 
-import { getMessagePreview } from "./mobileChatUtils";
+import type { RoomRolesById } from "./chat-avatar-utils";
+
+import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { MessageAvatar } from "./MessageAvatar";
-import { type RoomRolesById } from "./chat-avatar-utils";
+import {
+  ClueCard,
+  DocCard,
+  ForwardMessageCard,
+  IntroTextCard,
+  RoomJumpCard,
+  shouldRenderMobileMessageTextPreview,
+  StateEventCard,
+  ThreadRootCard,
+  WebgalChooseCard,
+} from "./MobileMessageCards";
+import { getMessagePreview } from "./mobileChatUtils";
 
 const AVATAR_SIZE = 40;
 
@@ -84,11 +99,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  metaRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: Spacing.sm,
-  },
 });
 
 function isNarrator(message: Message): boolean {
@@ -122,35 +132,77 @@ function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): str
   return "未选择角色";
 }
 
-interface ChatMessageItemProps {
+function getDiceDisplayText(message: Message): string {
+  const result = getDiceResultExtra(message.extra)?.result;
+  if (typeof result === "string" && result.trim())
+    return result;
+  return message.content?.trim() || "骰子结果";
+}
+
+function getCompactMediaText(message: Message): string {
+  if (message.messageType === MESSAGE_TYPE.SOUND) {
+    const sound = getSoundMessageExtra(message.extra);
+    return sound?.fileName?.trim() || message.content?.trim() || "音频消息";
+  }
+  return getMessagePreview(message);
+}
+
+type ChatMessageItemProps = {
+  currentRoleId?: number;
+  isCommandRequestConsumed?: (messageId: number) => boolean;
   isGrouped: boolean;
   isMultiSelected?: boolean;
   isSelectedAnchor: boolean;
+  isSpaceOwner?: boolean;
   message: Message;
   multiSelectMode?: boolean;
+  noRole?: boolean;
+  onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
   onLongPress: (message: Message) => void;
   onToggleMultiSelect?: (message: Message) => void;
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
-}
+  simultaneousGestures?: GestureType[];
+};
 
 export const ChatMessageItem = memo(({
+  currentRoleId = 0,
+  isCommandRequestConsumed,
   isGrouped,
   isMultiSelected,
   isSelectedAnchor,
+  isSpaceOwner = false,
   message,
   multiSelectMode,
+  noRole = false,
+  onExecuteCommandRequest,
   onLongPress,
   onToggleMultiSelect,
   replyAuthorName,
   replyPreviewText,
   roomRolesById,
+  simultaneousGestures,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const narrator = isNarrator(message);
+  const isStateEvent = message.messageType === MESSAGE_TYPE.STATE_EVENT;
+  const usesSystemRow = narrator || isStateEvent;
   const displayName = getDisplayRoleName(message, roomRolesById);
-  const isOOC = !narrator && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
+  const isOOC = !usesSystemRow && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
+  const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
+  const longPressGesture = useMemo(() => {
+    const gesture = Gesture.LongPress()
+      .minDuration(500)
+      .runOnJS(true)
+      .onStart(() => {
+        Vibration.vibrate(10);
+        onLongPress(message);
+      });
+    return simultaneousGestures?.length
+      ? gesture.simultaneousWithExternalGesture(...simultaneousGestures)
+      : gesture;
+  }, [message, onLongPress, simultaneousGestures]);
 
   const renderAvatar = () => {
     if (narrator) {
@@ -176,6 +228,7 @@ export const ChatMessageItem = memo(({
     return (
       <Pressable
         onPress={() => onToggleMultiSelect?.(message)}
+        simultaneousWithExternalGesture={simultaneousGestures}
         style={[
           {
             alignItems: "center",
@@ -207,33 +260,35 @@ export const ChatMessageItem = memo(({
         <View style={{ flex: 1 }}>
           <View
             style={[
-              narrator
+              usesSystemRow
                 ? styles.rowNarrator
                 : isOOC
                   ? styles.rowOOC
                   : isGrouped ? styles.rowGrouped : styles.row,
-              !isGrouped && !narrator && !isOOC && styles.rowFull,
+              !isGrouped && !usesSystemRow && !isOOC && styles.rowFull,
               isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
             ]}
           >
-            {!isGrouped && !narrator && !isOOC ? renderAvatar() : null}
+            {!isGrouped && !usesSystemRow && !isOOC ? renderAvatar() : null}
             <View style={styles.body}>
               {message.messageType === MESSAGE_TYPE.IMG
                 ? (() => {
                     const img = getImageMessageExtra(message.extra);
                     const thumbUri = img?.fileId ? mediaFileUrl(img.fileId, "image", "low") : null;
                     return thumbUri
-                      ? <Image source={{ uri: thumbUri }} style={{ borderRadius: Radius.sm, height: 40, width: 40 }} />
+                      ? <CachedImage uri={thumbUri} style={{ borderRadius: Radius.sm, height: 40, width: 40 }} />
                       : <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[图片]</ThemedText>;
                   })()
                 : message.messageType === MESSAGE_TYPE.VIDEO
                   ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[视频]</ThemedText>
+                  : message.messageType === MESSAGE_TYPE.SOUND
+                    ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>{getCompactMediaText(message)}</ThemedText>
                   : (
                       <TextEnhanceRenderer
-                        content={getMessagePreview(message)}
+                        content={message.messageType === MESSAGE_TYPE.DICE ? getDiceDisplayText(message) : getMessagePreview(message)}
                         style={[
                           styles.content,
-                          { color: narrator ? theme.textSecondary : theme.text },
+                          { color: usesSystemRow ? theme.textSecondary : theme.text },
                         ]}
                         numberOfLines={2}
                       />
@@ -246,100 +301,128 @@ export const ChatMessageItem = memo(({
   }
 
   return (
-    <Pressable
-      delayLongPress={500}
-      onLongPress={() => {
-        Vibration.vibrate(10);
-        onLongPress(message);
-      }}
-      style={[
-        narrator
-          ? styles.rowNarrator
-          : isOOC
-            ? styles.rowOOC
-            : isGrouped ? styles.rowGrouped : styles.row,
-        !isGrouped && !narrator && !isOOC && styles.rowFull,
-        isSelectedAnchor && styles.rowHighlight,
-        isSelectedAnchor && { backgroundColor: theme.accentMuted },
-        isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
-      ]}
-    >
-      {!isGrouped && !narrator && !isOOC ? renderAvatar() : null}
-      <View style={styles.body}>
-        {!isGrouped && !narrator
-          ? (
-              <View style={styles.authorRow}>
-                {displayName
-                  ? (
-                      <ThemedText type="smallBold" style={{ fontSize: 16 }}>
-                        {displayName}
-                      </ThemedText>
-                    )
-                  : null}
-                {isOOC
-                  ? (
-                      <ThemedText style={{ fontSize: 10, color: theme.textSecondary, fontWeight: "500" }}>
-                        场外
-                      </ThemedText>
-                    )
-                  : null}
-              </View>
-            )
-          : null}
-        {replyPreviewText
-          ? (
-              <View style={[styles.replyPreview, { borderLeftColor: theme.accent, backgroundColor: theme.accentMuted }]}>
-                <ThemedText style={{ fontSize: 12, color: theme.textSecondary }} numberOfLines={1}>
-                  回复
-                  {" "}
-                  {replyAuthorName ?? ""}
-                  :
-                  {" "}
-                  {replyPreviewText}
-                </ThemedText>
-              </View>
-            )
-          : null}
-        {message.messageType !== MESSAGE_TYPE.IMG && message.messageType !== MESSAGE_TYPE.VIDEO
-          ? (
-              <TextEnhanceRenderer
-                content={getMessagePreview(message)}
-                style={[
-                  styles.content,
-                  { color: narrator ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
-                  isOOC && { fontStyle: "italic" },
-                ]}
-              />
-            )
-          : null}
-        <MobileMessageMediaPreview
-          content={message.content}
-          extra={message.extra}
-          messageType={message.messageType}
-        />
-        {(message.messageType === 6 || message.messageType === 5)
-          ? (
-              <View style={{ borderColor: theme.border, borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginTop: 4, paddingHorizontal: 12, paddingVertical: 8 }}>
-                <ThemedText style={{ fontSize: 16 }}>{message.messageType === 6 ? "🎲" : "↗️"}</ThemedText>
-                <View style={{ flex: 1 }}>
-                  <ThemedText numberOfLines={2} style={{ fontSize: 13 }}>
-                    {message.content?.trim() || (message.messageType === 6 ? "骰子结果" : "转发消息")}
+    <GestureDetector gesture={longPressGesture}>
+      <View
+        style={[
+          usesSystemRow
+            ? styles.rowNarrator
+            : isOOC
+              ? styles.rowOOC
+              : isGrouped ? styles.rowGrouped : styles.row,
+          !isGrouped && !usesSystemRow && !isOOC && styles.rowFull,
+          isSelectedAnchor && styles.rowHighlight,
+          isSelectedAnchor && { backgroundColor: theme.accentMuted },
+          isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
+        ]}
+      >
+        {!isGrouped && !usesSystemRow && !isOOC ? renderAvatar() : null}
+        <View style={styles.body}>
+          {!isGrouped && !usesSystemRow
+            ? (
+                <View style={styles.authorRow}>
+                  {displayName
+                    ? (
+                        <ThemedText type="smallBold" style={{ fontSize: 16 }}>
+                          {displayName}
+                        </ThemedText>
+                      )
+                    : null}
+                  {isOOC
+                    ? (
+                        <ThemedText style={{ fontSize: 10, color: theme.textSecondary, fontWeight: "500" }}>
+                          场外
+                        </ThemedText>
+                      )
+                    : null}
+                </View>
+              )
+            : null}
+          {replyPreviewText
+            ? (
+                <View style={[styles.replyPreview, { borderLeftColor: theme.accent, backgroundColor: theme.accentMuted }]}>
+                  <ThemedText style={{ fontSize: 12, color: theme.textSecondary }} numberOfLines={1}>
+                    回复
+                    {" "}
+                    {replyAuthorName ?? ""}
+                    :
+                    {" "}
+                    {replyPreviewText}
                   </ThemedText>
                 </View>
-              </View>
-            )
-          : null}
-        {message.messageType === 1003
-          ? (
-              <View style={{ borderColor: theme.accent, borderRadius: 8, borderWidth: 1, flexDirection: "row", gap: 8, marginTop: 4, paddingHorizontal: 12, paddingVertical: 8 }}>
-                <ThemedText style={{ fontSize: 14 }}>🔗</ThemedText>
-                <ThemedText style={{ color: theme.accent, fontSize: 13 }}>
-                  {message.content?.trim() || "跳转到房间"}
-                </ThemedText>
-              </View>
-            )
-          : null}
+              )
+            : null}
+          {shouldRenderTextPreview
+            ? (
+                <TextEnhanceRenderer
+                  content={message.messageType === MESSAGE_TYPE.DICE ? getDiceDisplayText(message) : getMessagePreview(message)}
+                  style={[
+                    styles.content,
+                    { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
+                    isOOC && { fontStyle: "italic" },
+                  ]}
+                />
+              )
+            : null}
+          {message.messageType === MESSAGE_TYPE.INTRO_TEXT
+            ? <IntroTextCard content={message.content} />
+            : null}
+          <MobileMessageMediaPreview
+            content={message.content}
+            extra={message.extra}
+            messageType={message.messageType}
+          />
+          {message.messageType === MESSAGE_TYPE.FORWARD
+            ? (
+                <ForwardMessageCard extra={message.extra} />
+              )
+            : null}
+          {message.messageType === MESSAGE_TYPE.STATE_EVENT
+            ? <StateEventCard message={message} roomRolesById={roomRolesById} />
+            : null}
+          {message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE
+            ? <WebgalChooseCard content={message.content} extra={message.extra} />
+            : null}
+          {message.messageType === MESSAGE_TYPE.DOC_CARD
+            ? <DocCard content={message.content} extra={message.extra} />
+            : null}
+          {message.messageType === MESSAGE_TYPE.CLUE_CARD
+            ? <ClueCard content={message.content} extra={message.extra} />
+            : null}
+          {message.messageType === MESSAGE_TYPE.THREAD_ROOT
+            ? <ThreadRootCard content={message.content} extra={message.extra} />
+            : null}
+          {message.messageType === MESSAGE_TYPE.ROOM_JUMP
+            ? <RoomJumpCard content={message.content} extra={message.extra} />
+            : null}
+          {message.messageType === MESSAGE_TYPE.COMMAND_REQUEST && onExecuteCommandRequest
+            ? (() => {
+                const extra = message.extra as { commandRequest?: { command?: string; allowAll?: boolean; allowedRoleIds?: number[] } } | undefined;
+                const cr = extra?.commandRequest;
+                const command = cr?.command ?? message.content?.trim() ?? "";
+                const allowedRoleIds = cr?.allowedRoleIds;
+                const isConsumed = isCommandRequestConsumed?.(message.messageId!) ?? false;
+                const disableReason = getCommandRequestDisableReason({
+                  command,
+                  isConsumed,
+                  isSpaceOwner,
+                  noRole,
+                  currentRoleId,
+                  allowedRoleIds,
+                });
+                return (
+                  <CommandRequestCard
+                    command={command}
+                    disableReason={disableReason}
+                    isAllowAll={cr?.allowAll ?? false}
+                    isConsumed={isConsumed}
+                    messageId={message.messageId!}
+                    onExecute={onExecuteCommandRequest}
+                  />
+                );
+              })()
+            : null}
+        </View>
       </View>
-    </Pressable>
+    </GestureDetector>
   );
 });

@@ -1,13 +1,13 @@
 import type { MessageDirectResponse } from "../../../../api";
 import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import BetterImg from "@/components/common/betterImg";
-import { UserAvatarByUser } from "@/components/common/userAccess";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
-import { mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
+import { avatarThumbUrl, mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
 
 interface MessageBubbleProps {
   message: MessageDirectResponse; // 消息内容
   isOwn: boolean; // 是否是自己的消息
+  groupedWithPrevious?: boolean;
 }
 
 function formatMessageTimeLabel(createTime?: string | null) {
@@ -30,13 +30,31 @@ function resolveMediaPayloadUrl(
   return mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
 }
 
-export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
-  const senderUser = {
-    userId: message.senderId,
-    username: message.senderUsername,
-    avatarFileId: message.senderAvatarFileId,
-    avatarMediaType: message.senderAvatarMediaType,
-  };
+function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
+  const initial = name?.trim()?.slice(0, 1) || "?";
+  return (
+    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-base-300 text-xs font-semibold text-base-content/60">
+      {fileId
+        ? (
+            <img
+              src={avatarThumbUrl(fileId)}
+              alt=""
+              width={32}
+              height={32}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          )
+        : (
+            <div className="flex h-full w-full items-center justify-center" aria-hidden="true">
+              {initial}
+            </div>
+          )}
+    </div>
+  );
+}
+
+export default function MessageBubble({ message, isOwn, groupedWithPrevious = false }: MessageBubbleProps) {
   const messageTimeLabel = formatMessageTimeLabel(message.createTime || null);
 
   // 渲染消息内容（文本/图片/视频）
@@ -46,7 +64,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       return (
         <div data-message-id={message.messageId}>
           <BetterImg
-            src={resolveMediaPayloadUrl(imgData, "high", "image")}
+            src={resolveMediaPayloadUrl(imgData, "medium", "image")}
             size={{ width: imgData?.width, height: imgData?.height }}
             className="max-h-[40vh] max-w-[245px] rounded-lg"
           />
@@ -56,7 +74,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
 
     if (message.messageType === 14) {
       const videoMessage = getVideoMessageExtra(message.extra);
-      const videoUrl = resolveMediaPayloadUrl(videoMessage, "high", "video");
+      const videoUrl = resolveMediaPayloadUrl(videoMessage, "medium", "video");
       if (videoUrl) {
         return (
           <div data-message-id={message.messageId}>
@@ -85,71 +103,50 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   const isMediaMessage = message.messageType === 2 || message.messageType === 14;
 
   const getMessageBubbleClass = () => {
-    const baseClass = "rounded-lg max-w-[70%] h-full";
+    const baseClass = "rounded-2xl max-w-[min(70%,680px)] text-sm leading-6";
 
     if (isMediaMessage) {
       return baseClass;
     }
 
     if (isOwn) {
-      return `${baseClass} bg-blue-300 dark:bg-blue-500 text-info-content dark:text-white p-2`;
+      return `${baseClass} bg-blue-500 text-white px-3 py-1.5`;
     }
     else {
-      return `${baseClass} bg-base-300 dark:bg-gray-700 text-base-content p-2`;
+      return `${baseClass} bg-base-300/80 dark:bg-gray-700 text-base-content px-3 py-1.5`;
     }
   };
 
   return (
-    <div key={message.messageId} className={`flex items-start gap-2 relative ${isOwn ? "justify-end" : ""}`}>
-      {/* 左侧头像（接收的消息） */}
+    <div
+      key={message.messageId}
+      className={[
+        "group/message flex items-end gap-2",
+        isOwn ? "justify-end" : "justify-start",
+        groupedWithPrevious ? "mt-0.5" : "mt-3",
+      ].join(" ")}
+    >
       {!isOwn && (
-        <>
-          <UserAvatarByUser
-            user={senderUser}
-            width={10}
-            isRounded={true}
-          />
-          <div className={`text-xs text-base-content/70 absolute left-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
-            {messageTimeLabel}
-          </div>
-        </>
+        groupedWithPrevious
+          ? <div className="h-8 w-8 shrink-0" aria-hidden="true" />
+          : <MessageAvatar name={message.senderUsername} fileId={message.senderAvatarFileId} />
       )}
 
-      {/* 消息内容 */}
-      <div
-        className={getMessageBubbleClass()}
-        onMouseEnter={() => {
-          // 鼠标悬停时显示时间
-          const timeElement = document.querySelector(`.message-time-${message.messageId}`);
-          if (timeElement) {
-            timeElement.classList.remove("opacity-0");
-            timeElement.classList.add("opacity-100");
-          }
-        }}
-        onMouseLeave={() => {
-          // 鼠标离开时隐藏时间
-          const timeElement = document.querySelector(`.message-time-${message.messageId}`);
-          if (timeElement) {
-            timeElement.classList.remove("opacity-100");
-            timeElement.classList.add("opacity-0");
-          }
-        }}
-      >
-        {renderMessageContent()}
-      </div>
-
-      {/* 右侧头像（发送的消息） */}
-      {isOwn && (
-        <div>
-          <UserAvatarByUser
-            user={senderUser}
-            width={10}
-            isRounded={true}
-          />
-          <div className={`text-xs text-base-content/70 absolute right-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
+      <div className={`flex max-w-[min(70%,680px)] flex-col ${isOwn ? "items-end" : "items-start"}`}>
+        <div className={getMessageBubbleClass()}>
+          {renderMessageContent()}
+        </div>
+        {messageTimeLabel && (
+          <div className="h-0 px-1 text-[11px] leading-none text-base-content/45 opacity-0 transition-opacity duration-150 group-hover/message:h-3 group-hover/message:pt-1 group-hover/message:opacity-100">
             {messageTimeLabel}
           </div>
-        </div>
+        )}
+      </div>
+
+      {isOwn && (
+        groupedWithPrevious
+          ? <div className="h-8 w-8 shrink-0" aria-hidden="true" />
+          : <MessageAvatar name={message.senderUsername} fileId={message.senderAvatarFileId} />
       )}
     </div>
   );

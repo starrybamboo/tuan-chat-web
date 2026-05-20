@@ -2,7 +2,7 @@ import type { PropsWithChildren } from "react";
 import type { ChatMessageResponse, RoleAbility } from "../../../../api";
 import type { StateDefinitionResolver } from "./stateDefinitionResolver";
 
-import type { StateRuntime } from "./stateRuntime";
+import type { CombatStateRuntime } from "./stateRuntime";
 import { useQueries } from "@tanstack/react-query";
 import React from "react";
 import { getNormalizedStateEventExtra } from "@/types/stateEvent";
@@ -14,9 +14,9 @@ import {
   shouldRetryRoleAbilityByRule,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
-import { buildStateRuntime } from "./stateRuntime";
+import { buildCombatStateRuntime } from "./stateRuntime";
 
-export type StateRuntimeContextValue = StateRuntime & {
+export type StateRuntimeContextValue = CombatStateRuntime & {
   currentRoleId: number;
   fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined>;
   isAbilityLoading: boolean;
@@ -54,8 +54,14 @@ function collectReferencedRoleIds(
     }
     const stateEvent = getNormalizedStateEventExtra(message.extra);
     stateEvent?.events.forEach((event) => {
-      if (event.type !== "nextTurn" && event.scope.kind === "role") {
+      if ("scope" in event && event.scope.kind === "role") {
         roleIds.add(event.scope.roleId);
+      }
+      if (event.type === "combatParticipantUpsert" && typeof event.roleId === "number") {
+        roleIds.add(event.roleId);
+      }
+      if ((event.type === "combatMapTokenUpsert" || event.type === "combatMapTokenRemove") && typeof event.roleId === "number") {
+        roleIds.add(event.roleId);
       }
     });
   });
@@ -93,7 +99,7 @@ export function StateRuntimeProvider({
     return next;
   }, [abilityQueries, roleIds]);
 
-  const runtime = React.useMemo(() => buildStateRuntime({
+  const runtime = React.useMemo(() => buildCombatStateRuntime({
     messages: messages.map(item => item.message),
     fallbackRoleAbilitiesByRoleId,
     resolver,

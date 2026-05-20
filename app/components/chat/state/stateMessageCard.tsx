@@ -42,7 +42,7 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
 
     const seen = new Set<string>();
     return normalizedStateEvent.events.flatMap((event) => {
-      if (event.type === "nextTurn") {
+      if (event.type === "nextTurn" || !("scope" in event)) {
         return [];
       }
       const rawLabel = formatStateScopeLabel(event.scope);

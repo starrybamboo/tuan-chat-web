@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import * as Notifications from "expo-notifications";
 import { AppState } from "react-native";
 
 import { clearBadge, requestNotificationPermissions, setupNotificationChannel } from "./notificationSetup";
@@ -8,7 +7,8 @@ export function useNotificationInit() {
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
+    if (initialized.current)
+      return;
     initialized.current = true;
 
     void (async () => {

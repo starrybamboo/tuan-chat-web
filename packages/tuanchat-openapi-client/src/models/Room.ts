@@ -15,7 +15,7 @@ export type Room = {
      */
     spaceId?: number;
     /**
-     * 房间类型 1游戏房间 2全员房间
+     * 房间类型 1游戏房间 2全员房间 3战斗房间 4文档房间
      */
     roomType?: number;
     /**
@@ -34,6 +34,10 @@ export type Room = {
      * 场景简要描述，概述本房间的剧情走向
      */
     description?: string;
+    /**
+     * 文档房间快照版本号
+     */
+    docRevision?: number;
     /**
      * 房间状态 0正常 1删除
      */

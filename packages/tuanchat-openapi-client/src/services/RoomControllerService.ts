@@ -103,6 +103,23 @@ export class RoomControllerService {
         });
     }
     /**
+     * 加入当前空间的公共线索夹
+     * @param spaceId
+     * @returns ApiResultRoom OK
+     * @throws ApiError
+     */
+    public joinPublicClueFolder(
+        spaceId: number,
+    ): CancelablePromise<ApiResultRoom> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/room/clue/public/join',
+            query: {
+                'spaceId': spaceId,
+            },
+        });
+    }
+    /**
      * 归档房间(冻结只读)
      * @param requestBody
      * @returns ApiResultVoid OK

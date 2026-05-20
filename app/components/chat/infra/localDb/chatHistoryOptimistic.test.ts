@@ -3,7 +3,7 @@ import type { ChatMessageResponse } from "../../../../../api";
 import { collectPersistedOptimisticDuplicateIds } from "./chatHistoryOptimistic";
 
 function createMessageResponse(
-  overrides: Partial<ChatMessageResponse["message"]>,
+  overrides: Partial<ChatMessageResponse["message"]> & { tcLocalSyncState?: "optimistic" },
 ): ChatMessageResponse {
   return {
     message: {
@@ -55,6 +55,40 @@ describe("chatHistoryOptimistic", () => {
     ]);
 
     expect(duplicateIds).toEqual([-1]);
+  });
+
+  it("会把显式标记为本地乐观的消息当作残影", () => {
+    const duplicateIds = collectPersistedOptimisticDuplicateIds([
+      createMessageResponse({
+        messageId: 21,
+        syncId: 21,
+        position: 100,
+        tcLocalSyncState: "optimistic",
+        extra: {
+          imageMessage: {
+            fileId: 42,
+            mediaType: "image",
+            width: 100,
+            height: 100,
+          },
+        } as any,
+      }),
+      createMessageResponse({
+        messageId: 101,
+        syncId: 501,
+        position: 501,
+        extra: {
+          imageMessage: {
+            fileId: 42,
+            mediaType: "image",
+            width: 100,
+            height: 100,
+          },
+        } as any,
+      }),
+    ]);
+
+    expect(duplicateIds).toEqual([21]);
   });
 
   it("不会把正常历史消息误判为残影", () => {

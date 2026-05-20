@@ -6,7 +6,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { resolveMediaContentSource } from "@/components/common/content/mediaContent";
-import { imageHighUrlFromUrl } from "@/utils/mediaUrl";
+import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 import LinkComponent from "./linkHandler";
 import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";
 // 由于tailwind的preflight.css覆盖了原本的html样式，这里需要重新定义样式
@@ -72,7 +72,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
         <div className="my-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200/20">
           <div className="aspect-video overflow-hidden bg-base-200">
             <video
-              src={resolveMediaContentSource(src, "video", "high") || src}
+              src={resolveMediaContentSource(src, "video", "medium") || src}
               controls={true}
               preload="metadata"
               className="h-full w-full object-contain"
@@ -160,12 +160,12 @@ export function MarkDownViewer({
             return (
               <img
                 {...rest}
-                src={typeof src === "string" ? resolveMediaContentSource(src, "image", "high") || imageHighUrlFromUrl(src) : src}
+                src={typeof src === "string" ? resolveMediaContentSource(src, "image", "medium") || imagePreviewUrlFromUrl(src) : src}
               />
             );
           },
           code(props) {
-            const { children, className, node, ...rest } = props;
+            const { children, className, node: _node, ...rest } = props;
             const match = /language-(\w+)/.exec(className || "");
             return match
               ? (
@@ -183,7 +183,7 @@ export function MarkDownViewer({
                   </code>
                 );
           },
-          p({ node, children, ...props }: any) {
+          p({ node: _node, children, ...props }: any) {
             // 收集所有文本节点内容
             const childrenArray = Array.isArray(children) ? children : [children];
             const textContent = childrenArray

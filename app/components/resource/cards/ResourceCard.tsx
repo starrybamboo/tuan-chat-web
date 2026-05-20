@@ -4,9 +4,9 @@ import { toast } from "react-hot-toast";
 import { UserAvatarByUser } from "../../common/userAccess";
 import { AddToCollectionModal } from "../modals/AddToCollectionModal";
 import { EditResourceModal } from "../modals/EditResourceModal";
-import { resolveResourcePreviewUrl } from "../utils/resourceMedia";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
 import MoreBetterImg from "../utils/MoreBetterImg";
+import { resolveResourcePreviewUrl } from "../utils/resourceMedia";
 
 interface ResourceCardProps {
   resource: ResourceResponse;

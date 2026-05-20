@@ -4,9 +4,13 @@
 /* eslint-disable */
 export type DocCardExtra = {
     /**
-     * 文档 docId
+     * 文档 ID；文档房间场景下等同于 roomId 字符串
      */
     docId: string;
+    /**
+     * 文档房间 ID
+     */
+    roomId?: number;
     /**
      * 空间ID（用于同一 space 校验/降级）
      */

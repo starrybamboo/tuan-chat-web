@@ -49,29 +49,35 @@ export default function MessageAnnotationsBar({
     return null;
 
   return (
-    <div className={`flex items-center ${compact ? "flex-nowrap gap-1 overflow-x-auto pb-0.5" : "flex-wrap gap-1.5"} ${className ?? "mt-2"}`}>
+    <div className={`flex items-center ${compact ? "flex-nowrap gap-0.5 overflow-x-auto pb-0.5" : "flex-wrap gap-0.5"} ${className ?? "mt-2"}`}>
       {renderedItems.map(({ id, annotation }) => {
         return (
-          <AnnotationChip
+          <span
             key={id}
-            annotation={annotation}
-            active={true}
-            interactive={canEdit}
-            compact={compact}
-            showActiveHighlight={false}
-            onClick={canEdit ? () => onToggle?.(id) : undefined}
-          />
+            className="inline-flex"
+          >
+            <AnnotationChip
+              annotation={annotation}
+              active={true}
+              interactive={canEdit}
+              showActiveHighlight={false}
+              subtle={true}
+              onClick={canEdit ? () => onToggle?.(id) : undefined}
+            />
+          </span>
         );
       })}
       {canShowAddButton && (
-        <button
-          type="button"
-          className={`inline-flex items-center justify-center rounded-full border border-dashed border-base-300 ${compact ? "px-1.5 py-0 text-[11px] h-6 min-h-6" : "px-2 py-0.5 text-xs"} text-base-content/70 transition-colors hover:border-primary hover:text-primary ${alwaysShowAddButton ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-          onClick={onOpenPicker}
-          title="添加标注"
-        >
-          +
-        </button>
+        <span className="inline-flex">
+          <button
+            type="button"
+            className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-[11px] transition-all select-none shadow-none supports-[backdrop-filter]:backdrop-blur-md border-base-content/12 bg-base-content/4 text-base-content/60 hover:border-primary/38 hover:bg-base-content/7 hover:text-primary ${alwaysShowAddButton ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+            onClick={onOpenPicker}
+            title="添加标注"
+          >
+            +
+          </button>
+        </span>
       )}
     </div>
   );

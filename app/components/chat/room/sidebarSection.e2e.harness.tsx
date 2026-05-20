@@ -15,7 +15,8 @@ function SidebarSectionHarness() {
 
   return (
     <main className="p-4">
-      <style>{`
+      <style>
+        {`
         .flex { display: flex; }
         .flex-col { flex-direction: column; }
         .flex-1 { flex: 1 1 0%; }
@@ -24,7 +25,8 @@ function SidebarSectionHarness() {
         .overflow-hidden { overflow: hidden; }
         .overflow-x-hidden { overflow-x: hidden; }
         .overflow-y-auto { overflow-y: auto; }
-      `}</style>
+      `}
+      </style>
       <div data-testid="harness-ready">ready</div>
       <div data-testid="expanded-state">{isExpanded ? "expanded" : "collapsed"}</div>
       <div data-testid="toggle-count">{toggleCount}</div>

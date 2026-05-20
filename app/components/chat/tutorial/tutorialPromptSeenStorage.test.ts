@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
-  TUTORIAL_PROMPT_SEEN_STORAGE_KEY,
   buildTutorialPromptSeenKey,
   hasSeenTutorialPrompt,
   markTutorialPromptSeen,
   readTutorialPromptSeenMap,
+  TUTORIAL_PROMPT_SEEN_STORAGE_KEY,
 } from "./tutorialPromptSeenStorage";
 
 function createMemoryStorage(): Storage {

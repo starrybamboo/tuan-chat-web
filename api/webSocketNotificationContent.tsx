@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 import type { DirectMessageEvent } from "./wsModels";
 import { MessageType } from "./wsModels";
+import { normalizeNotificationTargetPath } from "@/components/notification/notificationNavigation";
 
 export function FriendRequestToastContent({
   toastId,
@@ -280,14 +281,7 @@ export function getActivePrivateContactId(): number | null {
 }
 
 export function normalizeAppTargetPath(targetPath?: string | null): string | null {
-  if (typeof targetPath !== "string") {
-    return null;
-  }
-  const normalized = targetPath.trim();
-  if (!normalized || !normalized.startsWith("/") || normalized.startsWith("//")) {
-    return null;
-  }
-  return normalized;
+  return normalizeNotificationTargetPath(targetPath);
 }
 
 export function isCurrentTargetPath(targetPath?: string | null): boolean {

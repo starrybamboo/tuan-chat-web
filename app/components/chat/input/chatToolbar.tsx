@@ -1,13 +1,8 @@
-import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
-import type { WebgalChoosePayload } from "@/types/webgalChoose";
-
 import { ArrowSquareIn, FilePlusIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
-import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
-import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import StickerWindow from "@/components/chat/window/StickerWindow";
@@ -73,7 +68,6 @@ interface ChatToolbarProps {
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
   onClearFigure?: () => void;
-  onSendWebgalChoose?: (payload: WebgalChoosePayload) => Promise<void> | void;
   onOpenFullMessageDiff?: () => void;
   isFullMessageDiffOpen?: boolean;
   // 发送音频
@@ -115,7 +109,6 @@ function ChatToolbar({
   onSendEffect,
   onClearBackground,
   onClearFigure,
-  onSendWebgalChoose,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen,
   onToggleRealtimeRender,
@@ -136,11 +129,6 @@ function ChatToolbar({
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
 
-  const [isWebgalChooseModalOpen, setIsWebgalChooseModalOpen] = useState(false);
-  const [webgalChooseOptions, setWebgalChooseOptions] = useState<WebgalChooseOptionDraft[]>(() => [
-    createWebgalChooseOptionDraft(),
-  ]);
-  const [webgalChooseError, setWebgalChooseError] = useState<string | null>(null);
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
   const storeSetEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
@@ -239,87 +227,6 @@ function ChatToolbar({
     e.target.value = "";
   };
 
-  const updateWebgalChooseOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
-    setWebgalChooseOptions(prev => prev.map((option, idx) => (
-      idx === index ? { ...option, [key]: value } : option
-    )));
-  }, []);
-
-  const addWebgalChooseOption = useCallback(() => {
-    setWebgalChooseOptions(prev => ([
-      ...prev,
-      createWebgalChooseOptionDraft(),
-    ]));
-  }, []);
-
-  const removeWebgalChooseOption = useCallback((index: number) => {
-    setWebgalChooseOptions(prev => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== index)));
-  }, []);
-
-  const closeWebgalChooseModal = useCallback(() => {
-    setIsWebgalChooseModalOpen(false);
-    setWebgalChooseError(null);
-  }, []);
-
-  const openWebgalChooseModal = useCallback(() => {
-    if (!onSendWebgalChoose) {
-      toast.error("当前不可发送选择");
-      return;
-    }
-    setIsWebgalChooseModalOpen(true);
-    setWebgalChooseError(null);
-  }, [onSendWebgalChoose]);
-
-  const submitWebgalChoose = useCallback(async () => {
-    if (!onSendWebgalChoose) {
-      setWebgalChooseError("当前不可发送选择");
-      return;
-    }
-    const normalizedOptions = webgalChooseOptions.map(option => ({
-      text: option.text.trim(),
-      code: option.code.trim(),
-    }));
-    if (normalizedOptions.length === 0) {
-      setWebgalChooseError("请至少添加一个选项");
-      return;
-    }
-    if (normalizedOptions.some(option => !option.text)) {
-      setWebgalChooseError("选项文本不能为空");
-      return;
-    }
-    const payload: WebgalChoosePayload = {
-      options: normalizedOptions.map(option => ({
-        text: option.text,
-        ...(option.code ? { code: option.code } : {}),
-      })),
-    };
-    setWebgalChooseError(null);
-    try {
-      await onSendWebgalChoose(payload);
-      closeWebgalChooseModal();
-      setWebgalChooseOptions([createWebgalChooseOptionDraft()]);
-    }
-    catch (err: any) {
-      console.error("发送选择失败:", err);
-      toast.error(err?.message ? `发送选择失败：${err.message}` : "发送选择失败");
-    }
-  }, [closeWebgalChooseModal, onSendWebgalChoose, webgalChooseOptions]);
-
-  const webgalChooseModal = (
-    <WebgalChooseModal
-      isOpen={isWebgalChooseModalOpen}
-      title="发送选择"
-      description="将选项转换为 WebGAL choose 指令发送。"
-      options={webgalChooseOptions}
-      error={webgalChooseError}
-      submitLabel="发送"
-      onAddOption={addWebgalChooseOption}
-      onRemoveOption={removeWebgalChooseOption}
-      onChangeOption={updateWebgalChooseOption}
-      onClose={closeWebgalChooseModal}
-      onSubmit={submitWebgalChoose}
-    />
-  );
   const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
   const openMediaPicker = useCallback(() => {
     if (disableRichMessageActions) {
@@ -357,7 +264,6 @@ function ChatToolbar({
 
   return (
     <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>
-      {webgalChooseModal}
       <div className={`${isInline ? "flex items-start gap-2 flex-nowrap" : "w-full"}`}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
@@ -456,7 +362,7 @@ function ChatToolbar({
               {showRunModeToggle && onToggleRunMode && !isStacked && (
                 <div
                   className="tooltip tooltip-top"
-                  data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
+                  data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗"}
                 >
                   <DiceD6Icon
                     className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
@@ -494,7 +400,7 @@ function ChatToolbar({
                 {showRunModeToggle && onToggleRunMode && (
                   <div
                     className="tooltip tooltip-top"
-                    data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/先攻"}
+                    data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗"}
                   >
                     <DiceD6Icon
                       className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
@@ -539,7 +445,6 @@ function ChatToolbar({
             onSendEffect={onSendEffect}
             onClearBackground={onClearBackground}
             onClearFigure={onClearFigure}
-            onOpenWebgalChooseModal={onSendWebgalChoose ? openWebgalChooseModal : undefined}
             isSpectator={isSpectator}
             onToggleRealtimeRender={onToggleRealtimeRender}
             onOpenFullMessageDiff={onOpenFullMessageDiff}

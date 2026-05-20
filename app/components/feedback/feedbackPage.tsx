@@ -1,5 +1,5 @@
 import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
-import { useParams, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
@@ -15,8 +15,7 @@ function parseIssueId(rawIssueId?: string) {
   return issueId;
 }
 
-export default function FeedbackPage() {
-  const { issueId: rawIssueId } = useParams({ strict: false });
+export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
   const router = useRouter();
   const userId = useGlobalUserId();
   const selectedIssueId = parseIssueId(rawIssueId);

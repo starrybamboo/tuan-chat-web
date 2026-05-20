@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-import type { DescriptionEntityType } from "@/components/chat/infra/doc/description/descriptionDocId";
-
 type EntityHeaderOverride = {
   title: string;
   imageUrl: string;
@@ -11,19 +9,20 @@ type EntityHeaderOverride = {
   updatedAt: number;
 };
 
-type EntityHeaderOverrideKey = `${DescriptionEntityType}:${number}`;
+type EntityHeaderEntityType = "room" | "user";
+type EntityHeaderOverrideKey = `${EntityHeaderEntityType}:${number}`;
 
 type EntityHeaderOverrideState = {
   headers: Record<string, EntityHeaderOverride>;
   hydrateFromLocalStorage: () => void;
-  setHeader: (params: { entityType: DescriptionEntityType; entityId: number; header: {
+  setHeader: (params: { entityType: EntityHeaderEntityType; entityId: number; header: {
     title: string;
     imageUrl: string;
     imageFileId?: number;
     originalImageFileId?: number;
     imageMediaType?: string;
   }; }) => void;
-  clearHeader: (params: { entityType: DescriptionEntityType; entityId: number }) => void;
+  clearHeader: (params: { entityType: EntityHeaderEntityType; entityId: number }) => void;
 };
 
 const STORAGE_KEY = "tc:entityHeaderOverride:v2";
@@ -33,7 +32,7 @@ function canUseLocalStorage(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-function buildKey(entityType: DescriptionEntityType, entityId: number): EntityHeaderOverrideKey {
+function buildKey(entityType: EntityHeaderEntityType, entityId: number): EntityHeaderOverrideKey {
   return `${entityType}:${entityId}`;
 }
 
@@ -112,8 +111,6 @@ export const useEntityHeaderOverrideStore = create<EntityHeaderOverrideState>(se
 
   setHeader: ({ entityType, entityId, header }) => {
     if (!Number.isFinite(entityId) || entityId <= 0)
-      return;
-    if (entityType === "space")
       return;
 
     const title = String(header.title ?? "").trim();

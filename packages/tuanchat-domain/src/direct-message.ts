@@ -1,6 +1,6 @@
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
-import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { buildMessageDraftsFromUploadedMedia } from "./messageDraft";
 import { getMessagePreviewText } from "./messagePreview";
@@ -119,23 +119,69 @@ export function buildDirectMessageSendRequestsFromUploadedMedia({
   });
 }
 
+function getDirectMessageStableKeys(message: DirectMessageLike): string[] {
+  const keys: string[] = [];
+  if (typeof message.messageId === "number" && Number.isFinite(message.messageId)) {
+    keys.push(`message:${message.messageId}`);
+  }
+  if (typeof message.syncId === "number" && Number.isFinite(message.syncId)) {
+    keys.push([
+      "sync",
+      message.senderId ?? "",
+      message.receiverId ?? "",
+      message.messageType ?? "",
+      message.syncId,
+    ].join(":"));
+  }
+  return keys;
+}
+
 export function mergeDirectMessages<T extends DirectMessageLike>(
   ...messageLists: Array<readonly T[] | undefined>
 ): T[] {
-  const byId = new Map<number, T>();
+  const keyedMessages: Array<T | null> = [];
+  const keyToIndex = new Map<string, number>();
   const anonymousMessages: T[] = [];
 
   for (const list of messageLists) {
     for (const message of list ?? []) {
-      if (typeof message.messageId === "number" && Number.isFinite(message.messageId)) {
-        byId.set(message.messageId, message);
-      } else {
+      const keys = getDirectMessageStableKeys(message);
+      if (keys.length === 0) {
         anonymousMessages.push(message);
+        continue;
       }
+
+      // 同时按 messageId 和同步键合并，覆盖服务端确认替换本地待确认项的路径。
+      const existingIndices = new Set(
+        keys.map(key => keyToIndex.get(key)).filter((index): index is number => index !== undefined),
+      );
+      if (existingIndices.size === 0) {
+        const nextIndex = keyedMessages.length;
+        keyedMessages.push(message);
+        keys.forEach(key => keyToIndex.set(key, nextIndex));
+        continue;
+      }
+
+      const existingIndex = Math.min(...existingIndices);
+      keyedMessages[existingIndex] = message;
+      for (const [key, index] of keyToIndex) {
+        if (existingIndices.has(index)) {
+          keyToIndex.delete(key);
+        }
+      }
+      for (const index of existingIndices) {
+        if (index !== existingIndex) {
+          keyedMessages[index] = null;
+        }
+      }
+      keys.forEach(key => keyToIndex.set(key, existingIndex));
     }
   }
 
-  return [...byId.values(), ...anonymousMessages].sort(compareDirectMessagesAscending);
+  return [
+    ...keyedMessages.filter((message): message is T => message !== null),
+    ...anonymousMessages,
+  ].sort(compareDirectMessagesAscending);
 }
 
 export function getLatestIncomingSync(

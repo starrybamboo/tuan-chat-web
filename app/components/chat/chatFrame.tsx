@@ -1,11 +1,12 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
+import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import type { GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 
 import { Check, X } from "@phosphor-icons/react";
-import React, { memo, use, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
@@ -73,6 +74,7 @@ interface ChatFrameProps {
   roomName?: string;
   baseArchiveCommitId?: number | null;
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
+  onCopyMessageToClueFolder?: (message: Message, scope: ClueFolderScope) => void | Promise<void>;
   onExportPremiere?: (selectedMessages: ChatMessageResponse[]) => void | Promise<void>;
   showFullMessageDiff?: boolean;
   galPatchProposal?: GalPatchProposal | null;
@@ -98,6 +100,7 @@ function ChatFrame(props: ChatFrameProps) {
     spaceName,
     roomName,
     baseArchiveCommitId,
+    onCopyMessageToClueFolder,
     onExportPremiere,
     showFullMessageDiff = false,
     galPatchProposal = null,
@@ -110,10 +113,49 @@ function ChatFrame(props: ChatFrameProps) {
   const setReplyMessage = useRoomUiStore(state => state.setReplyMessage);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
+  const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
   const isAvatarSamplerActive = useRoomUiStore(state => state.isAvatarSamplerActive);
+  const visibleVirtuosoRangeRef = useRef({ startIndex: 0, endIndex: 0 });
+  const previousWebgalLinkModeRef = useRef(webgalLinkMode);
+  const [webgalModeEntryAnimation, setWebgalModeEntryAnimation] = useState<{
+    token: number;
+    startIndex: number;
+    endIndex: number;
+  } | null>(null);
+
+  const handleVisibleRangeChange = useCallback((range: { startIndex: number; endIndex: number }) => {
+    visibleVirtuosoRangeRef.current = range;
+  }, []);
+
+  useEffect(() => {
+    const wasEnabled = previousWebgalLinkModeRef.current;
+    previousWebgalLinkModeRef.current = webgalLinkMode;
+
+    if (!webgalLinkMode) {
+      setWebgalModeEntryAnimation(null);
+      return;
+    }
+    if (wasEnabled) {
+      return;
+    }
+
+    const { startIndex, endIndex } = visibleVirtuosoRangeRef.current;
+    if (endIndex < startIndex) {
+      return;
+    }
+    setWebgalModeEntryAnimation({
+      token: Date.now(),
+      startIndex,
+      endIndex,
+    });
+    const clearTimer = window.setTimeout(() => {
+      setWebgalModeEntryAnimation(null);
+    }, 520);
+    return () => window.clearTimeout(clearTimer);
+  }, [webgalLinkMode]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -631,6 +673,7 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 消息拖拽
    */
+  const canMoveMessagesInRoom = canParticipateInRoom(roomContext.curMember?.memberType);
   const {
     isDragging,
     scrollerRef,
@@ -648,20 +691,21 @@ function ChatFrame(props: ChatFrameProps) {
     virtuosoRef,
     isSelecting,
     selectedMessageIds,
+    canMoveMessagesInRoom,
   });
 
   /**
    * 消息渲染
    */
-  const baseDraggable = canParticipateInRoom(roomContext.curMember?.memberType);
   const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
   const isGalProposalPreviewActive = Boolean(galProposalPreview);
+  const baseDraggable = !isGalProposalPreviewActive;
 
   const renderMessage = useChatFrameMessageRenderer({
     selectedMessageIds,
     isDragging,
     isSelecting,
-    baseDraggable: baseDraggable && !isGalProposalPreviewActive,
+    baseDraggable,
     canJumpToWebGAL: canJumpToWebGAL && !isGalProposalPreviewActive,
     getBaseVersionMessage: getRenderedBaseVersionMessage,
     showFullMessageDiff: isGalProposalPreviewActive || canRenderFullMessageDiff,
@@ -680,6 +724,7 @@ function ChatFrame(props: ChatFrameProps) {
     onDragStart: handleDragStart,
     onDragEnd: handleDragEnd,
     virtuosoIndexToMessageIndex,
+    webgalModeEntryAnimation,
   });
   if (chatHistory?.loading) {
     return <ChatFrameLoadingState />;
@@ -696,6 +741,7 @@ function ChatFrame(props: ChatFrameProps) {
         isAtBottomRef,
         isAtTopRef,
         setCurrentVirtuosoIndex,
+        onVisibleRangeChange: handleVisibleRangeChange,
         enableUnreadIndicator,
         unreadMessageNumber,
         scrollToBottom,
@@ -769,6 +815,7 @@ function ChatFrame(props: ChatFrameProps) {
         onToggleBgm: handleToggleBgm,
         onOpenAnnotations: handleOpenAnnotations,
         onInsertAfter: setInsertAfterMessageId,
+        onCopyMessageToClueFolder,
         onToggleNarrator: handleToggleNarrator,
       }}
     />

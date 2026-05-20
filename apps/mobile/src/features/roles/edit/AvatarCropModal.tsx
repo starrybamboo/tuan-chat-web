@@ -1,14 +1,13 @@
-import { useCallback, useRef } from "react";
+import { Image } from "expo-image";
+import * as ImageManipulator from "expo-image-manipulator";
+import { useCallback, useState } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import * as ImageManipulator from "expo-image-manipulator";
-import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -88,14 +87,14 @@ const styles = StyleSheet.create({
   },
 });
 
-interface AvatarCropModalProps {
+type AvatarCropModalProps = {
   visible: boolean;
   imageUri: string;
   imageWidth: number;
   imageHeight: number;
-  onConfirm: (croppedUri: string) => void;
+  onConfirm: (croppedUri: string) => Promise<void> | void;
   onCancel: () => void;
-}
+};
 
 export function AvatarCropModal({
   visible,
@@ -106,6 +105,8 @@ export function AvatarCropModal({
   onCancel,
 }: AvatarCropModalProps) {
   const theme = useTheme();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const baseScale = Math.max(CROP_SIZE / imageWidth, CROP_SIZE / imageHeight);
   const displayWidth = imageWidth * baseScale;
@@ -168,42 +169,64 @@ export function AvatarCropModal({
   }));
 
   const handleConfirm = useCallback(async () => {
-    const currentScale = scale.value * baseScale;
-    const currentTx = translateX.value;
-    const currentTy = translateY.value;
+    if (isProcessing) {
+      return;
+    }
+    setErrorMessage(null);
+    setIsProcessing(true);
+    try {
+      const currentScale = scale.value * baseScale;
+      const currentTx = translateX.value;
+      const currentTy = translateY.value;
 
-    const cropX = (imageWidth / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTx / currentScale);
-    const cropY = (imageHeight / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTy / currentScale);
-    const cropSide = CROP_SIZE / currentScale;
+      const cropX = (imageWidth / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTx / currentScale);
+      const cropY = (imageHeight / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTy / currentScale);
+      const cropSide = CROP_SIZE / currentScale;
 
-    const originX = Math.max(0, Math.round(cropX));
-    const originY = Math.max(0, Math.round(cropY));
-    const width = Math.min(Math.round(cropSide), imageWidth - originX);
-    const height = Math.min(Math.round(cropSide), imageHeight - originY);
+      const originX = Math.max(0, Math.round(cropX));
+      const originY = Math.max(0, Math.round(cropY));
+      const width = Math.min(Math.round(cropSide), imageWidth - originX);
+      const height = Math.min(Math.round(cropSide), imageHeight - originY);
 
-    const result = await ImageManipulator.manipulateAsync(
-      imageUri,
-      [
-        { crop: { originX, originY, width, height } },
-        { resize: { width: 256, height: 256 } },
-      ],
-      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
-    );
+      if (width <= 0 || height <= 0) {
+        throw new Error("裁剪区域无效，请重新调整图片。");
+      }
 
-    onConfirm(result.uri);
-  }, [imageUri, imageWidth, imageHeight, baseScale, scale, translateX, translateY, onConfirm]);
+      const result = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [
+          { crop: { originX, originY, width, height } },
+          { resize: { width: 256, height: 256 } },
+        ],
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+      );
+
+      await onConfirm(result.uri);
+    }
+    catch (error) {
+      setErrorMessage(error instanceof Error && error.message.trim() ? error.message.trim() : "头像处理失败，请重试。");
+    }
+    finally {
+      setIsProcessing(false);
+    }
+  }, [imageUri, imageWidth, imageHeight, baseScale, scale, translateX, translateY, onConfirm, isProcessing]);
 
   const handleCancel = useCallback(() => {
+    if (isProcessing) {
+      return;
+    }
     scale.value = 1;
     savedScale.value = 1;
     translateX.value = 0;
     translateY.value = 0;
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
+    setErrorMessage(null);
     onCancel();
-  }, [onCancel, scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY]);
+  }, [onCancel, scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY, isProcessing]);
 
-  if (!visible) return null;
+  if (!visible)
+    return null;
 
   return (
     <Modal visible={visible} animationType="fade" statusBarTranslucent>
@@ -227,13 +250,24 @@ export function AvatarCropModal({
         <View style={styles.cropFrame} pointerEvents="none" />
 
         <View style={styles.actions}>
-          <Pressable onPress={handleCancel} style={styles.actionButton}>
-            <ThemedText style={{ color: "#fff" }}>取消</ThemedText>
+          <Pressable disabled={isProcessing} onPress={handleCancel} style={styles.actionButton}>
+            <ThemedText style={{ color: isProcessing ? "rgba(255,255,255,0.45)" : "#fff" }}>取消</ThemedText>
           </Pressable>
-          <Pressable onPress={handleConfirm} style={styles.actionButton}>
-            <ThemedText style={{ color: theme.accent }}>确认</ThemedText>
+          <Pressable disabled={isProcessing} onPress={handleConfirm} style={styles.actionButton}>
+            <ThemedText style={{ color: isProcessing ? theme.textSecondary : theme.accent }}>
+              {isProcessing ? "处理中…" : "确认"}
+            </ThemedText>
           </Pressable>
         </View>
+        {errorMessage
+          ? (
+              <View style={{ bottom: 120, left: Spacing.xxl, position: "absolute", right: Spacing.xxl }}>
+                <ThemedText style={{ color: "#fca5a5", textAlign: "center" }}>
+                  {errorMessage}
+                </ThemedText>
+              </View>
+            )
+          : null}
       </View>
     </Modal>
   );

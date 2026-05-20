@@ -27,5 +27,6 @@ export function getRoomSidebarMaterialSectionClassName(params: {
   if (params.stretchMaterialSection) {
     return params.fillSectionClassName;
   }
-  return !params.isRoomDocSectionExpanded || !params.isMaterialSectionExpanded ? "mt-auto" : undefined;
+  // 非分栏模式下，素材包保持底部锚定，避免被上方频道区的展开状态顶上来。
+  return "mt-auto";
 }

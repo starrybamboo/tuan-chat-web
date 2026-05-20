@@ -30,7 +30,8 @@ export function getAnnotationsByCategory(catalog: AnnotationDefinition[]): Map<s
 }
 
 export function normalizeAnnotations(annotations?: string[]): string[] {
-  if (!Array.isArray(annotations)) return [];
+  if (!Array.isArray(annotations))
+    return [];
   return annotations.filter((item): item is string => typeof item === "string" && item.length > 0);
 }
 

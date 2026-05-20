@@ -1,20 +1,31 @@
 import type { MessageDraft } from "@tuanchat/domain/message-draft";
-import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
   buildChatMessageRequestFromDraft,
 } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
+import { useRef } from "react";
+
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
+import { mobileApiClient } from "@/lib/api";
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import {
-  getRoomMessagesQueryKey,
   getAllRoomMessagesQueryKey,
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
+import {
+  commitOptimisticRoomMessageInList,
+  createOptimisticRoomMessage,
+  getNextAppendPosition,
+  removeRoomMessageFromList,
+  removeRoomMessagesFromList,
+} from "@tuanchat/query/room-message-lifecycle";
 
-import { mobileApiClient } from "@/lib/api";
+import { writeCachedRoomMessages } from "./mobileRoomMessageCache";
 
 type SendMessageContext = {
   annotations?: string[];
@@ -42,18 +53,90 @@ function requireNonEmptyContent(content: string, fallback = "消息内容不能�
   return trimmed;
 }
 
-export function useSendRoomMessageMutation(roomId: number | null, pageSize: number = 20) {
+export function useSendRoomMessageMutation(roomId: number | null, currentUserId: number = 0, _pageSize: number = 20) {
   const queryClient = useQueryClient();
   const mutation = useSharedSendMessageMutation(mobileApiClient, roomId ?? -1);
+  const optimisticIdRef = useRef(-1);
 
-  const invalidateRoomMessages = async () => {
+  const getNextOptimisticId = () => {
+    const id = optimisticIdRef.current;
+    optimisticIdRef.current -= 1;
+    return id;
+  };
+
+  const getCurrentMessages = (): ChatMessageResponse[] => {
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId <= 0)
+      return [];
+    return queryClient.getQueryData<ChatMessageResponse[]>(getAllRoomMessagesQueryKey(resolvedRoomId)) ?? [];
+  };
+
+  const updateQueryCache = (updater: (current: ChatMessageResponse[] | undefined) => ChatMessageResponse[]) => {
     const resolvedRoomId = requirePositiveRoomId(roomId);
-    await queryClient.invalidateQueries({
-      queryKey: getAllRoomMessagesQueryKey(resolvedRoomId),
+    const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
+    queryClient.setQueryData<ChatMessageResponse[]>(queryKey, updater);
+  };
+
+  const persistOptimisticToCache = (messages: ChatMessageResponse[]) => {
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId <= 0 || messages.length === 0)
+      return;
+    void writeCachedRoomMessages(resolvedRoomId, messages).catch(() => {});
+  };
+
+  const insertOptimistic = (request: ChatMessageRequest): ChatMessageResponse => {
+    const currentMessages = getCurrentMessages();
+    const position = typeof request.position === "number"
+      ? request.position
+      : getNextAppendPosition(currentMessages);
+    const optimistic = createOptimisticRoomMessage(request, {
+      optimisticId: getNextOptimisticId(),
+      currentUserId,
+      position,
     });
-    await queryClient.invalidateQueries({
-      queryKey: getRoomMessagesQueryKey(resolvedRoomId, pageSize),
+    updateQueryCache(current => [...(current ?? []), optimistic].sort((a, b) => {
+      const pa = a.message?.position ?? 0;
+      const pb = b.message?.position ?? 0;
+      return pa - pb || (a.message?.messageId ?? 0) - (b.message?.messageId ?? 0);
+    }));
+    persistOptimisticToCache([optimistic]);
+    return optimistic;
+  };
+
+  const insertOptimisticBatch = (requests: ChatMessageRequest[]): ChatMessageResponse[] => {
+    const currentMessages = getCurrentMessages();
+    let nextPosition = getNextAppendPosition(currentMessages);
+    const optimistics = requests.map((request) => {
+      const position = typeof request.position === "number" ? request.position : nextPosition++;
+      return createOptimisticRoomMessage(request, {
+        optimisticId: getNextOptimisticId(),
+        currentUserId,
+        position,
+      });
     });
+    updateQueryCache(current => [...(current ?? []), ...optimistics].sort((a, b) => {
+      const pa = a.message?.position ?? 0;
+      const pb = b.message?.position ?? 0;
+      return pa - pb || (a.message?.messageId ?? 0) - (b.message?.messageId ?? 0);
+    }));
+    persistOptimisticToCache(optimistics);
+    return optimistics;
+  };
+
+  const commitOptimistic = (optimisticId: number, serverMessage: ChatMessageResponse["message"]) => {
+    updateQueryCache(current => commitOptimisticRoomMessageInList(current, optimisticId, serverMessage));
+    const resolvedRoomId = roomId ?? -1;
+    if (resolvedRoomId > 0) {
+      void writeCachedRoomMessages(resolvedRoomId, [{ message: serverMessage }]).catch(() => {});
+    }
+  };
+
+  const revertOptimistic = (optimisticId: number) => {
+    updateQueryCache(current => removeRoomMessageFromList(current, optimisticId));
+  };
+
+  const revertOptimisticBatch = (optimisticIds: number[]) => {
+    updateQueryCache(current => removeRoomMessagesFromList(current, optimisticIds));
   };
 
   const mutateRequest = async (request: ChatMessageRequest) => {
@@ -67,9 +150,58 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
 
   const sendRequest = async (request: ChatMessageRequest) => {
     requirePositiveRoomId(roomId);
-    const result = await mutateRequest(request);
-    await invalidateRoomMessages();
-    return result;
+    const optimistic = insertOptimistic(request);
+    try {
+      const result = await mutateRequest(request);
+      if (result?.success && result.data) {
+        commitOptimistic(optimistic.message.messageId, result.data);
+      }
+      else {
+        revertOptimistic(optimistic.message.messageId);
+      }
+      return result;
+    }
+    catch (error) {
+      revertOptimistic(optimistic.message.messageId);
+      throw error;
+    }
+  };
+
+  const sendRequests = async (requests: ChatMessageRequest[]) => {
+    requirePositiveRoomId(roomId);
+    if (requests.length === 0) {
+      return [];
+    }
+
+    const optimistics = insertOptimisticBatch(requests);
+    const results = [];
+    const failedIds: number[] = [];
+
+    try {
+      for (let i = 0; i < requests.length; i++) {
+        try {
+          const result = await mutateRequest(requests[i]);
+          if (result?.success && result.data) {
+            commitOptimistic(optimistics[i].message.messageId, result.data);
+          }
+          else {
+            failedIds.push(optimistics[i].message.messageId);
+          }
+          results.push(result);
+        }
+        catch (error) {
+          failedIds.push(optimistics[i].message.messageId);
+          throw error;
+        }
+      }
+    }
+    finally {
+      if (failedIds.length > 0) {
+        revertOptimisticBatch(failedIds);
+      }
+    }
+
+    return results;
   };
 
   const sendDraftMessage = async (
@@ -112,12 +244,7 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
       });
     });
 
-    const results = [];
-    for (const request of requests) {
-      results.push(await mutateRequest(request));
-    }
-    await invalidateRoomMessages();
-    return results;
+    return sendRequests(requests);
   };
 
   const sendTextMessage = async (input: SendMessageContext & { content: string }) => {
@@ -127,6 +254,24 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
       content,
       extra: {},
       messageType: MESSAGE_TYPE.TEXT,
+    }, input);
+  };
+
+  const sendDiceMessage = async (input: SendMessageContext & {
+    content: string;
+    hidden?: boolean;
+  }) => {
+    const content = requireNonEmptyContent(input.content, "骰子内容不能为空。");
+
+    return sendDraftMessage({
+      content,
+      extra: {
+        diceResult: {
+          hidden: input.hidden,
+          result: content,
+        },
+      },
+      messageType: MESSAGE_TYPE.DICE,
     }, input);
   };
 
@@ -175,9 +320,11 @@ export function useSendRoomMessageMutation(roomId: number | null, pageSize: numb
   return {
     ...mutation,
     sendCommandRequestMessage,
+    sendDiceMessage,
     sendDraftMessage,
     sendDraftMessages,
     sendRequest,
+    sendRequests,
     sendStateEventMessage,
     sendTextMessage,
   };

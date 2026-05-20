@@ -1,30 +1,58 @@
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
-
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
-import { mergeRoomMessages } from "@tuanchat/query/room-message";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import { useAuthSession } from "@/features/auth/auth-session";
-import { clearCachedRoomMessages, readCachedRoomMessages, writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
-import { mobileApiClient } from "@/lib/api";
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-export function useRoomMessagesQuery(roomId: number | null) {
+import { useAuthSession } from "@/features/auth/auth-session";
+import {
+  clearCachedRoomMessages,
+  getCachedRoomMessagesMaxSyncId,
+  readCachedRoomMessages,
+  writeCachedRoomMessages,
+} from "@/features/messages/mobileRoomMessageCache";
+import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
+import { mobileApiClient } from "@/lib/api";
+import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
+import { mergeRoomMessages } from "@tuanchat/query/room-message";
+
+type CachedRoomMessagesState = {
+  messages: ChatMessageResponse[];
+  roomId: number | null;
+};
+
+export function useRoomMessagesQuery(
+  roomId: number | null,
+  options: { staleTime?: number } = {},
+) {
   const { isAuthenticated } = useAuthSession();
-  const [cachedMessages, setCachedMessages] = useState<ChatMessageResponse[]>([]);
+  const [cachedMessagesState, setCachedMessagesState] = useState<CachedRoomMessagesState>({
+    messages: [],
+    roomId: null,
+  });
+  const hasValidRoomId = typeof roomId === "number" && roomId > 0;
 
   const query = useQuery<ChatMessageResponse[]>({
-    enabled: isAuthenticated && typeof roomId === "number" && roomId > 0,
+    enabled: isAuthenticated && hasValidRoomId,
     queryFn: async () => {
-      const res = await mobileApiClient.chatController.getAllMessage(roomId!);
-      return (res as any).data ?? res ?? [];
+      return fetchRoomMessagesWithLocalSync(roomId!, {
+        client: mobileApiClient,
+        getMaxCachedSyncId: getCachedRoomMessagesMaxSyncId,
+      });
     },
     queryKey: getAllRoomMessagesQueryKey(roomId ?? -1),
+    staleTime: options.staleTime,
   });
 
   const networkMessages = useMemo(() => {
     return query.data ?? [];
   }, [query.data]);
+
+  const cachedMessages = useMemo(() => {
+    if (!isAuthenticated || !hasValidRoomId || cachedMessagesState.roomId !== roomId) {
+      return [];
+    }
+    return cachedMessagesState.messages;
+  }, [cachedMessagesState, hasValidRoomId, isAuthenticated, roomId]);
 
   const messages = useMemo(() => {
     return mergeRoomMessages(cachedMessages, networkMessages);
@@ -34,13 +62,13 @@ export function useRoomMessagesQuery(roomId: number | null) {
     let disposed = false;
 
     if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
-      queueMicrotask(() => setCachedMessages([]));
+      queueMicrotask(() => setCachedMessagesState({ messages: [], roomId: null }));
       return;
     }
 
     void readCachedRoomMessages(roomId).then((nextCachedMessages) => {
       if (!disposed) {
-        setCachedMessages(nextCachedMessages);
+        setCachedMessagesState({ messages: nextCachedMessages, roomId });
       }
     });
 

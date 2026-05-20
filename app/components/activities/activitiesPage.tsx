@@ -1,11 +1,11 @@
 import type { FeedPageRequest } from "../../../api";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
+import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 

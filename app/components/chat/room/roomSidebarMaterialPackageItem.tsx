@@ -4,6 +4,7 @@ import type { MaterialSidebarVirtualNode } from "./materialSidebarTree";
 import { CaretRightIcon, FileIcon, FolderPlusIcon, FolderSimpleIcon, PackageIcon, PlusIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { buildMaterialSidebarTree } from "@/components/chat/room/materialSidebarTree";
+import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { parseNodePath, serializeNodePath } from "@/components/material/components/materialPackageTreeUtils";
@@ -134,6 +135,14 @@ function MaterialTreeNodeRow({
               return;
             }
             event.dataTransfer.effectAllowed = "copy";
+            setDragPreview({
+              dataTransfer: event.dataTransfer,
+              sourceElement: event.currentTarget,
+              title: messages.length > 1 ? "拖动多条素材消息" : "拖动素材消息",
+              subtitle: messages.length > 1 ? `${messages.length} 条消息 · 拖到群聊或副窗口` : "拖到群聊或副窗口",
+              variant: "material",
+              count: messages.length,
+            });
             setSubWindowDragPayload({
               tab: "material",
               spacePackageId: packageId,

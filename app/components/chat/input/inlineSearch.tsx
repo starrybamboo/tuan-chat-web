@@ -228,7 +228,8 @@ function SearchBar({ className = "" }: SearchBarProps) {
                           message={message}
                           keyword={debouncedSearchText}
                           onClick={() => {
-                            roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageId);
+                            if (roomContext.scrollToGivenMessage)
+                              roomContext.scrollToGivenMessage(message.message.messageId);
                             setIsSearching(false);
                           }}
                           className="px-4 py-3 border-b border-base-300/50 hover:bg-base-100 cursor-pointer transition-colors last:border-b-0"

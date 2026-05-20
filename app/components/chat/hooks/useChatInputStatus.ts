@@ -70,9 +70,9 @@ function useChatInputStatus(params: UseChatInputStatusParams): UseChatInputStatu
   const lastNonEmptyInputRef = useRef<string>("");
   const manualStatusLockRef = useRef<{ status: ChatStatusType; timestamp: number } | null>(null);
   const inputValueRef = useRef<string>("");
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastStatusSentRef = useRef<{ status: ChatStatusType; ts: number } | null>(null);
-  const inputDebounceTimerRef = useRef<NodeJS.Timeout | null>(null); // ⚡ 新增：输入防抖计时器
+  const inputDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 缓存 webSocketUtils 的方法，避免依赖整个对象
   const updateChatStatusRef = useRef(webSocketUtils.updateChatStatus);

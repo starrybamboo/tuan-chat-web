@@ -28,14 +28,14 @@ const styles = StyleSheet.create({
   },
 });
 
-interface ChatSearchBarProps {
+type ChatSearchBarProps = {
   onChangeQuery: (query: string) => void;
   onClose: () => void;
   query: string;
   resultCount: number;
-}
+};
 
-export function ChatSearchBar({ onChangeQuery, onClose, query, resultCount }: ChatSearchBarProps) {
+export function ChatSearchBar({ onChangeQuery, onClose, query, resultCount: _resultCount }: ChatSearchBarProps) {
   const theme = useTheme();
 
   return (

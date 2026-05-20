@@ -6,7 +6,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = React.use(SpaceContext);
@@ -69,7 +69,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     setFormData({
       name: space.name || "",
       description: space.description || "",
-      avatar: avatarThumbUrl(space.avatarFileId),
+      avatar: imageLowUrl(space.avatarFileId),
       avatarFileId: space.avatarFileId,
     });
     didInitFormRef.current = true;
@@ -78,7 +78,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     lastSavedSnapshotRef.current = buildSnapshot({
       name: space.name || "",
       description: space.description || "",
-      avatar: avatarThumbUrl(space.avatarFileId),
+      avatar: imageLowUrl(space.avatarFileId),
       avatarFileId: space.avatarFileId,
     });
     dirtyRef.current = false;

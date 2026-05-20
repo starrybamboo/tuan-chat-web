@@ -5,6 +5,8 @@ import { useAuthSession } from "@/features/auth/auth-session";
 import { resolveMobileAuthRedirect } from "@/features/auth/mobile-auth-redirect";
 import { useUnreadCountQuery } from "@/features/notifications/useUnreadCountQuery";
 
+const TAB_BADGE_DOT_SIZE = 8;
+
 export default function TabLayout() {
   const { isAuthenticated, isBootstrapping } = useAuthSession();
   const redirectHref = resolveMobileAuthRedirect({
@@ -55,8 +57,17 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: "个人",
-          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: "#f85149", fontSize: 10 },
+          tabBarBadge: unreadCount > 0 ? "" : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: "#f85149",
+            borderRadius: TAB_BADGE_DOT_SIZE / 2,
+            height: TAB_BADGE_DOT_SIZE,
+            maxHeight: TAB_BADGE_DOT_SIZE,
+            maxWidth: TAB_BADGE_DOT_SIZE,
+            minHeight: TAB_BADGE_DOT_SIZE,
+            minWidth: TAB_BADGE_DOT_SIZE,
+            width: TAB_BADGE_DOT_SIZE,
+          },
           tabBarIcon: ({ color }) => (
             <Gear size={22} color={color} weight="fill" />
           ),

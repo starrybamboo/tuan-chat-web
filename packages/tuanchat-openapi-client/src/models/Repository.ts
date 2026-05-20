@@ -47,13 +47,13 @@ export type Repository = {
      */
     image?: string;
     /**
-     * 仓库封面媒体文件 ID；替代 image/originalImage
-     */
-    coverFileId?: number;
-    /**
      * Original cover image
      */
     originalImage?: string;
+    /**
+     * 仓库封面媒体文件 ID；替代 image/originalImage
+     */
+    coverFileId?: number;
     /**
      * Max play time (hours)
      */

@@ -1,0 +1,1 @@
+diff --git a/package.json b/package.json index 50e70f13aada491a53f50c584c059d5d25a60187..1b30635df3ba764fef779e124110b5d1bf042b73 100644 --- a/package.json +++ b/package.json @@ -25,7 +25,7 @@      "yjs": "*"    },    "exports": { -    ".": "./src/index.ts" +    ".": "./dist/index.js"    },    "files": [      "src",

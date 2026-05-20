@@ -32,6 +32,8 @@ import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
 import { MessageType } from "./wsModels";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
 
+const WS_HANDLER_DEBUG_LOG_ENABLED = import.meta.env.DEV;
+
 type ImmerUpdater<T> = (recipe: (draft: T) => void) => void;
 
 type UseWebSocketMessageHandlersOptions = {
@@ -310,7 +312,9 @@ export function useWebSocketMessageHandlers({
       15: () => {
         const event = message.data as RoomExtraChangeEvent;
         queryClient.invalidateQueries({ queryKey: ["getRoomExtra", event.roomId, event.key] });
-        console.log("Room extra change:", event);
+        if (WS_HANDLER_DEBUG_LOG_ENABLED) {
+          console.info("Room extra change:", event);
+        }
       },
       16: () => {
         const { roomId } = message.data as { roomId: number };
@@ -328,7 +332,9 @@ export function useWebSocketMessageHandlers({
       },
       21: () => {
         const event = message as NewFriendRequestPush;
-        console.info("New friend request push:", event.data);
+        if (WS_HANDLER_DEBUG_LOG_ENABLED) {
+          console.info("New friend request push:", event.data);
+        }
         queryClient.invalidateQueries({ queryKey: ["friendReqPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
@@ -371,7 +377,9 @@ export function useWebSocketMessageHandlers({
       },
       24: () => {
         const event = message as FriendRequestAcceptedPush;
-        console.info("Friend request accepted push:", event.data);
+        if (WS_HANDLER_DEBUG_LOG_ENABLED) {
+          console.info("Friend request accepted push:", event.data);
+        }
         queryClient.invalidateQueries({ queryKey: ["friendList"] });
         queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
         queryClient.invalidateQueries({ queryKey: ["friendCheck"] });

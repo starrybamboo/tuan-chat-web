@@ -4,6 +4,7 @@ import { BellIcon } from "@phosphor-icons/react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import {
   useMarkAllNotificationsReadMutation,
@@ -11,6 +12,10 @@ import {
   useNotificationsInfiniteQuery,
   useNotificationUnreadCountQuery,
 } from "@/components/notification/notificationHooks";
+import {
+  normalizeNotificationTargetPath,
+  NOTIFICATION_TARGET_FALLBACK_PATH,
+} from "@/components/notification/notificationNavigation";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
 
 const LazyNotificationList = lazy(() => import("@/components/notification/notificationList"));
@@ -73,12 +78,20 @@ export default function NotificationBell() {
   }, [isOpen]);
 
   const openNotification = async (item: UserNotificationItem) => {
+    const targetPath = normalizeNotificationTargetPath(item.targetPath);
+    if (!targetPath) {
+      toast.error("通知目标链接无效，已返回通知中心");
+      router.history.push(NOTIFICATION_TARGET_FALLBACK_PATH);
+      setIsOpen(false);
+      return;
+    }
+
     setBusyNotificationId(item.notificationId);
     try {
       if (!item.isRead) {
         await markReadMutation.mutateAsync({ notificationIdList: [item.notificationId] });
       }
-      router.history.push(item.targetPath);
+      router.history.push(targetPath);
       setIsOpen(false);
     }
     finally {

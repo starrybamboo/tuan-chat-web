@@ -1,12 +1,10 @@
-import type { AnnotationDefinition } from "@tuanchat/domain/annotation-catalog";
-
-import { buildAnnotationMap, normalizeAnnotations } from "@tuanchat/domain/annotation-catalog";
 import { Plus } from "phosphor-react-native";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { buildAnnotationMap, normalizeAnnotations } from "@tuanchat/domain/annotation-catalog";
 
 import { AnnotationChip } from "./AnnotationChip";
 
@@ -36,18 +34,19 @@ const styles = StyleSheet.create({
 
 const annotationMap = buildAnnotationMap();
 
-interface AnnotationBarProps {
+type AnnotationBarProps = {
   annotations: string[] | undefined;
   onToggle?: (id: string) => void;
   onOpenPicker?: () => void;
   canEdit?: boolean;
-}
+};
 
 export function AnnotationBar({ annotations, onToggle, onOpenPicker, canEdit }: AnnotationBarProps) {
   const theme = useTheme();
   const normalized = normalizeAnnotations(annotations);
 
-  if (normalized.length === 0 && !canEdit) return null;
+  if (normalized.length === 0 && !canEdit)
+    return null;
 
   return (
     <View style={styles.container}>
@@ -70,11 +69,13 @@ export function AnnotationBar({ annotations, onToggle, onOpenPicker, canEdit }: 
             />
           );
         })}
-        {canEdit ? (
-          <Pressable onPress={onOpenPicker} style={[styles.addButton, { borderColor: theme.border }]}>
-            <Plus size={12} color={theme.textSecondary} />
-          </Pressable>
-        ) : null}
+        {canEdit
+          ? (
+              <Pressable onPress={onOpenPicker} style={[styles.addButton, { borderColor: theme.border }]}>
+                <Plus size={12} color={theme.textSecondary} />
+              </Pressable>
+            )
+          : null}
       </ScrollView>
     </View>
   );

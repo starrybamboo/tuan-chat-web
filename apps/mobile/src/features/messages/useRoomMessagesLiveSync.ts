@@ -1,23 +1,23 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef } from "react";
+
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
+import { useAuthSession } from "@/features/auth/auth-session";
+import { writeCachedDirectMessages } from "@/features/friends/mobileDirectMessageCache";
+import { writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCache";
 import {
-  getRoomMessageSyncGapStart,
-  upsertRoomMessagesListData,
-} from "@tuanchat/query/room-message";
+  extractChatMessageResponses,
+  upsertLiveRoomMessageWithGapRepair,
+} from "@/features/messages/roomMessageSync";
+import { DEFAULT_TUANCHAT_API_BASE_URL, mobileApiClient } from "@/lib/api";
 import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
 import {
   bumpRoomSessionLatestSyncInCache,
   markRoomSessionReadInCache,
 } from "@tuanchat/query/message-sessions";
 import { getNotificationsUnreadCountQueryKey, prependNotificationToCaches } from "@tuanchat/query/notifications";
-import { useEffect, useMemo, useRef } from "react";
-
-import { useAuthSession } from "@/features/auth/auth-session";
-import { mobileApiClient } from "@/lib/api";
-import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
 const DIRECT_MESSAGE_PUSH_TYPE = 1;
@@ -93,11 +93,6 @@ function parseIncomingRoomMessage(
     },
     type,
   };
-}
-
-function extractChatMessageResponses(result: unknown): ChatMessageResponse[] {
-  const data = (result as { data?: unknown } | null)?.data;
-  return Array.isArray(data) ? data as ChatMessageResponse[] : [];
 }
 
 function parseIncomingDirectMessage(rawData: unknown): MessageDirectResponse | null {
@@ -200,6 +195,9 @@ export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number 
             getDirectInboxQueryKey(currentUserId),
             current => upsertDirectInboxMessagesData(current, [directMessage]),
           );
+          void writeCachedDirectMessages(currentUserId, [directMessage]).catch((error) => {
+            console.warn("[useRoomMessagesLiveSync] 写入私聊 WebSocket 磁盘缓存失败:", error);
+          });
           return;
         }
 
@@ -218,27 +216,17 @@ export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number 
             bumpRoomSessionLatestSyncInCache(queryClient, messageRoomId, messageSyncId);
           }
           if (messageRoomId === resolvedRoomId) {
-            const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
-            const currentMessages = queryClient.getQueryData<ChatMessageResponse[]>(queryKey);
-            const gapStartSyncId = getRoomMessageSyncGapStart(currentMessages, message);
-            if (gapStartSyncId != null) {
-              void mobileApiClient.chatController.getHistoryMessages({
-                roomId: resolvedRoomId,
-                syncId: gapStartSyncId,
-              }).then((result: unknown) => {
-                const missingMessages = extractChatMessageResponses(result);
-                if (missingMessages.length > 0) {
-                  queryClient.setQueryData<ChatMessageResponse[]>(
-                    queryKey,
-                    currentData => upsertRoomMessagesListData(currentData, missingMessages),
-                  );
-                }
-              });
-            }
-            queryClient.setQueryData<ChatMessageResponse[]>(
-              queryKey,
-              currentData => upsertRoomMessagesListData(currentData, [message]),
-            );
+            upsertLiveRoomMessageWithGapRepair(resolvedRoomId, message, {
+              fetchHistoryMessages: async (targetRoomId, syncId) => {
+                const result = await mobileApiClient.chatController.getHistoryMessages({
+                  roomId: targetRoomId,
+                  syncId,
+                });
+                return extractChatMessageResponses(result);
+              },
+              queryClient,
+              writeCachedRoomMessages,
+            });
             if (typeof messageSyncId === "number") {
               markRoomSessionReadInCache(queryClient, resolvedRoomId, messageSyncId);
             }

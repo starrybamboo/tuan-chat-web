@@ -10,7 +10,7 @@ import { tuanchat } from "api/instance";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 // hooks (local)
-import RealtimeRenderOrchestrator from "@/components/chat/core/realtimeRenderOrchestrator";
+import { useClueFolderActions } from "@/components/chat/clues/useClueFolderActions";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { buildGalPatchMutationPlan, executeGalPatchMutationPlan, galPatchProposalStore } from "@/components/chat/galgameAi";
@@ -34,13 +34,14 @@ import useRoomMessageActions from "@/components/chat/room/useRoomMessageActions"
 import useRoomMessageScroll from "@/components/chat/room/useRoomMessageScroll";
 import useRoomOverlaysController from "@/components/chat/room/useRoomOverlaysController";
 import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
+import { compareChatMessageResponsesByOrder, compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
@@ -56,6 +57,9 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { fetchRoleAvatarWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
+
+const RealtimeRenderOrchestrator = React.lazy(() => import("@/components/chat/core/realtimeRenderOrchestrator"));
+const DOC_ROOM_TYPE = 4;
 
 function RoomWindow({
   roomId,
@@ -111,6 +115,14 @@ function RoomWindow({
   });
   const roomHeaderOverride = useEntityHeaderOverrideStore(state => state.headers[`room:${roomId}`]);
   const [isFullMessageDiffOpen, setIsFullMessageDiffOpen] = useState(false);
+  const [roomContentMode, setRoomContentMode] = useState<"room" | "doc">("room");
+
+  useEffect(() => {
+    if (room?.roomId !== roomId) {
+      return;
+    }
+    setRoomContentMode(room.roomType === DOC_ROOM_TYPE ? "doc" : "room");
+  }, [room?.roomId, room?.roomType, roomId]);
 
   const userId = useGlobalUserId();
   const webSocketUtils = useGlobalWebSocket();
@@ -160,17 +172,25 @@ function RoomWindow({
     curAvatarId,
     setCurAvatarId,
     ensureRuntimeAvatarIdForRole,
-    isRoleDataReady: _isRoleDataReady,
+    isRoleDataReady,
   } = useRoomRoleState({
     roomId,
     userId,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     isSpectator,
   });
+  const { copyMessageToClueFolder } = useClueFolderActions({
+    currentUserId: userId,
+    fallbackRoleId: curRoleId,
+    hasHostPrivileges: Boolean(spaceContext.isSpaceOwner),
+    spaceId,
+    spaceMembers: spaceContext.spaceMembers,
+  });
 
   // RealtimeRender controls
   const {
     isRealtimeRenderActive,
+    shouldMountRealtimeRender,
     handleRealtimeRenderApiChange,
     handleToggleRealtimeRender,
     jumpToMessageInWebGAL,
@@ -185,8 +205,47 @@ function RoomWindow({
     historyMessages,
   });
   const sideDrawerState = useSideDrawerStore(state => state.state);
+  const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const initialDocMessages = React.useMemo(() => {
+    return mainHistoryMessages
+      .map(item => item.message)
+      .filter((item): item is Message => Boolean(item));
+  }, [mainHistoryMessages]);
+  const lastNonEmptyRoomMessagesRef = useRef<ChatMessageResponse[]>([]);
+  useEffect(() => {
+    if (mainHistoryMessages.length > 0) {
+      lastNonEmptyRoomMessagesRef.current = mainHistoryMessages;
+    }
+  }, [mainHistoryMessages]);
+  const handleRemoteDocMessagesSaved = useCallback(async (messages: Message[]) => {
+    const roomMessages = messages
+      .filter(message => message.roomId === roomId)
+      .sort(compareMessagesByOrder)
+      .map(message => ({ message }) as ChatMessageResponse);
+    if (roomMessages.length === 0) {
+      console.warn("[RoomWindow] skip replacing room cache because doc sync returned no room messages", {
+        roomId,
+        returnedMessages: messages.length,
+      });
+      if ((chatHistory?.messages.length ?? 0) === 0 && lastNonEmptyRoomMessagesRef.current.length > 0) {
+        await chatHistory?.addOrUpdateMessages(lastNonEmptyRoomMessagesRef.current);
+      }
+      return;
+    }
+    lastNonEmptyRoomMessagesRef.current = roomMessages;
+    await chatHistory?.clearHistory();
+    await chatHistory?.addOrUpdateMessages(roomMessages);
+  }, [chatHistory, roomId]);
+  const canViewDocContent = Boolean(spaceContext.isSpaceOwner || hasHostPrivileges(curMember?.memberType));
+  const handleToggleRoomContentMode = useCallback(() => {
+    const ui = roomUiStore.getState();
+    ui.setThreadRootMessageId(undefined);
+    ui.setComposerTarget("main");
+    setSideDrawerState("none");
+    setRoomContentMode(mode => (mode === "doc" ? "room" : "doc"));
+  }, [roomUiStore, setSideDrawerState]);
   const visibleRoleIdsForStateDrawer = React.useMemo(() => {
-    if (sideDrawerState !== "state") {
+    if (sideDrawerState !== "combat" && sideDrawerState !== "initiative" && sideDrawerState !== "state") {
       return undefined;
     }
     return roomAllRoles.map(role => role.roleId).filter(roleId => roleId > 0);
@@ -315,13 +374,14 @@ function RoomWindow({
     commandExecutor,
   });
 
-  const { sendMessageWithInsert, sendMessageBatch, handleSendWebgalChoose } = useRoomMessageActions({
-    roomId,
+  const {
+    discardLocalOptimisticMessages,
+    insertLocalOptimisticMessages,
+    sendMessageBatchWithLocalOptimistic,
+    sendMessageWithInsert,
+    sendMessageBatch,
+  } = useRoomMessageActions({
     currentUserId: Number(userId ?? 0),
-    isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
-    curRoleId,
-    isSubmitting,
-    notMember,
     mainHistoryMessages,
     sendMessage: sendMessageMutation.mutateAsync,
     batchSendMessages: batchSendMessageMutation.mutateAsync,
@@ -329,7 +389,6 @@ function RoomWindow({
     addOrUpdateMessages: chatHistory?.addOrUpdateMessages,
     removeMessageById: chatHistory?.removeMessageById,
     replaceMessageById: chatHistory?.replaceMessageById,
-    ensureRuntimeAvatarIdForRole,
     roomUiStoreApi: roomUiStore,
   });
   sendMessageWithInsertRef.current = sendMessageWithInsert;
@@ -358,6 +417,9 @@ function RoomWindow({
     noRole,
     isSubmitting,
     setIsSubmitting,
+    discardLocalOptimisticMessages,
+    insertLocalOptimisticMessages,
+    sendMessageBatchWithLocalOptimistic,
     sendMessageWithInsert,
     sendMessageBatch,
     ensureRuntimeAvatarIdForRole,
@@ -370,6 +432,7 @@ function RoomWindow({
   });
   const {
     handleImportChatText,
+    handleSendClueCard,
     handleSendDocCard,
     handleSendMaterialItem,
     handleSendRoomJump,
@@ -1073,6 +1136,7 @@ function RoomWindow({
     messageScope,
     threadRootMessageId,
     sendMessageWithInsert,
+    onCopyMessageToClueFolder: copyMessageToClueFolder,
     onExportPremiere: handleExportPremiere,
     showFullMessageDiff: isFullMessageDiffOpen,
     galPatchProposal: activeGalPatchProposal,
@@ -1093,6 +1157,7 @@ function RoomWindow({
     roomName,
     spaceName,
     baseArchiveCommitIdForMessageDiff,
+    copyMessageToClueFolder,
     messageScope,
     sendMessageWithInsert,
     threadRootMessageId,
@@ -1113,7 +1178,6 @@ function RoomWindow({
     onSendEffect: handleSendEffect,
     onClearBackground: handleClearBackground,
     onClearFigure: handleClearFigure,
-    onSendWebgalChoose: handleSendWebgalChoose,
     onOpenFullMessageDiff: () => setIsFullMessageDiffOpen(value => !value),
     isFullMessageDiffOpen,
     isKP: spaceContext.isSpaceOwner,
@@ -1141,24 +1205,29 @@ function RoomWindow({
   return (
     <RoomUiStoreProvider store={roomUiStore}>
       <RoomContext value={roomContext}>
-        <RoomSideDrawerGuards spaceId={spaceId} />
+        <RoomSideDrawerGuards />
         <StateRuntimeProvider
           messages={mainHistoryMessages}
           ruleId={space?.ruleId ?? -1}
           currentRoleId={curRoleId}
           visibleRoleIds={visibleRoleIdsForStateDrawer}
         >
-          <RealtimeRenderOrchestrator
-            spaceId={spaceId}
-            spaceName={spaceName}
-            roomId={roomId}
-            room={room}
-            roles={roomAllRoles}
-            historyMessages={mainHistoryMessages}
-            chatHistoryLoading={!!chatHistory?.loading}
-            onApiChange={handleRealtimeRenderApiChange}
-          />
+          {shouldMountRealtimeRender && (
+            <React.Suspense fallback={null}>
+              <RealtimeRenderOrchestrator
+                spaceId={spaceId}
+                spaceName={spaceName}
+                roomId={roomId}
+                room={room}
+                roles={roomAllRoles}
+                historyMessages={mainHistoryMessages}
+                chatHistoryLoading={!!chatHistory?.loading}
+                onApiChange={handleRealtimeRenderApiChange}
+              />
+            </React.Suspense>
+          )}
           <RoomDocRefDropLayer
+            onSendClueCard={handleSendClueCard}
             onSendDocCard={handleSendDocCard}
             onSendMaterialItem={handleSendMaterialItem}
             onSendRoomJump={handleSendRoomJump}
@@ -1168,6 +1237,11 @@ function RoomWindow({
               roomId={roomId}
               roomName={roomName}
               room={room}
+              contentMode={roomContentMode}
+              onToggleContentMode={handleToggleRoomContentMode}
+              canViewDocContent={canViewDocContent}
+              initialDocMessages={initialDocMessages}
+              onRemoteDocMessagesSaved={handleRemoteDocMessagesSaved}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}
               onCloseSubWindow={onCloseSubWindow}
               backgroundUrl={backgroundUrl}
@@ -1180,12 +1254,11 @@ function RoomWindow({
               chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
               isReloadingAllMessages={isReloadingAllMessages}
-              onSendDocCard={handleSendDocCard}
               galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
               onGalPatchProposalGenerated={handleGalPatchProposalGenerated}
             />
           </RoomDocRefDropLayer>
-          {!viewMode && (
+          {!viewMode && roomContentMode === "room" && (
             <RoomWindowOverlays
               isImportChatTextOpen={isImportChatTextOpen}
               setIsImportChatTextOpen={setIsImportChatTextOpen}

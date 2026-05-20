@@ -107,36 +107,21 @@ export async function copyDocToSpaceUserDoc(params: {
   const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
   const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
 
-  const createDocWithRetry = async (): Promise<number> => {
-    let lastErr = "";
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const createRes = await tuanchat.spaceUserDocController.createDoc1({
-        spaceId: params.spaceId,
-        title,
-        ...(params.tag ? { tag: params.tag } : {}),
-      });
-      if (createRes?.success && createRes.data?.docId) {
-        return createRes.data.docId;
-      }
-      lastErr = createRes?.errMsg ?? "创建文档失败";
-      if (!lastErr.includes("版本冲突")) {
-        throw new Error(lastErr);
-      }
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 120 * (attempt + 1));
-      });
-    }
-    throw new Error(lastErr || "创建文档失败");
-  };
-
-  const newEntityId = await createDocWithRetry();
-  const { buildDescriptionDocId } = await import("@/components/chat/infra/doc/description/descriptionDocId");
-
-  const newDocId = buildDescriptionDocId({
-    entityType: "space_user_doc",
-    entityId: newEntityId,
-    docType: "description",
+  const createRes = await tuanchat.spaceUserDocController.createDoc1({
+    spaceId: params.spaceId,
+    title,
+    ...(params.tag ? { tag: params.tag } : {}),
   });
+  if (!createRes?.success || !createRes.data?.docId) {
+    throw new Error(createRes?.errMsg ?? "创建文档失败");
+  }
+
+  const newEntityId = createRes.data.docId;
+  const newRoomId = Number(createRes.data.roomId);
+  if (!Number.isFinite(newRoomId) || newRoomId <= 0) {
+    throw new Error("创建文档失败：缺少文档房间");
+  }
+  const newDocId = String(newRoomId);
   const snapshot = buildCopiedSnapshot(sourceSnapshot);
 
   setCachedDocSnapshot(newDocId, snapshot);

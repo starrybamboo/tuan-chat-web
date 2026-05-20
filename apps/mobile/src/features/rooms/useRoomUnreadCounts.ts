@@ -1,23 +1,39 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 
+import { useAuthSession } from "@/features/auth/auth-session";
+import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
+import { mobileApiClient } from "@/lib/api";
+import {
+  canUseMobileUserScopedSnapshot,
+  createMobileQuerySnapshotKey,
+  useMobileQuerySnapshot,
+} from "@/lib/use-mobile-query-snapshot";
 import {
   getMaxRoomMessageSyncId,
   getRoomUnreadCountsFromSessions,
+  getUserMessageSessionsQueryKey,
   markRoomSessionReadInCache,
   useUpdateRoomReadPositionMutation,
   useUserMessageSessionsQuery,
 } from "@tuanchat/query";
 
-import { useQueryClient } from "@tanstack/react-query";
-
-import { mobileApiClient } from "@/lib/api";
-import { useAuthSession } from "@/features/auth/auth-session";
-import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
+const MESSAGE_SESSIONS_SNAPSHOT_TTL_MS = 2 * 60_000;
 
 export function useRoomUnreadCounts(currentRoomId?: number | null): Record<number, number> {
-  const { isAuthenticated } = useAuthSession();
+  const { isAuthenticated, session } = useAuthSession();
   const queryClient = useQueryClient();
-  const sessionsQuery = useUserMessageSessionsQuery(mobileApiClient, { enabled: isAuthenticated });
+  const rawSessionsQuery = useUserMessageSessionsQuery(mobileApiClient, { enabled: isAuthenticated });
+  const sessionsQuery = useMobileQuerySnapshot(rawSessionsQuery, {
+    enabled: canUseMobileUserScopedSnapshot({
+      isAuthenticated,
+      userId: session?.userId,
+    }),
+    key: createMobileQuerySnapshotKey(getUserMessageSessionsQueryKey()),
+    scope: "message-sessions",
+    ttlMs: MESSAGE_SESSIONS_SNAPSHOT_TTL_MS,
+    userId: session?.userId,
+  });
   const { mutate: updateReadPosition } = useUpdateRoomReadPositionMutation(mobileApiClient);
   const currentRoomMessagesQuery = useRoomMessagesQuery(currentRoomId ?? null);
   const lastSentSyncIdRef = useRef<Record<number, number>>({});

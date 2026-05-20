@@ -5,6 +5,7 @@ import { extractOpenApiErrorMessage } from "@/utils/openApiResult";
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 
 import { tuanchat } from "../../../api/instance";
+import { dispatchStoredAuthSessionChanged } from "./sessionEvents";
 
 // 获取错误信息的优先级：
 // 1. error 对象中的 body.errMsg
@@ -127,6 +128,7 @@ export async function loginUser(
       localStorage.setItem("token", response.data);
       persistUid(await resolveAuthenticatedUid(loginRequest, loginMethod));
       syncAuthStatusCache(buildLoggedInStatus(response.data, readStoredUid()));
+      dispatchStoredAuthSessionChanged("login");
     }
 
     return response;
@@ -179,6 +181,7 @@ export async function logoutUser() {
   clearStoredAuthSession();
   resetTuanChatQueryCache();
   syncAuthStatusCache({ isLoggedIn: false });
+  dispatchStoredAuthSessionChanged("logout");
 
   if (!token)
     return;

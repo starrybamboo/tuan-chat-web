@@ -1,12 +1,15 @@
-import type { UserLoginRequest } from "@tuanchat/openapi-client/models/UserLoginRequest";
 import type { PropsWithChildren } from "react";
-import type { StoredAuthSession } from "./auth-storage";
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
-import { mobileApiClient } from "@/lib/api";
 
+import type { UserLoginRequest } from "@tuanchat/openapi-client/models/UserLoginRequest";
+
+import { mobileApiClient } from "@/lib/api";
 import { mobileQueryClient } from "@/providers/query-client";
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+
+import type { StoredAuthSession } from "./auth-storage";
+
 import {
   clearStoredAuthSession,
   readStoredAuthSession,
@@ -18,13 +21,13 @@ const AUTH_SESSION_BOOTSTRAP_TIMEOUT_MS = 1500;
 
 export type LoginMethod = "username" | "userId";
 
-interface LoginInput {
+type LoginInput = {
   identifier: string;
   password: string;
   method: LoginMethod;
-}
+};
 
-interface AuthSessionContextValue {
+type AuthSessionContextValue = {
   session: StoredAuthSession | null;
   isBootstrapping: boolean;
   isSigningIn: boolean;
@@ -32,7 +35,7 @@ interface AuthSessionContextValue {
   replaceSession: (session: StoredAuthSession | null) => Promise<void>;
   signIn: (input: LoginInput) => Promise<void>;
   signOut: () => Promise<void>;
-}
+};
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 

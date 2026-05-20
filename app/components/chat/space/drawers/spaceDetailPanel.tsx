@@ -1,6 +1,6 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
 
-import { use, useState } from "react";
+import { lazy, Suspense, use, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
@@ -11,9 +11,7 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
-import SpaceWebgalRenderWindow from "@/components/chat/window/spaceWebgalRenderWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
 import { BaselineArrowBackIosNew } from "@/icons";
 import {
   useAddSpaceMemberMutation,
@@ -22,7 +20,19 @@ import {
   useSetPlayerMutation,
 } from "../../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../../api/hooks/spaceRepositoryHooks";
-import WorkflowWindow from "../../window/workflowWindow";
+
+const LazyWorkflowWindow = lazy(() => import("../../window/workflowWindow"));
+const LazySpaceWebgalRenderWindow = lazy(() => import("@/components/chat/window/spaceWebgalRenderWindow"));
+const LazySpaceMaterialLibraryPage = lazy(() => import("@/components/material/pages/spaceMaterialLibraryPage"));
+
+function SpaceDetailLazyFallback({ text }: { text: string }) {
+  return (
+    <div className="flex h-full items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-sm" />
+      <span className="ml-2">{text}</span>
+    </div>
+  );
+}
 
 export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: SpaceDetailTab; onClose: () => void }) {
   const spaceContext = use(SpaceContext);
@@ -178,7 +188,9 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       {resolvedTab === "workflow" && (
         <div className="h-full overflow-y-auto">
-          <WorkflowWindow></WorkflowWindow>
+          <Suspense fallback={<SpaceDetailLazyFallback text="正在加载流程图..." />}>
+            <LazyWorkflowWindow />
+          </Suspense>
         </div>
       )}
 
@@ -190,13 +202,17 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       {resolvedTab === "webgal" && (
         <div className="h-full overflow-hidden">
-          <SpaceWebgalRenderWindow spaceId={spaceId} />
+          <Suspense fallback={<SpaceDetailLazyFallback text="正在加载 WebGAL 渲染..." />}>
+            <LazySpaceWebgalRenderWindow spaceId={spaceId} />
+          </Suspense>
         </div>
       )}
 
       {resolvedTab === "material" && (
         <div className="h-full overflow-hidden">
-          <SpaceMaterialLibraryPage spaceId={spaceId} embedded />
+          <Suspense fallback={<SpaceDetailLazyFallback text="正在加载局内素材包..." />}>
+            <LazySpaceMaterialLibraryPage spaceId={spaceId} embedded />
+          </Suspense>
         </div>
       )}
 

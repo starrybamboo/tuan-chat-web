@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
-import { isCommand } from "@/components/common/dicer/cmdPre";
+import {
+  containsCommandRequestAllToken as containsToken,
+  extractFirstCommandText as extractCommand,
+  stripCommandRequestAllToken as stripToken,
+} from "@tuanchat/domain/command-request";
 
 type CommandExecutor = (payload: {
   command: string;
@@ -109,37 +113,15 @@ export default function useRoomCommandRequests({
   }, [userId]);
 
   const containsCommandRequestAllToken = useCallback((text: string) => {
-    const raw = String(text ?? "");
-    return /@all\b/i.test(raw)
-      || raw.includes("@全员")
-      || raw.includes("@所有人")
-      || raw.includes("@检定请求");
+    return containsToken(text);
   }, []);
 
   const stripCommandRequestAllToken = useCallback((text: string) => {
-    return String(text ?? "")
-      .replace(/@all\b/gi, " ")
-      .replace(/@全员/g, " ")
-      .replace(/@所有人/g, " ")
-      .replace(/@检定请求/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    return stripToken(text);
   }, []);
 
   const extractFirstCommandText = useCallback((text: string): string | null => {
-    const trimmed = String(text ?? "").trim();
-    if (!trimmed) {
-      return null;
-    }
-    if (isCommand(trimmed)) {
-      return trimmed;
-    }
-    const match = trimmed.match(/[.。/][A-Z][^\n]*/i);
-    if (!match) {
-      return null;
-    }
-    const candidate = match[0].trim();
-    return isCommand(candidate) ? candidate : null;
+    return extractCommand(text);
   }, []);
 
   const isCommandRequestConsumed = useCallback((requestMessageId: number) => {

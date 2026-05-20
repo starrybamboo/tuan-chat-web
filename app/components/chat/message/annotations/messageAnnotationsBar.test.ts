@@ -7,11 +7,11 @@ import MessageAnnotationsBar from "./messageAnnotationsBar";
 describe("messageAnnotationsBar", () => {
   it("普通模式下会隐藏仅联动模式可见的立绘位置标注", () => {
     const html = renderToStaticMarkup(createElement(MessageAnnotationsBar, {
-      annotations: ["figure.pos.left", "sys:bgm"],
+      annotations: ["figure.pos.left", "figure.anim.ba-jump"],
       showNormalModeAnnotationsOnly: true,
     }));
 
-    expect(html).toContain("BGM");
+    expect(html).toContain("跳跃");
     expect(html).not.toContain(">左<");
   });
 

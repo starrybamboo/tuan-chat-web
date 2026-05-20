@@ -11,10 +11,8 @@ import { makeUniqueKey, slugifyLabel } from "./initiativeListKeyUtils";
 
 interface InitiativeListControlsProps {
   initiativeCount: number;
-  isPokemonRule: boolean;
   spaceOwner: boolean;
   importableRoleCount: number;
-  isAdvancingRound: boolean;
   showParamEditor: boolean;
   params: InitiativeParam[];
   displayParams: InitiativeParam[];
@@ -23,7 +21,6 @@ interface InitiativeListControlsProps {
   newParam: InitiativeParamDraft;
   sortKey: SortKey;
   sortDirection: SortDirection;
-  onNextRound: () => void;
   onOpenImportPopup: () => void;
   onToggleParamEditor: () => void;
   onAddParam: () => void;
@@ -38,10 +35,8 @@ interface InitiativeListControlsProps {
 
 export function InitiativeListControls({
   initiativeCount,
-  isPokemonRule,
   spaceOwner,
   importableRoleCount,
-  isAdvancingRound,
   showParamEditor,
   params,
   displayParams,
@@ -50,7 +45,6 @@ export function InitiativeListControls({
   newParam,
   sortKey,
   sortDirection,
-  onNextRound,
   onOpenImportPopup,
   onToggleParamEditor,
   onAddParam,
@@ -77,16 +71,6 @@ export function InitiativeListControls({
         </div>
 
         <div className="flex items-center gap-2">
-          {isPokemonRule && spaceOwner && (
-            <button
-              type="button"
-              className="btn btn-xs btn-outline"
-              onClick={onNextRound}
-              disabled={isAdvancingRound}
-            >
-              {isAdvancingRound ? "结算中..." : "下一轮"}
-            </button>
-          )}
           {importableRoleCount > 0 && (
             <button
               type="button"
@@ -140,6 +124,7 @@ export function InitiativeListControls({
               >
                 <option value="manual">可编辑</option>
                 <option value="roleAttr">来自角色属性</option>
+                <option value="stateKey">来自状态变量</option>
               </select>
               {newParam.source === "roleAttr" && (
                 <input
@@ -150,11 +135,24 @@ export function InitiativeListControls({
                   className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md min-w-28"
                 />
               )}
+              {newParam.source === "stateKey" && (
+                <input
+                  type="text"
+                  placeholder="状态变量键 (必填)"
+                  value={newParam.stateKey}
+                  onChange={event => setNewParam({ ...newParam, stateKey: event.target.value })}
+                  className="input input-sm bg-base-50 border border-base-300 text-base-content placeholder:text-base-content/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-md min-w-28"
+                />
+              )}
               <button
                 type="button"
                 className="btn btn-sm bg-primary text-primary-content border-none hover:bg-primary/90"
                 onClick={onAddParam}
-                disabled={!newParam.label.trim() || (newParam.source === "roleAttr" && !newParam.attrKey.trim())}
+                disabled={
+                  !newParam.label.trim()
+                  || (newParam.source === "roleAttr" && !newParam.attrKey.trim())
+                  || (newParam.source === "stateKey" && !newParam.stateKey.trim())
+                }
               >
                 添加
               </button>
@@ -171,7 +169,13 @@ export function InitiativeListControls({
                       键：
                       {param.key}
                     </span>
-                    <span className="text-[11px] text-base-content/50">{param.source === "roleAttr" ? `来源: 角色属性 ${param.attrKey ?? ""}` : "来源: 固定/可编辑"}</span>
+                    <span className="text-[11px] text-base-content/50">
+                      {param.source === "roleAttr"
+                        ? `来源: 角色属性 ${param.attrKey ?? ""}`
+                        : param.source === "stateKey"
+                          ? `来源: 状态变量 ${param.stateKey ?? ""}`
+                          : "来源: 固定/可编辑"}
+                    </span>
                   </div>
                   {spaceOwner && (
                     <button

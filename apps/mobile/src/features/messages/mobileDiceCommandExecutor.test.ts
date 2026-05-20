@@ -1,0 +1,255 @@
+import type { Mock } from "vitest";
+
+import { QueryClient } from "@tanstack/react-query";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { executeMobileDicerCommand } from "./mobileDiceCommandExecutor";
+
+type SendRoomMessageMutationMock = {
+  sendRequest: Mock<(request: ChatMessageRequest) => Promise<{ data: any }>>;
+  sendRequests: Mock<(requests: ChatMessageRequest[]) => Promise<Array<{ data: any }>>>;
+};
+
+const mobileApiClientMock = vi.hoisted(() => ({
+  abilityController: {
+    getByRuleAndRole: vi.fn(),
+    setRoleAbility: vi.fn(),
+    updateRoleAbility1: vi.fn(),
+  },
+  spaceController: {
+    setSpaceExtra: vi.fn(),
+  },
+}));
+
+vi.mock("../../lib/api", () => ({
+  mobileApiClient: mobileApiClientMock,
+}));
+
+type ExecuteMobileDicerCommandParams = Parameters<typeof executeMobileDicerCommand>[0];
+type TestExecuteMobileDicerCommandParams = Omit<ExecuteMobileDicerCommandParams, "sendRoomMessageMutation"> & {
+  sendRoomMessageMutation: SendRoomMessageMutationMock;
+};
+
+const actorRole: UserRole = {
+  roleId: 10,
+  roleName: "调查员",
+  type: 0,
+  userId: 100,
+};
+
+function createMutationMock(): SendRoomMessageMutationMock {
+  let nextMessageId = 1000;
+  return {
+    sendRequest: vi.fn(async (_request: ChatMessageRequest) => ({
+      data: {
+        content: _request.content ?? "",
+        messageId: nextMessageId++,
+        messageType: _request.messageType,
+        position: 0,
+        roomId: _request.roomId,
+        status: 0,
+        syncId: nextMessageId,
+        userId: 100,
+      },
+    })),
+    sendRequests: vi.fn(async (requests: ChatMessageRequest[]) => requests.map(request => ({
+      data: {
+        content: request.content ?? "",
+        messageId: nextMessageId++,
+        messageType: request.messageType,
+        position: 0,
+        roomId: request.roomId,
+        status: 0,
+        syncId: nextMessageId,
+        userId: 100,
+      },
+    }))),
+  };
+}
+
+function createParams(overrides: Partial<ExecuteMobileDicerCommandParams> = {}): TestExecuteMobileDicerCommandParams {
+  const sendRoomMessageMutation = createMutationMock();
+  return {
+    command: ".r 1d6",
+    messages: [],
+    queryClient: new QueryClient(),
+    roomId: 20,
+    roomRoles: [actorRole],
+    ruleId: 1,
+    sendIdentity: {
+      avatarId: 30,
+      roleId: actorRole.roleId,
+    },
+    sendRoomMessageMutation,
+    space: {
+      dicerRoleId: 2,
+      extra: JSON.stringify({ dicerData: { defaultDice: "100" } }),
+      ruleId: 1,
+      spaceId: 1,
+    },
+    ...overrides,
+  } as TestExecuteMobileDicerCommandParams;
+}
+
+describe("mobileDiceCommandExecutor", () => {
+  beforeEach(() => {
+    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({ data: null });
+    mobileApiClientMock.abilityController.setRoleAbility.mockResolvedValue({ data: 99 });
+    mobileApiClientMock.abilityController.updateRoleAbility1.mockResolvedValue({ data: {} });
+    mobileApiClientMock.spaceController.setSpaceExtra.mockResolvedValue({ data: {} });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+  });
+
+  it("执行 .r 指令并发送原指令和骰娘回复", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const params = createParams();
+
+    await executeMobileDicerCommand(params);
+
+    expect(params.sendRoomMessageMutation.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+      content: ".r 1d6",
+      messageType: MESSAGE_TYPE.DICE,
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).toHaveBeenCalledWith([
+      expect.objectContaining({
+        content: "掷骰结果：1d6 = 1d6[1] = 1",
+        messageType: MESSAGE_TYPE.DICE,
+        replayMessageId: 1000,
+        roleId: 2,
+      }),
+    ]);
+  });
+
+  it("执行 CoC .rc 指令并生成检定回复", async () => {
+    vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.1);
+    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+      data: {
+        abilityId: 7,
+        roleId: actorRole.roleId,
+        ruleId: 1,
+        skill: { 侦查: "50" },
+      } satisfies RoleAbility,
+    });
+    const params = createParams({ command: ".rc 侦查" });
+
+    await executeMobileDicerCommand(params);
+
+    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
+    expect(sentRequests).toEqual([
+      expect.objectContaining({
+        content: "侦查检定：D100=1/50 大成功",
+        messageType: MESSAGE_TYPE.DICE,
+      }),
+    ]);
+  });
+
+  it("执行 .st 会保存角色能力并生成状态事件", async () => {
+    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+      data: {
+        abilityId: 7,
+        roleId: actorRole.roleId,
+        ruleId: 1,
+        skill: { 力量: "50" },
+      } satisfies RoleAbility,
+    });
+    const params = createParams({ command: ".st 力量+10" });
+
+    await executeMobileDicerCommand(params);
+
+    expect(mobileApiClientMock.abilityController.updateRoleAbility1).toHaveBeenCalledWith(expect.objectContaining({
+      roleId: actorRole.roleId,
+      ruleId: 1,
+      skill: expect.objectContaining({ 力量: "60" }),
+    }));
+    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
+    expect(sentRequests[0]).toEqual(expect.objectContaining({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+    }));
+    expect(sentRequests[1]).toEqual(expect.objectContaining({
+      content: expect.stringContaining("属性设置成功"),
+      messageType: MESSAGE_TYPE.DICE,
+    }));
+  });
+
+  it("执行 .st show 有 UI 回调时不发送消息并打开属性卡模型", async () => {
+    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+      data: {
+        abilityId: 7,
+        roleId: actorRole.roleId,
+        ruleId: 1,
+        basic: { 力量: "50" },
+        skill: { 侦查: "60" },
+      } satisfies RoleAbility,
+    });
+    const onShowRoleAbilityCard = vi.fn();
+    const params = createParams({
+      command: ".st show",
+      onShowRoleAbilityCard,
+    });
+
+    await executeMobileDicerCommand(params);
+
+    expect(params.sendRoomMessageMutation.sendRequest).not.toHaveBeenCalled();
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+    expect(onShowRoleAbilityCard).toHaveBeenCalledWith({
+      roleName: "调查员",
+      sections: [
+        {
+          title: "基础",
+          rows: [{ key: "力量", value: "50" }],
+        },
+        {
+          title: "技能",
+          rows: [{ key: "侦查", value: "60" }],
+        },
+      ],
+    });
+  });
+
+  it("执行 .st show 没有 UI 回调时保留文本降级回复", async () => {
+    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+      data: {
+        abilityId: 7,
+        roleId: actorRole.roleId,
+        ruleId: 1,
+        skill: { 侦查: "60" },
+      } satisfies RoleAbility,
+    });
+    const params = createParams({ command: ".st show 侦查" });
+
+    await executeMobileDicerCommand(params);
+
+    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
+    expect(sentRequests).toEqual([
+      expect.objectContaining({
+        content: "调查员的属性卡\n\n【技能】\n侦查: 60",
+        messageType: MESSAGE_TYPE.DICE,
+      }),
+    ]);
+  });
+
+  it("未知指令会发送执行错误回复", async () => {
+    const params = createParams({ command: ".notexist" });
+
+    await executeMobileDicerCommand(params);
+
+    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
+    expect(sentRequests).toEqual([
+      expect.objectContaining({
+        content: expect.stringContaining("执行错误"),
+        messageType: MESSAGE_TYPE.DICE,
+      }),
+    ]);
+  });
+});

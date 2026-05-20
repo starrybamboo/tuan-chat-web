@@ -1,6 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  clearStoredWorkspaceSelection,
+  readStoredWorkspaceSelection,
+  writeStoredWorkspaceSelection,
+} from "./workspaceStorage";
 import { sanitizeStoredWorkspaceSelection } from "./workspaceStorageUtils";
+
+const keyValueStorageMock = vi.hoisted(() => ({
+  readMobileKeyValue: vi.fn(),
+  removeMobileKeyValue: vi.fn(),
+  writeMobileKeyValue: vi.fn(),
+}));
+
+vi.mock("react-native", () => ({
+  Platform: {
+    OS: "ios",
+  },
+}));
+
+vi.mock("../../lib/mobile-key-value-storage", () => keyValueStorageMock);
+
+beforeEach(() => {
+  keyValueStorageMock.readMobileKeyValue.mockReset();
+  keyValueStorageMock.removeMobileKeyValue.mockReset();
+  keyValueStorageMock.writeMobileKeyValue.mockReset();
+});
 
 describe("workspaceStorage", () => {
   it("会保留合法的空间和房间选择", () => {
@@ -40,5 +65,36 @@ describe("workspaceStorage", () => {
       selectedRoomId: "22",
       selectedSpaceId: "11",
     })).toBeNull();
+  });
+
+  it("原生端通过 mobile KV 持久化空间和房间选择", async () => {
+    keyValueStorageMock.readMobileKeyValue.mockResolvedValue({
+      value: {
+        selectedRoomId: 22,
+        selectedSpaceId: 11,
+      },
+    });
+
+    await expect(readStoredWorkspaceSelection()).resolves.toEqual({
+      selectedRoomId: 22,
+      selectedSpaceId: 11,
+    });
+
+    await writeStoredWorkspaceSelection({
+      selectedRoomId: 44,
+      selectedSpaceId: 33,
+    });
+
+    expect(keyValueStorageMock.writeMobileKeyValue).toHaveBeenCalledWith(
+      "tuanchat.mobile.workspace.selection",
+      {
+        selectedRoomId: 44,
+        selectedSpaceId: 33,
+      },
+    );
+
+    await clearStoredWorkspaceSelection();
+
+    expect(keyValueStorageMock.removeMobileKeyValue).toHaveBeenCalledWith("tuanchat.mobile.workspace.selection");
   });
 });

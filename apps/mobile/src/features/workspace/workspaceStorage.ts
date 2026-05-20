@@ -1,8 +1,8 @@
-import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 import type { StoredWorkspaceSelection } from "./workspaceStorageUtils";
 
+import { readMobileKeyValue, removeMobileKeyValue, writeMobileKeyValue } from "../../lib/mobile-key-value-storage";
 import { sanitizeStoredWorkspaceSelection } from "./workspaceStorageUtils";
 
 const WORKSPACE_SELECTION_STORAGE_KEY = "tuanchat.mobile.workspace.selection";
@@ -13,35 +13,35 @@ function isWebStorageAvailable() {
   return Platform.OS === "web" && typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-async function readWorkspaceSelectionRaw() {
+async function readWorkspaceSelectionRaw(): Promise<StoredWorkspaceSelection | null> {
   if (isWebStorageAvailable()) {
-    return window.localStorage.getItem(WORKSPACE_SELECTION_STORAGE_KEY);
+    const raw = window.localStorage.getItem(WORKSPACE_SELECTION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw) as StoredWorkspaceSelection;
+    }
+    catch {
+      return null;
+    }
   }
 
-  return SecureStore.getItemAsync(WORKSPACE_SELECTION_STORAGE_KEY);
+  const entry = await readMobileKeyValue<StoredWorkspaceSelection>(WORKSPACE_SELECTION_STORAGE_KEY);
+  return entry?.value ?? null;
 }
 
-async function writeWorkspaceSelectionRaw(value: string) {
+async function writeWorkspaceSelectionRaw(value: StoredWorkspaceSelection) {
   if (isWebStorageAvailable()) {
-    window.localStorage.setItem(WORKSPACE_SELECTION_STORAGE_KEY, value);
+    window.localStorage.setItem(WORKSPACE_SELECTION_STORAGE_KEY, JSON.stringify(value));
     return;
   }
 
-  await SecureStore.setItemAsync(WORKSPACE_SELECTION_STORAGE_KEY, value);
+  await writeMobileKeyValue(WORKSPACE_SELECTION_STORAGE_KEY, value);
 }
 
 export async function readStoredWorkspaceSelection(): Promise<StoredWorkspaceSelection | null> {
-  const raw = await readWorkspaceSelectionRaw();
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return sanitizeStoredWorkspaceSelection(JSON.parse(raw));
-  }
-  catch {
-    return null;
-  }
+  return sanitizeStoredWorkspaceSelection(await readWorkspaceSelectionRaw());
 }
 
 export async function writeStoredWorkspaceSelection(selection: StoredWorkspaceSelection) {
@@ -51,7 +51,7 @@ export async function writeStoredWorkspaceSelection(selection: StoredWorkspaceSe
     return;
   }
 
-  await writeWorkspaceSelectionRaw(JSON.stringify(sanitized));
+  await writeWorkspaceSelectionRaw(sanitized);
 }
 
 export async function clearStoredWorkspaceSelection() {
@@ -60,5 +60,5 @@ export async function clearStoredWorkspaceSelection() {
     return;
   }
 
-  await SecureStore.deleteItemAsync(WORKSPACE_SELECTION_STORAGE_KEY);
+  await removeMobileKeyValue(WORKSPACE_SELECTION_STORAGE_KEY);
 }

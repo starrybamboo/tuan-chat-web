@@ -143,7 +143,7 @@ function ChatMessageItem({
     if (message.messageType === 2) {
       // 图片消息
       const imgMsg = getImageMessageExtra(message.extra);
-      const imgUrl = mediaFileUrl(imgMsg?.fileId, imgMsg?.mediaType, "high");
+      const imgUrl = mediaFileUrl(imgMsg?.fileId, imgMsg?.mediaType, "medium");
       const isBackground = isImageMessageBackground(message.annotations, imgMsg);
       return (
         <div className="text-xs text-base-content/70">

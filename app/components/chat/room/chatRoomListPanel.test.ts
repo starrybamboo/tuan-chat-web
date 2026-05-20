@@ -70,6 +70,17 @@ describe("chatRoomListPanel layout guards", () => {
     ).toBe("mt-auto");
   });
 
+  it("非分栏模式下两个分区都展开时素材包仍保持底部锚定", () => {
+    expect(
+      getRoomSidebarMaterialSectionClassName({
+        fillSectionClassName: "fill-section",
+        isRoomDocSectionExpanded: true,
+        isMaterialSectionExpanded: true,
+        stretchMaterialSection: false,
+      }),
+    ).toBe("mt-auto");
+  });
+
   it("两个分区都展开且素材包需要拉伸时使用填充布局", () => {
     expect(
       getRoomSidebarMaterialSectionClassName({

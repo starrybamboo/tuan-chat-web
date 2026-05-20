@@ -3,12 +3,39 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // 定义一个类型，用于表示一个2D点或向量
 interface Point { x: number; y: number }
 
+export function resolveResizableImgInitialTransform({
+  containerWidth,
+  containerHeight,
+  imageWidth,
+  imageHeight,
+}: {
+  containerWidth: number;
+  containerHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+}): { x: number; y: number; scale: number } | undefined {
+  if (containerWidth <= 0 || containerHeight <= 0 || imageWidth <= 0 || imageHeight <= 0) {
+    return undefined;
+  }
+
+  // 初始态以显示完整图片为第一目标：按可视区域 contain，必要时放大 medium 图。
+  const scale = Math.min(containerWidth / imageWidth, containerHeight / imageHeight);
+  const scaledImgWidth = imageWidth * scale;
+  const scaledImgHeight = imageHeight * scale;
+
+  return {
+    x: (containerWidth - scaledImgWidth) / 2,
+    y: (containerHeight - scaledImgHeight) / 2,
+    scale,
+  };
+}
+
 export function ResizableImg({
   src,
   size,
   onClose,
 }: {
-  src: string;
+  src?: string;
   size?: { width?: number; height?: number };
   onClose?: () => void;
 }) {
@@ -176,18 +203,18 @@ export function ResizableImg({
     const imgWidth = img.naturalWidth;
     const imgHeight = img.naturalHeight;
 
-    const scaleX = containerWidth / imgWidth;
-    const scaleY = containerHeight / imgHeight;
-    const initialScale = Math.min(scaleX, scaleY);
+    const initialTransform = resolveResizableImgInitialTransform({
+      containerWidth,
+      containerHeight,
+      imageWidth: imgWidth,
+      imageHeight: imgHeight,
+    });
+    if (!initialTransform) {
+      return;
+    }
 
-    const scaledImgWidth = imgWidth * initialScale;
-    const scaledImgHeight = imgHeight * initialScale;
-
-    const initialX = (containerWidth - scaledImgWidth) / 2;
-    const initialY = (containerHeight - scaledImgHeight) / 2;
-
-    positionRef.current = { x: initialX, y: initialY };
-    scaleRef.current = initialScale;
+    positionRef.current = { x: initialTransform.x, y: initialTransform.y };
+    scaleRef.current = initialTransform.scale;
     updateTransform();
   }, [updateTransform]);
 

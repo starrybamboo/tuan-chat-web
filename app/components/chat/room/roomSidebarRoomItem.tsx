@@ -3,6 +3,7 @@ import type { Room } from "../../../../api";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomButton from "@/components/chat/shared/components/roomButton";
+import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setRoomRefDragData } from "@/components/chat/utils/roomRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 
@@ -59,6 +60,13 @@ export default function RoomSidebarRoomItem({
     e.dataTransfer.effectAllowed = canEdit ? "copyMove" : "copy";
     e.dataTransfer.setData(ROOM_DRAG_MIME, String(roomId));
     e.dataTransfer.setData("text/plain", `room:${roomId}`);
+    setDragPreview({
+      dataTransfer: e.dataTransfer,
+      sourceElement: e.currentTarget,
+      title: canEdit ? "移动群聊" : "拖动群聊",
+      subtitle: canEdit ? "拖到目标位置或副窗口" : "拖到副窗口",
+      variant: "room",
+    });
     setRoomRefDragData(e.dataTransfer, {
       roomId,
       ...(activeSpaceId && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),

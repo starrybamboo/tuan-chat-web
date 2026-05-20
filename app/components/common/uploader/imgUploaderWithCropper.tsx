@@ -12,7 +12,7 @@ import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
 import { uploadMediaFile } from "@/utils/mediaUpload";
-import { imageHighUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import "react-image-crop/dist/ReactCrop.css";
 
 // 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）
@@ -51,8 +51,6 @@ function imageUrlByPreset(fileId: number | undefined, preset?: ImageCompressionP
     return "";
   if (preset === "avatarThumb" || preset === "smallThumbnail")
     return imageLowUrl(fileId);
-  if (preset === "contentImage" || preset === "hdCover" || preset === "videoCover")
-    return imageHighUrl(fileId);
   return imageMediumUrl(fileId);
 }
 
@@ -248,7 +246,7 @@ export function ImgUploaderWithCopper({
         else {
           displayFileId = (await uploadMediaFile(fileWithNewName)).fileId;
         }
-        downloadUrl = imageHighUrl(displayFileId);
+        downloadUrl = imageMediumUrl(displayFileId);
         setDownloadUrl(downloadUrl);
       }
       if (setCopperedDownloadUrl || mutate) {

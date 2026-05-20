@@ -41,16 +41,19 @@ export class UploadUtils {
   private static readonly defaultEnableBrowserVideoTranscode = true;
 
   private static resolvePresetQuality(preset: ImageCompressionPreset): MediaQuality {
-    return BUSINESS_MEDIA_QUALITY[preset]?.quality ?? "high";
+    return BUSINESS_MEDIA_QUALITY[preset]?.quality ?? "medium";
   }
 
   private async uploadMediaAsset(
     file: File,
     scene: 1 | 2 | 3 | 4 = 1,
-    quality: MediaQuality = "high",
+    quality: MediaQuality = "medium",
   ): Promise<UploadedMediaAssetResult> {
     const uploaded = await uploadMediaFile(file, { scene });
-    const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, "original");
+    const sceneQuality = scene === 1
+      ? (uploaded.mediaType === "image" ? "medium" : "low")
+      : "original";
+    const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, sceneQuality);
     return {
       fileId: uploaded.fileId,
       fileName: file.name,
@@ -58,7 +61,11 @@ export class UploadUtils {
       originalUrl,
       size: file.size,
       uploadRequired: uploaded.uploadRequired,
-      url: mediaFileUrl(uploaded.fileId, uploaded.mediaType, quality) || originalUrl,
+      url: mediaFileUrl(uploaded.fileId, uploaded.mediaType, scene === 1
+        ? (uploaded.mediaType === "image"
+            ? (quality === "low" ? "low" : "medium")
+            : "low")
+        : quality) || originalUrl,
     };
   }
 
@@ -358,7 +365,7 @@ export class UploadUtils {
     if (debugEnabled)
       console.warn(`${debugPrefix} media-service`, { fileName: processedFile.name });
 
-    const uploaded = await this.uploadMediaAsset(processedFile, scene, "high");
+    const uploaded = await this.uploadMediaAsset(processedFile, scene, scene === 1 ? "low" : "medium");
     if (debugEnabled)
       console.warn(`${debugPrefix} downloadUrl`, uploaded.url);
 
@@ -386,7 +393,7 @@ export class UploadUtils {
     }
 
     assertAudioUploadInputSizeOrThrow(normalizedInput.size);
-    return await this.uploadMediaAsset(normalizedInput, scene, "original");
+    return await this.uploadMediaAsset(normalizedInput, scene, scene === 1 ? "low" : "original");
   }
 
   /**
@@ -419,7 +426,7 @@ export class UploadUtils {
       uploadCandidate = normalizedVideoFile;
     }
 
-    return await this.uploadMediaAsset(uploadCandidate, scene, "high");
+    return await this.uploadMediaAsset(uploadCandidate, scene, scene === 1 ? "low" : "medium");
   }
 
   /**
@@ -431,7 +438,7 @@ export class UploadUtils {
 
   async uploadFileAsset(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<UploadedMediaAssetResult> {
     const normalizedFile = await normalizeFileMimeType(file);
-    return await this.uploadMediaAsset(normalizedFile, scene, "original");
+    return await this.uploadMediaAsset(normalizedFile, scene, scene === 1 ? "low" : "original");
   }
 
   async uploadDualImage(
@@ -441,7 +448,7 @@ export class UploadUtils {
   ): Promise<UploadedDualImageResult> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
     const originalSize = file.size;
-    const uploaded = await this.uploadMediaAsset(normalizedFile, scene, "high");
+    const uploaded = await this.uploadMediaAsset(normalizedFile, scene, "medium");
     return {
       fileId: uploaded.fileId,
       mediaType: uploaded.mediaType,
@@ -474,7 +481,7 @@ export class UploadUtils {
    */
   async uploadOriginalImg(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
-    return (await this.uploadMediaAsset(normalizedFile, scene, "original")).originalUrl;
+    return (await this.uploadMediaAsset(normalizedFile, scene, scene === 1 ? "medium" : "original")).originalUrl;
   }
 
   /**
@@ -489,7 +496,7 @@ export class UploadUtils {
     _options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<string> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
-    return (await this.uploadMediaAsset(normalizedFile, scene, "high")).url;
+    return (await this.uploadMediaAsset(normalizedFile, scene, "medium")).url;
   }
 
   async uploadImgByPreset(

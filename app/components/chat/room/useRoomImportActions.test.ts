@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import type { ChatMessageResponse } from "../../../../api";
 
 import { createRoomUiStore } from "../stores/roomUiStore";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import useRoomImportActions from "./useRoomImportActions";
 
 const {
@@ -148,13 +149,13 @@ describe("useRoomImportActions", () => {
       roomId: 1,
       roleId: 3,
       avatarId: 7,
-        extra: {
-          docCard: expect.objectContaining({
-            docId: "321",
-            roomId: 321,
-            spaceId: 99,
-            title: "跨空间文档",
-            excerpt: "摘要",
+      extra: {
+        docCard: expect.objectContaining({
+          docId: "321",
+          roomId: 321,
+          spaceId: 99,
+          title: "跨空间文档",
+          excerpt: "摘要",
         }),
       },
     }));
@@ -186,7 +187,8 @@ describe("useRoomImportActions", () => {
     });
 
     await handleSendDocCard({
-      docId: "udoc:123:description",
+      docId: "123",
+      roomId: 123,
       spaceId: 99,
       title: "跨空间文档",
     });
@@ -194,7 +196,8 @@ describe("useRoomImportActions", () => {
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       extra: {
         docCard: expect.objectContaining({
-          docId: "udoc:123:description",
+          docId: "123",
+          roomId: 123,
           spaceId: 99,
           excerpt: "最新摘要，不自动同步",
           title: "跨空间文档",
@@ -203,7 +206,7 @@ describe("useRoomImportActions", () => {
     }));
   });
 
-  it("发送我的文档卡片时仍兼容 udoc 标识", async () => {
+  it("发送我的文档卡片时使用文档房间 id", async () => {
     const roomUiStoreApi = createRoomUiStore();
     const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(14));
 
@@ -223,7 +226,8 @@ describe("useRoomImportActions", () => {
     });
 
     await handleSendDocCard({
-      docId: "udoc:123:description",
+      docId: "123",
+      roomId: 123,
       spaceId: 99,
       title: "我的文档",
     });
@@ -231,7 +235,8 @@ describe("useRoomImportActions", () => {
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       extra: {
         docCard: expect.objectContaining({
-          docId: "udoc:123:description",
+          docId: "123",
+          roomId: 123,
           spaceId: 99,
           title: "我的文档",
         }),
@@ -239,7 +244,7 @@ describe("useRoomImportActions", () => {
     }));
   });
 
-  it("本地内存没有文档快照时会从 IndexedDB 快照回填摘要", async () => {
+  it("本地内存没有文档快照时会从持久化快照回填摘要", async () => {
     const roomUiStoreApi = createRoomUiStore();
     const sendMessageWithInsert = vi.fn().mockResolvedValue(createMessage(13));
     const persistedSnapshot = {
@@ -266,21 +271,76 @@ describe("useRoomImportActions", () => {
     });
 
     await handleSendDocCard({
-      docId: "udoc:123:description",
+      docId: "123",
+      roomId: 123,
       spaceId: 99,
       title: "跨空间文档",
     });
 
-    expect(mockedGetPersistedDocSnapshot).toHaveBeenCalledWith("udoc:123:description");
-    expect(mockedSetCachedDocSnapshot).toHaveBeenCalledWith("udoc:123:description", persistedSnapshot);
+    expect(mockedGetPersistedDocSnapshot).toHaveBeenCalledWith("123");
+    expect(mockedSetCachedDocSnapshot).toHaveBeenCalledWith("123", persistedSnapshot);
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       extra: {
         docCard: expect.objectContaining({
-          docId: "udoc:123:description",
+          docId: "123",
+          roomId: 123,
           spaceId: 99,
           excerpt: "最新摘要，不自动同步",
           title: "跨空间文档",
         }),
+      },
+    }));
+  });
+
+  it("发送线索卡片时保留原线索快照", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>().mockResolvedValue(createMessage(15));
+
+    const { handleSendClueCard } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
+      roomContext: {} as any,
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      roomUiStoreApi,
+    });
+
+    await handleSendClueCard({
+      snapshot: {
+        messageType: MESSAGE_TYPE.TEXT,
+        content: "旧钥匙",
+        extra: {
+          textStyle: {
+            bold: true,
+          },
+        },
+      },
+    });
+
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      roomId: 1,
+      roleId: 3,
+      avatarId: 7,
+      content: "",
+      messageType: MESSAGE_TYPE.CLUE_CARD,
+      extra: {
+        clueMessage: {
+          snapshot: {
+            messageType: MESSAGE_TYPE.TEXT,
+            content: "旧钥匙",
+            extra: {
+              textStyle: {
+                bold: true,
+              },
+            },
+          },
+        },
       },
     }));
   });

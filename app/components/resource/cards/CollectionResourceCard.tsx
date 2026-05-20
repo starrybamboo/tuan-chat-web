@@ -1,7 +1,7 @@
 import type { ResourceResponse } from "@tuanchat/openapi-client/models/ResourceResponse";
 import AudioWavePlayer from "../utils/AudioWavePlayer";
-import { resolveResourcePreviewUrl } from "../utils/resourceMedia";
 import MoreBetterImg from "../utils/MoreBetterImg";
+import { resolveResourcePreviewUrl } from "../utils/resourceMedia";
 
 interface CollectionResourceCardProps {
   resource: ResourceResponse;

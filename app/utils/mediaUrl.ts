@@ -1,146 +1,93 @@
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
-import { resolveRuntimeMediaBaseUrl } from "@/utils/runtimeUrl";
+import type { MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
 
-const MEDIA_EXT: Partial<Record<MediaType, string>> = {
-  image: "webp",
-  audio: "webm",
-  video: "webm",
+import { resolveRuntimeMediaBaseUrl } from "@/utils/runtimeUrl";
+import {
+  avatarOriginalUrl as _avatarOriginalUrl,
+  avatarThumbUrl as _avatarThumbUrl,
+  avatarUrl as _avatarUrl,
+  imageHighUrl as _imageHighUrl,
+  imageLowUrl as _imageLowUrl,
+  imageMediumUrl as _imageMediumUrl,
+  imageOriginalUrl as _imageOriginalUrl,
+  imagePreviewUrl as _imagePreviewUrl,
+  mediaFileUrl as _mediaFileUrl,
+  mediaPreviewUrl as _mediaPreviewUrl,
+  mediaThumbUrl as _mediaThumbUrl,
+  mediaUrl as _mediaUrl,
+  extractMediaFileIdFromUrl,
+  imageHighUrlFromUrl,
+  imageLowUrlFromUrl,
+  imageMediumUrlFromUrl,
+  imageOriginalUrlFromUrl,
+  imagePreviewUrlFromUrl,
+  imageUrlWithQuality,
+  mediaFileUrlWithQuality,
+  mediaShard,
+  normalizeMediaType,
+} from "@tuanchat/domain/media-url";
+
+export {
+  extractMediaFileIdFromUrl,
+  imageHighUrlFromUrl,
+  imageLowUrlFromUrl,
+  imageMediumUrlFromUrl,
+  imageOriginalUrlFromUrl,
+  imagePreviewUrlFromUrl,
+  imageUrlWithQuality,
+  mediaFileUrlWithQuality,
+  mediaShard,
+  normalizeMediaType,
 };
 
+export type { LegacyMediaQuality, MediaQuality, MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
+
 const DEFAULT_MEDIA_CDN_BASE_URL = "https://tuan.chat";
-const FALLBACK_MEDIA_TYPE: MediaType = "image";
-const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)(?:\/(?:(?<mediaType>image|audio|video)\/(?<quality>low|medium|high)\.[^/?#]+|original))(?:[?#].*)?$/;
 
-// 迁移裁剪后的备份里，图片不再保留 high，音视频只保留 low。
-function resolveAvailableQuality(mediaType: MediaType, quality: MediaQuality): MediaQuality {
-  if (mediaType === "audio" || mediaType === "video") {
-    return "low";
-  }
-  if (mediaType === "image" && quality === "high") {
-    return "medium";
-  }
-  return quality;
-}
-
-function normalizeCdnBaseUrl() {
+function getCdnBaseUrl(): string {
   const envBase = String(import.meta.env.VITE_MEDIA_CDN_BASE_URL ?? "").trim();
   return resolveRuntimeMediaBaseUrl(envBase, DEFAULT_MEDIA_CDN_BASE_URL);
-}
-
-export function mediaShard(fileId: number | string) {
-  return (BigInt(String(fileId)) % 1000n).toString().padStart(3, "0");
-}
-
-export function normalizeMediaType(mediaType: string | null | undefined): MediaType {
-  if (mediaType === "image" || mediaType === "audio" || mediaType === "video" || mediaType === "document" || mediaType === "other") {
-    return mediaType;
-  }
-  return FALLBACK_MEDIA_TYPE;
 }
 
 export function mediaUrl(
   fileId: number | string | null | undefined,
   mediaType: MediaType,
-  quality: MediaQuality,
+  quality: MediaQualityInput,
 ) {
-  if (fileId == null || String(fileId).trim() === "") {
-    return "";
-  }
-  const shard = mediaShard(fileId);
-  const base = `${normalizeCdnBaseUrl()}/media/v1/files/${shard}/${fileId}`;
-  const resolvedQuality = resolveAvailableQuality(mediaType, quality);
-  if (resolvedQuality === "original") {
-    return `${base}/original`;
-  }
-  const ext = MEDIA_EXT[mediaType];
-  if (!ext) {
-    return `${base}/original`;
-  }
-  return `${base}/${mediaType}/${resolvedQuality}.${ext}`;
+  return _mediaUrl(fileId, mediaType, quality, getCdnBaseUrl());
 }
 
 export function mediaFileUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
-  quality: MediaQuality,
+  quality: MediaQualityInput,
 ) {
-  return mediaUrl(fileId, normalizeMediaType(mediaType), quality);
+  return _mediaFileUrl(fileId, mediaType, quality, getCdnBaseUrl());
 }
 
-export function mediaFileUrlWithQuality(
-  rawUrl: string | null | undefined,
-  mediaType: MediaType,
-  quality: MediaQuality,
-) {
-  const value = String(rawUrl ?? "").trim();
-  if (!value) {
-    return "";
-  }
-  const match = value.match(MEDIA_FILE_URL_PATTERN);
-  const groups = match?.groups;
-  if (!groups?.prefix || !groups.shard || !groups.fileId) {
-    return value;
-  }
-
-  const ext = MEDIA_EXT[mediaType];
-  const base = `${groups.prefix}${groups.shard}/${groups.fileId}`;
-  const resolvedQuality = resolveAvailableQuality(mediaType, quality);
-  if (resolvedQuality === "original" || !ext) {
-    return `${base}/original`;
-  }
-  return `${base}/${mediaType}/${resolvedQuality}.${ext}`;
-}
-
-export function imageUrlWithQuality(rawUrl: string | null | undefined, quality: MediaQuality) {
-  return mediaFileUrlWithQuality(rawUrl, "image", quality);
-}
-
+/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "medium")` instead. */
 export function mediaPreviewUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
 ) {
-  const resolvedType = normalizeMediaType(mediaType);
-  if (resolvedType === "image") {
-    return mediaUrl(fileId, resolvedType, "medium");
-  }
-  if (resolvedType === "audio" || resolvedType === "video") {
-    return mediaUrl(fileId, resolvedType, "high");
-  }
-  return mediaUrl(fileId, resolvedType, "original");
+  return _mediaPreviewUrl(fileId, mediaType, getCdnBaseUrl());
 }
 
+/** @deprecated Use `mediaUrl(fileId, normalizeMediaType(mediaType), "low")` instead. */
 export function mediaThumbUrl(
   fileId: number | string | null | undefined,
   mediaType: string | null | undefined,
 ) {
-  const resolvedType = normalizeMediaType(mediaType);
-  if (resolvedType === "image") {
-    return mediaUrl(fileId, resolvedType, "low");
-  }
-  return mediaPreviewUrl(fileId, resolvedType);
+  return _mediaThumbUrl(fileId, mediaType, getCdnBaseUrl());
 }
 
-export function extractMediaFileIdFromUrl(rawUrl: string | null | undefined): number | undefined {
-  const value = String(rawUrl ?? "").trim();
-  if (!value) {
-    return undefined;
-  }
-  const match = value.match(/\/media\/v1\/files\/\d{3}\/(\d+)(?:\/|$)/);
-  if (!match?.[1]) {
-    return undefined;
-  }
-  const fileId = Number(match[1]);
-  return Number.isFinite(fileId) && fileId > 0 ? fileId : undefined;
-}
-
-export const imageLowUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "low");
-export const imageMediumUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "medium");
-export const imageHighUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "high");
-export const imageOriginalUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "original");
-export const imageLowUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "low");
-export const imageMediumUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
-export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "high");
-export const imageOriginalUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "original");
-export const avatarThumbUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "low");
-export const avatarUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "medium");
-export const avatarOriginalUrl = (fileId?: number | string | null) => mediaUrl(fileId, "image", "original");
+export const imageLowUrl = (fileId?: number | string | null) => _imageLowUrl(fileId, getCdnBaseUrl());
+/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. */
+export const imagePreviewUrl = (fileId?: number | string | null) => _imagePreviewUrl(fileId, getCdnBaseUrl());
+export const imageMediumUrl = (fileId?: number | string | null) => _imageMediumUrl(fileId, getCdnBaseUrl());
+/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. "high" maps to "medium". */
+export const imageHighUrl = (fileId?: number | string | null) => _imageHighUrl(fileId, getCdnBaseUrl());
+export const imageOriginalUrl = (fileId?: number | string | null) => _imageOriginalUrl(fileId, getCdnBaseUrl());
+/** @deprecated Use `mediaUrl(fileId, "image", "low")` instead. */
+export const avatarThumbUrl = (fileId?: number | string | null) => _avatarThumbUrl(fileId, getCdnBaseUrl());
+export const avatarUrl = (fileId?: number | string | null) => _avatarUrl(fileId, getCdnBaseUrl());
+export const avatarOriginalUrl = (fileId?: number | string | null) => _avatarOriginalUrl(fileId, getCdnBaseUrl());

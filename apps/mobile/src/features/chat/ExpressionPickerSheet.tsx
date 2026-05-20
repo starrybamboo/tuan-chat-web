@@ -1,8 +1,8 @@
-import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
-
-import { Image } from "expo-image";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+
+import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -64,11 +64,11 @@ const styles = StyleSheet.create({
   },
 });
 
-interface ExpressionPickerSheetProps {
+type ExpressionPickerSheetProps = {
   onClose: () => void;
   onSelectExpression: (sticker: Sticker) => void;
   visible: boolean;
-}
+};
 
 type StickerWithFileId = Sticker & { fileId: number };
 
@@ -121,9 +121,9 @@ export function ExpressionPickerSheet({
                               }}
                               style={styles.item}
                             >
-                              <Image
+                              <CachedImage
+                                uri={mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low")}
                                 contentFit="contain"
-                                source={{ uri: mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low") }}
                                 style={styles.sticker}
                               />
                             </Pressable>

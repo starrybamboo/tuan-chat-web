@@ -164,20 +164,7 @@ async function getCachedDicerCopywritingMap(queryClient: QueryClient, ruleId: nu
   return normalized;
 }
 
-export function isCommand(command: string) {
-  const trimmed = command.trim();
-  // 仅当以单个前缀符号开头且紧随其后为字母时，才视为指令
-  if (!(trimmed.startsWith(".") || trimmed.startsWith("。") || trimmed.startsWith("/"))) {
-    return false;
-  }
-  // 多个符号开头（如 "。。ff"、"..."、"//"）不视为指令
-  const secondChar = trimmed.charAt(1);
-  if (secondChar === "." || secondChar === "。" || secondChar === "/" || secondChar === "%") {
-    return false;
-  }
-  // 前缀后需以英文字母开始（命令名约定为字母），否则不视为指令
-  return /^[.。/][A-Z].*/i.test(trimmed);
-}
+export { isCommand } from "@tuanchat/domain/command-request";
 
 export function getCommandList(ruleId: number): Map<string, CommandInfo> {
   const cmdList = new Map<string, CommandInfo>();

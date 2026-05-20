@@ -75,4 +75,47 @@ describe("messageContentRenderer 聊天室媒体质量", () => {
     expect(audioHtml).toContain("https://tuan.chat/media/v1/files/012/12/audio/low.webm");
     expect(`${videoHtml}${audioHtml}`).not.toMatch(/\/(medium|high)\.webm/);
   });
+
+  it("文件消息只使用 low 档位", () => {
+    const html = renderToStaticMarkup(createElement(MessageContentRenderer, {
+      message: {
+        messageType: MESSAGE_TYPE.FILE,
+        content: "",
+        roleId: 1,
+        avatarId: 1,
+        extra: {
+          fileMessage: {
+            fileId: 78,
+            mediaType: "document",
+            fileName: "rulebook.pdf",
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("https://tuan.chat/media/v1/files/078/78/document/low");
+    expect(html).not.toContain("/original");
+  });
+
+  it("本地乐观媒体占位不会为非正数 fileId 生成 CDN 地址", () => {
+    const html = renderToStaticMarkup(createElement(MessageContentRenderer, {
+      message: {
+        messageType: MESSAGE_TYPE.IMG,
+        content: "",
+        roleId: 1,
+        avatarId: 1,
+        extra: {
+          imageMessage: {
+            fileId: -1,
+            mediaType: "image",
+            width: 1,
+            height: 1,
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("[图片]");
+    expect(html).not.toContain("/media/v1/files/");
+  });
 });

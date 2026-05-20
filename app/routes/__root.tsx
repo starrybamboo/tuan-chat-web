@@ -2,7 +2,7 @@ import type {
   RouteMetaArgs,
 } from "@/routes/routeTypes";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent, Outlet, Scripts, useLocation, useNavigate } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import React from "react";
@@ -21,7 +21,7 @@ if (typeof window !== "undefined") {
   installDiagnosticConsoleCapture();
 }
 
-// Patch customElements.define to avoid "already defined" errors from BlockSuite or other libraries during HMR/re-mounts.
+// Patch customElements.define to avoid duplicate custom-element registrations during HMR/re-mounts.
 if (typeof window !== "undefined" && window.customElements) {
   const originalDefine = window.customElements.define;
   window.customElements.define = function (name, constructor, options) {
@@ -82,6 +82,7 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 
 const isTestBuild = import.meta.env.MODE === "test";
 const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
+const BUG_FEEDBACK_SPLASH_SESSION_KEY = "tc:bug-feedback-splash:2026-05-20";
 
 if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window as any).__tcTestTitleTagInstalled) {
   // test 环境为标签页标题追加标识，避免与正式环境混淆。
@@ -153,18 +154,13 @@ function HydrateFallback() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-        <CanonicalLink />
-      </head>
-      <body>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-        <Scripts />
-      </body>
-    </html>
+    <>
+      <HeadContent />
+      <CanonicalLink />
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </>
   );
 }
 
@@ -217,11 +213,24 @@ function App() {
   React.useEffect(() => {
     if (typeof window === "undefined")
       return;
+    try {
+      if (window.sessionStorage.getItem(BUG_FEEDBACK_SPLASH_SESSION_KEY) === "1")
+        return;
+    }
+    catch {
+      // ignore
+    }
     setIsBugFeedbackSplashOpen(true);
   }, []);
 
   const closeBugFeedbackSplash = React.useCallback(() => {
     setIsBugFeedbackSplashOpen(false);
+    try {
+      window.sessionStorage.setItem(BUG_FEEDBACK_SPLASH_SESSION_KEY, "1");
+    }
+    catch {
+      // ignore
+    }
   }, []);
 
   if (isScrollSequenceStandalone) {
@@ -246,7 +255,20 @@ function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
-      {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-right" /> : null}
+      {import.meta.env.DEV
+        ? (
+            <TanStackRouterDevtools
+              position="top-left"
+              toggleButtonProps={{
+                style: {
+                  top: "8px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                },
+              }}
+            />
+          )
+        : null}
       {isTestEnvSplashOpen && (
         <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="测试环境提示">
           <div className="modal-box max-w-2xl">
@@ -330,6 +352,7 @@ export const Route = createRootRoute({
   }),
   component: RootRouteComponent,
   errorComponent: ErrorBoundary,
+  notFoundComponent: NotFoundFallback,
   pendingComponent: HydrateFallback,
 });
 
@@ -408,6 +431,46 @@ function ErrorBoundary({ error }: { error: Error }) {
           </div>
         </div>
       </div>
+    </main>
+  );
+}
+
+function NotFoundFallback() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const goBack = React.useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    void navigate({ to: "/", replace: true });
+  }, [navigate]);
+
+  return (
+    <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
+      <section className="w-full max-w-lg rounded-lg bg-base-100 p-8 text-center shadow-xl">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-warning/15 text-warning">
+          <span className="text-3xl font-bold">404</span>
+        </div>
+        <h1 className="mt-6 text-3xl font-bold">页面不存在</h1>
+        <p className="mt-3 break-all text-base-content/70">
+          当前路径无法匹配到可用页面：
+          {location.pathname}
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button type="button" className="btn btn-outline" onClick={goBack}>
+            返回上一页
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate({ to: "/", replace: true })}
+          >
+            回到首页
+          </button>
+        </div>
+      </section>
     </main>
   );
 }

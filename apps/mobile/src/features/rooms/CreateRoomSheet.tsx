@@ -1,6 +1,3 @@
-import type { Room } from "@tuanchat/openapi-client/models/Room";
-import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -10,6 +7,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+
+import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
+import type { Room } from "@tuanchat/openapi-client/models/Room";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -78,12 +78,12 @@ const styles = StyleSheet.create({
   },
 });
 
-interface CreateRoomSheetProps {
+type CreateRoomSheetProps = {
   onClose: () => void;
   onCreated?: (room: Room) => void;
   spaceId: number;
   visible: boolean;
-}
+};
 
 export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: CreateRoomSheetProps) {
   const theme = useTheme();

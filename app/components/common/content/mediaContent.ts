@@ -54,7 +54,7 @@ export function buildMediaReferenceToken(fileId: number | string, mediaType: Med
 export function resolveMediaContentSource(
   source: string | null | undefined,
   fallbackMediaType: MediaType,
-  quality: MediaQuality = "high",
+  quality: MediaQuality = "medium",
 ) {
   const value = String(source ?? "").trim();
   if (!value) {

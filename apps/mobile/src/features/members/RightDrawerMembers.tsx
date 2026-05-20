@@ -1,11 +1,10 @@
-import type { MemberPreviewItem } from "@/features/members/memberUtils";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
-import { Image } from "expo-image";
+import type { MemberPreviewItem } from "@/features/members/memberUtils";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MemberPreviewList } from "@/features/members/memberPreviewList";
@@ -91,7 +90,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface RightDrawerMembersProps {
+type RightDrawerMembersProps = {
   currentRoomMember: MemberPreviewItem | null;
   currentSpaceMember: MemberPreviewItem | null;
   currentUserId: number | null;
@@ -105,7 +104,7 @@ interface RightDrawerMembersProps {
   onLongPressMember?: (member: MemberPreviewItem) => void;
   roles?: UserRole[];
   roomName: string;
-}
+};
 
 export function RightDrawerMembers({
   currentRoomMember,
@@ -116,7 +115,7 @@ export function RightDrawerMembers({
   isPending,
   members,
   onAddMember,
-  onClose,
+  onClose: _onClose,
   onKickRole,
   onLongPressMember,
   roles = [],
@@ -148,7 +147,9 @@ export function RightDrawerMembers({
             type="smallBold"
             themeColor={activeTab === "members" ? "text" : "textSecondary"}
           >
-            成员 ({members.length})
+            成员 (
+            {members.length}
+            )
           </ThemedText>
         </Pressable>
         <Pressable
@@ -159,69 +160,81 @@ export function RightDrawerMembers({
             type="smallBold"
             themeColor={activeTab === "roles" ? "text" : "textSecondary"}
           >
-            角色 ({roles.length})
+            角色 (
+            {roles.length}
+            )
           </ThemedText>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {activeTab === "members" ? (
-          <>
-            {onAddMember ? (
-              <Pressable
-                style={[styles.addButton, { borderColor: theme.border }]}
-                onPress={onAddMember}
-              >
-                <ThemedText type="smallBold" themeColor="accent">添加成员</ThemedText>
-              </Pressable>
-            ) : null}
-            <MemberPreviewList
-              currentUserId={currentUserId}
-              emptyText="暂无成员。"
-              error={error}
-              isError={isError}
-              isPending={isPending}
-              maxVisible={Math.max(members.length, 1)}
-              members={members}
-              onLongPress={onLongPressMember}
-            />
-          </>
-        ) : (
-          <View style={styles.roleList}>
-            {roles.length === 0 ? (
-              <ThemedText themeColor="textSecondary">暂无角色。</ThemedText>
-            ) : (
-              roles.map(role => (
-                <View
-                  key={role.roleId}
-                  style={[styles.roleItem, { backgroundColor: theme.backgroundElement }]}
-                >
-                  {role.avatarFileId ? (
-                    <Image source={{ uri: avatarThumbUrl(role.avatarFileId) }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, { backgroundColor: getRoleColor(role.roleId) }]}>
-                      <ThemedText style={styles.avatarText}>
-                        {(role.roleName ?? "").slice(0, 1) || "R"}
-                      </ThemedText>
-                    </View>
-                  )}
-                  <View style={styles.roleInfo}>
-                    <ThemedText type="smallBold">{role.roleName ?? `角色 #${role.roleId}`}</ThemedText>
-                    <ThemedText type="caption" themeColor="textSecondary">{getRoleTypeLabel(role.type)}</ThemedText>
-                  </View>
-                  {onKickRole ? (
-                    <Pressable
-                      style={[styles.kickButton, { backgroundColor: theme.border }]}
-                      onPress={() => onKickRole(role.roleId)}
-                    >
-                      <ThemedText type="small" themeColor="textSecondary">移除</ThemedText>
-                    </Pressable>
-                  ) : null}
-                </View>
-              ))
+        {activeTab === "members"
+          ? (
+              <>
+                {onAddMember
+                  ? (
+                      <Pressable
+                        style={[styles.addButton, { borderColor: theme.border }]}
+                        onPress={onAddMember}
+                      >
+                        <ThemedText type="smallBold" themeColor="accent">添加成员</ThemedText>
+                      </Pressable>
+                    )
+                  : null}
+                <MemberPreviewList
+                  currentUserId={currentUserId}
+                  emptyText="暂无成员。"
+                  error={error}
+                  isError={isError}
+                  isPending={isPending}
+                  maxVisible={Math.max(members.length, 1)}
+                  members={members}
+                  onLongPress={onLongPressMember}
+                />
+              </>
+            )
+          : (
+              <View style={styles.roleList}>
+                {roles.length === 0
+                  ? (
+                      <ThemedText themeColor="textSecondary">暂无角色。</ThemedText>
+                    )
+                  : (
+                      roles.map(role => (
+                        <View
+                          key={role.roleId}
+                          style={[styles.roleItem, { backgroundColor: theme.backgroundElement }]}
+                        >
+                          {role.avatarFileId
+                            ? (
+                                <CachedImage uri={avatarThumbUrl(role.avatarFileId)} style={styles.avatar} />
+                              )
+                            : (
+                                <View style={[styles.avatar, { backgroundColor: getRoleColor(role.roleId) }]}>
+                                  <ThemedText style={styles.avatarText}>
+                                    {(role.roleName ?? "").slice(0, 1) || "R"}
+                                  </ThemedText>
+                                </View>
+                              )}
+                          <View style={styles.roleInfo}>
+                            <ThemedText type="smallBold">{role.roleName ?? `角色 #${role.roleId}`}</ThemedText>
+                            <ThemedText type="caption" themeColor="textSecondary">{getRoleTypeLabel(role.type)}</ThemedText>
+                          </View>
+                          {onKickRole
+                            ? (
+                                <Pressable
+                                  style={[styles.kickButton, { backgroundColor: theme.border }]}
+                                  onPress={() => onKickRole(role.roleId)}
+                                >
+                                  <ThemedText type="small" themeColor="textSecondary">移除</ThemedText>
+                                </Pressable>
+                              )
+                            : null}
+                        </View>
+                      ))
+                    )}
+              </View>
             )}
-          </View>
-        )}
       </ScrollView>
     </View>
   );

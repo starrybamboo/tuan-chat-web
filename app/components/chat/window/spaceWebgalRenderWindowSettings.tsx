@@ -2,10 +2,21 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 import type { CollapsibleSectionKey, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
-import WorkflowWindow from "@/components/chat/window/workflowWindow";
+import { lazy, Suspense } from "react";
 import { SpaceWebgalGameConfigSection } from "./spaceWebgalGameConfigSection";
 import { SpaceWebgalRoomContentSettingsPanel } from "./spaceWebgalRenderWindowPanels";
 import { SectionCollapseToggle } from "./spaceWebgalRenderWindowParts";
+
+const LazyWorkflowWindow = lazy(() => import("@/components/chat/window/workflowWindow"));
+
+function WorkflowLazyFallback() {
+  return (
+    <div className="flex h-40 items-center justify-center text-sm text-base-content/60">
+      <span className="loading loading-spinner loading-sm" />
+      <span className="ml-2">正在加载流程图...</span>
+    </div>
+  );
+}
 
 interface SpaceWebgalRenderWindowSettingsProps {
   settingsTab: SpaceWebgalSettingsTab;
@@ -179,7 +190,9 @@ export function SpaceWebgalRenderWindowSettings({
                 </div>
                 {sectionExpandedMap.workflowLayer && (
                   <div className="rounded-md border border-base-300 px-2 py-2 overflow-x-auto">
-                    <WorkflowWindow />
+                    <Suspense fallback={<WorkflowLazyFallback />}>
+                      <LazyWorkflowWindow />
+                    </Suspense>
                   </div>
                 )}
               </div>

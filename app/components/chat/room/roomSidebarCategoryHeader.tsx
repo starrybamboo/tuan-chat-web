@@ -2,6 +2,7 @@ import type { DragEvent, MouseEvent } from "react";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
+import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { AddIcon, ChevronDown } from "@/icons";
 
 interface RoomSidebarCategoryHeaderProps {
@@ -67,6 +68,13 @@ export default function RoomSidebarCategoryHeader({
         resetDropHandled();
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", `category:${categoryId}`);
+        setDragPreview({
+          dataTransfer: e.dataTransfer,
+          sourceElement: e.currentTarget,
+          title: "移动分类",
+          subtitle: "拖到目标位置",
+          variant: "category",
+        });
         setDragging({ kind: "category", fromIndex: categoryIndex, categoryId });
         setDropTarget(null);
       }}

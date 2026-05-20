@@ -75,7 +75,8 @@ async function main() {
       const result = await processCandidate(candidate, limitBytes, execute);
       results.push(result);
       mergeStats(stats, result);
-    } catch (error) {
+    }
+    catch (error) {
       stats.failedCount += 1;
       if (stats.failedSamples.length < sampleLimit) {
         stats.failedSamples.push({
@@ -140,7 +141,8 @@ async function collectCandidates(filesRoot, limitBytes) {
           pages: metadata.pages ?? 1,
           format,
         });
-      } catch {
+      }
+      catch {
         continue;
       }
     }

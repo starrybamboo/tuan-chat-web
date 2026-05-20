@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { UserDetail } from "@/components/common/userDetail";
-import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
@@ -17,6 +17,9 @@ const sizeMap = {
   32: "w-32 h-32", // 128px
   36: "w-36 h-36", // 144px
 } as const;
+
+const avatarShellHoverClassName = "transition-all duration-200 ease-out motion-reduce:transition-none hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-md hover:shadow-base-content/10";
+const avatarImageHoverClassName = "transition-transform duration-200 ease-out motion-reduce:transition-none group-hover/avatar:scale-105";
 
 /**
  * 用户头像组件
@@ -133,7 +136,7 @@ export default function UserAvatarComponent({
   }, [clickEnterProfilePage, userId]);
 
   // 根据 clickEnterProfilePage 决定是否添加点击样式
-  const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
+  const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${avatarShellHoverClassName} ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
 
   // 计算定位：优先右侧，不够则左侧
   const recompute = useCallback(() => {
@@ -237,12 +240,12 @@ export default function UserAvatarComponent({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
+      <div className="avatar group/avatar">
+        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} overflow-hidden`}>
           <img
             src={resolvedAvatar}
             alt="Avatar"
-            className={`transition-transform ${clickEnterProfilePage ? "hover:scale-110" : ""}`}
+            className={avatarImageHoverClassName}
           />
         </div>
       </div>

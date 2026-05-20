@@ -2,7 +2,7 @@ import { vi } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
-import type { ChatMessageResponse, UserRole } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 
 import { MessageType } from "../../../../api/wsModels";
 import { useChatComposerStore } from "../stores/chatComposerStore";
@@ -159,8 +159,7 @@ describe("useChatMessageSubmit", () => {
     expect(useChatInputUiStore.getState().plainText).toBe("原始消息");
     expect(roomUiStoreApi.getState().replyMessage?.messageId).toBe(99);
     expect(roomUiStoreApi.getState().insertAfterMessageId).toBeUndefined();
-    expect(setIsSubmitting).toHaveBeenNthCalledWith(1, true);
-    expect(setIsSubmitting).toHaveBeenNthCalledWith(2, false);
+    expect(setIsSubmitting).not.toHaveBeenCalled();
     expect(mocks.toastErrorMock).not.toHaveBeenCalled();
   });
 
@@ -211,6 +210,160 @@ describe("useChatMessageSubmit", () => {
 
     ensureAvatarDeferred.resolve(7);
     await submitPromise;
+  });
+
+  it("附件上传完成前会先插入本地乐观消息，并在上传后复用这些消息提交", async () => {
+    const draftDeferred = createDeferred<Array<{
+      content: string;
+      messageType: number;
+      annotations?: string[];
+      extra: Record<string, unknown>;
+    }>>();
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockReturnValue(draftDeferred.promise);
+
+    useChatInputUiStore.setState({
+      plainText: "附件说明",
+      textWithoutMentions: "附件说明",
+      mentionedRoles: [],
+    });
+    useChatComposerStore.setState({
+      imgFiles: [new File(["image"], "scene.png", { type: "image/png" })],
+      audioFile: new File(["audio"], "voice.mp3", { type: "audio/mpeg" }),
+      fileAttachments: [new File(["video"], "clip.webm", { type: "video/webm" })],
+      tempAnnotations: [ANNOTATION_IDS.BGM],
+    });
+
+    const optimisticMessages: ChatMessageResponse[] = [
+      { message: { ...createMessage(-1), messageType: MessageType.IMG } },
+      { message: { ...createMessage(-2), messageType: MessageType.SOUND } },
+      { message: { ...createMessage(-3), messageType: MessageType.VIDEO } },
+    ];
+    const insertLocalOptimisticMessages = vi.fn((requests: ChatMessageRequest[]) => optimisticMessages);
+    const sendMessageBatchWithLocalOptimistic = vi.fn(async () => [
+      { ...createMessage(41), messageType: MessageType.IMG },
+      { ...createMessage(42), messageType: MessageType.SOUND },
+      { ...createMessage(43), messageType: MessageType.VIDEO },
+    ]);
+    const sendMessageBatch = vi.fn(async () => []);
+    const sendMessageWithInsert = vi.fn(async () => createMessage(44));
+    const roomUiStoreApi = createRoomUiStore();
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      discardLocalOptimisticMessages: vi.fn(async () => {}),
+      insertLocalOptimisticMessages,
+      sendMessageBatchWithLocalOptimistic,
+      sendMessageWithInsert,
+      sendMessageBatch,
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: createSetInputTextMock(),
+      roomUiStoreApi,
+    });
+
+    const submitPromise = handleMessageSubmit();
+    await Promise.resolve();
+
+    expect(insertLocalOptimisticMessages).toHaveBeenCalledTimes(1);
+    expect(sendMessageBatchWithLocalOptimistic).not.toHaveBeenCalled();
+    const pendingRequests = insertLocalOptimisticMessages.mock.calls[0][0];
+    expect(pendingRequests.map(request => request.messageType)).toEqual([
+      MessageType.IMG,
+      MessageType.SOUND,
+      MessageType.VIDEO,
+    ]);
+    expect(pendingRequests[0]).toEqual(expect.objectContaining({
+      content: "附件说明",
+      annotations: [ANNOTATION_IDS.BGM],
+      avatarId: 7,
+    }));
+    expect((pendingRequests[0].extra as any).imageMessage).toEqual(expect.objectContaining({
+      fileId: -1,
+      fileName: "scene.png",
+      background: false,
+      width: 1,
+      height: 1,
+    }));
+    expect((pendingRequests[1].extra as any).soundMessage).toEqual(expect.objectContaining({
+      fileId: -1,
+      fileName: "voice.mp3",
+      second: 1,
+    }));
+    expect((pendingRequests[2].extra as any).videoMessage).toEqual(expect.objectContaining({
+      fileId: -1,
+      fileName: "clip.webm",
+    }));
+
+    draftDeferred.resolve([
+      {
+        content: "附件说明",
+        messageType: MessageType.IMG,
+        annotations: [ANNOTATION_IDS.BGM],
+        extra: {
+          imageMessage: {
+            fileId: 101,
+            mediaType: "image",
+            fileName: "scene.png",
+            size: 5,
+            width: 640,
+            height: 480,
+            background: false,
+          },
+        },
+      },
+      {
+        content: "",
+        messageType: MessageType.SOUND,
+        annotations: [ANNOTATION_IDS.BGM],
+        extra: {
+          soundMessage: {
+            fileId: 102,
+            mediaType: "audio",
+            fileName: "voice.mp3",
+            size: 5,
+            second: 3,
+            purpose: "bgm",
+          },
+        },
+      },
+      {
+        content: "",
+        messageType: MessageType.VIDEO,
+        annotations: [ANNOTATION_IDS.BGM],
+        extra: {
+          videoMessage: {
+            fileId: 103,
+            mediaType: "video",
+            fileName: "clip.webm",
+            size: 5,
+            second: 4,
+          },
+        },
+      },
+    ]);
+    await submitPromise;
+
+    expect(sendMessageBatchWithLocalOptimistic).toHaveBeenCalledTimes(1);
+    expect(sendMessageBatchWithLocalOptimistic).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ messageType: MessageType.IMG }),
+        expect.objectContaining({ messageType: MessageType.SOUND }),
+        expect.objectContaining({ messageType: MessageType.VIDEO }),
+      ]),
+      optimisticMessages,
+    );
+    expect(sendMessageBatch).not.toHaveBeenCalled();
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });
 
   it("发送失败时会回填原始输入框内容", async () => {

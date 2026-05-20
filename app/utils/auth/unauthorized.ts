@@ -1,5 +1,7 @@
 import { resetTuanChatQueryCache } from "@/queryClient";
 
+import { dispatchStoredAuthSessionChanged } from "./sessionEvents";
+
 export type UnauthorizedSource = "http" | "ws";
 
 const LAST_UNAUTHORIZED_AT_KEY = "tc:auth:lastUnauthorizedAt";
@@ -47,6 +49,7 @@ function clearAuthStorage() {
     window.localStorage.removeItem("token");
     window.localStorage.removeItem("uid");
     resetTuanChatQueryCache();
+    dispatchStoredAuthSessionChanged("unauthorized");
   }
   catch {
     // ignore

@@ -30,11 +30,11 @@ const styles = StyleSheet.create({
   },
 });
 
-interface ChatNewMessagesPillProps {
+type ChatNewMessagesPillProps = {
   count: number;
   onPress: () => void;
   visible: boolean;
-}
+};
 
 export function ChatNewMessagesPill({ count, onPress, visible }: ChatNewMessagesPillProps) {
   const theme = useTheme();
@@ -51,9 +51,11 @@ export function ChatNewMessagesPill({ count, onPress, visible }: ChatNewMessages
       <Pressable onPress={onPress} style={{ flex: 1, alignItems: "center", justifyContent: "center", width: "100%" }}>
         <ArrowDown size={18} color={theme.text} weight="bold" />
       </Pressable>
-      {count > 0 ? (
-        <View style={[styles.badge, { backgroundColor: theme.danger }]} />
-      ) : null}
+      {count > 0
+        ? (
+            <View style={[styles.badge, { backgroundColor: theme.danger }]} />
+          )
+        : null}
     </Animated.View>
   );
 }

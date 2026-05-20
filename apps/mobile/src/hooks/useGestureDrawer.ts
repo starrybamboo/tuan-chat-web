@@ -1,9 +1,12 @@
 import type { GestureType } from "react-native-gesture-handler";
+
+import { useCallback } from "react";
 import { Gesture } from "react-native-gesture-handler";
 import {
-  runOnJS,
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withSpring,
 } from "react-native-reanimated";
 
@@ -13,13 +16,12 @@ import {
   RIGHT_DRAWER_WIDTH,
 } from "@/lib/layout-constants";
 
-import { getGestureDrawerAxisConfig } from "./useGestureDrawerConfig";
-
-function logGestureDrawer(event: string, detail?: Record<string, number>) {
-  if (!__DEV__)
-    return;
-  console.log("[gesture-drawer]", event, detail ?? {});
-}
+import {
+  DRAWER_SWIPE_HINT_DELAY_MS,
+  getGestureDrawerAxisConfig,
+  resolveCloseWithSwipeHintStartPosition,
+  shouldUseSyntheticSwipeHint,
+} from "./useGestureDrawerConfig";
 
 function adjacentSnapPoints(position: number): readonly number[] {
   "worklet";
@@ -38,61 +40,68 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
   const basePanGesture = Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
     .failOffsetY(axisConfig.failOffsetY)
-    .onBegin((e) => {
-      runOnJS(logGestureDrawer)("pan-begin", {
-        translateX: translateX.value,
-        absoluteX: e.absoluteX,
-      });
-    })
     .onStart(() => {
-      context.value = translateX.value;
+      context.set(translateX.get());
     })
     .onUpdate((e) => {
-      translateX.value = clamp(
-        context.value + e.translationX,
+      translateX.set(clamp(
+        context.get() + e.translationX,
         -RIGHT_DRAWER_WIDTH,
         LEFT_DRAWER_WIDTH,
-      );
+      ));
     })
     .onEnd((e) => {
-      const targets = adjacentSnapPoints(translateX.value);
-      const destination = snapPoint(translateX.value, e.velocityX, targets);
-      runOnJS(logGestureDrawer)("pan-end", {
-        velocityX: e.velocityX,
-        destination,
-      });
-      translateX.value = withSpring(destination, SPRING_CONFIG);
+      const currentPosition = translateX.get();
+      const targets = adjacentSnapPoints(currentPosition);
+      const destination = snapPoint(currentPosition, e.velocityX, targets);
+      translateX.set(withSpring(destination, SPRING_CONFIG));
     });
   const panGesture = scrollGesture
     ? basePanGesture.simultaneousWithExternalGesture(scrollGesture)
     : basePanGesture;
 
-  const openLeft = () => {
-    translateX.value = withSpring(LEFT_DRAWER_WIDTH, SPRING_CONFIG);
-  };
+  const openLeft = useCallback(() => {
+    translateX.set(withSpring(LEFT_DRAWER_WIDTH, SPRING_CONFIG));
+  }, [translateX]);
 
-  const openRight = () => {
-    translateX.value = withSpring(-RIGHT_DRAWER_WIDTH, SPRING_CONFIG);
-  };
+  const openRight = useCallback(() => {
+    translateX.set(withSpring(-RIGHT_DRAWER_WIDTH, SPRING_CONFIG));
+  }, [translateX]);
 
-  const close = () => {
-    translateX.value = withSpring(0, SPRING_CONFIG);
-  };
+  const close = useCallback(() => {
+    translateX.set(withSpring(0, SPRING_CONFIG));
+  }, [translateX]);
+
+  const closeImmediately = useCallback(() => {
+    cancelAnimation(translateX);
+    translateX.set(0);
+  }, [translateX]);
+
+  const closeWithSwipeHint = useCallback(() => {
+    const currentPosition = translateX.get();
+    const shouldDelaySpring = shouldUseSyntheticSwipeHint(currentPosition);
+    // Route 页没有真实展开的抽屉位移时，先补一个短促的左侧 peek，再弹回 0。
+    cancelAnimation(translateX);
+    translateX.set(resolveCloseWithSwipeHintStartPosition(currentPosition));
+    translateX.set(shouldDelaySpring
+      ? withDelay(DRAWER_SWIPE_HINT_DELAY_MS, withSpring(0, SPRING_CONFIG))
+      : withSpring(0, SPRING_CONFIG));
+  }, [translateX]);
 
   const centerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [{ translateX: translateX.get() }],
   }));
 
   const leftDrawerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value - LEFT_DRAWER_WIDTH }],
+    transform: [{ translateX: translateX.get() - LEFT_DRAWER_WIDTH }],
   }));
 
   const rightDrawerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value + RIGHT_DRAWER_WIDTH }],
+    transform: [{ translateX: translateX.get() + RIGHT_DRAWER_WIDTH }],
   }));
 
   const overlayStyle = useAnimatedStyle(() => ({
-    opacity: Math.abs(translateX.value) / LEFT_DRAWER_WIDTH * 0.5,
+    opacity: Math.abs(translateX.get()) / LEFT_DRAWER_WIDTH * 0.5,
   }));
 
   return {
@@ -101,6 +110,8 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
     openLeft,
     openRight,
     close,
+    closeImmediately,
+    closeWithSwipeHint,
     centerStyle,
     leftDrawerStyle,
     rightDrawerStyle,

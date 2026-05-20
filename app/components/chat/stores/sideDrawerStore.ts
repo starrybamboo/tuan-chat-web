@@ -6,15 +6,15 @@ export type SideDrawerState
     | "role"
     | "copilot"
     | "search"
+    | "combat"
+    | "clue"
     | "initiative"
     | "map"
     | "state"
-    | "doc"
-    | "docFolder"
     | "export"
     | "webgal";
 
-type SubRoomDrawerState = "none" | "map" | "initiative" | "state" | "webgal" | "doc";
+type SubRoomDrawerState = "none" | "map" | "combat" | "clue" | "initiative" | "state" | "webgal";
 
 type SideDrawerStore = {
   state: SideDrawerState;

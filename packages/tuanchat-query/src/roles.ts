@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-import type { RoleAvatarCreateRequest } from "@tuanchat/openapi-client/models/RoleAvatarCreateRequest";
 import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
 import type { RoleUpdateRequest } from "@tuanchat/openapi-client/models/RoleUpdateRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -109,7 +108,7 @@ export function useUpdateAvatarMutation(client: RoleClient) {
 export function useDeleteAvatarMutation(client: RoleClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ avatarId, roleId }: { avatarId: number; roleId: number }) =>
+    mutationFn: ({ avatarId }: { avatarId: number; roleId: number }) =>
       client.avatarController.deleteRoleAvatar(avatarId),
     mutationKey: ["deleteAvatar"],
     onSuccess: (_result, { roleId }) => {

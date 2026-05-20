@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
 import { resolveSelectableRoomRoles } from "@tuanchat/domain/room-identity";
 
 type RoomRoleClient = Pick<TuanChat, "roomRoleController" | "roleController" | "avatarController">;
@@ -45,7 +46,7 @@ export function useUserRolesByTypesQuery(
   return useQuery({
     enabled: (options.enabled ?? true) && typeof userId === "number" && userId > 0,
     queryFn: () => fetchUserRolesByTypes(client, userId!, types),
-    queryKey: getUserRolesByTypesQueryKey(userId, types),
+    queryKey: [...getUserRolesByTypesQueryKey(userId, types), client],
     staleTime: options.staleTime ?? 600_000,
   });
 }

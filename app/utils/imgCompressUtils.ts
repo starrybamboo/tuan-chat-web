@@ -8,13 +8,16 @@ import {
 } from "@/utils/novelaiImageMetadata";
 
 export type MediaType = "image" | "audio" | "video" | "document" | "other";
-export type MediaQuality = "original" | "low" | "medium" | "high";
+export type MediaQuality = "original" | "low" | "medium";
+/** @deprecated Use MediaQuality instead. "high" is mapped to "medium" internally. */
+export type LegacyMediaQuality = "high";
+export type MediaQualityInput = MediaQuality | LegacyMediaQuality;
 
 export const MEDIA_COMPRESSION_PROFILES = {
   image: {
     low: {
       maxWidthOrHeight: 200,
-      maxSizeKB: 30,
+      maxSizeKB: 40,
       quality: 0.72,
       fileType: "image/webp",
       preserveNovelAiMetadata: false,
@@ -57,9 +60,9 @@ export const BUSINESS_MEDIA_QUALITY = {
   smallThumbnail: { mediaType: "image", quality: "low" },
   listCover: { mediaType: "image", quality: "medium" },
   cardCover: { mediaType: "image", quality: "medium" },
-  contentImage: { mediaType: "image", quality: "high" },
-  hdCover: { mediaType: "image", quality: "high" },
-  videoCover: { mediaType: "image", quality: "high" },
+  contentImage: { mediaType: "image", quality: "medium" },
+  hdCover: { mediaType: "image", quality: "medium" },
+  videoCover: { mediaType: "image", quality: "medium" },
 } as const satisfies Record<string, { mediaType: MediaType; quality: MediaQuality }>;
 
 export const IMAGE_COMPRESSION_PRESETS = {

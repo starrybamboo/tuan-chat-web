@@ -1,4 +1,4 @@
-import { imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { tuanchat } from "api/instance";
 
 export type RoomDndMapToken = {
@@ -73,7 +73,7 @@ export async function upsertRoomDndMap(payload: RoomDndMapUpsertPayload): Promis
 
 export function getRoomDndMapImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined) {
   return map?.mapMediaType === "image" || map?.mapFileId
-    ? imageHighUrl(map?.mapFileId)
+    ? imageMediumUrl(map?.mapFileId)
     : "";
 }
 

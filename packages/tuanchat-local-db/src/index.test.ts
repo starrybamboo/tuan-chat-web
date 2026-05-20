@@ -1,14 +1,21 @@
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Database, SqlValue } from "sql.js";
 
 import path from "node:path";
 import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
 
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
 import {
+  createDocSnapshotRepository,
+  createMobileKeyValueRepository,
+  createQuerySnapshotRepository,
   createRoomMessageRepository,
+  DOC_SNAPSHOT_SCHEMA_SQL,
   fromRoomMessageRecord,
   fromRoomMessageRecords,
+  MOBILE_KV_SCHEMA_SQL,
+  MOBILE_QUERY_SNAPSHOT_SCHEMA_SQL,
   normalizeRoomMessagesForStorage,
   ROOM_MESSAGE_SCHEMA_SQL,
   toRoomMessageRecord,
@@ -30,7 +37,7 @@ function createMessage(messageId: number, overrides: Partial<ChatMessageResponse
   };
 }
 
-async function createMemoryRepository() {
+async function createMemoryDriver() {
   const SQL = await initSqlJs({
     locateFile: file => path.resolve(process.cwd(), "node_modules/sql.js/dist", file),
   });
@@ -51,7 +58,7 @@ async function createMemoryRepository() {
     });
   }
 
-  return createRoomMessageRepository({
+  return {
     all: async (sql, params = []) => mapRows(db, sql, params as SqlValue[]),
     exec: async (sql) => {
       db.run(sql);
@@ -71,7 +78,11 @@ async function createMemoryRepository() {
         throw error;
       }
     },
-  });
+  };
+}
+
+async function createMemoryRepository() {
+  return createRoomMessageRepository(await createMemoryDriver());
 }
 
 describe("tuanchat local db room message helpers", () => {
@@ -142,5 +153,192 @@ describe("tuanchat local db room message helpers", () => {
 
     await repository.deleteMessagesByIds([1]);
     expect((await repository.getMessagesByRoomId(9)).map(item => item.message.messageId)).toEqual([2]);
+  });
+});
+
+describe("tuanchat local db mobile query snapshots", () => {
+  it("暴露 query snapshot schema", () => {
+    const schema = MOBILE_QUERY_SNAPSHOT_SCHEMA_SQL.join("\n");
+    expect(schema).toContain("CREATE TABLE IF NOT EXISTS mobile_query_snapshots");
+    expect(schema).toContain("mobile_query_snapshots_scope_idx");
+  });
+
+  it("按 key、用户和 scope 写入并读取快照", async () => {
+    const repository = createQuerySnapshotRepository(await createMemoryDriver());
+
+    await repository.writeSnapshot({
+      key: "spaces:active",
+      now: 1000,
+      payload: [{ id: 1, name: "Space" }],
+      scope: "workspace",
+      ttlMs: 5000,
+      userId: 7,
+    });
+
+    await repository.writeSnapshot({
+      key: "spaces:active",
+      now: 1000,
+      payload: [{ id: 2, name: "Other" }],
+      scope: "workspace",
+      ttlMs: 5000,
+      userId: 8,
+    });
+
+    const snapshot = await repository.readSnapshot<Array<{ id: number; name: string }>>("spaces:active", {
+      now: 2000,
+      scope: "workspace",
+      userId: 7,
+    });
+
+    expect(snapshot).toEqual(expect.objectContaining({
+      expiresAt: 6000,
+      payload: [{ id: 1, name: "Space" }],
+      scope: "workspace",
+      updatedAt: 1000,
+      userId: 7,
+    }));
+  });
+
+  it("过期快照会返回空并从本地删除", async () => {
+    const repository = createQuerySnapshotRepository(await createMemoryDriver());
+
+    await repository.writeSnapshot({
+      key: "rooms:1",
+      now: 1000,
+      payload: ["room-a"],
+      ttlMs: 100,
+      userId: 7,
+    });
+
+    expect(await repository.readSnapshot("rooms:1", { now: 1100, userId: 7 })).toBeNull();
+    expect(await repository.readSnapshot("rooms:1", { now: 1001, userId: 7 })).toBeNull();
+  });
+
+  it("坏 JSON 会被忽略并清理", async () => {
+    const driver = await createMemoryDriver();
+    const repository = createQuerySnapshotRepository(driver);
+
+    await repository.writeSnapshot({ key: "roles", payload: ["ok"], userId: 7 });
+    await driver.run(
+      `UPDATE mobile_query_snapshots SET payload_json = ? WHERE "key" = ? AND user_id = ?`,
+      ["not-json", "roles", 7],
+    );
+
+    expect(await repository.readSnapshot("roles", { userId: 7 })).toBeNull();
+    const rows = await driver.all<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM mobile_query_snapshots WHERE "key" = ? AND user_id = ?`,
+      ["roles", 7],
+    );
+    expect(rows[0]?.count).toBe(0);
+  });
+
+  it("支持按前缀和用户清理快照", async () => {
+    const repository = createQuerySnapshotRepository(await createMemoryDriver());
+
+    await repository.writeSnapshot({ key: "rooms:1", payload: [1], userId: 7 });
+    await repository.writeSnapshot({ key: "rooms:2", payload: [2], userId: 7 });
+    await repository.writeSnapshot({ key: "roles:1", payload: [3], userId: 7 });
+    await repository.writeSnapshot({ key: "rooms:1", payload: [4], userId: 8 });
+
+    await repository.removeSnapshotsByPrefix("rooms:", { userId: 7 });
+
+    expect(await repository.readSnapshot("rooms:1", { userId: 7 })).toBeNull();
+    expect(await repository.readSnapshot("rooms:2", { userId: 7 })).toBeNull();
+    expect((await repository.readSnapshot<number[]>("roles:1", { userId: 7 }))?.payload).toEqual([3]);
+    expect((await repository.readSnapshot<number[]>("rooms:1", { userId: 8 }))?.payload).toEqual([4]);
+
+    await repository.clearUserSnapshots(8);
+    expect(await repository.readSnapshot("rooms:1", { userId: 8 })).toBeNull();
+  });
+});
+
+describe("tuanchat local db mobile key value store", () => {
+  it("暴露 mobile KV schema", () => {
+    const schema = MOBILE_KV_SCHEMA_SQL.join("\n");
+    expect(schema).toContain("CREATE TABLE IF NOT EXISTS mobile_kv_store");
+    expect(schema).toContain("mobile_kv_store_scope_idx");
+  });
+
+  it("按用户隔离读写普通 KV", async () => {
+    const repository = createMobileKeyValueRepository(await createMemoryDriver());
+
+    await repository.writeValue("workspace-selection", { selectedSpaceId: 1 }, { now: 100, userId: 7 });
+    await repository.writeValue("workspace-selection", { selectedSpaceId: 2 }, { now: 200, userId: 8 });
+
+    expect(await repository.readValue("workspace-selection", { userId: 7 })).toEqual(expect.objectContaining({
+      updatedAt: 100,
+      userId: 7,
+      value: { selectedSpaceId: 1 },
+    }));
+    expect(await repository.readValue("workspace-selection", { userId: 8 })).toEqual(expect.objectContaining({
+      updatedAt: 200,
+      userId: 8,
+      value: { selectedSpaceId: 2 },
+    }));
+  });
+
+  it("坏 KV JSON 会被忽略并清理", async () => {
+    const driver = await createMemoryDriver();
+    const repository = createMobileKeyValueRepository(driver);
+
+    await repository.writeValue("workspace-selection", { selectedSpaceId: 1 }, { userId: 7 });
+    await driver.run(
+      `UPDATE mobile_kv_store SET value_json = ? WHERE "key" = ? AND user_id = ?`,
+      ["not-json", "workspace-selection", 7],
+    );
+
+    expect(await repository.readValue("workspace-selection", { userId: 7 })).toBeNull();
+    const rows = await driver.all<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM mobile_kv_store WHERE "key" = ? AND user_id = ?`,
+      ["workspace-selection", 7],
+    );
+    expect(rows[0]?.count).toBe(0);
+  });
+});
+
+describe("tuanchat local db doc snapshots", () => {
+  it("暴露文档快照 schema", () => {
+    const schema = DOC_SNAPSHOT_SCHEMA_SQL.join("\n");
+    expect(schema).toContain("CREATE TABLE IF NOT EXISTS doc_snapshots");
+    expect(schema).toContain("snapshot_json");
+  });
+
+  it("按文档房间 id 写入、读取和删除快照", async () => {
+    const repository = createDocSnapshotRepository(await createMemoryDriver());
+    const snapshot = {
+      format: "message-stream",
+      updateB64: "abc",
+      updatedAt: 123,
+      v: 4,
+    };
+
+    await repository.writeSnapshot(" 123 ", snapshot, { now: 1000 });
+
+    await expect(repository.readSnapshot<typeof snapshot>("123")).resolves.toEqual(expect.objectContaining({
+      docId: "123",
+      snapshot,
+      updatedAt: 1000,
+    }));
+
+    await repository.removeSnapshot("123");
+    await expect(repository.readSnapshot("123")).resolves.toBeNull();
+  });
+
+  it("坏文档快照 JSON 会被忽略并清理", async () => {
+    const driver = await createMemoryDriver();
+    const repository = createDocSnapshotRepository(driver);
+
+    await repository.writeSnapshot("456", { ok: true });
+    await driver.run(
+      `UPDATE doc_snapshots SET snapshot_json = ? WHERE doc_id = ?`,
+      ["not-json", "456"],
+    );
+
+    await expect(repository.readSnapshot("456")).resolves.toBeNull();
+    const rows = await driver.all<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM doc_snapshots WHERE doc_id = ?`,
+      ["456"],
+    );
+    expect(rows[0]?.count).toBe(0);
   });
 });

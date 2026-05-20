@@ -85,11 +85,17 @@ The system SHALL extract NovelAI metadata from source PNG/WebP files and embed i
 
 ### Requirement: Chat room media rendering SHALL use fixed quality tiers
 
-Chat room media rendering on both Web and mobile clients SHALL use fixed quality tiers independent of the generic media URL fallback behavior.
+Chat room media upload and rendering on both Web and mobile clients SHALL use fixed quality tiers independent of the generic media URL fallback behavior.
+
+Image uploads in chat rooms SHALL generate only `low` and `medium` tiers. Chat room image uploads SHALL NOT generate or upload `original` or `high`.
+
+Sound and video uploads in chat rooms SHALL generate only the `low` tier. Chat room sound and video uploads SHALL NOT generate or upload `medium`, `high`, or `original`.
+
+File, document, and other attachment uploads in chat rooms SHALL generate only the `low` tier. Chat room file/document/other uploads SHALL NOT generate or upload `medium`, `high`, or `original`.
 
 Image message inline previews SHALL always request the `low` tier. Opening or tapping an image message for large-image viewing SHALL request the `medium` tier. Chat room image viewing SHALL NOT request `high` or `original`.
 
-Sound and video messages in chat rooms SHALL always request the `low` tier for playback/opening. Chat room sound and video rendering SHALL NOT request `medium`, `high`, or `original`.
+Sound, video, file, document, and other attachment messages in chat rooms SHALL always request the `low` tier for playback/opening. Chat room rendering for these media types SHALL NOT request `medium`, `high`, or `original`.
 
 #### Scenario: Web chat room renders image messages
 - **WHEN** the Web client renders an image message inline in a chat room
@@ -114,3 +120,23 @@ Sound and video messages in chat rooms SHALL always request the `low` tier for p
 - **WHEN** either Web or mobile renders or opens a video message in a chat room
 - **THEN** it SHALL request the video `low` tier
 - **AND** it SHALL NOT request `medium`, `high`, or `original`
+
+#### Scenario: Chat room renders file/document/other attachment messages
+- **WHEN** either Web or mobile renders or opens a file, document, or other attachment message in a chat room
+- **THEN** it SHALL request the attachment `low` tier
+- **AND** it SHALL NOT request `medium`, `high`, or `original`
+
+#### Scenario: Chat room uploads an image
+- **WHEN** the Web or mobile client uploads an image in a chat room
+- **THEN** it SHALL generate and upload only `low` and `medium`
+- **AND** it SHALL NOT generate or upload `original` or `high`
+
+#### Scenario: Chat room uploads audio or video
+- **WHEN** the Web or mobile client uploads sound or video in a chat room
+- **THEN** it SHALL generate and upload only `low`
+- **AND** it SHALL NOT generate or upload `medium`, `high`, or `original`
+
+#### Scenario: Chat room uploads file-like attachments
+- **WHEN** the Web or mobile client uploads a file, document, or other attachment in a chat room
+- **THEN** it SHALL generate and upload only `low`
+- **AND** it SHALL NOT generate or upload `medium`, `high`, or `original`

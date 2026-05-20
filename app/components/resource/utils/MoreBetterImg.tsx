@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useFileObjectUrl } from "@/components/common/betterImg";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
@@ -20,12 +21,12 @@ function MoreBetterImg({ src, className, onClose, size, transparent = true }: {
   transparent?: boolean;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
+  const imgSrc = useFileObjectUrl(src);
   const displayImgSrc = typeof imgSrc === "string" ? imageMediumUrlFromUrl(imgSrc) : imgSrc;
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => <ResizableImg src={displayImgSrc ?? ""} size={size} onClose={onClose} />,
+      onClose => <ResizableImg src={displayImgSrc} size={size} onClose={onClose} />,
       {
         fullScreen: true,
         transparent,

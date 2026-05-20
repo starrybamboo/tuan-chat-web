@@ -11,6 +11,10 @@ export type SpaceUserDocResponse = {
      */
     docId?: number;
     /**
+     * 正文所在的文档房间 ID
+     */
+    roomId?: number;
+    /**
      * 空间ID
      */
     spaceId?: number;

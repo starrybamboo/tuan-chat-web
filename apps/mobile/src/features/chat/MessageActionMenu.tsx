@@ -1,11 +1,15 @@
-import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { IconProps } from "phosphor-react-native";
-import { ArrowBendUpLeft, CheckCircle, Copy, PencilSimple, Trash } from "phosphor-react-native";
+
+import { ArrowBendUpLeft, CheckCircle, Copy, Lightbulb, PaperPlaneTilt, PencilSimple, Trash } from "phosphor-react-native";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
+
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { canCopyMessageToClueFolder } from "@tuanchat/domain/clue-folder";
+import { canDeleteRoomMessage, canEditRoomMessage, canReplyRoomMessage } from "@tuanchat/domain/message-action-permissions";
 
 const styles = StyleSheet.create({
   overlay: {
@@ -45,18 +49,28 @@ const styles = StyleSheet.create({
   },
 });
 
-export type MessageAction = "reply" | "delete" | "copy" | "edit" | "multiSelect";
+export type MessageAction = "addClue" | "reply" | "delete" | "copy" | "edit" | "multiSelect" | "sendToRoom";
 
-interface MessageActionMenuProps {
+type MessageActionMenuProps = {
+  canAddClue?: boolean;
+  canMultiSelect?: boolean;
+  canReply?: boolean;
+  canSendToRoom?: boolean;
   currentUserId: number | null;
+  hasHostPrivileges?: boolean;
   message: Message | null;
   onAction: (action: MessageAction, message: Message) => void;
   onClose: () => void;
   visible: boolean;
-}
+};
 
 export function MessageActionMenu({
+  canAddClue = false,
+  canMultiSelect = true,
+  canReply = true,
+  canSendToRoom = false,
   currentUserId,
+  hasHostPrivileges: isHost = false,
   message,
   onAction,
   onClose,
@@ -64,19 +78,34 @@ export function MessageActionMenu({
 }: MessageActionMenuProps) {
   const theme = useTheme();
 
-  if (!message) return null;
+  if (!message)
+    return null;
 
-  const isMine = typeof currentUserId === "number" && currentUserId === message.userId;
+  const permissionContext = {
+    currentUserId,
+    hasHostPrivileges: isHost,
+    messageSenderId: message.userId,
+    messageStatus: message.status,
+    messageType: message.messageType,
+  };
 
-  const actions: { action: MessageAction; Icon: React.ComponentType<IconProps>; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
-    { action: "copy", Icon: Copy, label: "复制" },
-    { action: "reply", Icon: ArrowBendUpLeft, label: "回复" },
-    { action: "edit", Icon: PencilSimple, label: "编辑", ownerOnly: true },
-    { action: "multiSelect", Icon: CheckCircle, label: "多选" },
-    { action: "delete", Icon: Trash, label: "删除", danger: true, ownerOnly: true },
+  const showEdit = canEditRoomMessage(permissionContext);
+  const showDelete = canDeleteRoomMessage(permissionContext);
+  const showReply = canReply && canReplyRoomMessage(permissionContext);
+  const showAddClue = canAddClue && canCopyMessageToClueFolder(message);
+  const showSendToRoom = canSendToRoom && canCopyMessageToClueFolder(message);
+
+  const actions: { action: MessageAction; Icon: React.ComponentType<IconProps>; label: string; danger?: boolean; show: boolean }[] = [
+    { action: "copy", Icon: Copy, label: "复制", show: message.status !== 1 },
+    { action: "addClue", Icon: Lightbulb, label: "添加线索", show: showAddClue },
+    { action: "sendToRoom", Icon: PaperPlaneTilt, label: "发送到当前房间", show: showSendToRoom },
+    { action: "reply", Icon: ArrowBendUpLeft, label: "回复", show: showReply },
+    { action: "edit", Icon: PencilSimple, label: "编辑", show: showEdit },
+    { action: "multiSelect", Icon: CheckCircle, label: "多选", show: canMultiSelect },
+    { action: "delete", Icon: Trash, label: "删除", danger: true, show: showDelete },
   ];
 
-  const visibleActions = actions.filter(a => !a.ownerOnly || isMine);
+  const visibleActions = actions.filter(a => a.show);
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
@@ -89,7 +118,7 @@ export function MessageActionMenu({
         />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          {visibleActions.map((item) => (
+          {visibleActions.map(item => (
             <Pressable
               key={item.action}
               testID={`message-action-${item.action}`}

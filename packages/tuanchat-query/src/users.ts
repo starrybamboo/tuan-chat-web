@@ -3,8 +3,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { ApiResultUserInfoResponse } from "@tuanchat/openapi-client/models/ApiResultUserInfoResponse";
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 export type UserQueryOptions = {
   enabled?: boolean;

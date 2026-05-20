@@ -1,8 +1,9 @@
-import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
-
 import type { IconProps } from "phosphor-react-native";
+
 import { ArrowBendUpLeft, Copy, ShareNetwork, Trash, WarningCircle } from "phosphor-react-native";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
+
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -48,13 +49,13 @@ const styles = StyleSheet.create({
 
 export type DmMessageAction = "reply" | "copy" | "forward" | "recall" | "report";
 
-interface DmMessageActionMenuProps {
+type DmMessageActionMenuProps = {
   currentUserId: number | null;
   message: MessageDirectResponse | null;
   onAction: (action: DmMessageAction, message: MessageDirectResponse) => void;
   onClose: () => void;
   visible: boolean;
-}
+};
 
 export function DmMessageActionMenu({
   currentUserId,
@@ -64,7 +65,8 @@ export function DmMessageActionMenu({
   visible,
 }: DmMessageActionMenuProps) {
   const theme = useTheme();
-  if (!message) return null;
+  if (!message)
+    return null;
 
   const isMine = typeof currentUserId === "number" && currentUserId === message.senderId;
   const actions: { action: DmMessageAction; Icon: React.ComponentType<IconProps>; label: string; danger?: boolean; ownerOnly?: boolean }[] = [
@@ -76,9 +78,12 @@ export function DmMessageActionMenu({
   ];
 
   const visibleActions = actions.filter((item) => {
-    if (item.ownerOnly && !isMine) return false;
-    if (item.action === "recall" && message.status === 1) return false;
-    if (item.action === "report" && isMine) return false;
+    if (item.ownerOnly && !isMine)
+      return false;
+    if (item.action === "recall" && message.status === 1)
+      return false;
+    if (item.action === "report" && isMine)
+      return false;
     return true;
   });
 
@@ -88,7 +93,7 @@ export function DmMessageActionMenu({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="关闭菜单" />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          {visibleActions.map((item) => (
+          {visibleActions.map(item => (
             <Pressable
               key={item.action}
               onPress={() => { onAction(item.action, message); onClose(); }}

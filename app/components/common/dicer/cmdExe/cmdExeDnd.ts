@@ -1,7 +1,7 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import UTILS from "@/components/common/dicer/utils/utils";
 
-import DND_SPELLS from "./dndSpellsData.json";
+import dndSpellsDataUrl from "./dndSpellsData.json?url";
 
 type DndSpell = {
   name: string;
@@ -19,6 +19,33 @@ type DndSpell = {
   text: string;
   atHigherLevels: string;
 };
+
+let dndSpellsPromise: Promise<DndSpell[]> | null = null;
+
+async function loadDndSpells(): Promise<DndSpell[]> {
+  if (!dndSpellsPromise) {
+    dndSpellsPromise = fetch(dndSpellsDataUrl, { cache: "force-cache" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`DND spells asset returned ${response.status}`);
+        }
+        const data = await response.json() as unknown;
+        if (!Array.isArray(data)) {
+          throw new TypeError("DND spells asset is not an array");
+        }
+        return data as DndSpell[];
+      })
+      .catch((error) => {
+        dndSpellsPromise = null;
+        throw error;
+      });
+  }
+  return dndSpellsPromise;
+}
+
+export function resetDndSpellsCacheForTest(): void {
+  dndSpellsPromise = null;
+}
 
 const executorDnd = new RuleNameSpace(
   2,
@@ -400,7 +427,24 @@ const cmdFind = new CommandExecutor(
       return false;
     }
 
-    const matches = DND_SPELLS.filter(spell => spell.name.includes(query));
+    let dndSpells: DndSpell[];
+    try {
+      dndSpells = await loadDndSpells();
+    }
+    catch {
+      cpi.sendToast("法术数据加载失败，请稍后重试");
+      return false;
+    }
+
+    const normalizedQuery = query.toLowerCase();
+    const compactNormalizedQuery = normalizedQuery.replace(/\s+/g, "");
+    const matches = dndSpells.filter((spell) => {
+      const spellName = String(spell.name ?? "");
+      const normalizedSpellName = spellName.toLowerCase();
+      return spellName.includes(query)
+        || normalizedSpellName.includes(normalizedQuery)
+        || normalizedSpellName.replace(/\s+/g, "").includes(compactNormalizedQuery);
+    });
 
     if (matches.length === 0) {
       cpi.replyMessage(`未找到包含 "${query}" 的法术`);

@@ -1,4 +1,5 @@
 import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   loadAnnotationUsage,
@@ -6,6 +7,7 @@ import {
   recordAnnotationUsage,
 } from "@/components/chat/message/annotations/annotationCatalog";
 import AnnotationChip from "@/components/chat/message/annotations/annotationChip";
+import { reactionPanelMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 
 interface AnnotationPickerProps {
@@ -60,12 +62,12 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, o
   }, [applySelection, selected, selectedSet]);
 
   return (
-    <div className="w-[640px] max-w-[95vw] p-5 flex flex-col max-h-[85vh]">
+    <motion.div className="w-[640px] max-w-[95vw] p-5 flex flex-col max-h-[85vh] overflow-hidden" {...reactionPanelMotionProps}>
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-bold text-base-content">消息标注</div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 custom-scrollbar">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 custom-scrollbar">
         {categorized.map(({ category, items }) => (
           <div key={category}>
             <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2.5">{category}</div>
@@ -98,6 +100,6 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, o
           完成
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

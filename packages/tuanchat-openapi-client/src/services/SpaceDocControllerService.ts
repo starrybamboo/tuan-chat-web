@@ -12,7 +12,7 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SpaceDocControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 重命名 Space 共享文档
+     * 重命名 Space 文档房间
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -28,7 +28,7 @@ export class SpaceDocControllerService {
         });
     }
     /**
-     * 创建 Space 共享文档
+     * 创建 Space 文档房间
      * @param requestBody
      * @returns ApiResultSpaceDocResponse OK
      * @throws ApiError
@@ -44,7 +44,7 @@ export class SpaceDocControllerService {
         });
     }
     /**
-     * 删除 Space 共享文档（软删除）
+     * 删除 Space 文档房间（软删除）
      * @param docId
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -61,7 +61,7 @@ export class SpaceDocControllerService {
         });
     }
     /**
-     * 获取 Space 共享文档列表
+     * 获取 Space 文档房间列表
      * @param spaceId
      * @returns ApiResultListSpaceDocResponse OK
      * @throws ApiError

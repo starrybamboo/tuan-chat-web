@@ -1,4 +1,4 @@
-import { avatarThumbUrl, avatarUrl, imageHighUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { avatarUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 
 import type { RoleAvatar } from "../../api";
 
@@ -38,7 +38,7 @@ function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
   if (!avatar) {
     return "";
   }
-  return imageHighUrl(avatar.spriteFileId)
+  return imageMediumUrl(avatar.spriteFileId)
     || imageOriginalUrl(avatar.spriteFileId)
     || avatarUrl(avatar.avatarFileId);
 }
@@ -47,7 +47,7 @@ function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
   if (!avatar) {
     return "";
   }
-  return avatarThumbUrl(avatar.avatarFileId)
+  return imageLowUrl(avatar.avatarFileId)
     || avatarUrl(avatar.avatarFileId);
 }
 

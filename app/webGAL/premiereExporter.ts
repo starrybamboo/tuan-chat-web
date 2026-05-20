@@ -469,7 +469,7 @@ export class PremiereExporter {
         bgUrl = (msg.webgal as any).bgUrl;
       }
       else if (isBgAnnotation) {
-        bgUrl = mediaFileUrl(msg.extra?.imageMessage?.fileId, msg.extra?.imageMessage?.mediaType, "high");
+        bgUrl = mediaFileUrl(msg.extra?.imageMessage?.fileId, msg.extra?.imageMessage?.mediaType, "medium");
       }
 
       // Check if this is a "pure background switch" (Has BG, No Text, No Voice logic triggered yet)

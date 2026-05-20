@@ -1,7 +1,7 @@
 import type { WebsocketUtils } from "../../api/useWebSocket";
 import type { ChatStatusEvent } from "../../api/wsModels";
-import { createContext, use, useMemo } from "react";
-import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
+import { createContext, use, useEffect, useMemo, useState } from "react";
+import { AUTH_SESSION_CHANGED_EVENT, readStoredAuthUserId } from "@/utils/auth/sessionEvents";
 import { useWebSocket } from "../../api/useWebSocket";
 
 interface GlobalContextType {
@@ -58,8 +58,23 @@ export function useGlobalContext(): GlobalContextType {
 export function GlobalContextProvider({ children }: { children: React.ReactNode }) {
   // 注意：后端已切换到 Sa-Token，token 不再可反推出 userId。
   // 这里使用登录后缓存的 uid。
-  const userId = getLocalStorageValue<number | null>("uid", null);
+  const [userId, setUserId] = useState<number | null>(() => readStoredAuthUserId());
   const websocketUtils = useWebSocket();
+
+  useEffect(() => {
+    const handleAuthSessionChanged = () => {
+      setUserId(readStoredAuthUserId());
+    };
+
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, handleAuthSessionChanged);
+    window.addEventListener("storage", handleAuthSessionChanged);
+
+    return () => {
+      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleAuthSessionChanged);
+      window.removeEventListener("storage", handleAuthSessionChanged);
+    };
+  }, []);
+
   return (
     <GlobalUserIdContext value={userId}>
       <GlobalWebSocketContext value={websocketUtils}>

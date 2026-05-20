@@ -102,7 +102,9 @@ export default function useChatFrameScrollState({
     ? (unreadMessagesNumber[roomId] ?? 0)
     : 0;
 
-  latestHistorySyncIdRef.current = getLatestHistoryMessageSyncId(historyMessages);
+  useEffect(() => {
+    latestHistorySyncIdRef.current = getLatestHistoryMessageSyncId(historyMessages);
+  });
 
   useEffect(() => {
     if (!enableUnreadIndicator) {

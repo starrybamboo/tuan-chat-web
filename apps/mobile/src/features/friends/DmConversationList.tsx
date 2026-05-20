@@ -1,15 +1,16 @@
-import type { DmConversation } from "./useDmInboxQuery";
-
 import { UsersThree } from "phosphor-react-native";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
-
-import { Image } from "expo-image";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
+
+import type { DmConversation } from "./useDmInboxQuery";
+
+import { ContactListAvatar } from "./ContactListAvatar";
+import { normalizeDmConversations } from "./dmConversationListModel";
 
 const AVATAR_SIZE = 40;
 
@@ -33,18 +34,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  avatar: {
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    width: AVATAR_SIZE,
-  },
-  avatarFallback: {
-    alignItems: "center",
-    borderRadius: Radius.full,
-    height: AVATAR_SIZE,
-    justifyContent: "center",
-    width: AVATAR_SIZE,
-  },
   info: { flex: 1, gap: 2 },
   infoTop: { alignItems: "center", flexDirection: "row", gap: Spacing.sm },
   rightColumn: { alignItems: "flex-end", gap: 4 },
@@ -65,12 +54,12 @@ const styles = StyleSheet.create({
   },
 });
 
-const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
-
 function formatConversationTime(createTime?: string | null): string {
-  if (!createTime) return "";
+  if (!createTime)
+    return "";
   const date = new Date(createTime);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime()))
+    return "";
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -81,7 +70,8 @@ function formatConversationTime(createTime?: string | null): string {
   if (diff < 0 || diff < dayMs) {
     return date.toLocaleTimeString("zh-CN", { hour12: false, hour: "2-digit", minute: "2-digit" });
   }
-  if (diff < dayMs * 2) return "昨天";
+  if (diff < dayMs * 2)
+    return "昨天";
   if (diff < dayMs * 7) {
     const weekdays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
     return weekdays[date.getDay()];
@@ -89,19 +79,21 @@ function formatConversationTime(createTime?: string | null): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-interface DmConversationListProps {
+type DmConversationListProps = {
   conversations: DmConversation[];
   currentContactId: number | null;
+  hideHeader?: boolean;
   isPending: boolean;
-  onOpenFriends: () => void;
+  onOpenFriends?: () => void;
   onRefresh?: () => void;
   onSelectConversation: (contactId: number) => void;
   isRefreshing?: boolean;
-}
+};
 
 export function DmConversationList({
   conversations,
   currentContactId,
+  hideHeader = false,
   isPending,
   onOpenFriends,
   onRefresh,
@@ -111,16 +103,9 @@ export function DmConversationList({
   const theme = useTheme();
 
   const onSelectRef = useRef(onSelectConversation);
-  onSelectRef.current = onSelectConversation;
+  useEffect(() => { onSelectRef.current = onSelectConversation; });
 
-  const sortedConversations = useMemo(
-    () => [...conversations].sort((a, b) => {
-      const timeA = a.lastMessage.createTime ? new Date(a.lastMessage.createTime).getTime() : 0;
-      const timeB = b.lastMessage.createTime ? new Date(b.lastMessage.createTime).getTime() : 0;
-      return timeB - timeA;
-    }),
-    [conversations],
-  );
+  const sortedConversations = useMemo(() => normalizeDmConversations(conversations), [conversations]);
 
   const renderItem = useCallback(({ item: conv }: { item: DmConversation }) => {
     const active = conv.contactId === currentContactId;
@@ -134,15 +119,13 @@ export function DmConversationList({
         accessibilityLabel={`与 ${conv.contactName} 的对话${conv.unreadCount > 0 ? `，${conv.unreadCount} 条未读` : ""}`}
         accessibilityRole="button"
       >
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatarFallback, { backgroundColor: AVATAR_COLORS[conv.contactId % AVATAR_COLORS.length] }]}>
-            <ThemedText style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
-              {(conv.contactName ?? "").slice(0, 1) || "U"}
-            </ThemedText>
-          </View>
-        )}
+        <ContactListAvatar
+          colorSeed={conv.contactId}
+          displayName={conv.contactName}
+          labelFontSize={14}
+          size={AVATAR_SIZE}
+          uri={avatarUrl}
+        />
         <View style={styles.info}>
           <View style={styles.infoTop}>
             <ThemedText numberOfLines={1} type="smallBold" style={{ flex: 1 }}>{conv.contactName}</ThemedText>
@@ -155,13 +138,15 @@ export function DmConversationList({
           <ThemedText type="caption" themeColor="textSecondary" style={{ fontSize: 11 }}>
             {timeLabel}
           </ThemedText>
-          {conv.unreadCount > 0 ? (
-            <View style={[styles.badge, { backgroundColor: theme.danger }]}>
-              <ThemedText style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
-                {conv.unreadCount > 99 ? "99+" : String(conv.unreadCount)}
-              </ThemedText>
-            </View>
-          ) : null}
+          {conv.unreadCount > 0
+            ? (
+                <View style={[styles.badge, { backgroundColor: theme.danger }]}>
+                  <ThemedText style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+                    {conv.unreadCount > 99 ? "99+" : String(conv.unreadCount)}
+                  </ThemedText>
+                </View>
+              )
+            : null}
         </View>
       </Pressable>
     );
@@ -169,44 +154,52 @@ export function DmConversationList({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
-          私聊
-        </ThemedText>
-        <Pressable
-          onPress={onOpenFriends}
-          style={[styles.friendsButton, { backgroundColor: theme.backgroundElement }]}
-          accessibilityLabel="好友管理"
-          accessibilityRole="button"
-        >
-          <UsersThree size={16} color={theme.textSecondary} />
-        </Pressable>
-      </View>
+      {!hideHeader && (
+        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+          <ThemedText numberOfLines={1} type="heading" style={{ flex: 1 }}>
+            私聊
+          </ThemedText>
+          {onOpenFriends && (
+            <Pressable
+              onPress={onOpenFriends}
+              style={[styles.friendsButton, { backgroundColor: theme.backgroundElement }]}
+              accessibilityLabel="好友管理"
+              accessibilityRole="button"
+            >
+              <UsersThree size={16} color={theme.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+      )}
 
       <FlatList
         data={sortedConversations}
-        keyExtractor={(item) => String(item.contactId)}
+        keyExtractor={item => String(item.contactId)}
         renderItem={renderItem}
         initialNumToRender={15}
         maxToRenderPerBatch={10}
         contentContainerStyle={styles.listContent}
         style={styles.list}
         refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.accent}
-              colors={[theme.accent]}
-            />
-          ) : undefined
+          onRefresh
+            ? (
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={onRefresh}
+                  tintColor={theme.accent}
+                  colors={[theme.accent]}
+                />
+              )
+            : undefined
         }
         ListEmptyComponent={
-          isPending ? (
-            <ThemedText style={styles.emptyText} themeColor="textSecondary">加载中…</ThemedText>
-          ) : (
-            <ThemedText style={styles.emptyText} themeColor="textSecondary">暂无私聊消息</ThemedText>
-          )
+          isPending
+            ? (
+                <ThemedText style={styles.emptyText} themeColor="textSecondary">加载中…</ThemedText>
+              )
+            : (
+                <ThemedText style={styles.emptyText} themeColor="textSecondary">暂无私聊消息</ThemedText>
+              )
         }
       />
     </View>

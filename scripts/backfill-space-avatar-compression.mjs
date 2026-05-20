@@ -5,12 +5,12 @@ import process from "node:process";
 import sharp from "sharp";
 import { fetch } from "undici";
 
-const TARGET_MAX_EDGE = 128;
+const TARGET_MAX_EDGE = 200;
 const TARGET_MAX_BYTES = 40 * 1024;
 const INITIAL_QUALITY = 72;
 const MIN_QUALITY = 36;
 const QUALITY_STEP = 6;
-const FALLBACK_MAX_EDGES = [128, 112, 96, 80, 64];
+const FALLBACK_MAX_EDGES = [200, 180, 160, 144, 128];
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 10_000;
 const DEFAULT_CONCURRENCY = 6;
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";

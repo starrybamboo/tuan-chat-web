@@ -2,24 +2,12 @@ import type { AbilityRecord } from "@tuanchat/domain/ability-extractors";
 
 import { getAbilitySource, searchNumericValue } from "@tuanchat/domain/ability-extractors";
 
-import {
-  applyPokemonStageModifier,
-  formatPokemonModifiedStat,
-} from "./initiativePokemonRules";
-
 type AbilityQueryLike = {
   data?: {
     success?: boolean;
     data?: AbilityRecord[];
   };
 } | undefined;
-
-export type PokemonInitiativeRoll = {
-  total: number;
-  diceResult: number;
-  speedRollBonus: number;
-  speedDisplay: string;
-};
 
 export function parseNullableNumber(value: string) {
   const trimmed = value.trim();
@@ -32,16 +20,6 @@ export function parseNullableNumber(value: string) {
 export function parseNumberOrZero(value: string) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
-}
-
-export function stringifyRecord(obj?: Record<string, unknown>): Record<string, string> {
-  const result: Record<string, string> = {};
-  if (!obj)
-    return result;
-  Object.entries(obj).forEach(([k, v]) => {
-    result[k] = String(v ?? "");
-  });
-  return result;
 }
 
 function findRuleRecord(query: AbilityQueryLike, ruleId: number | undefined): AbilityRecord | null {
@@ -58,72 +36,8 @@ export function extractAgilityFromQuery(ruleId: number | undefined, query: Abili
 
   const source = getAbilitySource(record);
 
-  if (ruleId === 7) {
-    const speed = searchNumericValue(source, ["速度", "speed", "spd"]);
-    if (speed != null) {
-      const speedStage = searchNumericValue(source, ["速度修正", "speedstage", "spdstage"]) ?? 0;
-      const finalSpeed = applyPokemonStageModifier(speed, speedStage);
-      const diceResult = Math.floor(Math.random() * 20) + 1;
-      return diceResult + Math.floor(finalSpeed / 10);
-    }
-  }
-
   return searchNumericValue(source, ["先攻", "先攻值", "initiative"], 0, true)
     ?? searchNumericValue(source, ["敏捷", "敏", "dex", "agi", "速度", "spd"], 0, true);
-}
-
-export function extractPokemonInitiativeRoll(ruleId: number | undefined, query: AbilityQueryLike): PokemonInitiativeRoll | null {
-  if (ruleId !== 7)
-    return null;
-
-  const record = findRuleRecord(query, 7);
-  if (!record)
-    return null;
-
-  const source = getAbilitySource(record);
-  const speed = searchNumericValue(source, ["速度", "speed", "spd"]);
-  if (speed == null)
-    return null;
-
-  const speedStage = searchNumericValue(source, ["速度修正", "speedstage", "spdstage"]) ?? 0;
-  const finalSpeed = applyPokemonStageModifier(speed, speedStage);
-  const speedDisplay = formatPokemonModifiedStat("速度", speed, speedStage, finalSpeed);
-
-  const diceResult = Math.floor(Math.random() * 20) + 1;
-  const speedRollBonus = Math.floor(finalSpeed / 10);
-  return {
-    total: diceResult + speedRollBonus,
-    diceResult,
-    speedRollBonus,
-    speedDisplay,
-  };
-}
-
-export function extractAttrFromQuery(
-  ruleId: number | undefined,
-  query: AbilityQueryLike,
-  attrKey: string,
-): number | string | null {
-  const record = findRuleRecord(query, ruleId);
-  if (!record)
-    return null;
-
-  const lowerKey = attrKey.toLowerCase();
-  const pick = (obj?: Record<string, unknown>) => {
-    if (!obj)
-      return undefined;
-    for (const [k, v] of Object.entries(obj)) {
-      if (String(k).toLowerCase() === lowerKey)
-        return v;
-    }
-    return undefined;
-  };
-
-  const val = pick(record.ability) ?? pick(record.basic);
-  if (val == null)
-    return null;
-  const num = Number(val);
-  return Number.isFinite(num) ? num : String(val);
 }
 
 export function extractHpFromQuery(

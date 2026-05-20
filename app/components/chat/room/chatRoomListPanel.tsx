@@ -1,10 +1,11 @@
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { PackageIcon } from "@phosphor-icons/react";
 import React, { useMemo, useState } from "react";
+import { partitionClueFolderRooms } from "@/components/chat/clues/clueRooms";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import RoomSidebarMaterialPackageItem from "@/components/chat/room/roomSidebarMaterialPackageItem";
 import SidebarSection from "@/components/chat/room/sidebarSection";
@@ -70,7 +71,7 @@ interface ChatRoomListPanelProps {
   onInviteMember: () => void;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
 
-  onSelectRoom: (roomId: number) => void;
+  onSelectRoom: (roomId: number, options?: SelectRoomOptions) => void;
   onCloseLeftDrawer: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;
@@ -119,6 +120,9 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   const roomsInSpace = useMemo(() => {
     return rooms.filter(room => room.spaceId === activeSpaceId);
   }, [activeSpaceId, rooms]);
+  const mainRoomsInSpace = useMemo(() => {
+    return partitionClueFolderRooms(roomsInSpace, currentUserId).mainRooms;
+  }, [currentUserId, roomsInSpace]);
 
   const { visibleDocMetas, docMetaMap, appendExtraDocMeta } = useRoomSidebarDocMetas({
     activeSpaceId,
@@ -129,13 +133,13 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
 
   const roomById = useMemo(() => {
     const map = new Map<number, Room>();
-    for (const r of roomsInSpace) {
+    for (const r of mainRoomsInSpace) {
       if (typeof r.roomId === "number") {
         map.set(r.roomId, r);
       }
     }
     return map;
-  }, [roomsInSpace]);
+  }, [mainRoomsInSpace]);
 
   const materialSidebarPackages = useMemo(() => {
     return (materialPackages ?? []).filter((item) => {
@@ -160,15 +164,15 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     if (Array.isArray(roomOrderIds) && roomOrderIds.length > 0) {
       return roomOrderIds;
     }
-    return roomsInSpace
+    return mainRoomsInSpace
       .map(r => r.roomId)
       .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
-  }, [roomOrderIds, roomsInSpace]);
+  }, [mainRoomsInSpace, roomOrderIds]);
 
   const fallbackTextRooms = useMemo(() => {
     const ids = orderedRoomIdsFallback;
     if (!ids.length)
-      return roomsInSpace;
+      return mainRoomsInSpace;
 
     const ordered: Room[] = [];
     for (const id of ids) {
@@ -176,14 +180,14 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
       if (found)
         ordered.push(found);
     }
-    for (const r of roomsInSpace) {
+    for (const r of mainRoomsInSpace) {
       const id = r.roomId;
       if (typeof id === "number" && !ids.includes(id)) {
         ordered.push(r);
       }
     }
     return ordered;
-  }, [orderedRoomIdsFallback, roomById, roomsInSpace]);
+  }, [mainRoomsInSpace, orderedRoomIdsFallback, roomById]);
 
   const canEdit = Boolean(activeSpaceId && isSpaceOwner);
   const {
@@ -457,6 +461,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     containerRef: splitContainerRef,
     isDragging: isDraggingSplitHandle,
     topPaneStyle,
+    bottomPaneStyle,
     handlePointerDown: handleSplitPointerDown,
     handleKeyDown: handleSplitKeyDown,
     resetSplitRatio,
@@ -466,6 +471,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     enabled: showSidebarSplitLayout,
   });
   const fillSectionClassName = "flex min-h-0 flex-1 flex-col";
+  const roomDocSectionContentClassName = "mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
   const fillSectionContentClassName = "min-h-0 flex-1 overflow-y-auto overflow-x-hidden";
   const materialSectionClassName = getRoomSidebarMaterialSectionClassName({
     fillSectionClassName,
@@ -515,7 +521,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                   {showSidebarSplitLayout
                     ? (
                         <div ref={splitContainerRef} className="flex min-h-0 flex-1 flex-col px-1">
-                          <div className="min-h-0 shrink-0" style={topPaneStyle}>
+                          <div className="min-h-0 shrink-0 overflow-hidden" style={topPaneStyle}>
                             <SidebarSection
                               title="频道与文档"
                               isExpanded={isRoomDocSectionExpanded}
@@ -530,7 +536,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
 
                           <button
                             type="button"
-                            className={`group mx-2 my-0.5 flex items-center justify-center rounded-md cursor-row-resize touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isDraggingSplitHandle ? "bg-base-300/80" : "hover:bg-base-300/55"}`}
+                            className={`group mx-2 my-0.5 flex items-center justify-center rounded-md cursor-row-resize touch-none opacity-0 transition-[opacity,background-color] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:opacity-100 focus-visible:opacity-100 ${isDraggingSplitHandle ? "opacity-100 bg-base-300/80" : "hover:bg-base-300/55"}`}
                             style={{ height: ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT }}
                             aria-label="调整侧边栏分栏高度"
                             title="拖拽调整“频道与文档”和“素材包”的高度分配"
@@ -542,7 +548,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                           </button>
 
                           {canViewMaterialSection && (
-                            <div className="min-h-0 flex-1">
+                            <div className="min-h-0 shrink-0 overflow-hidden" style={bottomPaneStyle}>
                               <SidebarSection
                                 title="素材包"
                                 isExpanded={isMaterialSectionExpanded}
@@ -566,9 +572,9 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                             title="频道与文档"
                             isExpanded={isRoomDocSectionExpanded}
                             onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
-                            className={isRoomDocSectionExpanded ? fillSectionClassName : undefined}
-                            contentClassName={isRoomDocSectionExpanded ? fillSectionContentClassName : undefined}
-                            fillContent={isRoomDocSectionExpanded}
+                            className={fillSectionClassName}
+                            contentClassName={roomDocSectionContentClassName}
+                            fillContent
                           >
                             {roomDocSectionContent}
                           </SidebarSection>
