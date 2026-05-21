@@ -26,6 +26,7 @@ import {
 } from "@tuanchat/query/room-message-lifecycle";
 
 import { writeCachedRoomMessages } from "./mobileRoomMessageCache";
+import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
 
 type SendMessageContext = {
   annotations?: string[];
@@ -68,13 +69,15 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
     const resolvedRoomId = roomId ?? -1;
     if (resolvedRoomId <= 0)
       return [];
-    return queryClient.getQueryData<ChatMessageResponse[]>(getAllRoomMessagesQueryKey(resolvedRoomId)) ?? [];
+    return extractRoomMessagesFromQueryData(
+      queryClient.getQueryData(getAllRoomMessagesQueryKey(resolvedRoomId)),
+    );
   };
 
   const updateQueryCache = (updater: (current: ChatMessageResponse[] | undefined) => ChatMessageResponse[]) => {
     const resolvedRoomId = requirePositiveRoomId(roomId);
     const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
-    queryClient.setQueryData<ChatMessageResponse[]>(queryKey, updater);
+    queryClient.setQueryData(queryKey, current => updateRoomMessagesQueryData(current, updater));
   };
 
   const persistOptimisticToCache = (messages: ChatMessageResponse[]) => {
