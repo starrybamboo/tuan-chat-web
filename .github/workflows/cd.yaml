@@ -362,7 +362,15 @@ jobs:
           # Managed by tuan-chat-web CD. Include this file inside the site server block.
           add_header Cache-Control "no-cache" always;
 
-          location ^~ /assets/ {
+          location ~* ^/assets/.*\.wasm$ {
+              types { application/wasm wasm; }
+              default_type application/wasm;
+              expires off;
+              add_header Cache-Control "public, max-age=31536000, immutable" always;
+              try_files $uri =404;
+          }
+
+          location /assets/ {
               expires off;
               add_header Cache-Control "public, max-age=31536000, immutable" always;
               try_files $uri =404;
