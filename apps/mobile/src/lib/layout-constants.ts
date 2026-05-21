@@ -8,8 +8,6 @@ export const DRAWER_EDGE_SWIPE_ZONE_WIDTH = 24;
 
 export const SPACE_RAIL_WIDTH = 56;
 
-export const DRAWER_ACTIVE_OFFSET_X: [number, number] = [-20, 20];
-
 export const MESSAGE_LONG_PRESS_DURATION = 500;
 export const COMPOSER_MAX_HEIGHT = 120;
 export const COMPOSER_MIN_HEIGHT = 40;

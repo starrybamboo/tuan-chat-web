@@ -10,10 +10,10 @@ import {
 } from "./useGestureDrawerConfig";
 
 describe("useGestureDrawer", () => {
-  it("配置纵向失败阈值，避免抢占消息列表滚动", () => {
+  it("放宽横向起手阈值，同时保留纵向滚动保护", () => {
     expect(getGestureDrawerAxisConfig()).toEqual({
-      activeOffsetX: [-8, 8],
-      failOffsetY: [-32, 32],
+      activeOffsetX: [-4, 4],
+      failOffsetY: [-40, 40],
     });
   });
 
