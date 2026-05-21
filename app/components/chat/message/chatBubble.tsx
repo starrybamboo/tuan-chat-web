@@ -2,6 +2,7 @@ import type { ChatMessageResponse, Message } from "../../../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -96,7 +97,12 @@ function ClueCardReadonlyModal({
   message: Message;
   onClose: () => void;
 }) {
-  return (
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  // Render clue preview above drawer/sidebar stacking contexts.
+  return createPortal(
     <div className="modal modal-open z-[10000]">
       <div className="modal-box max-w-2xl">
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -131,7 +137,8 @@ function ClueCardReadonlyModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
