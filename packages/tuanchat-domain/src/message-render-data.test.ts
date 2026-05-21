@@ -110,6 +110,30 @@ describe("message-render-data", () => {
       },
     });
 
+    expect(getClueCardRenderData({
+      clueMessage: {
+        snapshot: {
+          messageType: "12",
+          content: "",
+          extra: {
+            commandRequest: {
+              command: ".rc 射击",
+            },
+          },
+        },
+      },
+    })).toEqual({
+      snapshot: {
+        messageType: 12,
+        content: "[检定请求] .rc 射击",
+        extra: {
+          commandRequest: {
+            command: ".rc 射击",
+          },
+        },
+      },
+    });
+
     expect(getThreadRootRenderData({ threadRoot: { title: "支线讨论" } })).toEqual({
       title: "支线讨论",
     });

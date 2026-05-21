@@ -8,6 +8,7 @@ import {
   getRoomJumpExtra,
   getThreadRootExtra,
 } from "./message-extra";
+import { getMessagePreviewText } from "./messagePreview";
 
 function safeTrim(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -131,10 +132,20 @@ export function getClueCardRenderData(extra: unknown, fallbackContent = ""): Clu
   const clue = toRecord(getClueMessageExtra(extra));
   const snapshot = toRecord(clue?.snapshot);
   const messageType = toPositiveNumber(snapshot?.messageType) ?? 1;
+  const snapshotContent = typeof snapshot?.content === "string" ? snapshot.content : "";
+  const fallbackPreviewText = safeTrim(fallbackContent);
+  const resolvedContent = snapshotContent.trim()
+    ? snapshotContent
+    : fallbackPreviewText || getMessagePreviewText({
+      messageType,
+      content: snapshotContent,
+      ...(snapshot?.extra !== undefined ? { extra: snapshot.extra as Message["extra"] } : {}),
+      status: 0,
+    } as Message);
   return {
     snapshot: {
       messageType,
-      content: typeof snapshot?.content === "string" ? snapshot.content : safeTrim(fallbackContent),
+      content: resolvedContent,
       ...(snapshot?.extra !== undefined ? { extra: snapshot.extra as Message["extra"] } : {}),
     },
   };
