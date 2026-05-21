@@ -90,6 +90,44 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
   );
 }
 
+/** 线索弹窗正文：使用消息预览而不是全文渲染，避免结构化消息只剩空正文。 */
+export function ClueCardReadonlyContent({
+  message,
+  onClose,
+}: {
+  message: Message;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal modal-open z-[10000]">
+      <div className="modal-box max-w-2xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold">查看线索</h3>
+          <button type="button" className="btn btn-ghost btn-sm btn-square" aria-label="关闭" onClick={onClose}>
+            <CloseIcon className="size-5" />
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
+          <MessagePreviewContent
+            message={{
+              ...message,
+              status: message.status ?? 0,
+            }}
+            withMediaPreview
+          />
+        </div>
+
+        <div className="modal-action">
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ClueCardReadonlyModal({
   message,
   onClose,
@@ -103,41 +141,7 @@ function ClueCardReadonlyModal({
 
   // Render clue preview above drawer/sidebar stacking contexts.
   return createPortal(
-    <div className="modal modal-open z-[10000]">
-      <div className="modal-box max-w-2xl">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">查看线索</h3>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-square"
-            aria-label="关闭"
-            onClick={onClose}
-          >
-            <CloseIcon className="size-5" />
-          </button>
-        </div>
-
-        <div className="max-h-[60vh] overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
-          <MessageContentRenderer
-            message={{
-              ...message,
-              status: message.status ?? 0,
-            }}
-            cacheKeyBase={`clue-card-modal:${message.messageId ?? "snapshot"}`}
-          />
-        </div>
-
-        <div className="modal-action">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onClose}
-          >
-            关闭
-          </button>
-        </div>
-      </div>
-    </div>,
+    <ClueCardReadonlyContent message={message} onClose={onClose} />,
     document.body,
   );
 }

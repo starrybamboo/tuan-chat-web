@@ -6,7 +6,8 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse } from "../../../../api";
 
-import { ChatBubble } from "./chatBubble";
+import { ChatBubble, ClueCardReadonlyContent } from "./chatBubble";
+import { getMessagePreviewText } from "./preview/getMessagePreviewText";
 
 const roomPreferenceState = vi.hoisted(() => ({
   useChatBubbleStyle: false,
@@ -62,7 +63,9 @@ vi.mock("@/components/chat/message/preview/forwardMessage", () => ({
 }));
 
 vi.mock("@/components/chat/message/preview/messagePreviewContent", () => ({
-  MessagePreviewContent: () => null,
+  MessagePreviewContent: ({ message }: { message?: { content?: string } | null }) => createElement("div", {
+    "data-testid": "message-preview",
+  }, getMessagePreviewText(message as any)),
 }));
 
 vi.mock("@/components/chat/message/preview/previewMessage", () => ({
@@ -165,5 +168,25 @@ describe("chatBubble annotations", () => {
     }));
 
     expect(html).toContain("data-normal-only=\"true\"");
+  });
+
+  it("线索正文会使用预览而不是空正文", () => {
+    const html = renderToStaticMarkup(createElement(ClueCardReadonlyContent, {
+      message: {
+        content: "",
+        extra: {
+          commandRequest: {
+            command: ".rc 射击",
+          },
+        },
+        messageId: 102,
+        messageType: MESSAGE_TYPE.COMMAND_REQUEST,
+        roomId: 10530,
+        status: 0,
+      } as any,
+      onClose: vi.fn(),
+    }));
+
+    expect(html).toContain("[检定请求] .rc 射击");
   });
 });
