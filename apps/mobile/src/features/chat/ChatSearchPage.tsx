@@ -9,7 +9,10 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import type { GestureType } from "react-native-gesture-handler";
 
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
@@ -42,12 +45,13 @@ function getSearchAuthorLabel(message: Message, roomRolesById?: RoomRolesById): 
 
 type ChatSearchPageProps = {
   messages: MessageItem[];
+  nativeScrollGesture?: GestureType;
   onClose: () => void;
   onScrollToMessage: (messageId: number) => void;
   roomRolesById?: RoomRolesById;
 };
 
-export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRolesById }: ChatSearchPageProps) {
+export function ChatSearchPage({ messages, nativeScrollGesture, onClose, onScrollToMessage, roomRolesById }: ChatSearchPageProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
@@ -154,13 +158,25 @@ export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRoles
             </ThemedText>
           </View>
           {filteredMessages.length > 0 ? (
-            <FlatList
-              data={filteredMessages}
-              keyExtractor={keyExtractor}
-              renderItem={renderItem}
-              contentContainerStyle={{ paddingBottom: insets.bottom }}
-              keyboardShouldPersistTaps="handled"
-            />
+            nativeScrollGesture ? (
+              <GestureDetector gesture={nativeScrollGesture}>
+                <FlatList
+                  data={filteredMessages}
+                  keyExtractor={keyExtractor}
+                  renderItem={renderItem}
+                  contentContainerStyle={{ paddingBottom: insets.bottom }}
+                  keyboardShouldPersistTaps="handled"
+                />
+              </GestureDetector>
+            ) : (
+              <FlatList
+                data={filteredMessages}
+                keyExtractor={keyExtractor}
+                renderItem={renderItem}
+                contentContainerStyle={{ paddingBottom: insets.bottom }}
+                keyboardShouldPersistTaps="handled"
+              />
+            )
           ) : (
             <View style={styles.emptyState}>
               <MagnifyingGlass size={48} color={theme.textSecondary} weight="thin" />

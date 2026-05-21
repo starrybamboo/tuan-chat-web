@@ -1069,6 +1069,7 @@ export default function ChatShell() {
                         ? (
                             <ChatSearchPage
                               messages={roomMessages}
+                              nativeScrollGesture={messageListScrollGesture}
                               onClose={() => setSearchPageVisible(false)}
                               onScrollToMessage={(messageId) => {
                                 setMessageAnchorId(messageId);
@@ -1081,11 +1082,12 @@ export default function ChatShell() {
                               <DmChatView
                                 contactId={currentContactId}
                                 contactName={currentDmContactName ?? `用户 #${currentContactId}`}
-                                contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
-                                currentUserId={currentUserId}
-                                messages={currentDmConversation?.messages ?? []}
-                                onBack={handleBackFromDmChat}
-                              />
+                              contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
+                              currentUserId={currentUserId}
+                              messages={currentDmConversation?.messages ?? []}
+                              nativeScrollGesture={messageListScrollGesture}
+                              onBack={handleBackFromDmChat}
+                            />
                             )
                           : (
                               <>
