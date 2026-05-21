@@ -53,8 +53,8 @@ import DocCardMessage from "./docCard/docCardMessage";
 import {
   CHAT_MESSAGE_ANNOTATIONS_CLASS,
   CHAT_MESSAGE_BUBBLE_BASE_CLASS,
-  CHAT_MESSAGE_HOVER_TOOLBAR_CLASS,
   CHAT_MESSAGE_ROW_CLASS,
+  getChatMessageHoverToolbarClass,
   getChatMessageMetaRowClass,
 } from "./messageCardStyle";
 
@@ -607,10 +607,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   }, []);
 
   const toggleIntroTextLabel = isIntroText ? "转为对话" : "转为黑屏";
+  const hoverToolbarClassName = getChatMessageHoverToolbarClass(isMobile);
 
   const messageHoverToolbar = (
     <div
-      className={CHAT_MESSAGE_HOVER_TOOLBAR_CLASS}
+      className={hoverToolbarClassName}
     >
       {onToggleSelection && (
         <HoverToolbarActionButton label="多选" onClick={handleToggleSelectionClick}>
