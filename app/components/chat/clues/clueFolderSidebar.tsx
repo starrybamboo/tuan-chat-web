@@ -965,7 +965,7 @@ export default function ClueFolderSidebar({
       </div>
 
       {portalTarget && editorState && createPortal(
-        <div className="modal modal-open z-[9999]">
+        <div className="modal modal-open z-[10000]">
           <div
             className="modal-box max-w-2xl"
             onDragOver={handleAttachmentDragOver}

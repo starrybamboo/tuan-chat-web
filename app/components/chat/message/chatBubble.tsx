@@ -97,7 +97,7 @@ function ClueCardReadonlyModal({
   onClose: () => void;
 }) {
   return (
-    <div className="modal modal-open z-[9999]">
+    <div className="modal modal-open z-[10000]">
       <div className="modal-box max-w-2xl">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">查看线索</h3>

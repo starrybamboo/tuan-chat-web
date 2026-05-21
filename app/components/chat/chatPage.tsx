@@ -9,7 +9,7 @@ import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import ChatPageSubWindow from "@/components/chat/chatPageSubWindow";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { resolvePrivateChatTab } from "@/components/chat/hooks/chatPageRouteUtils";
+import { resolvePrivateChatTabForRoute } from "@/components/chat/hooks/chatPageRouteUtils";
 import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
@@ -70,14 +70,20 @@ export default function ChatPage() {
   const screenSize = useScreenSize();
 
   const [privateChatTab, setPrivateChatTab] = useState<PrivateChatTab>(() => {
-    return resolvePrivateChatTab(new URLSearchParams(location.searchStr).get("tab"));
+    return resolvePrivateChatTabForRoute({
+      activeRoomId,
+      tabParam: new URLSearchParams(location.searchStr).get("tab"),
+    });
   });
 
   useEffect(() => {
     if (!isPrivateChatMode)
       return;
-    setPrivateChatTab(resolvePrivateChatTab(searchParam.get("tab")));
-  }, [isPrivateChatMode, searchParam]);
+    setPrivateChatTab(resolvePrivateChatTabForRoute({
+      activeRoomId,
+      tabParam: searchParam.get("tab"),
+    }));
+  }, [activeRoomId, isPrivateChatMode, searchParam]);
   const {
     isOpenLeftDrawer,
     setIsOpenLeftDrawer,

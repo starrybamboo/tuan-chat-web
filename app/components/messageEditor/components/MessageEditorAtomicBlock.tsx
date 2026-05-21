@@ -1,9 +1,10 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { useRef, useState } from "react";
+import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
+import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-
-import MessageContentRenderer from "../../chat/message/messageContentRenderer";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 interface MessageEditorAtomicBlockProps {
   active: boolean;
@@ -85,6 +86,14 @@ function hasUploadedMedia(message: MessageDraft) {
   return true;
 }
 
+function resolveUploadedImageUrl(message: MessageDraft) {
+  const imageMessage = getImageMessageExtra(message.extra);
+  if (typeof imageMessage?.fileId !== "number" || imageMessage.fileId <= 0) {
+    return "";
+  }
+  return mediaFileUrl(imageMessage.fileId, imageMessage.mediaType, "medium");
+}
+
 /**
  * 原子块编辑壳，负责上传与删除交互。
  */
@@ -102,11 +111,25 @@ export function MessageEditorAtomicBlock({
   const uploadMeta = resolveUploadMeta(message);
   const uploadable = uploadMeta.accept.length > 0;
   const uploaded = hasUploadedMedia(message);
+  const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
+  const imagePayload = isImageBlock ? getImageMessageExtra(message.extra) : undefined;
+  const uploadedImageUrl = isImageBlock ? resolveUploadedImageUrl(message) : "";
 
   const shellClassName = [
     "rounded-xl bg-base-100 px-3 py-3 shadow-sm transition",
     "bg-base-100",
   ].join(" ");
+
+  const openFilePicker = () => {
+    if (readOnly || !uploadable || uploading) {
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const uploadButtonLabel = uploading
+    ? "上传中..."
+    : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
 
   return (
     <div
@@ -117,78 +140,137 @@ export function MessageEditorAtomicBlock({
         }
       }}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
-        {!readOnly && (
-          <div className="flex items-center gap-2">
-            {uploadable && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={uploadMeta.accept}
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) {
-                      return;
-                    }
-                    setUploadError("");
-                    setUploading(true);
-                    void onUpload(blockId, file)
-                      .catch((error) => {
-                        setUploadError(error instanceof Error ? error.message : String(error));
-                      })
-                      .finally(() => {
-                        setUploading(false);
-                        if (event.target) {
-                          event.target.value = "";
-                        }
-                      });
-                  }}
-                />
-                <button
-                  type="button"
-                  className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-primary/40 hover:text-base-content"
-                  onMouseDown={event => event.preventDefault()}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel}
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
-              onMouseDown={event => event.preventDefault()}
-              onClick={() => onDelete(blockId)}
-            >
-              删除
-            </button>
-          </div>
-        )}
-      </div>
-
-      {!uploaded && uploadable && (
-        <div className="mb-3 rounded-lg border border-dashed border-base-300 bg-base-200/30 px-3 py-6 text-center text-sm text-base-content/55">
-          {uploading ? "上传中..." : uploadMeta.emptyLabel}
-        </div>
-      )}
-
-      {uploadError && (
-        <div className="mb-3 rounded-md border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
-          {uploadError}
-        </div>
-      )}
-
-      {(uploaded || !uploadable) && (
-        <MessageContentRenderer
-          message={{
-            ...message,
-            content: message.content ?? "",
-            messageType: message.messageType ?? 0,
+      {uploadable && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={uploadMeta.accept}
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) {
+              return;
+            }
+            setUploadError("");
+            setUploading(true);
+            void onUpload(blockId, file)
+              .catch((error) => {
+                setUploadError(error instanceof Error ? error.message : String(error));
+              })
+              .finally(() => {
+                setUploading(false);
+                if (event.target) {
+                  event.target.value = "";
+                }
+              });
           }}
         />
+      )}
+
+      {isImageBlock
+        ? (
+            <div className="group/image flex flex-col gap-3">
+              {uploaded && uploadedImageUrl
+                ? (
+                    <div className="relative overflow-hidden rounded-xl border border-base-300 bg-base-200/20">
+                      {!readOnly && (
+                        <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/image:pointer-events-auto group-hover/image:opacity-100 group-focus-within/image:pointer-events-auto group-focus-within/image:opacity-100">
+                          <button
+                            type="button"
+                            className="rounded-md border border-base-100/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-primary/40 hover:text-base-content"
+                            onMouseDown={event => event.preventDefault()}
+                            onClick={openFilePicker}
+                          >
+                            {uploadButtonLabel}
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-md border border-base-100/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-error/40 hover:text-error"
+                            onMouseDown={event => event.preventDefault()}
+                            onClick={() => onDelete(blockId)}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      )}
+
+                      <img
+                        src={uploadedImageUrl}
+                        alt={message.content?.trim() || uploadMeta.title}
+                        width={typeof imagePayload?.width === "number" ? imagePayload.width : undefined}
+                        height={typeof imagePayload?.height === "number" ? imagePayload.height : undefined}
+                        className="block h-auto w-full max-w-full object-contain"
+                      />
+                    </div>
+                  )
+                : (
+                    <button
+                      type="button"
+                      className="flex min-h-60 w-full items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-200/25 px-4 py-10 text-sm text-base-content/55 transition hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content"
+                      onMouseDown={event => event.preventDefault()}
+                      onClick={openFilePicker}
+                    >
+                      {uploading ? "上传中..." : "点击上传图片"}
+                    </button>
+                  )}
+
+              {message.content && (
+                <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+                  {message.content}
+                </div>
+              )}
+            </div>
+          )
+        : (
+            <>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
+                {!readOnly && (
+                  <div className="flex items-center gap-2">
+                    {uploadable && (
+                      <button
+                        type="button"
+                        className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-primary/40 hover:text-base-content"
+                        onMouseDown={event => event.preventDefault()}
+                        onClick={openFilePicker}
+                      >
+                        {uploadButtonLabel}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
+                      onMouseDown={event => event.preventDefault()}
+                      onClick={() => onDelete(blockId)}
+                    >
+                      删除
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!uploaded && uploadable && (
+                <div className="mb-3 rounded-lg border border-dashed border-base-300 bg-base-200/30 px-3 py-6 text-center text-sm text-base-content/55">
+                  {uploading ? "上传中..." : uploadMeta.emptyLabel}
+                </div>
+              )}
+
+              {(uploaded || !uploadable) && (
+                <MessageContentRenderer
+                  message={{
+                    ...message,
+                    content: message.content ?? "",
+                    messageType: message.messageType ?? 0,
+                  }}
+                />
+              )}
+            </>
+          )}
+
+      {uploadError && (
+        <div className="mt-3 rounded-md border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
+          {uploadError}
+        </div>
       )}
     </div>
   );

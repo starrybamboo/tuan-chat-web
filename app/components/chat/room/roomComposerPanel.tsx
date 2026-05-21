@@ -440,7 +440,7 @@ function RoomComposerPanelImpl({
           onOpenPicker={handleOpenComposerAnnotations}
           showWhenEmpty={true}
           alwaysShowAddButton={true}
-          showNormalModeAnnotationsOnly={!webgalLinkMode}
+          showNormalModeAnnotationsOnly={!webgalLinkMode && !runModeEnabled}
           compact={true}
           className="mt-0"
         />
