@@ -16,6 +16,7 @@
     "./room-dnd-map": "./src/room-dnd-map.ts",
     "./room-extra": "./src/room-extra.ts",
     "./room-message": "./src/room-message.ts",
+    "./room-message-query-data": "./src/room-message-query-data.ts",
     "./room-message-lifecycle": "./src/room-message-lifecycle.ts",
     "./room-roles": "./src/room-roles.ts",
     "./spaces": "./src/spaces.ts",
