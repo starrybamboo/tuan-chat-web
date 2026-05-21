@@ -102,6 +102,19 @@ export function resolvePrivateChatTab(tabParam?: string | null): PrivateChatTab 
 }
 
 /**
+ * 具体私聊会话路由优先展示聊天面板，避免列表 tab 残留到 `/chat/private/:roomId`。
+ */
+export function resolvePrivateChatTabForRoute(params: {
+  activeRoomId?: number | null;
+  tabParam?: string | null;
+}): PrivateChatTab {
+  if (typeof params.activeRoomId === "number" && params.activeRoomId > 0) {
+    return "chat";
+  }
+  return resolvePrivateChatTab(params.tabParam);
+}
+
+/**
  * 构造进入具体私聊会话时的 URL，并清除会干扰会话视图的 tab 参数。
  */
 export function buildPrivateChatRoomPath(roomId: number, searchParam: URLSearchParams, targetMessageId?: number | null): string {

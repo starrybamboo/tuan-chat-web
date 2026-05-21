@@ -5,6 +5,7 @@ import {
   getSpaceDetailRouteTab,
   parsePositiveNumber,
   resolvePrivateChatTab,
+  resolvePrivateChatTabForRoute,
 } from "./chatPageRouteUtils";
 
 describe("chatPageRouteUtils", () => {
@@ -116,6 +117,18 @@ describe("chatPageRouteUtils", () => {
     it("keeps friends and new-friends tabs", () => {
       expect(resolvePrivateChatTab("friends")).toBe("friends");
       expect(resolvePrivateChatTab("new-friends")).toBe("new-friends");
+    });
+  });
+
+  describe("resolvePrivateChatTabForRoute", () => {
+    it("forces the chat tab for concrete private chat routes", () => {
+      expect(resolvePrivateChatTabForRoute({ activeRoomId: 123, tabParam: "friends" })).toBe("chat");
+      expect(resolvePrivateChatTabForRoute({ activeRoomId: 123, tabParam: "new-friends" })).toBe("chat");
+    });
+
+    it("keeps the requested tab when no private room is selected", () => {
+      expect(resolvePrivateChatTabForRoute({ activeRoomId: null, tabParam: "friends" })).toBe("friends");
+      expect(resolvePrivateChatTabForRoute({ activeRoomId: undefined, tabParam: "new-friends" })).toBe("new-friends");
     });
   });
 
