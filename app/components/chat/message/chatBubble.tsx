@@ -245,6 +245,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
@@ -469,6 +470,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     });
   }, [annotations, handleUpdateAnnotations]);
 
+  // 跑团模式也要展示注解；只有普通模式继续按 normal-mode 规则折叠。
+  const showNormalModeAnnotationsOnly = !webgalLinkMode && !runModeEnabled;
   const renderAnnotationsBar = (className?: string) => (
     <MessageAnnotationsBar
       annotations={annotations}
@@ -478,7 +481,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       showWhenEmpty={webgalLinkMode}
       alwaysShowAddButton={webgalLinkMode}
       showAddButton={webgalLinkMode}
-      showNormalModeAnnotationsOnly={!webgalLinkMode}
+      showNormalModeAnnotationsOnly={showNormalModeAnnotationsOnly}
       compact={isMobile}
       className={className}
     />
