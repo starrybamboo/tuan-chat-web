@@ -3,7 +3,8 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
+import type { GestureType } from "react-native-gesture-handler";
+import { GestureDetector, Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
 import type { DmMessageAction } from "@/features/friends/DmMessageActionMenu";
@@ -211,6 +212,7 @@ type DmChatViewProps = {
   contactAvatarFileId?: number;
   currentUserId: number | null;
   messages: MessageDirectResponse[];
+  nativeScrollGesture?: GestureType;
   onBack: () => void;
 };
 
@@ -328,7 +330,7 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
 
 type MessageSendStatus = "sending" | "sent" | "delivered" | "failed";
 
-export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack }: DmChatViewProps) {
+export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, nativeScrollGesture, onBack }: DmChatViewProps) {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
   const readSyncRef = useRef(0);
@@ -740,40 +742,81 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         </View>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={invertedMessages}
-        inverted
-        keyExtractor={getDirectMessageListItemKey}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        initialNumToRender={PAGE_SIZE}
-        ListFooterComponent={hasMoreMessages
-          ? (
-              <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
-                <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
-              </Pressable>
-            )
-          : null}
-        ListEmptyComponent={(
-          <View style={styles.emptyState}>
-            <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
-          </View>
-        )}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-        maxToRenderPerBatch={PAGE_SIZE}
-        onScroll={handleScroll}
-        onContentSizeChange={(contentWidth, contentHeight) => {
-          logDmChatViewDebug("content-size", {
-            contentHeight,
-            contentWidth,
-            paginatedCount: paginatedMessages.length,
-          });
-        }}
-        removeClippedSubviews={false}
-        scrollEventThrottle={100}
-        style={styles.list}
-      />
+      {nativeScrollGesture
+        ? (
+            <GestureDetector gesture={nativeScrollGesture}>
+              <FlatList
+                ref={flatListRef}
+                data={invertedMessages}
+                inverted
+                keyExtractor={getDirectMessageListItemKey}
+                renderItem={renderItem}
+                contentContainerStyle={styles.listContent}
+                initialNumToRender={PAGE_SIZE}
+                ListFooterComponent={hasMoreMessages
+                  ? (
+                      <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
+                        <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
+                      </Pressable>
+                    )
+                  : null}
+                ListEmptyComponent={(
+                  <View style={styles.emptyState}>
+                    <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
+                  </View>
+                )}
+                maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+                maxToRenderPerBatch={PAGE_SIZE}
+                onScroll={handleScroll}
+                onContentSizeChange={(contentWidth, contentHeight) => {
+                  logDmChatViewDebug("content-size", {
+                    contentHeight,
+                    contentWidth,
+                    paginatedCount: paginatedMessages.length,
+                  });
+                }}
+                removeClippedSubviews={false}
+                scrollEventThrottle={100}
+                style={styles.list}
+              />
+            </GestureDetector>
+          )
+        : (
+            <FlatList
+              ref={flatListRef}
+              data={invertedMessages}
+              inverted
+              keyExtractor={getDirectMessageListItemKey}
+              renderItem={renderItem}
+              contentContainerStyle={styles.listContent}
+              initialNumToRender={PAGE_SIZE}
+              ListFooterComponent={hasMoreMessages
+                ? (
+                    <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
+                      <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
+                    </Pressable>
+                  )
+                : null}
+              ListEmptyComponent={(
+                <View style={styles.emptyState}>
+                  <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
+                </View>
+              )}
+              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+              maxToRenderPerBatch={PAGE_SIZE}
+              onScroll={handleScroll}
+              onContentSizeChange={(contentWidth, contentHeight) => {
+                logDmChatViewDebug("content-size", {
+                  contentHeight,
+                  contentWidth,
+                  paginatedCount: paginatedMessages.length,
+                });
+              }}
+              removeClippedSubviews={false}
+              scrollEventThrottle={100}
+              style={styles.list}
+            />
+          )}
 
       {!isAtBottom && paginatedMessages.length > 0
         ? (

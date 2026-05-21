@@ -1,5 +1,5 @@
 export const DRAWER_ACTIVE_OFFSET_X: [number, number] = [-8, 8];
-export const DRAWER_FAIL_OFFSET_Y: [number, number] = [-24, 24];
+export const DRAWER_FAIL_OFFSET_Y: [number, number] = [-32, 32];
 export const DRAWER_SWIPE_HINT_OFFSET = 24;
 export const DRAWER_SWIPE_HINT_DELAY_MS = 32;
 export const DRAWER_OVERLAY_CAPTURE_OFFSET = 48;
