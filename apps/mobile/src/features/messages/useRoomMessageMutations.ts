@@ -6,19 +6,42 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import { mobileApiClient } from "@/lib/api";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
-import { markRoomMessageDeletedData, markRoomMessagesDeleted } from "@tuanchat/query/room-message";
 import {
   restoreRoomMessageInList,
   restoreRoomMessagesInList,
 } from "@tuanchat/query/room-message-lifecycle";
 
-import { markCachedRoomMessagesDeleted, writeCachedRoomMessages } from "./mobileRoomMessageCache";
+import {
+  markCachedRoomMessagesDeleted,
+  readCachedRoomMessages,
+  writeCachedRoomMessages,
+} from "./mobileRoomMessageCache";
+import { resolveRoomMessageSnapshots } from "./roomMessageMutationSnapshots";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
+
+function createMessageSnapshot(message: Message): ChatMessageResponse {
+  return { message };
+}
+
+function createDeletedMessageSnapshot(snapshot: ChatMessageResponse): ChatMessageResponse {
+  return {
+    message: {
+      ...snapshot.message,
+      status: 1,
+    },
+  };
+}
 
 export function useEditRoomMessageMutation(roomId: number | null) {
   const queryClient = useQueryClient();
 
-  const editMessage = async (updatedMessage: Message) => {
+  const editMessage = async ({
+    originalMessage,
+    updatedMessage,
+  }: {
+    originalMessage: Message;
+    updatedMessage: Message;
+  }) => {
     const resolvedRoomId = roomId ?? -1;
     if (resolvedRoomId <= 0) {
       throw new Error("请先选择一个房间。");
@@ -30,24 +53,24 @@ export function useEditRoomMessageMutation(roomId: number | null) {
 
     const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
     const currentMessages = extractRoomMessagesFromQueryData(queryClient.getQueryData(queryKey));
-    const snapshot = currentMessages.find(m => m.message?.messageId === messageId);
+    const snapshot = resolveRoomMessageSnapshots({
+      fallbackMessages: [originalMessage],
+      messageIds: [messageId],
+      queryMessages: currentMessages,
+    })[0];
     if (!snapshot) {
       throw new Error("找不到要编辑的消息。");
     }
 
     queryClient.setQueryData(queryKey, current => updateRoomMessagesQueryData(current, messages =>
-      messages.map(m =>
-        m.message?.messageId === messageId ? { message: updatedMessage } : m,
-      ),
+      restoreRoomMessageInList(messages, createMessageSnapshot(updatedMessage)),
     ));
 
     try {
       const result = await mobileApiClient.chatController.updateMessage(updatedMessage);
       if (result?.success && result.data) {
         queryClient.setQueryData(queryKey, current => updateRoomMessagesQueryData(current, messages =>
-          messages.map(m =>
-            m.message?.messageId === messageId ? { message: result.data! } : m,
-          ),
+          restoreRoomMessageInList(messages, createMessageSnapshot(result.data)),
         ));
         void writeCachedRoomMessages(resolvedRoomId, [{ message: result.data }]).catch(() => {});
       }
@@ -81,13 +104,23 @@ export function useDeleteRoomMessageMutation(roomId: number | null) {
 
     const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
     const currentMessages = extractRoomMessagesFromQueryData(queryClient.getQueryData(queryKey));
-    const snapshot = currentMessages.find(m => m.message?.messageId === messageId);
+    let snapshot = resolveRoomMessageSnapshots({
+      messageIds: [messageId],
+      queryMessages: currentMessages,
+    })[0];
+    if (!snapshot) {
+      snapshot = resolveRoomMessageSnapshots({
+        cachedMessages: await readCachedRoomMessages(resolvedRoomId),
+        messageIds: [messageId],
+        queryMessages: currentMessages,
+      })[0];
+    }
     if (!snapshot) {
       throw new Error("找不到要删除的消息。");
     }
 
     queryClient.setQueryData(queryKey, current => updateRoomMessagesQueryData(current, messages =>
-      markRoomMessageDeletedData(messages, messageId),
+      restoreRoomMessageInList(messages, createDeletedMessageSnapshot(snapshot)),
     ));
     void markCachedRoomMessagesDeleted(resolvedRoomId, [messageId]).catch(() => {});
 
@@ -102,9 +135,7 @@ export function useDeleteRoomMessageMutation(roomId: number | null) {
       }
       if (result.data) {
         queryClient.setQueryData(queryKey, current => updateRoomMessagesQueryData(current, messages =>
-          messages.map(m =>
-            m.message?.messageId === messageId ? { message: result.data! } : m,
-          ),
+          restoreRoomMessageInList(messages, createMessageSnapshot(result.data)),
         ));
         void writeCachedRoomMessages(resolvedRoomId, [{ message: result.data }]).catch(() => {});
       }
@@ -129,12 +160,21 @@ export function useDeleteRoomMessageMutation(roomId: number | null) {
 
     const queryKey = getAllRoomMessagesQueryKey(resolvedRoomId);
     const currentMessages = extractRoomMessagesFromQueryData(queryClient.getQueryData(queryKey));
-    const snapshots = messageIds
-      .map(id => currentMessages.find(m => m.message?.messageId === id))
-      .filter((s): s is ChatMessageResponse => s != null);
+    let snapshots = resolveRoomMessageSnapshots({
+      messageIds,
+      queryMessages: currentMessages,
+    });
+    if (snapshots.length < messageIds.length) {
+      snapshots = resolveRoomMessageSnapshots({
+        cachedMessages: await readCachedRoomMessages(resolvedRoomId),
+        messageIds,
+        queryMessages: currentMessages,
+      });
+    }
+    const deletedSnapshots = snapshots.map(createDeletedMessageSnapshot);
 
     queryClient.setQueryData(queryKey, current => updateRoomMessagesQueryData(current, messages =>
-      markRoomMessagesDeleted(messages, messageIds),
+      restoreRoomMessagesInList(messages, deletedSnapshots),
     ));
     void markCachedRoomMessagesDeleted(resolvedRoomId, messageIds).catch(() => {});
 
