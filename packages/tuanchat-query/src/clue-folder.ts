@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
@@ -17,10 +16,13 @@ import {
   partitionClueFolderRooms,
 } from "@tuanchat/domain/clue-folder";
 
+import type { RoomMessagesQueryData } from "./room-message-query-data";
+
 import { getAllRoomMessagesQueryKey } from "./chat";
 import { getRoomMembersQueryKey } from "./members";
 import { getUserMessageSessionsQueryKey } from "./message-sessions";
 import { upsertRoomMessagesListData } from "./room-message";
+import { updateRoomMessagesQueryData } from "./room-message-query-data";
 import { fetchUserRoomsWithCache, getUserRoomsQueryKey, upsertUserRoomQueryData } from "./spaces";
 
 type ClueFolderClient = Pick<TuanChat, "chatController" | "roomController" | "spaceController">;
@@ -205,9 +207,11 @@ export function useCopyMessageToClueFolderMutation(client: ClueFolderClient) {
     mutationKey: ["copyMessageToClueFolder"],
     onSuccess: ({ messages, room }) => {
       if (messages.length > 0) {
-        queryClient.setQueryData<ChatMessageResponse[]>(
+        const nextMessages = messages.map(message => ({ message }));
+        queryClient.setQueryData(
           getAllRoomMessagesQueryKey(room.roomId),
-          current => upsertRoomMessagesListData(current, messages.map(message => ({ message }))),
+          (current: RoomMessagesQueryData) =>
+            updateRoomMessagesQueryData(current, currentMessages => upsertRoomMessagesListData(currentMessages, nextMessages)),
         );
       }
       queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(room.roomId) });

@@ -11,6 +11,7 @@ export * from "./room-dnd-map";
 export * from "./room-extra";
 export * from "./room-message";
 export * from "./room-message-lifecycle";
+export * from "./room-message-query-data";
 export * from "./room-roles";
 export * from "./rules";
 export * from "./spaces";
