@@ -93,16 +93,16 @@ export default function ChatStatusBar({
               ? <TypingIndicator name="输入中" compact />
               : currentChatStatus === "wait"
                 ? <WaitingIndicator name="等待扮演" compact />
-              : (
-                  <span
-                    className={
-                      currentChatStatus === "leave" ? "text-error" : "opacity-70"
-                    }
-                  >
-                    {currentChatStatus === "idle" && "空闲"}
-                    {currentChatStatus === "leave" && "暂离"}
-                  </span>
-                )}
+                : (
+                    <span
+                      className={
+                        currentChatStatus === "leave" ? "text-error" : "opacity-70"
+                      }
+                    >
+                      {currentChatStatus === "idle" && "空闲"}
+                      {currentChatStatus === "leave" && "暂离"}
+                    </span>
+                  )}
             <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
           </button>
           <ul

@@ -1,6 +1,6 @@
-import type { ChatMessageResponse } from "../../../api";
-
 import { getRoomMessageLocalRenderKey } from "@tuanchat/query/room-message-lifecycle";
+
+import type { ChatMessageResponse } from "../../../api";
 
 const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
 

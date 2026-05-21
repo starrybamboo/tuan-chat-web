@@ -11,8 +11,8 @@ import {
   isChatMessageDrag,
   setChatMessageDragData,
 } from "@/components/chat/utils/chatMessageDrag";
-import { cleanupDragPreview, setDragPreview } from "@/components/chat/utils/dragPreview";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { cleanupDragPreview, setDragPreview } from "@/components/chat/utils/dragPreview";
 
 import type { ChatMessageResponse, Message } from "../../../../api";
 
@@ -110,6 +110,7 @@ export default function useChatFrameDragAndDrop({
     setIsDragging(false);
     detachWindowDragOver();
     cleanupDragState();
+    cleanupMessageDragGhost();
   }, [cleanupDragState, detachWindowDragOver]);
 
   const handleMoveMessages = useCallback((

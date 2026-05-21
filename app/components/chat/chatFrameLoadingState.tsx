@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
-import { skeletonFadeMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { skeletonFadeMotionProps } from "@/components/common/motion/chatMessageMotion";
 
 const TRADITIONAL_MESSAGE_WIDTHS = [
   "w-11/12",

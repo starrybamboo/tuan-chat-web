@@ -1,3 +1,5 @@
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
+
 import {
   ANNOTATION_IDS,
   getSceneEffectFromAnnotations,
@@ -11,7 +13,6 @@ import {
   getRoomJumpExtra,
   getVideoMessageExtra,
 } from "@/types/messageExtra";
-import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { ChatMessageResponse, Message } from "../../api";
 

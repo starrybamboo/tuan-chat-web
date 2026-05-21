@@ -150,15 +150,15 @@ export default function NewFriendsPanel() {
               ? (
                   <div className="flex items-center justify-between rounded-md bg-base-200/40 p-3">
                     <div className="flex items-center gap-3 min-w-0">
-                        <div className="avatar w-9 h-9 shrink-0 overflow-hidden rounded-full bg-base-300">
-                          <img
-                            className="h-full w-full rounded-full object-cover"
-                            src={imageLowUrl(searchUserInfo?.avatarFileId)}
-                            alt=""
-                            width={36}
-                            height={36}
-                          />
-                        </div>
+                      <div className="avatar w-9 h-9 shrink-0 overflow-hidden rounded-full bg-base-300">
+                        <img
+                          className="h-full w-full rounded-full object-cover"
+                          src={imageLowUrl(searchUserInfo?.avatarFileId)}
+                          alt=""
+                          width={36}
+                          height={36}
+                        />
+                      </div>
                       <div className="min-w-0">
                         <div className="font-medium truncate text-sm">{searchUserInfo?.username}</div>
                         <div className="text-xs opacity-70">{searchUserInfo?.userId}</div>

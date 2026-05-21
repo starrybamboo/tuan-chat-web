@@ -25,8 +25,8 @@ import { MessagePreviewContent } from "@/components/chat/message/preview/message
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueReferenceNavigationStore";
 import { setClueRefDragData } from "@/components/chat/utils/clueRef";
-import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
+import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { BaselineDeleteOutline, CloseIcon, FileTextIcon, ImageIcon, MusicNotesIcon, PlusIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";

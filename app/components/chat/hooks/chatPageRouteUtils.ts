@@ -1,4 +1,5 @@
 import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
+import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 
 import { SPACE_DETAIL_TABS } from "@/components/chat/chatPage.types";
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
@@ -86,4 +87,27 @@ export function getIsRoomSettingRoute(params: {
   }
 
   return params.activeRoomId != null && params.pathname.endsWith("/setting");
+}
+
+/**
+ * 将私聊页的 tab 查询参数映射为页面状态。
+ * 未显式指定或遇到未知值时，默认回到具体私聊页。
+ */
+export function resolvePrivateChatTab(tabParam?: string | null): PrivateChatTab {
+  if (tabParam === "friends")
+    return "friends";
+  if (tabParam === "new-friends")
+    return "new-friends";
+  return "chat";
+}
+
+/**
+ * 构造进入具体私聊会话时的 URL，并清除会干扰会话视图的 tab 参数。
+ */
+export function buildPrivateChatRoomPath(roomId: number, searchParam: URLSearchParams, targetMessageId?: number | null): string {
+  const nextSearchParams = new URLSearchParams(searchParam);
+  nextSearchParams.delete("tab");
+  const messagePath = roomId && targetMessageId ? `/${targetMessageId}` : "";
+  const query = nextSearchParams.toString();
+  return query ? `/chat/private/${roomId}${messagePath}?${query}` : `/chat/private/${roomId}${messagePath}`;
 }

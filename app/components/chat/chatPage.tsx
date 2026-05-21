@@ -9,6 +9,7 @@ import { ChatPageLayoutProvider } from "@/components/chat/chatPageLayoutProvider
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import ChatPageSubWindow from "@/components/chat/chatPageSubWindow";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { resolvePrivateChatTab } from "@/components/chat/hooks/chatPageRouteUtils";
 import useChatPageActiveSpaceInfo from "@/components/chat/hooks/useChatPageActiveSpaceInfo";
 import useChatPageAutoNavigation from "@/components/chat/hooks/useChatPageAutoNavigation";
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
@@ -69,22 +70,13 @@ export default function ChatPage() {
   const screenSize = useScreenSize();
 
   const [privateChatTab, setPrivateChatTab] = useState<PrivateChatTab>(() => {
-    const tabParam = new URLSearchParams(location.searchStr).get("tab");
-    if (tabParam === "friends")
-      return "friends";
-    if (tabParam === "new-friends")
-      return "new-friends";
-    return "chat";
+    return resolvePrivateChatTab(new URLSearchParams(location.searchStr).get("tab"));
   });
 
   useEffect(() => {
     if (!isPrivateChatMode)
       return;
-    const tabParam = searchParam.get("tab");
-    if (tabParam === "friends")
-      setPrivateChatTab("friends");
-    else if (tabParam === "new-friends")
-      setPrivateChatTab("new-friends");
+    setPrivateChatTab(resolvePrivateChatTab(searchParam.get("tab")));
   }, [isPrivateChatMode, searchParam]);
   const {
     isOpenLeftDrawer,

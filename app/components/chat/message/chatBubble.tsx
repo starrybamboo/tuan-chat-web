@@ -1,8 +1,8 @@
 import type { ChatMessageResponse, Message } from "../../../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getNextSyncedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
@@ -22,6 +22,7 @@ import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage"
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
@@ -52,8 +53,8 @@ import {
   CHAT_MESSAGE_ANNOTATIONS_CLASS,
   CHAT_MESSAGE_BUBBLE_BASE_CLASS,
   CHAT_MESSAGE_HOVER_TOOLBAR_CLASS,
-  CHAT_MESSAGE_META_ROW_CLASS,
   CHAT_MESSAGE_ROW_CLASS,
+  getChatMessageMetaRowClass,
 } from "./messageCardStyle";
 
 interface CommandRequestPayload {
@@ -247,6 +248,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
+  const hasSideDrawerOpen = useSideDrawerStore(state => state.state !== "none");
 
   const isMobile = getScreenSize() === "sm";
 
@@ -291,7 +293,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     zeroRoleIsNarrator: true,
     fallback: roleDeleted ? "角色已删除" : "未选择角色",
   });
-  const messageContent = (message.content ?? "").toString();
   const isOutOfCharacterTextMessage = message.messageType === MESSAGE_TYPE.TEXT
     && isOutOfCharacterSpeech(message.content);
   const shouldUseUserAvatar = isOutOfCharacterTextMessage;
@@ -305,7 +306,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const showRoleNameEditor = !isIntroText && !isStateEventMessage && !isOutOfCharacterTextMessage && isEditingRoleName;
   const chatMessageMetaRowClass = isOutOfCharacterTextMessage
     ? "flex items-center gap-2 w-full min-w-0 relative"
-    : CHAT_MESSAGE_META_ROW_CLASS;
+    : getChatMessageMetaRowClass(hasSideDrawerOpen);
   const outOfCharacterBadge = isOutOfCharacterTextMessage
     ? (
         <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium text-base-content/50">

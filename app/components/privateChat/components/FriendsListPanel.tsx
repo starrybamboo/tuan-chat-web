@@ -79,7 +79,9 @@ export default function FriendsListPanel() {
       </div>
 
       <div className="px-3 pb-1.5 text-xs font-medium text-base-content/50 uppercase tracking-wide">
-        好友 — {friendUserInfos.length}
+        好友 —
+        {" "}
+        {friendUserInfos.length}
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto px-1">

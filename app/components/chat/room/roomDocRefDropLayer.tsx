@@ -1,7 +1,7 @@
+import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
-import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
