@@ -21,4 +21,3 @@ export function deactivateMobileAudioPlayback(id: string): void {
 export function getActiveMobileAudioPlaybackId(): string | null {
   return activeHandle?.id ?? null;
 }
-

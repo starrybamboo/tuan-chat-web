@@ -1,4 +1,16 @@
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { ArrowSquareOut, FileText, GitBranch, ListChecks, MapPinLine, X } from "phosphor-react-native";
+import { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
+
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { BottomSheetModal } from "@/components/BottomSheetModal";
+import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/use-theme";
 import {
   getClueCardRenderData,
   getDocCardRenderData,
@@ -14,18 +26,6 @@ import {
   formatStateScopeLabel,
   getNormalizedStateEventExtra,
 } from "@tuanchat/domain/state-event";
-import { ArrowSquareOut, FileText, GitBranch, ListChecks, MapPinLine, X } from "phosphor-react-native";
-import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
-
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-
-import { BottomSheetModal } from "@/components/BottomSheetModal";
-import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
-import { ThemedText } from "@/components/themed-text";
-import { Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 

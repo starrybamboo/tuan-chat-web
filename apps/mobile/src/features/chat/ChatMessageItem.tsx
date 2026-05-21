@@ -20,6 +20,7 @@ import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { MessageAvatar } from "./MessageAvatar";
+import { getMessagePreview } from "./mobileChatUtils";
 import {
   ClueCard,
   DocCard,
@@ -31,7 +32,6 @@ import {
   ThreadRootCard,
   WebgalChooseCard,
 } from "./MobileMessageCards";
-import { getMessagePreview } from "./mobileChatUtils";
 
 const AVATAR_SIZE = 40;
 
@@ -283,16 +283,16 @@ export const ChatMessageItem = memo(({
                   ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[视频]</ThemedText>
                   : message.messageType === MESSAGE_TYPE.SOUND
                     ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>{getCompactMediaText(message)}</ThemedText>
-                  : (
-                      <TextEnhanceRenderer
-                        content={message.messageType === MESSAGE_TYPE.DICE ? getDiceDisplayText(message) : getMessagePreview(message)}
-                        style={[
-                          styles.content,
-                          { color: usesSystemRow ? theme.textSecondary : theme.text },
-                        ]}
-                        numberOfLines={2}
-                      />
-                    )}
+                    : (
+                        <TextEnhanceRenderer
+                          content={message.messageType === MESSAGE_TYPE.DICE ? getDiceDisplayText(message) : getMessagePreview(message)}
+                          style={[
+                            styles.content,
+                            { color: usesSystemRow ? theme.textSecondary : theme.text },
+                          ]}
+                          numberOfLines={2}
+                        />
+                      )}
             </View>
           </View>
         </View>

@@ -2,7 +2,6 @@ import type { AlertButton } from "react-native";
 import type { GestureType } from "react-native-gesture-handler";
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import {
@@ -31,6 +30,7 @@ import type { DrawerMode } from "@/features/drawer/LeftDrawer";
 import type { MemberPreviewItem } from "@/features/members/memberUtils";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
+import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
@@ -1077,149 +1077,149 @@ export default function ChatShell() {
                             />
                           )
                         : currentContactId
-                        ? (
-                            <DmChatView
-                              contactId={currentContactId}
-                              contactName={currentDmContactName ?? `用户 #${currentContactId}`}
-                              contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
-                              currentUserId={currentUserId}
-                              messages={currentDmConversation?.messages ?? []}
-                              onBack={handleBackFromDmChat}
-                            />
-                          )
-                        : (
-                            <>
-                              <ChatMessageList
-                                drawerPanGesture={panGesture}
-                                messages={roomMessages}
-                                multiSelectMode={multiSelectMode}
-                                multiSelectedIds={multiSelectedIds}
-                                nativeScrollGesture={messageListScrollGesture}
-                                selectedAnchorId={messageAnchorId}
-                                onLongPressMessage={(msg) => {
-                                  setActionMenuMessage(msg);
-                                }}
-                                onRetry={() => {
-                                  void roomMessagesQuery.refetch();
-                                }}
-                                onToggleMultiSelect={(msg) => {
-                                  if (!msg.messageId)
-                                    return;
-                                  setMultiSelectedIds((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(msg.messageId!)) {
-                                      next.delete(msg.messageId!);
-                                    }
-                                    else {
-                                      next.add(msg.messageId!);
-                                    }
-                                    return next;
-                                  });
-                                }}
-                                isPending={roomMessagesQuery.isPending}
-                                isError={roomMessagesQuery.isError}
-                                error={roomMessagesQuery.error}
-                                roomRoles={roomRoles}
-                                currentRoleId={effectiveCurrentRoleId}
-                                isSpaceOwner={isSpaceOwner}
-                                noRole={noRole}
-                                isCommandRequestConsumed={commandRequests.isConsumed}
-                                onExecuteCommandRequest={commandRequests.handleExecute}
+                          ? (
+                              <DmChatView
+                                contactId={currentContactId}
+                                contactName={currentDmContactName ?? `用户 #${currentContactId}`}
+                                contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
+                                currentUserId={currentUserId}
+                                messages={currentDmConversation?.messages ?? []}
+                                onBack={handleBackFromDmChat}
                               />
-                              {multiSelectMode
-                                ? (
-                                    <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
-                                      <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
-                                        已选
-                                        {" "}
-                                        {multiSelectedIds.size}
-                                        {" "}
-                                        条
-                                      </ThemedText>
-                                      <View style={{ flex: 1 }} />
-                                      <Pressable
-                                        onPress={async () => {
-                                          const selected = roomMessages
-                                            .filter(item => item.message.messageId && multiSelectedIds.has(item.message.messageId))
-                                            .map(item => item.message.content?.trim())
-                                            .filter(Boolean)
-                                            .join("\n");
-                                          if (selected)
-                                            await Clipboard.setStringAsync(selected);
-                                          setMultiSelectMode(false);
-                                          setMultiSelectedIds(new Set());
-                                        }}
-                                        style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                                      >
-                                        <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
-                                      </Pressable>
-                                      <Pressable
-                                        onPress={() => {
-                                          void (async () => {
-                                            const confirmed = await confirmAction({
-                                              title: "删除消息",
-                                              message: `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`,
-                                              confirmText: "删除",
-                                              destructive: true,
-                                            });
-                                            if (!confirmed) {
-                                              return;
-                                            }
-                                            try {
-                                              const messageIds = Array.from(multiSelectedIds);
-                                              await deleteMessages(messageIds);
-                                            }
-                                            catch (error) {
-                                              setMessageError(getErrorMessage(error, "删除消息失败。"));
-                                            }
+                            )
+                          : (
+                              <>
+                                <ChatMessageList
+                                  drawerPanGesture={panGesture}
+                                  messages={roomMessages}
+                                  multiSelectMode={multiSelectMode}
+                                  multiSelectedIds={multiSelectedIds}
+                                  nativeScrollGesture={messageListScrollGesture}
+                                  selectedAnchorId={messageAnchorId}
+                                  onLongPressMessage={(msg) => {
+                                    setActionMenuMessage(msg);
+                                  }}
+                                  onRetry={() => {
+                                    void roomMessagesQuery.refetch();
+                                  }}
+                                  onToggleMultiSelect={(msg) => {
+                                    if (!msg.messageId)
+                                      return;
+                                    setMultiSelectedIds((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(msg.messageId!)) {
+                                        next.delete(msg.messageId!);
+                                      }
+                                      else {
+                                        next.add(msg.messageId!);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  isPending={roomMessagesQuery.isPending}
+                                  isError={roomMessagesQuery.isError}
+                                  error={roomMessagesQuery.error}
+                                  roomRoles={roomRoles}
+                                  currentRoleId={effectiveCurrentRoleId}
+                                  isSpaceOwner={isSpaceOwner}
+                                  noRole={noRole}
+                                  isCommandRequestConsumed={commandRequests.isConsumed}
+                                  onExecuteCommandRequest={commandRequests.handleExecute}
+                                />
+                                {multiSelectMode
+                                  ? (
+                                      <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
+                                        <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
+                                          已选
+                                          {" "}
+                                          {multiSelectedIds.size}
+                                          {" "}
+                                          条
+                                        </ThemedText>
+                                        <View style={{ flex: 1 }} />
+                                        <Pressable
+                                          onPress={async () => {
+                                            const selected = roomMessages
+                                              .filter(item => item.message.messageId && multiSelectedIds.has(item.message.messageId))
+                                              .map(item => item.message.content?.trim())
+                                              .filter(Boolean)
+                                              .join("\n");
+                                            if (selected)
+                                              await Clipboard.setStringAsync(selected);
                                             setMultiSelectMode(false);
                                             setMultiSelectedIds(new Set());
-                                          })();
-                                        }}
-                                        style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                                      >
-                                        <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
-                                      </Pressable>
-                                      <Pressable
-                                        onPress={() => {
-                                          setMultiSelectMode(false);
-                                          setMultiSelectedIds(new Set());
-                                        }}
-                                        style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                                      >
-                                        <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
-                                      </Pressable>
-                                    </View>
-                                  )
-                                : (
-                                    <ChatComposer
-                                      anchorMessage={selectedAnchorMessage}
-                                      availableRoles={selectableRoomRoles}
-                                      canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
-                                      canUseExpressionPicker
-                                      currentRole={currentRole}
-                                      currentAvatarFileId={selectedAvatarFileId}
-                                      draftMessage={draftMessage}
-                                      draftRoleIdInput={draftRoleIdInput}
-                                      errorMessage={messageError}
-                                      isSubmitting={false}
-                                      messageAttachments={messageAttachments}
-                                      messageMode={messageMode}
-                                      onChangeDraftMessage={setDraftMessage}
-                                      onChangeDraftRoleIdInput={setDraftRoleIdInput}
-                                      onClearAnchor={() => setMessageAnchorId(null)}
-                                      onClearAttachments={() => setMessageAttachments([])}
-                                      onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
-                                      onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
-                                      onPickAttachment={kind => void handlePickAttachments(kind)}
-                                      onRemoveAttachment={id => setMessageAttachments(cur => cur.filter(a => a.id !== id))}
-                                      onSend={() => void handleSendMessage()}
-                                      roomName={selectedRoom?.name}
-                                      ruleId={selectedRuleId}
-                                    />
-                                  )}
-                            </>
-                          )}
+                                          }}
+                                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                        >
+                                          <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
+                                        </Pressable>
+                                        <Pressable
+                                          onPress={() => {
+                                            void (async () => {
+                                              const confirmed = await confirmAction({
+                                                title: "删除消息",
+                                                message: `确定要删除选中的 ${multiSelectedIds.size} 条消息吗？`,
+                                                confirmText: "删除",
+                                                destructive: true,
+                                              });
+                                              if (!confirmed) {
+                                                return;
+                                              }
+                                              try {
+                                                const messageIds = Array.from(multiSelectedIds);
+                                                await deleteMessages(messageIds);
+                                              }
+                                              catch (error) {
+                                                setMessageError(getErrorMessage(error, "删除消息失败。"));
+                                              }
+                                              setMultiSelectMode(false);
+                                              setMultiSelectedIds(new Set());
+                                            })();
+                                          }}
+                                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                        >
+                                          <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
+                                        </Pressable>
+                                        <Pressable
+                                          onPress={() => {
+                                            setMultiSelectMode(false);
+                                            setMultiSelectedIds(new Set());
+                                          }}
+                                          style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                        >
+                                          <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
+                                        </Pressable>
+                                      </View>
+                                    )
+                                  : (
+                                      <ChatComposer
+                                        anchorMessage={selectedAnchorMessage}
+                                        availableRoles={selectableRoomRoles}
+                                        canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
+                                        canUseExpressionPicker
+                                        currentRole={currentRole}
+                                        currentAvatarFileId={selectedAvatarFileId}
+                                        draftMessage={draftMessage}
+                                        draftRoleIdInput={draftRoleIdInput}
+                                        errorMessage={messageError}
+                                        isSubmitting={false}
+                                        messageAttachments={messageAttachments}
+                                        messageMode={messageMode}
+                                        onChangeDraftMessage={setDraftMessage}
+                                        onChangeDraftRoleIdInput={setDraftRoleIdInput}
+                                        onClearAnchor={() => setMessageAnchorId(null)}
+                                        onClearAttachments={() => setMessageAttachments([])}
+                                        onOpenExpressionPicker={() => setExpressionPickerVisible(true)}
+                                        onOpenRoleSwitch={() => setRoleSwitchVisible(true)}
+                                        onPickAttachment={kind => void handlePickAttachments(kind)}
+                                        onRemoveAttachment={id => setMessageAttachments(cur => cur.filter(a => a.id !== id))}
+                                        onSend={() => void handleSendMessage()}
+                                        roomName={selectedRoom?.name}
+                                        ruleId={selectedRuleId}
+                                      />
+                                    )}
+                              </>
+                            )}
                       <Animated.View
                         style={[styles.overlay, overlayStyle, { pointerEvents: isOverlayInteractive ? "auto" : "none" }]}
                       >
