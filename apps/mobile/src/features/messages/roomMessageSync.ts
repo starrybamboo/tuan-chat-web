@@ -6,6 +6,8 @@ import {
 } from "@tuanchat/query/room-message";
 import { reconcileOptimisticRoomMessagesInList } from "@tuanchat/query/room-message-lifecycle";
 
+import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
+
 type RoomMessageSyncClient = {
   chatController: {
     getAllMessage: (roomId: number) => Promise<unknown>;
@@ -26,10 +28,10 @@ export type RoomMessagesSyncResult = {
 };
 
 type RoomMessageQueryCache = {
-  getQueryData: (queryKey: readonly unknown[]) => ChatMessageResponse[] | undefined;
+  getQueryData: (queryKey: readonly unknown[]) => ChatMessageResponse[] | RoomMessagesSyncResult | undefined;
   setQueryData: (
     queryKey: readonly unknown[],
-    updater: (currentData: ChatMessageResponse[] | undefined) => ChatMessageResponse[],
+    updater: (currentData: ChatMessageResponse[] | RoomMessagesSyncResult | undefined) => ChatMessageResponse[] | RoomMessagesSyncResult,
   ) => void;
 };
 
@@ -91,10 +93,10 @@ export function upsertRoomMessagesToQueryAndDisk(
   }
 
   const queryKey = getAllRoomMessagesQueryKey(roomId);
-  deps.queryClient.setQueryData(
-    queryKey,
-    currentData => reconcileOptimisticRoomMessagesInList(currentData, incomingMessages),
-  );
+  deps.queryClient.setQueryData(queryKey, currentData => updateRoomMessagesQueryData(
+    currentData,
+    currentMessages => reconcileOptimisticRoomMessagesInList(currentMessages, incomingMessages),
+  ));
   persistRoomMessages(roomId, incomingMessages, deps.writeCachedRoomMessages);
 }
 
@@ -104,7 +106,7 @@ export function upsertLiveRoomMessageWithGapRepair(
   deps: UpsertRoomMessagesToQueryAndDiskDeps,
 ) {
   const queryKey = getAllRoomMessagesQueryKey(roomId);
-  const currentMessages = deps.queryClient.getQueryData(queryKey);
+  const currentMessages = extractRoomMessagesFromQueryData(deps.queryClient.getQueryData(queryKey));
   const gapStartSyncId = getRoomMessageSyncGapStart(currentMessages, message);
 
   if (gapStartSyncId != null) {

@@ -12,6 +12,7 @@ import {
 } from "@/features/messages/mobileRoomMessageCache";
 import { shouldResetCachedRoomMessages } from "@/features/messages/roomMessageCacheState";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
+import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessagesQueryData";
 import { mobileApiClient } from "@/lib/api";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import { mergeRoomMessages } from "@tuanchat/query/room-message";
@@ -45,7 +46,7 @@ export function useRoomMessagesQuery(
   });
 
   const networkMessages = useMemo(() => {
-    return query.data?.messages ?? [];
+    return extractRoomMessagesFromQueryData(query.data);
   }, [query.data]);
 
   const cachedMessages = useMemo(() => {
