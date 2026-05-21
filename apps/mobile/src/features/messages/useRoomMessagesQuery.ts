@@ -32,7 +32,7 @@ export function useRoomMessagesQuery(
   });
   const hasValidRoomId = typeof roomId === "number" && roomId > 0;
 
-  const query = useQuery<ChatMessageResponse[]>({
+  const query = useQuery({
     enabled: isAuthenticated && hasValidRoomId,
     queryFn: async () => {
       return fetchRoomMessagesWithLocalSync(roomId!, {
@@ -45,7 +45,7 @@ export function useRoomMessagesQuery(
   });
 
   const networkMessages = useMemo(() => {
-    return query.data ?? [];
+    return query.data?.messages ?? [];
   }, [query.data]);
 
   const cachedMessages = useMemo(() => {
@@ -63,7 +63,12 @@ export function useRoomMessagesQuery(
     let disposed = false;
 
     if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
-      queueMicrotask(() => setCachedMessagesState({ messages: [], roomId: null }));
+      setCachedMessagesState((currentState) => {
+        if (currentState.roomId === null && currentState.messages.length === 0) {
+          return currentState;
+        }
+        return { messages: [], roomId: null };
+      });
       return;
     }
 
@@ -83,8 +88,13 @@ export function useRoomMessagesQuery(
       return;
     }
 
-    if (shouldResetCachedRoomMessages(networkMessages, query.isSuccess)) {
-      queueMicrotask(() => setCachedMessagesState({ messages: [], roomId }));
+    if (shouldResetCachedRoomMessages(query.data, query.isSuccess)) {
+      setCachedMessagesState((currentState) => {
+        if (currentState.roomId === roomId && currentState.messages.length === 0) {
+          return currentState;
+        }
+        return { messages: [], roomId };
+      });
       void clearCachedRoomMessages(roomId);
       return;
     }
@@ -92,7 +102,7 @@ export function useRoomMessagesQuery(
     if (messages.length > 0) {
       void writeCachedRoomMessages(roomId, messages);
     }
-  }, [isAuthenticated, messages, networkMessages, query.isSuccess, roomId]);
+  }, [isAuthenticated, messages, query.data, query.isSuccess, roomId]);
 
   return {
     ...query,
