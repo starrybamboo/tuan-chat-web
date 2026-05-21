@@ -1,14 +1,24 @@
 import { describe, expect, it } from "vitest";
 
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { collectChatAvatarThumbUrls } from "./chat-avatar-prefetch";
+import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 
-function createMessage(avatarFileId?: number | null, roleId?: number | null): Message {
+function createMessage(avatarFileId?: number | null, roleId?: number | null, imageFileId?: number | null): Message {
   return {
     avatarFileId: avatarFileId ?? undefined,
+    extra: imageFileId == null
+      ? {}
+      : {
+          imageMessage: {
+            fileId: imageFileId,
+            mediaType: "image",
+          },
+        },
+    messageType: imageFileId == null ? MESSAGE_TYPE.TEXT : MESSAGE_TYPE.IMG,
     roleId: roleId ?? undefined,
   } as Message;
 }
@@ -41,6 +51,21 @@ describe("collectChatAvatarThumbUrls", () => {
       ], roomRolesById),
     ).toEqual([
       "https://tuan.chat/media/v1/files/021/21/image/low.webp",
+    ]);
+  });
+
+  it("会去重并忽略无效图片缩略图", () => {
+    expect(
+      collectChatImageThumbUrls([
+        createMessage(null, null, 11),
+        createMessage(null, null, 11),
+        createMessage(null, null, 22),
+        createMessage(null, null, 0),
+        createMessage(null, null, null),
+      ]),
+    ).toEqual([
+      "https://tuan.chat/media/v1/files/011/11/image/low.webp",
+      "https://tuan.chat/media/v1/files/022/22/image/low.webp",
     ]);
   });
 });

@@ -19,7 +19,7 @@ import { prefetchImages } from "@/lib/mobile-image-cache";
 
 import type { ChatMessageListItem } from "./messageListModel";
 
-import { collectChatAvatarThumbUrls } from "./chat-avatar-prefetch";
+import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
@@ -129,13 +129,25 @@ export function ChatMessageList({
     () => getVisibleMessageItems(messages),
     [messages],
   );
+  const visibleChatMessages = useMemo(
+    () => visibleMessages.map(item => item.message),
+    [visibleMessages],
+  );
   const invertedData = useMemo(
     () => [...visibleMessages].reverse(),
     [visibleMessages],
   );
   const avatarThumbUrls = useMemo(
-    () => collectChatAvatarThumbUrls(visibleMessages.map(item => item.message), roomRolesById),
-    [roomRolesById, visibleMessages],
+    () => collectChatAvatarThumbUrls(visibleChatMessages, roomRolesById),
+    [roomRolesById, visibleChatMessages],
+  );
+  const messageImageThumbUrls = useMemo(
+    () => collectChatImageThumbUrls(visibleChatMessages),
+    [visibleChatMessages],
+  );
+  const prefetchUrls = useMemo(
+    () => [...avatarThumbUrls, ...messageImageThumbUrls],
+    [avatarThumbUrls, messageImageThumbUrls],
   );
 
   const commitBottomState = useCallback((nextIsAtBottom: boolean) => {
@@ -165,10 +177,10 @@ export function ChatMessageList({
   }, [visibleMessages.length]);
 
   useEffect(() => {
-    if (avatarThumbUrls.length === 0)
+    if (prefetchUrls.length === 0)
       return;
-    void prefetchImages(avatarThumbUrls);
-  }, [avatarThumbUrls]);
+    void prefetchImages(prefetchUrls);
+  }, [prefetchUrls]);
 
   const scrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });

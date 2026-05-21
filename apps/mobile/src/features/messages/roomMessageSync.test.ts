@@ -77,7 +77,10 @@ describe("roomMessageSync", () => {
     await expect(fetchRoomMessagesWithLocalSync(9, {
       client,
       getMaxCachedSyncId: vi.fn().mockResolvedValue(3),
-    })).resolves.toEqual(historyMessages);
+    })).resolves.toEqual({
+      messages: historyMessages,
+      mode: "delta",
+    });
 
     expect(client.chatController.getHistoryMessages).toHaveBeenCalledWith({
       roomId: 9,
@@ -98,7 +101,10 @@ describe("roomMessageSync", () => {
     await expect(fetchRoomMessagesWithLocalSync(9, {
       client,
       getMaxCachedSyncId: vi.fn().mockResolvedValue(-1),
-    })).resolves.toEqual(allMessages);
+    })).resolves.toEqual({
+      messages: allMessages,
+      mode: "full",
+    });
 
     expect(client.chatController.getAllMessage).toHaveBeenCalledWith(9);
     expect(client.chatController.getHistoryMessages).not.toHaveBeenCalled();

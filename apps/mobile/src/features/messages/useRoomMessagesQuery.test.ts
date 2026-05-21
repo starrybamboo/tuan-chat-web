@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { shouldResetCachedRoomMessages } from "./roomMessageCacheState";
+import type { RoomMessagesSyncResult } from "./roomMessageSync";
 
 function createRoomMessage(messageId: number): ChatMessageResponse {
   return {
@@ -23,13 +24,33 @@ function createRoomMessage(messageId: number): ChatMessageResponse {
 }
 
 describe("useRoomMessagesQuery helpers", () => {
-  it("网络成功且没有任何消息时会清空旧缓存", () => {
-    expect(shouldResetCachedRoomMessages([], true)).toBe(true);
+  it("仅当全量请求成功且没有任何消息时会清空旧缓存", () => {
+    const result: RoomMessagesSyncResult = {
+      messages: [],
+      mode: "full",
+    };
+    expect(shouldResetCachedRoomMessages(result, true)).toBe(true);
+  });
+
+  it("增量请求为空时不会清空缓存", () => {
+    const result: RoomMessagesSyncResult = {
+      messages: [],
+      mode: "delta",
+    };
+    expect(shouldResetCachedRoomMessages(result, true)).toBe(false);
   });
 
   it("网络未成功或仍有消息时不会清空缓存", () => {
-    expect(shouldResetCachedRoomMessages([], false)).toBe(false);
-    expect(shouldResetCachedRoomMessages([createRoomMessage(-1)], true)).toBe(false);
-    expect(shouldResetCachedRoomMessages([createRoomMessage(1)], true)).toBe(false);
+    const emptyFullResult: RoomMessagesSyncResult = {
+      messages: [],
+      mode: "full",
+    };
+    const nonEmptyResult: RoomMessagesSyncResult = {
+      messages: [createRoomMessage(-1)],
+      mode: "full",
+    };
+
+    expect(shouldResetCachedRoomMessages(emptyFullResult, false)).toBe(false);
+    expect(shouldResetCachedRoomMessages(nonEmptyResult, true)).toBe(false);
   });
 });

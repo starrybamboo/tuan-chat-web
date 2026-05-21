@@ -1,8 +1,10 @@
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+import type { RoomMessagesSyncResult } from "./roomMessageSync";
 
 export function shouldResetCachedRoomMessages(
-  networkMessages: readonly ChatMessageResponse[],
+  networkResult: RoomMessagesSyncResult | undefined,
   queryIsSuccess: boolean,
 ): boolean {
-  return queryIsSuccess && networkMessages.length === 0;
+  return queryIsSuccess
+    && networkResult?.mode === "full"
+    && networkResult.messages.length === 0;
 }

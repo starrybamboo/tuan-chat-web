@@ -18,6 +18,13 @@ export type FetchRoomMessagesWithLocalSyncDeps = {
   getMaxCachedSyncId: (roomId: number) => Promise<number>;
 };
 
+export type RoomMessagesFetchMode = "full" | "delta";
+
+export type RoomMessagesSyncResult = {
+  messages: ChatMessageResponse[];
+  mode: RoomMessagesFetchMode;
+};
+
 type RoomMessageQueryCache = {
   getQueryData: (queryKey: readonly unknown[]) => ChatMessageResponse[] | undefined;
   setQueryData: (
@@ -40,18 +47,24 @@ export function extractChatMessageResponses(result: unknown): ChatMessageRespons
 export async function fetchRoomMessagesWithLocalSync(
   roomId: number,
   deps: FetchRoomMessagesWithLocalSyncDeps,
-): Promise<ChatMessageResponse[]> {
+): Promise<RoomMessagesSyncResult> {
   const maxCachedSyncId = await deps.getMaxCachedSyncId(roomId);
   if (maxCachedSyncId >= 0) {
     const result = await deps.client.chatController.getHistoryMessages({
       roomId,
       syncId: maxCachedSyncId + 1,
     });
-    return extractChatMessageResponses(result);
+    return {
+      messages: extractChatMessageResponses(result),
+      mode: "delta",
+    };
   }
 
   const result = await deps.client.chatController.getAllMessage(roomId);
-  return extractChatMessageResponses(result);
+  return {
+    messages: extractChatMessageResponses(result),
+    mode: "full",
+  };
 }
 
 function persistRoomMessages(
