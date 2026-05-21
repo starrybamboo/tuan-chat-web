@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { useCallback } from "react";
 import { toast } from "react-hot-toast";
 
@@ -260,12 +261,18 @@ export default function useRoomImportActions({
     }
 
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+    const cluePreviewText = getMessagePreviewText({
+      messageType: Math.floor(snapshot.messageType),
+      content: typeof snapshot.content === "string" ? snapshot.content : "",
+      ...(snapshot.extra !== undefined ? { extra: snapshot.extra as ChatMessageResponse["message"]["extra"] } : {}),
+      status: 0,
+    } as ChatMessageResponse["message"]);
 
     const request: ChatMessageRequest = {
       roomId,
       roleId: curRoleId,
       avatarId: resolvedAvatarId,
-      content: "",
+      content: cluePreviewText,
       messageType: MESSAGE_TYPE.CLUE_CARD,
       extra: {
         clueMessage: {

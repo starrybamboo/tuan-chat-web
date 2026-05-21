@@ -328,7 +328,7 @@ describe("useRoomImportActions", () => {
       roomId: 1,
       roleId: 3,
       avatarId: 7,
-      content: "",
+      content: "旧钥匙",
       messageType: MESSAGE_TYPE.CLUE_CARD,
       extra: {
         clueMessage: {
