@@ -1,7 +1,7 @@
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { File, PauseCircle, PlayCircle, Waveform } from "phosphor-react-native";
+import { File, PauseCircle, PlayCircle } from "phosphor-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 

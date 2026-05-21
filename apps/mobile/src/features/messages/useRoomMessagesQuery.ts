@@ -10,6 +10,7 @@ import {
   readCachedRoomMessages,
   writeCachedRoomMessages,
 } from "@/features/messages/mobileRoomMessageCache";
+import { shouldResetCachedRoomMessages } from "@/features/messages/roomMessageCacheState";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
@@ -82,15 +83,16 @@ export function useRoomMessagesQuery(
       return;
     }
 
-    if (messages.length > 0) {
-      void writeCachedRoomMessages(roomId, messages);
+    if (shouldResetCachedRoomMessages(networkMessages, query.isSuccess)) {
+      queueMicrotask(() => setCachedMessagesState({ messages: [], roomId }));
+      void clearCachedRoomMessages(roomId);
       return;
     }
 
-    if (query.isSuccess && !query.isFetching) {
-      void clearCachedRoomMessages(roomId);
+    if (messages.length > 0) {
+      void writeCachedRoomMessages(roomId, messages);
     }
-  }, [isAuthenticated, messages, query.isFetching, query.isSuccess, roomId]);
+  }, [isAuthenticated, messages, networkMessages, query.isSuccess, roomId]);
 
   return {
     ...query,

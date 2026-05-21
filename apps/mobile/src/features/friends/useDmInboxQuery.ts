@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
+import { hasPersistableDirectInboxMessages } from "@/features/friends/dmInboxCacheState";
 import { mobileApiClient } from "@/lib/api";
 import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { useDirectInboxMessagesQuery } from "@tuanchat/query/direct-message";
 
 import {
+  clearCachedDirectMessages,
   readCachedDirectInboxMessages,
   writeCachedDirectMessages,
 } from "./mobileDirectMessageCache";
@@ -58,16 +60,31 @@ export function useDmInboxQuery(currentUserId: number | null) {
     const cachedMessages = cachedInbox?.currentUserId === currentUserId ? cachedInbox.messages : [];
     return mergeDirectMessages(cachedMessages, query.data);
   }, [cachedInbox, currentUserId, query.data]);
+  const hasQueryMessagesToPersist = useMemo(() => {
+    return hasPersistableDirectInboxMessages(query.data);
+  }, [query.data]);
 
   useEffect(() => {
-    if (!query.isSuccess || typeof currentUserId !== "number" || currentUserId <= 0 || mergedMessages.length === 0) {
+    if (!query.isSuccess || typeof currentUserId !== "number" || currentUserId <= 0) {
+      return;
+    }
+
+    if (!hasQueryMessagesToPersist) {
+      queueMicrotask(() => setCachedInbox({ currentUserId, messages: [] }));
+      void clearCachedDirectMessages(currentUserId).catch((error) => {
+        console.warn("[useDmInboxQuery] 清理私聊磁盘缓存失败:", error);
+      });
+      return;
+    }
+
+    if (mergedMessages.length === 0) {
       return;
     }
 
     void writeCachedDirectMessages(currentUserId, mergedMessages).catch((error) => {
       console.warn("[useDmInboxQuery] 写入私聊磁盘缓存失败:", error);
     });
-  }, [currentUserId, mergedMessages, query.isSuccess]);
+  }, [currentUserId, hasQueryMessagesToPersist, mergedMessages, query.isSuccess]);
 
   const data = useMemo(
     () => groupDirectConversations(mergedMessages, currentUserId) as DmConversation[],

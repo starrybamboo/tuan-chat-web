@@ -1,0 +1,38 @@
+import { describe, expect, it } from "vitest";
+
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { DIRECT_MESSAGE_READ_LINE_TYPE } from "@tuanchat/domain/direct-message";
+
+import { hasPersistableDirectInboxMessages } from "./dmInboxCacheState";
+
+function createDirectMessage(messageId: number, overrides: Partial<MessageDirectResponse> = {}): MessageDirectResponse {
+  return {
+    content: `message-${messageId}`,
+    createTime: "2026-05-21T00:00:00.000Z",
+    messageId,
+    messageType: 1,
+    receiverId: 7,
+    senderId: 42,
+    status: 0,
+    syncId: messageId,
+    userId: 7,
+    ...overrides,
+  };
+}
+
+describe("useDmInboxQuery helpers", () => {
+  it("只有已读线时不应把旧私聊缓存继续保留下来", () => {
+    expect(hasPersistableDirectInboxMessages([])).toBe(false);
+    expect(hasPersistableDirectInboxMessages([
+      createDirectMessage(-42, { messageType: DIRECT_MESSAGE_READ_LINE_TYPE }),
+    ])).toBe(false);
+  });
+
+  it("存在真实私聊消息时仍然保留并写回缓存", () => {
+    expect(hasPersistableDirectInboxMessages([
+      createDirectMessage(1),
+      createDirectMessage(-42, { messageType: DIRECT_MESSAGE_READ_LINE_TYPE }),
+    ])).toBe(true);
+  });
+});
