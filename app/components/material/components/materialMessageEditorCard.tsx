@@ -10,8 +10,8 @@ import EditableMessageContent from "@/components/chat/message/editableMessageCon
 import {
   CHAT_MESSAGE_ANNOTATIONS_CLASS,
   CHAT_MESSAGE_BUBBLE_DEFAULT_CLASS,
-  CHAT_MESSAGE_HOVER_TOOLBAR_CLASS,
   CHAT_MESSAGE_ROW_CLASS,
+  getChatMessageHoverToolbarClass,
 } from "@/components/chat/message/messageCardStyle";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -63,6 +63,7 @@ export default function MaterialMessageEditorCard({
         />
       )
     : null;
+  const hoverToolbarClassName = getChatMessageHoverToolbarClass(isMobile);
 
   const updateMessage = useCallback((updater: (current: MessageDraft) => MessageDraft) => {
     onChange((current) => {
@@ -234,7 +235,7 @@ export default function MaterialMessageEditorCard({
   })();
 
   const messageHoverToolbar = (
-    <div className={CHAT_MESSAGE_HOVER_TOOLBAR_CLASS}>
+    <div className={hoverToolbarClassName}>
       <button
         type="button"
         className="btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0 text-base-content/70 hover:bg-base-300/70 hover:text-base-content"
