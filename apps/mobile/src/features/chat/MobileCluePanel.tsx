@@ -9,6 +9,7 @@ import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
+import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
@@ -226,11 +227,7 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
     try {
       await editMessage({
         originalMessage: editingMessage,
-        updatedMessage: {
-          ...editingMessage,
-          content,
-          updateTime: new Date().toISOString(),
-        },
+        updatedMessage: buildEditedRoomMessage(editingMessage, content),
       });
       closeEditor();
     }
