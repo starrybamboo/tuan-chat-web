@@ -1,5 +1,5 @@
-export * from "./direct-message";
 export * from "./clue-folder";
+export * from "./direct-message";
 export * from "./member-permissions";
 export * from "./message-action-permissions";
 export * from "./message-annotations";

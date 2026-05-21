@@ -238,7 +238,7 @@ describe("useChatMessageSubmit", () => {
       { message: { ...createMessage(-2), messageType: MessageType.SOUND } },
       { message: { ...createMessage(-3), messageType: MessageType.VIDEO } },
     ];
-    const insertLocalOptimisticMessages = vi.fn((requests: ChatMessageRequest[]) => optimisticMessages);
+    const insertLocalOptimisticMessages = vi.fn((_requests: ChatMessageRequest[]) => optimisticMessages);
     const sendMessageBatchWithLocalOptimistic = vi.fn(async () => [
       { ...createMessage(41), messageType: MessageType.IMG },
       { ...createMessage(42), messageType: MessageType.SOUND },

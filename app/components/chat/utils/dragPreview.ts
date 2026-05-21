@@ -2,14 +2,14 @@ const CHAT_DRAG_PREVIEW_SELECTOR = "[data-tuanchat-drag-preview=\"true\"]";
 
 export type DragPreviewVariant = "message" | "room" | "doc" | "category" | "material" | "clue";
 
-interface SetDragPreviewParams {
+type SetDragPreviewParams = {
   dataTransfer: DataTransfer;
   title: string;
   subtitle?: string;
   variant: DragPreviewVariant;
   count?: number;
   sourceElement?: HTMLElement | null;
-}
+};
 
 const variantLabels: Record<DragPreviewVariant, string> = {
   message: "消息",
@@ -40,7 +40,7 @@ function sanitizeClonedPreview(preview: HTMLElement) {
   preview
     .querySelectorAll("[data-message-drag-handle=\"true\"], [data-message-insert-action=\"true\"]")
     .forEach(element => element.remove());
-  preview.querySelectorAll<HTMLElement>("*").forEach(element => {
+  preview.querySelectorAll<HTMLElement>("*").forEach((element) => {
     element.style.pointerEvents = "none";
   });
 }

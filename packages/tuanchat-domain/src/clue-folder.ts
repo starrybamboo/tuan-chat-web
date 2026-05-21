@@ -1,6 +1,7 @@
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
+
 import { MESSAGE_TYPE } from "./messageType";
 
 export type ClueFolderScope = "private" | "public";

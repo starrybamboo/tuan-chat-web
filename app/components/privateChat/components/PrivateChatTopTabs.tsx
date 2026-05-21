@@ -1,5 +1,5 @@
-import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 import type React from "react";
+import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
 import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 import { motion } from "motion/react";
@@ -24,7 +24,7 @@ export default function PrivateChatTopTabs() {
 
   return (
     <nav className="flex shrink-0 flex-col gap-1 border-b border-gray-300 px-2 py-2 dark:border-gray-700" aria-label="私信导航">
-      {tabs.map(tab => {
+      {tabs.map((tab) => {
         const isActive = privateChatTab === tab.id;
         return (
           <button

@@ -3,8 +3,8 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { FileTextIcon } from "@phosphor-icons/react";
-import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 

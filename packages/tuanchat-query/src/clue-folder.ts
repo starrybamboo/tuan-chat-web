@@ -21,7 +21,7 @@ import { getAllRoomMessagesQueryKey } from "./chat";
 import { getRoomMembersQueryKey } from "./members";
 import { getUserMessageSessionsQueryKey } from "./message-sessions";
 import { upsertRoomMessagesListData } from "./room-message";
-import { getUserRoomsQueryKey, fetchUserRoomsWithCache, upsertUserRoomQueryData } from "./spaces";
+import { fetchUserRoomsWithCache, getUserRoomsQueryKey, upsertUserRoomQueryData } from "./spaces";
 
 type ClueFolderClient = Pick<TuanChat, "chatController" | "roomController" | "spaceController">;
 
