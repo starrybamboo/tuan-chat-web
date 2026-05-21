@@ -71,6 +71,7 @@ import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/feat
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
+import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 import { RoleSwitchSheet } from "@/features/roles/RoleSwitchSheet";
 import { useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
@@ -554,11 +555,7 @@ export default function ChatShell() {
         }
         await editMessage({
           originalMessage: editingMessage,
-          updatedMessage: {
-            ...editingMessage,
-            content: trimmedContent,
-            updateTime: new Date().toISOString(),
-          },
+          updatedMessage: buildEditedRoomMessage(editingMessage, trimmedContent),
         });
         setEditingMessage(null);
         return;
