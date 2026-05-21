@@ -87,12 +87,12 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
           </div>
         );
       }
-      return <div className="whitespace-pre-wrap break-words">[视频]</div>;
+      return <div className="whitespace-pre-wrap break-words text-pretty">[视频]</div>;
     }
 
     return (
       <div
-        className="whitespace-pre-wrap break-words"
+        className="whitespace-pre-wrap break-words text-pretty"
         data-message-id={message.messageId}
       >
         {message.content}
@@ -103,7 +103,7 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
   const isMediaMessage = message.messageType === 2 || message.messageType === 14;
 
   const getMessageBubbleClass = () => {
-    const baseClass = "rounded-2xl max-w-[min(70%,680px)] text-sm leading-6";
+    const baseClass = "max-w-full rounded-2xl text-sm leading-6";
 
     if (isMediaMessage) {
       return baseClass;
@@ -132,7 +132,7 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
           : <MessageAvatar name={message.senderUsername} fileId={message.senderAvatarFileId} />
       )}
 
-      <div className={`flex max-w-[min(70%,680px)] flex-col ${isOwn ? "items-end" : "items-start"}`}>
+      <div className={`flex max-w-[min(70%,680px)] min-w-0 flex-col ${isOwn ? "items-end" : "items-start"}`}>
         <div className={getMessageBubbleClass()}>
           {renderMessageContent()}
         </div>
