@@ -553,9 +553,12 @@ export default function ChatShell() {
           throw new Error("编辑内容不能为空。");
         }
         await editMessage({
-          ...editingMessage,
-          content: trimmedContent,
-          updateTime: new Date().toISOString(),
+          originalMessage: editingMessage,
+          updatedMessage: {
+            ...editingMessage,
+            content: trimmedContent,
+            updateTime: new Date().toISOString(),
+          },
         });
         setEditingMessage(null);
         return;

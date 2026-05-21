@@ -225,9 +225,12 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
     }
     try {
       await editMessage({
-        ...editingMessage,
-        content,
-        updateTime: new Date().toISOString(),
+        originalMessage: editingMessage,
+        updatedMessage: {
+          ...editingMessage,
+          content,
+          updateTime: new Date().toISOString(),
+        },
       });
       closeEditor();
     }
