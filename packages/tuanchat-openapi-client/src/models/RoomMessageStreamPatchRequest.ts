@@ -1,0 +1,15 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+import type { RoomMessageStreamPatchOperation } from './RoomMessageStreamPatchOperation';
+/**
+ * 房间消息批量变更请求
+ */
+export type RoomMessageStreamPatchRequest = {
+    /**
+     * 消息级变更操作列表
+     */
+    operations: Array<RoomMessageStreamPatchOperation>;
+};
+

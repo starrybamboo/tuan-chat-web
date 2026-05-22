@@ -2,10 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ThreadRootExtra = {
-    /**
-     * Thread 标题
-     */
-    title: string;
+export type Snapshot = {
+    messageType: number;
+    content?: string;
+    extra?: Record<string, any>;
 };
 

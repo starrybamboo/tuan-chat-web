@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { RoomDndMapState } from './RoomDndMapState';
 /**
  * Room对象
  */
@@ -50,6 +51,7 @@ export type Room = {
      * 其他信息
      */
     extra?: string;
+    dndMap?: RoomDndMapState;
     createTime?: string;
     updateTime?: string;
     /**
