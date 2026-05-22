@@ -100,7 +100,13 @@ const SelectionToolbar = memo(({
   return (
     <AnimatePresence>
       {isSelecting && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 flex justify-center px-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
+          <motion.div
+            className="max-w-[calc(100%-2rem)] rounded-md border border-primary/20 bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
+            {...floatingListItemMotionProps(0)}
+          >
+            多选已开启：Ctrl 点选增删，Shift 连选。
+          </motion.div>
           <motion.div
             className="pointer-events-auto flex max-w-[calc(100%-2rem)] items-center gap-2 overflow-hidden rounded-md border border-primary/20 bg-base-100/92 px-2 py-2 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
             {...floatingPanelMotionProps}

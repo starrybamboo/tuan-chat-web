@@ -1,7 +1,4 @@
-import type { CSSProperties } from "react";
-
-import { useCallback, useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { useCallback, useEffect, useState } from "react";
 
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
@@ -11,22 +8,9 @@ type SelectMessageRangeParams = {
   preserveExisting?: boolean;
 };
 
-const SELECTION_SHORTCUTS_TOAST_ID = "chat-selection-shortcuts";
-const SELECTION_SHORTCUTS_TOAST_TEXT = "多选已开启：Ctrl 点选增删，Shift 连选。";
-const SELECTION_SHORTCUTS_TOAST_STYLE = {
-  backdropFilter: "blur(14px)",
-  background: "hsl(var(--b1) / 0.94)",
-  border: "1px solid hsl(var(--p) / 0.2)",
-  borderRadius: "0.375rem",
-  boxShadow: "0 18px 48px hsl(var(--p) / 0.14)",
-  color: "hsl(var(--bc))",
-  marginBottom: "4.75rem",
-} satisfies CSSProperties;
-
 export default function useChatFrameSelection() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorMessageId, setSelectionAnchorMessageId] = useState<number | null>(null);
-  const wasSelectingRef = useRef(false);
   const isMultiSelecting = useRoomUiStore(state => state.isMultiSelecting);
   const setMultiSelecting = useRoomUiStore(state => state.setMultiSelecting);
   const isSelecting = isMultiSelecting || selectedMessageIds.size > 0;
@@ -46,19 +30,6 @@ export default function useChatFrameSelection() {
       queueMicrotask(() => setSelectionAnchorMessageId(null));
     }
   }, [selectedMessageIds.size]);
-
-  useEffect(() => {
-    const wasSelecting = wasSelectingRef.current;
-    wasSelectingRef.current = isSelecting;
-    if (!wasSelecting && isSelecting) {
-      toast(SELECTION_SHORTCUTS_TOAST_TEXT, {
-        id: SELECTION_SHORTCUTS_TOAST_ID,
-        duration: 3200,
-        position: "bottom-center",
-        style: SELECTION_SHORTCUTS_TOAST_STYLE,
-      });
-    }
-  }, [isSelecting]);
 
   const toggleMessageSelection = useCallback((messageId: number) => {
     setSelectionAnchorMessageId(messageId);
