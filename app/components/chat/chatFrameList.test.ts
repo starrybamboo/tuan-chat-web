@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessageResponse } from "../../../api";
 
 import {
-  canReplyToSelection,
   resolveChatFrameFollowOutput,
   resolveChatFrameInitialTopMostItemIndex,
   resolveChatFrameSeenIndexFromBounds,
@@ -106,13 +105,5 @@ describe("resolveChatFrameSeenIndexFromBounds", () => {
 
   it("缺少边界信息时回退到 fallback", () => {
     expect(resolveChatFrameSeenIndexFromBounds([], Number.NaN, 7)).toBe(7);
-  });
-});
-
-describe("多选回复启用条件", () => {
-  it("仅在恰好选中一条消息时允许回复", () => {
-    expect(canReplyToSelection(0)).toBe(false);
-    expect(canReplyToSelection(1)).toBe(true);
-    expect(canReplyToSelection(2)).toBe(false);
   });
 });

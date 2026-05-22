@@ -1,11 +1,12 @@
 import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
-import { Check, X } from "@phosphor-icons/react";
+import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { scrollToBottomButtonMotionProps, unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
+import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function Header() {
@@ -16,85 +17,135 @@ function Header() {
   );
 }
 
-/** 多选模式下仅允许对单条已选消息进入回复态。 */
-export function canReplyToSelection(selectedCount: number): boolean {
-  return selectedCount === 1;
-}
-
 interface SelectionToolbarProps {
   selectedCount: number;
   totalCount: number;
   isSelecting: boolean;
-  isSpaceOwner: boolean;
   onCancel: () => void;
-  onReply: () => void;
   onSelectAll: () => void;
   onRegexFilter: () => void;
   onExportFile: () => void;
   onExportPremiere?: () => void;
   onExportImage: () => void;
   onForward: () => void;
-  onBatchDelete: () => void;
 }
 
 const SelectionToolbar = memo(({
   selectedCount,
   totalCount,
   isSelecting,
-  isSpaceOwner,
   onCancel,
-  onReply,
   onSelectAll,
   onRegexFilter,
   onExportFile,
   onExportPremiere,
   onExportImage,
   onForward,
-  onBatchDelete,
 }: SelectionToolbarProps) => {
-  if (!isSelecting)
-    return null;
   const hasSelection = selectedCount > 0;
-  const canReply = canReplyToSelection(selectedCount);
   const canSelectAll = totalCount > 0;
+  const actions = [
+    {
+      key: "select-all",
+      label: "全选",
+      icon: SelectionAll,
+      onClick: onSelectAll,
+      disabled: !canSelectAll,
+      className: "btn-ghost",
+    },
+    {
+      key: "filter",
+      label: "筛选",
+      icon: Funnel,
+      onClick: onRegexFilter,
+      disabled: !canSelectAll,
+      className: "btn-ghost",
+    },
+    {
+      key: "export-file",
+      label: "导出成文件",
+      icon: FileArrowDown,
+      onClick: onExportFile,
+      disabled: !hasSelection,
+      className: "btn-accent",
+    },
+    ...(onExportPremiere
+      ? [{
+          key: "export-premiere",
+          label: "生成 PR 文件",
+          icon: FilmSlate,
+          onClick: onExportPremiere,
+          disabled: !hasSelection,
+          className: "btn-accent",
+        }]
+      : []),
+    {
+      key: "export-image",
+      label: "生成图片",
+      icon: ImageSquare,
+      onClick: onExportImage,
+      disabled: !hasSelection,
+      className: "btn-secondary",
+    },
+    {
+      key: "forward",
+      label: "转发",
+      icon: ShareFat,
+      onClick: onForward,
+      disabled: !hasSelection,
+      className: "btn-info",
+    },
+  ];
 
   return (
-    <div className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-15 flex justify-between items-center rounded">
-      <span>{`已选择${selectedCount} 条消息`}</span>
-      <div className="gap-2 flex flex-wrap justify-end">
-        <button className="btn btn-sm btn-primary" onClick={onReply} type="button" disabled={!canReply}>
-          回复
-        </button>
-        <button className="btn btn-sm" onClick={onSelectAll} type="button" disabled={!canSelectAll}>
-          全选
-        </button>
-        <button className="btn btn-sm" onClick={onRegexFilter} type="button" disabled={!canSelectAll}>
-          筛选
-        </button>
-        <button className="btn btn-sm" onClick={onCancel} type="button">
-          取消
-        </button>
-        <button className="btn btn-sm btn-accent" onClick={onExportFile} type="button" disabled={!hasSelection}>
-          导出成文件
-        </button>
-        {onExportPremiere && (
-          <button className="btn btn-sm btn-accent" onClick={onExportPremiere} type="button" disabled={!hasSelection}>
-            生成 PR 文件
-          </button>
-        )}
-        <button className="btn btn-sm btn-secondary" onClick={onExportImage} type="button" disabled={!hasSelection}>
-          生成图片
-        </button>
-        <button className="btn btn-sm btn-info" onClick={onForward} type="button" disabled={!hasSelection}>
-          转发
-        </button>
-        {isSpaceOwner && (
-          <button className="btn btn-sm btn-error" onClick={onBatchDelete} type="button" disabled={!hasSelection}>
-            删除
-          </button>
-        )}
-      </div>
-    </div>
+    <AnimatePresence>
+      {isSelecting && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 flex justify-center px-4">
+          <motion.div
+            className="pointer-events-auto flex max-w-[calc(100%-2rem)] items-center gap-2 overflow-hidden rounded-md border border-primary/20 bg-base-100/92 px-2 py-2 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
+            {...floatingPanelMotionProps}
+          >
+            <motion.div
+              className="flex shrink-0 items-center gap-2 border-r border-base-content/10 px-2 pr-3"
+              {...floatingListItemMotionProps(0)}
+            >
+              <span className="size-2 rounded-full bg-primary shadow-[0_0_18px_hsl(var(--p)/0.75)]" />
+              <span className="whitespace-nowrap font-medium">{`已选择 ${selectedCount} 条`}</span>
+            </motion.div>
+            <div className="flex min-w-0 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {actions.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <motion.button
+                    key={action.key}
+                    type="button"
+                    className={`btn btn-sm h-8 min-h-0 shrink-0 gap-1.5 rounded-md px-2.5 ${action.className}`}
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                    title={action.label}
+                    aria-label={action.label}
+                    {...floatingListItemMotionProps(index + 1)}
+                  >
+                    <Icon className="size-4" />
+                    <span>{action.label}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+            <motion.button
+              type="button"
+              className="btn btn-ghost btn-sm btn-circle h-8 min-h-0 w-8 shrink-0 rounded-md"
+              onClick={onCancel}
+              title="取消"
+              aria-label="取消多选"
+              {...floatingListItemMotionProps(actions.length + 1)}
+            >
+              <X className="size-4" />
+            </motion.button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 });
 
@@ -279,7 +330,6 @@ interface ChatFrameListProps {
   onContextMenu: (e: React.MouseEvent) => void;
   selectedMessageIds: Set<number>;
   isSelecting: boolean;
-  onReplySelection: () => void;
   onSelectAll: () => void;
   onRegexFilter: () => void;
   onExportFile: () => void;
@@ -287,8 +337,6 @@ interface ChatFrameListProps {
   onCancelSelection: () => void;
   setIsExportImageWindowOpen: (open: boolean) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
-  handleBatchDelete: () => void;
-  isSpaceOwner: boolean;
   galPatchProposalToolbar?: GalPatchProposalToolbarProps | null;
 }
 
@@ -373,7 +421,6 @@ export default function ChatFrameList({
   onContextMenu,
   selectedMessageIds,
   isSelecting,
-  onReplySelection,
   onSelectAll,
   onRegexFilter,
   onExportFile,
@@ -381,8 +428,6 @@ export default function ChatFrameList({
   onCancelSelection,
   setIsExportImageWindowOpen,
   setIsForwardWindowOpen,
-  handleBatchDelete,
-  isSpaceOwner,
   galPatchProposalToolbar,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
@@ -444,16 +489,13 @@ export default function ChatFrameList({
           selectedCount={selectedMessageIds.size}
           totalCount={historyMessages.length}
           isSelecting={isSelecting}
-          isSpaceOwner={isSpaceOwner}
           onCancel={onCancelSelection}
-          onReply={onReplySelection}
           onSelectAll={onSelectAll}
           onRegexFilter={onRegexFilter}
           onExportFile={onExportFile}
           onExportPremiere={onExportPremiere}
           onExportImage={() => setIsExportImageWindowOpen(true)}
           onForward={() => setIsForwardWindowOpen(true)}
-          onBatchDelete={handleBatchDelete}
         />
         <div className="h-full flex-1">
           <Virtuoso

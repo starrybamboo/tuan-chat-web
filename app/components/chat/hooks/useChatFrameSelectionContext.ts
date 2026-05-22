@@ -20,7 +20,7 @@ export default function useChatFrameSelectionContext({
   orderedMessageIds,
   onJumpToWebGAL,
 }: UseChatFrameSelectionContextParams) {
-  const selection = useChatFrameSelection({ onDeleteMessage: deleteMessage });
+  const selection = useChatFrameSelection();
   const { contextMenu, closeContextMenu, handleContextMenu } = useChatFrameContextMenu();
 
   const {

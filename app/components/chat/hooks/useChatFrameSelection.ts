@@ -3,10 +3,6 @@ import toast from "react-hot-toast";
 
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
-type UseChatFrameSelectionParams = {
-  onDeleteMessage: (messageId: number) => void;
-};
-
 type SelectMessageRangeParams = {
   orderedMessageIds: number[];
   targetMessageId: number;
@@ -15,7 +11,7 @@ type SelectMessageRangeParams = {
 
 const SELECTION_SHORTCUTS_TOAST_ID = "chat-selection-shortcuts";
 
-export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameSelectionParams) {
+export default function useChatFrameSelection() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorMessageId, setSelectionAnchorMessageId] = useState<number | null>(null);
   const wasSelectingRef = useRef(false);
@@ -117,13 +113,6 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
     updateSelectedMessageIds(new Set());
   }, [setMultiSelecting, updateSelectedMessageIds]);
 
-  const handleBatchDelete = useCallback(() => {
-    for (const messageId of selectedMessageIds) {
-      onDeleteMessage(messageId);
-    }
-    exitSelection();
-  }, [exitSelection, onDeleteMessage, selectedMessageIds]);
-
   const handleEditMessage = useCallback((messageId: number) => {
     const target = document.querySelector(
       `[data-message-id="${messageId}"] .editable-field`,
@@ -145,7 +134,6 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
     exitSelection,
     toggleMessageSelection,
     selectMessageRange,
-    handleBatchDelete,
     handleEditMessage,
   };
 }
