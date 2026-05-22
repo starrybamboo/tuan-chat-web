@@ -104,6 +104,11 @@ export function mergeRoomMessages(
     messageList?.forEach((item) => {
       const messageId = getMessageId(item);
       if (messageId !== null) {
+        // 删除态一旦出现，就不要再被后续的未删除快照覆盖回去。
+        const existing = messageMap.get(messageId);
+        if (existing?.message?.status === 1) {
+          return;
+        }
         messageMap.set(messageId, item);
       }
     });
