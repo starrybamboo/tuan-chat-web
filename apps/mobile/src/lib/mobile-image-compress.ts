@@ -1,6 +1,6 @@
 import { getInfoAsync } from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
-import { Platform } from "react-native";
+import { Image, Platform } from "react-native";
 
 export type ImageCompressProfile = {
   maxWidthOrHeight: number;
@@ -17,6 +17,40 @@ export type ImageDerivativeResult = {
   uri: string;
   size: number;
 };
+
+type ImageDimensions = {
+  height: number;
+  width: number;
+};
+
+function resolveImageDimensions(uri: string): Promise<ImageDimensions> {
+  return new Promise((resolve, reject) => {
+    Image.getSize(
+      uri,
+      (width, height) => resolve({ width, height }),
+      reject,
+    );
+  });
+}
+
+function resolveResizeTarget(
+  source: ImageDimensions,
+  maxWidthOrHeight: number,
+): { height: number; width: number } | null {
+  const longestEdge = Math.max(source.width, source.height);
+  if (!Number.isFinite(longestEdge) || longestEdge <= 0) {
+    throw new Error("读取原图尺寸失败。");
+  }
+  if (longestEdge <= maxWidthOrHeight) {
+    return null;
+  }
+
+  const scale = maxWidthOrHeight / longestEdge;
+  return {
+    width: Math.max(1, Math.round(source.width * scale)),
+    height: Math.max(1, Math.round(source.height * scale)),
+  };
+}
 
 async function getFileSize(uri: string): Promise<number> {
   if (Platform.OS === "web") {
@@ -36,13 +70,15 @@ export async function compressImageToWebp(
   profile: ImageCompressProfile,
 ): Promise<ImageDerivativeResult> {
   const maxRounds = 4;
+  const sourceDimensions = await resolveImageDimensions(uri);
   let currentQuality = profile.quality;
   let currentMaxDimension = profile.maxWidthOrHeight;
 
   for (let round = 0; round < maxRounds; round++) {
+    const resizeTarget = resolveResizeTarget(sourceDimensions, currentMaxDimension);
     const result = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: currentMaxDimension } }],
+      resizeTarget ? [{ resize: resizeTarget }] : [],
       { compress: currentQuality, format: ImageManipulator.SaveFormat.WEBP },
     );
 
@@ -55,9 +91,13 @@ export async function compressImageToWebp(
     currentMaxDimension = Math.round(currentMaxDimension * 0.75);
   }
 
+  const fallbackResizeTarget = resolveResizeTarget(
+    sourceDimensions,
+    Math.round(profile.maxWidthOrHeight * 0.5),
+  );
   const fallback = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: Math.round(profile.maxWidthOrHeight * 0.5) } }],
+    fallbackResizeTarget ? [{ resize: fallbackResizeTarget }] : [],
     { compress: 0.2, format: ImageManipulator.SaveFormat.WEBP },
   );
   const fallbackSize = await getFileSize(fallback.uri);
