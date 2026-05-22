@@ -8,6 +8,13 @@ type SelectMessageRangeParams = {
   preserveExisting?: boolean;
 };
 
+function isEditableKeyboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return target.isContentEditable || Boolean(target.closest("input, textarea, select, [contenteditable=\"true\"]"));
+}
+
 export default function useChatFrameSelection() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorMessageId, setSelectionAnchorMessageId] = useState<number | null>(null);
@@ -30,6 +37,41 @@ export default function useChatFrameSelection() {
       queueMicrotask(() => setSelectionAnchorMessageId(null));
     }
   }, [selectedMessageIds.size]);
+
+  useEffect(() => {
+    const shouldHandleSelectionModifier = (event: KeyboardEvent) => {
+      return !event.isComposing && (event.key === "Control" || event.key === "Meta");
+    };
+
+    const handleModifierDown = (event: KeyboardEvent) => {
+      if (!shouldHandleSelectionModifier(event) || selectedMessageIds.size > 0 || isEditableKeyboardTarget(event.target)) {
+        return;
+      }
+      setMultiSelecting(true);
+    };
+
+    const releasePendingSelection = () => {
+      if (selectedMessageIds.size === 0) {
+        setMultiSelecting(false);
+      }
+    };
+
+    const handleModifierUp = (event: KeyboardEvent) => {
+      if (!shouldHandleSelectionModifier(event)) {
+        return;
+      }
+      releasePendingSelection();
+    };
+
+    window.addEventListener("keydown", handleModifierDown);
+    window.addEventListener("keyup", handleModifierUp);
+    window.addEventListener("blur", releasePendingSelection);
+    return () => {
+      window.removeEventListener("keydown", handleModifierDown);
+      window.removeEventListener("keyup", handleModifierUp);
+      window.removeEventListener("blur", releasePendingSelection);
+    };
+  }, [selectedMessageIds.size, setMultiSelecting]);
 
   const toggleMessageSelection = useCallback((messageId: number) => {
     setSelectionAnchorMessageId(messageId);
