@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type { VirtuosoHandle } from "react-virtuoso";
+import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
 
 import { useCallback, useEffect, useRef } from "react";
 
@@ -81,6 +81,17 @@ export function resolveShouldAutoScrollAfterHistoryLoad({
   return isAtBottom;
 }
 
+export function resolveChatFrameScrollToBottomLocation(messageIndex: number): FlatIndexLocationWithAlign | number {
+  if (messageIndex < 0) {
+    return 0;
+  }
+  return {
+    align: "end",
+    behavior: "auto",
+    index: messageIndex,
+  };
+}
+
 export default function useChatFrameScrollState({
   enableUnreadIndicator,
   historyMessages,
@@ -156,7 +167,9 @@ export default function useChatFrameScrollState({
   }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
 
   const scrollToBottom = useCallback(() => {
-    virtuosoRef.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
+    virtuosoRef.current?.scrollToIndex(
+      resolveChatFrameScrollToBottomLocation(messageIndexToVirtuosoIndex(historyMessages.length - 1)),
+    );
     if (enableUnreadIndicator) {
       updateLastReadSyncId(roomId);
     }

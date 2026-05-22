@@ -1,8 +1,8 @@
-import type { VirtuosoHandle } from "react-virtuoso";
+import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
 import { Check, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { scrollToBottomButtonMotionProps, unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
@@ -97,6 +97,8 @@ const SelectionToolbar = memo(({
     </div>
   );
 });
+
+const CHAT_COMPOSER_ROOT_SELECTOR = "[data-chat-composer-root=\"true\"]";
 
 interface UnreadIndicatorProps {
   enabled: boolean;
@@ -297,6 +299,63 @@ export function resolveChatFrameFollowOutput(isAtBottom: boolean): boolean {
   return isAtBottom;
 }
 
+/**
+ * 以渲染判定线为准：选取最后一个“底部已经越过该线”的消息。
+ * 如果当前还没有任何消息底部越过这条线，就回退到当前可见范围的起点。
+ */
+export function resolveChatFrameSeenIndexFromBounds(
+  itemBounds: Array<{ bottom: number; index: number }>,
+  lineBottom: number,
+  fallbackIndex: number,
+): number {
+  const safeFallbackIndex = Number.isFinite(fallbackIndex)
+    ? Math.max(0, Math.floor(fallbackIndex))
+    : 0;
+  if (!Number.isFinite(lineBottom) || itemBounds.length === 0) {
+    return safeFallbackIndex;
+  }
+
+  let seenIndex = safeFallbackIndex;
+  let hasAnyItem = false;
+  for (const item of itemBounds) {
+    if (!Number.isFinite(item.index) || !Number.isFinite(item.bottom)) {
+      continue;
+    }
+    const itemIndex = Math.max(0, Math.floor(item.index));
+    if (!hasAnyItem) {
+      seenIndex = itemIndex;
+      hasAnyItem = true;
+    }
+    if (item.bottom <= lineBottom + 0.5) {
+      seenIndex = itemIndex;
+    }
+  }
+  return seenIndex;
+}
+
+export function resolveChatFrameRenderLineBottom(scroller: HTMLElement): number {
+  const composer = scroller
+    .closest("[data-tc-doc-ref-drop-zone]")
+    ?.querySelector<HTMLElement>(CHAT_COMPOSER_ROOT_SELECTOR)
+    ?? document.querySelector<HTMLElement>(CHAT_COMPOSER_ROOT_SELECTOR);
+
+  if (composer) {
+    return composer.getBoundingClientRect().top;
+  }
+  return scroller.getBoundingClientRect().bottom;
+}
+
+export function resolveChatFrameInitialTopMostItemIndex(historyLength: number): FlatIndexLocationWithAlign | number {
+  if (historyLength <= 0) {
+    return 0;
+  }
+  return {
+    align: "end",
+    behavior: "auto",
+    index: "LAST",
+  };
+}
+
 export default function ChatFrameList({
   historyMessages,
   virtuosoRef,
@@ -329,6 +388,49 @@ export default function ChatFrameList({
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const pendingAnchorSyncRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingAnchorSyncRef.current !== null && typeof window !== "undefined") {
+        window.cancelAnimationFrame(pendingAnchorSyncRef.current);
+      }
+      pendingAnchorSyncRef.current = null;
+    };
+  }, []);
+
+  const syncCurrentVirtuosoIndex = useCallback((fallbackIndex: number) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      setCurrentVirtuosoIndex(Math.max(0, Math.floor(fallbackIndex)));
+      return;
+    }
+
+    if (pendingAnchorSyncRef.current !== null && typeof window !== "undefined") {
+      window.cancelAnimationFrame(pendingAnchorSyncRef.current);
+      pendingAnchorSyncRef.current = null;
+    }
+
+    const runSync = () => {
+      pendingAnchorSyncRef.current = null;
+      const itemList = scroller.querySelector<HTMLElement>("[data-testid=\"virtuoso-item-list\"]");
+      const itemBounds = itemList
+        ? Array.from(itemList.querySelectorAll<HTMLElement>("[data-index]")).map(item => ({
+            index: Number(item.dataset.index),
+            bottom: item.getBoundingClientRect().bottom,
+          }))
+        : [];
+      const lineBottom = resolveChatFrameRenderLineBottom(scroller);
+      setCurrentVirtuosoIndex(resolveChatFrameSeenIndexFromBounds(itemBounds, lineBottom, fallbackIndex));
+    };
+
+    if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+      runSync();
+      return;
+    }
+
+    pendingAnchorSyncRef.current = window.requestAnimationFrame(runSync);
+  }, [scrollerRef, setCurrentVirtuosoIndex]);
 
   return (
     <>
@@ -357,7 +459,7 @@ export default function ChatFrameList({
           <Virtuoso
             data={historyMessages}
             firstItemIndex={0}
-            initialTopMostItemIndex={historyMessages.length - 1}
+            initialTopMostItemIndex={resolveChatFrameInitialTopMostItemIndex(historyMessages.length)}
             followOutput={resolveChatFrameFollowOutput}
             // 媒体消息（音频/视频）离开视区后若立即被回收，会导致播放状态丢失或重新加载。
             // 适当增加 overscan，减少短距离滚动造成的卸载重建。
@@ -371,7 +473,7 @@ export default function ChatFrameList({
               isAtTopRef,
             }}
             rangeChanged={({ startIndex, endIndex }) => {
-              setCurrentVirtuosoIndex(endIndex);
+              syncCurrentVirtuosoIndex(startIndex);
               onVisibleRangeChange?.({ startIndex, endIndex });
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
