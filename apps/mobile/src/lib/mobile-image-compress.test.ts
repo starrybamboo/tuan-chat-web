@@ -64,4 +64,31 @@ describe("mobile-image-compress", () => {
       { compress: IMAGE_COMPRESS_PROFILES.low.quality, format: "webp" },
     );
   });
+
+  it("uses the previous derivative as the source for the next compression round", async () => {
+    getSizeMock.mockImplementation((uri: string, onSuccess: (width: number, height: number) => void) => {
+      onSuccess(uri.includes("round-1") ? 160 : 720, uri.includes("round-1") ? 160 : 1280);
+    });
+    manipulateAsyncMock
+      .mockResolvedValueOnce({ uri: "file:///round-1.webp" })
+      .mockResolvedValueOnce({ uri: "file:///round-2.webp" });
+    getInfoAsyncMock
+      .mockResolvedValueOnce({ exists: true, size: 120 * 1024 })
+      .mockResolvedValueOnce({ exists: true, size: 30 * 1024 });
+
+    await compressImageToWebp("file:///source.jpg", IMAGE_COMPRESS_PROFILES.low);
+
+    expect(manipulateAsyncMock).toHaveBeenNthCalledWith(
+      1,
+      "file:///source.jpg",
+      [{ resize: { width: 113, height: 200 } }],
+      { compress: IMAGE_COMPRESS_PROFILES.low.quality, format: "webp" },
+    );
+    expect(manipulateAsyncMock).toHaveBeenNthCalledWith(
+      2,
+      "file:///round-1.webp",
+      [{ resize: { width: 150, height: 150 } }],
+      expect.objectContaining({ compress: expect.any(Number), format: "webp" }),
+    );
+  });
 });

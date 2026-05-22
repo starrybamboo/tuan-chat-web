@@ -69,15 +69,16 @@ export async function compressImageToWebp(
   uri: string,
   profile: ImageCompressProfile,
 ): Promise<ImageDerivativeResult> {
-  const maxRounds = 4;
-  const sourceDimensions = await resolveImageDimensions(uri);
+  const maxRounds = 5;
+  let currentUri = uri;
   let currentQuality = profile.quality;
   let currentMaxDimension = profile.maxWidthOrHeight;
 
   for (let round = 0; round < maxRounds; round++) {
+    const sourceDimensions = await resolveImageDimensions(currentUri);
     const resizeTarget = resolveResizeTarget(sourceDimensions, currentMaxDimension);
     const result = await ImageManipulator.manipulateAsync(
-      uri,
+      currentUri,
       resizeTarget ? [{ resize: resizeTarget }] : [],
       { compress: currentQuality, format: ImageManipulator.SaveFormat.WEBP },
     );
@@ -87,16 +88,17 @@ export async function compressImageToWebp(
       return { uri: result.uri, size };
     }
 
+    currentUri = result.uri;
     currentQuality *= 0.65;
     currentMaxDimension = Math.round(currentMaxDimension * 0.75);
   }
 
   const fallbackResizeTarget = resolveResizeTarget(
-    sourceDimensions,
+    await resolveImageDimensions(currentUri),
     Math.round(profile.maxWidthOrHeight * 0.5),
   );
   const fallback = await ImageManipulator.manipulateAsync(
-    uri,
+    currentUri,
     fallbackResizeTarget ? [{ resize: fallbackResizeTarget }] : [],
     { compress: 0.2, format: ImageManipulator.SaveFormat.WEBP },
   );
