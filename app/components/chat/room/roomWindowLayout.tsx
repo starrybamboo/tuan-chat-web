@@ -18,10 +18,9 @@ type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
 const LazyPixiOverlay = React.lazy(() => import("@/components/chat/shared/components/pixiOverlay"));
 
 const roomContentSwitchTransition = {
-  type: "spring",
-  stiffness: 420,
-  damping: 36,
-  mass: 0.58,
+  type: "tween",
+  duration: 0.12,
+  ease: "easeOut",
 } as const;
 
 const roomContentSwitchVariants = {
