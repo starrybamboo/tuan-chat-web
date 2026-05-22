@@ -1,5 +1,6 @@
 import { useLocation, useRouter } from "@tanstack/react-router";
 import React from "react";
+import { appendPathQuery } from "@/utils/pathQuery";
 
 /**
  * 用于便捷的改变url中的searchParam
@@ -32,8 +33,7 @@ export default function useSearchParamsState<T>(key: string, defaultValue: T, sh
     else {
       prev.set(key, nextSerialized as string);
     }
-    const nextQuery = prev.toString();
-    const nextPath = `${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`;
+    const nextPath = appendPathQuery(location.pathname, prev, location.hash);
     router.history.replace(nextPath);
   };
   return [value, setValue] as const;

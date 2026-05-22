@@ -7,6 +7,7 @@ import {
   verifyEmailVerificationCode,
 } from "@/utils/auth/accountSecurityApi";
 import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
+import { appendPathQuery } from "@/utils/pathQuery";
 import { AlertMessage } from "./AlertMessage";
 import { runAuthSuccessFlow } from "./authSuccessFlow";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
@@ -82,8 +83,7 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const redirectParam = searchParams.get("redirect");
 
   const replaceSearchParams = useCallback((nextSearchParams: URLSearchParams) => {
-    const nextQuery = nextSearchParams.toString();
-    router.history.replace(`${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`);
+    router.history.replace(appendPathQuery(location.pathname, nextSearchParams, location.hash));
   }, [location.hash, location.pathname, router]);
 
   const clearPendingTimeouts = useCallback(() => {

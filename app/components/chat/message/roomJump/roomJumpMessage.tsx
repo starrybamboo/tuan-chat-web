@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { imageLowUrl } from "@/utils/mediaUrl";
+import { appendPathQuery } from "@/utils/pathQuery";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 
 function normalizeName(value: string | undefined): string {
@@ -144,9 +145,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
       return;
     }
 
-    const query = searchParams.toString();
-    const targetPath = `/chat/${targetSpaceId}/${resolvedTarget.roomId}${query ? `?${query}` : ""}`;
-    router.history.push(targetPath);
+    router.history.push(appendPathQuery(`/chat/${targetSpaceId}/${resolvedTarget.roomId}`, searchParams));
   }, [currentRoomId, currentSpaceId, disabledReason, resolvedTarget.roomId, resolvedTarget.reason, router, searchParams, targetSpaceId]);
 
   return (
