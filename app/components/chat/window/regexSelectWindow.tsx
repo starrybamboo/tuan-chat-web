@@ -1,255 +1,247 @@
 import type { ChatMessageResponse } from "../../../../api";
-import { useCallback, useMemo, useState } from "react";
+import type {
+  MessageDisplayFilterAction,
+  MessageDisplayFilterConfig,
+} from "@/components/chat/utils/messageDisplayFilter";
+
+import { Funnel, X } from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
-import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
-
-type FilterAction = "remove" | "keep";
-
-function sanitizeRegexFlags(flags: string): string {
-  const allowed = new Set(["g", "i", "m", "s", "u", "y"]);
-  const deduped: string[] = [];
-  for (const rawFlag of flags.toLowerCase()) {
-    if (!allowed.has(rawFlag))
-      continue;
-    if (deduped.includes(rawFlag))
-      continue;
-    deduped.push(rawFlag);
-  }
-  return deduped.filter(flag => flag !== "g" && flag !== "y").join("");
-}
-
-function extractSearchText(messageResponse: ChatMessageResponse): string {
-  const message = messageResponse.message;
-  const forwardMessageList = (message.extra as any)?.forwardMessage?.messageList;
-  const forwardText = Array.isArray(forwardMessageList)
-    ? forwardMessageList
-        .map(item => (typeof item?.message?.content === "string" ? item.message.content : ""))
-        .filter(Boolean)
-        .join(" ")
-    : "";
-
-  return [
-    typeof message.customRoleName === "string" ? message.customRoleName : "",
-    typeof message.content === "string" ? message.content : "",
-    forwardText,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-}
+import { createMessageDisplayFilterMatcher } from "@/components/chat/utils/messageDisplayFilter";
 
 interface RegexSelectWindowProps {
   sourceMessages: ChatMessageResponse[];
-  onApplyFilter: (matchedIds: Set<number>) => void;
+  currentFilter: MessageDisplayFilterConfig | null;
+  onChangeFilter: (filter: MessageDisplayFilterConfig | null) => void;
   onClose: () => void;
 }
 
-export default function RegexSelectWindow({ sourceMessages, onApplyFilter, onClose }: RegexSelectWindowProps) {
-  const [regexPattern, setRegexPattern] = useState("");
+const FILTER_DEBOUNCE_MS = 260;
+const DEFAULT_FILTER_CONFIG: MessageDisplayFilterConfig = {
+  action: "keep",
+  filterOutOfCharacterSpeech: false,
+  regexFlags: "i",
+  regexPattern: "",
+};
+
+export default function RegexSelectWindow({
+  sourceMessages,
+  currentFilter,
+  onChangeFilter,
+  onClose,
+}: RegexSelectWindowProps) {
+  const [regexPattern, setRegexPattern] = useState(currentFilter?.regexPattern ?? DEFAULT_FILTER_CONFIG.regexPattern);
   const regexFlags = "i";
-  const [filterOutOfCharacterSpeech, setFilterOutOfCharacterSpeech] = useState(false);
-  const [filterAction, setFilterAction] = useState<FilterAction>("remove");
+  const [filterOutOfCharacterSpeech, setFilterOutOfCharacterSpeech] = useState(
+    currentFilter?.filterOutOfCharacterSpeech ?? DEFAULT_FILTER_CONFIG.filterOutOfCharacterSpeech,
+  );
+  const [filterAction, setFilterAction] = useState<MessageDisplayFilterAction>(
+    currentFilter?.action ?? DEFAULT_FILTER_CONFIG.action,
+  );
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const filterConfig = useMemo<MessageDisplayFilterConfig>(() => ({
+    action: filterAction,
+    filterOutOfCharacterSpeech,
+    regexFlags,
+    regexPattern,
+  }), [filterAction, filterOutOfCharacterSpeech, regexPattern]);
+  const regexMatcher = useMemo(() => createMessageDisplayFilterMatcher(filterConfig), [filterConfig]);
 
-  // 正则匹配器
-  const regexMatcher = useMemo<{ test: ((s: string) => boolean) | null; error: string | null }>(() => {
-    const trimmed = regexPattern.trim();
-    if (!trimmed)
-      return { test: null, error: null };
-    try {
-      const regex = new RegExp(trimmed, sanitizeRegexFlags(regexFlags));
-      return { test: (s: string) => regex.test(s), error: null };
-    }
-    catch (e) {
-      return { test: null, error: e instanceof Error ? e.message : "正则表达式不合法" };
-    }
-  }, [regexPattern, regexFlags]);
+  const hasInput = regexPattern.trim() !== "" || filterOutOfCharacterSpeech;
+  const canApplyDraft = hasInput && (!regexMatcher.error || filterOutOfCharacterSpeech);
 
-  // 匹配的消息 ID
   const matchedMessageIds = useMemo(() => {
-    if (!regexMatcher.test && !filterOutOfCharacterSpeech)
+    if (!regexMatcher.test) {
       return [] as number[];
+    }
 
     return sourceMessages
-      .filter((msg) => {
-        const rawContent = typeof msg.message.content === "string" ? msg.message.content : "";
-        const isOutOfCharacterMatched = filterOutOfCharacterSpeech
-          ? isOutOfCharacterSpeech(rawContent)
-          : false;
-
-        const text = extractSearchText(msg);
-        const isRegexMatched = regexMatcher.test ? regexMatcher.test(text) : false;
-
-        return isOutOfCharacterMatched || isRegexMatched;
-      })
+      .filter(msg => regexMatcher.test?.(msg) ?? false)
       .map(m => m.message.messageId)
       .filter((id): id is number => typeof id === "number" && id > 0);
-  }, [filterOutOfCharacterSpeech, regexMatcher, sourceMessages]);
+  }, [regexMatcher, sourceMessages]);
 
   const matchedMessages = useMemo(() => {
     const idSet = new Set(matchedMessageIds);
     return sourceMessages.filter(m => idSet.has(m.message.messageId));
   }, [matchedMessageIds, sourceMessages]);
 
-  const preview = useMemo(() => matchedMessages.slice(0, 6), [matchedMessages]);
+  const preview = useMemo(() => matchedMessages.slice(0, 4), [matchedMessages]);
+  const visibleCount = hasInput && regexMatcher.test
+    ? (filterAction === "keep" ? matchedMessageIds.length : sourceMessages.length - matchedMessageIds.length)
+    : sourceMessages.length;
+  const hiddenCount = sourceMessages.length - visibleCount;
 
-  const hasInput = regexPattern.trim() !== "" || filterOutOfCharacterSpeech;
-  const canApply = matchedMessageIds.length > 0 && (!regexMatcher.error || filterOutOfCharacterSpeech);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
-  const handleApply = useCallback(() => {
-    if (filterAction === "remove") {
-      onApplyFilter(new Set(matchedMessageIds));
-    }
-    else {
-      const matchedSet = new Set(matchedMessageIds);
-      const nonMatchedIds = sourceMessages
-        .map(m => m.message.messageId)
-        .filter((id): id is number => typeof id === "number" && id > 0 && !matchedSet.has(id));
-      onApplyFilter(new Set(nonMatchedIds));
-    }
-    onClose();
-  }, [filterAction, matchedMessageIds, onApplyFilter, onClose, sourceMessages]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (!hasInput) {
+        onChangeFilter(null);
+        return;
+      }
+      if (canApplyDraft) {
+        onChangeFilter(filterConfig);
+      }
+    }, FILTER_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [canApplyDraft, filterConfig, hasInput, onChangeFilter]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const handleClear = useCallback(() => {
+    setRegexPattern("");
+    setFilterOutOfCharacterSpeech(false);
+    onChangeFilter(null);
+  }, [onChangeFilter]);
 
   return (
-    <div className="w-[min(92vw,600px)] p-6 space-y-4">
-      {/* 标题 */}
-      <div>
-        <h2 className="text-lg font-semibold">消息筛选</h2>
-        <p className="text-sm text-base-content/60 mt-1">
-          从已选的
-          {" "}
-          {sourceMessages.length}
-          {" "}
-          条消息中筛选
-        </p>
-      </div>
-
-      {/* 正则搜索 */}
-      <label aria-label="输入正则表达式" className="input input-bordered flex items-center gap-2 w-full">
-        <svg className="w-4 h-4 text-base-content/40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          type="text"
-          className="grow bg-transparent outline-none"
-          value={regexPattern}
-          onChange={e => setRegexPattern(e.target.value)}
-          placeholder="输入正则表达式…"
-        />
-      </label>
-
-      {/* 场外发言过滤 */}
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          className="checkbox checkbox-sm"
-          checked={filterOutOfCharacterSpeech}
-          onChange={e => setFilterOutOfCharacterSpeech(e.target.checked)}
-        />
-        <span className="text-sm">场外发言过滤</span>
-      </label>
-      <p className="-mt-2 text-xs text-base-content/50">
-        开启后，只有首字符为
-        {" "}
-        <code>(</code>
-        {" "}
-        和
-        {" "}
-        <code>（</code>
-        {" "}
-        且末字符为
-        {" "}
-        <code>)</code>
-        {" "}
-        或
-        {" "}
-        <code>）</code>
-        {" "}
-        的发言会被视为场外发言
-      </p>
-
-      {/* 正则错误提示 */}
-      {regexMatcher.error && (
-        <div className="alert alert-error py-2 px-3 text-sm">
-          <span>
-            表达式错误：
-            {regexMatcher.error}
+    <div className="pointer-events-auto w-[min(92vw,760px)] overflow-hidden rounded-md border border-primary/20 bg-base-100/94 text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl">
+      <div className="flex items-center justify-between gap-3 border-b border-base-content/10 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Funnel className="size-4" />
           </span>
-        </div>
-      )}
-
-      {/* 操作方式 */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium whitespace-nowrap">操作：</span>
-        <div className="join">
-          <button
-            type="button"
-            className={`join-item btn btn-sm ${filterAction === "remove" ? "btn-error text-error-content" : "btn-ghost border border-base-300"}`}
-            onClick={() => setFilterAction("remove")}
-          >
-            剔除匹配
-          </button>
-          <button
-            type="button"
-            className={`join-item btn btn-sm ${filterAction === "keep" ? "btn-success text-success-content" : "btn-ghost border border-base-300"}`}
-            onClick={() => setFilterAction("keep")}
-          >
-            仅保留匹配
-          </button>
-        </div>
-      </div>
-
-      {/* 预览区 */}
-      <div className="rounded-xl border border-base-300 bg-base-200/40 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">
-            {filterAction === "remove" ? "将被剔除" : "将被保留"}
-          </span>
-          <span className={`badge badge-sm ${filterAction === "remove" ? "badge-error" : "badge-success"}`}>
-            {matchedMessageIds.length}
-            {" "}
-            条匹配
-          </span>
-        </div>
-        <div className="mt-3 max-h-48 overflow-auto space-y-2 pr-1">
-          {preview.length === 0 && (
-            <div className="text-sm text-base-content/50 py-5 text-center">
-              {hasInput ? "没有匹配的消息" : "输入正则表达式或开启场外发言过滤"}
-            </div>
-          )}
-          {preview.map(item => (
-            <div key={item.message.messageId} className="rounded-lg bg-base-100 px-3 py-2">
-              <PreviewMessage message={item.message} />
-            </div>
-          ))}
-          {matchedMessageIds.length > preview.length && (
-            <div className="text-xs text-base-content/40 text-center pt-1">
-              还有
+          <div className="min-w-0">
+            <div className="text-sm font-semibold leading-5">消息筛选</div>
+            <div className="truncate text-xs text-base-content/55">
+              显示
               {" "}
-              {matchedMessageIds.length - preview.length}
+              {visibleCount}
+              {" / "}
+              {sourceMessages.length}
               {" "}
-              条未展示
+              条
+              {hiddenCount > 0 ? `，隐藏 ${hiddenCount} 条` : ""}
             </div>
-          )}
+          </div>
         </div>
-      </div>
-
-      {/* 操作按钮 */}
-      <div className="flex justify-end gap-2">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-          取消
-        </button>
         <button
           type="button"
-          className={`btn btn-sm ${filterAction === "remove" ? "btn-error" : "btn-success"}`}
-          disabled={!canApply}
-          onClick={handleApply}
+          className="btn btn-ghost btn-xs btn-circle h-7 min-h-0 w-7 rounded-md"
+          onClick={onClose}
+          title="关闭筛选面板"
+          aria-label="关闭筛选面板"
         >
-          {canApply
-            ? (filterAction === "remove"
-                ? `剔除 ${matchedMessageIds.length} 条`
-                : `保留 ${matchedMessageIds.length} 条，剔除 ${sourceMessages.length - matchedMessageIds.length} 条`)
-            : "应用筛选"}
+          <X className="size-4" />
         </button>
+      </div>
+
+      <div className="space-y-3 px-3 py-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label aria-label="输入正则表达式" className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-base-content/15 bg-base-200/45 px-2.5 py-2 transition focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+            <Funnel className="size-4 shrink-0 text-base-content/45" />
+            <input
+              ref={inputRef}
+              type="text"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/40"
+              value={regexPattern}
+              onChange={event => setRegexPattern(event.target.value)}
+              placeholder="输入正则表达式，近实时更新显示条件"
+            />
+          </label>
+          <div className="join shrink-0">
+            <button
+              type="button"
+              className={`join-item btn btn-sm h-9 min-h-0 rounded-md ${filterAction === "keep" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
+              onClick={() => setFilterAction("keep")}
+            >
+              仅显示匹配
+            </button>
+            <button
+              type="button"
+              className={`join-item btn btn-sm h-9 min-h-0 rounded-md ${filterAction === "remove" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
+              onClick={() => setFilterAction("remove")}
+            >
+              隐藏匹配
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className={`inline-flex cursor-pointer select-none items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
+            filterOutOfCharacterSpeech
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-base-content/12 bg-base-200/35 text-base-content/70 hover:border-base-content/25"
+          }`}
+          >
+            <input
+              type="checkbox"
+              className="toggle toggle-xs"
+              checked={filterOutOfCharacterSpeech}
+              onChange={event => setFilterOutOfCharacterSpeech(event.target.checked)}
+            />
+            场外发言
+          </label>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs h-8 min-h-0 rounded-md px-2"
+            onClick={handleClear}
+            disabled={!hasInput}
+          >
+            清除筛选
+          </button>
+          <span className="ml-auto text-xs text-base-content/45">
+            {hasInput ? "正在近实时应用" : "输入条件后自动筛选"}
+          </span>
+        </div>
+
+        {regexMatcher.error && (
+          <div className="rounded-md border border-error/25 bg-error/10 px-3 py-2 text-xs text-error">
+            表达式错误：
+            {regexMatcher.error}
+            {filterOutOfCharacterSpeech ? "；当前仍按场外发言条件筛选" : "；已保持上一次显示条件"}
+          </div>
+        )}
+
+        <div className="max-h-36 overflow-auto rounded-md border border-base-content/10 bg-base-200/30 p-2">
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-base-content/55">
+            <span>{filterAction === "keep" ? "匹配后会显示" : "匹配后会隐藏"}</span>
+            <span>
+              {matchedMessageIds.length}
+              {" "}
+              条匹配
+            </span>
+          </div>
+          {preview.length === 0
+            ? (
+                <div className="py-4 text-center text-sm text-base-content/45">
+                  {hasInput ? "没有匹配的消息" : "暂无筛选条件"}
+                </div>
+              )
+            : (
+                <div className="space-y-1.5">
+                  {preview.map(item => (
+                    <div key={item.message.messageId} className="rounded-md bg-base-100/80 px-2 py-1.5">
+                      <PreviewMessage message={item.message} />
+                    </div>
+                  ))}
+                  {matchedMessageIds.length > preview.length && (
+                    <div className="pt-1 text-center text-xs text-base-content/40">
+                      还有
+                      {" "}
+                      {matchedMessageIds.length - preview.length}
+                      {" "}
+                      条未展示
+                    </div>
+                  )}
+                </div>
+              )}
+        </div>
       </div>
     </div>
   );

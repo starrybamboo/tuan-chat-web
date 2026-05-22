@@ -23,7 +23,6 @@ interface SelectionToolbarProps {
   isSelecting: boolean;
   onCancel: () => void;
   onSelectAll: () => void;
-  onRegexFilter: () => void;
   onExportFile: () => void;
   onExportPremiere?: () => void;
   onExportImage: () => void;
@@ -36,7 +35,6 @@ const SelectionToolbar = memo(({
   isSelecting,
   onCancel,
   onSelectAll,
-  onRegexFilter,
   onExportFile,
   onExportPremiere,
   onExportImage,
@@ -50,14 +48,6 @@ const SelectionToolbar = memo(({
       label: "全选",
       icon: SelectionAll,
       onClick: onSelectAll,
-      disabled: !canSelectAll,
-      className: "btn-ghost",
-    },
-    {
-      key: "filter",
-      label: "筛选",
-      icon: Funnel,
-      onClick: onRegexFilter,
       disabled: !canSelectAll,
       className: "btn-ghost",
     },
@@ -152,6 +142,57 @@ const SelectionToolbar = memo(({
         </div>
       )}
     </AnimatePresence>
+  );
+});
+
+interface MessageFilterControlProps {
+  isActive: boolean;
+  visibleCount: number;
+  totalCount: number;
+  onOpen: () => void;
+  onClear: () => void;
+}
+
+const MessageFilterControl = memo(({
+  isActive,
+  visibleCount,
+  totalCount,
+  onOpen,
+  onClear,
+}: MessageFilterControlProps) => {
+  return (
+    <div className="pointer-events-none absolute right-4 top-3 z-30 flex justify-end">
+      <motion.div
+        className={`pointer-events-auto flex items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs shadow-lg backdrop-blur-xl ${
+          isActive
+            ? "border-primary/30 bg-primary/10 text-primary"
+            : "border-base-content/10 bg-base-100/78 text-base-content/70"
+        }`}
+        {...floatingPanelMotionProps}
+      >
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-7 min-h-0 gap-1 rounded-md px-2"
+          onClick={onOpen}
+          title={isActive ? "调整消息筛选" : "筛选消息显示"}
+          aria-label={isActive ? "调整消息筛选" : "筛选消息显示"}
+        >
+          <Funnel className="size-3.5" />
+          <span>{isActive ? `${visibleCount}/${totalCount}` : "筛选"}</span>
+        </button>
+        {isActive && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle h-7 min-h-0 w-7 rounded-md text-base-content/70 hover:text-error"
+            onClick={onClear}
+            title="清除筛选"
+            aria-label="清除消息筛选"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
+      </motion.div>
+    </div>
   );
 });
 
@@ -337,12 +378,15 @@ interface ChatFrameListProps {
   selectedMessageIds: Set<number>;
   isSelecting: boolean;
   onSelectAll: () => void;
-  onRegexFilter: () => void;
   onExportFile: () => void;
   onExportPremiere?: () => void;
   onCancelSelection: () => void;
   setIsExportImageWindowOpen: (open: boolean) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
+  isMessageFilterActive: boolean;
+  totalMessageCount: number;
+  onOpenMessageFilter: () => void;
+  onClearMessageFilter: () => void;
   galPatchProposalToolbar?: GalPatchProposalToolbarProps | null;
 }
 
@@ -428,12 +472,15 @@ export default function ChatFrameList({
   selectedMessageIds,
   isSelecting,
   onSelectAll,
-  onRegexFilter,
   onExportFile,
   onExportPremiere,
   onCancelSelection,
   setIsExportImageWindowOpen,
   setIsForwardWindowOpen,
+  isMessageFilterActive,
+  totalMessageCount,
+  onOpenMessageFilter,
+  onClearMessageFilter,
   galPatchProposalToolbar,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
@@ -497,11 +544,17 @@ export default function ChatFrameList({
           isSelecting={isSelecting}
           onCancel={onCancelSelection}
           onSelectAll={onSelectAll}
-          onRegexFilter={onRegexFilter}
           onExportFile={onExportFile}
           onExportPremiere={onExportPremiere}
           onExportImage={() => setIsExportImageWindowOpen(true)}
           onForward={() => setIsForwardWindowOpen(true)}
+        />
+        <MessageFilterControl
+          isActive={isMessageFilterActive}
+          visibleCount={historyMessages.length}
+          totalCount={totalMessageCount}
+          onOpen={onOpenMessageFilter}
+          onClear={onClearMessageFilter}
         />
         <div className="h-full flex-1">
           <Virtuoso

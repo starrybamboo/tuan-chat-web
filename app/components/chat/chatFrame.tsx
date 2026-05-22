@@ -4,6 +4,7 @@ import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import type { GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 
 import { Check, X } from "@phosphor-icons/react";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,6 +38,7 @@ import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/w
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { canParticipateInRoom } from "@/components/chat/utils/memberPermissions";
+import { filterChatMessagesForDisplay } from "@/components/chat/utils/messageDisplayFilter";
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
@@ -195,6 +197,7 @@ function ChatFrame(props: ChatFrameProps) {
     proposalId: null,
     rejectedMessageIds: new Set(),
   }));
+  const [messageDisplayFilter, setMessageDisplayFilter] = useState<MessageDisplayFilterConfig | null>(null);
   const activeGalPatchProposalId = galPatchProposal?.proposalId ?? null;
   const rejectedGalPatchMessageIds = galPatchDecisionState.proposalId === activeGalPatchProposalId
     ? galPatchDecisionState.rejectedMessageIds
@@ -283,6 +286,10 @@ function ChatFrame(props: ChatFrameProps) {
     return summarizeGalPatchProposalSelection(galPatchProposal, acceptedGalPatchMessageIds);
   }, [acceptedGalPatchMessageIds, galPatchProposal, galProposalPreview]);
   const renderedHistoryMessages = galProposalPreview?.messages ?? historyMessages;
+  const isMessageFilterActive = messageDisplayFilter !== null;
+  const visibleHistoryMessages = useMemo(() => {
+    return filterChatMessagesForDisplay(renderedHistoryMessages, messageDisplayFilter);
+  }, [messageDisplayFilter, renderedHistoryMessages]);
   const getRenderedBaseVersionMessage = useCallback((message: ChatMessageResponse) => {
     if (galProposalPreview) {
       return galProposalPreview.baseMessageByPreviewId.get(message.message.messageId) ?? null;
@@ -514,7 +521,7 @@ function ChatFrame(props: ChatFrameProps) {
     applyContextMenuMessageUpdate(messageId, toggleSoundMessageBgm);
   }, [applyContextMenuMessageUpdate]);
 
-  const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(renderedHistoryMessages.length);
+  const { virtuosoIndexToMessageIndex, messageIndexToVirtuosoIndex } = useChatFrameIndexing(visibleHistoryMessages.length);
 
   const {
     isAtBottomRef,
@@ -523,7 +530,7 @@ function ChatFrame(props: ChatFrameProps) {
     scrollToBottom,
   } = useChatFrameScrollState({
     enableUnreadIndicator: enableUnreadIndicator && !galProposalPreview,
-    historyMessages: renderedHistoryMessages,
+    historyMessages: visibleHistoryMessages,
     roomId,
     chatHistory,
     unreadMessagesNumber,
@@ -534,7 +541,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const { setCurrentVirtuosoIndex } = useChatFrameVisualEffects({
     enableEffects,
-    historyMessages,
+    historyMessages: visibleHistoryMessages,
     onBackgroundUrlChange,
     onEffectChange,
     virtuosoIndexToMessageIndex,
@@ -544,8 +551,8 @@ function ChatFrame(props: ChatFrameProps) {
    * 消息选择
    */
   const orderedMessageIds = useMemo(
-    () => historyMessages.map(message => message.message.messageId),
-    [historyMessages],
+    () => visibleHistoryMessages.map(message => message.message.messageId),
+    [visibleHistoryMessages],
   );
 
   const {
@@ -570,6 +577,24 @@ function ChatFrame(props: ChatFrameProps) {
     onJumpToWebGAL: roomContext.jumpToMessageInWebGAL,
   });
 
+  useEffect(() => {
+    if (selectedMessageIds.size === 0) {
+      return;
+    }
+
+    const visibleMessageIds = new Set(visibleHistoryMessages.map(message => message.message.messageId));
+    const nextSelection = new Set<number>();
+    for (const messageId of selectedMessageIds) {
+      if (visibleMessageIds.has(messageId)) {
+        nextSelection.add(messageId);
+      }
+    }
+
+    if (nextSelection.size !== selectedMessageIds.size) {
+      updateSelectedMessageIds(nextSelection);
+    }
+  }, [selectedMessageIds, updateSelectedMessageIds, visibleHistoryMessages]);
+
   const selectedMessages = useMemo(() => {
     return Array.from(selectedMessageIds)
       .map(id => historyMessages.find(m => m.message.messageId === id))
@@ -577,33 +602,18 @@ function ChatFrame(props: ChatFrameProps) {
       .sort(compareChatMessageResponsesByOrder);
   }, [historyMessages, selectedMessageIds]);
 
-
   const handleSelectAll = useCallback(() => {
-    const next = new Set(historyMessages.map(message => message.message.messageId));
+    const next = new Set(visibleHistoryMessages.map(message => message.message.messageId));
     updateSelectedMessageIds(next);
-  }, [historyMessages, updateSelectedMessageIds]);
+  }, [updateSelectedMessageIds, visibleHistoryMessages]);
 
-  const handleApplyRegexFilter = useCallback((matchedIds: Set<number>) => {
-    if (matchedIds.size === 0) {
-      toast.error("未命中过滤条件");
-      return;
-    }
+  const handleChangeMessageFilter = useCallback((filter: MessageDisplayFilterConfig | null) => {
+    setMessageDisplayFilter(filter);
+  }, []);
 
-    const nextSelection = new Set(selectedMessageIds);
-    let removedCount = 0;
-    for (const messageId of matchedIds) {
-      if (nextSelection.delete(messageId)) {
-        removedCount++;
-      }
-    }
-    updateSelectedMessageIds(nextSelection);
-
-    if (removedCount > 0) {
-      toast.success(`已过滤 ${removedCount} 条消息`);
-      return;
-    }
-    toast.error("命中消息不在当前已选范围");
-  }, [selectedMessageIds, updateSelectedMessageIds]);
+  const handleClearMessageFilter = useCallback(() => {
+    setMessageDisplayFilter(null);
+  }, []);
 
   const handleExportFile = useCallback(() => {
     if (selectedMessages.length === 0) {
@@ -664,7 +674,7 @@ function ChatFrame(props: ChatFrameProps) {
   /**
    * 消息拖拽
    */
-  const canMoveMessagesInRoom = canParticipateInRoom(roomContext.curMember?.memberType);
+  const canMoveMessagesInRoom = canParticipateInRoom(roomContext.curMember?.memberType) && !isMessageFilterActive;
   const {
     isDragging,
     scrollerRef,
@@ -675,7 +685,7 @@ function ChatFrame(props: ChatFrameProps) {
     handleDrop,
     handleDragEnd,
   } = useChatFrameDragAndDrop({
-    historyMessages,
+    historyMessages: visibleHistoryMessages,
     roomId,
     isMessageMovable,
     updateMessage,
@@ -690,7 +700,7 @@ function ChatFrame(props: ChatFrameProps) {
    */
   const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
   const isGalProposalPreviewActive = Boolean(galProposalPreview);
-  const baseDraggable = !isGalProposalPreviewActive;
+  const baseDraggable = !isGalProposalPreviewActive && !isMessageFilterActive;
 
   const renderMessage = useChatFrameMessageRenderer({
     selectedMessageIds,
@@ -726,7 +736,7 @@ function ChatFrame(props: ChatFrameProps) {
   return (
     <ChatFrameView
       listProps={{
-        historyMessages: renderedHistoryMessages,
+        historyMessages: visibleHistoryMessages,
         virtuosoRef,
         scrollerRef,
         isAtBottomRef,
@@ -745,10 +755,13 @@ function ChatFrame(props: ChatFrameProps) {
         setIsForwardWindowOpen,
         isSelecting,
         onSelectAll: handleSelectAll,
-        onRegexFilter: () => setIsRegexSelectWindowOpen(true),
         onExportFile: handleExportFile,
         onExportPremiere: onExportPremiere ? handleExportPremiere : undefined,
         onCancelSelection: exitSelection,
+        isMessageFilterActive,
+        totalMessageCount: renderedHistoryMessages.length,
+        onOpenMessageFilter: () => setIsRegexSelectWindowOpen(true),
+        onClearMessageFilter: handleClearMessageFilter,
         galPatchProposalToolbar: galPatchProposal
           ? {
               ...(galPatchSelectionSummary ?? galPatchProposal.summary),
@@ -770,10 +783,12 @@ function ChatFrame(props: ChatFrameProps) {
         isRegexSelectWindowOpen,
         setIsRegexSelectWindowOpen,
         historyMessages,
+        filterSourceMessages: renderedHistoryMessages,
+        currentMessageFilter: messageDisplayFilter,
         selectedMessageIds,
         exitSelection,
         onForward: handleForward,
-        onApplyRegexFilter: handleApplyRegexFilter,
+        onChangeMessageFilter: handleChangeMessageFilter,
         currentSpaceId: roomContext.spaceId ?? -1,
         spaceName,
         roomName,
@@ -790,7 +805,7 @@ function ChatFrame(props: ChatFrameProps) {
       }}
       contextMenuProps={{
         contextMenu,
-        historyMessages,
+        historyMessages: visibleHistoryMessages,
         isSelecting,
         selectedMessageIds,
         onClose: closeContextMenu,
