@@ -52,6 +52,26 @@ describe("chat room message helpers", () => {
     ]);
   });
 
+  it("已删除消息不会被后续未删除快照覆盖回去", () => {
+    const deletedMessage = createChatMessageResponse(2, 20, {
+      content: "已删除",
+      status: 1,
+    });
+    const staleMessage = createChatMessageResponse(2, 20, {
+      content: "旧快照",
+      status: 0,
+    });
+
+    expect(mergeRoomMessages(
+      [createChatMessageResponse(1, 10)],
+      [deletedMessage],
+      [staleMessage],
+    )).toEqual([
+      createChatMessageResponse(1, 10),
+      deletedMessage,
+    ]);
+  });
+
   it("扁平化分页消息时也会复用同一套去重规则", () => {
     expect(flattenRoomMessagePages([
       {
