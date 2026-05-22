@@ -1,13 +1,16 @@
 import type { ChatMessageResponse } from "../../../api";
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
+import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 
+import { AnimatePresence, motion } from "motion/react";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import RegexSelectWindow from "@/components/chat/window/regexSelectWindow";
+import { floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 interface ChatFrameOverlaysProps {
@@ -20,10 +23,12 @@ interface ChatFrameOverlaysProps {
   isRegexSelectWindowOpen: boolean;
   setIsRegexSelectWindowOpen: (open: boolean) => void;
   historyMessages: ChatMessageResponse[];
+  filterSourceMessages: ChatMessageResponse[];
+  currentMessageFilter: MessageDisplayFilterConfig | null;
   selectedMessageIds: Set<number>;
   exitSelection: () => void;
   onForward: (roomId: number, mode: ForwardMode) => Promise<boolean>;
-  onApplyRegexFilter: (matchedIds: Set<number>) => void;
+  onChangeMessageFilter: (filter: MessageDisplayFilterConfig | null) => void;
   currentSpaceId: number;
   spaceName?: string;
   roomName?: string;
@@ -49,10 +54,12 @@ export default function ChatFrameOverlays({
   isRegexSelectWindowOpen,
   setIsRegexSelectWindowOpen,
   historyMessages,
+  filterSourceMessages,
+  currentMessageFilter,
   selectedMessageIds,
   exitSelection,
   onForward,
-  onApplyRegexFilter,
+  onChangeMessageFilter,
   currentSpaceId,
   spaceName,
   roomName,
@@ -74,13 +81,20 @@ export default function ChatFrameOverlays({
         >
         </ForwardWindow>
       </ToastWindow>
-      <ToastWindow isOpen={isRegexSelectWindowOpen} onClose={() => setIsRegexSelectWindowOpen(false)}>
-        <RegexSelectWindow
-          sourceMessages={selectedMessages}
-          onApplyFilter={onApplyRegexFilter}
-          onClose={() => setIsRegexSelectWindowOpen(false)}
-        />
-      </ToastWindow>
+      <AnimatePresence>
+        {isRegexSelectWindowOpen && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-20 z-50 flex justify-center px-4">
+            <motion.div className="pointer-events-auto" {...floatingPanelMotionProps}>
+              <RegexSelectWindow
+                sourceMessages={filterSourceMessages}
+                currentFilter={currentMessageFilter}
+                onChangeFilter={onChangeMessageFilter}
+                onClose={() => setIsRegexSelectWindowOpen(false)}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       <ToastWindow isOpen={isExportFileWindowOpen} onClose={() => setIsExportFileWindowOpen(false)}>
         <ExportChatWindow
           selectedMessages={selectedMessages}
