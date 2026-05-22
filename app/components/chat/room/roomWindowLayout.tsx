@@ -2,7 +2,7 @@ import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Message } from "../../../../api";
 import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
 import type { RoomContentMode } from "@/components/chat/room/roomHeaderBar";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import React from "react";
 import ChatFrame from "@/components/chat/chatFrame";
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
@@ -17,31 +17,25 @@ type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
 
 const LazyPixiOverlay = React.lazy(() => import("@/components/chat/shared/components/pixiOverlay"));
 
-const roomContentSwitchTransition = {
+const roomContentEnterTransition = {
   type: "tween",
   duration: 0.12,
   ease: "easeOut",
 } as const;
 
-const roomContentSwitchVariants = {
+const roomContentEnterVariants = {
   enter: (direction: number) => ({
     opacity: 0,
     x: direction * 8,
+    y: 4,
     scale: 0.998,
-    filter: "blur(1px)",
   }),
   center: {
     opacity: 1,
     x: 0,
+    y: 0,
     scale: 1,
-    filter: "blur(0px)",
   },
-  exit: (direction: number) => ({
-    opacity: 0,
-    x: direction * -6,
-    scale: 0.999,
-    filter: "blur(1px)",
-  }),
 };
 
 interface RoomWindowLayoutProps {
@@ -99,7 +93,7 @@ export default function RoomWindowLayout({
   const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const shouldRenderEffectOverlay = Boolean(currentEffect && currentEffect !== "none");
   const prefersReducedMotion = useReducedMotion();
-  const contentSwitchDirection = contentMode === "doc" ? 1 : -1;
+  const contentEnterDirection = contentMode === "doc" ? 1 : -1;
 
   React.useEffect(() => {
     if (!canViewDocContent) {
@@ -143,69 +137,65 @@ export default function RoomWindowLayout({
             isReloadingAllMessages={isReloadingAllMessages}
           />
           <div className="flex-1 w-full bg-transparent relative min-h-0 overflow-hidden">
-            <AnimatePresence initial={false} mode="wait" custom={contentSwitchDirection}>
-              {contentMode === "doc"
-                ? (
-                    <motion.div
-                      key="doc"
-                      custom={contentSwitchDirection}
-                      variants={prefersReducedMotion ? undefined : roomContentSwitchVariants}
-                      initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
-                      animate={prefersReducedMotion ? { opacity: 1 } : "center"}
-                      exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
-                      transition={prefersReducedMotion ? { duration: 0.12 } : roomContentSwitchTransition}
-                      className="absolute inset-0 flex min-w-0 min-h-0 overflow-hidden bg-base-100"
-                    >
-                      <ChatPageDocContent
-                        spaceId={spaceId}
-                        docId={String(roomId)}
-                        canViewDocs={canViewDocContent}
-                        initialMessages={initialDocMessages}
-                        onRemoteMessagesSaved={onRemoteDocMessagesSaved}
-                        remoteSource="room-cache"
-                        showToolbar={false}
-                        tcHeaderTitle={roomName}
-                        tcHeaderImageFileId={room?.avatarFileId}
-                        tcHeaderImageMediaType={room?.avatarMediaType}
-                      />
-                    </motion.div>
-                  )
-                : (
-                    <motion.div
-                      key="room"
-                      custom={contentSwitchDirection}
-                      variants={prefersReducedMotion ? undefined : roomContentSwitchVariants}
-                      initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
-                      animate={prefersReducedMotion ? { opacity: 1 } : "center"}
-                      exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
-                      transition={prefersReducedMotion ? { duration: 0.12 } : roomContentSwitchTransition}
-                      className="absolute inset-0 flex min-w-0 min-h-0 bg-transparent"
-                    >
-                      <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
-                        <div
-                          className="bg-transparent flex-1 min-w-0 min-h-0"
-                          onMouseDown={() => setComposerTarget(chatAreaComposerTarget)}
-                        >
-                          <ChatFrame
-                            key={roomId}
-                            {...chatFrameProps}
-                          />
-                        </div>
-
-                        {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
+            {contentMode === "doc"
+              ? (
+                  <motion.div
+                    key="doc"
+                    custom={contentEnterDirection}
+                    variants={prefersReducedMotion ? undefined : roomContentEnterVariants}
+                    initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
+                    animate={prefersReducedMotion ? { opacity: 1 } : "center"}
+                    transition={prefersReducedMotion ? { duration: 0.08 } : roomContentEnterTransition}
+                    className="absolute inset-0 flex min-w-0 min-h-0 overflow-hidden bg-base-100"
+                  >
+                    <ChatPageDocContent
+                      spaceId={spaceId}
+                      docId={String(roomId)}
+                      canViewDocs={canViewDocContent}
+                      initialMessages={initialDocMessages}
+                      onRemoteMessagesSaved={onRemoteDocMessagesSaved}
+                      remoteSource="room-cache"
+                      showToolbar={false}
+                      tcHeaderTitle={roomName}
+                      tcHeaderImageFileId={room?.avatarFileId}
+                      tcHeaderImageMediaType={room?.avatarMediaType}
+                    />
+                  </motion.div>
+                )
+              : (
+                  <motion.div
+                    key="room"
+                    custom={contentEnterDirection}
+                    variants={prefersReducedMotion ? undefined : roomContentEnterVariants}
+                    initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
+                    animate={prefersReducedMotion ? { opacity: 1 } : "center"}
+                    transition={prefersReducedMotion ? { duration: 0.08 } : roomContentEnterTransition}
+                    className="absolute inset-0 flex min-w-0 min-h-0 bg-transparent"
+                  >
+                    <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
+                      <div
+                        className="bg-transparent flex-1 min-w-0 min-h-0"
+                        onMouseDown={() => setComposerTarget(chatAreaComposerTarget)}
+                      >
+                        <ChatFrame
+                          key={roomId}
+                          {...chatFrameProps}
+                        />
                       </div>
 
-                      {!hideSecondaryPanels && (
-                        <RoomSideDrawers
-                          spaceId={spaceId}
-                          roomId={roomId}
-                          galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
-                          onGalPatchProposalGenerated={onGalPatchProposalGenerated}
-                        />
-                      )}
-                    </motion.div>
-                  )}
-            </AnimatePresence>
+                      {!hideComposer && <RoomComposerPanel {...composerPanelProps} />}
+                    </div>
+
+                    {!hideSecondaryPanels && (
+                      <RoomSideDrawers
+                        spaceId={spaceId}
+                        roomId={roomId}
+                        galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
+                        onGalPatchProposalGenerated={onGalPatchProposalGenerated}
+                      />
+                    )}
+                  </motion.div>
+                )}
           </div>
         </div>
 
