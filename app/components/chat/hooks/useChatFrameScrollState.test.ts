@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveReadSyncIdOnRoomExit } from "./useChatFrameScrollState";
+import {
+  resolveChatFrameScrollToBottomLocation,
+  resolveReadSyncIdOnRoomExit,
+} from "./useChatFrameScrollState";
 
 function createHistoryMessage(syncId: number) {
   return {
@@ -11,6 +14,14 @@ function createHistoryMessage(syncId: number) {
 }
 
 describe("useChatFrameScrollState", () => {
+  it("自动滚到底部时对齐底部，避免最后一条先被顶到列表顶部", () => {
+    expect(resolveChatFrameScrollToBottomLocation(6)).toEqual({
+      align: "end",
+      behavior: "auto",
+      index: 6,
+    });
+  });
+
   it("用户离开房间时若仍在底部，会补记最后一条消息为已读", () => {
     const syncId = resolveReadSyncIdOnRoomExit({
       enableUnreadIndicator: true,
