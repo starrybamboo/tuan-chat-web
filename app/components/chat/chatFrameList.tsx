@@ -102,7 +102,7 @@ const SelectionToolbar = memo(({
             className="max-w-[calc(100%-2rem)] rounded-md border border-primary/20 bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
             {...floatingListItemMotionProps(0)}
           >
-            多选已开启：Ctrl 点选增删，Shift 连选。
+            多选已开启：Ctrl 点选增删，Shift 连选，Ctrl + Shift 连选并保留已有选择。
           </motion.div>
           <motion.div
             className="pointer-events-auto flex max-w-[calc(100%-2rem)] items-center gap-2 overflow-hidden rounded-md border border-primary/20 bg-base-100/92 px-2 py-2 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
