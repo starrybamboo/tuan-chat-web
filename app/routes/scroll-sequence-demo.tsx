@@ -2,7 +2,7 @@ import type { MotionValue } from "motion/react";
 import type { RefObject } from "react";
 import type { ProceduralRenderer } from "./scrollSequenceDemoShared";
 import type { RouteMetaArgs } from "@/routes/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -177,9 +177,9 @@ function ScrollSequenceDemoPage() {
 
   return (
     <main className="scroll-sequence-demo scroll-sequence-demo--motion">
-      <a className="scroll-sequence-demo__backLink" href="/">
+      <Link className="scroll-sequence-demo__backLink" to="/">
         进入应用
-      </a>
+      </Link>
 
       <section ref={heroSectionRef} className="scroll-sequence-demo__heroSection" style={{ position: "relative" }}>
         <div className="scroll-sequence-demo__heroSticky">
@@ -201,8 +201,8 @@ function ScrollSequenceDemoPage() {
               每一次跑团现场，都可以生长成新的团剧。
             </p>
             <div className="scroll-sequence-demo__heroActions">
-              <a href="/chat/discover/material">探索素材</a>
-              <a href="/chat">进入房间</a>
+              <Link to="/chat/discover/material">探索素材</Link>
+              <Link to="/chat">进入房间</Link>
             </div>
           </motion.div>
 
@@ -283,9 +283,9 @@ function ScrollSequenceDemoPage() {
         <p>
           创建空间，邀请角色入场，把一次即兴的对话变成可以被回看、扩写和继续演出的团剧。
         </p>
-        <a className="scroll-sequence-demo__primaryCta" href="/chat">
+        <Link className="scroll-sequence-demo__primaryCta" to="/chat">
           进入团剧共创
-        </a>
+        </Link>
       </section>
     </main>
   );

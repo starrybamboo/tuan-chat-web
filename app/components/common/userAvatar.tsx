@@ -1,5 +1,7 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { buildUserProfileNavigation } from "@/components/common/userAvatarNavigation";
 import { UserDetail } from "@/components/common/userDetail";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
@@ -52,6 +54,7 @@ export default function UserAvatarComponent({
   stopToastWindow?: boolean; // hover 是否会产生userDetail弹窗
   clickEnterProfilePage?: boolean; // 点击头像是否直接个人主页
 }) {
+  const navigate = useNavigate();
   const providedUsername = username?.trim() ?? "";
   const providedAvatarThumbUrl = avatarThumbUrl?.trim() ?? "";
   const providedAvatarUrl = avatar?.trim() ?? "";
@@ -132,8 +135,8 @@ export default function UserAvatarComponent({
     if (!clickEnterProfilePage)
       return; // 不响应点击跳转
     e.stopPropagation();
-    window.location.href = `/profile/${userId}`;
-  }, [clickEnterProfilePage, userId]);
+    void navigate(buildUserProfileNavigation(userId));
+  }, [clickEnterProfilePage, navigate, userId]);
 
   // 根据 clickEnterProfilePage 决定是否添加点击样式
   const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${avatarShellHoverClassName} ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
