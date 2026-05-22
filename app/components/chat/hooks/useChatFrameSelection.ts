@@ -98,6 +98,23 @@ export default function useChatFrameSelection() {
     updateSelectedMessageIds(new Set());
   }, [setMultiSelecting, updateSelectedMessageIds]);
 
+  useEffect(() => {
+    if (!isSelecting) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      exitSelection();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [exitSelection, isSelecting]);
+
   const handleEditMessage = useCallback((messageId: number) => {
     const target = document.querySelector(
       `[data-message-id="${messageId}"] .editable-field`,
