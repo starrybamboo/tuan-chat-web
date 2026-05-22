@@ -6,7 +6,6 @@ import type {
 
 import { Funnel, X } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { createMessageDisplayFilterMatcher } from "@/components/chat/utils/messageDisplayFilter";
 
 interface RegexSelectWindowProps {
@@ -61,12 +60,6 @@ export default function RegexSelectWindow({
       .filter((id): id is number => typeof id === "number" && id > 0);
   }, [regexMatcher, sourceMessages]);
 
-  const matchedMessages = useMemo(() => {
-    const idSet = new Set(matchedMessageIds);
-    return sourceMessages.filter(m => idSet.has(m.message.messageId));
-  }, [matchedMessageIds, sourceMessages]);
-
-  const preview = useMemo(() => matchedMessages.slice(0, 4), [matchedMessages]);
   const visibleCount = hasInput && regexMatcher.test
     ? (filterAction === "keep" ? matchedMessageIds.length : sourceMessages.length - matchedMessageIds.length)
     : sourceMessages.length;
@@ -160,14 +153,14 @@ export default function RegexSelectWindow({
               className={`join-item btn btn-sm h-9 min-h-0 rounded-md ${filterAction === "keep" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
               onClick={() => setFilterAction("keep")}
             >
-              仅显示匹配
+              筛选
             </button>
             <button
               type="button"
               className={`join-item btn btn-sm h-9 min-h-0 rounded-md ${filterAction === "remove" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
               onClick={() => setFilterAction("remove")}
             >
-              隐藏匹配
+              反选
             </button>
           </div>
         </div>
@@ -185,7 +178,7 @@ export default function RegexSelectWindow({
               checked={filterOutOfCharacterSpeech}
               onChange={event => setFilterOutOfCharacterSpeech(event.target.checked)}
             />
-            场外发言
+            过滤场外发言
           </label>
           <button
             type="button"
@@ -195,9 +188,6 @@ export default function RegexSelectWindow({
           >
             清除筛选
           </button>
-          <span className="ml-auto text-xs text-base-content/45">
-            {hasInput ? "正在近实时应用" : "输入条件后自动筛选"}
-          </span>
         </div>
 
         {regexMatcher.error && (
@@ -207,41 +197,6 @@ export default function RegexSelectWindow({
             {filterOutOfCharacterSpeech ? "；当前仍按场外发言条件筛选" : "；已保持上一次显示条件"}
           </div>
         )}
-
-        <div className="max-h-36 overflow-auto rounded-md border border-base-content/10 bg-base-200/30 p-2">
-          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-base-content/55">
-            <span>{filterAction === "keep" ? "匹配后会显示" : "匹配后会隐藏"}</span>
-            <span>
-              {matchedMessageIds.length}
-              {" "}
-              条匹配
-            </span>
-          </div>
-          {preview.length === 0
-            ? (
-                <div className="py-4 text-center text-sm text-base-content/45">
-                  {hasInput ? "没有匹配的消息" : "暂无筛选条件"}
-                </div>
-              )
-            : (
-                <div className="space-y-1.5">
-                  {preview.map(item => (
-                    <div key={item.message.messageId} className="rounded-md bg-base-100/80 px-2 py-1.5">
-                      <PreviewMessage message={item.message} />
-                    </div>
-                  ))}
-                  {matchedMessageIds.length > preview.length && (
-                    <div className="pt-1 text-center text-xs text-base-content/40">
-                      还有
-                      {" "}
-                      {matchedMessageIds.length - preview.length}
-                      {" "}
-                      条未展示
-                    </div>
-                  )}
-                </div>
-              )}
-        </div>
       </div>
     </div>
   );
