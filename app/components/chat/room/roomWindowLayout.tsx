@@ -19,17 +19,17 @@ const LazyPixiOverlay = React.lazy(() => import("@/components/chat/shared/compon
 
 const roomContentSwitchTransition = {
   type: "spring",
-  stiffness: 380,
-  damping: 34,
-  mass: 0.72,
+  stiffness: 560,
+  damping: 42,
+  mass: 0.52,
 } as const;
 
 const roomContentSwitchVariants = {
   enter: (direction: number) => ({
     opacity: 0,
-    x: direction * 26,
-    scale: 0.985,
-    filter: "blur(8px)",
+    x: direction * 16,
+    scale: 0.992,
+    filter: "blur(4px)",
   }),
   center: {
     opacity: 1,
@@ -39,9 +39,9 @@ const roomContentSwitchVariants = {
   },
   exit: (direction: number) => ({
     opacity: 0,
-    x: direction * -18,
-    scale: 0.992,
-    filter: "blur(6px)",
+    x: direction * -10,
+    scale: 0.996,
+    filter: "blur(3px)",
   }),
 };
 
