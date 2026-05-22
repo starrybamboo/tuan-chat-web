@@ -4,19 +4,21 @@
 /* eslint-disable */
 import type { RoomMessageStreamItem } from './RoomMessageStreamItem';
 /**
- * room message-stream 批量同步请求
+ * 兼容旧接口的整份房间消息列表替换请求；新写入请使用 RoomMessageStreamPatchRequest
  */
 export type RoomMessageStreamSyncRequest = {
     /**
-     * 客户端同步基线版本；为空按 0 处理
+     * 兼容旧字段：已废弃，新链路不再维护 revision
+     * @deprecated
      */
     baseRevision?: number;
     /**
-     * 是否强制覆盖云端版本
+     * 兼容旧字段：已废弃，新链路不再使用 force/revision 冲突策略
+     * @deprecated
      */
     force?: boolean;
     /**
-     * 整份 room message-stream
+     * 兼容旧接口提交的整份房间消息列表；服务端会转换为统一 patch 并返回 changed messages
      */
     messages: Array<RoomMessageStreamItem>;
 };

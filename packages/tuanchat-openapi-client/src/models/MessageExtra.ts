@@ -12,11 +12,10 @@ import type { ImageMessage } from './ImageMessage';
 import type { RoomJumpExtra } from './RoomJumpExtra';
 import type { SoundMessage } from './SoundMessage';
 import type { StateEventExtra } from './StateEventExtra';
-import type { ThreadRootExtra } from './ThreadRootExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
 /**
- * 不同类型消息持有的额外信息
+ * 消息 extra
  */
 export type MessageExtra = {
     diceResult?: DiceResult;
@@ -30,7 +29,6 @@ export type MessageExtra = {
     commandRequest?: CommandRequestExtra;
     docCard?: DocCardExtra;
     roomJump?: RoomJumpExtra;
-    threadRoot?: ThreadRootExtra;
     stateEvent?: StateEventExtra;
 };
 

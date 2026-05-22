@@ -10,5 +10,9 @@ export type ForgotPasswordRequest = {
      * 邮箱地址
      */
     email: string;
+    /**
+     * Cloudflare Turnstile 校验 token
+     */
+    turnstileToken?: string;
 };
 
