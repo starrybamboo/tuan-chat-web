@@ -3,7 +3,7 @@ import type { GestureType } from "react-native-gesture-handler";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
-import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   startTransition,
   useCallback,
@@ -976,17 +976,8 @@ export default function ChatShell() {
     handleSelectMessageAnchor,
   ]);
 
-  const navigation = useNavigation();
   const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "padding", ios: "padding" });
   const isRoutePage = !selectedRoomId && !currentContactId;
-
-  useEffect(() => {
-    navigation.setOptions({
-      tabBarStyle: isRoutePage
-        ? { backgroundColor: "#0d1117", borderTopColor: "#30363d", borderTopWidth: 0.5 }
-        : { display: "none" },
-    });
-  }, [isRoutePage, navigation]);
 
   return (
     <ThemedView style={styles.shell}>
