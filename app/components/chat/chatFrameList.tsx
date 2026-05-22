@@ -3,6 +3,7 @@ import type { ChatMessageResponse } from "../../../api";
 import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { scrollToBottomButtonMotionProps, unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
@@ -21,6 +22,7 @@ interface SelectionToolbarProps {
   selectedCount: number;
   totalCount: number;
   isSelecting: boolean;
+  anchorRef: React.RefObject<HTMLElement | null>;
   onCancel: () => void;
   onSelectAll: () => void;
   onExportFile: () => void;
@@ -33,6 +35,7 @@ const SelectionToolbar = memo(({
   selectedCount,
   totalCount,
   isSelecting,
+  anchorRef,
   onCancel,
   onSelectAll,
   onExportFile,
@@ -87,10 +90,14 @@ const SelectionToolbar = memo(({
     },
   ];
 
-  return (
+  const frameStyle = useAnchoredFixedFrameStyle(anchorRef, isSelecting);
+  const toolbar = (
     <AnimatePresence>
-      {isSelecting && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
+      {isSelecting && frameStyle && (
+        <div
+          className="pointer-events-none fixed bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+          style={frameStyle}
+        >
           <motion.div
             className="max-w-[calc(100%-2rem)] rounded-md border border-primary/20 bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
             {...floatingListItemMotionProps(0)}
@@ -143,6 +150,11 @@ const SelectionToolbar = memo(({
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === "undefined") {
+    return toolbar;
+  }
+  return createPortal(toolbar, document.body);
 });
 
 interface MessageFilterControlProps {
@@ -197,6 +209,50 @@ const MessageFilterControl = memo(({
 });
 
 const CHAT_COMPOSER_ROOT_SELECTOR = "[data-chat-composer-root=\"true\"]";
+
+function useAnchoredFixedFrameStyle(
+  anchorRef: React.RefObject<HTMLElement | null>,
+  enabled: boolean,
+): React.CSSProperties | null {
+  const [style, setStyle] = useState<React.CSSProperties | null>(null);
+
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined") {
+      setStyle(null);
+      return;
+    }
+
+    const updateStyle = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) {
+        setStyle(null);
+        return;
+      }
+      const rect = anchor.getBoundingClientRect();
+      setStyle({
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+
+    updateStyle();
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateStyle);
+    if (anchorRef.current) {
+      resizeObserver?.observe(anchorRef.current);
+    }
+    window.addEventListener("resize", updateStyle);
+    window.addEventListener("scroll", updateStyle, true);
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateStyle);
+      window.removeEventListener("scroll", updateStyle, true);
+    };
+  }, [anchorRef, enabled]);
+
+  return style;
+}
 
 interface UnreadIndicatorProps {
   enabled: boolean;
@@ -486,6 +542,7 @@ export default function ChatFrameList({
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const listRootRef = useRef<HTMLDivElement | null>(null);
   const pendingAnchorSyncRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -533,6 +590,7 @@ export default function ChatFrameList({
   return (
     <>
       <div
+        ref={listRootRef}
         className="overflow-hidden flex flex-col relative h-full"
         onContextMenu={onContextMenu}
         onDragOver={handleDragOver}
@@ -542,6 +600,7 @@ export default function ChatFrameList({
           selectedCount={selectedMessageIds.size}
           totalCount={historyMessages.length}
           isSelecting={isSelecting}
+          anchorRef={listRootRef}
           onCancel={onCancelSelection}
           onSelectAll={onSelectAll}
           onExportFile={onExportFile}
