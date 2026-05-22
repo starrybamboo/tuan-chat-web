@@ -1058,11 +1058,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : (
                           !isIntroText && speakerDisplayName
                             ? (
-                                <div className="relative flex items-center gap-2 min-w-0 flex-1">
+                                <div className="relative flex min-w-0 max-w-full items-center gap-2">
                                   {outOfCharacterBadge}
                                   <span
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
-                                    className={`block flex-1 min-w-0 truncate text-sm sm:text-sm pb-0.5 sm:pb-1 transition-all duration-200 ${
+                                    className={`block min-w-10 max-w-full truncate pb-0.5 text-sm transition-all duration-200 sm:pb-1 sm:text-sm ${
                                       isOutOfCharacterTextMessage
                                         ? "font-medium text-base-content/60 cursor-default"
                                         : `font-medium text-base-content/85 cursor-pointer hover:text-primary ${canEdit ? "hover:underline" : ""}`
@@ -1190,10 +1190,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : (
                           !isIntroText && speakerDisplayName
                             ? (
-                                <div className="relative flex items-center gap-2 min-w-0 flex-1">
+                                <div className="relative flex min-w-0 max-w-full items-center gap-2">
                                   {outOfCharacterBadge}
                                   <div
-                                    className={`text-sm sm:text-base leading-5 sm:leading-6 min-w-0 flex-1 transition-all duration-200 ${
+                                    className={`min-w-10 max-w-full text-sm leading-5 transition-all duration-200 sm:text-base sm:leading-6 ${
                                       isOutOfCharacterTextMessage
                                         ? "font-medium text-base-content/60 cursor-default"
                                         : `font-semibold cursor-pointer hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`
