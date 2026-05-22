@@ -140,7 +140,7 @@ export default function RoomWindowLayout({
             {contentMode === "doc"
               ? (
                   <motion.div
-                    key="doc"
+                    key={`doc:${roomId}`}
                     custom={contentEnterDirection}
                     variants={prefersReducedMotion ? undefined : roomContentEnterVariants}
                     initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
@@ -164,7 +164,7 @@ export default function RoomWindowLayout({
                 )
               : (
                   <motion.div
-                    key="room"
+                    key={`room:${roomId}`}
                     custom={contentEnterDirection}
                     variants={prefersReducedMotion ? undefined : roomContentEnterVariants}
                     initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
