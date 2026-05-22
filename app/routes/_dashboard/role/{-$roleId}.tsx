@@ -2,6 +2,7 @@ import { createFileRoute, Navigate, useLocation, useParams, useRouter } from "@t
 
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
+import { appendPathQuery } from "@/utils/pathQuery";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
 
 export const Route = createFileRoute("/_dashboard/role/{-$roleId}")({
@@ -97,7 +98,7 @@ function RoleDetailPage() {
     // 保存到浏览器存储
     setRoleRule(numericRoleId, newRuleId);
     // 使用 replace: true 避免在浏览器历史中留下太多记录
-    router.history.replace(`/role/${numericRoleId}?${newSearchParams.toString()}`);
+    router.history.replace(appendPathQuery(`/role/${numericRoleId}`, newSearchParams));
   };
 
   return (

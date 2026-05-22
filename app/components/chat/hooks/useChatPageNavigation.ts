@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import type { SelectRoomOptions } from "@/components/chat/chatPage.types";
 
 import { buildPrivateChatRoomPath } from "@/components/chat/hooks/chatPageRouteUtils";
+import { appendPathQuery } from "@/utils/pathQuery";
 
 type StoredChatIds = {
   spaceId?: number | null;
@@ -40,7 +41,7 @@ export default function useChatPageNavigation({
     if (screenSize === "sm") {
       newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     }
-    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
+    navigate(appendPathQuery(`/chat/${spaceId ?? "private"}`, newSearchParams));
   }, [isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const setActiveRoomId = useCallback((roomId: number | null, options?: SelectRoomOptions) => {
@@ -49,17 +50,13 @@ export default function useChatPageNavigation({
     if (screenSize === "sm") {
       newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     }
-    let nextPath: string;
     if (activeSpaceId == null && roomId != null) {
-      nextPath = buildPrivateChatRoomPath(roomId, newSearchParams, options?.targetMessageId);
+      navigate(buildPrivateChatRoomPath(roomId, newSearchParams, options?.targetMessageId), { replace: options?.replace });
+      return;
     }
-    else {
-      const nextRoomId = roomId ?? "";
-      const messagePath = roomId && options?.targetMessageId ? `/${options.targetMessageId}` : "";
-      const query = newSearchParams.toString();
-      nextPath = `/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}${query ? `?${query}` : ""}`;
-    }
-    navigate(nextPath, { replace: options?.replace });
+    const nextRoomId = roomId ?? "";
+    const messagePath = roomId && options?.targetMessageId ? `/${options.targetMessageId}` : "";
+    navigate(appendPathQuery(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}`, newSearchParams), { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const handleOpenPrivate = useCallback(() => {

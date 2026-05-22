@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { imageLowUrl } from "@/utils/mediaUrl";
+import { appendPathQuery } from "@/utils/pathQuery";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 
@@ -101,15 +102,13 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
       return;
     const next = new URLSearchParams(searchParams);
     next.set("repositoryId", String(repositoryId));
-    const query = next.toString();
-    router.history.replace(`${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    router.history.replace(appendPathQuery(location.pathname, next, location.hash));
   }, [location.hash, location.pathname, router, searchParams]);
 
   const closeRepositoryPanel = useCallback(() => {
     const next = new URLSearchParams(searchParams);
     next.delete("repositoryId");
-    const query = next.toString();
-    router.history.replace(`${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    router.history.replace(appendPathQuery(location.pathname, next, location.hash));
     setIsRepositoryViewModeOpen(false);
   }, [location.hash, location.pathname, router, searchParams]);
 
