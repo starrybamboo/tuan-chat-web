@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -10,6 +12,16 @@ type SelectMessageRangeParams = {
 };
 
 const SELECTION_SHORTCUTS_TOAST_ID = "chat-selection-shortcuts";
+const SELECTION_SHORTCUTS_TOAST_TEXT = "多选已开启：Ctrl 点选增删，Shift 连选。";
+const SELECTION_SHORTCUTS_TOAST_STYLE = {
+  backdropFilter: "blur(14px)",
+  background: "hsl(var(--b1) / 0.94)",
+  border: "1px solid hsl(var(--p) / 0.2)",
+  borderRadius: "0.375rem",
+  boxShadow: "0 18px 48px hsl(var(--p) / 0.14)",
+  color: "hsl(var(--bc))",
+  marginBottom: "4.75rem",
+} satisfies CSSProperties;
 
 export default function useChatFrameSelection() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
@@ -39,9 +51,11 @@ export default function useChatFrameSelection() {
     const wasSelecting = wasSelectingRef.current;
     wasSelectingRef.current = isSelecting;
     if (!wasSelecting && isSelecting) {
-      toast("多选模式支持 Windows 文件系统式选择：Ctrl 点选增删，Shift 连选，Ctrl + Shift 追加范围。", {
+      toast(SELECTION_SHORTCUTS_TOAST_TEXT, {
         id: SELECTION_SHORTCUTS_TOAST_ID,
-        duration: 5000,
+        duration: 3200,
+        position: "bottom-center",
+        style: SELECTION_SHORTCUTS_TOAST_STYLE,
       });
     }
   }, [isSelecting]);
