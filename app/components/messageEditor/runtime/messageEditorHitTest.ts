@@ -1,5 +1,4 @@
-import type { MessageDraft } from "@/types/messageDraft";
-
+import type { MessageEditorMessage } from "../messageEditorTypes";
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
 import type { MessageEditorSelectionPoint } from "./messageEditorSelection";
 
@@ -9,6 +8,7 @@ import {
   normalizeMessageEditorContent,
   previewVisibleOffsetToMessageEditorRawOffset,
 } from "../model/messageEditorTransforms";
+import { getMessageEditorSelectableLength } from "./messageEditorSelection";
 
 export type MessageEditorHitTestRect = {
   bottom: number;
@@ -32,6 +32,8 @@ type MessageEditorResolvedHitEntry<TEntry extends MessageEditorHitTestEntry = Me
 
 type RuntimeHitTestEntry = MessageEditorHitTestEntry & {
   content: string;
+  kind: "atomic" | "text";
+  selectableLength: number;
   textElement: HTMLElement;
 };
 
@@ -130,25 +132,25 @@ function resolveTextBlockIdFromNode(root: HTMLElement, node: Node | null) {
 function buildRuntimeHitEntries(params: {
   blockRefs: ReadonlyMap<string, HTMLElement>;
   blockShellRefs: ReadonlyMap<string, HTMLElement>;
-  messages: MessageDraft[];
+  messages: MessageEditorMessage[];
   registry: MessageEditorRegistry;
 }): RuntimeHitTestEntry[] {
   return ensureMessageEditorMessages(params.messages).flatMap((message) => {
-    if (!params.registry.isTextBlock(message)) {
-      return [];
-    }
-
     const blockId = getMessageEditorBlockId(message);
-    const textElement = params.blockRefs.get(blockId);
+    const isText = params.registry.isTextBlock(message);
+    const shellElement = params.blockShellRefs.get(blockId);
+    const textElement = params.blockRefs.get(blockId) ?? shellElement;
     if (!textElement) {
       return [];
     }
 
     const textRect = textElement.getBoundingClientRect();
-    const shellRect = params.blockShellRefs.get(blockId)?.getBoundingClientRect() ?? textRect;
+    const shellRect = shellElement?.getBoundingClientRect() ?? textRect;
     return [{
       blockId,
       content: normalizeMessageEditorContent(message.content),
+      kind: isText ? "text" : "atomic",
+      selectableLength: getMessageEditorSelectableLength(message, params.registry),
       shellRect,
       textElement,
       textRect,
@@ -157,8 +159,8 @@ function buildRuntimeHitEntries(params: {
 }
 
 function resolveBoundaryOffset(entry: RuntimeHitTestEntry, clientX: number, clientY: number, edge: MessageEditorHitTestEdge) {
-  const contentLength = entry.content.length;
-  if (contentLength === 0) {
+  const selectableLength = entry.selectableLength;
+  if (selectableLength === 0) {
     return 0;
   }
 
@@ -166,25 +168,32 @@ function resolveBoundaryOffset(entry: RuntimeHitTestEntry, clientX: number, clie
     return 0;
   }
   if (edge === "after" || clientY > entry.textRect.bottom) {
-    return contentLength;
+    return selectableLength;
   }
   if (clientX <= entry.textRect.left) {
     return 0;
   }
   if (clientX >= entry.textRect.right) {
-    return contentLength;
+    return selectableLength;
   }
 
   return null;
 }
 
 function resolvePointForEntry(entry: RuntimeHitTestEntry, clientX: number, clientY: number, edge: MessageEditorHitTestEdge): MessageEditorSelectionPoint {
-  const contentLength = entry.content.length;
+  const selectableLength = entry.selectableLength;
   const boundaryOffset = resolveBoundaryOffset(entry, clientX, clientY, edge);
   if (boundaryOffset != null) {
     return {
       blockId: entry.blockId,
       offset: boundaryOffset,
+    };
+  }
+
+  if (entry.kind === "atomic") {
+    return {
+      blockId: entry.blockId,
+      offset: clientY < entry.shellRect.top + (entry.shellRect.bottom - entry.shellRect.top) / 2 ? 0 : selectableLength,
     };
   }
 
@@ -195,13 +204,13 @@ function resolvePointForEntry(entry: RuntimeHitTestEntry, clientX: number, clien
       : directOffset;
     return {
       blockId: entry.blockId,
-      offset: Math.max(0, Math.min(rawOffset, contentLength)),
+      offset: Math.max(0, Math.min(rawOffset, selectableLength)),
     };
   }
 
   return {
     blockId: entry.blockId,
-    offset: clientX < entry.textRect.left + (entry.textRect.right - entry.textRect.left) / 2 ? 0 : contentLength,
+    offset: clientX < entry.textRect.left + (entry.textRect.right - entry.textRect.left) / 2 ? 0 : selectableLength,
   };
 }
 
@@ -213,7 +222,7 @@ export function resolveMessageEditorTextPointFromClientPosition(params: {
   blockShellRefs: ReadonlyMap<string, HTMLElement>;
   clientX: number;
   clientY: number;
-  messages: MessageDraft[];
+  messages: MessageEditorMessage[];
   preferredBlockId?: string;
   registry: MessageEditorRegistry;
   root: HTMLElement;

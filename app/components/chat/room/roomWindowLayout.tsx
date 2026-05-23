@@ -10,7 +10,6 @@ import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
 import SubRoomWindow from "@/components/chat/room/subRoomWindow";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 
 type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
@@ -51,14 +50,13 @@ interface RoomWindowLayoutProps {
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   backgroundUrl: string | null;
+  combatVisualActive: boolean;
   displayedBgUrl: string | null;
   currentEffect: string | null;
   chatFrameProps: ChatFrameProps;
   composerPanelProps: RoomComposerPanelProps;
   hideComposer?: boolean;
   hideSecondaryPanels?: boolean;
-  /** 点击消息区域时，输入框默认切换到哪个发送目标 */
-  chatAreaComposerTarget?: "main" | "thread";
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
   galAuthoringLocalSnapshot?: GalAuthoringLocalSnapshot;
@@ -78,19 +76,18 @@ export default function RoomWindowLayout({
   toggleLeftDrawer,
   onCloseSubWindow,
   backgroundUrl,
+  combatVisualActive,
   displayedBgUrl,
   currentEffect,
   chatFrameProps,
   composerPanelProps,
   hideComposer = false,
   hideSecondaryPanels = false,
-  chatAreaComposerTarget = "main",
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
   galAuthoringLocalSnapshot,
   onGalPatchProposalGenerated,
 }: RoomWindowLayoutProps) {
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const shouldRenderEffectOverlay = Boolean(currentEffect && currentEffect !== "none");
   const prefersReducedMotion = useReducedMotion();
   const contentEnterDirection = contentMode === "doc" ? 1 : -1;
@@ -115,6 +112,23 @@ export default function RoomWindowLayout({
         className="absolute inset-0 bg-white/30 dark:bg-slate-950/40 backdrop-blur-xs transition-opacity duration-500 z-0"
         style={{
           opacity: backgroundUrl ? 1 : 0,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
+        style={{
+          opacity: combatVisualActive ? 1 : 0,
+          backgroundColor: "rgba(24, 14, 10, 0.16)",
+          backgroundImage: [
+            "linear-gradient(90deg, rgba(127, 29, 29, 0.56) 0, rgba(180, 83, 9, 0.34) 12px, transparent 32px, transparent calc(100% - 32px), rgba(180, 83, 9, 0.34) calc(100% - 12px), rgba(127, 29, 29, 0.56) 100%)",
+            "radial-gradient(circle at center, rgba(245, 158, 11, 0.14) 0, rgba(245, 158, 11, 0.05) 46%, transparent 76%)",
+            "linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0, transparent 12px, transparent calc(100% - 12px), rgba(245, 158, 11, 0.16) 100%)",
+            "linear-gradient(rgba(245, 158, 11, 0.16) 1px, transparent 1px)",
+            "linear-gradient(90deg, rgba(245, 158, 11, 0.16) 1px, transparent 1px)",
+          ].join(", "),
+          backgroundSize: "100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px",
+          backgroundPosition: "center, center, center, center, center",
+          boxShadow: "inset 0 0 0 1px rgba(245, 158, 11, 0.16), inset 0 0 120px rgba(127, 29, 29, 0.16)",
         }}
       />
 
@@ -175,7 +189,6 @@ export default function RoomWindowLayout({
                     <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
                       <div
                         className="bg-transparent flex-1 min-w-0 min-h-0"
-                        onMouseDown={() => setComposerTarget(chatAreaComposerTarget)}
                       >
                         <ChatFrame
                           key={roomId}

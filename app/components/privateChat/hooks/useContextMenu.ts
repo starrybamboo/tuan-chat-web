@@ -8,7 +8,7 @@ export function useContextMenu({ refetch }: { refetch: () => void }) {
   /**
    * 右键菜单
    */
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ messageId: number } | null>(null);
   const recallMessageMutation = useRecallMessageDirectMutation();
 
   function handleRevokeMessage(messageId: MessageDirectRecallRequest) {
@@ -25,7 +25,7 @@ export function useContextMenu({ refetch }: { refetch: () => void }) {
     const messageId = Number(messageElement?.getAttribute("data-message-id"));
     if (messageId) {
       e.preventDefault();
-      setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+      setContextMenu({ messageId });
     }
   }
 

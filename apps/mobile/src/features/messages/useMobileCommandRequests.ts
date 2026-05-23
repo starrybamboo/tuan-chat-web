@@ -6,7 +6,6 @@ import { buildConsumeKey, readConsumedKeys, writeConsumedKeys } from "./commandR
 type CommandRequestPayload = {
   command: string;
   messageId: number;
-  threadId?: number;
 };
 
 type UseMobileCommandRequestsParams = {

@@ -26,7 +26,6 @@ interface ChatPageSubWindowProps {
   tab: ChatPageSubWindowTab;
   roomId: number | null;
   docId: string | null;
-  threadRootMessageId: number | null;
   materialPackageId: number | null;
   materialPathKey: string | null;
   setIsOpen: (next: boolean) => void;
@@ -34,7 +33,6 @@ interface ChatPageSubWindowProps {
   setTab: (tab: ChatPageSubWindowTab) => void;
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
-  setThreadRootMessageId: (messageId: number | null) => void;
   setMaterialSelection: (selection: { spacePackageId: number | null; materialPathKey?: string | null }) => void;
 }
 
@@ -189,7 +187,6 @@ export default function ChatPageSubWindow({
   tab,
   roomId,
   docId,
-  threadRootMessageId: _threadRootMessageId,
   materialPackageId,
   materialPathKey,
   setIsOpen,
@@ -197,7 +194,6 @@ export default function ChatPageSubWindow({
   setTab,
   setRoomId,
   setDocId,
-  setThreadRootMessageId: _setThreadRootMessageId,
   setMaterialSelection,
 }: ChatPageSubWindowProps) {
   const isDesktop = screenSize !== "sm";
@@ -237,10 +233,6 @@ export default function ChatPageSubWindow({
       return;
     }
     if (tab === "room" && roomId == null && resolvedRoomId != null) {
-      setRoomId(resolvedRoomId);
-      return;
-    }
-    if (tab === "thread" && roomId == null && resolvedRoomId != null) {
       setRoomId(resolvedRoomId);
       return;
     }

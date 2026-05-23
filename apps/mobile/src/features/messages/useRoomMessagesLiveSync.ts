@@ -80,7 +80,7 @@ function parseIncomingRoomMessage(
   }
 
   const nextMessage = (envelope?.data as { message?: ChatMessageResponse["message"] } | undefined)?.message;
-  if (!nextMessage || (nextMessage.threadId && nextMessage.threadId > 0)) {
+  if (!nextMessage) {
     return {
       message: null,
       type,

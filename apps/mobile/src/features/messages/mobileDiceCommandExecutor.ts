@@ -47,6 +47,12 @@ type QueuedDicerMessage = {
   visibility: DicerMessageVisibility;
 };
 
+type DiceTurnReplyPayload = QueuedDicerMessage & {
+  avatarId?: number;
+  customRoleName?: string;
+  roleId?: number;
+};
+
 type ParsedCommand = {
   args: string[];
   name: string;
@@ -75,7 +81,6 @@ export type ExecuteMobileDicerCommandParams = {
   sendIdentity: MobileDicerSendIdentity;
   sendRoomMessageMutation: MobileSendRoomMessageMutation;
   space: Space | null | undefined;
-  threadId?: number;
 };
 
 function parseCommand(input: string): ParsedCommand {
@@ -237,11 +242,17 @@ async function persistRoleAbility(
   });
 }
 
-function buildDiceMessageExtra(result: string, visibility: DicerMessageVisibility) {
+function buildDiceTurnMessageExtra(command: string, replies: DiceTurnReplyPayload[]) {
   return buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
-    diceResult: {
-      result,
-      ...(visibility === "kp_and_sender" ? { hidden: true } : {}),
+    diceTurn: {
+      command,
+      replies: replies.map(reply => ({
+        content: reply.content,
+        ...(reply.visibility === "kp_and_sender" ? { hidden: true } : {}),
+        ...(typeof reply.roleId === "number" && reply.roleId > 0 ? { roleId: reply.roleId } : {}),
+        ...(typeof reply.avatarId === "number" && reply.avatarId > 0 ? { avatarId: reply.avatarId } : {}),
+        ...(reply.customRoleName ? { customRoleName: reply.customRoleName } : {}),
+      })),
     },
   });
 }
@@ -519,7 +530,6 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
       roleId: params.sendIdentity.roleId,
       avatarId: params.sendIdentity.avatarId,
       customRoleName: params.sendIdentity.customRoleName,
-      threadId: params.threadId,
       replayMessageId: params.replyMessageId ?? undefined,
       extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra(cmdPart, stateEventAtoms)),
     } satisfies ChatMessageRequest
@@ -537,6 +547,13 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
     return;
   }
 
+  const dicerRoleId = resolveDicerRoleId(params.space);
+  const copywritingSuffix = copywritingKey ? "" : "";
+  const diceReplies = dicerMessageQueue.map((queuedMessage): DiceTurnReplyPayload => ({
+    content: buildDicerReplyContent(queuedMessage.content, copywritingSuffix),
+    visibility: queuedMessage.visibility,
+    roleId: dicerRoleId,
+  }));
   const commandMessage = await params.sendRoomMessageMutation.sendRequest({
     roomId,
     messageType: MESSAGE_TYPE.DICE,
@@ -544,16 +561,13 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
     roleId: params.sendIdentity.roleId,
     avatarId: params.sendIdentity.avatarId,
     customRoleName: params.sendIdentity.customRoleName,
-    threadId: params.threadId,
     replayMessageId: params.replyMessageId ?? undefined,
-    extra: buildDiceMessageExtra(originDiceContent, "public"),
+    extra: buildDiceTurnMessageExtra(originDiceContent, diceReplies),
   });
   const commandMessageId = commandMessage.data?.messageId;
   if (!commandMessageId) {
     throw new Error("指令消息发送失败，请稍后重试。");
   }
-  const dicerRoleId = resolveDicerRoleId(params.space);
-  const copywritingSuffix = copywritingKey ? "" : "";
   const requests: ChatMessageRequest[] = [];
   if (stateEventRequest) {
     requests.push({
@@ -561,18 +575,6 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
       replayMessageId: commandMessageId,
     });
   }
-  requests.push(...dicerMessageQueue.map((queuedMessage) => {
-    const content = buildDicerReplyContent(queuedMessage.content, copywritingSuffix);
-    return {
-      roomId,
-      messageType: MESSAGE_TYPE.DICE,
-      content,
-      roleId: dicerRoleId,
-      threadId: params.threadId,
-      replayMessageId: commandMessageId,
-      extra: buildDiceMessageExtra(content, queuedMessage.visibility),
-    } satisfies ChatMessageRequest;
-  }));
 
   if (requests.length > 0) {
     await params.sendRoomMessageMutation.sendRequests(requests);

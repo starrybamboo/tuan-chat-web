@@ -140,26 +140,6 @@ describe("messageDraft request normalization", () => {
     });
   });
 
-  it("thread root 请求也统一走 threadRoot 包装层", () => {
-    const request = buildChatMessageRequestFromDraft({
-      messageType: MESSAGE_TYPE.THREAD_ROOT,
-      content: "子区标题",
-      extra: {
-        threadRoot: {
-          title: " 子区标题 ",
-        },
-      },
-    } as any, {
-      roomId: 1,
-    });
-
-    expect(request.extra).toEqual({
-      threadRoot: {
-        title: "子区标题",
-      },
-    });
-  });
-
   it("文件草稿请求会统一走 fileMessage 包装层", () => {
     const request = buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.FILE,
@@ -315,6 +295,42 @@ describe("messageDraft request normalization", () => {
       diceResult: {
         result: "D100=42/80 成功",
         hidden: true,
+      },
+      diceTurn: {
+        replies: [{
+          content: "D100=42/80 成功",
+          hidden: true,
+        }],
+      },
+    });
+  });
+
+  it("diceTurn 请求会派生兼容 diceResult", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
+      diceTurn: {
+        command: " .r 1d20 ",
+        replies: [{
+          content: " D20=19 ",
+          hidden: "true",
+          roleId: "7",
+          avatarId: "8",
+          customRoleName: " 骰娘 ",
+        }],
+      },
+    })).toEqual({
+      diceResult: {
+        result: "D20=19",
+        hidden: true,
+      },
+      diceTurn: {
+        command: ".r 1d20",
+        replies: [{
+          content: "D20=19",
+          hidden: true,
+          roleId: 7,
+          avatarId: 8,
+          customRoleName: "骰娘",
+        }],
       },
     });
   });

@@ -14,11 +14,10 @@ import {
   createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
-import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";
-import { getEffectiveSpriteOriginalUrl, getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
+import { getEffectiveSpriteOriginalUrl, getEffectiveSpriteUrl, getSpriteCropSourceUrl, parseTransformFromAvatar } from "../utils";
 import { useImageCropWorker } from "../worker/useImageCropWorker";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -78,23 +77,19 @@ export function SpriteCropper({
   // 裁剪源：默认使用展示立绘，可切换为“裁剪原图”版本。
   const [sourceMode, setSourceMode] = useState<"sprite" | "origin">("sprite");
 
-  const getStrictSpriteOriginalUrl = useCallback((avatar?: RoleAvatar): string => {
-    return imageOriginalUrl(avatar?.spriteFileId);
-  }, []);
-
   const getStrictSpriteSourceUrl = useCallback((avatar?: RoleAvatar): string => {
-    const spriteUrl = imageMediumUrl(avatar?.spriteFileId);
-    const spriteOriginalUrl = getStrictSpriteOriginalUrl(avatar);
+    const spriteUrl = getSpriteCropSourceUrl(avatar);
+    const spriteOriginalUrl = getEffectiveSpriteOriginalUrl(avatar);
     if (sourceMode === "origin") {
       return spriteOriginalUrl;
     }
     return spriteUrl || spriteOriginalUrl;
-  }, [getStrictSpriteOriginalUrl, sourceMode]);
+  }, [sourceMode]);
 
   // 头像裁剪必须来自立绘链路；立绘裁剪保持现有兼容策略。
   const filteredAvatars = roleAvatars.filter((avatar) => {
     if (isAvatarMode) {
-      return Boolean(imageMediumUrl(avatar?.spriteFileId) || getStrictSpriteOriginalUrl(avatar));
+      return Boolean(getSpriteCropSourceUrl(avatar));
     }
     return Boolean(getEffectiveSpriteUrl(avatar)) || Boolean(getEffectiveSpriteOriginalUrl(avatar));
   });
@@ -140,7 +135,7 @@ export function SpriteCropper({
 
   const currentSourceAvatar = filteredAvatars.length > 0 ? filteredAvatars[currentSpriteIndex] : undefined;
   const canUseOriginForCurrent = isAvatarMode
-    ? !!getStrictSpriteOriginalUrl(currentSourceAvatar)
+    ? !!getEffectiveSpriteOriginalUrl(currentSourceAvatar)
     : !!getEffectiveSpriteOriginalUrl(currentSourceAvatar);
 
   // 如果当前头像没有可用的裁剪原图，则自动回退到 sprite 模式

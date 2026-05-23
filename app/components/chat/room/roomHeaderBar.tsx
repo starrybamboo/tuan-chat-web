@@ -1,12 +1,11 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
-import { ArrowSquareIn, Broom, DotsThreeVerticalIcon, ExportIcon } from "@phosphor-icons/react";
+import { ArrowSquareIn, Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropdown";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -14,8 +13,6 @@ import {
   ArticleIcon,
   BaselineArrowBackIosNew,
   Bubble2,
-  MemberIcon,
-  RoleListIcon,
   XMarkICon,
 } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -49,9 +46,6 @@ function RoomHeaderBarImpl({
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
-  const setMultiSelecting = useRoomUiStore(state => state.setMultiSelecting);
   const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const [, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
@@ -68,11 +62,6 @@ function RoomHeaderBarImpl({
   const hasRoomDescription = Boolean(room?.description?.trim());
   const chatBubbleStyleLabel = useChatBubbleStyle ? "当前：气泡样式" : "当前：传统样式";
   const chatBubbleStyleToggleLabel = useChatBubbleStyle ? "切换到传统样式" : "切换到气泡样式";
-  const closeThreadPane = () => {
-    setComposerTarget("main");
-    setThreadRootMessageId(undefined);
-  };
-
   const blurActiveElement = () => {
     if (typeof document === "undefined") {
       return;
@@ -90,20 +79,10 @@ function RoomHeaderBarImpl({
   }, []);
 
   const handleOpenImport = () => {
-    closeThreadPane();
     if (sideDrawerState === "export") {
       setSideDrawerState("none");
     }
     setIsImportChatTextOpen(true);
-    blurActiveElement();
-  };
-
-  const handleOpenExport = () => {
-    closeThreadPane();
-    if (sideDrawerState === "export") {
-      setSideDrawerState("none");
-    }
-    setMultiSelecting(true);
     blurActiveElement();
   };
 
@@ -114,20 +93,7 @@ function RoomHeaderBarImpl({
     setIsClearReloadConfirmOpen(true);
   };
 
-  const handleToggleMemberDrawer = () => {
-    closeThreadPane();
-    setSideDrawerState(sideDrawerState === "user" ? "none" : "user");
-    blurActiveElement();
-  };
-
-  const handleToggleRoleDrawer = () => {
-    closeThreadPane();
-    setSideDrawerState(sideDrawerState === "role" ? "none" : "role");
-    blurActiveElement();
-  };
-
   const handleOpenMobileSearch = () => {
-    closeThreadPane();
     setIsMobileSearchOpen(true);
     blurActiveElement();
   };
@@ -135,7 +101,6 @@ function RoomHeaderBarImpl({
   const handleMobileBack = () => {
     // 语义对齐 QQ：在“成员/角色/跑团工具”等右侧面板中，返回应先回到群聊主聊天。
     if (hasSideDrawerOpen) {
-      closeThreadPane();
       setSideDrawerState("none");
       blurActiveElement();
       return;
@@ -305,46 +270,11 @@ function RoomHeaderBarImpl({
                             type="button"
                             onClick={() => {
                               closeMobileToolsMenu();
-                              handleOpenExport();
-                            }}
-                          >
-                            导出/多选
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              closeMobileToolsMenu();
                               toggleUseChatBubbleStyle();
                               blurActiveElement();
                             }}
                           >
                             {`${chatBubbleStyleLabel}，${chatBubbleStyleToggleLabel}`}
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            data-side-drawer-toggle="true"
-                            onClick={() => {
-                              closeMobileToolsMenu();
-                              handleToggleMemberDrawer();
-                            }}
-                          >
-                            房间成员
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            data-side-drawer-toggle="true"
-                            onClick={() => {
-                              closeMobileToolsMenu();
-                              handleToggleRoleDrawer();
-                            }}
-                          >
-                            房间角色
                           </button>
                         </li>
                         <li>
@@ -401,33 +331,6 @@ function RoomHeaderBarImpl({
                         onClick={handleOpenImport}
                       >
                         <ArrowSquareIn className="size-6" />
-                      </button>
-                      <button
-                        type="button"
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="导出/多选"
-                        onClick={handleOpenExport}
-                      >
-                        <ExportIcon className="size-6" />
-                      </button>
-                      <ToolbarDivider />
-                      <button
-                        type="button"
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="房间成员"
-                        data-side-drawer-toggle="true"
-                        onClick={handleToggleMemberDrawer}
-                      >
-                        <MemberIcon className="size-6" />
-                      </button>
-                      <button
-                        type="button"
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="房间角色"
-                        data-side-drawer-toggle="true"
-                        onClick={handleToggleRoleDrawer}
-                      >
-                        <RoleListIcon className="size-6" />
                       </button>
                       <SearchBar className="w-64" />
                     </>

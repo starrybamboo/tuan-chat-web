@@ -50,13 +50,16 @@ export default function useChatPageNavigation({
     if (screenSize === "sm") {
       newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     }
+    let nextPath: string;
     if (activeSpaceId == null && roomId != null) {
-      navigate(buildPrivateChatRoomPath(roomId, newSearchParams, options?.targetMessageId), { replace: options?.replace });
-      return;
+      nextPath = buildPrivateChatRoomPath(roomId, newSearchParams, options?.targetMessageId);
     }
-    const nextRoomId = roomId ?? "";
-    const messagePath = roomId && options?.targetMessageId ? `/${options.targetMessageId}` : "";
-    navigate(appendPathQuery(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}`, newSearchParams), { replace: options?.replace });
+    else {
+      const nextRoomId = roomId ?? "";
+      const messagePath = roomId && options?.targetMessageId ? `/${options.targetMessageId}` : "";
+      nextPath = appendPathQuery(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}`, newSearchParams);
+    }
+    navigate(nextPath, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const handleOpenPrivate = useCallback(() => {

@@ -1,3 +1,5 @@
+import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
+import { normalizeFileMimeType } from "@/utils/mediaMime";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 type ChatMediaPreprocessInput = {
@@ -20,11 +22,23 @@ function runBestEffortPreprocess(task: Promise<unknown>, kind: "图片" | "视�
   });
 }
 
+async function preheatImageFile(imageFile: File): Promise<void> {
+  const normalizedFile = await normalizeFileMimeType(imageFile, { expectedMediaType: "image" });
+  await Promise.all([
+    compressImage(normalizedFile, MEDIA_COMPRESSION_PROFILES.image.low),
+    compressImage(normalizedFile, MEDIA_COMPRESSION_PROFILES.image.medium),
+  ]);
+}
+
 export function preheatChatMediaPreprocess({
-  imageFiles: _imageFiles = [],
+  imageFiles = [],
   videoFiles = [],
   audioFiles = [],
 }: ChatMediaPreprocessInput): void {
+  for (const imageFile of imageFiles) {
+    runBestEffortPreprocess(preheatImageFile(imageFile), "图片", imageFile);
+  }
+
   for (const videoFile of videoFiles) {
     runBestEffortPreprocess(uploadUtils.preprocessVideoForUpload(videoFile), "视频", videoFile);
   }

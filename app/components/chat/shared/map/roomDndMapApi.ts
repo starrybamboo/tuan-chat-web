@@ -10,7 +10,6 @@ export type RoomDndMapToken = {
 export type RoomDndMapSnapshot = {
   roomId: number;
   mapFileId?: number;
-  mapMediaType?: string;
   gridRows: number;
   gridCols: number;
   gridColor: string;
@@ -18,12 +17,12 @@ export type RoomDndMapSnapshot = {
   updatedAt?: number;
 };
 
-type RoomDndMapChangeOp = "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+type RoomDndMapChangeOp = "map_upsert" | "map_clear";
 
 export type RoomDndMapChangeEvent = {
   roomId: number;
   op: RoomDndMapChangeOp;
-  map?: Partial<Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType" | "gridRows" | "gridCols" | "gridColor">>;
+  map?: Partial<Pick<RoomDndMapSnapshot, "mapFileId" | "gridRows" | "gridCols" | "gridColor">>;
   token?: RoomDndMapToken;
   clearTokens?: boolean;
   updatedAt?: number;
@@ -36,18 +35,6 @@ export type RoomDndMapUpsertPayload = {
   gridCols?: number;
   gridColor?: string;
   clearTokens?: boolean;
-};
-
-export type RoomDndMapTokenUpsertPayload = {
-  roomId: number;
-  roleId: number;
-  rowIndex: number;
-  colIndex: number;
-};
-
-export type RoomDndMapTokenRemovePayload = {
-  roomId: number;
-  roleId: number;
 };
 
 export const roomDndMapQueryKey = (roomId: number) => ["roomDndMap", roomId] as const;
@@ -71,30 +58,20 @@ export async function upsertRoomDndMap(payload: RoomDndMapUpsertPayload): Promis
   return (res as any)?.data ?? null;
 }
 
-export function getRoomDndMapImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined) {
-  return map?.mapMediaType === "image" || map?.mapFileId
-    ? imageMediumUrl(map?.mapFileId)
+export function getRoomDndMapImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId"> | null | undefined) {
+  return map?.mapFileId
+    ? imageMediumUrl(map.mapFileId)
     : "";
 }
 
-export function getRoomDndMapOriginalImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined) {
-  return map?.mapMediaType === "image" || map?.mapFileId
-    ? imageOriginalUrl(map?.mapFileId)
+export function getRoomDndMapOriginalImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId"> | null | undefined) {
+  return map?.mapFileId
+    ? imageOriginalUrl(map.mapFileId)
     : "";
 }
 
 export async function clearRoomDndMap(roomId: number): Promise<boolean> {
   await tuanchat.roomDndMapController.clearRoomMap({ roomId });
-  return true;
-}
-
-export async function upsertRoomDndMapToken(payload: RoomDndMapTokenUpsertPayload): Promise<RoomDndMapToken | null> {
-  const res = await tuanchat.roomDndMapController.upsertToken(payload);
-  return (res as any)?.data ?? null;
-}
-
-export async function removeRoomDndMapToken(payload: RoomDndMapTokenRemovePayload): Promise<boolean> {
-  await tuanchat.roomDndMapController.removeToken(payload);
   return true;
 }
 
@@ -124,9 +101,6 @@ export function applyRoomDndMapChange(
     if (change.map?.mapFileId !== undefined) {
       current.mapFileId = change.map.mapFileId;
     }
-    if (change.map?.mapMediaType !== undefined) {
-      current.mapMediaType = change.map.mapMediaType;
-    }
     if (change.map?.gridRows !== undefined) {
       current.gridRows = change.map.gridRows ?? current.gridRows;
     }
@@ -150,30 +124,6 @@ export function applyRoomDndMapChange(
     if (change.map?.mapFileId !== undefined && !current.mapFileId) {
       return null;
     }
-    if (typeof change.updatedAt === "number") {
-      current.updatedAt = change.updatedAt;
-    }
-    return current;
-  }
-
-  if (change.op === "token_upsert" && change.token) {
-    const nextTokens = current.tokens ?? [];
-    const idx = nextTokens.findIndex(token => token.roleId === change.token?.roleId);
-    if (idx >= 0) {
-      nextTokens[idx] = { ...nextTokens[idx], ...change.token };
-    }
-    else {
-      nextTokens.push(change.token);
-    }
-    current.tokens = nextTokens;
-    if (typeof change.updatedAt === "number") {
-      current.updatedAt = change.updatedAt;
-    }
-    return current;
-  }
-
-  if (change.op === "token_remove" && change.token) {
-    current.tokens = (current.tokens ?? []).filter(token => token.roleId !== change.token?.roleId);
     if (typeof change.updatedAt === "number") {
       current.updatedAt = change.updatedAt;
     }

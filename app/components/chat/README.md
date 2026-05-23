@@ -10,7 +10,7 @@ Chat 模块是 TuanChat 的核心功能模块，提供了完整的 TRPG（桌面
 - **角色扮演系统**：用户可在房间中使用不同角色（Role）和立绘（Avatar）进行扮演
 - **WebGAL 联动**：将聊天内容实时转换为 WebGAL 剧本，提供视觉小说般的阅读体验
 - **富文本消息**：支持文本、图片、表情、音频、特效、背景等多种消息类型
-- **消息 Thread**：支持基于 message.threadId 的线程聚合与回复（类似 Discord Thread）
+- **消息回复**：支持基于 replyMessageId 的普通回复锚点
 - **骰子系统**：内置 TRPG 骰子命令系统，支持多种游戏规则
 - **实时状态同步**：通过 WebSocket 实时同步成员状态（输入中、等待扮演、暂离等）
 - **历史消息管理**：基于本地 SQLite 的缓存，支持离线查看和快速加载
@@ -89,7 +89,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 文件：app/components/chat/stores/roomUiStore.ts
 
 - replyMessage：当前回复的消息
-- threadRootMessageId：当前正在查看/回复的消息 Thread（root messageId）
+- replyMessage：当前正在回复的消息锚点
 - insertAfterMessageId：插入模式的目标消息 ID
 
 ### 2) roomPreferenceStore：聊天偏好与 WebGAL 联动设置
@@ -112,7 +112,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/drawerPreferenceStore.ts
 
-- userDrawerWidth / roleDrawerWidth / threadDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
+- userDrawerWidth / roleDrawerWidth / copilotDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
 - 对应 localStorage key 与字段同名（保持兼容）
 
 相关组件：
@@ -160,7 +160,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 为进一步减小 `RoomWindow` 体积并降低局部状态变化带来的级联重渲染，拆出以下组件：
 
 - app/components/chat/roomHeaderBar.tsx：顶部栏（返回、成员/角色/导出按钮、搜索框），内部订阅 sideDrawerStore.state
-- app/components/chat/roomToastWindows.tsx：各类 `ToastWindow`（创建 Thread、添加角色、渲染窗口），并在内部订阅 `roomUiStore.isCreateThreadOpen`
+- app/components/chat/roomToastWindows.tsx：各类 `ToastWindow`（角色管理、导出、渲染窗口），并在内部订阅对应的 UI 状态
 - app/components/chat/roomComposerPanel.tsx：输入区整块 UI（工具栏 + 输入框 + 附件预览等），内部订阅 sideDrawerStore.state
 - app/components/chat/roomSideDrawerGuards.tsx：抽屉相关副作用编排（如切换空间/跑团模式时自动关闭特定抽屉），避免 `RoomWindow` 订阅 sideDrawerStore.state
 - app/components/chat/realtimeRenderOrchestrator.tsx：RealtimeRender 编排与 store runtime 镜像，隔离 `useEffect` 与高频运行态
@@ -1570,7 +1570,6 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
 
 
 

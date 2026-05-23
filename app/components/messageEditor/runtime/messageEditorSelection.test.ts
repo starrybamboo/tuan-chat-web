@@ -1,12 +1,15 @@
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import { createMessageEditorTextDraft, getMessageEditorBlockId } from "../model/messageEditorTransforms";
+import { createMessageEditorBlockDraft, createMessageEditorTextDraft, getMessageEditorBlockId } from "../model/messageEditorTransforms";
 import { createMessageEditorRegistry } from "./messageEditorRegistry";
 import {
+  createMessageEditorDocumentSelection,
   createMessageEditorSelection,
   createMessageEditorTextRunSelection,
+  getAdjacentMessageEditorDocumentBlockPoint,
   getAdjacentMessageEditorTextBlockPoint,
   getMessageEditorSelectionText,
+  moveMessageEditorDocumentPointByCharacter,
   moveMessageEditorTextPointByCharacter,
 } from "./messageEditorSelection";
 
@@ -76,23 +79,9 @@ describe("messageEditorSelection", () => {
     expect(selection ? getMessageEditorSelectionText([first, empty, third], selection) : "").toBe("pha\n\nom");
   });
 
-  it("rejects selections that pass through atomic blocks", () => {
+  it("includes atomic blocks as whole-object segments in document selections", () => {
     const first = createMessageEditorTextDraft({ content: "alpha" });
-    const imageBlock = {
-      messageType: MESSAGE_TYPE.IMG,
-      content: "",
-      extra: {
-        imageMessage: {
-          fileId: 1,
-          mediaType: "image/png",
-          fileName: "cover.png",
-          size: 128,
-          width: 64,
-          height: 64,
-          background: false,
-        },
-      },
-    };
+    const imageBlock = createMessageEditorBlockDraft("image");
     const third = createMessageEditorTextDraft({ content: "omega" });
     const registry = createMessageEditorRegistry();
 
@@ -104,7 +93,30 @@ describe("messageEditorSelection", () => {
       offset: 1,
     });
 
-    expect(selection).toBeNull();
+    expect(selection).not.toBeNull();
+    expect(selection?.blockIds).toEqual([
+      getMessageEditorBlockId(first),
+      getMessageEditorBlockId(imageBlock),
+      getMessageEditorBlockId(third),
+    ]);
+    expect(selection?.segments).toEqual([
+      {
+        blockId: getMessageEditorBlockId(first),
+        start: 1,
+        end: 5,
+      },
+      {
+        blockId: getMessageEditorBlockId(imageBlock),
+        start: 0,
+        end: 1,
+      },
+      {
+        blockId: getMessageEditorBlockId(third),
+        start: 0,
+        end: 1,
+      },
+    ]);
+    expect(selection ? getMessageEditorSelectionText([first, imageBlock, third], selection) : "").toBe("lpha\n\no");
   });
 
   it("selects the current contiguous text run without crossing atomic blocks", () => {
@@ -127,6 +139,119 @@ describe("messageEditorSelection", () => {
       getMessageEditorBlockId(second),
     ]);
     expect(selection ? getMessageEditorSelectionText([first, second, imageBlock, third], selection) : "").toBe("one\ntwo");
+  });
+
+  it("selects the whole document for editor-level select all", () => {
+    const first = createMessageEditorTextDraft({ content: "" });
+    const second = createMessageEditorTextDraft({ content: "one" });
+    const imageBlock = createMessageEditorBlockDraft("image");
+    const last = createMessageEditorTextDraft({ content: "two" });
+    const messages = [first, second, imageBlock, last];
+    const registry = createMessageEditorRegistry();
+
+    const selection = createMessageEditorDocumentSelection(messages, registry);
+
+    expect(selection?.blockIds).toEqual(messages.map(message => getMessageEditorBlockId(message)));
+    expect(selection?.segments).toEqual([
+      {
+        blockId: getMessageEditorBlockId(first),
+        start: 0,
+        end: 0,
+      },
+      {
+        blockId: getMessageEditorBlockId(second),
+        start: 0,
+        end: 3,
+      },
+      {
+        blockId: getMessageEditorBlockId(imageBlock),
+        start: 0,
+        end: 1,
+      },
+      {
+        blockId: getMessageEditorBlockId(last),
+        start: 0,
+        end: 3,
+      },
+    ]);
+    expect(selection ? getMessageEditorSelectionText(messages, selection) : "").toBe("\none\n\ntwo");
+  });
+
+  it("moves document selection points through atomic blocks", () => {
+    const first = createMessageEditorTextDraft({ content: "ab" });
+    const imageBlock = createMessageEditorBlockDraft("image");
+    const third = createMessageEditorTextDraft({ content: "cd" });
+    const messages = [first, imageBlock, third];
+    const registry = createMessageEditorRegistry();
+
+    const imageFocus = moveMessageEditorDocumentPointByCharacter(messages, registry, {
+      blockId: getMessageEditorBlockId(first),
+      offset: 2,
+    }, 1);
+
+    expect(imageFocus).toEqual({
+      blockId: getMessageEditorBlockId(imageBlock),
+      offset: 1,
+    });
+
+    const selection = imageFocus
+      ? createMessageEditorSelection(messages, registry, {
+          blockId: getMessageEditorBlockId(first),
+          offset: 2,
+        }, imageFocus)
+      : null;
+    expect(selection?.segments).toEqual([
+      {
+        blockId: getMessageEditorBlockId(imageBlock),
+        start: 0,
+        end: 1,
+      },
+    ]);
+
+    expect(moveMessageEditorDocumentPointByCharacter(messages, registry, {
+      blockId: getMessageEditorBlockId(imageBlock),
+      offset: 1,
+    }, 1)).toEqual({
+      blockId: getMessageEditorBlockId(third),
+      offset: 1,
+    });
+    expect(moveMessageEditorDocumentPointByCharacter(messages, registry, {
+      blockId: getMessageEditorBlockId(third),
+      offset: 0,
+    }, -1)).toEqual({
+      blockId: getMessageEditorBlockId(imageBlock),
+      offset: 0,
+    });
+  });
+
+  it("moves adjacent document block points through atomic blocks", () => {
+    const first = createMessageEditorTextDraft({ content: "ab" });
+    const imageBlock = createMessageEditorBlockDraft("image");
+    const third = createMessageEditorTextDraft({ content: "cd" });
+    const messages = [first, imageBlock, third];
+    const registry = createMessageEditorRegistry();
+
+    expect(getAdjacentMessageEditorDocumentBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(first),
+      offset: 2,
+    }, 1, 99)).toEqual({
+      blockId: getMessageEditorBlockId(imageBlock),
+      offset: 1,
+    });
+    expect(getAdjacentMessageEditorDocumentBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(imageBlock),
+      offset: 1,
+    }, 1, 1)).toEqual({
+      blockId: getMessageEditorBlockId(third),
+      offset: 1,
+    });
+    expect(getAdjacentMessageEditorDocumentBlockPoint(messages, registry, {
+      blockId: getMessageEditorBlockId(third),
+      offset: 0,
+    }, -1, 99)).toEqual({
+      blockId: getMessageEditorBlockId(imageBlock),
+      offset: 0,
+    });
   });
 
   it("moves text points only inside a contiguous text run", () => {

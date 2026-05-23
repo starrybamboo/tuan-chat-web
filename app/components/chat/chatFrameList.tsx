@@ -1,10 +1,12 @@
 import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageResponse } from "../../../api";
+import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
+import { describeMessageDisplayFilterStatus } from "@/components/chat/utils/messageDisplayFilter";
 import { scrollToBottomButtonMotionProps, unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import { getChatFrameItemKey } from "./chatFrameListKey";
@@ -20,7 +22,7 @@ function Header() {
 interface SelectionToolbarProps {
   selectedCount: number;
   totalCount: number;
-  isSelecting: boolean;
+  isVisible: boolean;
   onCancel: () => void;
   onSelectAll: () => void;
   onExportFile: () => void;
@@ -32,7 +34,7 @@ interface SelectionToolbarProps {
 const SelectionToolbar = memo(({
   selectedCount,
   totalCount,
-  isSelecting,
+  isVisible,
   onCancel,
   onSelectAll,
   onExportFile,
@@ -89,7 +91,7 @@ const SelectionToolbar = memo(({
 
   return (
     <AnimatePresence>
-      {isSelecting && (
+      {isVisible && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
           <motion.div
             className="max-w-[calc(100%-2rem)] rounded-md border border-primary/20 bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
@@ -147,51 +149,53 @@ const SelectionToolbar = memo(({
 
 interface MessageFilterControlProps {
   isActive: boolean;
+  filterConfig: MessageDisplayFilterConfig | null;
   visibleCount: number;
   totalCount: number;
   onOpen: () => void;
-  onClear: () => void;
 }
 
 const MessageFilterControl = memo(({
   isActive,
+  filterConfig,
   visibleCount,
   totalCount,
   onOpen,
-  onClear,
 }: MessageFilterControlProps) => {
+  const safeVisibleCount = Math.max(0, visibleCount);
+  const safeTotalCount = Math.max(0, totalCount);
+  const hiddenCount = Math.max(0, safeTotalCount - safeVisibleCount);
+  const statusText = isActive && filterConfig
+    ? describeMessageDisplayFilterStatus(filterConfig)
+    : "调整聊天室显示条件";
+  const countText = isActive ? `显示 ${safeVisibleCount}/${safeTotalCount}` : "筛选";
+  const hiddenText = isActive
+    ? (hiddenCount > 0 ? `已隐藏 ${hiddenCount} 条` : "无隐藏")
+    : null;
+  const title = isActive
+    ? `${statusText}，${countText}，${hiddenText}`
+    : "筛选消息显示";
+
   return (
     <div className="pointer-events-none absolute right-4 top-3 z-30 flex justify-end">
-      <motion.div
-        className={`pointer-events-auto flex items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs shadow-lg backdrop-blur-xl ${
+      <motion.button
+        type="button"
+        className={`btn btn-ghost btn-sm btn-circle pointer-events-auto relative h-9 min-h-0 w-9 rounded-md border shadow-lg backdrop-blur-xl ${
           isActive
             ? "border-primary/30 bg-primary/10 text-primary"
             : "border-base-content/10 bg-base-100/78 text-base-content/70"
         }`}
+        onClick={onOpen}
+        title={title}
+        aria-label={title}
+        aria-pressed={isActive}
         {...floatingPanelMotionProps}
       >
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs h-7 min-h-0 gap-1 rounded-md px-2"
-          onClick={onOpen}
-          title={isActive ? "调整消息筛选" : "筛选消息显示"}
-          aria-label={isActive ? "调整消息筛选" : "筛选消息显示"}
-        >
-          <Funnel className="size-3.5" />
-          <span>{isActive ? `${visibleCount}/${totalCount}` : "筛选"}</span>
-        </button>
         {isActive && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs btn-circle h-7 min-h-0 w-7 rounded-md text-base-content/70 hover:text-error"
-            onClick={onClear}
-            title="清除筛选"
-            aria-label="清除消息筛选"
-          >
-            <X className="size-3.5" />
-          </button>
+          <span className="pointer-events-none absolute right-1 top-1 size-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--p)/0.85)]" />
         )}
-      </motion.div>
+        <Funnel className="size-4" />
+      </motion.button>
     </div>
   );
 });
@@ -376,7 +380,7 @@ interface ChatFrameListProps {
   renderMessage: (index: number, message: ChatMessageResponse) => React.ReactNode;
   onContextMenu: (e: React.MouseEvent) => void;
   selectedMessageIds: Set<number>;
-  isSelecting: boolean;
+  isSelectionToolbarVisible: boolean;
   onSelectAll: () => void;
   onExportFile: () => void;
   onExportPremiere?: () => void;
@@ -384,9 +388,9 @@ interface ChatFrameListProps {
   setIsExportImageWindowOpen: (open: boolean) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
   isMessageFilterActive: boolean;
+  currentMessageFilter: MessageDisplayFilterConfig | null;
   totalMessageCount: number;
   onOpenMessageFilter: () => void;
-  onClearMessageFilter: () => void;
   galPatchProposalToolbar?: GalPatchProposalToolbarProps | null;
 }
 
@@ -470,7 +474,7 @@ export default function ChatFrameList({
   renderMessage,
   onContextMenu,
   selectedMessageIds,
-  isSelecting,
+  isSelectionToolbarVisible,
   onSelectAll,
   onExportFile,
   onExportPremiere,
@@ -478,9 +482,9 @@ export default function ChatFrameList({
   setIsExportImageWindowOpen,
   setIsForwardWindowOpen,
   isMessageFilterActive,
+  currentMessageFilter,
   totalMessageCount,
   onOpenMessageFilter,
-  onClearMessageFilter,
   galPatchProposalToolbar,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
@@ -534,6 +538,7 @@ export default function ChatFrameList({
     <>
       <div
         className="overflow-hidden flex flex-col relative h-full"
+        data-chat-frame-root="true"
         onContextMenu={onContextMenu}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
@@ -541,7 +546,7 @@ export default function ChatFrameList({
         <SelectionToolbar
           selectedCount={selectedMessageIds.size}
           totalCount={historyMessages.length}
-          isSelecting={isSelecting}
+          isVisible={isSelectionToolbarVisible}
           onCancel={onCancelSelection}
           onSelectAll={onSelectAll}
           onExportFile={onExportFile}
@@ -551,10 +556,10 @@ export default function ChatFrameList({
         />
         <MessageFilterControl
           isActive={isMessageFilterActive}
+          filterConfig={currentMessageFilter}
           visibleCount={historyMessages.length}
           totalCount={totalMessageCount}
           onOpen={onOpenMessageFilter}
-          onClear={onClearMessageFilter}
         />
         <div className="h-full flex-1">
           <Virtuoso

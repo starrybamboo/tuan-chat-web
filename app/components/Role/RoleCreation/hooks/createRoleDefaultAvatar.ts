@@ -118,19 +118,16 @@ export async function ensureRoleAvatarDefaultMedia(
 
   const uploadedAvatarFileId = nextAvatar.avatarFileId ? null : await uploadDefaultAvatarMediaFile();
   const avatarFileId = nextAvatar.avatarFileId ?? uploadedAvatarFileId ?? undefined;
-  const spriteFileId = nextAvatar.spriteFileId ?? avatarFileId;
 
-  if (avatarFileId && (nextAvatar.avatarFileId !== avatarFileId || nextAvatar.spriteFileId !== spriteFileId)) {
+  if (avatarFileId && nextAvatar.avatarFileId !== avatarFileId) {
     const updateRes = await tuanchat.avatarController.updateRoleAvatar({
       ...nextAvatar,
       avatarFileId,
-      spriteFileId,
     });
     if (updateRes?.success) {
       nextAvatar = mergeAvatarPatch({
         ...nextAvatar,
         avatarFileId,
-        spriteFileId,
       }, updateRes.data);
     }
   }

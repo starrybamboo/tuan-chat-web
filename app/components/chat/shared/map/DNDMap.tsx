@@ -508,7 +508,6 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
           op: "map_upsert",
           map: {
             mapFileId: payload.mapFileId,
-            mapMediaType: payload.mapFileId ? "image" : undefined,
             gridRows: payload.gridRows,
             gridCols: payload.gridCols,
             gridColor: payload.gridColor,

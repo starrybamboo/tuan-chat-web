@@ -1,10 +1,10 @@
-import type { MessageDraft } from "@/types/messageDraft";
-
+import type { MessageEditorMessage } from "../messageEditorTypes";
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
 
 import {
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
+  isMessageEditorTextMessage,
   normalizeMessageEditorContent,
   previewVisibleOffsetToMessageEditorRawOffset,
 } from "../model/messageEditorTransforms";
@@ -40,9 +40,18 @@ export type MessageEditorSelection = {
   collapsed: boolean;
 };
 
-function clampOffset(message: MessageDraft | undefined, offset: number) {
-  const contentLength = normalizeMessageEditorContent(message?.content).length;
-  return Math.max(0, Math.min(offset, contentLength));
+export function getMessageEditorSelectableLength(message: MessageEditorMessage | undefined, registry: MessageEditorRegistry) {
+  if (!message) {
+    return 0;
+  }
+  return registry.isTextBlock(message)
+    ? normalizeMessageEditorContent(message.content).length
+    : 1;
+}
+
+function clampOffset(message: MessageEditorMessage | undefined, registry: MessageEditorRegistry, offset: number) {
+  const selectableLength = getMessageEditorSelectableLength(message, registry);
+  return Math.max(0, Math.min(offset, selectableLength));
 }
 
 function comparePoints(messageIndexByBlockId: Map<string, number>, left: MessageEditorSelectionPoint, right: MessageEditorSelectionPoint) {
@@ -55,10 +64,11 @@ function comparePoints(messageIndexByBlockId: Map<string, number>, left: Message
 }
 
 /**
- * 根据块序列和两个端点生成连续文本选区。
+ * 根据块序列和两个端点生成连续文档选区。
+ * 非文本消息按一个原子对象处理，选区范围为 0..1。
  */
 export function createMessageEditorSelection(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   anchor: MessageEditorSelectionPoint,
   focus: MessageEditorSelectionPoint,
@@ -73,11 +83,11 @@ export function createMessageEditorSelection(
 
   const normalizedAnchor: MessageEditorSelectionPoint = {
     blockId: anchor.blockId,
-    offset: clampOffset(normalizedMessages[anchorIndex], anchor.offset),
+    offset: clampOffset(normalizedMessages[anchorIndex], registry, anchor.offset),
   };
   const normalizedFocus: MessageEditorSelectionPoint = {
     blockId: focus.blockId,
-    offset: clampOffset(normalizedMessages[focusIndex], focus.offset),
+    offset: clampOffset(normalizedMessages[focusIndex], registry, focus.offset),
   };
 
   const ordered = comparePoints(messageIndexByBlockId, normalizedAnchor, normalizedFocus) <= 0
@@ -86,18 +96,15 @@ export function createMessageEditorSelection(
   const startIndex = messageIndexByBlockId.get(ordered.start.blockId)!;
   const endIndex = messageIndexByBlockId.get(ordered.end.blockId)!;
   const selectedMessages = normalizedMessages.slice(startIndex, endIndex + 1);
-  if (selectedMessages.some(message => !registry.isTextBlock(message))) {
-    return null;
-  }
 
   const segments: MessageEditorSelectionSegment[] = [];
   for (let index = startIndex; index <= endIndex; index += 1) {
     const message = normalizedMessages[index];
     const blockId = getMessageEditorBlockId(message);
-    const contentLength = normalizeMessageEditorContent(message.content).length;
+    const selectableLength = getMessageEditorSelectableLength(message, registry);
     const start = index === startIndex ? ordered.start.offset : 0;
-    const end = index === endIndex ? ordered.end.offset : contentLength;
-    if (end > start || (startIndex !== endIndex && contentLength === 0)) {
+    const end = index === endIndex ? ordered.end.offset : selectableLength;
+    if (end > start || (startIndex !== endIndex && selectableLength === 0)) {
       segments.push({
         blockId,
         start,
@@ -122,13 +129,16 @@ export function createMessageEditorSelection(
  * 读取 editor 级选区对应的原始 message.content 文本。
  */
 export function getMessageEditorSelectionText(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   selection: MessageEditorSelection,
 ): string {
   const messageByBlockId = new Map(ensureMessageEditorMessages(messages).map(message => [getMessageEditorBlockId(message), message] as const));
   return selection.blockIds.map((blockId) => {
     const message = messageByBlockId.get(blockId);
-    const content = normalizeMessageEditorContent(message?.content);
+    if (!message || !isMessageEditorTextMessage(message)) {
+      return "";
+    }
+    const content = normalizeMessageEditorContent(message.content);
     if (blockId === selection.start.blockId && blockId === selection.end.blockId) {
       return content.slice(selection.start.offset, selection.end.offset);
     }
@@ -143,7 +153,7 @@ export function getMessageEditorSelectionText(
 }
 
 function findTextMessageIndex(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   blockId: string,
 ) {
@@ -158,7 +168,7 @@ function findTextMessageIndex(
  * 获取当前文本块所属的连续文本 run。遇到原子块即停止。
  */
 export function createMessageEditorTextRunSelection(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   blockId: string,
 ): MessageEditorSelection | null {
@@ -190,10 +200,33 @@ export function createMessageEditorTextRunSelection(
 }
 
 /**
+ * 选择整个文档流。用于 Ctrl/Cmd+A，语义应覆盖文本块和原子块。
+ */
+export function createMessageEditorDocumentSelection(
+  messages: MessageEditorMessage[],
+  registry: MessageEditorRegistry,
+): MessageEditorSelection | null {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const firstMessage = normalizedMessages[0];
+  const lastMessage = normalizedMessages.at(-1);
+  if (!firstMessage || !lastMessage) {
+    return null;
+  }
+
+  return createMessageEditorSelection(normalizedMessages, registry, {
+    blockId: getMessageEditorBlockId(firstMessage),
+    offset: 0,
+  }, {
+    blockId: getMessageEditorBlockId(lastMessage),
+    offset: getMessageEditorSelectableLength(lastMessage, registry),
+  });
+}
+
+/**
  * 移动到相邻文本块的相近 offset。只在连续文本 run 内移动。
  */
 export function getAdjacentMessageEditorTextBlockPoint(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   point: MessageEditorSelectionPoint,
   direction: -1 | 1,
@@ -218,11 +251,50 @@ export function getAdjacentMessageEditorTextBlockPoint(
   };
 }
 
+function findMessageIndex(
+  messages: MessageEditorMessage[],
+  blockId: string,
+) {
+  return messages.findIndex(message => getMessageEditorBlockId(message) === blockId);
+}
+
+/**
+ * 移动到相邻文档块。文本和原子消息都参与文档级选择。
+ */
+export function getAdjacentMessageEditorDocumentBlockPoint(
+  messages: MessageEditorMessage[],
+  registry: MessageEditorRegistry,
+  point: MessageEditorSelectionPoint,
+  direction: -1 | 1,
+  preferredOffset = point.offset,
+): MessageEditorSelectionPoint | null {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const currentIndex = findMessageIndex(normalizedMessages, point.blockId);
+  const nextIndex = currentIndex + direction;
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= normalizedMessages.length) {
+    return null;
+  }
+
+  const nextMessage = normalizedMessages[nextIndex];
+  const nextLength = getMessageEditorSelectableLength(nextMessage, registry);
+  if (!registry.isTextBlock(nextMessage)) {
+    return {
+      blockId: getMessageEditorBlockId(nextMessage),
+      offset: direction < 0 ? 0 : nextLength,
+    };
+  }
+
+  return {
+    blockId: getMessageEditorBlockId(nextMessage),
+    offset: Math.max(0, Math.min(preferredOffset, nextLength)),
+  };
+}
+
 /**
  * 按字符移动连续文本光标。跨块时跳到相邻文本块的边界字符。
  */
 export function moveMessageEditorTextPointByCharacter(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   point: MessageEditorSelectionPoint,
   direction: -1 | 1,
@@ -257,6 +329,45 @@ export function moveMessageEditorTextPointByCharacter(
   };
 }
 
+/**
+ * 按文档对象移动选区端点。原子消息视为长度为 1 的整体对象。
+ */
+export function moveMessageEditorDocumentPointByCharacter(
+  messages: MessageEditorMessage[],
+  registry: MessageEditorRegistry,
+  point: MessageEditorSelectionPoint,
+  direction: -1 | 1,
+): MessageEditorSelectionPoint | null {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const currentIndex = findMessageIndex(normalizedMessages, point.blockId);
+  if (currentIndex < 0) {
+    return null;
+  }
+
+  const currentMessage = normalizedMessages[currentIndex];
+  const currentLength = getMessageEditorSelectableLength(currentMessage, registry);
+  const currentOffset = Math.max(0, Math.min(point.offset, currentLength));
+  const nextOffset = currentOffset + direction;
+  if (nextOffset >= 0 && nextOffset <= currentLength) {
+    return {
+      blockId: point.blockId,
+      offset: nextOffset,
+    };
+  }
+
+  const nextIndex = currentIndex + direction;
+  if (nextIndex < 0 || nextIndex >= normalizedMessages.length) {
+    return null;
+  }
+
+  const nextMessage = normalizedMessages[nextIndex];
+  const nextLength = getMessageEditorSelectableLength(nextMessage, registry);
+  return {
+    blockId: getMessageEditorBlockId(nextMessage),
+    offset: direction < 0 ? Math.max(0, nextLength - 1) : Math.min(1, nextLength),
+  };
+}
+
 function findBlockElement(node: Node | null, root: HTMLElement): HTMLElement | null {
   if (!node) {
     return null;
@@ -286,7 +397,7 @@ function getOffsetWithinBlock(blockElement: HTMLElement, container: Node, offset
  */
 export function resolveMessageEditorSelectionFromRange(
   root: HTMLElement,
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   range: Range,
 ): MessageEditorSelection | null {
