@@ -242,7 +242,7 @@ export function MessageEditorAtomicBlock({
 
   const renderEmptyUploadBlock = () => (
     <>
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-1 flex items-center justify-between gap-2">
         <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
         {!readOnly && (
           <button
@@ -257,7 +257,7 @@ export function MessageEditorAtomicBlock({
       </div>
       <button
         type="button"
-        className="flex min-h-60 w-full items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-200/25 px-4 py-10 text-sm text-base-content/55 transition hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content"
+        className="flex min-h-24 w-full items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-200/25 px-4 py-4 text-sm text-base-content/55 transition hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content"
         onMouseDown={event => event.preventDefault()}
         onClick={openFilePicker}
       >

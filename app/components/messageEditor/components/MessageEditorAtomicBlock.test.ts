@@ -22,6 +22,7 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(html).toContain("点击上传图片");
     expect(html).toContain("删除");
+    expect(html).toContain("min-h-24");
     expect(html).not.toContain("<img");
   });
 
