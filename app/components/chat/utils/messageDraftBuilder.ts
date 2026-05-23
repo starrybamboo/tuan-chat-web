@@ -9,6 +9,7 @@ import type { UploadUtils } from "@/utils/UploadUtils";
 import { ANNOTATION_IDS, hasAnnotation, normalizeAnnotations, setAnnotation } from "@/types/messageAnnotations";
 import { buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
 import { getImageSize } from "@/utils/getImgSize";
+import { readMediaDuration } from "@/utils/mediaMetadata";
 
 import { MessageType } from "../../../../api/wsModels";
 
@@ -34,39 +35,6 @@ type BuildMessageDraftsFromComposerSnapshotParams = {
   allowEmptyTextMessage?: boolean;
   textMessageType?: MessageDraft["messageType"];
 };
-
-async function getMessageDraftMediaDuration(file: File): Promise<number | undefined> {
-  const objectUrl = URL.createObjectURL(file);
-
-  try {
-    return await new Promise<number | undefined>((resolve) => {
-      const element = document.createElement(file.type.startsWith("video/") ? "video" : "audio");
-      const cleanup = () => {
-        element.onloadedmetadata = null;
-        element.onerror = null;
-        URL.revokeObjectURL(objectUrl);
-      };
-
-      element.preload = "metadata";
-      element.src = objectUrl;
-      element.onloadedmetadata = () => {
-        const duration = Number.isFinite(element.duration) && element.duration > 0
-          ? Math.max(1, Math.round(element.duration))
-          : undefined;
-        cleanup();
-        resolve(duration);
-      };
-      element.onerror = () => {
-        cleanup();
-        resolve(undefined);
-      };
-    });
-  }
-  catch {
-    URL.revokeObjectURL(objectUrl);
-    return undefined;
-  }
-}
 
 function isVideoAttachment(file: File) {
   if (file.type.startsWith("video/")) {
@@ -157,14 +125,14 @@ export async function buildMessageDraftsFromComposerSnapshot({
       mediaType: uploadedVideo.mediaType,
       fileName: uploadedVideo.fileName,
       size: uploadedVideo.size,
-      second: await getMessageDraftMediaDuration(attachment),
+      second: await readMediaDuration(attachment),
     });
   }
 
   let uploadedSoundMessage: UploadedSoundMessageDraftAsset | null = null;
 
   if (audioFile) {
-    const audioSecond = await getMessageDraftMediaDuration(audioFile);
+    const audioSecond = await readMediaDuration(audioFile);
     if (audioSecond == null) {
       throw new Error("无法读取音频时长，请换用可识别的音频文件后重试。");
     }

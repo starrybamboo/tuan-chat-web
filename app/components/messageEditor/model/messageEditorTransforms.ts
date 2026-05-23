@@ -93,6 +93,11 @@ type MessageDraftExtra = NonNullable<MessageDraft["extra"]>;
 const LEGACY_MESSAGE_EDITOR_EXTRA_KEY = "messageEditor";
 const runtimeBlockIds = new WeakMap<object, string>();
 
+type MessageEditorMediaLayout = {
+  editorHeight?: number;
+  editorWidth?: number;
+};
+
 function createMessageEditorEntityId(prefix = "block"): string {
   const randomPart = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? crypto.randomUUID().replace(/-/g, "")
@@ -240,6 +245,70 @@ function toFiniteNumber(value: unknown): number | undefined {
 function toPositiveNumber(value: unknown): number | undefined {
   const normalized = toFiniteNumber(value);
   return typeof normalized === "number" && normalized > 0 ? normalized : undefined;
+}
+
+function getNestedExtraRecord(extra: unknown, key: "imageMessage" | "videoMessage"): Record<string, unknown> | undefined {
+  const record = isRecord(extra) ? extra : undefined;
+  const nested = record?.[key];
+  return isRecord(nested) ? nested : undefined;
+}
+
+function getMessageEditorMediaRecord(message: MessageDraft): {
+  extraKey: "imageMessage" | "videoMessage";
+  payload: Record<string, unknown>;
+} | null {
+  if (message.messageType === MESSAGE_TYPE.IMG) {
+    return {
+      extraKey: "imageMessage",
+      payload: getNestedExtraRecord(message.extra, "imageMessage") ?? {},
+    };
+  }
+  if (message.messageType === MESSAGE_TYPE.VIDEO) {
+    return {
+      extraKey: "videoMessage",
+      payload: getNestedExtraRecord(message.extra, "videoMessage") ?? {},
+    };
+  }
+  return null;
+}
+
+function getMessageEditorMediaLayout(message: MessageDraft): MessageEditorMediaLayout | null {
+  const mediaRecord = getMessageEditorMediaRecord(message);
+  if (!mediaRecord) {
+    return null;
+  }
+
+  const editorWidth = toPositiveNumber(mediaRecord.payload.editorWidth);
+  const editorHeight = toPositiveNumber(mediaRecord.payload.editorHeight)
+    ?? (editorWidth ? toPositiveNumber(mediaRecord.payload.height) : undefined);
+  return editorWidth || editorHeight
+    ? {
+        ...(editorWidth ? { editorWidth: Math.round(editorWidth) } : {}),
+        ...(editorHeight ? { editorHeight: Math.round(editorHeight) } : {}),
+      }
+    : null;
+}
+
+function getMessageEditorMediaLayoutKeys(message: MessageDraft, index: number): string[] {
+  const mediaRecord = getMessageEditorMediaRecord(message);
+  if (!mediaRecord) {
+    return [];
+  }
+
+  const keys: string[] = [];
+  const runtimeMessageId = toPositiveNumber((message as Record<string, unknown>).messageId);
+  if (runtimeMessageId) {
+    keys.push(`message:${runtimeMessageId}`);
+  }
+
+  const fileId = toPositiveNumber(mediaRecord.payload.fileId);
+  const mediaType = toTrimmedString(mediaRecord.payload.mediaType) ?? "";
+  if (fileId) {
+    keys.push(`media:${message.messageType}:${fileId}:${mediaType}`);
+  }
+
+  keys.push(`index:${message.messageType}:${index}`);
+  return keys;
 }
 
 function toMessageDraftExtra(value: unknown): MessageDraftExtra | undefined {
@@ -475,12 +544,129 @@ export function setMessageEditorUploadedMedia(
       fileName: payload.fileName,
       mediaType: payload.mediaType,
       size: payload.size,
+      ...(typeof payload.second === "number" ? { second: payload.second } : {}),
+      ...(typeof payload.width === "number" ? { width: payload.width } : {}),
+      ...(typeof payload.height === "number" ? { height: payload.height } : {}),
     };
   }
 
   return inheritRuntimeBlockId(message, {
     ...message,
     extra: nextExtra,
+  });
+}
+
+/**
+ * 更新媒体块在 editor 中使用的显示尺寸。
+ */
+export function updateMessageEditorMediaSize(
+  message: MessageDraft,
+  size: { height: number; width: number },
+): MessageDraft {
+  if (message.messageType !== MESSAGE_TYPE.IMG && message.messageType !== MESSAGE_TYPE.VIDEO) {
+    return message;
+  }
+
+  const nextWidth = Math.max(1, Math.round(size.width));
+  const nextHeight = Math.max(1, Math.round(size.height));
+  const currentExtra = { ...toMessageDraftExtra(message.extra) } as MessageDraftExtra;
+  const currentMediaMessage = message.messageType === MESSAGE_TYPE.IMG
+    ? (getNestedExtraRecord(currentExtra, "imageMessage") ?? {})
+    : (getNestedExtraRecord(currentExtra, "videoMessage") ?? {});
+  if (currentMediaMessage.editorWidth === nextWidth && currentMediaMessage.editorHeight === nextHeight) {
+    return message;
+  }
+
+  const nextMediaMessage = {
+    ...currentMediaMessage,
+    editorHeight: nextHeight,
+    editorWidth: nextWidth,
+  };
+
+  const nextExtra = message.messageType === MESSAGE_TYPE.IMG
+    ? {
+        ...currentExtra,
+        imageMessage: nextMediaMessage,
+      }
+    : {
+        ...currentExtra,
+        videoMessage: nextMediaMessage,
+      };
+
+  return inheritRuntimeBlockId(message, {
+    ...message,
+    extra: nextExtra,
+  });
+}
+
+/**
+ * @deprecated Use `updateMessageEditorMediaSize` instead.
+ */
+export function updateMessageEditorImageSize(
+  message: MessageDraft,
+  size: { height: number; width: number },
+): MessageDraft {
+  return updateMessageEditorMediaSize(message, size);
+}
+
+/**
+ * 将本地文档视图的媒体布局覆盖回消息流，避免远端消息清洗掉 editor-only 尺寸后丢失缩放状态。
+ */
+export function mergeMessageEditorMediaLayouts(
+  messages: MessageDraft[],
+  layoutSourceMessages: MessageDraft[],
+): MessageDraft[] {
+  const normalizedMessages = ensureMessageEditorMessages(messages);
+  const layoutsByKey = new Map<string, MessageEditorMediaLayout>();
+
+  ensureMessageEditorMessages(layoutSourceMessages).forEach((message, index) => {
+    const layout = getMessageEditorMediaLayout(message);
+    if (!layout) {
+      return;
+    }
+    for (const key of getMessageEditorMediaLayoutKeys(message, index)) {
+      layoutsByKey.set(key, layout);
+    }
+  });
+
+  if (layoutsByKey.size === 0) {
+    return normalizedMessages;
+  }
+
+  return normalizedMessages.map((message, index) => {
+    const mediaRecord = getMessageEditorMediaRecord(message);
+    if (!mediaRecord) {
+      return message;
+    }
+
+    const layout = getMessageEditorMediaLayoutKeys(message, index)
+      .map(key => layoutsByKey.get(key))
+      .find((candidate): candidate is MessageEditorMediaLayout => Boolean(candidate));
+    if (!layout) {
+      return message;
+    }
+
+    const currentExtra = { ...toMessageDraftExtra(message.extra) } as MessageDraftExtra;
+    const currentPayload = getNestedExtraRecord(currentExtra, mediaRecord.extraKey) ?? {};
+    const nextPayload = {
+      ...currentPayload,
+      ...(layout.editorHeight ? { editorHeight: layout.editorHeight } : {}),
+      ...(layout.editorWidth ? { editorWidth: layout.editorWidth } : {}),
+    };
+    if (
+      currentPayload.editorHeight === nextPayload.editorHeight
+      && currentPayload.editorWidth === nextPayload.editorWidth
+    ) {
+      return message;
+    }
+
+    return inheritRuntimeBlockId(message, {
+      ...message,
+      extra: {
+        ...currentExtra,
+        [mediaRecord.extraKey]: nextPayload,
+      } as MessageDraftExtra,
+    });
   });
 }
 

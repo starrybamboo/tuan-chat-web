@@ -88,12 +88,20 @@ describe("messageContentRenderer 聊天室媒体质量", () => {
             fileId: 78,
             mediaType: "document",
             fileName: "rulebook.pdf",
+            size: 2765,
           },
         },
       },
     }));
 
     expect(html).toContain("https://tuan.chat/media/v1/files/078/78/document/low");
+    expect(html).toContain("<svg");
+    expect(html).toContain("rulebook.pdf");
+    expect(html).toContain("2.7 KiB");
+    expect(html).toContain("group/file flex min-w-0 w-full");
+    expect(html).toContain("flex min-w-0 w-full");
+    expect(html).toContain("group-hover/file:underline");
+    expect(html).toContain("decoration-dotted");
     expect(html).not.toContain("/original");
   });
 
