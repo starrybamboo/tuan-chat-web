@@ -85,6 +85,11 @@ export default function ChatFrameContextMenu({
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
   const canEditMessage = !!message && (message.message.userId === currentUserId || spaceContext.isSpaceOwner);
+  const shouldDeleteSelectedMessages = Boolean(
+    contextMenuMessageId
+    && selectedMessageIds.size > 1
+    && selectedMessageIds.has(contextMenuMessageId),
+  );
   const canToggleBackground = canEditMessage
     && !!message?.message.extra?.imageMessage
     && message.message.messageType === MESSAGE_TYPE.IMG;
@@ -404,7 +409,7 @@ export default function ChatFrameContextMenu({
                 onClose();
               }}
             >
-              删除
+              {shouldDeleteSelectedMessages ? `删除选中消息 (${selectedMessageIds.size})` : "删除"}
             </button>
           </li>
         )}
