@@ -297,6 +297,7 @@ export function buildRoomMessagePatchOperations(
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
 const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
+const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-1";
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
@@ -316,6 +317,21 @@ export function getMessageEditorFrameClassName(className?: string) {
  */
 export function getMessageEditorScrollViewportClassName() {
   return MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS;
+}
+
+/**
+ * 解析文字块外壳类名。
+ * 连续文字块之间额外留 4px，区分块间分隔和块内 leading-7 产生的自然换行。
+ */
+export function getMessageEditorTextBlockShellClassName(options: {
+  hasFollowingTextBlock: boolean;
+  isDragging: boolean;
+}) {
+  return [
+    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
+    options.hasFollowingTextBlock ? MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS : "",
+    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+  ].join(" ");
 }
 
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
@@ -2202,7 +2218,8 @@ export default function MessageEditor({
                 className="flex min-h-svh w-full flex-col py-2"
                 onMouseDown={handleEditorSurfaceMouseDown}
               >
-                {atomicMessages.map(({ blockId, message, driver }) => {
+                {atomicMessages.map(({ blockId, message, driver }, messageIndex) => {
+                  const nextDriver = atomicMessages[messageIndex + 1]?.driver ?? null;
                   const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
                   const selectedBlockIndex = activeTextSelection?.blockIds.indexOf(blockId) ?? -1;
                   const showSelectedLineBreak = selectedBlockIndex >= 0
@@ -2223,12 +2240,10 @@ export default function MessageEditor({
                       <div
                         key={blockId}
                         ref={node => registerBlockShellRef(blockId, node)}
-                        className={[
-                          `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
-                          dragState?.draggedBlockId === blockId
-                            ? "bg-base-100/80 ring-1 ring-base-300/80"
-                            : "",
-                        ].join(" ")}
+                        className={getMessageEditorTextBlockShellClassName({
+                          hasFollowingTextBlock: nextDriver?.kind === "text",
+                          isDragging: dragState?.draggedBlockId === blockId,
+                        })}
                       >
                         {showDropBefore && (
                           <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
