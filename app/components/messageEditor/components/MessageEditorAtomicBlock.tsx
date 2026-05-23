@@ -115,6 +115,14 @@ function resolveMediaDimensions(payload: unknown) {
   };
 }
 
+function resolveMediaEditorWidth(payload: unknown): number | undefined {
+  if (!payload || typeof payload !== "object") {
+    return undefined;
+  }
+  const record = payload as Record<string, unknown>;
+  return typeof record.editorWidth === "number" && record.editorWidth > 0 ? record.editorWidth : undefined;
+}
+
 /**
  * 原子块编辑壳，负责上传与删除交互。
  */
@@ -137,7 +145,6 @@ export function MessageEditorAtomicBlock({
   } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [displayWidth, setDisplayWidth] = useState<number | null>(null);
   const uploadMeta = resolveUploadMeta(message);
   const uploadable = uploadMeta.accept.length > 0;
   const uploaded = hasUploadedMedia(message);
@@ -153,6 +160,10 @@ export function MessageEditorAtomicBlock({
       ? getVideoMessageExtra(message.extra)
       : undefined;
   const mediaDimensions = resolveMediaDimensions(mediaPayload);
+  const mediaEditorWidth = resolveMediaEditorWidth(mediaPayload);
+  const mediaEditorWidthRef = useRef(mediaEditorWidth);
+  mediaEditorWidthRef.current = mediaEditorWidth;
+  const [displayWidth, setDisplayWidth] = useState<number | null>(() => mediaEditorWidth ?? null);
   const uploadedMediaUrl = isImageBlock
     ? resolveUploadedImageUrl(message)
     : isVideoBlock
@@ -163,11 +174,12 @@ export function MessageEditorAtomicBlock({
     const height = typeof mediaDimensions?.height === "number" && mediaDimensions.height > 0 ? mediaDimensions.height : 0;
     return width > 0 && height > 0 ? height / width : 1;
   }, [mediaDimensions?.height, mediaDimensions?.width]);
+  const mediaIdentity = `${mediaPayload?.fileId ?? ""}:${mediaPayload?.mediaType ?? ""}`;
 
   useEffect(() => {
-    setDisplayWidth(null);
+    setDisplayWidth(mediaEditorWidthRef.current ?? null);
     resizeSessionRef.current = null;
-  }, [mediaPayload?.fileId, mediaPayload?.mediaType]);
+  }, [mediaIdentity]);
 
   const commitResize = (nextWidth: number) => {
     const clampedWidth = Math.max(160, Math.round(nextWidth));

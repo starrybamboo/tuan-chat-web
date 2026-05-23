@@ -508,24 +508,22 @@ export function updateMessageEditorMediaSize(
     return message;
   }
 
-  const nextExtra = {
-    ...currentExtra,
-    ...(message.messageType === MESSAGE_TYPE.IMG
-      ? {
-          imageMessage: {
-            ...currentMediaMessage,
-            width: nextWidth,
-            height: nextHeight,
-          },
-        }
-      : {
-          videoMessage: {
-            ...currentMediaMessage,
-            width: nextWidth,
-            height: nextHeight,
-          },
-        }),
-  } as MessageDraftExtra;
+  const nextMediaMessage = {
+    ...currentMediaMessage,
+    height: nextHeight,
+    width: nextWidth,
+  };
+  (nextMediaMessage as Record<string, unknown>).editorWidth = nextWidth;
+
+  const nextExtra = message.messageType === MESSAGE_TYPE.IMG
+    ? {
+        ...currentExtra,
+        imageMessage: nextMediaMessage,
+      }
+    : {
+        ...currentExtra,
+        videoMessage: nextMediaMessage,
+      };
 
   return inheritRuntimeBlockId(message, {
     ...message,
