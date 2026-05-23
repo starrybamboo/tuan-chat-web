@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { uploadMediaFile } from "./mediaUpload";
+import { transcodeAudioFileToOpusOrThrow } from "./audioTranscodeUtils";
+import { uploadGeneratedMediaFiles, uploadMediaFile } from "./mediaUpload";
 import { UploadUtils } from "./UploadUtils";
 import { transcodeVideoFileToWebmOrThrow } from "./videoTranscodeUtils";
 
 vi.mock("./mediaUpload", () => ({
+  uploadGeneratedMediaFiles: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   uploadMediaFile: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+}));
+
+vi.mock("./audioTranscodeUtils", () => ({
+  transcodeAudioFileToOpusOrThrow: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
 }));
 
 vi.mock("./videoTranscodeUtils", () => ({
@@ -24,8 +30,8 @@ describe("uploadUtils media service adapter", () => {
     const transcodedFile = new File([new Uint8Array(256)], "clip.webm", { type: "video/webm" });
     const transcodeMock = transcodeVideoFileToWebmOrThrow as ReturnType<typeof vi.fn>;
     transcodeMock.mockResolvedValueOnce(transcodedFile);
-    const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
-    uploadMediaFileMock.mockResolvedValueOnce({
+    const uploadGeneratedMediaFilesMock = uploadGeneratedMediaFiles as ReturnType<typeof vi.fn>;
+    uploadGeneratedMediaFilesMock.mockResolvedValueOnce({
       fileId: 42,
       mediaType: "video",
       uploadRequired: true,
@@ -34,7 +40,12 @@ describe("uploadUtils media service adapter", () => {
     const result = await utils.uploadVideo(file, 1);
 
     expect(transcodeMock).toHaveBeenCalledTimes(1);
-    expect(uploadMediaFileMock).toHaveBeenCalledWith(transcodedFile, { scene: 1 });
+    expect(uploadGeneratedMediaFilesMock).toHaveBeenCalledWith(expect.objectContaining({
+      filesByQuality: { low: transcodedFile },
+      mediaType: "video",
+      original: transcodedFile,
+    }), { scene: 1 });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
     expect(result).toEqual({
       fileId: 42,
       fileName: "clip.webm",
@@ -50,8 +61,8 @@ describe("uploadUtils media service adapter", () => {
     (globalThis as any).__TC_VIDEO_UPLOAD_ENABLE_TRANSCODE = false;
     const utils = new UploadUtils();
     const file = new File([new Uint8Array(4096)], "movie.mkv", { type: "video/x-matroska" });
-    const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
-    uploadMediaFileMock.mockResolvedValueOnce({
+    const uploadGeneratedMediaFilesMock = uploadGeneratedMediaFiles as ReturnType<typeof vi.fn>;
+    uploadGeneratedMediaFilesMock.mockResolvedValueOnce({
       fileId: 43,
       mediaType: "video",
       uploadRequired: false,
@@ -60,7 +71,12 @@ describe("uploadUtils media service adapter", () => {
     const result = await utils.uploadVideo(file, 1);
 
     expect(transcodeVideoFileToWebmOrThrow).not.toHaveBeenCalled();
-    expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 1 });
+    expect(uploadGeneratedMediaFilesMock).toHaveBeenCalledWith(expect.objectContaining({
+      filesByQuality: { low: file },
+      mediaType: "video",
+      original: file,
+    }), { scene: 1 });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
     expect(result.url).toBe("https://tuan.chat/media/v1/files/043/43/video/low.webm");
     expect(result.fileId).toBe(43);
   });
@@ -71,8 +87,8 @@ describe("uploadUtils media service adapter", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const transcodeMock = transcodeVideoFileToWebmOrThrow as ReturnType<typeof vi.fn>;
     transcodeMock.mockRejectedValueOnce(new Error("RuntimeError: memory access out of bounds"));
-    const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
-    uploadMediaFileMock.mockResolvedValueOnce({
+    const uploadGeneratedMediaFilesMock = uploadGeneratedMediaFiles as ReturnType<typeof vi.fn>;
+    uploadGeneratedMediaFilesMock.mockResolvedValueOnce({
       fileId: 44,
       mediaType: "video",
       uploadRequired: true,
@@ -82,7 +98,12 @@ describe("uploadUtils media service adapter", () => {
 
     expect(transcodeMock).toHaveBeenCalledTimes(1);
     expect(warnSpy).toHaveBeenCalled();
-    expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 1 });
+    expect(uploadGeneratedMediaFilesMock).toHaveBeenCalledWith(expect.objectContaining({
+      filesByQuality: { low: file },
+      mediaType: "video",
+      original: file,
+    }), { scene: 1 });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
     expect(result.url).toBe("https://tuan.chat/media/v1/files/044/44/video/low.webm");
     warnSpy.mockRestore();
   });
@@ -96,6 +117,58 @@ describe("uploadUtils media service adapter", () => {
     await expect(utils.uploadVideo(file, 1)).rejects.toThrow("transcode failed");
     expect(transcodeMock).toHaveBeenCalledTimes(1);
     expect(uploadMediaFile).not.toHaveBeenCalled();
+  });
+
+  it("音频上传只转码一次，并直接上传准备好的 low 文件", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array(4096)], "voice.mp3", { type: "audio/mpeg" });
+    const transcodedFile = new File([new Uint8Array(512)], "voice.webm", { type: "audio/webm" });
+    const transcodeMock = transcodeAudioFileToOpusOrThrow as ReturnType<typeof vi.fn>;
+    transcodeMock.mockResolvedValueOnce(transcodedFile);
+    const uploadGeneratedMediaFilesMock = uploadGeneratedMediaFiles as ReturnType<typeof vi.fn>;
+    uploadGeneratedMediaFilesMock.mockResolvedValueOnce({
+      fileId: 46,
+      mediaType: "audio",
+      uploadRequired: true,
+    });
+
+    const result = await utils.uploadAudioAsset(file, 1);
+
+    expect(transcodeMock).toHaveBeenCalledTimes(1);
+    expect(uploadGeneratedMediaFilesMock).toHaveBeenCalledWith(expect.objectContaining({
+      filesByQuality: { low: transcodedFile },
+      mediaType: "audio",
+      original: transcodedFile,
+    }), { scene: 1 });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+    expect(result.url).toBe("https://tuan.chat/media/v1/files/046/46/audio/low.webm");
+  });
+
+  it("音频转码失败时回退上传原音频，不再二次触发转码", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array(4096)], "voice.mp3", { type: "audio/mpeg" });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const transcodeMock = transcodeAudioFileToOpusOrThrow as ReturnType<typeof vi.fn>;
+    transcodeMock.mockRejectedValueOnce(new Error("RuntimeError: memory access out of bounds"));
+    const uploadGeneratedMediaFilesMock = uploadGeneratedMediaFiles as ReturnType<typeof vi.fn>;
+    uploadGeneratedMediaFilesMock.mockResolvedValueOnce({
+      fileId: 47,
+      mediaType: "audio",
+      uploadRequired: true,
+    });
+
+    const result = await utils.uploadAudioAsset(file, 1);
+
+    expect(transcodeMock).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalled();
+    expect(uploadGeneratedMediaFilesMock).toHaveBeenCalledWith(expect.objectContaining({
+      filesByQuality: { low: file },
+      mediaType: "audio",
+      original: file,
+    }), { scene: 1 });
+    expect(uploadMediaFile).not.toHaveBeenCalled();
+    expect(result.url).toBe("https://tuan.chat/media/v1/files/047/47/audio/low.webm");
+    warnSpy.mockRestore();
   });
 
   it("图片上传通过媒体服务返回可用中档位地址", async () => {

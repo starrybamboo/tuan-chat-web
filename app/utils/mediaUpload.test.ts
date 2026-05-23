@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { transcodeAudioFileToOpusOrThrow } from "./audioTranscodeUtils";
 import { generateMediaUploadFiles, uploadMediaFile } from "./mediaUpload";
+import { transcodeVideoFileToWebmOrThrow } from "./videoTranscodeUtils";
 
 const {
   compressImageMock,
@@ -27,7 +29,15 @@ vi.mock("@/utils/imgCompressUtils", async () => {
 });
 
 vi.mock("@/utils/mediaMime", () => ({
-  inferMediaTypeFromMimeType: (mimeType: string) => (mimeType.startsWith("image/") ? "image" : "other"),
+  inferMediaTypeFromMimeType: (mimeType: string) => {
+    if (mimeType.startsWith("image/"))
+      return "image";
+    if (mimeType.startsWith("audio/"))
+      return "audio";
+    if (mimeType.startsWith("video/"))
+      return "video";
+    return "other";
+  },
   normalizeFileMimeType: normalizeFileMimeTypeMock,
   normalizeMimeType: (mimeType: string) => mimeType,
 }));
@@ -158,6 +168,26 @@ describe("mediaUpload", () => {
         scene: 1,
       }),
     }));
+  });
+
+  it("已是 WebM 的音频不会再次进入 FFmpeg 转码", async () => {
+    const file = new File([new Uint8Array(1024)], "voice.webm", { type: "audio/webm" });
+
+    const result = await generateMediaUploadFiles(file, 1);
+
+    expect(transcodeAudioFileToOpusOrThrow).not.toHaveBeenCalled();
+    expect(result.mediaType).toBe("audio");
+    expect(result.filesByQuality).toEqual({ low: file });
+  });
+
+  it("已是 WebM 的视频不会再次进入 FFmpeg 转码", async () => {
+    const file = new File([new Uint8Array(1024)], "clip.webm", { type: "video/webm" });
+
+    const result = await generateMediaUploadFiles(file, 1);
+
+    expect(transcodeVideoFileToWebmOrThrow).not.toHaveBeenCalled();
+    expect(result.mediaType).toBe("video");
+    expect(result.filesByQuality).toEqual({ low: file });
   });
 
   it("上传开始前取消会阻止 prepare 请求", async () => {
