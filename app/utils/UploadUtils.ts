@@ -7,7 +7,7 @@ import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
 import { BUSINESS_MEDIA_QUALITY, compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
 import { inferMediaTypeFromMimeType, normalizeFileMimeType } from "@/utils/mediaMime";
-import { uploadMediaFile } from "@/utils/mediaUpload";
+import { uploadGeneratedMediaFiles, uploadMediaFile } from "@/utils/mediaUpload";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
 
@@ -50,6 +50,41 @@ export class UploadUtils {
     quality: MediaQuality = "medium",
   ): Promise<UploadedMediaAssetResult> {
     const uploaded = await uploadMediaFile(file, { scene });
+    const sceneQuality = scene === 1
+      ? (uploaded.mediaType === "image" ? "medium" : "low")
+      : "original";
+    const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, sceneQuality);
+    return {
+      fileId: uploaded.fileId,
+      fileName: file.name,
+      mediaType: uploaded.mediaType,
+      originalUrl,
+      size: file.size,
+      uploadRequired: uploaded.uploadRequired,
+      url: mediaFileUrl(uploaded.fileId, uploaded.mediaType, scene === 1
+        ? (uploaded.mediaType === "image"
+            ? (quality === "low" ? "low" : "medium")
+            : "low")
+        : quality) || originalUrl,
+    };
+  }
+
+  private async uploadPreparedMediaAsset(
+    file: File,
+    mediaType: MediaType,
+    scene: 1 | 2 | 3 | 4 = 1,
+    quality: MediaQuality = "medium",
+  ): Promise<UploadedMediaAssetResult> {
+    const filesByQuality: Partial<Record<MediaQuality, File>> = scene === 1
+      ? { [quality]: file }
+      : { original: file, low: file, medium: file };
+    const uploaded = await uploadGeneratedMediaFiles({
+      original: file,
+      mediaType,
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality,
+    }, { scene });
     const sceneQuality = scene === 1
       ? (uploaded.mediaType === "image" ? "medium" : "low")
       : "original";
@@ -353,7 +388,18 @@ export class UploadUtils {
 
     const debugEnabled = isAudioUploadDebugEnabled();
     const debugPrefix = "[tc-audio-upload]";
-    const processedFile = await this.prepareAudioForUpload(normalizedInput, maxDuration);
+    let processedFile = normalizedInput;
+    try {
+      processedFile = await this.prepareAudioForUpload(normalizedInput, maxDuration);
+    }
+    catch (error) {
+      console.warn("[音频上传] 转码失败，回退为原音频上传", {
+        name: normalizedInput.name,
+        type: normalizedInput.type,
+        size: normalizedInput.size,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     if (debugEnabled) {
       console.warn(`${debugPrefix} upload prepared file`, {
         scene,
@@ -365,7 +411,7 @@ export class UploadUtils {
     if (debugEnabled)
       console.warn(`${debugPrefix} media-service`, { fileName: processedFile.name });
 
-    const uploaded = await this.uploadMediaAsset(processedFile, scene, scene === 1 ? "low" : "medium");
+    const uploaded = await this.uploadPreparedMediaAsset(processedFile, "audio", scene, scene === 1 ? "low" : "medium");
     if (debugEnabled)
       console.warn(`${debugPrefix} downloadUrl`, uploaded.url);
 
@@ -410,7 +456,7 @@ export class UploadUtils {
 
     let uploadCandidate = normalizedVideoFile;
     try {
-      uploadCandidate = await this.prepareVideoForUpload(file);
+      uploadCandidate = await this.prepareVideoForUpload(normalizedVideoFile);
     }
     catch (error) {
       if (!this.shouldFallbackToOriginalVideoUpload(error)) {
@@ -426,7 +472,7 @@ export class UploadUtils {
       uploadCandidate = normalizedVideoFile;
     }
 
-    return await this.uploadMediaAsset(uploadCandidate, scene, scene === 1 ? "low" : "medium");
+    return await this.uploadPreparedMediaAsset(uploadCandidate, "video", scene, scene === 1 ? "low" : "medium");
   }
 
   /**

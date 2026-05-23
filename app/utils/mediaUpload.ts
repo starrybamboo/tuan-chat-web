@@ -276,6 +276,19 @@ async function generateAudioUploadFiles(file: File, scene?: number): Promise<Gen
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
   const isChatroom = isChatroomUploadScene(scene);
 
+  if (normalizedFile.type === "audio/webm") {
+    const webmFile = ensureFileType(normalizedFile, "audio/webm", "webm");
+    return {
+      original: webmFile,
+      mediaType: "audio",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: isChatroom
+        ? { low: webmFile }
+        : { original: webmFile, low: webmFile, medium: webmFile },
+    };
+  }
+
   const original = normalizedFile;
   const low = await transcodeAudioFileToOpusOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.audio.low, isolated: true });
   const medium = isChatroom
@@ -314,6 +327,19 @@ async function generateAudioUploadFiles(file: File, scene?: number): Promise<Gen
 async function generateVideoUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "video" });
   const isChatroom = isChatroomUploadScene(scene);
+
+  if (normalizedFile.type === "video/webm") {
+    const webmFile = ensureFileType(normalizedFile, "video/webm", "webm");
+    return {
+      original: webmFile,
+      mediaType: "video",
+      hasNovelAiMetadata: false,
+      metadata: {},
+      filesByQuality: isChatroom
+        ? { low: webmFile }
+        : { original: webmFile, low: webmFile, medium: webmFile },
+    };
+  }
 
   const original = normalizedFile;
   const low = await transcodeVideoFileToWebmOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.video.low, isolated: true });
@@ -383,6 +409,38 @@ export async function generateMediaUploadFiles(file: File, scene?: number): Prom
   };
 }
 
+export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
+  throwIfUploadAborted(options.signal);
+  const prepared = await prepareMediaUpload(payload, options);
+  throwIfUploadAborted(options.signal);
+  if (!prepared.uploadRequired) {
+    return {
+      fileId: prepared.fileId!,
+      mediaType: prepared.mediaType!,
+      uploadRequired: false,
+    };
+  }
+  if (!prepared.sessionId || !prepared.uploadTargets) {
+    throw new Error("媒体上传响应缺少上传会话");
+  }
+
+  await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
+    const fileForQuality = payload.filesByQuality[quality as MediaQuality];
+    if (!fileForQuality) {
+      throw new Error(`缺少 ${quality} 上传文件`);
+    }
+    await putMediaTarget(target, fileForQuality, options.signal);
+  }));
+  throwIfUploadAborted(options.signal);
+  await completeMediaUpload(prepared.sessionId, options.signal);
+
+  return {
+    fileId: prepared.fileId!,
+    mediaType: prepared.mediaType!,
+    uploadRequired: true,
+  };
+}
+
 async function putMediaTarget(target: MediaUploadTarget, file: File, signal?: AbortSignal) {
   throwIfUploadAborted(signal);
   if (!target.uploadUrl) {
@@ -441,32 +499,5 @@ export async function uploadMediaFile(file: File, options: UploadMediaFileOption
   throwIfUploadAborted(options.signal);
   const payload = await generateMediaUploadFiles(file, options.scene);
   throwIfUploadAborted(options.signal);
-  const prepared = await prepareMediaUpload(payload, options);
-  throwIfUploadAborted(options.signal);
-  if (!prepared.uploadRequired) {
-    return {
-      fileId: prepared.fileId!,
-      mediaType: prepared.mediaType!,
-      uploadRequired: false,
-    };
-  }
-  if (!prepared.sessionId || !prepared.uploadTargets) {
-    throw new Error("媒体上传响应缺少上传会话");
-  }
-
-  await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
-    const fileForQuality = payload.filesByQuality[quality as MediaQuality];
-    if (!fileForQuality) {
-      throw new Error(`缺少 ${quality} 上传文件`);
-    }
-    await putMediaTarget(target, fileForQuality, options.signal);
-  }));
-  throwIfUploadAborted(options.signal);
-  await completeMediaUpload(prepared.sessionId, options.signal);
-
-  return {
-    fileId: prepared.fileId!,
-    mediaType: prepared.mediaType!,
-    uploadRequired: true,
-  };
+  return await uploadGeneratedMediaFiles(payload, options);
 }
