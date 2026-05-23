@@ -115,12 +115,15 @@ function resolveMediaDimensions(payload: unknown) {
   };
 }
 
-function resolveMediaEditorWidth(payload: unknown): number | undefined {
+function resolveMediaEditorSize(payload: unknown) {
   if (!payload || typeof payload !== "object") {
-    return undefined;
+    return {};
   }
   const record = payload as Record<string, unknown>;
-  return typeof record.editorWidth === "number" && record.editorWidth > 0 ? record.editorWidth : undefined;
+  return {
+    height: typeof record.editorHeight === "number" && record.editorHeight > 0 ? record.editorHeight : undefined,
+    width: typeof record.editorWidth === "number" && record.editorWidth > 0 ? record.editorWidth : undefined,
+  };
 }
 
 /**
@@ -160,24 +163,29 @@ export function MessageEditorAtomicBlock({
       ? getVideoMessageExtra(message.extra)
       : undefined;
   const mediaDimensions = resolveMediaDimensions(mediaPayload);
-  const mediaEditorWidth = resolveMediaEditorWidth(mediaPayload);
-  const mediaEditorWidthRef = useRef(mediaEditorWidth);
-  mediaEditorWidthRef.current = mediaEditorWidth;
-  const [displayWidth, setDisplayWidth] = useState<number | null>(() => mediaEditorWidth ?? null);
+  const mediaEditorSize = resolveMediaEditorSize(mediaPayload);
+  const mediaEditorSizeRef = useRef(mediaEditorSize);
+  mediaEditorSizeRef.current = mediaEditorSize;
+  const [displayWidth, setDisplayWidth] = useState<number | null>(() => mediaEditorSize.width ?? null);
   const uploadedMediaUrl = isImageBlock
     ? resolveUploadedImageUrl(message)
     : isVideoBlock
       ? resolveUploadedVideoUrl(message)
       : "";
   const mediaAspectRatio = useMemo(() => {
+    const editorWidth = typeof mediaEditorSize?.width === "number" && mediaEditorSize.width > 0 ? mediaEditorSize.width : 0;
+    const editorHeight = typeof mediaEditorSize?.height === "number" && mediaEditorSize.height > 0 ? mediaEditorSize.height : 0;
+    if (editorWidth > 0 && editorHeight > 0) {
+      return editorHeight / editorWidth;
+    }
     const width = typeof mediaDimensions?.width === "number" && mediaDimensions.width > 0 ? mediaDimensions.width : 0;
     const height = typeof mediaDimensions?.height === "number" && mediaDimensions.height > 0 ? mediaDimensions.height : 0;
     return width > 0 && height > 0 ? height / width : 1;
-  }, [mediaDimensions?.height, mediaDimensions?.width]);
+  }, [mediaDimensions?.height, mediaDimensions?.width, mediaEditorSize?.height, mediaEditorSize?.width]);
   const mediaIdentity = `${mediaPayload?.fileId ?? ""}:${mediaPayload?.mediaType ?? ""}`;
 
   useEffect(() => {
-    setDisplayWidth(mediaEditorWidthRef.current ?? null);
+    setDisplayWidth(mediaEditorSizeRef.current.width ?? null);
     resizeSessionRef.current = null;
   }, [mediaIdentity]);
 

@@ -4,6 +4,7 @@ import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
+  mergeMessageEditorMediaLayouts,
   moveMessageEditorMessageToIndex,
   parseMessageEditorMarkdownPreview,
   previewVisibleOffsetToMessageEditorRawOffset,
@@ -177,18 +178,73 @@ describe("messageEditorTransforms", () => {
       fileName: "cover.png",
       mediaType: "image/png",
       editorWidth: 480,
+      editorHeight: 270,
       size: 123,
-      width: 480,
-      height: 270,
+      width: 320,
+      height: 180,
     });
     expect(resizedVideo.extra?.videoMessage).toEqual({
       fileId: 2,
       fileName: "clip.webm",
       mediaType: "video",
       editorWidth: 640,
+      editorHeight: 360,
       size: 456,
-      width: 640,
-      height: 360,
+      width: 1280,
+      height: 720,
+    });
+  });
+
+  it("merges persisted media editor layout back into fresh room messages", () => {
+    const freshImage = {
+      ...setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
+        fileId: 1,
+        fileName: "cover.png",
+        mediaType: "image/png",
+        size: 123,
+        width: 320,
+        height: 180,
+      }),
+      messageId: 100,
+    };
+    const freshVideo = {
+      ...setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
+        fileId: 2,
+        fileName: "clip.webm",
+        mediaType: "video",
+        size: 456,
+        width: 1280,
+        height: 720,
+      }),
+      messageId: 200,
+    };
+    const layoutImage = updateMessageEditorMediaSize(freshImage, { width: 480, height: 270 });
+    const layoutVideo = updateMessageEditorMediaSize(freshVideo, { width: 640, height: 360 });
+    const serverVideo = {
+      ...freshVideo,
+      extra: {
+        videoMessage: {
+          fileId: 2,
+          fileName: "clip.webm",
+          mediaType: "video",
+          size: 456,
+        },
+      },
+    };
+
+    const merged = mergeMessageEditorMediaLayouts([freshImage, serverVideo], [layoutImage, layoutVideo]);
+
+    expect(merged[0].extra?.imageMessage).toMatchObject({
+      fileId: 1,
+      width: 320,
+      height: 180,
+      editorWidth: 480,
+      editorHeight: 270,
+    });
+    expect(merged[1].extra?.videoMessage).toMatchObject({
+      fileId: 2,
+      editorWidth: 640,
+      editorHeight: 360,
     });
   });
 

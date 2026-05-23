@@ -39,6 +39,7 @@ import {
   createMessageEditorTextDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
+  mergeMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
   serializeMessageEditorMessages,
   setMessageEditorUploadedMedia,
@@ -197,6 +198,14 @@ function stableSerializeMessageEditorValue(value: unknown): string {
     return `{${Object.keys(record).sort().map(key => `${JSON.stringify(key)}:${stableSerializeMessageEditorValue(record[key])}`).join(",")}}`;
   }
   return JSON.stringify(String(value));
+}
+
+function readCachedMessageEditorMessages(docId: string | undefined): MessageDraft[] {
+  if (!docId) {
+    return [];
+  }
+  const cached = getCachedDocSnapshot(docId);
+  return cached ? decodeMessageEditorMessages(cached) : [];
 }
 
 function serializeMessageEditorPatchContent(message: MessageDraft): string {
@@ -462,8 +471,10 @@ export default function MessageEditor({
   );
   const shouldLoadRemote = shouldSyncRemote && remoteSource === "self";
   const initialEditorMessages = useMemo(
-    () => isRoomCacheSource ? normalizedInitialMessages : ensureMessageEditorMessages([]),
-    [isRoomCacheSource, normalizedInitialMessages],
+    () => isRoomCacheSource
+      ? mergeMessageEditorMediaLayouts(normalizedInitialMessages, readCachedMessageEditorMessages(resolvedDocId))
+      : ensureMessageEditorMessages([]),
+    [isRoomCacheSource, normalizedInitialMessages, resolvedDocId],
   );
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -511,6 +522,14 @@ export default function MessageEditor({
   const loadSeedKeyRef = useRef<string | null>(null);
   const baselineMessagesRef = useRef<MessageDraft[]>(isRoomCacheSource ? initialEditorMessages : []);
 
+  const mergeCachedRoomCacheMediaLayouts = useCallback((sourceMessages: MessageDraft[]) => {
+    const normalizedMessages = ensureMessageEditorMessages(sourceMessages);
+    if (!isRoomCacheSource || !resolvedDocId) {
+      return normalizedMessages;
+    }
+    return mergeMessageEditorMediaLayouts(normalizedMessages, readCachedMessageEditorMessages(resolvedDocId));
+  }, [isRoomCacheSource, resolvedDocId]);
+
   useEffect(() => {
     const loadSeedKey = `${resolvedDocId ?? ""}|${remoteSource}`;
     if (loadSeedKeyRef.current !== loadSeedKey) {
@@ -524,7 +543,7 @@ export default function MessageEditor({
       return;
     }
 
-    const nextMessages = ensureMessageEditorMessages(normalizedInitialMessages);
+    const nextMessages = mergeCachedRoomCacheMediaLayouts(normalizedInitialMessages);
     const nextSerialized = serializeMessageEditorMessages(nextMessages);
     const currentSerialized = stableSerializeMessageEditorValue(messagesRef.current);
     const nextRuntimeSerialized = stableSerializeMessageEditorValue(nextMessages);
@@ -536,13 +555,13 @@ export default function MessageEditor({
     messagesRef.current = nextMessages;
     lastSavedSerializedRef.current = nextSerialized;
     setMessages(nextMessages);
-  }, [isRoomCacheSource, normalizedInitialMessages, ready, resolvedDocId]);
+  }, [isRoomCacheSource, mergeCachedRoomCacheMediaLayouts, normalizedInitialMessages, ready, resolvedDocId]);
 
   const reconcileRoomCacheRemoteMessages = useCallback(async (
     remoteMessages: Message[],
     options: { updateState?: boolean } = {},
   ) => {
-    const savedMessages = ensureMessageEditorMessages(remoteMessages);
+    const savedMessages = mergeMessageEditorMediaLayouts(ensureMessageEditorMessages(remoteMessages), messagesRef.current);
     if (savedMessages.length === 0) {
       return false;
     }
@@ -555,7 +574,7 @@ export default function MessageEditor({
     if (options.updateState !== false) {
       setMessages(savedMessages);
     }
-    await onRemoteMessagesSaved?.(remoteMessages);
+    await onRemoteMessagesSaved?.(savedMessages as Message[]);
     return true;
   }, [onRemoteMessagesSaved]);
 
@@ -769,7 +788,7 @@ export default function MessageEditor({
     hideToolbar();
 
     if (isRoomCacheSource) {
-      const nextMessages = ensureMessageEditorMessages(initialMessagesSeedRef.current);
+      const nextMessages = mergeCachedRoomCacheMediaLayouts(initialMessagesSeedRef.current);
       const nextSerialized = serializeMessageEditorMessages(nextMessages);
       remoteRevisionRef.current = null;
       resetHistory();
@@ -852,7 +871,33 @@ export default function MessageEditor({
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, isRoomCacheSource, resetHistory, resolvedDocId, resolvedDocRoomId, shouldLoadRemote, shouldSyncRemote]);
+  }, [hideToolbar, isRoomCacheSource, mergeCachedRoomCacheMediaLayouts, resetHistory, resolvedDocId, resolvedDocRoomId, shouldLoadRemote, shouldSyncRemote]);
+
+  useEffect(() => {
+    if (!ready || !resolvedDocId || !isRoomCacheSource || dirtySinceLoadRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    void getPersistedDocSnapshot(resolvedDocId).then((snapshot) => {
+      if (cancelled || !snapshot || dirtySinceLoadRef.current) {
+        return;
+      }
+      setCachedDocSnapshot(resolvedDocId, snapshot);
+      const nextMessages = mergeMessageEditorMediaLayouts(messagesRef.current, decodeMessageEditorMessages(snapshot));
+      if (stableSerializeMessageEditorValue(messagesRef.current) === stableSerializeMessageEditorValue(nextMessages)) {
+        return;
+      }
+      baselineMessagesRef.current = nextMessages;
+      messagesRef.current = nextMessages;
+      lastSavedSerializedRef.current = serializeMessageEditorMessages(nextMessages);
+      setMessages(nextMessages);
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRoomCacheSource, ready, resolvedDocId]);
 
   useEffect(() => {
     if (!ready || readOnly || !resolvedDocId || !dirtySinceLoadRef.current) {
@@ -869,11 +914,20 @@ export default function MessageEditor({
       return;
     }
 
+    if (isRoomCacheSource) {
+      setCachedDocSnapshot(resolvedDocId, snapshot);
+    }
+
     const timer = window.setTimeout(() => {
       const saveGeneration = saveGenerationRef.current + 1;
       saveGenerationRef.current = saveGeneration;
       activeRemoteSaveGenerationRef.current = saveGeneration;
       setSaveState("saving");
+      if (isRoomCacheSource) {
+        void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
+          console.warn("[MessageEditor] persist room cache doc layout snapshot failed", error);
+        });
+      }
       const persistTask = shouldSyncRemote && resolvedDocRoomId
         ? (isRoomCacheSource
             ? (() => {
@@ -969,6 +1023,12 @@ export default function MessageEditor({
       }
 
       lastSavedSerializedRef.current = snapshot.updateB64;
+      if (isRoomCacheSource) {
+        setCachedDocSnapshot(resolvedDocId, snapshot);
+        void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
+          console.warn("[MessageEditor] flush room cache doc layout snapshot failed", error);
+        });
+      }
       if (shouldSyncRemote && resolvedDocRoomId) {
         const saveGeneration = saveGenerationRef.current;
         activeRemoteSaveGenerationRef.current = saveGeneration;
