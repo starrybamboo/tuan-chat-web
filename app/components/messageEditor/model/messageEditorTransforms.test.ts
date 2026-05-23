@@ -4,12 +4,19 @@ import {
   createMessageEditorBlockDraft,
   createMessageEditorTextDraft,
   getMessageEditorBlockId,
+  insertMessageEditorBlockAtPoint,
+  insertMessageEditorBlockAtSelection,
+  mergeMessageEditorMessageBackward,
+  mergeMessageEditorMessageForward,
   mergeMessageEditorMediaLayouts,
   moveMessageEditorMessageToIndex,
+  normalizeMessageEditorDraft,
   parseMessageEditorMarkdownPreview,
   previewVisibleOffsetToMessageEditorRawOffset,
   replaceMessageEditorSelectionText,
+  setMessageEditorSpeakerMetadata,
   setMessageEditorUploadedMedia,
+  setMessageEditorWebgalChooseOptions,
   splitMessageEditorMessage,
   transformMessageEditorSelectionText,
   updateMessageEditorMediaSize,
@@ -31,6 +38,115 @@ describe("messageEditorTransforms", () => {
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0].content).toBe("alpha");
     expect(result.messages[1].content).toBe("beta");
+  });
+
+  it("resets speaker metadata on the new block after pressing enter", () => {
+    const source = normalizeMessageEditorDraft({
+      messageType: MESSAGE_TYPE.TEXT,
+      content: "alpha beta",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    })!;
+
+    const result = splitMessageEditorMessage([source], {
+      blockId: getMessageEditorBlockId(source),
+      selectionStart: 5,
+      selectionEnd: 6,
+    });
+
+    expect(result.messages[0]).toMatchObject({
+      content: "alpha",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    });
+    expect(result.messages[1]).toMatchObject({ content: "beta" });
+    expect(result.messages[1].roleId).toBeUndefined();
+    expect(result.messages[1].avatarId).toBeUndefined();
+    expect(result.messages[1].customRoleName).toBeUndefined();
+  });
+
+  it("inserts a narrator block before the current speaker when pressing enter at block start", () => {
+    const source = normalizeMessageEditorDraft({
+      messageType: MESSAGE_TYPE.TEXT,
+      content: "我回来了",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    })!;
+
+    const result = splitMessageEditorMessage([source], {
+      blockId: getMessageEditorBlockId(source),
+      selectionStart: 0,
+      selectionEnd: 0,
+    });
+
+    expect(result.messages).toHaveLength(2);
+    expect(result.messages[0]).toMatchObject({ content: "" });
+    expect(result.messages[0].roleId).toBeUndefined();
+    expect(result.messages[0].avatarId).toBeUndefined();
+    expect(result.messages[0].customRoleName).toBeUndefined();
+    expect(result.messages[1]).toMatchObject({
+      content: "我回来了",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    });
+    expect(result.focus).toEqual({
+      blockId: getMessageEditorBlockId(result.messages[1]),
+      caret: 0,
+    });
+  });
+
+  it("removes the previous empty narrator block without clearing current speaker metadata", () => {
+    const narrator = createMessageEditorTextDraft();
+    const speaker = normalizeMessageEditorDraft({
+      messageType: MESSAGE_TYPE.TEXT,
+      content: "我回来了",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    })!;
+
+    const result = mergeMessageEditorMessageBackward([narrator, speaker], getMessageEditorBlockId(speaker));
+
+    expect(result?.messages).toHaveLength(1);
+    expect(result?.messages[0]).toMatchObject({
+      content: "我回来了",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    });
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[0]),
+      caret: 0,
+    });
+  });
+
+  it("removes the current empty narrator block without clearing next speaker metadata", () => {
+    const narrator = createMessageEditorTextDraft();
+    const speaker = normalizeMessageEditorDraft({
+      messageType: MESSAGE_TYPE.TEXT,
+      content: "测试动作",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    })!;
+
+    const result = mergeMessageEditorMessageForward([narrator, speaker], getMessageEditorBlockId(narrator));
+
+    expect(result?.messages).toHaveLength(1);
+    expect(result?.messages[0]).toMatchObject({
+      content: "测试动作",
+      roleId: 12,
+      avatarId: 34,
+      customRoleName: "绯月",
+    });
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[0]),
+      caret: 0,
+    });
   });
 
   it("creates atomic drafts for slash insertion", () => {
@@ -85,9 +201,9 @@ describe("messageEditorTransforms", () => {
 
   it("writes uploaded media payloads back into atomic blocks", () => {
     const image = createMessageEditorBlockDraft("image");
-    const sound = createMessageEditorBlockDraft("audio");
     const video = createMessageEditorBlockDraft("video");
     const file = createMessageEditorBlockDraft("file");
+    const choose = createMessageEditorBlockDraft("choose");
 
     const nextImage = setMessageEditorUploadedMedia(image, {
       fileId: 1,
@@ -97,21 +213,14 @@ describe("messageEditorTransforms", () => {
       width: 320,
       height: 180,
     });
-    const nextSound = setMessageEditorUploadedMedia(sound, {
-      fileId: 3,
-      fileName: "voice.webm",
-      mediaType: "audio",
-      size: 456,
-      second: 8,
-    });
     const nextVideo = setMessageEditorUploadedMedia(video, {
-      fileId: 4,
-      fileName: "clip.webm",
-      mediaType: "video",
-      size: 789,
+      fileId: 3,
+      fileName: "clip.mp4",
+      mediaType: "video/mp4",
+      size: 456,
       second: 12,
-      width: 1920,
-      height: 1080,
+      width: 640,
+      height: 360,
     });
     const nextFile = setMessageEditorUploadedMedia(file, {
       fileId: 2,
@@ -119,6 +228,10 @@ describe("messageEditorTransforms", () => {
       mediaType: "text/plain",
       size: 45,
     });
+    const nextChoose = setMessageEditorWebgalChooseOptions(choose, [
+      { text: "前往结局", code: "jump:ending" },
+      { text: "留在原地" },
+    ]);
 
     expect(nextImage.extra?.imageMessage).toEqual({
       fileId: 1,
@@ -128,31 +241,30 @@ describe("messageEditorTransforms", () => {
       width: 320,
       height: 180,
     });
+    expect(nextVideo.extra?.videoMessage).toEqual({
+      fileId: 3,
+      fileName: "clip.mp4",
+      mediaType: "video/mp4",
+      size: 456,
+      second: 12,
+      width: 640,
+      height: 360,
+    });
     expect(nextFile.extra?.fileMessage).toEqual({
       fileId: 2,
       fileName: "note.txt",
       mediaType: "text/plain",
       size: 45,
     });
-    expect(nextSound.extra?.soundMessage).toEqual({
-      fileId: 3,
-      fileName: "voice.webm",
-      mediaType: "audio",
-      size: 456,
-      second: 8,
-    });
-    expect(nextVideo.extra?.videoMessage).toEqual({
-      fileId: 4,
-      fileName: "clip.webm",
-      mediaType: "video",
-      size: 789,
-      second: 12,
-      width: 1920,
-      height: 1080,
+    expect(nextChoose.extra?.webgalChoose).toEqual({
+      options: [
+        { text: "前往结局", code: "jump:ending" },
+        { text: "留在原地" },
+      ],
     });
   });
 
-  it("updates image and video block dimensions while preserving uploaded media payload", () => {
+  it("writes editor-only media layout back into image and video blocks", () => {
     const image = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
       fileId: 1,
       fileName: "cover.png",
@@ -163,41 +275,54 @@ describe("messageEditorTransforms", () => {
     });
     const video = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
       fileId: 2,
-      fileName: "clip.webm",
-      mediaType: "video",
+      fileName: "clip.mp4",
+      mediaType: "video/mp4",
       size: 456,
-      width: 1280,
-      height: 720,
+      second: 12,
+      width: 640,
+      height: 360,
     });
 
-    const resizedImage = updateMessageEditorMediaSize(image, { width: 480.4, height: 270.2 });
-    const resizedVideo = updateMessageEditorMediaSize(video, { width: 640.2, height: 360.4 });
+    expect(updateMessageEditorMediaSize(image, { width: 280, height: 158 })).toMatchObject({
+      extra: {
+        imageMessage: {
+          editorHeight: 158,
+          editorWidth: 280,
+        },
+      },
+    });
+    expect(updateMessageEditorMediaSize(video, { width: 300, height: 169 })).toMatchObject({
+      extra: {
+        videoMessage: {
+          editorHeight: 169,
+          editorWidth: 300,
+        },
+      },
+    });
+  });
 
-    expect(resizedImage.extra?.imageMessage).toEqual({
+  it("merges editor media layouts by runtime id, media identity and fallback index", () => {
+    const sourceImage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
       fileId: 1,
       fileName: "cover.png",
       mediaType: "image/png",
-      editorWidth: 480,
-      editorHeight: 270,
       size: 123,
       width: 320,
       height: 180,
     });
-    expect(resizedVideo.extra?.videoMessage).toEqual({
+    const sourceVideo = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
       fileId: 2,
-      fileName: "clip.webm",
-      mediaType: "video",
-      editorWidth: 640,
-      editorHeight: 360,
+      fileName: "clip.mp4",
+      mediaType: "video/mp4",
       size: 456,
-      width: 1280,
-      height: 720,
+      second: 12,
+      width: 640,
+      height: 360,
     });
-  });
-
-  it("merges persisted media editor layout back into fresh room messages", () => {
-    const freshImage = {
-      ...setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
+    const sourceImageWithLayout = updateMessageEditorMediaSize(sourceImage, { width: 280, height: 158 });
+    const sourceVideoWithLayout = updateMessageEditorMediaSize(sourceVideo, { width: 300, height: 169 });
+    const merged = mergeMessageEditorMediaLayouts([
+      setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
         fileId: 1,
         fileName: "cover.png",
         mediaType: "image/png",
@@ -205,47 +330,93 @@ describe("messageEditorTransforms", () => {
         width: 320,
         height: 180,
       }),
-      messageId: 100,
-    };
-    const freshVideo = {
-      ...setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
+      setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
         fileId: 2,
-        fileName: "clip.webm",
-        mediaType: "video",
+        fileName: "clip.mp4",
+        mediaType: "video/mp4",
         size: 456,
-        width: 1280,
-        height: 720,
+        second: 12,
+        width: 640,
+        height: 360,
       }),
-      messageId: 200,
-    };
-    const layoutImage = updateMessageEditorMediaSize(freshImage, { width: 480, height: 270 });
-    const layoutVideo = updateMessageEditorMediaSize(freshVideo, { width: 640, height: 360 });
-    const serverVideo = {
-      ...freshVideo,
-      extra: {
-        videoMessage: {
-          fileId: 2,
-          fileName: "clip.webm",
-          mediaType: "video",
-          size: 456,
-        },
-      },
-    };
-
-    const merged = mergeMessageEditorMediaLayouts([freshImage, serverVideo], [layoutImage, layoutVideo]);
+    ], [sourceImageWithLayout, sourceVideoWithLayout]);
 
     expect(merged[0].extra?.imageMessage).toMatchObject({
+      editorHeight: 158,
+      editorWidth: 280,
       fileId: 1,
-      width: 320,
-      height: 180,
-      editorWidth: 480,
-      editorHeight: 270,
     });
     expect(merged[1].extra?.videoMessage).toMatchObject({
+      editorHeight: 169,
+      editorWidth: 300,
       fileId: 2,
-      editorWidth: 640,
-      editorHeight: 360,
     });
+  });
+
+  it("writes speaker metadata without changing text content", () => {
+    const source = createMessageEditorTextDraft({ content: "继续向前。" });
+
+    const next = setMessageEditorSpeakerMetadata(source, {
+      avatarId: 34,
+      roleId: 12,
+    });
+
+    expect(next).toMatchObject({
+      avatarId: 34,
+      content: "继续向前。",
+      roleId: 12,
+    });
+  });
+
+  it("inserts an atomic block at a text caret and keeps a trailing text block", () => {
+    const source = createMessageEditorTextDraft({ content: "alphaomega" });
+
+    const result = insertMessageEditorBlockAtPoint([source], {
+      blockId: getMessageEditorBlockId(source),
+      kind: "image",
+      offset: 5,
+    });
+
+    expect(result?.messages.map(message => message.messageType)).toEqual([
+      MESSAGE_TYPE.TEXT,
+      MESSAGE_TYPE.IMG,
+      MESSAGE_TYPE.TEXT,
+    ]);
+    expect(result?.messages.map(message => message.content)).toEqual(["alpha", "", "omega"]);
+    expect(result?.insertedBlockId).toBe(getMessageEditorBlockId(result!.messages[1]));
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[2]),
+      caret: 0,
+    });
+  });
+
+  it("replaces a selected text range with an atomic block", () => {
+    const source = createMessageEditorTextDraft({ content: "alphaomega" });
+
+    const result = insertMessageEditorBlockAtSelection([source], {
+      start: {
+        blockId: getMessageEditorBlockId(source),
+        offset: 2,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(source),
+        offset: 7,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(source),
+          start: 2,
+          end: 7,
+        },
+      ],
+    }, "file");
+
+    expect(result?.messages.map(message => message.messageType)).toEqual([
+      MESSAGE_TYPE.TEXT,
+      MESSAGE_TYPE.FILE,
+      MESSAGE_TYPE.TEXT,
+    ]);
+    expect(result?.messages.map(message => message.content)).toEqual(["al", "", "ega"]);
   });
 
   it("replaces a cross-block text selection and merges the boundary blocks", () => {
@@ -296,6 +467,79 @@ describe("messageEditorTransforms", () => {
           end: 3,
         },
       ],
+    });
+  });
+
+  it("replaces a selection across text and atomic blocks by removing the atomic block", () => {
+    const first = createMessageEditorTextDraft({ content: "alpha" });
+    const image = createMessageEditorBlockDraft("image");
+    const third = createMessageEditorTextDraft({ content: "omega" });
+
+    const result = replaceMessageEditorSelectionText([first, image, third], {
+      start: {
+        blockId: getMessageEditorBlockId(first),
+        offset: 2,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(third),
+        offset: 2,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(first),
+          start: 2,
+          end: 5,
+        },
+        {
+          blockId: getMessageEditorBlockId(image),
+          start: 0,
+          end: 1,
+        },
+        {
+          blockId: getMessageEditorBlockId(third),
+          start: 0,
+          end: 2,
+        },
+      ],
+    }, "X");
+
+    expect(result?.messages).toHaveLength(1);
+    expect(result?.messages[0].messageType).toBe(MESSAGE_TYPE.TEXT);
+    expect(result?.messages[0].content).toBe("alXega");
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[0]),
+      caret: 3,
+    });
+  });
+
+  it("removes a selected atomic block without replacing adjacent text", () => {
+    const first = createMessageEditorTextDraft({ content: "alpha" });
+    const image = createMessageEditorBlockDraft("image");
+    const third = createMessageEditorTextDraft({ content: "omega" });
+
+    const result = replaceMessageEditorSelectionText([first, image, third], {
+      start: {
+        blockId: getMessageEditorBlockId(image),
+        offset: 0,
+      },
+      end: {
+        blockId: getMessageEditorBlockId(image),
+        offset: 1,
+      },
+      segments: [
+        {
+          blockId: getMessageEditorBlockId(image),
+          start: 0,
+          end: 1,
+        },
+      ],
+    }, "");
+
+    expect(result?.messages.map(message => message.content)).toEqual(["alpha", "omega"]);
+    expect(result?.messages.map(message => message.messageType)).toEqual([MESSAGE_TYPE.TEXT, MESSAGE_TYPE.TEXT]);
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[1]),
+      caret: "omega".length,
     });
   });
 
