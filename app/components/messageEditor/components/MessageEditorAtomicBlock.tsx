@@ -122,6 +122,9 @@ export function MessageEditorAtomicBlock({
   const uploadable = uploadMeta.accept.length > 0;
   const uploaded = hasUploadedMedia(message);
   const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
+  const isCenteredUploadBlock = message.messageType === MESSAGE_TYPE.IMG
+    || message.messageType === MESSAGE_TYPE.SOUND
+    || message.messageType === MESSAGE_TYPE.VIDEO;
   const imagePayload = isImageBlock ? getImageMessageExtra(message.extra) : undefined;
   const uploadedImageUrl = isImageBlock ? resolveUploadedImageUrl(message) : "";
   const imageAspectRatio = useMemo(() => {
@@ -207,6 +210,61 @@ export function MessageEditorAtomicBlock({
   const uploadButtonLabel = uploading
     ? "上传中..."
     : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
+  const placeholderButtonLabel = uploading ? "上传中..." : `点击${uploadMeta.emptyLabel}`;
+
+  const renderFloatingUploadActions = () => {
+    if (readOnly) {
+      return null;
+    }
+    return (
+      <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100">
+        {uploadable && (
+          <button
+            type="button"
+            className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-primary/40 hover:text-base-content"
+            onMouseDown={event => event.preventDefault()}
+            onClick={openFilePicker}
+          >
+            {uploadButtonLabel}
+          </button>
+        )}
+        <button
+          type="button"
+          className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-error/40 hover:text-error"
+          onMouseDown={event => event.preventDefault()}
+          onClick={() => onDelete(blockId)}
+        >
+          删除
+        </button>
+      </div>
+    );
+  };
+
+  const renderEmptyUploadBlock = () => (
+    <>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
+        {!readOnly && (
+          <button
+            type="button"
+            className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => onDelete(blockId)}
+          >
+            删除
+          </button>
+        )}
+      </div>
+      <button
+        type="button"
+        className="flex min-h-60 w-full items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-200/25 px-4 py-10 text-sm text-base-content/55 transition hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content"
+        onMouseDown={event => event.preventDefault()}
+        onClick={openFilePicker}
+      >
+        {placeholderButtonLabel}
+      </button>
+    </>
+  );
 
   return (
     <div
@@ -251,29 +309,10 @@ export function MessageEditorAtomicBlock({
                 ? (
                     <div
                       ref={imageFrameRef}
-                      className="relative overflow-hidden rounded-xl bg-base-100"
+                      className="group/media relative overflow-hidden rounded-xl bg-base-100"
                       style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
                     >
-                      {!readOnly && (
-                        <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/image:pointer-events-auto group-hover/image:opacity-100 group-focus-within/image:pointer-events-auto group-focus-within/image:opacity-100">
-                          <button
-                            type="button"
-                            className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-primary/40 hover:text-base-content"
-                            onMouseDown={event => event.preventDefault()}
-                            onClick={openFilePicker}
-                          >
-                            {uploadButtonLabel}
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-error/40 hover:text-error"
-                            onMouseDown={event => event.preventDefault()}
-                            onClick={() => onDelete(blockId)}
-                          >
-                            删除
-                          </button>
-                        </div>
-                      )}
+                      {renderFloatingUploadActions()}
 
                       {!readOnly && (
                         <button
@@ -299,16 +338,7 @@ export function MessageEditorAtomicBlock({
                       />
                     </div>
                   )
-                : (
-                    <button
-                      type="button"
-                      className="flex min-h-60 w-full items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-200/25 px-4 py-10 text-sm text-base-content/55 transition hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content"
-                      onMouseDown={event => event.preventDefault()}
-                      onClick={openFilePicker}
-                    >
-                      {uploading ? "上传中..." : "点击上传图片"}
-                    </button>
-                  )}
+                : renderEmptyUploadBlock()}
 
               {message.content && (
                 <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
@@ -319,47 +349,50 @@ export function MessageEditorAtomicBlock({
           )
         : (
             <>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
-                {!readOnly && (
-                  <div className="flex items-center gap-2">
-                    {uploadable && (
-                      <button
-                        type="button"
-                        className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-primary/40 hover:text-base-content"
-                        onMouseDown={event => event.preventDefault()}
-                        onClick={openFilePicker}
-                      >
-                        {uploadButtonLabel}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
-                      onMouseDown={event => event.preventDefault()}
-                      onClick={() => onDelete(blockId)}
-                    >
-                      删除
-                    </button>
-                  </div>
-                )}
-              </div>
+              {!uploaded && uploadable
+                ? renderEmptyUploadBlock()
+                : (
+                    <>
+                      {!isCenteredUploadBlock && (
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
+                          {!readOnly && (
+                            <div className="flex items-center gap-2">
+                              {uploadable && (
+                                <button
+                                  type="button"
+                                  className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-primary/40 hover:text-base-content"
+                                  onMouseDown={event => event.preventDefault()}
+                                  onClick={openFilePicker}
+                                >
+                                  {uploadButtonLabel}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
+                                onMouseDown={event => event.preventDefault()}
+                                onClick={() => onDelete(blockId)}
+                              >
+                                删除
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-              {!uploaded && uploadable && (
-                <div className="mb-3 rounded-lg border border-dashed border-base-300 bg-base-200/30 px-3 py-6 text-center text-sm text-base-content/55">
-                  {uploading ? "上传中..." : uploadMeta.emptyLabel}
-                </div>
-              )}
-
-              {(uploaded || !uploadable) && (
-                <MessageContentRenderer
-                  message={{
-                    ...message,
-                    content: message.content ?? "",
-                    messageType: message.messageType ?? 0,
-                  }}
-                />
-              )}
+                      <div className={isCenteredUploadBlock ? "group/media relative" : ""}>
+                        {isCenteredUploadBlock && renderFloatingUploadActions()}
+                        <MessageContentRenderer
+                          message={{
+                            ...message,
+                            content: message.content ?? "",
+                            messageType: message.messageType ?? 0,
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
             </>
           )}
 
