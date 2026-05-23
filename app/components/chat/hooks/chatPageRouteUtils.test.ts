@@ -108,6 +108,21 @@ describe("chatPageRouteUtils", () => {
     });
   });
 
+  describe("buildPrivateChatRoomPath", () => {
+    it("builds private room paths with optional target message id", () => {
+      const searchParams = new URLSearchParams("leftDrawer=true");
+
+      expect(buildPrivateChatRoomPath(12, searchParams)).toBe("/chat/private/12?leftDrawer=true");
+      expect(buildPrivateChatRoomPath(12, searchParams, 88)).toBe("/chat/private/12/88?leftDrawer=true");
+    });
+
+    it("drops the private tab parameter when opening a specific chat", () => {
+      const searchParams = new URLSearchParams("tab=friends&leftDrawer=true");
+
+      expect(buildPrivateChatRoomPath(12, searchParams)).toBe("/chat/private/12?leftDrawer=true");
+    });
+  });
+
   describe("resolvePrivateChatTab", () => {
     it("defaults to chat when tab is missing or unknown", () => {
       expect(resolvePrivateChatTab()).toBe("chat");
@@ -129,18 +144,6 @@ describe("chatPageRouteUtils", () => {
     it("keeps the requested tab when no private room is selected", () => {
       expect(resolvePrivateChatTabForRoute({ activeRoomId: null, tabParam: "friends" })).toBe("friends");
       expect(resolvePrivateChatTabForRoute({ activeRoomId: undefined, tabParam: "new-friends" })).toBe("new-friends");
-    });
-  });
-
-  describe("buildPrivateChatRoomPath", () => {
-    it("drops the private tab parameter when opening a specific chat", () => {
-      const params = new URLSearchParams("tab=friends&leftDrawer=true");
-      expect(buildPrivateChatRoomPath(123, params)).toBe("/chat/private/123?leftDrawer=true");
-    });
-
-    it("keeps the target message path when provided", () => {
-      const params = new URLSearchParams("leftDrawer=false");
-      expect(buildPrivateChatRoomPath(123, params, 456)).toBe("/chat/private/123/456?leftDrawer=false");
     });
   });
 });

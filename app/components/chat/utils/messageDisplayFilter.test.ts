@@ -5,6 +5,7 @@ import type { MessageDisplayFilterConfig } from "./messageDisplayFilter";
 
 import {
   createMessageDisplayFilterMatcher,
+  describeMessageDisplayFilterStatus,
   filterChatMessagesForDisplay,
 } from "./messageDisplayFilter";
 
@@ -119,5 +120,25 @@ describe("messageDisplayFilter", () => {
     expect(matcher.error).toBeTruthy();
     expect(matcher.test).not.toBeNull();
     expect(filtered.map(item => item.message.messageId)).toEqual([1]);
+  });
+
+  it("描述保留匹配条件的过滤状态", () => {
+    expect(describeMessageDisplayFilterStatus(createFilterConfig({
+      action: "keep",
+      filterOutOfCharacterSpeech: true,
+      regexPattern: "alpha",
+    }))).toBe("显示匹配：正则「alpha」/i 或 场外发言");
+  });
+
+  it("描述隐藏匹配条件的过滤状态", () => {
+    expect(describeMessageDisplayFilterStatus(createFilterConfig({
+      action: "remove",
+      regexFlags: "",
+      regexPattern: "旁白",
+    }))).toBe("隐藏匹配：正则「旁白」");
+  });
+
+  it("没有有效条件时回退到筛选中状态", () => {
+    expect(describeMessageDisplayFilterStatus(createFilterConfig({}))).toBe("筛选中");
   });
 });

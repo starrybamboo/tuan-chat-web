@@ -4,6 +4,7 @@ import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
 
+import { Broom } from "@phosphor-icons/react";
 import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -21,6 +22,7 @@ import {
 } from "@/types/stateEvent";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
+import { buildAllInitiativeCombatMessageRequest, buildEndCombatMessageRequest } from "./initiativeCommandRequest";
 import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
   extractAgilityFromQuery,
@@ -303,6 +305,7 @@ export default function StateDrawer() {
   const runtime = useStateRuntimeContext();
   const currentUserId = useGlobalUserId();
   const [isAdvancingTurn, setIsAdvancingTurn] = React.useState(false);
+  const [isEndingCombat, setIsEndingCombat] = React.useState(false);
   const [isImportPopupOpen, setIsImportPopupOpen] = React.useState(false);
   const spaceOwner = Boolean(spaceContext.isSpaceOwner);
   const curUserId = currentUserId ?? -1;
@@ -311,6 +314,7 @@ export default function StateDrawer() {
     ? roomRolesThatUserOwn
     : roomRolesThatUserOwn.filter(role => role.userId === curUserId);
   const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(role => role.roleId));
+  const canEndCombat = runtime.participants.length > 0 || runtime.turn > 0 || Boolean(runtime.activeParticipantId);
 
   const initiativeList = React.useMemo<Initiative[]>(() => {
     return runtime.participants.map((participant) => {
@@ -395,6 +399,72 @@ export default function StateDrawer() {
       name,
     }), ".combat import");
   }, [abilityQueries, importableRoles, initiativeList, sendCombatEvents, spaceContext.ruleId]);
+
+  const handleRollAllInitiative = React.useCallback(async () => {
+    if (!spaceOwner) {
+      return;
+    }
+    if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
+      toast.error("当前房间暂不能投掷全员先攻");
+      return;
+    }
+
+    try {
+      const createdMessage = await roomContext.sendMessageWithInsert(buildAllInitiativeCombatMessageRequest({
+        abilityQueries,
+        currentList: initiativeList,
+        importableRoles,
+        ruleId: spaceContext.ruleId ?? undefined,
+        roomId: roomContext.roomId,
+        roleId: roomContext.curRoleId ?? -1,
+        avatarId: roomContext.curAvatarId ?? -1,
+      }));
+      if (!createdMessage) {
+        toast.error("投掷全员先攻失败");
+        return;
+      }
+      toast.success("已投掷全员先攻");
+    }
+    catch (error) {
+      console.error("投掷全员先攻失败", error);
+      toast.error(error instanceof Error && error.message ? error.message : "投掷全员先攻失败");
+    }
+  }, [abilityQueries, importableRoles, initiativeList, roomContext, spaceContext.ruleId, spaceOwner]);
+
+  const handleEndCombat = React.useCallback(async () => {
+    if (!spaceOwner || isEndingCombat) {
+      return;
+    }
+    if (!canEndCombat) {
+      toast.error("当前没有进行中的战斗");
+      return;
+    }
+    if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
+      toast.error("当前房间暂不能结束战斗");
+      return;
+    }
+
+    setIsEndingCombat(true);
+    try {
+      const createdMessage = await roomContext.sendMessageWithInsert(buildEndCombatMessageRequest({
+        roomId: roomContext.roomId,
+        roleId: roomContext.curRoleId ?? -1,
+        avatarId: roomContext.curAvatarId ?? -1,
+      }));
+      if (!createdMessage) {
+        toast.error("结束战斗失败");
+        return;
+      }
+      toast.success("已结束战斗");
+    }
+    catch (error) {
+      console.error("结束战斗失败", error);
+      toast.error(error instanceof Error && error.message ? error.message : "结束战斗失败");
+    }
+    finally {
+      setIsEndingCombat(false);
+    }
+  }, [canEndCombat, isEndingCombat, roomContext, spaceOwner]);
 
   const roleNameById = React.useMemo(() => {
     const nextMap: Record<number, string> = {};
@@ -567,6 +637,20 @@ export default function StateDrawer() {
                   导入先攻
                 </button>
               )}
+              {spaceOwner && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-error btn-xs h-8 min-h-8 gap-1 rounded-lg px-3 text-[11px]"
+                  onClick={() => {
+                    void handleEndCombat();
+                  }}
+                  disabled={!canEndCombat || isEndingCombat || !roomContext.sendMessageWithInsert || !roomContext.roomId}
+                  title="结束战斗并清空先攻"
+                >
+                  <Broom className="size-3.5" />
+                  {isEndingCombat ? "结束中..." : "结束战斗"}
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px] font-semibold"
@@ -676,6 +760,7 @@ export default function StateDrawer() {
         abilityQueries={abilityQueries}
         initiativeList={initiativeList}
         onClose={() => setIsImportPopupOpen(false)}
+        onRollAllInitiative={spaceOwner ? handleRollAllInitiative : undefined}
         onImportSingle={roleId => void handleImportSingle(roleId)}
       />
     </div>

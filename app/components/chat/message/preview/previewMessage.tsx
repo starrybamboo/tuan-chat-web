@@ -2,7 +2,7 @@ import type { Message } from "../../../../../api";
 import { use } from "react";
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
-import { canCurrentUserViewMessage } from "@/components/chat/utils/hiddenDiceVisibility";
+import { canCurrentUserViewHiddenDiceReply, canCurrentUserViewMessage } from "@/components/chat/utils/hiddenDiceVisibility";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -20,10 +20,12 @@ export function buildPreviewRenderState({
   messageBody,
   fallbackPreviewMessage,
   canViewMessage,
+  canViewHiddenDiceReply = false,
 }: {
   messageBody?: Message;
   fallbackPreviewMessage?: Message;
   canViewMessage: boolean;
+  canViewHiddenDiceReply?: boolean;
 }): PreviewRenderState {
   if (messageBody) {
     if (!canViewMessage) {
@@ -34,7 +36,9 @@ export function buildPreviewRenderState({
     }
     return {
       previewMessage: messageBody,
-      previewText: getMessagePreviewText(messageBody),
+      previewText: getMessagePreviewText(messageBody, {
+        canViewHiddenDiceReply,
+      }),
       isPlainTextOnly: messageBody.status === 1,
     };
   }
@@ -42,7 +46,9 @@ export function buildPreviewRenderState({
   if (fallbackPreviewMessage) {
     return {
       previewMessage: fallbackPreviewMessage,
-      previewText: getMessagePreviewText(fallbackPreviewMessage),
+      previewText: getMessagePreviewText(fallbackPreviewMessage, {
+        canViewHiddenDiceReply,
+      }),
       isPlainTextOnly: fallbackPreviewMessage.status === 1,
     };
   }
@@ -75,10 +81,15 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
     currentUserId: roomContext.curMember?.userId,
     memberType: roomContext.curMember?.memberType,
   });
+  const canViewHiddenDiceReply = hasResolvedMessage && canCurrentUserViewHiddenDiceReply(messageBody, {
+    currentUserId: roomContext.curMember?.userId,
+    memberType: roomContext.curMember?.memberType,
+  });
   const renderState = buildPreviewRenderState({
     messageBody,
     fallbackPreviewMessage: undefined,
     canViewMessage,
+    canViewHiddenDiceReply,
   });
   const previewMessage = renderState.previewMessage;
 
@@ -106,7 +117,11 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
           : (
               <>
                 {displayRoleName ? `【${displayRoleName}】: ` : ""}
-                <MessagePreviewContent message={previewMessage} withMediaPreview={withMediaPreview} />
+                <MessagePreviewContent
+                  message={previewMessage}
+                  withMediaPreview={withMediaPreview}
+                  canViewHiddenDiceReply={canViewHiddenDiceReply}
+                />
               </>
             )
       }

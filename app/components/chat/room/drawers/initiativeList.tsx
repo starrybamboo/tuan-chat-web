@@ -15,6 +15,7 @@ import {
 } from "@/types/stateEvent";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
+import { buildAllInitiativeCombatMessageRequest } from "./initiativeCommandRequest";
 import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
   extractAgilityFromQuery as extractAgilityFromAbilityQuery,
@@ -203,6 +204,37 @@ export default function InitiativeList() {
       return false;
     }
   }, [roomContext]);
+
+  const handleRollAllInitiative = useCallback(async () => {
+    if (!spaceOwner) {
+      return;
+    }
+    if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
+      toast.error("当前房间暂不能投掷全员先攻");
+      return;
+    }
+
+    try {
+      const createdMessage = await roomContext.sendMessageWithInsert(buildAllInitiativeCombatMessageRequest({
+        abilityQueries,
+        currentList: initiativeList,
+        importableRoles,
+        ruleId: spaceContext.ruleId ?? undefined,
+        roomId: roomContext.roomId,
+        roleId: roomContext.curRoleId ?? -1,
+        avatarId: roomContext.curAvatarId ?? -1,
+      }));
+      if (!createdMessage) {
+        toast.error("投掷全员先攻失败");
+        return;
+      }
+      toast.success("已投掷全员先攻");
+    }
+    catch (error) {
+      console.error("投掷全员先攻失败", error);
+      toast.error(error instanceof Error && error.message ? error.message : "投掷全员先攻失败");
+    }
+  }, [abilityQueries, importableRoles, initiativeList, roomContext, spaceContext.ruleId, spaceOwner]);
 
   const startEditing = (key: string, value: string) => {
     setEditingKey(key);
@@ -426,6 +458,7 @@ export default function InitiativeList() {
         abilityQueries={abilityQueries}
         initiativeList={initiativeList}
         onClose={() => setIsImportPopupOpen(false)}
+        onRollAllInitiative={spaceOwner ? handleRollAllInitiative : undefined}
         onImportSingle={roleId => void handleImportSingle(roleId)}
       />
     </div>

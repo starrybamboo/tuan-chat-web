@@ -193,7 +193,7 @@ WebSocket → websocketUtils.receivedMessages[roomId]
 
 `useChatFrameMessages` 会：
 - 检测消息缺口（syncId 断层）并补拉历史。
-- 对 Thread 的消息做过滤（仅展示 root / 主流）。
+- 仅按通用可见性规则过滤消息，不再做额外分流隐藏。
 
 ### 4.4 发送消息
 
@@ -276,7 +276,7 @@ Chat 模块同时使用了多种状态来源，各有侧重：
 ### 5.3 Zustand Stores（全局 UI / 偏好）
 
 当前主要 store：
-- `roomUiStore`：当前房间的临时 UI 状态（回复、Thread、插入模式）。
+- `roomUiStore`：当前房间的临时 UI 状态（回复、插入模式）。
 - `roomPreferenceStore`：聊天偏好（气泡样式、WebGAL 模式、跑团模式等，部分持久化到 localStorage）。
 - `roomRoleSelectionStore`：当前角色/立绘选择。
 - `drawerPreferenceStore`：各类抽屉宽度偏好。
@@ -364,7 +364,7 @@ Chat 模块同时使用了多种状态来源，各有侧重：
 - **Space**：空间，类似“服务器/群组”。
 - **Room**：空间内的房间（聊天频道）。
 - **Role / Avatar**：房间内扮演的角色与立绘。
-- **Thread**：消息线程（通过 `threadId` 关联）。
+- **回复锚点**：普通消息回复所指向的目标消息（通过 `replyMessageId` 关联）。
 - **Composer**：输入区（ChatInputArea + Toolbar）。
 - **Realtime Render**：WebGAL 实时渲染系统。
 

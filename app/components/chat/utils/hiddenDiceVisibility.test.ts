@@ -4,7 +4,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { Message } from "../../../../api";
 
-import { canCurrentUserViewMessage, filterVisibleChatMessages, isHiddenDiceMessage } from "./hiddenDiceVisibility";
+import { canCurrentUserViewHiddenDiceReply, canCurrentUserViewMessage, filterVisibleChatMessages, isHiddenDiceMessage } from "./hiddenDiceVisibility";
 
 function createMessage(partial?: Partial<Message>): Message {
   return {
@@ -33,6 +33,33 @@ describe("hiddenDiceVisibility", () => {
     expect(isHiddenDiceMessage(createMessage({
       extra: { diceResult: { result: "公开骰", hidden: false } },
     }))).toBe(false);
+  });
+
+  it("diceTurn 暗骰只隐藏回复内容，不隐藏整条指令消息", () => {
+    const turnMessage = createMessage({
+      content: ".r 1d20",
+      extra: {
+        diceResult: { result: "D20=19", hidden: true },
+        diceTurn: {
+          command: ".r 1d20",
+          replies: [{ content: "D20=19", hidden: true }],
+        },
+      } as any,
+    });
+
+    expect(isHiddenDiceMessage(turnMessage)).toBe(false);
+    expect(canCurrentUserViewMessage(turnMessage, {
+      currentUserId: 2002,
+      memberType: 2,
+    })).toBe(true);
+    expect(canCurrentUserViewHiddenDiceReply(turnMessage, {
+      currentUserId: 2002,
+      memberType: 2,
+    })).toBe(false);
+    expect(canCurrentUserViewHiddenDiceReply(turnMessage, {
+      currentUserId: 1001,
+      memberType: 2,
+    })).toBe(true);
   });
 
   it("允许发起人查看自己的暗骰消息", () => {

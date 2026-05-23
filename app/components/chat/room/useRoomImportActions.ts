@@ -109,7 +109,6 @@ export default function useRoomImportActions({
     setIsSubmitting(true);
     try {
       const isSpectator = notMember;
-      const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
 
       const resolvedAvatarIdByRole = new Map<number, number>();
@@ -191,10 +190,6 @@ export default function useRoomImportActions({
           messageType,
           extra,
         };
-
-        if (composerTarget === "thread" && threadRootMessageId) {
-          request.threadId = threadRootMessageId;
-        }
 
         if (!isSpectator) {
           const importedSpeakerName = (msg.speakerName ?? "").trim();
@@ -284,11 +279,6 @@ export default function useRoomImportActions({
         },
       } as any,
     };
-
-    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
-    if (composerTarget === "thread" && threadRootMessageId) {
-      request.threadId = threadRootMessageId;
-    }
 
     await sendMessageWithInsert(request);
   }, [
@@ -383,17 +373,11 @@ export default function useRoomImportActions({
       } as any,
     };
 
-    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
-    if (composerTarget === "thread" && threadRootMessageId) {
-      request.threadId = threadRootMessageId;
-    }
-
     recordDocCardShareObservation("share-message-send-start", {
       docId,
       roomId,
       spaceId,
       roleId: curRoleId,
-      threadId: request.threadId,
     });
 
     try {
@@ -404,7 +388,6 @@ export default function useRoomImportActions({
           roomId,
           spaceId,
           roleId: curRoleId,
-          threadId: request.threadId,
           error: "message-not-created",
         });
         return;
@@ -414,7 +397,6 @@ export default function useRoomImportActions({
         roomId,
         spaceId,
         roleId: curRoleId,
-        threadId: request.threadId,
         messageId: createdDocCard.messageId,
       });
     }
@@ -424,7 +406,6 @@ export default function useRoomImportActions({
         roomId,
         spaceId,
         roleId: curRoleId,
-        threadId: request.threadId,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
@@ -460,7 +441,6 @@ export default function useRoomImportActions({
 
     setIsSubmitting(true);
     try {
-      const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
       const draftCustomRoleNameMap = useRoomPreferenceStore.getState().draftCustomRoleNameMap;
       const resolvedAvatarIdByRole = new Map<number, number>();
       const ensureAvatarIdForRole = async (roleId: number): Promise<number> => {
@@ -517,9 +497,6 @@ export default function useRoomImportActions({
           customRoleName: customRoleName || fallbackCustomRoleName,
         });
 
-        if (composerTarget === "thread" && threadRootMessageId) {
-          request.threadId = threadRootMessageId;
-        }
         requests.push(request);
       }
 
@@ -590,11 +567,6 @@ export default function useRoomImportActions({
         },
       } as any,
     };
-
-    const { threadRootMessageId, composerTarget } = roomUiStoreApi.getState();
-    if (composerTarget === "thread" && threadRootMessageId) {
-      request.threadId = threadRootMessageId;
-    }
 
     await sendMessageWithInsert(request);
   }, [

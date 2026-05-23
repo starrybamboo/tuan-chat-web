@@ -18,9 +18,11 @@ function isEditableKeyboardTarget(target: EventTarget | null) {
 export default function useChatFrameSelection() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorMessageId, setSelectionAnchorMessageId] = useState<number | null>(null);
+  const [isSelectionModifierPressed, setSelectionModifierPressed] = useState(false);
   const isMultiSelecting = useRoomUiStore(state => state.isMultiSelecting);
   const setMultiSelecting = useRoomUiStore(state => state.setMultiSelecting);
   const isSelecting = isMultiSelecting || selectedMessageIds.size > 0;
+  const isSelectionToolbarVisible = isSelectionModifierPressed || isSelecting;
 
   const updateSelectedMessageIds = useCallback((next: Set<number> | ((prev: Set<number>) => Set<number>)) => {
     setSelectedMessageIds((prev) => {
@@ -39,21 +41,25 @@ export default function useChatFrameSelection() {
   }, [selectedMessageIds.size]);
 
   useEffect(() => {
+    if (isMultiSelecting && selectedMessageIds.size === 0 && !isSelectionModifierPressed) {
+      setMultiSelecting(false);
+    }
+  }, [isMultiSelecting, isSelectionModifierPressed, selectedMessageIds.size, setMultiSelecting]);
+
+  useEffect(() => {
     const shouldHandleSelectionModifier = (event: KeyboardEvent) => {
       return !event.isComposing && (event.key === "Control" || event.key === "Meta");
     };
 
     const handleModifierDown = (event: KeyboardEvent) => {
-      if (!shouldHandleSelectionModifier(event) || selectedMessageIds.size > 0 || isEditableKeyboardTarget(event.target)) {
+      if (!shouldHandleSelectionModifier(event) || isEditableKeyboardTarget(event.target)) {
         return;
       }
-      setMultiSelecting(true);
+      setSelectionModifierPressed(true);
     };
 
     const releasePendingSelection = () => {
-      if (selectedMessageIds.size === 0) {
-        setMultiSelecting(false);
-      }
+      setSelectionModifierPressed(false);
     };
 
     const handleModifierUp = (event: KeyboardEvent) => {
@@ -71,7 +77,7 @@ export default function useChatFrameSelection() {
       window.removeEventListener("keyup", handleModifierUp);
       window.removeEventListener("blur", releasePendingSelection);
     };
-  }, [selectedMessageIds.size, setMultiSelecting]);
+  }, []);
 
   const toggleMessageSelection = useCallback((messageId: number) => {
     setSelectionAnchorMessageId(messageId);
@@ -174,6 +180,7 @@ export default function useChatFrameSelection() {
     selectedMessageIds,
     updateSelectedMessageIds,
     isSelecting,
+    isSelectionToolbarVisible,
     enterSelection,
     exitSelection,
     toggleMessageSelection,

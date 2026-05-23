@@ -91,6 +91,28 @@ export function createMessageDisplayFilterMatcher(config: MessageDisplayFilterCo
   };
 }
 
+export function describeMessageDisplayFilterStatus(config: MessageDisplayFilterConfig): string {
+  const conditions: string[] = [];
+  const trimmedPattern = config.regexPattern.trim();
+  if (trimmedPattern) {
+    const sanitizedFlags = sanitizeMessageDisplayFilterRegexFlags(config.regexFlags);
+    conditions.push(sanitizedFlags
+      ? `正则「${trimmedPattern}」/${sanitizedFlags}`
+      : `正则「${trimmedPattern}」`);
+  }
+  if (config.filterOutOfCharacterSpeech) {
+    conditions.push("场外发言");
+  }
+
+  if (conditions.length === 0) {
+    return "筛选中";
+  }
+  const conditionText = conditions.join(" 或 ");
+  return config.action === "keep"
+    ? `显示匹配：${conditionText}`
+    : `隐藏匹配：${conditionText}`;
+}
+
 export function filterChatMessagesForDisplay(
   messages: ChatMessageResponse[],
   config: MessageDisplayFilterConfig | null,

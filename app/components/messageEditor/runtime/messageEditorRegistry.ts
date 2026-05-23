@@ -1,6 +1,6 @@
-import type { MessageDraft } from "@/types/messageDraft";
-
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { MessageEditorMessage } from "../messageEditorTypes";
 
 import { isMessageEditorTextMessage } from "../model/messageEditorTransforms";
 
@@ -16,7 +16,7 @@ export type MessageEditorBlockDriver = {
   kind: MessageEditorBlockDriverKind;
   key: string;
   label: string;
-  matches: (message: MessageDraft) => boolean;
+  matches: (message: MessageEditorMessage) => boolean;
 };
 
 const TEXT_DRIVER: MessageEditorBlockDriver = {
@@ -76,8 +76,8 @@ const STUB_DRIVER: MessageEditorBlockDriver = {
  * message editor 的 block registry。
  */
 export type MessageEditorRegistry = {
-  resolve: (message: MessageDraft) => MessageEditorBlockDriver;
-  isTextBlock: (message: MessageDraft) => boolean;
+  resolve: (message: MessageEditorMessage) => MessageEditorBlockDriver;
+  isTextBlock: (message: MessageEditorMessage) => boolean;
 };
 
 /**

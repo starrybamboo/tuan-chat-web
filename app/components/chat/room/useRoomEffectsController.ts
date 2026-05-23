@@ -18,9 +18,11 @@ type UseRoomEffectsControllerParams = {
 
 type UseRoomEffectsControllerResult = {
   backgroundUrl: string | null;
+  combatVisualActive: boolean;
   displayedBgUrl: string | null;
   currentEffect: string | null;
   setBackgroundUrl: SetState<string | null>;
+  setCombatVisualActive: SetState<boolean>;
   setCurrentEffect: SetState<string | null>;
   handleSendEffect: (effectName: string) => void;
   handleClearBackground: () => Promise<void>;
@@ -36,6 +38,7 @@ export default function useRoomEffectsController({
 }: UseRoomEffectsControllerParams): UseRoomEffectsControllerResult {
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [displayedBgUrl, setDisplayedBgUrl] = useState<string | null>(null);
+  const [combatVisualActive, setCombatVisualActive] = useState(false);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,9 +113,11 @@ export default function useRoomEffectsController({
 
   return {
     backgroundUrl,
+    combatVisualActive,
     displayedBgUrl,
     currentEffect,
     setBackgroundUrl,
+    setCombatVisualActive,
     setCurrentEffect,
     handleSendEffect,
     handleClearBackground,

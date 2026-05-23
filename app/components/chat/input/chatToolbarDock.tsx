@@ -1,7 +1,6 @@
 import { CheckerboardIcon, FilmSlateIcon, Sparkle, SwordIcon } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { BranchIcon, FolderIcon, WebgalIcon } from "@/icons";
 
@@ -34,16 +33,12 @@ export default function ChatToolbarDock({
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
-  const setThreadRootMessageId = useRoomUiStore(state => state.setThreadRootMessageId);
-  const setComposerTarget = useRoomUiStore(state => state.setComposerTarget);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const isCombatDrawerOpen = sideDrawerState === "combat" || sideDrawerState === "initiative" || sideDrawerState === "state";
   const isClueDrawerOpen = sideDrawerState === "clue";
   const isCopilotControlTemporarilyHidden = true;
   const handleToggleCopilotDrawer = () => {
-    setComposerTarget("main");
-    setThreadRootMessageId(undefined);
     setSideDrawerState(sideDrawerState === "copilot" ? "none" : "copilot");
   };
 

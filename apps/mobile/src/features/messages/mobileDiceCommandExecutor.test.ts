@@ -109,24 +109,33 @@ describe("mobileDiceCommandExecutor", () => {
     vi.clearAllMocks();
   });
 
-  it("执行 .r 指令并发送原指令和骰娘回复", async () => {
+  it("执行 .r 指令时发送单条 diceTurn 消息", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const params = createParams();
 
     await executeMobileDicerCommand(params);
 
-    expect(params.sendRoomMessageMutation.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest).toEqual(expect.objectContaining({
       content: ".r 1d6",
       messageType: MESSAGE_TYPE.DICE,
-    }));
-    expect(params.sendRoomMessageMutation.sendRequests).toHaveBeenCalledWith([
-      expect.objectContaining({
-        content: "掷骰结果：1d6 = 1d6[1] = 1",
-        messageType: MESSAGE_TYPE.DICE,
-        replayMessageId: 1000,
-        roleId: 2,
+      roleId: actorRole.roleId,
+      extra: expect.objectContaining({
+        diceResult: expect.objectContaining({
+          result: "掷骰结果：1d6 = 1d6[1] = 1",
+        }),
+        diceTurn: expect.objectContaining({
+          command: ".r 1d6",
+          replies: [
+            expect.objectContaining({
+              content: "掷骰结果：1d6 = 1d6[1] = 1",
+              roleId: 2,
+            }),
+          ],
+        }),
       }),
-    ]);
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
   });
 
   it("执行 CoC .rc 指令并生成检定回复", async () => {
@@ -145,13 +154,22 @@ describe("mobileDiceCommandExecutor", () => {
 
     await executeMobileDicerCommand(params);
 
-    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
-    expect(sentRequests).toEqual([
-      expect.objectContaining({
-        content: "侦查检定：D100=1/50 大成功",
-        messageType: MESSAGE_TYPE.DICE,
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest).toEqual(expect.objectContaining({
+      content: ".rc 侦查",
+      messageType: MESSAGE_TYPE.DICE,
+      extra: expect.objectContaining({
+        diceTurn: expect.objectContaining({
+          replies: [
+            expect.objectContaining({
+              content: "侦查检定：D100=1/50 大成功",
+              roleId: 2,
+            }),
+          ],
+        }),
       }),
-    ]);
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
   });
 
   it("执行 .st 会保存角色能力并生成状态事件", async () => {
@@ -172,14 +190,26 @@ describe("mobileDiceCommandExecutor", () => {
       ruleId: 1,
       skill: expect.objectContaining({ 力量: "60" }),
     }));
-    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
-    expect(sentRequests[0]).toEqual(expect.objectContaining({
-      messageType: MESSAGE_TYPE.STATE_EVENT,
-    }));
-    expect(sentRequests[1]).toEqual(expect.objectContaining({
-      content: expect.stringContaining("属性设置成功"),
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest).toEqual(expect.objectContaining({
+      content: ".st 力量+10",
       messageType: MESSAGE_TYPE.DICE,
+      extra: expect.objectContaining({
+        diceTurn: expect.objectContaining({
+          replies: [
+            expect.objectContaining({
+              content: expect.stringContaining("属性设置成功"),
+              roleId: 2,
+            }),
+          ],
+        }),
+      }),
     }));
+    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
+    expect(sentRequests).toEqual([expect.objectContaining({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      replayMessageId: 1000,
+    })]);
   });
 
   it("执行 .st show 有 UI 回调时不发送消息并打开属性卡模型", async () => {
@@ -230,13 +260,21 @@ describe("mobileDiceCommandExecutor", () => {
 
     await executeMobileDicerCommand(params);
 
-    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
-    expect(sentRequests).toEqual([
-      expect.objectContaining({
-        content: "调查员的属性卡\n\n【技能】\n侦查: 60",
-        messageType: MESSAGE_TYPE.DICE,
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest).toEqual(expect.objectContaining({
+      content: ".st show 侦查",
+      messageType: MESSAGE_TYPE.DICE,
+      extra: expect.objectContaining({
+        diceTurn: expect.objectContaining({
+          replies: [
+            expect.objectContaining({
+              content: "调查员的属性卡\n\n【技能】\n侦查: 60",
+            }),
+          ],
+        }),
       }),
-    ]);
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
   });
 
   it("未知指令会发送执行错误回复", async () => {
@@ -244,12 +282,20 @@ describe("mobileDiceCommandExecutor", () => {
 
     await executeMobileDicerCommand(params);
 
-    const sentRequests = params.sendRoomMessageMutation.sendRequests.mock.calls[0]?.[0] ?? [];
-    expect(sentRequests).toEqual([
-      expect.objectContaining({
-        content: expect.stringContaining("执行错误"),
-        messageType: MESSAGE_TYPE.DICE,
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest).toEqual(expect.objectContaining({
+      content: ".notexist",
+      messageType: MESSAGE_TYPE.DICE,
+      extra: expect.objectContaining({
+        diceTurn: expect.objectContaining({
+          replies: [
+            expect.objectContaining({
+              content: expect.stringContaining("执行错误"),
+            }),
+          ],
+        }),
       }),
-    ]);
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
   });
 });

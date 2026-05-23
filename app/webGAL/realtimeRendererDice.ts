@@ -1,5 +1,6 @@
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalDicePayload, isLikelyTrpgDiceContent } from "@/types/webgalDice";
 
@@ -12,6 +13,19 @@ export const TRPG_DICE_PIXI_EFFECT = "effect.trpgDiceBurst";
 
 const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
 
+function getDiceTurnContentFromMessage(msg: ChatMessageResponse["message"]): string | undefined {
+  if (!msg.extra?.diceTurn) {
+    return undefined;
+  }
+  const diceTurnData = getDiceTurnRenderData(msg.extra, msg.content, false);
+  const visibleReplyText = diceTurnData.replies
+    .filter(reply => !reply.hidden)
+    .map(reply => reply.content.trim())
+    .filter(Boolean)
+    .join("\n");
+  return visibleReplyText || diceTurnData.command || diceTurnData.summary;
+}
+
 export function getDiceContentFromMessage(
   msg: ChatMessageResponse["message"],
   payload?: WebgalDiceRenderPayload | null,
@@ -20,6 +34,7 @@ export function getDiceContentFromMessage(
     ? (msg.extra as { result?: unknown }).result
     : undefined;
   return payload?.content
+    ?? getDiceTurnContentFromMessage(msg)
     ?? msg.extra?.diceResult?.result
     ?? (extraResult == null ? undefined : String(extraResult))
     ?? msg.content

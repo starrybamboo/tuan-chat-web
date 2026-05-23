@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { motion } from "motion/react";
 
 interface LoginFormProps {
@@ -9,6 +10,7 @@ interface LoginFormProps {
   isLoading: boolean;
   loginMethod: "username" | "userId";
   setLoginMethod: (method: "username" | "userId") => void;
+  turnstile?: ReactNode;
 }
 
 export function LoginForm({
@@ -20,6 +22,7 @@ export function LoginForm({
   isLoading,
   loginMethod,
   setLoginMethod,
+  turnstile,
 }: LoginFormProps) {
   const accountInputName = loginMethod === "username" ? "login_username" : "login_user_id";
   const accountAutocomplete = loginMethod === "username"
@@ -127,6 +130,7 @@ export function LoginForm({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.2 }}
       >
+        {turnstile}
         <button
           type="submit"
           className="btn btn-primary hover:brightness-110 transition-all"

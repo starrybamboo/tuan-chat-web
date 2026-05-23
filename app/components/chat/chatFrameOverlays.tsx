@@ -27,7 +27,7 @@ interface ChatFrameOverlaysProps {
   currentMessageFilter: MessageDisplayFilterConfig | null;
   selectedMessageIds: Set<number>;
   exitSelection: () => void;
-  onForward: (roomId: number, mode: ForwardMode) => Promise<boolean>;
+  onForward: (roomIds: number[], mode: ForwardMode) => Promise<boolean>;
   onChangeMessageFilter: (filter: MessageDisplayFilterConfig | null) => void;
   currentSpaceId: number;
   spaceName?: string;

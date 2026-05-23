@@ -24,4 +24,15 @@ describe("messageAnnotationsBar", () => {
     expect(html).toContain("BGM");
     expect(html).toContain(">左<");
   });
+
+  it("图标标注按正方形尺寸展示", () => {
+    const html = renderToStaticMarkup(createElement(MessageAnnotationsBar, {
+      annotations: ["figure.anim.ba-down"],
+    }));
+
+    expect(html).toContain("title=\"下落\"");
+    expect(html).toContain(" h-6 ");
+    expect(html).toContain(" w-6 ");
+    expect(html).not.toContain("min-w-[36px]");
+  });
 });

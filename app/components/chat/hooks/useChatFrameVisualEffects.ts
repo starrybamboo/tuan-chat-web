@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { deriveCombatVisualActiveAtMessageIndex } from "@/components/chat/hooks/chatFrameCombatVisualState";
 import {
   getSceneEffectFromAnnotations,
   hasClearBackgroundAnnotation,
@@ -13,6 +14,7 @@ type UseChatFrameVisualEffectsParams = {
   enableEffects: boolean;
   historyMessages: ChatMessageResponse[];
   onBackgroundUrlChange?: (url: string | null) => void;
+  onCombatVisualActiveChange?: (active: boolean) => void;
   onEffectChange?: (effectName: string | null) => void;
   virtuosoIndexToMessageIndex: (index: number) => number;
 };
@@ -25,11 +27,13 @@ export default function useChatFrameVisualEffects({
   enableEffects,
   historyMessages,
   onBackgroundUrlChange,
+  onCombatVisualActiveChange,
   onEffectChange,
   virtuosoIndexToMessageIndex,
 }: UseChatFrameVisualEffectsParams): UseChatFrameVisualEffectsResult {
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+  const [currentCombatVisualActive, setCurrentCombatVisualActive] = useState(false);
   const [currentEffect, setCurrentEffect] = useState<string | null>(null);
 
   /**
@@ -97,6 +101,10 @@ export default function useChatFrameVisualEffects({
   }, [currentBackgroundUrl, enableEffects, onBackgroundUrlChange]);
 
   useEffect(() => {
+    onCombatVisualActiveChange?.(enableEffects ? currentCombatVisualActive : false);
+  }, [currentCombatVisualActive, enableEffects, onCombatVisualActiveChange]);
+
+  useEffect(() => {
     onEffectChange?.(enableEffects ? currentEffect : null);
   }, [currentEffect, enableEffects, onEffectChange]);
 
@@ -135,6 +143,17 @@ export default function useChatFrameVisualEffects({
       return () => clearTimeout(id);
     }
   }, [enableEffects, currentVirtuosoIndex, imgNode, clearBackgroundNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+
+  useEffect(() => {
+    if (!enableEffects) {
+      return;
+    }
+    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+    const nextCombatVisualActive = deriveCombatVisualActiveAtMessageIndex(historyMessages, currentMessageIndex);
+    if (nextCombatVisualActive !== currentCombatVisualActive) {
+      queueMicrotask(() => setCurrentCombatVisualActive(nextCombatVisualActive));
+    }
+  }, [enableEffects, currentVirtuosoIndex, historyMessages, virtuosoIndexToMessageIndex, currentCombatVisualActive]);
 
   useEffect(() => {
     if (!enableEffects) {

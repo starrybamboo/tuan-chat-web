@@ -73,6 +73,8 @@ function SidebarRoomContextMenuHarness() {
         >
           <ul className="menu w-48 p-0">
             <li><span>房间资料</span></li>
+            <li><span>房间成员</span></li>
+            <li><span>房间角色</span></li>
             <li><span>邀请玩家</span></li>
             <li><span>关闭消息提醒</span></li>
             <li><span>解散房间</span></li>

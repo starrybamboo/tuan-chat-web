@@ -25,7 +25,7 @@ export type {
 
 const ROOM_DND_MAP_SNAPSHOT_TTL_MS = 5 * 60_000;
 
-export function getRoomDndMapImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined) {
+export function getRoomDndMapImageUrl(map: Pick<RoomDndMapSnapshot, "mapFileId"> | null | undefined) {
   return getSharedRoomDndMapImageUrl(map, mediaFileUrl);
 }
 

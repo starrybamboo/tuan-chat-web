@@ -8,6 +8,7 @@ import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
+import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 import {
   ANNOTATION_IDS,
   getEffectDurationMs,
@@ -27,7 +28,7 @@ import {
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
-import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl, mediaFileUrl } from "@/utils/mediaUrl";
+import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, mediaFileUrl } from "@/utils/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 
@@ -145,22 +146,11 @@ const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
 
 function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
-  if (!avatar) {
-    return "";
-  }
-  return imageMediumUrl(avatar.spriteFileId)
-    || imageOriginalUrl(avatar.spriteFileId)
-    || buildAvatarUrl(avatar.avatarFileId)
-    || avatarOriginalUrl(avatar.avatarFileId);
+  return resolveRoleAvatarMedia(avatar).sprite.url;
 }
 
 function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
-  if (!avatar) {
-    return "";
-  }
-  return imageLowUrl(avatar.avatarFileId)
-    || buildAvatarUrl(avatar.avatarFileId)
-    || avatarOriginalUrl(avatar.avatarFileId);
+  return resolveRoleAvatarMedia(avatar).avatar.thumbUrl;
 }
 
 type RenderMessageOptions = {

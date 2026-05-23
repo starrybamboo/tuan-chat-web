@@ -135,7 +135,7 @@ export default function RegexSelectWindow({
       </div>
 
       <div className="space-y-3 px-3 py-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2">
           <label aria-label="输入正则表达式" className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-base-content/15 bg-base-200/45 px-2.5 py-2 transition focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
             <Funnel className="size-4 shrink-0 text-base-content/45" />
             <input
@@ -147,7 +147,35 @@ export default function RegexSelectWindow({
               placeholder="输入正则表达式，近实时更新显示条件"
             />
           </label>
-          <div className="join shrink-0">
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className={`inline-flex cursor-pointer select-none items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
+              filterOutOfCharacterSpeech
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-base-content/12 bg-base-200/35 text-base-content/70 hover:border-base-content/25"
+            }`}
+            >
+              <input
+                type="checkbox"
+                className="toggle toggle-xs"
+                checked={filterOutOfCharacterSpeech}
+                onChange={event => setFilterOutOfCharacterSpeech(event.target.checked)}
+              />
+              过滤场外发言
+            </label>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs h-8 min-h-0 rounded-md px-2"
+              onClick={handleClear}
+              disabled={!hasInput}
+            >
+              清除筛选
+            </button>
+          </div>
+
+          <div className="join shrink-0 self-end">
             <button
               type="button"
               className={`join-item btn btn-sm h-9 min-h-0 rounded-md ${filterAction === "keep" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
@@ -163,31 +191,6 @@ export default function RegexSelectWindow({
               反选
             </button>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <label className={`inline-flex cursor-pointer select-none items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition ${
-            filterOutOfCharacterSpeech
-              ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-base-content/12 bg-base-200/35 text-base-content/70 hover:border-base-content/25"
-          }`}
-          >
-            <input
-              type="checkbox"
-              className="toggle toggle-xs"
-              checked={filterOutOfCharacterSpeech}
-              onChange={event => setFilterOutOfCharacterSpeech(event.target.checked)}
-            />
-            过滤场外发言
-          </label>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs h-8 min-h-0 rounded-md px-2"
-            onClick={handleClear}
-            disabled={!hasInput}
-          >
-            清除筛选
-          </button>
         </div>
 
         {regexMatcher.error && (

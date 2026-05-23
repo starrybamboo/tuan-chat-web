@@ -53,7 +53,7 @@ interface ChatRoomListPanelProps {
   roomOrderIds?: number[];
   onReorderRoomIds?: (nextRoomIds: number[]) => void;
 
-  onOpenRoomSetting?: (roomId: number, tab?: "role" | "setting") => void;
+  onOpenRoomSetting?: (roomId: number, tab?: "member" | "role" | "setting") => void;
 
   sidebarTree?: SidebarTree | null;
   docMetas?: MinimalDocMeta[];

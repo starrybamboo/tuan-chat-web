@@ -13,7 +13,7 @@ type UseRoomMessageActionsParams = {
   currentUserId: number;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
-  batchSendMessages?: (messages: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: ChatMessageResponse["message"][] }>;
+  insertMessages?: (messages: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: ChatMessageResponse["message"][] }>;
   addOrUpdateMessage?: (message: ChatMessageResponse) => Promise<void> | void;
   addOrUpdateMessages?: (messages: ChatMessageResponse[]) => Promise<void> | void;
   removeMessageById?: (messageId: number) => Promise<void>;
@@ -33,7 +33,7 @@ export default function useRoomMessageActions({
   currentUserId,
   mainHistoryMessages,
   sendMessage,
-  batchSendMessages,
+  insertMessages,
   addOrUpdateMessage,
   addOrUpdateMessages,
   removeMessageById,
@@ -210,7 +210,7 @@ export default function useRoomMessageActions({
       return [];
     }
 
-    if (!batchSendMessages) {
+    if (!insertMessages) {
       const createdMessages: ChatMessageResponse["message"][] = [];
       for (const request of requests) {
         const created = await sendWithOptimistic(request, errorLogLabel);
@@ -233,7 +233,7 @@ export default function useRoomMessageActions({
     }
 
     try {
-      const result = await batchSendMessages(requests);
+      const result = await insertMessages(requests);
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
         await revertOptimisticMessages(optimisticMessages);
@@ -263,7 +263,7 @@ export default function useRoomMessageActions({
   }, [
     addOrUpdateMessage,
     addOrUpdateMessages,
-    batchSendMessages,
+    insertMessages,
     createOptimisticMessages,
     replaceMessageById,
     revertOptimisticMessages,
@@ -292,7 +292,7 @@ export default function useRoomMessageActions({
       return created ? [created] : [];
     }
 
-    if (!batchSendMessages || optimisticMessages.length !== requests.length) {
+    if (!insertMessages || optimisticMessages.length !== requests.length) {
       const createdMessages: ChatMessageResponse["message"][] = [];
       for (let index = 0; index < requests.length; index += 1) {
         const request = requests[index];
@@ -323,7 +323,7 @@ export default function useRoomMessageActions({
     });
 
     try {
-      const result = await batchSendMessages(requestsWithStablePositions);
+      const result = await insertMessages(requestsWithStablePositions);
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
         await revertOptimisticMessages(optimisticMessages);
@@ -353,7 +353,7 @@ export default function useRoomMessageActions({
   }, [
     addOrUpdateMessage,
     addOrUpdateMessages,
-    batchSendMessages,
+    insertMessages,
     replaceMessageById,
     revertOptimisticMessages,
     roomUiStoreApi,

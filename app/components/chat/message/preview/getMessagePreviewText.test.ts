@@ -78,6 +78,21 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("D100=63/100 成功");
   });
 
+  it("diceTurn 暗骰未授权时预览指令，授权后预览回复", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.DICE,
+      content: ".r 1d20",
+      extra: {
+        diceTurn: {
+          command: ".r 1d20",
+          replies: [{ content: "D20=19", hidden: true }],
+        },
+      } as any,
+    });
+    expect(getMessagePreviewText(msg)).toBe(".r 1d20");
+    expect(getMessagePreviewText(msg, { canViewHiddenDiceReply: true })).toBe("D20=19");
+  });
+
   it("图片消息预览不显示文件名（不区分背景）", () => {
     const img = createBaseMessage({
       messageType: MESSAGE_TYPE.IMG,
@@ -123,15 +138,6 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[语音]");
   });
 
-  it("子区消息优先读取 threadRoot.title", () => {
-    const msg = createBaseMessage({
-      messageType: MESSAGE_TYPE.THREAD_ROOT,
-      content: "",
-      extra: { threadRoot: { title: "线索讨论" } } as any,
-    });
-    expect(getMessagePreviewText(msg)).toBe("[子区] 线索讨论");
-  });
-
   it("state event 预览优先显示结构化状态摘要", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.STATE_EVENT,
@@ -158,6 +164,65 @@ describe("getMessagePreviewText", () => {
     });
 
     expect(getMessagePreviewText(msg)).toBe("[状态] HP - 2");
+  });
+
+  it("全员先攻聚合 state event 预览显示人数摘要", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: "战斗开始：全员先攻",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "ui",
+            parserVersion: "state-event-v1",
+          },
+          events: [
+            {
+              type: "combatParticipantUpsert",
+              participantId: "role:1",
+              roleId: 1,
+              name: "艾拉",
+              initiative: 16,
+            },
+            {
+              type: "combatParticipantUpsert",
+              participantId: "role:2",
+              roleId: 2,
+              name: "博恩",
+              initiative: 12,
+            },
+            {
+              type: "combatOrderSet",
+              participantIds: ["role:1", "role:2"],
+            },
+          ],
+        },
+      } as any,
+    });
+
+    expect(getMessagePreviewText(msg)).toBe("[战斗] 全员先攻 2 人");
+  });
+
+  it("结束战斗 state event 预览显示战斗结束", () => {
+    const msg = createBaseMessage({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: "战斗结束：清空先攻",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "ui",
+            parserVersion: "state-event-v1",
+          },
+          events: [
+            {
+              type: "combatRoundEnd",
+            },
+          ],
+        },
+      } as any,
+    });
+
+    expect(getMessagePreviewText(msg)).toBe("[战斗] 战斗结束");
   });
 
   it("未知类型优先返回 content", () => {

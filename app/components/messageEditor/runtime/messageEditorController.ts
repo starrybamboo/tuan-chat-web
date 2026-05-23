@@ -1,6 +1,5 @@
-import type { MessageDraft } from "@/types/messageDraft";
-
-import type { MessageEditorSelectionTextResult } from "../model/messageEditorTransforms";
+import type { MessageEditorMessage } from "../messageEditorTypes";
+import type { MessageEditorInsertBlockResult, MessageEditorSelectionTextResult } from "../model/messageEditorTransforms";
 import type { MessageEditorEventBus } from "./messageEditorEventBus";
 import type { MessageEditorRegistry } from "./messageEditorRegistry";
 import type { MessageEditorSelection } from "./messageEditorSelection";
@@ -10,6 +9,8 @@ import {
   createMessageEditorTextDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
+  insertMessageEditorBlockAtPoint,
+  insertMessageEditorBlockAtSelection,
   mergeMessageEditorMessageBackward,
   mergeMessageEditorMessageForward,
   moveMessageEditorMessage,
@@ -22,7 +23,7 @@ import {
 } from "../model/messageEditorTransforms";
 
 type SetMessages = (
-  updater: (previous: MessageDraft[]) => MessageDraft[],
+  updater: (previous: MessageEditorMessage[]) => MessageEditorMessage[],
   historyKind?: "default" | "typing",
 ) => void;
 
@@ -31,7 +32,7 @@ type SetMessages = (
  */
 export type MessageEditorController = {
   setActiveBlock: (blockId: string | null) => void;
-  updateBlock: (blockId: string, updater: (message: MessageDraft) => MessageDraft) => void;
+  updateBlock: (blockId: string, updater: (message: MessageEditorMessage) => MessageEditorMessage) => void;
   updateTextContent: (blockId: string, nextContent: string) => void;
   splitAtSelection: (selection: MessageEditorSelection) => { blockId: string; caret: number } | null;
   replaceSelectionText: (selection: MessageEditorSelection, replacement: string) => MessageEditorSelectionTextResult | null;
@@ -39,6 +40,14 @@ export type MessageEditorController = {
     selection: MessageEditorSelection,
     transform: (selectedText: string) => string,
   ) => MessageEditorSelectionTextResult | null;
+  insertBlockAtPoint: (
+    point: { blockId: string; offset: number },
+    kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+  ) => MessageEditorInsertBlockResult | null;
+  insertBlockAtSelection: (
+    selection: MessageEditorSelection,
+    kind: Parameters<typeof createMessageEditorBlockDraft>[0],
+  ) => MessageEditorInsertBlockResult | null;
   mergeBackward: (blockId: string) => { blockId: string; caret: number } | null;
   mergeForward: (blockId: string) => { blockId: string; caret: number } | null;
   moveBlock: (blockId: string, direction: -1 | 1) => void;
@@ -61,11 +70,11 @@ export type MessageEditorController = {
  */
 export function createMessageEditorController(params: {
   eventBus?: MessageEditorEventBus;
-  getMessages: () => MessageDraft[];
+  getMessages: () => MessageEditorMessage[];
   registry: MessageEditorRegistry;
   setMessages: SetMessages;
 }): MessageEditorController {
-  const emitBlocksChanged = (messages: MessageDraft[]) => {
+  const emitBlocksChanged = (messages: MessageEditorMessage[]) => {
     params.eventBus?.emit("blocksChanged", {
       blockIds: ensureMessageEditorMessages(messages).map(message => getMessageEditorBlockId(message)),
     });
@@ -133,6 +142,32 @@ export function createMessageEditorController(params: {
       });
       return result;
     },
+    insertBlockAtPoint(point, kind) {
+      const result = insertMessageEditorBlockAtPoint(params.getMessages(), {
+        blockId: point.blockId,
+        kind,
+        offset: point.offset,
+      });
+      if (!result) {
+        return null;
+      }
+      params.setMessages(() => {
+        emitBlocksChanged(result.messages);
+        return result.messages;
+      });
+      return result;
+    },
+    insertBlockAtSelection(selection, kind) {
+      const result = insertMessageEditorBlockAtSelection(params.getMessages(), selection, kind);
+      if (!result) {
+        return null;
+      }
+      params.setMessages(() => {
+        emitBlocksChanged(result.messages);
+        return result.messages;
+      });
+      return result;
+    },
     mergeBackward(blockId) {
       const result = mergeMessageEditorMessageBackward(params.getMessages(), blockId);
       if (!result) {
@@ -176,7 +211,7 @@ export function createMessageEditorController(params: {
         return null;
       }
 
-      const nextBlock = createMessageEditorBlockDraft(kind);
+      const nextBlock = createMessageEditorBlockDraft(kind, currentMessages[index]);
       params.setMessages(() => {
         const nextMessages = [...currentMessages];
         nextMessages.splice(index, 1, nextBlock);
@@ -249,7 +284,9 @@ export function createMessageEditorController(params: {
         };
       }
 
-      const nextBlock = createMessageEditorTextDraft();
+      const nextBlock = createMessageEditorTextDraft({
+        sourceMessage: lastMessage,
+      });
       params.setMessages((previous) => {
         const nextMessages = [...ensureMessageEditorMessages(previous), nextBlock];
         emitBlocksChanged(nextMessages);
