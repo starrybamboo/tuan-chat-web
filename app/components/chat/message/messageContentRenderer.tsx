@@ -136,7 +136,7 @@ export default function MessageContentRenderer({
       const fileName = fileMessage?.fileName || message.content || "文件";
       const sizeLabel = formatFileSize(fileMessage?.size);
       const contentNode = (
-        <div className="flex min-w-0 items-center gap-2 rounded-md bg-base-200/45 px-2 py-1.5 transition group-hover/file:bg-base-300/70">
+        <div className="flex min-w-0 w-full items-center gap-2 rounded-md bg-base-200/45 px-2 py-1.5 transition group-hover/file:bg-base-300/70">
           <FileArrowUpIcon className="size-5 shrink-0 text-base-content/75" />
           <span className="min-w-0 truncate text-sm text-base-content decoration-error/60 decoration-dotted underline-offset-3 group-hover/file:underline">
             {fileName}
@@ -151,7 +151,7 @@ export default function MessageContentRenderer({
               href={fileUrl}
               target="_blank"
               rel="noreferrer"
-              className="group/file flex min-w-0 items-center no-underline"
+              className="group/file flex min-w-0 w-full items-center no-underline"
               onClick={event => event.stopPropagation()}
             >
               {contentNode}
