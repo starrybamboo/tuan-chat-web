@@ -143,166 +143,168 @@ export function ContentCard({
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={handleKeyDown}
     >
-      {/* 图片部分 */}
-      {(shouldShowImage || shouldShowPlaceholder) && (
-        <figure className={`relative overflow-hidden rounded-md border border-gray-300 dark:border-gray-700 bg-base-200 ${aspectClasses[imageAspect]}`}>
-          {shouldShowImage && (
-            <img
-              src={displayImage}
-              alt={imageAlt || title || "Content image"}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-              loading={imageLoading}
-              decoding={imageDecoding}
-              fetchPriority={imageFetchPriority}
-              onLoad={() => {
-                if (failedImage === displayImage) {
-                  setFailedImage(null);
-                }
-                imageOnLoad?.();
-              }}
-              onError={() => setFailedImage(displayImage ?? null)}
-            />
-          )}
-          {shouldShowPlaceholder && (
-            <div className="flex h-full w-full items-center justify-center">
-              {placeholder}
-            </div>
-          )}
-
-          {(topBadges.length > 0 || hoverHint) && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
-              <div className="flex flex-wrap gap-2">
-                {topBadges.map(label => (
-                  <span
-                    key={label}
-                    className="rounded-full border border-base-300 bg-base-100/88 px-2 py-0.5 text-[10px] font-semibold text-base-content shadow-sm backdrop-blur-sm"
-                  >
-                    {label}
-                  </span>
-                ))}
+      <div className="overflow-hidden rounded-md border border-gray-300 bg-base-100 dark:border-gray-700">
+        {/* 图片部分 */}
+        {(shouldShowImage || shouldShowPlaceholder) && (
+          <figure className={`relative overflow-hidden bg-base-200 ${aspectClasses[imageAspect]}`}>
+            {shouldShowImage && (
+              <img
+                src={displayImage}
+                alt={imageAlt || title || "Content image"}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                loading={imageLoading}
+                decoding={imageDecoding}
+                fetchPriority={imageFetchPriority}
+                onLoad={() => {
+                  if (failedImage === displayImage) {
+                    setFailedImage(null);
+                  }
+                  imageOnLoad?.();
+                }}
+                onError={() => setFailedImage(displayImage ?? null)}
+              />
+            )}
+            {shouldShowPlaceholder && (
+              <div className="flex h-full w-full items-center justify-center">
+                {placeholder}
               </div>
-              {hoverHint && (
-                <span className="translate-y-1 rounded-md bg-base-100/88 px-2 py-1 text-[11px] font-semibold text-base-content opacity-0 shadow-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 backdrop-blur-sm">
-                  {hoverHint}
-                </span>
-              )}
-            </div>
-          )}
+            )}
 
-          {shouldShowHoverMeta && (
-            <>
-              <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-20" />
-              <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
-                <div className="space-y-3 text-sm text-black dark:text-white">
-                  {hoverMetadata.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {hoverMetadata.map(item => (
-                        <span
-                          key={item}
-                          className="rounded-full border border-black/12 bg-white/75 px-2.5 py-0.5 text-[11px] font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
-                        >
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {authorName && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold">作者</span>
-                      <span className="truncate">{authorName}</span>
-                    </div>
-                  )}
-                  {(minPeople || maxPeople) && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold">人数</span>
-                      <span>
-                        {minPeople && maxPeople
-                          ? `${minPeople}-${maxPeople}人`
-                          : minPeople
-                            ? `${minPeople}+人`
-                            : maxPeople
-                              ? `最多${maxPeople}人`
-                              : ""}
-                      </span>
-                    </div>
-                  )}
-                  {(minTime || maxTime) && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold">时长</span>
-                      <span>
-                        {minTime && maxTime
-                          ? `${minTime}-${maxTime}小时`
-                          : minTime
-                            ? `${minTime}+小时`
-                            : maxTime
-                              ? `最长${maxTime}小时`
-                              : ""}
-                      </span>
-                    </div>
-                  )}
-                  {createTime && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold">创建</span>
-                      <span>{new Date(createTime).toLocaleDateString()}</span>
-                    </div>
-                  )}
+            {(topBadges.length > 0 || hoverHint) && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
+                <div className="flex flex-wrap gap-2">
+                  {topBadges.map(label => (
+                    <span
+                      key={label}
+                      className="rounded-full border border-base-300 bg-base-100/88 px-2 py-0.5 text-[10px] font-semibold text-base-content shadow-sm backdrop-blur-sm"
+                    >
+                      {label}
+                    </span>
+                  ))}
                 </div>
-              </div>
-            </>
-          )}
-        </figure>
-      )}
-
-      <div className={`px-1 ${sizeClasses[size]}`}>
-        {(title || resolvedBadgeLabel || titleSuffix) && (
-          <div className={`${shouldRenderVisual ? "mt-2" : ""} flex items-start justify-between gap-3`}>
-            <div className="min-w-0 flex-1">
-              {title && <h2 className="text-base font-bold leading-6 line-clamp-2">{title}</h2>}
-              {subtitle && (
-                <p className="mt-1 text-sm text-base-content/55 line-clamp-2">
-                  {subtitle}
-                </p>
-              )}
-            </div>
-            {(titleSuffix || resolvedBadgeLabel) && (
-              <div className="flex shrink-0 items-center gap-2">
-                {titleSuffix}
-                {resolvedBadgeLabel && (
-                  <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-base-content/80">
-                    {resolvedBadgeLabel}
+                {hoverHint && (
+                  <span className="translate-y-1 rounded-md bg-base-100/88 px-2 py-1 text-[11px] font-semibold text-base-content opacity-0 shadow-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 backdrop-blur-sm">
+                    {hoverHint}
                   </span>
                 )}
               </div>
             )}
-          </div>
+
+            {shouldShowHoverMeta && (
+              <>
+                <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-20" />
+                <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
+                  <div className="space-y-3 text-sm text-black dark:text-white">
+                    {hoverMetadata.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {hoverMetadata.map(item => (
+                          <span
+                            key={item}
+                            className="rounded-full border border-black/12 bg-white/75 px-2.5 py-0.5 text-[11px] font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {authorName && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold">作者</span>
+                        <span className="truncate">{authorName}</span>
+                      </div>
+                    )}
+                    {(minPeople || maxPeople) && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold">人数</span>
+                        <span>
+                          {minPeople && maxPeople
+                            ? `${minPeople}-${maxPeople}人`
+                            : minPeople
+                              ? `${minPeople}+人`
+                              : maxPeople
+                                ? `最多${maxPeople}人`
+                                : ""}
+                        </span>
+                      </div>
+                    )}
+                    {(minTime || maxTime) && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold">时长</span>
+                        <span>
+                          {minTime && maxTime
+                            ? `${minTime}-${maxTime}小时`
+                            : minTime
+                              ? `${minTime}+小时`
+                              : maxTime
+                                ? `最长${maxTime}小时`
+                                : ""}
+                        </span>
+                      </div>
+                    )}
+                    {createTime && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold">创建</span>
+                        <span>{new Date(createTime).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </figure>
         )}
 
-        {content && (
-          <div className="prose prose-sm max-w-none">
-            <p className="text-sm leading-relaxed text-base-content/80 line-clamp-4">
-              {content}
-            </p>
-          </div>
-        )}
+        <div className={`bg-base-100 px-3 py-3 ${sizeClasses[size]}`}>
+          {(title || resolvedBadgeLabel || titleSuffix) && (
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                {title && <h2 className="text-base font-bold leading-6 line-clamp-2">{title}</h2>}
+                {subtitle && (
+                  <p className="mt-1 text-sm text-base-content/55 line-clamp-2">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+              {(titleSuffix || resolvedBadgeLabel) && (
+                <div className="flex shrink-0 items-center gap-2">
+                  {titleSuffix}
+                  {resolvedBadgeLabel && (
+                    <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-base-content/80">
+                      {resolvedBadgeLabel}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        {metadata.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {metadata.map(item => (
-              <span
-                key={item}
-                className="rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/65"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        )}
+          {content && (
+            <div className="prose prose-sm max-w-none">
+              <p className="text-sm leading-relaxed text-base-content/80 line-clamp-4">
+                {content}
+              </p>
+            </div>
+          )}
 
-        {bottomSlot && (
-          <div className="mt-4">
-            {bottomSlot}
-          </div>
-        )}
+          {metadata.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {metadata.map(item => (
+                <span
+                  key={item}
+                  className="rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/65"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {bottomSlot && (
+            <div className="mt-4">
+              {bottomSlot}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
