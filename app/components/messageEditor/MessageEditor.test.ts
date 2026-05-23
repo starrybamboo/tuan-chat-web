@@ -6,6 +6,7 @@ import {
   buildRoomMessagePatchOperations,
   getMessageEditorFrameClassName,
   getMessageEditorScrollViewportClassName,
+  getMessageEditorSlashMenuSpacerHeight,
   getMessageEditorTextBlockShellClassName,
   shouldIgnoreDocumentSelectionEventTarget,
 } from "./MessageEditor";
@@ -47,6 +48,11 @@ describe("messageEditor document click guard", () => {
 
   it("uses one shared scroll viewport for cover, header and content", () => {
     expect(getMessageEditorScrollViewportClassName()).toBe("relative min-h-0 flex-1 overflow-auto");
+  });
+
+  it("reserves room for the floating slash menu without folding it into the text flow", () => {
+    expect(getMessageEditorSlashMenuSpacerHeight(0)).toBe(0);
+    expect(getMessageEditorSlashMenuSpacerHeight(12.2)).toBe(21);
   });
 
   it("adds a small gap only between consecutive text blocks", () => {

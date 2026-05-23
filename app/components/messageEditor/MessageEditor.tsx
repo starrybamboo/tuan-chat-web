@@ -297,7 +297,8 @@ export function buildRoomMessagePatchOperations(
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
 const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
-const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-1";
+const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
+const MESSAGE_EDITOR_SLASH_MENU_GAP_PX = 8;
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
@@ -317,6 +318,13 @@ export function getMessageEditorFrameClassName(className?: string) {
  */
 export function getMessageEditorScrollViewportClassName() {
   return MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS;
+}
+
+/**
+ * 返回 slash 菜单在正文下方预留的垂直空间。
+ */
+export function getMessageEditorSlashMenuSpacerHeight(menuHeight: number) {
+  return menuHeight > 0 ? Math.ceil(menuHeight) + MESSAGE_EDITOR_SLASH_MENU_GAP_PX : 0;
 }
 
 /**
@@ -504,6 +512,7 @@ export default function MessageEditor({
   const [isPointerSelecting, setIsPointerSelecting] = useState(false);
   const [slashSelectionIndex, setSlashSelectionIndex] = useState(0);
   const [dismissedSlashKey, setDismissedSlashKey] = useState<string | null>(null);
+  const [slashMenuHeight, setSlashMenuHeight] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [ready, setReady] = useState(!resolvedDocId || isRoomCacheSource);
   const registry = useMemo(() => createMessageEditorRegistry(), []);
@@ -1298,6 +1307,12 @@ export default function MessageEditor({
     };
   }, [activeBlockId, dismissedSlashKey, messages, readOnly, registry]);
 
+  useEffect(() => {
+    if (!slashMenuState) {
+      setSlashMenuHeight(0);
+    }
+  }, [slashMenuState]);
+
   const activeSlashSelectionIndex = slashMenuState
     ? Math.max(0, Math.min(slashSelectionIndex, slashMenuState.items.length - 1))
     : 0;
@@ -1320,6 +1335,10 @@ export default function MessageEditor({
 
     clearActiveBlock();
   }, [clearActiveBlock, hideToolbar, slashMenuState]);
+
+  const handleSlashMenuSizeChange = useCallback((height: number) => {
+    setSlashMenuHeight(previous => previous === height ? previous : height);
+  }, []);
 
   const handleTextInput = useCallback((blockId: string, nextContent: string) => {
     clearCrossBlockSelection();
@@ -2211,7 +2230,7 @@ export default function MessageEditor({
           )}
 
           {ready && (
-            <div className="flex min-h-0 flex-col">
+            <div className="flex min-h-0 flex-col mt-8">
               <div
                 data-me-editor-surface="true"
                 role="presentation"
@@ -2258,7 +2277,7 @@ export default function MessageEditor({
                             data-me-block-handle="true"
                             className={[
                               `${MESSAGE_EDITOR_BLOCK_HANDLE_CLASS} top-0`,
-                              dragState?.draggedBlockId === blockId ? "!opacity-100" : "",
+                              dragState?.draggedBlockId === blockId ? "opacity-100!" : "",
                             ].join(" ")}
                             onDragStart={event => handleBlockDragStart(blockId, event)}
                             onDragEnd={handleBlockDragEnd}
@@ -2268,52 +2287,62 @@ export default function MessageEditor({
                             <DraggableIcon className="size-6" />
                           </button>
                         )}
-                        <MessageEditorTextBlock
-                          active={activeBlockId === blockId}
-                          blockId={blockId}
-                          message={message}
-                          onMouseDown={handleTextMouseDown}
-                          placeholder={showPlaceholder ? "输入内容" : ""}
-                          readOnly={readOnly}
-                          registerBlockRef={registerBlockRef}
-                          textInputRef={textStyleInputRef}
-                          selectionSegment={(() => {
-                            const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
-                            if (segment) {
-                              return {
-                                ...segment,
-                                showLineBreakAfter: showSelectedLineBreak,
-                              };
-                            }
-                            if (showSelectedLineBreak) {
-                              const contentLength = normalizeMessageEditorContent(message.content).length;
-                              return {
-                                end: contentLength,
-                                showLineBreakAfter: true,
-                                start: contentLength,
-                              };
-                            }
-                            return null;
-                          })()}
-                          onFocus={(nextBlockId) => {
-                            clearCrossBlockSelection();
-                            setDismissedSlashKey(null);
-                            setActiveBlockId(nextBlockId);
-                            controllerRef.current?.setActiveBlock(nextBlockId);
-                          }}
-                          onBlur={handleTextBlur}
-                          onInput={handleTextInput}
-                          onKeyDown={handleTextKeyDown}
-                        />
+                        <div className="relative">
+                          <MessageEditorTextBlock
+                            active={activeBlockId === blockId}
+                            blockId={blockId}
+                            message={message}
+                            onMouseDown={handleTextMouseDown}
+                            placeholder={showPlaceholder ? "输入内容" : ""}
+                            readOnly={readOnly}
+                            registerBlockRef={registerBlockRef}
+                            textInputRef={textStyleInputRef}
+                            selectionSegment={(() => {
+                              const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
+                              if (segment) {
+                                return {
+                                  ...segment,
+                                  showLineBreakAfter: showSelectedLineBreak,
+                                };
+                              }
+                              if (showSelectedLineBreak) {
+                                const contentLength = normalizeMessageEditorContent(message.content).length;
+                                return {
+                                  end: contentLength,
+                                  showLineBreakAfter: true,
+                                  start: contentLength,
+                                };
+                              }
+                              return null;
+                            })()}
+                            onFocus={(nextBlockId) => {
+                              clearCrossBlockSelection();
+                              setDismissedSlashKey(null);
+                              setActiveBlockId(nextBlockId);
+                              controllerRef.current?.setActiveBlock(nextBlockId);
+                            }}
+                            onBlur={handleTextBlur}
+                            onInput={handleTextInput}
+                            onKeyDown={handleTextKeyDown}
+                          />
+                          {slashMenuState?.blockId === blockId && !readOnly && (
+                            <div className="absolute left-3 right-0 top-full z-20 mt-2">
+                              <MessageEditorSlashMenu
+                                visible
+                                items={slashMenuState.items}
+                                selectedIndex={activeSlashSelectionIndex}
+                                onSelect={item => handleSelectSlashItem(item.kind)}
+                                onSizeChange={handleSlashMenuSizeChange}
+                              />
+                            </div>
+                          )}
+                        </div>
                         {slashMenuState?.blockId === blockId && !readOnly && (
-                          <div className="pl-3">
-                            <MessageEditorSlashMenu
-                              visible
-                              items={slashMenuState.items}
-                              selectedIndex={activeSlashSelectionIndex}
-                              onSelect={item => handleSelectSlashItem(item.kind)}
-                            />
-                          </div>
+                          <div
+                            aria-hidden="true"
+                            className="pointer-events-none"
+                            style={{ height: `${getMessageEditorSlashMenuSpacerHeight(slashMenuHeight)}px` }}
+                          />
                         )}
                       </div>
                     );
@@ -2324,7 +2353,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        `group relative mt-9 mb-9 ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-6 transition`,
+                        `group relative mt-8 mb-8 ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-9 transition`,
                         dragState?.draggedBlockId === blockId
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
@@ -2343,7 +2372,7 @@ export default function MessageEditor({
                           data-me-block-handle="true"
                           className={[
                             `${MESSAGE_EDITOR_BLOCK_HANDLE_CLASS} top-1.5`,
-                            dragState?.draggedBlockId === blockId ? "!opacity-100" : "",
+                            dragState?.draggedBlockId === blockId ? "opacity-100!" : "",
                           ].join(" ")}
                           onDragStart={event => handleBlockDragStart(blockId, event)}
                           onDragEnd={handleBlockDragEnd}
