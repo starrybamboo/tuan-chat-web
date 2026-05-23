@@ -6,6 +6,7 @@ import {
   buildRoomMessagePatchOperations,
   getMessageEditorFrameClassName,
   getMessageEditorScrollViewportClassName,
+  getMessageEditorTextBlockShellClassName,
   shouldIgnoreDocumentSelectionEventTarget,
 } from "./MessageEditor";
 import { createMessageEditorTextDraft } from "./model/messageEditorTransforms";
@@ -46,6 +47,18 @@ describe("messageEditor document click guard", () => {
 
   it("uses one shared scroll viewport for cover, header and content", () => {
     expect(getMessageEditorScrollViewportClassName()).toBe("relative min-h-0 flex-1 overflow-auto");
+  });
+
+  it("adds a small gap only between consecutive text blocks", () => {
+    expect(getMessageEditorTextBlockShellClassName({
+      hasFollowingTextBlock: true,
+      isDragging: false,
+    })).toContain("mb-1");
+
+    expect(getMessageEditorTextBlockShellClassName({
+      hasFollowingTextBlock: false,
+      isDragging: false,
+    })).not.toContain("mb-1");
   });
 
   it("treats svg descendants inside the text style toolbar as internal clicks", () => {
