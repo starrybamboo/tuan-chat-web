@@ -124,12 +124,14 @@ describe("messageEditorAtomicBlock", () => {
       fileName: "voice.webm",
       mediaType: "audio",
       size: 2048,
+      second: 9,
     });
 
     const audioHtml = renderBlock(audioMessage);
 
     expect(audioHtml).toContain("删除音频块");
-    expect(audioHtml).toContain("group-hover/media:pointer-events-auto");
+    expect(audioHtml).toContain("0:00 / 0:09");
+    expect(audioHtml).toContain("tc-audio-message");
     expect(audioHtml).not.toContain("更换音频");
   });
 

@@ -1,5 +1,6 @@
 // 音频消息播放组件（WaveSurfer 波形播放器）。
 // 为了避免列表渲染/刷新时自动触发下载，WaveSurfer 仅在用户点击播放时才初始化与加载音频。
+import { CaretRightIcon, TrashIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -31,6 +32,10 @@ interface AudioMessageProps {
   cacheKey?: string;
   duration?: number; // Optional duration in seconds
   title?: string;
+  className?: string;
+  layout?: "default" | "document";
+  onDelete?: () => void;
+  deleteLabel?: string;
 }
 
 let audioMessageInstanceSeq = 0;
@@ -143,6 +148,10 @@ export default function AudioMessage({
   cacheKey: cacheKeyProp,
   duration,
   title,
+  className = "",
+  layout = "default",
+  onDelete,
+  deleteLabel = "删除音频",
 }: AudioMessageProps) {
   const hasUrl = Boolean(url);
   const cacheKey = typeof cacheKeyProp === "string" && cacheKeyProp ? cacheKeyProp : url;
@@ -826,6 +835,7 @@ export default function AudioMessage({
       : fallbackDurationSeconds;
     return typeof d === "number" ? formatTime(d) : "00:00";
   }, [fallbackDurationSeconds, resolvedDuration]);
+  const playbackTimeText = `${currentTimeText} / ${durationText}`;
 
   const handleTogglePlay = async () => {
     mediaDebug("audio-message", "toggle-play-click", {
@@ -879,9 +889,48 @@ export default function AudioMessage({
     return null;
   }
 
+  if (layout === "document") {
+    return (
+      <div
+        className={`tc-audio-message flex w-full items-center gap-3 rounded-full bg-base-200/80 px-4 py-3 shadow-sm ${className}`}
+        title={title}
+      >
+        <button
+          type="button"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-base-100/85 text-base-content transition hover:bg-base-100 hover:text-base-content/90"
+          onClick={handleTogglePlay}
+          aria-label={isPlaying ? "暂停" : "播放"}
+        >
+          <CaretRightIcon className="size-4 translate-x-0.5" weight="fill" />
+        </button>
+
+        <div className="min-w-[88px] shrink-0 text-sm font-medium tabular-nums text-base-content/85">
+          {playbackTimeText}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div ref={waveContainerRef} className="w-full min-h-[20px]" />
+        </div>
+
+        {onDelete && (
+          <button
+            type="button"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-base-content/55 transition hover:bg-error/10 hover:text-error"
+            onMouseDown={event => event.preventDefault()}
+            onClick={onDelete}
+            aria-label={deleteLabel}
+            title={deleteLabel}
+          >
+            <TrashIcon className="size-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
-      className="tc-audio-message bg-base-200 rounded-lg p-2 min-w-[200px] max-w-[340px]"
+      className={`tc-audio-message min-w-[200px] max-w-[340px] rounded-lg bg-base-200 p-2 ${className}`}
       title={title}
     >
       <div className="flex items-center gap-2">
