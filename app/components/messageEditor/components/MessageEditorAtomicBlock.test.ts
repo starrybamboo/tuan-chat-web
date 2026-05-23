@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { vi } from "vitest";
 
-import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia } from "../model/messageEditorTransforms";
+import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia, updateMessageEditorMediaSize } from "../model/messageEditorTransforms";
 import { MessageEditorAtomicBlock } from "./MessageEditorAtomicBlock";
 
 vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
@@ -85,6 +85,37 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("拖拽缩放视频");
     expect(html).toContain("https://tuan.chat/media/v1/files/047/47/video/low.webm");
     expect(html).toContain("class=\"block h-auto w-full max-w-full bg-black object-contain\"");
+  });
+
+  it("restores the persisted resized width for image and video blocks", () => {
+    const resizedImage = updateMessageEditorMediaSize(setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
+      fileId: 48,
+      fileName: "wide.png",
+      mediaType: "image/png",
+      size: 2048,
+      width: 1600,
+      height: 900,
+    }), {
+      width: 640,
+      height: 360,
+    });
+    const resizedVideo = updateMessageEditorMediaSize(setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
+      fileId: 49,
+      fileName: "wide.webm",
+      mediaType: "video",
+      size: 4096,
+      width: 1920,
+      height: 1080,
+    }), {
+      width: 720,
+      height: 405,
+    });
+
+    const imageHtml = renderBlock(resizedImage);
+    const videoHtml = renderBlock(resizedVideo);
+
+    expect(imageHtml).toContain("width:640px");
+    expect(videoHtml).toContain("width:720px");
   });
 
   it("reuses hover replace and delete actions for uploaded audio and video blocks", () => {
