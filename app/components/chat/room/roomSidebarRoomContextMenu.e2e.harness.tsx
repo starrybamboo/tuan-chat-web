@@ -19,7 +19,7 @@ const room: Room = {
 } as Room;
 
 function SidebarRoomContextMenuHarness() {
-  const { contextMenu, handleContextMenu } = useChatPageContextMenus();
+  const { contextMenu, handleContextMenu, openContextMenu } = useChatPageContextMenus();
   const [selectedRoomId, setSelectedRoomId] = React.useState<number | null>(null);
 
   return (
@@ -54,6 +54,7 @@ function SidebarRoomContextMenuHarness() {
                 setDropTarget={() => {}}
                 handleDrop={() => {}}
                 onContextMenu={handleContextMenu}
+                onOpenRoomContextMenu={openContextMenu}
                 unreadMessageNumber={3}
                 activeRoomId={null}
                 onSelectRoom={setSelectedRoomId}

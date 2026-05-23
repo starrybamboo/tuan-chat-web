@@ -7,6 +7,8 @@ import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { createFloatingMenuAnchorFromElement } from "./floatingMenuPosition";
+import RoomSidebarItemMenuButton from "./roomSidebarItemMenuButton";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
@@ -84,6 +86,12 @@ export default function RoomSidebarDocItem({
   const imageMediaType = docOverrideImageMediaType || docMeta?.imageMediaType || docFallbackImageMediaType;
   const displayCoverUrl = imageLowUrl(coverFileId) || imageLowUrlFromUrl(coverUrl);
   const isActive = activeDocId === docId;
+  const openDocContextMenu = (x: number, y: number) => {
+    if (!canEdit) {
+      return;
+    }
+    setContextMenu({ kind: "doc", x, y, categoryId, index, docId });
+  };
 
   return (
     <div
@@ -92,11 +100,9 @@ export default function RoomSidebarDocItem({
       tabIndex={0}
       aria-pressed={isActive}
       onContextMenu={(e) => {
-        if (!canEdit)
-          return;
         e.preventDefault();
         e.stopPropagation();
-        setContextMenu({ kind: "doc", x: e.clientX, y: e.clientY, categoryId, index, docId });
+        openDocContextMenu(e.clientX, e.clientY);
       }}
       onClick={() => {
         onSelectDoc?.(docId);
@@ -130,7 +136,7 @@ export default function RoomSidebarDocItem({
       draggable
       onDragStart={(e) => {
         const el = e.target as HTMLElement | null;
-        if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
+        if (el && (el.closest("input") || el.closest("select") || el.closest("textarea") || el.closest("button"))) {
           e.preventDefault();
           return;
         }
@@ -173,6 +179,13 @@ export default function RoomSidebarDocItem({
         setDropTarget(null);
       }}
     >
+      <RoomSidebarItemMenuButton
+        ariaLabel="文档操作"
+        onClick={(event) => {
+          const anchor = createFloatingMenuAnchorFromElement(event.currentTarget);
+          openDocContextMenu(anchor.x, anchor.y);
+        }}
+      />
       <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
         {displayCoverUrl
           ? (

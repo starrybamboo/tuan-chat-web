@@ -68,6 +68,7 @@ interface ChatRoomListPanelProps {
   unreadMessagesNumber: Record<number, number>;
 
   onContextMenu: (e: React.MouseEvent, roomId?: number | null) => void;
+  onOpenRoomContextMenu: (roomId: number, position: { x: number; y: number }) => void;
   onInviteMember: () => void;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
 
@@ -106,6 +107,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     activeMaterialSelection,
     unreadMessagesNumber,
     onContextMenu,
+    onOpenRoomContextMenu,
     onInviteMember,
     onOpenSpaceDetailPanel,
     onSelectRoom,
@@ -380,6 +382,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
           addTitle="添加"
           setContextMenu={setContextMenu}
           onContextMenu={onContextMenu}
+          onOpenRoomContextMenu={onOpenRoomContextMenu}
           docHeaderOverrides={docHeaderOverrides}
           docMetaMap={docMetaMap}
           roomById={roomById}

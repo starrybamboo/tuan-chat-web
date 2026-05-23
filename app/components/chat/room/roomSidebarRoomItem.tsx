@@ -6,6 +6,8 @@ import RoomButton from "@/components/chat/shared/components/roomButton";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setRoomRefDragData } from "@/components/chat/utils/roomRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+import { createFloatingMenuAnchorFromElement } from "./floatingMenuPosition";
+import RoomSidebarItemMenuButton from "./roomSidebarItemMenuButton";
 
 const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
 
@@ -24,6 +26,7 @@ interface RoomSidebarRoomItemProps {
   setDropTarget: (next: DropTarget | null) => void;
   handleDrop: () => void;
   onContextMenu: (e: MouseEvent, roomId?: number | null) => void;
+  onOpenRoomContextMenu: (roomId: number, position: { x: number; y: number }) => void;
   unreadMessageNumber?: number;
   activeRoomId: number | null;
   onSelectRoom: (roomId: number) => void;
@@ -45,6 +48,7 @@ export default function RoomSidebarRoomItem({
   setDropTarget,
   handleDrop,
   onContextMenu,
+  onOpenRoomContextMenu,
   unreadMessageNumber,
   activeRoomId,
   onSelectRoom,
@@ -52,7 +56,7 @@ export default function RoomSidebarRoomItem({
 }: RoomSidebarRoomItemProps) {
   const handleItemDragStart = (e: DragEvent<HTMLDivElement>) => {
     const el = e.target as HTMLElement | null;
-    if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
+    if (el && (el.closest("input") || el.closest("select") || el.closest("textarea") || el.closest("button"))) {
       e.preventDefault();
       return;
     }
@@ -134,6 +138,13 @@ export default function RoomSidebarRoomItem({
         onDragStart={handleItemDragStart}
         onDragEnd={handleItemDragEnd}
       >
+        <RoomSidebarItemMenuButton
+          ariaLabel="房间操作"
+          floating={false}
+          onClick={(event) => {
+            onOpenRoomContextMenu(roomId, createFloatingMenuAnchorFromElement(event.currentTarget));
+          }}
+        />
       </RoomButton>
     </div>
   );

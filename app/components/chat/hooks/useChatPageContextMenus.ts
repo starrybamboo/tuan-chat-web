@@ -18,6 +18,7 @@ type UseChatPageContextMenusResult = {
   contextMenu: ChatContextMenuState | null;
   spaceContextMenu: SpaceContextMenuState | null;
   handleContextMenu: (event: MouseEvent<Element>, roomId?: number | null) => void;
+  openContextMenu: (roomId: number, position: { x: number; y: number }) => void;
   handleSpaceContextMenu: (event: MouseEvent<Element>) => void;
   closeContextMenu: () => void;
   closeSpaceContextMenu: () => void;
@@ -73,6 +74,14 @@ export default function useChatPageContextMenus(): UseChatPageContextMenusResult
     setContextMenu({ x: event.clientX, y: event.clientY, roomId: resolvedRoomId });
   }, []);
 
+  const openContextMenu = useCallback((roomId: number, position: { x: number; y: number }) => {
+    setContextMenu({
+      roomId,
+      x: position.x,
+      y: position.y,
+    });
+  }, []);
+
   const handleSpaceContextMenu = useCallback((event: MouseEvent<Element>) => {
     event.preventDefault();
     const spaceId = resolveSpaceIdFromContextMenuEvent(event);
@@ -103,6 +112,7 @@ export default function useChatPageContextMenus(): UseChatPageContextMenusResult
     contextMenu,
     spaceContextMenu,
     handleContextMenu,
+    openContextMenu,
     handleSpaceContextMenu,
     closeContextMenu,
     closeSpaceContextMenu,
