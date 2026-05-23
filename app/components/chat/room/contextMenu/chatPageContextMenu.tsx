@@ -1,3 +1,4 @@
+import { BellIcon, BellSlashIcon, InfoIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useEffect, useRef, useState } from "react";
@@ -65,6 +66,7 @@ export default function ChatPageContextMenu({
   const canInvitePlayer = canManageMemberPermissions(spaceContext?.memberType);
 
   const activeDissolveRoomId = dissolveTargetRoomId;
+  const menuButtonClassName = "flex w-full items-center gap-2.5 text-left";
 
   return (
     <>
@@ -78,12 +80,13 @@ export default function ChatPageContextMenu({
             <li className="relative group">
               <button
                 type="button"
-                className="flex w-full items-center justify-between"
+                className={menuButtonClassName}
                 onClick={() => {
                   onOpenRoomSetting?.(contextMenu.roomId);
                   onClose();
                 }}
               >
+                <InfoIcon className="size-4 shrink-0" weight="regular" />
                 <span>房间资料</span>
               </button>
             </li>
@@ -93,12 +96,13 @@ export default function ChatPageContextMenu({
               <li className="relative group">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between"
+                  className={menuButtonClassName}
                   onClick={() => {
                     onInvitePlayer?.(contextMenu.roomId);
                     onClose();
                   }}
                 >
+                  <UserPlusIcon className="size-4 shrink-0" weight="regular" />
                   <span>邀请玩家</span>
                 </button>
               </li>
@@ -107,7 +111,7 @@ export default function ChatPageContextMenu({
             <li className="relative group">
               <button
                 type="button"
-                className="flex w-full items-center justify-between"
+                className={menuButtonClassName}
                 onClick={() => {
                   if (isSubscribed) {
                     unsubscribeRoomMutation.mutate(contextMenu.roomId);
@@ -118,6 +122,9 @@ export default function ChatPageContextMenu({
                   onClose();
                 }}
               >
+                {isSubscribed
+                  ? <BellSlashIcon className="size-4 shrink-0" weight="regular" />
+                  : <BellIcon className="size-4 shrink-0" weight="regular" />}
                 <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
               </button>
             </li>
@@ -126,13 +133,14 @@ export default function ChatPageContextMenu({
               <li className="relative group text-error">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between"
+                  className={`${menuButtonClassName} text-error`}
                   onClick={() => {
                     setDissolveTargetRoomId(contextMenu.roomId);
                     setIsDissolveConfirmOpen(true);
                     onClose();
                   }}
                 >
+                  <TrashIcon className="size-4 shrink-0" weight="regular" />
                   <span>解散房间</span>
                 </button>
               </li>
