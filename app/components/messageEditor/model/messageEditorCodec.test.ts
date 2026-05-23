@@ -34,6 +34,8 @@ describe("messageEditorCodec", () => {
     const decodedVideoPayload = decodedVideo.extra?.videoMessage as { editorWidth?: number } | undefined;
 
     expect(decodedImagePayload?.editorWidth).toBe(640);
+    expect((decodedImage.extra?.imageMessage as { editorHeight?: number } | undefined)?.editorHeight).toBe(360);
     expect(decodedVideoPayload?.editorWidth).toBe(720);
+    expect((decodedVideo.extra?.videoMessage as { editorHeight?: number } | undefined)?.editorHeight).toBe(405);
   });
 });
