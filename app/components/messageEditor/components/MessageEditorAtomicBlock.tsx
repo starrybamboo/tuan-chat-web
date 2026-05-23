@@ -1,8 +1,9 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
-import { getImageMessageExtra } from "@/types/messageExtra";
+import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
@@ -95,6 +96,25 @@ function resolveUploadedImageUrl(message: MessageDraft) {
   return mediaFileUrl(imageMessage.fileId, imageMessage.mediaType, "medium");
 }
 
+function resolveUploadedVideoUrl(message: MessageDraft) {
+  const videoMessage = getVideoMessageExtra(message.extra);
+  if (typeof videoMessage?.fileId !== "number" || videoMessage.fileId <= 0) {
+    return "";
+  }
+  return mediaFileUrl(videoMessage.fileId, videoMessage.mediaType, "low");
+}
+
+function resolveMediaDimensions(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return {};
+  }
+  const record = payload as Record<string, unknown>;
+  return {
+    height: typeof record.height === "number" ? record.height : undefined,
+    width: typeof record.width === "number" ? record.width : undefined,
+  };
+}
+
 /**
  * 原子块编辑壳，负责上传与删除交互。
  */
@@ -108,7 +128,7 @@ export function MessageEditorAtomicBlock({
   readOnly = false,
 }: MessageEditorAtomicBlockProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const imageFrameRef = useRef<HTMLDivElement | null>(null);
+  const mediaFrameRef = useRef<HTMLDivElement | null>(null);
   const resizeSessionRef = useRef<{
     aspectRatio: number;
     lastWidth: number;
@@ -122,25 +142,36 @@ export function MessageEditorAtomicBlock({
   const uploadable = uploadMeta.accept.length > 0;
   const uploaded = hasUploadedMedia(message);
   const isImageBlock = message.messageType === MESSAGE_TYPE.IMG;
+  const isVideoBlock = message.messageType === MESSAGE_TYPE.VIDEO;
+  const isResizableMediaBlock = isImageBlock || isVideoBlock;
   const isCenteredUploadBlock = message.messageType === MESSAGE_TYPE.IMG
     || message.messageType === MESSAGE_TYPE.SOUND
     || message.messageType === MESSAGE_TYPE.VIDEO;
-  const imagePayload = isImageBlock ? getImageMessageExtra(message.extra) : undefined;
-  const uploadedImageUrl = isImageBlock ? resolveUploadedImageUrl(message) : "";
-  const imageAspectRatio = useMemo(() => {
-    const width = typeof imagePayload?.width === "number" && imagePayload.width > 0 ? imagePayload.width : 0;
-    const height = typeof imagePayload?.height === "number" && imagePayload.height > 0 ? imagePayload.height : 0;
+  const mediaPayload = isImageBlock
+    ? getImageMessageExtra(message.extra)
+    : isVideoBlock
+      ? getVideoMessageExtra(message.extra)
+      : undefined;
+  const mediaDimensions = resolveMediaDimensions(mediaPayload);
+  const uploadedMediaUrl = isImageBlock
+    ? resolveUploadedImageUrl(message)
+    : isVideoBlock
+      ? resolveUploadedVideoUrl(message)
+      : "";
+  const mediaAspectRatio = useMemo(() => {
+    const width = typeof mediaDimensions?.width === "number" && mediaDimensions.width > 0 ? mediaDimensions.width : 0;
+    const height = typeof mediaDimensions?.height === "number" && mediaDimensions.height > 0 ? mediaDimensions.height : 0;
     return width > 0 && height > 0 ? height / width : 1;
-  }, [imagePayload?.height, imagePayload?.width]);
+  }, [mediaDimensions?.height, mediaDimensions?.width]);
 
   useEffect(() => {
     setDisplayWidth(null);
     resizeSessionRef.current = null;
-  }, [imagePayload?.fileId, imagePayload?.mediaType]);
+  }, [mediaPayload?.fileId, mediaPayload?.mediaType]);
 
   const commitResize = (nextWidth: number) => {
     const clampedWidth = Math.max(160, Math.round(nextWidth));
-    const nextHeight = Math.max(1, Math.round(clampedWidth * imageAspectRatio));
+    const nextHeight = Math.max(1, Math.round(clampedWidth * mediaAspectRatio));
     if (resizeSessionRef.current) {
       resizeSessionRef.current.lastWidth = clampedWidth;
     }
@@ -152,11 +183,11 @@ export function MessageEditorAtomicBlock({
   };
 
   const handleResizePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (readOnly || !uploaded || !uploadedImageUrl) {
+    if (readOnly || !uploaded || !uploadedMediaUrl) {
       return;
     }
 
-    const frame = imageFrameRef.current;
+    const frame = mediaFrameRef.current;
     if (!frame) {
       return;
     }
@@ -165,7 +196,7 @@ export function MessageEditorAtomicBlock({
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     resizeSessionRef.current = {
-      aspectRatio: imageAspectRatio,
+      aspectRatio: mediaAspectRatio,
       lastWidth: displayWidth ?? frame.getBoundingClientRect().width,
       startWidth: displayWidth ?? frame.getBoundingClientRect().width,
       startX: event.clientX,
@@ -266,6 +297,66 @@ export function MessageEditorAtomicBlock({
     </>
   );
 
+  const renderResizableMediaBlock = () => {
+    const mediaLabel = isImageBlock ? "图片" : "视频";
+    const resizeLabel = `拖拽缩放${mediaLabel}`;
+
+    return (
+      <div className="group/media flex flex-col gap-3">
+        {uploaded && uploadedMediaUrl
+          ? (
+              <div
+                ref={mediaFrameRef}
+                className="group/media relative overflow-hidden rounded-xl bg-base-100"
+                style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
+              >
+                {renderFloatingUploadActions()}
+
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-base-300/70 bg-base-100/92 opacity-0 shadow-sm transition duration-150 hover:border-primary/40 hover:bg-primary/10 group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100"
+                    onPointerDown={handleResizePointerDown}
+                    onPointerMove={handleResizePointerMove}
+                    onPointerUp={finishResize}
+                    onPointerCancel={finishResize}
+                    aria-label={resizeLabel}
+                    title={resizeLabel}
+                  >
+                    <span className="h-8 w-0.5 rounded-full bg-base-content/25" />
+                  </button>
+                )}
+
+                {isImageBlock
+                  ? (
+                      <img
+                        src={uploadedMediaUrl}
+                        alt={message.content?.trim() || uploadMeta.title}
+                        width={typeof mediaDimensions?.width === "number" ? mediaDimensions.width : undefined}
+                        height={typeof mediaDimensions?.height === "number" ? mediaDimensions.height : undefined}
+                        className="block h-auto w-full max-w-full object-contain"
+                      />
+                    )
+                  : (
+                      <CachedVideoMessage
+                        cacheKey={`${blockId}:video`}
+                        url={uploadedMediaUrl}
+                        className="block h-auto w-full max-w-full bg-black object-contain"
+                      />
+                    )}
+              </div>
+            )
+          : renderEmptyUploadBlock()}
+
+        {message.content && (
+          <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+            {message.content}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       className="flex flex-col gap-3"
@@ -302,51 +393,8 @@ export function MessageEditorAtomicBlock({
         />
       )}
 
-      {isImageBlock
-        ? (
-            <div className="group/image flex flex-col gap-3">
-              {uploaded && uploadedImageUrl
-                ? (
-                    <div
-                      ref={imageFrameRef}
-                      className="group/media relative overflow-hidden rounded-xl bg-base-100"
-                      style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
-                    >
-                      {renderFloatingUploadActions()}
-
-                      {!readOnly && (
-                        <button
-                          type="button"
-                          className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-base-300/70 bg-base-100/92 opacity-0 shadow-sm transition duration-150 hover:border-primary/40 hover:bg-primary/10 group-hover/image:pointer-events-auto group-hover/image:opacity-100 group-focus-within/image:pointer-events-auto group-focus-within/image:opacity-100"
-                          onPointerDown={handleResizePointerDown}
-                          onPointerMove={handleResizePointerMove}
-                          onPointerUp={finishResize}
-                          onPointerCancel={finishResize}
-                          aria-label="拖拽缩放图片"
-                          title="拖拽缩放图片"
-                        >
-                          <span className="h-8 w-0.5 rounded-full bg-base-content/25" />
-                        </button>
-                      )}
-
-                      <img
-                        src={uploadedImageUrl}
-                        alt={message.content?.trim() || uploadMeta.title}
-                        width={typeof imagePayload?.width === "number" ? imagePayload.width : undefined}
-                        height={typeof imagePayload?.height === "number" ? imagePayload.height : undefined}
-                        className="block h-auto w-full max-w-full object-contain"
-                      />
-                    </div>
-                  )
-                : renderEmptyUploadBlock()}
-
-              {message.content && (
-                <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
-                  {message.content}
-                </div>
-              )}
-            </div>
-          )
+      {isResizableMediaBlock
+        ? renderResizableMediaBlock()
         : (
             <>
               {!uploaded && uploadable

@@ -1,8 +1,18 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { vi } from "vitest";
 
 import { createMessageEditorBlockDraft, setMessageEditorUploadedMedia } from "../model/messageEditorTransforms";
 import { MessageEditorAtomicBlock } from "./MessageEditorAtomicBlock";
+
+vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
+  default: ({ className, url }: { className?: string; url: string }) => {
+    return createElement("video", {
+      className,
+      src: url,
+    });
+  },
+}));
 
 describe("messageEditorAtomicBlock", () => {
   function renderBlock(message = createMessageEditorBlockDraft("image")) {
@@ -53,9 +63,28 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("拖拽缩放图片");
     expect(html).toContain("cursor-ew-resize");
     expect(html).toContain("pointer-events-none");
-    expect(html).toContain("group-hover/image:pointer-events-auto");
+    expect(html).toContain("group-hover/media:pointer-events-auto");
     expect(html).toContain("https://tuan.chat/media/v1/files/045/45/image/medium.webp");
     expect(html).toContain("class=\"block h-auto w-full max-w-full object-contain\"");
+  });
+
+  it("renders a full-width uploaded video with replace, delete, and resize actions", () => {
+    const videoMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
+      fileId: 47,
+      fileName: "clip.webm",
+      mediaType: "video",
+      size: 4096,
+      width: 1920,
+      height: 1080,
+    });
+
+    const html = renderBlock(videoMessage);
+
+    expect(html).toContain("更换视频");
+    expect(html).toContain("删除");
+    expect(html).toContain("拖拽缩放视频");
+    expect(html).toContain("https://tuan.chat/media/v1/files/047/47/video/low.webm");
+    expect(html).toContain("class=\"block h-auto w-full max-w-full bg-black object-contain\"");
   });
 
   it("reuses hover replace and delete actions for uploaded audio and video blocks", () => {
