@@ -255,9 +255,9 @@ export function ContentCard({
 
       <div className={`px-1 ${sizeClasses[size]}`}>
         {(title || resolvedBadgeLabel || titleSuffix) && (
-          <div className={`${shouldRenderVisual ? "mt-4" : ""} flex items-start justify-between gap-3`}>
+          <div className={`${shouldRenderVisual ? "mt-2" : ""} flex items-start justify-between gap-3`}>
             <div className="min-w-0 flex-1">
-              {title && <h2 className="text-lg font-bold leading-7 line-clamp-2">{title}</h2>}
+              {title && <h2 className="text-base font-bold leading-6 line-clamp-2">{title}</h2>}
               {subtitle && (
                 <p className="mt-1 text-sm text-base-content/55 line-clamp-2">
                   {subtitle}
@@ -278,7 +278,7 @@ export function ContentCard({
         )}
 
         {content && (
-          <div className="prose prose-sm mt-3 max-w-none">
+          <div className="prose prose-sm max-w-none">
             <p className="text-sm leading-relaxed text-base-content/80 line-clamp-4">
               {content}
             </p>
