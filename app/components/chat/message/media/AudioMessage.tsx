@@ -1,6 +1,6 @@
 // 音频消息播放组件（WaveSurfer 波形播放器）。
 // 为了避免列表渲染/刷新时自动触发下载，WaveSurfer 仅在用户点击播放时才初始化与加载音频。
-import { CaretRightIcon, TrashIcon } from "@phosphor-icons/react";
+import { PauseIcon, PlayIcon, TrashIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -836,6 +836,7 @@ export default function AudioMessage({
     return typeof d === "number" ? formatTime(d) : "00:00";
   }, [fallbackDurationSeconds, resolvedDuration]);
   const playbackTimeText = `${currentTimeText} / ${durationText}`;
+  const compactTimeText = isPlaying ? currentTimeText : durationText;
 
   const handleTogglePlay = async () => {
     mediaDebug("audio-message", "toggle-play-click", {
@@ -892,16 +893,18 @@ export default function AudioMessage({
   if (layout === "document") {
     return (
       <div
-        className={`tc-audio-message flex w-full items-center gap-3 rounded-full bg-base-200/80 px-4 py-3 shadow-sm ${className}`}
+        className={`tc-audio-message flex w-full items-center gap-3 rounded-md bg-base-200/80 px-3 py-2.5 shadow-sm ${className}`}
         title={title}
       >
         <button
           type="button"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-base-100/85 text-base-content transition hover:bg-base-100 hover:text-base-content/90"
+          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-base-100/85 text-base-content transition hover:bg-base-100 hover:text-base-content/90"
           onClick={handleTogglePlay}
           aria-label={isPlaying ? "暂停" : "播放"}
         >
-          <CaretRightIcon className="size-4 translate-x-0.5" weight="fill" />
+          {isPlaying
+            ? <PauseIcon className="size-4" weight="fill" />
+            : <PlayIcon className="size-4 translate-x-0.5" weight="fill" />}
         </button>
 
         <div className="min-w-[88px] shrink-0 text-sm font-medium tabular-nums text-base-content/85">
@@ -915,7 +918,7 @@ export default function AudioMessage({
         {onDelete && (
           <button
             type="button"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full text-base-content/55 transition hover:bg-error/10 hover:text-error"
+            className="flex size-9 shrink-0 items-center justify-center rounded-md text-base-content/55 transition hover:bg-error/10 hover:text-error"
             onMouseDown={event => event.preventDefault()}
             onClick={onDelete}
             aria-label={deleteLabel}
@@ -930,35 +933,27 @@ export default function AudioMessage({
 
   return (
     <div
-      className={`tc-audio-message min-w-[200px] max-w-[340px] rounded-lg bg-base-200 p-2 ${className}`}
+      className={`tc-audio-message min-w-[220px] max-w-[420px] rounded-md bg-base-200 p-2.5 ${className}`}
       title={title}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           type="button"
-          className="btn btn-xs btn-circle btn-ghost"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-base-content transition hover:bg-base-300/70"
           onClick={handleTogglePlay}
           aria-label={isPlaying ? "暂停" : "播放"}
         >
           {isPlaying
-            ? (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z" />
-                </svg>
-              )
-            : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7L8 5z" />
-                </svg>
-              )}
+            ? <PauseIcon className="size-4" weight="fill" />
+            : <PlayIcon className="size-4 translate-x-0.5" weight="fill" />}
         </button>
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-[2.25rem] shrink-0 text-xs tabular-nums text-slate-500">
+          {compactTimeText}
+        </div>
+
+        <div className="min-w-0 flex-1">
           <div ref={waveContainerRef} className="w-full min-h-[28px]" />
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-            <span>{currentTimeText}</span>
-            <span>{durationText}</span>
-          </div>
         </div>
       </div>
     </div>

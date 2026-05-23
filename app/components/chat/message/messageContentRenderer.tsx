@@ -1,5 +1,6 @@
 import type { Message } from "../../../../api";
 import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import { FileArrowUpIcon } from "@phosphor-icons/react";
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
@@ -47,14 +48,15 @@ function formatFileSize(bytes?: number) {
     return "";
   }
 
-  const units = ["B", "KB", "MB", "GB"] as const;
+  const units = ["B", "KiB", "MiB", "GiB"] as const;
   let value = bytes;
   let unitIndex = 0;
   while (value >= 1024 && unitIndex < units.length - 1) {
     value /= 1024;
     unitIndex += 1;
   }
-  return `${value.toFixed(1)}${units[unitIndex]}`;
+  const valueLabel = unitIndex === 0 ? String(Math.round(value)) : value.toFixed(1);
+  return `${valueLabel} ${units[unitIndex]}`;
 }
 
 function resolveMediaPayloadUrl(
@@ -134,10 +136,12 @@ export default function MessageContentRenderer({
       const fileName = fileMessage?.fileName || message.content || "文件";
       const sizeLabel = formatFileSize(fileMessage?.size);
       const contentNode = (
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="badge badge-outline badge-xs">文件</span>
-          <span className="truncate">{fileName}</span>
-          {sizeLabel && <span className="text-[10px] text-base-content/50">{sizeLabel}</span>}
+        <div className="flex min-w-0 items-center gap-2 rounded-md bg-base-200/45 px-2 py-1.5 transition group-hover/file:bg-base-300/70">
+          <FileArrowUpIcon className="size-5 shrink-0 text-base-content/75" />
+          <span className="min-w-0 truncate text-sm text-base-content decoration-error/60 decoration-dotted underline-offset-3 group-hover/file:underline">
+            {fileName}
+          </span>
+          {sizeLabel && <span className="shrink-0 text-sm text-base-content/50">{sizeLabel}</span>}
         </div>
       );
 
@@ -147,7 +151,7 @@ export default function MessageContentRenderer({
               href={fileUrl}
               target="_blank"
               rel="noreferrer"
-              className="link link-hover flex items-center gap-2"
+              className="group/file flex min-w-0 items-center no-underline"
               onClick={event => event.stopPropagation()}
             >
               {contentNode}
