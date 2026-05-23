@@ -2,11 +2,12 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import {
+  getCommandRequestExtra,
+  getDiceTurnExtra,
   getClueMessageExtra,
   getDocCardExtra,
   getForwardMessageExtra,
   getRoomJumpExtra,
-  getThreadRootExtra,
 } from "./message-extra";
 import { getMessagePreviewText } from "./messagePreview";
 
@@ -53,6 +54,60 @@ export function getForwardMessageRenderData(extra: unknown, previewLimit = 3): F
     previewMessages: visibleMessages.slice(0, limit),
     remainingCount: Math.max(visibleMessages.length - limit, 0),
     title: "转发消息",
+  };
+}
+
+export type DiceTurnRenderReply = {
+  avatarId?: number;
+  content: string;
+  customRoleName: string;
+  hidden: boolean;
+  roleId?: number;
+};
+
+export type DiceTurnRenderData = {
+  command: string;
+  replies: DiceTurnRenderReply[];
+  summary: string;
+  title: string;
+};
+
+export function getDiceTurnRenderData(
+  extra: unknown,
+  fallbackContent = "",
+  canViewHiddenReply = false,
+): DiceTurnRenderData {
+  const diceTurn = getDiceTurnExtra(extra);
+  const command = safeTrim(diceTurn?.command) || safeTrim(fallbackContent);
+  const replies = Array.isArray(diceTurn?.replies)
+    ? diceTurn.replies.map((reply) => {
+        const replyRecord = toRecord(reply);
+        const hidden = replyRecord?.hidden === true;
+        return {
+          avatarId: toPositiveNumber(replyRecord?.avatarId),
+          content: hidden && !canViewHiddenReply
+            ? "掷骰结果已隐藏"
+            : safeTrim(replyRecord?.content),
+          customRoleName: safeTrim(replyRecord?.customRoleName),
+          hidden,
+          roleId: toPositiveNumber(replyRecord?.roleId),
+        };
+      })
+    : [];
+  const visibleReplyTexts = replies
+    .filter(reply => !reply.hidden || canViewHiddenReply)
+    .map(reply => safeTrim(reply.content))
+    .filter(Boolean);
+  const summary = visibleReplyTexts.join("；")
+    || command
+    || safeTrim(fallbackContent)
+    || "骰子结果";
+
+  return {
+    command,
+    replies,
+    summary,
+    title: "骰子",
   };
 }
 
@@ -133,10 +188,12 @@ export function getClueCardRenderData(extra: unknown, fallbackContent = ""): Clu
   const snapshot = toRecord(clue?.snapshot);
   const messageType = toPositiveNumber(snapshot?.messageType) ?? 1;
   const snapshotContent = typeof snapshot?.content === "string" ? snapshot.content : "";
-  const fallbackPreviewText = safeTrim(fallbackContent);
+  const commandRequest = getCommandRequestExtra(snapshot?.extra);
+  const command = safeTrim(commandRequest?.command);
   const resolvedContent = snapshotContent.trim()
-    ? snapshotContent
-    : fallbackPreviewText || getMessagePreviewText({
+    || (command ? `[检定请求] ${command}` : "")
+    || safeTrim(fallbackContent)
+    || getMessagePreviewText({
       messageType,
       content: snapshotContent,
       ...(snapshot?.extra !== undefined ? { extra: snapshot.extra as Message["extra"] } : {}),
@@ -148,17 +205,6 @@ export function getClueCardRenderData(extra: unknown, fallbackContent = ""): Clu
       content: resolvedContent,
       ...(snapshot?.extra !== undefined ? { extra: snapshot.extra as Message["extra"] } : {}),
     },
-  };
-}
-
-export type ThreadRootRenderData = {
-  title: string;
-};
-
-export function getThreadRootRenderData(extra: unknown, fallbackContent = ""): ThreadRootRenderData {
-  const threadRoot = getThreadRootExtra(extra);
-  return {
-    title: safeTrim(threadRoot?.title) || safeTrim(fallbackContent) || "子区",
   };
 }
 

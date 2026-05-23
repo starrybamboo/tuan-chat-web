@@ -116,4 +116,24 @@ describe("state-event combat atoms", () => {
 
     expect(formatStateEventPreviewText(extra)).toBe("[战斗] 龙 加入先攻");
   });
+
+  it("接受 combatRoundEnd 状态事件", () => {
+    const normalized = normalizeStateEventExtra({
+      source: { kind: "ui", parserVersion: "state-event-v1" },
+      events: [
+        {
+          type: "combatRoundEnd",
+        },
+      ],
+    });
+
+    expect(normalized).toEqual({
+      source: { kind: "ui", parserVersion: "state-event-v1" },
+      events: [
+        {
+          type: "combatRoundEnd",
+        },
+      ],
+    });
+  });
 });

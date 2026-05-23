@@ -19,7 +19,6 @@ import { CommunityService } from './services/CommunityService';
 import { CommunityPostControllerService } from './services/CommunityPostControllerService';
 import { CounterService } from './services/CounterService';
 import { DatabaseBackupService } from './services/DatabaseBackupService';
-import { DocRoomControllerService } from './services/DocRoomControllerService';
 import { FeedbackIssueControllerService } from './services/FeedbackIssueControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { FriendControllerService } from './services/FriendControllerService';
@@ -71,7 +70,6 @@ export class TuanChat {
     public readonly communityPostController: CommunityPostControllerService;
     public readonly counter: CounterService;
     public readonly databaseBackup: DatabaseBackupService;
-    public readonly docRoomController: DocRoomControllerService;
     public readonly feedbackIssueController: FeedbackIssueControllerService;
     public readonly feedController: FeedControllerService;
     public readonly friendController: FriendControllerService;
@@ -134,7 +132,6 @@ export class TuanChat {
         this.communityPostController = new CommunityPostControllerService(this.request);
         this.counter = new CounterService(this.request);
         this.databaseBackup = new DatabaseBackupService(this.request);
-        this.docRoomController = new DocRoomControllerService(this.request);
         this.feedbackIssueController = new FeedbackIssueControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.friendController = new FriendControllerService(this.request);

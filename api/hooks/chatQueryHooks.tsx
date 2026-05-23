@@ -30,7 +30,7 @@ import type {HistoryMessageRequest} from "@tuanchat/openapi-client/models/Histor
 import type {MessageBySyncIdRequest} from "@tuanchat/openapi-client/models/MessageBySyncIdRequest";
 import type { ApiResultString } from "@tuanchat/openapi-client/models/ApiResultString";
 import {
-    useBatchSendMessageMutation as useSharedBatchSendMessageMutation,
+    usePatchMessagesMutation as useSharedPatchMessagesMutation,
     useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
 import {
@@ -658,12 +658,8 @@ export function useSendMessageMutation(roomId: number) {
     return useSharedSendMessageMutation(tuanchat, roomId);
 }
 
-/**
- * 批量发送消息（批量插入）
- * @param roomId 关联的群聊ID（用于 mutation key 隔离）
- */
-export function useBatchSendMessageMutation(roomId: number) {
-    return useSharedBatchSendMessageMutation(tuanchat, roomId);
+export function usePatchMessagesMutation(roomId: number) {
+    return useSharedPatchMessagesMutation(tuanchat, roomId);
 }
 
 /**

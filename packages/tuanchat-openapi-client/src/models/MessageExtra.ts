@@ -5,6 +5,7 @@
 import type { ClueMessage } from './ClueMessage';
 import type { CommandRequestExtra } from './CommandRequestExtra';
 import type { DiceResult } from './DiceResult';
+import type { DiceTurn } from './DiceTurn';
 import type { DocCardExtra } from './DocCardExtra';
 import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
@@ -15,10 +16,11 @@ import type { StateEventExtra } from './StateEventExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
 /**
- * 消息 extra
+ * 不同类型消息持有的额外信息
  */
 export type MessageExtra = {
     diceResult?: DiceResult;
+    diceTurn?: DiceTurn;
     fileMessage?: FileMessage;
     imageMessage?: ImageMessage;
     forwardMessage?: ForwardMessage;

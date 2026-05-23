@@ -30,6 +30,27 @@ function createStateMessage(
   };
 }
 
+function createUiStateMessage(
+  messageId: number,
+  events: Parameters<typeof buildCommandStateEventExtra>[1],
+): Pick<Message, "messageId" | "messageType" | "content" | "status" | "extra"> {
+  return {
+    messageId,
+    messageType: MESSAGE_TYPE.STATE_EVENT,
+    content: "战斗开始：全员先攻",
+    status: 0,
+    extra: {
+      stateEvent: {
+        source: {
+          kind: "ui",
+          parserVersion: "state-event-v1",
+        },
+        events,
+      },
+    },
+  };
+}
+
 function createRoleAbility(overrides?: Partial<RoleAbility>): RoleAbility {
   return {
     roleId: 1,
@@ -42,6 +63,98 @@ function createRoleAbility(overrides?: Partial<RoleAbility>): RoleAbility {
 }
 
 describe("buildCombatStateRuntime", () => {
+  it("为 UI 全员先攻聚合消息生成人数摘要", () => {
+    const runtime = buildCombatStateRuntime({
+      messages: [
+        createUiStateMessage(1, [
+          {
+            type: "combatParticipantUpsert",
+            participantId: "role:1",
+            roleId: 1,
+            name: "艾拉",
+            initiative: 16,
+          },
+          {
+            type: "combatParticipantUpsert",
+            participantId: "role:2",
+            roleId: 2,
+            name: "博恩",
+            initiative: 12,
+          },
+          {
+            type: "combatOrderSet",
+            participantIds: ["role:1", "role:2"],
+          },
+        ]),
+      ],
+    });
+
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("全员先攻 2 人");
+    expect(runtime.participants.map(participant => participant.participantId)).toEqual(["role:1", "role:2"]);
+  });
+
+  it("combatRoundEnd 会清空参与者并将回合归零", () => {
+    const runtime = buildCombatStateRuntime({
+      messages: [
+        createUiStateMessage(1, [
+          {
+            type: "combatParticipantUpsert",
+            participantId: "role:1",
+            roleId: 1,
+            name: "艾拉",
+            initiative: 16,
+          },
+          {
+            type: "combatParticipantUpsert",
+            participantId: "role:2",
+            roleId: 2,
+            name: "博恩",
+            initiative: 12,
+          },
+          {
+            type: "combatOrderSet",
+            participantIds: ["role:1", "role:2"],
+          },
+          {
+            type: "combatActiveParticipantSet",
+            participantId: "role:1",
+          },
+        ]),
+        createStateMessage(2, [
+          {
+            type: "nextTurn",
+          },
+        ]),
+        createStateMessage(3, [
+          {
+            type: "combatRoundEnd",
+          },
+        ], {
+          content: "战斗结束：清空先攻",
+          extra: {
+            stateEvent: {
+              source: {
+                kind: "ui",
+                parserVersion: "state-event-v1",
+              },
+              events: [
+                {
+                  type: "combatRoundEnd",
+                },
+              ],
+            },
+          },
+        }),
+      ],
+    });
+
+    expect(runtime.turn).toBe(0);
+    expect(runtime.participants).toEqual([]);
+    expect(runtime.activeParticipantId).toBeNull();
+    expect(runtime.messageSummariesByMessageId[3]?.primaryText).toBe("战斗结束");
+    expect(runtime.messageSummariesByMessageId[3]?.detailLines).toContain("结束战斗 · 回合 1 -> 0");
+  });
+
   it("按消息顺序回放参与者、顺序、当前行动者和自定义列", () => {
     const runtime = buildCombatStateRuntime({
       messages: [

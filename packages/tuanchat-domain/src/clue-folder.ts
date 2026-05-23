@@ -18,7 +18,6 @@ export const PRIVATE_CLUE_FOLDER_NAME = "我的线索";
 export const PUBLIC_CLUE_FOLDER_NAME = "公共线索";
 
 const READ_LINE_MESSAGE_TYPE = 10000;
-const THREAD_ROOT_MESSAGE_TYPE = 10001;
 const ACTIVE_GAME_MEMBER_TYPES = new Set([1, 2, 5]);
 
 function parseRecord(value: unknown): Record<string, unknown> | null {
@@ -209,7 +208,7 @@ export function canCopyMessageToClueFolder(
   if (!message || message.status === 1) {
     return false;
   }
-  return message.messageType !== READ_LINE_MESSAGE_TYPE && message.messageType !== THREAD_ROOT_MESSAGE_TYPE;
+  return message.messageType !== READ_LINE_MESSAGE_TYPE;
 }
 
 export function buildClueMessageCopyRequest(params: {

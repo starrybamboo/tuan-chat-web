@@ -3,6 +3,8 @@ import type { StateEventExtra as ApiStateEventExtra } from "@tuanchat/openapi-cl
 import type { StateEventScope as ApiStateEventScope } from "@tuanchat/openapi-client/models/StateEventScope";
 import type { StateEventSource as ApiStateEventSource } from "@tuanchat/openapi-client/models/StateEventSource";
 
+import { buildCombatInitiativeBatchPrimaryText } from "./state-runtime/combatInitiativeBatch";
+
 export const STATE_EVENT_PARSER_VERSION = "state-event-v1";
 
 export const STATE_EVENT_SOURCE_KIND = {
@@ -90,6 +92,10 @@ export type StateEventNextTurn = {
   type: "nextTurn";
 };
 
+export type StateEventCombatRoundEnd = {
+  type: "combatRoundEnd";
+};
+
 export type StateEventCombatParticipantUpsert = {
   type: "combatParticipantUpsert";
   participantId: string;
@@ -145,6 +151,7 @@ export type StateEventAtom
     | StateEventStatusApply
     | StateEventStatusRemove
     | StateEventNextTurn
+    | StateEventCombatRoundEnd
     | StateEventCombatParticipantUpsert
     | StateEventCombatParticipantRemove
     | StateEventCombatOrderSet
@@ -322,6 +329,10 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
 
   if (type === "nextTurn") {
     return { type: "nextTurn" };
+  }
+
+  if (type === "combatRoundEnd") {
+    return { type: "combatRoundEnd" };
   }
 
   if (type === "combatParticipantUpsert") {
@@ -528,6 +539,16 @@ export function buildCommandStateEventExtra(
   };
 }
 
+export function buildUiStateEventExtra(events: StateEventAtom[]): StateEventExtra {
+  return {
+    source: {
+      kind: STATE_EVENT_SOURCE_KIND.UI,
+      parserVersion: STATE_EVENT_PARSER_VERSION,
+    },
+    events,
+  };
+}
+
 export function toApiStateEventExtra(extra: StateEventExtra): ApiStateEventExtra {
   return extra as ApiStateEventExtra;
 }
@@ -611,6 +632,10 @@ export function formatStateEventAtomDetail(atom: StateEventAtom, options?: State
     return "推进到下一回合";
   }
 
+  if (atom.type === "combatRoundEnd") {
+    return "结束战斗";
+  }
+
   if (atom.type === "combatParticipantUpsert") {
     const name = atom.name ?? (typeof atom.roleId === "number" ? formatStateScopeLabel({ kind: STATE_EVENT_SCOPE_KIND.ROLE, roleId: atom.roleId }, options) : atom.participantId);
     const parts = [`先攻参与者 ${name}`];
@@ -669,6 +694,10 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
   if (!normalized) {
     return `[状态] ${fallback}`;
   }
+  const combatBatchPrimaryText = buildCombatInitiativeBatchPrimaryText(normalized);
+  if (combatBatchPrimaryText) {
+    return `[战斗] ${combatBatchPrimaryText}`;
+  }
   const [firstEvent] = normalized.events;
   if (!firstEvent) {
     return `[状态] ${fallback}`;
@@ -683,6 +712,9 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
   }
   if (firstEvent.type === "nextTurn") {
     return "[状态] 下一回合";
+  }
+  if (firstEvent.type === "combatRoundEnd") {
+    return "[战斗] 结束战斗";
   }
   if (firstEvent.type === "statusApply") {
     return `[状态] 施加 ${firstEvent.statusId}`;

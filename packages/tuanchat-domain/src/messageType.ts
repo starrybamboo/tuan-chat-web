@@ -16,7 +16,6 @@ export const MESSAGE_TYPE = {
   DOC_CARD: 1002,
   ROOM_JUMP: 1003,
   READ_LINE: 10000,
-  THREAD_ROOT: 10001,
 } as const;
 
 export type MessageTypeValue = typeof MESSAGE_TYPE[keyof typeof MESSAGE_TYPE];

@@ -12,75 +12,10 @@ import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';
 import type { Message } from '../models/Message';
 import type { MessageBySyncIdRequest } from '../models/MessageBySyncIdRequest';
 import type { RoomMessageStreamPatchRequest } from '../models/RoomMessageStreamPatchRequest';
-import type { RoomMessageStreamSyncRequest } from '../models/RoomMessageStreamSyncRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class ChatControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
-    /**
-     * 获取房间消息列表
-     * 返回指定 room 当前完整运行态消息列表；文档视图与普通聊天室读取同一套 room/message
-     * @param roomId
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public getRoomMessages(
-        roomId: number,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/chat/rooms/{roomId}/messages',
-            path: {
-                'roomId': roomId,
-            },
-        });
-    }
-    /**
-     * @deprecated
-     * 兼容旧接口：替换房间消息列表
-     * 已废弃：请改用 POST /chat/rooms/{roomId}/messages/patch；本接口不再维护 revision/conflict，并返回 changed messages
-     * @param roomId
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public replaceRoomMessages(
-        roomId: number,
-        requestBody: RoomMessageStreamSyncRequest,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/chat/rooms/{roomId}/messages',
-            path: {
-                'roomId': roomId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * @deprecated
-     * 兼容旧接口：变更房间消息列表
-     * 已废弃：请改用 POST /chat/rooms/{roomId}/messages/patch；本兼容入口返回 changed messages 并走同一套 WebSocket 推送
-     * @param roomId
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public patchRoomMessagesAndReturnList(
-        roomId: number,
-        requestBody: RoomMessageStreamPatchRequest,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'PATCH',
-            url: '/chat/rooms/{roomId}/messages',
-            path: {
-                'roomId': roomId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
     /**
      * 根据ID获取单条消息
      * 返回指定ID的消息详情
@@ -151,52 +86,6 @@ export class ChatControllerService {
         });
     }
     /**
-     * @deprecated
-     * 兼容旧接口：替换房间消息列表快照
-     * 已废弃：请改用 POST /chat/rooms/{roomId}/messages/patch；本接口不再维护 revision/conflict，并返回 changed messages
-     * @param roomId
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public syncRoomMessagesSnapshot(
-        roomId: number,
-        requestBody: RoomMessageStreamSyncRequest,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/rooms/{roomId}/messages/snapshot/sync',
-            path: {
-                'roomId': roomId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * @deprecated
-     * 兼容旧接口：变更房间消息列表快照
-     * 已废弃：请改用 POST /chat/rooms/{roomId}/messages/patch；本兼容入口返回 changed messages
-     * @param roomId
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public patchRoomMessagesSnapshot(
-        roomId: number,
-        requestBody: RoomMessageStreamPatchRequest,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/rooms/{roomId}/messages/snapshot/patch',
-            path: {
-                'roomId': roomId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
      * 复合批量变更消息
      * 按 insert/update/delete/move 操作一次性变更指定房间消息
      * @param roomId
@@ -253,8 +142,8 @@ export class ChatControllerService {
         });
     }
     /**
-     * 获取历史消息
-     * 返回房间下syncId大于等于请求中syncId的消息，返回gzip压缩的数据
+     * 统一读取房间消息历史
+     * 主读取入口：syncId=0 返回完整 baseline，syncId>0 用于补洞；返回 gzip 压缩数据
      * @param requestBody
      * @returns any OK
      * @throws ApiError
@@ -267,25 +156,6 @@ export class ChatControllerService {
             url: '/chat/message/history',
             body: requestBody,
             mediaType: 'application/json',
-        });
-    }
-    /**
-     * @deprecated
-     * 兼容旧接口：获取房间消息列表快照
-     * 已废弃：请改用 GET /chat/rooms/{roomId}/messages；本接口返回同一套 room/message 列表，不再返回 revision/conflict
-     * @param roomId
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public getRoomMessagesSnapshot(
-        roomId: number,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/chat/rooms/{roomId}/messages/snapshot',
-            path: {
-                'roomId': roomId,
-            },
         });
     }
     /**

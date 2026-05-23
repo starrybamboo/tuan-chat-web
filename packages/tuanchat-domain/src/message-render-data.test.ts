@@ -4,10 +4,10 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 
 import {
   getClueCardRenderData,
+  getDiceTurnRenderData,
   getDocCardRenderData,
   getForwardMessageRenderData,
   getRoomJumpRenderData,
-  getThreadRootRenderData,
   getWebgalChooseRenderData,
 } from "./message-render-data";
 import { MESSAGE_TYPE } from "./messageType";
@@ -69,7 +69,37 @@ describe("message-render-data", () => {
     });
   });
 
-  it("builds doc, clue, thread, and room jump fallback data", () => {
+  it("builds dice turn render data and masks hidden replies", () => {
+    const extra = {
+      diceTurn: {
+        command: ".r 1d20",
+        replies: [{
+          content: "D20=19",
+          hidden: true,
+          roleId: 7,
+          avatarId: 8,
+          customRoleName: "骰娘",
+        }],
+      },
+    };
+
+    expect(getDiceTurnRenderData(extra, "", false)).toMatchObject({
+      command: ".r 1d20",
+      replies: [{
+        avatarId: 8,
+        content: "掷骰结果已隐藏",
+        customRoleName: "骰娘",
+        hidden: true,
+        roleId: 7,
+      }],
+      summary: ".r 1d20",
+      title: "骰子",
+    });
+
+    expect(getDiceTurnRenderData(extra, "", true).summary).toBe("D20=19");
+  });
+
+  it("builds doc, clue, and room jump fallback data", () => {
     expect(getDocCardRenderData({
       docCard: {
         docId: "42",
@@ -134,10 +164,6 @@ describe("message-render-data", () => {
       },
     });
 
-    expect(getThreadRootRenderData({ threadRoot: { title: "支线讨论" } })).toEqual({
-      title: "支线讨论",
-    });
-
     expect(getRoomJumpRenderData({ roomJump: { roomId: 8, roomName: "作战频道" } })).toMatchObject({
       label: "作战频道",
       roomId: 8,
@@ -151,7 +177,6 @@ describe("message-render-data", () => {
       content: "",
       messageType: 1,
     });
-    expect(getThreadRootRenderData(undefined).title).toBe("子区");
     expect(getRoomJumpRenderData(undefined).label).toBe("群聊跳转");
     expect(getWebgalChooseRenderData(undefined).summary).toBe("选择消息");
   });

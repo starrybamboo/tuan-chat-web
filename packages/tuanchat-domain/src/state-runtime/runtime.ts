@@ -30,6 +30,7 @@ import {
   STATE_EVENT_STATUS_MODIFIER_OP,
   STATE_EVENT_VAR_OP,
 } from "../state-event";
+import { buildCombatInitiativeBatchPrimaryText } from "./combatInitiativeBatch";
 
 export class EmptyStateDefinitionResolver implements StateDefinitionResolver {
   resolveById(): StateDefinition | null {
@@ -187,6 +188,9 @@ function isScopedStateAtom(atom: StateEventAtom): atom is Extract<StateEventAtom
 }
 
 function formatCombatAtomPrimary(atom: Exclude<StateEventAtom, Extract<StateEventAtom, { scope: StateEventScope }> | { type: "nextTurn" }>): string {
+  if (atom.type === "combatRoundEnd") {
+    return "结束战斗";
+  }
   if (atom.type === "combatParticipantUpsert") {
     const name = atom.name ?? atom.participantId;
     if (typeof atom.initiative === "number") {
@@ -522,6 +526,14 @@ export function buildStateRuntime({
         return;
       }
 
+      if (atom.type === "combatRoundEnd") {
+        const previousTurn = turn;
+        turn = 0;
+        primaryCandidates.push("结束战斗");
+        detailLines.push(`结束战斗 · 回合 ${previousTurn} -> 0`);
+        return;
+      }
+
       if (atom.type !== "nextTurn") {
         primaryCandidates.push(formatCombatAtomPrimary(atom));
         detailLines.push(formatStateEventAtomDetail(atom));
@@ -555,7 +567,13 @@ export function buildStateRuntime({
       }
     });
 
-    messageSummariesByMessageId[message.messageId] = buildSummary(primaryCandidates, [...scopeLabels], detailLines);
+    const combatBatchPrimaryText = buildCombatInitiativeBatchPrimaryText(normalizedExtra);
+    messageSummariesByMessageId[message.messageId] = combatBatchPrimaryText
+      ? {
+          primaryText: combatBatchPrimaryText,
+          detailLines,
+        }
+      : buildSummary(primaryCandidates, [...scopeLabels], detailLines);
   });
 
   const { baseDisplayValues, derivedDisplayValues } = buildDisplayValues({
@@ -720,6 +738,13 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
 
       if (atom.type === "combatOrderSet") {
         explicitOrder = atom.participantIds;
+        return;
+      }
+
+      if (atom.type === "combatRoundEnd") {
+        mutableParticipantsById.clear();
+        explicitOrder = [];
+        activeParticipantId = null;
         return;
       }
 
