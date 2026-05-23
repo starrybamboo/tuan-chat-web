@@ -1,5 +1,6 @@
 import type { MessageDraft } from "@/types/messageDraft";
 
+import { TrashIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
@@ -263,6 +264,24 @@ export function MessageEditorAtomicBlock({
     : (uploaded ? uploadMeta.replaceLabel : uploadMeta.emptyLabel);
   const placeholderButtonLabel = uploading ? "上传中..." : `点击${uploadMeta.emptyLabel}`;
 
+  const renderInlineDeleteAction = (label: string) => {
+    if (readOnly) {
+      return null;
+    }
+    return (
+      <button
+        type="button"
+        className="pointer-events-none absolute right-1 top-1/2 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0 shadow-sm transition duration-150 hover:border-error/40 hover:text-error group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100"
+        onMouseDown={event => event.preventDefault()}
+        onClick={() => onDelete(blockId)}
+        aria-label={label}
+        title={label}
+      >
+        <TrashIcon className="size-4" />
+      </button>
+    );
+  };
+
   const renderFloatingUploadActions = () => {
     if (readOnly) {
       return null;
@@ -421,7 +440,7 @@ export function MessageEditorAtomicBlock({
                 ? renderEmptyUploadBlock()
                 : (
                     <>
-                      {!isCenteredUploadBlock && (
+                      {!isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.FILE && (
                         <div className="mb-2 flex items-center justify-between gap-2">
                           <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
                           {!readOnly && (
@@ -449,8 +468,16 @@ export function MessageEditorAtomicBlock({
                         </div>
                       )}
 
-                      <div className={isCenteredUploadBlock ? "group/media relative" : ""}>
-                        {isCenteredUploadBlock && renderFloatingUploadActions()}
+                      <div
+                        className={message.messageType === MESSAGE_TYPE.SOUND
+                          ? "group/media relative inline-block max-w-full pr-9"
+                          : message.messageType === MESSAGE_TYPE.FILE
+                            ? "group/media relative min-w-0 pr-9"
+                            : isCenteredUploadBlock
+                              ? "group/media relative"
+                              : ""}
+                      >
+                        {isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.SOUND && renderFloatingUploadActions()}
                         <MessageContentRenderer
                           message={{
                             ...message,
@@ -458,6 +485,8 @@ export function MessageEditorAtomicBlock({
                             messageType: message.messageType ?? 0,
                           }}
                         />
+                        {message.messageType === MESSAGE_TYPE.SOUND && renderInlineDeleteAction("删除音频块")}
+                        {message.messageType === MESSAGE_TYPE.FILE && renderInlineDeleteAction("删除文件块")}
                       </div>
                     </>
                   )}
