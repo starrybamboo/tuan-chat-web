@@ -74,8 +74,6 @@ Web 端已经把高频 UI 状态拆进多组 store，见：
 Web 端 `roomUiStore` 当前包含：
 
 - `replyMessage`
-- `threadRootMessageId`
-- `composerTarget`
 - `insertAfterMessageId`
 - `isMultiSelecting`
 - `messageUndoStack` / `messageRedoStack`
@@ -87,8 +85,6 @@ Web 端 `roomUiStore` 当前包含：
 | `messageAnchorId` | `replyMessage` | 语义可对齐，但数据形态不同 | Mobile 只存 `messageId`；Web 直接存完整 `Message`。建议跨端 contract 统一成 `replyMessageId + replyPreview` 或直接统一成 `replyMessage`。 |
 | `multiSelectMode` | `isMultiSelecting` | 可直接对齐 | 这是最明显的一组同义状态。 |
 | `multiSelectedIds` | 无直接字段 | 需要补共享 contract | Web 当前 store 只管“是否处于多选模式”，没持有选中集合。若要跨端统一消息多选体验，应新增 `selectedMessageIds`。 |
-| 无 | `threadRootMessageId` | Mobile 缺位 | 移动端发送层和 WS 解析层都留了 thread 口子，但 UI 没承接。 |
-| 无 | `composerTarget` | Mobile 缺位 | Web 支持主区 / Thread 发送目标切换；移动端目前只有主区。 |
 | 无 | `insertAfterMessageId` | Mobile 缺位 | 移动端没有 Web 的“插入发送”模型。 |
 | 无 | `messageUndoStack` / `messageRedoStack` | Mobile 缺位 | 移动端尚未承接 Web 的消息撤销/回退工作流。 |
 
@@ -102,8 +98,6 @@ Web 端 `roomUiStore` 当前包含：
 ```ts
 type SharedRoomUiState = {
   replyMessageId?: number;
-  threadRootMessageId?: number;
-  composerTarget: "main" | "thread";
   isMultiSelecting: boolean;
   selectedMessageIds: number[];
   insertAfterMessageId?: number;
@@ -247,21 +241,13 @@ type SharedRoomOverlayKey =
 
 下面这些不是“名字不同”，而是移动端当前确实还没有承接完整模型：
 
-### 1. Thread
-
-- Mobile 发送层已预留 `threadId`，见 [useSendRoomMessageMutation.ts](../apps/mobile/src/features/messages/useSendRoomMessageMutation.ts)。
-- 但移动端实时同步会直接忽略 thread 消息，见 [useRoomMessagesLiveSync.ts](../apps/mobile/src/features/messages/useRoomMessagesLiveSync.ts)。
-- Web 的 `roomUiStore`、`ChatFrame`、`RoomWindow` 已有完整 thread 语义。
-
-结论：这是当前最明确的“后端/数据层有口子，但移动端 UI 没接上”的缺项。
-
-### 2. 注解（annotations）
+### 1. 注解（annotations）
 
 - Mobile 已有 `features/annotations` 组件与 catalog。
 - 但 `ChatShell` / `ChatComposer` / `useSendRoomMessageMutation` 当前没有把注解状态真正串进发送体验。
 - Web 的 `chatComposerStore` 已把 `annotations` 和 `tempAnnotations` 纳入输入状态。
 
-### 3. 文档 / 素材 / 工作流 / WebGAL / 子窗口
+### 2. 文档 / 素材 / 工作流 / WebGAL / 子窗口
 
 Web 的聊天页把这些作为一等能力承接，见 [chatPage.types.ts](../app/components/chat/chatPage.types.ts)：
 
@@ -273,7 +259,7 @@ Web 的聊天页把这些作为一等能力承接，见 [chatPage.types.ts](../a
 
 移动端当前聊天主入口没有对应状态域。
 
-### 4. 消息撤销 / 回退 / 插入发送
+### 3. 消息撤销 / 回退 / 插入发送
 
 这些都已经进入 Web `roomUiStore` 和 `RoomWindow` 主流程；
 移动端当前没有等价状态模型。
@@ -310,10 +296,9 @@ Web 的聊天页把这些作为一等能力承接，见 [chatPage.types.ts](../a
 
 优先级建议：
 
-1. Thread
-2. Annotations
-3. Multi-select selected ids
-4. Role/avatar derived data
+1. Annotations
+2. Multi-select selected ids
+3. Role/avatar derived data
 
 ### P3：再决定是否把 store 也统一
 
