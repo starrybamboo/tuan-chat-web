@@ -2,9 +2,11 @@ import type { MessageDraft } from "@/types/messageDraft";
 
 import { TrashIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
+import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
-import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
+import { getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
@@ -163,6 +165,7 @@ export function MessageEditorAtomicBlock({
     : isVideoBlock
       ? getVideoMessageExtra(message.extra)
       : undefined;
+  const soundMessage = message.messageType === MESSAGE_TYPE.SOUND ? getSoundMessageExtra(message.extra) : undefined;
   const mediaDimensions = resolveMediaDimensions(mediaPayload);
   const mediaEditorSize = resolveMediaEditorSize(mediaPayload);
   const mediaEditorSizeRef = useRef(mediaEditorSize);
@@ -173,6 +176,12 @@ export function MessageEditorAtomicBlock({
     : isVideoBlock
       ? resolveUploadedVideoUrl(message)
       : "";
+  const soundMediaUrl = typeof soundMessage?.fileId === "number" && soundMessage.fileId > 0
+    ? mediaFileUrl(soundMessage.fileId, soundMessage.mediaType, "low")
+    : "";
+  const soundPurpose = resolveRenderedSoundMessagePurpose({
+    payloadPurpose: soundMessage?.purpose,
+  });
   const mediaAspectRatio = useMemo(() => {
     const editorWidth = typeof mediaEditorSize?.width === "number" && mediaEditorSize.width > 0 ? mediaEditorSize.width : 0;
     const editorHeight = typeof mediaEditorSize?.height === "number" && mediaEditorSize.height > 0 ? mediaEditorSize.height : 0;
@@ -470,22 +479,51 @@ export function MessageEditorAtomicBlock({
 
                       <div
                         className={message.messageType === MESSAGE_TYPE.SOUND
-                          ? "group/media relative inline-block max-w-full pr-9"
+                          ? "group/media relative w-full"
                           : message.messageType === MESSAGE_TYPE.FILE
                             ? "group/media relative min-w-0 pr-9"
                             : isCenteredUploadBlock
                               ? "group/media relative"
                               : ""}
                       >
-                        {isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.SOUND && renderFloatingUploadActions()}
-                        <MessageContentRenderer
-                          message={{
-                            ...message,
-                            content: message.content ?? "",
-                            messageType: message.messageType ?? 0,
-                          }}
-                        />
-                        {message.messageType === MESSAGE_TYPE.SOUND && renderInlineDeleteAction("删除音频块")}
+                        {message.messageType === MESSAGE_TYPE.SOUND
+                          ? (
+                              <div className="flex flex-col gap-2">
+                                {soundMediaUrl
+                                  ? (
+                                      <AudioMessage
+                                        purpose={soundPurpose}
+                                        cacheKey={`${blockId}:audio`}
+                                        url={soundMediaUrl}
+                                        duration={typeof soundMessage?.second === "number" ? soundMessage.second : undefined}
+                                        title={soundMessage?.fileName}
+                                        layout="document"
+                                        onDelete={() => onDelete(blockId)}
+                                        deleteLabel="删除音频块"
+                                      />
+                                    )
+                                  : (
+                                      <span className="text-xs text-base-content/60">[语音]</span>
+                                    )}
+                                {message.content && (
+                                  <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+                                    {message.content}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          : (
+                              <>
+                                {isCenteredUploadBlock && renderFloatingUploadActions()}
+                                <MessageContentRenderer
+                                  message={{
+                                    ...message,
+                                    content: message.content ?? "",
+                                    messageType: message.messageType ?? 0,
+                                  }}
+                                />
+                              </>
+                            )}
                         {message.messageType === MESSAGE_TYPE.FILE && renderInlineDeleteAction("删除文件块")}
                       </div>
                     </>
