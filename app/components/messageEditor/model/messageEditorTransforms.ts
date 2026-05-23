@@ -485,6 +485,40 @@ export function setMessageEditorUploadedMedia(
 }
 
 /**
+ * 更新图片块在 editor 中使用的显示尺寸。
+ */
+export function updateMessageEditorImageSize(
+  message: MessageDraft,
+  size: { height: number; width: number },
+): MessageDraft {
+  if (message.messageType !== MESSAGE_TYPE.IMG) {
+    return message;
+  }
+
+  const nextWidth = Math.max(1, Math.round(size.width));
+  const nextHeight = Math.max(1, Math.round(size.height));
+  const currentExtra = { ...toMessageDraftExtra(message.extra) } as MessageDraftExtra;
+  const currentImageMessage = currentExtra.imageMessage ?? {};
+  if (currentImageMessage.width === nextWidth && currentImageMessage.height === nextHeight) {
+    return message;
+  }
+
+  const nextExtra = {
+    ...currentExtra,
+    imageMessage: {
+      ...currentImageMessage,
+      width: nextWidth,
+      height: nextHeight,
+    },
+  } as MessageDraftExtra;
+
+  return inheritRuntimeBlockId(message, {
+    ...message,
+    extra: nextExtra,
+  });
+}
+
+/**
  * 保证编辑器始终至少拥有一个块。
  */
 export function ensureMessageEditorMessages(messages: MessageDraft[]): MessageDraft[] {

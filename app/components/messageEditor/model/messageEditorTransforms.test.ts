@@ -11,6 +11,7 @@ import {
   setMessageEditorUploadedMedia,
   splitMessageEditorMessage,
   transformMessageEditorSelectionText,
+  updateMessageEditorImageSize,
 } from "./messageEditorTransforms";
 
 describe("messageEditorTransforms", () => {
@@ -113,6 +114,28 @@ describe("messageEditorTransforms", () => {
       fileName: "note.txt",
       mediaType: "text/plain",
       size: 45,
+    });
+  });
+
+  it("updates image block dimensions while preserving uploaded media payload", () => {
+    const image = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
+      fileId: 1,
+      fileName: "cover.png",
+      mediaType: "image/png",
+      size: 123,
+      width: 320,
+      height: 180,
+    });
+
+    const resized = updateMessageEditorImageSize(image, { width: 480.4, height: 270.2 });
+
+    expect(resized.extra?.imageMessage).toEqual({
+      fileId: 1,
+      fileName: "cover.png",
+      mediaType: "image/png",
+      size: 123,
+      width: 480,
+      height: 270,
     });
   });
 
