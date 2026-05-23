@@ -58,6 +58,7 @@ const paletteList = [
 
 const EMPTY_HEADER_ACTIONS: MaterialPackageLibraryAction[] = [];
 const EMPTY_SHORTCUTS: MaterialPackageLibraryShortcut[] = [];
+const materialCardGridClassName = "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
 
 function getPlaceholderPalette(seed: string) {
   const normalized = seed.trim();
@@ -343,7 +344,7 @@ export default function MaterialPackageLibraryWorkspace({
             </>
           )}
 
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className={materialCardGridClassName}>
             {shortcuts.map(shortcut => (
               <ShortcutCard
                 key={shortcut.key}
