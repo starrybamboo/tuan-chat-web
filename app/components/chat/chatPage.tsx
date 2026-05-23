@@ -699,6 +699,7 @@ export default function ChatPage() {
     contextMenu,
     spaceContextMenu,
     handleContextMenu,
+    openContextMenu,
     closeContextMenu,
     closeSpaceContextMenu,
   } = useChatPageContextMenus();
@@ -805,6 +806,7 @@ export default function ChatPage() {
     activeMaterialSelection,
     unreadMessagesNumber,
     onContextMenu: handleContextMenu,
+    onOpenRoomContextMenu: openContextMenu,
     onInviteMember: () => setIsMemberHandleOpen(true),
     onOpenSpaceDetailPanel: openSpaceDetailPanel,
     onSelectRoom: handleSelectRoom,

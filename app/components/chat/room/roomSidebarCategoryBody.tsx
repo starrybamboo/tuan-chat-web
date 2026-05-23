@@ -21,6 +21,7 @@ interface RoomSidebarCategoryBodyProps {
   handleDrop: () => void;
   setContextMenu: (next: SidebarTreeContextMenuState) => void;
   onContextMenu: (e: MouseEvent, roomId?: number | null) => void;
+  onOpenRoomContextMenu: (roomId: number, position: { x: number; y: number }) => void;
   docHeaderOverrides: Record<string, { title?: string; imageUrl?: string }>;
   docMetaMap: Map<string, MinimalDocMeta>;
   roomById: Map<number, Room>;
@@ -58,6 +59,7 @@ export default function RoomSidebarCategoryBody({
   handleDrop,
   setContextMenu,
   onContextMenu,
+  onOpenRoomContextMenu,
   docHeaderOverrides,
   docMetaMap,
   roomById,
@@ -116,6 +118,7 @@ export default function RoomSidebarCategoryBody({
         handleDrop={handleDrop}
         setContextMenu={setContextMenu}
         onContextMenu={onContextMenu}
+        onOpenRoomContextMenu={onOpenRoomContextMenu}
         docHeaderOverrides={docHeaderOverrides}
         docMetaMap={docMetaMap}
         roomById={roomById}

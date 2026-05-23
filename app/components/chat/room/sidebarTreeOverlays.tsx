@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { clampFloatingMenuPosition } from "./floatingMenuPosition";
 
 export interface CategoryEditorState {
   mode: "add" | "rename";
@@ -112,9 +113,20 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
     const el = contextMenuRef.current;
     if (!el)
       return;
+    const nextPosition = clampFloatingMenuPosition(
+      { x: contextMenu.x, y: contextMenu.y },
+      {
+        width: el.offsetWidth || el.getBoundingClientRect().width,
+        height: el.offsetHeight || el.getBoundingClientRect().height,
+      },
+      {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    );
     el.style.position = "fixed";
-    el.style.left = `${contextMenu.x}px`;
-    el.style.top = `${contextMenu.y}px`;
+    el.style.left = `${nextPosition.x}px`;
+    el.style.top = `${nextPosition.y}px`;
   }, [contextMenu]);
 
   return (

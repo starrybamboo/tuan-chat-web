@@ -1,10 +1,11 @@
 import { useRouter } from "@tanstack/react-router";
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
+import { clampFloatingMenuPosition } from "../floatingMenuPosition";
 
 interface ChatPageContextMenuProps {
   contextMenu: { x: number; y: number; roomId: number } | null;
@@ -29,9 +30,32 @@ export default function ChatPageContextMenu({
   const subscribeRoomMutation = useSubscribeRoomMutation();
   const unsubscribeRoomMutation = useUnsubscribeRoomMutation();
   const dissolveRoomMutation = useDissolveRoomMutation();
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
   const [dissolveTargetRoomId, setDissolveTargetRoomId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!contextMenu || !menuRef.current) {
+      return;
+    }
+
+    const menuElement = menuRef.current;
+    const nextPosition = clampFloatingMenuPosition(
+      { x: contextMenu.x, y: contextMenu.y },
+      {
+        width: menuElement.offsetWidth || menuElement.getBoundingClientRect().width,
+        height: menuElement.offsetHeight || menuElement.getBoundingClientRect().height,
+      },
+      {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    );
+
+    menuElement.style.left = `${nextPosition.x}px`;
+    menuElement.style.top = `${nextPosition.y}px`;
+  }, [contextMenu]);
 
   if (!contextMenu && !isDissolveConfirmOpen)
     return null;
@@ -46,6 +70,7 @@ export default function ChatPageContextMenu({
     <>
       {contextMenu && (
         <div
+          ref={menuRef}
           className="fixed bg-base-100 shadow-lg rounded-md z-[9999]"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >

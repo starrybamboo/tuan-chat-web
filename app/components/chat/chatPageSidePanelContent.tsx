@@ -36,6 +36,7 @@ interface ChatPageSidePanelContentProps {
   activeMaterialSelection?: ActiveMaterialSelection;
   unreadMessagesNumber: Record<number, number>;
   onContextMenu: (e: React.MouseEvent, roomId?: number | null) => void;
+  onOpenRoomContextMenu: (roomId: number, position: { x: number; y: number }) => void;
   onInviteMember: () => void;
   onOpenSpaceDetailPanel: (tab: SpaceDetailTab, options?: OpenSpaceDetailPanelOptions) => void;
   onSelectRoom: (roomId: number, options?: SelectRoomOptions) => void;
