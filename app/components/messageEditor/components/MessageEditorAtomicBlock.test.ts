@@ -12,6 +12,7 @@ describe("messageEditorAtomicBlock", () => {
       message,
       onDelete: () => {},
       onFocus: () => {},
+      onResize: () => {},
       onUpload: async () => {},
     }));
   }
@@ -23,7 +24,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).not.toContain("<img");
   });
 
-  it("renders a full-width uploaded image with replace and delete actions", () => {
+  it("renders a full-width uploaded image with replace, delete, and resize actions", () => {
     const imageMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
       fileId: 45,
       fileName: "cover.png",
@@ -37,6 +38,10 @@ describe("messageEditorAtomicBlock", () => {
 
     expect(html).toContain("更换图片");
     expect(html).toContain("删除");
+    expect(html).toContain("拖拽缩放图片");
+    expect(html).toContain("cursor-ew-resize");
+    expect(html).toContain("pointer-events-none");
+    expect(html).toContain("group-hover/image:pointer-events-auto");
     expect(html).toContain("https://tuan.chat/media/v1/files/045/45/image/medium.webp");
     expect(html).toContain("class=\"block h-auto w-full max-w-full object-contain\"");
   });

@@ -37,6 +37,7 @@ import {
   normalizeMessageEditorContent,
   serializeMessageEditorMessages,
   setMessageEditorUploadedMedia,
+  updateMessageEditorImageSize,
 } from "./model/messageEditorTransforms";
 import { createMessageEditorController } from "./runtime/messageEditorController";
 import { MessageEditorEventBus } from "./runtime/messageEditorEventBus";
@@ -2101,6 +2102,10 @@ export default function MessageEditor({
     }
   }, [uploadUtils]);
 
+  const handleResizeAtomicBlock = useCallback((blockId: string, size: { height: number; width: number }) => {
+    controllerRef.current?.updateBlock(blockId, message => updateMessageEditorImageSize(message, size));
+  }, []);
+
   const atomicMessages = useMemo(() => {
     return messages.map((message) => {
       return {
@@ -2304,7 +2309,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-6 transition`,
+                        `group relative mt-9 ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-6 transition`,
                         dragState?.draggedBlockId === blockId
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
@@ -2346,6 +2351,7 @@ export default function MessageEditor({
                           }}
                           onDelete={handleDeleteAtomicBlock}
                           onUpload={handleUploadAtomicBlock}
+                          onResize={handleResizeAtomicBlock}
                         />
                       </div>
                     </div>
