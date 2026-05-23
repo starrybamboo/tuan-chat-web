@@ -1,6 +1,8 @@
 import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
+import * as bundledFfmpegWrapperUrlModule from "@ffmpeg/ffmpeg?url";
 import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
+import * as bundledFfmpegUtilUrlModule from "@ffmpeg/util?url";
 
 import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
@@ -49,6 +51,8 @@ const MIN_CRF = 10;
 const MAX_CRF = 51;
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
+const bundledFfmpegUtilUrl = String((bundledFfmpegUtilUrlModule as { default?: string }).default ?? bundledFfmpegUtilUrlModule);
+const bundledFfmpegWrapperUrl = String((bundledFfmpegWrapperUrlModule as { default?: string }).default ?? bundledFfmpegWrapperUrlModule);
 const bundledWorkerUrl = String((bundledWorkerUrlModule as { default?: string }).default ?? bundledWorkerUrlModule);
 
 function normalizeErrorMessage(error: unknown): string {
@@ -104,6 +108,52 @@ function toAbsoluteUrl(url: string): string {
   catch {
     return url;
   }
+}
+
+async function loadFfmpegModule(): Promise<typeof import("@ffmpeg/ffmpeg")> {
+  if ((import.meta as { env?: { MODE?: string } }).env?.MODE === "test") {
+    return await import("@ffmpeg/ffmpeg");
+  }
+
+  const errors: string[] = [];
+  try {
+    return await import(/* @vite-ignore */ toAbsoluteUrl(bundledFfmpegWrapperUrl)) as typeof import("@ffmpeg/ffmpeg");
+  }
+  catch (error) {
+    errors.push(`bundled-url: ${normalizeErrorMessage(error)}`);
+  }
+
+  try {
+    return await import("@ffmpeg/ffmpeg");
+  }
+  catch (error) {
+    errors.push(`optimized: ${normalizeErrorMessage(error)}`);
+  }
+
+  throw new Error(`FFmpeg wrapper 加载失败：\n${errors.join("\n")}`);
+}
+
+async function loadFfmpegUtilModule(): Promise<typeof import("@ffmpeg/util")> {
+  if ((import.meta as { env?: { MODE?: string } }).env?.MODE === "test") {
+    return await import("@ffmpeg/util");
+  }
+
+  const errors: string[] = [];
+  try {
+    return await import(/* @vite-ignore */ toAbsoluteUrl(bundledFfmpegUtilUrl)) as typeof import("@ffmpeg/util");
+  }
+  catch (error) {
+    errors.push(`bundled-url: ${normalizeErrorMessage(error)}`);
+  }
+
+  try {
+    return await import("@ffmpeg/util");
+  }
+  catch (error) {
+    errors.push(`optimized: ${normalizeErrorMessage(error)}`);
+  }
+
+  throw new Error(`FFmpeg util 加载失败：\n${errors.join("\n")}`);
 }
 
 function ensureWebmFileName(originalName: string): string {
@@ -252,7 +302,7 @@ async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffm
     throw new TypeError("当前环境不支持视频转码（需要浏览器环境）");
   }
 
-  const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+  const { FFmpeg } = await loadFfmpegModule();
   const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
   const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
   const candidates = getFfmpegCoreBaseUrlCandidates();
@@ -350,7 +400,7 @@ async function runVideoTranscodeOnce(params: {
 
   try {
     try {
-      const { FFFSType } = await import("@ffmpeg/ffmpeg");
+      const { FFFSType } = await loadFfmpegModule();
       await ffmpeg.createDir(mountPoint);
       await ffmpeg.mount(FFFSType.WORKERFS, { files: [new File([inputFile], originalInputName, { type: inputFile.type })] }, mountPoint);
       inputPath = `${mountPoint}/${originalInputName}`;
@@ -483,7 +533,7 @@ export async function transcodeVideoFileToWebmOrThrow(inputFile: File, options: 
     loadTimeoutMs,
     "FFmpeg 初始化",
   );
-  const { fetchFile } = await import("@ffmpeg/util");
+  const { fetchFile } = await loadFfmpegUtilModule();
   const presets = buildVideoTranscodePresets({ maxHeight, maxFps, crf });
 
   let lastError: unknown = null;

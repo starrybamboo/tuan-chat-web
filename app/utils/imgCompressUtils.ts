@@ -1,4 +1,5 @@
 import bundledImageCompressionLibUrl from "browser-image-compression/dist/browser-image-compression.js?url";
+import bundledImageCompressionModuleUrl from "browser-image-compression/dist/browser-image-compression.mjs?url";
 
 import { copyBytesToBlobPart } from "@/utils/blobParts";
 import {
@@ -137,6 +138,30 @@ function toAbsoluteUrl(url: string): string {
   }
 }
 
+async function loadImageCompression() {
+  if ((import.meta as { env?: { MODE?: string } }).env?.MODE === "test") {
+    return (await import("browser-image-compression")).default;
+  }
+
+  const errors: string[] = [];
+  try {
+    const module = await import(/* @vite-ignore */ toAbsoluteUrl(bundledImageCompressionModuleUrl)) as typeof import("browser-image-compression");
+    return module.default;
+  }
+  catch (error) {
+    errors.push(`bundled: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    return (await import("browser-image-compression")).default;
+  }
+  catch (error) {
+    errors.push(`optimized: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  throw new Error(`图片压缩模块加载失败：\n${errors.join("\n")}`);
+}
+
 function normalizeQuality(quality: number | undefined): number {
   if (!Number.isFinite(quality)) {
     return DEFAULT_IMAGE_COMPRESSION_OPTIONS.quality ?? 0.7;
@@ -218,7 +243,7 @@ export async function compressImage(
     });
   }
 
-  const { default: imageCompression } = await import("browser-image-compression");
+  const imageCompression = await loadImageCompression();
   const compressionOptions = resolveImageCompressionOptions(options);
   const sourceMetadata = compressionOptions.preserveNovelAiMetadata
     ? await extractNovelAiMetadataFromFile(file)
