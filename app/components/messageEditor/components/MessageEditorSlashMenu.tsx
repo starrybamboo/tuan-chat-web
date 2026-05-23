@@ -1,5 +1,5 @@
 import type { MessageEditorInsertableBlockKind } from "../model/messageEditorTransforms";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export interface MessageEditorSlashMenuItem {
   description: string;
@@ -10,7 +10,6 @@ export interface MessageEditorSlashMenuItem {
 
 interface MessageEditorSlashMenuProps {
   items: MessageEditorSlashMenuItem[];
-  onSizeChange?: (height: number) => void;
   onSelect: (item: MessageEditorSlashMenuItem) => void;
   selectedIndex: number;
   visible: boolean;
@@ -21,12 +20,10 @@ interface MessageEditorSlashMenuProps {
  */
 export function MessageEditorSlashMenu({
   items,
-  onSizeChange,
   onSelect,
   selectedIndex,
   visible,
 }: MessageEditorSlashMenuProps) {
-  const menuRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
@@ -39,40 +36,12 @@ export function MessageEditorSlashMenu({
     });
   }, [selectedIndex, visible]);
 
-  useLayoutEffect(() => {
-    if (!visible || items.length === 0) {
-      onSizeChange?.(0);
-      return;
-    }
-
-    const menu = menuRef.current;
-    if (!menu) {
-      return;
-    }
-
-    const reportSize = () => {
-      onSizeChange?.(menu.getBoundingClientRect().height);
-    };
-
-    reportSize();
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      reportSize();
-    });
-    observer.observe(menu);
-    return () => observer.disconnect();
-  }, [items, onSizeChange, visible]);
-
   if (!visible || items.length === 0) {
     return null;
   }
 
   return (
     <div
-      ref={menuRef}
       data-me-slash-menu="true"
       className="w-full max-w-[320px] rounded-xl border border-base-300 bg-base-100 p-1.5 shadow-xl"
     >
