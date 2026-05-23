@@ -24,6 +24,11 @@ import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import {
+  readImageDimensions,
+  readMediaDuration,
+  readVideoDimensions,
+} from "@/utils/mediaMetadata";
 
 import { UploadUtils } from "@/utils/UploadUtils";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
@@ -37,7 +42,7 @@ import {
   normalizeMessageEditorContent,
   serializeMessageEditorMessages,
   setMessageEditorUploadedMedia,
-  updateMessageEditorImageSize,
+  updateMessageEditorMediaSize,
 } from "./model/messageEditorTransforms";
 import { createMessageEditorController } from "./runtime/messageEditorController";
 import { MessageEditorEventBus } from "./runtime/messageEditorEventBus";
@@ -419,25 +424,6 @@ function resolveUndoRedoShortcut(event: Pick<KeyboardEvent | React.KeyboardEvent
     return "redo";
   }
   return null;
-}
-
-async function readImageDimensions(file: File) {
-  return await new Promise<{ width: number; height: number }>((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      resolve({
-        width: image.naturalWidth,
-        height: image.naturalHeight,
-      });
-      URL.revokeObjectURL(url);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("读取图片尺寸失败"));
-    };
-    image.src = url;
-  });
 }
 
 /**
@@ -2105,29 +2091,43 @@ export default function MessageEditor({
     }
 
     if (currentMessage.messageType === MESSAGE_TYPE.SOUND) {
-      const uploadedAudio = await uploadUtils.uploadAudioAsset(file);
+      const [uploadedAudio, second] = await Promise.all([
+        uploadUtils.uploadAudioAsset(file),
+        readMediaDuration(file),
+      ]);
+      if (second == null) {
+        throw new Error("无法读取音频时长，请换用可识别的音频文件后重试。");
+      }
       controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
         fileId: uploadedAudio.fileId,
         fileName: file.name,
         mediaType: uploadedAudio.mediaType,
         size: file.size,
+        second,
       }));
       return;
     }
 
     if (currentMessage.messageType === MESSAGE_TYPE.VIDEO) {
-      const uploadedVideo = await uploadUtils.uploadVideo(file);
+      const [uploadedVideo, dimensions, second] = await Promise.all([
+        uploadUtils.uploadVideo(file),
+        readVideoDimensions(file),
+        readMediaDuration(file),
+      ]);
       controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
         fileId: uploadedVideo.fileId,
         fileName: file.name,
         mediaType: uploadedVideo.mediaType,
         size: file.size,
+        second,
+        width: dimensions.width,
+        height: dimensions.height,
       }));
     }
   }, [uploadUtils]);
 
   const handleResizeAtomicBlock = useCallback((blockId: string, size: { height: number; width: number }) => {
-    controllerRef.current?.updateBlock(blockId, message => updateMessageEditorImageSize(message, size));
+    controllerRef.current?.updateBlock(blockId, message => updateMessageEditorMediaSize(message, size));
   }, []);
 
   const atomicMessages = useMemo(() => {

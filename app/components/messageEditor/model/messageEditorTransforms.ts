@@ -475,6 +475,9 @@ export function setMessageEditorUploadedMedia(
       fileName: payload.fileName,
       mediaType: payload.mediaType,
       size: payload.size,
+      ...(typeof payload.second === "number" ? { second: payload.second } : {}),
+      ...(typeof payload.width === "number" ? { width: payload.width } : {}),
+      ...(typeof payload.height === "number" ? { height: payload.height } : {}),
     };
   }
 
@@ -485,37 +488,59 @@ export function setMessageEditorUploadedMedia(
 }
 
 /**
- * 更新图片块在 editor 中使用的显示尺寸。
+ * 更新媒体块在 editor 中使用的显示尺寸。
  */
-export function updateMessageEditorImageSize(
+export function updateMessageEditorMediaSize(
   message: MessageDraft,
   size: { height: number; width: number },
 ): MessageDraft {
-  if (message.messageType !== MESSAGE_TYPE.IMG) {
+  if (message.messageType !== MESSAGE_TYPE.IMG && message.messageType !== MESSAGE_TYPE.VIDEO) {
     return message;
   }
 
   const nextWidth = Math.max(1, Math.round(size.width));
   const nextHeight = Math.max(1, Math.round(size.height));
   const currentExtra = { ...toMessageDraftExtra(message.extra) } as MessageDraftExtra;
-  const currentImageMessage = currentExtra.imageMessage ?? {};
-  if (currentImageMessage.width === nextWidth && currentImageMessage.height === nextHeight) {
+  const currentMediaMessage = message.messageType === MESSAGE_TYPE.IMG
+    ? (currentExtra.imageMessage ?? {})
+    : (currentExtra.videoMessage ?? {});
+  if (currentMediaMessage.width === nextWidth && currentMediaMessage.height === nextHeight) {
     return message;
   }
 
   const nextExtra = {
     ...currentExtra,
-    imageMessage: {
-      ...currentImageMessage,
-      width: nextWidth,
-      height: nextHeight,
-    },
+    ...(message.messageType === MESSAGE_TYPE.IMG
+      ? {
+          imageMessage: {
+            ...currentMediaMessage,
+            width: nextWidth,
+            height: nextHeight,
+          },
+        }
+      : {
+          videoMessage: {
+            ...currentMediaMessage,
+            width: nextWidth,
+            height: nextHeight,
+          },
+        }),
   } as MessageDraftExtra;
 
   return inheritRuntimeBlockId(message, {
     ...message,
     extra: nextExtra,
   });
+}
+
+/**
+ * @deprecated Use `updateMessageEditorMediaSize` instead.
+ */
+export function updateMessageEditorImageSize(
+  message: MessageDraft,
+  size: { height: number; width: number },
+): MessageDraft {
+  return updateMessageEditorMediaSize(message, size);
 }
 
 /**

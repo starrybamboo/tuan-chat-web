@@ -11,7 +11,7 @@ import {
   setMessageEditorUploadedMedia,
   splitMessageEditorMessage,
   transformMessageEditorSelectionText,
-  updateMessageEditorImageSize,
+  updateMessageEditorMediaSize,
 } from "./messageEditorTransforms";
 
 describe("messageEditorTransforms", () => {
@@ -84,6 +84,8 @@ describe("messageEditorTransforms", () => {
 
   it("writes uploaded media payloads back into atomic blocks", () => {
     const image = createMessageEditorBlockDraft("image");
+    const sound = createMessageEditorBlockDraft("audio");
+    const video = createMessageEditorBlockDraft("video");
     const file = createMessageEditorBlockDraft("file");
 
     const nextImage = setMessageEditorUploadedMedia(image, {
@@ -93,6 +95,22 @@ describe("messageEditorTransforms", () => {
       size: 123,
       width: 320,
       height: 180,
+    });
+    const nextSound = setMessageEditorUploadedMedia(sound, {
+      fileId: 3,
+      fileName: "voice.webm",
+      mediaType: "audio",
+      size: 456,
+      second: 8,
+    });
+    const nextVideo = setMessageEditorUploadedMedia(video, {
+      fileId: 4,
+      fileName: "clip.webm",
+      mediaType: "video",
+      size: 789,
+      second: 12,
+      width: 1920,
+      height: 1080,
     });
     const nextFile = setMessageEditorUploadedMedia(file, {
       fileId: 2,
@@ -115,9 +133,25 @@ describe("messageEditorTransforms", () => {
       mediaType: "text/plain",
       size: 45,
     });
+    expect(nextSound.extra?.soundMessage).toEqual({
+      fileId: 3,
+      fileName: "voice.webm",
+      mediaType: "audio",
+      size: 456,
+      second: 8,
+    });
+    expect(nextVideo.extra?.videoMessage).toEqual({
+      fileId: 4,
+      fileName: "clip.webm",
+      mediaType: "video",
+      size: 789,
+      second: 12,
+      width: 1920,
+      height: 1080,
+    });
   });
 
-  it("updates image block dimensions while preserving uploaded media payload", () => {
+  it("updates image and video block dimensions while preserving uploaded media payload", () => {
     const image = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("image"), {
       fileId: 1,
       fileName: "cover.png",
@@ -126,16 +160,33 @@ describe("messageEditorTransforms", () => {
       width: 320,
       height: 180,
     });
+    const video = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
+      fileId: 2,
+      fileName: "clip.webm",
+      mediaType: "video",
+      size: 456,
+      width: 1280,
+      height: 720,
+    });
 
-    const resized = updateMessageEditorImageSize(image, { width: 480.4, height: 270.2 });
+    const resizedImage = updateMessageEditorMediaSize(image, { width: 480.4, height: 270.2 });
+    const resizedVideo = updateMessageEditorMediaSize(video, { width: 640.2, height: 360.4 });
 
-    expect(resized.extra?.imageMessage).toEqual({
+    expect(resizedImage.extra?.imageMessage).toEqual({
       fileId: 1,
       fileName: "cover.png",
       mediaType: "image/png",
       size: 123,
       width: 480,
       height: 270,
+    });
+    expect(resizedVideo.extra?.videoMessage).toEqual({
+      fileId: 2,
+      fileName: "clip.webm",
+      mediaType: "video",
+      size: 456,
+      width: 640,
+      height: 360,
     });
   });
 
