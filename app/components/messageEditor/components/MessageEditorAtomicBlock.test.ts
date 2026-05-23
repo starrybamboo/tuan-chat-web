@@ -118,26 +118,34 @@ describe("messageEditorAtomicBlock", () => {
     expect(videoHtml).toContain("width:720px");
   });
 
-  it("reuses hover replace and delete actions for uploaded audio and video blocks", () => {
+  it("renders a tail delete action for uploaded audio blocks", () => {
     const audioMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("audio"), {
       fileId: 46,
       fileName: "voice.webm",
       mediaType: "audio",
       size: 2048,
     });
-    const videoMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("video"), {
-      fileId: 47,
-      fileName: "clip.webm",
-      mediaType: "video",
-      size: 4096,
-    });
 
     const audioHtml = renderBlock(audioMessage);
-    const videoHtml = renderBlock(videoMessage);
 
-    expect(audioHtml).toContain("更换音频");
+    expect(audioHtml).toContain("删除音频块");
     expect(audioHtml).toContain("group-hover/media:pointer-events-auto");
-    expect(videoHtml).toContain("更换视频");
-    expect(videoHtml).toContain("group-hover/media:pointer-events-auto");
+    expect(audioHtml).not.toContain("更换音频");
+  });
+
+  it("renders a hover delete icon at the tail of uploaded file blocks", () => {
+    const fileMessage = setMessageEditorUploadedMedia(createMessageEditorBlockDraft("file"), {
+      fileId: 50,
+      fileName: "notes.pdf",
+      mediaType: "application/pdf",
+      size: 2048,
+    });
+
+    const html = renderBlock(fileMessage);
+
+    expect(html).toContain("notes.pdf");
+    expect(html).toContain("删除文件块");
+    expect(html).toContain("group-hover/media:pointer-events-auto");
+    expect(html).not.toContain("更换文件");
   });
 });
