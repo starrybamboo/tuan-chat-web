@@ -285,6 +285,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
   const totalCount = mode === "square"
     ? filteredRootRepositories.length
     : filteredArchivedRepositoryGroups.length;
+  const cardGridClassName = "grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
 
   const toggleExpandedRepo = (repositoryId: number) => {
     setExpandedRepoIds(prev => (prev.includes(repositoryId)
@@ -386,7 +387,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   </div>
 
                   {isLoading && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <div className={cardGridClassName}>
                       {[0, 1, 2, 3, 4, 5].map(n => (
                         <div key={n} className="h-56 rounded-xl bg-base-300/50 animate-pulse" />
                       ))}
@@ -417,7 +418,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   )}
 
                   {!isLoading && !isError && mode === "square" && filteredRootRepositories.length > 0 && (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+                    <div className={cardGridClassName}>
                       {filteredRootRepositories.map((repository) => {
                         const repositoryId = repository?.repositoryId ?? -1;
                         const name = repository?.repositoryName ?? `仓库 #${repositoryId}`;
@@ -452,7 +453,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   )}
 
                   {!isLoading && !isError && mode === "my" && filteredArchivedRepositoryGroups.length > 0 && (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+                    <div className={cardGridClassName}>
                       {filteredArchivedRepositoryGroups.map((group) => {
                         const repositoryId = group.repositoryId;
                         const repository = group.repository;
