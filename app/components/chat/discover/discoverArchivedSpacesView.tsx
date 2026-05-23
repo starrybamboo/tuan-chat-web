@@ -2,7 +2,7 @@ import type { ApiResultListSpace } from "@tuanchat/openapi-client/models/ApiResu
 import type { ApiResultPageBaseRespRepository } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespRepository";
 import type { Repository } from "@tuanchat/openapi-client/models/Repository";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
-import { ArrowLeftIcon, CompassIcon, PackageIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CompassIcon, MagnifyingGlassIcon, PackageIcon } from "@phosphor-icons/react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
@@ -285,7 +285,8 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
   const totalCount = mode === "square"
     ? filteredRootRepositories.length
     : filteredArchivedRepositoryGroups.length;
-  const cardGridClassName = "grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+  const topBarInfo = isLoading ? "加载中" : `仓库数量 ${totalCount}`;
+  const cardGridClassName = "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
 
   const toggleExpandedRepo = (repositoryId: number) => {
     setExpandedRepoIds(prev => (prev.includes(repositoryId)
@@ -298,12 +299,12 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
   return (
     <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-base-300/40 text-base-content">
       {!shouldHideRepositoryHeader && (
-        <div className="sticky top-0 z-20 bg-base-200 border-y border-gray-300 dark:border-gray-700">
-          <div className="flex items-center justify-between gap-4 px-6 h-12">
+        <div className="sticky top-0 z-20 border-y border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-0">
             {activeRepositoryId
               ? (
                   <>
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3 sm:flex-1">
                       <button
                         type="button"
                         className="btn btn-sm btn-ghost btn-square"
@@ -313,6 +314,9 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       >
                         <ArrowLeftIcon className="size-5" weight="bold" />
                       </button>
+                      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-base-content">
+                        {pageTitle}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -325,17 +329,23 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                 )
               : (
                   <>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate">{pageTitle}</div>
+                    <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+                      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-base-content">{pageTitle}</div>
+                      <span className="hidden shrink-0 whitespace-nowrap rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/68 xl:inline-flex">
+                        {topBarInfo}
+                      </span>
                     </div>
-                    <div className="relative w-full max-w-90">
-                      <input
-                        className="w-full rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm text-base-content transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                        value={keyword}
-                        onChange={e => setKeyword(e.target.value)}
-                        placeholder={mode === "my" ? "搜索我的归档仓库" : "搜索仓库"}
-                        aria-label={mode === "my" ? "搜索我的归档仓库" : "搜索仓库"}
-                      />
+                    <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-[22rem]">
+                      <label className="flex h-9 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+                        <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
+                        <input
+                          className="w-full bg-transparent text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none"
+                          value={keyword}
+                          onChange={e => setKeyword(e.target.value)}
+                          placeholder={mode === "my" ? "搜索我的归档仓库" : "搜索仓库"}
+                          aria-label={mode === "my" ? "搜索我的归档仓库" : "搜索仓库"}
+                        />
+                      </label>
                     </div>
                   </>
                 )}
@@ -346,7 +356,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
       <div className={activeRepositoryId || shouldHideRepositoryHeader ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-y-auto"}>
         <div className={activeRepositoryId
           ? "w-full h-full"
-          : "mx-auto w-full max-w-6xl px-6 py-6 space-y-6"}
+          : "mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 md:px-8 md:py-6"}
         >
           {activeRepositoryId
             ? (
@@ -359,14 +369,14 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                 />
               )
             : (
-                <>
+                <div className="space-y-8">
                   <div className="relative rounded-xl overflow-hidden border border-base-300 bg-info/10">
                     <CompassIcon
                       aria-hidden="true"
                       weight="duotone"
                       className="pointer-events-none absolute -right-24 -top-24 hidden h-88 w-88 text-primary/15 sm:block"
                     />
-                    <div className="relative z-10 px-8 py-8 sm:py-10">
+                    <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-10">
                       <div className="text-2xl sm:text-4xl font-extrabold tracking-tight">
                         {mode === "my" ? "这里是你的归档仓库" : "探索可发现的仓库"}
                       </div>
@@ -378,12 +388,9 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                     </div>
                   </div>
 
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold">{sectionTitle}</div>
-                      <div className="mt-1 text-xs text-base-content/60">{sectionDescription}</div>
-                    </div>
-                    <div className="text-xs text-base-content/60">{`仓库数量 ${totalCount}`}</div>
+                  <div className="space-y-1">
+                    <div className="text-sm font-semibold text-base-content">{sectionTitle}</div>
+                    <div className="text-xs text-base-content/60">{sectionDescription}</div>
                   </div>
 
                   {isLoading && (
@@ -411,9 +418,9 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   )}
 
                   {!isLoading && !isError && totalCount === 0 && (
-                    <div className="rounded-xl border border-base-300 bg-base-100 p-6">
-                      <div className="text-base font-semibold">{emptyTitle}</div>
-                      <div className="mt-2 text-sm text-base-content/60">{emptyDescription}</div>
+                    <div className="rounded-[26px] border border-dashed border-base-300 bg-base-100/55 px-5 py-12 text-center sm:px-6 sm:py-14">
+                      <div className="text-lg font-semibold text-base-content">{emptyTitle}</div>
+                      <div className="mt-3 text-sm leading-7 text-base-content/58">{emptyDescription}</div>
                     </div>
                   )}
 
@@ -539,7 +546,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       })}
                     </div>
                   )}
-                </>
+                </div>
               )}
         </div>
       </div>
