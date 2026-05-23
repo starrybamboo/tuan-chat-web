@@ -235,6 +235,7 @@ function ChatFrame(props: ChatFrameProps) {
 
   const {
     deleteMessage,
+    deleteMessages,
     updateMessage,
     updateMessages,
   } = useChatFrameMessageMutations({
@@ -576,6 +577,7 @@ function ChatFrame(props: ChatFrameProps) {
     handleMessageClick,
   } = useChatFrameSelectionContext({
     deleteMessage,
+    deleteMessages,
     toggleUseChatBubbleStyle,
     setReplyMessage,
     orderedMessageIds,
