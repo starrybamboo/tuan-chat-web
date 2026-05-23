@@ -19,13 +19,11 @@ import { tuanchat } from "../../../../../api/instance";
 interface ContextMenuProps {
   contextMenu: { x: number; y: number; messageId: number } | null;
   historyMessages: ChatMessageResponse[];
-  isSelecting: boolean;
   selectedMessageIds: Set<number>;
   onClose: () => void;
   onDelete: () => void;
   onToggleSelection: (messageId: number) => void;
   onReply: (message: Message) => void;
-  onMoveMessages: (targetIndex: number, messageIds: number[]) => void;
   onEditMessage: (messageId: number) => void;
   onToggleBackground: (messageId: number) => void;
   onToggleBgm: (messageId: number) => void;
@@ -38,13 +36,11 @@ interface ContextMenuProps {
 export default function ChatFrameContextMenu({
   contextMenu,
   historyMessages,
-  isSelecting,
   selectedMessageIds,
   onClose,
   onDelete,
   onToggleSelection,
   onReply,
-  onMoveMessages,
   onEditMessage,
   onToggleBackground,
   onToggleBgm,
@@ -510,24 +506,6 @@ export default function ChatFrameContextMenu({
             插入消息
           </button>
         </li>
-        {
-          (isSelecting) && (
-            <li>
-              <button
-                type="button"
-                onClick={() => {
-                  onMoveMessages(
-                    historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
-                    Array.from(selectedMessageIds),
-                  );
-                  onClose();
-                }}
-              >
-                将选中消息移动到此消息下方
-              </button>
-            </li>
-          )
-        }
         {(() => {
           if (!canEditMessage) {
             return null;

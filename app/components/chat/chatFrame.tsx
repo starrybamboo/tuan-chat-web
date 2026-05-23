@@ -681,7 +681,6 @@ function ChatFrame(props: ChatFrameProps) {
   const {
     isDragging,
     scrollerRef,
-    handleMoveMessages,
     handleDragStart,
     handleDragOver,
     handleDragLeave,
@@ -809,13 +808,11 @@ function ChatFrame(props: ChatFrameProps) {
       contextMenuProps={{
         contextMenu,
         historyMessages: visibleHistoryMessages,
-        isSelecting,
         selectedMessageIds,
         onClose: closeContextMenu,
         onDelete: handleDelete,
         onToggleSelection: toggleMessageSelection,
         onReply: handleReply,
-        onMoveMessages: handleMoveMessages,
         onEditMessage: handleEditMessage,
         onToggleBackground: handleToggleBackground,
         onToggleBgm: handleToggleBgm,
