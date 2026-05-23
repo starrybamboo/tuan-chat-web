@@ -534,8 +534,19 @@ export default function AudioMessage({
       || (typeof waveDuration === "number" && Number.isFinite(waveDuration) && waveDuration > 0);
     if (!canPlayImmediately) {
       shouldAutoPlayRef.current = true;
+      const playAccepted = await requestWavePlayback(
+        ws,
+        opts?.fromStart ? "play-from-start-deferred" : "play-deferred",
+      );
+      if (playAccepted) {
+        shouldAutoPlayRef.current = false;
+        if (!opts?.waitForPlaybackStart) {
+          return true;
+        }
+        return await waitForWavePlaybackStart(VISUAL_PLAYBACK_START_WAIT_MS);
+      }
       if (!opts?.waitForPlaybackStart) {
-        return true;
+        return false;
       }
       const started = await waitForWavePlaybackStart(VISUAL_PLAYBACK_START_WAIT_MS);
       if (!started) {
@@ -846,21 +857,12 @@ export default function AudioMessage({
         });
         return;
       }
-      if (!isReady) {
-        shouldAutoPlayRef.current = true;
-        mediaDebug("audio-message", "toggle-play-defer-until-ready", {
-          cacheKey,
-          url,
-          instanceId: instanceIdRef.current,
-        });
-        return;
-      }
 
       if (ws.isPlaying?.()) {
         stopWavePlayback(ws);
       }
       else {
-        await requestWavePlayback(ws, "manual-toggle");
+        await playCurrentMessage({ waitForPlaybackStart: true });
       }
     }
     catch (e) {
