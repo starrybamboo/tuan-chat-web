@@ -33,6 +33,12 @@ interface ContextMenuProps {
   onToggleNarrator?: (messageId: number) => void;
 }
 
+interface ContextMenuItem {
+  key: string;
+  label: string;
+  onSelect: () => void;
+}
+
 export default function ChatFrameContextMenu({
   contextMenu,
   historyMessages,
@@ -364,6 +370,165 @@ export default function ChatFrameContextMenu({
     router,
     spaceContext.isSpaceOwner,
   ]);
+
+  const menuItems = useMemo<ContextMenuItem[]>(() => {
+    if (!contextMenu) {
+      return [];
+    }
+
+    const items: ContextMenuItem[] = [
+      {
+        key: "select",
+        label: "多选",
+        onSelect: () => {
+          onToggleSelection(contextMenu.messageId);
+          onClose();
+        },
+      },
+    ];
+
+    if (message?.message) {
+      items.push({
+        key: "reply",
+        label: "回复",
+        onSelect: () => {
+          onReply(message.message);
+          onClose();
+        },
+      });
+    }
+
+    if (canEditMessage) {
+      items.push(
+        {
+          key: "delete",
+          label: shouldDeleteSelectedMessages ? `删除选中消息 (${selectedMessageIds.size})` : "删除",
+          onSelect: () => {
+            onDelete();
+            onClose();
+          },
+        },
+        {
+          key: "annotations",
+          label: "添加标注",
+          onSelect: () => {
+            onOpenAnnotations(contextMenu.messageId);
+            onClose();
+          },
+        },
+      );
+    }
+
+    if (canToggleBackground) {
+      items.push({
+        key: "toggle-background",
+        label: isBackgroundMessage ? "取消背景" : "设置为背景",
+        onSelect: () => {
+          onToggleBackground(contextMenu.messageId);
+          onClose();
+        },
+      });
+    }
+
+    if (canToggleBgm) {
+      items.push({
+        key: "toggle-bgm",
+        label: isBgmMessage ? "取消BGM" : "设置为BGM",
+        onSelect: () => {
+          onToggleBgm(contextMenu.messageId);
+          onClose();
+        },
+      });
+    }
+
+    if (canCopyDoc) {
+      items.push({
+        key: "copy-doc-to-my-docs",
+        label: "复制到我的文档",
+        onSelect: () => {
+          onClose();
+          void handleCopyToMyDocs();
+        },
+      });
+    }
+
+    if (canCopyDoc && spaceContext.isSpaceOwner) {
+      items.push({
+        key: "copy-doc-to-kp-sidebar-tree",
+        label: "复制到空间侧边栏",
+        onSelect: () => {
+          onClose();
+          void handleCopyToKpSidebarTree();
+        },
+      });
+    }
+
+    if (canCopyClue) {
+      items.push(
+        {
+          key: "copy-clue-private",
+          label: "收藏到我的线索",
+          onSelect: () => handleCopyClue("private"),
+        },
+        {
+          key: "copy-clue-public",
+          label: "收藏到公共线索",
+          onSelect: () => handleCopyClue("public"),
+        },
+      );
+    }
+
+    items.push({
+      key: "insert-after",
+      label: "插入消息",
+      onSelect: () => {
+        onInsertAfter(contextMenu.messageId);
+        onClose();
+      },
+    });
+
+    const canEditText = canEditMessage
+      && message
+      && message.message.messageType !== MESSAGE_TYPE.WEBGAL_CHOOSE
+      && message.message.messageType !== 2;
+    if (canEditText) {
+      items.push({
+        key: "edit-text",
+        label: "编辑文本",
+        onSelect: () => {
+          onEditMessage(contextMenu.messageId);
+          onClose();
+        },
+      });
+    }
+
+    return items;
+  }, [
+    canCopyClue,
+    canCopyDoc,
+    canEditMessage,
+    canToggleBackground,
+    canToggleBgm,
+    contextMenu,
+    handleCopyClue,
+    handleCopyToKpSidebarTree,
+    handleCopyToMyDocs,
+    isBackgroundMessage,
+    isBgmMessage,
+    message,
+    onClose,
+    onDelete,
+    onEditMessage,
+    onInsertAfter,
+    onOpenAnnotations,
+    onReply,
+    onToggleBackground,
+    onToggleBgm,
+    onToggleSelection,
+    selectedMessageIds.size,
+    shouldDeleteSelectedMessages,
+    spaceContext.isSpaceOwner,
+  ]);
   if (!contextMenu)
     return null;
 
@@ -373,166 +538,16 @@ export default function ChatFrameContextMenu({
       className="fixed bg-base-100 shadow-lg rounded-md z-50"
     >
       <ul className="menu p-2 w-40">
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              onToggleSelection(contextMenu.messageId);
-              onClose();
-            }}
-          >
-            多选
-          </button>
-        </li>
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              if (message?.message)
-                onReply(message.message);
-              onClose();
-            }}
-          >
-            回复
-          </button>
-        </li>
-        {canEditMessage && (
-          <li>
+        {menuItems.map(item => (
+          <li key={item.key}>
             <button
               type="button"
-              onClick={() => {
-                onDelete();
-                onClose();
-              }}
+              onClick={item.onSelect}
             >
-              {shouldDeleteSelectedMessages ? `删除选中消息 (${selectedMessageIds.size})` : "删除"}
+              {item.label}
             </button>
           </li>
-        )}
-
-        {canEditMessage && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onOpenAnnotations(contextMenu.messageId);
-                onClose();
-              }}
-            >
-              添加标注
-            </button>
-          </li>
-        )}
-        {canToggleBackground && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onToggleBackground(contextMenu.messageId);
-                onClose();
-              }}
-            >
-              {isBackgroundMessage ? "取消背景" : "设置为背景"}
-            </button>
-          </li>
-        )}
-        {canToggleBgm && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onToggleBgm(contextMenu.messageId);
-                onClose();
-              }}
-            >
-              {isBgmMessage ? "取消BGM" : "设置为BGM"}
-            </button>
-          </li>
-        )}
-        {canCopyDoc && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                void handleCopyToMyDocs();
-              }}
-            >
-              复制到我的文档
-            </button>
-          </li>
-        )}
-        {canCopyDoc && spaceContext.isSpaceOwner && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                void handleCopyToKpSidebarTree();
-              }}
-            >
-              复制到空间侧边栏
-            </button>
-          </li>
-        )}
-        {canCopyClue && (
-          <li>
-            <button
-              type="button"
-              onClick={() => handleCopyClue("private")}
-            >
-              收藏到我的线索
-            </button>
-          </li>
-        )}
-        {canCopyClue && (
-          <li>
-            <button
-              type="button"
-              onClick={() => handleCopyClue("public")}
-            >
-              收藏到公共线索
-            </button>
-          </li>
-        )}
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              onInsertAfter(contextMenu.messageId);
-              onClose();
-            }}
-          >
-            插入消息
-          </button>
-        </li>
-        {(() => {
-          if (!canEditMessage) {
-            return null;
-          }
-          if (!message) {
-            return null;
-          }
-          if (message.message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE) {
-            return null;
-          }
-          if (message.message.messageType !== 2) {
-            return (
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onEditMessage(contextMenu.messageId);
-                    onClose();
-                  }}
-                >
-                  编辑文本
-                </button>
-              </li>
-            );
-          }
-          return null;
-        })()}
+        ))}
       </ul>
     </div>
   );
