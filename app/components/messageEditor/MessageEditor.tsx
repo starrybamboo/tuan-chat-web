@@ -298,7 +298,7 @@ const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
 const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
 const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
-const MESSAGE_EDITOR_SLASH_MENU_GAP_PX = 8;
+const MESSAGE_EDITOR_SLASH_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-20 mt-2";
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
@@ -321,10 +321,10 @@ export function getMessageEditorScrollViewportClassName() {
 }
 
 /**
- * 返回 slash 菜单在正文下方预留的垂直空间。
+ * 返回 slash 菜单浮层类名。菜单不能参与正文流式排版。
  */
-export function getMessageEditorSlashMenuSpacerHeight(menuHeight: number) {
-  return menuHeight > 0 ? Math.ceil(menuHeight) + MESSAGE_EDITOR_SLASH_MENU_GAP_PX : 0;
+export function getMessageEditorSlashMenuLayerClassName() {
+  return MESSAGE_EDITOR_SLASH_MENU_LAYER_CLASS;
 }
 
 /**
@@ -512,7 +512,6 @@ export default function MessageEditor({
   const [isPointerSelecting, setIsPointerSelecting] = useState(false);
   const [slashSelectionIndex, setSlashSelectionIndex] = useState(0);
   const [dismissedSlashKey, setDismissedSlashKey] = useState<string | null>(null);
-  const [slashMenuHeight, setSlashMenuHeight] = useState(0);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [ready, setReady] = useState(!resolvedDocId || isRoomCacheSource);
   const registry = useMemo(() => createMessageEditorRegistry(), []);
@@ -1307,12 +1306,6 @@ export default function MessageEditor({
     };
   }, [activeBlockId, dismissedSlashKey, messages, readOnly, registry]);
 
-  useEffect(() => {
-    if (!slashMenuState) {
-      setSlashMenuHeight(0);
-    }
-  }, [slashMenuState]);
-
   const activeSlashSelectionIndex = slashMenuState
     ? Math.max(0, Math.min(slashSelectionIndex, slashMenuState.items.length - 1))
     : 0;
@@ -1335,10 +1328,6 @@ export default function MessageEditor({
 
     clearActiveBlock();
   }, [clearActiveBlock, hideToolbar, slashMenuState]);
-
-  const handleSlashMenuSizeChange = useCallback((height: number) => {
-    setSlashMenuHeight(previous => previous === height ? previous : height);
-  }, []);
 
   const handleTextInput = useCallback((blockId: string, nextContent: string) => {
     clearCrossBlockSelection();
@@ -2326,24 +2315,16 @@ export default function MessageEditor({
                             onKeyDown={handleTextKeyDown}
                           />
                           {slashMenuState?.blockId === blockId && !readOnly && (
-                            <div className="absolute left-3 right-0 top-full z-20 mt-2">
+                            <div className={getMessageEditorSlashMenuLayerClassName()}>
                               <MessageEditorSlashMenu
                                 visible
                                 items={slashMenuState.items}
                                 selectedIndex={activeSlashSelectionIndex}
                                 onSelect={item => handleSelectSlashItem(item.kind)}
-                                onSizeChange={handleSlashMenuSizeChange}
                               />
                             </div>
                           )}
                         </div>
-                        {slashMenuState?.blockId === blockId && !readOnly && (
-                          <div
-                            aria-hidden="true"
-                            className="pointer-events-none"
-                            style={{ height: `${getMessageEditorSlashMenuSpacerHeight(slashMenuHeight)}px` }}
-                          />
-                        )}
                       </div>
                     );
                   }
