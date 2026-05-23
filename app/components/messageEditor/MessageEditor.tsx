@@ -24,6 +24,11 @@ import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import {
+  readImageDimensions,
+  readMediaDuration,
+  readVideoDimensions,
+} from "@/utils/mediaMetadata";
 
 import { UploadUtils } from "@/utils/UploadUtils";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
@@ -34,9 +39,11 @@ import {
   createMessageEditorTextDraft,
   ensureMessageEditorMessages,
   getMessageEditorBlockId,
+  mergeMessageEditorMediaLayouts,
   normalizeMessageEditorContent,
   serializeMessageEditorMessages,
   setMessageEditorUploadedMedia,
+  updateMessageEditorMediaSize,
 } from "./model/messageEditorTransforms";
 import { createMessageEditorController } from "./runtime/messageEditorController";
 import { MessageEditorEventBus } from "./runtime/messageEditorEventBus";
@@ -193,6 +200,14 @@ function stableSerializeMessageEditorValue(value: unknown): string {
   return JSON.stringify(String(value));
 }
 
+function readCachedMessageEditorMessages(docId: string | undefined): MessageDraft[] {
+  if (!docId) {
+    return [];
+  }
+  const cached = getCachedDocSnapshot(docId);
+  return cached ? decodeMessageEditorMessages(cached) : [];
+}
+
 function serializeMessageEditorPatchContent(message: MessageDraft): string {
   return stableSerializeMessageEditorValue({
     annotations: message.annotations ?? null,
@@ -296,6 +311,8 @@ export function buildRoomMessagePatchOperations(
 const MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS = "px-8 md:px-10";
 const MESSAGE_EDITOR_DEFAULT_FRAME_CLASS = "h-[80vh] min-h-0 rounded-md";
 const MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS = "relative min-h-0 flex-1 overflow-auto";
+const MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS = "mb-2";
+const MESSAGE_EDITOR_SLASH_MENU_LAYER_CLASS = "absolute left-3 right-0 top-full z-20 mt-2";
 
 function normalizeEditableText(value: string) {
   return value.replace(/\r\n?/g, "\n").replace(/\u00A0/g, " ");
@@ -315,6 +332,28 @@ export function getMessageEditorFrameClassName(className?: string) {
  */
 export function getMessageEditorScrollViewportClassName() {
   return MESSAGE_EDITOR_SCROLL_VIEWPORT_CLASS;
+}
+
+/**
+ * 返回 slash 菜单浮层类名。菜单不能参与正文流式排版。
+ */
+export function getMessageEditorSlashMenuLayerClassName() {
+  return MESSAGE_EDITOR_SLASH_MENU_LAYER_CLASS;
+}
+
+/**
+ * 解析文字块外壳类名。
+ * 连续文字块之间额外留 4px，区分块间分隔和块内 leading-7 产生的自然换行。
+ */
+export function getMessageEditorTextBlockShellClassName(options: {
+  hasFollowingTextBlock: boolean;
+  isDragging: boolean;
+}) {
+  return [
+    `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
+    options.hasFollowingTextBlock ? MESSAGE_EDITOR_TEXT_BLOCK_GAP_CLASS : "",
+    options.isDragging ? "bg-base-100/80 ring-1 ring-base-300/80" : "",
+  ].join(" ");
 }
 
 function isSelectionAtStart(range: Range, blockElement: HTMLElement) {
@@ -396,25 +435,6 @@ function resolveUndoRedoShortcut(event: Pick<KeyboardEvent | React.KeyboardEvent
   return null;
 }
 
-async function readImageDimensions(file: File) {
-  return await new Promise<{ width: number; height: number }>((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => {
-      resolve({
-        width: image.naturalWidth,
-        height: image.naturalHeight,
-      });
-      URL.revokeObjectURL(url);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("读取图片尺寸失败"));
-    };
-    image.src = url;
-  });
-}
-
 /**
  * 基于 message-stream 的线性文档编辑器。
  */
@@ -451,8 +471,10 @@ export default function MessageEditor({
   );
   const shouldLoadRemote = shouldSyncRemote && remoteSource === "self";
   const initialEditorMessages = useMemo(
-    () => isRoomCacheSource ? normalizedInitialMessages : ensureMessageEditorMessages([]),
-    [isRoomCacheSource, normalizedInitialMessages],
+    () => isRoomCacheSource
+      ? mergeMessageEditorMediaLayouts(normalizedInitialMessages, readCachedMessageEditorMessages(resolvedDocId))
+      : ensureMessageEditorMessages([]),
+    [isRoomCacheSource, normalizedInitialMessages, resolvedDocId],
   );
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -500,6 +522,14 @@ export default function MessageEditor({
   const loadSeedKeyRef = useRef<string | null>(null);
   const baselineMessagesRef = useRef<MessageDraft[]>(isRoomCacheSource ? initialEditorMessages : []);
 
+  const mergeCachedRoomCacheMediaLayouts = useCallback((sourceMessages: MessageDraft[]) => {
+    const normalizedMessages = ensureMessageEditorMessages(sourceMessages);
+    if (!isRoomCacheSource || !resolvedDocId) {
+      return normalizedMessages;
+    }
+    return mergeMessageEditorMediaLayouts(normalizedMessages, readCachedMessageEditorMessages(resolvedDocId));
+  }, [isRoomCacheSource, resolvedDocId]);
+
   useEffect(() => {
     const loadSeedKey = `${resolvedDocId ?? ""}|${remoteSource}`;
     if (loadSeedKeyRef.current !== loadSeedKey) {
@@ -513,7 +543,7 @@ export default function MessageEditor({
       return;
     }
 
-    const nextMessages = ensureMessageEditorMessages(normalizedInitialMessages);
+    const nextMessages = mergeCachedRoomCacheMediaLayouts(normalizedInitialMessages);
     const nextSerialized = serializeMessageEditorMessages(nextMessages);
     const currentSerialized = stableSerializeMessageEditorValue(messagesRef.current);
     const nextRuntimeSerialized = stableSerializeMessageEditorValue(nextMessages);
@@ -525,13 +555,13 @@ export default function MessageEditor({
     messagesRef.current = nextMessages;
     lastSavedSerializedRef.current = nextSerialized;
     setMessages(nextMessages);
-  }, [isRoomCacheSource, normalizedInitialMessages, ready, resolvedDocId]);
+  }, [isRoomCacheSource, mergeCachedRoomCacheMediaLayouts, normalizedInitialMessages, ready, resolvedDocId]);
 
   const reconcileRoomCacheRemoteMessages = useCallback(async (
     remoteMessages: Message[],
     options: { updateState?: boolean } = {},
   ) => {
-    const savedMessages = ensureMessageEditorMessages(remoteMessages);
+    const savedMessages = mergeMessageEditorMediaLayouts(ensureMessageEditorMessages(remoteMessages), messagesRef.current);
     if (savedMessages.length === 0) {
       return false;
     }
@@ -544,7 +574,7 @@ export default function MessageEditor({
     if (options.updateState !== false) {
       setMessages(savedMessages);
     }
-    await onRemoteMessagesSaved?.(remoteMessages);
+    await onRemoteMessagesSaved?.(savedMessages as Message[]);
     return true;
   }, [onRemoteMessagesSaved]);
 
@@ -758,7 +788,7 @@ export default function MessageEditor({
     hideToolbar();
 
     if (isRoomCacheSource) {
-      const nextMessages = ensureMessageEditorMessages(initialMessagesSeedRef.current);
+      const nextMessages = mergeCachedRoomCacheMediaLayouts(initialMessagesSeedRef.current);
       const nextSerialized = serializeMessageEditorMessages(nextMessages);
       remoteRevisionRef.current = null;
       resetHistory();
@@ -841,7 +871,33 @@ export default function MessageEditor({
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, isRoomCacheSource, resetHistory, resolvedDocId, resolvedDocRoomId, shouldLoadRemote, shouldSyncRemote]);
+  }, [hideToolbar, isRoomCacheSource, mergeCachedRoomCacheMediaLayouts, resetHistory, resolvedDocId, resolvedDocRoomId, shouldLoadRemote, shouldSyncRemote]);
+
+  useEffect(() => {
+    if (!ready || !resolvedDocId || !isRoomCacheSource || dirtySinceLoadRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    void getPersistedDocSnapshot(resolvedDocId).then((snapshot) => {
+      if (cancelled || !snapshot || dirtySinceLoadRef.current) {
+        return;
+      }
+      setCachedDocSnapshot(resolvedDocId, snapshot);
+      const nextMessages = mergeMessageEditorMediaLayouts(messagesRef.current, decodeMessageEditorMessages(snapshot));
+      if (stableSerializeMessageEditorValue(messagesRef.current) === stableSerializeMessageEditorValue(nextMessages)) {
+        return;
+      }
+      baselineMessagesRef.current = nextMessages;
+      messagesRef.current = nextMessages;
+      lastSavedSerializedRef.current = serializeMessageEditorMessages(nextMessages);
+      setMessages(nextMessages);
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRoomCacheSource, ready, resolvedDocId]);
 
   useEffect(() => {
     if (!ready || readOnly || !resolvedDocId || !dirtySinceLoadRef.current) {
@@ -858,11 +914,20 @@ export default function MessageEditor({
       return;
     }
 
+    if (isRoomCacheSource) {
+      setCachedDocSnapshot(resolvedDocId, snapshot);
+    }
+
     const timer = window.setTimeout(() => {
       const saveGeneration = saveGenerationRef.current + 1;
       saveGenerationRef.current = saveGeneration;
       activeRemoteSaveGenerationRef.current = saveGeneration;
       setSaveState("saving");
+      if (isRoomCacheSource) {
+        void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
+          console.warn("[MessageEditor] persist room cache doc layout snapshot failed", error);
+        });
+      }
       const persistTask = shouldSyncRemote && resolvedDocRoomId
         ? (isRoomCacheSource
             ? (() => {
@@ -958,6 +1023,12 @@ export default function MessageEditor({
       }
 
       lastSavedSerializedRef.current = snapshot.updateB64;
+      if (isRoomCacheSource) {
+        setCachedDocSnapshot(resolvedDocId, snapshot);
+        void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
+          console.warn("[MessageEditor] flush room cache doc layout snapshot failed", error);
+        });
+      }
       if (shouldSyncRemote && resolvedDocRoomId) {
         const saveGeneration = saveGenerationRef.current;
         activeRemoteSaveGenerationRef.current = saveGeneration;
@@ -2080,26 +2151,44 @@ export default function MessageEditor({
     }
 
     if (currentMessage.messageType === MESSAGE_TYPE.SOUND) {
-      const uploadedAudio = await uploadUtils.uploadAudioAsset(file);
+      const [uploadedAudio, second] = await Promise.all([
+        uploadUtils.uploadAudioAsset(file),
+        readMediaDuration(file),
+      ]);
+      if (second == null) {
+        throw new Error("无法读取音频时长，请换用可识别的音频文件后重试。");
+      }
       controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
         fileId: uploadedAudio.fileId,
         fileName: file.name,
         mediaType: uploadedAudio.mediaType,
         size: file.size,
+        second,
       }));
       return;
     }
 
     if (currentMessage.messageType === MESSAGE_TYPE.VIDEO) {
-      const uploadedVideo = await uploadUtils.uploadVideo(file);
+      const [uploadedVideo, dimensions, second] = await Promise.all([
+        uploadUtils.uploadVideo(file),
+        readVideoDimensions(file),
+        readMediaDuration(file),
+      ]);
       controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, {
         fileId: uploadedVideo.fileId,
         fileName: file.name,
         mediaType: uploadedVideo.mediaType,
         size: file.size,
+        second,
+        width: dimensions.width,
+        height: dimensions.height,
       }));
     }
   }, [uploadUtils]);
+
+  const handleResizeAtomicBlock = useCallback((blockId: string, size: { height: number; width: number }) => {
+    controllerRef.current?.updateBlock(blockId, message => updateMessageEditorMediaSize(message, size));
+  }, []);
 
   const atomicMessages = useMemo(() => {
     return messages.map((message) => {
@@ -2190,14 +2279,15 @@ export default function MessageEditor({
           )}
 
           {ready && (
-            <div className="flex min-h-0 flex-col">
+            <div className="flex min-h-0 flex-col mt-8">
               <div
                 data-me-editor-surface="true"
                 role="presentation"
                 className="flex min-h-svh w-full flex-col py-2"
                 onMouseDown={handleEditorSurfaceMouseDown}
               >
-                {atomicMessages.map(({ blockId, message, driver }) => {
+                {atomicMessages.map(({ blockId, message, driver }, messageIndex) => {
+                  const nextDriver = atomicMessages[messageIndex + 1]?.driver ?? null;
                   const activeTextSelection = crossBlockSelectionPreview ?? crossBlockSelection?.selection ?? null;
                   const selectedBlockIndex = activeTextSelection?.blockIds.indexOf(blockId) ?? -1;
                   const showSelectedLineBreak = selectedBlockIndex >= 0
@@ -2218,12 +2308,10 @@ export default function MessageEditor({
                       <div
                         key={blockId}
                         ref={node => registerBlockShellRef(blockId, node)}
-                        className={[
-                          `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-md ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} transition`,
-                          dragState?.draggedBlockId === blockId
-                            ? "bg-base-100/80 ring-1 ring-base-300/80"
-                            : "",
-                        ].join(" ")}
+                        className={getMessageEditorTextBlockShellClassName({
+                          hasFollowingTextBlock: nextDriver?.kind === "text",
+                          isDragging: dragState?.draggedBlockId === blockId,
+                        })}
                       >
                         {showDropBefore && (
                           <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
@@ -2238,7 +2326,7 @@ export default function MessageEditor({
                             data-me-block-handle="true"
                             className={[
                               `${MESSAGE_EDITOR_BLOCK_HANDLE_CLASS} top-0`,
-                              dragState?.draggedBlockId === blockId ? "!opacity-100" : "",
+                              dragState?.draggedBlockId === blockId ? "opacity-100!" : "",
                             ].join(" ")}
                             onDragStart={event => handleBlockDragStart(blockId, event)}
                             onDragEnd={handleBlockDragEnd}
@@ -2248,53 +2336,55 @@ export default function MessageEditor({
                             <DraggableIcon className="size-6" />
                           </button>
                         )}
-                        <MessageEditorTextBlock
-                          active={activeBlockId === blockId}
-                          blockId={blockId}
-                          message={message}
-                          onMouseDown={handleTextMouseDown}
-                          placeholder={showPlaceholder ? "输入内容" : ""}
-                          readOnly={readOnly}
-                          registerBlockRef={registerBlockRef}
-                          textInputRef={textStyleInputRef}
-                          selectionSegment={(() => {
-                            const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
-                            if (segment) {
-                              return {
-                                ...segment,
-                                showLineBreakAfter: showSelectedLineBreak,
-                              };
-                            }
-                            if (showSelectedLineBreak) {
-                              const contentLength = normalizeMessageEditorContent(message.content).length;
-                              return {
-                                end: contentLength,
-                                showLineBreakAfter: true,
-                                start: contentLength,
-                              };
-                            }
-                            return null;
-                          })()}
-                          onFocus={(nextBlockId) => {
-                            clearCrossBlockSelection();
-                            setDismissedSlashKey(null);
-                            setActiveBlockId(nextBlockId);
-                            controllerRef.current?.setActiveBlock(nextBlockId);
-                          }}
-                          onBlur={handleTextBlur}
-                          onInput={handleTextInput}
-                          onKeyDown={handleTextKeyDown}
-                        />
-                        {slashMenuState?.blockId === blockId && !readOnly && (
-                          <div className="pl-3">
-                            <MessageEditorSlashMenu
-                              visible
-                              items={slashMenuState.items}
-                              selectedIndex={activeSlashSelectionIndex}
-                              onSelect={item => handleSelectSlashItem(item.kind)}
-                            />
-                          </div>
-                        )}
+                        <div className="relative">
+                          <MessageEditorTextBlock
+                            active={activeBlockId === blockId}
+                            blockId={blockId}
+                            message={message}
+                            onMouseDown={handleTextMouseDown}
+                            placeholder={showPlaceholder ? "输入内容" : ""}
+                            readOnly={readOnly}
+                            registerBlockRef={registerBlockRef}
+                            textInputRef={textStyleInputRef}
+                            selectionSegment={(() => {
+                              const segment = activeTextSelection?.segments.find(item => item.blockId === blockId);
+                              if (segment) {
+                                return {
+                                  ...segment,
+                                  showLineBreakAfter: showSelectedLineBreak,
+                                };
+                              }
+                              if (showSelectedLineBreak) {
+                                const contentLength = normalizeMessageEditorContent(message.content).length;
+                                return {
+                                  end: contentLength,
+                                  showLineBreakAfter: true,
+                                  start: contentLength,
+                                };
+                              }
+                              return null;
+                            })()}
+                            onFocus={(nextBlockId) => {
+                              clearCrossBlockSelection();
+                              setDismissedSlashKey(null);
+                              setActiveBlockId(nextBlockId);
+                              controllerRef.current?.setActiveBlock(nextBlockId);
+                            }}
+                            onBlur={handleTextBlur}
+                            onInput={handleTextInput}
+                            onKeyDown={handleTextKeyDown}
+                          />
+                          {slashMenuState?.blockId === blockId && !readOnly && (
+                            <div className={getMessageEditorSlashMenuLayerClassName()}>
+                              <MessageEditorSlashMenu
+                                visible
+                                items={slashMenuState.items}
+                                selectedIndex={activeSlashSelectionIndex}
+                                onSelect={item => handleSelectSlashItem(item.kind)}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   }
@@ -2304,7 +2394,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        `group relative ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-6 transition`,
+                        `group relative mt-8 mb-8 ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} rounded-xl px-9 transition`,
                         dragState?.draggedBlockId === blockId
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
@@ -2323,7 +2413,7 @@ export default function MessageEditor({
                           data-me-block-handle="true"
                           className={[
                             `${MESSAGE_EDITOR_BLOCK_HANDLE_CLASS} top-1.5`,
-                            dragState?.draggedBlockId === blockId ? "!opacity-100" : "",
+                            dragState?.draggedBlockId === blockId ? "opacity-100!" : "",
                           ].join(" ")}
                           onDragStart={event => handleBlockDragStart(blockId, event)}
                           onDragEnd={handleBlockDragEnd}
@@ -2346,6 +2436,7 @@ export default function MessageEditor({
                           }}
                           onDelete={handleDeleteAtomicBlock}
                           onUpload={handleUploadAtomicBlock}
+                          onResize={handleResizeAtomicBlock}
                         />
                       </div>
                     </div>

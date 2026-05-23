@@ -41,7 +41,10 @@ export function MessageEditorSlashMenu({
   }
 
   return (
-    <div data-me-slash-menu="true" className="mt-2 w-full max-w-[320px] rounded-xl border border-base-300 bg-base-100 p-1.5 shadow-xl">
+    <div
+      data-me-slash-menu="true"
+      className="w-full max-w-[320px] rounded-xl border border-base-300 bg-base-100 p-1.5 shadow-xl"
+    >
       <div className="px-2 pb-1 pt-0.5 text-[11px] text-base-content/45">
         输入
         {" "}

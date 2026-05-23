@@ -2,6 +2,12 @@ import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 
 type WaveSurferInstance = any;
 
+/** WaveSurfer 模块导入器，用于隔离 Vite dev optimize deps 缓存失效时的恢复路径。 */
+export type AudioMessageWaveSurferModuleImporters = {
+  optimized: () => Promise<any>;
+  devUrl: () => Promise<any>;
+};
+
 type CacheEntry = {
   ws: WaveSurferInstance;
   refs: number;
@@ -10,6 +16,41 @@ type CacheEntry = {
 };
 
 const cacheByKey = new Map<string, CacheEntry>();
+const VITE_DYNAMIC_IMPORT_FETCH_FAILURE = [
+  "Failed to fetch dynamically imported module",
+  "Importing a module script failed",
+  "error loading dynamically imported module",
+];
+const WAVESURFER_DEV_ESM_URL = "/node_modules/wavesurfer.js/dist/wavesurfer.esm.js";
+
+const defaultWaveSurferModuleImporters: AudioMessageWaveSurferModuleImporters = {
+  optimized: () => import("wavesurfer.js"),
+  devUrl: () => import(/* @vite-ignore */ WAVESURFER_DEV_ESM_URL),
+};
+
+function isViteDynamicImportFetchFailure(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return VITE_DYNAMIC_IMPORT_FETCH_FAILURE.some(fragment => message.includes(fragment));
+}
+
+/** 加载 WaveSurfer；开发环境中 optimized dep URL 失效时回退到包内 ESM 文件。 */
+export async function loadAudioMessageWaveSurferModule(
+  importers: AudioMessageWaveSurferModuleImporters = defaultWaveSurferModuleImporters,
+) {
+  try {
+    return await importers.optimized();
+  }
+  catch (error) {
+    if (!import.meta.env.DEV || !isViteDynamicImportFetchFailure(error)) {
+      throw error;
+    }
+
+    mediaDebug("audio-cache", "wavesurfer-dev-import-fallback", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return importers.devUrl();
+  }
+}
 
 function ensureHiddenHost(): HTMLElement {
   if (typeof document === "undefined")
@@ -37,7 +78,7 @@ function ensureHiddenHost(): HTMLElement {
 }
 
 async function createWaveSurfer(url: string, container: HTMLElement): Promise<WaveSurferInstance> {
-  const mod: any = await import("wavesurfer.js");
+  const mod: any = await loadAudioMessageWaveSurferModule();
   const WaveSurfer = mod?.default ?? mod;
 
   return WaveSurfer.create({

@@ -1,6 +1,8 @@
 import bundledCoreJsUrl from "@ffmpeg/core?url";
 import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
+import * as bundledFfmpegWrapperUrlModule from "@ffmpeg/ffmpeg?url";
 import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
+import * as bundledFfmpegUtilUrlModule from "@ffmpeg/util?url";
 
 import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
@@ -34,6 +36,8 @@ export type AudioTranscodeOptions = {
 
 const DEFAULT_BITRATE_KBPS = 64;
 const DEFAULT_EXEC_TIMEOUT_MS = 120_000;
+const bundledFfmpegUtilUrl = String((bundledFfmpegUtilUrlModule as { default?: string }).default ?? bundledFfmpegUtilUrlModule);
+const bundledFfmpegWrapperUrl = String((bundledFfmpegWrapperUrlModule as { default?: string }).default ?? bundledFfmpegWrapperUrlModule);
 const bundledWorkerUrl = String((bundledWorkerUrlModule as { default?: string }).default ?? bundledWorkerUrlModule);
 
 let ffmpegSingletonPromise: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
@@ -94,16 +98,32 @@ async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Pro
   const errors: string[] = [];
 
   const tryBundled = async () => {
+    if ((import.meta as { env?: { MODE?: string } }).env?.MODE === "test") {
+      return await import("@ffmpeg/ffmpeg");
+    }
+
     try {
       if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg wrapper bundled`);
+        console.warn(`${debugPrefix} ffmpeg wrapper bundled url`);
+      return await import(/* @vite-ignore */ toAbsoluteUrl(bundledFfmpegWrapperUrl)) as typeof import("@ffmpeg/ffmpeg");
+    }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`bundled-url: ${msg}`);
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg wrapper bundled url failed`, { msg });
+    }
+
+    try {
+      if (debugEnabled)
+        console.warn(`${debugPrefix} ffmpeg wrapper optimized`);
       return await import("@ffmpeg/ffmpeg");
     }
     catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      errors.push(`bundled: ${msg}`);
+      errors.push(`optimized: ${msg}`);
       if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg wrapper bundled failed`, { msg });
+        console.warn(`${debugPrefix} ffmpeg wrapper optimized failed`, { msg });
       return null;
     }
   };
@@ -143,6 +163,29 @@ async function loadFfmpegModule(debugEnabled: boolean, debugPrefix: string): Pro
 
   const detail = errors.length > 0 ? `\n${errors.join("\n")}` : "";
   throw new Error(`FFmpeg wrapper 加载失败：${detail || "未知错误"}`);
+}
+
+async function loadFfmpegUtilModule(): Promise<typeof import("@ffmpeg/util")> {
+  if ((import.meta as { env?: { MODE?: string } }).env?.MODE === "test") {
+    return await import("@ffmpeg/util");
+  }
+
+  const errors: string[] = [];
+  try {
+    return await import(/* @vite-ignore */ toAbsoluteUrl(bundledFfmpegUtilUrl)) as typeof import("@ffmpeg/util");
+  }
+  catch (error) {
+    errors.push(`bundled-url: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  try {
+    return await import("@ffmpeg/util");
+  }
+  catch (error) {
+    errors.push(`optimized: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  throw new Error(`FFmpeg util 加载失败：\n${errors.join("\n")}`);
 }
 
 function logFfmpegDebugConfig(debugEnabled: boolean, debugPrefix: string, loadTimeoutMs: number): void {
@@ -337,7 +380,7 @@ export async function transcodeAudioFileToOpusOrThrow(inputFile: File, options: 
     loadTimeoutMs,
     "FFmpeg 初始化",
   );
-  const { fetchFile } = await import("@ffmpeg/util");
+  const { fetchFile } = await loadFfmpegUtilModule();
 
   const runOnce = async (params: TranscodePreset) => {
     const inputSafeName = `input-${Date.now()}-${Math.random().toString(16).slice(2)}${(() => {
