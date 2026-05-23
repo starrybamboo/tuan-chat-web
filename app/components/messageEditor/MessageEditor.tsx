@@ -2334,7 +2334,7 @@ export default function MessageEditor({
                       key={blockId}
                       ref={node => registerBlockShellRef(blockId, node)}
                       className={[
-                        `group relative mt-8 mb-8 ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_BLOCK_GUTTER_CLASS} rounded-xl px-9 transition`,
+                        `group relative mt-8 mb-8 ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} rounded-xl px-9 transition`,
                         dragState?.draggedBlockId === blockId
                           ? "bg-base-100/80 ring-1 ring-base-300/80"
                           : "",
