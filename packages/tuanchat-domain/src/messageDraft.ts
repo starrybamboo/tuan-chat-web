@@ -51,7 +51,6 @@ type MessageExtraRecord = Record<string, unknown>;
 
 type BuildChatMessageRequestFromDraftContext = {
   roomId: number;
-  threadId?: number;
   replayMessageId?: number;
   position?: number;
   roleId?: number;
@@ -223,6 +222,66 @@ function normalizeDicePayload(rawExtra: unknown): MessageExtraRecord {
   });
 }
 
+function normalizeDiceTurnReplyPayload(rawReply: unknown): MessageExtraRecord {
+  if (typeof rawReply === "string") {
+    return compactRecord({ content: toTrimmedString(rawReply) });
+  }
+  const reply = toRecord(rawReply);
+  return compactRecord({
+    content: toTrimmedString(reply.content),
+    hidden: toLooseBoolean(reply.hidden),
+    roleId: toPositiveNumber(reply.roleId),
+    avatarId: toPositiveNumber(reply.avatarId),
+    customRoleName: toTrimmedString(reply.customRoleName),
+  });
+}
+
+function normalizeDiceTurnPayload(rawExtra: unknown): MessageExtraRecord {
+  const diceTurn = pickPayload(rawExtra, "diceTurn");
+  const rawReplies = Array.isArray(diceTurn.replies)
+    ? diceTurn.replies
+    : [];
+  const replies = rawReplies
+    .map(reply => normalizeDiceTurnReplyPayload(reply))
+    .filter(reply => Boolean(toTrimmedString(reply.content)));
+
+  const legacyDice = normalizeDicePayload(rawExtra);
+  if (replies.length === 0 && toTrimmedString(legacyDice.result)) {
+    replies.push(compactRecord({
+      content: toTrimmedString(legacyDice.result),
+      hidden: toLooseBoolean(legacyDice.hidden),
+    }));
+  }
+
+  return compactRecord({
+    command: toTrimmedString(diceTurn.command),
+    replies,
+  });
+}
+
+function normalizeDicePayloadFromTurn(rawExtra: unknown, diceTurn: MessageExtraRecord): MessageExtraRecord {
+  const explicitDiceResult = normalizeDicePayload(rawExtra);
+  const replies = Array.isArray(diceTurn.replies) ? diceTurn.replies : [];
+  const replyText = replies
+    .map(reply => toTrimmedString(toRecord(reply).content))
+    .filter(Boolean)
+    .join("\n");
+  const hasHiddenReply = replies.some(reply => toLooseBoolean(toRecord(reply).hidden) === true);
+  return compactRecord({
+    result: toTrimmedString(explicitDiceResult.result) ?? (replyText || undefined),
+    hidden: toLooseBoolean(explicitDiceResult.hidden) ?? (hasHiddenReply ? true : undefined),
+  });
+}
+
+function normalizeDiceExtraPayload(rawExtra: unknown): MessageExtraRecord {
+  const diceTurn = normalizeDiceTurnPayload(rawExtra);
+  const diceResult = normalizeDicePayloadFromTurn(rawExtra, diceTurn);
+  return compactRecord({
+    diceResult,
+    diceTurn,
+  });
+}
+
 function normalizeForwardPayload(rawExtra: unknown): MessageExtraRecord {
   const forward = pickPayload(rawExtra, "forwardMessage");
   return compactRecord({
@@ -305,13 +364,6 @@ function normalizeRoomJumpPayload(rawExtra: unknown): MessageExtraRecord {
   });
 }
 
-function normalizeThreadRootPayload(rawExtra: unknown): MessageExtraRecord {
-  const threadRoot = pickPayload(rawExtra, "threadRoot");
-  return compactRecord({
-    title: toTrimmedString(threadRoot.title),
-  });
-}
-
 function normalizeStateEventPayload(rawExtra: unknown): MessageExtraRecord {
   const stateEvent = normalizeStateEventExtra(pickPayload(rawExtra, "stateEvent"));
   return compactRecord(stateEvent);
@@ -368,7 +420,7 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
       return;
     }
     case MESSAGE_TYPE.DICE:
-      if (!toTrimmedString(normalizeDicePayload(extra).result)) {
+      if (!toTrimmedString(toRecord(normalizeDiceExtraPayload(extra).diceResult).result)) {
         throw new Error("骰子消息缺少结果");
       }
       return;
@@ -392,11 +444,6 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
     case MESSAGE_TYPE.ROOM_JUMP:
       if (!toPositiveNumber(toRecord(extra.roomJump).roomId)) {
         throw new Error("群聊跳转缺少 roomId");
-      }
-      return;
-    case MESSAGE_TYPE.THREAD_ROOT:
-      if (!toTrimmedString(normalizeThreadRootPayload(extra).title)) {
-        throw new Error("Thread 标题不能为空");
       }
       return;
     case MESSAGE_TYPE.STATE_EVENT:
@@ -425,7 +472,7 @@ function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown)
     case MESSAGE_TYPE.FILE:
       return compactRecord({ fileMessage: normalizeFilePayload(rawExtra) });
     case MESSAGE_TYPE.DICE:
-      return compactRecord({ diceResult: normalizeDicePayload(rawExtra) });
+      return normalizeDiceExtraPayload(rawExtra);
     case MESSAGE_TYPE.FORWARD:
       return compactRecord({ forwardMessage: normalizeForwardPayload(rawExtra) });
     case MESSAGE_TYPE.CLUE_CARD:
@@ -438,8 +485,6 @@ function normalizeMessageExtraForRequest(messageType: number, rawExtra: unknown)
       return compactRecord({ docCard: normalizeDocCardPayload(rawExtra) });
     case MESSAGE_TYPE.ROOM_JUMP:
       return compactRecord({ roomJump: normalizeRoomJumpPayload(rawExtra) });
-    case MESSAGE_TYPE.THREAD_ROOT:
-      return compactRecord({ threadRoot: normalizeThreadRootPayload(rawExtra) });
     case MESSAGE_TYPE.STATE_EVENT:
       return compactRecord({ stateEvent: normalizeStateEventPayload(rawExtra) });
     default:
@@ -466,7 +511,7 @@ export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unk
     case MESSAGE_TYPE.FILE:
       return compactValue({ fileMessage: normalizeFilePayload(rawExtra) });
     case MESSAGE_TYPE.DICE:
-      return compactValue({ diceResult: normalizeDicePayload(rawExtra) });
+      return compactValue(normalizeDiceExtraPayload(rawExtra));
     case MESSAGE_TYPE.FORWARD:
       return compactValue({ forwardMessage: normalizeForwardPayload(rawExtra) });
     case MESSAGE_TYPE.CLUE_CARD:
@@ -479,8 +524,6 @@ export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unk
       return compactValue({ docCard: normalizeDocCardPayload(rawExtra) });
     case MESSAGE_TYPE.ROOM_JUMP:
       return compactValue({ roomJump: normalizeRoomJumpPayload(rawExtra) });
-    case MESSAGE_TYPE.THREAD_ROOT:
-      return compactValue({ threadRoot: normalizeThreadRootPayload(rawExtra) });
     case MESSAGE_TYPE.STATE_EVENT:
       return compactValue({ stateEvent: normalizeStateEventPayload(rawExtra) });
     default:
@@ -488,15 +531,6 @@ export function normalizeMessageExtraForMatch(messageType: number, rawExtra: unk
         ? {}
         : compactValue(stripLegacyMessageEditorExtra(rawExtra));
   }
-}
-
-export function buildThreadRootTitleFromMessageContent(
-  content: string | null | undefined,
-  fallback = "子区",
-  maxLength = 20,
-): string {
-  const trimmed = content?.trim() ?? "";
-  return trimmed ? trimmed.slice(0, maxLength) : fallback;
 }
 
 export function buildMessageDraftsFromUploadedMedia({
@@ -616,7 +650,6 @@ export function buildChatMessageRequestFromDraft(
   draft: MessageDraft,
   {
     roomId,
-    threadId,
     replayMessageId,
     position,
     roleId,
@@ -643,10 +676,6 @@ export function buildChatMessageRequestFromDraft(
 
   if (draft.webgal && typeof draft.webgal === "object") {
     request.webgal = draft.webgal;
-  }
-
-  if (typeof threadId === "number") {
-    request.threadId = threadId;
   }
 
   if (typeof replayMessageId === "number") {

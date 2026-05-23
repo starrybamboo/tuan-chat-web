@@ -1,47 +1,71 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-/** Distinguishes a full room refresh from an incremental sync result. */
-export type RoomMessagesFetchMode = "full" | "delta";
+export type RoomMessagesQueryData =
+  | ChatMessageResponse[]
+  | {
+      data?: ChatMessageResponse[] | {
+        list?: ChatMessageResponse[];
+      };
+    }
+  | undefined;
 
-/** Cached shape used by the mobile room message query when local sync is enabled. */
-export type RoomMessagesSyncResult = {
-  messages: ChatMessageResponse[];
-  mode: RoomMessagesFetchMode;
-};
-
-/** Supported room message query payloads across mobile cache and plain list consumers. */
-export type RoomMessagesQueryData = ChatMessageResponse[] | RoomMessagesSyncResult | undefined;
-
-function isRoomMessagesSyncResult(value: unknown): value is RoomMessagesSyncResult {
-  return Boolean(value)
-    && typeof value === "object"
-    && Array.isArray((value as RoomMessagesSyncResult).messages);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Normalizes supported room message query payloads into a plain message array. */
-export function extractRoomMessagesFromQueryData(data: RoomMessagesQueryData): ChatMessageResponse[] {
-  if (Array.isArray(data)) {
-    return data;
-  }
-  if (isRoomMessagesSyncResult(data)) {
-    return data.messages;
-  }
-  return [];
+function isMessage(value: unknown): value is Message {
+  return isRecord(value)
+    && typeof value.messageId === "number"
+    && typeof value.roomId === "number"
+    && typeof value.content === "string";
 }
 
-/** Applies a message-list updater while preserving the existing query data wrapper shape. */
+function isChatMessageResponse(value: unknown): value is ChatMessageResponse {
+  return isRecord(value) && isMessage(value.message);
+}
+
+function extractRoomMessages(value: unknown): ChatMessageResponse[] {
+  const rawList = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.data)
+      ? value.data
+      : isRecord(value) && isRecord(value.data) && Array.isArray(value.data.list)
+        ? value.data.list
+        : [];
+
+  return rawList.flatMap((item): ChatMessageResponse[] => {
+    if (isChatMessageResponse(item)) {
+      return [{ message: item.message }];
+    }
+    if (isMessage(item)) {
+      return [{ message: item }];
+    }
+    return [];
+  });
+}
+
 export function updateRoomMessagesQueryData(
   currentData: RoomMessagesQueryData,
-  updater: (messages: ChatMessageResponse[] | undefined) => ChatMessageResponse[],
-) {
+  updater: (messages: ChatMessageResponse[]) => ChatMessageResponse[],
+): RoomMessagesQueryData {
   if (Array.isArray(currentData)) {
-    return updater(currentData);
+    return updater(extractRoomMessages(currentData));
   }
-  if (isRoomMessagesSyncResult(currentData)) {
+  if (isRecord(currentData) && Array.isArray(currentData.data)) {
     return {
       ...currentData,
-      messages: updater(currentData.messages),
+      data: updater(extractRoomMessages(currentData.data)),
     };
   }
-  return updater(undefined);
+  if (isRecord(currentData) && isRecord(currentData.data) && Array.isArray(currentData.data.list)) {
+    return {
+      ...currentData,
+      data: {
+        ...currentData.data,
+        list: updater(extractRoomMessages(currentData.data.list)),
+      },
+    };
+  }
+  return currentData;
 }

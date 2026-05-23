@@ -15,10 +15,6 @@ export type RoomDndMapState = {
      */
     mapFileId?: number;
     /**
-     * 地图图片媒体类型
-     */
-    mapMediaType?: string;
-    /**
      * Grid rows
      */
     gridRows?: number;

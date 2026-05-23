@@ -7,7 +7,7 @@ import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/Cha
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-import { getDiceResultExtra } from "@tuanchat/domain/message-extra";
+import { getDiceResultExtra, getDiceTurnExtra } from "@tuanchat/domain/message-extra";
 
 export type RoomMessagesInfiniteQueryData = InfiniteData<
   ApiResultCursorPageBaseResponseChatMessageResponse,
@@ -169,6 +169,9 @@ export type RoomMessageVisibilityContext = {
 };
 
 export function isHiddenDiceMessage(message?: Message | null): boolean {
+  if (getDiceTurnExtra(message?.extra)) {
+    return false;
+  }
   return message?.messageType === MESSAGE_TYPE.DICE && getDiceResultExtra(message.extra)?.hidden === true;
 }
 
@@ -178,9 +181,6 @@ export function canViewRoomMessage(message: Message | undefined, context: RoomMe
   }
   if (message.status === 1) {
     return true;
-  }
-  if (message.threadId && message.threadId > 0) {
-    return false;
   }
   if (!isHiddenDiceMessage(message)) {
     return true;

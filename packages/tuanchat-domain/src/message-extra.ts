@@ -1,4 +1,7 @@
+import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { MessageExtra } from "@tuanchat/openapi-client/models/MessageExtra";
+
+import { hasHostPrivileges } from "./member-permissions";
 
 type MessageExtraKey = keyof MessageExtra;
 type NestedMessageExtra<K extends MessageExtraKey> = NonNullable<MessageExtra[K]>;
@@ -42,6 +45,50 @@ export function getDiceResultExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "diceResult");
 }
 
+export function getDiceTurnExtra(extra: unknown) {
+  return getNestedMessageExtra(extra, "diceTurn");
+}
+
+export function getDiceTurnCommandText(extra: unknown): string {
+  const command = getDiceTurnExtra(extra)?.command;
+  return typeof command === "string" ? command.trim() : "";
+}
+
+export function getDiceTurnReplies(extra: unknown) {
+  const replies = getDiceTurnExtra(extra)?.replies;
+  return Array.isArray(replies) ? replies : [];
+}
+
+export function getDiceTurnReplyText(extra: unknown): string {
+  return getDiceTurnReplies(extra)
+    .map(reply => typeof reply?.content === "string" ? reply.content.trim() : "")
+    .filter(Boolean)
+    .join("；");
+}
+
+export function canViewHiddenDiceTurnReply(
+  message: Message | null | undefined,
+  context: {
+    currentUserId?: number | null;
+    memberType?: number | null;
+  },
+): boolean {
+  const replies = getDiceTurnReplies(message?.extra);
+  if (replies.length === 0 || !replies.some(reply => reply?.hidden === true)) {
+    return true;
+  }
+
+  if (
+    typeof context.currentUserId === "number"
+    && context.currentUserId > 0
+    && context.currentUserId === message?.userId
+  ) {
+    return true;
+  }
+
+  return hasHostPrivileges(context.memberType);
+}
+
 export function getForwardMessageExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "forwardMessage");
 }
@@ -60,10 +107,6 @@ export function getDocCardExtra(extra: unknown) {
 
 export function getRoomJumpExtra(extra: unknown) {
   return getNestedMessageExtra(extra, "roomJump");
-}
-
-export function getThreadRootExtra(extra: unknown) {
-  return getNestedMessageExtra(extra, "threadRoot");
 }
 
 export function getStateEventExtra(extra: unknown) {

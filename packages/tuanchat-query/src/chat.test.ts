@@ -176,16 +176,15 @@ describe("chat room message helpers", () => {
     ]);
   });
 
-  it("过滤 thread reply 和无权查看的暗骰", () => {
+  it("过滤无权查看的暗骰", () => {
     const visible = createChatMessageResponse(1, 10);
-    const threadReply = createChatMessageResponse(2, 20, { threadId: 99 });
     const hiddenDice = createChatMessageResponse(3, 30, {
       extra: { diceResult: { hidden: true, result: "1d20=20" } },
       messageType: 6,
       userId: 8,
     });
 
-    expect(selectVisibleMainRoomMessages([visible, threadReply, hiddenDice], {
+    expect(selectVisibleMainRoomMessages([visible, hiddenDice], {
       currentUserId: 7,
       hasHostPrivileges: false,
     })).toEqual([visible]);
@@ -194,6 +193,27 @@ describe("chat room message helpers", () => {
       currentUserId: 7,
       hasHostPrivileges: true,
     })).toEqual([hiddenDice]);
+  });
+
+  it("保留 diceTurn 消息但继续隐藏旧式暗骰", () => {
+    const visible = createChatMessageResponse(1, 10);
+    const turnDice = createChatMessageResponse(4, 40, {
+      content: ".r 1d20",
+      extra: {
+        diceResult: { hidden: true, result: "1d20=20" },
+        diceTurn: {
+          command: ".r 1d20",
+          replies: [{ content: "1d20=20", hidden: true }],
+        },
+      },
+      messageType: 6,
+      userId: 8,
+    });
+
+    expect(selectVisibleMainRoomMessages([visible, turnDice], {
+      currentUserId: 7,
+      hasHostPrivileges: false,
+    })).toEqual([visible, turnDice]);
   });
 
   it("检测实时消息 syncId 缺口", () => {

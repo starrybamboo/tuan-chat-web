@@ -1,7 +1,10 @@
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 
+import type { ApiResultListMessage } from "@tuanchat/openapi-client/models/ApiResultListMessage";
 import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
+import type { RoomMessageStreamPatchRequest } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 export * from "./room-message";
@@ -64,9 +67,53 @@ export function useSendMessageMutation(client: ChatClient, roomId: number) {
   });
 }
 
-export function useBatchSendMessageMutation(client: ChatClient, roomId: number) {
+export function toRoomMessageInsertOperation(request: ChatMessageRequest): RoomMessageStreamPatchOperation {
+  return {
+    op: "insert",
+    message: {
+      messageType: request.messageType,
+      content: request.content ?? "",
+      ...(Array.isArray(request.annotations) ? { annotations: request.annotations } : {}),
+      extra: request.extra,
+      ...(request.webgal !== undefined ? { webgal: request.webgal } : {}),
+      ...(typeof request.roleId === "number" ? { roleId: request.roleId } : {}),
+      ...(typeof request.avatarId === "number" ? { avatarId: request.avatarId } : {}),
+      ...(typeof request.customRoleName === "string" ? { customRoleName: request.customRoleName } : {}),
+      ...(typeof request.replayMessageId === "number" ? { replayMessageId: request.replayMessageId } : {}),
+      ...(typeof request.position === "number" ? { position: request.position } : {}),
+    },
+  };
+}
+
+export async function patchInsertMessages(client: ChatClient, requests: ChatMessageRequest[]): Promise<ApiResultListMessage> {
+  if (requests.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  const requestsByRoomId = new Map<number, ChatMessageRequest[]>();
+  for (const request of requests) {
+    const roomRequests = requestsByRoomId.get(request.roomId) ?? [];
+    roomRequests.push(request);
+    requestsByRoomId.set(request.roomId, roomRequests);
+  }
+
+  const createdMessages: NonNullable<ApiResultListMessage["data"]> = [];
+  for (const [roomId, roomRequests] of requestsByRoomId) {
+    const result = await client.chatController.patchRoomMessages(roomId, {
+      operations: roomRequests.map(toRoomMessageInsertOperation),
+    });
+    if (!result.success) {
+      return result;
+    }
+    createdMessages.push(...(result.data ?? []));
+  }
+
+  return { success: true, data: createdMessages };
+}
+
+export function usePatchMessagesMutation(client: ChatClient, roomId: number) {
   return useMutation({
-    mutationFn: (req: ChatMessageRequest[]) => client.chatController.batchSendMessages(req),
-    mutationKey: ["batchSendMessage", roomId],
+    mutationFn: (req: RoomMessageStreamPatchRequest) => client.chatController.patchRoomMessages(roomId, req),
+    mutationKey: ["patchMessages", roomId],
   });
 }

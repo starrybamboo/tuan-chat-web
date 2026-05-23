@@ -26,7 +26,6 @@ import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
 import {
   type ApiResultRoleAbility,
-  type ApiResultUserRole,
   type ApiResultRoleAvatar,
   type RoleCreateRequest
 } from "api";
@@ -663,16 +662,11 @@ export function useCopyRoleMutation() {
         throw new Error("后端当前仅支持复制为骰娘");
       }
 
-      const copyRes = await tuanchat.request.request<ApiResultUserRole>({
-        method: "POST",
-        url: "/role/copy",
-        body: {
-          sourceRoleId: sourceRole.id,
-          newRoleName: newName?.trim() || undefined,
-          newRoleDescription: newDescription?.trim() || undefined,
-          targetType: 1,
-        },
-        mediaType: "application/json",
+      const copyRes = await tuanchat.roleController.copyRole({
+        sourceRoleId: sourceRole.id,
+        newRoleName: newName?.trim() || undefined,
+        newRoleDescription: newDescription?.trim() || undefined,
+        targetType: 1,
       });
 
       const copiedRole = copyRes?.data;
