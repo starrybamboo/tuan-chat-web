@@ -53,12 +53,12 @@ describe("messageEditor document click guard", () => {
     expect(getMessageEditorTextBlockShellClassName({
       hasFollowingTextBlock: true,
       isDragging: false,
-    })).toContain("mb-1");
+    })).toContain("mb-2");
 
     expect(getMessageEditorTextBlockShellClassName({
       hasFollowingTextBlock: false,
       isDragging: false,
-    })).not.toContain("mb-1");
+    })).not.toContain("mb-2");
   });
 
   it("treats svg descendants inside the text style toolbar as internal clicks", () => {
