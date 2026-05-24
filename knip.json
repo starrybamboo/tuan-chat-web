@@ -33,8 +33,7 @@
     "apps/mobile/.tmp/**",
     "api/core/request.ts",
     "api/novelai/core/request.ts",
-    "api/hooks/RoleAndAvatarHooks.tsx",
-    "app/shims/lzStringCompat.ts"
+    "api/hooks/RoleAndAvatarHooks.tsx"
   ],
   "ignoreDependencies": [
     "@babel/plugin-proposal-class-properties",
