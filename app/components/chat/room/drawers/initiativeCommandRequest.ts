@@ -1,5 +1,3 @@
-import type { StateEventAtom } from "@/types/stateEvent";
-
 import { buildUiStateEventExtra, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 
 import type { ChatMessageRequest, UserRole } from "../../../../../api";

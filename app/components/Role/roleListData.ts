@@ -4,8 +4,8 @@ import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 import type { Role } from "./types";
 
-import { resolveRoleAvatarMedia } from "./sprite/roleAvatarMedia";
 import { normalizeLegacyVoiceUrl } from "./roleVoiceMedia";
+import { resolveRoleAvatarMedia } from "./sprite/roleAvatarMedia";
 
 export type RoleListAvatarFields = UserRole & {
   avatarUrl?: string;

@@ -1,10 +1,10 @@
 import type { ChatMessageResponse, Message } from "../../../api";
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
-import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";

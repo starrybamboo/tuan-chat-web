@@ -4,8 +4,8 @@ import { DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
-import { hasRoleVoiceMedia } from "./roleVoiceMedia";
 import RoleSidebarActionCard from "./RoleSidebarActionCard";
+import { hasRoleVoiceMedia } from "./roleVoiceMedia";
 
 export interface CharacterDetailLeftPanelProps {
   isQueryLoading: boolean;

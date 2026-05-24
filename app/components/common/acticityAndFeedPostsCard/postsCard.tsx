@@ -128,7 +128,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
   ];
   const publishTime = res?.createTime ?? "";
   const content = res?.content ?? "";
-  const title = res?.title ?? "";
   const description = res?.description ?? "";
 
   // 渲染

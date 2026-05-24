@@ -8,9 +8,9 @@ import {
   resolveSoundPurposeFromAnnotations,
 } from "./message-annotations";
 import {
-  getDiceTurnExtra,
   getClueMessageExtra,
   getCommandRequestExtra,
+  getDiceTurnExtra,
   getDocCardExtra,
   getForwardMessageExtra,
   getRoomJumpExtra,

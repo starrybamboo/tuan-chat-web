@@ -1,8 +1,8 @@
+import type { MutableRefObject, WheelEvent } from "react";
 import type { ChatMessageResponse } from "../../../api";
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
-import type { MutableRefObject, WheelEvent } from "react";
 
 import { AnimatePresence, motion } from "motion/react";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";

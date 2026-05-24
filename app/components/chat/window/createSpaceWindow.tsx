@@ -9,8 +9,8 @@ import checkBack from "@/components/common/autoContrastText";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { DiceFiveIcon, PlusIcon, WebgalIcon } from "@/icons";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
+import { DiceFiveIcon, PlusIcon, WebgalIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
 
 interface CreateSpaceWindowProps {
@@ -141,6 +141,10 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
     }));
   }
 
+  function handleDiceMaidenLinkConfirm(nextDicerRoleId: number) {
+    setDicerRoleId(nextDicerRoleId > 0 ? nextDicerRoleId : undefined);
+  }
+
   async function createSpace() {
     if (!canSubmit) {
       return;
@@ -231,7 +235,10 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
           />
           <div className="mt-1.5 flex items-center justify-between text-[11px] text-base-content/45">
             <span>之后可在空间设置中修改</span>
-            <span>{spaceName.length}/32</span>
+            <span>
+              {spaceName.length}
+              /32
+            </span>
           </div>
         </div>
 
@@ -412,6 +419,12 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
           </div>
         </SettingsSection>
       </main>
+      <DiceMaidenLinkModal
+        isOpen={isDiceMaidenLinkModalOpen}
+        onClose={() => setIsDiceMaidenLinkModalOpen(false)}
+        currentDicerRoleId={dicerRoleId}
+        onConfirm={handleDiceMaidenLinkConfirm}
+      />
     </div>
   );
 }

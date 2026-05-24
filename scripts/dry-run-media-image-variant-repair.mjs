@@ -548,7 +548,7 @@ async function existsFile(filePath) {
 }
 
 function countReasons(variants, reason) {
-  return Object.values(variants).filter((variant) => variant.reasons.includes(reason)).length;
+  return Object.values(variants).filter(variant => variant.reasons.includes(reason)).length;
 }
 
 function isSupportedOriginalFormat(format) {
