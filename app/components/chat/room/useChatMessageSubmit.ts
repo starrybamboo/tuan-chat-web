@@ -419,9 +419,6 @@ export default function useChatMessageSubmit({
           avatarId: resolvedAvatarId,
           extra: toApiMessageExtraWithStateEvent(parsedStateCommand.stateEvent),
         };
-        if (typeof finalReplyId === "number") {
-          stateEventMsg.replayMessageId = finalReplyId;
-        }
         if (!isSpectator && mergedComposerAnnotations.length > 0) {
           stateEventMsg.annotations = mergedComposerAnnotations;
         }

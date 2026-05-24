@@ -672,7 +672,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       }
 
       const sendGeneratedStateEvent = async (options?: {
-        replayMessageId?: number;
         position?: number;
       }): Promise<void> => {
         if (stateEventAtoms.length === 0) {
@@ -684,7 +683,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           content: buildStateEventMessageContent(stateEventAtoms),
           roleId: curRoleId,
           avatarId: curAvatarId,
-          replayMessageId: options?.replayMessageId ?? executorProp.replyMessageId,
           position: options?.position,
           extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra(cmdPart, stateEventAtoms)),
         };
@@ -766,14 +764,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         commandMessageCommitted = true;
         const stateEventAnchorPosition = commandMessageMeta.commandPosition ?? fallbackCommandPosition;
         await sendGeneratedStateEvent({
-          replayMessageId: commandMessageMeta.commandMessageId,
           position: stateEventAnchorPosition + DICE_FOLLOWUP_POSITION_STEP,
         });
       }
       else {
         await discardOptimisticCommandMessage(pendingOptimisticCommandMessage);
         await sendGeneratedStateEvent({
-          replayMessageId: executorProp.replyMessageId,
           position: commandAnchorPosition,
         });
       }

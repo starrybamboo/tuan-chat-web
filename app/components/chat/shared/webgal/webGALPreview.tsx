@@ -3,11 +3,18 @@
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { use, useCallback, useEffect } from "react";
+import { use, useCallback, useEffect, useMemo, useRef } from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { fetchRoomDndMap, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
+import {
+  buildBattleOverlayMessage,
+  buildBattleOverlaySnapshot,
+} from "@/components/chat/shared/webgal/battleOverlaySnapshot";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
+import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
@@ -26,10 +33,14 @@ export default function WebGALPreview({
   className,
 }: WebGALPreviewProps) {
   const spaceContext = use(SpaceContext);
+  const roomContext = use(RoomContext);
   const spaceId = spaceContext.spaceId ?? null;
+  const roomId = typeof roomContext.roomId === "number" && roomContext.roomId > 0 ? roomContext.roomId : null;
+  const stateRuntime = useOptionalStateRuntimeContext();
   const queryClient = useQueryClient();
   const router = useRouter();
   const location = useLocation();
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
   const setRealtimeRenderQueryClient = useRealtimeRenderStore(state => state.setQueryClient);
@@ -44,6 +55,11 @@ export default function WebGALPreview({
   const realtimeStatus = useRealtimeRenderStore(state => state.status);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const mapQuery = useQuery({
+    enabled: roomId != null,
+    queryKey: roomDndMapQueryKey(roomId ?? -1),
+    queryFn: () => fetchRoomDndMap(roomId ?? -1),
+  });
 
   const isWebgalPaneActive = sideDrawerState === "webgal";
   const canOpenSpaceWebgalSettings = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0;
@@ -65,6 +81,26 @@ export default function WebGALPreview({
     realtimeStatus,
     isWebgalPaneActive,
   });
+  const battleOverlaySnapshot = useMemo(() => buildBattleOverlaySnapshot({
+    roomId,
+    map: mapQuery.data ?? null,
+    roles: roomContext.roomAllRoles ?? [],
+    runtime: stateRuntime,
+  }), [mapQuery.data, roomContext.roomAllRoles, roomId, stateRuntime]);
+  const postBattleOverlaySnapshot = useCallback(() => {
+    const targetWindow = iframeRef.current?.contentWindow;
+    if (!targetWindow) {
+      return;
+    }
+    targetWindow.postMessage(buildBattleOverlayMessage(battleOverlaySnapshot), "*");
+  }, [battleOverlaySnapshot]);
+
+  useEffect(() => {
+    if (!previewState.showPreviewFrame) {
+      return;
+    }
+    postBattleOverlaySnapshot();
+  }, [postBattleOverlaySnapshot, previewState.showPreviewFrame]);
 
   if (!previewState.showPreviewFrame) {
     return (
@@ -152,10 +188,12 @@ export default function WebGALPreview({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className={`${isResizing ? "pointer-events-none" : ""} flex items-center justify-center w-full h-full`}>
             <iframe
+              ref={iframeRef}
               src={previewUrl ?? undefined}
               title="WebGAL 实时预览"
               allow="autoplay; fullscreen"
               sandbox="allow-scripts allow-same-origin"
+              onLoad={postBattleOverlaySnapshot}
               style={{
                 width: "100%",
                 height: "auto",

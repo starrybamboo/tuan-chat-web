@@ -630,6 +630,10 @@ describe("useChatMessageSubmit", () => {
     });
 
     const roomUiStoreApi = createRoomUiStore();
+    roomUiStoreApi.getState().setReplyMessage({
+      ...createMessage(99),
+      content: "被回复的普通消息",
+    });
     const commandExecutor = vi.fn();
     const sendMessageWithInsert = vi.fn(async request => ({
       ...createMessage(20),
@@ -661,6 +665,7 @@ describe("useChatMessageSubmit", () => {
     await handleMessageSubmit();
 
     expect(commandExecutor).not.toHaveBeenCalled();
+    expect(sendMessageWithInsert.mock.calls[0]?.[0]).not.toHaveProperty("replayMessageId");
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: ".st hp -2",
