@@ -1,13 +1,23 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+export type RoomMessagesFetchMode = "full" | "delta";
+
+export type RoomMessagesSyncResult = {
+  messages: ChatMessageResponse[];
+  mode: RoomMessagesFetchMode;
+};
+
+type RoomMessagesLegacyQueryData = {
+  data?: ChatMessageResponse[] | {
+    list?: ChatMessageResponse[];
+  };
+};
+
 export type RoomMessagesQueryData =
   | ChatMessageResponse[]
-  | {
-      data?: ChatMessageResponse[] | {
-        list?: ChatMessageResponse[];
-      };
-    }
+  | RoomMessagesSyncResult
+  | RoomMessagesLegacyQueryData
   | undefined;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -25,14 +35,22 @@ function isChatMessageResponse(value: unknown): value is ChatMessageResponse {
   return isRecord(value) && isMessage(value.message);
 }
 
+function isRoomMessagesSyncResult(value: unknown): value is RoomMessagesSyncResult {
+  return isRecord(value)
+    && Array.isArray((value as { messages?: unknown }).messages)
+    && typeof (value as { mode?: unknown }).mode === "string";
+}
+
 function extractRoomMessages(value: unknown): ChatMessageResponse[] {
   const rawList = Array.isArray(value)
     ? value
-    : isRecord(value) && Array.isArray(value.data)
-      ? value.data
-      : isRecord(value) && isRecord(value.data) && Array.isArray(value.data.list)
-        ? value.data.list
-        : [];
+    : isRoomMessagesSyncResult(value)
+      ? value.messages
+      : isRecord(value) && Array.isArray(value.data)
+        ? value.data
+        : isRecord(value) && isRecord(value.data) && Array.isArray(value.data.list)
+          ? value.data.list
+          : [];
 
   return rawList.flatMap((item): ChatMessageResponse[] => {
     if (isChatMessageResponse(item)) {
@@ -45,17 +63,29 @@ function extractRoomMessages(value: unknown): ChatMessageResponse[] {
   });
 }
 
+export function extractRoomMessagesFromQueryData(currentData: RoomMessagesQueryData): ChatMessageResponse[] {
+  return extractRoomMessages(currentData);
+}
+
 export function updateRoomMessagesQueryData(
   currentData: RoomMessagesQueryData,
   updater: (messages: ChatMessageResponse[]) => ChatMessageResponse[],
 ): RoomMessagesQueryData {
+  const nextMessages = updater(extractRoomMessages(currentData));
+
   if (Array.isArray(currentData)) {
-    return updater(extractRoomMessages(currentData));
+    return nextMessages;
+  }
+  if (isRoomMessagesSyncResult(currentData)) {
+    return {
+      ...currentData,
+      messages: nextMessages,
+    };
   }
   if (isRecord(currentData) && Array.isArray(currentData.data)) {
     return {
       ...currentData,
-      data: updater(extractRoomMessages(currentData.data)),
+      data: nextMessages,
     };
   }
   if (isRecord(currentData) && isRecord(currentData.data) && Array.isArray(currentData.data.list)) {
@@ -63,9 +93,9 @@ export function updateRoomMessagesQueryData(
       ...currentData,
       data: {
         ...currentData.data,
-        list: updater(extractRoomMessages(currentData.data.list)),
+        list: nextMessages,
       },
     };
   }
-  return currentData;
+  return nextMessages;
 }
