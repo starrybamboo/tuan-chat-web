@@ -58,7 +58,7 @@ const paletteList = [
 
 const EMPTY_HEADER_ACTIONS: MaterialPackageLibraryAction[] = [];
 const EMPTY_SHORTCUTS: MaterialPackageLibraryShortcut[] = [];
-const materialCardGridClassName = "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+const materialCardGridClassName = "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 
 function getPlaceholderPalette(seed: string) {
   const normalized = seed.trim();
@@ -258,7 +258,7 @@ export default function MaterialPackageLibraryWorkspace({
                 </div>
               )}
 
-              <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-[22rem]">
+              <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-88">
                 <label className="flex h-9 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
                   <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
                   <input

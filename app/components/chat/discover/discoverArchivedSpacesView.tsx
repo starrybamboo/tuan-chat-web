@@ -286,7 +286,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
     ? filteredRootRepositories.length
     : filteredArchivedRepositoryGroups.length;
   const topBarInfo = isLoading ? "加载中" : `仓库数量 ${totalCount}`;
-  const cardGridClassName = "grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+  const cardGridClassName = "grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 
   const toggleExpandedRepo = (repositoryId: number) => {
     setExpandedRepoIds(prev => (prev.includes(repositoryId)
@@ -335,7 +335,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         {topBarInfo}
                       </span>
                     </div>
-                    <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-[22rem]">
+                    <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-88">
                       <label className="flex h-9 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
                         <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
                         <input
@@ -380,7 +380,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       <div className="text-2xl sm:text-4xl font-extrabold tracking-tight">
                         {mode === "my" ? "这里是你的归档仓库" : "探索可发现的仓库"}
                       </div>
-                      <div className="mt-3 text-sm sm:text-base text-base-content/70 max-w-2xl">
+                      <div className="mt-2 text-sm sm:text-base text-base-content/70 max-w-2xl">
                         {mode === "my"
                           ? "这里汇总你归档过的空间对应仓库，方便按仓库回看。"
                           : "浏览根仓库，进入详情后可查看 fork 列表或进一步操作。"}
