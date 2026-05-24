@@ -40,9 +40,6 @@ function splitVendorChunk(id: string): string | undefined {
   return undefined;
 }
 
-/**
- * Fix CommonJS default export issues for modules that still surface interop problems in dev.
- */
 function ossUploadProxyPlugin(): Plugin {
   const readBody = async (req: any) => {
     const chunks: Buffer[] = [];
@@ -219,12 +216,7 @@ export default defineConfig(() => {
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
-      // NOTE:
-      // Some upstream packages ship vanilla-extract sources that should stay as
-      // transforms instead of being evaluated while the production build runs.
-      vanillaExtractPlugin({
-        unstable_mode: "transform",
-      }),
+      vanillaExtractPlugin(),
 
       react(),
       babel({
