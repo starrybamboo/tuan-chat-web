@@ -1,6 +1,9 @@
 {
   "entry": [
     "app/routes/__root.tsx",
+    "app/main.tsx",
+    "app/router.tsx",
+    "app/routeTree.gen.ts",
     "app/routes/**/*.{ts,tsx}",
     "app/**/*.test.{ts,tsx}",
     "app/**/*.e2e.test.{ts,tsx}",
@@ -13,7 +16,9 @@
     "apps/mobile/app.json",
     "apps/mobile/metro.config.js",
     "electron/main.js",
-    "electron/preload.js",
+    "electron/preload.cjs",
+    "packages/*/src/index.ts",
+    "packages/**/*.test.{ts,tsx}",
     "scripts/**/*.mjs",
     "vite.config.ts"
   ],
@@ -23,14 +28,21 @@
     "apps/mobile/src/**/*.{ts,tsx}",
     "apps/mobile/scripts/**/*.js",
     "electron/**/*.{js,ts}",
+    "packages/*/src/**/*.{ts,tsx}",
     "scripts/**/*.{js,mjs,ts}"
   ],
   "ignore": [
+    ".codex-tmp/**",
+    ".tanstack/tmp/**",
+    ".tmp/**",
     "build/**",
     "dist/**",
     "node_modules/**",
     "release/**",
+    "scripts/__pycache__/**",
+    "apps/mobile/.expo-export-web/**",
     "apps/mobile/.tmp/**",
+    "app/routeTree.gen.ts",
     "api/core/request.ts",
     "api/novelai/core/request.ts",
     "api/hooks/RoleAndAvatarHooks.tsx"
