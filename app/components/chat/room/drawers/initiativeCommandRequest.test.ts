@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { MessageType } from "../../../../../api/wsModels";
 import {
   ALL_INITIATIVE_COMMAND,
-  END_COMBAT_CONTENT,
   buildEndCombatMessageRequest,
+  END_COMBAT_CONTENT,
   executeAllInitiativeRolls,
 } from "./initiativeCommandRequest";
 
@@ -64,5 +64,4 @@ describe("initiativeCommandRequest", () => {
       },
     });
   });
-
 });

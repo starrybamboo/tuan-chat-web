@@ -196,7 +196,7 @@ function getInitiativeExtraModifier(args: string[], curAbility: RoleAbility): nu
 
 async function rollInitiativeForRole(args: string[], role: UserRole, cpi: CPI): Promise<number> {
   const curAbility = await cpi.getRoleAbilityList(role.roleId);
-  const { initMod, desc } = getInitiativeModifier(curAbility);
+  const { initMod } = getInitiativeModifier(curAbility);
   const extraMod = getInitiativeExtraModifier(args, curAbility);
   const diceResult = rollD20("normal");
   const total = diceResult.total + initMod + extraMod;

@@ -1,4 +1,5 @@
 import type { CommentVO } from "api";
+import type { CommentTargetInfo } from "../../../../api/hooks/commentQueryHooks";
 import type { CommentContextType } from "@/components/common/comment/commentContext";
 import { useMemo } from "react";
 import CommentComponent from "@/components/common/comment/commentComponent";
@@ -6,11 +7,11 @@ import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import {
+
   DEFAULT_COMMENT_CHILD_LIMIT,
   DEFAULT_COMMENT_MAX_LEVEL,
   normalizeCommentTreeQueryOptions,
   useGetCommentPageInfiniteQuery,
-  type CommentTargetInfo,
 } from "../../../../api/hooks/commentQueryHooks";
 
 type CommentPanelDisplayMode = "threaded" | "flat";

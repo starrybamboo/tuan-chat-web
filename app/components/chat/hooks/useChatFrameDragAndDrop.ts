@@ -107,7 +107,6 @@ export default function useChatFrameDragAndDrop({
     setIsDragging(false);
     detachWindowDragOver();
     cleanupDragState();
-    cleanupMessageDragGhost();
   }, [cleanupDragState, detachWindowDragOver]);
 
   const handleMoveMessages = useCallback((

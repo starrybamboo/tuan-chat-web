@@ -14,11 +14,11 @@ type RoomMessagesLegacyQueryData = {
   };
 };
 
-export type RoomMessagesQueryData =
-  | ChatMessageResponse[]
-  | RoomMessagesSyncResult
-  | RoomMessagesLegacyQueryData
-  | undefined;
+export type RoomMessagesQueryData
+  = | ChatMessageResponse[]
+    | RoomMessagesSyncResult
+    | RoomMessagesLegacyQueryData
+    | undefined;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === "object" && !Array.isArray(value);

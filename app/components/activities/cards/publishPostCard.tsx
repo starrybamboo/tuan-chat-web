@@ -1,4 +1,5 @@
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+import type { PublishPostImageAsset } from "./publishPostMedia";
 import React, { useEffect, useRef, useState } from "react";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -11,7 +12,7 @@ import {
   buildMomentFeedRequestFromPostMedia,
   createStickerPublishImage,
   getPublishPostImagePreviewUrl,
-  type PublishPostImageAsset,
+
 } from "./publishPostMedia";
 
 interface PublishBoxProps {

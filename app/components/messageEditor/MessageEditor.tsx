@@ -13,7 +13,7 @@ import type { MessageEditorController } from "./runtime/messageEditorController"
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
 import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
@@ -24,12 +24,12 @@ import { parseImportedChatText } from "@/components/chat/utils/importChatText";
 
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { UploadUtils } from "@/utils/UploadUtils";
 import {
   readImageDimensions,
   readMediaDuration,
   readVideoDimensions,
 } from "@/utils/mediaMetadata";
+import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
@@ -638,7 +638,7 @@ export default function MessageEditor({
   title,
   workspaceId,
 }: MessageEditorProps) {
-  const roomContext = useContext(RoomContext);
+  const roomContext = use(RoomContext);
   const frameClassName = getMessageEditorFrameClassName(className);
   const resolvedTitle = title?.trim() || tcHeader?.fallbackTitle?.trim() || "消息";
   const resolvedCoverUrl = coverUrl || tcHeader?.fallbackImageUrl || "";
@@ -1096,10 +1096,10 @@ export default function MessageEditor({
             });
           })()
         : shouldUseLocalSnapshot
-            ? setPersistedDocSnapshot(resolvedDocId, snapshot).then(() => {
-                setCachedDocSnapshot(resolvedDocId, snapshot);
-              })
-            : Promise.resolve();
+          ? setPersistedDocSnapshot(resolvedDocId, snapshot).then(() => {
+              setCachedDocSnapshot(resolvedDocId, snapshot);
+            })
+          : Promise.resolve();
 
       void persistTask
         .then(() => {

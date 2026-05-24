@@ -1,5 +1,6 @@
 import type { CommentTimelineVO } from "api";
 
+import type { CommentTargetInfo } from "../../../api/hooks/commentQueryHooks";
 import { use, useMemo, useState } from "react";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
@@ -8,7 +9,7 @@ import { buildMediaContentPreview } from "@/components/common/content/mediaConte
 import MediaContentView from "@/components/common/content/mediaContentView";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CloseIcon } from "@/icons";
-import { useDeleteCommentMutation, useGetCommentTimelineInfiniteQuery, type CommentTargetInfo } from "../../../api/hooks/commentQueryHooks";
+import { useDeleteCommentMutation, useGetCommentTimelineInfiniteQuery } from "../../../api/hooks/commentQueryHooks";
 
 interface FeedbackIssueTimelineProps {
   commentCount: number;

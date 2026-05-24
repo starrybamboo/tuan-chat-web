@@ -281,7 +281,6 @@ const cmdRi = new CommandExecutor(
 
     // 优先查找 "先攻" 或 "Initiative"
     let initMod = 0;
-    let desc = "";
 
     const initKeys = ["先攻", "Initiative", "initiative", "Init", "init"];
     let found = false;
@@ -291,7 +290,6 @@ const cmdRi = new CommandExecutor(
       if (val) {
         initMod = Number.parseInt(val);
         if (!Number.isNaN(initMod)) {
-          desc = `${key}(${initMod})`;
           found = true;
           break;
         }
@@ -305,7 +303,6 @@ const cmdRi = new CommandExecutor(
         const val = getDndModifier(curAbility, key);
         if (val && val.type === "Attribute") {
           initMod = val.value;
-          desc = `${key}调整值(${initMod})`;
           found = true;
           break;
         }

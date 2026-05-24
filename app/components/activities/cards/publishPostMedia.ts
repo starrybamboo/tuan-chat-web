@@ -1,5 +1,5 @@
-import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { MomentFeedRequest } from "@tuanchat/openapi-client/models/MomentFeedRequest";
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
 import { mediaFileUrl } from "@/utils/mediaUrl";
 

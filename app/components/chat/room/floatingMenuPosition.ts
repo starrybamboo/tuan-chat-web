@@ -1,12 +1,12 @@
-export interface FloatingMenuPoint {
+export type FloatingMenuPoint = {
   x: number;
   y: number;
-}
+};
 
-export interface FloatingMenuSize {
+export type FloatingMenuSize = {
   width: number;
   height: number;
-}
+};
 
 export function createFloatingMenuAnchorFromElement(
   element: { getBoundingClientRect: () => Pick<DOMRect, "right" | "top"> },
