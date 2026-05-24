@@ -22,6 +22,8 @@ export interface ToastWindowOptions {
   hiddenScrollbar?: boolean;
   disableScroll?: boolean;
   showCloseButton?: boolean;
+  panelClassName?: string;
+  bodyClassName?: string;
 }
 
 export interface ToastWindowData {
@@ -75,6 +77,8 @@ export function ToastWindowRenderer() {
           hiddenScrollbar={window.options.hiddenScrollbar}
           disableScroll={window.options.disableScroll}
           showCloseButton={window.options.showCloseButton}
+          panelClassName={window.options.panelClassName}
+          bodyClassName={window.options.bodyClassName}
           onClose={window.onClose}
         >
           {window.children}

@@ -74,3 +74,10 @@ export const reactionPanelMotionProps: MotionProps = {
   exit: { opacity: 0, scale: 0.94, y: 8 },
   transition: { type: "spring", stiffness: 460, damping: 30, mass: 0.7 },
 };
+
+export const messageFilterToggleSweepMotionProps: MotionProps = {
+  initial: { opacity: 0, x: "-28%" },
+  animate: { opacity: [0, 0.72, 0], x: ["-28%", "18%", "42%"] },
+  exit: { opacity: 0 },
+  transition: { duration: 0.58, ease: [0.16, 1, 0.3, 1] },
+};

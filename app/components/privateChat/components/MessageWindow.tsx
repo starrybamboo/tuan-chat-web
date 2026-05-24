@@ -1,4 +1,5 @@
 import { useScroll } from "../hooks/useScroll";
+import { buildPrivateChatTimelineEntries } from "../utils/privateChatTimeline";
 import MessageBubble from "./MessageBubble";
 import UserSearch from "./UserSearch";
 
@@ -17,6 +18,7 @@ export default function MessageWindow({
 }) {
   // 消息列表滚动hook（消息）
   const { scrollContainerRef, messagesLatestRef } = useScroll({ currentContactUserId, allMessages });
+  const timelineEntries = buildPrivateChatTimelineEntries(allMessages);
 
   return (
     <div
@@ -28,13 +30,28 @@ export default function MessageWindow({
         ? (
             <div key={currentContactUserId} className="private-direct-message-list-entry flex flex-col gap-1 px-1 py-2">
               {/* 消息列表项 */}
-              {allMessages.map((msg, index) => {
-                const groupedWithPrevious = isSameSender(allMessages[index - 1], msg);
+              {timelineEntries.map((entry, index) => {
+                if (entry.type === "date-divider") {
+                  return (
+                    <div
+                      key={`date-divider-${index}-${entry.label}`}
+                      className="flex items-center gap-3 py-3 text-xs text-base-content/45"
+                    >
+                      <div className="h-px flex-1 bg-base-content/10" />
+                      <span className="shrink-0 rounded-full bg-base-200 px-3 py-1 font-medium tracking-wide">
+                        {entry.label}
+                      </span>
+                      <div className="h-px flex-1 bg-base-content/10" />
+                    </div>
+                  );
+                }
+
+                const groupedWithPrevious = isSameSender(allMessages[entry.messageIndex - 1], entry.message);
                 return (
                   <MessageBubble
-                    key={msg.messageId}
-                    message={msg}
-                    isOwn={msg.senderId === userId}
+                    key={entry.message.messageId}
+                    message={entry.message}
+                    isOwn={entry.message.senderId === userId}
                     groupedWithPrevious={groupedWithPrevious}
                   />
                 );

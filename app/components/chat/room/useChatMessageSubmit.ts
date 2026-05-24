@@ -27,7 +27,6 @@ type CommandExecutor = (payload: {
   command: string;
   mentionedRoles?: UserRole[];
   originMessage?: string;
-  threadId?: number;
   replyMessageId?: number;
 }) => void;
 
@@ -112,12 +111,8 @@ function applyRequestContext(
   context: {
     customRoleName?: string;
     replayMessageId?: number;
-    threadId?: number;
   },
 ) {
-  if (typeof context.threadId === "number") {
-    request.threadId = context.threadId;
-  }
   if (typeof context.replayMessageId === "number") {
     request.replayMessageId = context.replayMessageId;
   }
@@ -141,7 +136,6 @@ function buildPendingAttachmentRequests(params: {
   replayMessageId?: number;
   roleId: number;
   roomId: number;
-  threadId?: number;
 }): ChatMessageRequest[] {
   const requests: ChatMessageRequest[] = [];
   let content = resolvePendingMediaContent(params.content);
@@ -153,7 +147,6 @@ function buildPendingAttachmentRequests(params: {
     applyRequestContext(request, {
       customRoleName: params.customRoleName,
       replayMessageId: !params.hasConsumedFirstMessage && requests.length === 0 ? params.replayMessageId : undefined,
-      threadId: params.threadId,
     });
     requests.push(request);
     content = "";
@@ -354,14 +347,9 @@ export default function useChatMessageSubmit({
     try {
       const {
         replyMessage,
-        threadRootMessageId: activeThreadRootId,
-        composerTarget,
         insertAfterMessageId,
       } = roomUiStoreApi.getState();
       const finalReplyId = replyMessage?.messageId || undefined;
-      const activeThreadId = composerTarget === "thread" && activeThreadRootId
-        ? activeThreadRootId
-        : undefined;
       const draftCustomRoleName = (() => {
         if (!(senderRoleId > 0)) {
           return undefined;
@@ -431,9 +419,6 @@ export default function useChatMessageSubmit({
           avatarId: resolvedAvatarId,
           extra: toApiMessageExtraWithStateEvent(parsedStateCommand.stateEvent),
         };
-        if (typeof activeThreadId === "number") {
-          stateEventMsg.threadId = activeThreadId;
-        }
         if (typeof finalReplyId === "number") {
           stateEventMsg.replayMessageId = finalReplyId;
         }
@@ -466,9 +451,6 @@ export default function useChatMessageSubmit({
             },
           },
         };
-        if (typeof activeThreadId === "number") {
-          requestMsg.threadId = activeThreadId;
-        }
         if (typeof finalReplyId === "number") {
           requestMsg.replayMessageId = finalReplyId;
         }
@@ -502,9 +484,6 @@ export default function useChatMessageSubmit({
             },
           },
         };
-        if (typeof activeThreadId === "number") {
-          roomJumpMsg.threadId = activeThreadId;
-        }
         if (typeof finalReplyId === "number") {
           roomJumpMsg.replayMessageId = finalReplyId;
         }
@@ -528,7 +507,6 @@ export default function useChatMessageSubmit({
           command: commandInputText,
           mentionedRoles: mentionedRolesInInput,
           originMessage: inputText,
-          threadId: activeThreadId,
           replyMessageId: finalReplyId,
         });
         hasCommittedOutboundMessage = true;
@@ -551,7 +529,6 @@ export default function useChatMessageSubmit({
           replayMessageId: finalReplyId,
           roleId: senderRoleId,
           roomId,
-          threadId: activeThreadId,
         });
         pendingAttachmentOptimisticMessages = insertLocalOptimisticMessages(pendingAttachmentRequests);
       }
@@ -571,7 +548,6 @@ export default function useChatMessageSubmit({
 
       const regularRequests = regularDrafts.map((draft, index) => buildChatMessageRequestFromDraft(draft, {
         roomId,
-        threadId: activeThreadId,
         replayMessageId: (hasConsumedFirstMessage || index > 0) ? undefined : finalReplyId,
         roleId: senderRoleId,
         avatarId: resolvedAvatarId,

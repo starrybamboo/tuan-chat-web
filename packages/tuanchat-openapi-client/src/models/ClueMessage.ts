@@ -2,11 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { Snapshot } from './Snapshot';
 export type ClueMessage = {
-    snapshot: {
-        messageType: number;
-        content: string;
-        extra?: Record<string, any>;
-    };
+    snapshot: Snapshot;
 };
 

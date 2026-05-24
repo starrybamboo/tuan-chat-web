@@ -3,6 +3,7 @@ import type { CommandInfo } from "./command-request";
 const PUBLIC_COMMANDS: CommandInfo[] = [
   { name: "r", alias: ["r"], description: "掷骰", examples: [".r 1d100", ".r 3d6*5", ".r"], usage: ".r [掷骰表达式]" },
   { name: "rd", alias: ["rd"], description: "快捷掷单骰", examples: [".rd", ".rd20", ".rd 6"], usage: ".rd [骰子面数/表达式]" },
+  { name: "ri", alias: [], description: "读取敏捷先攻", examples: [".ri"], usage: ".ri" },
   { name: "st", alias: [], description: "属性设置", examples: [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10"], usage: ".st [属性名][属性值] / .st show [属性名]..." },
   { name: "set", alias: ["set", "alias"], description: "设置自定义变量", examples: [".set 手枪 1d8+1d4", ".set 闪电旋风劈 6d10"], usage: ".set [变量名] [变量内容]" },
   { name: "get", alias: ["use"], description: "读取自定义变量", examples: [".get 手枪", ".get 闪电旋风劈"], usage: ".get [变量名]" },

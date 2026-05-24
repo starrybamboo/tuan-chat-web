@@ -5,7 +5,7 @@
 ## 核心原则
 
 1. 同一类图片尽量复用同一压缩标准，避免同尺寸不同体积上限。
-2. 展示图用于 Web 端加载速度与带宽控制；原图字段用于后续裁剪、导出和桌面端打包。
+2. 展示图用于 Web 端加载速度与带宽控制；原图字段用于后续裁剪、导出和桌面端打包，但图片 original 也必须是 WebP。
 3. 小尺寸头像统一使用 `200px / 40KB`，`avatarThumb` 与 `smallThumbnail` 复用同一个 `image/low` 物理档。
 4. 大图预览、二次裁剪、桌面端打包不得依赖缩略图，应使用对应的 original 字段。
 
@@ -13,6 +13,7 @@
 
 | Preset | 用途 | 最大边 | 目标体积 | 质量 |
 | --- | --- | ---: | ---: | ---: |
+| `originalImage` | 图片 original | 2560px | 3MiB | 0.82 |
 | `smallThumbnail` | 非头像类小缩略图 | 200px | 40KB | 0.72 |
 | `listCover` | 普通列表封面 | 512px | 150KB | 0.76 |
 | `cardCover` | 卡片封面 | 512px | 150KB | 0.76 |
@@ -26,7 +27,7 @@
 
 | 字段 | 是否压缩 | 标准 | 用途 |
 | --- | --- | --- | --- |
-| `avatarOriginalUrl` | 否 | 原图 | 头像二次裁剪、导出、桌面端高质量资源 |
+| `avatarOriginalUrl` | 是 | `originalImage`，2560px / 3MiB WebP | 头像二次裁剪、导出、桌面端高质量资源 |
 | `avatarUrl` | 是 | `avatar`，512px / 150KB | 角色详情、头像管理、中大尺寸头像展示 |
 | `avatarThumbUrl` | 是 | `avatarThumb`，200px / 40KB | 消息头像、角色列表、选择器、提及、小尺寸头像 |
 

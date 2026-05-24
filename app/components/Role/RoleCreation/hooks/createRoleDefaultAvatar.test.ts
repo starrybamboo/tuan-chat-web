@@ -38,7 +38,7 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
     vi.unstubAllGlobals();
   });
 
-  it("创建默认头像后会把已有头像文件补成默认立绘并写入缓存", async () => {
+  it("默认头像已有头像文件时不会把头像文件复制成立绘", async () => {
     const queryClient = createQueryClient();
     getRoleAvatarMock.mockResolvedValueOnce({
       success: true,
@@ -48,32 +48,15 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
         avatarFileId: 56,
       },
     });
-    updateRoleAvatarMock.mockResolvedValueOnce({
-      success: true,
-      data: {
-        avatarId: 34,
-        roleId: 12,
-        avatarFileId: 56,
-        spriteFileId: 56,
-      },
-    });
 
     const avatar = await ensureCreatedRoleDefaultAvatar(queryClient, 12, 34);
 
     expect(getRoleAvatarMock).toHaveBeenCalledWith(34);
-    expect(updateRoleAvatarMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        avatarId: 34,
-        roleId: 12,
-        avatarFileId: 56,
-        spriteFileId: 56,
-      }),
-    );
+    expect(updateRoleAvatarMock).not.toHaveBeenCalled();
     expect(avatar).toMatchObject({
       avatarId: 34,
       roleId: 12,
       avatarFileId: 56,
-      spriteFileId: 56,
     });
     expect(queryClient.getQueryData(["getRoleAvatars", 12])).toMatchObject({
       success: true,
@@ -82,13 +65,12 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
           avatarId: 34,
           roleId: 12,
           avatarFileId: 56,
-          spriteFileId: 56,
         },
       ],
     });
   });
 
-  it("默认头像没有媒体文件时，会上传默认图并同时写入头像和立绘", async () => {
+  it("默认头像没有媒体文件时，只上传并写入头像槽位", async () => {
     const queryClient = createQueryClient();
     vi.stubGlobal("fetch", vi.fn<() => Promise<Response>>().mockRejectedValue(new Error("cors")));
     uploadMediaFileMock.mockResolvedValueOnce({
@@ -109,7 +91,6 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
         avatarId: 34,
         roleId: 12,
         avatarFileId: 91,
-        spriteFileId: 91,
       },
     });
 
@@ -121,14 +102,12 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
         avatarId: 34,
         roleId: 12,
         avatarFileId: 91,
-        spriteFileId: 91,
       }),
     );
     expect(avatar).toMatchObject({
       avatarId: 34,
       roleId: 12,
       avatarFileId: 91,
-      spriteFileId: 91,
     });
   });
 

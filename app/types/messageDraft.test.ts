@@ -105,6 +105,45 @@ describe("messageDraft request normalization", () => {
     });
   });
 
+  it("文档卡片有封面 fileId 时不会把 legacy imageUrl 写入发送请求", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DOC_CARD, {
+      docCard: {
+        docId: " 42 ",
+        spaceId: "7",
+        title: " 调查笔记 ",
+        imageUrl: " https://legacy.example.com/cover.png ",
+        imageFileId: "123",
+        originalImageFileId: "456",
+        imageMediaType: " image ",
+        excerpt: " 摘要 ",
+      },
+    })).toEqual({
+      docCard: {
+        docId: "42",
+        spaceId: 7,
+        title: "调查笔记",
+        imageFileId: 123,
+        originalImageFileId: 456,
+        imageMediaType: "image",
+        excerpt: "摘要",
+      },
+    });
+  });
+
+  it("文档卡片没有封面 fileId 时保留同槽位 legacy imageUrl 兼容读取", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DOC_CARD, {
+      docCard: {
+        docId: "42",
+        imageUrl: " https://legacy.example.com/cover.png ",
+      },
+    })).toEqual({
+      docCard: {
+        docId: "42",
+        imageUrl: "https://legacy.example.com/cover.png",
+      },
+    });
+  });
+
   it("保留 clue card 的消息快照", () => {
     const request = buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.CLUE_CARD,
@@ -136,26 +175,6 @@ describe("messageDraft request normalization", () => {
             },
           },
         },
-      },
-    });
-  });
-
-  it("thread root 请求也统一走 threadRoot 包装层", () => {
-    const request = buildChatMessageRequestFromDraft({
-      messageType: MESSAGE_TYPE.THREAD_ROOT,
-      content: "子区标题",
-      extra: {
-        threadRoot: {
-          title: " 子区标题 ",
-        },
-      },
-    } as any, {
-      roomId: 1,
-    });
-
-    expect(request.extra).toEqual({
-      threadRoot: {
-        title: "子区标题",
       },
     });
   });
@@ -315,6 +334,42 @@ describe("messageDraft request normalization", () => {
       diceResult: {
         result: "D100=42/80 成功",
         hidden: true,
+      },
+      diceTurn: {
+        replies: [{
+          content: "D100=42/80 成功",
+          hidden: true,
+        }],
+      },
+    });
+  });
+
+  it("diceTurn 请求会派生兼容 diceResult", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
+      diceTurn: {
+        command: " .r 1d20 ",
+        replies: [{
+          content: " D20=19 ",
+          hidden: "true",
+          roleId: "7",
+          avatarId: "8",
+          customRoleName: " 骰娘 ",
+        }],
+      },
+    })).toEqual({
+      diceResult: {
+        result: "D20=19",
+        hidden: true,
+      },
+      diceTurn: {
+        command: ".r 1d20",
+        replies: [{
+          content: "D20=19",
+          hidden: true,
+          roleId: 7,
+          avatarId: 8,
+          customRoleName: "骰娘",
+        }],
       },
     });
   });

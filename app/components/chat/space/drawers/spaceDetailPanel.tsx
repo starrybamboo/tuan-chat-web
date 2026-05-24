@@ -5,9 +5,9 @@ import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import RoleList from "@/components/chat/shared/components/roleLists";
-import { canInviteSpectators, canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
+import SpaceInvitePanel from "@/components/chat/space/spaceInvitePanel";
+import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
-import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
@@ -62,8 +62,6 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
-  const [inviteMemberMode, setInviteMemberMode] = useState<"spectator" | "player">("player");
-  const canInvitePlayers = canManageMemberPermissions(spaceContext.memberType);
   const canInviteMembers = canInviteSpectators(spaceContext.memberType);
 
   const addMemberMutation = useAddSpaceMemberMutation();
@@ -103,7 +101,6 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
       }, {
         onSettled: () => {
           setIsMemberHandleOpen(false);
-          setInviteMemberMode("spectator");
         },
       });
     };
@@ -223,67 +220,14 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
         isOpen={canInviteMembers && isMemberHandleOpen}
         onClose={() => {
           setIsMemberHandleOpen(false);
-          setInviteMemberMode(canInvitePlayers ? "player" : "spectator");
         }}
+        disableScroll={true}
+        panelClassName="!max-w-none !p-0 overflow-hidden rounded-lg border border-base-300/70 shadow-2xl"
       >
-        <div className="w-[min(720px,92vw)]">
-          {canInvitePlayers
-            ? (
-                <div className="mb-3">
-                  <div className="text-sm font-medium opacity-80 mb-2">邀请类型</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <label
-                      className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${inviteMemberMode === "player" ? "bg-base-200" : "bg-base-100"}`}
-                    >
-                      <input
-                        type="radio"
-                        name="space_invite_mode_panel"
-                        className="radio radio-sm mt-1"
-                        checked={inviteMemberMode === "player"}
-                        onChange={() => setInviteMemberMode("player")}
-                        aria-label="邀请玩家"
-                      />
-                      <div className="min-w-0">
-                        <div className="font-medium">邀请玩家</div>
-                        <div className="text-xs opacity-70">加入空间后会自动授予玩家身份</div>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`flex items-start gap-3 rounded-lg border border-base-300 p-3 cursor-pointer ${inviteMemberMode === "spectator" ? "bg-base-200" : "bg-base-100"}`}
-                    >
-                      <input
-                        type="radio"
-                        name="space_invite_mode_panel"
-                        className="radio radio-sm mt-1"
-                        checked={inviteMemberMode === "spectator"}
-                        onChange={() => setInviteMemberMode("spectator")}
-                        aria-label="邀请观战"
-                      />
-                      <div className="min-w-0">
-                        <div className="font-medium">邀请观战</div>
-                        <div className="text-xs opacity-70">加入空间成员（不授予玩家身份）</div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              )
-            : (
-                <div className="alert alert-info mb-3">
-                  <span className="text-sm">当前身份可邀请观战成员加入空间。</span>
-                </div>
-              )}
-
-          {canInvitePlayers && inviteMemberMode === "player" && (
-            <div className="alert alert-info mb-3">
-              <span className="text-sm">提示：邀请玩家会在加入空间后自动授予玩家身份，可参与游戏。</span>
-            </div>
-          )}
-          <AddMemberWindow
-            handleAddMember={userId => (!canInvitePlayers || inviteMemberMode === "spectator" ? handleAddMember(userId) : handleAddPlayer(userId))}
-            inviteCodeType={canInvitePlayers && inviteMemberMode === "player" ? 1 : 0}
-          />
-        </div>
+        <SpaceInvitePanel
+          onAddSpectator={handleAddMember}
+          onAddPlayer={handleAddPlayer}
+        />
       </ToastWindow>
     </div>
   );

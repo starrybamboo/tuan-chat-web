@@ -134,7 +134,6 @@ function buildOptimisticMatchKey(
     normalizeNumericForMatch(message.userId),
     normalizeNumericForMatch(message.roleId),
     normalizeNumericForMatch(message.messageType),
-    normalizeOptionalRefId(message.threadId),
     ignoreReplyMessageId ? "" : normalizeOptionalRefId(message.replyMessageId),
     String(message.customRoleName ?? "").trim(),
     ignoreContent ? "" : String(message.content ?? ""),

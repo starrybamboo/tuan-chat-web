@@ -1,31 +1,23 @@
 import type { ChatMessageResponse, Message } from "../../../../../api";
 import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
-import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
-import toast from "react-hot-toast";
 import { canCopyMessageToClueFolder } from "@/components/chat/clues/clueRooms";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import {
   isImageMessageMarkedAsBackground,
   isSoundMessageMarkedAsBgm,
 } from "@/components/chat/room/contextMenu/messageMediaQuickActions";
-import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { copyDocToSpaceDoc, copyDocToSpaceUserDoc } from "@/components/chat/utils/docCopy";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { tuanchat } from "../../../../../api/instance";
 
 interface ContextMenuProps {
   contextMenu: { x: number; y: number; messageId: number } | null;
   historyMessages: ChatMessageResponse[];
-  isSelecting: boolean;
   selectedMessageIds: Set<number>;
   onClose: () => void;
   onDelete: () => void;
   onToggleSelection: (messageId: number) => void;
   onReply: (message: Message) => void;
-  onMoveMessages: (targetIndex: number, messageIds: number[]) => void;
   onEditMessage: (messageId: number) => void;
   onToggleBackground: (messageId: number) => void;
   onToggleBgm: (messageId: number) => void;
@@ -35,16 +27,20 @@ interface ContextMenuProps {
   onToggleNarrator?: (messageId: number) => void;
 }
 
+interface ContextMenuItem {
+  key: string;
+  label: string;
+  onSelect: () => void;
+}
+
 export default function ChatFrameContextMenu({
   contextMenu,
   historyMessages,
-  isSelecting,
   selectedMessageIds,
   onClose,
   onDelete,
   onToggleSelection,
   onReply,
-  onMoveMessages,
   onEditMessage,
   onToggleBackground,
   onToggleBgm,
@@ -54,10 +50,6 @@ export default function ChatFrameContextMenu({
 }: ContextMenuProps) {
   const currentUserId = useGlobalUserId();
   const spaceContext = use(SpaceContext);
-  const queryClient = useQueryClient();
-  const router = useRouter();
-
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -85,6 +77,11 @@ export default function ChatFrameContextMenu({
     ? historyMessages.find(message => message.message.messageId === contextMenuMessageId)
     : undefined;
   const canEditMessage = !!message && (message.message.userId === currentUserId || spaceContext.isSpaceOwner);
+  const shouldDeleteSelectedMessages = Boolean(
+    contextMenuMessageId
+    && selectedMessageIds.size > 1
+    && selectedMessageIds.has(contextMenuMessageId),
+  );
   const canToggleBackground = canEditMessage
     && !!message?.message.extra?.imageMessage
     && message.message.messageType === MESSAGE_TYPE.IMG;
@@ -98,34 +95,6 @@ export default function ChatFrameContextMenu({
     ? isSoundMessageMarkedAsBgm(message.message)
     : false;
 
-  const docCard = useMemo(() => {
-    const extraAny = (message?.message as any)?.extra ?? null;
-    const raw = (extraAny?.docCard ?? null) as any;
-    const candidate = raw && typeof raw === "object" ? raw : null;
-    const fallbackCandidate = !candidate && extraAny && typeof extraAny === "object" ? extraAny : null;
-
-    const maybe = candidate ?? fallbackCandidate;
-    const roomId = typeof maybe?.roomId === "number" && Number.isFinite(maybe.roomId) && maybe.roomId > 0
-      ? maybe.roomId
-      : undefined;
-    const rawDocId = typeof maybe?.docId === "string" ? maybe.docId.trim() : "";
-    const numericDocId = /^\d+$/.test(rawDocId) ? rawDocId : "";
-    const docId = roomId ? String(roomId) : numericDocId;
-    if (!docId)
-      return null;
-
-    const spaceId = typeof maybe?.spaceId === "number" ? maybe.spaceId : undefined;
-    const title = typeof maybe?.title === "string" ? maybe.title : undefined;
-    const imageUrl = typeof maybe?.imageUrl === "string" ? maybe.imageUrl : undefined;
-    const imageFileId = typeof maybe?.imageFileId === "number" && maybe.imageFileId > 0 ? maybe.imageFileId : undefined;
-    const originalImageFileId = typeof maybe?.originalImageFileId === "number" && maybe.originalImageFileId > 0 ? maybe.originalImageFileId : undefined;
-    const imageMediaType = typeof maybe?.imageMediaType === "string" ? maybe.imageMediaType : undefined;
-    return { docId, roomId, spaceId, title, imageUrl, imageFileId, originalImageFileId, imageMediaType };
-  }, [message?.message]);
-
-  const canCopyDoc = useMemo(() => {
-    return Boolean(docCard?.docId && spaceContext?.spaceId && spaceContext.spaceId > 0);
-  }, [docCard?.docId, spaceContext?.spaceId]);
   const canCopyClue = Boolean(
     onCopyMessageToClueFolder
     && message?.message
@@ -140,228 +109,137 @@ export default function ChatFrameContextMenu({
     void onCopyMessageToClueFolder(message.message, scope);
   }, [message?.message, onClose, onCopyMessageToClueFolder]);
 
-  const ensureCanCopyDoc = useCallback(async () => {
-    const spaceId = spaceContext.spaceId ?? -1;
-    if (!docCard?.docId) {
-      toast.error("未检测到可复制的文档");
-      return null;
-    }
-    if (!spaceId || spaceId <= 0) {
-      toast.error("未选择空间");
-      return null;
+  const menuItems = useMemo<ContextMenuItem[]>(() => {
+    if (!contextMenu) {
+      return [];
     }
 
-    const numericDocId = /^\d+$/.test(docCard.docId) ? Number(docCard.docId) : null;
-    if (numericDocId == null || numericDocId <= 0) {
-      toast.error("仅支持复制共享文档或我的文档");
-      return null;
+    const items: ContextMenuItem[] = [
+      {
+        key: "select",
+        label: "多选",
+        onSelect: () => {
+          onToggleSelection(contextMenu.messageId);
+          onClose();
+        },
+      },
+    ];
+
+    if (message?.message) {
+      items.push({
+        key: "reply",
+        label: "回复",
+        onSelect: () => {
+          onReply(message.message);
+          onClose();
+        },
+      });
     }
 
-    return {
-      spaceId,
-      sourceDocId: docCard.docId,
-      sourceSpaceId: typeof docCard.spaceId === "number" && docCard.spaceId > 0 ? docCard.spaceId : undefined,
-    };
-  }, [docCard?.docId, docCard?.spaceId, spaceContext.spaceId]);
+    if (canEditMessage) {
+      items.push(
+        {
+          key: "delete",
+          label: shouldDeleteSelectedMessages ? `删除选中消息 (${selectedMessageIds.size})` : "删除",
+          onSelect: () => {
+            onDelete();
+            onClose();
+          },
+        },
+        {
+          key: "annotations",
+          label: "添加标注",
+          onSelect: () => {
+            onOpenAnnotations(contextMenu.messageId);
+            onClose();
+          },
+        },
+      );
+    }
 
-  const copyToSpaceUserDoc = useCallback(async (params: {
-    spaceId: number;
-    sourceDocId: string;
-    sourceSpaceId?: number;
-    title?: string;
-    imageUrl?: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  }) => {
-    const { newDocEntityId, newDocId, title } = await copyDocToSpaceUserDoc({
-      spaceId: params.spaceId,
-      sourceDocId: params.sourceDocId,
-      sourceSpaceId: params.sourceSpaceId,
-      title: params.title,
-      imageUrl: params.imageUrl,
-      imageFileId: params.imageFileId,
-      originalImageFileId: params.originalImageFileId,
-      imageMediaType: params.imageMediaType,
+    if (canToggleBackground) {
+      items.push({
+        key: "toggle-background",
+        label: isBackgroundMessage ? "取消背景" : "设置为背景",
+        onSelect: () => {
+          onToggleBackground(contextMenu.messageId);
+          onClose();
+        },
+      });
+    }
+
+    if (canToggleBgm) {
+      items.push({
+        key: "toggle-bgm",
+        label: isBgmMessage ? "取消BGM" : "设置为BGM",
+        onSelect: () => {
+          onToggleBgm(contextMenu.messageId);
+          onClose();
+        },
+      });
+    }
+
+    if (canCopyClue) {
+      items.push(
+        {
+          key: "copy-clue-private",
+          label: "收藏到我的线索",
+          onSelect: () => handleCopyClue("private"),
+        },
+        {
+          key: "copy-clue-public",
+          label: "收藏到公共线索",
+          onSelect: () => handleCopyClue("public"),
+        },
+      );
+    }
+
+    items.push({
+      key: "insert-after",
+      label: "插入消息",
+      onSelect: () => {
+        onInsertAfter(contextMenu.messageId);
+        onClose();
+      },
     });
-    queryClient.invalidateQueries({ queryKey: ["listSpaceUserDocs", params.spaceId] });
 
-    return { newDocEntityId, newDocId, title };
-  }, [queryClient]);
-
-  const appendDocToSidebarTree = useCallback(async (params: {
-    spaceId: number;
-    docId: string;
-    title: string;
-    imageUrl?: string;
-    imageFileId?: number;
-    originalImageFileId?: number;
-    imageMediaType?: string;
-  }) => {
-    const { parseSidebarTree } = await import("@/components/chat/room/sidebarTree");
-    const getRes = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
-    if (!getRes?.success) {
-      throw new Error(getRes?.errMsg ?? "获取侧边栏失败");
-    }
-
-    const version = getRes.data?.version ?? 0;
-    const parsed = parseSidebarTree(getRes.data?.treeJson ?? null);
-    const base: any = parsed ?? { schemaVersion: 2, categories: [{ categoryId: "cat:docs", name: "文档", items: [] }] };
-
-    const nodeId = `doc:${params.docId}`;
-
-    const next: any = JSON.parse(JSON.stringify(base));
-    const categories: any[] = Array.isArray(next.categories) ? next.categories : [];
-    let target: any = categories.find(c => c?.categoryId === "cat:docs");
-    if (!target) {
-      target = { categoryId: "cat:docs", name: "文档", items: [] };
-      categories.push(target);
-      next.categories = categories;
-    }
-    target.items = Array.isArray(target.items) ? target.items : [];
-    if (!target.items.some((i: any) => i?.nodeId === nodeId)) {
-      target.items.push({
-        nodeId,
-        type: "doc",
-        targetId: params.docId,
-        fallbackTitle: params.title,
-        ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
-        ...(params.imageFileId ? { fallbackImageFileId: params.imageFileId } : {}),
-        ...(params.originalImageFileId ? { fallbackOriginalImageFileId: params.originalImageFileId } : {}),
-        ...(params.imageMediaType ? { fallbackImageMediaType: params.imageMediaType } : {}),
+    const canEditText = canEditMessage
+      && message
+      && message.message.messageType !== MESSAGE_TYPE.WEBGAL_CHOOSE
+      && message.message.messageType !== 2;
+    if (canEditText) {
+      items.push({
+        key: "edit-text",
+        label: "编辑文本",
+        onSelect: () => {
+          onEditMessage(contextMenu.messageId);
+          onClose();
+        },
       });
     }
 
-    const setReq = { spaceId: params.spaceId, expectedVersion: version, treeJson: JSON.stringify(next) };
-    const setRes = await tuanchat.spaceSidebarTreeController.setSidebarTree(setReq);
-    if (setRes?.success) {
-      return;
-    }
-
-    // 版本冲突：重试一次
-    const retryGet = await tuanchat.spaceSidebarTreeController.getSidebarTree(params.spaceId);
-    if (!retryGet?.success) {
-      throw new Error(retryGet?.errMsg ?? "获取侧边栏失败（重试）");
-    }
-    const retryVersion = retryGet.data?.version ?? (version + 1);
-    const retryParsed: any = parseSidebarTree(retryGet.data?.treeJson ?? null) ?? base;
-    const retryNext: any = JSON.parse(JSON.stringify(retryParsed));
-    const retryCats: any[] = Array.isArray(retryNext.categories) ? retryNext.categories : [];
-    let retryTarget: any = retryCats.find(c => c?.categoryId === "cat:docs");
-    if (!retryTarget) {
-      retryTarget = { categoryId: "cat:docs", name: "文档", items: [] };
-      retryCats.push(retryTarget);
-      retryNext.categories = retryCats;
-    }
-    retryTarget.items = Array.isArray(retryTarget.items) ? retryTarget.items : [];
-    if (!retryTarget.items.some((i: any) => i?.nodeId === nodeId)) {
-      retryTarget.items.push({
-        nodeId,
-        type: "doc",
-        targetId: params.docId,
-        fallbackTitle: params.title,
-        ...(params.imageUrl ? { fallbackImageUrl: params.imageUrl } : {}),
-        ...(params.imageFileId ? { fallbackImageFileId: params.imageFileId } : {}),
-        ...(params.originalImageFileId ? { fallbackOriginalImageFileId: params.originalImageFileId } : {}),
-        ...(params.imageMediaType ? { fallbackImageMediaType: params.imageMediaType } : {}),
-      });
-    }
-
-    const retrySet = await tuanchat.spaceSidebarTreeController.setSidebarTree({
-      spaceId: params.spaceId,
-      expectedVersion: retryVersion,
-      treeJson: JSON.stringify(retryNext),
-    });
-    if (!retrySet?.success) {
-      throw new Error(retrySet?.errMsg ?? "写入侧边栏失败（可能存在并发修改）");
-    }
-  }, []);
-
-  const handleCopyToMyDocs = useCallback(async () => {
-    const ok = await ensureCanCopyDoc();
-    if (!ok)
-      return;
-
-    const toastId = toast.loading("正在复制到我的文档…");
-    try {
-      await copyToSpaceUserDoc({
-        spaceId: ok.spaceId,
-        sourceDocId: ok.sourceDocId,
-        sourceSpaceId: ok.sourceSpaceId,
-        title: docCard?.title,
-        imageUrl: docCard?.imageUrl,
-        imageFileId: docCard?.imageFileId,
-        originalImageFileId: docCard?.originalImageFileId,
-        imageMediaType: docCard?.imageMediaType,
-      });
-      toast.success("已复制到我的文档", { id: toastId });
-      setSideDrawerState("none");
-    }
-    catch (err) {
-      console.error("[DocCopy] copyToMyDocs failed", err);
-      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
-    }
+    return items;
   }, [
-    copyToSpaceUserDoc,
-    docCard?.imageFileId,
-    docCard?.imageMediaType,
-    docCard?.imageUrl,
-    docCard?.originalImageFileId,
-    docCard?.title,
-    ensureCanCopyDoc,
-    setSideDrawerState,
-  ]);
-
-  const handleCopyToKpSidebarTree = useCallback(async () => {
-    if (!spaceContext.isSpaceOwner) {
-      toast.error("仅主持可复制到空间侧边栏");
-      return;
-    }
-
-    const ok = await ensureCanCopyDoc();
-    if (!ok)
-      return;
-
-    const toastId = toast.loading("正在复制到空间侧边栏…");
-    try {
-      const res = await copyDocToSpaceDoc({
-        spaceId: ok.spaceId,
-        sourceDocId: ok.sourceDocId,
-        sourceSpaceId: ok.sourceSpaceId,
-        title: docCard?.title,
-        imageUrl: docCard?.imageUrl,
-        imageFileId: docCard?.imageFileId,
-        originalImageFileId: docCard?.originalImageFileId,
-        imageMediaType: docCard?.imageMediaType,
-      });
-      await appendDocToSidebarTree({
-        spaceId: ok.spaceId,
-        docId: res.newDocId,
-        title: res.title,
-        imageUrl: docCard?.imageUrl,
-        imageFileId: docCard?.imageFileId,
-        originalImageFileId: docCard?.originalImageFileId,
-        imageMediaType: docCard?.imageMediaType,
-      });
-      queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", ok.spaceId] });
-      toast.success("已复制到空间侧边栏", { id: toastId });
-      router.history.push(`/chat/${ok.spaceId}/doc/${res.newDocEntityId}`);
-    }
-    catch (err) {
-      console.error("[DocCopy] copyToKpSidebarTree failed", err);
-      toast.error(err instanceof Error ? err.message : "复制失败", { id: toastId });
-    }
-  }, [
-    appendDocToSidebarTree,
-    docCard?.imageFileId,
-    docCard?.imageMediaType,
-    docCard?.imageUrl,
-    docCard?.originalImageFileId,
-    docCard?.title,
-    ensureCanCopyDoc,
-    queryClient,
-    router,
-    spaceContext.isSpaceOwner,
+    canCopyClue,
+    canEditMessage,
+    canToggleBackground,
+    canToggleBgm,
+    contextMenu,
+    handleCopyClue,
+    isBackgroundMessage,
+    isBgmMessage,
+    message,
+    onClose,
+    onDelete,
+    onEditMessage,
+    onInsertAfter,
+    onOpenAnnotations,
+    onReply,
+    onToggleBackground,
+    onToggleBgm,
+    onToggleSelection,
+    selectedMessageIds.size,
+    shouldDeleteSelectedMessages,
   ]);
   if (!contextMenu)
     return null;
@@ -372,184 +250,16 @@ export default function ChatFrameContextMenu({
       className="fixed bg-base-100 shadow-lg rounded-md z-50"
     >
       <ul className="menu p-2 w-40">
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              onToggleSelection(contextMenu.messageId);
-              onClose();
-            }}
-          >
-            多选
-          </button>
-        </li>
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              if (message?.message)
-                onReply(message.message);
-              onClose();
-            }}
-          >
-            回复
-          </button>
-        </li>
-        {canEditMessage && (
-          <li>
+        {menuItems.map(item => (
+          <li key={item.key}>
             <button
               type="button"
-              onClick={() => {
-                onDelete();
-                onClose();
-              }}
+              onClick={item.onSelect}
             >
-              删除
+              {item.label}
             </button>
           </li>
-        )}
-
-        {canEditMessage && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onOpenAnnotations(contextMenu.messageId);
-                onClose();
-              }}
-            >
-              添加标注
-            </button>
-          </li>
-        )}
-        {canToggleBackground && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onToggleBackground(contextMenu.messageId);
-                onClose();
-              }}
-            >
-              {isBackgroundMessage ? "取消背景" : "设置为背景"}
-            </button>
-          </li>
-        )}
-        {canToggleBgm && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onToggleBgm(contextMenu.messageId);
-                onClose();
-              }}
-            >
-              {isBgmMessage ? "取消BGM" : "设置为BGM"}
-            </button>
-          </li>
-        )}
-        {canCopyDoc && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                void handleCopyToMyDocs();
-              }}
-            >
-              复制到我的文档
-            </button>
-          </li>
-        )}
-        {canCopyDoc && spaceContext.isSpaceOwner && (
-          <li>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                void handleCopyToKpSidebarTree();
-              }}
-            >
-              复制到空间侧边栏
-            </button>
-          </li>
-        )}
-        {canCopyClue && (
-          <li>
-            <button
-              type="button"
-              onClick={() => handleCopyClue("private")}
-            >
-              收藏到我的线索
-            </button>
-          </li>
-        )}
-        {canCopyClue && (
-          <li>
-            <button
-              type="button"
-              onClick={() => handleCopyClue("public")}
-            >
-              收藏到公共线索
-            </button>
-          </li>
-        )}
-        <li>
-          <button
-            type="button"
-            onClick={() => {
-              onInsertAfter(contextMenu.messageId);
-              onClose();
-            }}
-          >
-            插入消息
-          </button>
-        </li>
-        {
-          (isSelecting) && (
-            <li>
-              <button
-                type="button"
-                onClick={() => {
-                  onMoveMessages(
-                    historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
-                    Array.from(selectedMessageIds),
-                  );
-                  onClose();
-                }}
-              >
-                将选中消息移动到此消息下方
-              </button>
-            </li>
-          )
-        }
-        {(() => {
-          if (!canEditMessage) {
-            return null;
-          }
-          if (!message) {
-            return null;
-          }
-          if (message.message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE) {
-            return null;
-          }
-          if (message.message.messageType !== 2) {
-            return (
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onEditMessage(contextMenu.messageId);
-                    onClose();
-                  }}
-                >
-                  编辑文本
-                </button>
-              </li>
-            );
-          }
-          return null;
-        })()}
+        ))}
       </ul>
     </div>
   );

@@ -323,7 +323,7 @@ export default defineConfig(() => {
         autoCodeSplitting: true,
         routesDirectory: "app/routes",
         generatedRouteTree: "app/routeTree.gen.ts",
-        routeFileIgnorePattern: "^(routeTypes|scrollSequenceDemoShared)\\.ts$",
+        routeFileIgnorePattern: "^routeTypes\\.ts$",
       }),
       tailwindcss(),
       fixCjsDefaultExportPlugin(),
@@ -482,6 +482,8 @@ export default defineConfig(() => {
         "use-sync-external-store/shim",
         "use-sync-external-store/shim/with-selector",
         "use-sync-external-store/shim/with-selector.js",
+        // Lazy room effects 只有在打开房间后才会触发，提前预构建可避免 dev 下按需优化 504。
+        "pixi.js",
       ],
     },
   };

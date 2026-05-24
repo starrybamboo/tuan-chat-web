@@ -26,11 +26,11 @@ import { emitWebgalAvatarUpdated } from "../../app/webGAL/avatarSync";
 
 import {
   type ApiResultRoleAbility,
-  type ApiResultUserRole,
   type ApiResultRoleAvatar,
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
+import { normalizeLegacyVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
@@ -438,12 +438,15 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
     mutationKey: ["UpdateRole"],
     mutationFn: async (data: any) => {
       if (data.id !== 0) {
+        const voiceUrlUpdate = Object.prototype.hasOwnProperty.call(data ?? {}, "voiceUrl") && data.voiceUrl === null
+          ? { voiceUrl: null }
+          : {};
         const updateRes = await tuanchat.roleController.updateRole({
           roleId: data.id,
           roleName: data.name,
           description: data.description,
           avatarId: data.avatarId,
-          voiceUrl: data.voiceUrl,
+          ...voiceUrlUpdate,
           voiceFileId: data.voiceFileId,
           extra: data.extra,
         });
@@ -663,16 +666,11 @@ export function useCopyRoleMutation() {
         throw new Error("后端当前仅支持复制为骰娘");
       }
 
-      const copyRes = await tuanchat.request.request<ApiResultUserRole>({
-        method: "POST",
-        url: "/role/copy",
-        body: {
-          sourceRoleId: sourceRole.id,
-          newRoleName: newName?.trim() || undefined,
-          newRoleDescription: newDescription?.trim() || undefined,
-          targetType: 1,
-        },
-        mediaType: "application/json",
+      const copyRes = await tuanchat.roleController.copyRole({
+        sourceRoleId: sourceRole.id,
+        newRoleName: newName?.trim() || undefined,
+        newRoleDescription: newDescription?.trim() || undefined,
+        targetType: 1,
       });
 
       const copiedRole = copyRes?.data;
@@ -705,7 +703,7 @@ export function useCopyRoleMutation() {
         avatarThumb,
         avatarId: copiedAvatarId,
         type: copiedRole.type,
-        voiceUrl: copiedRole.voiceUrl || sourceRole.voiceUrl,
+        voiceUrl: normalizeLegacyVoiceUrl(copiedRole.voiceUrl) || undefined,
         voiceFileId: (copiedRole as any).voiceFileId || sourceRole.voiceFileId,
         extra: copiedRole.extra ?? sourceRole.extra,
       };

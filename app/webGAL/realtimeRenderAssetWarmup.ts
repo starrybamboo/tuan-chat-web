@@ -1,4 +1,5 @@
 import { getFigurePositionFromAnnotations, hasMiniAvatarAnnotation } from "@/types/messageAnnotations";
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
 
@@ -39,7 +40,19 @@ function getEffectiveAvatarId(message: ChatMessageResponse["message"], role?: Us
 
 function getDiceContent(message: ChatMessageResponse["message"]): string {
   const payload = extractWebgalDicePayload(message.webgal);
-  return payload?.content ?? message.extra?.diceResult?.result ?? (message.extra as any)?.result ?? message.content ?? "";
+  if (payload?.content) {
+    return payload.content;
+  }
+  if (message.extra?.diceTurn) {
+    const diceTurnData = getDiceTurnRenderData(message.extra, message.content, false);
+    const visibleReplyText = diceTurnData.replies
+      .filter(reply => !reply.hidden)
+      .map(reply => reply.content.trim())
+      .filter(Boolean)
+      .join("\n");
+    return visibleReplyText || diceTurnData.command || diceTurnData.summary;
+  }
+  return message.extra?.diceResult?.result ?? (message.extra as any)?.result ?? message.content ?? "";
 }
 
 function getDiceRenderMode(message: ChatMessageResponse["message"]): DiceRenderMode {

@@ -1,4 +1,6 @@
-import { avatarUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import type { RoleAvatarMediaSource } from "@/components/Role/sprite/roleAvatarMedia";
+
+import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 
 import type { RoleAvatar } from "../../api";
 
@@ -15,6 +17,8 @@ export type RealtimeAssetUploadContext = {
   uploadedMiniAvatarsMap: Map<string, string>;
   uploadedSoundEffectsMap: Map<string, string>;
 };
+
+export type RealtimeRoleAvatarSource = Pick<RoleAvatar, "avatarId" | "roleId"> & RoleAvatarMediaSource;
 
 export function getRoleFigureDirName(roleId: number): string {
   const normalizedRoleId = Number.isFinite(roleId) && roleId > 0 ? Math.floor(roleId) : 0;
@@ -34,21 +38,12 @@ export function deleteAvatarScopedCacheEntries(cache: Map<string, string>, avata
   }
 }
 
-function resolveRoleSpriteUrl(avatar: RoleAvatar | undefined): string {
-  if (!avatar) {
-    return "";
-  }
-  return imageMediumUrl(avatar.spriteFileId)
-    || imageOriginalUrl(avatar.spriteFileId)
-    || avatarUrl(avatar.avatarFileId);
+function resolveRoleSpriteUrl(avatar: RealtimeRoleAvatarSource | undefined): string {
+  return resolveRoleAvatarMedia(avatar).sprite.url;
 }
 
-function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
-  if (!avatar) {
-    return "";
-  }
-  return imageLowUrl(avatar.avatarFileId)
-    || avatarUrl(avatar.avatarFileId);
+function resolveRoleMiniAvatarUrl(avatar: RealtimeRoleAvatarSource | undefined): string {
+  return resolveRoleAvatarMedia(avatar).avatar.thumbUrl;
 }
 
 export async function uploadSpriteAsset(
@@ -191,7 +186,7 @@ export async function getAndUploadSpriteAsset(
   context: RealtimeAssetUploadContext,
   avatarId: number,
   roleId: number,
-  getCachedRoleAvatar: (avatarId: number) => RoleAvatar | undefined,
+  getCachedRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined,
 ): Promise<string | null> {
   const cacheKey = buildRoleAvatarCacheKey(roleId, avatarId);
   if (context.uploadedSpritesMap.has(cacheKey)) {
@@ -203,10 +198,14 @@ export async function getAndUploadSpriteAsset(
     console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}`);
     return null;
   }
+  if (Number(avatar.roleId ?? 0) !== roleId) {
+    console.warn(`[RealtimeRenderer] 头像不属于当前角色: avatarId=${avatarId}, roleId=${roleId}, avatarRoleId=${avatar.roleId}`);
+    return null;
+  }
 
   const spriteUrl = resolveRoleSpriteUrl(avatar);
   if (!spriteUrl) {
-    console.warn(`[RealtimeRenderer] 头像没有可用的 spriteFileId 或 avatarFileId: avatarId=${avatarId}`);
+    console.warn(`[RealtimeRenderer] 头像没有可用的 spriteFileId 或 originFileId: avatarId=${avatarId}`);
     return null;
   }
 
@@ -217,7 +216,7 @@ export async function getAndUploadMiniAvatarAsset(
   context: RealtimeAssetUploadContext,
   avatarId: number,
   roleId: number,
-  getCachedRoleAvatar: (avatarId: number) => RoleAvatar | undefined,
+  getCachedRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined,
 ): Promise<string | null> {
   const cacheKey = buildRoleAvatarCacheKey(roleId, avatarId);
   if (context.uploadedMiniAvatarsMap.has(cacheKey)) {
@@ -225,6 +224,10 @@ export async function getAndUploadMiniAvatarAsset(
   }
 
   const avatar = getCachedRoleAvatar(avatarId);
+  if (avatar && Number(avatar.roleId ?? 0) !== roleId) {
+    console.warn(`[RealtimeRenderer] 小头像不属于当前角色: avatarId=${avatarId}, roleId=${roleId}, avatarRoleId=${avatar.roleId}`);
+    return null;
+  }
   const miniAvatarUrl = resolveRoleMiniAvatarUrl(avatar);
   if (!miniAvatarUrl) {
     return null;

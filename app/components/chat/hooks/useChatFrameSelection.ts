@@ -1,11 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
+import { useCallback, useEffect, useState } from "react";
 
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-
-type UseChatFrameSelectionParams = {
-  onDeleteMessage: (messageId: number) => void;
-};
 
 type SelectMessageRangeParams = {
   orderedMessageIds: number[];
@@ -13,15 +8,21 @@ type SelectMessageRangeParams = {
   preserveExisting?: boolean;
 };
 
-const SELECTION_SHORTCUTS_TOAST_ID = "chat-selection-shortcuts";
+function isEditableKeyboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return target.isContentEditable || Boolean(target.closest("input, textarea, select, [contenteditable=\"true\"]"));
+}
 
-export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameSelectionParams) {
+export default function useChatFrameSelection() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(() => new Set());
   const [selectionAnchorMessageId, setSelectionAnchorMessageId] = useState<number | null>(null);
-  const wasSelectingRef = useRef(false);
+  const [isSelectionModifierPressed, setSelectionModifierPressed] = useState(false);
   const isMultiSelecting = useRoomUiStore(state => state.isMultiSelecting);
   const setMultiSelecting = useRoomUiStore(state => state.setMultiSelecting);
   const isSelecting = isMultiSelecting || selectedMessageIds.size > 0;
+  const isSelectionToolbarVisible = isSelectionModifierPressed || isSelecting;
 
   const updateSelectedMessageIds = useCallback((next: Set<number> | ((prev: Set<number>) => Set<number>)) => {
     setSelectedMessageIds((prev) => {
@@ -40,15 +41,43 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
   }, [selectedMessageIds.size]);
 
   useEffect(() => {
-    const wasSelecting = wasSelectingRef.current;
-    wasSelectingRef.current = isSelecting;
-    if (!wasSelecting && isSelecting) {
-      toast("多选模式支持 Windows 文件系统式选择：Ctrl 点选增删，Shift 连选，Ctrl + Shift 追加范围。", {
-        id: SELECTION_SHORTCUTS_TOAST_ID,
-        duration: 5000,
-      });
+    if (isMultiSelecting && selectedMessageIds.size === 0 && !isSelectionModifierPressed) {
+      setMultiSelecting(false);
     }
-  }, [isSelecting]);
+  }, [isMultiSelecting, isSelectionModifierPressed, selectedMessageIds.size, setMultiSelecting]);
+
+  useEffect(() => {
+    const shouldHandleSelectionModifier = (event: KeyboardEvent) => {
+      return !event.isComposing && (event.key === "Control" || event.key === "Meta");
+    };
+
+    const handleModifierDown = (event: KeyboardEvent) => {
+      if (!shouldHandleSelectionModifier(event) || isEditableKeyboardTarget(event.target)) {
+        return;
+      }
+      setSelectionModifierPressed(true);
+    };
+
+    const releasePendingSelection = () => {
+      setSelectionModifierPressed(false);
+    };
+
+    const handleModifierUp = (event: KeyboardEvent) => {
+      if (!shouldHandleSelectionModifier(event)) {
+        return;
+      }
+      releasePendingSelection();
+    };
+
+    window.addEventListener("keydown", handleModifierDown);
+    window.addEventListener("keyup", handleModifierUp);
+    window.addEventListener("blur", releasePendingSelection);
+    return () => {
+      window.removeEventListener("keydown", handleModifierDown);
+      window.removeEventListener("keyup", handleModifierUp);
+      window.removeEventListener("blur", releasePendingSelection);
+    };
+  }, []);
 
   const toggleMessageSelection = useCallback((messageId: number) => {
     setSelectionAnchorMessageId(messageId);
@@ -117,12 +146,22 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
     updateSelectedMessageIds(new Set());
   }, [setMultiSelecting, updateSelectedMessageIds]);
 
-  const handleBatchDelete = useCallback(() => {
-    for (const messageId of selectedMessageIds) {
-      onDeleteMessage(messageId);
+  useEffect(() => {
+    if (!isSelecting) {
+      return;
     }
-    exitSelection();
-  }, [exitSelection, onDeleteMessage, selectedMessageIds]);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.isComposing) {
+        return;
+      }
+      event.preventDefault();
+      exitSelection();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [exitSelection, isSelecting]);
 
   const handleEditMessage = useCallback((messageId: number) => {
     const target = document.querySelector(
@@ -141,11 +180,11 @@ export default function useChatFrameSelection({ onDeleteMessage }: UseChatFrameS
     selectedMessageIds,
     updateSelectedMessageIds,
     isSelecting,
+    isSelectionToolbarVisible,
     enterSelection,
     exitSelection,
     toggleMessageSelection,
     selectMessageRange,
-    handleBatchDelete,
     handleEditMessage,
   };
 }

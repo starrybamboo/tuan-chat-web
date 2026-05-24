@@ -102,6 +102,7 @@
     "fflate": "0.8.2",
     "isbot": "^5",
     "motion": "^12.38.0",
+    "pinyin-pro": "^3.28.1",
     "sql.js": "1.14.1"
   },
   "devDependencies": {

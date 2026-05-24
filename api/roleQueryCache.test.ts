@@ -97,6 +97,35 @@ describe("roleQueryCache", () => {
     ]);
   });
 
+  it("头像字段补丁优先使用 fileId，不被旧 avatarUrl 覆盖", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getUserRolesByType", 1, 0], [
+      {
+        ...makeRole({ roleId: 7, avatarId: 55, avatarFileId: 1001 }),
+        avatarUrl: "https://legacy.example/avatar.webp",
+        avatarThumbUrl: "https://legacy.example/avatar-low.webp",
+      },
+    ]);
+
+    patchUserRoleAvatarFieldsInListQueryCache(queryClient, {
+      roleId: 7,
+      avatarId: 55,
+      avatarFileId: 2002,
+      avatarMediaType: "image",
+      avatarUrl: "https://legacy.example/next-avatar.webp",
+      avatarThumbUrl: "https://legacy.example/next-avatar-low.webp",
+    });
+
+    expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])).toEqual([
+      expect.objectContaining({
+        roleId: 7,
+        avatarFileId: 2002,
+        avatarUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
+        avatarThumbUrl: "https://tuan.chat/media/v1/files/002/2002/image/low.webp",
+      }),
+    ]);
+  });
+
   it("会把头像字段补写到房间角色缓存中", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["roomRole", 9], {

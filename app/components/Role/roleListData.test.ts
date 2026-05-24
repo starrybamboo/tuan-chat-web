@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { RoleAvatar } from "api";
 
-import { hydrateRoleList, mergeRoleList } from "./roleListData";
+import { hydrateRoleList, mergeRoleList, resolveRoleAvatarUrls } from "./roleListData";
 
 function createQueryClientMock(cachedAvatar?: RoleAvatar) {
   const getQueryData = vi.fn<() => { data: RoleAvatar } | undefined>(() => (cachedAvatar ? { data: cachedAvatar } : undefined));
@@ -13,6 +13,17 @@ function createQueryClientMock(cachedAvatar?: RoleAvatar) {
 }
 
 describe("roleListData", () => {
+  it("解析角色列表头像时优先使用 fileId，不让旧 URL 覆盖正式媒体", () => {
+    expect(resolveRoleAvatarUrls({
+      avatarFileId: 2002,
+      avatarUrl: "https://legacy.example/avatar.webp",
+      avatarThumbUrl: "https://legacy.example/avatar-low.webp",
+    })).toEqual({
+      avatarUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
+      avatarThumbUrl: "https://tuan.chat/media/v1/files/002/2002/image/low.webp",
+    });
+  });
+
   it("会保留已有角色的本地字段，同时用最新列表覆盖基础资料", () => {
     const merged = mergeRoleList([
       {

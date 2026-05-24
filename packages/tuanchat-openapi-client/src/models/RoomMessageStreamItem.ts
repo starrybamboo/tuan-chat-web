@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { MessageExtra } from './MessageExtra';
 /**
- * room message-stream 中的单条消息输入
+ * 房间消息 patch 中的单条消息输入
  */
 export type RoomMessageStreamItem = {
     /**
@@ -36,5 +36,13 @@ export type RoomMessageStreamItem = {
      * 自定义角色名
      */
     customRoleName?: string;
+    /**
+     * 回复的消息id
+     */
+    replayMessageId?: number;
+    /**
+     * 消息位置
+     */
+    position?: number;
 };
 

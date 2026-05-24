@@ -7,6 +7,7 @@ import { imageLowUrlFromUrl, mediaFileUrl } from "@/utils/mediaUrl";
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
 interface MessagePreviewContentProps {
+  canViewHiddenDiceReply?: boolean;
   message?: Message | null;
   /**
    * 是否展示媒体缩略图（目前仅图片）。
@@ -41,10 +42,11 @@ function resolveImagePreviewUrl(imageMessage: unknown): string {
 }
 
 export function MessagePreviewContent({
+  canViewHiddenDiceReply = false,
   message,
   withMediaPreview = false,
 }: MessagePreviewContentProps) {
-  const previewText = getMessagePreviewText(message);
+  const previewText = getMessagePreviewText(message, { canViewHiddenDiceReply });
 
   if (!message || message.status === 1) {
     return <>{previewText}</>;

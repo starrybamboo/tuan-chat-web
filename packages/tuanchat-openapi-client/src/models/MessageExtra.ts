@@ -5,6 +5,7 @@
 import type { ClueMessage } from './ClueMessage';
 import type { CommandRequestExtra } from './CommandRequestExtra';
 import type { DiceResult } from './DiceResult';
+import type { DiceTurn } from './DiceTurn';
 import type { DocCardExtra } from './DocCardExtra';
 import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
@@ -12,7 +13,6 @@ import type { ImageMessage } from './ImageMessage';
 import type { RoomJumpExtra } from './RoomJumpExtra';
 import type { SoundMessage } from './SoundMessage';
 import type { StateEventExtra } from './StateEventExtra';
-import type { ThreadRootExtra } from './ThreadRootExtra';
 import type { VideoMessage } from './VideoMessage';
 import type { WebgalChoosePayload } from './WebgalChoosePayload';
 /**
@@ -20,6 +20,7 @@ import type { WebgalChoosePayload } from './WebgalChoosePayload';
  */
 export type MessageExtra = {
     diceResult?: DiceResult;
+    diceTurn?: DiceTurn;
     fileMessage?: FileMessage;
     imageMessage?: ImageMessage;
     forwardMessage?: ForwardMessage;
@@ -30,7 +31,6 @@ export type MessageExtra = {
     commandRequest?: CommandRequestExtra;
     docCard?: DocCardExtra;
     roomJump?: RoomJumpExtra;
-    threadRoot?: ThreadRootExtra;
     stateEvent?: StateEventExtra;
 };
 

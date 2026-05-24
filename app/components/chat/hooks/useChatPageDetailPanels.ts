@@ -130,7 +130,7 @@ export default function useChatPageDetailPanels({
       return null;
 
     const urlTab = searchParam.get("tab");
-    const nextTab: RoomSettingTab = urlTab === "role" || urlTab === "setting" ? urlTab : "setting";
+    const nextTab: RoomSettingTab = urlTab === "member" || urlTab === "role" || urlTab === "setting" ? urlTab : "setting";
     return { roomId: activeRoomId, tab: nextTab };
   }, [activeRoomId, activeSpaceId, isPrivateChatMode, isRoomSettingRoute, searchParam]);
 

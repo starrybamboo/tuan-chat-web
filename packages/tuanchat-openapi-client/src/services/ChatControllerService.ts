@@ -6,34 +6,16 @@ import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessag
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
 import type { ApiResultListMessage } from '../models/ApiResultListMessage';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
-import type { ApiResultRoomMessageStreamResponse } from '../models/ApiResultRoomMessageStreamResponse';
 import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
 import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';
 import type { Message } from '../models/Message';
 import type { MessageBySyncIdRequest } from '../models/MessageBySyncIdRequest';
-import type { RoomMessageStreamSyncRequest } from '../models/RoomMessageStreamSyncRequest';
+import type { RoomMessageStreamPatchRequest } from '../models/RoomMessageStreamPatchRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class ChatControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
-    /**
-     * 批量更新消息
-     * 一次性更新多条消息
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public batchUpdateMessages(
-        requestBody: Array<Message>,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/chat/messages/batch',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
     /**
      * 根据ID获取单条消息
      * 返回指定ID的消息详情
@@ -104,6 +86,28 @@ export class ChatControllerService {
         });
     }
     /**
+     * 复合批量变更消息
+     * 按 insert/update/delete/move 操作一次性变更指定房间消息
+     * @param roomId
+     * @param requestBody
+     * @returns ApiResultListMessage OK
+     * @throws ApiError
+     */
+    public patchRoomMessages(
+        roomId: number,
+        requestBody: RoomMessageStreamPatchRequest,
+    ): CancelablePromise<ApiResultListMessage> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/chat/rooms/{roomId}/messages/patch',
+            path: {
+                'roomId': roomId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * 根据syncId获取单条消息
      * 用于在收到syncId间隔的消息时，重新获取缺失的消息
      * @param requestBody
@@ -138,8 +142,8 @@ export class ChatControllerService {
         });
     }
     /**
-     * 获取历史消息
-     * 返回房间下syncId大于等于请求中syncId的消息，返回gzip压缩的数据
+     * 统一读取房间消息历史
+     * 主读取入口：syncId=0 返回完整 baseline，syncId>0 用于补洞；返回 gzip 压缩数据
      * @param requestBody
      * @returns any OK
      * @throws ApiError
@@ -150,45 +154,6 @@ export class ChatControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/chat/message/history',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 批量发送消息
-     * 一次性发送多条消息，并批量入库
-     * @param requestBody
-     * @returns ApiResultListMessage OK
-     * @throws ApiError
-     */
-    public batchSendMessages(
-        requestBody: Array<ChatMessageRequest>,
-    ): CancelablePromise<ApiResultListMessage> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/message/batch',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 批量同步 room message-stream
-     * 一次性替换指定 room 的主消息流，用于 doc view 等批量编辑场景
-     * @param roomId
-     * @param requestBody
-     * @returns ApiResultRoomMessageStreamResponse OK
-     * @throws ApiError
-     */
-    public syncRoomMessageStream(
-        roomId: number,
-        requestBody: RoomMessageStreamSyncRequest,
-    ): CancelablePromise<ApiResultRoomMessageStreamResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/message-stream/{roomId}/sync',
-            path: {
-                'roomId': roomId,
-            },
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -207,24 +172,6 @@ export class ChatControllerService {
             method: 'GET',
             url: '/chat/message/all',
             query: {
-                'roomId': roomId,
-            },
-        });
-    }
-    /**
-     * 获取 room message-stream
-     * 返回指定 room 当前完整运行态消息流
-     * @param roomId
-     * @returns ApiResultRoomMessageStreamResponse OK
-     * @throws ApiError
-     */
-    public getRoomMessageStream(
-        roomId: number,
-    ): CancelablePromise<ApiResultRoomMessageStreamResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/chat/message-stream/{roomId}',
-            path: {
                 'roomId': roomId,
             },
         });

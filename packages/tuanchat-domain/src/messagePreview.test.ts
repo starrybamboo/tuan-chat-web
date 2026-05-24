@@ -76,16 +76,27 @@ describe("getMessagePreviewText", () => {
     }))).toBe("D100=63/100 成功");
   });
 
-  it("支持房间跳转、子区和文档卡片", () => {
+  it("diceTurn 暗骰预览默认显示指令，授权后显示回复", () => {
+    const message = createMessage({
+      content: ".r 1d20",
+      messageType: MESSAGE_TYPE.DICE,
+      extra: {
+        diceTurn: {
+          command: ".r 1d20",
+          replies: [{ content: "D20=19", hidden: true }],
+        },
+      },
+    });
+
+    expect(getMessagePreviewText(message)).toBe(".r 1d20");
+    expect(getMessagePreviewText(message, { canViewHiddenDiceReply: true })).toBe("D20=19");
+  });
+
+  it("支持房间跳转和文档卡片", () => {
     expect(getMessagePreviewText(createMessage({
       messageType: MESSAGE_TYPE.ROOM_JUMP,
       extra: { roomJump: { roomId: 9, label: "作战频道" } },
     }))).toBe("[群聊] 作战频道");
-
-    expect(getMessagePreviewText(createMessage({
-      messageType: MESSAGE_TYPE.THREAD_ROOT,
-      extra: { threadRoot: { title: "支线讨论" } },
-    }))).toBe("[子区] 支线讨论");
 
     expect(getMessagePreviewText(createMessage({
       messageType: MESSAGE_TYPE.DOC_CARD,

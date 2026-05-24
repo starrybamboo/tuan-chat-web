@@ -1,8 +1,9 @@
 import type { StoredMessageStreamSnapshot, StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
-import type { MessageDraft } from "@/types/messageDraft";
 
 import { base64ToString, stringToBase64 } from "@/components/chat/infra/doc/shared/base64";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { MessageEditorMessage } from "../messageEditorTypes";
 
 import {
   createMessageEditorTextDraft,
@@ -38,7 +39,7 @@ function toTrimmedString(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageDraft | null {
+function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageEditorMessage | null {
   if (!isRecord(rawNode)) {
     return null;
   }
@@ -52,7 +53,7 @@ function normalizeLegacyUserReadMeNode(rawNode: unknown): MessageDraft | null {
     annotations: normalizeMessageEditorAnnotations(node.annotations),
     blockId: toTrimmedString(node.nodeId),
     content,
-    extra: Object.keys(extraRecord).length > 0 ? extraRecord as MessageDraft["extra"] : undefined,
+    extra: Object.keys(extraRecord).length > 0 ? extraRecord as MessageEditorMessage["extra"] : undefined,
     messageType,
   });
 }
@@ -61,7 +62,7 @@ function isLegacyUserReadMeNode(value: unknown): boolean {
   return isRecord(value) && "nodeId" in value;
 }
 
-function decodeMessageEditorDrafts(updateB64: string): MessageDraft[] {
+function decodeMessageEditorDrafts(updateB64: string): MessageEditorMessage[] {
   try {
     const parsed = JSON.parse(base64ToString(updateB64));
     if (!Array.isArray(parsed)) {
@@ -74,7 +75,7 @@ function decodeMessageEditorDrafts(updateB64: string): MessageDraft[] {
           ? normalizeLegacyUserReadMeNode(item)
           : normalizeMessageEditorDraft(item);
       })
-      .filter((item): item is MessageDraft => item !== null);
+      .filter((item): item is MessageEditorMessage => item !== null);
   }
   catch {
     return [];
@@ -85,7 +86,7 @@ function decodeMessageEditorDrafts(updateB64: string): MessageDraft[] {
  * 创建可缓存的 message-stream 快照。
  */
 export function createMessageEditorSnapshot(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   updatedAt = Date.now(),
 ): MessageEditorSnapshot {
   return {
@@ -99,7 +100,7 @@ export function createMessageEditorSnapshot(
 /**
  * 将 snapshot 解码为可编辑的 message 流。
  */
-export function decodeMessageEditorMessages(snapshot: StoredSnapshot | null | undefined): MessageDraft[] {
+export function decodeMessageEditorMessages(snapshot: StoredSnapshot | null | undefined): MessageEditorMessage[] {
   if (!snapshot) {
     return [];
   }
@@ -115,7 +116,7 @@ export function decodeMessageEditorMessages(snapshot: StoredSnapshot | null | un
  * 将消息流规整后再编码，用于缓存比较与保存。
  */
 export function normalizeAndCreateMessageEditorSnapshot(
-  messages: MessageDraft[],
+  messages: MessageEditorMessage[],
   updatedAt = Date.now(),
 ): MessageEditorSnapshot {
   return createMessageEditorSnapshot(ensureMessageEditorMessages(messages), updatedAt);

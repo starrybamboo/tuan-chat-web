@@ -17,7 +17,9 @@ import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
-import { buildClueMessageCopyRequest, getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
+import { getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
+import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
 import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
 
@@ -108,6 +110,18 @@ function getClueText(message: Message) {
   return message.content?.trim() || "线索";
 }
 
+function buildClueCardSnapshot(message: Message) {
+  if (message.messageType === MESSAGE_TYPE.CLUE_CARD) {
+    return getClueCardRenderData(message.extra, message.content ?? "").snapshot;
+  }
+
+  return {
+    messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
+    content: message.content ?? "",
+    ...(message.extra !== undefined ? { extra: message.extra } : {}),
+  };
+}
+
 type MobileClueFolderMessagesProps = {
   currentUserId: number | null;
   currentRoleId: number | null;
@@ -185,11 +199,17 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
         return;
       }
       try {
-        await sendRoomMessageMutation.sendRequest(buildClueMessageCopyRequest({
-          fallbackRoleId: currentRoleId,
-          sourceMessage: message,
-          targetRoomId: currentRoomId,
-        }));
+        await sendRoomMessageMutation.sendRequest({
+          content: "",
+          extra: {
+            clueMessage: {
+              snapshot: buildClueCardSnapshot(message),
+            },
+          },
+          messageType: MESSAGE_TYPE.CLUE_CARD,
+          roomId: currentRoomId,
+          ...(currentRoleId && currentRoleId > 0 ? { roleId: currentRoleId } : { customRoleName: "线索" }),
+        });
       }
       catch (error) {
         setActionError(getErrorMessage(error, "发送线索失败。"));

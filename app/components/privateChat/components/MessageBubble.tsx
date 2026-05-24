@@ -120,6 +120,7 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
   return (
     <div
       key={message.messageId}
+      data-message-id={message.messageId}
       className={[
         "group/message flex items-end gap-2",
         isOwn ? "justify-end" : "justify-start",
@@ -132,12 +133,12 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
           : <MessageAvatar name={message.senderUsername} fileId={message.senderAvatarFileId} />
       )}
 
-      <div className={`flex max-w-[min(70%,680px)] min-w-0 flex-col ${isOwn ? "items-end" : "items-start"}`}>
+      <div className={`relative flex max-w-[min(70%,680px)] min-w-0 flex-col ${isOwn ? "items-end" : "items-start"}`}>
         <div className={getMessageBubbleClass()}>
           {renderMessageContent()}
         </div>
         {messageTimeLabel && (
-          <div className="h-0 px-1 text-[11px] leading-none text-base-content/45 opacity-0 transition-opacity duration-150 group-hover/message:h-3 group-hover/message:pt-1 group-hover/message:opacity-100">
+          <div className="pointer-events-none absolute bottom-full right-0 z-10 mb-1 px-1 text-[11px] leading-none text-base-content/45 opacity-0 translate-y-0.5 transition-all duration-150 group-hover/message:opacity-100 group-hover/message:translate-y-0">
             {messageTimeLabel}
           </div>
         )}

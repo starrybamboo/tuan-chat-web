@@ -34,19 +34,11 @@ export const STATE_EVENT_STATUS_MODIFIER_OP = {
   OVERRIDE: "override",
 } as const;
 
-export const STATE_EVENT_COMBAT_COLUMN_SOURCE = {
-  MANUAL: "manual",
-  ROLE_ATTR: "roleAttr",
-  STATE_KEY: "stateKey",
-} as const;
-
 export type StateEventSourceKind = typeof STATE_EVENT_SOURCE_KIND[keyof typeof STATE_EVENT_SOURCE_KIND];
 export type StateEventScopeKind = typeof STATE_EVENT_SCOPE_KIND[keyof typeof STATE_EVENT_SCOPE_KIND];
 export type StateEventVarOpKind = typeof STATE_EVENT_VAR_OP[keyof typeof STATE_EVENT_VAR_OP];
 export type StateEventStackMode = typeof STATE_EVENT_STACK_MODE[keyof typeof STATE_EVENT_STACK_MODE];
 export type StateStatusModifierOp = typeof STATE_EVENT_STATUS_MODIFIER_OP[keyof typeof STATE_EVENT_STATUS_MODIFIER_OP];
-export type StateEventCombatColumnSource = typeof STATE_EVENT_COMBAT_COLUMN_SOURCE[keyof typeof STATE_EVENT_COMBAT_COLUMN_SOURCE];
-export type StateEventCombatValue = string | number | null;
 
 export type StateEventSource = {
   kind: StateEventSourceKind;
@@ -90,53 +82,19 @@ export type StateEventNextTurn = {
   type: "nextTurn";
 };
 
-export type StateEventCombatParticipantUpsert = {
-  type: "combatParticipantUpsert";
-  participantId: string;
-  roleId?: number;
-  name?: string;
-  initiative?: number;
-  values?: Record<string, StateEventCombatValue>;
+export type StateEventCombatRoundEnd = {
+  type: "combatRoundEnd";
 };
 
-export type StateEventCombatParticipantRemove = {
-  type: "combatParticipantRemove";
-  participantId: string;
-};
-
-export type StateEventCombatOrderSet = {
-  type: "combatOrderSet";
-  participantIds: string[];
-};
-
-export type StateEventCombatActiveParticipantSet = {
-  type: "combatActiveParticipantSet";
-  participantId?: string;
-};
-
-export type StateEventCombatColumnUpsert = {
-  type: "combatColumnUpsert";
-  key: string;
-  label: string;
-  source: StateEventCombatColumnSource;
-  attrKey?: string;
-  stateKey?: string;
-};
-
-export type StateEventCombatColumnRemove = {
-  type: "combatColumnRemove";
-  key: string;
-};
-
-export type StateEventCombatMapTokenUpsert = {
-  type: "combatMapTokenUpsert";
+export type StateEventMapTokenUpsert = {
+  type: "mapTokenUpsert";
   roleId: number;
   rowIndex: number;
   colIndex: number;
 };
 
-export type StateEventCombatMapTokenRemove = {
-  type: "combatMapTokenRemove";
+export type StateEventMapTokenRemove = {
+  type: "mapTokenRemove";
   roleId: number;
 };
 
@@ -145,14 +103,9 @@ export type StateEventAtom
     | StateEventStatusApply
     | StateEventStatusRemove
     | StateEventNextTurn
-    | StateEventCombatParticipantUpsert
-    | StateEventCombatParticipantRemove
-    | StateEventCombatOrderSet
-    | StateEventCombatActiveParticipantSet
-    | StateEventCombatColumnUpsert
-    | StateEventCombatColumnRemove
-    | StateEventCombatMapTokenUpsert
-    | StateEventCombatMapTokenRemove;
+    | StateEventCombatRoundEnd
+    | StateEventMapTokenUpsert
+    | StateEventMapTokenRemove;
 
 export type StateEventExtra = {
   source: StateEventSource;
@@ -213,61 +166,6 @@ function toNonNegativeInteger(value: unknown): number | undefined {
   return Math.trunc(normalized);
 }
 
-function toCombatValueRecord(value: unknown): Record<string, StateEventCombatValue> | undefined {
-  const record = toRecord(value);
-  if (!record) {
-    return undefined;
-  }
-  const normalized: Record<string, StateEventCombatValue> = {};
-  Object.entries(record).forEach(([key, rawValue]) => {
-    const normalizedKey = key.trim();
-    if (!normalizedKey) {
-      return;
-    }
-    if (typeof rawValue === "string") {
-      normalized[normalizedKey] = rawValue;
-      return;
-    }
-    if (typeof rawValue === "number" && Number.isFinite(rawValue)) {
-      normalized[normalizedKey] = rawValue;
-      return;
-    }
-    if (rawValue === null) {
-      normalized[normalizedKey] = null;
-    }
-  });
-  return Object.keys(normalized).length > 0 ? normalized : undefined;
-}
-
-function normalizeParticipantIds(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  const participantIds: string[] = [];
-  const seen = new Set<string>();
-  value.forEach((item) => {
-    const participantId = toTrimmedString(item);
-    if (!participantId || seen.has(participantId)) {
-      return;
-    }
-    seen.add(participantId);
-    participantIds.push(participantId);
-  });
-  return participantIds;
-}
-
-function normalizeCombatColumnSource(value: unknown): StateEventCombatColumnSource | undefined {
-  const source = toTrimmedString(value);
-  if (
-    source === STATE_EVENT_COMBAT_COLUMN_SOURCE.MANUAL
-    || source === STATE_EVENT_COMBAT_COLUMN_SOURCE.ROLE_ATTR
-    || source === STATE_EVENT_COMBAT_COLUMN_SOURCE.STATE_KEY
-  ) {
-    return source;
-  }
-  return undefined;
-}
-
 function normalizeStateEventSource(rawSource: unknown): StateEventSource | undefined {
   const source = toRecord(rawSource);
   if (!source) {
@@ -324,80 +222,11 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
     return { type: "nextTurn" };
   }
 
-  if (type === "combatParticipantUpsert") {
-    const participantId = toTrimmedString(atom.participantId);
-    if (!participantId) {
-      return undefined;
-    }
-    const roleId = toPositiveInteger(atom.roleId);
-    const name = toTrimmedString(atom.name);
-    const initiative = toFiniteNumber(atom.initiative);
-    const values = toCombatValueRecord(atom.values);
-    return {
-      type: "combatParticipantUpsert",
-      participantId,
-      ...(typeof roleId === "number" ? { roleId } : {}),
-      ...(name ? { name } : {}),
-      ...(typeof initiative === "number" ? { initiative } : {}),
-      ...(values ? { values } : {}),
-    };
+  if (type === "combatRoundEnd") {
+    return { type: "combatRoundEnd" };
   }
 
-  if (type === "combatParticipantRemove") {
-    const participantId = toTrimmedString(atom.participantId);
-    return participantId
-      ? { type: "combatParticipantRemove", participantId }
-      : undefined;
-  }
-
-  if (type === "combatOrderSet") {
-    const participantIds = normalizeParticipantIds(atom.participantIds);
-    return participantIds
-      ? { type: "combatOrderSet", participantIds }
-      : undefined;
-  }
-
-  if (type === "combatActiveParticipantSet") {
-    const participantId = toTrimmedString(atom.participantId);
-    return {
-      type: "combatActiveParticipantSet",
-      ...(participantId ? { participantId } : {}),
-    };
-  }
-
-  if (type === "combatColumnUpsert") {
-    const key = toTrimmedString(atom.key);
-    const label = toTrimmedString(atom.label);
-    const source = normalizeCombatColumnSource(atom.source);
-    if (!key || !label || !source) {
-      return undefined;
-    }
-    const attrKey = toTrimmedString(atom.attrKey);
-    const stateKey = toTrimmedString(atom.stateKey);
-    if (source === STATE_EVENT_COMBAT_COLUMN_SOURCE.ROLE_ATTR && !attrKey) {
-      return undefined;
-    }
-    if (source === STATE_EVENT_COMBAT_COLUMN_SOURCE.STATE_KEY && !stateKey) {
-      return undefined;
-    }
-    return {
-      type: "combatColumnUpsert",
-      key,
-      label,
-      source,
-      ...(source === STATE_EVENT_COMBAT_COLUMN_SOURCE.ROLE_ATTR ? { attrKey } : {}),
-      ...(source === STATE_EVENT_COMBAT_COLUMN_SOURCE.STATE_KEY ? { stateKey } : {}),
-    };
-  }
-
-  if (type === "combatColumnRemove") {
-    const key = toTrimmedString(atom.key);
-    return key
-      ? { type: "combatColumnRemove", key }
-      : undefined;
-  }
-
-  if (type === "combatMapTokenUpsert") {
+  if (type === "mapTokenUpsert") {
     const roleId = toPositiveInteger(atom.roleId);
     const rowIndex = toNonNegativeInteger(atom.rowIndex);
     const colIndex = toNonNegativeInteger(atom.colIndex);
@@ -405,17 +234,17 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
       return undefined;
     }
     return {
-      type: "combatMapTokenUpsert",
+      type: "mapTokenUpsert",
       roleId,
       rowIndex,
       colIndex,
     };
   }
 
-  if (type === "combatMapTokenRemove") {
+  if (type === "mapTokenRemove") {
     const roleId = toPositiveInteger(atom.roleId);
     return roleId
-      ? { type: "combatMapTokenRemove", roleId }
+      ? { type: "mapTokenRemove", roleId }
       : undefined;
   }
 
@@ -528,6 +357,16 @@ export function buildCommandStateEventExtra(
   };
 }
 
+export function buildUiStateEventExtra(events: StateEventAtom[]): StateEventExtra {
+  return {
+    source: {
+      kind: STATE_EVENT_SOURCE_KIND.UI,
+      parserVersion: STATE_EVENT_PARSER_VERSION,
+    },
+    events,
+  };
+}
+
 export function toApiStateEventExtra(extra: StateEventExtra): ApiStateEventExtra {
   return extra as ApiStateEventExtra;
 }
@@ -553,10 +392,21 @@ export function formatStateNumericValue(value: number): string {
   return value.toFixed(2).replace(/\.?0+$/, "");
 }
 
+const STATE_KEY_LABELS: Record<string, string> = {
+  hp: "HP",
+  hpmax: "HP上限",
+  maxhp: "HP上限",
+  initiative: "先攻",
+};
+
 export function formatStateKeyLabel(key: string): string {
   const normalized = key.trim();
   if (!normalized) {
     return "变量";
+  }
+  const mappedLabel = STATE_KEY_LABELS[normalized.toLowerCase()];
+  if (mappedLabel) {
+    return mappedLabel;
   }
   return /^[\w:-]+$/.test(normalized) ? normalized.toUpperCase() : normalized;
 }
@@ -583,15 +433,6 @@ export function collectStateEventScopeLabels(
     if (event.type === "nextTurn") {
       return;
     }
-    if (event.type === "combatParticipantUpsert" && typeof event.roleId === "number") {
-      const label = formatStateScopeLabel({ kind: STATE_EVENT_SCOPE_KIND.ROLE, roleId: event.roleId }, options);
-      if (seen.has(label)) {
-        return;
-      }
-      seen.add(label);
-      labels.push(label);
-      return;
-    }
     if (!("scope" in event)) {
       return;
     }
@@ -611,41 +452,14 @@ export function formatStateEventAtomDetail(atom: StateEventAtom, options?: State
     return "推进到下一回合";
   }
 
-  if (atom.type === "combatParticipantUpsert") {
-    const name = atom.name ?? (typeof atom.roleId === "number" ? formatStateScopeLabel({ kind: STATE_EVENT_SCOPE_KIND.ROLE, roleId: atom.roleId }, options) : atom.participantId);
-    const parts = [`先攻参与者 ${name}`];
-    if (typeof atom.initiative === "number") {
-      parts.push(`先攻 ${formatStateNumericValue(atom.initiative)}`);
-    }
-    if (atom.values && Object.keys(atom.values).length > 0) {
-      parts.push(`更新 ${Object.keys(atom.values).join("、")}`);
-    }
-    return parts.join(" · ");
+  if (atom.type === "combatRoundEnd") {
+    return "结束战斗";
   }
 
-  if (atom.type === "combatParticipantRemove") {
-    return `移除先攻参与者 ${atom.participantId}`;
-  }
-
-  if (atom.type === "combatOrderSet") {
-    return `设置先攻顺序 ${atom.participantIds.length} 项`;
-  }
-
-  if (atom.type === "combatActiveParticipantSet") {
-    return atom.participantId ? `当前行动者 ${atom.participantId}` : "清空当前行动者";
-  }
-
-  if (atom.type === "combatColumnUpsert") {
-    return `更新战斗列 ${atom.label}`;
-  }
-
-  if (atom.type === "combatColumnRemove") {
-    return `移除战斗列 ${atom.key}`;
-  }
-  if (atom.type === "combatMapTokenUpsert") {
+  if (atom.type === "mapTokenUpsert") {
     return `地图角色 #${atom.roleId} 移动到 第 ${atom.rowIndex + 1} 行 · 第 ${atom.colIndex + 1} 列`;
   }
-  if (atom.type === "combatMapTokenRemove") {
+  if (atom.type === "mapTokenRemove") {
     return `移除地图角色 #${atom.roleId}`;
   }
   const scopeLabel = formatStateScopeLabel(atom.scope, options);
@@ -684,34 +498,22 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
   if (firstEvent.type === "nextTurn") {
     return "[状态] 下一回合";
   }
+  if (firstEvent.type === "combatRoundEnd") {
+    return "[战斗] 结束战斗";
+  }
   if (firstEvent.type === "statusApply") {
     return `[状态] 施加 ${firstEvent.statusId}`;
   }
   if (firstEvent.type === "statusRemove") {
     return `[状态] 移除 ${firstEvent.statusName}`;
   }
-  if (firstEvent.type === "combatParticipantUpsert") {
-    return `[战斗] ${firstEvent.name ?? firstEvent.participantId} 加入先攻`;
-  }
-  if (firstEvent.type === "combatParticipantRemove") {
-    return `[战斗] 移除 ${firstEvent.participantId}`;
-  }
-  if (firstEvent.type === "combatOrderSet") {
-    return `[战斗] 调整先攻顺序`;
-  }
-  if (firstEvent.type === "combatActiveParticipantSet") {
-    return firstEvent.participantId ? `[战斗] 当前行动者 ${firstEvent.participantId}` : "[战斗] 清空当前行动者";
-  }
-  if (firstEvent.type === "combatColumnUpsert") {
-    return `[战斗] 更新列 ${firstEvent.label}`;
-  }
-  if (firstEvent.type === "combatMapTokenUpsert") {
+  if (firstEvent.type === "mapTokenUpsert") {
     return `[战斗] 地图角色 #${firstEvent.roleId} 移动`;
   }
-  if (firstEvent.type === "combatMapTokenRemove") {
+  if (firstEvent.type === "mapTokenRemove") {
     return `[战斗] 移除地图角色 #${firstEvent.roleId}`;
   }
-  return `[战斗] 移除列 ${firstEvent.key}`;
+  return `[状态] ${fallback}`;
 }
 
 export function formatStateEventPreviewText(extra: unknown, fallbackContent = ""): string {

@@ -4,76 +4,20 @@ import { FileTextIcon } from "@phosphor-icons/react";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import MessageEditor from "@/components/messageEditor/MessageEditor";
-import { getDocCardExtra } from "@/types/messageExtra";
 import { useIsMobile } from "@/utils/getScreenSize";
-import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
-
-interface DocCardPayload {
-  docId: string;
-  excerpt?: string;
-  imageFileId?: number;
-  imageMediaType?: string;
-  imageUrl?: string;
-  originalImageFileId?: number;
-  roomId?: number;
-  spaceId?: number;
-  title?: string;
-}
-
-/**
- * 从文档卡片消息里提取可展示的最小预览信息。
- */
-function extractDocCardPayload(extra: unknown): DocCardPayload | null {
-  const obj = getDocCardExtra(extra);
-  const rawRoomId = Number((obj as any)?.roomId);
-  const roomId = Number.isFinite(rawRoomId) && rawRoomId > 0 ? rawRoomId : undefined;
-  const docId = typeof obj?.docId === "string" && obj.docId.trim()
-    ? obj.docId.trim()
-    : (roomId ? String(roomId) : "");
-  if (!docId) {
-    return null;
-  }
-
-  const spaceIdRaw = obj?.spaceId;
-  const spaceId = typeof spaceIdRaw === "number" && Number.isFinite(spaceIdRaw) && spaceIdRaw > 0
-    ? spaceIdRaw
-    : undefined;
-
-  const title = typeof obj?.title === "string" ? obj.title.trim() : "";
-  const imageUrl = typeof obj?.imageUrl === "string" ? obj.imageUrl.trim() : "";
-  const imageFileId = typeof obj?.imageFileId === "number" && Number.isFinite(obj.imageFileId) && obj.imageFileId > 0
-    ? obj.imageFileId
-    : undefined;
-  const originalImageFileId = typeof obj?.originalImageFileId === "number" && Number.isFinite(obj.originalImageFileId) && obj.originalImageFileId > 0
-    ? obj.originalImageFileId
-    : undefined;
-  const imageMediaType = typeof obj?.imageMediaType === "string" ? obj.imageMediaType.trim() : "";
-  const excerpt = typeof obj?.excerpt === "string" ? obj.excerpt.trim() : "";
-
-  return {
-    docId,
-    ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
-    ...(imageFileId ? { imageFileId } : {}),
-    ...(imageMediaType ? { imageMediaType } : {}),
-    ...(imageUrl ? { imageUrl } : {}),
-    ...(originalImageFileId ? { originalImageFileId } : {}),
-    ...(roomId ? { roomId } : {}),
-    ...(spaceId ? { spaceId } : {}),
-    ...(title ? { title } : {}),
-  };
-}
+import { extractDocCardReferencePayload, resolveDocCardDisplayCoverUrl } from "./docCardMedia";
 
 function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   const roomContext = use(RoomContext);
   const isMobile = useIsMobile();
   const { message } = messageResponse;
 
-  const payload = useMemo(() => extractDocCardPayload(message.extra), [message.extra]);
+  const payload = useMemo(() => extractDocCardReferencePayload(message.extra), [message.extra]);
   const [isOpen, setIsOpen] = useState(false);
 
   const previewSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
@@ -85,7 +29,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
   const coverFileId = payload?.imageFileId;
   const originalCoverFileId = payload?.originalImageFileId;
   const imageMediaType = payload?.imageMediaType;
-  const displayCoverUrl = imageMediumUrl(coverFileId) || imageMediumUrlFromUrl(coverUrl);
+  const displayCoverUrl = resolveDocCardDisplayCoverUrl(payload, "medium");
   const excerpt = payload?.excerpt ?? "";
   const disabledReason = !payload
     ? "无效的文档消息"
@@ -133,10 +77,10 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               ...(payload.roomId ? { roomId: payload.roomId } : {}),
               ...(spaceId ? { spaceId } : {}),
               ...(title ? { title } : {}),
-              ...(coverUrl ? { imageUrl: coverUrl } : {}),
               ...(coverFileId ? { imageFileId: coverFileId } : {}),
               ...(originalCoverFileId ? { originalImageFileId: originalCoverFileId } : {}),
               ...(imageMediaType ? { imageMediaType } : {}),
+              ...(coverUrl ? { imageUrl: coverUrl } : {}),
               ...(excerpt ? { excerpt } : {}),
             });
           }}
@@ -186,15 +130,16 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             <div className="flex-1 min-h-0 overflow-hidden">
               {isOpen && !isDisabled && (
                 <div className="h-full w-full overflow-hidden bg-base-100">
-                  <MessageEditor
-                    className="h-full min-h-0"
-                    coverUrl={displayCoverUrl || coverUrl}
+                  <ChatPageDocContent
                     docId={previewDocId}
-                    excerpt={excerpt}
                     readOnly
+                    showToolbar={false}
                     spaceId={previewSpaceId}
-                    title={title}
-                    workspaceId={`space:${previewSpaceId}`}
+                    tcHeaderTitle={title}
+                    tcHeaderImageUrl={coverUrl}
+                    tcHeaderImageFileId={coverFileId}
+                    tcHeaderOriginalImageFileId={originalCoverFileId}
+                    tcHeaderImageMediaType={imageMediaType}
                   />
                 </div>
               )}

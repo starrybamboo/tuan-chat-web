@@ -7,12 +7,14 @@ import {
   verifyEmailVerificationCode,
 } from "@/utils/auth/accountSecurityApi";
 import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
+import { appendPathQuery } from "@/utils/pathQuery";
 import { AlertMessage } from "./AlertMessage";
 import { runAuthSuccessFlow } from "./authSuccessFlow";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
+import { hasTurnstileSiteKey, TurnstileWidget } from "./turnstile";
 import { useVerificationCodeCooldown } from "./useVerificationCodeCooldown";
 
 type AuthMode = "login" | "register" | "forgot";
@@ -47,6 +49,23 @@ function resolveForgotPasswordErrorMessage(error: unknown): string {
   return message || fallback;
 }
 
+function useTurnstileChallenge() {
+  const [token, setToken] = useState("");
+  const [resetKey, setResetKey] = useState(0);
+
+  const reset = useCallback(() => {
+    setToken("");
+    setResetKey(previous => previous + 1);
+  }, []);
+
+  return {
+    reset,
+    resetKey,
+    setToken,
+    token,
+  };
+}
+
 // 登录弹窗组件
 export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginModalProps) {
   const location = useLocation();
@@ -63,6 +82,9 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loginMethod, setLoginMethod] = useState<"username" | "userId">("username"); // 默认用户名登录
   const timeoutIdsRef = useRef<number[]>([]);
+  const loginTurnstile = useTurnstileChallenge();
+  const registerTurnstile = useTurnstileChallenge();
+  const forgotTurnstile = useTurnstileChallenge();
 
   const registerCodeCooldown = useVerificationCodeCooldown(60);
 
@@ -82,8 +104,7 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const redirectParam = searchParams.get("redirect");
 
   const replaceSearchParams = useCallback((nextSearchParams: URLSearchParams) => {
-    const nextQuery = nextSearchParams.toString();
-    router.history.replace(`${location.pathname}${nextQuery ? `?${nextQuery}` : ""}${location.hash}`);
+    router.history.replace(appendPathQuery(location.pathname, nextSearchParams, location.hash));
   }, [location.hash, location.pathname, router]);
 
   const clearPendingTimeouts = useCallback(() => {
@@ -141,6 +162,9 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     setForgotEmail("");
     setRegisterVerificationCode("");
     setLoginMethod("username");
+    loginTurnstile.reset();
+    registerTurnstile.reset();
+    forgotTurnstile.reset();
   }
 
   function switchMode(nextMode: AuthMode) {
@@ -185,8 +209,8 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   }, [handleClose, router]);
 
   const loginMutation = useMutation({
-    mutationFn: (data: { username: string; password: string; loginMethod: "username" | "userId" }) =>
-      loginUser({ username: data.username, password: data.password }, data.loginMethod),
+    mutationFn: (data: { username: string; password: string; loginMethod: "username" | "userId"; turnstileToken?: string }) =>
+      loginUser({ username: data.username, password: data.password, turnstileToken: data.turnstileToken }, data.loginMethod),
     onSuccess: (res) => {
       if (res.data) {
         showTemporaryMessage("登录成功！", "success");
@@ -205,8 +229,8 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   });
 
   const sendRegisterCodeMutation = useMutation({
-    mutationFn: (targetEmail: string) =>
-      sendEmailVerificationCode({ email: targetEmail, purpose: "REGISTER" }),
+    mutationFn: (params: { email: string; turnstileToken?: string }) =>
+      sendEmailVerificationCode({ email: params.email, purpose: "REGISTER", turnstileToken: params.turnstileToken }),
     onSuccess: () => {
       registerCodeCooldown.startCooldown();
       showTemporaryMessage("验证码已发送，请查收邮箱", "success");
@@ -220,13 +244,13 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; email: string; verificationCode: string }) => {
+    mutationFn: async (data: { username: string; password: string; email: string; verificationCode: string; turnstileToken?: string }) => {
       await verifyEmailVerificationCode({
         email: data.email,
         code: data.verificationCode,
         purpose: "REGISTER",
       });
-      return registerUser({ username: data.username, password: data.password, email: data.email });
+      return registerUser({ username: data.username, password: data.password, email: data.email, turnstileToken: data.turnstileToken });
     },
     onSuccess: (res, variables) => {
       if (res.success && res.data) {
@@ -259,7 +283,7 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   });
 
   const forgotPasswordMutation = useMutation({
-    mutationFn: (targetEmail: string) => requestForgotPasswordByEmail(targetEmail),
+    mutationFn: (params: { email: string; turnstileToken?: string }) => requestForgotPasswordByEmail(params.email, params.turnstileToken),
     onSuccess: () => {
       showTemporaryMessage("账号信息与重置指引已发送到邮箱，请注意查收", "success");
       scheduleTimeout(() => {
@@ -278,7 +302,15 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       showTemporaryMessage(`请输入${loginMethod === "username" ? "用户名" : "用户ID"}`, "error");
       return;
     }
-    loginMutation.mutate({ username: username.trim(), password, loginMethod });
+    const turnstileToken = hasTurnstileSiteKey() ? loginTurnstile.token.trim() : "";
+    if (hasTurnstileSiteKey() && !turnstileToken) {
+      showTemporaryMessage("请先完成安全验证", "error");
+      return;
+    }
+    loginMutation.mutate({ username: username.trim(), password, loginMethod, turnstileToken: turnstileToken || undefined });
+    if (hasTurnstileSiteKey()) {
+      loginTurnstile.reset();
+    }
   };
 
   const handleSendRegisterVerificationCode = () => {
@@ -289,7 +321,15 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     if (registerCodeCooldown.isCoolingDown || sendRegisterCodeMutation.isPending) {
       return;
     }
-    sendRegisterCodeMutation.mutate(email.trim());
+    const turnstileToken = hasTurnstileSiteKey() ? registerTurnstile.token.trim() : "";
+    if (hasTurnstileSiteKey() && !turnstileToken) {
+      showTemporaryMessage("请先完成安全验证", "error");
+      return;
+    }
+    sendRegisterCodeMutation.mutate({ email: email.trim(), turnstileToken: turnstileToken || undefined });
+    if (hasTurnstileSiteKey()) {
+      registerTurnstile.reset();
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -306,12 +346,22 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       return;
     }
 
+    const turnstileToken = hasTurnstileSiteKey() ? registerTurnstile.token.trim() : "";
+    if (hasTurnstileSiteKey() && !turnstileToken) {
+      showTemporaryMessage("请先完成安全验证", "error");
+      return;
+    }
+
     registerMutation.mutate({
       username: username.trim(),
       password,
       email: email.trim(),
       verificationCode: registerVerificationCode.trim(),
+      turnstileToken: turnstileToken || undefined,
     });
+    if (hasTurnstileSiteKey()) {
+      registerTurnstile.reset();
+    }
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -323,7 +373,15 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       return;
     }
 
-    forgotPasswordMutation.mutate(forgotEmail.trim());
+    const turnstileToken = hasTurnstileSiteKey() ? forgotTurnstile.token.trim() : "";
+    if (hasTurnstileSiteKey() && !turnstileToken) {
+      showTemporaryMessage("请先完成安全验证", "error");
+      return;
+    }
+    forgotPasswordMutation.mutate({ email: forgotEmail.trim(), turnstileToken: turnstileToken || undefined });
+    if (hasTurnstileSiteKey()) {
+      forgotTurnstile.reset();
+    }
   };
 
   const handleLogout = () => {
@@ -369,6 +427,15 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
                     isLoading={loginMutation.isPending}
                     loginMethod={loginMethod}
                     setLoginMethod={setLoginMethod}
+                    turnstile={hasTurnstileSiteKey()
+                      ? (
+                          <TurnstileWidget
+                            token={loginTurnstile.token}
+                            onTokenChange={loginTurnstile.setToken}
+                            resetKey={loginTurnstile.resetKey}
+                          />
+                        )
+                      : null}
                   />
                 )
               : isRegisterMode
@@ -390,6 +457,15 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
                       setConfirmPassword={setConfirmPassword}
                       handleSubmit={handleRegisterSubmit}
                       isLoading={registerMutation.isPending}
+                      turnstile={hasTurnstileSiteKey()
+                        ? (
+                            <TurnstileWidget
+                              token={registerTurnstile.token}
+                              onTokenChange={registerTurnstile.setToken}
+                              resetKey={registerTurnstile.resetKey}
+                            />
+                          )
+                        : null}
                     />
                   )
                 : (
@@ -398,6 +474,15 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
                       setEmail={setForgotEmail}
                       handleSubmit={handleForgotSubmit}
                       isLoading={forgotPasswordMutation.isPending}
+                      turnstile={hasTurnstileSiteKey()
+                        ? (
+                            <TurnstileWidget
+                              token={forgotTurnstile.token}
+                              onTokenChange={forgotTurnstile.setToken}
+                              resetKey={forgotTurnstile.resetKey}
+                            />
+                          )
+                        : null}
                     />
                   )}
 

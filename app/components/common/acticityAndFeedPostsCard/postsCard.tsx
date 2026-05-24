@@ -1,18 +1,13 @@
 import { useRouter } from "@tanstack/react-router";
 import React, { useCallback, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
-import PostContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/PostContentCard";
 import RepositoryContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/RepositoryContentCard";
-import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import DislikeIconButton from "@/components/common/dislikeIconButton";
-import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
@@ -26,9 +21,6 @@ interface PostsCardProps {
   displayType?: "default" | "feed";
   contentTypeNumber?: number;
 }
-
-const COMMUNITY_POST_UNAVAILABLE_MESSAGE = "社区功能已下线，历史帖子暂不支持打开";
-const COMMUNITY_SHARE_UNAVAILABLE_MESSAGE = "社区功能已下线，历史帖子暂不支持分享";
 
 /**
  * 发布的动态，Feed，帖子预览卡片组件（统一版）
@@ -46,19 +38,14 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
   // 统一的数据提取
   const userId = res?.userId ?? -1;
-  const postId = isFeed ? res?.communityPostId : res?.feedId;
+  const postId = res?.feedId;
 
   // 根据实际内容类型确定targetType和resourceType
-  const hasPostData = res?.postId || res?.communityPostId;
   const hasRepositoryData = res?.repositoryId;
 
   let targetType: string;
 
-  if (hasPostData) {
-    // 有帖子ID，是帖子类型
-    targetType = "2";
-  }
-  else if (hasRepositoryData) {
+  if (hasRepositoryData) {
     // 有仓库ID，是仓库类型
     targetType = "3";
   }
@@ -68,7 +55,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
   }
 
   const contentType = parseEventType(contentTypeNumber || 0);
-  const isCommunityPostTarget = targetType === "2";
 
   // 状态管理
   const [showMenu, setShowMenu] = useState(false);
@@ -118,18 +104,11 @@ const PostsCard: React.FC<PostsCardProps> = ({
     setIsCommentMenuOpen(!isCommentMenuOpen);
   };
 
-  const notifyCommunityPostUnavailable = useCallback(() => {
-    toast(COMMUNITY_POST_UNAVAILABLE_MESSAGE, { icon: "ℹ️" });
-  }, []);
-
   const handleContentClick = useCallback(() => {
     if (!isFeed && postId > 0) {
       setIsMomentDetailOpen(true);
     }
-    else if (isFeed) {
-      notifyCommunityPostUnavailable();
-    }
-  }, [postId, isFeed, notifyCommunityPostUnavailable]);
+  }, [postId, isFeed]);
 
   // Feed 专用不感兴趣处理
   const handleDislikeClick = () => {
@@ -147,7 +126,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
     ...(Array.isArray(res?.imageUrls) ? res.imageUrls : []),
     ...(res?.coverImage ? [res.coverImage] : []),
   ];
-  const actualCommunityId = res?.communityId;
   const publishTime = res?.createTime ?? "";
   const content = res?.content ?? "";
   const title = res?.title ?? "";
@@ -157,29 +135,15 @@ const PostsCard: React.FC<PostsCardProps> = ({
   const postRef = useRef<HTMLDivElement>(null);
 
   const renderSpecialContent = () => {
-    // 帖子类型判断 - 优先检查数据字段，再检查contentType
-    const isPostType = contentType === "发送了帖子" || contentType.includes("帖子");
-
-    if (hasPostData || isPostType) {
-      return (
-        <PostContentCard
-          title={title}
-          description={description}
-          coverImage={images[0]} // 使用第一张图片作为封面
-          onClick={notifyCommunityPostUnavailable}
-        />
-      );
-    }
-
     if (hasRepositoryData) {
       const repositoryName = res?.name;
-      const repositoryImage = res?.repositoryImage;
+      const repositoryCoverFileId = res?.coverFileId;
 
       return (
         <RepositoryContentCard
           name={repositoryName}
           description={description}
-          repositoryImage={repositoryImage}
+          repositoryCoverFileId={repositoryCoverFileId}
           repositoryId={res.repositoryId}
           onClick={() => {
             if (res?.repositoryId) {
@@ -192,8 +156,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
                   repositoryName: res.name,
                   description: res.description,
                   userId,
-                  // authorName: repository.authorName,
-                  image: res.repositoryImage,
+                  coverFileId: res.coverFileId,
                   // createTime: repository.createTime,
                   // updateTime: repository.updateTime,
                   // minPeople: repository.minPeople,
@@ -214,12 +177,10 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
   // 获取实际的ID用于点赞、评论等操作
   const getActualId = () => {
-    if (hasPostData) {
-      return res?.postId || res?.communityPostId;
-    }
-    else if (hasRepositoryData) {
+    if (hasRepositoryData) {
       return res?.repositoryId;
     }
+    return postId;
   };
 
   const actualId = getActualId() ?? -1;
@@ -337,18 +298,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
             </div>
           )}
 
-          {/* Feed 专用：消息内容容器 */}
-          {res?.message && (
-            <div className="mt-4">
-              <SlidableChatPreview
-                messageResponse={res.message}
-                maxHeight="160px"
-                showAvatars={true}
-                beFull={true}
-              />
-            </div>
-          )}
-
           {/* 图片预览（非 Feed 且没有特殊内容卡片时） */}
           {!isFeed && images.length > 0 && !renderSpecialContent() && (
             <div className="mt-4 pl-16">
@@ -359,15 +308,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
         {/* 操作栏 */}
         <div className="flex items-center space-x-4 sm:space-x-6 pt-3 border-t border-base-300">
-          <div className="flex items-center space-x-1 text-sm transition-colors px-2 py-1 cursor-pointer hover:text-error hover:bg-error/10 rounded-full">
-            <LikeIconButton
-              targetInfo={{ targetId: actualId, targetType }}
-              className="w-9 h-6 cursor-pointer"
-              direction="row"
-              data-html-image-exclude="true"
-            />
-          </div>
-
           <div
             onClick={handleComment}
             className="flex items-center space-x-1 text-sm hover:text-primary cursor-pointer hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
@@ -376,20 +316,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
             <span className="font-medium">{stats?.commentCount || 0}</span>
           </div>
 
-          <div className="flex items-center space-x-1 text-sm hover:text-warning cursor-pointer hover:bg-warning/10 transition-colors px-2 py-1 rounded-full">
-            <CollectionIconButton
-              targetInfo={{ resourceId: actualId, resourceType: String(targetType) }}
-              className="w-9 h-6 cursor-pointer data-html-image-exclude"
-            />
-          </div>
-
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full data-html-image-exclude">
             <ShareIconButton
               targetRef={postRef as React.RefObject<HTMLDivElement>}
-              qrLink={targetType === "2" ? `https://tuan.chat/community/${actualCommunityId}/${actualId}` : targetType === "3" ? `https://tuan.chat/repository/detail/${actualId}` : "https://tuan.chat/chat"}
+              qrLink={targetType === "3" ? `https://tuan.chat/repository/detail/${actualId}` : "https://tuan.chat/chat"}
               searchKey={`feedShowSharePop${actualId}`}
               className="cursor-pointer w-9 h-6"
-              blockedReason={isCommunityPostTarget ? COMMUNITY_SHARE_UNAVAILABLE_MESSAGE : undefined}
             />
           </div>
         </div>

@@ -13,7 +13,6 @@ import { avatarThumbUrl } from "@/lib/media-url";
 import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
 import { compareStateValueText } from "@tuanchat/domain/state-runtime";
 
-import { buildMobileInitiativeRows } from "./initiativeRuntimeRows";
 import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 const PRIMARY_STAT_COLORS: Record<string, { bg: string; text: string }> = {
@@ -117,8 +116,6 @@ export function CombatPanel({
     ruleId,
   });
 
-  const initiativeRows = useMemo(() => buildMobileInitiativeRows(runtime.participants), [runtime.participants]);
-
   const roleNameById = useMemo(() => {
     return Object.fromEntries(roomRoles.map(role => [role.roleId, role.roleName?.trim() || null]));
   }, [roomRoles]);
@@ -127,12 +124,12 @@ export function CombatPanel({
     return roomRoles
       .filter(role => role.state !== 1)
       .map((role) => {
-        const participant = runtime.participants.find(item => item.roleId === role.roleId);
         const baseValues = runtime.baseDisplayValues.rolesByRoleId[role.roleId] ?? {};
         const displayValues = runtime.derivedDisplayValues.rolesByRoleId[role.roleId] ?? {};
         const keys = [...new Set([...Object.keys(baseValues), ...Object.keys(displayValues)])];
         const activeStates = runtime.activeStates.filter(item => item.scope.kind === "role" && item.scope.roleId === role.roleId);
-        return { activeStates, initiative: participant?.initiative ?? null, keys, role };
+        const initiative = displayValues.initiative ?? baseValues.initiative ?? null;
+        return { activeStates, initiative, keys, role };
       })
       // 先攻不单独开区，但仍算作角色战斗状态，不能只落到辅助参与者列表。
       .filter(item => item.keys.length > 0 || item.activeStates.length > 0 || typeof item.initiative === "number");
@@ -141,22 +138,7 @@ export function CombatPanel({
     runtime.activeStates,
     runtime.baseDisplayValues.rolesByRoleId,
     runtime.derivedDisplayValues.rolesByRoleId,
-    runtime.participants,
   ]);
-
-  const roleIdsWithCombatState = useMemo(() => {
-    return new Set(rolesWithCombatState.map(item => item.role.roleId));
-  }, [rolesWithCombatState]);
-
-  const looseParticipantRows = useMemo(() => {
-    return initiativeRows.filter((row) => {
-      const participant = runtime.participants.find(item => item.participantId === row.participantId);
-      if (typeof participant?.roleId !== "number" || participant.roleId <= 0) {
-        return true;
-      }
-      return !roleIdsWithCombatState.has(participant.roleId);
-    });
-  }, [initiativeRows, roleIdsWithCombatState, runtime.participants]);
 
   const recentCombatMessages = useMemo(() => {
     return [...messages]
@@ -301,39 +283,6 @@ export function CombatPanel({
                 );
               })}
         </View>
-
-        {looseParticipantRows.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText type="smallBold" themeColor="textSecondary">其他战斗参与者</ThemedText>
-            {looseParticipantRows.map(row => (
-              <View
-                key={row.participantId}
-                style={[styles.row, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-              >
-                <View style={[styles.pill, { backgroundColor: theme.accentMuted }]}>
-                  <ThemedText type="caption" style={{ color: theme.accent }}>
-                    #
-                    {row.index + 1}
-                  </ThemedText>
-                </View>
-                <View style={styles.rowText}>
-                  <ThemedText type="smallBold" numberOfLines={1}>{row.name}</ThemedText>
-                  <ThemedText themeColor="textSecondary" type="caption">
-                    HP
-                    {" "}
-                    {row.hp ?? "--"}
-                    /
-                    {row.maxHp ?? "--"}
-                    {" "}
-                    · 先攻
-                    {" "}
-                    {row.initiative}
-                  </ThemedText>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
 
         <View style={styles.section}>
           <ThemedText type="smallBold">最近战斗事件</ThemedText>

@@ -1,4 +1,3 @@
-import type { MarkTarget } from "../../../api";
 import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 import { Link } from "@tanstack/react-router";
 import toast from "react-hot-toast";
@@ -216,7 +215,7 @@ export default function FeedbackIssueDetail({
   }
 
   const issue = issueQuery.data;
-  const targetInfo: MarkTarget = {
+  const targetInfo = {
     targetId: issue.feedbackIssueId,
     targetType: FEEDBACK_ISSUE_TARGET_TYPE,
   };

@@ -18,5 +18,9 @@ export type UserRegisterRequest = {
      * 邮箱
      */
     email: string;
+    /**
+     * Cloudflare Turnstile 校验 token
+     */
+    turnstileToken?: string;
 };
 

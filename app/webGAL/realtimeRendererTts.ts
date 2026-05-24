@@ -1,7 +1,7 @@
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 
+import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { createTTSApi, ttsApi } from "@/tts/engines/index/apiClient";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import type { RealtimeTTSConfig } from "./realtimeRendererConfig";
 
@@ -91,7 +91,7 @@ export async function fetchVoiceFilesFromRoleMap(
   voiceFileMap: Map<number, File>,
 ): Promise<void> {
   for (const [roleId, role] of roleMap) {
-    const voiceUrl = mediaFileUrl(role.voiceFileId, "audio", "original") || role.voiceUrl;
+    const voiceUrl = resolveRoleVoiceUrl(role);
     if (voiceUrl && !voiceFileMap.has(roleId)) {
       try {
         const response = await fetch(voiceUrl);

@@ -18,7 +18,6 @@ interface UseChatFrameMessageRendererParams {
   isMessageMovable?: (message: Message) => boolean;
   onExecuteCommandRequest?: (payload: {
     command: string;
-    threadId?: number;
     requestMessageId: number;
   }) => void;
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;

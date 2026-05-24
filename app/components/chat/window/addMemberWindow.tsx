@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
+import { MagnifyingGlassIcon, UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
 import { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { UserAvatarByUser } from "@/components/common/userAccess";
-
+import { CheckIcon, CopyIcon, InfoIcon, Link } from "@/icons";
 import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
@@ -13,304 +15,435 @@ interface MemberLike {
   avatarThumbUrl?: string;
 }
 
-function MemberBox({ user, onClickAddMember, isAdded }: { user: MemberLike; onClickAddMember: () => void; isAdded: boolean }) {
-  return (
-    <div
-      className="card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
-    >
-      <div className="card-body items-center p-4">
-        <UserAvatarByUser
-          user={user}
-          width={12}
-          isRounded={true}
-          withName={true}
-        />
-        {
-          isAdded
-            ? (
-                <button
-                  className="btn btn-sm btn-info mt-2 btn-ghost"
-                  type="button"
-                  disabled={true}
-                >
-                  已加入
-                </button>
-              )
-            : (
-                <button
-                  className="btn btn-sm btn-info mt-2"
-                  type="button"
-                  onClick={onClickAddMember}
-                >
-                  添加
-                </button>
-              )
-        }
-      </div>
-    </div>
-  );
-}
-
-function MemberRow({ user, onClickAddMember, isAdded }: { user: MemberLike; onClickAddMember: () => void; isAdded: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2">
-      <div className="min-w-0 flex-1">
-        <UserAvatarByUser
-          user={user}
-          width={10}
-          isRounded={true}
-          withName={true}
-        />
-      </div>
-      {isAdded
-        ? (
-            <button
-              className="btn btn-sm btn-ghost"
-              type="button"
-              disabled={true}
-            >
-              已加入
-            </button>
-          )
-        : (
-            <button
-              className="btn btn-sm"
-              type="button"
-              onClick={onClickAddMember}
-            >
-              邀请
-            </button>
-          )}
-    </div>
-  );
-}
-
-/**
- * 添加成员窗口：同页展示邀请好友/按ID邀请、邀请链接（可选显示空间成员）。
- */
-export default function AddMemberWindow({
-  handleAddMember,
-  showSpace = false,
-  inviteCodeType = 0,
-  targetType = "room",
-}: {
+interface AddMemberWindowProps {
   handleAddMember: (userId: number) => void;
   showSpace?: boolean;
   inviteCodeType?: 0 | 1;
   targetType?: "room" | "space";
-}) {
-  const spaceContext = use(SpaceContext);
-  const spaceMembers = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1).data?.data ?? [];
+  title?: string;
+  subtitle?: string;
+  embedded?: boolean;
+  headerExtra?: ReactNode;
+}
 
+/**
+ * 添加成员窗口：统一承载好友邀请、空间内添加和邀请链接。
+ */
+export default function AddMemberWindow({
+  embedded = false,
+  handleAddMember,
+  headerExtra,
+  inviteCodeType = 0,
+  showSpace = false,
+  subtitle,
+  targetType = "room",
+  title,
+}: AddMemberWindowProps) {
+  const spaceContext = use(SpaceContext);
   const roomContext = use(RoomContext);
   const roomMembers = roomContext.roomMembers ?? [];
+  const spaceMembersQuery = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1);
+  const spaceMembers = spaceMembersQuery.data?.data ?? [];
 
-  const checkIsAdded = (userId: number) => {
-    if (targetType === "space") {
-      return spaceMembers.some(m => m.userId === userId);
-    }
-    return roomMembers.some((m: any) => m.userId === userId);
-  };
-
-  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
-  const friends = useMemo(() => {
-    return friendListQuery.data?.data ?? [];
-  }, [friendListQuery.data?.data]);
-
-  // 当前选择的 duration
   const [duration, setDuration] = useState<number>(7);
   const [copied, setCopied] = useState<boolean>(false);
   const [isEditingInvite, setIsEditingInvite] = useState<boolean>(false);
   const [editDurationDays, setEditDurationDays] = useState<number>(7);
   const [searchKeyword, setSearchKeyword] = useState<string>("");
 
-  // 仅按当前 duration 请求 invite code
   const invite = useSpaceInviteCodeQuery(spaceContext.spaceId ?? -1, inviteCodeType, duration);
-
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-
   const currentInviteLink = invite.data?.data ? `${origin}/invite/${invite.data.data}` : "生成中...";
+  const inviteRoleLabel = inviteCodeType === 1 ? "玩家" : "观战";
+  const defaultTitle = targetType === "space" ? "邀请空间成员" : "邀请成员";
+  const defaultSubtitle = targetType === "space"
+    ? "通过好友列表或邀请链接把成员加入当前空间。"
+    : "邀请好友加入当前房间，也可以从空间成员中快速添加。";
 
+  const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
+  const friends = useMemo(() => friendListQuery.data?.data ?? [], [friendListQuery.data?.data]);
   const filteredFriends = useMemo(() => {
-    const kw = searchKeyword.trim().toLowerCase();
-    if (!kw)
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) {
       return friends;
+    }
     return friends.filter((friend) => {
       const username = friend?.username;
-      return typeof username === "string" && username.toLowerCase().includes(kw);
+      return typeof username === "string" && username.toLowerCase().includes(keyword);
     });
   }, [friends, searchKeyword]);
 
+  const checkIsAdded = (userId: number) => {
+    if (targetType === "space") {
+      return spaceMembers.some(member => member.userId === userId);
+    }
+    return roomMembers.some(member => member.userId === userId);
+  };
+
   const copyToClipboard = async () => {
-    if (currentInviteLink && currentInviteLink !== "生成中...") {
-      try {
-        if (typeof navigator !== "undefined" && navigator.clipboard) {
-          await navigator.clipboard.writeText(currentInviteLink);
-          setCopied(true);
-        }
-        else {
-          const tempInput = document.createElement("input");
-          document.body.appendChild(tempInput);
-          tempInput.value = currentInviteLink;
-          tempInput.select();
-          tempInput.setSelectionRange(0, 99999);
+    if (!currentInviteLink || currentInviteLink === "生成中...") {
+      return;
+    }
 
-          const successful = document.execCommand("copy");
-          if (successful) {
-            setCopied(true);
-          }
-          else {
-            throw new Error("复制失败");
-          }
-
-          document.body.removeChild(tempInput);
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(currentInviteLink);
+      }
+      else {
+        const tempInput = document.createElement("input");
+        tempInput.value = currentInviteLink;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999);
+        const successful = document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        if (!successful) {
+          throw new Error("复制失败");
         }
-        setTimeout(() => setCopied(false), 2000);
       }
-      catch (err) {
-        console.error("复制失败:", err);
-      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    }
+    catch (err) {
+      console.error("复制失败:", err);
     }
   };
 
-  return (
-    <div className="space-y-6 bg-base-100 rounded-xl">
-      {/* 邀请好友 / 按ID邀请 */}
-      <div className="bg-base-100 border border-base-300 rounded-box p-6">
-        <h3 className="text-lg font-semibold mb-1">邀请成员</h3>
-        <div className="text-sm opacity-80 mb-3">搜索好友并邀请加入</div>
-
-        <div className="form-control mb-3">
+  const inviteSettings = (
+    <div className="space-y-4">
+      <PanelSection
+        icon={<Link className="size-5" />}
+        title="邀请链接"
+        description={`复制${inviteRoleLabel}邀请链接，在其他应用里发送。`}
+      >
+        <label className="mb-2 block text-xs font-medium text-base-content/60" htmlFor="invite-link-input">
+          链接
+        </label>
+        <div className="flex flex-col gap-2">
           <input
+            id="invite-link-input"
             type="text"
-            className="input input-bordered w-full"
-            placeholder="搜索好友"
-            aria-label="搜索好友"
-            value={searchKeyword}
-            onChange={(e) => {
-              setSearchKeyword(e.currentTarget.value);
-            }}
+            className="input input-bordered min-w-0 bg-base-100 text-sm"
+            aria-label="邀请链接"
+            value={currentInviteLink}
+            readOnly={true}
+            placeholder="生成中..."
           />
+          <button
+            type="button"
+            className={`btn w-full ${copied ? "btn-success" : "btn-primary"}`}
+            onClick={() => {
+              void copyToClipboard();
+            }}
+            disabled={currentInviteLink === "生成中..."}
+          >
+            {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
+            {copied ? "已复制" : "复制链接"}
+          </button>
         </div>
+      </PanelSection>
 
-        <div className="border border-base-300 rounded-lg bg-base-100 divide-y divide-base-300 max-h-80 overflow-auto">
-          {filteredFriends.length > 0
-            ? (
-                filteredFriends.map(friend => (
-                  friend.userId && (
-                    <MemberRow
-                      user={friend}
-                      onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
-                      key={`friend-${friend.userId}`}
-                      isAdded={checkIsAdded(friend.userId ?? -1)}
-                    />
-                  )
-                ))
-              )
-            : (
-                <div className="px-3 py-8 text-center text-sm opacity-70">
-                  {searchKeyword.trim() && friendListQuery.isLoading ? "加载中..." : "未找到好友"}
-                </div>
-              )}
-        </div>
-      </div>
-
-      {/* 从空间添加（可选） */}
-      {showSpace && (
-        <div className="bg-base-100 border border-base-300 rounded-box p-6">
-          <h3 className="text-lg font-semibold mb-4">从空间添加</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
-            {spaceMembers.map(member => (
-              member.userId && (
-                <MemberBox
-                  user={member}
-                  onClickAddMember={() => handleAddMember(member.userId ?? -1)}
-                  key={`space-${member.userId}`}
-                  isAdded={checkIsAdded(member.userId ?? -1)}
+      <PanelSection
+        icon={<InfoIcon className="size-5" />}
+        title="有效期"
+        description={`当前邀请链接将在 ${duration} 天后过期。`}
+      >
+        {isEditingInvite
+          ? (
+              <div className="space-y-3">
+                <label className="block text-xs font-medium text-base-content/60" htmlFor="invite-duration-input">
+                  有效期（天）
+                </label>
+                <input
+                  id="invite-duration-input"
+                  type="number"
+                  className="input input-bordered w-full bg-base-100"
+                  placeholder="天数"
+                  aria-label="邀请链接有效期（天）"
+                  min={1}
+                  max={365}
+                  value={editDurationDays}
+                  onChange={event => setEditDurationDays(Number(event.currentTarget.value))}
                 />
-              )
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 生成邀请链接 */}
-      <div className="bg-base-200 p-4 rounded-lg">
-        <div className="text-sm opacity-80 mb-3">
-          或者，在其他应用里发送
-          {inviteCodeType === 1 ? "玩家" : "观战"}
-          邀请链接
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              className="input input-bordered flex-1"
-              aria-label="邀请链接"
-              value={currentInviteLink}
-              readOnly
-              placeholder="生成中..."
-            />
-            <button
-              type="button"
-              className={`btn ${copied ? "btn-success" : "btn-info"}`}
-              onClick={copyToClipboard}
-              disabled={currentInviteLink === "生成中..."}
-            >
-              {copied ? "已复制" : "复制"}
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between text-sm opacity-80">
-            <div>
-              您的邀请链接将在
-              {duration}
-              {" "}
-              天后过期。
-            </div>
-            <button
-              type="button"
-              className="btn btn-link px-0 h-auto min-h-0"
-              onClick={() => {
-                setIsEditingInvite(true);
-                setEditDurationDays(duration);
-              }}
-            >
-              编辑邀请链接
-            </button>
-          </div>
-
-          {isEditingInvite && (
-            <div className="bg-base-100 border border-base-300 rounded-box p-3 flex flex-col sm:flex-row gap-2 items-center">
-              <div className="text-sm w-full sm:w-auto">有效期（天）</div>
-              <input
-                type="number"
-                className="input input-bordered w-full sm:w-40"
-                placeholder="输入天数"
-                aria-label="邀请链接有效期（天）"
-                min={1}
-                max={365}
-                value={editDurationDays}
-                onChange={e => setEditDurationDays(Number(e.currentTarget.value))}
-              />
+                <button
+                  type="button"
+                  className="btn btn-primary w-full"
+                  onClick={() => {
+                    const next = Number.isFinite(editDurationDays) ? Math.floor(editDurationDays) : duration;
+                    const clamped = Math.min(365, Math.max(1, next));
+                    setDuration(clamped);
+                    setCopied(false);
+                    setIsEditingInvite(false);
+                  }}
+                >
+                  完成
+                </button>
+              </div>
+            )
+          : (
               <button
                 type="button"
-                className="btn btn-info w-full sm:w-auto"
+                className="btn btn-outline w-full"
                 onClick={() => {
-                  const next = Number.isFinite(editDurationDays) ? Math.floor(editDurationDays) : duration;
-                  const clamped = Math.min(365, Math.max(1, next));
-                  setDuration(clamped);
-                  setCopied(false);
-                  setIsEditingInvite(false);
+                  setIsEditingInvite(true);
+                  setEditDurationDays(duration);
                 }}
               >
-                完成
+                编辑有效期
               </button>
+            )}
+      </PanelSection>
+    </div>
+  );
+
+  const memberSelection = (
+    <div className="flex h-full min-h-[460px] flex-col">
+      <header className="border-b border-base-300/70 pb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200/55 text-primary">
+            <UserPlusIcon className="size-5" weight="regular" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold leading-7">选择成员</h3>
+            <p className="mt-1 text-sm leading-6 text-base-content/60">
+              搜索好友后直接邀请；房间邀请也可以从空间成员中添加。
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div className="hidden-scrollbar flex-1 space-y-5 overflow-y-auto py-5">
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h4 className="text-sm font-semibold leading-6">好友邀请</h4>
+            <span className="text-xs text-base-content/45">
+              {filteredFriends.length}
+              {" "}
+              人
+            </span>
+          </div>
+          <div className="relative mb-3">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-base-content/45" />
+            <input
+              type="text"
+              className="input input-bordered w-full bg-base-100 pl-9"
+              placeholder="搜索好友"
+              aria-label="搜索好友"
+              value={searchKeyword}
+              onChange={(event) => {
+                setSearchKeyword(event.currentTarget.value);
+              }}
+            />
+          </div>
+
+          <div className="hidden-scrollbar max-h-[320px] overflow-y-auto rounded-lg border border-base-300/70 bg-base-100">
+            {filteredFriends.length > 0
+              ? (
+                  filteredFriends.map(friend => (
+                    typeof friend.userId === "number" && (
+                      <MemberRow
+                        key={`friend-${friend.userId}`}
+                        user={friend}
+                        actionText="邀请"
+                        isAdded={checkIsAdded(friend.userId)}
+                        onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
+                      />
+                    )
+                  ))
+                )
+              : (
+                  <EmptyState>
+                    {friendListQuery.isLoading ? "正在加载好友..." : "未找到匹配的好友"}
+                  </EmptyState>
+                )}
+          </div>
+        </section>
+
+        {showSpace && (
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <UsersIcon className="size-4 text-primary" weight="regular" />
+                <h4 className="text-sm font-semibold leading-6">从空间添加</h4>
+              </div>
+              <span className="text-xs text-base-content/45">
+                {spaceMembers.length}
+                {" "}
+                人
+              </span>
             </div>
-          )}
+            <div className="hidden-scrollbar grid max-h-[260px] gap-2 overflow-y-auto sm:grid-cols-2">
+              {spaceMembers.length > 0
+                ? (
+                    spaceMembers.map(member => (
+                      typeof member.userId === "number" && (
+                        <MemberCard
+                          key={`space-${member.userId}`}
+                          user={member}
+                          isAdded={checkIsAdded(member.userId)}
+                          onClickAddMember={() => handleAddMember(member.userId ?? -1)}
+                        />
+                      )
+                    ))
+                  )
+                : (
+                    <div className="sm:col-span-2">
+                      <EmptyState>{spaceMembersQuery.isLoading ? "正在加载空间成员..." : "暂无可添加的空间成员"}</EmptyState>
+                    </div>
+                  )}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return memberSelection;
+  }
+
+  return (
+    <div className="flex max-h-[min(84vh,780px)] w-[min(1040px,calc(100vw-2rem))] flex-col overflow-hidden bg-base-100 text-base-content lg:grid lg:grid-cols-[330px_minmax(0,1fr)]">
+      <aside className="hidden-scrollbar flex shrink-0 flex-col overflow-y-auto border-b border-base-300/70 bg-base-200/45 p-5 pr-14 lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6">
+        <div className="min-w-0">
+          <p className="text-sm text-base-content/60">成员邀请</p>
+          <h2 className="mt-1 text-2xl font-semibold leading-tight">{title ?? defaultTitle}</h2>
+          <p className="mt-3 text-sm leading-6 text-base-content/65">
+            {subtitle ?? defaultSubtitle}
+          </p>
+        </div>
+
+        <div className="mt-5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-primary">
+          {inviteRoleLabel}
+        </div>
+
+        {headerExtra && <div className="mt-4">{headerExtra}</div>}
+
+        <div className="mt-5">
+          {inviteSettings}
+        </div>
+      </aside>
+
+      <main className="hidden-scrollbar min-h-0 flex-1 overflow-y-auto bg-base-100 p-5 pr-14 lg:p-6 lg:pr-14">
+        {memberSelection}
+      </main>
+    </div>
+  );
+}
+
+function PanelSection({
+  children,
+  description,
+  icon,
+  title,
+}: {
+  children: ReactNode;
+  description: string;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <section className="rounded-lg border border-base-300/70 bg-base-100 p-4 shadow-sm">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200/55 text-primary">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-semibold leading-6">{title}</h3>
+          <p className="mt-1 text-sm leading-5 text-base-content/60">{description}</p>
         </div>
       </div>
+      {children}
+    </section>
+  );
+}
+
+function MemberRow({
+  actionText,
+  isAdded,
+  onClickAddMember,
+  user,
+}: {
+  actionText: string;
+  isAdded: boolean;
+  onClickAddMember: () => void;
+  user: MemberLike;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-base-300/60 px-3 py-2.5 last:border-b-0 hover:bg-base-200/55">
+      <MemberIdentity user={user} />
+      {isAdded
+        ? (
+            <button className="btn btn-ghost btn-sm min-w-20" type="button" disabled={true}>
+              已加入
+            </button>
+          )
+        : (
+            <button className="btn btn-primary btn-sm min-w-20" type="button" onClick={onClickAddMember}>
+              {actionText}
+            </button>
+          )}
+    </div>
+  );
+}
+
+function MemberCard({
+  isAdded,
+  onClickAddMember,
+  user,
+}: {
+  isAdded: boolean;
+  onClickAddMember: () => void;
+  user: MemberLike;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-base-300/70 bg-base-200/30 px-3 py-3">
+      <MemberIdentity user={user} />
+      {isAdded
+        ? (
+            <button className="btn btn-ghost btn-sm min-w-20" type="button" disabled={true}>
+              已加入
+            </button>
+          )
+        : (
+            <button className="btn btn-outline btn-sm min-w-20" type="button" onClick={onClickAddMember}>
+              添加
+            </button>
+          )}
+    </div>
+  );
+}
+
+function MemberIdentity({ user }: { user: MemberLike }) {
+  const username = user.username?.trim() || `用户 ${user.userId ?? ""}`.trim();
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <UserAvatarByUser
+        user={user}
+        width={10}
+        isRounded={true}
+        stopToastWindow={true}
+        clickEnterProfilePage={false}
+      />
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium">{username}</div>
+        {typeof user.userId === "number" && (
+          <div className="text-xs text-base-content/45">
+            UID
+            {" "}
+            {user.userId}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-28 items-center justify-center px-3 py-8 text-center text-sm text-base-content/55">
+      {children}
     </div>
   );
 }

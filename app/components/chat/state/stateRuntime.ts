@@ -2,7 +2,6 @@ export type {
   ActiveStateInstance,
   BuildCombatStateRuntimeParams,
   BuildStateRuntimeParams,
-  CombatColumn,
   CombatMapToken,
   CombatParticipant,
   CombatStateRuntime,

@@ -34,7 +34,6 @@ type SendMessageContext = {
   customRoleName?: string;
   replayMessageId?: number;
   roleId?: number;
-  threadId?: number;
 };
 
 function requirePositiveRoomId(roomId: number | null): number {
@@ -217,7 +216,6 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
       replayMessageId: context.replayMessageId,
       roleId: context.roleId,
       roomId: requirePositiveRoomId(roomId),
-      threadId: context.threadId,
     });
 
     if (context.annotations && context.annotations.length > 0) {
@@ -243,7 +241,6 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
         replayMessageId: index === 0 ? context.replayMessageId : undefined,
         roleId: context.roleId,
         roomId: resolvedRoomId,
-        threadId: context.threadId,
       });
     });
 

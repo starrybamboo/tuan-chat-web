@@ -1,4 +1,5 @@
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import {
   ANNOTATION_IDS,
@@ -126,6 +127,18 @@ function formatMessageContent(
     case MessageType.FORWARD:
       return formatForwardContent(message, roleMap, userMap, includeUsername);
     case MessageType.DICE: {
+      if (extra?.diceTurn) {
+        const diceTurnData = getDiceTurnRenderData(extra, content, false);
+        const header = diceTurnData.command ? `[骰子] ${diceTurnData.command}` : "[骰子]";
+        const replies = diceTurnData.replies
+          .map((reply) => {
+            const roleName = reply.customRoleName
+              || (reply.roleId ? roleMap.get(reply.roleId) || `角色${reply.roleId}` : "骰娘");
+            const replyContent = reply.content || "[骰子结果]";
+            return `${roleName}: ${replyContent}`;
+          });
+        return replies.length > 0 ? `${header}\n${replies.join("\n")}` : header;
+      }
       const diceResult = extra?.diceResult;
       const result = diceResult?.result || content;
       return result ? `[骰子] ${result}` : "[骰子]";

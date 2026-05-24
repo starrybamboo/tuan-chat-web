@@ -16,6 +16,7 @@ type SendEmailVerificationCodeParams = {
   email: string;
   purpose: EmailVerificationPurpose;
   authenticated?: boolean;
+  turnstileToken?: string;
 };
 
 type VerifyEmailVerificationCodeParams = {
@@ -54,6 +55,7 @@ export async function sendEmailVerificationCode(params: SendEmailVerificationCod
     const response = await getSecurityClient(params.authenticated).userSecurityController.sendEmailCode({
       email: params.email,
       purpose: params.purpose,
+      turnstileToken: params.turnstileToken,
     });
     assertOpenApiResultSuccess(response, "发送邮箱验证码失败");
   }
@@ -76,9 +78,9 @@ export async function verifyEmailVerificationCode(params: VerifyEmailVerificatio
   }
 }
 
-export async function requestForgotPasswordByEmail(email: string) {
+export async function requestForgotPasswordByEmail(email: string, turnstileToken?: string) {
   try {
-    const response = await anonymousTuanChat.userSecurityController.forgotPassword({ email });
+    const response = await anonymousTuanChat.userSecurityController.forgotPassword({ email, turnstileToken });
     assertOpenApiResultSuccess(response, "发送找回密码邮件失败");
   }
   catch (error) {

@@ -1,3 +1,4 @@
+import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import {
   useGetMemberListQuery,
@@ -9,15 +10,16 @@ import {
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { use, useCallback, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import MemberLists from "@/components/chat/shared/components/memberLists";
 import RoleList from "@/components/chat/shared/components/roleLists";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import { BaselineArrowBackIosNew, RoleListIcon, Setting } from "@/icons";
+import { BaselineArrowBackIosNew, MemberIcon, RoleListIcon, Setting } from "@/icons";
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
   onClose: () => void;
   roomId?: number;
-  defaultTab?: "role" | "setting";
+  defaultTab?: RoomSettingTab;
 }) {
   const userId = useGlobalUserId();
 
@@ -75,16 +77,20 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
   const pageTitle = useMemo(() => {
     switch (defaultTab) {
+      case "member":
+        return "房间成员";
       case "setting":
         return "房间资料";
       case "role":
       default:
-        return "角色";
+        return "房间角色";
     }
   }, [defaultTab]);
 
   const PageIcon = useMemo(() => {
     switch (defaultTab) {
+      case "member":
+        return MemberIcon;
       case "setting":
         return Setting;
       case "role":
@@ -117,6 +123,20 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
             )
           : (
               <div className="flex-1 min-h-0 overflow-hidden">
+                {defaultTab === "member" && (
+                  <div className="h-full overflow-y-auto">
+                    <div className="space-y-2 p-4">
+                      <div className="flex flex-row justify-center items-center gap-2 px-4">
+                        <p>
+                          房间成员 -
+                          {roomMembers.length}
+                        </p>
+                      </div>
+                      <MemberLists members={roomMembers} isSpace={false} />
+                    </div>
+                  </div>
+                )}
+
                 {defaultTab === "role" && (
                   <div className="h-full overflow-y-auto">
                     <div className="space-y-2 p-4">

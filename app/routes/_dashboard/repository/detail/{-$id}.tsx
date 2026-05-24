@@ -15,7 +15,6 @@ interface RepositorySeoData {
   repositoryName?: string | null;
   description?: string | null;
   authorName?: string | null;
-  image?: string | null;
   coverFileId?: number | null;
 }
 
@@ -47,7 +46,7 @@ export async function clientLoader({ params }: RouteClientLoaderArgs) {
 
 export function meta({ data, params }: RouteMetaArgs<RepositorySeoData | null>) {
   const repositoryName = data?.repositoryName?.trim() || (params.id ? `模组 #${params.id}` : "模组详情");
-  const repositoryImage = imageMediumUrl(data?.coverFileId) || (typeof data?.image === "string" ? data.image.trim() : "");
+  const repositoryImage = imageMediumUrl(data?.coverFileId);
 
   return createSeoMeta({
     title: repositoryName,

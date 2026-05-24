@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../api";
 
-import { canReplyToSelection, resolveChatFrameFollowOutput } from "./chatFrameList";
+import {
+  resolveChatFrameFollowOutput,
+  resolveChatFrameInitialTopMostItemIndex,
+  resolveChatFrameSeenIndexFromBounds,
+} from "./chatFrameList";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function buildMessage(partial: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
@@ -69,10 +73,37 @@ describe("resolveChatFrameFollowOutput", () => {
   });
 });
 
-describe("多选回复启用条件", () => {
-  it("仅在恰好选中一条消息时允许回复", () => {
-    expect(canReplyToSelection(0)).toBe(false);
-    expect(canReplyToSelection(1)).toBe(true);
-    expect(canReplyToSelection(2)).toBe(false);
+describe("resolveChatFrameInitialTopMostItemIndex", () => {
+  it("初始进入房间时直接贴底渲染，避免先定位到最后一条顶部再下滑", () => {
+    expect(resolveChatFrameInitialTopMostItemIndex(3)).toEqual({
+      align: "end",
+      behavior: "auto",
+      index: "LAST",
+    });
+  });
+
+  it("空消息列表使用安全索引", () => {
+    expect(resolveChatFrameInitialTopMostItemIndex(0)).toBe(0);
+  });
+});
+
+describe("resolveChatFrameSeenIndexFromBounds", () => {
+  it("以判定线为准取最后一个已看见的消息", () => {
+    expect(resolveChatFrameSeenIndexFromBounds([
+      { index: 1, bottom: 120 },
+      { index: 2, bottom: 220 },
+      { index: 3, bottom: 340 },
+    ], 240, 1)).toBe(2);
+  });
+
+  it("没有任何消息越过底部线时回退到首个消息", () => {
+    expect(resolveChatFrameSeenIndexFromBounds([
+      { index: 4, bottom: 420 },
+      { index: 5, bottom: 520 },
+    ], 380, 4)).toBe(4);
+  });
+
+  it("缺少边界信息时回退到 fallback", () => {
+    expect(resolveChatFrameSeenIndexFromBounds([], Number.NaN, 7)).toBe(7);
   });
 });

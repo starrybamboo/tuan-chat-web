@@ -8,14 +8,15 @@ import {
   resolveSoundPurposeFromAnnotations,
 } from "./message-annotations";
 import {
+  getDiceTurnExtra,
   getClueMessageExtra,
   getCommandRequestExtra,
   getDocCardExtra,
   getForwardMessageExtra,
   getRoomJumpExtra,
   getSoundMessageExtra,
-  getThreadRootExtra,
 } from "./message-extra";
+import { getDiceTurnRenderData } from "./message-render-data";
 import { MESSAGE_TYPE } from "./messageType";
 import { formatStateEventPreviewText } from "./state-event";
 
@@ -47,10 +48,17 @@ function formatWebgalChooseSummary(extra: unknown, fallback: string): string {
   return fallback;
 }
 
+export type MessagePreviewTextOptions = {
+  canViewHiddenDiceReply?: boolean;
+};
+
 /**
  * 平台无关的消息预览文本。UI 可自行决定是否加角色名前缀或做截断。
  */
-export function getMessagePreviewText(message?: Message | null): string {
+export function getMessagePreviewText(
+  message?: Message | null,
+  options: MessagePreviewTextOptions = {},
+): string {
   if (!message) {
     return "加载中...";
   }
@@ -104,6 +112,14 @@ export function getMessagePreviewText(message?: Message | null): string {
       return withTag("转发", count > 0 ? `${count}条消息` : "");
     }
     case MESSAGE_TYPE.DICE: {
+      const diceTurn = getDiceTurnExtra(message.extra);
+      if (diceTurn) {
+        return getDiceTurnRenderData(
+          message.extra,
+          trimmedContent,
+          options.canViewHiddenDiceReply === true,
+        ).summary;
+      }
       const result = safeTrim((message.extra as { diceResult?: { result?: unknown } } | null)?.diceResult?.result) || trimmedContent;
       return result || "骰子结果";
     }
@@ -130,10 +146,6 @@ export function getMessagePreviewText(message?: Message | null): string {
     }
     case MESSAGE_TYPE.ROOM_JUMP:
       return withTag("群聊", trimmedContent || "群聊跳转");
-    case MESSAGE_TYPE.THREAD_ROOT: {
-      const title = safeTrim(getThreadRootExtra(message.extra)?.title) || trimmedContent || "子区";
-      return withTag("子区", title);
-    }
     case MESSAGE_TYPE.READ_LINE:
       return "[已读线]";
     default:

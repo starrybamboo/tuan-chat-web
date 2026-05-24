@@ -11,6 +11,8 @@ export interface ToastWindowFrameProps {
   hiddenScrollbar?: boolean;
   disableScroll?: boolean;
   showCloseButton?: boolean;
+  panelClassName?: string;
+  bodyClassName?: string;
 }
 
 export function ToastWindowFrame({
@@ -22,6 +24,8 @@ export function ToastWindowFrame({
   hiddenScrollbar = false,
   disableScroll = false,
   showCloseButton = true,
+  panelClassName = "",
+  bodyClassName = "",
 }: ToastWindowFrameProps) {
   const supportsDynamicViewportUnit = typeof CSS !== "undefined" && CSS.supports("height: 100dvh");
   const fullScreenHeight = fullScreen
@@ -38,7 +42,8 @@ export function ToastWindowFrame({
           <motion.div
             className={`relative flex flex-col
                ${transparent ? "bg-transparent w-full h-screen" : "bg-base-100 dark:bg-base-300"}
-               ${fullScreen ? "w-full h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
+               ${fullScreen ? "w-full h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}
+               ${panelClassName}`}
             style={{
               height: fullScreenHeight,
               maxHeight: modalMaxHeight,
@@ -70,7 +75,7 @@ export function ToastWindowFrame({
                 </svg>
               </button>
             )}
-            <div className={`${disableScroll ? "overflow-hidden" : (hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto")} w-full h-full min-h-0`}>
+            <div className={`${disableScroll ? "overflow-hidden" : (hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto")} w-full h-full min-h-0 ${bodyClassName}`}>
               {children}
             </div>
           </motion.div>

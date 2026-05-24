@@ -3,6 +3,7 @@ import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
 
 import { SPACE_DETAIL_TABS } from "@/components/chat/chatPage.types";
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
+import { appendPathQuery } from "@/utils/pathQuery";
 
 export type DocRouteInfo = {
   decodedDocId: string | null;
@@ -114,13 +115,13 @@ export function resolvePrivateChatTabForRoute(params: {
   return resolvePrivateChatTab(params.tabParam);
 }
 
-/**
- * 构造进入具体私聊会话时的 URL，并清除会干扰会话视图的 tab 参数。
- */
-export function buildPrivateChatRoomPath(roomId: number, searchParam: URLSearchParams, targetMessageId?: number | null): string {
-  const nextSearchParams = new URLSearchParams(searchParam);
+export function buildPrivateChatRoomPath(
+  roomId: number,
+  searchParams: URLSearchParams,
+  targetMessageId?: number | null,
+) {
+  const nextSearchParams = new URLSearchParams(searchParams);
   nextSearchParams.delete("tab");
-  const messagePath = roomId && targetMessageId ? `/${targetMessageId}` : "";
-  const query = nextSearchParams.toString();
-  return query ? `/chat/private/${roomId}${messagePath}?${query}` : `/chat/private/${roomId}${messagePath}`;
+  const messagePath = targetMessageId ? `/${targetMessageId}` : "";
+  return appendPathQuery(`/chat/private/${roomId}${messagePath}`, nextSearchParams);
 }

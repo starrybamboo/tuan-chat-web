@@ -1,6 +1,7 @@
 import type { GestureType } from "react-native-gesture-handler";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { memo, useMemo } from "react";
 import { StyleSheet, Vibration, View } from "react-native";
 import { Gesture, GestureDetector, Pressable } from "react-native-gesture-handler";
@@ -14,13 +15,12 @@ import { Radius, Spacing } from "@/constants/theme";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
 import { useTheme } from "@/hooks/use-theme";
 import { mediaFileUrl } from "@/lib/media-url";
-import { getDiceResultExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
+import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { MessageAvatar } from "./MessageAvatar";
-import { getMessagePreview } from "./mobileChatUtils";
 import {
   ClueCard,
   DocCard,
@@ -29,9 +29,9 @@ import {
   RoomJumpCard,
   shouldRenderMobileMessageTextPreview,
   StateEventCard,
-  ThreadRootCard,
   WebgalChooseCard,
 } from "./MobileMessageCards";
+import { getMessagePreview } from "./mobileChatUtils";
 
 const AVATAR_SIZE = 40;
 
@@ -99,6 +99,27 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  diceCommand: {
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  diceLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  diceReply: {
+    gap: 2,
+  },
+  diceReplyList: {
+    borderLeftWidth: 2,
+    gap: Spacing.sm,
+    paddingLeft: Spacing.md,
+  },
+  diceTurn: {
+    gap: Spacing.sm,
+  },
 });
 
 function isNarrator(message: Message): boolean {
@@ -132,11 +153,27 @@ function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): str
   return "未选择角色";
 }
 
-function getDiceDisplayText(message: Message): string {
+function getDiceDisplayText(message: Message, canViewHiddenReply = false): string {
+  if (getDiceTurnExtra(message.extra)) {
+    return getDiceTurnRenderData(message.extra, message.content ?? "", canViewHiddenReply).summary;
+  }
   const result = getDiceResultExtra(message.extra)?.result;
   if (typeof result === "string" && result.trim())
     return result;
   return message.content?.trim() || "骰子结果";
+}
+
+function getDiceReplyDisplayName(
+  reply: ReturnType<typeof getDiceTurnRenderData>["replies"][number],
+  roomRolesById: RoomRolesById,
+): string {
+  if (reply.customRoleName)
+    return reply.customRoleName;
+  if (reply.roleId) {
+    const roleName = roomRolesById.get(reply.roleId)?.roleName?.trim();
+    return roleName || `角色 #${reply.roleId}`;
+  }
+  return "骰娘";
 }
 
 function getCompactMediaText(message: Message): string {
@@ -191,6 +228,64 @@ export const ChatMessageItem = memo(({
   const displayName = getDisplayRoleName(message, roomRolesById);
   const isOOC = !usesSystemRow && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
   const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
+  const canViewHiddenDiceReply = isSpaceOwner || (currentRoleId > 0 && currentRoleId === message.roleId);
+  const renderDiceTurnContent = (numberOfLines?: number) => {
+    const diceTurn = getDiceTurnExtra(message.extra);
+    if (!diceTurn) {
+      return (
+        <TextEnhanceRenderer
+          content={getDiceDisplayText(message, canViewHiddenDiceReply)}
+          style={[
+            styles.content,
+            { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
+            isOOC && { fontStyle: "italic" },
+          ]}
+          numberOfLines={numberOfLines}
+        />
+      );
+    }
+
+    const diceTurnData = getDiceTurnRenderData(message.extra, message.content ?? "", canViewHiddenDiceReply);
+    return (
+      <View style={styles.diceTurn}>
+        {diceTurnData.command
+          ? (
+              <View style={[styles.diceCommand, { backgroundColor: theme.accentMuted }]}>
+                <ThemedText style={[styles.diceLabel, { color: theme.textSecondary }]}>指令</ThemedText>
+                <TextEnhanceRenderer
+                  content={diceTurnData.command}
+                  style={[styles.content, { color: theme.text }]}
+                  numberOfLines={numberOfLines}
+                />
+              </View>
+            )
+          : null}
+        <View style={[styles.diceReplyList, { borderLeftColor: theme.accent }]}>
+          {diceTurnData.replies.length > 0
+            ? diceTurnData.replies.map((reply, index) => (
+                <View key={`${reply.roleId ?? "dicer"}:${index}`} style={styles.diceReply}>
+                  <ThemedText style={[styles.diceLabel, { color: theme.textSecondary }]}>
+                    {getDiceReplyDisplayName(reply, roomRolesById)}
+                    {reply.hidden ? " · 暗骰" : ""}
+                  </ThemedText>
+                  <TextEnhanceRenderer
+                    content={reply.content || "骰子结果"}
+                    style={[
+                      styles.content,
+                      { color: reply.hidden && !canViewHiddenDiceReply ? theme.textSecondary : theme.text },
+                      reply.hidden && !canViewHiddenDiceReply && { fontStyle: "italic" },
+                    ]}
+                    numberOfLines={numberOfLines}
+                  />
+                </View>
+              ))
+            : (
+                <ThemedText style={[styles.content, { color: theme.textSecondary }]}>骰子结果</ThemedText>
+              )}
+        </View>
+      </View>
+    );
+  };
   const longPressGesture = useMemo(() => {
     const gesture = Gesture.LongPress()
       .minDuration(500)
@@ -283,16 +378,18 @@ export const ChatMessageItem = memo(({
                   ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[视频]</ThemedText>
                   : message.messageType === MESSAGE_TYPE.SOUND
                     ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>{getCompactMediaText(message)}</ThemedText>
+                  : message.messageType === MESSAGE_TYPE.DICE
+                    ? renderDiceTurnContent(2)
                     : (
                         <TextEnhanceRenderer
-                          content={message.messageType === MESSAGE_TYPE.DICE ? getDiceDisplayText(message) : getMessagePreview(message)}
+                          content={getMessagePreview(message)}
                           style={[
                             styles.content,
                             { color: usesSystemRow ? theme.textSecondary : theme.text },
                           ]}
                           numberOfLines={2}
                         />
-                      )}
+                    )}
             </View>
           </View>
         </View>
@@ -352,9 +449,11 @@ export const ChatMessageItem = memo(({
               )
             : null}
           {shouldRenderTextPreview
-            ? (
+            ? message.messageType === MESSAGE_TYPE.DICE
+              ? renderDiceTurnContent()
+              : (
                 <TextEnhanceRenderer
-                  content={message.messageType === MESSAGE_TYPE.DICE ? getDiceDisplayText(message) : getMessagePreview(message)}
+                  content={getMessagePreview(message)}
                   style={[
                     styles.content,
                     { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
@@ -387,9 +486,6 @@ export const ChatMessageItem = memo(({
             : null}
           {message.messageType === MESSAGE_TYPE.CLUE_CARD
             ? <ClueCard content={message.content} extra={message.extra} />
-            : null}
-          {message.messageType === MESSAGE_TYPE.THREAD_ROOT
-            ? <ThreadRootCard content={message.content} extra={message.extra} />
             : null}
           {message.messageType === MESSAGE_TYPE.ROOM_JUMP
             ? <RoomJumpCard content={message.content} extra={message.extra} />

@@ -1,10 +1,13 @@
+import type { MessageEditorMessage } from "@/components/messageEditor/messageEditorTypes";
+
+import { compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
 import { normalizeMessageEditorDraft } from "@/components/messageEditor/model/messageEditorTransforms";
 import { tuanchat } from "api/instance";
 
 import type {
+  ChatMessageResponse,
   Message,
   RoomMessageStreamItem,
-  RoomMessageStreamResponse,
 } from "../../../../../../api";
 
 type ApiResult<T> = {
@@ -14,17 +17,7 @@ type ApiResult<T> = {
 };
 
 export type RoomMessageStreamInput = {
-  annotations?: Message["annotations"];
-  avatarId?: Message["avatarId"];
-  content?: Message["content"];
-  customRoleName?: Message["customRoleName"];
-  extra?: Message["extra"];
-  messageId?: Message["messageId"];
-  messageType?: Message["messageType"];
-  position?: Message["position"];
-  roleId?: Message["roleId"];
-  webgal?: Message["webgal"];
-};
+} & MessageEditorMessage;
 
 export type RoomMessageStreamPatchOperation = {
   clientId?: string;
@@ -63,6 +56,7 @@ function toRoomMessageStreamItem(message: RoomMessageStreamInput): RoomMessageSt
     ...(typeof normalized.roleId === "number" ? { roleId: normalized.roleId } : {}),
     ...(typeof normalized.avatarId === "number" ? { avatarId: normalized.avatarId } : {}),
     ...(cleanString(normalized.customRoleName) ? { customRoleName: cleanString(normalized.customRoleName) } : {}),
+    ...(typeof normalized.replyMessageId === "number" ? { replayMessageId: normalized.replyMessageId } : {}),
     ...(typeof (normalized as RoomMessageStreamInput).position === "number" ? { position: (normalized as RoomMessageStreamInput).position } : {}),
   };
 }
@@ -79,47 +73,35 @@ function isRuntimeMessage(value: unknown): value is Message {
     && typeof message?.position === "number";
 }
 
-export function readRoomMessageStreamMessages(response: RoomMessageStreamResponse | null | undefined): Message[] {
-  const messages = Array.isArray(response?.messages) ? response.messages : [];
-  return messages.filter(isRuntimeMessage);
+type RoomMessageApiResponseItem = Message | ChatMessageResponse;
+
+function extractRoomMessage(value: unknown): Message | null {
+  if (isRuntimeMessage(value)) {
+    return value;
+  }
+
+  const response = value as Partial<ChatMessageResponse> | null | undefined;
+  if (response && isRuntimeMessage(response.message)) {
+    return response.message;
+  }
+
+  return null;
 }
 
-export async function getRemoteRoomMessageStream(params: {
-  roomId: number;
-}): Promise<RoomMessageStreamResponse> {
-  const result = await tuanchat.request.request<ApiResult<RoomMessageStreamResponse>>({
-    method: "GET",
-    url: `/chat/message-stream/${encodeURIComponent(String(params.roomId))}`,
-  });
-  return unwrapApiResult(result, "获取房间消息流失败");
-}
-
-export async function syncRemoteRoomMessageStream(params: {
-  baseRevision: number | null | undefined;
-  force?: boolean;
-  messages: RoomMessageStreamInput[];
-  roomId: number;
-}): Promise<RoomMessageStreamResponse> {
-  const messages = params.messages
-    .map(message => toRoomMessageStreamItem(message))
-    .filter((message): message is RoomMessageStreamItem => message !== null);
-  const result = await tuanchat.request.request<ApiResult<RoomMessageStreamResponse>>({
-    method: "POST",
-    url: `/chat/message-stream/${encodeURIComponent(String(params.roomId))}/sync`,
-    body: {
-      baseRevision: params.baseRevision ?? 0,
-      force: params.force ?? false,
-      messages,
-    },
-    mediaType: "application/json",
-  });
-  return unwrapApiResult(result, "同步房间消息流失败");
+function readRoomMessageStreamMessages(
+  response: RoomMessageApiResponseItem[] | null | undefined,
+): Message[] {
+  const messages = Array.isArray(response) ? response : [];
+  return messages
+    .map(extractRoomMessage)
+    .filter((message): message is Message => Boolean(message))
+    .sort(compareMessagesByOrder);
 }
 
 export async function patchRemoteRoomMessageStream(params: {
   operations: RoomMessageStreamPatchOperation[];
   roomId: number;
-}): Promise<RoomMessageStreamResponse> {
+}): Promise<Message[]> {
   const operations = params.operations
     .map((operation) => {
       const message = operation.message ? toRoomMessageStreamItem(operation.message) : undefined;
@@ -135,13 +117,10 @@ export async function patchRemoteRoomMessageStream(params: {
       return operation.op === "delete" || operation.op === "move" || Boolean(operation.message);
     });
   if (operations.length === 0) {
-    return { messages: [] };
+    return [];
   }
-  const result = await tuanchat.request.request<ApiResult<RoomMessageStreamResponse>>({
-    method: "POST",
-    url: `/chat/message-stream/${encodeURIComponent(String(params.roomId))}/patch`,
-    body: { operations },
-    mediaType: "application/json",
+  const result = await tuanchat.chatController.patchRoomMessages(params.roomId, {
+    operations,
   });
-  return unwrapApiResult(result, "批量变更房间消息流失败");
+  return readRoomMessageStreamMessages(unwrapApiResult(result, "批量变更房间消息列表失败"));
 }

@@ -18,7 +18,7 @@ import {
 
 import type { RoomMessagesQueryData } from "./room-message-query-data";
 
-import { getAllRoomMessagesQueryKey } from "./chat";
+import { getAllRoomMessagesQueryKey, patchInsertMessages } from "./chat";
 import { getRoomMembersQueryKey } from "./members";
 import { getUserMessageSessionsQueryKey } from "./message-sessions";
 import { upsertRoomMessagesListData } from "./room-message";
@@ -194,7 +194,7 @@ export function useCopyMessageToClueFolderMutation(client: ClueFolderClient) {
         sourceMessage: request.sourceMessage,
         targetRoomId: room.roomId,
       });
-      const sendResult = await client.chatController.batchSendMessages([messageRequest]);
+      const sendResult = await patchInsertMessages(client, [messageRequest]);
       if (!isSuccess(sendResult)) {
         throw new Error(getErrorMessage(sendResult, "添加线索失败"));
       }

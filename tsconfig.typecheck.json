@@ -15,9 +15,7 @@
       "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
       "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
       "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
-      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"],
-      "@blocksuite/integration-test": ["./app/types/blocksuite-integration-test.d.ts"],
-      "@blocksuite/integration-test/*": ["./app/types/blocksuite-integration-test.d.ts"]
+      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
     }
   },
   "include": [

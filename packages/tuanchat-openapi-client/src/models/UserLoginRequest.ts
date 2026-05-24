@@ -15,5 +15,9 @@ export type UserLoginRequest = {
      * 登录的用户密码
      */
     password: string;
+    /**
+     * Cloudflare Turnstile 校验 token
+     */
+    turnstileToken?: string;
 };
 

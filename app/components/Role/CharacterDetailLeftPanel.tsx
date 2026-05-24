@@ -4,6 +4,7 @@ import { DiceFiveIcon, GearOutline, MicrophoneIcon } from "app/icons";
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
+import { hasRoleVoiceMedia } from "./roleVoiceMedia";
 import RoleSidebarActionCard from "./RoleSidebarActionCard";
 
 export interface CharacterDetailLeftPanelProps {
@@ -121,7 +122,7 @@ export default function CharacterDetailLeftPanel({
 
           <RoleSidebarActionCard
             title="上传音频"
-            subtitle={localRole.voiceFileId || localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+            subtitle={hasRoleVoiceMedia(localRole) ? "已上传音频" : "用于AI生成角色音色"}
             subtitleClassName="text-secondary"
             actionLabel="上传"
             onClick={onOpenAudioModal}

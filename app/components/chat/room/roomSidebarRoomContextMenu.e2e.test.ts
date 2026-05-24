@@ -66,8 +66,11 @@ describe("room sidebar context menu browser e2e", () => {
       jsx: "automatic",
       define: {
         "process.env.NODE_ENV": "\"test\"",
-        "import.meta.env.DEV": "false",
-        "import.meta.env.MODE": "\"test\"",
+        "import.meta.env": JSON.stringify({
+          DEV: false,
+          MODE: "test",
+          VITE_MEDIA_CDN_BASE_URL: "",
+        }),
       },
       loader: {
         ".css": "empty",
@@ -108,6 +111,8 @@ describe("room sidebar context menu browser e2e", () => {
       await expectText(page, "context-room-id", "1001");
       await page.getByText("房间资料").waitFor();
       await expect(await page.getByText("房间资料").isVisible()).toBe(true);
+      await expect(await page.getByText("房间成员").isVisible()).toBe(true);
+      await expect(await page.getByText("房间角色").isVisible()).toBe(true);
       await expect(await page.getByText("邀请玩家").isVisible()).toBe(true);
       await expect(await page.getByText("关闭消息提醒").isVisible()).toBe(true);
       await expect(await page.getByText("解散房间").isVisible()).toBe(true);

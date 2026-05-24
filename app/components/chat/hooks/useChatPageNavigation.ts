@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import type { SelectRoomOptions } from "@/components/chat/chatPage.types";
 
 import { buildPrivateChatRoomPath } from "@/components/chat/hooks/chatPageRouteUtils";
+import { appendPathQuery } from "@/utils/pathQuery";
 
 type StoredChatIds = {
   spaceId?: number | null;
@@ -40,7 +41,7 @@ export default function useChatPageNavigation({
     if (screenSize === "sm") {
       newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     }
-    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams.toString()}`);
+    navigate(appendPathQuery(`/chat/${spaceId ?? "private"}`, newSearchParams));
   }, [isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);
 
   const setActiveRoomId = useCallback((roomId: number | null, options?: SelectRoomOptions) => {
@@ -56,8 +57,7 @@ export default function useChatPageNavigation({
     else {
       const nextRoomId = roomId ?? "";
       const messagePath = roomId && options?.targetMessageId ? `/${options.targetMessageId}` : "";
-      const query = newSearchParams.toString();
-      nextPath = `/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}${query ? `?${query}` : ""}`;
+      nextPath = appendPathQuery(`/chat/${activeSpaceId ?? "private"}/${nextRoomId}${messagePath}`, newSearchParams);
     }
     navigate(nextPath, { replace: options?.replace });
   }, [activeSpaceId, isOpenLeftDrawer, navigate, screenSize, searchParam, setStoredChatIds]);

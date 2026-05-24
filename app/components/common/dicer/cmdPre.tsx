@@ -10,9 +10,7 @@ import toast from "react-hot-toast";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
-import { resolveCommandMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
-import { syncOptimisticReplyMessageIds } from "@/components/common/dicer/optimisticReplyMessageLink";
 import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import {
   buildRoleAbilityStateEventsFromDiff,
@@ -25,7 +23,7 @@ import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { fetchRoleAbilityByRuleWithCache } from "../../../../api/hooks/abilityQueryHooks";
-import { useBatchSendMessageMutation, useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
+import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 initAliasMapOnce();
@@ -38,6 +36,14 @@ interface PendingOptimisticCommandMessage {
 
 interface QueuedDicerMessage {
   content: string;
+  visibility: DicerMessageVisibility;
+}
+
+interface DiceTurnReplyPayload {
+  avatarId?: number;
+  content: string;
+  customRoleName?: string;
+  roleId?: number;
   visibility: DicerMessageVisibility;
 }
 
@@ -60,11 +66,17 @@ function createStableDiceMessageKey(roomId: number, optimisticMessageId: number)
   return `dicev2:${roomId}:${Date.now()}:${Math.abs(optimisticMessageId)}:${stableDiceMessageSeed}`;
 }
 
-function buildDiceMessageExtra(result: string, visibility: DicerMessageVisibility) {
+function buildDiceTurnMessageExtra(command: string, replies: DiceTurnReplyPayload[]) {
   return buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
-    diceResult: {
-      result,
-      ...(visibility === "kp_and_sender" ? { hidden: true } : {}),
+    diceTurn: {
+      command,
+      replies: replies.map(reply => ({
+        content: reply.content,
+        ...(reply.visibility === "kp_and_sender" ? { hidden: true } : {}),
+        ...(typeof reply.roleId === "number" && reply.roleId > 0 ? { roleId: reply.roleId } : {}),
+        ...(typeof reply.avatarId === "number" && reply.avatarId > 0 ? { avatarId: reply.avatarId } : {}),
+        ...(reply.customRoleName ? { customRoleName: reply.customRoleName } : {}),
+      })),
     },
   });
 }
@@ -198,14 +210,13 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const space = useGetSpaceInfoQuery(roomContext.spaceId ?? -1).data?.data;
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const sendMessageMutation = useSendMessageMutation(roomId); // 发送消息
-  const batchSendMessageMutation = useBatchSendMessageMutation(roomId); // 批量发送消息
   const setSpaceExtraMutation = useSetSpaceExtraMutation(); // 设置空间 extra 字段
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   const dicerMessageQueue: QueuedDicerMessage[] = []; // 记录本次指令骰娘的消息队列
-  // 为同一轮骰子相关消息预留微小 position 步进，保证“玩家指令 + 骰娘回复”在排序上保持紧邻。
-  const DICE_BATCH_POSITION_STEP = 0.0001;
+  // 为同一轮骰子后的状态事件预留微小 position 步进，保证它紧跟在本轮掷骰之后。
+  const DICE_FOLLOWUP_POSITION_STEP = 0.0001;
   const optimisticMessageIdRef = useRef(-1);
   const lastPrewarmKeyRef = useRef<string>("");
 
@@ -294,7 +305,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       replyMessageId: request.replayMessageId,
       status: 0,
       messageType: request.messageType,
-      threadId: request.threadId,
       position: fallbackPosition,
       extra: request.extra as any,
       createTime: nowIso,
@@ -437,88 +447,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     }
   };
 
-  const sendDiceMessageBatch = async (
-    commandMessageMeta: { commandMessageId?: number; commandPosition: number | null },
-    dicerRequests: ChatMessageRequest[],
-    existingPendingBatchMessages?: Array<PendingOptimisticCommandMessage | null>,
-  ): Promise<void> => {
-    const { commandMessageId, commandPosition } = commandMessageMeta;
-    const nextBatchRequests = dicerRequests.map((request, index) => {
-      const pendingPosition = existingPendingBatchMessages?.[index]?.fallbackPosition;
-      const currentReplyMessageId = request.replayMessageId;
-      const shouldReplaceReplyMessageId = typeof commandMessageId === "number"
-        && Number.isFinite(commandMessageId)
-        && (currentReplyMessageId == null || currentReplyMessageId <= 0);
-      return {
-        ...request,
-        ...(shouldReplaceReplyMessageId ? { replayMessageId: commandMessageId } : {}),
-        ...((typeof pendingPosition === "number" && Number.isFinite(pendingPosition))
-          ? { position: pendingPosition }
-          : (commandPosition !== null
-              ? { position: commandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP) }
-              : {})),
-      };
-    });
-    logDicerFlow("sendDiceMessageBatch.prepare", {
-      commandMessageId: commandMessageId ?? null,
-      commandPosition: commandPosition ?? null,
-      requestCount: nextBatchRequests.length,
-      requestMeta: nextBatchRequests.map((item, index) => ({
-        index,
-        replayMessageId: item.replayMessageId ?? null,
-        position: item.position ?? null,
-        contentPreview: String(item.content ?? "").slice(0, 80),
-      })),
-    });
-
-    if (nextBatchRequests.length > 0) {
-      const pendingBatchMessages = existingPendingBatchMessages ?? nextBatchRequests.map(request => createOptimisticCommandMessage(request));
-      try {
-        const batchResult = await batchSendMessageMutation.mutateAsync(nextBatchRequests);
-        if (!batchResult?.success) {
-          throw new Error("批量发送骰娘消息失败");
-        }
-
-        const createdMessages = Array.isArray(batchResult.data) ? batchResult.data : [];
-        logDicerFlow("sendDiceMessageBatch.result", {
-          createdCount: createdMessages.length,
-          pendingCount: pendingBatchMessages.length,
-          createdMessageIds: createdMessages.map(item => item?.messageId ?? null),
-          createdReplyIds: createdMessages.map(item => item?.replyMessageId ?? null),
-          createdPositions: createdMessages.map(item => item?.position ?? null),
-        });
-        const commitTasks: Promise<void>[] = [];
-        const rollbackTasks: Promise<void>[] = [];
-        for (let index = 0; index < pendingBatchMessages.length; index++) {
-          const pendingMessage = pendingBatchMessages[index];
-          const createdMessage = createdMessages[index];
-          if (!pendingMessage) {
-            continue;
-          }
-          if (createdMessage) {
-            commitTasks.push(commitOptimisticCommandMessage(
-              pendingMessage,
-              createdMessage,
-            ));
-          }
-          else {
-            rollbackTasks.push(discardOptimisticCommandMessage(pendingMessage));
-          }
-        }
-        if (commitTasks.length > 0) {
-          await Promise.all(commitTasks);
-        }
-        if (rollbackTasks.length > 0) {
-          await Promise.all(rollbackTasks);
-        }
-      }
-      catch (error) {
-        await Promise.all(pendingBatchMessages.map(pending => discardOptimisticCommandMessage(pending)));
-        throw error;
-      }
-    }
-  };
-
   /**
    * 返回这个函数
    * @param executorProp
@@ -528,14 +456,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     logDicerFlow("execute.start", {
       roomId,
       command,
-      threadId: executorProp.threadId ?? null,
       replyMessageId: executorProp.replyMessageId ?? null,
     });
     const originDiceContent = (executorProp.originMessage ?? executorProp.command ?? "").trim();
     const commandAnchorPosition = getNextOptimisticPosition();
     let pendingOptimisticCommandMessage: PendingOptimisticCommandMessage | null = null;
-    const pendingOptimisticDicerMessages: Array<PendingOptimisticCommandMessage | null> = [];
-    let pendingOptimisticDicerMessagesHandled = false;
     let commandMessageCommitted = false;
 
     try {
@@ -759,7 +684,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           content: buildStateEventMessageContent(stateEventAtoms),
           roleId: curRoleId,
           avatarId: curAvatarId,
-          threadId: executorProp.threadId,
           replayMessageId: options?.replayMessageId ?? executorProp.replyMessageId,
           position: options?.position,
           extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra(cmdPart, stateEventAtoms)),
@@ -769,26 +693,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
       // 发送消息队列
       if (dicerMessageQueue.length > 0) {
-        const commandMessageVisibility = resolveCommandMessageVisibility(
-          dicerMessageQueue.map(item => item.visibility),
-        );
-        const commandDiceRequest: ChatMessageRequest = {
-          roomId,
-          messageType: MESSAGE_TYPE.DICE,
-          content: originDiceContent,
-          roleId: curRoleId,
-          avatarId: curAvatarId,
-          threadId: executorProp.threadId,
-          replayMessageId: executorProp.replyMessageId,
-          position: commandAnchorPosition,
-          extra: buildDiceMessageExtra(originDiceContent, commandMessageVisibility),
-        };
-        pendingOptimisticCommandMessage = originDiceContent
-          ? createOptimisticCommandMessage(commandDiceRequest)
-          : null;
-        const fallbackCommandPosition = pendingOptimisticCommandMessage?.fallbackPosition ?? commandAnchorPosition;
-        const optimisticReplyMessageId = pendingOptimisticCommandMessage?.optimisticMessageId;
-        const commandMessageMetaPromise = sendCommandMessageWithOptimistic(commandDiceRequest, pendingOptimisticCommandMessage);
         // 先准备最终骰娘文案，再创建乐观消息，避免“先发结果、后补风味文案”的二次跳变。
         const dicerRoleId = await dicerRoleIdPromise;
         const avatarsPromise = getCachedDicerAvatars(queryClient, dicerRoleId)
@@ -840,60 +744,31 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           ?? (fallbackDefaultLabelAvatar?.avatarId)
           ?? (avatars[0]?.avatarId ?? 0);
 
-        const dicerMessageBaseRequest: ChatMessageRequest = {
-          roomId,
-          messageType: MESSAGE_TYPE.DICE,
+        const dicerReplies = dicerMessageQueue.map((queuedMessage): DiceTurnReplyPayload => ({
+          content: buildDicerReplyContent(queuedMessage.content, copywritingSuffix),
+          visibility: queuedMessage.visibility,
           roleId: dicerRoleId,
           avatarId: chosenAvatarId,
-          threadId: executorProp.threadId,
-          replayMessageId: optimisticReplyMessageId,
-          content: "",
-          extra: {},
+        }));
+        const commandDiceRequest: ChatMessageRequest = {
+          roomId,
+          messageType: MESSAGE_TYPE.DICE,
+          content: originDiceContent,
+          roleId: curRoleId,
+          avatarId: curAvatarId,
+          replayMessageId: executorProp.replyMessageId,
+          position: commandAnchorPosition,
+          extra: buildDiceTurnMessageExtra(originDiceContent, dicerReplies),
         };
-        const dicerBatchRequests: ChatMessageRequest[] = [];
-        for (let index = 0; index < dicerMessageQueue.length; index++) {
-          const queuedMessage = dicerMessageQueue[index];
-          const nextContent = buildDicerReplyContent(queuedMessage?.content ?? "", copywritingSuffix);
-          pendingOptimisticDicerMessages.push(createOptimisticCommandMessage({
-            ...dicerMessageBaseRequest,
-            content: nextContent,
-            extra: buildDiceMessageExtra(nextContent, queuedMessage?.visibility ?? "public"),
-            position: fallbackCommandPosition + ((index + 1) * DICE_BATCH_POSITION_STEP),
-          }));
-        }
-        const commandMessageMeta = await commandMessageMetaPromise;
+        pendingOptimisticCommandMessage = createOptimisticCommandMessage(commandDiceRequest);
+        const fallbackCommandPosition = pendingOptimisticCommandMessage?.fallbackPosition ?? commandAnchorPosition;
+        const commandMessageMeta = await sendCommandMessageWithOptimistic(commandDiceRequest, pendingOptimisticCommandMessage);
         commandMessageCommitted = true;
         const stateEventAnchorPosition = commandMessageMeta.commandPosition ?? fallbackCommandPosition;
         await sendGeneratedStateEvent({
           replayMessageId: commandMessageMeta.commandMessageId,
-          position: stateEventAnchorPosition + (DICE_BATCH_POSITION_STEP / 2),
+          position: stateEventAnchorPosition + DICE_FOLLOWUP_POSITION_STEP,
         });
-        const resolvedOptimisticReplyMessageId = typeof optimisticReplyMessageId === "number" && Number.isFinite(optimisticReplyMessageId)
-          ? optimisticReplyMessageId
-          : null;
-        const resolvedCommandMessageId = typeof commandMessageMeta.commandMessageId === "number" && Number.isFinite(commandMessageMeta.commandMessageId)
-          ? commandMessageMeta.commandMessageId
-          : null;
-        if (resolvedOptimisticReplyMessageId !== null && resolvedCommandMessageId !== null) {
-          // 指令乐观消息提交后，立即把骰娘乐观回复改指向真实消息，避免 reply preview 在临时/真实 ID 之间抖动。
-          await syncOptimisticReplyMessageIds({
-            chatHistory: roomContext.chatHistory,
-            pendingMessages: pendingOptimisticDicerMessages,
-            fromReplyMessageId: resolvedOptimisticReplyMessageId,
-            toReplyMessageId: resolvedCommandMessageId,
-          });
-        }
-        for (let index = 0; index < dicerMessageQueue.length; index++) {
-          const queuedMessage = dicerMessageQueue[index];
-          const nextContent = buildDicerReplyContent(queuedMessage?.content ?? "", copywritingSuffix);
-          dicerBatchRequests.push({
-            ...dicerMessageBaseRequest,
-            content: nextContent,
-            extra: buildDiceMessageExtra(nextContent, queuedMessage?.visibility ?? "public"),
-          });
-        }
-        pendingOptimisticDicerMessagesHandled = true;
-        await sendDiceMessageBatch(commandMessageMeta, dicerBatchRequests, pendingOptimisticDicerMessages);
       }
       else {
         await discardOptimisticCommandMessage(pendingOptimisticCommandMessage);
@@ -904,9 +779,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       }
     }
     catch (error) {
-      if (!pendingOptimisticDicerMessagesHandled && pendingOptimisticDicerMessages.length > 0) {
-        await Promise.all(pendingOptimisticDicerMessages.map(pending => discardOptimisticCommandMessage(pending)));
-      }
       if (!commandMessageCommitted) {
         await discardOptimisticCommandMessage(pendingOptimisticCommandMessage);
       }

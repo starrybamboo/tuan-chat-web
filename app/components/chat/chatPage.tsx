@@ -109,7 +109,6 @@ export default function ChatPage() {
     tab: subWindowTab,
     roomId: subWindowRoomId,
     docId: subWindowDocId,
-    threadRootMessageId: subWindowThreadRootMessageId,
     materialPackageId: subWindowMaterialPackageId,
     materialPathKey: subWindowMaterialPathKey,
     setIsOpen: setIsSubWindowOpen,
@@ -117,7 +116,6 @@ export default function ChatPage() {
     setTab: setSubWindowTab,
     setRoomId: setSubWindowRoomId,
     setDocId: setSubWindowDocId,
-    setThreadRootMessageId: setSubWindowThreadRootMessageId,
     setMaterialSelection: setSubWindowMaterialSelection,
   } = useChatPageSubWindow({
     activeSpaceId,
@@ -923,7 +921,6 @@ export default function ChatPage() {
               tab={subWindowTab}
               roomId={subWindowRoomId}
               docId={subWindowDocId}
-              threadRootMessageId={subWindowThreadRootMessageId}
               materialPackageId={subWindowMaterialPackageId}
               materialPathKey={subWindowMaterialPathKey}
               setIsOpen={setIsSubWindowOpen}
@@ -931,7 +928,6 @@ export default function ChatPage() {
               setTab={setSubWindowTab}
               setRoomId={setSubWindowRoomId}
               setDocId={setSubWindowDocId}
-              setThreadRootMessageId={setSubWindowThreadRootMessageId}
               setMaterialSelection={setSubWindowMaterialSelection}
             />
           )}

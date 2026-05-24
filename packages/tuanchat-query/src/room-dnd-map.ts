@@ -17,7 +17,6 @@ export type RoomDndMapSnapshot = {
   gridCols: number;
   gridRows: number;
   mapFileId?: number;
-  mapMediaType?: string;
   roomId: number;
   tokens: RoomDndMapToken[];
   updatedAt?: number;
@@ -47,7 +46,6 @@ export function normalizeRoomDndMap(map: RoomDndMapResponse | null | undefined):
     gridCols: map.gridCols ?? 10,
     gridRows: map.gridRows ?? 10,
     mapFileId: map.mapFileId,
-    mapMediaType: map.mapMediaType,
     roomId: map.roomId,
     tokens: (map.tokens ?? [])
       .map(token => normalizeToken(token))
@@ -57,13 +55,13 @@ export function normalizeRoomDndMap(map: RoomDndMapResponse | null | undefined):
 }
 
 export function getRoomDndMapImageUrl(
-  map: Pick<RoomDndMapSnapshot, "mapFileId" | "mapMediaType"> | null | undefined,
+  map: Pick<RoomDndMapSnapshot, "mapFileId"> | null | undefined,
   resolveMediaUrl: (fileId: number, kind: "image" | "other", quality: "high") => string,
 ) {
   if (!map?.mapFileId) {
     return "";
   }
-  return resolveMediaUrl(map.mapFileId, map.mapMediaType === "image" ? "image" : "other", "high");
+  return resolveMediaUrl(map.mapFileId, "image", "high");
 }
 
 export function useRoomDndMapQuery(

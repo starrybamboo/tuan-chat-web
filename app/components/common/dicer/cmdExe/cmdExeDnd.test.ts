@@ -193,9 +193,10 @@ describe("d&D 5e 指令集测试", () => {
       await executor?.solve([], [mockRole], cpi);
 
       // 1d20(11) + 5 = 16
-      expect(cpi.replyMessage).toHaveBeenCalledWith(
-        expect.stringContaining("测试角色 投掷先攻: 1d20(11) + 先攻(5) = 16"),
-      );
+      expect(cpi.replyMessage).not.toHaveBeenCalled();
+      expect(cpi.setRoleAbilityList).toHaveBeenCalledWith(101, expect.objectContaining({
+        skill: expect.objectContaining({ initiative: "16" }),
+      }));
     });
 
     it("如果没有预设先攻值，应该使用敏捷调整值", async () => {
@@ -206,9 +207,45 @@ describe("d&D 5e 指令集测试", () => {
       await executor?.solve([], [mockRole], cpi);
 
       // 1d20(11) + 3 = 14
-      expect(cpi.replyMessage).toHaveBeenCalledWith(
-        expect.stringContaining("测试角色 投掷先攻: 1d20(11) + 敏捷调整值(3) = 14"),
-      );
+      expect(cpi.replyMessage).not.toHaveBeenCalled();
+      expect(cpi.setRoleAbilityList).toHaveBeenCalledWith(101, expect.objectContaining({
+        skill: expect.objectContaining({ initiative: "14" }),
+      }));
+    });
+
+    it("支持多个角色统一投掷先攻并只写入状态", async () => {
+      const otherRole = {
+        userId: 2,
+        roleId: 102,
+        roleName: "队友",
+        type: 0,
+      } as UserRole;
+      const otherAbility = {
+        roleId: 102,
+        basic: { 敏捷: "14" },
+        skill: {},
+        ability: {},
+      } as RoleAbility;
+
+      mockAbility.skill = { 先攻: "5" };
+      (cpi.getRoleAbilityList as any).mockImplementation(async (roleId: number) => {
+        return roleId === 102 ? otherAbility : mockAbility;
+      });
+      vi.spyOn(Math, "random")
+        .mockReturnValueOnce(0.5)
+        .mockReturnValueOnce(0);
+
+      const executor = executorDnd.cmdMap.get("ri");
+      await executor?.solve([], [mockRole, otherRole], cpi);
+
+      expect(cpi.replyMessage).not.toHaveBeenCalled();
+      expect(cpi.setRoleAbilityList).toHaveBeenCalledTimes(2);
+      expect(cpi.setRoleAbilityList).toHaveBeenNthCalledWith(1, 101, expect.objectContaining({
+        skill: expect.objectContaining({ initiative: "16" }),
+      }));
+      expect(cpi.setRoleAbilityList).toHaveBeenNthCalledWith(2, 102, expect.objectContaining({
+        skill: expect.objectContaining({ initiative: "3" }),
+      }));
     });
   });
 

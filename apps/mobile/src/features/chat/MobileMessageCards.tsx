@@ -1,5 +1,5 @@
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { ArrowSquareOut, FileText, GitBranch, ListChecks, MapPinLine, X } from "phosphor-react-native";
+import { ArrowSquareOut, FileText, ListChecks, MapPinLine, X } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
@@ -11,12 +11,12 @@ import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+
 import {
   getClueCardRenderData,
   getDocCardRenderData,
   getForwardMessageRenderData,
   getRoomJumpRenderData,
-  getThreadRootRenderData,
   getWebgalChooseRenderData,
 } from "@tuanchat/domain/message-render-data";
 import {
@@ -388,23 +388,6 @@ export function ClueCard({ content, extra }: MessageCardProps) {
   );
 }
 
-export function ThreadRootCard({ content, extra }: MessageCardProps) {
-  const theme = useTheme();
-  const data = useMemo(() => getThreadRootRenderData(extra, content ?? ""), [content, extra]);
-
-  return (
-    <View style={[styles.simpleCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={styles.cardTitleRow}>
-        <GitBranch color={theme.accent} size={16} />
-        <View style={{ flex: 1 }}>
-          <ThemedText type="smallBold" numberOfLines={1}>{data.title}</ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">子区入口</ThemedText>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export function RoomJumpCard({ content, extra }: MessageCardProps) {
   const theme = useTheme();
   const data = useMemo(() => getRoomJumpRenderData(extra, content ?? ""), [content, extra]);
@@ -434,6 +417,5 @@ export function shouldRenderMobileMessageTextPreview(messageType?: number | null
     && messageType !== MESSAGE_TYPE.WEBGAL_CHOOSE
     && messageType !== MESSAGE_TYPE.DOC_CARD
     && messageType !== MESSAGE_TYPE.CLUE_CARD
-    && messageType !== MESSAGE_TYPE.THREAD_ROOT
     && messageType !== MESSAGE_TYPE.ROOM_JUMP;
 }

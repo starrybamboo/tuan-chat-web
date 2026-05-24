@@ -24,6 +24,8 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { buildTextStyleSyntax, clearTextStyleSyntax } from "./textStyleSyntax";
 
 type SelectionTransform = (selectedText: string) => string;
+interface TextStyleInsertOptions { transform?: SelectionTransform }
+type ManagedTextStyleInsert = (text: string, selectedText: string, options?: TextStyleInsertOptions) => boolean | void;
 
 interface TextStyleToolbarProps {
   /** 输入框的 ref，用于插入文本 */
@@ -35,7 +37,7 @@ interface TextStyleToolbarProps {
     visible?: boolean;
   };
   /** 外部选区的替换入口。未提供时仍使用聊天室输入框 DOM 选区。 */
-  onInsertText?: (text: string, selectedText: string, options?: { transform?: SelectionTransform }) => void;
+  onInsertText?: ManagedTextStyleInsert;
   /** 是否显示工具栏 */
   visible?: boolean;
   /** 额外的 className */
@@ -86,6 +88,23 @@ function preventSelectionLoss(event: ReactMouseEvent<HTMLElement>) {
 
 function normalizeTextInput(value: string) {
   return String(value ?? "").trim();
+}
+
+export function applyManagedTextStyleInsert({
+  onInsertText,
+  options,
+  selectedText,
+  text,
+}: {
+  onInsertText: ManagedTextStyleInsert | undefined;
+  options?: TextStyleInsertOptions;
+  selectedText: string;
+  text: string;
+}) {
+  if (!onInsertText || !selectedText.trim()) {
+    return false;
+  }
+  return onInsertText(text, selectedText, options) !== false;
 }
 
 function ToolbarButton({
@@ -535,9 +554,14 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
     return savedSelectionRef.current?.text || "";
   }, [externalSelection?.text, externalSelectionActive, saveSelection, savedSelectionRef]);
 
-  const restoreAndInsertText = useCallback((text: string, options?: { transform?: SelectionTransform }) => {
-    if (externalSelectionActive && onInsertText) {
-      onInsertText(text, externalSelection?.text ?? "", options);
+  const restoreAndInsertText = useCallback((text: string, selectedText: string, options?: TextStyleInsertOptions) => {
+    if (applyManagedTextStyleInsert({
+      onInsertText,
+      options,
+      selectedText,
+      text,
+    })) {
+      savedSelectionRef.current = null;
       return;
     }
 
@@ -578,14 +602,14 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
     document.execCommand("insertText", false, text);
     chatInputRef.current?.triggerSync();
     savedSelectionRef.current = null;
-  }, [chatInputRef, externalSelection?.text, externalSelectionActive, onInsertText, savedSelectionRef]);
+  }, [chatInputRef, onInsertText, savedSelectionRef]);
 
   const applyStyle = useCallback((options: Parameters<typeof buildTextStyleSyntax>[1]) => {
     const selectedText = getSelectedText();
     if (!selectedText.trim()) {
       return;
     }
-    restoreAndInsertText(buildTextStyleSyntax(selectedText, options));
+    restoreAndInsertText(buildTextStyleSyntax(selectedText, options), selectedText);
     setActiveMenu(null);
   }, [getSelectedText, restoreAndInsertText]);
 
@@ -594,7 +618,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
     if (!selectedText.trim()) {
       return;
     }
-    restoreAndInsertText(clearTextStyleSyntax(selectedText), { transform: clearTextStyleSyntax });
+    restoreAndInsertText(clearTextStyleSyntax(selectedText), selectedText, { transform: clearTextStyleSyntax });
     setActiveMenu(null);
   }, [getSelectedText, restoreAndInsertText]);
 
@@ -613,7 +637,7 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
         initialText={selectedText}
         onClose={onClose}
         onConfirm={(text, options) => {
-          restoreAndInsertText(buildTextStyleSyntax(text, options));
+          restoreAndInsertText(buildTextStyleSyntax(text, options), selectedText);
           onClose();
         }}
       />

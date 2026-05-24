@@ -43,7 +43,6 @@ function toMessageFromView(view: GalMessageView, fallbackIndex: number, base?: M
     webgal: view.webgal,
     status: base?.status ?? 0,
     messageType: view.messageType,
-    threadId: base?.threadId,
     position: view.position,
     extra: view.extra as Message["extra"],
     inheritedArchiveMessageId: base?.inheritedArchiveMessageId,

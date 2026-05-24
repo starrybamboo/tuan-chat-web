@@ -1,4 +1,4 @@
-import type { Initiative, InitiativeParam } from "./initiativeListTypes";
+import type { Initiative } from "./initiativeListTypes";
 import { Fragment } from "react";
 
 import { parseNullableNumber, parseNumberOrZero } from "./initiativeListAbilityExtractors";
@@ -6,7 +6,6 @@ import { parseNullableNumber, parseNumberOrZero } from "./initiativeListAbilityE
 interface InitiativeListTableProps {
   initiativeList: Initiative[];
   sortedList: Initiative[];
-  displayParams: InitiativeParam[];
   editingKey: string | null;
   editingValue: string;
   getEditingRef: (key: string) => (node: HTMLInputElement | null) => void;
@@ -15,15 +14,7 @@ interface InitiativeListTableProps {
   stopEditing: () => void;
   commitEditing: (key: string, apply: (value: string) => void) => void;
   updateItem: (item: Initiative, patch: Partial<Initiative>) => void;
-  updateItemExtras: (item: Initiative, key: string, value: string) => void;
   handleDelete: (item: Initiative) => void;
-}
-
-function formatCellValue(value: string | number | null | undefined): string {
-  if (value == null || value === "") {
-    return "--";
-  }
-  return String(value);
 }
 
 function StatusPills({ item }: { item: Initiative }) {
@@ -48,7 +39,6 @@ function StatusPills({ item }: { item: Initiative }) {
 export function InitiativeListTable({
   initiativeList,
   sortedList,
-  displayParams,
   editingKey,
   editingValue,
   getEditingRef,
@@ -57,7 +47,6 @@ export function InitiativeListTable({
   stopEditing,
   commitEditing,
   updateItem,
-  updateItemExtras,
   handleDelete,
 }: InitiativeListTableProps) {
   return (
@@ -199,48 +188,6 @@ export function InitiativeListTable({
                                 )}
                           </div>
 
-                          {displayParams.length > 0 && (
-                            <div className="mt-1 flex flex-wrap items-center gap-0.5 text-xs text-base-content/70 leading-5">
-                              {displayParams.map(param => (
-                                <div key={param.key} className="flex items-center gap-0.5">
-                                  <span className="whitespace-nowrap" title={param.label}>{param.label}</span>
-                                  {editingKey === `${rowKey}:extra:${param.key}`
-                                    ? (
-                                        <input
-                                          ref={getEditingRef(`${rowKey}:extra:${param.key}`)}
-                                          type="text"
-                                          value={editingValue}
-                                          onChange={event => setEditingValue(event.target.value)}
-                                          onBlur={() => {
-                                            commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
-                                          }}
-                                          onKeyDown={(event) => {
-                                            if (event.key === "Enter") {
-                                              event.preventDefault();
-                                              commitEditing(`${rowKey}:extra:${param.key}`, val => updateItemExtras(item, param.key, val));
-                                            }
-                                            if (event.key === "Escape") {
-                                              event.preventDefault();
-                                              stopEditing();
-                                            }
-                                          }}
-                                          className="input input-xs bg-base-100 border border-base-300 text-right tabular-nums min-h-6 leading-6"
-                                        />
-                                      )
-                                    : (
-                                        <button
-                                          type="button"
-                                          className="text-right tabular-nums min-h-6 leading-6 px-1 rounded-md border border-base-300 bg-base-100"
-                                          onDoubleClick={() => startEditing(`${rowKey}:extra:${param.key}`, formatCellValue(item.extras?.[param.key] === "--" ? "" : item.extras?.[param.key]))}
-                                          title="双击编辑"
-                                        >
-                                          {formatCellValue(item.extras?.[param.key])}
-                                        </button>
-                                      )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </td>
                         <td className="align-top">
                           <div className="flex items-center gap-2 text-xs text-base-content/70 leading-6">

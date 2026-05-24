@@ -1,4 +1,4 @@
-import { getDiceResultExtra } from "@/types/messageExtra";
+import { canViewHiddenDiceTurnReply, getDiceResultExtra, getDiceTurnExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse, Message } from "../../../../api";
@@ -20,7 +20,17 @@ export function isHiddenDiceMessage(message?: Message | null): boolean {
   if (!message || message.messageType !== MESSAGE_TYPE.DICE) {
     return false;
   }
+  if (getDiceTurnExtra(message.extra)) {
+    return false;
+  }
   return getDiceResultExtra(message.extra)?.hidden === true;
+}
+
+export function canCurrentUserViewHiddenDiceReply(
+  message?: Message | null,
+  params: MessageVisibilityParams = {},
+): boolean {
+  return canViewHiddenDiceTurnReply(message, params);
 }
 
 export function canCurrentUserViewMessage(

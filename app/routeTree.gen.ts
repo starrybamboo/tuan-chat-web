@@ -9,16 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ScrollSequenceMotionDemoRouteImport } from './routes/scroll-sequence-motion-demo'
-import { Route as ScrollSequenceDemoRouteImport } from './routes/scroll-sequence-demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteRouteImport } from './routes/_dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
 import { Route as InviteCodeRouteImport } from './routes/invite/$code'
 import { Route as DashboardSettingsRouteImport } from './routes/_dashboard/settings'
-import { Route as DashboardResourceRouteImport } from './routes/_dashboard/resource'
 import { Route as DashboardNotificationsRouteImport } from './routes/_dashboard/notifications'
-import { Route as DashboardCollectionRouteImport } from './routes/_dashboard/collection'
 import { Route as DashboardAiImageRouteImport } from './routes/_dashboard/ai-image'
 import { Route as DashboardActivitiesRouteImport } from './routes/_dashboard/activities'
 import { Route as DashboardRoleRouteRouteImport } from './routes/_dashboard/role/route'
@@ -48,17 +44,6 @@ import { Route as DashboardChatChatLayoutSpaceIdChar123RoomIdChar125Char123Messa
 import { Route as DashboardChatChatLayoutSpaceIdDocDocIdRouteImport } from './routes/_dashboard/chat/_chat-layout/$spaceId.doc.$docId'
 import { Route as DashboardChatChatLayoutSpaceIdRoomIdSettingRouteImport } from './routes/_dashboard/chat/_chat-layout/$spaceId.$roomId.setting'
 
-const ScrollSequenceMotionDemoRoute =
-  ScrollSequenceMotionDemoRouteImport.update({
-    id: '/scroll-sequence-motion-demo',
-    path: '/scroll-sequence-motion-demo',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ScrollSequenceDemoRoute = ScrollSequenceDemoRouteImport.update({
-  id: '/scroll-sequence-demo',
-  path: '/scroll-sequence-demo',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -83,19 +68,9 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardResourceRoute = DashboardResourceRouteImport.update({
-  id: '/resource',
-  path: '/resource',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardNotificationsRoute = DashboardNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardCollectionRoute = DashboardCollectionRouteImport.update({
-  id: '/collection',
-  path: '/collection',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardAiImageRoute = DashboardAiImageRouteImport.update({
@@ -264,15 +239,11 @@ const DashboardChatChatLayoutSpaceIdRoomIdSettingRoute =
 export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
   '/login': typeof LoginRoute
-  '/scroll-sequence-demo': typeof ScrollSequenceDemoRoute
-  '/scroll-sequence-motion-demo': typeof ScrollSequenceMotionDemoRoute
   '/material': typeof DashboardMaterialRouteRouteWithChildren
   '/role': typeof DashboardRoleRouteRouteWithChildren
   '/activities': typeof DashboardActivitiesRoute
   '/ai-image': typeof DashboardAiImageRoute
-  '/collection': typeof DashboardCollectionRoute
   '/notifications': typeof DashboardNotificationsRoute
-  '/resource': typeof DashboardResourceRoute
   '/settings': typeof DashboardSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/chat': typeof DashboardChatChatLayoutRouteRouteWithChildren
@@ -302,14 +273,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/scroll-sequence-demo': typeof ScrollSequenceDemoRoute
-  '/scroll-sequence-motion-demo': typeof ScrollSequenceMotionDemoRoute
   '/material': typeof DashboardMaterialRouteRouteWithChildren
   '/activities': typeof DashboardActivitiesRoute
   '/ai-image': typeof DashboardAiImageRoute
-  '/collection': typeof DashboardCollectionRoute
   '/notifications': typeof DashboardNotificationsRoute
-  '/resource': typeof DashboardResourceRoute
   '/settings': typeof DashboardSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/': typeof DashboardIndexRoute
@@ -340,15 +307,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_dashboard': typeof DashboardRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/scroll-sequence-demo': typeof ScrollSequenceDemoRoute
-  '/scroll-sequence-motion-demo': typeof ScrollSequenceMotionDemoRoute
   '/_dashboard/material': typeof DashboardMaterialRouteRouteWithChildren
   '/_dashboard/role': typeof DashboardRoleRouteRouteWithChildren
   '/_dashboard/activities': typeof DashboardActivitiesRoute
   '/_dashboard/ai-image': typeof DashboardAiImageRoute
-  '/_dashboard/collection': typeof DashboardCollectionRoute
   '/_dashboard/notifications': typeof DashboardNotificationsRoute
-  '/_dashboard/resource': typeof DashboardResourceRoute
   '/_dashboard/settings': typeof DashboardSettingsRoute
   '/invite/$code': typeof InviteCodeRoute
   '/_dashboard/': typeof DashboardIndexRoute
@@ -382,15 +345,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/scroll-sequence-demo'
-    | '/scroll-sequence-motion-demo'
     | '/material'
     | '/role'
     | '/activities'
     | '/ai-image'
-    | '/collection'
     | '/notifications'
-    | '/resource'
     | '/settings'
     | '/invite/$code'
     | '/chat'
@@ -420,14 +379,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/scroll-sequence-demo'
-    | '/scroll-sequence-motion-demo'
     | '/material'
     | '/activities'
     | '/ai-image'
-    | '/collection'
     | '/notifications'
-    | '/resource'
     | '/settings'
     | '/invite/$code'
     | '/'
@@ -457,15 +412,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_dashboard'
     | '/login'
-    | '/scroll-sequence-demo'
-    | '/scroll-sequence-motion-demo'
     | '/_dashboard/material'
     | '/_dashboard/role'
     | '/_dashboard/activities'
     | '/_dashboard/ai-image'
-    | '/_dashboard/collection'
     | '/_dashboard/notifications'
-    | '/_dashboard/resource'
     | '/_dashboard/settings'
     | '/invite/$code'
     | '/_dashboard/'
@@ -498,28 +449,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ScrollSequenceDemoRoute: typeof ScrollSequenceDemoRoute
-  ScrollSequenceMotionDemoRoute: typeof ScrollSequenceMotionDemoRoute
   InviteCodeRoute: typeof InviteCodeRoute
   RoomMapSpaceIdRoomIdRoute: typeof RoomMapSpaceIdRoomIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/scroll-sequence-motion-demo': {
-      id: '/scroll-sequence-motion-demo'
-      path: '/scroll-sequence-motion-demo'
-      fullPath: '/scroll-sequence-motion-demo'
-      preLoaderRoute: typeof ScrollSequenceMotionDemoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/scroll-sequence-demo': {
-      id: '/scroll-sequence-demo'
-      path: '/scroll-sequence-demo'
-      fullPath: '/scroll-sequence-demo'
-      preLoaderRoute: typeof ScrollSequenceDemoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -555,25 +490,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/_dashboard/resource': {
-      id: '/_dashboard/resource'
-      path: '/resource'
-      fullPath: '/resource'
-      preLoaderRoute: typeof DashboardResourceRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/_dashboard/notifications': {
       id: '/_dashboard/notifications'
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof DashboardNotificationsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/_dashboard/collection': {
-      id: '/_dashboard/collection'
-      path: '/collection'
-      fullPath: '/collection'
-      preLoaderRoute: typeof DashboardCollectionRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/_dashboard/ai-image': {
@@ -850,9 +771,7 @@ interface DashboardRouteRouteChildren {
   DashboardRoleRouteRoute: typeof DashboardRoleRouteRouteWithChildren
   DashboardActivitiesRoute: typeof DashboardActivitiesRoute
   DashboardAiImageRoute: typeof DashboardAiImageRoute
-  DashboardCollectionRoute: typeof DashboardCollectionRoute
   DashboardNotificationsRoute: typeof DashboardNotificationsRoute
-  DashboardResourceRoute: typeof DashboardResourceRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardChatChatLayoutRouteRoute: typeof DashboardChatChatLayoutRouteRouteWithChildren
@@ -875,9 +794,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardRoleRouteRoute: DashboardRoleRouteRouteWithChildren,
   DashboardActivitiesRoute: DashboardActivitiesRoute,
   DashboardAiImageRoute: DashboardAiImageRoute,
-  DashboardCollectionRoute: DashboardCollectionRoute,
   DashboardNotificationsRoute: DashboardNotificationsRoute,
-  DashboardResourceRoute: DashboardResourceRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardChatChatLayoutRouteRoute:
@@ -906,8 +823,6 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   LoginRoute: LoginRoute,
-  ScrollSequenceDemoRoute: ScrollSequenceDemoRoute,
-  ScrollSequenceMotionDemoRoute: ScrollSequenceMotionDemoRoute,
   InviteCodeRoute: InviteCodeRoute,
   RoomMapSpaceIdRoomIdRoute: RoomMapSpaceIdRoomIdRoute,
 }

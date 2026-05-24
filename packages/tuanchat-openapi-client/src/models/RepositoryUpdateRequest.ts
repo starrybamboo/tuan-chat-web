@@ -40,15 +40,7 @@ export type RepositoryUpdateRequest = {
      */
     maxPeople?: number;
     /**
-     * 封面
-     */
-    image?: string;
-    /**
-     * 封面原图
-     */
-    originalImage?: string;
-    /**
-     * 封面媒体文件 ID；替代 image/originalImage
+     * 封面媒体文件 ID
      */
     coverFileId?: number;
     /**
