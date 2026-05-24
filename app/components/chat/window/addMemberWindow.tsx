@@ -198,20 +198,6 @@ export default function AddMemberWindow({
 
   const memberSelection = (
     <div className="flex h-full min-h-[460px] flex-col">
-      <header className="border-b border-base-300/70 pb-4">
-        <div className="flex items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200/55 text-primary">
-            <UserPlusIcon className="size-5" weight="regular" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-lg font-semibold leading-7">选择成员</h3>
-            <p className="mt-1 text-sm leading-6 text-base-content/60">
-              搜索好友后直接邀请；房间邀请也可以从空间成员中添加。
-            </p>
-          </div>
-        </div>
-      </header>
-
       <div className="hidden-scrollbar flex-1 space-y-5 overflow-y-auto py-5">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -306,15 +292,7 @@ export default function AddMemberWindow({
     <div className="flex max-h-[min(84vh,780px)] w-[min(1040px,calc(100vw-2rem))] flex-col overflow-hidden bg-base-100 text-base-content lg:grid lg:grid-cols-[330px_minmax(0,1fr)]">
       <aside className="hidden-scrollbar flex shrink-0 flex-col overflow-y-auto border-b border-base-300/70 bg-base-200/45 p-5 pr-14 lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6">
         <div className="min-w-0">
-          <p className="text-sm text-base-content/60">成员邀请</p>
-          <h2 className="mt-1 text-2xl font-semibold leading-tight">{title ?? defaultTitle}</h2>
-          <p className="mt-3 text-sm leading-6 text-base-content/65">
-            {subtitle ?? defaultSubtitle}
-          </p>
-        </div>
-
-        <div className="mt-5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-primary">
-          {inviteRoleLabel}
+          <h2 className="text-2xl font-semibold leading-tight">{title ?? defaultTitle}</h2>
         </div>
 
         {headerExtra && <div className="mt-4">{headerExtra}</div>}
