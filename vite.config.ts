@@ -83,9 +83,6 @@ function splitVendorChunk(id: string): string | undefined {
     return undefined;
   }
 
-  if (normalizedId.includes("/react-syntax-highlighter/") || normalizedId.includes("/refractor/")) {
-    return "vendor-markdown-highlight";
-  }
   if (normalizedId.includes("/@ffmpeg/")) {
     return "vendor-ffmpeg";
   }
@@ -96,9 +93,7 @@ function splitVendorChunk(id: string): string | undefined {
 }
 
 /**
- * Fix CommonJS default export issues for modules like lodash that have no default export.
- * This plugin rewrites code like `import x from 'lodash/debounce'` to work with
- * lodash's actual named/CommonJS exports at module load time.
+ * Fix CommonJS default export issues for modules that still surface interop problems in dev.
  */
 function fixCjsDefaultExportPlugin(): Plugin {
   return {
@@ -107,11 +102,6 @@ function fixCjsDefaultExportPlugin(): Plugin {
     transform(code, _id) {
       // Target modules that commonly have CJS/default export issues
       const problematicModules = [
-        "lodash/debounce",
-        "lodash/throttle",
-        "lodash/memoize",
-        "lodash/isPlainObject",
-        "lodash/isObject",
         "use-sync-external-store/shim/with-selector.js",
         "use-sync-external-store/shim/index.js",
         "dagre",
