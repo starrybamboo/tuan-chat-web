@@ -1,6 +1,5 @@
 import type { UserRole } from "../../../../../api";
 import type { RoomDndMapSnapshot, RoomDndMapToken } from "./roomDndMapApi";
-import type { CombatParticipant } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
 
@@ -204,29 +203,6 @@ function buildCellKey(rowIndex: number, colIndex: number) {
   return `${rowIndex}-${colIndex}`;
 }
 
-function readParticipantNumber(participant: CombatParticipant, keys: string[]): number | null {
-  const sources: Array<Record<string, unknown>> = [
-    participant.derivedValues,
-    participant.baseValues,
-    participant.values,
-  ];
-  for (const source of sources) {
-    for (const key of keys) {
-      const raw = source[key];
-      if (typeof raw === "number" && Number.isFinite(raw)) {
-        return raw;
-      }
-      if (typeof raw === "string") {
-        const parsed = Number(raw);
-        if (Number.isFinite(parsed)) {
-          return parsed;
-        }
-      }
-    }
-  }
-  return null;
-}
-
 function readRoleRuntimeNumber(runtime: StateRuntimeContextValue, roleId: number, keys: string[]): number | null {
   const sources: Array<Record<string, unknown>> = [
     runtime.derivedDisplayValues.rolesByRoleId[roleId] ?? {},
@@ -252,20 +228,14 @@ function buildRoleTokenStatus(runtime: StateRuntimeContextValue | null, roleId: 
   if (!runtime || roleId <= 0) {
     return null;
   }
-  const participant = runtime.participants.find(item => item.roleId === roleId);
-  const activeStates = participant?.activeStates
-    ?? runtime.activeStates.filter(state => state.scope.kind === "role" && state.scope.roleId === roleId);
-  const hp = participant
-    ? readParticipantNumber(participant, ["hp"])
-    : readRoleRuntimeNumber(runtime, roleId, ["hp"]);
-  const maxHp = participant
-    ? readParticipantNumber(participant, ["maxHp", "maxhp", "hpMax", "hpmax"])
-    : readRoleRuntimeNumber(runtime, roleId, ["maxHp", "maxhp", "hpMax", "hpmax"]);
+  const activeStates = runtime.activeStates.filter(state => state.scope.kind === "role" && state.scope.roleId === roleId);
+  const hp = readRoleRuntimeNumber(runtime, roleId, ["hp"]);
+  const maxHp = readRoleRuntimeNumber(runtime, roleId, ["maxHp", "maxhp", "hpMax", "hpmax"]);
 
   return {
     activeStates: activeStates.map(state => `${state.statusName}${formatStatusTurnText(state.remainingTurns)}`),
     hp,
-    initiative: participant?.initiative ?? null,
+    initiative: readRoleRuntimeNumber(runtime, roleId, ["initiative"]),
     maxHp,
   };
 }
@@ -286,11 +256,6 @@ function MapStateStrip({
       return [];
     }
     const roleIds = new Set<number>();
-    runtime.participants.forEach((participant) => {
-      if (typeof participant.roleId === "number" && participant.roleId > 0) {
-        roleIds.add(participant.roleId);
-      }
-    });
     Object.keys(runtime.roleVarsByRoleId).forEach((value) => {
       const roleId = Number(value);
       if (roleId > 0) {
@@ -303,37 +268,19 @@ function MapStateStrip({
       }
     });
 
-    const participantRows = runtime.participants.map((participant) => {
-      const roleId = typeof participant.roleId === "number" ? participant.roleId : null;
-      const hp = readParticipantNumber(participant, ["hp"]);
-      const maxHp = readParticipantNumber(participant, ["maxHp", "maxhp", "hpMax", "hpmax"]);
-      const role = roleId ? roleById.get(roleId) : undefined;
-      if (roleId) {
-        roleIds.delete(roleId);
-      }
-      return {
-        activeStates: participant.activeStates,
-        id: participant.participantId,
-        initiative: participant.initiative,
-        name: role?.roleName?.trim() || participant.name,
-        hp,
-        maxHp,
-      };
-    });
-
     const stateOnlyRows = [...roleIds].map((roleId) => {
       const role = roleById.get(roleId);
       return {
         activeStates: runtime.activeStates.filter(state => state.scope.kind === "role" && state.scope.roleId === roleId),
         hp: readRoleRuntimeNumber(runtime, roleId, ["hp"]),
         id: `role:${roleId}`,
-        initiative: null,
+        initiative: readRoleRuntimeNumber(runtime, roleId, ["initiative"]),
         maxHp: readRoleRuntimeNumber(runtime, roleId, ["maxHp", "maxhp", "hpMax", "hpmax"]),
         name: role?.roleName?.trim() || `角色 #${roleId}`,
       };
     });
 
-    return [...participantRows, ...stateOnlyRows];
+    return stateOnlyRows;
   }, [roleById, runtime]);
 
   if (rows.length === 0) {
@@ -557,7 +504,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
         clearTokens: true,
       });
       const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-        type: "combatMapTokenRemove",
+        type: "mapTokenRemove",
         roleId: token.roleId,
       }));
       if (clearTokenEvents.length > 0) {
@@ -574,7 +521,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     confirmToast(() => {
       mapClearMutation.mutate();
       const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-        type: "combatMapTokenRemove",
+        type: "mapTokenRemove",
         roleId: token.roleId,
       }));
       if (clearTokenEvents.length > 0) {
@@ -613,7 +560,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       return;
     }
     const events: StateEventAtom[] = [{
-      type: "combatMapTokenRemove",
+      type: "mapTokenRemove",
       roleId,
     }];
     void sendMapStateEvents(events, ".combat map-remove");
@@ -630,12 +577,12 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     const events: StateEventAtom[] = [];
     if (occupant && occupant.roleId !== roleId) {
       events.push({
-        type: "combatMapTokenRemove",
+        type: "mapTokenRemove",
         roleId: occupant.roleId,
       });
     }
     events.push({
-      type: "combatMapTokenUpsert",
+      type: "mapTokenUpsert",
       roleId,
       rowIndex,
       colIndex,

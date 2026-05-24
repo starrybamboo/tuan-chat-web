@@ -21,6 +21,7 @@ interface MessageEditorTextBlockProps {
   onKeyDown: (blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => void;
   onMouseDown?: (blockId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onPasteFiles?: (blockId: string, files: File[]) => void;
+  onPasteText?: (blockId: string, text: string, insertPlainText: () => void) => boolean | void;
   placeholder?: string;
   readOnly?: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
@@ -263,6 +264,7 @@ export function MessageEditorTextBlock({
   onKeyDown,
   onMouseDown,
   onPasteFiles,
+  onPasteText,
   placeholder = "",
   readOnly = false,
   registerBlockRef,
@@ -402,6 +404,7 @@ export function MessageEditorTextBlock({
                           onInput(blockId, normalizeEditableText(plainText));
                         }}
                         onPasteFiles={files => onPasteFiles?.(blockId, files)}
+                        onPasteText={(text, insertPlainText) => onPasteText?.(blockId, text, insertPlainText)}
                         onKeyDown={event => onKeyDown(blockId, event)}
                         onKeyUp={() => {}}
                         onMouseDown={() => {}}

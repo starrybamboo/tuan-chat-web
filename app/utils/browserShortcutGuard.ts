@@ -25,7 +25,7 @@ const WHEEL_DELTA_LINE = 1;
 const WHEEL_DELTA_PAGE = 2;
 const WHEEL_LINE_HEIGHT = 16;
 const WHEEL_PIXEL_HEIGHT = 1;
-const CHAT_FRAME_SCROLLER_SELECTOR = "[data-testid=\"virtuoso-scroller\"], [data-virtuoso-scroller=\"true\"]";
+const CHAT_FRAME_SCROLLER_SELECTOR = "[data-chat-frame-scroller=\"true\"], [data-testid=\"virtuoso-scroller\"], [data-virtuoso-scroller=\"true\"]";
 
 type BrowserShortcutEventLike = Pick<KeyboardEvent, "altKey" | "ctrlKey" | "key" | "metaKey" | "shiftKey">;
 type BrowserWheelEventLike = Pick<WheelEvent, "deltaMode" | "deltaX" | "deltaY">;
@@ -98,7 +98,27 @@ function canScrollElementLike(element: ScrollableElementLike, left: number, top:
   return false;
 }
 
+function findChatFrameScrollerFromTarget(target: EventTarget | null, left: number, top: number) {
+  let element: ScrollableElementLike | null = isScrollableElementLike(target) ? target : null;
+  while (element) {
+    if (element.dataset?.chatFrameScroller === "true" && canScrollElementLike(element, left, top)) {
+      return element;
+    }
+    if (element.dataset?.chatFrameRoot === "true") {
+      const rootScroller = element.querySelector?.<ScrollableElementLike>(CHAT_FRAME_SCROLLER_SELECTOR);
+      return rootScroller && canScrollElementLike(rootScroller, left, top) ? rootScroller : null;
+    }
+    element = element.parentElement;
+  }
+  return null;
+}
+
 export function findScrollableElement(target: EventTarget | null, left: number, top: number, documentRef: BrowserScrollDocumentLike) {
+  const chatFrameScrollerFromTarget = findChatFrameScrollerFromTarget(target, left, top);
+  if (chatFrameScrollerFromTarget) {
+    return chatFrameScrollerFromTarget;
+  }
+
   let element: ScrollableElementLike | null = isScrollableElementLike(target) ? target : null;
   while (element) {
     if (canScrollElementLike(element, left, top)) {

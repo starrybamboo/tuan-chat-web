@@ -340,13 +340,17 @@ function normalizeCommandRequestPayload(rawExtra: unknown): MessageExtraRecord {
 
 function normalizeDocCardPayload(rawExtra: unknown): MessageExtraRecord {
   const docCard = pickPayload(rawExtra, "docCard");
+  const imageFileId = toPositiveNumber(docCard.imageFileId);
+  const originalImageFileId = toPositiveNumber(docCard.originalImageFileId);
   return compactRecord({
     docId: toTrimmedString(docCard.docId),
     spaceId: toPositiveNumber(docCard.spaceId),
     title: toTrimmedString(docCard.title),
-    imageUrl: toTrimmedString(docCard.imageUrl),
-    imageFileId: toPositiveNumber(docCard.imageFileId),
-    originalImageFileId: toPositiveNumber(docCard.originalImageFileId),
+    ...(imageFileId || originalImageFileId
+      ? {}
+      : { imageUrl: toTrimmedString(docCard.imageUrl) }),
+    imageFileId,
+    originalImageFileId,
     imageMediaType: toTrimmedString(docCard.imageMediaType),
     excerpt: toTrimmedString(docCard.excerpt),
   });

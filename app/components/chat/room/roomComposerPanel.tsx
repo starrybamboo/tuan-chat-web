@@ -47,7 +47,6 @@ interface RoomComposerPanelProps {
   onClearFigure: () => void;
   onOpenFullMessageDiff?: () => void;
   isFullMessageDiffOpen?: boolean;
-  onOpenImportChatText?: () => void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
@@ -98,7 +97,6 @@ function RoomComposerPanelImpl({
   onClearFigure,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen,
-  onOpenImportChatText,
   isKP,
   onStopBgmForAll,
   noRole,
@@ -544,7 +542,6 @@ function RoomComposerPanelImpl({
                   <div className="w-full sm:w-auto flex justify-end sm:block mt-1 sm:mt-2">
                     <ChatToolbarFromStore
                       {...toolbarCommonProps}
-                      onOpenImportChatText={onOpenImportChatText}
                       showWebgalLinkToggle={true}
                       showRunModeToggle={true}
                       showWebgalControls={false}

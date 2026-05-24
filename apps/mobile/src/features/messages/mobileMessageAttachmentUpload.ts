@@ -8,16 +8,15 @@ import type {
 import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
-import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-import type { MobileMediaType as MediaType } from "@/lib/media-url";
-import type { ImageDerivativeResult } from "@/lib/mobile-image-compress";
+import type { MobileMessageAttachment } from "./mobileMessageAttachment";
+import type { MobileMediaType as MediaType } from "../../lib/media-url";
+import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
 import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
 import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
-import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "@/features/messages/mobileMessageAttachment";
-import { mediaFileUrl } from "@/lib/media-url";
-import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "@/lib/mobile-image-compress";
+import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "../../lib/mobile-image-compress";
+import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "./mobileMessageAttachment";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 
 const CHAT_ATTACHMENT_UPLOAD_SCENE = 1 as const;
@@ -201,12 +200,16 @@ function assertPositiveSize(value: unknown): number {
   return value;
 }
 
-async function readAttachmentWebBlob(attachment: MobileMessageAttachment): Promise<Blob> {
-  const response = await fetch(attachment.uri);
+async function readWebBlob(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
   if (!response.ok) {
     throw new Error("读取附件内容失败。");
   }
   return await response.blob();
+}
+
+async function readAttachmentWebBlob(attachment: MobileMessageAttachment): Promise<Blob> {
+  return await readWebBlob(attachment.uri);
 }
 
 async function resolveWebAttachmentUploadPayload(attachment: MobileMessageAttachment): Promise<AttachmentUploadPayload> {
@@ -374,7 +377,7 @@ function sha256Hex(bytes: Uint8Array): string {
 async function uploadAttachmentBinary(
   target: MediaUploadTarget,
   fileUri: string,
-  payload: AttachmentUploadPayload,
+  options: { webBlob?: Blob } = {},
 ): Promise<void> {
   const uploadUrl = target.uploadUrl?.trim();
   if (!uploadUrl) {
@@ -383,7 +386,7 @@ async function uploadAttachmentBinary(
 
   const headers = target.uploadHeaders ?? {};
   if (Platform.OS === "web") {
-    const blob = payload.webBlob ?? await fetch(fileUri).then(r => r.blob());
+    const blob = options.webBlob ?? await readWebBlob(fileUri);
     const response = await fetch(uploadUrl, {
       method: "PUT",
       headers,
@@ -465,7 +468,7 @@ async function generateImageDerivatives(uri: string): Promise<ImageDerivatives> 
 async function uploadAttachmentThroughMediaService(
   client: MediaUploadClient,
   attachment: MobileMessageAttachment,
-): Promise<{ fileId: number; mediaType: MediaType; originalUrl: string; previewUrl: string; size: number }> {
+): Promise<{ fileId: number; mediaType: MediaType; size: number }> {
   const mimeType = resolveAttachmentMimeType(attachment);
   const payload = await resolveAttachmentUploadPayload(attachment);
   const mediaType = inferMediaTypeFromMimeType(mimeType);
@@ -484,10 +487,10 @@ async function uploadAttachmentThroughMediaService(
     await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
       if (isImage && derivatives && (quality === "low" || quality === "medium")) {
         const derivativeUri = derivatives[quality].uri;
-        await uploadAttachmentBinary(target, derivativeUri, payload);
+        await uploadAttachmentBinary(target, derivativeUri);
       }
       else {
-        await uploadAttachmentBinary(target, attachment.uri, payload);
+        await uploadAttachmentBinary(target, attachment.uri, { webBlob: payload.webBlob });
       }
     }));
     await completeMediaUpload(client, prepared.sessionId);
@@ -496,8 +499,6 @@ async function uploadAttachmentThroughMediaService(
   return {
     fileId,
     mediaType: resolvedMediaType,
-    originalUrl: mediaFileUrl(fileId, resolvedMediaType, resolvedMediaType === "image" ? "medium" : "low"),
-    previewUrl: mediaFileUrl(fileId, resolvedMediaType, "low"),
     size: payload.size,
   };
 }

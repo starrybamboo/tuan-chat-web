@@ -6,8 +6,76 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
-const specPath = resolve(repoRoot, "packages/tuanchat-openapi-client/tuanchat_OpenAPI.json");
+const specPaths = [
+  resolve(repoRoot, "api/tuanchat_OpenAPI.json"),
+  resolve(repoRoot, "packages/tuanchat-openapi-client/tuanchat_OpenAPI.json"),
+];
+const generationSpecPath = specPaths[1];
 const _outputDir = resolve(repoRoot, "packages/tuanchat-openapi-client/src");
+const REMOVED_PATH_PREFIXES = [
+  "/blocksuite/",
+  "/collection",
+  "/community",
+  "/mark",
+  "/rating",
+  "/resource",
+  "/s/",
+  "/space/docFolder",
+  "/space/userDoc",
+];
+const REMOVED_EXACT_PATHS = new Set(["/generate", "/media/aliases"]);
+const REMOVED_SCHEMA_PREFIXES = [
+  "ApiResultBlocksuite",
+  "BlocksuiteDoc",
+  "ApiResultCollection",
+  "ApiResultPageBaseRespCollection",
+  "Collection",
+  "PageBaseRespCollection",
+  "ApiResultCommunity",
+  "ApiResultListCommunity",
+  "Community",
+  "ApiResultCursorPageBaseResponsePost",
+  "ApiResultPost",
+  "CursorPageBaseResponsePost",
+  "PagePost",
+  "Post",
+  "ApiResultListMark",
+  "BatchMark",
+  "Mark",
+  "ApiResultMediaFileAlias",
+  "MediaFileAlias",
+  "ApiResultPageBaseRespRating",
+  "ApiResultRating",
+  "PageBaseRespRating",
+  "Rating",
+  "ApiResultPageBaseRespResource",
+  "ApiResultResource",
+  "PageBaseRespResource",
+  "Resource",
+  "ApiResultListSpaceUserDoc",
+  "ApiResultSpaceUserDoc",
+  "ShortLink",
+  "SpaceUserDoc",
+];
+const REMOVED_TAG_FRAGMENTS = [
+  "blocksuite",
+  "collection",
+  "community",
+  "mark",
+  "rating",
+  "resource",
+  "shortlink",
+  "spaceuserdoc",
+];
+
+function shouldRemovePath(path) {
+  return REMOVED_EXACT_PATHS.has(path)
+    || REMOVED_PATH_PREFIXES.some(prefix => path === prefix || path.startsWith(prefix));
+}
+
+function shouldRemoveSchema(name) {
+  return REMOVED_SCHEMA_PREFIXES.some(prefix => name.startsWith(prefix));
+}
 
 function filterOpenApiSpec(spec) {
   if (!spec || typeof spec !== "object") {
@@ -17,7 +85,7 @@ function filterOpenApiSpec(spec) {
   const nextSpec = structuredClone(spec);
   const paths = nextSpec.paths && typeof nextSpec.paths === "object" ? nextSpec.paths : {};
   for (const path of Object.keys(paths)) {
-    if (path.startsWith("/blocksuite/")) {
+    if (shouldRemovePath(path)) {
       delete paths[path];
     }
   }
@@ -27,7 +95,7 @@ function filterOpenApiSpec(spec) {
     : null;
   if (schemas) {
     for (const name of Object.keys(schemas)) {
-      if (name.startsWith("Blocksuite") || name.startsWith("ApiResultBlocksuite")) {
+      if (shouldRemoveSchema(name)) {
         delete schemas[name];
       }
     }
@@ -36,7 +104,7 @@ function filterOpenApiSpec(spec) {
   if (Array.isArray(nextSpec.tags)) {
     nextSpec.tags = nextSpec.tags.filter((tag) => {
       const text = `${tag?.name ?? ""} ${tag?.description ?? ""}`.toLowerCase();
-      return !text.includes("blocksuite");
+      return !REMOVED_TAG_FRAGMENTS.some(fragment => text.includes(fragment));
     });
   }
 
@@ -61,16 +129,18 @@ function filterOpenApiSpec(spec) {
   return nextSpec;
 }
 
-const raw = await readFile(specPath, "utf8");
-const parsed = JSON.parse(raw);
-const filtered = filterOpenApiSpec(parsed);
-await writeFile(specPath, `${JSON.stringify(filtered, null, 2)}\n`, "utf8");
+for (const specPath of specPaths) {
+  const raw = await readFile(specPath, "utf8");
+  const parsed = JSON.parse(raw);
+  const filtered = filterOpenApiSpec(parsed);
+  await writeFile(specPath, `${JSON.stringify(filtered, null, 2)}\n`, "utf8");
+}
 
 const result = spawnSync(
   "openapi",
   [
     "--input",
-    "./packages/tuanchat-openapi-client/tuanchat_OpenAPI.json",
+    generationSpecPath,
     "--output",
     "./packages/tuanchat-openapi-client/src",
     "--client",

@@ -23,7 +23,7 @@ export type MediaPrepareUploadRequest = {
      */
     sizeBytes: number;
     /**
-     * canonical source 的 MIME 类型
+     * canonical source 的 MIME 类型；非聊天室图片 original 必须为 image/webp
      */
     mimeType?: string;
     /**

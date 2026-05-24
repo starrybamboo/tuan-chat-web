@@ -9,7 +9,7 @@ import {
 type ScrollableElementLike = {
   clientHeight: number;
   clientWidth: number;
-  dataset?: { chatFrameRoot?: string };
+  dataset?: { chatFrameRoot?: string; chatFrameScroller?: string };
   parentElement: ScrollableElementLike | null;
   querySelector?: (selector: string) => ScrollableElementLike | null;
   scrollBy: ReturnType<typeof vi.fn>;
@@ -134,6 +134,55 @@ describe("browserShortcutGuard", () => {
       scrollingElement: null,
     })).toBe(scroller);
     expect(findScrollableElement(overlay as any, 0, 120, {
+      querySelector: vi.fn(() => null),
+      scrollingElement: null,
+    })).toBe(scroller);
+  });
+
+  it("多选浮层成为滚轮目标时，也会回落到标记过的聊天 scroller", () => {
+    const scroller = createScrollableElement({
+      scrollTop: 120,
+      scrollHeight: 800,
+      clientHeight: 240,
+      dataset: { chatFrameScroller: "true" },
+    });
+    const selectionToolbar = createScrollableElement({
+      scrollHeight: 96,
+      clientHeight: 96,
+    });
+    const documentRef = {
+      querySelector: vi.fn((selector: string) => (
+        selector.includes("data-chat-frame-scroller") ? scroller : null
+      )),
+      scrollingElement: null,
+    };
+
+    expect(findScrollableElement(selectionToolbar as any, 0, 120, documentRef)).toBe(scroller);
+  });
+
+  it("聊天根节点内优先滚动消息列表，避免工具条内部假滚动截住向下滚轮", () => {
+    const scroller = createScrollableElement({
+      scrollTop: 80,
+      scrollHeight: 900,
+      clientHeight: 260,
+      dataset: { chatFrameScroller: "true" },
+    });
+    const chatRoot = createScrollableElement({
+      dataset: { chatFrameRoot: "true" },
+      scrollHeight: 260,
+      clientHeight: 260,
+      querySelector: vi.fn((selector: string) => (
+        selector.includes("data-chat-frame-scroller") ? scroller : null
+      )),
+    });
+    const toolbarInner = createScrollableElement({
+      parentElement: chatRoot,
+      scrollTop: 0,
+      scrollHeight: 90,
+      clientHeight: 48,
+    });
+
+    expect(findScrollableElement(toolbarInner as any, 0, 120, {
       querySelector: vi.fn(() => null),
       scrollingElement: null,
     })).toBe(scroller);

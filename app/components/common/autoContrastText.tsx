@@ -2,6 +2,15 @@
 
 export default async function checkBack(img: string) {
   return new Promise((resolve) => {
+    let objectUrl: string | null = null;
+
+    function revokeObjectUrl() {
+      if (objectUrl) {
+        window.URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    }
+
     // 计算图片中间值
     function analysisColor(rgbaArray: ImageData) {
       if (!rgbaArray)
@@ -73,11 +82,21 @@ export default async function checkBack(img: string) {
     // 识别图片
     const image = new Image();
     image.onload = () => {
-      ctx4.drawImage(image, 0, 0, 17, 16); // 绘制图片到 Canvas
-      const imageData = ctx4.getImageData(0, 0, 17, 16); // 获取图像数据
-      const color = analysisColor(imageData); // 分析颜色分布
-      setFontColor(color); // 设置字体颜色
-      resolve(true); // 完成Promise
+      try {
+        ctx4.drawImage(image, 0, 0, 17, 16); // 绘制图片到 Canvas
+        const imageData = ctx4.getImageData(0, 0, 17, 16); // 获取图像数据
+        const color = analysisColor(imageData); // 分析颜色分布
+        setFontColor(color); // 设置字体颜色
+        resolve(true); // 完成Promise
+      }
+      finally {
+        revokeObjectUrl();
+      }
+    };
+    image.onerror = () => {
+      revokeObjectUrl();
+      setFontColor("black");
+      resolve(false);
     };
 
     // 下载图片，解决图片跨域问题
@@ -87,8 +106,17 @@ export default async function checkBack(img: string) {
     xhr.onload = function loaded() {
       if (this.status === 200) {
         const blob = this.response;
-        image.src = window.URL.createObjectURL(blob);
+        objectUrl = window.URL.createObjectURL(blob);
+        image.src = objectUrl;
       }
+      else {
+        setFontColor("black");
+        resolve(false);
+      }
+    };
+    xhr.onerror = () => {
+      setFontColor("black");
+      resolve(false);
     };
     xhr.send();
   });

@@ -31,10 +31,7 @@ function collectReferencedRoleIds(messages: Message[], currentRoleId: number | n
       if ("scope" in event && event.scope.kind === "role") {
         roleIds.add(event.scope.roleId);
       }
-      if (event.type === "combatParticipantUpsert" && typeof event.roleId === "number") {
-        roleIds.add(event.roleId);
-      }
-      if ((event.type === "combatMapTokenUpsert" || event.type === "combatMapTokenRemove") && typeof event.roleId === "number") {
+      if ((event.type === "mapTokenUpsert" || event.type === "mapTokenRemove") && typeof event.roleId === "number") {
         roleIds.add(event.roleId);
       }
     });

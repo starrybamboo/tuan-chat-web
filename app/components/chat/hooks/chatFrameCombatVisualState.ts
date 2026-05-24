@@ -4,6 +4,7 @@ import type { ChatMessageResponse } from "../../../../api";
 
 const COMBAT_START_EVENT_TYPES = new Set(["combatRoundStart", "combatStart"]);
 const COMBAT_END_EVENT_TYPES = new Set(["combatRoundEnd", "combatEnd"]);
+const COMBAT_STATE_EVENT_TYPES = new Set(["nextTurn", "mapTokenUpsert", "mapTokenRemove"]);
 const INITIATIVE_COMMAND_PATTERN = /^[.。/]ri(?:\s|$)/i;
 const COMBAT_START_TEXT_PATTERN = /(?:战斗轮?|combat)\s*(?:开始|开启|启动|start)|(?:进入|开始)\s*(?:战斗轮?|combat)/i;
 const COMBAT_END_TEXT_PATTERN = /(?:战斗轮?|combat)\s*(?:结束|终止|关闭|end)|(?:退出|结束)\s*(?:战斗轮?|combat)/i;
@@ -40,6 +41,12 @@ function getStateEventSignal(extra: unknown): CombatVisualSignal {
     }
     if (COMBAT_END_EVENT_TYPES.has(type)) {
       signal = "end";
+    }
+    if (COMBAT_STATE_EVENT_TYPES.has(type)) {
+      signal = "start";
+    }
+    if (type === "varOp" && toRecord(event)?.key === "initiative") {
+      signal = "start";
     }
   });
   return signal;

@@ -1,13 +1,11 @@
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 
-import type { StateEventAtom, StateEventCombatValue, StateEventScope } from "../state-event";
+import type { StateEventAtom, StateEventScope } from "../state-event";
 import type {
   ActiveStateInstance,
   BuildCombatStateRuntimeParams,
   BuildStateRuntimeParams,
-  CombatColumn,
   CombatMapToken,
-  CombatParticipant,
   CombatStateRuntime,
   StateDefinition,
   StateDefinitionResolver,
@@ -30,7 +28,6 @@ import {
   STATE_EVENT_STATUS_MODIFIER_OP,
   STATE_EVENT_VAR_OP,
 } from "../state-event";
-import { buildCombatInitiativeBatchPrimaryText } from "./combatInitiativeBatch";
 
 export class EmptyStateDefinitionResolver implements StateDefinitionResolver {
   resolveById(): StateDefinition | null {
@@ -191,32 +188,10 @@ function formatCombatAtomPrimary(atom: Exclude<StateEventAtom, Extract<StateEven
   if (atom.type === "combatRoundEnd") {
     return "结束战斗";
   }
-  if (atom.type === "combatParticipantUpsert") {
-    const name = atom.name ?? atom.participantId;
-    if (typeof atom.initiative === "number") {
-      return `先攻 ${name} = ${formatStateNumericValue(atom.initiative)}`;
-    }
-    return `更新先攻参与者 ${name}`;
-  }
-  if (atom.type === "combatParticipantRemove") {
-    return `移除先攻参与者 ${atom.participantId}`;
-  }
-  if (atom.type === "combatOrderSet") {
-    return "调整先攻顺序";
-  }
-  if (atom.type === "combatActiveParticipantSet") {
-    return atom.participantId ? `当前行动者 ${atom.participantId}` : "清空当前行动者";
-  }
-  if (atom.type === "combatColumnUpsert") {
-    return `更新战斗列 ${atom.label}`;
-  }
-  if (atom.type === "combatColumnRemove") {
-    return `移除战斗列 ${atom.key}`;
-  }
-  if (atom.type === "combatMapTokenUpsert") {
+  if (atom.type === "mapTokenUpsert") {
     return `地图角色 #${atom.roleId} 移动到 第 ${atom.rowIndex + 1} 行 · 第 ${atom.colIndex + 1} 列`;
   }
-  if (atom.type === "combatMapTokenRemove") {
+  if (atom.type === "mapTokenRemove") {
     return `移除地图角色 #${atom.roleId}`;
   }
   return "战斗事件";
@@ -567,13 +542,7 @@ export function buildStateRuntime({
       }
     });
 
-    const combatBatchPrimaryText = buildCombatInitiativeBatchPrimaryText(normalizedExtra);
-    messageSummariesByMessageId[message.messageId] = combatBatchPrimaryText
-      ? {
-          primaryText: combatBatchPrimaryText,
-          detailLines,
-        }
-      : buildSummary(primaryCandidates, [...scopeLabels], detailLines);
+    messageSummariesByMessageId[message.messageId] = buildSummary(primaryCandidates, [...scopeLabels], detailLines);
   });
 
   const { baseDisplayValues, derivedDisplayValues } = buildDisplayValues({
@@ -597,111 +566,10 @@ export function buildStateRuntime({
   };
 }
 
-type MutableCombatParticipant = {
-  participantId: string;
-  name?: string;
-  roleId?: number;
-  initiative?: number;
-  values: Record<string, StateEventCombatValue>;
-};
-
-function cloneCombatValues(values: Record<string, StateEventCombatValue> | undefined): Record<string, StateEventCombatValue> {
-  return values ? { ...values } : {};
-}
-
-function mergeCombatValues(
-  current: Record<string, StateEventCombatValue>,
-  patch: Record<string, StateEventCombatValue> | undefined,
-): Record<string, StateEventCombatValue> {
-  if (!patch) {
-    return current;
-  }
-  return {
-    ...current,
-    ...patch,
-  };
-}
-
-function getFallbackParticipantName(participant: MutableCombatParticipant): string {
-  if (participant.name?.trim()) {
-    return participant.name.trim();
-  }
-  if (typeof participant.roleId === "number") {
-    return `角色 #${participant.roleId}`;
-  }
-  return participant.participantId;
-}
-
-function sortParticipantsByInitiative(left: MutableCombatParticipant, right: MutableCombatParticipant): number {
-  const initiativeDiff = (right.initiative ?? 0) - (left.initiative ?? 0);
-  if (initiativeDiff !== 0) {
-    return initiativeDiff;
-  }
-  const nameDiff = getFallbackParticipantName(left).localeCompare(getFallbackParticipantName(right), "zh-CN");
-  if (nameDiff !== 0) {
-    return nameDiff;
-  }
-  return left.participantId.localeCompare(right.participantId, "zh-CN");
-}
-
-function buildOrderedParticipantIds(
-  participantsById: ReadonlyMap<string, MutableCombatParticipant>,
-  explicitOrder: string[],
-): string[] {
-  const seen = new Set<string>();
-  const orderedIds: string[] = [];
-  explicitOrder.forEach((participantId) => {
-    if (!participantsById.has(participantId) || seen.has(participantId)) {
-      return;
-    }
-    seen.add(participantId);
-    orderedIds.push(participantId);
-  });
-
-  const remaining = [...participantsById.values()]
-    .filter(participant => !seen.has(participant.participantId))
-    .sort(sortParticipantsByInitiative);
-  remaining.forEach((participant) => {
-    seen.add(participant.participantId);
-    orderedIds.push(participant.participantId);
-  });
-  return orderedIds;
-}
-
-function materializeCombatParticipant(
-  participant: MutableCombatParticipant,
-  stateRuntime: StateRuntime,
-): CombatParticipant {
-  const roleId = participant.roleId;
-  const baseValues = typeof roleId === "number"
-    ? cloneValueMap(stateRuntime.baseDisplayValues.rolesByRoleId[roleId] ?? {})
-    : {};
-  const derivedValues = typeof roleId === "number"
-    ? cloneValueMap(stateRuntime.derivedDisplayValues.rolesByRoleId[roleId] ?? {})
-    : {};
-  const activeStates = typeof roleId === "number"
-    ? stateRuntime.activeStates.filter(state => state.scope.kind === STATE_EVENT_SCOPE_KIND.ROLE && state.scope.roleId === roleId)
-    : [];
-  return {
-    participantId: participant.participantId,
-    name: getFallbackParticipantName(participant),
-    ...(typeof roleId === "number" ? { roleId } : {}),
-    initiative: participant.initiative ?? 0,
-    values: cloneCombatValues(participant.values),
-    baseValues,
-    derivedValues,
-    activeStates,
-  };
-}
-
 export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): CombatStateRuntime {
   const stateRuntime = buildStateRuntime(params);
   const effectiveMessages = params.messages.filter(message => message.status !== 1 && message.messageType === MESSAGE_TYPE.STATE_EVENT);
-  const mutableParticipantsById = new Map<string, MutableCombatParticipant>();
-  const columnsByKey = new Map<string, CombatColumn>();
   const mapTokensByRoleId = new Map<number, CombatMapToken>();
-  let explicitOrder: string[] = [];
-  let activeParticipantId: string | null = null;
   let hasMapState = false;
 
   effectiveMessages.forEach((message) => {
@@ -711,65 +579,7 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
     }
 
     normalizedExtra.events.forEach((atom) => {
-      if (atom.type === "combatParticipantUpsert") {
-        const current = mutableParticipantsById.get(atom.participantId);
-        const next: MutableCombatParticipant = {
-          participantId: atom.participantId,
-          name: atom.name ?? current?.name,
-          roleId: atom.roleId ?? current?.roleId,
-          initiative: typeof atom.initiative === "number" ? atom.initiative : current?.initiative,
-          values: mergeCombatValues(current?.values ?? {}, atom.values),
-        };
-        mutableParticipantsById.set(atom.participantId, next);
-        if (!explicitOrder.includes(atom.participantId)) {
-          explicitOrder = [...explicitOrder, atom.participantId];
-        }
-        return;
-      }
-
-      if (atom.type === "combatParticipantRemove") {
-        mutableParticipantsById.delete(atom.participantId);
-        explicitOrder = explicitOrder.filter(participantId => participantId !== atom.participantId);
-        if (activeParticipantId === atom.participantId) {
-          activeParticipantId = null;
-        }
-        return;
-      }
-
-      if (atom.type === "combatOrderSet") {
-        explicitOrder = atom.participantIds;
-        return;
-      }
-
-      if (atom.type === "combatRoundEnd") {
-        mutableParticipantsById.clear();
-        explicitOrder = [];
-        activeParticipantId = null;
-        return;
-      }
-
-      if (atom.type === "combatActiveParticipantSet") {
-        activeParticipantId = atom.participantId ?? null;
-        return;
-      }
-
-      if (atom.type === "combatColumnUpsert") {
-        columnsByKey.set(atom.key, {
-          key: atom.key,
-          label: atom.label,
-          source: atom.source,
-          ...(atom.attrKey ? { attrKey: atom.attrKey } : {}),
-          ...(atom.stateKey ? { stateKey: atom.stateKey } : {}),
-        });
-        return;
-      }
-
-      if (atom.type === "combatColumnRemove") {
-        columnsByKey.delete(atom.key);
-        return;
-      }
-
-      if (atom.type === "combatMapTokenUpsert") {
+      if (atom.type === "mapTokenUpsert") {
         hasMapState = true;
         mapTokensByRoleId.set(atom.roleId, {
           roleId: atom.roleId,
@@ -779,29 +589,19 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
         return;
       }
 
-      if (atom.type === "combatMapTokenRemove") {
+      if (atom.type === "mapTokenRemove") {
         hasMapState = true;
         mapTokensByRoleId.delete(atom.roleId);
       }
     });
   });
 
-  const orderedParticipantIds = buildOrderedParticipantIds(mutableParticipantsById, explicitOrder);
-  const participants = orderedParticipantIds
-    .map(participantId => mutableParticipantsById.get(participantId))
-    .filter((participant): participant is MutableCombatParticipant => Boolean(participant))
-    .map(participant => materializeCombatParticipant(participant, stateRuntime));
-  const participantsById = Object.fromEntries(participants.map(participant => [participant.participantId, participant]));
-  const columns = [...columnsByKey.values()];
   const mapTokens = [...mapTokensByRoleId.values()].sort((left, right) => left.roleId - right.roleId);
 
   return {
     ...stateRuntime,
-    participants,
-    participantsById,
-    columns,
-    columnsByKey: Object.fromEntries(columns.map(column => [column.key, column])),
-    activeParticipantId: activeParticipantId && participantsById[activeParticipantId] ? activeParticipantId : null,
+    participants: [],
+    participantsById: {},
     mapTokens,
     mapTokensByRoleId: Object.fromEntries(mapTokens.map(token => [token.roleId, token])),
     hasMapState,

@@ -1,6 +1,7 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Message } from "../../../../api";
 import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 import type { RoomContentMode } from "@/components/chat/room/roomHeaderBar";
 import { motion, useReducedMotion } from "motion/react";
 import React from "react";
@@ -46,7 +47,9 @@ interface RoomWindowLayoutProps {
   onToggleContentMode: () => void;
   canViewDocContent: boolean;
   initialDocMessages: Message[];
+  onRequestDocImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteDocMessagesSaved?: (messages: Message[]) => void | Promise<void>;
+  chatHistory?: UseChatHistoryReturn;
   toggleLeftDrawer: () => void;
   onCloseSubWindow?: () => void;
   backgroundUrl: string | null;
@@ -72,7 +75,9 @@ export default function RoomWindowLayout({
   onToggleContentMode,
   canViewDocContent,
   initialDocMessages,
+  onRequestDocImportTextPaste,
   onRemoteDocMessagesSaved,
+  chatHistory,
   toggleLeftDrawer,
   onCloseSubWindow,
   backgroundUrl,
@@ -123,11 +128,9 @@ export default function RoomWindowLayout({
             "linear-gradient(90deg, rgba(127, 29, 29, 0.56) 0, rgba(180, 83, 9, 0.34) 12px, transparent 32px, transparent calc(100% - 32px), rgba(180, 83, 9, 0.34) calc(100% - 12px), rgba(127, 29, 29, 0.56) 100%)",
             "radial-gradient(circle at center, rgba(245, 158, 11, 0.14) 0, rgba(245, 158, 11, 0.05) 46%, transparent 76%)",
             "linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0, transparent 12px, transparent calc(100% - 12px), rgba(245, 158, 11, 0.16) 100%)",
-            "linear-gradient(rgba(245, 158, 11, 0.16) 1px, transparent 1px)",
-            "linear-gradient(90deg, rgba(245, 158, 11, 0.16) 1px, transparent 1px)",
           ].join(", "),
-          backgroundSize: "100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px",
-          backgroundPosition: "center, center, center, center, center",
+          backgroundSize: "100% 100%, 100% 100%, 100% 100%",
+          backgroundPosition: "center, center, center",
           boxShadow: "inset 0 0 0 1px rgba(245, 158, 11, 0.16), inset 0 0 120px rgba(127, 29, 29, 0.16)",
         }}
       />
@@ -166,9 +169,10 @@ export default function RoomWindowLayout({
                       spaceId={spaceId}
                       docId={String(roomId)}
                       canViewDocs={canViewDocContent}
+                      chatHistory={chatHistory}
                       initialMessages={initialDocMessages}
+                      onRequestImportTextPaste={onRequestDocImportTextPaste}
                       onRemoteMessagesSaved={onRemoteDocMessagesSaved}
-                      remoteSource="room-cache"
                       showToolbar={false}
                       tcHeaderTitle={roomName}
                       tcHeaderImageFileId={room?.avatarFileId}

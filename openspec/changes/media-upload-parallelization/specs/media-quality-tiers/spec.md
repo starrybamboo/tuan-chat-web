@@ -6,7 +6,7 @@ The system SHALL generate exactly three quality tiers for all media types: `orig
 
 #### Scenario: Image upload generates three tiers
 - **WHEN** a user uploads an image file
-- **THEN** the system SHALL generate `original` (source or compressed to ≤2MB), `low`, and `medium` variants
+- **THEN** the system SHALL generate `original` (WebP, ≤3MiB), `low`, and `medium` variants
 - **AND** `filesByQuality.high` SHALL be `undefined`
 - **AND** no compression work SHALL be performed for the high tier
 
@@ -24,18 +24,18 @@ The system SHALL generate exactly three quality tiers for all media types: `orig
 
 The system SHALL use the following parameters for image quality tiers:
 
-- **original**: Source file if ≤2MB; otherwise compressed with maxWidthOrHeight=2560, quality=0.82, WebP format
+- **original**: Always WebP, maxWidthOrHeight=2560, maxSizeKB=3072, quality=0.82
 - **low**: maxWidthOrHeight=200, maxSizeKB=40, quality=0.72, WebP format. Used for: avatar thumbnails, small thumbnails
 - **medium**: maxWidthOrHeight=512, maxSizeKB=150, quality=0.76, WebP format. Used for: avatars, list covers, card covers
 
-#### Scenario: Large image compressed to original tier
-- **WHEN** an image file exceeds 2MB
-- **THEN** the system SHALL compress it using the high profile (maxWidthOrHeight=2560, quality=0.82)
-- **AND** the result SHALL be ≤2MB
+#### Scenario: Image compressed to original tier
+- **WHEN** an image file is uploaded outside a chat room
+- **THEN** the system SHALL convert it to WebP using the original profile (maxWidthOrHeight=2560, quality=0.82)
+- **AND** the result SHALL be ≤3MiB
 
-#### Scenario: Small image used as-is for original tier
-- **WHEN** an image file is ≤2MB
-- **THEN** the system SHALL use the file as-is for the original tier without recompression
+#### Scenario: Non-WebP image original rejected by backend
+- **WHEN** a non-chatroom image prepare request declares a canonical source MIME other than `image/webp`
+- **THEN** the backend SHALL reject the prepare request
 
 ### Requirement: Audio quality tier parameters
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
+import { buildDocCardCoverReferenceFields } from "@/components/chat/message/docCard/docCardMedia";
 
 import type { MinimalDocMeta } from "./sidebarTree";
 
@@ -48,33 +49,38 @@ export default function useRoomSidebarDocMetas({
       const imageFileId = typeof m?.imageFileId === "number" && m.imageFileId > 0 ? m.imageFileId : undefined;
       const originalImageFileId = typeof m?.originalImageFileId === "number" && m.originalImageFileId > 0 ? m.originalImageFileId : undefined;
       const imageMediaType = typeof m?.imageMediaType === "string" && m.imageMediaType.trim().length > 0 ? m.imageMediaType : undefined;
+      const coverFields = buildDocCardCoverReferenceFields({
+        imageUrl,
+        imageFileId,
+        originalImageFileId,
+        imageMediaType,
+      });
 
       const existing = merged.get(id);
       if (!existing) {
         merged.set(id, {
           id,
           ...(title ? { title } : {}),
-          ...(imageUrl ? { imageUrl } : {}),
-          ...(imageFileId ? { imageFileId } : {}),
-          ...(originalImageFileId ? { originalImageFileId } : {}),
-          ...(imageMediaType ? { imageMediaType } : {}),
+          ...coverFields,
         });
         continue;
       }
       if (!existing.title && title) {
         existing.title = title;
       }
-      if (!existing.imageUrl && imageUrl) {
-        existing.imageUrl = imageUrl;
+      if (!existing.imageFileId && coverFields.imageFileId) {
+        existing.imageFileId = coverFields.imageFileId;
+        delete existing.imageUrl;
       }
-      if (!existing.imageFileId && imageFileId) {
-        existing.imageFileId = imageFileId;
+      if (!existing.originalImageFileId && coverFields.originalImageFileId) {
+        existing.originalImageFileId = coverFields.originalImageFileId;
+        delete existing.imageUrl;
       }
-      if (!existing.originalImageFileId && originalImageFileId) {
-        existing.originalImageFileId = originalImageFileId;
+      if (!existing.imageUrl && coverFields.imageUrl && !existing.imageFileId && !existing.originalImageFileId) {
+        existing.imageUrl = coverFields.imageUrl;
       }
-      if (!existing.imageMediaType && imageMediaType) {
-        existing.imageMediaType = imageMediaType;
+      if (!existing.imageMediaType && coverFields.imageMediaType) {
+        existing.imageMediaType = coverFields.imageMediaType;
       }
     }
 
@@ -96,12 +102,17 @@ export default function useRoomSidebarDocMetas({
     if (!id) {
       return;
     }
+    const coverFields = buildDocCardCoverReferenceFields(meta);
     setExtraDocMetas((prev) => {
       const base = [...(prev ?? [])];
       if (base.some(m => m.id === id)) {
         return base;
       }
-      return [...base, meta];
+      return [...base, {
+        id,
+        ...(meta.title ? { title: meta.title } : {}),
+        ...coverFields,
+      }];
     });
   }, []);
 

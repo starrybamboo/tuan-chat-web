@@ -1,9 +1,13 @@
-import type { Message } from "../../../api";
+import type { ChatMessageResponse, Message } from "../../../api";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
+import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
+import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
 
 import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
@@ -14,6 +18,7 @@ import RightChatView from "@/components/privateChat/RightChatView";
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
 const LazySpaceDetailPanel = React.lazy(() => import("@/components/chat/space/drawers/spaceDetailPanel"));
 const LazyRoomSettingWindow = React.lazy(() => import("@/components/chat/window/roomSettingWindow"));
+const EMPTY_DOC_MESSAGES: Message[] = [];
 
 function RoomWindowLoadingFallback() {
   return <RoomWindowLoadingState />;
@@ -206,9 +211,11 @@ interface ChatPageDocContentProps {
   canViewDocs?: boolean;
   onBack?: () => void;
   showToolbar?: boolean;
+  readOnly?: boolean;
   initialMessages?: Message[];
+  onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
-  remoteSource?: "self" | "room-cache";
+  chatHistory?: UseChatHistoryReturn | null;
   tcHeaderTitle?: string;
   tcHeaderImageUrl?: string;
   tcHeaderImageFileId?: number;
@@ -223,13 +230,56 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
     isKPInSpace,
     activeDocTitleForTcHeader,
   } = useChatPageLayoutContext();
+  const websocketUtils = useGlobalWebSocket();
   const resolvedSpaceId = props.spaceId ?? activeSpaceId;
   const resolvedDocId = props.docId ?? activeDocId;
   const canViewDocs = props.canViewDocs ?? isKPInSpace;
   const tcHeaderTitle = props.tcHeaderTitle ?? activeDocTitleForTcHeader;
   const handleBack = props.onBack;
   const showToolbar = props.showToolbar ?? true;
-  const initialMessages = props.initialMessages ?? [];
+  const initialMessages = props.initialMessages ?? EMPTY_DOC_MESSAGES;
+  const resolvedDocRoomId = resolvedDocId && /^\d+$/.test(resolvedDocId) ? Number(resolvedDocId) : null;
+  const isRoomDocument = Boolean(canViewDocs && resolvedDocRoomId);
+  const useProvidedRoomHistory = Boolean(isRoomDocument && props.chatHistory);
+  const localRoomHistory = useChatHistory(useProvidedRoomHistory ? null : resolvedDocRoomId);
+  const roomHistory = useProvidedRoomHistory ? props.chatHistory : localRoomHistory;
+  const roomDocMessages = React.useMemo(() => {
+    if (!isRoomDocument) {
+      return initialMessages;
+    }
+
+    const cachedMessages = (roomHistory?.messages ?? [])
+      .map(item => item.message)
+      .filter((item): item is Message => Boolean(item));
+
+    return cachedMessages.length > 0 ? cachedMessages : initialMessages;
+  }, [initialMessages, isRoomDocument, roomHistory?.messages]);
+  const roomReceivedMessages = React.useMemo(() => {
+    if (!isRoomDocument || !resolvedDocRoomId) {
+      return [];
+    }
+    return websocketUtils.receivedMessages[resolvedDocRoomId] ?? [];
+  }, [isRoomDocument, resolvedDocRoomId, websocketUtils.receivedMessages]);
+
+  useChatFrameMessages({
+    chatHistory: roomHistory ?? undefined,
+    currentUserId: null,
+    enableWsSync: isRoomDocument,
+    receivedMessages: roomReceivedMessages,
+    roomId: resolvedDocRoomId ?? -1,
+  });
+
+  const handleRemoteMessagesSaved = React.useCallback(async (messages: Message[]) => {
+    if (!props.onRemoteMessagesSaved && isRoomDocument && resolvedDocRoomId && roomHistory) {
+      const roomMessages = messages
+        .filter(message => message.roomId === resolvedDocRoomId)
+        .map(message => ({ message }) as ChatMessageResponse);
+      if (roomMessages.length > 0) {
+        await roomHistory.addOrUpdateMessages(roomMessages);
+      }
+    }
+    await props.onRemoteMessagesSaved?.(messages);
+  }, [isRoomDocument, props.onRemoteMessagesSaved, resolvedDocRoomId, roomHistory]);
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
@@ -250,9 +300,10 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                   <MessageEditor
                     className="h-full min-h-0 rounded-none !border-t-0"
                     docId={resolvedDocId}
-                    initialMessages={initialMessages}
-                    onRemoteMessagesSaved={props.onRemoteMessagesSaved}
-                    remoteSource={props.remoteSource}
+                    initialMessages={roomDocMessages}
+                    onRequestImportTextPaste={props.onRequestImportTextPaste}
+                    onRemoteMessagesSaved={handleRemoteMessagesSaved}
+                    readOnly={props.readOnly}
                     spaceId={resolvedSpaceId ?? -1}
                     tcHeader={{
                       enabled: true,

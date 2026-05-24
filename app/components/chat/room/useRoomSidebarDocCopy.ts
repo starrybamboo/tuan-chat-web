@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 
+import { buildDocCardReferencePayload } from "@/components/chat/message/docCard/docCardMedia";
 import { copyDocToSpaceDoc } from "@/components/chat/utils/docCopy";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 
@@ -63,24 +64,33 @@ export default function useRoomSidebarDocCopy({
 
     const toastId = toast.loading("正在复制到空间侧边栏…");
     try {
-      const res = await copyDocToSpaceDoc({
-        spaceId: activeSpaceId,
-        sourceDocId: String(sourceDocRoomId),
-        sourceSpaceId: docRef.spaceId,
+      const cleanDocRef = buildDocCardReferencePayload({
+        docId: String(sourceDocRoomId),
+        ...(docRef.spaceId ? { spaceId: docRef.spaceId } : {}),
         title: docRef.title,
         imageUrl: docRef.imageUrl,
         imageFileId: docRef.imageFileId,
         originalImageFileId: docRef.originalImageFileId,
         imageMediaType: docRef.imageMediaType,
       });
+      const res = await copyDocToSpaceDoc({
+        spaceId: activeSpaceId,
+        sourceDocId: String(sourceDocRoomId),
+        sourceSpaceId: cleanDocRef.spaceId,
+        title: cleanDocRef.title,
+        imageUrl: cleanDocRef.imageUrl,
+        imageFileId: cleanDocRef.imageFileId,
+        originalImageFileId: cleanDocRef.originalImageFileId,
+        imageMediaType: cleanDocRef.imageMediaType,
+      });
 
       const newMeta: MinimalDocMeta = {
         id: res.newDocId,
         title: res.title,
-        ...(docRef.imageUrl ? { imageUrl: docRef.imageUrl } : {}),
-        ...(docRef.imageFileId ? { imageFileId: docRef.imageFileId } : {}),
-        ...(docRef.originalImageFileId ? { originalImageFileId: docRef.originalImageFileId } : {}),
-        ...(docRef.imageMediaType ? { imageMediaType: docRef.imageMediaType } : {}),
+        ...(cleanDocRef.imageUrl ? { imageUrl: cleanDocRef.imageUrl } : {}),
+        ...(cleanDocRef.imageFileId ? { imageFileId: cleanDocRef.imageFileId } : {}),
+        ...(cleanDocRef.originalImageFileId ? { originalImageFileId: cleanDocRef.originalImageFileId } : {}),
+        ...(cleanDocRef.imageMediaType ? { imageMediaType: cleanDocRef.imageMediaType } : {}),
       };
       appendExtraDocMeta(newMeta);
 
@@ -99,10 +109,10 @@ export default function useRoomSidebarDocCopy({
           type: "doc",
           targetId: res.newDocId,
           fallbackTitle: res.title,
-          ...(docRef.imageUrl ? { fallbackImageUrl: docRef.imageUrl } : {}),
-          ...(docRef.imageFileId ? { fallbackImageFileId: docRef.imageFileId } : {}),
-          ...(docRef.originalImageFileId ? { fallbackOriginalImageFileId: docRef.originalImageFileId } : {}),
-          ...(docRef.imageMediaType ? { fallbackImageMediaType: docRef.imageMediaType } : {}),
+          ...(cleanDocRef.imageUrl ? { fallbackImageUrl: cleanDocRef.imageUrl } : {}),
+          ...(cleanDocRef.imageFileId ? { fallbackImageFileId: cleanDocRef.imageFileId } : {}),
+          ...(cleanDocRef.originalImageFileId ? { fallbackOriginalImageFileId: cleanDocRef.originalImageFileId } : {}),
+          ...(cleanDocRef.imageMediaType ? { fallbackImageMediaType: cleanDocRef.imageMediaType } : {}),
         });
       }
 
@@ -112,25 +122,41 @@ export default function useRoomSidebarDocCopy({
           const id = typeof m?.id === "string" ? m.id : "";
           if (!id)
             continue;
+          const coverFields = buildDocCardReferencePayload({
+            docId: id,
+            imageUrl: m.imageUrl,
+            imageFileId: m.imageFileId,
+            originalImageFileId: m.originalImageFileId,
+            imageMediaType: m.imageMediaType,
+          });
           if (!map.has(id)) {
-            map.set(id, { ...m });
+            map.set(id, {
+              id,
+              ...(m.title ? { title: m.title } : {}),
+              ...(coverFields.imageUrl ? { imageUrl: coverFields.imageUrl } : {}),
+              ...(coverFields.imageFileId ? { imageFileId: coverFields.imageFileId } : {}),
+              ...(coverFields.originalImageFileId ? { originalImageFileId: coverFields.originalImageFileId } : {}),
+              ...(coverFields.imageMediaType ? { imageMediaType: coverFields.imageMediaType } : {}),
+            });
             continue;
           }
           const existing = map.get(id)!;
           if (!existing.title && m.title) {
             existing.title = m.title;
           }
-          if (!existing.imageUrl && m.imageUrl) {
-            existing.imageUrl = m.imageUrl;
+          if (!existing.imageFileId && coverFields.imageFileId) {
+            existing.imageFileId = coverFields.imageFileId;
+            delete existing.imageUrl;
           }
-          if (!existing.imageFileId && m.imageFileId) {
-            existing.imageFileId = m.imageFileId;
+          if (!existing.originalImageFileId && coverFields.originalImageFileId) {
+            existing.originalImageFileId = coverFields.originalImageFileId;
+            delete existing.imageUrl;
           }
-          if (!existing.originalImageFileId && m.originalImageFileId) {
-            existing.originalImageFileId = m.originalImageFileId;
+          if (!existing.imageUrl && coverFields.imageUrl && !existing.imageFileId && !existing.originalImageFileId) {
+            existing.imageUrl = coverFields.imageUrl;
           }
-          if (!existing.imageMediaType && m.imageMediaType) {
-            existing.imageMediaType = m.imageMediaType;
+          if (!existing.imageMediaType && coverFields.imageMediaType) {
+            existing.imageMediaType = coverFields.imageMediaType;
           }
         }
         return [...map.values()];

@@ -3,11 +3,15 @@ import type { ChatMessageResponse } from "../../../api";
 import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { describeMessageDisplayFilterStatus } from "@/components/chat/utils/messageDisplayFilter";
-import { scrollToBottomButtonMotionProps, unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
+import {
+  messageFilterToggleSweepMotionProps,
+  scrollToBottomButtonMotionProps,
+  unreadBadgeBounceMotionProps,
+} from "@/components/common/motion/chatMessageMotion";
 import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
@@ -175,30 +179,69 @@ const MessageFilterControl = memo(({
   const title = isActive
     ? `${statusText}，${countText}，${hiddenText}`
     : "筛选消息显示";
+  const buttonAnimate = isActive
+    ? { opacity: 1, scale: [1, 1.08, 1], y: 0 }
+    : { opacity: 1, scale: [1, 0.94, 1], y: 0 };
 
   return (
     <div className="pointer-events-none absolute right-4 top-3 z-30 flex justify-end">
       <motion.button
+        key={isActive ? "filter-active" : "filter-inactive"}
         type="button"
         className={`btn btn-ghost btn-sm btn-circle pointer-events-auto relative h-9 min-h-0 w-9 rounded-md border shadow-lg backdrop-blur-xl ${
           isActive
             ? "border-primary/30 bg-primary/10 text-primary"
             : "border-base-content/10 bg-base-100/78 text-base-content/70"
         }`}
+        initial={{ opacity: 0, scale: 0.92, y: -4 }}
+        animate={buttonAnimate}
+        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.94 }}
         onClick={onOpen}
         title={title}
         aria-label={title}
         aria-pressed={isActive}
-        {...floatingPanelMotionProps}
       >
-        {isActive && (
-          <span className="pointer-events-none absolute right-1 top-1 size-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--p)/0.85)]" />
-        )}
-        <Funnel className="size-4" />
+        <AnimatePresence>
+          {isActive && (
+            <motion.span
+              className="pointer-events-none absolute inset-0 rounded-md border border-primary/35"
+              initial={{ opacity: 0, scale: 0.72 }}
+              animate={{ opacity: [0.45, 0], scale: [0.9, 1.42] }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.62, ease: "easeOut" }}
+            />
+          )}
+        </AnimatePresence>
+        <AnimatePresence mode="wait">
+          {isActive && (
+            <motion.span
+              key="active-dot"
+              className="pointer-events-none absolute right-1 top-1 size-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--p)/0.85)]"
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{ opacity: 1, scale: [0.3, 1.45, 1] }}
+              exit={{ opacity: 0, scale: 0.4 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            />
+          )}
+        </AnimatePresence>
+        <motion.span
+          className="inline-flex"
+          animate={isActive ? { rotate: [0, -10, 0] } : { rotate: [0, 8, 0] }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+        >
+          <Funnel className="size-4" />
+        </motion.span>
       </motion.button>
     </div>
   );
 });
+
+type MessageFilterTransitionState = {
+  key: string;
+  tone: "active" | "inactive";
+} | null;
 
 const CHAT_COMPOSER_ROOT_SELECTOR = "[data-chat-composer-root=\"true\"]";
 
@@ -490,7 +533,21 @@ export default function ChatFrameList({
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [filterTransitionState, setFilterTransitionState] = useState<MessageFilterTransitionState>(null);
   const pendingAnchorSyncRef = useRef<number | null>(null);
+  const previousFilterActiveRef = useRef(isMessageFilterActive);
+  const filterTransitionKey = useMemo(() => {
+    if (!isMessageFilterActive || !currentMessageFilter) {
+      return "inactive";
+    }
+    return [
+      currentMessageFilter.action,
+      currentMessageFilter.filterOutOfCharacterSpeech ? "ooc" : "no-ooc",
+      currentMessageFilter.filterStateMessages ? "state" : "no-state",
+      historyMessages.length,
+      totalMessageCount,
+    ].join(":");
+  }, [currentMessageFilter, historyMessages.length, isMessageFilterActive, totalMessageCount]);
 
   useEffect(() => {
     return () => {
@@ -500,6 +557,21 @@ export default function ChatFrameList({
       pendingAnchorSyncRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const wasActive = previousFilterActiveRef.current;
+    previousFilterActiveRef.current = isMessageFilterActive;
+    const switchedMode = wasActive !== isMessageFilterActive;
+    const refreshedActiveFilter = isMessageFilterActive && filterTransitionKey !== "inactive";
+    if (!switchedMode && !refreshedActiveFilter) {
+      return;
+    }
+
+    setFilterTransitionState({
+      key: `${filterTransitionKey}:${Date.now()}`,
+      tone: isMessageFilterActive ? "active" : "inactive",
+    });
+  }, [filterTransitionKey, isMessageFilterActive]);
 
   const syncCurrentVirtuosoIndex = useCallback((fallbackIndex: number) => {
     const scroller = scrollerRef.current;
@@ -561,7 +633,25 @@ export default function ChatFrameList({
           totalCount={totalMessageCount}
           onOpen={onOpenMessageFilter}
         />
-        <div className="h-full flex-1">
+        <div className="relative h-full flex-1 overflow-hidden">
+          <AnimatePresence>
+            {filterTransitionState && (
+              <motion.div
+                key={filterTransitionState.key}
+                className="pointer-events-none absolute inset-x-0 top-0 z-20 h-full overflow-hidden"
+              >
+                <motion.div
+                  className={`h-full w-2/3 blur-2xl ${
+                    filterTransitionState.tone === "active"
+                      ? "bg-gradient-to-r from-transparent via-primary/18 to-transparent"
+                      : "bg-gradient-to-r from-transparent via-base-content/12 to-transparent"
+                  }`}
+                  onAnimationComplete={() => setFilterTransitionState(null)}
+                  {...messageFilterToggleSweepMotionProps}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
           <Virtuoso
             data={historyMessages}
             firstItemIndex={0}
@@ -573,7 +663,16 @@ export default function ChatFrameList({
             computeItemKey={computeItemKey}
             ref={virtuosoRef}
             scrollerRef={(ref) => {
-              scrollerRef.current = ref instanceof HTMLElement ? ref : null;
+              const previousScroller = scrollerRef.current;
+              if (previousScroller && previousScroller !== ref) {
+                delete previousScroller.dataset.chatFrameScroller;
+              }
+              if (ref instanceof HTMLElement) {
+                ref.dataset.chatFrameScroller = "true";
+                scrollerRef.current = ref;
+                return;
+              }
+              scrollerRef.current = null;
             }}
             context={{
               isAtTopRef,

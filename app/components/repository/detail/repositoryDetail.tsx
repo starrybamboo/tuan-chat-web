@@ -7,7 +7,7 @@ import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -124,6 +124,7 @@ export default function RepositoryDetailComponent({
 
     const repository = fetchedRepositoryData.data;
     const rule = RuleList.data?.find(r => r.ruleId === repository.ruleId);
+    const coverFileId = (repository as any).coverFileId;
 
     return {
       repositoryId: repository.repositoryId,
@@ -134,8 +135,8 @@ export default function RepositoryDetailComponent({
       description: repository.description,
       userId: repository.userId,
       authorName: repository.authorName,
-      image: imageMediumUrl((repository as any).coverFileId) || ((repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : ""),
-      coverFileId: (repository as any).coverFileId,
+      image: imageMediumUrl(coverFileId) || "",
+      coverFileId,
       createTime: repository.createTime,
       updateTime: repository.updateTime,
       minPeople: repository.minPeople,
@@ -164,8 +165,7 @@ export default function RepositoryDetailComponent({
     [linkedSpace, recoverableRepositorySpace],
   );
 
-  const repositoryImage = repositoryData?.image?.trim() ?? "";
-  const displayRepositoryImage = imageMediumUrlFromUrl(repositoryImage);
+  const displayRepositoryImage = imageMediumUrl(repositoryData?.coverFileId);
 
   const showErrorToast = (message: string) => {
     setErrorToastMessage(message);

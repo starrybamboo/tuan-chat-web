@@ -43,15 +43,7 @@ export type Repository = {
      */
     minPeople?: number;
     /**
-     * Cover image
-     */
-    image?: string;
-    /**
-     * Original cover image
-     */
-    originalImage?: string;
-    /**
-     * 仓库封面媒体文件 ID；替代 image/originalImage
+     * 仓库封面媒体文件 ID
      */
     coverFileId?: number;
     /**

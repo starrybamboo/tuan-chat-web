@@ -15,6 +15,10 @@ vi.mock("browser-image-compression/dist/browser-image-compression.js?url", () =>
   default: "/assets/browser-image-compression.js",
 }));
 
+vi.mock("browser-image-compression", () => ({
+  default: imageCompressionMock,
+}));
+
 describe("imgCompressUtils", () => {
   beforeEach(() => {
     imageCompressionMock.mockReset();

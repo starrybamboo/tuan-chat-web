@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-23",
+  "updatedAt": "2026-05-24",
   "classifications": {
     "retained-non-media-url": "URL 本身是业务值或外部/运行时端点，不表示 TuanChat 托管媒体文件。",
     "retained-temporary-runtime-url": "仅用于浏览器/移动端预览、data/object/blob URL 或运行时派生展示，不允许进入业务持久化请求。",
@@ -119,9 +119,9 @@
       "field": "image",
       "classification": "migration-only-legacy-media-url",
       "replacement": "imageFileId/coverFileId",
-      "readPolicy": "仓库、物品等旧图片/封面字段兼容读取。",
+      "readPolicy": "物品等旧图片/封面字段兼容读取；repository.image 已从当前 DB schema、后端模型、OpenAPI schema 和 Web 业务消费中删除。",
       "writePolicy": "新写入应保存对应 fileId；裸 image 字符串只能作为迁移来源或旧模型兼容输出。",
-      "retirementCondition": "仓库、物品等历史 image URL 回填完成，坏值已记录 unresolved。"
+      "retirementCondition": "非仓库历史 image URL 回填完成，坏值已记录 unresolved；repository.image 已由删除迁移覆盖。"
     },
     {
       "field": "imageUrl",
@@ -159,9 +159,9 @@
       "field": "originalImage",
       "classification": "migration-only-legacy-media-url",
       "replacement": "imageFileId/originalImageFileId",
-      "readPolicy": "仓库封面原图历史兼容读取。",
-      "writePolicy": "新写入保存封面 fileId。",
-      "retirementCondition": "repository.original_image 回填完成。"
+      "readPolicy": "非仓库原图历史兼容读取；repository.originalImage 已从当前 DB schema、后端模型、OpenAPI schema 和 Web 业务消费中删除。",
+      "writePolicy": "新写入保存对应 fileId。",
+      "retirementCondition": "非仓库原图历史 URL 回填完成；repository.original_image 已由删除迁移覆盖。"
     },
     {
       "field": "coverImage",
@@ -191,40 +191,40 @@
       "field": "titleImageUrl",
       "classification": "migration-only-legacy-media-url",
       "replacement": "titleImageFileId",
-      "readPolicy": "WebGAL 配置迁移兼容或预览读取。",
-      "writePolicy": "TuanChat 上传资产必须保存 titleImageFileId。",
+      "readPolicy": "WebGAL 配置迁移兼容或预览读取；运行时优先由 titleImageFileId 派生 URL。",
+      "writePolicy": "TuanChat 上传资产必须保存 titleImageFileId；云端配置快照在 fileId 存在时不再持久化该 URL。",
       "retirementCondition": "WebGAL 云端配置历史标题图 URL 回填完成。"
     },
     {
       "field": "startupLogoUrl",
       "classification": "migration-only-legacy-media-url",
       "replacement": "startupLogoFileId",
-      "readPolicy": "WebGAL 配置迁移兼容或预览读取。",
-      "writePolicy": "TuanChat 上传资产必须保存 startupLogoFileId。",
+      "readPolicy": "WebGAL 配置迁移兼容或预览读取；运行时优先由 startupLogoFileId 派生 URL。",
+      "writePolicy": "TuanChat 上传资产必须保存 startupLogoFileId；云端配置快照在 fileId 存在时不再持久化该 URL。",
       "retirementCondition": "WebGAL 云端配置历史启动图 URL 回填完成。"
     },
     {
       "field": "typingSoundSeUrl",
       "classification": "migration-only-legacy-media-url",
       "replacement": "typingSoundSeFileId",
-      "readPolicy": "WebGAL 打字音效迁移兼容读取。",
-      "writePolicy": "TuanChat 上传资产必须保存 typingSoundSeFileId。",
+      "readPolicy": "WebGAL 打字音效迁移兼容读取；运行时优先由 typingSoundSeFileId 派生 URL。",
+      "writePolicy": "TuanChat 上传资产必须保存 typingSoundSeFileId；云端配置快照在 fileId 存在时不再持久化该 URL。",
       "retirementCondition": "WebGAL 打字音效历史 URL 回填完成。"
     },
     {
       "field": "originalTitleImageUrl",
       "classification": "migration-only-legacy-media-url",
       "replacement": "originalTitleImageFileId",
-      "readPolicy": "WebGAL 标题图原图迁移兼容或本地打包读取。",
-      "writePolicy": "TuanChat 上传资产必须保存 originalTitleImageFileId。",
+      "readPolicy": "WebGAL 标题图原图迁移兼容或本地打包读取；运行时优先由 originalTitleImageFileId/titleImageFileId 派生 URL。",
+      "writePolicy": "TuanChat 上传资产必须保存 originalTitleImageFileId；云端配置快照在 fileId 存在时不再持久化该 URL。",
       "retirementCondition": "WebGAL 标题图原图历史 URL 回填完成。"
     },
     {
       "field": "originalStartupLogoUrl",
       "classification": "migration-only-legacy-media-url",
       "replacement": "originalStartupLogoFileId",
-      "readPolicy": "WebGAL 启动图原图迁移兼容或本地打包读取。",
-      "writePolicy": "TuanChat 上传资产必须保存 originalStartupLogoFileId。",
+      "readPolicy": "WebGAL 启动图原图迁移兼容或本地打包读取；运行时优先由 originalStartupLogoFileId/startupLogoFileId 派生 URL。",
+      "writePolicy": "TuanChat 上传资产必须保存 originalStartupLogoFileId；云端配置快照在 fileId 存在时不再持久化该 URL。",
       "retirementCondition": "WebGAL 启动图原图历史 URL 回填完成。"
     },
     {

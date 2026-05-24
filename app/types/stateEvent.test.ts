@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildRoleStateEventScope, collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateScopeLabel } from "./stateEvent";
+import { buildRoleStateEventScope, collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateKeyLabel, formatStateScopeLabel } from "./stateEvent";
 
 describe("stateEvent display helpers", () => {
   it("scope label 在提供角色名映射时优先显示角色名", () => {
@@ -47,5 +47,10 @@ describe("stateEvent display helpers", () => {
         8: "博士",
       },
     })).toBe("博士 · HP - 2");
+  });
+
+  it("状态 key 会显示为用户可读标签", () => {
+    expect(formatStateKeyLabel("initiative")).toBe("先攻");
+    expect(formatStateKeyLabel("hp")).toBe("HP");
   });
 });

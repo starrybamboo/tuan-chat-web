@@ -22,7 +22,7 @@ import {
 } from "@/types/stateEvent";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
-import { buildAllInitiativeCombatMessageRequest, buildEndCombatMessageRequest } from "./initiativeCommandRequest";
+import { buildEndCombatMessageRequest, executeAllInitiativeRolls } from "./initiativeCommandRequest";
 import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
   extractAgilityFromQuery,
@@ -310,11 +310,13 @@ export default function StateDrawer() {
   const spaceOwner = Boolean(spaceContext.isSpaceOwner);
   const curUserId = currentUserId ?? -1;
   const roomRolesThatUserOwn = roomContext.roomRolesThatUserOwn ?? [];
+  const visibleRoomRoles = roomContext.roomAllRoles ?? [];
   const importableRoles = spaceOwner
     ? roomRolesThatUserOwn
     : roomRolesThatUserOwn.filter(role => role.userId === curUserId);
+  const rollableRoles = spaceOwner ? visibleRoomRoles : importableRoles;
   const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(role => role.roleId));
-  const canEndCombat = runtime.participants.length > 0 || runtime.turn > 0 || Boolean(runtime.activeParticipantId);
+  const canEndCombat = runtime.participants.length > 0 || runtime.turn > 0;
 
   const initiativeList = React.useMemo<Initiative[]>(() => {
     return runtime.participants.map((participant) => {
@@ -391,7 +393,6 @@ export default function StateDrawer() {
     const role = importableRoles[idx];
     const name = role.roleName ?? `角色${role.roleId}`;
     await sendCombatEvents(buildImportRoleInitiativeEvents({
-      currentList: initiativeList,
       hp: hpData?.hp ?? null,
       initiative,
       maxHp: hpData?.maxHp ?? null,
@@ -404,32 +405,23 @@ export default function StateDrawer() {
     if (!spaceOwner) {
       return;
     }
-    if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
+    if (!roomContext.executeCommand) {
       toast.error("当前房间暂不能投掷全员先攻");
       return;
     }
 
     try {
-      const createdMessage = await roomContext.sendMessageWithInsert(buildAllInitiativeCombatMessageRequest({
-        abilityQueries,
-        currentList: initiativeList,
-        importableRoles,
-        ruleId: spaceContext.ruleId ?? undefined,
-        roomId: roomContext.roomId,
-        roleId: roomContext.curRoleId ?? -1,
-        avatarId: roomContext.curAvatarId ?? -1,
-      }));
-      if (!createdMessage) {
-        toast.error("投掷全员先攻失败");
-        return;
-      }
+      await executeAllInitiativeRolls({
+        executeCommand: roomContext.executeCommand,
+        roles: rollableRoles,
+      });
       toast.success("已投掷全员先攻");
     }
     catch (error) {
       console.error("投掷全员先攻失败", error);
       toast.error(error instanceof Error && error.message ? error.message : "投掷全员先攻失败");
     }
-  }, [abilityQueries, importableRoles, initiativeList, roomContext, spaceContext.ruleId, spaceOwner]);
+  }, [rollableRoles, roomContext, spaceOwner]);
 
   const handleEndCombat = React.useCallback(async () => {
     if (!spaceOwner || isEndingCombat) {

@@ -98,16 +98,6 @@ function readRoomMessageStreamMessages(
     .sort(compareMessagesByOrder);
 }
 
-export async function getRemoteRoomMessageStream(params: {
-  roomId: number;
-}): Promise<Message[]> {
-  const result = await tuanchat.chatController.getHistoryMessages({
-    roomId: params.roomId,
-    syncId: 0,
-  });
-  return readRoomMessageStreamMessages(unwrapApiResult(result, "获取房间消息列表失败"));
-}
-
 export async function patchRemoteRoomMessageStream(params: {
   operations: RoomMessageStreamPatchOperation[];
   roomId: number;

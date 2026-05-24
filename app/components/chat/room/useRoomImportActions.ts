@@ -15,6 +15,7 @@ import type { FigurePosition } from "@/types/voiceRenderTypes";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { getPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
+import { buildDocCardReferencePayload } from "@/components/chat/message/docCard/docCardMedia";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
@@ -297,14 +298,26 @@ export default function useRoomImportActions({
       ? payload.roomId
       : undefined;
     const docId = payloadRoomId ? String(payloadRoomId) : String(payload?.docId ?? "").trim();
+    const requestedDocCard = buildDocCardReferencePayload({
+      docId,
+      ...(payloadRoomId ? { roomId: payloadRoomId } : {}),
+      ...(payload?.spaceId ? { spaceId: payload.spaceId } : {}),
+      title: payload?.title,
+      imageUrl: payload?.imageUrl,
+      imageFileId: payload?.imageFileId,
+      originalImageFileId: payload?.originalImageFileId,
+      imageMediaType: payload?.imageMediaType,
+      excerpt: payload?.excerpt,
+    });
+
     recordDocCardShareObservation("share-requested", {
       docId,
       spaceId,
-      payloadSpaceId: payload?.spaceId,
-      hasExcerpt: Boolean(payload?.excerpt?.trim()),
-      hasTitle: Boolean(payload?.title?.trim()),
-      hasImageUrl: Boolean(payload?.imageUrl?.trim()),
-      hasImageFileId: Boolean(payload?.imageFileId),
+      payloadSpaceId: requestedDocCard.spaceId,
+      hasExcerpt: Boolean(requestedDocCard.excerpt?.trim()),
+      hasTitle: Boolean(requestedDocCard.title?.trim()),
+      hasImageUrl: Boolean(requestedDocCard.imageUrl?.trim()),
+      hasImageFileId: Boolean(requestedDocCard.imageFileId),
     });
     if (!docId) {
       toast.error("未检测到可用文档");
@@ -321,8 +334,8 @@ export default function useRoomImportActions({
       toast.error("未找到当前空间，无法发送文档");
       return;
     }
-    const sourceSpaceId = typeof payload?.spaceId === "number" && payload.spaceId > 0
-      ? payload.spaceId
+    const sourceSpaceId = typeof requestedDocCard.spaceId === "number" && requestedDocCard.spaceId > 0
+      ? requestedDocCard.spaceId
       : spaceId;
 
     const isKP = isSpaceOwner;
@@ -337,7 +350,7 @@ export default function useRoomImportActions({
       return;
     }
 
-    let excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
+    let excerpt = typeof requestedDocCard.excerpt === "string" ? requestedDocCard.excerpt.trim() : "";
 
     if (!excerpt) {
       let snapshot = getCachedDocSnapshot(docId);
@@ -351,6 +364,13 @@ export default function useRoomImportActions({
     }
 
     const resolvedAvatarId = await ensureRuntimeAvatarIdForRole(curRoleId);
+    const docCard = buildDocCardReferencePayload({
+      ...requestedDocCard,
+      docId,
+      roomId: docRoomId,
+      spaceId: sourceSpaceId,
+      excerpt,
+    });
 
     const request: ChatMessageRequest = {
       roomId,
@@ -359,17 +379,7 @@ export default function useRoomImportActions({
       content: "",
       messageType: MESSAGE_TYPE.DOC_CARD,
       extra: {
-        docCard: {
-          docId,
-          roomId: docRoomId,
-          spaceId: sourceSpaceId,
-          ...(payload?.title ? { title: payload.title } : {}),
-          ...(payload?.imageUrl ? { imageUrl: payload.imageUrl } : {}),
-          ...(payload?.imageFileId ? { imageFileId: payload.imageFileId } : {}),
-          ...(payload?.originalImageFileId ? { originalImageFileId: payload.originalImageFileId } : {}),
-          ...(payload?.imageMediaType ? { imageMediaType: payload.imageMediaType } : {}),
-          ...(excerpt ? { excerpt } : {}),
-        },
+        docCard,
       } as any,
     };
 

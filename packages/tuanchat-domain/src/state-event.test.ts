@@ -5,42 +5,23 @@ import {
   buildRoleStateEventScope,
   formatStateEventPreviewText,
   normalizeStateEventExtra,
-  STATE_EVENT_COMBAT_COLUMN_SOURCE,
   STATE_EVENT_VAR_OP,
 } from "./state-event";
 
-describe("state-event combat atoms", () => {
-  it("规范化合法的 combat atom，并保留混合状态事件顺序", () => {
+describe("state-event atoms", () => {
+  it("规范化合法的状态与地图 atom，并保留混合事件顺序", () => {
     const normalized = normalizeStateEventExtra({
       source: { kind: "ui", parserVersion: "state-event-v1" },
       events: [
         {
-          type: "combatParticipantUpsert",
-          participantId: " role:12 ",
-          roleId: "12",
-          name: " Alice ",
-          initiative: "18",
-          values: {
-            hp: 24,
-            note: "guard",
-            ignored: { nested: true },
-          },
-        },
-        {
           type: "varOp",
           scope: buildRoleStateEventScope(12),
-          key: "hp",
-          op: STATE_EVENT_VAR_OP.SUB,
-          value: "3",
+          key: "initiative",
+          op: STATE_EVENT_VAR_OP.SET,
+          value: "18",
         },
         {
-          type: "combatColumnUpsert",
-          key: "hp-note",
-          label: "HP备注",
-          source: STATE_EVENT_COMBAT_COLUMN_SOURCE.MANUAL,
-        },
-        {
-          type: "combatMapTokenUpsert",
+          type: "mapTokenUpsert",
           roleId: "12",
           rowIndex: "2",
           colIndex: "3",
@@ -50,31 +31,14 @@ describe("state-event combat atoms", () => {
 
     expect(normalized?.events).toEqual([
       {
-        type: "combatParticipantUpsert",
-        participantId: "role:12",
-        roleId: 12,
-        name: "Alice",
-        initiative: 18,
-        values: {
-          hp: 24,
-          note: "guard",
-        },
-      },
-      {
         type: "varOp",
         scope: { kind: "role", roleId: 12 },
-        key: "hp",
-        op: "sub",
-        value: 3,
+        key: "initiative",
+        op: "set",
+        value: 18,
       },
       {
-        type: "combatColumnUpsert",
-        key: "hp-note",
-        label: "HP备注",
-        source: "manual",
-      },
-      {
-        type: "combatMapTokenUpsert",
+        type: "mapTokenUpsert",
         roleId: 12,
         rowIndex: 2,
         colIndex: 3,
@@ -82,58 +46,37 @@ describe("state-event combat atoms", () => {
     ]);
   });
 
-  it("拒绝缺少必填字段的 combat atom", () => {
+  it("拒绝缺少必填字段的 atom，并不再接受 participant 事件", () => {
     const normalized = normalizeStateEventExtra({
       source: { kind: "ui", parserVersion: "state-event-v1" },
       events: [
         { type: "combatParticipantUpsert", name: "No id" },
-        { type: "combatColumnUpsert", key: "bad", label: "坏列", source: "roleAttr" },
-        { type: "combatOrderSet", participantIds: ["a", "", "a", "b"] },
-        { type: "combatMapTokenUpsert", roleId: "1", rowIndex: "-1", colIndex: "3" },
-        { type: "combatMapTokenRemove" },
+        { type: "combatParticipantRemove", participantId: "role:1" },
+        { type: "mapTokenUpsert", roleId: "1", rowIndex: "-1", colIndex: "3" },
+        { type: "mapTokenRemove" },
+        { type: "combatRoundEnd" },
       ],
     });
 
     expect(normalized?.events).toEqual([
       {
-        type: "combatOrderSet",
-        participantIds: ["a", "b"],
+        type: "combatRoundEnd",
       },
     ]);
   });
 
-  it("为 combat atom 生成战斗预览文本", () => {
+  it("为 map token atom 生成战斗预览文本", () => {
     const extra = {
       stateEvent: buildCommandStateEventExtra("combat", [
         {
-          type: "combatParticipantUpsert",
-          participantId: "manual:dragon",
-          name: "龙",
-          initiative: 20,
+          type: "mapTokenUpsert",
+          roleId: 12,
+          rowIndex: 2,
+          colIndex: 3,
         },
       ]),
     };
 
-    expect(formatStateEventPreviewText(extra)).toBe("[战斗] 龙 加入先攻");
-  });
-
-  it("接受 combatRoundEnd 状态事件", () => {
-    const normalized = normalizeStateEventExtra({
-      source: { kind: "ui", parserVersion: "state-event-v1" },
-      events: [
-        {
-          type: "combatRoundEnd",
-        },
-      ],
-    });
-
-    expect(normalized).toEqual({
-      source: { kind: "ui", parserVersion: "state-event-v1" },
-      events: [
-        {
-          type: "combatRoundEnd",
-        },
-      ],
-    });
+    expect(formatStateEventPreviewText(extra)).toBe("[战斗] 地图角色 #12 移动");
   });
 });

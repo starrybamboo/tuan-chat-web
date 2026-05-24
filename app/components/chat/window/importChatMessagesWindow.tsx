@@ -30,6 +30,7 @@ interface ImportChatMessagesWindowProps {
   isKP: boolean;
   isSpectator: boolean;
   availableRoles: UserRole[];
+  initialRawText?: string;
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   onClose: () => void;
   onOpenRoleAddWindow?: () => void;
@@ -40,6 +41,7 @@ export default function ImportChatMessagesWindow({
   isKP,
   isSpectator,
   availableRoles,
+  initialRawText,
   onImport,
   onClose,
   onOpenRoleAddWindow,
@@ -53,6 +55,14 @@ export default function ImportChatMessagesWindow({
   const [progress, setProgress] = useState<{ sent: number; total: number } | null>(null);
 
   const parsed = useMemo(() => parseImportedChatText(rawText), [rawText]);
+
+  useEffect(() => {
+    if (typeof initialRawText !== "string") {
+      return;
+    }
+    setFileName(null);
+    setRawText(initialRawText);
+  }, [initialRawText]);
 
   const speakers = useMemo(() => {
     const seen = new Set<string>();

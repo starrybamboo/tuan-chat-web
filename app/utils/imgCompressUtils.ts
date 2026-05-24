@@ -16,6 +16,14 @@ export type MediaQualityInput = MediaQuality | LegacyMediaQuality;
 
 export const MEDIA_COMPRESSION_PROFILES = {
   image: {
+    original: {
+      maxWidthOrHeight: 2560,
+      maxSizeKB: 3072,
+      quality: 0.82,
+      fileType: "image/webp",
+      preserveNovelAiMetadata: true,
+      forceOutput: true,
+    },
     low: {
       maxWidthOrHeight: 200,
       maxSizeKB: 40,
@@ -58,6 +66,7 @@ export const BUSINESS_MEDIA_QUALITY = {
   avatar: { mediaType: "image", quality: "medium" },
   avatarOriginal: { mediaType: "image", quality: "original" },
   originalAvatar: { mediaType: "image", quality: "original" },
+  originalImage: { mediaType: "image", quality: "original" },
   smallThumbnail: { mediaType: "image", quality: "low" },
   listCover: { mediaType: "image", quality: "medium" },
   cardCover: { mediaType: "image", quality: "medium" },
@@ -99,6 +108,10 @@ export const IMAGE_COMPRESSION_PRESETS = {
     label: "视频封面（历史 preset，映射到 high）",
     ...MEDIA_COMPRESSION_PROFILES.image.high,
   },
+  originalImage: {
+    label: "原图 WebP",
+    ...MEDIA_COMPRESSION_PROFILES.image.original,
+  },
 } as const;
 
 export type ImageCompressionPreset = keyof typeof IMAGE_COMPRESSION_PRESETS;
@@ -125,6 +138,19 @@ type NormalizedImageCompressionOptions = {
   preserveNovelAiMetadata: boolean;
   forceOutput: boolean;
 };
+
+const compressionCache = new WeakMap<File, Map<string, Promise<File>>>();
+
+function compressionCacheKey(options: NormalizedImageCompressionOptions): string {
+  return JSON.stringify({
+    maxWidthOrHeight: options.maxWidthOrHeight,
+    maxSizeMB: options.maxSizeMB ?? null,
+    quality: options.quality,
+    fileType: options.fileType,
+    preserveNovelAiMetadata: options.preserveNovelAiMetadata,
+    forceOutput: options.forceOutput,
+  });
+}
 
 function toAbsoluteUrl(url: string): string {
   if (typeof window === "undefined") {
@@ -243,8 +269,35 @@ export async function compressImage(
     });
   }
 
-  const imageCompression = await loadImageCompression();
   const compressionOptions = resolveImageCompressionOptions(options);
+  const cacheKey = compressionCacheKey(compressionOptions);
+  let fileCache = compressionCache.get(file);
+  if (!fileCache) {
+    fileCache = new Map();
+    compressionCache.set(file, fileCache);
+  }
+  const cached = fileCache.get(cacheKey);
+  if (cached) {
+    return await cached;
+  }
+
+  const pending = compressRasterImage(file, options, compressionOptions);
+  fileCache.set(cacheKey, pending);
+  try {
+    return await pending;
+  }
+  catch (error) {
+    fileCache.delete(cacheKey);
+    throw error;
+  }
+}
+
+async function compressRasterImage(
+  file: File,
+  options: ImageCompressionOptions,
+  compressionOptions: NormalizedImageCompressionOptions,
+): Promise<File> {
+  const imageCompression = await loadImageCompression();
   const sourceMetadata = compressionOptions.preserveNovelAiMetadata
     ? await extractNovelAiMetadataFromFile(file)
     : null;
@@ -257,9 +310,9 @@ export async function compressImage(
     Math.max(0.05, safeQuality * 0.55),
   ];
 
-  const compressWithQuality = async (q: number): Promise<File> => {
+  const compressWithQuality = async (q: number, maxWidthOrHeight = compressionOptions.maxWidthOrHeight): Promise<File> => {
     const compressedBlobOrFile = await imageCompression(file, {
-      maxWidthOrHeight: compressionOptions.maxWidthOrHeight,
+      maxWidthOrHeight,
       maxSizeMB: compressionOptions.maxSizeMB,
       // 0~1，和 canvas.toBlob 的 quality 对齐
       initialQuality: q,
@@ -277,6 +330,26 @@ export async function compressImage(
     });
     return await preserveWebpNovelAiMetadata(outputFile, sourceMetadata, options.maxSizeKB);
   };
+
+  const maxBytes = Number.isFinite(options.maxSizeKB)
+    ? Math.floor(options.maxSizeKB! * 1024)
+    : undefined;
+  if (maxBytes && compressionOptions.forceOutput) {
+    const maxRounds = 6;
+    let currentMaxWidthOrHeight = compressionOptions.maxWidthOrHeight;
+    let best: File | null = null;
+    for (let round = 0; round < maxRounds; round++) {
+      const next = await compressWithQuality(safeQuality, currentMaxWidthOrHeight);
+      if (!best || next.size < best.size) {
+        best = next;
+      }
+      if (next.size <= maxBytes) {
+        return next;
+      }
+      currentMaxWidthOrHeight = Math.max(1, Math.round(currentMaxWidthOrHeight * 0.75));
+    }
+    throw new Error(`图片压缩后仍超过 ${options.maxSizeKB}KB`);
+  }
 
   // 优先选择“更小”的结果；如果压缩反而变大，则尝试降低质量重试
   let best = await compressWithQuality(candidateQualities[0]);

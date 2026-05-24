@@ -1,10 +1,9 @@
 import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
-import LikeIconButton from "@/components/common/likeIconButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
-import { imageLowUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
@@ -84,6 +83,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
   const images = Array.isArray(feed?.imageUrls) ? feed.imageUrls : [];
   const publishTime = feed?.createTime ?? "";
+  const repositoryCoverUrl = imageMediumUrl(feed?.repositoryVO?.coverFileId);
 
   if (!isOpen)
     return null;
@@ -201,9 +201,9 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                 {feed?.repositoryVO && (
                   <div className="mt-4 p-4 bg-base-200 rounded-lg border border-base-300">
                     <div className="flex items-center gap-3">
-                      {feed.repositoryVO.imageUrl && (
+                      {repositoryCoverUrl && (
                         <img
-                          src={imageMediumUrlFromUrl(feed.repositoryVO.imageUrl)}
+                          src={repositoryCoverUrl}
                           alt={feed.repositoryVO.repositoryName}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
@@ -255,16 +255,6 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
               {/* 操作栏 */}
               <div className="flex items-center justify-center space-x-8 py-4 border-t border-base-300 bg-base-50">
-                <div
-                  className="flex items-center space-x-2 text-base transition-colors px-4 py-2 rounded-full"
-                >
-                  <LikeIconButton
-                    targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
-                    className="w-10 h-6 cursor-pointer"
-                    direction="row"
-                  />
-                </div>
-
                 <div
                   className="flex items-center space-x-2 text-base px-4 py-2 rounded-full"
                 >

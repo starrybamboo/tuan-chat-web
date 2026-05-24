@@ -81,6 +81,32 @@ async function executeRollCommand(
   }
 }
 
+function readPublicInitiativeValue(ability: RoleAbility): number | null {
+  const keys = ["敏捷", "敏捷值", "dex", "Dex", "DEX"];
+  for (const key of keys) {
+    const value = UTILS.getRoleAbilityValue(ability, key);
+    if (value == null) {
+      continue;
+    }
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+async function readPublicInitiativeForRole(role: UserRole, cpi: CPI): Promise<number> {
+  const ability = await cpi.getRoleAbilityList(role.roleId);
+  const initiative = ability ? readPublicInitiativeValue(ability) : null;
+  const value = initiative ?? 0;
+  if (ability) {
+    UTILS.setRoleAbilityValue(ability, "initiative", String(value), "skill", "skill");
+    cpi.setRoleAbilityList(role.roleId, ability);
+  }
+  return value;
+}
+
 const cmdR = new CommandExecutor(
   "r",
   ["r"],
@@ -107,6 +133,31 @@ const cmdRd = new CommandExecutor(
   },
 );
 executorPublic.addCmd(cmdRd);
+
+const cmdRi = new CommandExecutor(
+  "ri",
+  [],
+  "读取敏捷先攻",
+  [".ri"],
+  ".ri",
+  async (_args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    const roles = Array.from(new Map(
+      mentioned
+        .filter(role => typeof role.roleId === "number" && role.roleId > 0)
+        .map(role => [role.roleId, role]),
+    ).values());
+    if (roles.length === 0) {
+      cpi.sendToast("未指定角色");
+      return false;
+    }
+
+    for (const role of roles) {
+      await readPublicInitiativeForRole(role, cpi);
+    }
+    return true;
+  },
+);
+executorPublic.addCmd(cmdRi);
 
 /**
  * 属性设置指令

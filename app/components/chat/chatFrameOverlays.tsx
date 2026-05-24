@@ -2,6 +2,7 @@ import type { ChatMessageResponse } from "../../../api";
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
+import type { MutableRefObject, WheelEvent } from "react";
 
 import { AnimatePresence, motion } from "motion/react";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
@@ -9,9 +10,10 @@ import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
 import ExportImageWindow from "@/components/chat/window/exportImageWindow";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
-import RegexSelectWindow from "@/components/chat/window/regexSelectWindow";
+import MessageFilterWindow from "@/components/chat/window/messageFilterWindow";
 import { floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { resolveWheelScrollDelta } from "@/utils/browserShortcutGuard";
 
 interface ChatFrameOverlaysProps {
   isForwardWindowOpen: boolean;
@@ -20,11 +22,12 @@ interface ChatFrameOverlaysProps {
   setIsExportFileWindowOpen: (open: boolean) => void;
   isExportImageWindowOpen: boolean;
   setIsExportImageWindowOpen: (open: boolean) => void;
-  isRegexSelectWindowOpen: boolean;
-  setIsRegexSelectWindowOpen: (open: boolean) => void;
+  isMessageFilterWindowOpen: boolean;
+  setIsMessageFilterWindowOpen: (open: boolean) => void;
   historyMessages: ChatMessageResponse[];
   filterSourceMessages: ChatMessageResponse[];
   currentMessageFilter: MessageDisplayFilterConfig | null;
+  scrollerRef: MutableRefObject<HTMLElement | null>;
   selectedMessageIds: Set<number>;
   exitSelection: () => void;
   onForward: (roomIds: number[], mode: ForwardMode) => Promise<boolean>;
@@ -51,11 +54,12 @@ export default function ChatFrameOverlays({
   setIsExportFileWindowOpen,
   isExportImageWindowOpen,
   setIsExportImageWindowOpen,
-  isRegexSelectWindowOpen,
-  setIsRegexSelectWindowOpen,
+  isMessageFilterWindowOpen,
+  setIsMessageFilterWindowOpen,
   historyMessages,
   filterSourceMessages,
   currentMessageFilter,
+  scrollerRef,
   selectedMessageIds,
   exitSelection,
   onForward,
@@ -69,6 +73,16 @@ export default function ChatFrameOverlays({
     .map(id => historyMessages.find(m => m.message.messageId === id))
     .filter((msg): msg is ChatMessageResponse => msg !== undefined)
     .sort(compareChatMessageResponsesByOrder);
+  const handleMessageFilterWheel = (event: WheelEvent<HTMLDivElement>) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const { left, top } = resolveWheelScrollDelta(event, window.innerHeight);
+    scroller.scrollBy({ behavior: "auto", left, top });
+  };
 
   return (
     <>
@@ -82,17 +96,29 @@ export default function ChatFrameOverlays({
         </ForwardWindow>
       </ToastWindow>
       <AnimatePresence>
-        {isRegexSelectWindowOpen && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-20 z-50 flex justify-center px-4">
-            <motion.div className="pointer-events-auto" {...floatingPanelMotionProps}>
-              <RegexSelectWindow
+        {isMessageFilterWindowOpen && (
+          <motion.div
+            className="pointer-events-auto absolute inset-0 z-[60] flex items-end justify-center px-4 pb-18"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            onPointerDown={() => setIsMessageFilterWindowOpen(false)}
+            onWheelCapture={handleMessageFilterWheel}
+          >
+            <motion.div
+              className="pointer-events-auto"
+              {...floatingPanelMotionProps}
+              onPointerDown={event => event.stopPropagation()}
+            >
+              <MessageFilterWindow
                 sourceMessages={filterSourceMessages}
                 currentFilter={currentMessageFilter}
                 onChangeFilter={onChangeMessageFilter}
-                onClose={() => setIsRegexSelectWindowOpen(false)}
+                onClose={() => setIsMessageFilterWindowOpen(false)}
               />
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
       <ToastWindow isOpen={isExportFileWindowOpen} onClose={() => setIsExportFileWindowOpen(false)}>

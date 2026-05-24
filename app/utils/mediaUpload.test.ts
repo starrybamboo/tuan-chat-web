@@ -11,6 +11,7 @@ const {
   extractNovelAiMetadataFromWebpBytesMock,
   prepareUploadMock,
   completeUploadMock,
+  tuanchatRequestMock,
   resolveOssUploadTargetMock,
 } = vi.hoisted(() => ({
   compressImageMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   extractNovelAiMetadataFromWebpBytesMock: vi.fn(),
   prepareUploadMock: vi.fn(),
   completeUploadMock: vi.fn(),
+  tuanchatRequestMock: vi.fn(),
   resolveOssUploadTargetMock: vi.fn(),
 }));
 
@@ -63,6 +65,9 @@ vi.mock("@/utils/ossUploadTarget", () => ({
 
 vi.mock("../../api/instance", () => ({
   tuanchat: {
+    request: {
+      request: tuanchatRequestMock,
+    },
     mediaController: {
       prepareUpload: prepareUploadMock,
       completeUpload: completeUploadMock,
@@ -76,6 +81,16 @@ describe("mediaUpload", () => {
     normalizeFileMimeTypeMock.mockImplementation(async (file: File) => file);
     extractNovelAiMetadataFromPngBytesMock.mockReturnValue(null);
     extractNovelAiMetadataFromWebpBytesMock.mockReturnValue(null);
+    tuanchatRequestMock.mockImplementation(async ({ url, body }: { url: string; body?: unknown }) => {
+      if (url === "/media/prepare-upload") {
+        return await prepareUploadMock(body);
+      }
+      const match = url.match(/^\/media\/upload-sessions\/(\d+)\/complete$/);
+      if (match) {
+        return await completeUploadMock(Number(match[1]));
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number }) => {
       const label = String(profile.maxWidthOrHeight ?? "original");
       return new File([label], `derived-${label}.webp`, { type: "image/webp" });
@@ -94,7 +109,7 @@ describe("mediaUpload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("图片派生文件会按 low -> medium 顺序串行生成", async () => {
+  it("非聊天室图片会先生成 WebP original，再生成 low -> medium", async () => {
     const order: string[] = [];
     compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number }) => {
       order.push(`start-${profile.maxWidthOrHeight}`);
@@ -107,13 +122,16 @@ describe("mediaUpload", () => {
     const result = await generateMediaUploadFiles(file);
 
     expect(order).toEqual([
+      "start-2560",
+      "end-2560",
       "start-200",
       "end-200",
-      "start-1280",
-      "end-1280",
+      "start-512",
+      "end-512",
     ]);
+    expect(result.filesByQuality.original?.name).toBe("derived-2560.webp");
     expect(result.filesByQuality.low?.name).toBe("derived-200.webp");
-    expect(result.filesByQuality.medium?.name).toBe("derived-1280.webp");
+    expect(result.filesByQuality.medium?.name).toBe("derived-512.webp");
   });
 
   it("图片 low 档派生标准与 40KB 缩略图上限保持一致", async () => {
@@ -121,18 +139,19 @@ describe("mediaUpload", () => {
 
     await generateMediaUploadFiles(file);
 
-    expect(compressImageMock).toHaveBeenNthCalledWith(1, file, expect.objectContaining({
+    expect(compressImageMock).toHaveBeenNthCalledWith(2, expect.any(File), expect.objectContaining({
       maxWidthOrHeight: 200,
       maxSizeKB: 40,
       fileType: "image/webp",
     }));
-    expect(compressImageMock).not.toHaveBeenCalledWith(file, expect.objectContaining({
+    expect(compressImageMock).toHaveBeenCalledWith(file, expect.objectContaining({
       maxWidthOrHeight: 2560,
+      maxSizeKB: 3072,
     }));
   });
 
-  it("非聊天室图片 original 超过 2MB 时按 original 目标大小压缩", async () => {
-    const file = new File([new Uint8Array(2 * 1024 * 1024 + 1)], "large.png", { type: "image/png" });
+  it("非聊天室图片 original 始终压成 WebP 且上限为 3MiB", async () => {
+    const file = new File([new Uint8Array(1024)], "avatar.png", { type: "image/png" });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
       return new File([new Uint8Array(1024)], `derived-${profile.maxSizeKB}.webp`, { type: "image/webp" });
     });
@@ -141,12 +160,12 @@ describe("mediaUpload", () => {
 
     expect(compressImageMock).toHaveBeenNthCalledWith(1, file, expect.objectContaining({
       maxWidthOrHeight: 2560,
-      maxSizeKB: 2048,
+      maxSizeKB: 3072,
       fileType: "image/webp",
       preserveNovelAiMetadata: true,
       forceOutput: true,
     }));
-    expect(result.filesByQuality.original?.name).toBe("derived-2048.webp");
+    expect(result.filesByQuality.original?.name).toBe("derived-3072.webp");
   });
 
   it("聊天室场景的图片只生成 low 和 medium，不生成 original 上传文件", async () => {

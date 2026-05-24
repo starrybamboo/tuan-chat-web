@@ -2,6 +2,7 @@ import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSna
 
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
+import { buildDocCardCoverReferenceFields } from "@/components/chat/message/docCard/docCardMedia";
 import { createMessageEditorSnapshot } from "@/components/messageEditor/model/messageEditorCodec";
 import { createMessageEditorTextDraft } from "@/components/messageEditor/model/messageEditorTransforms";
 
@@ -76,58 +77,13 @@ export async function copyDocToSpaceDoc(params: {
   });
 
   const { upsertSpaceDocMetaCacheEntry } = await import("@/components/chat/infra/doc/space/spaceDocMetaPersistence");
+  const coverFields = buildDocCardCoverReferenceFields(params);
   upsertSpaceDocMetaCacheEntry({
     spaceId: params.spaceId,
     docId: newDocId,
     title,
-    imageUrl: params.imageUrl,
-    imageFileId: params.imageFileId,
-    originalImageFileId: params.originalImageFileId,
-    imageMediaType: params.imageMediaType,
+    ...coverFields,
   });
 
   return { newDocEntityId: createdDocId, newDocId, title };
-}
-
-/**
- * 复制用户文档实体，并复制当前会话中的 message-stream 快照缓存。
- */
-export async function copyDocToSpaceUserDoc(params: {
-  spaceId: number;
-  sourceDocId: string;
-  sourceSpaceId?: number;
-  title?: string;
-  imageUrl?: string;
-  imageFileId?: number;
-  originalImageFileId?: number;
-  imageMediaType?: string;
-  tag?: string;
-}): Promise<{ newDocEntityId: number; newDocId: string; title: string }> {
-  const createTitle = (params.title ?? "").trim();
-  const title = createTitle ? `${createTitle}（副本）` : "新文档（副本）";
-  const sourceSnapshot = await getSnapshotForCopy(params.sourceDocId);
-
-  const createRes = await tuanchat.spaceUserDocController.createDoc1({
-    spaceId: params.spaceId,
-    title,
-    ...(params.tag ? { tag: params.tag } : {}),
-  });
-  if (!createRes?.success || !createRes.data?.docId) {
-    throw new Error(createRes?.errMsg ?? "创建文档失败");
-  }
-
-  const newEntityId = createRes.data.docId;
-  const newRoomId = Number(createRes.data.roomId);
-  if (!Number.isFinite(newRoomId) || newRoomId <= 0) {
-    throw new Error("创建文档失败：缺少文档房间");
-  }
-  const newDocId = String(newRoomId);
-  const snapshot = buildCopiedSnapshot(sourceSnapshot);
-
-  setCachedDocSnapshot(newDocId, snapshot);
-  await setPersistedDocSnapshot(newDocId, snapshot).catch((error) => {
-    console.error("[DocCopy] persist copied user doc snapshot failed", error);
-  });
-
-  return { newDocEntityId: newEntityId, newDocId, title };
 }

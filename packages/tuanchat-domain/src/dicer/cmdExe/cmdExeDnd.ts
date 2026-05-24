@@ -326,17 +326,12 @@ const cmdRi = new CommandExecutor(
 
     const diceResult = rollD20("normal");
     const total = diceResult.total + initMod + extraMod;
-
-    let formulaStr = `${diceResult.detailedMsg}`;
-    if (desc)
-      formulaStr += ` + ${desc}`;
-    if (extraMod !== 0)
-      formulaStr += ` ${extraMod > 0 ? "+" : ""}${extraMod}`;
+    UTILS.setRoleAbilityValue(curAbility, "initiative", String(total), "skill", "skill");
+    cpi.setRoleAbilityList(role.roleId, curAbility);
 
     // 更新先攻列表逻辑 (需结合 RoomContext 或其他机制，此处仅显示)
     // 如果需要自动加入先攻列表，需调用相关API。由于API未明确提供，此处暂只打印。
 
-    cpi.replyMessage(`${role.roleName} 投掷先攻: ${formulaStr} = ${total}`);
     return true;
   },
 );

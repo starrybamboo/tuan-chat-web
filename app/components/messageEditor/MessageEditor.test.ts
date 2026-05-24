@@ -9,6 +9,7 @@ import {
   getMessageEditorScrollViewportClassName,
   getMessageEditorSlashMenuLayerClassName,
   getMessageEditorTextBlockShellClassName,
+  isMessageEditorImportablePasteText,
   mergeChangedRoomMessagesIntoEditorMessages,
   resolveMessageEditorPointerAutoScrollDelta,
   shouldIgnoreDocumentSelectionEventTarget,
@@ -167,7 +168,7 @@ describe("messageEditor room message patch", () => {
     });
   });
 
-  it("keeps optimistic room-cache messages out of document patches", () => {
+  it("keeps optimistic room messages out of document patches", () => {
     const optimistic = withRuntimeMessage(
       createMessageEditorTextDraft({ content: "pending chat message" }),
       { messageId: -1, position: 1, tcLocalSyncState: "optimistic" },
@@ -287,5 +288,15 @@ describe("messageEditor slash query", () => {
     expect(extractMessageEditorSlashQuery("前文\n/ h1\n后文")).toBe("h1");
     expect(extractMessageEditorSlashQuery("前文\n   / quote\n后文")).toBe("quote");
     expect(extractMessageEditorSlashQuery("前文\n@ feiyue\n后文")).toBeNull();
+  });
+});
+
+describe("messageEditor import paste detection", () => {
+  it("detects tagged chat logs as importable paste text", () => {
+    expect(isMessageEditorImportablePasteText("[KP]：门开了\n<PL>：我进去")).toBe(true);
+  });
+
+  it("ignores ordinary prose paste text", () => {
+    expect(isMessageEditorImportablePasteText("这是一段普通文档内容，不应该弹导入确认。")).toBe(false);
   });
 });

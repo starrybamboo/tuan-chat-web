@@ -1,6 +1,7 @@
 import type { Room } from "api";
 
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
+import { buildDocCardCoverReferenceFields } from "@/components/chat/message/docCard/docCardMedia";
 
 export type SidebarLeafNode = {
   nodeId: string;
@@ -55,13 +56,16 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
       if (seen.has(id))
         continue;
       seen.add(id);
-      list.push({
-        id,
-        title: node.fallbackTitle,
+      const coverFields = buildDocCardCoverReferenceFields({
         imageUrl: node.fallbackImageUrl,
         imageFileId: node.fallbackImageFileId,
         originalImageFileId: node.fallbackOriginalImageFileId,
         imageMediaType: node.fallbackImageMediaType,
+      });
+      list.push({
+        id,
+        title: node.fallbackTitle,
+        ...coverFields,
       });
     }
   }
@@ -144,28 +148,34 @@ export function applySidebarDocFallbackCache(params: {
       const nextImageFileId = overrideImageFileId || metaImageFileId || currentFallbackImageFileId;
       const nextOriginalImageFileId = overrideOriginalImageFileId || metaOriginalImageFileId || currentFallbackOriginalImageFileId;
       const nextImageMediaType = overrideImageMediaType || metaImageMediaType || currentFallbackImageMediaType;
+      const coverFields = buildDocCardCoverReferenceFields({
+        imageUrl: nextImageUrl,
+        imageFileId: nextImageFileId,
+        originalImageFileId: nextOriginalImageFileId,
+        imageMediaType: nextImageMediaType,
+      });
 
       (node as any).fallbackTitle = nextTitle;
-      if (nextImageUrl) {
-        (node as any).fallbackImageUrl = nextImageUrl;
+      if (coverFields.imageUrl) {
+        (node as any).fallbackImageUrl = coverFields.imageUrl;
       }
       else {
         delete (node as any).fallbackImageUrl;
       }
-      if (nextImageFileId) {
-        (node as any).fallbackImageFileId = nextImageFileId;
+      if (coverFields.imageFileId) {
+        (node as any).fallbackImageFileId = coverFields.imageFileId;
       }
       else {
         delete (node as any).fallbackImageFileId;
       }
-      if (nextOriginalImageFileId) {
-        (node as any).fallbackOriginalImageFileId = nextOriginalImageFileId;
+      if (coverFields.originalImageFileId) {
+        (node as any).fallbackOriginalImageFileId = coverFields.originalImageFileId;
       }
       else {
         delete (node as any).fallbackOriginalImageFileId;
       }
-      if (nextImageMediaType) {
-        (node as any).fallbackImageMediaType = nextImageMediaType;
+      if (coverFields.imageMediaType) {
+        (node as any).fallbackImageMediaType = coverFields.imageMediaType;
       }
       else {
         delete (node as any).fallbackImageMediaType;
@@ -209,15 +219,21 @@ function buildDocNode(docId: string, fallbackTitle?: string, fallbackImageUrl?: 
   originalImageFileId?: number;
   imageMediaType?: string;
 }): SidebarLeafNode {
+  const coverFields = buildDocCardCoverReferenceFields({
+    imageUrl: fallbackImageUrl,
+    imageFileId: fallback?.imageFileId,
+    originalImageFileId: fallback?.originalImageFileId,
+    imageMediaType: fallback?.imageMediaType,
+  });
   return {
     nodeId: `doc:${docId}`,
     type: "doc",
     targetId: docId,
     fallbackTitle,
-    fallbackImageUrl,
-    ...(fallback?.imageFileId ? { fallbackImageFileId: fallback.imageFileId } : {}),
-    ...(fallback?.originalImageFileId ? { fallbackOriginalImageFileId: fallback.originalImageFileId } : {}),
-    ...(fallback?.imageMediaType ? { fallbackImageMediaType: fallback.imageMediaType } : {}),
+    ...(coverFields.imageUrl ? { fallbackImageUrl: coverFields.imageUrl } : {}),
+    ...(coverFields.imageFileId ? { fallbackImageFileId: coverFields.imageFileId } : {}),
+    ...(coverFields.originalImageFileId ? { fallbackOriginalImageFileId: coverFields.originalImageFileId } : {}),
+    ...(coverFields.imageMediaType ? { fallbackImageMediaType: coverFields.imageMediaType } : {}),
   };
 }
 

@@ -9,8 +9,6 @@ export interface RepositoryCreateRequest {
   authorName: string;
   description: string;
   repositoryName: string;
-  image: string;
-  originalImage: string;
   coverFileId?: number;
 }
 
@@ -35,8 +33,6 @@ export function useRepositoryForm() {
       authorName: "",
       repositoryName: "",
       description: "",
-      image: "",
-      originalImage: "",
       coverFileId: undefined,
     },
     mode: "onChange",

@@ -4,7 +4,7 @@ import type { MouseEvent } from "react";
 import type { Role } from "../types";
 
 import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { buildRoleVoiceClearPatch, resolveRoleVoiceUrl } from "../roleVoiceMedia";
 import "react-h5-audio-player/lib/styles.css";
 import "../../common/audioPlayer.css";
 
@@ -21,7 +21,7 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
 
   const handleDeleteAudio = (e: MouseEvent) => {
     e.stopPropagation();
-    const updatedRole = { ...role, voiceUrl: null, voiceFileId: null };
+    const updatedRole = { ...role, ...buildRoleVoiceClearPatch() };
 
     if (onDelete) {
       onDelete();
@@ -32,7 +32,7 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
     }
   };
 
-  const audioSrc = mediaFileUrl(role.voiceFileId, "audio", "original") || role.voiceUrl;
+  const audioSrc = resolveRoleVoiceUrl(role);
   if (!audioSrc) {
     return null;
   }
