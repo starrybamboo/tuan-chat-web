@@ -102,17 +102,8 @@ function fixCjsDefaultExportPlugin(): Plugin {
     transform(code, _id) {
       // Target modules that commonly have CJS/default export issues
       const problematicModules = [
-        "use-sync-external-store/shim/with-selector.js",
-        "use-sync-external-store/shim/index.js",
         "dagre",
         "qrcode",
-        "fast-diff",
-        "pngjs",
-        "safe-buffer",
-        "dayjs",
-        "dayjs/dayjs.min.js",
-        "react-fast-compare",
-        "screenfull",
       ];
 
       let modified = false;
@@ -369,10 +360,6 @@ export default defineConfig(() => {
           find: "@",
           replacement: resolve(__dirname, "app"),
         },
-        {
-          find: "figma-squircle",
-          replacement: nm("node_modules/figma-squircle/dist/module.js"),
-        },
       ],
     },
 
@@ -403,17 +390,7 @@ export default defineConfig(() => {
     optimizeDeps: {
       // 保留已知 CJS 互操作项，同时允许 Vite 自动发现纯 SPA 首屏依赖。
       include: [
-        "cookie",
-        "set-cookie-parser",
-        "set-cookie-parser/lib/set-cookie.js",
         "react/compiler-runtime",
-        "style-to-js",
-        "style-to-object",
-        "inline-style-parser",
-        "use-sync-external-store/with-selector",
-        "use-sync-external-store/shim",
-        "use-sync-external-store/shim/with-selector",
-        "use-sync-external-store/shim/with-selector.js",
         // Lazy room effects 只有在打开房间后才会触发，提前预构建可避免 dev 下按需优化 504。
         "pixi.js",
       ],
