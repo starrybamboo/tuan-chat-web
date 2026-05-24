@@ -7,6 +7,7 @@ import type { Message } from "../../../../api";
 
 type UseChatFrameSelectionContextParams = {
   deleteMessage: (messageId: number) => void;
+  deleteMessages: (messageIds: number[]) => void;
   toggleUseChatBubbleStyle: () => void;
   setReplyMessage: (message: Message) => void;
   orderedMessageIds: number[];
@@ -15,12 +16,13 @@ type UseChatFrameSelectionContextParams = {
 
 export default function useChatFrameSelectionContext({
   deleteMessage,
+  deleteMessages,
   toggleUseChatBubbleStyle,
   setReplyMessage,
   orderedMessageIds,
   onJumpToWebGAL,
 }: UseChatFrameSelectionContextParams) {
-  const selection = useChatFrameSelection({ onDeleteMessage: deleteMessage });
+  const selection = useChatFrameSelection();
   const { contextMenu, closeContextMenu, handleContextMenu } = useChatFrameContextMenu();
 
   const {
@@ -31,6 +33,8 @@ export default function useChatFrameSelectionContext({
   } = useChatFrameSelectionHandlers({
     contextMenuMessageId: contextMenu?.messageId,
     deleteMessage,
+    deleteMessages,
+    selectedMessageIds: selection.selectedMessageIds,
     exitSelection: selection.exitSelection,
     closeContextMenu,
     toggleUseChatBubbleStyle,

@@ -2,8 +2,6 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 
 import type {
-  StateEventCombatColumnSource,
-  StateEventCombatValue,
   StateEventScope,
   StateEventStackMode,
   StateStatusModifierOp,
@@ -82,18 +80,10 @@ export type CombatParticipant = {
   name: string;
   roleId?: number;
   initiative: number;
-  values: Record<string, StateEventCombatValue>;
+  values: Record<string, string | number | null>;
   baseValues: StateValueMap;
   derivedValues: StateValueMap;
   activeStates: ActiveStateInstance[];
-};
-
-export type CombatColumn = {
-  key: string;
-  label: string;
-  source: StateEventCombatColumnSource;
-  attrKey?: string;
-  stateKey?: string;
 };
 
 export type CombatMapToken = {
@@ -105,9 +95,6 @@ export type CombatMapToken = {
 export type CombatStateRuntime = StateRuntime & {
   participants: CombatParticipant[];
   participantsById: Record<string, CombatParticipant>;
-  columns: CombatColumn[];
-  columnsByKey: Record<string, CombatColumn>;
-  activeParticipantId: string | null;
   mapTokens: CombatMapToken[];
   mapTokensByRoleId: Record<number, CombatMapToken>;
   hasMapState: boolean;

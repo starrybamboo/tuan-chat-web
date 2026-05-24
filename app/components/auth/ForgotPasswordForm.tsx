@@ -1,8 +1,11 @@
+import type { ReactNode } from "react";
+
 interface ForgotPasswordFormProps {
   email: string;
   setEmail: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
+  turnstile?: ReactNode;
 }
 
 export function ForgotPasswordForm({
@@ -10,6 +13,7 @@ export function ForgotPasswordForm({
   setEmail,
   handleSubmit,
   isLoading,
+  turnstile,
 }: ForgotPasswordFormProps) {
   return (
     <form onSubmit={handleSubmit}>
@@ -32,6 +36,7 @@ export function ForgotPasswordForm({
       </p>
 
       <div className="form-control mt-6">
+        {turnstile}
         <button
           type="submit"
           className="btn btn-primary hover:brightness-110 transition-all"

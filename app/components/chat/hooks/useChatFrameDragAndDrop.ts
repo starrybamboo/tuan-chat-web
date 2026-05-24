@@ -20,7 +20,7 @@ type UseChatFrameDragAndDropParams = {
   historyMessages: ChatMessageResponse[];
   roomId: number;
   isMessageMovable?: (message: Message) => boolean;
-  updateMessage: (message: Message) => void;
+  updateMessages: (messages: Message[]) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   isSelecting: boolean;
   selectedMessageIds: Set<number>;
@@ -52,10 +52,6 @@ function resolveLocalMoveMessageIds({
     : [anchorMessageId];
 }
 
-function cleanupMessageDragGhost() {
-  cleanupDragPreview();
-}
-
 function setMessageDragImage(e: React.DragEvent<HTMLElement>, messageCount: number) {
   const sourceElement = e.currentTarget.closest<HTMLElement>("[data-message-id]");
   if (!sourceElement) {
@@ -76,7 +72,7 @@ export default function useChatFrameDragAndDrop({
   historyMessages,
   roomId,
   isMessageMovable,
-  updateMessage,
+  updateMessages,
   virtuosoRef,
   isSelecting,
   selectedMessageIds,
@@ -103,6 +99,7 @@ export default function useChatFrameDragAndDrop({
   const cleanupDragState = useCallback(() => {
     stopAutoScroll();
     cleanupDragIndicator();
+    cleanupDragPreview();
   }, [cleanupDragIndicator, stopAutoScroll]);
 
   const resetMessageDragState = useCallback(() => {
@@ -130,10 +127,8 @@ export default function useChatFrameDragAndDrop({
     if (updatedMessages.length === 0) {
       return;
     }
-    for (const nextMessage of updatedMessages) {
-      updateMessage(nextMessage);
-    }
-  }, [historyMessages, isMessageMovable, updateMessage]);
+    updateMessages(updatedMessages);
+  }, [historyMessages, isMessageMovable, updateMessages]);
 
   const handleDragStart = useCallback((e: React.DragEvent<HTMLElement>, index: number) => {
     const anchorMessageId = historyMessages[index]?.message.messageId;

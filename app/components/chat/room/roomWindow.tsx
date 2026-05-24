@@ -3,8 +3,8 @@ import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { GalAuthoringLocalSnapshot, GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 
-import type { ChatFrameMessageScope } from "@/components/chat/hooks/useChatFrameMessages";
 import { useQueryClient } from "@tanstack/react-query";
+import { patchInsertMessages } from "@tuanchat/query/chat";
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { tuanchat } from "api/instance";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -42,16 +42,17 @@ import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHea
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import ConfirmModal from "@/components/common/comfirmModel";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
+import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import {
-  useBatchSendMessageMutation,
   useDeleteMessageMutation,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
+  usePatchMessagesMutation,
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
@@ -65,8 +66,6 @@ function RoomWindow({
   roomId,
   spaceId,
   targetMessageId,
-  messageScope = "main",
-  threadRootMessageId,
   viewMode = false,
   hideSecondaryPanels = false,
   onCloseSubWindow,
@@ -77,8 +76,6 @@ function RoomWindow({
   roomId: number;
   spaceId: number;
   targetMessageId?: number | null;
-  messageScope?: ChatFrameMessageScope;
-  threadRootMessageId?: number | null;
   viewMode?: boolean;
   hideSecondaryPanels?: boolean;
   onCloseSubWindow?: () => void;
@@ -128,9 +125,12 @@ function RoomWindow({
   const webSocketUtils = useGlobalWebSocket();
 
   const sendMessageMutation = useSendMessageMutation(roomId);
-  const batchSendMessageMutation = useBatchSendMessageMutation(roomId);
   const deleteMessageMutation = useDeleteMessageMutation();
   const updateMessageMutation = useUpdateMessageMutation();
+  const patchMessagesMutation = usePatchMessagesMutation(roomId);
+  const insertMessagesWithPatch = useCallback((messages: ChatMessageRequest[]) => {
+    return patchInsertMessages(tuanchat, messages);
+  }, []);
 
   const {
     chatInputRef,
@@ -141,17 +141,8 @@ function RoomWindow({
   } = useRoomInputController({ roomId });
 
   useLayoutEffect(() => {
-    const ui = roomUiStore.getState();
-    ui.reset();
-    if (messageScope === "thread" && threadRootMessageId) {
-      ui.setThreadRootMessageId(threadRootMessageId);
-      ui.setComposerTarget("thread");
-    }
-    else {
-      ui.setThreadRootMessageId(undefined);
-      ui.setComposerTarget("main");
-    }
-  }, [messageScope, roomId, roomUiStore, threadRootMessageId]);
+    roomUiStore.getState().reset();
+  }, [roomId, roomUiStore]);
 
   const {
     members,
@@ -223,27 +214,29 @@ function RoomWindow({
       .sort(compareMessagesByOrder)
       .map(message => ({ message }) as ChatMessageResponse);
     if (roomMessages.length === 0) {
-      console.warn("[RoomWindow] skip replacing room cache because doc sync returned no room messages", {
+      console.warn("[RoomWindow] skip merging room cache because doc patch returned no changed room messages", {
         roomId,
         returnedMessages: messages.length,
       });
-      if ((chatHistory?.messages.length ?? 0) === 0 && lastNonEmptyRoomMessagesRef.current.length > 0) {
-        await chatHistory?.addOrUpdateMessages(lastNonEmptyRoomMessagesRef.current);
-      }
       return;
     }
-    lastNonEmptyRoomMessagesRef.current = roomMessages;
-    await chatHistory?.clearHistory();
     await chatHistory?.addOrUpdateMessages(roomMessages);
+    const mergedById = new Map<number, ChatMessageResponse>();
+    for (const item of chatHistory?.messages.length ? chatHistory.messages : lastNonEmptyRoomMessagesRef.current) {
+      if (typeof item.message?.messageId === "number") {
+        mergedById.set(item.message.messageId, item);
+      }
+    }
+    for (const item of roomMessages) {
+      mergedById.set(item.message.messageId, item);
+    }
+    lastNonEmptyRoomMessagesRef.current = [...mergedById.values()].sort(compareChatMessageResponsesByOrder);
   }, [chatHistory, roomId]);
   const canViewDocContent = Boolean(spaceContext.isSpaceOwner || hasHostPrivileges(curMember?.memberType));
   const handleToggleRoomContentMode = useCallback(() => {
-    const ui = roomUiStore.getState();
-    ui.setThreadRootMessageId(undefined);
-    ui.setComposerTarget("main");
     setSideDrawerState("none");
     setRoomContentMode(mode => (mode === "doc" ? "room" : "doc"));
-  }, [roomUiStore, setSideDrawerState]);
+  }, [setSideDrawerState]);
   const visibleRoleIdsForStateDrawer = React.useMemo(() => {
     if (sideDrawerState !== "combat" && sideDrawerState !== "initiative" && sideDrawerState !== "state") {
       return undefined;
@@ -265,6 +258,10 @@ function RoomWindow({
     }
     return await sendMessageWithInsertRef.current(message);
   }, []);
+  const executeCommandRef = useRef<RoomContextType["executeCommand"] | null>(null);
+  const executeCommandFromRef = useCallback<NonNullable<RoomContextType["executeCommand"]>>((payload) => {
+    return executeCommandRef.current?.(payload);
+  }, []);
 
   const roomContext = React.useMemo((): RoomContextType => ({
     roomId,
@@ -281,6 +278,7 @@ function RoomWindow({
     updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
     rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
     sendMessageWithInsert: sendMessageWithInsertFromRef,
+    executeCommand: executeCommandFromRef,
   }), [
     chatHistory,
     curAvatarId,
@@ -293,12 +291,14 @@ function RoomWindow({
     roomAllRoles,
     roomId,
     roomRolesThatUserOwn,
+    executeCommandFromRef,
     sendMessageWithInsertFromRef,
     scrollToGivenMessage,
     spaceId,
     updateAndRerenderMessageInWebGAL,
   ]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
+  executeCommandRef.current = commandExecutor;
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
     roomId,
@@ -384,7 +384,7 @@ function RoomWindow({
     currentUserId: Number(userId ?? 0),
     mainHistoryMessages,
     sendMessage: sendMessageMutation.mutateAsync,
-    batchSendMessages: batchSendMessageMutation.mutateAsync,
+    insertMessages: insertMessagesWithPatch,
     addOrUpdateMessage: chatHistory?.addOrUpdateMessage,
     addOrUpdateMessages: chatHistory?.addOrUpdateMessages,
     removeMessageById: chatHistory?.removeMessageById,
@@ -394,9 +394,11 @@ function RoomWindow({
   sendMessageWithInsertRef.current = sendMessageWithInsert;
   const {
     backgroundUrl,
+    combatVisualActive,
     displayedBgUrl,
     currentEffect,
     setBackgroundUrl,
+    setCombatVisualActive,
     setCurrentEffect,
     handleSendEffect,
     handleClearBackground,
@@ -467,6 +469,37 @@ function RoomWindow({
     roomId,
     handleImportChatText,
   });
+  const [importInitialRawText, setImportInitialRawText] = useState<string | undefined>();
+  const [pendingImportTextPaste, setPendingImportTextPaste] = useState<{
+    insertAsPlainText: () => void;
+    text: string;
+  } | null>(null);
+  const handleSetImportChatTextOpen = useCallback((isOpen: boolean) => {
+    setIsImportChatTextOpen(isOpen);
+    if (!isOpen) {
+      setImportInitialRawText(undefined);
+    }
+  }, [setIsImportChatTextOpen]);
+  const handleRequestDocImportTextPaste = useCallback((text: string, insertAsPlainText: () => void) => {
+    setPendingImportTextPaste({
+      insertAsPlainText,
+      text,
+    });
+  }, []);
+  const handleUseDocPasteAsPlainText = useCallback(() => {
+    const pending = pendingImportTextPaste;
+    setPendingImportTextPaste(null);
+    pending?.insertAsPlainText();
+  }, [pendingImportTextPaste]);
+  const handleImportDocPasteText = useCallback(() => {
+    const pending = pendingImportTextPaste;
+    if (!pending) {
+      return;
+    }
+    setImportInitialRawText(pending.text);
+    setPendingImportTextPaste(null);
+    setIsImportChatTextOpen(true);
+  }, [pendingImportTextPaste, setIsImportChatTextOpen]);
 
   const {
     handlePasteFiles,
@@ -800,7 +833,7 @@ function RoomWindow({
             }
           }
 
-          const roleVoiceUrl = mediaFileUrl(roleData?.voiceFileId, "audio", "original") || roleData?.voiceUrl;
+          const roleVoiceUrl = resolveRoleVoiceUrl(roleData);
           if (roleVoiceUrl) {
             // Fetch the file
             const fileRes = await fetch(roleVoiceUrl);
@@ -973,80 +1006,6 @@ function RoomWindow({
     }
   }, [roomId, queryClient, backgroundUrl]);
 
-  const applyGalPatchUpdateMessage = useCallback(async (message: Message) => {
-    const existingResponse = historyMessages?.find(item => item.message.messageId === message.messageId);
-    if (existingResponse) {
-      roomUiStore.getState().pushMessageUndo({
-        type: "update",
-        before: existingResponse.message,
-        after: message,
-      });
-      await chatHistory?.addOrUpdateMessage({
-        ...existingResponse,
-        message,
-      });
-    }
-    else {
-      await chatHistory?.addOrUpdateMessage({ message } as ChatMessageResponse);
-    }
-
-    try {
-      const response = await updateMessageMutation.mutateAsync(message);
-      const committedMessage = response?.data ?? message;
-      await chatHistory?.addOrUpdateMessage({
-        ...existingResponse,
-        message: committedMessage,
-      } as ChatMessageResponse);
-      return committedMessage;
-    }
-    catch (error) {
-      if (existingResponse) {
-        await chatHistory?.addOrUpdateMessage(existingResponse);
-      }
-      throw error;
-    }
-  }, [chatHistory, historyMessages, roomUiStore, updateMessageMutation]);
-
-  const applyGalPatchDeleteMessage = useCallback(async (messageId: number) => {
-    const targetResponse = historyMessages?.find(item => item.message.messageId === messageId);
-    if (targetResponse) {
-      await chatHistory?.addOrUpdateMessage({
-        ...targetResponse,
-        message: {
-          ...targetResponse.message,
-          status: 1,
-          updateTime: new Date().toISOString(),
-        },
-      });
-    }
-
-    try {
-      const response = await deleteMessageMutation.mutateAsync(messageId);
-      if (targetResponse && targetResponse.message.status !== 1) {
-        roomUiStore.getState().pushMessageUndo({ type: "delete", before: targetResponse.message });
-      }
-      const committedMessage = response?.data ?? (targetResponse
-        ? {
-            ...targetResponse.message,
-            status: 1,
-          }
-        : null);
-      if (committedMessage) {
-        await chatHistory?.addOrUpdateMessage({
-          ...targetResponse,
-          message: committedMessage,
-        } as ChatMessageResponse);
-      }
-      return committedMessage;
-    }
-    catch (error) {
-      if (targetResponse) {
-        await chatHistory?.addOrUpdateMessage(targetResponse);
-      }
-      throw error;
-    }
-  }, [chatHistory, deleteMessageMutation, historyMessages, roomUiStore]);
-
   const handleApplyGalPatchProposal = useCallback(async (
     proposal: GalPatchProposal,
     options?: GalPatchProposalApplyOptions,
@@ -1081,9 +1040,10 @@ function RoomWindow({
     const toastId = toast.loading("正在应用 proposal...");
     try {
       const result = await executeGalPatchMutationPlan(plan, {
-        sendMessages: sendMessageBatch,
-        updateMessage: applyGalPatchUpdateMessage,
-        deleteMessage: applyGalPatchDeleteMessage,
+        patchMessages: async (operations) => {
+          const response = await patchMessagesMutation.mutateAsync({ operations });
+          return response?.data ?? [];
+        },
       });
       handleGalPatchProposalApplied(proposal);
       toast.success(`已应用：新增 ${result.inserted}，修改 ${result.updated}，删除 ${result.deleted}`, { id: toastId });
@@ -1099,14 +1059,12 @@ function RoomWindow({
       setIsApplyingGalPatchProposal(false);
     }
   }, [
-    applyGalPatchDeleteMessage,
-    applyGalPatchUpdateMessage,
     isApplyingGalPatchProposal,
     isRealtimeRenderActive,
     mainHistoryMessages,
     handleGalPatchProposalApplied,
     rerenderHistoryInWebGAL,
-    sendMessageBatch,
+    patchMessagesMutation,
   ]);
 
   const roomName = roomHeaderOverride?.title ?? room?.name;
@@ -1127,14 +1085,13 @@ function RoomWindow({
   const chatFrameProps = React.useMemo(() => ({
     virtuosoRef,
     onBackgroundUrlChange: setBackgroundUrl,
+    onCombatVisualActiveChange: setCombatVisualActive,
     onEffectChange: setCurrentEffect,
     onExecuteCommandRequest: handleExecuteCommandRequest,
     isCommandRequestConsumed,
     spaceName,
     roomName,
     baseArchiveCommitId: baseArchiveCommitIdForMessageDiff,
-    messageScope,
-    threadRootMessageId,
     sendMessageWithInsert,
     onCopyMessageToClueFolder: copyMessageToClueFolder,
     onExportPremiere: handleExportPremiere,
@@ -1153,14 +1110,13 @@ function RoomWindow({
     isApplyingGalPatchProposal,
     isCommandRequestConsumed,
     setBackgroundUrl,
+    setCombatVisualActive,
     setCurrentEffect,
     roomName,
     spaceName,
     baseArchiveCommitIdForMessageDiff,
     copyMessageToClueFolder,
-    messageScope,
     sendMessageWithInsert,
-    threadRootMessageId,
     virtuosoRef,
   ]);
 
@@ -1240,31 +1196,34 @@ function RoomWindow({
               contentMode={roomContentMode}
               onToggleContentMode={handleToggleRoomContentMode}
               canViewDocContent={canViewDocContent}
+              chatHistory={chatHistory}
               initialDocMessages={initialDocMessages}
+              onRequestDocImportTextPaste={handleRequestDocImportTextPaste}
               onRemoteDocMessagesSaved={handleRemoteDocMessagesSaved}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}
               onCloseSubWindow={onCloseSubWindow}
               backgroundUrl={backgroundUrl}
+              combatVisualActive={combatVisualActive}
               displayedBgUrl={displayedBgUrl}
               currentEffect={currentEffect}
               chatFrameProps={chatFrameProps}
               composerPanelProps={composerPanelProps}
               hideComposer={viewMode}
               hideSecondaryPanels={hideSecondaryPanels}
-              chatAreaComposerTarget={messageScope === "thread" ? "thread" : "main"}
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
               isReloadingAllMessages={isReloadingAllMessages}
               galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
               onGalPatchProposalGenerated={handleGalPatchProposalGenerated}
             />
           </RoomDocRefDropLayer>
-          {!viewMode && roomContentMode === "room" && (
+          {!viewMode && (
             <RoomWindowOverlays
               isImportChatTextOpen={isImportChatTextOpen}
-              setIsImportChatTextOpen={setIsImportChatTextOpen}
+              setIsImportChatTextOpen={handleSetImportChatTextOpen}
               isKP={Boolean(spaceContext.isSpaceOwner)}
               isSpectator={isSpectator}
               availableRoles={roomRolesThatUserOwn}
+              importInitialRawText={importInitialRawText}
               onImportChatText={handleImportChatItems}
               onOpenRoleAddWindow={openRoleAddWindow}
               onOpenNpcAddWindow={spaceContext.isSpaceOwner ? openNpcAddWindow : undefined}
@@ -1276,6 +1235,16 @@ function RoomWindow({
               handleAddNpcRole={handleAddNpcRole}
             />
           )}
+          <ConfirmModal
+            isOpen={Boolean(pendingImportTextPaste)}
+            onClose={handleUseDocPasteAsPlainText}
+            title="检测到可导入记录"
+            message="这段文本看起来像聊天记录。要按导入记录处理，还是作为普通文本粘贴到文档里？"
+            confirmText="按导入记录处理"
+            cancelText="普通粘贴"
+            variant="info"
+            onConfirm={handleImportDocPasteText}
+          />
           {isApplyingMessageHistory && (
             <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="正在处理消息操作">
               <div className="modal-box max-w-sm text-center">

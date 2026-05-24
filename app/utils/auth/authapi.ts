@@ -18,6 +18,14 @@ type AuthStatus = {
   uid?: number;
 };
 
+type LoginCredentials = UserLoginRequest & {
+  turnstileToken?: string;
+};
+
+type RegisterCredentials = UserRegisterRequest & {
+  turnstileToken?: string;
+};
+
 function readStoredToken() {
   return String(localStorage.getItem("token") || "").trim();
 }
@@ -104,12 +112,13 @@ export function getAuthStatusQueryKey() {
 }
 
 export async function loginUser(
-  credentials: UserLoginRequest,
+  credentials: LoginCredentials,
   loginMethod: "username" | "userId",
 ) {
   try {
-    const loginRequest: UserLoginRequest = {
+    const loginRequest: LoginCredentials = {
       password: credentials.password,
+      turnstileToken: credentials.turnstileToken,
     };
 
     // 根据登录方式设置对应的字段
@@ -120,7 +129,7 @@ export async function loginUser(
       loginRequest.userId = credentials.username; // 重用 username 字段存储 userId
     }
 
-    const response = await tuanchat.userController.login(loginRequest);
+    const response = await tuanchat.userController.login(loginRequest as UserLoginRequest);
 
     // Sa-Token：登录成功后返回 tokenValue，需要本地持久化
     if (response?.data) {
@@ -138,9 +147,9 @@ export async function loginUser(
   }
 }
 
-export async function registerUser(credentials: UserRegisterRequest) {
+export async function registerUser(credentials: RegisterCredentials) {
   try {
-    const response = await tuanchat.userController.register(credentials);
+    const response = await tuanchat.userController.register(credentials as UserRegisterRequest);
 
     return response;
   }

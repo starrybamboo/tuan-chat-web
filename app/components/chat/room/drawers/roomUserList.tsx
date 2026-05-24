@@ -171,7 +171,12 @@ export default function RoomUserList({ type}: { type: string }) {
             )}
       </div>
 
-      <ToastWindow isOpen={canInviteMembers && isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
+      <ToastWindow
+        isOpen={canInviteMembers && isMemberHandleOpen}
+        onClose={() => setIsMemberHandleOpen(false)}
+        disableScroll={true}
+        panelClassName="!max-w-none !p-0 overflow-hidden rounded-lg border border-base-300/70 shadow-2xl"
+      >
         <AddMemberWindow handleAddMember={handleAddMember} showSpace={true} inviteCodeType={1} />
       </ToastWindow>
       {/* 弹窗 */}

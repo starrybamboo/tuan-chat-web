@@ -4,8 +4,6 @@ Disallow: /login
 Disallow: /settings
 Disallow: /notifications
 Disallow: /feedback
-Disallow: /collection
-Disallow: /resource
 Disallow: /role
 Disallow: /invite/
 Disallow: /doc/

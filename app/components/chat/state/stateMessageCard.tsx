@@ -64,7 +64,8 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
   const primaryText = summary?.primaryText
     ?? formatStateEventPreviewText(message.extra, message.content).replace(/^\[状态\]\s*/, "");
   const compactPrimaryText = primaryText.replace(/\s*->\s*/g, "→");
-  const compactText = scopeLabels.length > 0
+  const isCombatInitiativeBatchSummary = primaryText.startsWith("全员先攻 ");
+  const compactText = !isCombatInitiativeBatchSummary && scopeLabels.length > 0
     ? `${scopeLabels.join(" / ")} · ${compactPrimaryText}`
     : compactPrimaryText;
   const detailLines = React.useMemo(() => {

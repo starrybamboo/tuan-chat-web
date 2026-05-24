@@ -1,22 +1,16 @@
-export type FloatingMenuPosition = {
+export interface FloatingMenuPoint {
   x: number;
   y: number;
-};
+}
 
-export type FloatingMenuSize = {
+export interface FloatingMenuSize {
   width: number;
   height: number;
-};
+}
 
-export type FloatingMenuViewport = {
-  width: number;
-  height: number;
-};
-
-/**
- * 基于触发元素生成浮层菜单的初始锚点，供按钮触发的上下文菜单复用。
- */
-export function createFloatingMenuAnchorFromElement(element: Pick<HTMLElement, "getBoundingClientRect">): FloatingMenuPosition {
+export function createFloatingMenuAnchorFromElement(
+  element: { getBoundingClientRect: () => Pick<DOMRect, "right" | "top"> },
+): FloatingMenuPoint {
   const rect = element.getBoundingClientRect();
   return {
     x: Math.round(rect.right),
@@ -24,20 +18,17 @@ export function createFloatingMenuAnchorFromElement(element: Pick<HTMLElement, "
   };
 }
 
-/**
- * 将浮层菜单限制在当前视口内，避免桌面端点击侧边栏右侧按钮时菜单溢出屏幕。
- */
 export function clampFloatingMenuPosition(
-  position: FloatingMenuPosition,
+  anchor: FloatingMenuPoint,
   menuSize: FloatingMenuSize,
-  viewport: FloatingMenuViewport,
+  viewportSize: FloatingMenuSize,
   padding = 8,
-): FloatingMenuPosition {
-  const maxX = Math.max(padding, viewport.width - menuSize.width - padding);
-  const maxY = Math.max(padding, viewport.height - menuSize.height - padding);
+): FloatingMenuPoint {
+  const maxLeft = Math.max(padding, viewportSize.width - menuSize.width - padding);
+  const maxTop = Math.max(padding, viewportSize.height - menuSize.height - padding);
 
   return {
-    x: Math.min(Math.max(position.x, padding), maxX),
-    y: Math.min(Math.max(position.y, padding), maxY),
+    x: Math.min(Math.max(padding, anchor.x), maxLeft),
+    y: Math.min(Math.max(padding, anchor.y), maxTop),
   };
 }

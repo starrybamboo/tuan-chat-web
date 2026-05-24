@@ -47,7 +47,6 @@ interface RoomComposerPanelProps {
   onClearFigure: () => void;
   onOpenFullMessageDiff?: () => void;
   isFullMessageDiffOpen?: boolean;
-  onOpenImportChatText?: () => void;
 
   /** KP（房主）权限标记，用于显示“停止全员BGM” */
   isKP?: boolean;
@@ -98,7 +97,6 @@ function RoomComposerPanelImpl({
   onClearFigure,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen,
-  onOpenImportChatText,
   isKP,
   onStopBgmForAll,
   noRole,
@@ -282,8 +280,6 @@ function RoomComposerPanelImpl({
   ]);
 
   const replyMessage = useRoomUiStore(state => state.replyMessage);
-  const threadRootMessageId = useRoomUiStore(state => state.threadRootMessageId);
-  const composerTarget = useRoomUiStore(state => state.composerTarget);
   const insertAfterMessageId = useRoomUiStore(state => state.insertAfterMessageId);
   const setInsertAfterMessageId = useRoomUiStore(state => state.setInsertAfterMessageId);
   const inputDisabled = noRole && !isKP && !notMember;
@@ -300,14 +296,11 @@ function RoomComposerPanelImpl({
     if (curAvatarId <= 0) {
       return "请选择角色立绘后发送…（Shift+Enter 换行）";
     }
-    if (threadRootMessageId && composerTarget === "thread") {
-      return "线程回复中…（Shift+Enter 换行）";
-    }
     if (insertAfterMessageId) {
       return "插入消息中…（Shift+Enter 换行）";
     }
     return "输入消息…（Shift+Enter 换行）";
-  }, [composerTarget, curAvatarId, insertAfterMessageId, isKP, noRole, notMember, threadRootMessageId]);
+  }, [curAvatarId, insertAfterMessageId, isKP, noRole, notMember]);
   React.useEffect(() => {
     let isActive = true;
     const key = `${roomId}:${curRoleId}`;
@@ -470,7 +463,7 @@ function RoomComposerPanelImpl({
   );
 
   return (
-    <div ref={composerRootRef} className="bg-transparent z-20">
+    <div ref={composerRootRef} className="bg-transparent z-20" data-chat-composer-root="true">
       <div className={`relative flex-1 flex flex-col min-w-0 gap-2 ${screenSize === "sm" ? "p-1.5" : "p-2"}`}>
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
@@ -549,7 +542,6 @@ function RoomComposerPanelImpl({
                   <div className="w-full sm:w-auto flex justify-end sm:block mt-1 sm:mt-2">
                     <ChatToolbarFromStore
                       {...toolbarCommonProps}
-                      onOpenImportChatText={onOpenImportChatText}
                       showWebgalLinkToggle={true}
                       showRunModeToggle={true}
                       showWebgalControls={false}

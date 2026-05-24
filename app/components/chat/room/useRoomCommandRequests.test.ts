@@ -93,7 +93,6 @@ describe("useRoomCommandRequests", () => {
     expect(commandExecutor).toHaveBeenCalledWith({
       command: ".ra 侦查",
       originMessage: ".ra 侦查",
-      threadId: undefined,
       replyMessageId: 101,
     });
     expect(hook.isCommandRequestConsumed(101)).toBe(true);

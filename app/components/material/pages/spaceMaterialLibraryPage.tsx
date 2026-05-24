@@ -4,6 +4,7 @@ import type { MaterialItemDragPayload } from "@/components/chat/utils/materialIt
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { appendPathQuery } from "@/utils/pathQuery";
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateSpaceMaterialPackageMutation,
@@ -97,8 +98,7 @@ export default function SpaceMaterialLibraryPage({
     else {
       nextSearchParams.delete("materialPathKey");
     }
-    const query = nextSearchParams.toString();
-    router.history.replace(`${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    router.history.replace(appendPathQuery(location.pathname, nextSearchParams, location.hash));
   }, [location.hash, location.pathname, router, searchParams]);
 
   useEffect(() => {

@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import type { MessageDraft } from "@/types/messageDraft";
+import type { MessageEditorMessage } from "./messageEditorTypes";
 
 import {
   buildRoomMessagePatchOperations,
+  extractMessageEditorSlashQuery,
   getMessageEditorFrameClassName,
   getMessageEditorScrollViewportClassName,
   getMessageEditorSlashMenuLayerClassName,
   getMessageEditorTextBlockShellClassName,
+  isMessageEditorImportablePasteText,
+  mergeChangedRoomMessagesIntoEditorMessages,
+  resolveMessageEditorPointerAutoScrollDelta,
   shouldIgnoreDocumentSelectionEventTarget,
+  shouldStartMessageEditorAtomicBlockSelection,
 } from "./MessageEditor";
 import { createMessageEditorTextDraft } from "./model/messageEditorTransforms";
 
@@ -50,8 +55,9 @@ describe("messageEditor document click guard", () => {
     expect(getMessageEditorScrollViewportClassName()).toBe("relative min-h-0 flex-1 overflow-auto");
   });
 
-  it("renders the slash menu as an overlay outside the text flow", () => {
-    expect(getMessageEditorSlashMenuLayerClassName()).toBe("absolute left-3 right-0 top-full z-20 mt-2");
+  it("renders command menus as overlays outside the text flow", () => {
+    expect(getMessageEditorSlashMenuLayerClassName()).toContain("absolute");
+    expect(getMessageEditorSlashMenuLayerClassName()).toContain("top-full");
   });
 
   it("adds a small gap only between consecutive text blocks", () => {
@@ -64,6 +70,36 @@ describe("messageEditor document click guard", () => {
       hasFollowingTextBlock: false,
       isDragging: false,
     })).not.toContain("mb-2");
+  });
+
+  it("resolves pointer auto-scroll near the document viewport edges", () => {
+    const base = {
+      edgeSize: 40,
+      maxDelta: 20,
+      viewportBottom: 200,
+      viewportTop: 100,
+    };
+
+    expect(resolveMessageEditorPointerAutoScrollDelta({
+      ...base,
+      clientY: 100,
+    })).toBe(-20);
+    expect(resolveMessageEditorPointerAutoScrollDelta({
+      ...base,
+      clientY: 120,
+    })).toBe(-10);
+    expect(resolveMessageEditorPointerAutoScrollDelta({
+      ...base,
+      clientY: 150,
+    })).toBe(0);
+    expect(resolveMessageEditorPointerAutoScrollDelta({
+      ...base,
+      clientY: 180,
+    })).toBe(10);
+    expect(resolveMessageEditorPointerAutoScrollDelta({
+      ...base,
+      clientY: 200,
+    })).toBe(20);
   });
 
   it("treats svg descendants inside the text style toolbar as internal clicks", () => {
@@ -88,12 +124,30 @@ describe("messageEditor document click guard", () => {
 
     expect(shouldIgnoreDocumentSelectionEventTarget(textLikeNode as unknown as EventTarget)).toBe(true);
   });
+
+  it("allows atomic block whitespace to start document selection", () => {
+    const blankAtomicArea = createMockElement();
+
+    expect(shouldStartMessageEditorAtomicBlockSelection(blankAtomicArea as unknown as EventTarget)).toBe(true);
+  });
+
+  it("keeps atomic media and controls out of whitespace selection starts", () => {
+    const image = createMockElement({ tagName: "IMG" });
+    const button = createMockElement({ tagName: "BUTTON" });
+    const handleChild = createMockElement({
+      closestSelectors: ["[data-me-block-handle]"],
+    });
+
+    expect(shouldStartMessageEditorAtomicBlockSelection(image as unknown as EventTarget)).toBe(false);
+    expect(shouldStartMessageEditorAtomicBlockSelection(button as unknown as EventTarget)).toBe(false);
+    expect(shouldStartMessageEditorAtomicBlockSelection(handleChild as unknown as EventTarget)).toBe(false);
+  });
 });
 
 function withRuntimeMessage(
-  message: MessageDraft,
+  message: MessageEditorMessage,
   runtime: { messageId?: number; position?: number; tcLocalSyncState?: "optimistic" },
-): MessageDraft {
+): MessageEditorMessage {
   return Object.assign(message, runtime);
 }
 
@@ -114,7 +168,7 @@ describe("messageEditor room message patch", () => {
     });
   });
 
-  it("keeps optimistic room-cache messages out of document patches", () => {
+  it("keeps optimistic room messages out of document patches", () => {
     const optimistic = withRuntimeMessage(
       createMessageEditorTextDraft({ content: "pending chat message" }),
       { messageId: -1, position: 1, tcLocalSyncState: "optimistic" },
@@ -147,5 +201,102 @@ describe("messageEditor room message patch", () => {
       },
       position: 1,
     });
+  });
+
+  it("merges changed insert responses back into the original editor block", () => {
+    const current = createMessageEditorTextDraft({ content: "local" });
+    const operations = buildRoomMessagePatchOperations([], [current]);
+    const merged = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [
+        {
+          content: "local",
+          messageId: 33,
+          messageType: 1,
+          position: 1,
+          roomId: 10,
+          status: 0,
+          syncId: 101,
+          userId: 20,
+        },
+      ],
+      currentMessages: [current],
+      operations,
+    });
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toBe(current);
+    expect((merged[0] as MessageEditorMessage & { messageId?: number }).messageId).toBe(33);
+    expect((merged[0] as MessageEditorMessage & { syncId?: number }).syncId).toBe(101);
+  });
+
+  it("removes deleted messages and applies changed update/move responses", () => {
+    const deleted = withRuntimeMessage(
+      createMessageEditorTextDraft({ content: "delete me" }),
+      { messageId: 7, position: 1 },
+    );
+    const moved = withRuntimeMessage(
+      createMessageEditorTextDraft({ content: "move me" }),
+      { messageId: 8, position: 2 },
+    );
+
+    const merged = mergeChangedRoomMessagesIntoEditorMessages({
+      changedMessages: [
+        {
+          content: "delete me",
+          messageId: 7,
+          messageType: 1,
+          position: 1,
+          roomId: 10,
+          status: 1,
+          syncId: 102,
+          userId: 20,
+        },
+        {
+          content: "move me",
+          messageId: 8,
+          messageType: 1,
+          position: 9,
+          roomId: 10,
+          status: 0,
+          syncId: 103,
+          userId: 20,
+        },
+      ],
+      currentMessages: [deleted, moved],
+      operations: [
+        {
+          messageId: 7,
+          op: "delete",
+        },
+        {
+          messageId: 8,
+          op: "move",
+          position: 9,
+        },
+      ],
+    });
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toBe(moved);
+    expect((merged[0] as MessageEditorMessage & { position?: number }).position).toBe(9);
+    expect((merged[0] as MessageEditorMessage & { syncId?: number }).syncId).toBe(103);
+  });
+});
+
+describe("messageEditor slash query", () => {
+  it("finds a slash command on any line in the active block", () => {
+    expect(extractMessageEditorSlashQuery("前文\n/ h1\n后文")).toBe("h1");
+    expect(extractMessageEditorSlashQuery("前文\n   / quote\n后文")).toBe("quote");
+    expect(extractMessageEditorSlashQuery("前文\n@ feiyue\n后文")).toBeNull();
+  });
+});
+
+describe("messageEditor import paste detection", () => {
+  it("detects tagged chat logs as importable paste text", () => {
+    expect(isMessageEditorImportablePasteText("[KP]：门开了\n<PL>：我进去")).toBe(true);
+  });
+
+  it("ignores ordinary prose paste text", () => {
+    expect(isMessageEditorImportablePasteText("这是一段普通文档内容，不应该弹导入确认。")).toBe(false);
   });
 });

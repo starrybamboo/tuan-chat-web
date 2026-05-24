@@ -1,27 +1,27 @@
-import type { MessageDraft } from "@/types/messageDraft";
+import type { MessageEditorMessage } from "../messageEditorTypes";
 
-import { TrashIcon } from "@phosphor-icons/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
-import AudioMessage from "@/components/chat/message/media/AudioMessage";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
-import { getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
+import { TrashIcon } from "@/icons";
+import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { mediaFileUrl } from "@/utils/mediaUrl";
+import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
 interface MessageEditorAtomicBlockProps {
-  active: boolean;
+  active?: boolean;
   blockId: string;
-  message: MessageDraft;
-  onDelete: (blockId: string) => void;
+  message: MessageEditorMessage;
+  onDelete?: (blockId: string) => void;
   onFocus: (blockId: string) => void;
+  onResize?: (blockId: string, size: { height: number; width: number }) => void;
+  onUpdate?: (blockId: string, updater: (message: MessageEditorMessage) => MessageEditorMessage) => void;
   onUpload: (blockId: string, file: File) => Promise<void>;
-  onResize: (blockId: string, size: { height: number; width: number }) => void;
   readOnly?: boolean;
 }
 
-function resolveUploadMeta(message: MessageDraft) {
+function resolveUploadMeta(message: MessageEditorMessage) {
   switch (message.messageType) {
     case MESSAGE_TYPE.IMG:
       return {
@@ -65,17 +65,84 @@ function resolveUploadMeta(message: MessageDraft) {
         replaceLabel: "",
         title: "选择块",
       };
+    case MESSAGE_TYPE.DOC_CARD:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "文档块",
+      };
+    case MESSAGE_TYPE.ROOM_JUMP:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "群聊跳转",
+      };
+    case MESSAGE_TYPE.SYSTEM:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "系统消息",
+      };
+    case MESSAGE_TYPE.FORWARD:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "转发消息",
+      };
+    case MESSAGE_TYPE.EFFECT:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "特效",
+      };
+    case MESSAGE_TYPE.COMMAND_REQUEST:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "检定请求",
+      };
+    case MESSAGE_TYPE.STATE_EVENT:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "状态事件",
+      };
+    case MESSAGE_TYPE.CLUE_CARD:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "线索卡片",
+      };
+    case MESSAGE_TYPE.READ_LINE:
+      return {
+        accept: "",
+        emptyLabel: "",
+        replaceLabel: "",
+        title: "已读标记",
+      };
     default:
       return {
         accept: "",
         emptyLabel: "",
         replaceLabel: "",
-        title: "消息块",
+        title: "其他消息",
       };
   }
 }
 
-function hasUploadedMedia(message: MessageDraft) {
+function hasUploadedMedia(message: MessageEditorMessage) {
+  if (!isMessageEditorUploadableMediaMessage(message)) {
+    return true;
+  }
+
   if (message.messageType === MESSAGE_TYPE.IMG) {
     return Boolean(message.extra?.imageMessage?.fileId);
   }
@@ -91,7 +158,7 @@ function hasUploadedMedia(message: MessageDraft) {
   return true;
 }
 
-function resolveUploadedImageUrl(message: MessageDraft) {
+function resolveUploadedImageUrl(message: MessageEditorMessage) {
   const imageMessage = getImageMessageExtra(message.extra);
   if (typeof imageMessage?.fileId !== "number" || imageMessage.fileId <= 0) {
     return "";
@@ -99,7 +166,7 @@ function resolveUploadedImageUrl(message: MessageDraft) {
   return mediaFileUrl(imageMessage.fileId, imageMessage.mediaType, "medium");
 }
 
-function resolveUploadedVideoUrl(message: MessageDraft) {
+function resolveUploadedVideoUrl(message: MessageEditorMessage) {
   const videoMessage = getVideoMessageExtra(message.extra);
   if (typeof videoMessage?.fileId !== "number" || videoMessage.fileId <= 0) {
     return "";
@@ -129,16 +196,27 @@ function resolveMediaEditorSize(payload: unknown) {
   };
 }
 
+function formatAudioProgressLabel(second: unknown) {
+  if (typeof second !== "number" || !Number.isFinite(second) || second <= 0) {
+    return "";
+  }
+
+  const totalSeconds = Math.round(second);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `0:00 / ${minutes}:${seconds}`;
+}
+
 /**
- * 原子块编辑壳，负责上传与删除交互。
+ * 原子块编辑壳，负责上传、删除与媒体缩放交互。
  */
 export function MessageEditorAtomicBlock({
   blockId,
   message,
   onDelete,
   onFocus,
-  onUpload,
   onResize,
+  onUpload,
   readOnly = false,
 }: MessageEditorAtomicBlockProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -151,6 +229,7 @@ export function MessageEditorAtomicBlock({
   } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [fileDropActive, setFileDropActive] = useState(false);
   const uploadMeta = resolveUploadMeta(message);
   const uploadable = uploadMeta.accept.length > 0;
   const uploaded = hasUploadedMedia(message);
@@ -165,7 +244,6 @@ export function MessageEditorAtomicBlock({
     : isVideoBlock
       ? getVideoMessageExtra(message.extra)
       : undefined;
-  const soundMessage = message.messageType === MESSAGE_TYPE.SOUND ? getSoundMessageExtra(message.extra) : undefined;
   const mediaDimensions = resolveMediaDimensions(mediaPayload);
   const mediaEditorSize = resolveMediaEditorSize(mediaPayload);
   const mediaEditorSizeRef = useRef(mediaEditorSize);
@@ -176,12 +254,9 @@ export function MessageEditorAtomicBlock({
     : isVideoBlock
       ? resolveUploadedVideoUrl(message)
       : "";
-  const soundMediaUrl = typeof soundMessage?.fileId === "number" && soundMessage.fileId > 0
-    ? mediaFileUrl(soundMessage.fileId, soundMessage.mediaType, "low")
+  const audioProgressLabel = message.messageType === MESSAGE_TYPE.SOUND
+    ? formatAudioProgressLabel(message.extra?.soundMessage?.second)
     : "";
-  const soundPurpose = resolveRenderedSoundMessagePurpose({
-    payloadPurpose: soundMessage?.purpose,
-  });
   const mediaAspectRatio = useMemo(() => {
     const editorWidth = typeof mediaEditorSize?.width === "number" && mediaEditorSize.width > 0 ? mediaEditorSize.width : 0;
     const editorHeight = typeof mediaEditorSize?.height === "number" && mediaEditorSize.height > 0 ? mediaEditorSize.height : 0;
@@ -199,6 +274,76 @@ export function MessageEditorAtomicBlock({
     resizeSessionRef.current = null;
   }, [mediaIdentity]);
 
+  const startUpload = useCallback((file: File) => {
+    setUploadError("");
+    setUploading(true);
+    void onUpload(blockId, file)
+      .catch((error) => {
+        setUploadError(error instanceof Error ? error.message : String(error));
+      })
+      .finally(() => {
+        setUploading(false);
+      });
+  }, [blockId, onUpload]);
+
+  const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    startUpload(file);
+    event.target.value = "";
+  }, [startUpload]);
+
+  const handleFileDragEnter = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly || !uploadable || !isMessageEditorFileDrag(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    setFileDropActive(true);
+  }, [readOnly, uploadable]);
+
+  const handleFileDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly || !uploadable || !isMessageEditorFileDrag(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }, [readOnly, uploadable]);
+
+  const handleFileDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly || !uploadable || !isMessageEditorFileDrag(event.dataTransfer)) {
+      return;
+    }
+
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
+      return;
+    }
+
+    setFileDropActive(false);
+  }, [readOnly, uploadable]);
+
+  const handleFileDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly || !uploadable || !isMessageEditorFileDrag(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    setFileDropActive(false);
+
+    const file = event.dataTransfer.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    startUpload(file);
+  }, [readOnly, startUpload, uploadable]);
+
   const commitResize = (nextWidth: number) => {
     const clampedWidth = Math.max(160, Math.round(nextWidth));
     const nextHeight = Math.max(1, Math.round(clampedWidth * mediaAspectRatio));
@@ -206,7 +351,7 @@ export function MessageEditorAtomicBlock({
       resizeSessionRef.current.lastWidth = clampedWidth;
     }
     setDisplayWidth(clampedWidth);
-    onResize(blockId, {
+    onResize?.(blockId, {
       height: nextHeight,
       width: clampedWidth,
     });
@@ -255,7 +400,7 @@ export function MessageEditorAtomicBlock({
 
     resizeSessionRef.current = null;
     const currentWidth = resizeSession.lastWidth;
-    onResize(blockId, {
+    onResize?.(blockId, {
       height: Math.max(1, Math.round(currentWidth * resizeSession.aspectRatio)),
       width: Math.max(1, Math.round(currentWidth)),
     });
@@ -266,6 +411,10 @@ export function MessageEditorAtomicBlock({
       return;
     }
     fileInputRef.current?.click();
+  };
+
+  const deleteBlock = () => {
+    onDelete?.(blockId);
   };
 
   const uploadButtonLabel = uploading
@@ -282,7 +431,7 @@ export function MessageEditorAtomicBlock({
         type="button"
         className="pointer-events-none absolute right-1 top-1/2 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0 shadow-sm transition duration-150 hover:border-error/40 hover:text-error group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100"
         onMouseDown={event => event.preventDefault()}
-        onClick={() => onDelete(blockId)}
+        onClick={deleteBlock}
         aria-label={label}
         title={label}
       >
@@ -311,7 +460,7 @@ export function MessageEditorAtomicBlock({
           type="button"
           className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-error/40 hover:text-error"
           onMouseDown={event => event.preventDefault()}
-          onClick={() => onDelete(blockId)}
+          onClick={deleteBlock}
         >
           删除
         </button>
@@ -328,7 +477,7 @@ export function MessageEditorAtomicBlock({
             type="button"
             className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
             onMouseDown={event => event.preventDefault()}
-            onClick={() => onDelete(blockId)}
+            onClick={deleteBlock}
           >
             删除
           </button>
@@ -407,12 +556,19 @@ export function MessageEditorAtomicBlock({
 
   return (
     <div
-      className="flex flex-col gap-3"
+      className={[
+        "flex flex-col gap-3 transition-colors",
+        fileDropActive ? "rounded-sm bg-base-200/30 ring-1 ring-primary/30" : "",
+      ].join(" ")}
       onMouseDownCapture={() => {
         if (!readOnly) {
           onFocus(blockId);
         }
       }}
+      onDragEnter={handleFileDragEnter}
+      onDragLeave={handleFileDragLeave}
+      onDragOver={handleFileDragOver}
+      onDrop={handleFileDrop}
     >
       {uploadable && (
         <input
@@ -420,24 +576,7 @@ export function MessageEditorAtomicBlock({
           type="file"
           accept={uploadMeta.accept}
           className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) {
-              return;
-            }
-            setUploadError("");
-            setUploading(true);
-            void onUpload(blockId, file)
-              .catch((error) => {
-                setUploadError(error instanceof Error ? error.message : String(error));
-              })
-              .finally(() => {
-                setUploading(false);
-                if (event.target) {
-                  event.target.value = "";
-                }
-              });
-          }}
+          onChange={handleFileInputChange}
         />
       )}
 
@@ -468,7 +607,7 @@ export function MessageEditorAtomicBlock({
                                 type="button"
                                 className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
                                 onMouseDown={event => event.preventDefault()}
-                                onClick={() => onDelete(blockId)}
+                                onClick={deleteBlock}
                               >
                                 删除
                               </button>
@@ -479,51 +618,23 @@ export function MessageEditorAtomicBlock({
 
                       <div
                         className={message.messageType === MESSAGE_TYPE.SOUND
-                          ? "group/media relative w-full"
+                          ? "group/media relative inline-block max-w-full pr-9"
                           : message.messageType === MESSAGE_TYPE.FILE
                             ? "group/media relative min-w-0 pr-9"
                             : isCenteredUploadBlock
                               ? "group/media relative"
                               : ""}
                       >
-                        {message.messageType === MESSAGE_TYPE.SOUND
-                          ? (
-                              <div className="flex flex-col gap-2">
-                                {soundMediaUrl
-                                  ? (
-                                      <AudioMessage
-                                        purpose={soundPurpose}
-                                        cacheKey={`${blockId}:audio`}
-                                        url={soundMediaUrl}
-                                        duration={typeof soundMessage?.second === "number" ? soundMessage.second : undefined}
-                                        title={soundMessage?.fileName}
-                                        layout="document"
-                                        onDelete={() => onDelete(blockId)}
-                                        deleteLabel="删除音频块"
-                                      />
-                                    )
-                                  : (
-                                      <span className="text-xs text-base-content/60">[语音]</span>
-                                    )}
-                                {message.content && (
-                                  <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
-                                    {message.content}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          : (
-                              <>
-                                {isCenteredUploadBlock && renderFloatingUploadActions()}
-                                <MessageContentRenderer
-                                  message={{
-                                    ...message,
-                                    content: message.content ?? "",
-                                    messageType: message.messageType ?? 0,
-                                  }}
-                                />
-                              </>
-                            )}
+                        {isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.SOUND && renderFloatingUploadActions()}
+                        <MessageContentRenderer
+                          message={{
+                            ...message,
+                            content: message.content ?? "",
+                            messageType: message.messageType ?? 0,
+                          }}
+                        />
+                        {audioProgressLabel && <span className="sr-only">{audioProgressLabel}</span>}
+                        {message.messageType === MESSAGE_TYPE.SOUND && renderInlineDeleteAction("删除音频块")}
                         {message.messageType === MESSAGE_TYPE.FILE && renderInlineDeleteAction("删除文件块")}
                       </div>
                     </>

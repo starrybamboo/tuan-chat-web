@@ -1,78 +1,32 @@
 import type { RoleAvatar } from "api";
 
-import { avatarOriginalUrl, avatarUrl, imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
-
+import type { RoleAvatarMediaSource } from "./roleAvatarMedia";
 import type { Transform } from "./TransformControl";
 
-export function getEffectiveAvatarOriginalUrl(avatar: RoleAvatar | null | undefined): string {
-  const resolvedAvatarOriginalUrl = avatarOriginalUrl(avatar?.avatarFileId);
-  if (resolvedAvatarOriginalUrl) {
-    return resolvedAvatarOriginalUrl;
-  }
+import { resolveRoleAvatarMedia } from "./roleAvatarMedia";
 
-  return getEffectiveAvatarUrl(avatar);
+export function getEffectiveAvatarOriginalUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).avatar.originalUrl;
 }
 
-export function getEffectiveAvatarUrl(avatar: RoleAvatar | null | undefined): string {
-  const resolvedAvatarUrl = avatarUrl(avatar?.avatarFileId);
-  if (resolvedAvatarUrl) {
-    return resolvedAvatarUrl;
-  }
-
-  const resolvedAvatarOriginalUrl = avatarOriginalUrl(avatar?.avatarFileId);
-  if (resolvedAvatarOriginalUrl) {
-    return resolvedAvatarOriginalUrl;
-  }
-
-  return imageOriginalUrl(avatar?.originFileId);
+export function getEffectiveAvatarUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).avatar.url;
 }
 
-export function getEffectiveAvatarThumbUrl(avatar: RoleAvatar | null | undefined): string {
-  return imageLowUrl(avatar?.avatarFileId) || getEffectiveAvatarUrl(avatar);
+export function getEffectiveAvatarThumbUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).avatar.thumbUrl;
 }
 
-export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatar | null | undefined): string {
-  const spriteOriginalUrl = imageOriginalUrl(avatar?.spriteFileId);
-  if (spriteOriginalUrl) {
-    return spriteOriginalUrl;
-  }
-
-  const originUrl = imageOriginalUrl(avatar?.originFileId);
-  if (originUrl) {
-    return originUrl;
-  }
-
-  return getEffectiveSpriteUrl(avatar);
+export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).sprite.originalUrl;
 }
 
-export function getEffectiveSpriteUrl(avatar: RoleAvatar | null | undefined): string {
-  const spriteUrl = imageMediumUrl(avatar?.spriteFileId);
-  if (spriteUrl) {
-    return spriteUrl;
-  }
+export function getSpriteCropSourceUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).sprite.cropSourceUrl;
+}
 
-  const spriteOriginalUrl = imageOriginalUrl(avatar?.spriteFileId);
-  if (spriteOriginalUrl) {
-    return spriteOriginalUrl;
-  }
-
-  // 无立绘时：使用头像作为默认立绘
-  const resolvedAvatarUrl = avatarUrl(avatar?.avatarFileId);
-  if (resolvedAvatarUrl) {
-    return resolvedAvatarUrl;
-  }
-
-  const resolvedAvatarOriginalUrl = avatarOriginalUrl(avatar?.avatarFileId);
-  if (resolvedAvatarOriginalUrl) {
-    return resolvedAvatarOriginalUrl;
-  }
-
-  const originUrl = imageOriginalUrl(avatar?.originFileId);
-  if (originUrl) {
-    return originUrl;
-  }
-
-  return undefined as unknown as string;
+export function getEffectiveSpriteUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).sprite.url || (undefined as unknown as string);
 }
 
 export function parseTransformFromAvatar(avatar: RoleAvatar | null): Transform {

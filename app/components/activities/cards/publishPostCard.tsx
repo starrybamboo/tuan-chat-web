@@ -1,28 +1,21 @@
-import type { MomentFeedRequest } from "../../../../api";
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import React, { useEffect, useRef, useState } from "react";
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
-import { imageLowUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/mediaUrl";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
+import {
+  buildMomentFeedRequestFromPostMedia,
+  createStickerPublishImage,
+  getPublishPostImagePreviewUrl,
+  type PublishPostImageAsset,
+} from "./publishPostMedia";
 
 interface PublishBoxProps {
   loginUserId: number;
-}
-
-interface LocalImage {
-  id: string;
-  file?: File; // 本地文件（存在则为本地上传）
-  url: string; // 预览地址（blob: 或 已上传后的外链）
-  uploadedUrl?: string; // 上传成功后后端返回的最终 URL（上传后优先使用）
-  originalUploadedUrl?: string;
-  uploading: boolean;
-  error?: string | null;
-  isEmoji?: boolean; // 来自 StickerWindow 的外链表情
-  name?: string;
-  size?: number;
 }
 
 const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
@@ -31,7 +24,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const [isPublishing, setIsPublishing] = useState(false);
 
   // 图片状态数组（按插入顺序）
-  const [images, setImages] = useState<LocalImage[]>([]);
+  const [images, setImages] = useState<PublishPostImageAsset[]>([]);
 
   // 控制表情弹窗显示（如果你想改为 Modal，可替换）
   const [showStickerWindow, setShowStickerWindow] = useState(false);
@@ -66,8 +59,8 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   useEffect(() => {
     return () => {
       images.forEach((i) => {
-        if (i.file && i.url.startsWith("blob:")) {
-          URL.revokeObjectURL(i.url);
+        if (i.file && i.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(i.previewUrl);
         }
       });
     };
@@ -92,10 +85,10 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const blobUrl = URL.createObjectURL(file);
 
-    const newImg: LocalImage = {
+    const newImg: PublishPostImageAsset = {
       id,
       file,
-      url: blobUrl, // 先用本地 blob 预览
+      previewUrl: blobUrl,
       uploading: true, // 参考 StickerWindow：选择即上传 -> uploading true
       error: null,
       name: file.name,
@@ -108,14 +101,17 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     uploadingPromisesRef.current[id] = (async () => {
       try {
         const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
-        // 上传成功后把 uploadedUrl 写回，并把预览切换为服务器 URL（避免 blob 长期占内存）
         setImages(prev => prev.map(p => (p.id === id
           ? {
               ...p,
               uploading: false,
-              originalUploadedUrl: uploadedImage.originalUrl,
-              uploadedUrl: uploadedImage.url,
-              url: uploadedImage.url,
+              fileId: uploadedImage.fileId,
+              mediaType: uploadedImage.mediaType,
+              previewUrl: getPublishPostImagePreviewUrl({
+                fileId: uploadedImage.fileId,
+                mediaType: uploadedImage.mediaType,
+                previewUrl: p.previewUrl,
+              }),
             }
           : p)));
       }
@@ -129,24 +125,15 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     })();
   };
 
-  const handleEmojiChoose = (emoji: any) => {
-    if (!emoji || !emoji.imageUrl)
+  const handleEmojiChoose = (emoji: Sticker) => {
+    const newImg = createStickerPublishImage(emoji);
+    if (!newImg)
       return;
     // 我还没想好存多少图片
     // if (images.length >= maxImages) {
     //   alert(`最多只能上传 ${maxImages} 张图片`);
     //   return;
     // }
-    const id = `emoji_${emoji.stickerId ?? Date.now()}`;
-    const newImg: LocalImage = {
-      id,
-      url: emoji.imageUrl,
-      uploadedUrl: emoji.imageUrl, // 已是远端 URL，直接可用
-      originalUploadedUrl: emoji.originalImageUrl ?? emoji.imageUrl,
-      uploading: false,
-      isEmoji: true,
-      error: null,
-    };
     setImages(prev => [...prev, newImg]);
     // 如果你想在选择表情包后自动关闭弹窗：
     setShowStickerWindow(false);
@@ -155,8 +142,8 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const handleDeleteImage = (id: string) => {
     setImages((prev) => {
       const toRemove = prev.find(p => p.id === id);
-      if (toRemove?.file && toRemove.url.startsWith("blob:")) {
-        URL.revokeObjectURL(toRemove.url);
+      if (toRemove?.file && toRemove.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(toRemove.previewUrl);
       }
       return prev.filter(p => p.id !== id);
     });
@@ -182,22 +169,18 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
         return;
       }
 
-      // 优先使用 uploadedUrl（服务器 URL），否则使用 url（emoji 等外链）
-      const imageUrls = images.map(i => i.uploadedUrl ?? i.url).filter(Boolean);
-      const originalImageUrls = images.map(i => i.originalUploadedUrl ?? i.uploadedUrl ?? i.url).filter(Boolean);
-
-      const request: MomentFeedRequest = {
-        content: content.trim(),
-        imageUrls,
-        originalImageUrls,
-      };
+      const { request, invalidImageIds } = buildMomentFeedRequestFromPostMedia(content, images);
+      if (invalidImageIds.length > 0) {
+        setIsPublishing(false);
+        return;
+      }
 
       await publishMutation.mutateAsync(request);
 
       // 发布成功后释放本地 blob 并清理
       images.forEach((i) => {
-        if (i.file && i.url.startsWith("blob:"))
-          URL.revokeObjectURL(i.url);
+        if (i.file && i.previewUrl.startsWith("blob:"))
+          URL.revokeObjectURL(i.previewUrl);
       });
 
       // TODO: 添加成功提示
@@ -258,7 +241,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                       className="block w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border border-base-300 bg-base-200/30"
                     >
                       <img
-                        src={imageMediumUrlFromUrl(img.url)}
+                        src={getPublishPostImagePreviewUrl(img)}
                         alt={img.name ?? `img-${idx}`}
                         className="w-full h-full object-cover"
                         loading="lazy"

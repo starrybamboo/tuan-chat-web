@@ -1,5 +1,5 @@
-import type { MarkTarget } from "api";
 import { createContext } from "react";
+import type { CommentTargetInfo } from "../../../../api/hooks/commentQueryHooks";
 
 export interface CommentTreeOptions {
   childLimit: number;
@@ -7,7 +7,7 @@ export interface CommentTreeOptions {
 }
 
 export interface CommentContextType {
-  targetInfo: MarkTarget;
+  targetInfo: CommentTargetInfo;
   treeOptions?: CommentTreeOptions;
 }
 

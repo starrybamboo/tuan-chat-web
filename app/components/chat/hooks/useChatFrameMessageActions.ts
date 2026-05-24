@@ -8,7 +8,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
-type BatchSendMessagesAsync = (requests: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: Message[] }>;
+type InsertMessages = (requests: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: Message[] }>;
 type SendMessageWithInsert = (request: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
 export type ForwardMode = "merged" | "separate";
 
@@ -19,10 +19,16 @@ type UseChatFrameMessageActionsParams = {
   curAvatarId: number;
   send: (message: ChatMessageRequest) => void;
   sendMessageWithInsert?: SendMessageWithInsert;
-  batchSendMessagesAsync: BatchSendMessagesAsync;
+  insertMessages: InsertMessages;
   updateMessage: (message: Message) => void;
   setIsForwardWindowOpen: (open: boolean) => void;
   clearSelection: () => void;
+};
+
+type ForwardFinalizeOptions = {
+  closeWindow?: boolean;
+  clearSelection?: boolean;
+  toastSuccess?: boolean;
 };
 
 const FORWARD_TOAST = "\u5DF2\u8F6C\u53D1\u6D88\u606F";
@@ -35,7 +41,7 @@ export default function useChatFrameMessageActions({
   curAvatarId,
   send,
   sendMessageWithInsert,
-  batchSendMessagesAsync,
+  insertMessages,
   updateMessage,
   setIsForwardWindowOpen,
   clearSelection,
@@ -90,7 +96,11 @@ export default function useChatFrameMessageActions({
     };
   }, [normalizeForwardedRawType]);
 
-  const handleForward = useCallback(async (forwardRoomId: number, mode: ForwardMode): Promise<boolean> => {
+  const forwardSelectedMessagesToRoom = useCallback(async (
+    forwardRoomId: number,
+    mode: ForwardMode,
+    options?: ForwardFinalizeOptions,
+  ): Promise<boolean> => {
     if (forwardRoomId <= 0) {
       toast.error("请选择有效的转发房间");
       return false;
@@ -104,20 +114,26 @@ export default function useChatFrameMessageActions({
 
     if (mode === "separate") {
       try {
-        const batchRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
-        const result = await batchSendMessagesAsync(batchRequests);
+        const insertRequests = selectedMessages.map(message => constructRawForwardRequest(forwardRoomId, message.message));
+        const result = await insertMessages(insertRequests);
         const createdMessages = Array.isArray(result?.data) ? result.data : [];
-        if (!result?.success || createdMessages.length !== batchRequests.length)
-          throw new Error("批量发送失败");
+        if (!result?.success || createdMessages.length !== insertRequests.length)
+          throw new Error("批量插入失败");
       }
       catch (error) {
         console.error("逐条转发失败:", error);
         toast.error("逐条转发失败");
         return false;
       }
-      setIsForwardWindowOpen(false);
-      clearSelection();
-      toast(FORWARD_SEPARATE_TOAST);
+      if (options?.closeWindow ?? true) {
+        setIsForwardWindowOpen(false);
+      }
+      if (options?.clearSelection ?? true) {
+        clearSelection();
+      }
+      if (options?.toastSuccess ?? true) {
+        toast(FORWARD_SEPARATE_TOAST);
+      }
       return true;
     }
 
@@ -138,20 +154,54 @@ export default function useChatFrameMessageActions({
     else {
       send(mergedForwardRequest);
     }
-    setIsForwardWindowOpen(false);
-    clearSelection();
-    toast(FORWARD_TOAST);
+    if (options?.closeWindow ?? true) {
+      setIsForwardWindowOpen(false);
+    }
+    if (options?.clearSelection ?? true) {
+      clearSelection();
+    }
+    if (options?.toastSuccess ?? true) {
+      toast(FORWARD_TOAST);
+    }
     return true;
   }, [
-    batchSendMessagesAsync,
     clearSelection,
     constructForwardRequest,
     constructRawForwardRequest,
     getSelectedMessages,
+    insertMessages,
     send,
     sendMessageWithInsert,
     setIsForwardWindowOpen,
   ]);
+
+  const handleForward = useCallback(async (forwardRoomId: number, mode: ForwardMode): Promise<boolean> => {
+    return await forwardSelectedMessagesToRoom(forwardRoomId, mode);
+  }, [forwardSelectedMessagesToRoom]);
+
+  const handleForwardToRooms = useCallback(async (forwardRoomIds: number[], mode: ForwardMode): Promise<boolean> => {
+    const nextRoomIds = Array.from(new Set(forwardRoomIds)).filter(roomId => roomId > 0);
+    if (nextRoomIds.length === 0) {
+      toast.error("请选择有效的转发房间");
+      return false;
+    }
+
+    for (const roomId of nextRoomIds) {
+      const success = await forwardSelectedMessagesToRoom(roomId, mode, {
+        closeWindow: false,
+        clearSelection: false,
+        toastSuccess: false,
+      });
+      if (!success) {
+        return false;
+      }
+    }
+
+    setIsForwardWindowOpen(false);
+    clearSelection();
+    toast.success(`已转发到 ${nextRoomIds.length} 个房间`);
+    return true;
+  }, [clearSelection, forwardSelectedMessagesToRoom, setIsForwardWindowOpen]);
 
   const toggleBackground = useCallback((messageId: number) => {
     const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
@@ -189,6 +239,7 @@ export default function useChatFrameMessageActions({
 
   return {
     handleForward,
+    handleForwardToRooms,
     toggleBackground,
     toggleUnlockCg,
   };

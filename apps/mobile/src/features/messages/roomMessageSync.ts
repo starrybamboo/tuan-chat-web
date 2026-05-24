@@ -6,7 +6,12 @@ import {
 } from "@tuanchat/query/room-message";
 import { reconcileOptimisticRoomMessagesInList } from "@tuanchat/query/room-message-lifecycle";
 
-import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
+import {
+  extractRoomMessagesFromQueryData,
+  type RoomMessagesQueryData,
+  type RoomMessagesSyncResult,
+  updateRoomMessagesQueryData,
+} from "./roomMessagesQueryData";
 
 type RoomMessageSyncClient = {
   chatController: {
@@ -20,18 +25,11 @@ export type FetchRoomMessagesWithLocalSyncDeps = {
   getMaxCachedSyncId: (roomId: number) => Promise<number>;
 };
 
-export type RoomMessagesFetchMode = "full" | "delta";
-
-export type RoomMessagesSyncResult = {
-  messages: ChatMessageResponse[];
-  mode: RoomMessagesFetchMode;
-};
-
 type RoomMessageQueryCache = {
-  getQueryData: (queryKey: readonly unknown[]) => ChatMessageResponse[] | RoomMessagesSyncResult | undefined;
+  getQueryData: (queryKey: readonly unknown[]) => RoomMessagesQueryData;
   setQueryData: (
     queryKey: readonly unknown[],
-    updater: (currentData: ChatMessageResponse[] | RoomMessagesSyncResult | undefined) => ChatMessageResponse[] | RoomMessagesSyncResult,
+    updater: (currentData: RoomMessagesQueryData) => RoomMessagesQueryData,
   ) => void;
 };
 

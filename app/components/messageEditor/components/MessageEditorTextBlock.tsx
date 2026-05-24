@@ -1,7 +1,6 @@
+import type { MessageEditorMessage } from "../messageEditorTypes";
 // oxlint-disable jsx-a11y/no-static-element-interactions
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { MessageDraft } from "@/types/messageDraft";
-
 import { useLayoutEffect, useRef } from "react";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
@@ -15,12 +14,14 @@ import {
 interface MessageEditorTextBlockProps {
   active: boolean;
   blockId: string;
-  message: MessageDraft;
+  message: MessageEditorMessage;
   onBlur?: (blockId: string) => void;
   onFocus: (blockId: string) => void;
   onInput: (blockId: string, nextContent: string) => void;
   onKeyDown: (blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => void;
   onMouseDown?: (blockId: string, event: React.MouseEvent<HTMLDivElement>) => void;
+  onPasteFiles?: (blockId: string, files: File[]) => void;
+  onPasteText?: (blockId: string, text: string, insertPlainText: () => void) => boolean | void;
   placeholder?: string;
   readOnly?: boolean;
   registerBlockRef: (blockId: string, node: HTMLDivElement | null) => void;
@@ -176,16 +177,15 @@ function restoreEditableSelection(editor: HTMLElement, snapshot: EditableSelecti
   selection.addRange(range);
 }
 
+const TEXT_SELECTION_CLASS_NAME = "rounded-[3px] bg-sky-200/20 px-0.5 text-inherit ring-1 ring-inset ring-sky-300/35 box-decoration-clone";
+const TEXT_SELECTION_EMPTY_CLASS_NAME = "block min-h-7 w-full rounded-md bg-sky-200/10 ring-1 ring-inset ring-sky-300/40";
+
 function renderSelectedLineBreak(showLineBreakAfter: boolean | undefined) {
   if (!showLineBreakAfter) {
     return null;
   }
 
-  return (
-    <span className="rounded-sm bg-sky-200 px-1 text-slate-950/70">
-      ↵
-    </span>
-  );
+  return <span aria-hidden="true" className="inline-block w-1.5" />;
 }
 
 function renderSourceContentWithSelection(content: string, selectionSegment: { end: number; showLineBreakAfter?: boolean; start: number } | null) {
@@ -197,7 +197,7 @@ function renderSourceContentWithSelection(content: string, selectionSegment: { e
   const end = Math.max(start, Math.min(selectionSegment.end, content.length));
   if (content.length === 0 && start === 0 && end === 0) {
     return (
-      <span className="block min-h-6 w-full rounded-sm bg-sky-200 text-slate-950">
+      <span className={TEXT_SELECTION_EMPTY_CLASS_NAME}>
         {renderSelectedLineBreak(selectionSegment.showLineBreakAfter)}
       </span>
     );
@@ -206,7 +206,7 @@ function renderSourceContentWithSelection(content: string, selectionSegment: { e
   return (
     <>
       {content.slice(0, start)}
-      <span className="rounded-sm bg-sky-200 text-slate-950">
+      <span className={TEXT_SELECTION_CLASS_NAME}>
         {content.slice(start, end)}
       </span>
       {renderSelectedLineBreak(selectionSegment.showLineBreakAfter)}
@@ -215,9 +215,9 @@ function renderSourceContentWithSelection(content: string, selectionSegment: { e
   );
 }
 
-function blockClassName(message: MessageDraft, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
+function blockClassName(message: MessageEditorMessage, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   const base = [
-    "relative rounded-md px-0 py-0 text-base leading-6 transition selection:bg-sky-200 selection:text-slate-950",
+    "relative rounded-md px-0 py-0 text-base leading-7 transition selection:bg-sky-200/25 selection:text-base-content",
     "bg-transparent",
   ];
 
@@ -240,9 +240,9 @@ function blockClassName(message: MessageDraft, previewKind: ReturnType<typeof pa
   return base.join(" ");
 }
 
-function textContentClassName(message: MessageDraft, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
+function textContentClassName(message: MessageEditorMessage, previewKind: ReturnType<typeof parseMessageEditorMarkdownPreview>["kind"]) {
   return [
-    "min-h-7 whitespace-pre-wrap break-words text-base leading-6 [word-break:normal] outline-none selection:bg-sky-200 selection:text-slate-950",
+    "min-h-7 whitespace-pre-wrap break-words text-base leading-7 [word-break:normal] outline-none selection:bg-sky-200/25 selection:text-base-content",
     message.messageType === MESSAGE_TYPE.INTRO_TEXT ? "text-white" : "",
     previewKind === "heading1" ? "text-3xl font-semibold leading-tight" : "",
     previewKind === "heading2" ? "text-2xl font-semibold leading-tight" : "",
@@ -263,6 +263,8 @@ export function MessageEditorTextBlock({
   onInput,
   onKeyDown,
   onMouseDown,
+  onPasteFiles,
+  onPasteText,
   placeholder = "",
   readOnly = false,
   registerBlockRef,
@@ -377,38 +379,68 @@ export function MessageEditorTextBlock({
       data-me-block-hit={blockId}
       onMouseDown={event => onMouseDown?.(blockId, event)}
     >
-      {!content && !active && !readOnly && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 text-base-content/25">
-          {placeholder}
-        </div>
-      )}
-      {sourceMode
-        ? (editableSourceMode
-            ? (
-                <div
-                  onMouseDownCapture={() => {
-                    onFocus(blockId);
-                  }}
-                >
-                  <ChatInputArea
-                    ref={effectiveTextInputRef}
-                    className={`!overflow-visible !p-0 ${contentClassName}`}
-                    inputScope="message-edit"
-                    placeholder={placeholder}
-                    disabled={false}
-                    onInputSync={(plainText) => {
-                      onInput(blockId, normalizeEditableText(plainText));
-                    }}
-                    onPasteFiles={() => {}}
-                    onKeyDown={event => onKeyDown(blockId, event)}
-                    onKeyUp={() => {}}
-                    onMouseDown={() => {}}
-                    onCompositionStart={() => {}}
-                    onCompositionEnd={() => {}}
-                    onFocus={() => onFocus(blockId)}
-                    onBlur={() => onBlur?.(blockId)}
-                  />
-                </div>
+      <div className="min-w-0">
+        <div className="min-w-0 flex-1">
+          {!content && !active && !readOnly && (
+            <div className="pointer-events-none text-base-content/25">
+              {placeholder}
+            </div>
+          )}
+          {sourceMode
+            ? (editableSourceMode
+                ? (
+                    <div
+                      onMouseDownCapture={() => {
+                        onFocus(blockId);
+                      }}
+                    >
+                      <ChatInputArea
+                        ref={effectiveTextInputRef}
+                        className={`!overflow-visible !p-0 ${contentClassName}`}
+                        inputScope="message-edit"
+                        placeholder={placeholder}
+                        disabled={false}
+                        onInputSync={(plainText) => {
+                          onInput(blockId, normalizeEditableText(plainText));
+                        }}
+                        onPasteFiles={files => onPasteFiles?.(blockId, files)}
+                        onPasteText={(text, insertPlainText) => onPasteText?.(blockId, text, insertPlainText)}
+                        onKeyDown={event => onKeyDown(blockId, event)}
+                        onKeyUp={() => {}}
+                        onMouseDown={() => {}}
+                        onCompositionStart={() => {}}
+                        onCompositionEnd={() => {}}
+                        onFocus={() => onFocus(blockId)}
+                        onBlur={() => onBlur?.(blockId)}
+                      />
+                    </div>
+                  )
+                : (
+                    <div
+                      ref={(node) => {
+                        blockContentRef.current = node;
+                        registerBlockRef(blockId, node);
+                      }}
+                      data-me-block-id={blockId}
+                      data-me-text-mode="source"
+                      contentEditable={!readOnly && active && selectionSegment === null}
+                      suppressContentEditableWarning
+                      className={contentClassName}
+                      onMouseDownCapture={() => {
+                        if (!readOnly && selectionSegment === null) {
+                          onFocus(blockId);
+                        }
+                      }}
+                      onFocus={() => onFocus(blockId)}
+                      onBlur={() => onBlur?.(blockId)}
+                      onInput={(event) => {
+                        onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
+                      }}
+                      onKeyDown={event => onKeyDown(blockId, event)}
+                    >
+                      {renderSourceContentWithSelection(content, selectionSegment)}
+                    </div>
+                  )
               )
             : (
                 <div
@@ -417,54 +449,29 @@ export function MessageEditorTextBlock({
                     registerBlockRef(blockId, node);
                   }}
                   data-me-block-id={blockId}
-                  data-me-text-mode="source"
-                  contentEditable={!readOnly && active && selectionSegment === null}
-                  suppressContentEditableWarning
+                  data-me-text-mode="preview"
                   className={contentClassName}
-                  onMouseDownCapture={() => {
-                    if (!readOnly && selectionSegment === null) {
-                      onFocus(blockId);
-                    }
-                  }}
-                  onFocus={() => onFocus(blockId)}
-                  onBlur={() => onBlur?.(blockId)}
-                  onInput={(event) => {
-                    onInput(blockId, normalizeEditableText(event.currentTarget.textContent ?? ""));
-                  }}
-                  onKeyDown={event => onKeyDown(blockId, event)}
                 >
-                  {renderSourceContentWithSelection(content, selectionSegment)}
-                </div>
-              )
-          )
-        : (
-            <div
-              ref={(node) => {
-                blockContentRef.current = node;
-                registerBlockRef(blockId, node);
-              }}
-              data-me-block-id={blockId}
-              data-me-text-mode="preview"
-              className={contentClassName}
-            >
-              {previewKind === "bulletedList" && (
-                <ul className="m-0 list-disc pl-6">
-                  <li>{previewNode}</li>
-                </ul>
-              )}
-              {previewKind === "numberedList" && (
-                <ol start={preview.orderedNumber ?? 1} className="m-0 list-decimal pl-6">
-                  <li>{previewNode}</li>
-                </ol>
-              )}
-              {previewKind === "quote" && (
-                <div className="border-l-4 border-base-300 pl-3">
-                  {previewNode}
+                  {previewKind === "bulletedList" && (
+                    <ul className="m-0 list-disc pl-6">
+                      <li>{previewNode}</li>
+                    </ul>
+                  )}
+                  {previewKind === "numberedList" && (
+                    <ol start={preview.orderedNumber ?? 1} className="m-0 list-decimal pl-6">
+                      <li>{previewNode}</li>
+                    </ol>
+                  )}
+                  {previewKind === "quote" && (
+                    <div className="border-l-4 border-base-300 pl-3">
+                      {previewNode}
+                    </div>
+                  )}
+                  {(previewKind === "paragraph" || previewKind === "heading1" || previewKind === "heading2" || previewKind === "heading3") && previewNode}
                 </div>
               )}
-              {(previewKind === "paragraph" || previewKind === "heading1" || previewKind === "heading2" || previewKind === "heading3") && previewNode}
-            </div>
-          )}
+        </div>
+      </div>
     </div>
   );
 }

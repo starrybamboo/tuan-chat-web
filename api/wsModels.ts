@@ -25,7 +25,6 @@ export enum MessageType {
     STATE_EVENT = 15,
     CLUE_CARD = 1000,
     ROOM_JUMP = 1003,
-    THREAD_ROOT = 10001,
 }
 
 /**
@@ -159,19 +158,14 @@ export interface RoomExtraChangeEvent {
  */
 export interface RoomDndMapChangeEvent {
     roomId: number;
-    op: "map_upsert" | "map_clear" | "token_upsert" | "token_remove";
+    op: "map_upsert" | "map_clear";
     map?: {
         mapImgUrl?: string;
+        mapFileId?: number;
         gridRows?: number;
         gridCols?: number;
         gridColor?: string;
     };
-    token?: {
-        roleId: number;
-        rowIndex: number;
-        colIndex: number;
-    };
     clearTokens?: boolean;
     updatedAt?: number;
 }
-

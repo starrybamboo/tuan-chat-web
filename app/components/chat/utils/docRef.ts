@@ -1,3 +1,5 @@
+import { buildDocCardReferencePayload } from "@/components/chat/message/docCard/docCardMedia";
+
 const DOC_REF_MIME = "application/x-tc-doc-ref";
 const DOC_REF_FALLBACK_PREFIX = "tc-doc-ref:";
 
@@ -39,7 +41,7 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
   const imageMediaType = typeof raw?.imageMediaType === "string" ? raw.imageMediaType.trim() : "";
   const excerpt = typeof raw?.excerpt === "string" ? raw.excerpt.trim() : "";
 
-  return {
+  return buildDocCardReferencePayload({
     docId,
     ...(roomId ? { roomId } : {}),
     ...(spaceId ? { spaceId } : {}),
@@ -49,12 +51,13 @@ function normalizePayload(raw: any): DocRefDragPayload | null {
     ...(originalImageFileId ? { originalImageFileId } : {}),
     ...(imageMediaType ? { imageMediaType } : {}),
     ...(excerpt ? { excerpt: excerpt.slice(0, 512) } : {}),
-  };
+  });
 }
 
 export function setDocRefDragData(dataTransfer: DataTransfer, payload: DocRefDragPayload): void {
+  const normalizedPayload = normalizePayload(payload) ?? payload;
   try {
-    dataTransfer.setData(DOC_REF_MIME, JSON.stringify(payload));
+    dataTransfer.setData(DOC_REF_MIME, JSON.stringify(normalizedPayload));
   }
   catch {
     // ignore
@@ -64,7 +67,7 @@ export function setDocRefDragData(dataTransfer: DataTransfer, payload: DocRefDra
   // - `text/uri-list` 在不少环境里比自定义 MIME 更稳定
   // - 不覆写现有的 `text/plain`（侧边栏节点移动/排序依赖它）
   try {
-    dataTransfer.setData("text/uri-list", `${DOC_REF_FALLBACK_PREFIX}${payload.docId}`);
+    dataTransfer.setData("text/uri-list", `${DOC_REF_FALLBACK_PREFIX}${normalizedPayload.docId}`);
   }
   catch {
     // ignore
@@ -75,7 +78,7 @@ export function setDocRefDragData(dataTransfer: DataTransfer, payload: DocRefDra
   try {
     const existingPlain = dataTransfer.getData("text/plain") || "";
     if (!existingPlain.trim()) {
-      dataTransfer.setData("text/plain", `${DOC_REF_FALLBACK_PREFIX}${payload.docId}`);
+      dataTransfer.setData("text/plain", `${DOC_REF_FALLBACK_PREFIX}${normalizedPayload.docId}`);
     }
   }
   catch {

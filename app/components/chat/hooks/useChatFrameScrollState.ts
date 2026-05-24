@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import type { VirtuosoHandle } from "react-virtuoso";
+import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
 
 import { useCallback, useEffect, useRef } from "react";
 
@@ -49,6 +49,7 @@ type UseChatFrameScrollStateParams = {
   updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
   virtuosoRef: { current: VirtuosoHandle | null };
   messageIndexToVirtuosoIndex: (messageIndex: number) => number;
+  suppressInitialAutoScroll?: boolean;
 };
 
 type UseChatFrameScrollStateResult = {
@@ -62,6 +63,7 @@ type ResolveAutoScrollAfterLoadParams = {
   loading: boolean;
   hasAutoScrolledAfterLoad: boolean;
   isAtBottom: boolean;
+  suppressAutoScroll?: boolean;
 };
 
 /**
@@ -71,7 +73,11 @@ export function resolveShouldAutoScrollAfterHistoryLoad({
   loading,
   hasAutoScrolledAfterLoad,
   isAtBottom,
+  suppressAutoScroll = false,
 }: ResolveAutoScrollAfterLoadParams): boolean {
+  if (suppressAutoScroll) {
+    return false;
+  }
   if (loading) {
     return false;
   }
@@ -79,6 +85,17 @@ export function resolveShouldAutoScrollAfterHistoryLoad({
     return false;
   }
   return isAtBottom;
+}
+
+export function resolveChatFrameScrollToBottomLocation(messageIndex: number): FlatIndexLocationWithAlign | number {
+  if (messageIndex < 0) {
+    return 0;
+  }
+  return {
+    align: "end",
+    behavior: "auto",
+    index: messageIndex,
+  };
 }
 
 export default function useChatFrameScrollState({
@@ -90,6 +107,7 @@ export default function useChatFrameScrollState({
   updateLastReadSyncId,
   virtuosoRef,
   messageIndexToVirtuosoIndex,
+  suppressInitialAutoScroll = false,
 }: UseChatFrameScrollStateParams): UseChatFrameScrollStateResult {
   const isAtBottomRef = useRef(true);
   const lastAutoSyncUnreadRef = useRef<number | null>(null);
@@ -156,7 +174,9 @@ export default function useChatFrameScrollState({
   }, [enableUnreadIndicator, historyMessages, roomId, updateLastReadSyncId]);
 
   const scrollToBottom = useCallback(() => {
-    virtuosoRef.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
+    virtuosoRef.current?.scrollToIndex(
+      resolveChatFrameScrollToBottomLocation(messageIndexToVirtuosoIndex(historyMessages.length - 1)),
+    );
     if (enableUnreadIndicator) {
       updateLastReadSyncId(roomId);
     }
@@ -178,12 +198,13 @@ export default function useChatFrameScrollState({
       loading: Boolean(chatHistory?.loading),
       hasAutoScrolledAfterLoad: hasAutoScrolledAfterLoadRef.current,
       isAtBottom: isAtBottomRef.current,
+      suppressAutoScroll: suppressInitialAutoScroll,
     })) {
       return;
     }
     hasAutoScrolledAfterLoadRef.current = true;
     scrollToBottom();
-  }, [chatHistory?.loading, scrollToBottom]);
+  }, [chatHistory?.loading, scrollToBottom, suppressInitialAutoScroll]);
 
   return {
     isAtBottomRef,

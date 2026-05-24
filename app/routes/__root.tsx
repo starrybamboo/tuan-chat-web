@@ -165,9 +165,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const location = useLocation();
-  const isScrollSequenceStandalone = location.pathname === "/scroll-sequence-demo"
-    || location.pathname === "/scroll-sequence-motion-demo";
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
   const [isBugFeedbackSplashOpen, setIsBugFeedbackSplashOpen] = React.useState(false);
 
@@ -232,17 +229,6 @@ function App() {
       // ignore
     }
   }, []);
-
-  if (isScrollSequenceStandalone) {
-    return (
-      <>
-        <Outlet />
-        <div id="modal-root"></div>
-        <Toaster />
-        <ToastWindowRenderer />
-      </>
-    );
-  }
 
   return (
     <GlobalContextProvider>

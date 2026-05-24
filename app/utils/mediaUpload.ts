@@ -51,7 +51,7 @@ export type UploadMediaFileOptions = {
   signal?: AbortSignal;
 };
 
-const IMAGE_ORIGINAL_MAX_BYTES = 2 * 1024 * 1024;
+const IMAGE_ORIGINAL_MAX_BYTES = 3 * 1024 * 1024;
 const AUDIO_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
 const VIDEO_ORIGINAL_MAX_BYTES = 200 * 1024 * 1024;
 const OTHER_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
@@ -139,7 +139,7 @@ async function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: nu
   });
 }
 
-async function rasterizeImageToWebp(file: File, quality: Exclude<MediaQuality, "original">, profile: ImageMediaProfile): Promise<File> {
+async function rasterizeImageToWebp(file: File, quality: MediaQuality, profile: ImageMediaProfile): Promise<File> {
   if (typeof document === "undefined") {
     throw new TypeError("当前环境不支持图片派生文件生成");
   }
@@ -224,10 +224,17 @@ async function buildImageVariantFile(
   profile: ImageMediaProfile,
 ): Promise<File> {
   if (file.type === "image/gif") {
-    // GIF 的 original 可以保留动画；展示档统一取首帧生成 WebP，满足媒体库固定三档路径。
+    // GIF 统一取首帧转 WebP，避免 original 混入原格式。
     return await rasterizeImageToWebp(file, quality, profile);
   }
   return await compressImage(file, profile);
+}
+
+async function buildImageOriginalFile(file: File): Promise<File> {
+  const profile = MEDIA_COMPRESSION_PROFILES.image.original;
+  return file.type === "image/gif"
+    ? await rasterizeImageToWebp(file, "original", profile)
+    : await compressImage(file, profile);
 }
 
 async function extractImageMetadata(file: File) {
@@ -250,11 +257,7 @@ async function generateImageUploadFiles(file: File, scene?: number): Promise<Gen
   const original = isChatroom
     ? normalizedFile
     : await (async () => {
-        const result = normalizedFile.size <= IMAGE_ORIGINAL_MAX_BYTES
-          ? normalizedFile
-          : normalizedFile.type === "image/gif"
-            ? await rasterizeImageToWebp(normalizedFile, "medium", MEDIA_COMPRESSION_PROFILES.image.high)
-            : await compressImage(normalizedFile, MEDIA_COMPRESSION_PROFILES.image.high);
+        const result = await buildImageOriginalFile(normalizedFile);
         assertMaxBytes(result, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
         return result;
       })();

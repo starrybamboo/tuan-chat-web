@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
-export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "thread" | "material";
+export type ChatPageSubWindowTab = "empty" | "room" | "doc" | "material";
 type ChatPageSubWindowMaterialSelection = {
   spacePackageId: number | null;
   materialPathKey?: string | null;
@@ -14,7 +14,6 @@ type ChatPageSubWindowSnapshot = {
   tab: ChatPageSubWindowTab;
   roomId: number | null;
   docId: string | null;
-  threadRootMessageId: number | null;
   materialPackageId: number | null;
   materialPathKey: string | null;
 };
@@ -27,7 +26,6 @@ const DEFAULT_SNAPSHOT: ChatPageSubWindowSnapshot = {
   tab: "empty",
   roomId: null,
   docId: null,
-  threadRootMessageId: null,
   materialPackageId: null,
   materialPathKey: null,
 };
@@ -39,17 +37,11 @@ function normalizeMaterialPathKey(value?: string | null): string | null {
 
 function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): ChatPageSubWindowSnapshot {
   const width = typeof raw?.width === "number" && Number.isFinite(raw.width) ? raw.width : DEFAULT_SNAPSHOT.width;
-  // 子区副窗口暂时隐藏，历史快照统一回落为空副窗口，避免旧本地状态继续恢复该入口。
   const tab = raw?.tab === "empty" || raw?.tab === "room" || raw?.tab === "doc" || raw?.tab === "material"
     ? raw.tab
     : DEFAULT_SNAPSHOT.tab;
   const roomId = typeof raw?.roomId === "number" && Number.isFinite(raw.roomId) ? raw.roomId : null;
   const docId = typeof raw?.docId === "string" && raw.docId.length > 0 ? raw.docId : null;
-  const threadRootMessageId = tab === "thread"
-    && typeof raw?.threadRootMessageId === "number"
-    && Number.isFinite(raw.threadRootMessageId)
-    ? raw.threadRootMessageId
-    : null;
   const materialPackageId = typeof raw?.materialPackageId === "number" && Number.isFinite(raw.materialPackageId)
     ? raw.materialPackageId
     : null;
@@ -63,7 +55,6 @@ function normalizeSnapshot(raw?: Partial<ChatPageSubWindowSnapshot> | null): Cha
     tab,
     roomId,
     docId,
-    threadRootMessageId,
     materialPackageId,
     materialPathKey,
   };
@@ -81,7 +72,6 @@ type UseChatPageSubWindowResult = ChatPageSubWindowSnapshot & {
   setTab: (next: ChatPageSubWindowTab) => void;
   setRoomId: (roomId: number | null) => void;
   setDocId: (docId: string | null) => void;
-  setThreadRootMessageId: (messageId: number | null) => void;
   setMaterialSelection: (selection: ChatPageSubWindowMaterialSelection) => void;
 };
 
@@ -132,10 +122,6 @@ export default function useChatPageSubWindow({
 
   const setDocId = useCallback((docId: string | null) => {
     updateSnapshot({ tab: "doc", docId });
-  }, [updateSnapshot]);
-
-  const setThreadRootMessageId = useCallback((messageId: number | null) => {
-    updateSnapshot({ tab: "thread", threadRootMessageId: messageId });
   }, [updateSnapshot]);
 
   const setMaterialSelection = useCallback((selection: ChatPageSubWindowMaterialSelection) => {
@@ -197,7 +183,6 @@ export default function useChatPageSubWindow({
     setTab,
     setRoomId,
     setDocId,
-    setThreadRootMessageId,
     setMaterialSelection,
   };
 }

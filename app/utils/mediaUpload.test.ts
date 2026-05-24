@@ -9,14 +9,18 @@ const {
   normalizeFileMimeTypeMock,
   extractNovelAiMetadataFromPngBytesMock,
   extractNovelAiMetadataFromWebpBytesMock,
-  requestMock,
+  prepareUploadMock,
+  completeUploadMock,
+  tuanchatRequestMock,
   resolveOssUploadTargetMock,
 } = vi.hoisted(() => ({
   compressImageMock: vi.fn(),
   normalizeFileMimeTypeMock: vi.fn(),
   extractNovelAiMetadataFromPngBytesMock: vi.fn(),
   extractNovelAiMetadataFromWebpBytesMock: vi.fn(),
-  requestMock: vi.fn(),
+  prepareUploadMock: vi.fn(),
+  completeUploadMock: vi.fn(),
+  tuanchatRequestMock: vi.fn(),
   resolveOssUploadTargetMock: vi.fn(),
 }));
 
@@ -62,7 +66,11 @@ vi.mock("@/utils/ossUploadTarget", () => ({
 vi.mock("../../api/instance", () => ({
   tuanchat: {
     request: {
-      request: requestMock,
+      request: tuanchatRequestMock,
+    },
+    mediaController: {
+      prepareUpload: prepareUploadMock,
+      completeUpload: completeUploadMock,
     },
   },
 }));
@@ -73,6 +81,16 @@ describe("mediaUpload", () => {
     normalizeFileMimeTypeMock.mockImplementation(async (file: File) => file);
     extractNovelAiMetadataFromPngBytesMock.mockReturnValue(null);
     extractNovelAiMetadataFromWebpBytesMock.mockReturnValue(null);
+    tuanchatRequestMock.mockImplementation(async ({ url, body }: { url: string; body?: unknown }) => {
+      if (url === "/media/prepare-upload") {
+        return await prepareUploadMock(body);
+      }
+      const match = url.match(/^\/media\/upload-sessions\/(\d+)\/complete$/);
+      if (match) {
+        return await completeUploadMock(Number(match[1]));
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number }) => {
       const label = String(profile.maxWidthOrHeight ?? "original");
       return new File([label], `derived-${label}.webp`, { type: "image/webp" });
@@ -91,7 +109,7 @@ describe("mediaUpload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("图片派生文件会按 low -> medium 顺序串行生成", async () => {
+  it("非聊天室图片会先生成 WebP original，再生成 low -> medium", async () => {
     const order: string[] = [];
     compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number }) => {
       order.push(`start-${profile.maxWidthOrHeight}`);
@@ -104,11 +122,14 @@ describe("mediaUpload", () => {
     const result = await generateMediaUploadFiles(file);
 
     expect(order).toEqual([
+      "start-2560",
+      "end-2560",
       "start-200",
       "end-200",
       "start-512",
       "end-512",
     ]);
+    expect(result.filesByQuality.original?.name).toBe("derived-2560.webp");
     expect(result.filesByQuality.low?.name).toBe("derived-200.webp");
     expect(result.filesByQuality.medium?.name).toBe("derived-512.webp");
   });
@@ -118,14 +139,33 @@ describe("mediaUpload", () => {
 
     await generateMediaUploadFiles(file);
 
-    expect(compressImageMock).toHaveBeenNthCalledWith(1, file, expect.objectContaining({
+    expect(compressImageMock).toHaveBeenNthCalledWith(2, expect.any(File), expect.objectContaining({
       maxWidthOrHeight: 200,
       maxSizeKB: 40,
       fileType: "image/webp",
     }));
-    expect(compressImageMock).not.toHaveBeenCalledWith(file, expect.objectContaining({
+    expect(compressImageMock).toHaveBeenCalledWith(file, expect.objectContaining({
       maxWidthOrHeight: 2560,
+      maxSizeKB: 3072,
     }));
+  });
+
+  it("非聊天室图片 original 始终压成 WebP 且上限为 3MiB", async () => {
+    const file = new File([new Uint8Array(1024)], "avatar.png", { type: "image/png" });
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
+      return new File([new Uint8Array(1024)], `derived-${profile.maxSizeKB}.webp`, { type: "image/webp" });
+    });
+
+    const result = await generateMediaUploadFiles(file);
+
+    expect(compressImageMock).toHaveBeenNthCalledWith(1, file, expect.objectContaining({
+      maxWidthOrHeight: 2560,
+      maxSizeKB: 3072,
+      fileType: "image/webp",
+      preserveNovelAiMetadata: true,
+      forceOutput: true,
+    }));
+    expect(result.filesByQuality.original?.name).toBe("derived-3072.webp");
   });
 
   it("聊天室场景的图片只生成 low 和 medium，不生成 original 上传文件", async () => {
@@ -139,7 +179,7 @@ describe("mediaUpload", () => {
 
   it("聊天室场景上传图片时只会上传 low 和 medium 目标", async () => {
     const file = new File([new Uint8Array(1024)], "room.png", { type: "image/png" });
-    requestMock.mockResolvedValueOnce({
+    prepareUploadMock.mockResolvedValueOnce({
       success: true,
       data: {
         fileId: 42,
@@ -152,7 +192,7 @@ describe("mediaUpload", () => {
         },
       },
     });
-    requestMock.mockResolvedValueOnce({ success: true });
+    completeUploadMock.mockResolvedValueOnce({ success: true });
 
     const result = await uploadMediaFile(file, { scene: 1 });
 
@@ -162,12 +202,10 @@ describe("mediaUpload", () => {
       uploadRequired: true,
     });
     expect(globalThis.fetch).toHaveBeenCalledTimes(2);
-    expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
-      url: "/media/prepare-upload",
-      body: expect.objectContaining({
-        scene: 1,
-      }),
+    expect(prepareUploadMock).toHaveBeenCalledWith(expect.objectContaining({
+      scene: 1,
     }));
+    expect(completeUploadMock).toHaveBeenCalledWith(99);
   });
 
   it("已是 WebM 的音频不会再次进入 FFmpeg 转码", async () => {
@@ -199,14 +237,15 @@ describe("mediaUpload", () => {
       name: "AbortError",
     });
 
-    expect(requestMock).not.toHaveBeenCalled();
+    expect(prepareUploadMock).not.toHaveBeenCalled();
+    expect(completeUploadMock).not.toHaveBeenCalled();
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("直传完成后取消不会继续 complete 上传会话", async () => {
     const controller = new AbortController();
     const file = new File([new Uint8Array(1024)], "demo.png", { type: "image/png" });
-    requestMock.mockResolvedValueOnce({
+    prepareUploadMock.mockResolvedValueOnce({
       success: true,
       data: {
         fileId: 42,
@@ -232,10 +271,8 @@ describe("mediaUpload", () => {
       name: "AbortError",
     });
 
-    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(prepareUploadMock).toHaveBeenCalledTimes(1);
     expect(globalThis.fetch).toHaveBeenCalled();
-    expect(requestMock).not.toHaveBeenCalledWith(expect.objectContaining({
-      url: "/media/upload-sessions/99/complete",
-    }));
+    expect(completeUploadMock).not.toHaveBeenCalled();
   });
 });

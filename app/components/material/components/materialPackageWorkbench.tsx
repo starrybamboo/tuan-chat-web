@@ -113,8 +113,6 @@ function getReadOnlyAssetTypeLabel(message: MessageDraft) {
       return "文档";
     case MESSAGE_TYPE.ROOM_JUMP:
       return "群聊";
-    case MESSAGE_TYPE.THREAD_ROOT:
-      return "子区";
     default:
       return "素材";
   }

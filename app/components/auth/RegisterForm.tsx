@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 interface RegisterFormProps {
   username?: string;
   setUsername: (value: string) => void;
@@ -15,6 +17,7 @@ interface RegisterFormProps {
   setConfirmPassword: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
   isLoading: boolean;
+  turnstile?: ReactNode;
 }
 
 export function RegisterForm({
@@ -34,6 +37,7 @@ export function RegisterForm({
   setConfirmPassword,
   handleSubmit,
   isLoading,
+  turnstile,
 }: RegisterFormProps) {
   const verificationCodeInputId = "register-verification-code";
 
@@ -129,6 +133,7 @@ export function RegisterForm({
       </div>
 
       <div className="form-control mt-6">
+        {turnstile}
         <button
           type="submit"
           className="btn btn-primary hover:brightness-110 transition-all"

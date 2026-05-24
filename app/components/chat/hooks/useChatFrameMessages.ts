@@ -3,18 +3,13 @@ import { useEffect, useMemo, useRef } from "react";
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse } from "../../../../api";
 
 import { tuanchat } from "../../../../api/instance";
 
-export type ChatFrameMessageScope = "main" | "thread";
-
 type UseChatFrameMessagesParams = {
   messagesOverride?: ChatMessageResponse[];
-  messageScope?: ChatFrameMessageScope;
-  threadRootMessageId?: number | null;
   enableWsSync: boolean;
   roomId: number;
   chatHistory?: UseChatHistoryReturn;
@@ -93,8 +88,6 @@ export function detectMissingMessageSyncRange({
 
 export default function useChatFrameMessages({
   messagesOverride,
-  messageScope = "main",
-  threadRootMessageId,
   enableWsSync,
   roomId,
   chatHistory,
@@ -216,29 +209,8 @@ export default function useChatFrameMessages({
       currentUserId,
       memberType: currentMemberType,
     });
-
-    if (messageScope === "thread") {
-      if (!threadRootMessageId) {
-        return [];
-      }
-      return allMessages.filter(m => m.message.threadId === threadRootMessageId);
-    }
-
-    // Discord 风格：Thread 回复不出现在主消息流中，只在 Thread 面板中查看
-    // - root：threadId === messageId（显示）
-    // - reply：threadId !== messageId（隐藏）
-    return allMessages.filter((m) => {
-      // Thread Root #0001（不在主消息流中单独显示：改为挂在原消息“下方”的提示）
-      if (m.message.messageType === MESSAGE_TYPE.THREAD_ROOT) {
-        return false;
-      }
-      const { threadId, messageId } = m.message;
-      if (!threadId) {
-        return true;
-      }
-      return threadId === messageId;
-    });
-  }, [chatHistory?.messages, currentMemberType, currentUserId, messageScope, messagesOverride, threadRootMessageId]);
+    return allMessages;
+  }, [chatHistory?.messages, currentMemberType, currentUserId, messagesOverride]);
 
   return {
     historyMessages,

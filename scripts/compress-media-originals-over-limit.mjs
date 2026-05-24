@@ -6,20 +6,12 @@ import process from "node:process";
 import sharp from "sharp";
 
 const DEFAULT_CONCURRENCY = 3;
-const DEFAULT_LIMIT_MIB = 4;
+const DEFAULT_LIMIT_MIB = 3;
 const DEFAULT_SAMPLE_LIMIT = 50;
 const PROGRESS_EVERY = 5;
 
 const SCALE_STEPS = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3];
-const PNG_QUALITIES = [80, 65, 50];
-const JPEG_QUALITIES = [85, 75, 65, 55, 45, 35];
-const WEBP_QUALITIES = [85, 75, 65, 55, 45, 35];
-const GIF_CONFIGS = [
-  { colours: 256, interFrameMaxError: 8 },
-  { colours: 128, interFrameMaxError: 8 },
-  { colours: 128, interFrameMaxError: 12 },
-  { colours: 64, interFrameMaxError: 12 },
-];
+const WEBP_QUALITIES = [88, 82, 76, 68, 60, 52, 44, 36];
 
 await main();
 
@@ -54,7 +46,7 @@ async function main() {
   console.log(`[sql] ${sqlPath}`);
 
   const candidates = await collectCandidates(filesRoot, limitBytes);
-  console.log(`[scan] found ${candidates.length} original files over limit`);
+  console.log(`[scan] found ${candidates.length} original files needing WebP normalization`);
 
   const stats = createStats({
     filesRoot,
@@ -121,12 +113,15 @@ async function collectCandidates(filesRoot, limitBytes) {
       const originalPath = path.join(fileRoot, "original");
       try {
         const stat = await fs.stat(originalPath);
-        if (!stat.isFile() || stat.size <= limitBytes) {
+        if (!stat.isFile()) {
           continue;
         }
         const metadata = await sharp(originalPath, { animated: true }).metadata();
         const format = metadata.format ?? "unknown";
         if (!isSupportedFormat(format)) {
+          continue;
+        }
+        if (format === "webp" && stat.size <= limitBytes) {
           continue;
         }
         candidates.push({
@@ -158,7 +153,7 @@ async function processCandidate(candidate, limitBytes, execute) {
     throw new Error(`无法压缩到 ${limitBytes} bytes 以内，最优结果 ${optimized.buffer.length} bytes`);
   }
 
-  if (optimized.buffer.length >= input.length) {
+  if (candidate.format === "webp" && optimized.buffer.length >= input.length) {
     throw new Error(`压缩后未变小：before=${input.length}, after=${optimized.buffer.length}`);
   }
 
@@ -186,26 +181,15 @@ async function processCandidate(candidate, limitBytes, execute) {
 }
 
 async function optimizeOriginal(input, candidate, limitBytes) {
-  switch (candidate.format) {
-    case "png":
-      return await optimizeRaster(input, candidate, limitBytes, "png");
-    case "jpeg":
-      return await optimizeRaster(input, candidate, limitBytes, "jpeg");
-    case "webp":
-      return await optimizeRaster(input, candidate, limitBytes, "webp");
-    case "gif":
-      return await optimizeGif(input, candidate, limitBytes);
-    default:
-      throw new Error(`不支持的格式: ${candidate.format}`);
-  }
+  return await optimizeToWebp(input, candidate, limitBytes);
 }
 
-async function optimizeRaster(input, candidate, limitBytes, format) {
+async function optimizeToWebp(input, candidate, limitBytes) {
   let best = null;
   for (const scale of SCALE_STEPS) {
     const dimensions = scaledDimensions(candidate.originalWidth, candidate.originalHeight, scale);
-    for (const quality of rasterQualities(format)) {
-      const pipeline = sharp(input)
+    for (const quality of WEBP_QUALITIES) {
+      const pipeline = sharp(input, { animated: candidate.pages > 1 })
         .resize({
           width: dimensions.width,
           height: dimensions.height,
@@ -213,78 +197,18 @@ async function optimizeRaster(input, candidate, limitBytes, format) {
           withoutEnlargement: true,
         });
 
-      const buffer = await applyRasterEncoding(pipeline, format, quality);
-      const strategy = { format, scale, quality, width: dimensions.width, height: dimensions.height };
-      if (!best || buffer.length < best.buffer.length) {
-        best = { buffer, strategy };
-      }
-      if (buffer.length <= limitBytes) {
-        return { buffer, strategy };
-      }
-    }
-  }
-
-  return best;
-}
-
-async function applyRasterEncoding(pipeline, format, quality) {
-  switch (format) {
-    case "png":
-      return await pipeline
-        .png({
-          compressionLevel: 9,
-          palette: true,
-          quality,
-          effort: 10,
-        })
-        .withMetadata()
-        .toBuffer();
-    case "jpeg":
-      return await pipeline
-        .jpeg({
-          quality,
-          mozjpeg: true,
-        })
-        .withMetadata()
-        .toBuffer();
-    case "webp":
-      return await pipeline
+      const buffer = await pipeline
         .webp({
           quality,
           effort: 6,
         })
         .withMetadata()
         .toBuffer();
-    default:
-      throw new Error(`未知栅格格式: ${format}`);
-  }
-}
-
-async function optimizeGif(input, candidate, limitBytes) {
-  let best = null;
-  for (const scale of SCALE_STEPS) {
-    const dimensions = scaledDimensions(candidate.originalWidth, candidate.originalHeight, scale);
-    for (const config of GIF_CONFIGS) {
-      const buffer = await sharp(input, { animated: true })
-        .resize({
-          width: dimensions.width,
-          height: dimensions.height,
-          fit: "inside",
-          withoutEnlargement: true,
-        })
-        .gif({
-          effort: 10,
-          reuse: true,
-          colours: config.colours,
-          interFrameMaxError: config.interFrameMaxError,
-        })
-        .toBuffer();
-
       const strategy = {
-        format: "gif",
+        format: "webp",
+        sourceFormat: candidate.format,
         scale,
-        colours: config.colours,
-        interFrameMaxError: config.interFrameMaxError,
+        quality,
         width: dimensions.width,
         height: dimensions.height,
       };
@@ -307,19 +231,6 @@ function scaledDimensions(width, height, scale) {
     width: Math.max(1, Math.round(safeWidth * scale)),
     height: Math.max(1, Math.round(safeHeight * scale)),
   };
-}
-
-function rasterQualities(format) {
-  switch (format) {
-    case "png":
-      return PNG_QUALITIES;
-    case "jpeg":
-      return JPEG_QUALITIES;
-    case "webp":
-      return WEBP_QUALITIES;
-    default:
-      return [80];
-  }
 }
 
 function isSupportedFormat(format) {
@@ -373,7 +284,7 @@ function buildSql(results, execute) {
 
   for (const result of results) {
     lines.push(
-      `UPDATE media_file SET size_bytes = ${result.afterBytes}, sha256 = '${result.sha256}', updated_at = NOW() WHERE id = ${result.fileId};`,
+      `UPDATE media_file SET size_bytes = ${result.afterBytes}, sha256 = '${result.sha256}', mime_type = 'image/webp', updated_at = NOW() WHERE id = ${result.fileId};`,
     );
   }
 
@@ -550,17 +461,17 @@ function sortObjectByValue(input) {
 
 function printHelp() {
   console.log(`Usage:
-  node scripts/compress-media-originals-over-limit.mjs --root <media/v1/files> [--limit-mib 4] [--concurrency 3] [--execute]
+  node scripts/compress-media-originals-over-limit.mjs --root <media/v1/files> [--limit-mib 3] [--concurrency 3] [--execute]
 
 Example:
   node scripts/compress-media-originals-over-limit.mjs ^
     --root D:/A_collection/server-backups/tuanchat-server-data-20260507_043831.no-redis/minio/avatar/media/v1/files ^
-    --limit-mib 4
+    --limit-mib 3
 
 Execute:
   node scripts/compress-media-originals-over-limit.mjs ^
     --root D:/A_collection/server-backups/tuanchat-server-data-20260507_043831.no-redis/minio/avatar/media/v1/files ^
-    --limit-mib 4 ^
+    --limit-mib 3 ^
     --execute
 `);
 }

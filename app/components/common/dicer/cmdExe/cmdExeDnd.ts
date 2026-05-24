@@ -145,6 +145,66 @@ function rollD20(type: "normal" | "advantage" | "disadvantage" = "normal"): { to
   }
 }
 
+function getInitiativeModifier(curAbility: RoleAbility): { initMod: number; desc: string } {
+  // 优先查找 "先攻" 或 "Initiative"
+  const initKeys = ["先攻", "Initiative", "initiative", "Init", "init"];
+  for (const key of initKeys) {
+    const val = UTILS.getRoleAbilityValue(curAbility, key, "ability") || UTILS.getRoleAbilityValue(curAbility, key, "skill");
+    if (!val) {
+      continue;
+    }
+    const initMod = Number.parseInt(val);
+    if (!Number.isNaN(initMod)) {
+      return {
+        initMod,
+        desc: `${key}(${initMod})`,
+      };
+    }
+  }
+
+  // 如果没找到先攻，尝试用敏捷调整值
+  const dexKeys = ["敏捷", "Dexterity", "Dex", "dex"];
+  for (const key of dexKeys) {
+    const val = getDndModifier(curAbility, key);
+    if (val && val.type === "Attribute") {
+      return {
+        initMod: val.value,
+        desc: `${key}调整值(${val.value})`,
+      };
+    }
+  }
+
+  return {
+    initMod: 0,
+    desc: "",
+  };
+}
+
+function getInitiativeExtraModifier(args: string[], curAbility: RoleAbility): number {
+  const argsStr = args.join("");
+  if (!argsStr) {
+    return 0;
+  }
+  try {
+    const val = UTILS.calculateExpression(argsStr, curAbility);
+    return Number.isNaN(val) ? 0 : val;
+  }
+  catch {
+    return 0;
+  }
+}
+
+async function rollInitiativeForRole(args: string[], role: UserRole, cpi: CPI): Promise<number> {
+  const curAbility = await cpi.getRoleAbilityList(role.roleId);
+  const { initMod, desc } = getInitiativeModifier(curAbility);
+  const extraMod = getInitiativeExtraModifier(args, curAbility);
+  const diceResult = rollD20("normal");
+  const total = diceResult.total + initMod + extraMod;
+  UTILS.setRoleAbilityValue(curAbility, "initiative", String(total), "skill", "skill");
+  cpi.setRoleAbilityList(role.roleId, curAbility);
+  return total;
+}
+
 /**
  * 通用检定处理器
  */
@@ -281,71 +341,22 @@ const cmdRi = new CommandExecutor(
   [".ri", ".ri +2"],
   ".ri [调整值]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    const role = mentioned[0];
-    if (!role) {
+    const roles = Array.from(new Map(
+      mentioned
+        .filter(role => typeof role.roleId === "number" && role.roleId > 0)
+        .map(role => [role.roleId, role]),
+    ).values());
+    if (roles.length === 0) {
       cpi.sendToast("未指定角色");
       return false;
     }
-    const curAbility = await cpi.getRoleAbilityList(role.roleId);
-
-    // 优先查找 "先攻" 或 "Initiative"
-    let initMod = 0;
-    let desc = "";
-
-    const initKeys = ["先攻", "Initiative", "initiative", "Init", "init"];
-    let found = false;
-
-    for (const key of initKeys) {
-      const val = UTILS.getRoleAbilityValue(curAbility, key, "ability") || UTILS.getRoleAbilityValue(curAbility, key, "skill");
-      if (val) {
-        initMod = Number.parseInt(val);
-        if (!Number.isNaN(initMod)) {
-          desc = `${key}(${initMod})`;
-          found = true;
-          break;
-        }
-      }
-    }
-
-    // 如果没找到先攻，尝试用敏捷调整值
-    if (!found) {
-      const dexKeys = ["敏捷", "Dexterity", "Dex", "dex"];
-      for (const key of dexKeys) {
-        const val = getDndModifier(curAbility, key);
-        if (val && val.type === "Attribute") {
-          initMod = val.value;
-          desc = `${key}调整值(${initMod})`;
-          found = true;
-          break;
-        }
-      }
-    }
-
-    // 额外调整
-    const argsStr = args.join("");
-    let extraMod = 0;
-    if (argsStr) {
-      try {
-        const val = UTILS.calculateExpression(argsStr, curAbility);
-        if (!Number.isNaN(val))
-          extraMod = val;
-      }
-      catch {}
-    }
-
-    const diceResult = rollD20("normal");
-    const total = diceResult.total + initMod + extraMod;
-
-    let formulaStr = `${diceResult.detailedMsg}`;
-    if (desc)
-      formulaStr += ` + ${desc}`;
-    if (extraMod !== 0)
-      formulaStr += ` ${extraMod > 0 ? "+" : ""}${extraMod}`;
 
     // 更新先攻列表逻辑 (需结合 RoomContext 或其他机制，此处仅显示)
     // 如果需要自动加入先攻列表，需调用相关API。由于API未明确提供，此处暂只打印。
 
-    cpi.replyMessage(`${role.roleName} 投掷先攻: ${formulaStr} = ${total}`);
+    for (const role of roles) {
+      await rollInitiativeForRole(args, role, cpi);
+    }
     return true;
   },
 );

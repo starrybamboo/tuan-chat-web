@@ -11,6 +11,7 @@ interface RoomWindowOverlaysProps {
   isKP: boolean;
   isSpectator: boolean;
   availableRoles: UserRole[];
+  importInitialRawText?: string;
   onImportChatText: (
     items: Array<{
       roleId: number;
@@ -37,6 +38,7 @@ export default function RoomWindowOverlays({
   isKP,
   isSpectator,
   availableRoles,
+  importInitialRawText,
   onImportChatText,
   onOpenRoleAddWindow,
   onOpenNpcAddWindow,
@@ -57,6 +59,7 @@ export default function RoomWindowOverlays({
           isKP={isKP}
           isSpectator={isSpectator}
           availableRoles={availableRoles}
+          initialRawText={importInitialRawText}
           onImport={onImportChatText}
           onClose={() => setIsImportChatTextOpen(false)}
           onOpenRoleAddWindow={onOpenRoleAddWindow}

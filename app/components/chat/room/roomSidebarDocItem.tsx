@@ -3,12 +3,13 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { FileTextIcon } from "@phosphor-icons/react";
+import {
+  buildDocCardReferencePayload,
+  resolveDocCardDisplayCoverUrl,
+} from "@/components/chat/message/docCard/docCardMedia";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
-import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
-import { createFloatingMenuAnchorFromElement } from "./floatingMenuPosition";
-import RoomSidebarItemMenuButton from "./roomSidebarItemMenuButton";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
@@ -84,14 +85,17 @@ export default function RoomSidebarDocItem({
   const coverFileId = docOverrideImageFileId ?? docMeta?.imageFileId ?? docFallbackImageFileId;
   const originalCoverFileId = docOverrideOriginalImageFileId ?? docMeta?.originalImageFileId ?? docFallbackOriginalImageFileId;
   const imageMediaType = docOverrideImageMediaType || docMeta?.imageMediaType || docFallbackImageMediaType;
-  const displayCoverUrl = imageLowUrl(coverFileId) || imageLowUrlFromUrl(coverUrl);
+  const coverReference = buildDocCardReferencePayload({
+    docId,
+    ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
+    ...(title ? { title } : {}),
+    imageUrl: coverUrl,
+    imageFileId: coverFileId,
+    originalImageFileId: originalCoverFileId,
+    imageMediaType,
+  });
+  const displayCoverUrl = resolveDocCardDisplayCoverUrl(coverReference, "low");
   const isActive = activeDocId === docId;
-  const openDocContextMenu = (x: number, y: number) => {
-    if (!canEdit) {
-      return;
-    }
-    setContextMenu({ kind: "doc", x, y, categoryId, index, docId });
-  };
 
   return (
     <div
@@ -100,9 +104,11 @@ export default function RoomSidebarDocItem({
       tabIndex={0}
       aria-pressed={isActive}
       onContextMenu={(e) => {
+        if (!canEdit)
+          return;
         e.preventDefault();
         e.stopPropagation();
-        openDocContextMenu(e.clientX, e.clientY);
+        setContextMenu({ kind: "doc", x: e.clientX, y: e.clientY, categoryId, index, docId });
       }}
       onClick={() => {
         onSelectDoc?.(docId);
@@ -136,7 +142,7 @@ export default function RoomSidebarDocItem({
       draggable
       onDragStart={(e) => {
         const el = e.target as HTMLElement | null;
-        if (el && (el.closest("input") || el.closest("select") || el.closest("textarea") || el.closest("button"))) {
+        if (el && (el.closest("input") || el.closest("select") || el.closest("textarea"))) {
           e.preventDefault();
           return;
         }
@@ -152,13 +158,7 @@ export default function RoomSidebarDocItem({
         });
         setSubWindowDragPayload({ tab: "doc", docId });
         setDocRefDragData(e.dataTransfer, {
-          docId,
-          ...(typeof activeSpaceId === "number" && activeSpaceId > 0 ? { spaceId: activeSpaceId } : {}),
-          ...(title ? { title } : {}),
-          ...(coverUrl ? { imageUrl: coverUrl } : {}),
-          ...(coverFileId ? { imageFileId: coverFileId } : {}),
-          ...(originalCoverFileId ? { originalImageFileId: originalCoverFileId } : {}),
-          ...(imageMediaType ? { imageMediaType } : {}),
+          ...coverReference,
         });
         if (!canEdit) {
           return;
@@ -179,13 +179,6 @@ export default function RoomSidebarDocItem({
         setDropTarget(null);
       }}
     >
-      <RoomSidebarItemMenuButton
-        ariaLabel="文档操作"
-        onClick={(event) => {
-          const anchor = createFloatingMenuAnchorFromElement(event.currentTarget);
-          openDocContextMenu(anchor.x, anchor.y);
-        }}
-      />
       <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
         {displayCoverUrl
           ? (

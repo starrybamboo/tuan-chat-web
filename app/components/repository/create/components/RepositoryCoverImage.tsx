@@ -11,16 +11,10 @@ export default function RepositoryCoverImage({
   control: any;
   errors: any;
 }) {
-  // 仓库图片的裁切后版本, 仅用于展示, 实际上传的url储存在form中
+  // 仓库图片的裁切后版本仅用于展示；表单只持久化 coverFileId。
   const [repositoryAvatarUrl, setRepositoryAvatarUrl] = useState<string>("");
-  const setRepositoryImage = useCallback((image: string) => {
-    setValue("image", image);
-  }, [setValue]);
-  const setRepositoryOriginalImage = useCallback((originalImage: string) => {
-    setValue("originalImage", originalImage);
-  }, [setValue]);
   const setRepositoryCoverFileId = useCallback((coverFileId?: number) => {
-    setValue("coverFileId", coverFileId);
+    setValue("coverFileId", coverFileId, { shouldDirty: true, shouldValidate: true });
   }, [setValue]);
   const uniqueRepositoryAvatarName = `repository_avatar_${useId().replace(/:/g, "")}`;
 
@@ -32,19 +26,15 @@ export default function RepositoryCoverImage({
       >
         <Controller
           control={control}
-          name="image"
+          name="coverFileId"
           rules={{ required: "请上传仓库封面" }}
           render={({ field: { onChange } }) => (
             <div className="w-full h-full">
               <ImgUploaderWithSelector
                 fileName={uniqueRepositoryAvatarName}
-                setDownloadUrl={(url) => {
-                  setRepositoryOriginalImage(url);
-                }}
+                setDownloadUrl={() => {}}
                 setCopperedDownloadUrl={(url) => {
-                  onChange(url);
                   setRepositoryAvatarUrl(url);
-                  setRepositoryImage(url);
                 }}
                 mutate={(data) => {
                   const coverFileId = typeof data?.avatarFileId === "number"
@@ -53,6 +43,7 @@ export default function RepositoryCoverImage({
                       ? data.fileId
                       : undefined;
                   setRepositoryCoverFileId(coverFileId);
+                  onChange(coverFileId);
                 }}
               >
                 <div className="h-96 w-full bg-base-300 rounded-lg border-2 border-dashed border-base-content/30 hover:border-primary hover:bg-base-200 transition-colors cursor-pointer flex flex-col items-center justify-center group">
@@ -120,10 +111,10 @@ export default function RepositoryCoverImage({
             </div>
           )}
         />
-        {errors.image && (
+        {errors.coverFileId && (
           <p className="absolute -bottom-6 left-0 text-sm text-error">
-            {typeof errors.image.message === "string"
-              ? errors.image.message
+            {typeof errors.coverFileId.message === "string"
+              ? errors.coverFileId.message
               : "请上传仓库封面"}
           </p>
         )}

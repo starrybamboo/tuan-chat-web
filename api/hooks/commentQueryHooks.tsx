@@ -2,7 +2,6 @@ import type { ApiResultListCommentVO } from "@tuanchat/openapi-client/models/Api
 import type { ApiResultListCommentTimelineVO } from "@tuanchat/openapi-client/models/ApiResultListCommentTimelineVO";
 import type { QueryClient } from "@tanstack/react-query";
 import {useInfiniteQuery, useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import type {LikeRecordRequest} from "./likeQueryHooks";
 import {tuanchat} from "../instance";
 import type {CommentPageRequest} from "@tuanchat/openapi-client/models/CommentPageRequest";
 import type {CommentChildPageRequest} from "@tuanchat/openapi-client/models/CommentChildPageRequest";
@@ -173,7 +172,7 @@ export function useGetCommentByIdQuery(commentId: number){
  * comment分页查询
  */
 export function useGetCommentPageInfiniteQuery(
-    targetInfo: LikeRecordRequest,
+    targetInfo: CommentTargetInfo,
     pageSize: number = 10,
     childLimit: number = DEFAULT_COMMENT_CHILD_LIMIT,
     maxLevel: number = DEFAULT_COMMENT_MAX_LEVEL,
@@ -291,4 +290,3 @@ export function useDeleteCommentMutation() {
         void invalidateCommentTargetQueries(queryClient, variables);
     }
 })}
-

@@ -31,7 +31,6 @@ interface ChatFrameMessageItemProps {
   disableInsertAction?: boolean;
   onExecuteCommandRequest?: (payload: {
     command: string;
-    threadId?: number;
     requestMessageId: number;
   }) => void;
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
@@ -133,9 +132,13 @@ export default function ChatFrameMessageItem({
         showAddedMessageDiff={showAddedMessageDiff}
         messageAction={messageAction}
       />
-      {!isSelecting && !disableInsertAction && (
-        <div className="relative h-4 -mt-2 group/insert select-none" data-message-insert-action="true">
-          {!isOptimisticMessage && (
+      {!disableInsertAction && (
+        <div
+          className={`relative h-4 -mt-2 select-none ${isSelecting ? "pointer-events-none" : "group/insert"}`}
+          data-message-insert-action="true"
+          aria-hidden={isSelecting}
+        >
+          {!isSelecting && !isOptimisticMessage && (
             <button
               type="button"
               className="absolute inset-0 z-20 cursor-pointer w-full"
@@ -146,14 +149,14 @@ export default function ChatFrameMessageItem({
           )}
           <div
             className={`pointer-events-none absolute left-6 right-0 top-1/2 -translate-y-1/2 h-[2px] transition-colors duration-200 ${
-              isOptimisticMessage
+              isSelecting || isOptimisticMessage
                 ? "bg-transparent"
                 : isInsertTarget
                   ? "bg-primary"
                   : "bg-transparent group-hover/insert:bg-primary/50"
             }`}
           />
-          {!isOptimisticMessage && (
+          {!isSelecting && !isOptimisticMessage && (
             <span
               className={`pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2 h-6 w-6 rounded border bg-base-100 flex items-center justify-center transition-all duration-200 ${
                 isInsertTarget

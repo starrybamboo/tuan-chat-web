@@ -1,9 +1,11 @@
 import type { RoleAvatar, UserRole } from "api";
 
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
 
 import type { Role } from "./types";
+
+import { resolveRoleAvatarMedia } from "./sprite/roleAvatarMedia";
+import { normalizeLegacyVoiceUrl } from "./roleVoiceMedia";
 
 export type RoleListAvatarFields = UserRole & {
   avatarUrl?: string;
@@ -39,8 +41,9 @@ type HydrateRoleListOptions = {
 };
 
 export function resolveRoleAvatarUrls(source?: RoleAvatarUrlSource | null) {
-  const avatarUrl = source?.avatarUrl || buildAvatarUrl(source?.avatarFileId);
-  const avatarThumbUrl = source?.avatarThumbUrl || buildAvatarThumbUrl(source?.avatarFileId) || avatarUrl;
+  const media = resolveRoleAvatarMedia(source);
+  const avatarUrl = media.avatar.url;
+  const avatarThumbUrl = media.avatar.thumbUrl || avatarUrl;
   return {
     avatarUrl,
     avatarThumbUrl,
@@ -56,7 +59,8 @@ export function mapUserRoleToRole(role: RoleListAvatarFields): Role {
     avatar: avatarUrl,
     avatarThumb: avatarThumbUrl,
     avatarId: role.avatarId || 0,
-    voiceUrl: role.voiceUrl || undefined,
+    voiceUrl: role.voiceFileId ? undefined : normalizeLegacyVoiceUrl(role.voiceUrl) || undefined,
+    voiceFileId: role.voiceFileId,
     type: role.type ?? (role.diceMaiden ? 1 : 0),
     extra: role.extra || {},
   };

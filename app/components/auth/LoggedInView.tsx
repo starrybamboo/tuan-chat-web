@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+
 interface LoggedInViewProps {
   handleLogout: () => void;
 }
@@ -6,9 +8,9 @@ export function LoggedInView({ handleLogout }: LoggedInViewProps) {
   return (
     <div className="flex flex-col items-center">
       <div className="flex flex-row items-center justify-center gap-4">
-        <a href="/" className="btn btn-primary">
+        <Link to="/" className="btn btn-primary">
           前往主页
-        </a>
+        </Link>
         <button
           type="button"
           onClick={handleLogout}

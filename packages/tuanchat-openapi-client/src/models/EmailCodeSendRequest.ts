@@ -14,5 +14,9 @@ export type EmailCodeSendRequest = {
      * 验证码用途: REGISTER/CHANGE_PASSWORD/BIND_EMAIL/CHANGE_EMAIL_OLD/CHANGE_EMAIL_NEW
      */
     purpose: string;
+    /**
+     * Cloudflare Turnstile 校验 token
+     */
+    turnstileToken?: string;
 };
 

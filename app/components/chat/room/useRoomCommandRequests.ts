@@ -10,13 +10,11 @@ import {
 type CommandExecutor = (payload: {
   command: string;
   originMessage: string;
-  threadId?: number;
   replyMessageId: number;
 }) => void;
 
 type CommandRequestPayload = {
   command: string;
-  threadId?: number;
   requestMessageId: number;
 };
 
@@ -130,7 +128,7 @@ export default function useRoomCommandRequests({
   }, [roomId]);
 
   const handleExecuteCommandRequest = useCallback((payload: CommandRequestPayload) => {
-    const { command, threadId, requestMessageId } = payload;
+    const { command, requestMessageId } = payload;
     const rawCommand = String(command ?? "").trim();
     if (!rawCommand) {
       toast.error("请输入指令");
@@ -161,7 +159,6 @@ export default function useRoomCommandRequests({
     void commandExecutor({
       command: rawCommand,
       originMessage: rawCommand,
-      threadId,
       replyMessageId: requestMessageId,
     });
   }, [commandExecutor, isSpaceOwner, isSubmitting, noRole, notMember, roomId, userId]);

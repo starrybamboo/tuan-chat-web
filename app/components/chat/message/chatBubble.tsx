@@ -1,8 +1,7 @@
-import type { ChatMessageResponse, Message } from "../../../../api";
+import type { ChatMessageResponse, Message, UserRole } from "../../../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
+import { getClueCardRenderData, getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -24,6 +23,7 @@ import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceS
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { canCurrentUserViewHiddenDiceReply } from "@/components/chat/utils/hiddenDiceVisibility";
 import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
@@ -70,6 +70,63 @@ interface HoverToolbarActionButtonProps {
   children: React.ReactNode;
 }
 
+interface DiceTurnReplyRenderPayload {
+  avatarId?: number;
+  content?: string;
+  customRoleName?: string;
+  hidden?: boolean;
+  roleId?: number;
+}
+
+function DiceTurnReplyItem({
+  canViewHiddenDiceReply,
+  useChatBubbleStyle,
+  reply,
+  roomRoles,
+}: {
+  canViewHiddenDiceReply: boolean;
+  useChatBubbleStyle: boolean;
+  reply: DiceTurnReplyRenderPayload;
+  roomRoles: Pick<UserRole, "roleId" | "roleName">[];
+}) {
+  const roleId = typeof reply.roleId === "number" && reply.roleId > 0 ? reply.roleId : 0;
+  const roleRequest = useGetRoleQuery(roleId);
+  const roleName = reply.customRoleName
+    || roleRequest.data?.data?.roleName?.trim()
+    || roomRoles.find(item => item.roleId === reply.roleId)?.roleName?.trim()
+    || (reply.roleId ? `角色 #${reply.roleId}` : "骰娘");
+
+  return (
+    <div className={`flex min-w-0 items-start gap-2 ${useChatBubbleStyle ? "rounded-xl border border-base-300/65 bg-base-100/70 px-2.5 py-2 shadow-sm" : ""}`}>
+      <RoleAvatarComponent
+        avatarId={reply.avatarId ?? 0}
+        roleId={reply.roleId}
+        width={useChatBubbleStyle ? 6 : 10}
+        isRounded={useChatBubbleStyle}
+        stopToastWindow
+        alt={roleName}
+      />
+      <div className="min-w-0 flex-1">
+        <div className={`flex items-center gap-1.5 text-[11px] ${useChatBubbleStyle ? "mb-1 text-base-content/55" : "mb-0.5 text-base-content/50"}`}>
+          <span className="font-medium">{roleName}</span>
+          {reply.hidden ? <span className="badge badge-ghost badge-xs">暗骰</span> : null}
+        </div>
+        {useChatBubbleStyle
+          ? (
+              <div className={`whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
+                {reply.content || "[骰子结果]"}
+              </div>
+            )
+          : (
+              <div className={`border-l-2 border-primary/25 pl-2.5 whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
+                {reply.content || "[骰子结果]"}
+              </div>
+            )}
+      </div>
+    </div>
+  );
+}
+
 const EFFECT_PREVIEW_DURATION_MS = 2000;
 const narratorAvatarFrameClassName = "flex items-center justify-center rounded-full bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85";
 const narratorAvatarIconClassName = "transition-transform duration-150 ease-out motion-reduce:transition-none group-hover/narrator:scale-105";
@@ -90,44 +147,6 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
   );
 }
 
-/** 线索弹窗正文：使用消息预览而不是全文渲染，避免结构化消息只剩空正文。 */
-export function ClueCardReadonlyContent({
-  message,
-  onClose,
-}: {
-  message: Message;
-  onClose: () => void;
-}) {
-  return (
-    <div className="modal modal-open z-[10000]">
-      <div className="modal-box max-w-2xl">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">查看线索</h3>
-          <button type="button" className="btn btn-ghost btn-sm btn-square" aria-label="关闭" onClick={onClose}>
-            <CloseIcon className="size-5" />
-          </button>
-        </div>
-
-        <div className="max-h-[60vh] overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
-          <MessagePreviewContent
-            message={{
-              ...message,
-              status: message.status ?? 0,
-            }}
-            withMediaPreview
-          />
-        </div>
-
-        <div className="modal-action">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-            关闭
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ClueCardReadonlyModal({
   message,
   onClose,
@@ -135,14 +154,42 @@ function ClueCardReadonlyModal({
   message: Message;
   onClose: () => void;
 }) {
-  if (typeof document === "undefined") {
-    return null;
-  }
+  return (
+    <div className="modal modal-open z-[9999]">
+      <div className="modal-box max-w-2xl">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold">查看线索</h3>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-square"
+            aria-label="关闭"
+            onClick={onClose}
+          >
+            <CloseIcon className="size-5" />
+          </button>
+        </div>
 
-  // Render clue preview above drawer/sidebar stacking contexts.
-  return createPortal(
-    <ClueCardReadonlyContent message={message} onClose={onClose} />,
-    document.body,
+        <div className="max-h-[60vh] overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
+          <MessageContentRenderer
+            message={{
+              ...message,
+              status: message.status ?? 0,
+            }}
+            cacheKeyBase={`clue-card-modal:${message.messageId ?? "snapshot"}`}
+          />
+        </div>
+
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+          >
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -183,13 +230,31 @@ function ClueCardMessage({ message }: { message: Message }) {
   );
 }
 
+export function ClueCardReadonlyContent({
+  message,
+}: {
+  message: Message;
+  onClose?: () => void;
+}) {
+  const previewMessage = {
+    ...message,
+    status: message.status ?? 0,
+  } as Message;
+
+  return (
+    <div className="min-w-0 break-words text-sm">
+      <MessagePreviewContent message={previewMessage} withMediaPreview />
+    </div>
+  );
+}
+
 function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true, messageAction }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
   useChatBubbleStyle?: boolean;
   /** 点击“检定请求”按钮后，触发外层执行（以点击者身份发送并执行指令） */
-  onExecuteCommandRequest?: (payload: { command: string; threadId?: number; requestMessageId: number }) => void;
+  onExecuteCommandRequest?: (payload: { command: string; requestMessageId: number }) => void;
   isCommandRequestConsumed?: (requestMessageId: number) => boolean;
   onToggleSelection?: (messageId: number) => void;
   onEditWebgalChoose?: (messageId: number) => void;
@@ -257,10 +322,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
+  const sideDrawerState = useSideDrawerStore(state => state.state);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
-  const hasSideDrawerOpen = useSideDrawerStore(state => state.state !== "none");
 
   const isMobile = getScreenSize() === "sm";
 
@@ -295,7 +360,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const formattedTime = displayTime ? formatTimeSmartly(displayTime) : "";
   // 获取自定义角色名（如果有）
   const customRoleName = message.customRoleName as string | undefined;
-  // 获取黑屏文字的 hold 设置
   // 获取显示的角色名（黑屏文字不显示）
   const displayRoleName = getDisplayRoleName({
     roleId: message.roleId,
@@ -318,7 +382,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const showRoleNameEditor = !isIntroText && !isStateEventMessage && !isOutOfCharacterTextMessage && isEditingRoleName;
   const chatMessageMetaRowClass = isOutOfCharacterTextMessage
     ? "flex items-center gap-2 w-full min-w-0 relative"
-    : getChatMessageMetaRowClass(hasSideDrawerOpen);
+    : getChatMessageMetaRowClass(sideDrawerState !== "none");
   const outOfCharacterBadge = isOutOfCharacterTextMessage
     ? (
         <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium text-base-content/50">
@@ -481,8 +545,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     });
   }, [annotations, handleUpdateAnnotations]);
 
-  // 跑团模式也要展示注解；只有普通模式继续按 normal-mode 规则折叠。
-  const showNormalModeAnnotationsOnly = !webgalLinkMode && !runModeEnabled;
   const renderAnnotationsBar = (className?: string) => (
     <MessageAnnotationsBar
       annotations={annotations}
@@ -492,7 +554,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       showWhenEmpty={webgalLinkMode}
       alwaysShowAddButton={webgalLinkMode}
       showAddButton={webgalLinkMode}
-      showNormalModeAnnotationsOnly={showNormalModeAnnotationsOnly}
+      showNormalModeAnnotationsOnly={!webgalLinkMode && !runModeEnabled}
       compact={isMobile}
       className={className}
     />
@@ -519,6 +581,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     }
     return Boolean(element.closest(".text-style-toolbar") || element.closest(".modal"));
   }, []);
+  const canViewHiddenDiceReply = canCurrentUserViewHiddenDiceReply(message, {
+    currentUserId: roomContext.curMember?.userId,
+    memberType: roomContext.curMember?.memberType,
+  });
 
   const handleReplyClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -607,11 +673,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   }, []);
 
   const toggleIntroTextLabel = isIntroText ? "转为对话" : "转为黑屏";
-  const hoverToolbarClassName = getChatMessageHoverToolbarClass(isMobile);
 
   const messageHoverToolbar = (
     <div
-      className={hoverToolbarClassName}
+      className={getChatMessageHoverToolbarClass(isMobile)}
     >
       {onToggleSelection && (
         <HoverToolbarActionButton label="多选" onClick={handleToggleSelectionClick}>
@@ -737,7 +802,27 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   }, [message, updateMessageAndSync]);
 
   const handleDiceContentUpdate = useCallback((content: string) => {
-    if (message.content === content && (message.extra as any)?.diceResult?.result === content) {
+    const currentExtra = message.extra as Record<string, any> | undefined;
+    const diceTurn = currentExtra?.diceTurn;
+    if (diceTurn && typeof diceTurn === "object" && !Array.isArray(diceTurn)) {
+      if (message.content === content && diceTurn.command === content) {
+        return;
+      }
+      updateMessageAndSync({
+        ...message,
+        content,
+        extra: {
+          ...message.extra,
+          diceTurn: {
+            ...diceTurn,
+            command: content,
+          },
+        },
+      });
+      return;
+    }
+
+    if (message.content === content && currentExtra?.diceResult?.result === content) {
       return;
     }
     updateMessageAndSync({
@@ -872,7 +957,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           }
           onExecuteCommandRequest?.({
             command: commandText,
-            threadId: message.threadId ?? undefined,
             requestMessageId: message.messageId,
           });
         };
@@ -933,6 +1017,45 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
         case MESSAGE_TYPE.FORWARD:
           return <ForwardMessage messageResponse={chatMessageResponse} />;
         case MESSAGE_TYPE.DICE: {
+          if (extra?.diceTurn) {
+            const diceTurnData = getDiceTurnRenderData(message.extra, message.content, canViewHiddenDiceReply);
+            const commandContent = diceTurnData.command || message.content || "";
+            const roomRoles = roomContext.roomAllRoles ?? [];
+            return (
+              <div className="flex min-w-0 flex-col gap-2 text-sm">
+                <div className="rounded-md bg-base-200/55 px-2.5 py-2">
+                  <div className="mb-1 text-[10px] font-medium text-base-content/50">指令</div>
+                  <EditableMessageContent
+                    content={commandContent}
+                    onCommit={handleDiceContentUpdate}
+                    className="editable-field whitespace-pre-wrap break-words"
+                    editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
+                    onEditingChange={setIsEditingContent}
+                    editInputRef={editInputRef}
+                    shouldIgnoreBlur={shouldIgnoreEditBlur}
+                    canEdit={canEdit}
+                  />
+                </div>
+                <div className="flex min-w-0 flex-col gap-1.5 border-l-2 border-primary/25 pl-2.5">
+                  {diceTurnData.replies.length > 0
+                    ? diceTurnData.replies.map((reply, index) => (
+                        <DiceTurnReplyItem
+                          key={`${reply.roleId ?? "dicer"}:${index}`}
+                          canViewHiddenDiceReply={canViewHiddenDiceReply}
+                          useChatBubbleStyle={Boolean(useChatBubbleStyle)}
+                          reply={reply}
+                          roomRoles={roomRoles}
+                        />
+                      ))
+                    : (
+                        <div className="whitespace-pre-wrap break-words text-base-content/70">
+                          [骰子结果]
+                        </div>
+                      )}
+                </div>
+              </div>
+            );
+          }
           const diceResult = extra?.diceResult;
           const result = diceResult?.result || message.content || "";
           return (
@@ -953,7 +1076,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           );
         }
         default:
-          return <MessageContentRenderer message={message} annotations={annotations} cacheKeyBase={`chat:${message.messageId}`} />;
+          return (
+            <MessageContentRenderer
+              message={message}
+              annotations={annotations}
+              cacheKeyBase={`chat:${message.messageId}`}
+            />
+          );
       }
     })();
 
@@ -1058,11 +1187,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : (
                           !isIntroText && speakerDisplayName
                             ? (
-                                <div className="relative flex items-center gap-2 min-w-0 flex-1">
+                                <div className="relative flex min-w-0 max-w-full items-center gap-2">
                                   {outOfCharacterBadge}
                                   <span
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
-                                    className={`block flex-1 min-w-0 truncate text-sm sm:text-sm pb-0.5 sm:pb-1 transition-all duration-200 ${
+                                    className={`block min-w-10 max-w-full truncate pb-0.5 text-sm transition-all duration-200 sm:pb-1 sm:text-sm ${
                                       isOutOfCharacterTextMessage
                                         ? "font-medium text-base-content/60 cursor-default"
                                         : `font-medium text-base-content/85 cursor-pointer hover:text-primary ${canEdit ? "hover:underline" : ""}`
@@ -1123,7 +1252,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 {/* 圆角矩形头像 */}
                 <div className="shrink-0 pr-2 sm:pr-3">
                   <div
-                    className={`w-9 h-9 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-md overflow-hidden ${
+                    className={`w-9 h-9 sm:w-[5.125rem] sm:h-[5.125rem] rounded-md overflow-hidden ${
                       isIntroText
                         ? "invisible cursor-default"
                         : shouldUseUserAvatar
@@ -1136,7 +1265,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       ? (
                           <UserAvatarByUser
                             user={{ userId: message.userId }}
-                            width={isMobile ? 10 : 20}
+                            width={isMobile ? 10 : 21}
                             isRounded={false}
                             stopToastWindow={true}
                             clickEnterProfilePage={false}
@@ -1152,7 +1281,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                             <RoleAvatarComponent
                               avatarId={message.avatarId ?? 0}
                               roleId={message.roleId ?? undefined}
-                              width={isMobile ? 10 : 20}
+                              width={isMobile ? 10 : 21}
                               isRounded={false}
                               withTitle={false}
                               stopToastWindow={true}
@@ -1163,7 +1292,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   </div>
                 </div>
                 {/* 消息内容 */}
-                <div className="flex-1 min-w-0 pt-0.5 pb-0.5 pr-2 sm:pr-5">
+                <div className="flex-1 min-w-0 pr-2 sm:pr-5">
                   {/* 角色名 */}
                   <div className="flex items-center w-full gap-2 sm:pr-80 relative">
                     {showRoleNameEditor
@@ -1190,10 +1319,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : (
                           !isIntroText && speakerDisplayName
                             ? (
-                                <div className="relative flex items-center gap-2 min-w-0 flex-1">
+                                <div className="relative flex min-w-0 max-w-full items-center gap-2">
                                   {outOfCharacterBadge}
                                   <div
-                                    className={`text-sm sm:text-base leading-5 sm:leading-6 min-w-0 flex-1 transition-all duration-200 ${
+                                    className={`min-w-10 max-w-full text-sm leading-5 transition-all duration-200 sm:text-base sm:leading-6 ${
                                       isOutOfCharacterTextMessage
                                         ? "font-medium text-base-content/60 cursor-default"
                                         : `font-semibold cursor-pointer hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`
@@ -1232,7 +1361,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
-                      className={`relative transition-all duration-200 rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 cursor-pointer break-words text-base sm:text-sm lg:text-base leading-normal ${
+                      className={`relative transition-all duration-200 rounded-lg px-1.5 py-0.5 sm:px-2 sm:py-0.5 cursor-pointer break-words text-base sm:text-sm lg:text-base leading-normal ${
                         isOutOfCharacterTextMessage
                           ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70"
                           : "hover:bg-base-200/50"
@@ -1244,7 +1373,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   )}
                   {versionDiffPreview}
                   {messageActionFallback}
-                  {renderAnnotationsBar("mt-1.5")}
+                  {renderAnnotationsBar("mt-1 px-1.5 sm:mt-1.5 sm:px-2")}
                 </div>
               </div>
             )}
@@ -1356,6 +1485,10 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     }
 
     if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
+      return false;
+    }
+
+    if (JSON.stringify((prevExtra as any).diceTurn) !== JSON.stringify((nextExtra as any).diceTurn)) {
       return false;
     }
 

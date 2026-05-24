@@ -1,14 +1,13 @@
 import type {
   ActiveStateInstance,
   CombatMapToken,
-  CombatParticipant,
   CombatStateRuntime,
 } from "@tuanchat/domain/state-runtime";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 type RuntimeForMapStatus = Pick<
   CombatStateRuntime,
-  "activeStates" | "baseDisplayValues" | "derivedDisplayValues" | "participants" | "roleVarsByRoleId"
+  "activeStates" | "baseDisplayValues" | "derivedDisplayValues" | "roleVarsByRoleId"
 >;
 
 type RoleLike = Pick<UserRole, "roleId" | "roleName">;
@@ -56,14 +55,6 @@ function readNumberFromRecord(values: Record<string, unknown> | undefined, keys:
   return null;
 }
 
-function readParticipantNumber(participant: CombatParticipant, keys: string[]): number | null {
-  return (
-    readNumberFromRecord(participant.derivedValues, keys)
-    ?? readNumberFromRecord(participant.baseValues, keys)
-    ?? readNumberFromRecord(participant.values, keys)
-  );
-}
-
 function readRoleRuntimeNumber(runtime: RuntimeForMapStatus, roleId: number, keys: string[]): number | null {
   return (
     readNumberFromRecord(runtime.derivedDisplayValues.rolesByRoleId[roleId], keys)
@@ -95,11 +86,6 @@ function collectRuntimeRoleIds(runtime: RuntimeForMapStatus): Set<number> {
   runtime.activeStates.forEach((state) => {
     if (state.scope.kind === "role" && state.scope.roleId > 0) {
       roleIds.add(state.scope.roleId);
-    }
-  });
-  runtime.participants.forEach((participant) => {
-    if (typeof participant.roleId === "number" && participant.roleId > 0) {
-      roleIds.add(participant.roleId);
     }
   });
   return roleIds;
@@ -140,23 +126,6 @@ export function buildMobileMapStatusRows(params: {
   const placedRoleIds = new Set(tokens.map(token => token.roleId));
   const remainingRoleIds = collectRuntimeRoleIds(runtime);
 
-  const participantRows = runtime.participants.map((participant): MobileMapStatusRow => {
-    const roleId = typeof participant.roleId === "number" && participant.roleId > 0 ? participant.roleId : null;
-    if (roleId != null) {
-      remainingRoleIds.delete(roleId);
-    }
-    return {
-      activeStateLabels: participant.activeStates.map(formatStateLabel),
-      hp: readParticipantNumber(participant, HP_KEYS),
-      id: `participant:${participant.participantId}`,
-      initiative: participant.initiative,
-      isPlaced: roleId != null && placedRoleIds.has(roleId),
-      maxHp: readParticipantNumber(participant, MAX_HP_KEYS),
-      name: roleId != null ? roleNameFor(roleById, roleId) : participant.name,
-      roleId,
-    };
-  });
-
   const stateOnlyRows = [...remainingRoleIds]
     .sort((left, right) => left - right)
     .map((roleId): MobileMapStatusRow => {
@@ -168,7 +137,7 @@ export function buildMobileMapStatusRows(params: {
         activeStateLabels,
         hp: readRoleRuntimeNumber(runtime, roleId, HP_KEYS),
         id: `role:${roleId}`,
-        initiative: null,
+        initiative: readRoleRuntimeNumber(runtime, roleId, ["initiative"]),
         isPlaced: placedRoleIds.has(roleId),
         maxHp: readRoleRuntimeNumber(runtime, roleId, MAX_HP_KEYS),
         name: roleNameFor(roleById, roleId),
@@ -176,7 +145,7 @@ export function buildMobileMapStatusRows(params: {
       };
     });
 
-  return [...participantRows, ...stateOnlyRows];
+  return stateOnlyRows;
 }
 
 export function buildMobileMapTokenStatusByRoleId(rows: MobileMapStatusRow[]): Record<number, MobileMapTokenStatus> {

@@ -84,6 +84,16 @@ export interface RoomContextType {
    * 发送消息（带乐观插入），供消息项上的快捷发送入口复用。
    */
   sendMessageWithInsert?: (message: ChatMessageRequest) => Promise<Message | null>;
+
+  /**
+   * 执行骰子指令，供房间内工具入口复用。
+   */
+  executeCommand?: (payload: {
+    command: string;
+    mentionedRoles?: UserRole[];
+    originMessage?: string;
+    replyMessageId?: number;
+  }) => void | Promise<void>;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -101,4 +111,5 @@ export const RoomContext = createContext<RoomContextType>({
   updateAndRerenderMessageInWebGAL: undefined,
   rerenderHistoryInWebGAL: undefined,
   sendMessageWithInsert: undefined,
+  executeCommand: undefined,
 });

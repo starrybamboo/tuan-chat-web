@@ -145,10 +145,10 @@ describe("clueRooms", () => {
     expect("roleId" in request).toBe(false);
   });
 
-  it("排除删除消息、已读线和 thread root", () => {
+  it("排除删除消息和已读线，不再为旧消息类型保留特殊过滤", () => {
     expect(canCopyMessageToClueFolder(message({ status: 1 }))).toBe(false);
     expect(canCopyMessageToClueFolder(message({ messageType: 10000 }))).toBe(false);
-    expect(canCopyMessageToClueFolder(message({ messageType: 10001 }))).toBe(false);
+    expect(canCopyMessageToClueFolder(message({ messageType: 1 }))).toBe(true);
     expect(canCopyMessageToClueFolder(message({ messageType: 1, status: 0 }))).toBe(true);
   });
 });

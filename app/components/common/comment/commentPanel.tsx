@@ -1,5 +1,4 @@
 import type { CommentVO } from "api";
-import type { MarkTarget } from "../../../../api";
 import type { CommentContextType } from "@/components/common/comment/commentContext";
 import { useMemo } from "react";
 import CommentComponent from "@/components/common/comment/commentComponent";
@@ -11,12 +10,13 @@ import {
   DEFAULT_COMMENT_MAX_LEVEL,
   normalizeCommentTreeQueryOptions,
   useGetCommentPageInfiniteQuery,
+  type CommentTargetInfo,
 } from "../../../../api/hooks/commentQueryHooks";
 
 type CommentPanelDisplayMode = "threaded" | "flat";
 
 interface CommentPanelProps {
-  targetInfo: MarkTarget;
+  targetInfo: CommentTargetInfo;
   className?: string;
   composerStyle?: "card" | "split";
   loginUserId: number;
