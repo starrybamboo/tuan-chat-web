@@ -1,10 +1,10 @@
 import type { Plugin } from "vite";
 
-import * as babelCore from "@babel/core";
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
-import viteReact from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -13,58 +13,6 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
-
-function shouldRunReactCompiler(id: string): boolean {
-  const normalizedId = id.split("?")[0].replace(/\\/g, "/");
-  if (!/\.[jt]sx?$/.test(normalizedId)) {
-    return false;
-  }
-  if (
-    normalizedId.includes("/node_modules/")
-    || normalizedId.includes("/build/")
-    || normalizedId.includes("/dist/")
-    || normalizedId.includes("/release/")
-    || normalizedId.includes("/extraResources/")
-  ) {
-    return false;
-  }
-  return true;
-}
-
-function reactCompilerPlugin(): Plugin {
-  return {
-    name: "tc-react-compiler",
-    enforce: "pre",
-    async transform(code, id) {
-      if (!shouldRunReactCompiler(id)) {
-        return null;
-      }
-
-      const result = await babelCore.transformAsync(code, {
-        filename: id.split("?")[0],
-        caller: {
-          name: "tc-react-compiler",
-          supportsStaticESM: true,
-        },
-        presets: [
-          [
-            "@babel/preset-typescript",
-            {
-              allExtensions: true,
-              isTSX: true,
-            },
-          ],
-        ],
-        plugins: ["babel-plugin-react-compiler"],
-      });
-
-      if (!result?.code) {
-        return null;
-      }
-      return { code: result.code, map: result.map };
-    },
-  };
-}
 
 function splitVendorChunk(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, "/");
@@ -318,8 +266,10 @@ export default defineConfig(() => {
         unstable_mode: "transform",
       }),
 
-      viteReact(),
-      reactCompilerPlugin(),
+      react(),
+      babel({
+        presets: [reactCompilerPreset()],
+      }),
     ],
     base: "/",
     resolve: {
