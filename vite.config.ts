@@ -348,12 +348,6 @@ export default defineConfig(() => {
         "@tanstack/react-router",
         "@tanstack/react-router-devtools",
         "zustand",
-        "lit",
-        "lit-element",
-        "lit-html",
-        "@lit/context",
-        "@lit/reactive-element",
-        "@lit/react",
       ],
       alias: [
         // 音频转码依赖 ffmpeg.wasm：固定到 ESM 入口，避免 Vite 在 Windows 下解析 package exports 失败
@@ -370,58 +364,6 @@ export default defineConfig(() => {
         {
           find: /^@ffmpeg\/util$/,
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
-        },
-
-        // Force Lit ecosystem to resolve to a single physical copy.
-        // This helps avoid runtime warnings like "Multiple versions of Lit loaded"
-        // when the same version is loaded from different paths (e.g. pnpm virtual store).
-        {
-          find: /^lit$/,
-          replacement: nm("node_modules/lit/index.js"),
-        },
-        {
-          find: /^lit\/(.+)$/,
-          replacement: `${nm("node_modules/lit")}/$1`,
-        },
-        {
-          find: /^lit-html$/,
-          replacement: nm("node_modules/lit-html/lit-html.js"),
-        },
-        {
-          find: /^lit-html\/(.+)$/,
-          replacement: `${nm("node_modules/lit-html")}/$1`,
-        },
-        {
-          find: /^lit-element$/,
-          replacement: nm("node_modules/lit-element/index.js"),
-        },
-        {
-          find: /^lit-element\/(.+)$/,
-          replacement: `${nm("node_modules/lit-element")}/$1`,
-        },
-        {
-          find: /^@lit\/reactive-element$/,
-          replacement: nm("node_modules/@lit/reactive-element/reactive-element.js"),
-        },
-        {
-          find: /^@lit\/reactive-element\/(.+)$/,
-          replacement: `${nm("node_modules/@lit/reactive-element")}/$1`,
-        },
-        {
-          find: /^@lit\/context$/,
-          replacement: nm("node_modules/@lit/context/index.js"),
-        },
-        {
-          find: /^@lit\/context\/(.+)$/,
-          replacement: `${nm("node_modules/@lit/context")}/$1`,
-        },
-        {
-          find: /^@lit\/react$/,
-          replacement: nm("node_modules/@lit/react/index.js"),
-        },
-        {
-          find: /^@lit\/react\/(.+)$/,
-          replacement: `${nm("node_modules/@lit/react")}/$1`,
         },
         {
           find: "@",
