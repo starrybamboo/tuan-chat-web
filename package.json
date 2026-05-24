@@ -150,7 +150,6 @@
     "husky": "^9.1.7",
     "immer": "10.1.1",
     "lint-staged": "^15.5.0",
-    "lit": "3.3.2",
     "openapi-typescript-codegen": "^0.29.0",
     "oxlint": "1.63.0",
     "pixi.js": "^8.6.6",
@@ -181,13 +180,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@electron/node-gyp": "10.2.0-electron.1",
-      "@lit/context": "1.1.6",
-      "@lit/react": "1.0.8",
-      "@lit/reactive-element": "2.1.2",
-      "lit": "3.3.2",
-      "lit-element": "4.2.2",
-      "lit-html": "3.3.2"
+      "@electron/node-gyp": "10.2.0-electron.1"
     }
   },
   "lint-staged": {
