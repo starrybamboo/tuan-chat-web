@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 
-import dagre from "dagre";
+import * as dagre from "dagre";
 
 import type { RoomMap } from "@/components/chat/window/workflowGraphUtils";
 

@@ -43,45 +43,6 @@ function splitVendorChunk(id: string): string | undefined {
 /**
  * Fix CommonJS default export issues for modules that still surface interop problems in dev.
  */
-function fixCjsDefaultExportPlugin(): Plugin {
-  return {
-    name: "fix-cjs-default-export",
-    apply: "serve",
-    transform(code, _id) {
-      // Target modules that commonly have CJS/default export issues
-      const problematicModules = [
-        "dagre",
-        "qrcode",
-      ];
-
-      let modified = false;
-      let result = code;
-
-      for (const module of problematicModules) {
-        // Match: import identifier from 'module' or import identifier from "module"
-        const importRegex = new RegExp(
-          `import\\s+([\\w$]+)\\s+from\\s+['"](${module.replace(/\//g, "\\/")})['"](;?)`,
-          "g",
-        );
-
-        if (importRegex.test(result)) {
-          modified = true;
-          result = result.replace(
-            importRegex,
-            (match, identifier) => {
-              // Convert to dynamic import + namespace, then extract the default
-              // This works around the missing default export by using the CJS wrapper
-              return `import * as __module_${identifier} from '${module}'; const ${identifier} = __module_${identifier}.default || __module_${identifier};`;
-            },
-          );
-        }
-      }
-
-      return modified ? { code: result } : null;
-    },
-  };
-}
-
 function ossUploadProxyPlugin(): Plugin {
   const readBody = async (req: any) => {
     const chunks: Buffer[] = [];
@@ -255,7 +216,6 @@ export default defineConfig(() => {
         routeFileIgnorePattern: "^routeTypes\\.ts$",
       }),
       tailwindcss(),
-      fixCjsDefaultExportPlugin(),
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
 
@@ -295,12 +255,6 @@ export default defineConfig(() => {
         {
           find: /^@ffmpeg\/ffmpeg$/,
           replacement: nm("node_modules/@ffmpeg/ffmpeg/dist/esm/index.js"),
-        },
-        {
-          // lz-string 在 CJS/ESM 互操作下可能只暴露 default，导致依赖内的 `import * as lz` 调用失败。
-          // 统一走 shim，保证 namespace/default 两种调用都可用。
-          find: /^lz-string$/,
-          replacement: resolve(__dirname, "app/shims/lzStringCompat.ts"),
         },
         {
           find: /^@ffmpeg\/util$/,
