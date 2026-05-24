@@ -22,6 +22,7 @@ import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage"
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { canCurrentUserViewHiddenDiceReply } from "@/components/chat/utils/hiddenDiceVisibility";
 import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
@@ -52,9 +53,9 @@ import DocCardMessage from "./docCard/docCardMessage";
 import {
   CHAT_MESSAGE_ANNOTATIONS_CLASS,
   CHAT_MESSAGE_BUBBLE_BASE_CLASS,
-  CHAT_MESSAGE_HOVER_TOOLBAR_CLASS,
-  CHAT_MESSAGE_META_ROW_CLASS,
   CHAT_MESSAGE_ROW_CLASS,
+  getChatMessageHoverToolbarClass,
+  getChatMessageMetaRowClass,
 } from "./messageCardStyle";
 
 interface CommandRequestPayload {
@@ -321,6 +322,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
+  const sideDrawerState = useSideDrawerStore(state => state.state);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
@@ -380,7 +382,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const showRoleNameEditor = !isIntroText && !isStateEventMessage && !isOutOfCharacterTextMessage && isEditingRoleName;
   const chatMessageMetaRowClass = isOutOfCharacterTextMessage
     ? "flex items-center gap-2 w-full min-w-0 relative"
-    : CHAT_MESSAGE_META_ROW_CLASS;
+    : getChatMessageMetaRowClass(sideDrawerState !== "none");
   const outOfCharacterBadge = isOutOfCharacterTextMessage
     ? (
         <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium text-base-content/50">
@@ -674,7 +676,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
 
   const messageHoverToolbar = (
     <div
-      className={CHAT_MESSAGE_HOVER_TOOLBAR_CLASS}
+      className={getChatMessageHoverToolbarClass(isMobile)}
     >
       {onToggleSelection && (
         <HoverToolbarActionButton label="多选" onClick={handleToggleSelectionClick}>
