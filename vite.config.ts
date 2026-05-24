@@ -323,7 +323,7 @@ export default defineConfig(() => {
         autoCodeSplitting: true,
         routesDirectory: "app/routes",
         generatedRouteTree: "app/routeTree.gen.ts",
-        routeFileIgnorePattern: "^(routeTypes|scrollSequenceDemoShared)\\.ts$",
+        routeFileIgnorePattern: "^routeTypes\\.ts$",
       }),
       tailwindcss(),
       fixCjsDefaultExportPlugin(),

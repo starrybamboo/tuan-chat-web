@@ -65,6 +65,8 @@ interface ChatInputAreaProps {
   onInputSync: (plainText: string, textWithoutMentions: string, mentionedRoles: UserRole[]) => void;
   /** 将粘贴的文件回调给父组件 */
   onPasteFiles: (files: File[]) => void;
+  /** 可选：拦截纯文本粘贴，返回 true 表示外部已接管本次粘贴 */
+  onPasteText?: (plainText: string, insertPlainText: () => void) => boolean | void;
   /** 转发通用的按键事件，由父组件处理（如提交、AI、@弹窗导航） */
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onKeyUp: (e: React.KeyboardEvent<HTMLDivElement>) => void;
@@ -336,13 +338,34 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     // 否则只处理纯文本（只插入一次），避免当 clipboard 同时包含 text/html 和 text/plain 时重复插入
     const plainText = e.clipboardData.getData("text/plain");
     if (plainText) {
+      const savedRange = (() => {
+        const selectionInfo = getEditorRange(internalTextareaRef.current);
+        const range = selectionInfo?.range;
+        return range ? range.cloneRange() : null;
+      })();
+      const insertPlainText = () => {
+        const editor = internalTextareaRef.current;
+        if (!editor) {
+          return;
+        }
+        if (savedRange) {
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(savedRange);
+        }
+        insertNodeAtCursorInternal(document.createTextNode(plainText), {
+          replaceSelection: true,
+          moveCursorToEnd: true,
+        });
+        handleInputInternal();
+      };
+      if (props.onPasteText?.(plainText, insertPlainText)) {
+        e.preventDefault();
+        return;
+      }
+
       e.preventDefault();
-      insertNodeAtCursorInternal(document.createTextNode(plainText), {
-        replaceSelection: true,
-        moveCursorToEnd: true,
-      });
-      // 手动触发同步更新状态
-      handleInputInternal();
+      insertPlainText();
     }
     // 如果既没有图片也没有纯文本，允许默认行为（例如复杂 HTML 由浏览器处理）
   };

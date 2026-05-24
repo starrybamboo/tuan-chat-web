@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { Crop, PixelCrop } from "react-image-crop";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { canvasPreview } from "./canvasPreview";
 import {
@@ -110,12 +110,38 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [previewDataUrl, setPreviewDataUrl] = useState("");
+  const previewObjectUrlRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+
+  const revokePreviewObjectUrl = useCallback((url: string | null | undefined) => {
+    if (url?.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
 
   // 内部预览更新处理
   const handlePreviewUpdate = useCallback((dataUrl: string) => {
+    if (!mountedRef.current) {
+      revokePreviewObjectUrl(dataUrl);
+      return;
+    }
+    const previousUrl = previewObjectUrlRef.current;
+    if (previousUrl && previousUrl !== dataUrl) {
+      revokePreviewObjectUrl(previousUrl);
+    }
+    previewObjectUrlRef.current = dataUrl.startsWith("blob:") ? dataUrl : null;
     setPreviewDataUrl(dataUrl);
     onPreviewUpdate?.(dataUrl);
-  }, [onPreviewUpdate]);
+  }, [onPreviewUpdate, revokePreviewObjectUrl]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      revokePreviewObjectUrl(previewObjectUrlRef.current);
+      previewObjectUrlRef.current = null;
+    };
+  }, [revokePreviewObjectUrl]);
 
   // 图片加载完成，初始化裁剪区域
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -178,6 +204,8 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
 
   // 重置所有状态
   const reset = useCallback(() => {
+    revokePreviewObjectUrl(previewObjectUrlRef.current);
+    previewObjectUrlRef.current = null;
     setCrop(undefined);
     setCompletedCrop(undefined);
     setPreviewDataUrl("");
@@ -185,7 +213,7 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
       const ctx = previewCanvasRef.current.getContext("2d");
       ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
     }
-  }, [previewCanvasRef]);
+  }, [previewCanvasRef, revokePreviewObjectUrl]);
 
   // 获取裁剪后的文件 - 重新以全分辨率绘制后导出
   const getCroppedFile = useCallback(async (fileName = "cropped.png"): Promise<File> => {

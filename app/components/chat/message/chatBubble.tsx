@@ -1,4 +1,4 @@
-import type { ChatMessageResponse, Message } from "../../../../api";
+import type { ChatMessageResponse, Message, UserRole } from "../../../../api";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import { getClueCardRenderData, getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -67,6 +67,63 @@ interface HoverToolbarActionButtonProps {
   label: string;
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
+}
+
+interface DiceTurnReplyRenderPayload {
+  avatarId?: number;
+  content?: string;
+  customRoleName?: string;
+  hidden?: boolean;
+  roleId?: number;
+}
+
+function DiceTurnReplyItem({
+  canViewHiddenDiceReply,
+  useChatBubbleStyle,
+  reply,
+  roomRoles,
+}: {
+  canViewHiddenDiceReply: boolean;
+  useChatBubbleStyle: boolean;
+  reply: DiceTurnReplyRenderPayload;
+  roomRoles: Pick<UserRole, "roleId" | "roleName">[];
+}) {
+  const roleId = typeof reply.roleId === "number" && reply.roleId > 0 ? reply.roleId : 0;
+  const roleRequest = useGetRoleQuery(roleId);
+  const roleName = reply.customRoleName
+    || roleRequest.data?.data?.roleName?.trim()
+    || roomRoles.find(item => item.roleId === reply.roleId)?.roleName?.trim()
+    || (reply.roleId ? `角色 #${reply.roleId}` : "骰娘");
+
+  return (
+    <div className={`flex min-w-0 items-start gap-2 ${useChatBubbleStyle ? "rounded-xl border border-base-300/65 bg-base-100/70 px-2.5 py-2 shadow-sm" : ""}`}>
+      <RoleAvatarComponent
+        avatarId={reply.avatarId ?? 0}
+        roleId={reply.roleId}
+        width={useChatBubbleStyle ? 6 : 10}
+        isRounded={useChatBubbleStyle}
+        stopToastWindow
+        alt={roleName}
+      />
+      <div className="min-w-0 flex-1">
+        <div className={`flex items-center gap-1.5 text-[11px] ${useChatBubbleStyle ? "mb-1 text-base-content/55" : "mb-0.5 text-base-content/50"}`}>
+          <span className="font-medium">{roleName}</span>
+          {reply.hidden ? <span className="badge badge-ghost badge-xs">暗骰</span> : null}
+        </div>
+        {useChatBubbleStyle
+          ? (
+              <div className={`whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
+                {reply.content || "[骰子结果]"}
+              </div>
+            )
+          : (
+              <div className={`border-l-2 border-primary/25 pl-2.5 whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
+                {reply.content || "[骰子结果]"}
+              </div>
+            )}
+      </div>
+    </div>
+  );
 }
 
 const EFFECT_PREVIEW_DURATION_MS = 2000;
@@ -960,22 +1017,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 </div>
                 <div className="flex min-w-0 flex-col gap-1.5 border-l-2 border-primary/25 pl-2.5">
                   {diceTurnData.replies.length > 0
-                    ? diceTurnData.replies.map((reply, index) => {
-                        const roleName = reply.customRoleName
-                          || roomRoles.find(item => item.roleId === reply.roleId)?.roleName?.trim()
-                          || (reply.roleId ? `角色 #${reply.roleId}` : "骰娘");
-                        return (
-                          <div key={`${reply.roleId ?? "dicer"}:${index}`} className="min-w-0">
-                            <div className="mb-0.5 flex items-center gap-1.5 text-[11px] text-base-content/55">
-                              <span className="font-medium">{roleName}</span>
-                              {reply.hidden ? <span className="badge badge-ghost badge-xs">暗骰</span> : null}
-                            </div>
-                            <div className={`whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
-                              {reply.content || "[骰子结果]"}
-                            </div>
-                          </div>
-                        );
-                      })
+                    ? diceTurnData.replies.map((reply, index) => (
+                        <DiceTurnReplyItem
+                          key={`${reply.roleId ?? "dicer"}:${index}`}
+                          canViewHiddenDiceReply={canViewHiddenDiceReply}
+                          useChatBubbleStyle={Boolean(useChatBubbleStyle)}
+                          reply={reply}
+                          roomRoles={roomRoles}
+                        />
+                      ))
                     : (
                         <div className="whitespace-pre-wrap break-words text-base-content/70">
                           [骰子结果]

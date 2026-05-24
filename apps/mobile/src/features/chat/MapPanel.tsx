@@ -296,12 +296,12 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
     const events: StateEventAtom[] = [];
     if (occupant && occupant.roleId !== selectedRoleId) {
       events.push({
-        type: "combatMapTokenRemove",
+        type: "mapTokenRemove",
         roleId: occupant.roleId,
       });
     }
     events.push({
-      type: "combatMapTokenUpsert",
+      type: "mapTokenUpsert",
       roleId: selectedRoleId,
       rowIndex: cell.rowIndex,
       colIndex: cell.colIndex,
@@ -345,7 +345,7 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
         mapFileId: image.fileId,
       });
       const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-        type: "combatMapTokenRemove",
+        type: "mapTokenRemove",
         roleId: token.roleId,
       }));
       if (clearTokenEvents.length > 0) {
@@ -457,7 +457,7 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
                         onPress: () => {
                           void clearMapMutation.mutateAsync();
                           const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-                            type: "combatMapTokenRemove",
+                            type: "mapTokenRemove",
                             roleId: token.roleId,
                           }));
                           if (clearTokenEvents.length > 0) {
@@ -545,7 +545,7 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
                         style: "destructive",
                         onPress: () => {
                           const events: StateEventAtom[] = [{
-                            type: "combatMapTokenRemove",
+                            type: "mapTokenRemove",
                             roleId: token.roleId,
                           }];
                           void sendMapStateEvents(events, ".combat map-remove");

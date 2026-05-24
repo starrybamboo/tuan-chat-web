@@ -60,7 +60,7 @@
 
 **理由**：
 - 图片已废弃 high（注释明确说明）
-- original 在文件过大时已按 high profile 压缩/转码，功能上等价
+- 图片 original 已统一按 original profile 转 WebP（2560px / 3MiB），音视频 original 在文件过大时仍按 high profile 转码，功能上等价
 - 减少一次转码 = 少一个 FFmpeg 实例 = 节省 ~30MB 内存 + 转码时间
 
 ### 5. 错误处理：WASM OOB 重建实例

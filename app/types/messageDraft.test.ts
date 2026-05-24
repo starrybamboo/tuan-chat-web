@@ -105,6 +105,45 @@ describe("messageDraft request normalization", () => {
     });
   });
 
+  it("文档卡片有封面 fileId 时不会把 legacy imageUrl 写入发送请求", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DOC_CARD, {
+      docCard: {
+        docId: " 42 ",
+        spaceId: "7",
+        title: " 调查笔记 ",
+        imageUrl: " https://legacy.example.com/cover.png ",
+        imageFileId: "123",
+        originalImageFileId: "456",
+        imageMediaType: " image ",
+        excerpt: " 摘要 ",
+      },
+    })).toEqual({
+      docCard: {
+        docId: "42",
+        spaceId: 7,
+        title: "调查笔记",
+        imageFileId: 123,
+        originalImageFileId: 456,
+        imageMediaType: "image",
+        excerpt: "摘要",
+      },
+    });
+  });
+
+  it("文档卡片没有封面 fileId 时保留同槽位 legacy imageUrl 兼容读取", () => {
+    expect(buildMessageExtraForRequest(MESSAGE_TYPE.DOC_CARD, {
+      docCard: {
+        docId: "42",
+        imageUrl: " https://legacy.example.com/cover.png ",
+      },
+    })).toEqual({
+      docCard: {
+        docId: "42",
+        imageUrl: "https://legacy.example.com/cover.png",
+      },
+    });
+  });
+
   it("保留 clue card 的消息快照", () => {
     const request = buildChatMessageRequestFromDraft({
       messageType: MESSAGE_TYPE.CLUE_CARD,

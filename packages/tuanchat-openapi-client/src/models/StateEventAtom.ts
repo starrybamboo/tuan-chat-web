@@ -37,52 +37,16 @@ export type StateEventAtom = {
      */
     statusName?: string;
     /**
-     * 战斗参与者稳定 ID，仅 combatParticipant* / combatActiveParticipantSet 使用
-     */
-    participantId?: string;
-    /**
-     * 战斗参与者或地图 token 绑定的角色 ID
+     * 地图 token 绑定的角色 ID
      */
     roleId?: number;
     /**
-     * 战斗参与者显示名，仅 combatParticipantUpsert 使用
-     */
-    name?: string;
-    /**
-     * 战斗参与者先攻值，仅 combatParticipantUpsert 使用
-     */
-    initiative?: number;
-    /**
-     * 战斗参与者手动列值，仅 combatParticipantUpsert 使用
-     */
-    values?: Record<string, Record<string, any>>;
-    /**
-     * 地图 token 行坐标，仅 combatMapTokenUpsert 使用
+     * 地图 token 行坐标，仅 mapTokenUpsert 使用
      */
     rowIndex?: number;
     /**
-     * 地图 token 列坐标，仅 combatMapTokenUpsert 使用
+     * 地图 token 列坐标，仅 mapTokenUpsert 使用
      */
     colIndex?: number;
-    /**
-     * 战斗参与者顺序，仅 combatOrderSet 使用
-     */
-    participantIds?: Array<string>;
-    /**
-     * 战斗列来源，仅 combatColumnUpsert 使用
-     */
-    source?: string;
-    /**
-     * 战斗列显示名，仅 combatColumnUpsert 使用
-     */
-    label?: string;
-    /**
-     * 角色属性键，仅 roleAttr 战斗列使用
-     */
-    attrKey?: string;
-    /**
-     * 状态变量键，仅 stateKey 战斗列使用
-     */
-    stateKey?: string;
 };
 

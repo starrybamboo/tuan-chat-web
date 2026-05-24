@@ -18,11 +18,9 @@ import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
-import {
-  getRemoteRoomMessageStream,
-  patchRemoteRoomMessageStream,
-} from "@/components/chat/infra/doc/document/roomMessageStreamApi";
+import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import { parseImportedChatText } from "@/components/chat/utils/importChatText";
 
 import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -89,9 +87,9 @@ interface MessageEditorProps {
   excerpt?: string;
   initialMessages?: Message[];
   intentPrewarm?: boolean;
+  onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   readOnly?: boolean;
-  remoteSource?: "self" | "room-cache";
   spaceId?: number;
   tcHeader?: {
     enabled?: boolean;
@@ -176,6 +174,10 @@ const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
   "absolute z-30 inline-flex cursor-grab transition-opacity duration-150 active:cursor-grabbing",
   "opacity-100",
 ].join(" ");
+
+export function isMessageEditorImportablePasteText(text: string): boolean {
+  return parseImportedChatText(text).messages.length > 0;
+}
 
 function hasMeaningfulMessageEditorContent(messages: MessageEditorMessage[]): boolean {
   return ensureMessageEditorMessages(messages).some((message) => {
@@ -627,9 +629,9 @@ export default function MessageEditor({
   docId,
   excerpt: _excerpt,
   initialMessages,
+  onRequestImportTextPaste,
   onRemoteMessagesSaved,
   readOnly = false,
-  remoteSource = "self",
   spaceId,
   tcHeader,
   title,
@@ -647,16 +649,15 @@ export default function MessageEditor({
     () => ensureMessageEditorMessages(initialMessages ?? []),
     [initialMessages],
   );
-  const isRoomCacheSource = remoteSource === "room-cache";
-  const shouldSyncRemote = Boolean(
+  const isRoomDocument = Boolean(
     resolvedDocRoomId
     && resolvedSpaceId
     && (!resolvedWorkspaceId || resolvedWorkspaceId.startsWith("space:")),
   );
-  const shouldLoadRemote = shouldSyncRemote && remoteSource === "self";
+  const shouldUseLocalSnapshot = Boolean(resolvedDocId && !isRoomDocument);
   const initialEditorMessages = useMemo(
-    () => isRoomCacheSource ? normalizedInitialMessages : ensureMessageEditorMessages([]),
-    [isRoomCacheSource, normalizedInitialMessages],
+    () => isRoomDocument ? normalizedInitialMessages : ensureMessageEditorMessages([]),
+    [isRoomDocument, normalizedInitialMessages],
   );
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const blockRefsRef = useRef(new Map<string, HTMLDivElement>());
@@ -697,28 +698,28 @@ export default function MessageEditor({
   const [speakerAvatarSelectionIndex, setSpeakerAvatarSelectionIndex] = useState(0);
   const [speakerAvatarSearchQuery, setSpeakerAvatarSearchQuery] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
-  const [ready, setReady] = useState(!resolvedDocId || isRoomCacheSource);
+  const [ready, setReady] = useState(!resolvedDocId || isRoomDocument);
   const registry = useMemo(() => createMessageEditorRegistry(), []);
   const eventBus = useMemo(() => new MessageEditorEventBus(), []);
-  const lastSavedSerializedRef = useRef(isRoomCacheSource ? getMessageEditorSnapshotFingerprint(initialEditorMessages) : "");
+  const lastSavedSerializedRef = useRef(isRoomDocument ? getMessageEditorSnapshotFingerprint(initialEditorMessages) : "");
   const saveGenerationRef = useRef(0);
   const activeRemoteSaveGenerationRef = useRef<number | null>(null);
   const dirtySinceLoadRef = useRef(false);
   const initialMessagesSeedRef = useRef(normalizedInitialMessages);
-  const roomCacheIncomingFingerprintRef = useRef(getMessageEditorSnapshotFingerprint(initialEditorMessages));
+  const incomingRoomMessagesFingerprintRef = useRef(getMessageEditorSnapshotFingerprint(initialEditorMessages));
   const loadSeedKeyRef = useRef<string | null>(null);
-  const baselineMessagesRef = useRef<MessageEditorMessage[]>(isRoomCacheSource ? initialEditorMessages : []);
+  const baselineMessagesRef = useRef<MessageEditorMessage[]>(isRoomDocument ? initialEditorMessages : []);
 
   useEffect(() => {
-    const loadSeedKey = `${resolvedDocId ?? ""}|${remoteSource}`;
+    const loadSeedKey = `${resolvedDocId ?? ""}|${isRoomDocument ? "room" : "local"}`;
     if (loadSeedKeyRef.current !== loadSeedKey) {
       loadSeedKeyRef.current = loadSeedKey;
       initialMessagesSeedRef.current = normalizedInitialMessages;
     }
-  }, [normalizedInitialMessages, remoteSource, resolvedDocId]);
+  }, [isRoomDocument, normalizedInitialMessages, resolvedDocId]);
 
   useEffect(() => {
-    if (!ready || !resolvedDocId || !isRoomCacheSource) {
+    if (!ready || !resolvedDocId || !isRoomDocument) {
       return;
     }
 
@@ -727,10 +728,10 @@ export default function MessageEditor({
       messagesRef.current,
     );
     const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
-    if (nextFingerprint === roomCacheIncomingFingerprintRef.current) {
+    if (nextFingerprint === incomingRoomMessagesFingerprintRef.current) {
       return;
     }
-    roomCacheIncomingFingerprintRef.current = nextFingerprint;
+    incomingRoomMessagesFingerprintRef.current = nextFingerprint;
 
     if (dirtySinceLoadRef.current) {
       toast("房间里有新的消息变更，保存后会同步到当前文档视图");
@@ -742,12 +743,12 @@ export default function MessageEditor({
       return;
     }
 
-    // 未编辑时可以直接接受 room cache 的 WebSocket 增量；正在编辑时只提醒，不自动合并。
+    // 未编辑时可以直接接受房间消息的 WebSocket 增量；正在编辑时只提醒，不自动合并。
     baselineMessagesRef.current = nextMessages;
     messagesRef.current = nextMessages;
     lastSavedSerializedRef.current = nextFingerprint;
     setMessages(nextMessages);
-  }, [isRoomCacheSource, normalizedInitialMessages, ready, resolvedDocId]);
+  }, [isRoomDocument, normalizedInitialMessages, ready, resolvedDocId]);
 
   const reconcileRemotePatchMessages = useCallback(async (
     operations: RoomMessageStreamPatchOperation[],
@@ -994,10 +995,10 @@ export default function MessageEditor({
     restoreSelectionRef.current = null;
     hideToolbar();
 
-    if (isRoomCacheSource) {
+    if (isRoomDocument) {
       const nextMessages = ensureMessageEditorMessages(initialMessagesSeedRef.current);
       const nextFingerprint = getMessageEditorSnapshotFingerprint(nextMessages);
-      roomCacheIncomingFingerprintRef.current = nextFingerprint;
+      incomingRoomMessagesFingerprintRef.current = nextFingerprint;
       resetHistory();
       dirtySinceLoadRef.current = false;
       baselineMessagesRef.current = nextMessages;
@@ -1019,55 +1020,28 @@ export default function MessageEditor({
 
     void (async () => {
       await Promise.resolve();
-      const cached = resolvedDocId && !shouldSyncRemote && !isRoomCacheSource ? getCachedDocSnapshot(resolvedDocId) : null;
-      const persisted = cached ?? (resolvedDocId && !shouldSyncRemote && !isRoomCacheSource
-        ? await getPersistedDocSnapshot(resolvedDocId).catch(() => null)
+      const localSnapshotDocId = shouldUseLocalSnapshot ? resolvedDocId : undefined;
+      const cached = localSnapshotDocId ? getCachedDocSnapshot(localSnapshotDocId) : null;
+      const persisted = cached ?? (localSnapshotDocId
+        ? await getPersistedDocSnapshot(localSnapshotDocId).catch(() => null)
         : null);
-      const mediaLayoutSnapshot = resolvedDocId
-        ? cached ?? await getPersistedDocSnapshot(resolvedDocId).catch(() => null)
-        : null;
-      const remote = shouldLoadRemote && resolvedDocRoomId
-        ? await getRemoteRoomMessageStream({ roomId: resolvedDocRoomId }).catch((error) => {
-            console.warn("[MessageEditor] load remote room message stream failed", error);
-            return null;
-          })
-        : null;
 
       if (cancelled) {
         return;
       }
 
-      if (resolvedDocId && !shouldSyncRemote && !isRoomCacheSource && persisted && !cached) {
-        setCachedDocSnapshot(resolvedDocId, persisted);
+      if (localSnapshotDocId && persisted && !cached) {
+        setCachedDocSnapshot(localSnapshotDocId, persisted);
       }
 
-      const remoteMessages = Array.isArray(remote) ? remote : [];
-      const hasRemoteMessages = remoteMessages.length > 0;
       const seededInitialMessages = initialMessagesSeedRef.current;
 
       const fallback = resolvedDocId
-        ? (isRoomCacheSource
-            ? (seededInitialMessages.length > 0 ? seededInitialMessages : [createMessageEditorTextDraft()])
-            : (seededInitialMessages.length > 0 ? seededInitialMessages : [createMessageEditorTextDraft()]))
+        ? (seededInitialMessages.length > 0 ? seededInitialMessages : [createMessageEditorTextDraft()])
         : (messagesRef.current.length > 0 ? messagesRef.current : [createMessageEditorTextDraft()]);
-      const shouldUseRemote = hasRemoteMessages;
-      const decoded = shouldUseRemote
-        ? ensureMessageEditorMessages(remoteMessages)
-        : ensureMessageEditorMessages(
-            isRoomCacheSource
-              ? fallback
-              : (persisted ? decodeMessageEditorMessages(persisted) : fallback),
-          );
-      const nextMessages = shouldUseRemote && mediaLayoutSnapshot
-        ? mergeMessageEditorMediaLayouts(decoded, decodeMessageEditorMessages(mediaLayoutSnapshot))
-        : decoded;
-      const loadedSnapshot = createMessageEditorSnapshot(nextMessages);
-      if (shouldUseRemote && resolvedDocId && !shouldSyncRemote && !isRoomCacheSource) {
-        setCachedDocSnapshot(resolvedDocId, loadedSnapshot);
-        void setPersistedDocSnapshot(resolvedDocId, loadedSnapshot).catch((error) => {
-          console.warn("[MessageEditor] cache remote doc room snapshot failed", error);
-        });
-      }
+      const nextMessages = ensureMessageEditorMessages(
+        persisted ? decodeMessageEditorMessages(persisted) : fallback,
+      );
       resetHistory();
       dirtySinceLoadRef.current = false;
       baselineMessagesRef.current = nextMessages;
@@ -1081,7 +1055,7 @@ export default function MessageEditor({
     return () => {
       cancelled = true;
     };
-  }, [hideToolbar, isRoomCacheSource, resetHistory, resolvedDocId, resolvedDocRoomId, shouldLoadRemote, shouldSyncRemote]);
+  }, [hideToolbar, isRoomDocument, resetHistory, resolvedDocId, shouldUseLocalSnapshot]);
 
   useEffect(() => {
     if (!ready || readOnly || !resolvedDocId || !dirtySinceLoadRef.current) {
@@ -1093,7 +1067,7 @@ export default function MessageEditor({
       return;
     }
 
-    if (shouldSyncRemote && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messages)) {
+    if (isRoomDocument && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messages)) {
       console.warn("[MessageEditor] skip empty room message-stream sync to avoid clearing content");
       return;
     }
@@ -1104,7 +1078,7 @@ export default function MessageEditor({
       activeRemoteSaveGenerationRef.current = saveGeneration;
       setSaveState("saving");
       const snapshot = createMessageEditorSnapshot(messages);
-      const persistTask = shouldSyncRemote && resolvedDocRoomId
+      const persistTask = isRoomDocument && resolvedDocRoomId
         ? (() => {
             const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messages);
             if (operations.length === 0) {
@@ -1120,9 +1094,11 @@ export default function MessageEditor({
               await reconcileRemotePatchMessages(operations, changedMessages);
             });
           })()
-        : setPersistedDocSnapshot(resolvedDocId, snapshot).then(() => {
-            setCachedDocSnapshot(resolvedDocId, snapshot);
-          });
+        : shouldUseLocalSnapshot
+            ? setPersistedDocSnapshot(resolvedDocId, snapshot).then(() => {
+                setCachedDocSnapshot(resolvedDocId, snapshot);
+              })
+            : Promise.resolve();
 
       void persistTask
         .then(() => {
@@ -1146,12 +1122,12 @@ export default function MessageEditor({
             activeRemoteSaveGenerationRef.current = null;
           }
         });
-    }, shouldSyncRemote ? MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS : MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS);
+    }, isRoomDocument ? MESSAGE_EDITOR_REMOTE_SYNC_DELAY_MS : MESSAGE_EDITOR_LOCAL_SAVE_DELAY_MS);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [isActiveRemoteSaveGeneration, messages, readOnly, ready, reconcileRemotePatchMessages, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
+  }, [isActiveRemoteSaveGeneration, isRoomDocument, messages, readOnly, ready, reconcileRemotePatchMessages, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
 
   useEffect(() => {
     return () => {
@@ -1165,14 +1141,14 @@ export default function MessageEditor({
         return;
       }
 
-      if (shouldSyncRemote && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messagesRef.current)) {
+      if (isRoomDocument && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messagesRef.current)) {
         console.warn("[MessageEditor] skip empty room message-stream flush to avoid clearing content");
         return;
       }
 
       const snapshot = createMessageEditorSnapshot(messagesRef.current);
       lastSavedSerializedRef.current = snapshotFingerprint;
-      if (shouldSyncRemote && resolvedDocRoomId) {
+      if (isRoomDocument && resolvedDocRoomId) {
         const saveGeneration = saveGenerationRef.current;
         activeRemoteSaveGenerationRef.current = saveGeneration;
         const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messagesRef.current);
@@ -1203,12 +1179,16 @@ export default function MessageEditor({
         return;
       }
 
+      if (!shouldUseLocalSnapshot) {
+        return;
+      }
+
       setCachedDocSnapshot(resolvedDocId, snapshot);
       void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
         console.error("[MessageEditor] flush snapshot failed", error);
       });
     };
-  }, [isActiveRemoteSaveGeneration, readOnly, reconcileRemotePatchMessages, resolvedDocId, resolvedDocRoomId, shouldSyncRemote]);
+  }, [isActiveRemoteSaveGeneration, isRoomDocument, readOnly, reconcileRemotePatchMessages, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {
@@ -1398,6 +1378,14 @@ export default function MessageEditor({
     const result = controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
     focusAfterSelectionEdit(result?.focus ?? null);
   }, [focusAfterSelectionEdit]);
+
+  const requestImportTextPaste = useCallback((text: string, insertAsPlainText: () => void) => {
+    if (!isRoomDocument || !onRequestImportTextPaste || !isMessageEditorImportablePasteText(text)) {
+      return false;
+    }
+    onRequestImportTextPaste(text, insertAsPlainText);
+    return true;
+  }, [isRoomDocument, onRequestImportTextPaste]);
 
   const handleTextStyleInsert = useCallback((replacement: string, selectedText: string, options?: { transform?: (selectedPart: string) => string }) => {
     const selection = crossBlockSelection?.selection ?? resolveEditorSelection(true) ?? resolveEditorSelection(false);
@@ -2197,14 +2185,20 @@ export default function MessageEditor({
       }
 
       event.preventDefault();
-      replaceDocumentSelectionText(crossBlockSelection.selection, normalizeEditableText(text));
+      const normalizedText = normalizeEditableText(text);
+      if (requestImportTextPaste(normalizedText, () => {
+        replaceDocumentSelectionText(crossBlockSelection.selection, normalizedText);
+      })) {
+        return;
+      }
+      replaceDocumentSelectionText(crossBlockSelection.selection, normalizedText);
     };
 
     document.addEventListener("paste", handleDocumentPaste);
     return () => {
       document.removeEventListener("paste", handleDocumentPaste);
     };
-  }, [crossBlockSelection, readOnly, replaceDocumentSelectionText]);
+  }, [crossBlockSelection, readOnly, replaceDocumentSelectionText, requestImportTextPaste]);
 
   const handleTextKeyDown = useCallback((blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => {
     const root = editorRootRef.current;
@@ -2729,6 +2723,10 @@ export default function MessageEditor({
     }
   }, [insertMediaFileAtSelection, registry, resolveEditorSelection]);
 
+  const handleTextPasteText = useCallback((_blockId: string, text: string, insertPlainText: () => void) => {
+    return requestImportTextPaste(normalizeEditableText(text), insertPlainText);
+  }, [requestImportTextPaste]);
+
   const handleBlockDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (isMessageEditorFileDrag(event.dataTransfer)) {
       event.preventDefault();
@@ -3069,6 +3067,7 @@ export default function MessageEditor({
                           onInput={handleTextInput}
                           onKeyDown={handleTextKeyDown}
                           onPasteFiles={handleTextPasteFiles}
+                          onPasteText={handleTextPasteText}
                         />
                         {slashMenuState?.blockId === blockId && !readOnly && (
                           <MessageEditorFloatingCommandMenu>

@@ -1,4 +1,5 @@
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -7,8 +8,7 @@ export type MessageDisplayFilterAction = "remove" | "keep";
 export type MessageDisplayFilterConfig = {
   action: MessageDisplayFilterAction;
   filterOutOfCharacterSpeech: boolean;
-  regexFlags: string;
-  regexPattern: string;
+  filterStateMessages: boolean;
 };
 
 export type MessageDisplayFilterMatcher = {
@@ -16,101 +16,86 @@ export type MessageDisplayFilterMatcher = {
   test: ((message: ChatMessageResponse) => boolean) | null;
 };
 
-export function sanitizeMessageDisplayFilterRegexFlags(flags: string): string {
-  const allowed = new Set(["g", "i", "m", "s", "u", "y"]);
-  const deduped: string[] = [];
-  for (const rawFlag of flags.toLowerCase()) {
-    if (!allowed.has(rawFlag))
-      continue;
-    if (deduped.includes(rawFlag))
-      continue;
-    deduped.push(rawFlag);
-  }
-  return deduped.filter(flag => flag !== "g" && flag !== "y").join("");
-}
-
-export function extractMessageDisplayFilterSearchText(messageResponse: ChatMessageResponse): string {
-  const message = messageResponse.message;
-  const forwardMessageList = (message.extra as any)?.forwardMessage?.messageList;
-  const forwardText = Array.isArray(forwardMessageList)
-    ? forwardMessageList
-        .map(item => (typeof item?.message?.content === "string" ? item.message.content : ""))
-        .filter(Boolean)
-        .join(" ")
-    : "";
-
-  return [
-    typeof message.customRoleName === "string" ? message.customRoleName : "",
-    typeof message.content === "string" ? message.content : "",
-    forwardText,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-}
+export type MessageDisplayFilterEntry = {
+  message: ChatMessageResponse;
+  sourceIndex: number;
+};
 
 export function createMessageDisplayFilterMatcher(config: MessageDisplayFilterConfig): MessageDisplayFilterMatcher {
-  const trimmedPattern = config.regexPattern.trim();
-  let regexTest: ((text: string) => boolean) | null = null;
+  const matchers: Array<(message: ChatMessageResponse) => boolean> = [];
 
-  if (trimmedPattern) {
-    try {
-      const regex = new RegExp(trimmedPattern, sanitizeMessageDisplayFilterRegexFlags(config.regexFlags));
-      regexTest = (text: string) => regex.test(text);
-    }
-    catch (error) {
-      if (!config.filterOutOfCharacterSpeech) {
-        return { test: null, error: error instanceof Error ? error.message : "正则表达式不合法" };
-      }
-      return {
-        error: error instanceof Error ? error.message : "正则表达式不合法",
-        test: (messageResponse: ChatMessageResponse) => {
-          const rawContent = typeof messageResponse.message.content === "string" ? messageResponse.message.content : "";
-          return isOutOfCharacterSpeech(rawContent);
-        },
-      };
-    }
+  if (config.filterOutOfCharacterSpeech) {
+    matchers.push((messageResponse) => {
+      const rawContent = typeof messageResponse.message.content === "string" ? messageResponse.message.content : "";
+      return isOutOfCharacterSpeech(rawContent);
+    });
   }
 
-  if (!regexTest && !config.filterOutOfCharacterSpeech) {
+  if (config.filterStateMessages) {
+    matchers.push(messageResponse => messageResponse.message.messageType === MESSAGE_TYPE.STATE_EVENT);
+  }
+
+  if (matchers.length === 0) {
     return { test: null, error: null };
   }
 
   return {
     error: null,
-    test: (messageResponse: ChatMessageResponse) => {
-      const rawContent = typeof messageResponse.message.content === "string" ? messageResponse.message.content : "";
-      const isOutOfCharacterMatched = config.filterOutOfCharacterSpeech
-        ? isOutOfCharacterSpeech(rawContent)
-        : false;
-      const isRegexMatched = regexTest
-        ? regexTest(extractMessageDisplayFilterSearchText(messageResponse))
-        : false;
-      return isOutOfCharacterMatched || isRegexMatched;
-    },
+    test: (messageResponse: ChatMessageResponse) => matchers.some(match => match(messageResponse)),
   };
+}
+
+export function collectMessageDisplayFilterEntries(
+  messages: ChatMessageResponse[],
+  config: MessageDisplayFilterConfig | null,
+): MessageDisplayFilterEntry[] {
+  if (!config) {
+    return messages.map((message, sourceIndex) => ({
+      message,
+      sourceIndex,
+    }));
+  }
+
+  const matcher = createMessageDisplayFilterMatcher(config);
+  if (!matcher.test) {
+    return messages.map((message, sourceIndex) => ({
+      message,
+      sourceIndex,
+    }));
+  }
+
+  const entries: MessageDisplayFilterEntry[] = [];
+  for (let sourceIndex = 0; sourceIndex < messages.length; sourceIndex++) {
+    const message = messages[sourceIndex]!;
+    const matched = matcher.test(message);
+    const shouldKeep = config.action === "keep" ? matched : !matched;
+    if (shouldKeep) {
+      entries.push({
+        message,
+        sourceIndex,
+      });
+    }
+  }
+  return entries;
 }
 
 export function describeMessageDisplayFilterStatus(config: MessageDisplayFilterConfig): string {
   const conditions: string[] = [];
-  const trimmedPattern = config.regexPattern.trim();
-  if (trimmedPattern) {
-    const sanitizedFlags = sanitizeMessageDisplayFilterRegexFlags(config.regexFlags);
-    conditions.push(sanitizedFlags
-      ? `正则「${trimmedPattern}」/${sanitizedFlags}`
-      : `正则「${trimmedPattern}」`);
-  }
   if (config.filterOutOfCharacterSpeech) {
     conditions.push("场外发言");
+  }
+  if (config.filterStateMessages) {
+    conditions.push("状态消息");
   }
 
   if (conditions.length === 0) {
     return "筛选中";
   }
-  const conditionText = conditions.join(" 或 ");
+  const hiddenConditionText = conditions.map(condition => `隐藏${condition}`).join(" 或 ");
+  const reverseConditionText = conditions.join(" 或 ");
   return config.action === "keep"
-    ? `显示匹配：${conditionText}`
-    : `隐藏匹配：${conditionText}`;
+    ? `反选：仅显示${reverseConditionText}`
+    : `筛选：${hiddenConditionText}`;
 }
 
 export function filterChatMessagesForDisplay(
@@ -124,8 +109,5 @@ export function filterChatMessagesForDisplay(
   if (!matcher.test) {
     return messages;
   }
-  return messages.filter((message) => {
-    const matched = matcher.test?.(message) ?? false;
-    return config.action === "keep" ? matched : !matched;
-  });
+  return collectMessageDisplayFilterEntries(messages, config).map(entry => entry.message);
 }

@@ -49,7 +49,7 @@ function createRoleAbility(roleId: number, ability: RoleAbility["ability"] = {})
 }
 
 describe("mapStatusSummary", () => {
-  it("builds rows for combat participants with initiative, hp, max hp, placement, and active states", () => {
+  it("builds rows for role state with initiative, hp, max hp, placement, and active states", () => {
     const resolver = new MemoryStateDefinitionResolver([
       createStateDefinition({
         durationTurns: 2,
@@ -69,11 +69,11 @@ describe("mapStatusSummary", () => {
       messages: [
         createStateMessage(1, [
           {
-            initiative: 16,
-            name: "旧名",
-            participantId: "role:7",
-            roleId: 7,
-            type: "combatParticipantUpsert",
+            key: "initiative",
+            op: STATE_EVENT_VAR_OP.SET,
+            scope: buildRoleStateEventScope(7),
+            type: "varOp",
+            value: 16,
           },
           {
             key: "hp",
@@ -91,7 +91,7 @@ describe("mapStatusSummary", () => {
             colIndex: 5,
             roleId: 7,
             rowIndex: 4,
-            type: "combatMapTokenUpsert",
+            type: "mapTokenUpsert",
           },
         ]),
       ],

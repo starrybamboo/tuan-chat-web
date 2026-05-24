@@ -490,13 +490,18 @@ export function SpriteCropper({
   /**
    * 获取指定图片的裁剪结果（通用函数）
    */
-  async function getCroppedImageUrlFromImg(img: HTMLImageElement): Promise<string> {
-    const blob = await getCroppedImageBlobFromImg(img);
-    return await new Promise<string>((resolve) => {
+  function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error ?? new Error("读取裁剪结果失败"));
       reader.readAsDataURL(blob);
     });
+  }
+
+  async function getCroppedImageUrlFromImg(img: HTMLImageElement): Promise<string> {
+    const blob = await getCroppedImageBlobFromImg(img);
+    return await blobToDataUrl(blob);
   }
 
   /**
@@ -583,9 +588,10 @@ export function SpriteCropper({
       }
 
       // --- 共同的回调逻辑 ---
-      const blob = await canvasToBlob(canvas);
-      const dataUrl = URL.createObjectURL(blob);
-      onCropComplete?.(dataUrl);
+      if (onCropComplete) {
+        const blob = await canvasToBlob(canvas);
+        onCropComplete(await blobToDataUrl(blob));
+      }
     }
     catch (error) {
       console.error("应用裁剪失败:", error);

@@ -5,12 +5,13 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
+import { extractDocCardReferencePayload, resolveDocCardDisplayCoverUrl } from "@/components/chat/message/docCard/docCardMedia";
 import BetterImg from "@/components/common/betterImg";
 import { DiceFiveIcon, FileTextIcon, ImageIcon, Link, MusicNote, PlayIcon, PlusIcon, TrashIcon } from "@/icons";
-import { getDocCardExtra, getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
+import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatWebgalChooseSummary } from "@/types/webgalChoose";
-import { imageMediumUrl, imageMediumUrlFromUrl, mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
+import { imageMediumUrl, mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
 import { resolveMessageEditorGenericBlockText } from "../model/messageEditorAtomicDisplay";
 import { normalizeMessageEditorContent, setMessageEditorWebgalChooseOptions, updateMessageEditorTextContent } from "../model/messageEditorTransforms";
 
@@ -577,19 +578,11 @@ function MessageEditorDicePreview({ message }: { message: MessageEditorMessage }
 }
 
 function MessageEditorDocCardPreview({ message }: { message: MessageEditorMessage }) {
-  const payload = getDocCardExtra(message.extra);
-  const rawRoomId = Number((payload as any)?.roomId);
-  const roomId = Number.isFinite(rawRoomId) && rawRoomId > 0 ? rawRoomId : undefined;
-  const docId = typeof payload?.docId === "string" && payload.docId.trim()
-    ? payload.docId.trim()
-    : (roomId ? String(roomId) : "");
-  const title = typeof payload?.title === "string" ? payload.title.trim() : "";
-  const imageUrl = typeof payload?.imageUrl === "string" ? payload.imageUrl.trim() : "";
-  const imageFileId = typeof payload?.imageFileId === "number" && Number.isFinite(payload.imageFileId) && payload.imageFileId > 0
-    ? payload.imageFileId
-    : undefined;
-  const excerpt = typeof payload?.excerpt === "string" ? payload.excerpt.trim() : "";
-  const displayCoverUrl = imageMediumUrl(imageFileId) || imageMediumUrlFromUrl(imageUrl);
+  const payload = extractDocCardReferencePayload(message.extra);
+  const docId = payload?.docId ?? "";
+  const excerpt = payload?.excerpt ?? "";
+  const displayCoverUrl = resolveDocCardDisplayCoverUrl(payload, "medium");
+  const title = payload?.title ?? "";
   const resolvedTitle = title || (docId ? `文档：${docId}` : "文档");
 
   return (

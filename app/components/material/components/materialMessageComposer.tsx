@@ -200,7 +200,6 @@ export default function MaterialMessageComposer({
                 setEmojiMetaByUrl={setEmojiMetaByUrl}
                 disableSendMessage={isSubmitting}
                 disableRichMessageActions={isSubmitting}
-                disableImportChatText={isSubmitting}
                 onApplyImageTempAnnotations={() => applyMediaAnnotationPreference("image")}
                 onApplyAudioTempAnnotations={() => applyMediaAnnotationPreference("audio")}
                 handleMessageSubmit={() => {

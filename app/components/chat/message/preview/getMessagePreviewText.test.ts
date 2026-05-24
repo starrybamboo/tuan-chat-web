@@ -166,7 +166,7 @@ describe("getMessagePreviewText", () => {
     expect(getMessagePreviewText(msg)).toBe("[状态] HP - 2");
   });
 
-  it("全员先攻聚合 state event 预览显示人数摘要", () => {
+  it("全员先攻聚合 state event 预览显示首个先攻变量", () => {
     const msg = createBaseMessage({
       messageType: MESSAGE_TYPE.STATE_EVENT,
       content: "战斗开始：全员先攻",
@@ -178,29 +178,25 @@ describe("getMessagePreviewText", () => {
           },
           events: [
             {
-              type: "combatParticipantUpsert",
-              participantId: "role:1",
-              roleId: 1,
-              name: "艾拉",
-              initiative: 16,
+              type: "varOp",
+              scope: { kind: "role", roleId: 1 },
+              key: "initiative",
+              op: "set",
+              value: 16,
             },
             {
-              type: "combatParticipantUpsert",
-              participantId: "role:2",
-              roleId: 2,
-              name: "博恩",
-              initiative: 12,
-            },
-            {
-              type: "combatOrderSet",
-              participantIds: ["role:1", "role:2"],
+              type: "varOp",
+              scope: { kind: "role", roleId: 2 },
+              key: "initiative",
+              op: "set",
+              value: 12,
             },
           ],
         },
       } as any,
     });
 
-    expect(getMessagePreviewText(msg)).toBe("[战斗] 全员先攻 2 人");
+    expect(getMessagePreviewText(msg)).toBe("[状态] 先攻 = 16");
   });
 
   it("结束战斗 state event 预览显示战斗结束", () => {
@@ -222,7 +218,7 @@ describe("getMessagePreviewText", () => {
       } as any,
     });
 
-    expect(getMessagePreviewText(msg)).toBe("[战斗] 战斗结束");
+    expect(getMessagePreviewText(msg)).toBe("[战斗] 结束战斗");
   });
 
   it("未知类型优先返回 content", () => {

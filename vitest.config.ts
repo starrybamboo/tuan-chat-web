@@ -52,11 +52,6 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["**/*.e2e.test.ts", "**/.codex-tmp/**", "**/node_modules/**", "**/dist/**"],
     maxWorkers: 4,
-    server: {
-      deps: {
-        inline: [/^@blocksuite\//, /[\\/]node_modules[\\/]@blocksuite[\\/]/],
-      },
-    },
     coverage: {
       provider: "v8",
       include: [
@@ -64,7 +59,6 @@ export default defineConfig({
         "app/components/privateChat/privateUnreadUtils.ts",
         "app/components/privateChat/utils/privateChatTimeline.ts",
         "app/components/repository/detail/repositoryDetail.helpers.ts",
-        "app/components/resource/utils/resourceMedia.ts",
         "app/utils/mediaUrl.ts",
         "apps/mobile/src/features/auth/login-action.ts",
         "apps/mobile/src/features/auth/mobile-auth-redirect.ts",

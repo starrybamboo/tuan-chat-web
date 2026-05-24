@@ -15,6 +15,8 @@ export interface ToastWindowStateProps {
   hiddenScrollbar?: boolean;
   disableScroll?: boolean;
   showCloseButton?: boolean;
+  panelClassName?: string;
+  bodyClassName?: string;
 }
 
 export function useToastWindow({
@@ -26,6 +28,8 @@ export function useToastWindow({
   hiddenScrollbar = false,
   disableScroll = false,
   showCloseButton = true,
+  panelClassName,
+  bodyClassName,
 }: ToastWindowStateProps) {
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -41,6 +45,8 @@ export function useToastWindow({
     hiddenScrollbar: boolean;
     disableScroll: boolean;
     showCloseButton: boolean;
+    panelClassName?: string;
+    bodyClassName?: string;
   } | null>(null);
   const onCloseRef = useRef(onClose);
   const isComposingRef = useRef(false);
@@ -106,13 +112,23 @@ export function useToastWindow({
       return;
     }
 
-    const nextOptions = { fullScreen, transparent, hiddenScrollbar, disableScroll, showCloseButton };
+    const nextOptions = {
+      fullScreen,
+      transparent,
+      hiddenScrollbar,
+      disableScroll,
+      showCloseButton,
+      panelClassName,
+      bodyClassName,
+    };
     const shouldReopen = !prevOptionsRef.current
       || prevOptionsRef.current.fullScreen !== nextOptions.fullScreen
       || prevOptionsRef.current.transparent !== nextOptions.transparent
       || prevOptionsRef.current.hiddenScrollbar !== nextOptions.hiddenScrollbar
       || prevOptionsRef.current.disableScroll !== nextOptions.disableScroll
-      || prevOptionsRef.current.showCloseButton !== nextOptions.showCloseButton;
+      || prevOptionsRef.current.showCloseButton !== nextOptions.showCloseButton
+      || prevOptionsRef.current.panelClassName !== nextOptions.panelClassName
+      || prevOptionsRef.current.bodyClassName !== nextOptions.bodyClassName;
 
     if (!instanceRef.current || shouldReopen) {
       if (instanceRef.current) {
@@ -125,6 +141,8 @@ export function useToastWindow({
         hiddenScrollbar,
         disableScroll,
         showCloseButton,
+        panelClassName,
+        bodyClassName,
         onclose: handleClose,
       });
     }
@@ -139,7 +157,7 @@ export function useToastWindow({
     }
 
     prevOptionsRef.current = nextOptions;
-  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, disableScroll, showCloseButton, handleClose]);
+  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, disableScroll, showCloseButton, panelClassName, bodyClassName, handleClose]);
 
   useEffect(() => {
     return () => {

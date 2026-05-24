@@ -17,6 +17,7 @@ import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizo
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import AIGenerateModal from "./RoleCreation/steps/AIGenerateModal";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
+import { buildRoleVoiceClearPatch, buildRoleVoiceUploadPatch } from "./roleVoiceMedia";
 import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
@@ -69,8 +70,8 @@ function CharacterDetailInner({
       description: queriedRole.description ?? role.description,
       avatarId: queriedRole.avatarId ?? role.avatarId,
       type: queriedRole.type ?? role.type,
-      voiceUrl: queriedRole.voiceUrl ?? role.voiceUrl,
-      voiceFileId: queriedRole.voiceFileId ?? role.voiceFileId,
+      voiceUrl: Object.prototype.hasOwnProperty.call(queriedRole, "voiceUrl") ? queriedRole.voiceUrl : role.voiceUrl,
+      voiceFileId: Object.prototype.hasOwnProperty.call(queriedRole, "voiceFileId") ? queriedRole.voiceFileId : role.voiceFileId,
       extra: queriedRole.extra ?? role.extra,
     };
   }, [currentRoleData?.data, role]);
@@ -295,18 +296,17 @@ function CharacterDetailInner({
   };
 
   // 处理音频上传成功
-  const handleAudioUploadSuccess = (audio: { audioUrl: string; voiceFileId: number }) => {
-    // 更新本地角色状态，添加音频URL
+  const handleAudioUploadSuccess = (audio: { voiceFileId: number; mediaType?: string | null }) => {
+    // 新上传只持久化 fileId，并让后端清理旧 voiceUrl。
     const updatedRole = {
       ...displayRole,
-      voiceUrl: audio.audioUrl,
-      voiceFileId: audio.voiceFileId,
+      ...buildRoleVoiceUploadPatch(audio),
     };
 
     // 使用updateRole保存到后端
     updateRole(updatedRole, {
       onError: (error) => {
-        console.error("保存音频URL失败:", error);
+        console.error("保存角色语音失败:", error);
       },
     });
   };
@@ -539,7 +539,7 @@ function CharacterDetailInner({
                 onBaseRoleSave={saveRoleBase}
                 onAudioRoleUpdate={updatedRole => updateRole(updatedRole)}
                 onAudioDelete={() => {
-                  const updatedRole = { ...displayRole, voiceUrl: null, voiceFileId: null };
+                  const updatedRole = { ...displayRole, ...buildRoleVoiceClearPatch() };
                   updateRole(updatedRole);
                 }}
               />
@@ -575,7 +575,7 @@ function CharacterDetailInner({
                 onBaseRoleSave={saveRoleBase}
                 onAudioRoleUpdate={updatedRole => updateRole(updatedRole)}
                 onAudioDelete={() => {
-                  const updatedRole = { ...displayRole, voiceUrl: null, voiceFileId: null };
+                  const updatedRole = { ...displayRole, ...buildRoleVoiceClearPatch() };
                   updateRole(updatedRole);
                 }}
               />

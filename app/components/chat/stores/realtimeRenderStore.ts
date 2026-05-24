@@ -23,21 +23,21 @@ export const MAX_ROOM_CONTENT_ALERT_THRESHOLD = 1024;
 export type RealtimeWebgalGameConfig = {
   /** 未设置标题背景图 URL 时，是否将群聊头像同步为 WebGAL 标题背景图（Title_img） */
   coverFromRoomAvatarEnabled: boolean;
-  /** WebGAL 标题背景图 URL（Title_img，优先于“标题背景图使用群聊头像”） */
+  /** WebGAL 标题背景图兼容 URL（Title_img；云端长期配置以 titleImageFileId 为准） */
   titleImageUrl: string;
   /** WebGAL 标题背景图媒体文件 ID */
   titleImageFileId?: number;
-  /** WebGAL 标题背景图原图 URL（本地打包优先使用） */
+  /** WebGAL 标题背景图原图兼容 URL（云端长期配置以 originalTitleImageFileId 为准） */
   originalTitleImageUrl: string;
   /** WebGAL 标题背景图原图媒体文件 ID */
   originalTitleImageFileId?: number;
   /** 未设置启动图 URL 时，是否将群聊头像同步为 WebGAL 启动图（Game_Logo） */
   startupLogoFromRoomAvatarEnabled: boolean;
-  /** WebGAL 启动图 URL（Game_Logo，优先于“启动图使用群聊头像”） */
+  /** WebGAL 启动图兼容 URL（Game_Logo；云端长期配置以 startupLogoFileId 为准） */
   startupLogoUrl: string;
   /** WebGAL 启动图媒体文件 ID */
   startupLogoFileId?: number;
-  /** WebGAL 启动图原图 URL（本地打包优先使用） */
+  /** WebGAL 启动图原图兼容 URL（云端长期配置以 originalStartupLogoFileId 为准） */
   originalStartupLogoUrl: string;
   /** WebGAL 启动图原图媒体文件 ID */
   originalStartupLogoFileId?: number;
@@ -67,7 +67,7 @@ export type RealtimeWebgalGameConfig = {
   typingSoundInterval: number;
   /** 标点符号额外停顿（毫秒） */
   typingSoundPunctuationPause: number;
-  /** 打字音效文件 URL（将上传同步为 TypingSoundSe） */
+  /** 打字音效兼容 URL（云端长期配置以 typingSoundSeFileId 为准） */
   typingSoundSeUrl: string;
   /** 打字音效媒体文件 ID */
   typingSoundSeFileId?: number;
@@ -167,6 +167,14 @@ type RealtimeRenderState = {
   resetRuntime: () => void;
 };
 
+export type RealtimeRenderCloudSettingsSnapshotInput = {
+  autoFigureEnabled: boolean;
+  gameConfig: RealtimeWebgalGameConfig;
+  roomContentAlertThreshold: number;
+  terrePortOverride: number | null;
+  ttsApiUrl: string;
+};
+
 function normalizePort(port: number | null): number | null {
   if (port == null) {
     return null;
@@ -235,21 +243,25 @@ function normalizeRoomContentAlertThreshold(value: unknown): number {
   return Math.max(MIN_ROOM_CONTENT_ALERT_THRESHOLD, Math.min(MAX_ROOM_CONTENT_ALERT_THRESHOLD, normalized));
 }
 
-function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl" | "terrePortOverride" | "autoFigureEnabled" | "roomContentAlertThreshold" | "gameConfig">): RealtimeRenderCloudSettings {
+function cloudLegacyUrl(value: string, fileId?: number): string {
+  return normalizePositiveFileId(fileId) == null ? value : "";
+}
+
+export function buildRealtimeRenderCloudSettingsSnapshot(state: RealtimeRenderCloudSettingsSnapshotInput): RealtimeRenderCloudSettings {
   return {
     ttsApiUrl: state.ttsApiUrl,
     terrePort: state.terrePortOverride,
     autoFigureEnabled: state.autoFigureEnabled,
     roomContentAlertThreshold: state.roomContentAlertThreshold,
     coverFromRoomAvatarEnabled: state.gameConfig.coverFromRoomAvatarEnabled,
-    titleImageUrl: state.gameConfig.titleImageUrl,
+    titleImageUrl: cloudLegacyUrl(state.gameConfig.titleImageUrl, state.gameConfig.titleImageFileId),
     titleImageFileId: state.gameConfig.titleImageFileId,
-    originalTitleImageUrl: state.gameConfig.originalTitleImageUrl,
+    originalTitleImageUrl: cloudLegacyUrl(state.gameConfig.originalTitleImageUrl, state.gameConfig.originalTitleImageFileId ?? state.gameConfig.titleImageFileId),
     originalTitleImageFileId: state.gameConfig.originalTitleImageFileId,
     startupLogoFromRoomAvatarEnabled: state.gameConfig.startupLogoFromRoomAvatarEnabled,
-    startupLogoUrl: state.gameConfig.startupLogoUrl,
+    startupLogoUrl: cloudLegacyUrl(state.gameConfig.startupLogoUrl, state.gameConfig.startupLogoFileId),
     startupLogoFileId: state.gameConfig.startupLogoFileId,
-    originalStartupLogoUrl: state.gameConfig.originalStartupLogoUrl,
+    originalStartupLogoUrl: cloudLegacyUrl(state.gameConfig.originalStartupLogoUrl, state.gameConfig.originalStartupLogoFileId ?? state.gameConfig.startupLogoFileId),
     originalStartupLogoFileId: state.gameConfig.originalStartupLogoFileId,
     gameIconFromRoomAvatarEnabled: state.gameConfig.gameIconFromRoomAvatarEnabled,
     gameNameFromRoomNameEnabled: state.gameConfig.gameNameFromRoomNameEnabled,
@@ -264,7 +276,7 @@ function buildCloudSettingsSnapshot(state: Pick<RealtimeRenderState, "ttsApiUrl"
     typingSoundEnabled: state.gameConfig.typingSoundEnabled,
     typingSoundInterval: state.gameConfig.typingSoundInterval,
     typingSoundPunctuationPause: state.gameConfig.typingSoundPunctuationPause,
-    typingSoundSeUrl: state.gameConfig.typingSoundSeUrl,
+    typingSoundSeUrl: cloudLegacyUrl(state.gameConfig.typingSoundSeUrl, state.gameConfig.typingSoundSeFileId),
     typingSoundSeFileId: state.gameConfig.typingSoundSeFileId,
     typingSoundSeMediaType: state.gameConfig.typingSoundSeMediaType,
   };
@@ -317,7 +329,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setRoomContentAlertThreshold: (value) => {
@@ -329,7 +341,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setTtsApiUrl: (value) => {
@@ -341,7 +353,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setTerrePortOverride: (port) => {
@@ -357,7 +369,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setGameConfig: (next) => {
@@ -403,7 +415,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
     const state = get();
     const spaceId = state.activeSpaceId;
     if (spaceId != null) {
-      enqueuePersist(spaceId, buildCloudSettingsSnapshot(state), state.queryClient);
+      enqueuePersist(spaceId, buildRealtimeRenderCloudSettingsSnapshot(state), state.queryClient);
     }
   },
   setQueryClient: queryClient => set(state => (state.queryClient === queryClient ? state : { queryClient })),

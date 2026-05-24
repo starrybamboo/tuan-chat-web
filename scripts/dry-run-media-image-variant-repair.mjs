@@ -8,7 +8,7 @@ import sharp from "sharp";
 const IMAGE_PROFILES = {
   low: {
     maxEdge: 200,
-    maxBytes: 30 * 1024,
+    maxBytes: 40 * 1024,
     quality: 72,
   },
   medium: {
@@ -38,14 +38,15 @@ async function main() {
   const reportPath = path.resolve(args.report ?? path.join(backupRoot, reportName));
   const concurrency = toPositiveInteger(args.concurrency, DEFAULT_CONCURRENCY, "concurrency");
   const sampleLimit = toPositiveInteger(args.sampleLimit, DEFAULT_SAMPLE_LIMIT, "sample-limit");
+  const limit = toNonNegativeInteger(args.limit, 0, "limit");
 
   console.log(`[dry-run] files root: ${filesRoot}`);
   console.log(`[dry-run] report path: ${reportPath}`);
   console.log(`[mode] ${execute ? "execute" : "dry-run"}`);
-  console.log(`[config] concurrency=${concurrency} sampleLimit=${sampleLimit}`);
+  console.log(`[config] concurrency=${concurrency} sampleLimit=${sampleLimit} limit=${limit}`);
 
-  const groups = await collectImageTriples(filesRoot);
-  console.log(`[scan] found image triples: ${groups.length}`);
+  const groups = await collectImageGroups(filesRoot, limit);
+  console.log(`[scan] found image groups: ${groups.length}`);
 
   const stats = createStats(filesRoot, backupRoot, reportPath);
   stats.mode = execute ? "execute" : "dry-run";
@@ -73,7 +74,7 @@ async function main() {
       console.warn(`[warn] failed to analyze ${group.shard}/${group.fileId}: ${error?.message ?? error}`);
     }
     if (processed % PROGRESS_EVERY === 0 || processed === groups.length) {
-      console.log(`[progress] ${processed}/${groups.length} processed, candidates=${stats.candidateGroups}, estSavings=${formatBytes(stats.estimatedSavingsBytes)}`);
+      console.log(`[progress] ${processed}/${groups.length} processed, candidates=${stats.candidateGroups}, estDelta=${formatBytes(stats.estimatedSavingsBytes)}`);
     }
   });
 
@@ -84,7 +85,7 @@ async function main() {
   printSummary(report, execute);
 }
 
-async function collectImageTriples(filesRoot) {
+async function collectImageGroups(filesRoot, limit) {
   const shardEntries = await fs.readdir(filesRoot, { withFileTypes: true });
   const groups = [];
 
@@ -102,7 +103,7 @@ async function collectImageTriples(filesRoot) {
       const originalPath = path.join(fileRoot, "original");
       const lowPath = path.join(fileRoot, "image", "low.webp");
       const mediumPath = path.join(fileRoot, "image", "medium.webp");
-      if (await existsAll(originalPath, lowPath, mediumPath)) {
+      if (await existsFile(originalPath)) {
         groups.push({
           shard: shardEntry.name,
           fileId: fileEntry.name,
@@ -111,6 +112,9 @@ async function collectImageTriples(filesRoot) {
           lowPath,
           mediumPath,
         });
+        if (limit > 0 && groups.length >= limit) {
+          return groups;
+        }
       }
     }
   }
@@ -120,68 +124,81 @@ async function collectImageTriples(filesRoot) {
 
 async function analyzeGroup(group, execute) {
   const originalStat = await fs.stat(group.originalPath);
-  const lowStat = await fs.stat(group.lowPath);
-  const mediumStat = await fs.stat(group.mediumPath);
-
-  const sizeEqualOriginalLow = originalStat.size === lowStat.size;
-  const sizeEqualOriginalMedium = originalStat.size === mediumStat.size;
-  const sizeEqualLowMedium = lowStat.size === mediumStat.size;
-
-  if (!(sizeEqualOriginalLow && sizeEqualOriginalMedium && sizeEqualLowMedium)) {
-    return {
-      kind: "nonCandidate",
-      scannedGroups: 1,
-      sizeEqualGroups: 0,
-      exactDuplicateGroups: 0,
-    };
-  }
-
-  const [originalHash, lowHash, mediumHash] = await Promise.all([
-    hashFile(group.originalPath),
-    hashFile(group.lowPath),
-    hashFile(group.mediumPath),
-  ]);
-
-  const allThreeEqual = originalHash === lowHash && originalHash === mediumHash;
-  if (!allThreeEqual) {
-    return {
-      kind: "hashMismatch",
-      scannedGroups: 1,
-      sizeEqualGroups: 1,
-      exactDuplicateGroups: 0,
-    };
-  }
-
   const originalBuffer = await fs.readFile(group.originalPath);
   const originalMeta = await sharp(originalBuffer, { animated: true }).metadata();
-  const lowEstimate = await buildVariantOutput(originalBuffer, IMAGE_PROFILES.low);
-  const mediumEstimate = await buildVariantOutput(originalBuffer, IMAGE_PROFILES.medium);
+  const format = originalMeta.format ?? "unknown";
+  if (!isSupportedOriginalFormat(format)) {
+    return {
+      kind: "unsupportedOriginal",
+      scannedGroups: 1,
+      unsupportedOriginalGroups: 1,
+    };
+  }
 
-  const currentTotalBytes = originalStat.size + lowStat.size + mediumStat.size;
-  const estimatedTotalBytes = originalStat.size + lowEstimate.bytes + mediumEstimate.bytes;
+  const originalHash = hashBuffer(originalBuffer);
+  const variants = {
+    low: await inspectVariant(group.lowPath, originalHash, IMAGE_PROFILES.low),
+    medium: await inspectVariant(group.mediumPath, originalHash, IMAGE_PROFILES.medium),
+  };
+  const repairQualities = Object.entries(variants)
+    .filter(([, variant]) => variant.needsRepair)
+    .map(([quality]) => quality);
+
+  if (repairQualities.length === 0) {
+    return {
+      kind: "healthy",
+      scannedGroups: 1,
+      healthyGroups: 1,
+    };
+  }
+
+  const lowEstimate = repairQualities.includes("low")
+    ? await buildVariantOutput(originalBuffer, IMAGE_PROFILES.low)
+    : null;
+  const mediumEstimate = repairQualities.includes("medium")
+    ? await buildVariantOutput(originalBuffer, IMAGE_PROFILES.medium)
+    : null;
+
+  const currentVariantBytes = (variants.low.bytes ?? 0) + (variants.medium.bytes ?? 0);
+  const estimatedLowBytes = lowEstimate?.bytes ?? variants.low.bytes ?? 0;
+  const estimatedMediumBytes = mediumEstimate?.bytes ?? variants.medium.bytes ?? 0;
+  const currentTotalBytes = originalStat.size + currentVariantBytes;
+  const estimatedTotalBytes = originalStat.size + estimatedLowBytes + estimatedMediumBytes;
   const estimatedSavingsBytes = currentTotalBytes - estimatedTotalBytes;
   const maxEdge = Math.max(originalMeta.width ?? 0, originalMeta.height ?? 0);
-  const format = originalMeta.format ?? "unknown";
 
   if (execute) {
-    await writeVariantFile(group.lowPath, lowEstimate.buffer);
-    await writeVariantFile(group.mediumPath, mediumEstimate.buffer);
+    if (lowEstimate) {
+      await writeVariantFile(group.lowPath, lowEstimate.buffer);
+    }
+    if (mediumEstimate) {
+      await writeVariantFile(group.mediumPath, mediumEstimate.buffer);
+    }
   }
 
   return {
     kind: "candidate",
     executed: execute,
     scannedGroups: 1,
-    sizeEqualGroups: 1,
-    exactDuplicateGroups: 1,
+    repairedQualities: repairQualities,
+    missingVariants: countReasons(variants, "missing"),
+    oversizedVariants: countReasons(variants, "tooLarge"),
+    oversizeDimensionVariants: countReasons(variants, "tooLargeDimension"),
+    duplicateOriginalVariants: countReasons(variants, "sameAsOriginal"),
+    invalidFormatVariants: countReasons(variants, "invalidFormat"),
+    unreadableVariants: countReasons(variants, "unreadable"),
     currentTotalBytes,
-    currentVariantBytes: lowStat.size + mediumStat.size,
+    currentVariantBytes,
     estimatedTotalBytes,
-    estimatedVariantBytes: lowEstimate.bytes + mediumEstimate.bytes,
+    estimatedVariantBytes: estimatedLowBytes + estimatedMediumBytes,
     estimatedSavingsBytes,
     originalBytes: originalStat.size,
-    estimatedLowBytes: lowEstimate.bytes,
-    estimatedMediumBytes: mediumEstimate.bytes,
+    currentLowBytes: variants.low.bytes ?? null,
+    currentMediumBytes: variants.medium.bytes ?? null,
+    estimatedLowBytes,
+    estimatedMediumBytes,
+    lowReasons: variants.low.reasons,
+    mediumReasons: variants.medium.reasons,
     originalWidth: originalMeta.width ?? null,
     originalHeight: originalMeta.height ?? null,
     format,
@@ -191,6 +208,66 @@ async function analyzeGroup(group, execute) {
     relativeLowPath: normalizePath(path.relative(group.fileRoot, group.lowPath)),
     relativeMediumPath: normalizePath(path.relative(group.fileRoot, group.mediumPath)),
     fileRoot: group.fileRoot,
+  };
+}
+
+async function inspectVariant(filePath, originalHash, profile) {
+  const reasons = [];
+  let stat = null;
+  let metadata = null;
+  let hash = null;
+  let sameAsOriginal = false;
+
+  try {
+    stat = await fs.stat(filePath);
+    if (!stat.isFile()) {
+      reasons.push("missing");
+    }
+  }
+  catch {
+    reasons.push("missing");
+  }
+
+  if (!stat?.isFile()) {
+    return { bytes: null, reasons, needsRepair: true };
+  }
+
+  if (stat.size > profile.maxBytes) {
+    reasons.push("tooLarge");
+  }
+
+  try {
+    const buffer = await fs.readFile(filePath);
+    hash = hashBuffer(buffer);
+    sameAsOriginal = hash === originalHash;
+    metadata = await sharp(buffer, { animated: false }).metadata();
+  }
+  catch {
+    reasons.push("unreadable");
+  }
+
+  if (metadata) {
+    if (metadata.format !== "webp") {
+      reasons.push("invalidFormat");
+    }
+    const maxEdge = Math.max(metadata.width ?? 0, metadata.height ?? 0);
+    if (maxEdge > profile.maxEdge) {
+      reasons.push("tooLargeDimension");
+    }
+  }
+
+  // 小原图本身已经满足当前档位时，派生图与 original 同哈希不是脏数据。
+  if (sameAsOriginal && reasons.length > 0) {
+    reasons.push("sameAsOriginal");
+  }
+
+  return {
+    bytes: stat.size,
+    width: metadata?.width ?? null,
+    height: metadata?.height ?? null,
+    format: metadata?.format ?? null,
+    reasons,
+    needsRepair: reasons.length > 0,
   };
 }
 
@@ -227,6 +304,7 @@ async function buildVariantOutput(originalBuffer, profile) {
 }
 
 async function writeVariantFile(targetPath, buffer) {
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
   const tempPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
   await fs.writeFile(tempPath, buffer);
   await fs.rename(tempPath, targetPath);
@@ -244,11 +322,19 @@ function buildReport(stats, candidateResults, sampleLimit) {
     summary: {
       scannedGroups: stats.scannedGroups,
       failedGroups: stats.failedGroups,
-      sizeEqualGroups: stats.sizeEqualGroups,
-      exactDuplicateGroups: stats.exactDuplicateGroups,
+      healthyGroups: stats.healthyGroups,
+      unsupportedOriginalGroups: stats.unsupportedOriginalGroups,
       candidateGroups: stats.candidateGroups,
       updatedGroups: stats.updatedGroups,
-      candidateRateOfTriples: roundPercent(stats.candidateGroups, stats.scannedGroups),
+      candidateRateOfGroups: roundPercent(stats.candidateGroups, stats.scannedGroups),
+      missingVariants: stats.missingVariants,
+      oversizedVariants: stats.oversizedVariants,
+      oversizeDimensionVariants: stats.oversizeDimensionVariants,
+      duplicateOriginalVariants: stats.duplicateOriginalVariants,
+      invalidFormatVariants: stats.invalidFormatVariants,
+      unreadableVariants: stats.unreadableVariants,
+      repairedLowGroups: stats.repairedLowGroups,
+      repairedMediumGroups: stats.repairedMediumGroups,
       currentTotalBytes: stats.currentTotalBytes,
       currentVariantBytes: stats.currentVariantBytes,
       estimatedTotalBytes: stats.estimatedTotalBytes,
@@ -288,10 +374,18 @@ function createStats(filesRoot, backupRoot, reportPath) {
     mode: "dry-run",
     scannedGroups: 0,
     failedGroups: 0,
-    sizeEqualGroups: 0,
-    exactDuplicateGroups: 0,
+    healthyGroups: 0,
+    unsupportedOriginalGroups: 0,
     candidateGroups: 0,
     updatedGroups: 0,
+    missingVariants: 0,
+    oversizedVariants: 0,
+    oversizeDimensionVariants: 0,
+    duplicateOriginalVariants: 0,
+    invalidFormatVariants: 0,
+    unreadableVariants: 0,
+    repairedLowGroups: 0,
+    repairedMediumGroups: 0,
     currentTotalBytes: 0,
     currentVariantBytes: 0,
     estimatedTotalBytes: 0,
@@ -312,8 +406,16 @@ function createStats(filesRoot, backupRoot, reportPath) {
 
 function mergeStats(stats, result) {
   stats.scannedGroups += result.scannedGroups ?? 0;
-  stats.sizeEqualGroups += result.sizeEqualGroups ?? 0;
-  stats.exactDuplicateGroups += result.exactDuplicateGroups ?? 0;
+
+  if (result.kind === "healthy") {
+    stats.healthyGroups += result.healthyGroups ?? 0;
+    return;
+  }
+
+  if (result.kind === "unsupportedOriginal") {
+    stats.unsupportedOriginalGroups += result.unsupportedOriginalGroups ?? 0;
+    return;
+  }
 
   if (result.kind !== "candidate") {
     return;
@@ -322,6 +424,18 @@ function mergeStats(stats, result) {
   stats.candidateGroups += 1;
   if (result.executed) {
     stats.updatedGroups += 1;
+  }
+  stats.missingVariants += result.missingVariants ?? 0;
+  stats.oversizedVariants += result.oversizedVariants ?? 0;
+  stats.oversizeDimensionVariants += result.oversizeDimensionVariants ?? 0;
+  stats.duplicateOriginalVariants += result.duplicateOriginalVariants ?? 0;
+  stats.invalidFormatVariants += result.invalidFormatVariants ?? 0;
+  stats.unreadableVariants += result.unreadableVariants ?? 0;
+  if (result.repairedQualities?.includes("low")) {
+    stats.repairedLowGroups += 1;
+  }
+  if (result.repairedQualities?.includes("medium")) {
+    stats.repairedMediumGroups += 1;
   }
   stats.currentTotalBytes += result.currentTotalBytes;
   stats.currentVariantBytes += result.currentVariantBytes;
@@ -349,11 +463,14 @@ function toReportRow(row) {
   return {
     key: row.key,
     fileRoot: normalizePath(row.fileRoot),
+    repairedQualities: row.repairedQualities,
     format: row.format,
     originalWidth: row.originalWidth,
     originalHeight: row.originalHeight,
     originalBytes: row.originalBytes,
     originalMiB: roundMiB(row.originalBytes),
+    currentLowBytes: row.currentLowBytes,
+    currentMediumBytes: row.currentMediumBytes,
     currentVariantBytes: row.currentVariantBytes,
     currentVariantMiB: roundMiB(row.currentVariantBytes),
     estimatedLowBytes: row.estimatedLowBytes,
@@ -362,6 +479,8 @@ function toReportRow(row) {
     estimatedVariantMiB: roundMiB(row.estimatedVariantBytes),
     estimatedSavingsBytes: row.estimatedSavingsBytes,
     estimatedSavingsMiB: roundMiB(row.estimatedSavingsBytes),
+    lowReasons: row.lowReasons,
+    mediumReasons: row.mediumReasons,
     relativeOriginalPath: row.relativeOriginalPath,
     relativeLowPath: row.relativeLowPath,
     relativeMediumPath: row.relativeMediumPath,
@@ -371,18 +490,28 @@ function toReportRow(row) {
 function printSummary(report, execute) {
   const { summary } = report;
   console.log("");
-  console.log("=== Dry Run Summary ===");
+  console.log("=== Media Image Variant Repair Summary ===");
   console.log(`mode: ${execute ? "execute" : "dry-run"}`);
-  console.log(`image triples scanned: ${summary.scannedGroups}`);
+  console.log(`image groups scanned: ${summary.scannedGroups}`);
   console.log(`failed groups: ${summary.failedGroups}`);
-  console.log(`exact duplicate triples: ${summary.candidateGroups} (${summary.candidateRateOfTriples}%)`);
+  console.log(`healthy groups: ${summary.healthyGroups}`);
+  console.log(`unsupported original groups: ${summary.unsupportedOriginalGroups}`);
+  console.log(`repair candidates: ${summary.candidateGroups} (${summary.candidateRateOfGroups}%)`);
   if (execute) {
     console.log(`updated groups: ${summary.updatedGroups}`);
   }
-  console.log(`estimated savings: ${formatBytes(summary.estimatedSavingsBytes)} (${summary.estimatedSavingsMiB} MiB)`);
+  console.log(`repaired low groups: ${summary.repairedLowGroups}`);
+  console.log(`repaired medium groups: ${summary.repairedMediumGroups}`);
+  console.log(`missing variants: ${summary.missingVariants}`);
+  console.log(`oversized variants: ${summary.oversizedVariants}`);
+  console.log(`oversize-dimension variants: ${summary.oversizeDimensionVariants}`);
+  console.log(`duplicate-original variants: ${summary.duplicateOriginalVariants}`);
+  console.log(`invalid-format variants: ${summary.invalidFormatVariants}`);
+  console.log(`unreadable variants: ${summary.unreadableVariants}`);
+  console.log(`estimated byte delta: ${formatSignedBytes(summary.estimatedSavingsBytes)} (${summary.estimatedSavingsMiB} MiB)`);
   console.log(`current variant bytes: ${formatBytes(summary.currentVariantBytes)}`);
   console.log(`estimated variant bytes: ${formatBytes(summary.estimatedVariantBytes)}`);
-  console.log(`avg savings per group: ${formatBytes(summary.avgSavingsBytesPerGroup)}`);
+  console.log(`avg byte delta per group: ${formatSignedBytes(summary.avgSavingsBytesPerGroup)}`);
   console.log(`maxEdge <= 200: ${summary.maxEdgeBreakdown.le200.count} (${summary.maxEdgeBreakdown.le200.percent}%)`);
   console.log(`200 < maxEdge <= 512: ${summary.maxEdgeBreakdown.le512.count} (${summary.maxEdgeBreakdown.le512.percent}%)`);
   console.log(`maxEdge > 512: ${summary.maxEdgeBreakdown.gt512.count} (${summary.maxEdgeBreakdown.gt512.percent}%)`);
@@ -404,24 +533,26 @@ async function runWithConcurrency(items, concurrency, worker) {
   await Promise.all(runners);
 }
 
-async function hashFile(filePath) {
-  const hash = crypto.createHash("sha256");
-  const buffer = await fs.readFile(filePath);
-  hash.update(buffer);
-  return hash.digest("hex");
+function hashBuffer(buffer) {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
 }
 
-async function existsAll(...paths) {
-  const checks = await Promise.all(paths.map(async (entry) => {
-    try {
-      const stat = await fs.stat(entry);
-      return stat.isFile();
-    }
-    catch {
-      return false;
-    }
-  }));
-  return checks.every(Boolean);
+async function existsFile(filePath) {
+  try {
+    const stat = await fs.stat(filePath);
+    return stat.isFile();
+  }
+  catch {
+    return false;
+  }
+}
+
+function countReasons(variants, reason) {
+  return Object.values(variants).filter((variant) => variant.reasons.includes(reason)).length;
+}
+
+function isSupportedOriginalFormat(format) {
+  return ["avif", "gif", "heif", "jpeg", "jpg", "png", "tiff", "webp"].includes(format);
 }
 
 function parseArgs(argv) {
@@ -465,6 +596,17 @@ function toPositiveInteger(input, fallback, label) {
   return value;
 }
 
+function toNonNegativeInteger(input, fallback, label) {
+  if (input == null) {
+    return fallback;
+  }
+  const value = Number.parseInt(String(input), 10);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`--${label} 必须是非负整数`);
+  }
+  return value;
+}
+
 function normalizePath(input) {
   return input.split(path.sep).join(path.posix.sep);
 }
@@ -494,6 +636,13 @@ function formatBytes(bytes) {
   return `${value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
+function formatSignedBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes === 0) {
+    return "0 B";
+  }
+  return `${bytes > 0 ? "+" : "-"}${formatBytes(Math.abs(bytes))}`;
+}
+
 function sortObjectByValue(input) {
   return Object.fromEntries(
     Object.entries(input).sort((left, right) => right[1] - left[1]),
@@ -502,11 +651,17 @@ function sortObjectByValue(input) {
 
 function printHelp() {
   console.log(`Usage:
-  node scripts/dry-run-media-image-variant-repair.mjs --root <media/v1/files> [--report <json>] [--concurrency 6] [--sample-limit 30]
+  node scripts/dry-run-media-image-variant-repair.mjs --root <media/v1/files> [--report <json>] [--concurrency 6] [--sample-limit 30] [--limit 0]
 
 Example:
   node scripts/dry-run-media-image-variant-repair.mjs ^
     --root D:/A_collection/server-backups/tuanchat-server-data-20260507_043831.no-redis/minio/avatar/media/v1/files
+
+Small batch execute:
+  node scripts/dry-run-media-image-variant-repair.mjs ^
+    --root D:/A_collection/server-backups/tuanchat-server-data-20260507_043831.no-redis/minio/avatar/media/v1/files ^
+    --limit 20 ^
+    --execute
 
 Execute:
   node scripts/dry-run-media-image-variant-repair.mjs ^

@@ -4,7 +4,7 @@ import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Pagination from "@/components/common/pagination";
-import { imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 const EMPTY_STRING_LIST: string[] = [];
 
@@ -89,7 +89,7 @@ export function ContentCard({
   imageOnLoad,
 }: ContentCardProps & { imageOnLoad?: () => void }) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
-  const displayImage = imageMediumUrlFromUrl(image);
+  const displayImage = image ?? "";
   const hasImageError = Boolean(displayImage && failedImage === displayImage);
 
   // 根据大小设置基础样式
@@ -323,6 +323,7 @@ export default function RepositoryHome() {
     type: "mixed";
     authorName?: string;
     repositoryId: number;
+    coverFileId?: number;
     ruleId?: number;
     userId?: number;
     createTime?: string;
@@ -365,11 +366,12 @@ export default function RepositoryHome() {
         id: `repository-${repository.repositoryId}`,
         rule: RuleList.data?.find(rule => rule.ruleId === repository.ruleId)?.ruleName ?? "",
         title: String(repository.repositoryName ?? ""),
-        image: imageMediumUrl(repository.coverFileId) || ((repository.image && repository.image !== null && repository.image !== "null") ? String(repository.image) : undefined),
+        image: imageMediumUrl(repository.coverFileId),
         content: repository.description,
         type: "mixed" as const,
         authorName: repository.authorName,
         repositoryId: Number(repository.repositoryId),
+        coverFileId: repository.coverFileId,
         ruleId: repository.ruleId, // 所用的规则id
         userId: repository.userId, // 上传者
         createTime: repository.createTime,
@@ -421,7 +423,7 @@ export default function RepositoryHome() {
   useEffect(() => {
     if (repositoryList.isSuccess && currentItems.length > 0) {
       const imageUrls = currentItems
-        .map((item: RepositoryCard) => imageMediumUrlFromUrl(item.image))
+        .map((item: RepositoryCard) => item.image)
         .filter((url): url is string => typeof url === "string" && url.length > 0 && url !== "null"); // 过滤掉空值
       preloadImages(imageUrls).then(() => {
         setImagesReady(true);
@@ -564,7 +566,8 @@ export default function RepositoryHome() {
                           description: card.content,
                           userId: card.userId, // 上传者
                           authorName: card.authorName, // 作者
-                          image: card.image, // 仓库封面
+                          coverFileId: card.coverFileId, // 仓库封面媒体文件 ID
+                          image: card.image, // 仅用于页面间临时展示，不作为后端媒体真相
                           createTime: card.createTime, // 创建时间
                           updateTime: card.updateTime, // 修改时间
                           minPeople: card.minPeople, // 仓库需要人数

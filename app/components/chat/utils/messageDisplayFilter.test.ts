@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
 import type { ChatMessageResponse } from "../../../../api";
 import type { MessageDisplayFilterConfig } from "./messageDisplayFilter";
 
 import {
+  collectMessageDisplayFilterEntries,
   createMessageDisplayFilterMatcher,
   describeMessageDisplayFilterStatus,
   filterChatMessagesForDisplay,
@@ -33,77 +36,119 @@ function createFilterConfig(overrides: Partial<MessageDisplayFilterConfig>): Mes
   return {
     action: "remove",
     filterOutOfCharacterSpeech: false,
-    regexFlags: "i",
-    regexPattern: "",
+    filterStateMessages: false,
     ...overrides,
   };
 }
 
 describe("messageDisplayFilter", () => {
-  it("仅保留正则命中的消息", () => {
+  it("仅保留匹配的场外发言和状态消息", () => {
     const messages = [
       createMessage(1, "普通消息"),
-      createMessage(2, "Alpha secret"),
-      createMessage(3, "beta"),
-    ];
-
-    const filtered = filterChatMessagesForDisplay(messages, createFilterConfig({
-      action: "keep",
-      regexPattern: "alpha",
-    }));
-
-    expect(filtered.map(item => item.message.messageId)).toEqual([2]);
-  });
-
-  it("剔除正则命中的消息", () => {
-    const messages = [
-      createMessage(1, "普通消息"),
-      createMessage(2, "旁白：需要隐藏"),
-      createMessage(3, "继续显示"),
-    ];
-
-    const filtered = filterChatMessagesForDisplay(messages, createFilterConfig({
-      action: "remove",
-      regexPattern: "隐藏",
-    }));
-
-    expect(filtered.map(item => item.message.messageId)).toEqual([1, 3]);
-  });
-
-  it("支持用场外发言规则命中半角与全角括号", () => {
-    const messages = [
-      createMessage(1, "(hello)"),
-      createMessage(2, "（world）"),
-      createMessage(3, "普通消息"),
+      createMessage(2, "(场外对白)"),
+      createMessage(3, "状态消息", {
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+      }),
     ];
 
     const filtered = filterChatMessagesForDisplay(messages, createFilterConfig({
       action: "keep",
       filterOutOfCharacterSpeech: true,
+      filterStateMessages: true,
     }));
 
-    expect(filtered.map(item => item.message.messageId)).toEqual([1, 2]);
+    expect(filtered.map(item => item.message.messageId)).toEqual([2, 3]);
   });
 
-  it("无效正则且未开启场外发言时回退完整消息列表", () => {
+  it("剔除匹配的场外发言和状态消息", () => {
+    const messages = [
+      createMessage(1, "普通消息"),
+      createMessage(2, "(旁白：需要隐藏)"),
+      createMessage(3, "继续显示"),
+      createMessage(4, "状态消息", {
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+      }),
+    ];
+
+    const filtered = filterChatMessagesForDisplay(messages, createFilterConfig({
+      action: "remove",
+      filterOutOfCharacterSpeech: true,
+      filterStateMessages: true,
+    }));
+
+    expect(filtered.map(item => item.message.messageId)).toEqual([1, 3]);
+  });
+
+  it("筛选后保留原始消息索引，避免显示列表影响场景状态定位", () => {
+    const messages = [
+      createMessage(1, "普通消息"),
+      createMessage(2, "(旁白：需要隐藏)"),
+      createMessage(3, "继续显示"),
+    ];
+
+    const entries = collectMessageDisplayFilterEntries(messages, createFilterConfig({
+      action: "remove",
+      filterOutOfCharacterSpeech: true,
+    }));
+
+    expect(entries.map(entry => entry.message.message.messageId)).toEqual([1, 3]);
+    expect(entries.map(entry => entry.sourceIndex)).toEqual([0, 2]);
+  });
+
+  it("支持仅过滤状态消息", () => {
+    const messages = [
+      createMessage(1, "普通消息"),
+      createMessage(2, "状态消息", {
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+      }),
+      createMessage(3, "继续显示"),
+    ];
+
+    const filtered = filterChatMessagesForDisplay(messages, createFilterConfig({
+      action: "remove",
+      filterStateMessages: true,
+    }));
+
+    expect(filtered.map(item => item.message.messageId)).toEqual([1, 3]);
+  });
+
+  it("无筛选条件时回退完整消息列表", () => {
     const messages = [
       createMessage(1, "one"),
       createMessage(2, "two"),
     ];
     const config = createFilterConfig({
       action: "keep",
-      regexPattern: "[",
     });
 
     const matcher = createMessageDisplayFilterMatcher(config);
     const filtered = filterChatMessagesForDisplay(messages, config);
 
-    expect(matcher.error).toBeTruthy();
+    expect(matcher.error).toBeNull();
     expect(matcher.test).toBeNull();
     expect(filtered).toBe(messages);
   });
 
-  it("无效正则但开启场外发言时仍按场外发言规则筛选", () => {
+  it("描述隐藏条件的过滤状态", () => {
+    expect(describeMessageDisplayFilterStatus(createFilterConfig({
+      action: "remove",
+      filterOutOfCharacterSpeech: true,
+      filterStateMessages: true,
+    }))).toBe("筛选：隐藏场外发言 或 隐藏状态消息");
+  });
+
+  it("描述显示条件的过滤状态", () => {
+    expect(describeMessageDisplayFilterStatus(createFilterConfig({
+      action: "keep",
+      filterStateMessages: true,
+    }))).toBe("反选：仅显示状态消息");
+  });
+
+  it("没有有效条件时回退到筛选中状态", () => {
+    expect(describeMessageDisplayFilterStatus(createFilterConfig({}))).toBe("筛选中");
+  });
+
+  it("keep 模式下会仅显示匹配的场外发言", () => {
     const messages = [
       createMessage(1, "(keep me)"),
       createMessage(2, "visible dialog"),
@@ -111,34 +156,13 @@ describe("messageDisplayFilter", () => {
     const config = createFilterConfig({
       action: "keep",
       filterOutOfCharacterSpeech: true,
-      regexPattern: "[",
     });
 
     const matcher = createMessageDisplayFilterMatcher(config);
     const filtered = filterChatMessagesForDisplay(messages, config);
 
-    expect(matcher.error).toBeTruthy();
+    expect(matcher.error).toBeNull();
     expect(matcher.test).not.toBeNull();
     expect(filtered.map(item => item.message.messageId)).toEqual([1]);
-  });
-
-  it("描述保留匹配条件的过滤状态", () => {
-    expect(describeMessageDisplayFilterStatus(createFilterConfig({
-      action: "keep",
-      filterOutOfCharacterSpeech: true,
-      regexPattern: "alpha",
-    }))).toBe("显示匹配：正则「alpha」/i 或 场外发言");
-  });
-
-  it("描述隐藏匹配条件的过滤状态", () => {
-    expect(describeMessageDisplayFilterStatus(createFilterConfig({
-      action: "remove",
-      regexFlags: "",
-      regexPattern: "旁白",
-    }))).toBe("隐藏匹配：正则「旁白」");
-  });
-
-  it("没有有效条件时回退到筛选中状态", () => {
-    expect(describeMessageDisplayFilterStatus(createFilterConfig({}))).toBe("筛选中");
   });
 });

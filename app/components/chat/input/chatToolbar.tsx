@@ -1,4 +1,4 @@
-import { ArrowSquareIn, FilePlusIcon } from "@phosphor-icons/react";
+import { FilePlusIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
@@ -38,10 +38,6 @@ interface ChatToolbarProps {
 
   // 附件/表情等富消息入口
   disableRichMessageActions?: boolean;
-
-  // 导入消息（外部文本 -> 多条消息）
-  disableImportChatText?: boolean;
-  onOpenImportChatText?: () => void;
 
   // 新增：当前聊天状态 & 手动切换
   currentChatStatus: "idle" | "input" | "wait" | "leave";
@@ -94,8 +90,6 @@ function ChatToolbar({
   disableSendMessage,
   handleMessageSubmit,
   disableRichMessageActions = false,
-  disableImportChatText = false,
-  onOpenImportChatText,
   currentChatStatus,
   onChangeChatStatus,
   statusUserId,
@@ -134,14 +128,6 @@ function ChatToolbar({
   const storeSetEmojiMetaByUrl = useChatComposerStore(state => state.setEmojiMetaByUrl);
   const resolvedSetEmojiMetaByUrl = setEmojiMetaByUrl ?? storeSetEmojiMetaByUrl;
 
-  const handleOpenImport = useCallback(() => {
-    if (!onOpenImportChatText)
-      return;
-    if (disableImportChatText)
-      return;
-    setIsEmojiOpen(false);
-    onOpenImportChatText();
-  }, [disableImportChatText, onOpenImportChatText]);
   const handleBlockedRichMessageAction = useCallback(() => {
     if (disableRichMessageActions) {
       toast.error("当前不可发送附件");
@@ -333,19 +319,6 @@ function ChatToolbar({
 
               {mediaActionButton}
 
-              {/* 导入文本 */}
-              {onOpenImportChatText && (
-                <div
-                  className={isMobile ? "" : "tooltip tooltip-top"}
-                  data-tip={isMobile ? undefined : "导入文本"}
-                >
-                  <ArrowSquareIn
-                    className={`size-6 jump_icon mt-1 md:mt-0 ${disableImportChatText ? "cursor-not-allowed opacity-20" : "cursor-pointer"}`}
-                    onClick={handleOpenImport}
-                  />
-                </div>
-              )}
-
               {/* WebGAL 联动模式按钮 */}
               {showWebgalLinkToggle && onToggleWebgalLinkMode && !isStacked && (
                 <div
@@ -419,17 +392,6 @@ function ChatToolbar({
                   </div>
                 )}
 
-                {onOpenImportChatText && (
-                  <div
-                    className={isMobile ? "" : "tooltip tooltip-top"}
-                    data-tip={isMobile ? undefined : "导入文本"}
-                  >
-                    <ArrowSquareIn
-                      className={`size-6 jump_icon ${disableImportChatText ? "cursor-not-allowed opacity-20" : "cursor-pointer"}`}
-                      onClick={handleOpenImport}
-                    />
-                  </div>
-                )}
               </div>
             )}
           </div>

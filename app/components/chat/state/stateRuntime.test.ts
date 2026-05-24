@@ -208,15 +208,15 @@ describe("buildStateRuntime", () => {
 });
 
 describe("buildCombatStateRuntime", () => {
-  it("web wrapper 忽略旧先攻 extra，只从 combat state event 派生参与者", () => {
+  it("web wrapper 忽略旧先攻 extra，参与者不再由 state event 派生", () => {
     const runtime = buildCombatStateRuntime({
       messages: [
         createCombatMessage(10, [{
-          type: "combatParticipantUpsert",
-          participantId: "manual:new",
-          name: "新参与者",
-          initiative: 13,
-          values: { hp: 8, maxHp: 10 },
+          type: "varOp",
+          scope: buildRoleStateEventScope(3),
+          key: "initiative",
+          op: STATE_EVENT_VAR_OP.SET,
+          value: 13,
         }], {
           "initiativeList": [{ name: "旧参与者", value: 99 }],
           "initiativeList-rule-7": [{ name: "旧规则7参与者", value: 88 }],
@@ -226,13 +226,8 @@ describe("buildCombatStateRuntime", () => {
       ],
     });
 
-    expect(runtime.participants.map(participant => participant.name)).toEqual(["新参与者"]);
-    expect(runtime.participants[0]).toMatchObject({
-      participantId: "manual:new",
-      initiative: 13,
-      values: { hp: 8, maxHp: 10 },
-    });
-    expect(runtime.columns).toEqual([]);
+    expect(runtime.participants).toEqual([]);
+    expect(runtime.roleVarsByRoleId[3]?.initiative).toBe(13);
   });
 
   it("ruleId 7 走通用 combat runtime，状态和角色变量同源显示", () => {
@@ -253,11 +248,11 @@ describe("buildCombatStateRuntime", () => {
       messages: [
         createCombatMessage(11, [
           {
-            type: "combatParticipantUpsert",
-            participantId: "role:3",
-            roleId: 3,
-            name: "皮卡",
-            initiative: 16,
+            type: "varOp",
+            scope: buildRoleStateEventScope(3),
+            key: "initiative",
+            op: STATE_EVENT_VAR_OP.SET,
+            value: 16,
           },
           {
             type: "varOp",
@@ -279,14 +274,9 @@ describe("buildCombatStateRuntime", () => {
       resolver,
     });
 
-    expect(runtime.participants[0]).toMatchObject({
-      participantId: "role:3",
-      roleId: 3,
-      name: "皮卡",
-      initiative: 16,
-      baseValues: { hp: 18, maxHp: 20 },
-      derivedValues: { hp: 15, maxHp: 20 },
-    });
-    expect(runtime.participants[0]?.activeStates.map(state => state.statusName)).toEqual(["燃烧"]);
+    expect(runtime.roleVarsByRoleId[3]).toMatchObject({ hp: 18, initiative: 16 });
+    expect(runtime.baseDisplayValues.rolesByRoleId[3]).toMatchObject({ hp: 18, initiative: 16, maxHp: 20 });
+    expect(runtime.derivedDisplayValues.rolesByRoleId[3]).toMatchObject({ hp: 15, initiative: 16, maxHp: 20 });
+    expect(runtime.activeStates.map(state => state.statusName)).toEqual(["燃烧"]);
   });
 });

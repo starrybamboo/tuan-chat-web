@@ -2,11 +2,11 @@ import type { Room } from "api";
 import type { ChatPageSubWindowTab } from "@/components/chat/hooks/useChatPageSubWindow";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
-import MessageEditor from "@/components/messageEditor/MessageEditor";
 import { BaselineArrowBackIosNew, XMarkICon } from "@/icons";
 
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
@@ -534,20 +534,17 @@ export default function ChatPageSubWindow({
                   : resolvedDocId
                     ? (
                         <div className="w-full h-full overflow-hidden bg-base-100">
-                          <MessageEditor
-                            className="h-full min-h-0 rounded-none"
+                          <ChatPageDocContent
+                            canViewDocs={isKPInSpace}
                             docId={resolvedDocId}
-                            spaceId={activeSpaceId}
-                            tcHeader={{
-                              enabled: true,
-                              fallbackTitle: docTitleById.get(resolvedDocId)?.title ?? "文档",
-                              fallbackImageUrl: docTitleById.get(resolvedDocId)?.imageUrl,
-                              fallbackImageFileId: docTitleById.get(resolvedDocId)?.imageFileId,
-                              fallbackOriginalImageFileId: docTitleById.get(resolvedDocId)?.originalImageFileId,
-                              fallbackImageMediaType: docTitleById.get(resolvedDocId)?.imageMediaType,
-                            }}
-                            workspaceId={`space:${activeSpaceId}`}
                             readOnly
+                            showToolbar={false}
+                            spaceId={activeSpaceId}
+                            tcHeaderTitle={docTitleById.get(resolvedDocId)?.title ?? "文档"}
+                            tcHeaderImageUrl={docTitleById.get(resolvedDocId)?.imageUrl}
+                            tcHeaderImageFileId={docTitleById.get(resolvedDocId)?.imageFileId}
+                            tcHeaderOriginalImageFileId={docTitleById.get(resolvedDocId)?.originalImageFileId}
+                            tcHeaderImageMediaType={docTitleById.get(resolvedDocId)?.imageMediaType}
                           />
                         </div>
                       )

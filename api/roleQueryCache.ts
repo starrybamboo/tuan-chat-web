@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 
 export type RoleListQuerySnapshot = Array<{
   queryKey: readonly unknown[];
@@ -35,8 +35,9 @@ function hasAvatarId(role?: UserRoleWithAvatarUrls | null): role is UserRoleWith
 }
 
 function resolveRoleAvatarUrls(role: Pick<UserRoleWithAvatarUrls, "avatarFileId" | "avatarUrl" | "avatarThumbUrl">): { avatarUrl: string; avatarThumbUrl: string } {
-  const avatarUrl = role.avatarUrl?.trim() || buildAvatarUrl(role.avatarFileId);
-  const avatarThumbUrl = role.avatarThumbUrl?.trim() || buildAvatarThumbUrl(role.avatarFileId) || avatarUrl;
+  const media = resolveRoleAvatarMedia(role);
+  const avatarUrl = media.avatar.url;
+  const avatarThumbUrl = media.avatar.thumbUrl || avatarUrl;
   return {
     avatarUrl,
     avatarThumbUrl,

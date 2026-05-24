@@ -1,5 +1,5 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
-import { ArrowSquareIn, Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
+import { Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
 import SearchBar from "@/components/chat/input/inlineSearch";
@@ -8,7 +8,6 @@ import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropd
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import ConfirmModal from "@/components/common/comfirmModel";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import {
   ArticleIcon,
   BaselineArrowBackIosNew,
@@ -48,7 +47,6 @@ function RoomHeaderBarImpl({
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
-  const [, setIsImportChatTextOpen] = useSearchParamsState<boolean>("importChatTextPop", false);
   const isMobile = getScreenSize() === "sm";
   const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = React.useState(false);
@@ -77,14 +75,6 @@ function RoomHeaderBarImpl({
     setIsMobileToolsMenuOpen(false);
     blurActiveElement();
   }, []);
-
-  const handleOpenImport = () => {
-    if (sideDrawerState === "export") {
-      setSideDrawerState("none");
-    }
-    setIsImportChatTextOpen(true);
-    blurActiveElement();
-  };
 
   const handleRequestClearAndReloadMessages = () => {
     if (!canClearAndReloadMessages || isReloadingAllMessages) {
@@ -259,17 +249,6 @@ function RoomHeaderBarImpl({
                             type="button"
                             onClick={() => {
                               closeMobileToolsMenu();
-                              handleOpenImport();
-                            }}
-                          >
-                            导入记录
-                          </button>
-                        </li>
-                        <li>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              closeMobileToolsMenu();
                               toggleUseChatBubbleStyle();
                               blurActiveElement();
                             }}
@@ -324,14 +303,6 @@ function RoomHeaderBarImpl({
                         <Bubble2 className={useChatBubbleStyle ? "size-6 drop-shadow-[0_0_6px_currentColor]" : "size-6"} />
                       </button>
                       <ToolbarDivider />
-                      <button
-                        type="button"
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
-                        data-tip="导入记录"
-                        onClick={handleOpenImport}
-                      >
-                        <ArrowSquareIn className="size-6" />
-                      </button>
                       <SearchBar className="w-64" />
                     </>
                   )}

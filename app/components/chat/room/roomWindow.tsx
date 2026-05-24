@@ -42,10 +42,11 @@ import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHea
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import ConfirmModal from "@/components/common/comfirmModel";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
+import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import {
   useDeleteMessageMutation,
@@ -257,6 +258,10 @@ function RoomWindow({
     }
     return await sendMessageWithInsertRef.current(message);
   }, []);
+  const executeCommandRef = useRef<RoomContextType["executeCommand"] | null>(null);
+  const executeCommandFromRef = useCallback<NonNullable<RoomContextType["executeCommand"]>>((payload) => {
+    return executeCommandRef.current?.(payload);
+  }, []);
 
   const roomContext = React.useMemo((): RoomContextType => ({
     roomId,
@@ -273,6 +278,7 @@ function RoomWindow({
     updateAndRerenderMessageInWebGAL: isRealtimeRenderActive ? updateAndRerenderMessageInWebGAL : undefined,
     rerenderHistoryInWebGAL: isRealtimeRenderActive ? rerenderHistoryInWebGAL : undefined,
     sendMessageWithInsert: sendMessageWithInsertFromRef,
+    executeCommand: executeCommandFromRef,
   }), [
     chatHistory,
     curAvatarId,
@@ -285,12 +291,14 @@ function RoomWindow({
     roomAllRoles,
     roomId,
     roomRolesThatUserOwn,
+    executeCommandFromRef,
     sendMessageWithInsertFromRef,
     scrollToGivenMessage,
     spaceId,
     updateAndRerenderMessageInWebGAL,
   ]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
+  executeCommandRef.current = commandExecutor;
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
     roomId,
@@ -461,6 +469,37 @@ function RoomWindow({
     roomId,
     handleImportChatText,
   });
+  const [importInitialRawText, setImportInitialRawText] = useState<string | undefined>();
+  const [pendingImportTextPaste, setPendingImportTextPaste] = useState<{
+    insertAsPlainText: () => void;
+    text: string;
+  } | null>(null);
+  const handleSetImportChatTextOpen = useCallback((isOpen: boolean) => {
+    setIsImportChatTextOpen(isOpen);
+    if (!isOpen) {
+      setImportInitialRawText(undefined);
+    }
+  }, [setIsImportChatTextOpen]);
+  const handleRequestDocImportTextPaste = useCallback((text: string, insertAsPlainText: () => void) => {
+    setPendingImportTextPaste({
+      insertAsPlainText,
+      text,
+    });
+  }, []);
+  const handleUseDocPasteAsPlainText = useCallback(() => {
+    const pending = pendingImportTextPaste;
+    setPendingImportTextPaste(null);
+    pending?.insertAsPlainText();
+  }, [pendingImportTextPaste]);
+  const handleImportDocPasteText = useCallback(() => {
+    const pending = pendingImportTextPaste;
+    if (!pending) {
+      return;
+    }
+    setImportInitialRawText(pending.text);
+    setPendingImportTextPaste(null);
+    setIsImportChatTextOpen(true);
+  }, [pendingImportTextPaste, setIsImportChatTextOpen]);
 
   const {
     handlePasteFiles,
@@ -794,7 +833,7 @@ function RoomWindow({
             }
           }
 
-          const roleVoiceUrl = mediaFileUrl(roleData?.voiceFileId, "audio", "original") || roleData?.voiceUrl;
+          const roleVoiceUrl = resolveRoleVoiceUrl(roleData);
           if (roleVoiceUrl) {
             // Fetch the file
             const fileRes = await fetch(roleVoiceUrl);
@@ -1157,7 +1196,9 @@ function RoomWindow({
               contentMode={roomContentMode}
               onToggleContentMode={handleToggleRoomContentMode}
               canViewDocContent={canViewDocContent}
+              chatHistory={chatHistory}
               initialDocMessages={initialDocMessages}
+              onRequestDocImportTextPaste={handleRequestDocImportTextPaste}
               onRemoteDocMessagesSaved={handleRemoteDocMessagesSaved}
               toggleLeftDrawer={spaceContext.toggleLeftDrawer}
               onCloseSubWindow={onCloseSubWindow}
@@ -1175,13 +1216,14 @@ function RoomWindow({
               onGalPatchProposalGenerated={handleGalPatchProposalGenerated}
             />
           </RoomDocRefDropLayer>
-          {!viewMode && roomContentMode === "room" && (
+          {!viewMode && (
             <RoomWindowOverlays
               isImportChatTextOpen={isImportChatTextOpen}
-              setIsImportChatTextOpen={setIsImportChatTextOpen}
+              setIsImportChatTextOpen={handleSetImportChatTextOpen}
               isKP={Boolean(spaceContext.isSpaceOwner)}
               isSpectator={isSpectator}
               availableRoles={roomRolesThatUserOwn}
+              importInitialRawText={importInitialRawText}
               onImportChatText={handleImportChatItems}
               onOpenRoleAddWindow={openRoleAddWindow}
               onOpenNpcAddWindow={spaceContext.isSpaceOwner ? openNpcAddWindow : undefined}
@@ -1193,6 +1235,16 @@ function RoomWindow({
               handleAddNpcRole={handleAddNpcRole}
             />
           )}
+          <ConfirmModal
+            isOpen={Boolean(pendingImportTextPaste)}
+            onClose={handleUseDocPasteAsPlainText}
+            title="检测到可导入记录"
+            message="这段文本看起来像聊天记录。要按导入记录处理，还是作为普通文本粘贴到文档里？"
+            confirmText="按导入记录处理"
+            cancelText="普通粘贴"
+            variant="info"
+            onConfirm={handleImportDocPasteText}
+          />
           {isApplyingMessageHistory && (
             <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="正在处理消息操作">
               <div className="modal-box max-w-sm text-center">

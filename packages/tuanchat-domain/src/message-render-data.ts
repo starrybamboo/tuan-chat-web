@@ -2,9 +2,9 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import {
+  getClueMessageExtra,
   getCommandRequestExtra,
   getDiceTurnExtra,
-  getClueMessageExtra,
   getDocCardExtra,
   getForwardMessageExtra,
   getRoomJumpExtra,
@@ -165,14 +165,16 @@ export function getDocCardRenderData(extra: unknown, fallbackContent = ""): DocC
   const docCard = getDocCardExtra(extra);
   const docId = safeTrim(docCard?.docId);
   const title = safeTrim(docCard?.title) || docId || safeTrim(fallbackContent) || "文档";
+  const imageFileId = toPositiveNumber(docCard?.imageFileId);
+  const originalImageFileId = toPositiveNumber(docCard?.originalImageFileId);
 
   return {
     docId,
     excerpt: safeTrim(docCard?.excerpt),
-    imageFileId: toPositiveNumber(docCard?.imageFileId),
+    imageFileId,
     imageMediaType: safeTrim(docCard?.imageMediaType),
-    imageUrl: safeTrim(docCard?.imageUrl),
-    originalImageFileId: toPositiveNumber(docCard?.originalImageFileId),
+    imageUrl: imageFileId || originalImageFileId ? "" : safeTrim(docCard?.imageUrl),
+    originalImageFileId,
     roomId: toPositiveNumber(docCard?.roomId),
     spaceId: toPositiveNumber(docCard?.spaceId),
     title,

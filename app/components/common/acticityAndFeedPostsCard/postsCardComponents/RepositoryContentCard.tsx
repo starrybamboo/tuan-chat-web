@@ -1,10 +1,10 @@
 import React from "react";
-import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 
 interface RepositoryContentCardProps {
   name: string;
   description: string;
-  repositoryImage?: string;
+  repositoryCoverFileId?: number;
   repositoryId: string | number;
   onClick: () => void;
 }
@@ -16,9 +16,11 @@ interface RepositoryContentCardProps {
 const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
   name,
   description,
-  repositoryImage,
+  repositoryCoverFileId,
   onClick,
 }) => {
+  const repositoryImage = imageMediumUrl(repositoryCoverFileId);
+
   return (
     <button
       type="button"
@@ -31,7 +33,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
           {repositoryImage
             ? (
                 <img
-                  src={imageMediumUrlFromUrl(repositoryImage)}
+                  src={repositoryImage}
                   alt={name || "仓库图片"}
                   className="w-full h-full object-cover rounded-lg"
                 />

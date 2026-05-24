@@ -5,7 +5,7 @@ import { UploadUtils } from "@/utils/UploadUtils";
 interface AudioUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (audio: { audioUrl: string; voiceFileId: number; mediaType: string }) => void;
+  onSuccess?: (audio: { voiceFileId: number; mediaType: string }) => void;
 }
 
 /**
@@ -101,7 +101,6 @@ export default function AudioUploadModal({
 
       // 调用成功回调
       onSuccess?.({
-        audioUrl: uploadedAudio.originalUrl,
         voiceFileId: uploadedAudio.fileId,
         mediaType: uploadedAudio.mediaType,
       });

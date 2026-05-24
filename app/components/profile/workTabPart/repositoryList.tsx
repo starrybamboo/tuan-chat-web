@@ -52,11 +52,12 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
         id: `user-repository-${repository.repositoryId}`,
         rule: ruleListQuery.data?.find(rule => rule.ruleId === repository.ruleId)?.ruleName ?? "",
         title: repository.repositoryName,
-        image: imageMediumUrl(repository.coverFileId) || ((repository.image && true && repository.image !== "null") ? repository.image : undefined),
+        image: imageMediumUrl(repository.coverFileId),
         content: repository.description,
         type: "mixed" as const,
         authorName: repository.authorName,
         repositoryId: repository.repositoryId,
+        coverFileId: repository.coverFileId,
         ruleId: repository.ruleId,
         userId: repository.userId,
         createTime: repository.createTime,
@@ -139,44 +140,45 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {repositoryItems.map(repository => (
+        {repositoryItems.map(repositoryCard => (
           <ContentCard
-            key={repository.id}
-            title={repository.title}
-            ruleId={repository.ruleId}
-            RuleName={repository.rule}
-            image={repository.image}
-            content={repository.content}
-            type={repository.type}
-            authorName={repository.authorName}
-            createTime={repository.createTime}
-            minPeople={repository.minPeople}
-            maxPeople={repository.maxPeople}
-            minTime={repository.minTime}
-            maxTime={repository.maxTime}
+            key={repositoryCard.id}
+            title={repositoryCard.title}
+            ruleId={repositoryCard.ruleId}
+            RuleName={repositoryCard.rule}
+            image={repositoryCard.image}
+            content={repositoryCard.content}
+            type={repositoryCard.type}
+            authorName={repositoryCard.authorName}
+            createTime={repositoryCard.createTime}
+            minPeople={repositoryCard.minPeople}
+            maxPeople={repositoryCard.maxPeople}
+            minTime={repositoryCard.minTime}
+            maxTime={repositoryCard.maxTime}
             onClick={() => {
-              if (!repository.repositoryId) {
+              if (!repositoryCard.repositoryId) {
                 console.error("仓库ID为空，无法跳转");
                 return;
               }
-              router.history.push(`/repository/detail/${repository.repositoryId}`, {
+              router.history.push(`/repository/detail/${repositoryCard.repositoryId}`, {
                 repositoryData: {
-                  repositoryId: repository.repositoryId,
-                  ruleId: repository.ruleId,
-                  ruleName: repository.rule,
-                  repositoryName: repository.title,
-                  description: repository.content,
-                  userId: repository.userId,
-                  authorName: repository.authorName,
-                  image: repository.image,
-                  createTime: repository.createTime,
-                  updateTime: repository.updateTime,
-                  minPeople: repository.minPeople,
-                  maxPeople: repository.maxPeople,
-                  minTime: repository.minTime,
-                  maxTime: repository.maxTime,
-                  parent: repository.parent,
-                  instruction: repository.instruction,
+                  repositoryId: repositoryCard.repositoryId,
+                  ruleId: repositoryCard.ruleId,
+                  ruleName: repositoryCard.rule,
+                  repositoryName: repositoryCard.title,
+                  description: repositoryCard.content,
+                  userId: repositoryCard.userId,
+                  authorName: repositoryCard.authorName,
+                  coverFileId: repositoryCard.coverFileId,
+                  image: repositoryCard.image,
+                  createTime: repositoryCard.createTime,
+                  updateTime: repositoryCard.updateTime,
+                  minPeople: repositoryCard.minPeople,
+                  maxPeople: repositoryCard.maxPeople,
+                  minTime: repositoryCard.minTime,
+                  maxTime: repositoryCard.maxTime,
+                  parent: repositoryCard.parent,
+                  instruction: repositoryCard.instruction,
                 },
               });
             }}

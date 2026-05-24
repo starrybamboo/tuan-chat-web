@@ -88,7 +88,7 @@ describe("chatFrameCombatVisualState", () => {
       createMessage(1),
       createMessage(2, {
         messageType: MESSAGE_TYPE.STATE_EVENT,
-        content: "战斗开始：全员先攻",
+        content: "状态更新：德克萨斯 / 希希 / 降星驰 · 执行了 3 个状态事件",
         extra: {
           stateEvent: {
             source: {
@@ -97,15 +97,11 @@ describe("chatFrameCombatVisualState", () => {
             },
             events: [
               {
-                type: "combatParticipantUpsert",
-                participantId: "role:1",
-                roleId: 1,
-                name: "艾拉",
-                initiative: 16,
-              },
-              {
-                type: "combatOrderSet",
-                participantIds: ["role:1"],
+                type: "varOp",
+                scope: { kind: "role", roleId: 1 },
+                key: "initiative",
+                op: "set",
+                value: 16,
               },
             ],
           },
@@ -115,6 +111,49 @@ describe("chatFrameCombatVisualState", () => {
 
     expect(getCombatVisualSignal(messages[1]!.message)).toBe("start");
     expect(deriveCombatVisualActiveAtMessageIndex(messages, 0)).toBe(false);
+    expect(deriveCombatVisualActiveAtMessageIndex(messages, 1)).toBe(true);
+  });
+
+  it("地图 token 和下一回合状态消息也会切入战斗视觉态", () => {
+    const messages = [
+      createMessage(1, {
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+        content: "状态更新：地图标记",
+        extra: {
+          stateEvent: {
+            source: {
+              kind: "ui",
+              parserVersion: "state-event-v1",
+            },
+            events: [
+              {
+                type: "mapTokenUpsert",
+                roleId: 1,
+                rowIndex: 2,
+                colIndex: 3,
+              },
+            ],
+          },
+        },
+      }),
+      createMessage(2, {
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+        content: ".next",
+        extra: {
+          stateEvent: {
+            source: {
+              kind: "command",
+              commandName: "next",
+              parserVersion: "state-event-v1",
+            },
+            events: [{ type: "nextTurn" }],
+          },
+        },
+      }),
+    ];
+
+    expect(getCombatVisualSignal(messages[0]!.message)).toBe("start");
+    expect(getCombatVisualSignal(messages[1]!.message)).toBe("start");
     expect(deriveCombatVisualActiveAtMessageIndex(messages, 1)).toBe(true);
   });
 

@@ -30,6 +30,7 @@ import {
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
+import { normalizeLegacyVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
@@ -437,12 +438,15 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
     mutationKey: ["UpdateRole"],
     mutationFn: async (data: any) => {
       if (data.id !== 0) {
+        const voiceUrlUpdate = Object.prototype.hasOwnProperty.call(data ?? {}, "voiceUrl") && data.voiceUrl === null
+          ? { voiceUrl: null }
+          : {};
         const updateRes = await tuanchat.roleController.updateRole({
           roleId: data.id,
           roleName: data.name,
           description: data.description,
           avatarId: data.avatarId,
-          voiceUrl: data.voiceUrl,
+          ...voiceUrlUpdate,
           voiceFileId: data.voiceFileId,
           extra: data.extra,
         });
@@ -699,7 +703,7 @@ export function useCopyRoleMutation() {
         avatarThumb,
         avatarId: copiedAvatarId,
         type: copiedRole.type,
-        voiceUrl: copiedRole.voiceUrl || sourceRole.voiceUrl,
+        voiceUrl: normalizeLegacyVoiceUrl(copiedRole.voiceUrl) || undefined,
         voiceFileId: (copiedRole as any).voiceFileId || sourceRole.voiceFileId,
         extra: copiedRole.extra ?? sourceRole.extra,
       };

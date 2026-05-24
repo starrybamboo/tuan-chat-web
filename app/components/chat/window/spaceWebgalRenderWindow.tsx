@@ -448,7 +448,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     try {
       const uploadedAudio = await uploadUtilsRef.current.uploadAudioOriginalAsset(file, 1);
       setGameConfig({
-        typingSoundSeUrl: uploadedAudio.originalUrl.trim(),
+        typingSoundSeUrl: "",
         typingSoundSeFileId: uploadedAudio.fileId,
         typingSoundSeMediaType: uploadedAudio.mediaType,
       });
@@ -493,9 +493,9 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     try {
       const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
       setGameConfig({
-        titleImageUrl: uploadedImage.url.trim(),
+        titleImageUrl: "",
         titleImageFileId: uploadedImage.fileId,
-        originalTitleImageUrl: uploadedImage.originalUrl.trim(),
+        originalTitleImageUrl: "",
         originalTitleImageFileId: uploadedImage.fileId,
       });
       toast.success("标题背景图上传成功", { id: "space-webgal-title-image-upload" });
@@ -544,9 +544,9 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     try {
       const uploadedImage = await uploadUtilsRef.current.uploadDualImage(file, 1);
       setGameConfig({
-        startupLogoUrl: uploadedImage.url.trim(),
+        startupLogoUrl: "",
         startupLogoFileId: uploadedImage.fileId,
-        originalStartupLogoUrl: uploadedImage.originalUrl.trim(),
+        originalStartupLogoUrl: "",
         originalStartupLogoFileId: uploadedImage.fileId,
       });
       toast.success("启动图上传成功", { id: "space-webgal-startup-logo-upload" });

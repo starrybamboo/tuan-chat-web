@@ -11,7 +11,7 @@ import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
@@ -20,7 +20,6 @@ interface DiscoverArchivedSpacesViewProps {
   mode: DiscoverArchivedSpacesMode;
 }
 
-const DEFAULT_REPOSITORY_IMAGE = "/repositoryDefaultImage.webp";
 const ROOT_REPOSITORY_PAGE_SIZE = 60;
 
 function toEpochMs(value?: string) {
@@ -429,7 +428,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         const repositoryId = repository?.repositoryId ?? -1;
                         const name = repository?.repositoryName ?? `仓库 #${repositoryId}`;
                         const description = String(repository?.description ?? "").trim();
-                        const image = repository?.image ?? DEFAULT_REPOSITORY_IMAGE;
+                        const image = imageMediumUrl(repository?.coverFileId);
                         const updateLabel = formatDateLabel(repository?.updateTime ?? repository?.createTime);
                         const metadata = [`仓库 #${repositoryId}`];
                         if (updateLabel) {
@@ -465,7 +464,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                         const repository = group.repository;
                         const name = repository?.repositoryName ?? group.latestSpace?.name ?? `仓库 #${repositoryId}`;
                         const description = String(repository?.description ?? group.latestSpace?.description ?? "").trim();
-                        const image = repository?.image ?? imageLowUrl(group.latestSpace?.avatarFileId) ?? DEFAULT_REPOSITORY_IMAGE;
+                        const image = imageMediumUrl(repository?.coverFileId);
                         const latestSpace = group.latestSpace;
                         const isExpanded = expandedRepoIds.includes(repositoryId);
                         const latestArchiveLabel = latestSpace?.name ? `最新归档：${latestSpace.name}` : null;
