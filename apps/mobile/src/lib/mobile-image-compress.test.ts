@@ -15,7 +15,14 @@ const imageManipulatorMock = vi.hoisted(() => ({
   },
 }));
 
+const imageMock = vi.hoisted(() => ({
+  getSize: vi.fn((uri: string, success: (width: number, height: number) => void) => {
+    success(1024, 768);
+  }),
+}));
+
 vi.mock("react-native", () => ({
+  Image: imageMock,
   Platform: platformMock,
 }));
 
@@ -31,6 +38,9 @@ vi.mock("expo-image-manipulator", () => ({
 describe("mobile image compression", () => {
   beforeEach(() => {
     platformMock.OS = "ios";
+    imageMock.getSize.mockImplementation((uri: string, success: (width: number, height: number) => void) => {
+      success(1024, 768);
+    });
     fileSystemMock.getInfoAsync.mockReset();
     imageManipulatorMock.manipulateAsync.mockReset();
   });
@@ -50,7 +60,7 @@ describe("mobile image compression", () => {
     expect(result).toEqual({ uri: "file:///cache/avatar-low.webp", size: 32 * 1024 });
     expect(imageManipulatorMock.manipulateAsync).toHaveBeenCalledWith(
       "file:///source/avatar.png",
-      [{ resize: { width: 200 } }],
+      [{ resize: { width: 200, height: 150 } }],
       { compress: 0.72, format: "webp" },
     );
   });
@@ -69,8 +79,8 @@ describe("mobile image compression", () => {
     expect(result).toEqual({ uri: "file:///cache/round-2.webp", size: 120 * 1024 });
     expect(imageManipulatorMock.manipulateAsync).toHaveBeenNthCalledWith(
       2,
-      "file:///source/sprite.png",
-      [{ resize: { width: 384 } }],
+      "file:///cache/round-1.webp",
+      [{ resize: { width: 384, height: 288 } }],
       { compress: expect.closeTo(0.494, 3), format: "webp" },
     );
   });

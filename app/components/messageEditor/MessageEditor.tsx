@@ -56,6 +56,7 @@ import {
   serializeMessageEditorMessages,
   setMessageEditorSpeakerMetadata,
   setMessageEditorUploadedMedia,
+  updateMessageEditorMediaSize,
   updateMessageEditorTextContent,
 } from "./model/messageEditorTransforms";
 import { createMessageEditorController } from "./runtime/messageEditorController";
@@ -2651,6 +2652,17 @@ export default function MessageEditor({
     throw new Error("不支持该媒体类型");
   }, [uploadUtils]);
 
+  const handleDeleteAtomicBlock = useCallback((blockId: string) => {
+    const focus = controllerRef.current?.removeBlock(blockId) ?? null;
+    hideToolbar();
+    if (focus) {
+      setActiveBlockId(focus.blockId);
+      restoreSelectionRef.current = focus;
+      return;
+    }
+    clearActiveBlock();
+  }, [clearActiveBlock, hideToolbar]);
+
   const handleUploadAtomicBlock = useCallback(async (blockId: string, file: File) => {
     const controller = controllerRef.current;
     if (!controller) {
@@ -2666,6 +2678,10 @@ export default function MessageEditor({
     const payload = await uploadMediaFileForKind(kind, file);
     controller.updateBlock(blockId, message => setMessageEditorUploadedMedia(message, payload));
   }, [uploadMediaFileForKind]);
+
+  const handleResizeAtomicBlock = useCallback((blockId: string, size: { height: number; width: number }) => {
+    controllerRef.current?.updateBlock(blockId, message => updateMessageEditorMediaSize(message, size));
+  }, []);
 
   const insertMediaFileAtSelection = useCallback((file: File, selection: MessageEditorSelection) => {
     const kind = getMessageEditorMediaBlockKindForFile(file);
@@ -3133,6 +3149,7 @@ export default function MessageEditor({
                         onMouseDown={event => handleAtomicBlockMouseDown(blockId, event)}
                       >
                         <MessageEditorAtomicBlock
+                          active={activeBlockId === blockId}
                           blockId={blockId}
                           message={message}
                           readOnly={readOnly}
@@ -3144,7 +3161,9 @@ export default function MessageEditor({
                           onUpdate={(nextBlockId, updater) => {
                             controllerRef.current?.updateBlock(nextBlockId, updater);
                           }}
+                          onDelete={handleDeleteAtomicBlock}
                           onUpload={handleUploadAtomicBlock}
+                          onResize={handleResizeAtomicBlock}
                         />
                       </div>
                     </div>

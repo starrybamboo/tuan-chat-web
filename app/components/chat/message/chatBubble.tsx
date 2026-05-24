@@ -229,6 +229,24 @@ function ClueCardMessage({ message }: { message: Message }) {
   );
 }
 
+export function ClueCardReadonlyContent({
+  message,
+}: {
+  message: Message;
+  onClose?: () => void;
+}) {
+  const previewMessage = {
+    ...message,
+    status: message.status ?? 0,
+  } as Message;
+
+  return (
+    <div className="min-w-0 break-words text-sm">
+      <MessagePreviewContent message={previewMessage} withMediaPreview />
+    </div>
+  );
+}
+
 function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecuteCommandRequest, isCommandRequestConsumed, onToggleSelection, onEditWebgalChoose, baseVersionMessage, showFullMessageDiff, showAddedMessageDiff = true, messageAction }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
@@ -302,6 +320,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const setAvatarSamplerActive = useRoomUiStore(state => state.setAvatarSamplerActive);
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
+  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
@@ -533,7 +552,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       showWhenEmpty={webgalLinkMode}
       alwaysShowAddButton={webgalLinkMode}
       showAddButton={webgalLinkMode}
-      showNormalModeAnnotationsOnly={!webgalLinkMode}
+      showNormalModeAnnotationsOnly={!webgalLinkMode && !runModeEnabled}
       compact={isMobile}
       className={className}
     />

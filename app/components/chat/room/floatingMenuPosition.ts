@@ -8,6 +8,16 @@ export interface FloatingMenuSize {
   height: number;
 }
 
+export function createFloatingMenuAnchorFromElement(
+  element: { getBoundingClientRect: () => Pick<DOMRect, "right" | "top"> },
+): FloatingMenuPoint {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: Math.round(rect.right),
+    y: Math.round(rect.top),
+  };
+}
+
 export function clampFloatingMenuPosition(
   anchor: FloatingMenuPoint,
   menuSize: FloatingMenuSize,
