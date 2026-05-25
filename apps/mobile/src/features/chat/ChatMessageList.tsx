@@ -29,6 +29,7 @@ import {
   getReplyPreviewText,
   getVisibleMessageItems,
 } from "./messageListModel";
+import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 import { resolveBottomThresholdTransition } from "./messageListScrollState";
 
 const styles = StyleSheet.create({
@@ -77,7 +78,6 @@ type ChatMessageListProps = {
   multiSelectMode?: boolean;
   multiSelectedIds?: Set<number>;
   noRole?: boolean;
-  drawerPanGesture: GestureType;
   nativeScrollGesture: GestureType;
   onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
   onLongPressMessage: (message: Message) => void;
@@ -104,7 +104,6 @@ export function ChatMessageList({
   multiSelectMode,
   multiSelectedIds,
   noRole,
-  drawerPanGesture,
   nativeScrollGesture,
   onExecuteCommandRequest,
   onLongPressMessage,
@@ -121,8 +120,8 @@ export function ChatMessageList({
   const prevLengthRef = useRef(getVisibleMessageItems(messages).length);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const messageItemSimultaneousGestures = useMemo(
-    () => [nativeScrollGesture, drawerPanGesture],
-    [drawerPanGesture, nativeScrollGesture],
+    () => getMessageItemSimultaneousGestures(nativeScrollGesture),
+    [nativeScrollGesture],
   );
 
   const visibleMessages = useMemo(

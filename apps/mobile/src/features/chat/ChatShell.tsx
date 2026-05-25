@@ -1042,13 +1042,13 @@ export default function ChatShell() {
                           : (
                               <>
                                 <ChatMessageList
-                                  drawerPanGesture={panGesture}
                                   messages={roomMessages}
                                   multiSelectMode={multiSelectMode}
                                   multiSelectedIds={multiSelectedIds}
                                   nativeScrollGesture={messageListScrollGesture}
                                   selectedAnchorId={messageAnchorId}
                                   onLongPressMessage={(msg) => {
+                                    closeImmediately();
                                     setActionMenuMessage(msg);
                                   }}
                                   onRetry={() => {
