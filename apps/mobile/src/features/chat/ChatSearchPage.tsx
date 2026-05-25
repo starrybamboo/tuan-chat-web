@@ -1,3 +1,5 @@
+import type { GestureType } from "react-native-gesture-handler";
+
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { buildMessageSearchText } from "@tuanchat/domain/message-search";
 import { ArrowLeft, MagnifyingGlass, X } from "phosphor-react-native";
@@ -11,8 +13,6 @@ import {
 } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import type { GestureType } from "react-native-gesture-handler";
 
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 

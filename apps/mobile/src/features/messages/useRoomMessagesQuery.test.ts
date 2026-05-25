@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { shouldResetCachedRoomMessages } from "./roomMessageCacheState";
 import type { RoomMessagesSyncResult } from "./roomMessageSync";
+
+import { shouldResetCachedRoomMessages } from "./roomMessageCacheState";
 
 function createRoomMessage(messageId: number): ChatMessageResponse {
   return {

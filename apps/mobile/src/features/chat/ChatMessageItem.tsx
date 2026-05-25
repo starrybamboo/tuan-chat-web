@@ -1,7 +1,6 @@
 import type { GestureType } from "react-native-gesture-handler";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { memo, useMemo } from "react";
 import { StyleSheet, Vibration, View } from "react-native";
 import { Gesture, GestureDetector, Pressable } from "react-native-gesture-handler";
@@ -16,11 +15,13 @@ import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMedi
 import { useTheme } from "@/hooks/use-theme";
 import { mediaFileUrl } from "@/lib/media-url";
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { MessageAvatar } from "./MessageAvatar";
+import { getMessagePreview } from "./mobileChatUtils";
 import {
   ClueCard,
   DocCard,
@@ -31,7 +32,6 @@ import {
   StateEventCard,
   WebgalChooseCard,
 } from "./MobileMessageCards";
-import { getMessagePreview } from "./mobileChatUtils";
 
 const AVATAR_SIZE = 40;
 
@@ -378,18 +378,18 @@ export const ChatMessageItem = memo(({
                   ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[视频]</ThemedText>
                   : message.messageType === MESSAGE_TYPE.SOUND
                     ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>{getCompactMediaText(message)}</ThemedText>
-                  : message.messageType === MESSAGE_TYPE.DICE
-                    ? renderDiceTurnContent(2)
-                    : (
-                        <TextEnhanceRenderer
-                          content={getMessagePreview(message)}
-                          style={[
-                            styles.content,
-                            { color: usesSystemRow ? theme.textSecondary : theme.text },
-                          ]}
-                          numberOfLines={2}
-                        />
-                    )}
+                    : message.messageType === MESSAGE_TYPE.DICE
+                      ? renderDiceTurnContent(2)
+                      : (
+                          <TextEnhanceRenderer
+                            content={getMessagePreview(message)}
+                            style={[
+                              styles.content,
+                              { color: usesSystemRow ? theme.textSecondary : theme.text },
+                            ]}
+                            numberOfLines={2}
+                          />
+                        )}
             </View>
           </View>
         </View>
@@ -452,15 +452,15 @@ export const ChatMessageItem = memo(({
             ? message.messageType === MESSAGE_TYPE.DICE
               ? renderDiceTurnContent()
               : (
-                <TextEnhanceRenderer
-                  content={getMessagePreview(message)}
-                  style={[
-                    styles.content,
-                    { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
-                    isOOC && { fontStyle: "italic" },
-                  ]}
-                />
-              )
+                  <TextEnhanceRenderer
+                    content={getMessagePreview(message)}
+                    style={[
+                      styles.content,
+                      { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
+                      isOOC && { fontStyle: "italic" },
+                    ]}
+                  />
+                )
             : null}
           {message.messageType === MESSAGE_TYPE.INTRO_TEXT
             ? <IntroTextCard content={message.content} />

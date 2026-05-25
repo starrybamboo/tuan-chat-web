@@ -6,12 +6,15 @@ import {
 } from "@tuanchat/query/room-message";
 import { reconcileOptimisticRoomMessagesInList } from "@tuanchat/query/room-message-lifecycle";
 
+import type { RoomMessagesQueryData, RoomMessagesSyncResult } from "./roomMessagesQueryData";
+
 import {
   extractRoomMessagesFromQueryData,
-  type RoomMessagesQueryData,
-  type RoomMessagesSyncResult,
+
   updateRoomMessagesQueryData,
 } from "./roomMessagesQueryData";
+
+export type { RoomMessagesSyncResult } from "./roomMessagesQueryData";
 
 type RoomMessageSyncClient = {
   chatController: {
