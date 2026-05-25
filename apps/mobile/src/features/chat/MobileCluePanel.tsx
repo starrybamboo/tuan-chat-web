@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -19,7 +20,6 @@ import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
 import { getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
 import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
 import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
 
