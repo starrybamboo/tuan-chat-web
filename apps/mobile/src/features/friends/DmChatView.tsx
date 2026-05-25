@@ -1,9 +1,9 @@
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import type { GestureType } from "react-native-gesture-handler";
 
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
-import type { GestureType } from "react-native-gesture-handler";
 import { GestureDetector, Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 

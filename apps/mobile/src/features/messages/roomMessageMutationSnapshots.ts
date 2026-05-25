@@ -24,8 +24,8 @@ export function resolveRoomMessageSnapshots({
   );
   const snapshots = new Map<number, ChatMessageResponse>();
 
-  const addSnapshot = (snapshot: ChatMessageResponse | null | undefined) => {
-    const messageId = snapshot?.message?.messageId;
+  const addSnapshot = (snapshot: ChatMessageResponse) => {
+    const messageId = snapshot.message?.messageId;
     if (typeof messageId !== "number" || !targetIds.has(messageId) || snapshots.has(messageId)) {
       return;
     }

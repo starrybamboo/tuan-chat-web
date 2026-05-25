@@ -8,6 +8,8 @@ import {
   getRoomMessageLocalRenderKey,
 } from "@tuanchat/query/room-message-lifecycle";
 
+import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
+
 import {
   extractChatMessageResponses,
   fetchRoomMessagesWithLocalSync,
@@ -37,18 +39,18 @@ function createRoomMessage(
 }
 
 function createQueryClientStub(initialMessages: ChatMessageResponse[] = []) {
-  const data = new Map<string, ChatMessageResponse[]>();
+  const data = new Map<string, RoomMessagesQueryData>();
   data.set(JSON.stringify(getAllRoomMessagesQueryKey(9)), initialMessages);
 
   return {
     getQueryData: vi.fn((queryKey: readonly unknown[]) => {
       return data.get(JSON.stringify(queryKey));
     }),
-    setQueryData: vi.fn((queryKey: readonly unknown[], updater: (current?: ChatMessageResponse[]) => ChatMessageResponse[]) => {
+    setQueryData: vi.fn((queryKey: readonly unknown[], updater: (current: RoomMessagesQueryData) => RoomMessagesQueryData) => {
       const key = JSON.stringify(queryKey);
       data.set(key, updater(data.get(key)));
     }),
-    snapshot: () => data.get(JSON.stringify(getAllRoomMessagesQueryKey(9))) ?? [],
+    snapshot: () => extractChatMessageResponses(data.get(JSON.stringify(getAllRoomMessagesQueryKey(9)))),
   };
 }
 

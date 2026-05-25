@@ -66,12 +66,12 @@ import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
+import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { useMobileCommandRequests } from "@/features/messages/useMobileCommandRequests";
 import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
-import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 import { RoleSwitchSheet } from "@/features/roles/RoleSwitchSheet";
 import { useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
@@ -1073,12 +1073,12 @@ export default function ChatShell() {
                               <DmChatView
                                 contactId={currentContactId}
                                 contactName={currentDmContactName ?? `用户 #${currentContactId}`}
-                              contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
-                              currentUserId={currentUserId}
-                              messages={currentDmConversation?.messages ?? []}
-                              nativeScrollGesture={messageListScrollGesture}
-                              onBack={handleBackFromDmChat}
-                            />
+                                contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
+                                currentUserId={currentUserId}
+                                messages={currentDmConversation?.messages ?? []}
+                                nativeScrollGesture={messageListScrollGesture}
+                                onBack={handleBackFromDmChat}
+                              />
                             )
                           : (
                               <>

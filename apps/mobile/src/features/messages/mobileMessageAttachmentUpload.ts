@@ -8,16 +8,18 @@ import type {
 import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
-import type { MobileMessageAttachment } from "./mobileMessageAttachment";
-import type { MobileMediaType as MediaType } from "../../lib/media-url";
-import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
 import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
 import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+
+import type { MobileMediaType as MediaType } from "../../lib/media-url";
+import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
+import type { MobileMessageAttachment } from "./mobileMessageAttachment";
+
 import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "../../lib/mobile-image-compress";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "./mobileMessageAttachment";
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 
 const CHAT_ATTACHMENT_UPLOAD_SCENE = 1 as const;
 const CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY = "originalCopy";

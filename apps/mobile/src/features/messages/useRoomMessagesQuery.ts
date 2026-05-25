@@ -11,8 +11,8 @@ import {
   writeCachedRoomMessages,
 } from "@/features/messages/mobileRoomMessageCache";
 import { shouldResetCachedRoomMessages } from "@/features/messages/roomMessageCacheState";
-import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessagesQueryData";
+import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import { mergeRoomMessages } from "@tuanchat/query/room-message";
