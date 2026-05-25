@@ -36,7 +36,7 @@ describe("legacy media URL inventory guard", () => {
     expect(report.checkedFields).toBeGreaterThan(0);
     expect(report.classified).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ sourceKind: "sql", field: "avatarUrl" }),
+        expect.objectContaining({ sourceKind: "source", field: "avatarUrl" }),
         expect.objectContaining({ sourceKind: "openapi", field: "imageUrl" }),
       ]),
     );
