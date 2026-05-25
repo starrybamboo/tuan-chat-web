@@ -560,13 +560,13 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
                           return (
                             <View key={token.roleId} style={{ position: "absolute", left, top, zIndex: 2 }}>
                               <MapToken
-                              avatarUrl={role?.avatarFileId ? avatarThumbUrl(role.avatarFileId) : null}
-                              hasStatus={Boolean(tokenStatus)}
-                              isSelected={selectedRoleId === token.roleId}
-                              onLongPress={() => handleTokenLongPress(token.roleId)}
-                              name={role?.roleName?.trim() || `#${token.roleId}`}
-                              onPress={() => handleTokenPress(token.roleId)}
-                              size={tokenSize}
+                                avatarUrl={role?.avatarFileId ? avatarThumbUrl(role.avatarFileId) : null}
+                                hasStatus={Boolean(tokenStatus)}
+                                isSelected={selectedRoleId === token.roleId}
+                                onLongPress={() => handleTokenLongPress(token.roleId)}
+                                name={role?.roleName?.trim() || `#${token.roleId}`}
+                                onPress={() => handleTokenPress(token.roleId)}
+                                size={tokenSize}
                                 statusText={tokenStatus?.text}
                               />
                             </View>
