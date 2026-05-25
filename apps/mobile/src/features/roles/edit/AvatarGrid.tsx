@@ -6,6 +6,7 @@ import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
+import { SquareUploadButton } from "@/components/SquareUploadButton";
 import { Radius, Spacing } from "@/constants/theme";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
@@ -98,15 +99,6 @@ const styles = StyleSheet.create({
     top: -6,
     width: 20,
     zIndex: 1,
-  },
-  addButton: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    height: GRID_ITEM_SIZE,
-    justifyContent: "center",
-    width: GRID_ITEM_SIZE,
   },
   emptyState: {
     alignItems: "center",
@@ -250,15 +242,17 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
   const renderAvatarItem = useCallback(({ item }: { item: AvatarGridItem }) => {
     if (item.type === "add") {
       return (
-        <Pressable
-          onPress={handlePickImage}
+        <SquareUploadButton
+          accessibilityLabel="上传头像"
+          borderColor={theme.accent}
           disabled={uploading || !!cropSource}
-          style={[styles.addButton, { borderColor: theme.accent, height: avatarSize, width: avatarSize }]}
+          onPress={handlePickImage}
+          size={avatarSize}
         >
           <ThemedText themeColor="accent" type="small">
             {uploading ? "..." : "+"}
           </ThemedText>
-        </Pressable>
+        </SquareUploadButton>
       );
     }
 
