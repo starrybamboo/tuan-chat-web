@@ -256,9 +256,89 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
   return messages;
 }
 
+function buildReviewedImageMap(manifest) {
+  const entries = manifest?.entries ?? [];
+  return new Map(entries.map(entry => [normalizeGululuImagePath(entry.sourceRelPath), {
+    assetKind: entry.assetKind,
+    candidateCharacter: entry.candidateCharacter,
+    confidence: entry.confidence,
+    confirmedCharacter: entry.confirmedCharacter || (entry.confirmed ? entry.candidateCharacter : ""),
+    outputRelPath: entry.outputRelPath,
+    reviewStatus: entry.reviewStatus,
+    sourceRelPath: normalizeGululuImagePath(entry.sourceRelPath),
+  }]));
+}
+
+function mergeReviewedImageSpeakers(imageSpeakerMap, reviewedImageMap) {
+  if (!reviewedImageMap) {
+    return imageSpeakerMap;
+  }
+  const merged = new Map(imageSpeakerMap);
+  for (const [imagePath, review] of reviewedImageMap) {
+    if (!review.confirmedCharacter) {
+      continue;
+    }
+    merged.set(imagePath, {
+      ambiguous: false,
+      reviewStatus: "confirmed",
+      speakerName: review.confirmedCharacter,
+      votes: Number.POSITIVE_INFINITY,
+    });
+  }
+  return merged;
+}
+
+function buildRoleCardDrafts(reviewedImageMap) {
+  if (!reviewedImageMap) {
+    return [];
+  }
+  const roles = new Map();
+  for (const review of reviewedImageMap.values()) {
+    const roleName = review.confirmedCharacter || review.candidateCharacter;
+    if (!roleName) {
+      continue;
+    }
+    const role = roles.get(roleName) ?? {
+      avatarCandidates: [],
+      defaultAvatar: null,
+      manualConfirmed: false,
+      roleName,
+    };
+    const candidate = {
+      assetKind: review.assetKind,
+      confidence: review.confidence,
+      confirmed: Boolean(review.confirmedCharacter),
+      outputRelPath: review.outputRelPath,
+      reviewStatus: review.reviewStatus,
+      sourceRelPath: review.sourceRelPath,
+    };
+    role.avatarCandidates.push(candidate);
+    if (candidate.confirmed) {
+      role.manualConfirmed = true;
+      role.defaultAvatar ??= candidate;
+    }
+    roles.set(roleName, role);
+  }
+  return [...roles.values()]
+    .map(role => ({
+      ...role,
+      avatarCandidates: role.avatarCandidates.sort((left, right) => {
+        if (left.confirmed !== right.confirmed) {
+          return left.confirmed ? -1 : 1;
+        }
+        return right.confidence - left.confidence;
+      }),
+    }))
+    .sort((left, right) => left.roleName.localeCompare(right.roleName, "zh-Hans-CN"));
+}
+
 export function buildGululuReplayImportPackage(floors, options = {}) {
   const selectedFloors = floors.filter(floor => floor.floor >= options.fromFloor && floor.floor <= options.toFloor);
-  const imageSpeakerMap = buildImageSpeakerMap(buildImageSpeakerVotes(floors), { minVotes: 2 });
+  const reviewedImageMap = options.reviewManifest ? buildReviewedImageMap(options.reviewManifest) : null;
+  const imageSpeakerMap = mergeReviewedImageSpeakers(
+    buildImageSpeakerMap(buildImageSpeakerVotes(floors), { minVotes: 2 }),
+    reviewedImageMap,
+  );
   const messages = selectedFloors.flatMap((floor) => {
     return splitImageSegments(floor.body).flatMap(segment => parseSegmentLines(segment, floor, imageSpeakerMap));
   });
@@ -301,6 +381,13 @@ export function buildGululuReplayImportPackage(floors, options = {}) {
   }, {});
 
   return {
+    imageReview: reviewedImageMap
+      ? {
+          roleCardDrafts: buildRoleCardDrafts(reviewedImageMap),
+          source: options.reviewManifest?.opus,
+          version: options.reviewManifest?.version,
+        }
+      : undefined,
     messages,
     roles,
     source: {
@@ -350,6 +437,9 @@ function parseCliArgs(argv) {
     else if (arg === "--to") {
       args.to = Number(argv[++index]);
     }
+    else if (arg === "--image-review-manifest") {
+      args.imageReviewManifest = argv[++index];
+    }
   }
   return args;
 }
@@ -378,6 +468,9 @@ async function main() {
   const floors = parseGululuFloors(markdown);
   const importPackage = buildGululuReplayImportPackage(floors, {
     fromFloor: args.from,
+    reviewManifest: args.imageReviewManifest
+      ? JSON.parse(await readFile(args.imageReviewManifest, "utf8"))
+      : undefined,
     title: meta.title,
     toFloor: args.to,
   });
