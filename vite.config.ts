@@ -3,7 +3,6 @@ import type { Plugin } from "vite";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import { vanillaExtractPlugin } from "@vanilla-extract/vite-plugin";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { Buffer } from "node:buffer";
 import { existsSync, realpathSync } from "node:fs";
@@ -215,9 +214,6 @@ export default defineConfig(() => {
       tailwindcss(),
       ossUploadProxyPlugin(),
       electronDevPingPlugin(),
-
-      vanillaExtractPlugin(),
-
       react(),
       babel({
         presets: [reactCompilerPreset()],
@@ -225,8 +221,6 @@ export default defineConfig(() => {
     ],
     base: "/",
     resolve: {
-      tsconfigPaths: true,
-
       // Keep compatibility with upstream playground sources that import "*.js" while
       // the actual file may be TypeScript (e.g. setup.js -> setup.ts).
       // This mirrors the upstream playground Vite config.
@@ -255,6 +249,47 @@ export default defineConfig(() => {
         {
           find: "@",
           replacement: resolve(__dirname, "app"),
+        },
+        // 手动添加与 tsconfig.json paths 对应的 alias，避免使用 tsconfigPaths 的动态解析
+        {
+          find: "@tuanchat/domain",
+          replacement: resolve(__dirname, "packages/tuanchat-domain/src/index.ts"),
+        },
+        {
+          find: /^@tuanchat\/domain\/(.*)$/,
+          replacement: resolve(__dirname, "packages/tuanchat-domain/src/$1"),
+        },
+        {
+          find: "@tuanchat/galgame-ai-contract",
+          replacement: resolve(__dirname, "packages/galgame-ai-contract/src/index.ts"),
+        },
+        {
+          find: /^@tuanchat\/galgame-ai-contract\/(.*)$/,
+          replacement: resolve(__dirname, "packages/galgame-ai-contract/src/$1"),
+        },
+        {
+          find: "@tuanchat/local-db",
+          replacement: resolve(__dirname, "packages/tuanchat-local-db/src/index.ts"),
+        },
+        {
+          find: /^@tuanchat\/local-db\/(.*)$/,
+          replacement: resolve(__dirname, "packages/tuanchat-local-db/src/$1"),
+        },
+        {
+          find: "@tuanchat/openapi-client",
+          replacement: resolve(__dirname, "packages/tuanchat-openapi-client/src/index.ts"),
+        },
+        {
+          find: /^@tuanchat\/openapi-client\/(.*)$/,
+          replacement: resolve(__dirname, "packages/tuanchat-openapi-client/src/$1"),
+        },
+        {
+          find: "@tuanchat/query",
+          replacement: resolve(__dirname, "packages/tuanchat-query/src/index.ts"),
+        },
+        {
+          find: /^@tuanchat\/query\/(.*)$/,
+          replacement: resolve(__dirname, "packages/tuanchat-query/src/$1"),
         },
       ],
     },

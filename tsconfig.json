@@ -3,7 +3,7 @@
     "target": "ES2022",
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {
@@ -25,6 +25,7 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
+    "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
