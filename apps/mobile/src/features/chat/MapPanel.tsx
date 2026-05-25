@@ -1,12 +1,12 @@
-import type { StateEventAtom } from "@tuanchat/domain/state-event";
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { LayoutChangeEvent } from "react-native";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+
+import type { StateEventAtom } from "@tuanchat/domain/state-event";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -17,6 +17,7 @@ import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessa
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { avatarThumbUrl } from "@/lib/media-url";
+import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
 
 import type { RoomDndMapToken } from "./roomDndMap";
 

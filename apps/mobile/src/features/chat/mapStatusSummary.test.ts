@@ -1,8 +1,10 @@
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { describe, expect, it } from "vitest";
+
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import {
   buildCommandStateEventExtra,
   buildRoleStateEventScope,
@@ -10,7 +12,6 @@ import {
   STATE_EVENT_VAR_OP,
 } from "@tuanchat/domain/state-event";
 import { buildCombatStateRuntime, createStateDefinition, MemoryStateDefinitionResolver } from "@tuanchat/domain/state-runtime";
-import { describe, expect, it } from "vitest";
 
 import { buildMobileMapStatusRows, buildMobileMapTokenStatusByRoleId } from "./mapStatusSummary";
 
