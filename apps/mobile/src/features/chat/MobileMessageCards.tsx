@@ -11,7 +11,6 @@ import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-
 import {
   getClueCardRenderData,
   getDocCardRenderData,
