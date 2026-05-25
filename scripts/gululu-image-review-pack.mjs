@@ -35,6 +35,17 @@ const IGNORED_SPEAKERS = new Set([
 ]);
 const REVIEW_BUCKETS = new Set(["未识别", "低置信度", "冲突"]);
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]);
+const SAFE_ALIAS_OVERRIDES = new Map([
+  ["阿空", "灵乌路空"],
+  ["阿燐", "火焰猫燐"],
+  ["师匠", "八意永琳"],
+  ["茨华仙", "茨木华扇"],
+  ["恋恋", "古明地恋"],
+  ["梅莉", "玛艾露贝莉·赫恩"],
+  ["梦烈", "烈海王"],
+  ["老郭", "郭海皇"],
+  ["文文", "射命丸文"],
+]);
 
 function normalizeLineBreaks(text) {
   return String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -127,6 +138,10 @@ function scoreEvidence(evidence) {
     scores.set(item.character, (scores.get(item.character) ?? 0) + item.weight);
   }
   return [...scores.entries()].sort((left, right) => right[1] - left[1]);
+}
+
+function normalizeLearnedAlias(character, aliasMap) {
+  return aliasMap.get(character) ?? character;
 }
 
 function choosePathCharacter(relPath) {
@@ -283,14 +298,101 @@ async function readCorrections(correctionsPath) {
   }
 }
 
-function buildEvidence(image, contexts, vision) {
+function collectContextSpeakers(contexts) {
+  return contexts
+    .flatMap(context => [context.speakerAfter, context.speakerBefore])
+    .filter(Boolean);
+}
+
+function getImageCanonicalEvidence(record) {
+  const pathCharacter = choosePathCharacter(record.relPath);
+  if (pathCharacter) {
+    return {
+      character: pathCharacter,
+      source: "path-directory",
+    };
+  }
+  if (record.vision?.character && record.vision.character !== "未知" && Number(record.vision.confidence ?? 0) >= 0.75) {
+    return {
+      character: record.vision.character,
+      source: "vision-cache",
+    };
+  }
+  return null;
+}
+
+function buildAliasKey(alias, canonical) {
+  return `${alias}\u0000${canonical}`;
+}
+
+function isSafeAliasCandidate(alias) {
+  return !/[？?：:【】[\]（）()~—\-&＆]/.test(alias)
+    && !["的", "支援", "攻击", "受伤", "观感", "成就"].some(keyword => alias.includes(keyword));
+}
+
+function learnCharacterAliases(records) {
+  const votes = new Map();
+  for (const record of records) {
+    const canonical = getImageCanonicalEvidence(record);
+    if (!canonical?.character) {
+      continue;
+    }
+    for (const speaker of collectContextSpeakers(record.contexts)) {
+      if (!speaker || speaker === canonical.character || REVIEW_BUCKETS.has(speaker)) {
+        continue;
+      }
+      const key = buildAliasKey(speaker, canonical.character);
+      const current = votes.get(key) ?? {
+        alias: speaker,
+        canonical: canonical.character,
+        evidenceCount: 0,
+        examples: [],
+        source: canonical.source,
+      };
+      current.evidenceCount += 1;
+      if (current.examples.length < 4) {
+        current.examples.push(record.relPath);
+      }
+      votes.set(key, current);
+    }
+  }
+
+  const candidatesByAlias = new Map();
+  for (const item of votes.values()) {
+    if (!isSafeAliasCandidate(item.alias)) {
+      continue;
+    }
+    const isNameContainment = item.canonical.includes(item.alias)
+      || (item.alias.includes(item.canonical) && item.canonical.length >= 3);
+    const safeOverride = SAFE_ALIAS_OVERRIDES.get(item.alias) === item.canonical;
+    if (!isNameContainment && !safeOverride) {
+      continue;
+    }
+    const current = candidatesByAlias.get(item.alias);
+    if (!current || item.evidenceCount > current.evidenceCount) {
+      candidatesByAlias.set(item.alias, {
+        ...item,
+        reason: safeOverride ? "safe-alias-override" : "name-containment",
+      });
+    }
+  }
+
+  const learnedAliases = [...candidatesByAlias.values()]
+    .filter(item => item.alias !== item.canonical)
+    .sort((left, right) => left.alias.localeCompare(right.alias, "zh-Hans-CN"));
+  const aliasMap = new Map(learnedAliases.map(item => [item.alias, item.canonical]));
+  return { aliasMap, learnedAliases };
+}
+
+function buildEvidence(image, contexts, vision, aliasMap) {
   const evidence = [];
   const pathCharacter = choosePathCharacter(image.relPath);
   if (pathCharacter) {
     evidence.push({
-      character: pathCharacter,
+      character: normalizeLearnedAlias(pathCharacter, aliasMap),
       confidence: 0.82,
       detail: `来源路径: ${image.relPath}`,
+      originalCharacter: pathCharacter,
       source: "path-directory",
       weight: 3,
     });
@@ -298,27 +400,30 @@ function buildEvidence(image, contexts, vision) {
   for (const context of contexts.slice(0, 8)) {
     if (context.speakerAfter) {
       evidence.push({
-        character: context.speakerAfter,
+        character: normalizeLearnedAlias(context.speakerAfter, aliasMap),
         confidence: 0.78,
         detail: `第${context.floor}楼图片后对白`,
+        originalCharacter: context.speakerAfter,
         source: "speaker-after",
         weight: 2.6,
       });
     }
     if (context.speakerBefore) {
       evidence.push({
-        character: context.speakerBefore,
+        character: normalizeLearnedAlias(context.speakerBefore, aliasMap),
         confidence: 0.55,
         detail: `第${context.floor}楼图片前对白`,
+        originalCharacter: context.speakerBefore,
         source: "speaker-before",
         weight: 1.2,
       });
     }
     if (context.quotedAfter && pathCharacter) {
       evidence.push({
-        character: pathCharacter,
+        character: normalizeLearnedAlias(pathCharacter, aliasMap),
         confidence: 0.72,
         detail: `第${context.floor}楼图片后接引号对白`,
+        originalCharacter: pathCharacter,
         source: "quoted-after-path",
         weight: 1.5,
       });
@@ -326,9 +431,10 @@ function buildEvidence(image, contexts, vision) {
   }
   if (vision && vision.character && vision.character !== "未知") {
     evidence.push({
-      character: vision.character,
+      character: normalizeLearnedAlias(vision.character, aliasMap),
       confidence: Number(vision.confidence ?? 0),
       detail: `视觉分类: ${vision.franchise ?? "未知"} / ${vision.character}`,
+      originalCharacter: vision.character,
       source: "vision-cache",
       weight: Number(vision.confidence ?? 0) * 2.5,
     });
@@ -336,8 +442,8 @@ function buildEvidence(image, contexts, vision) {
   return evidence;
 }
 
-function classifyImage(image, contexts, vision, correction) {
-  const evidence = buildEvidence(image, contexts, vision);
+function classifyImage(image, contexts, vision, correction, aliasMap) {
+  const evidence = buildEvidence(image, contexts, vision, aliasMap);
   const scored = scoreEvidence(evidence);
   const [top, second] = scored;
   const correctedCharacter = correction?.confirmedCharacter?.trim();
@@ -477,6 +583,19 @@ function buildCorrectionsCsv(entries) {
   return `${headers.join(",")}\n${rows.join("\n")}\n`;
 }
 
+function buildAliasesCsv(learnedAliases) {
+  const headers = ["alias", "canonical", "evidenceCount", "reason", "source", "examples"];
+  const rows = learnedAliases.map(item => [
+    item.alias,
+    item.canonical,
+    item.evidenceCount,
+    item.reason,
+    item.source,
+    item.examples.join(" | "),
+  ].map(csvEscape).join(","));
+  return `${headers.join(",")}\n${rows.join("\n")}\n`;
+}
+
 function buildSummary(entries) {
   const summary = {
     buckets: {},
@@ -540,15 +659,24 @@ async function buildReviewPack(args) {
     readCorrections(args.corrections),
   ]);
   const contextsByImage = extractImageContexts(parseFloors(markdown));
-  const entries = [];
-
+  const imageRecords = [];
   for (const image of images) {
     const sha256 = await sha256File(image.absolutePath);
-    const contexts = contextsByImage.get(image.relPath) ?? [];
-    const correction = corrections.get(sha256) ?? corrections.get(image.relPath);
-    const classification = classifyImage(image, contexts, visionByHash.get(sha256), correction);
+    imageRecords.push({
+      ...image,
+      contexts: contextsByImage.get(image.relPath) ?? [],
+      sha256,
+      vision: visionByHash.get(sha256),
+    });
+  }
+  const { aliasMap, learnedAliases } = learnCharacterAliases(imageRecords);
+  const entries = [];
+
+  for (const image of imageRecords) {
+    const correction = corrections.get(image.sha256) ?? corrections.get(image.relPath);
+    const classification = classifyImage(image, image.contexts, image.vision, correction, aliasMap);
     const ext = path.extname(image.relPath);
-    const baseName = `${safeSegment(path.basename(image.relPath, ext))}_${sha256.slice(0, 10)}${ext}`;
+    const baseName = `${safeSegment(path.basename(image.relPath, ext))}_${image.sha256.slice(0, 10)}${ext}`;
     const bucket = safeSegment(classification.bucket);
     const outputRelPath = path.join("by-character", bucket, baseName).replace(/\\/g, "/");
     const outputPath = path.join(outDir, outputRelPath);
@@ -561,14 +689,14 @@ async function buildReviewPack(args) {
       confidence: Number(classification.confidence.toFixed(3)),
       confirmed: classification.confirmed,
       confirmedCharacter: correction?.confirmedCharacter ?? "",
-      contexts,
+      contexts: image.contexts,
       evidence: classification.evidence,
       excluded: classification.excluded,
       materializedAs,
       notes: correction?.notes ?? "",
       outputRelPath,
       reviewStatus: classification.reviewStatus,
-      sha256,
+      sha256: image.sha256,
       sourceAbsPath: image.absolutePath,
       sourceRelPath: image.relPath,
     });
@@ -578,6 +706,7 @@ async function buildReviewPack(args) {
   const manifest = {
     entries,
     generatedAt: new Date().toISOString(),
+    learnedAliases,
     opus: {
       opusId: meta.opusId,
       sourceRoot,
@@ -590,6 +719,7 @@ async function buildReviewPack(args) {
   await writeFile(path.join(outDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   await writeFile(path.join(outDir, "manifest.csv"), buildCsv(entries), "utf8");
   await writeFile(path.join(outDir, "corrections.csv"), buildCorrectionsCsv(entries), "utf8");
+  await writeFile(path.join(outDir, "learned-aliases.csv"), buildAliasesCsv(learnedAliases), "utf8");
   await writeFile(path.join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
   await writeFile(path.join(outDir, "README.md"), [
     "# 咕噜噜图片核对包",
@@ -598,6 +728,7 @@ async function buildReviewPack(args) {
     "- `manifest.json`：导入器使用的完整机器可读清单。",
     "- `manifest.csv`：方便表格查看的清单。",
     "- `corrections.csv`：人工修正入口。填写 `confirmedCharacter` 可确认角色，填写 `exclude=true` 可排除图片。",
+    "- `learned-aliases.csv`：图片反向学习出的角色别名归并表，请优先审查这里。",
     "- `summary.json`：本次分类统计。",
     "",
     "低置信度、冲突、未识别目录中的图片不要直接作为最终头像绑定；确认后在 `corrections.csv` 写入角色名再重跑脚本。",
