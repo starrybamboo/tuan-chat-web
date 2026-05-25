@@ -88,7 +88,7 @@ export function DmMessageActionMenu({
   });
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="关闭菜单" />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
