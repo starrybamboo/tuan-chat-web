@@ -298,6 +298,12 @@ export const ChatMessageItem = memo(({
       ? gesture.simultaneousWithExternalGesture(...simultaneousGestures)
       : gesture;
   }, [message, onLongPress, simultaneousGestures]);
+  const shouldRenderAvatar = !isGrouped && !isOOC && !isStateEvent;
+  const messageRowStyle = isStateEvent
+    ? styles.rowNarrator
+    : isOOC
+      ? styles.rowOOC
+      : isGrouped ? styles.rowGrouped : styles.row;
 
   const renderAvatar = () => {
     if (narrator) {
@@ -355,16 +361,12 @@ export const ChatMessageItem = memo(({
         <View style={{ flex: 1 }}>
           <View
             style={[
-              usesSystemRow
-                ? styles.rowNarrator
-                : isOOC
-                  ? styles.rowOOC
-                  : isGrouped ? styles.rowGrouped : styles.row,
-              !isGrouped && !usesSystemRow && !isOOC && styles.rowFull,
+              messageRowStyle,
+              shouldRenderAvatar && styles.rowFull,
               isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
             ]}
           >
-            {!isGrouped && !usesSystemRow && !isOOC ? renderAvatar() : null}
+            {shouldRenderAvatar ? renderAvatar() : null}
             <View style={styles.body}>
               {message.messageType === MESSAGE_TYPE.IMG
                 ? (() => {
@@ -401,18 +403,14 @@ export const ChatMessageItem = memo(({
     <GestureDetector gesture={longPressGesture}>
       <View
         style={[
-          usesSystemRow
-            ? styles.rowNarrator
-            : isOOC
-              ? styles.rowOOC
-              : isGrouped ? styles.rowGrouped : styles.row,
-          !isGrouped && !usesSystemRow && !isOOC && styles.rowFull,
+          messageRowStyle,
+          shouldRenderAvatar && styles.rowFull,
           isSelectedAnchor && styles.rowHighlight,
           isSelectedAnchor && { backgroundColor: theme.accentMuted },
           isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
         ]}
       >
-        {!isGrouped && !usesSystemRow && !isOOC ? renderAvatar() : null}
+        {shouldRenderAvatar ? renderAvatar() : null}
         <View style={styles.body}>
           {!isGrouped && !usesSystemRow
             ? (
