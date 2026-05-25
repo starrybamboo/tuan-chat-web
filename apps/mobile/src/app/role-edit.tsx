@@ -45,6 +45,10 @@ const styles = StyleSheet.create({
   basicInfoSection: {
     gap: Spacing.md,
   },
+  basicInfoDivider: {
+    alignSelf: "stretch",
+    height: StyleSheet.hairlineWidth,
+  },
   input: {
     borderRadius: Radius.md,
     fontSize: 15,
@@ -60,10 +64,10 @@ const styles = StyleSheet.create({
     width: "44%",
   },
   roleDescriptionInput: {
-    alignSelf: "center",
+    alignSelf: "stretch",
     minHeight: DESCRIPTION_INPUT_MIN_HEIGHT,
-    textAlign: "center",
-    width: "68%",
+    textAlign: "left",
+    width: "100%",
   },
   typeRow: {
     flexDirection: "row",
@@ -339,6 +343,7 @@ export default function RoleEditScreen() {
               onChangeText={setRoleName}
               maxLength={50}
             />
+            <View style={[styles.basicInfoDivider, { backgroundColor: theme.border }]} />
             <TextInput
               style={[
                 styles.input,
