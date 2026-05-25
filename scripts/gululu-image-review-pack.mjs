@@ -523,7 +523,11 @@ function classifyImage(image, contexts, vision, correction, aliasMap) {
   };
 }
 
-async function linkOrCopy(source, target) {
+async function materializeImage(source, target, mode) {
+  if (mode === "copy") {
+    await copyFile(source, target);
+    return "copy";
+  }
   try {
     await link(source, target);
     return "hardlink";
@@ -614,6 +618,7 @@ function buildSummary(entries) {
 function parseArgs(argv) {
   const args = {
     corrections: "",
+    materialize: "hardlink",
     outDir: DEFAULT_OUT_DIR,
     root: DEFAULT_SOURCE_ROOT,
   };
@@ -627,6 +632,9 @@ function parseArgs(argv) {
     }
     else if (arg === "--corrections") {
       args.corrections = argv[++index];
+    }
+    else if (arg === "--materialize") {
+      args.materialize = argv[++index];
     }
   }
   return args;
@@ -681,7 +689,7 @@ async function buildReviewPack(args) {
     const outputRelPath = path.join("by-character", bucket, baseName).replace(/\\/g, "/");
     const outputPath = path.join(outDir, outputRelPath);
     await mkdir(path.dirname(outputPath), { recursive: true });
-    const materializedAs = await linkOrCopy(image.absolutePath, outputPath);
+    const materializedAs = await materializeImage(image.absolutePath, outputPath, args.materialize);
     entries.push({
       assetKind: classification.assetKind,
       bucket: classification.bucket,
