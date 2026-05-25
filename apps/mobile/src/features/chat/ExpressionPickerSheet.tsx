@@ -4,18 +4,18 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Vie
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
 import { CachedImage } from "@/components/CachedImage";
-import { ThemedText } from "@/components/themed-text";
 import { SquareUploadButton } from "@/components/SquareUploadButton";
+import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import { mediaFileUrl } from "@/lib/media-url";
-import { mobileApiClient } from "@/lib/api";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
+import { useTheme } from "@/hooks/use-theme";
+import { mobileApiClient } from "@/lib/api";
+import { mediaFileUrl } from "@/lib/media-url";
 
-import { useUserStickersQuery } from "./useUserStickersQuery";
-import { useCreateStickerMutation } from "./useStickerMutations";
 import { buildStickerCreateRequest } from "./expressionStickerUpload";
+import { useCreateStickerMutation } from "./useStickerMutations";
+import { useUserStickersQuery } from "./useUserStickersQuery";
 
 const STICKER_SIZE = 72;
 const GRID_GAP = 12;
