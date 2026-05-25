@@ -16,23 +16,18 @@ import {
   RIGHT_DRAWER_WIDTH,
 } from "@/lib/layout-constants";
 
+import type { GestureDrawerSwipeOptions } from "./useGestureDrawerConfig";
+
 import {
   DRAWER_SWIPE_HINT_DELAY_MS,
   getGestureDrawerAxisConfig,
+  getGestureDrawerClampRange,
+  getGestureDrawerSnapPoints,
   resolveCloseWithSwipeHintStartPosition,
   shouldUseSyntheticSwipeHint,
 } from "./useGestureDrawerConfig";
 
-function adjacentSnapPoints(position: number): readonly number[] {
-  "worklet";
-  if (position > LEFT_DRAWER_WIDTH * 0.5)
-    return [0, LEFT_DRAWER_WIDTH];
-  if (position < -RIGHT_DRAWER_WIDTH * 0.5)
-    return [-RIGHT_DRAWER_WIDTH, 0];
-  return [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH];
-}
-
-export function useGestureDrawer(scrollGesture?: GestureType) {
+export function useGestureDrawer(scrollGesture?: GestureType, swipeOptions: GestureDrawerSwipeOptions = {}) {
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
   const axisConfig = getGestureDrawerAxisConfig();
@@ -44,15 +39,24 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
       context.set(translateX.get());
     })
     .onUpdate((e) => {
+      const range = getGestureDrawerClampRange({
+        ...swipeOptions,
+        leftDrawerWidth: LEFT_DRAWER_WIDTH,
+        rightDrawerWidth: RIGHT_DRAWER_WIDTH,
+      });
       translateX.set(clamp(
         context.get() + e.translationX,
-        -RIGHT_DRAWER_WIDTH,
-        LEFT_DRAWER_WIDTH,
+        range.min,
+        range.max,
       ));
     })
     .onEnd((e) => {
       const currentPosition = translateX.get();
-      const targets = adjacentSnapPoints(currentPosition);
+      const targets = getGestureDrawerSnapPoints(currentPosition, {
+        ...swipeOptions,
+        leftDrawerWidth: LEFT_DRAWER_WIDTH,
+        rightDrawerWidth: RIGHT_DRAWER_WIDTH,
+      });
       const destination = snapPoint(currentPosition, e.velocityX, targets);
       translateX.set(withSpring(destination, SPRING_CONFIG));
     });
