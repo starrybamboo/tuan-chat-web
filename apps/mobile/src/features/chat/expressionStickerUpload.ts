@@ -1,7 +1,7 @@
-import type { StickerCreateRequest } from "@tuanchat/openapi-client/models/StickerCreateRequest";
+import type { UploadedImageMessageDraftAsset } from "@tuanchat/domain/message-draft";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-import type { UploadedImageMessageDraftAsset } from "@tuanchat/domain/message-draft";
+import type { StickerCreateRequest } from "@tuanchat/openapi-client/models/StickerCreateRequest";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 

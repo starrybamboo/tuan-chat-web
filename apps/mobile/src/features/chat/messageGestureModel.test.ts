@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { GestureType } from "react-native-gesture-handler";
+
+import { describe, expect, it } from "vitest";
 
 import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 

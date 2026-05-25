@@ -5,8 +5,8 @@ import type { MobileMessageAttachment } from "@/features/messages/mobileMessageA
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 
 import { CachedImage } from "@/components/CachedImage";
-import { ThemedText } from "@/components/themed-text";
 import { SquareUploadButton } from "@/components/SquareUploadButton";
+import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";

@@ -23,13 +23,13 @@ import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-av
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
+import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 import {
   buildVisibleMessageMap,
   getMessageListItemKey,
   getReplyPreviewText,
   getVisibleMessageItems,
 } from "./messageListModel";
-import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 import { resolveBottomThresholdTransition } from "./messageListScrollState";
 
 const styles = StyleSheet.create({
