@@ -213,13 +213,12 @@ export default function ChatShell() {
     openLeft,
     close,
     closeImmediately,
-    closeWithSwipeHint,
     centerStyle,
     leftDrawerStyle,
     rightDrawerStyle,
     overlayStyle,
     translateX,
-  } = useGestureDrawer(messageListScrollGesture);
+  } = useGestureDrawer(messageListScrollGesture, { allowLeftDrawerSwipe: false });
 
   const [isOverlayInteractive, setIsOverlayInteractive] = useState(false);
 
@@ -504,9 +503,9 @@ export default function ChatShell() {
     setDmBackTarget(nextDmState.backTarget);
     setDrawerMode("dm");
     if (nextDmState.shouldCloseDrawer) {
-      closeWithSwipeHint();
+      close();
     }
-  }, [closeWithSwipeHint]);
+  }, [close]);
 
   const handleBackFromDmChat = useCallback(() => {
     setCurrentContactId(null);
@@ -1050,7 +1049,6 @@ export default function ChatShell() {
                       {!currentContactId && !searchPageVisible && (
                         <ChatHeader
                           roomName={selectedRoom?.name ?? null}
-                          onOpenDrawer={openLeft}
                           onBackToRoutePage={handleBackToRoutePage}
                           onSearch={() => setSearchPageVisible(true)}
                           unreadCount={currentRoomUnreadCount}
