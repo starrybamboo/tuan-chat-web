@@ -19,6 +19,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 
 const DESCRIPTION_INPUT_MIN_HEIGHT = 38;
+const ROLE_LIST_ROUTE = "/(tabs)/role";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -172,6 +173,15 @@ export default function RoleEditScreen() {
   const deleteMutation = useDeleteRoleMutation();
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
+  const closeRoleEdit = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(ROLE_LIST_ROUTE as any);
+  }, []);
+
   /* eslint-disable react-hooks/set-state-in-effect -- Query data hydrates the editable form once per role/create route. */
   useEffect(() => {
     if (isInvalidRoleRoute) {
@@ -233,12 +243,12 @@ export default function RoleEditScreen() {
           ...(selectedAvatarId != null && { avatarId: selectedAvatarId }),
         });
       }
-      router.back();
+      closeRoleEdit();
     }
     catch (e: any) {
       Alert.alert("保存失败", e?.message ?? "请稍后重试");
     }
-  }, [roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving]);
+  }, [roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving, closeRoleEdit]);
 
   const handleDelete = useCallback(async () => {
     if (roleId === null)
@@ -251,7 +261,7 @@ export default function RoleEditScreen() {
         onPress: async () => {
           try {
             await deleteMutation.mutateAsync([roleId]);
-            router.back();
+            closeRoleEdit();
           }
           catch (e: any) {
             Alert.alert("删除失败", e?.message ?? "请稍后重试");
@@ -259,14 +269,14 @@ export default function RoleEditScreen() {
         },
       },
     ]);
-  }, [roleId, deleteMutation]);
+  }, [roleId, deleteMutation, closeRoleEdit]);
 
   if (isInvalidRoleRoute) {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()}>
+            <Pressable onPress={closeRoleEdit}>
               <ThemedText themeColor="accent">返回</ThemedText>
             </Pressable>
             <ThemedText type="heading">角色参数无效</ThemedText>
@@ -277,7 +287,7 @@ export default function RoleEditScreen() {
               当前角色链接无效，请从角色列表重新打开。
             </ThemedText>
             <Pressable
-              onPress={() => router.back()}
+              onPress={closeRoleEdit}
               style={[styles.invalidBackButton, { backgroundColor: theme.backgroundElement }]}
             >
               <ThemedText themeColor="accent">返回上一页</ThemedText>
@@ -292,7 +302,7 @@ export default function RoleEditScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={closeRoleEdit}>
             <ThemedText themeColor="accent">取消</ThemedText>
           </Pressable>
           <ThemedText type="heading">{isCreating ? "创建角色" : "编辑角色"}</ThemedText>
