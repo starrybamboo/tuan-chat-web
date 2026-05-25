@@ -45,6 +45,9 @@ const styles = StyleSheet.create({
   basicInfoSection: {
     gap: Spacing.md,
   },
+  basicInfoAfterAvatar: {
+    marginTop: -Spacing.xl,
+  },
   basicInfoDivider: {
     alignSelf: "stretch",
     height: StyleSheet.hairlineWidth,
@@ -57,9 +60,9 @@ const styles = StyleSheet.create({
   },
   roleNameInput: {
     alignSelf: "center",
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: "700",
-    minHeight: 38,
+    minHeight: 44,
     textAlign: "center",
     width: "44%",
   },
@@ -334,7 +337,7 @@ export default function RoleEditScreen() {
           )}
 
           {/* Basic Info */}
-          <View style={styles.basicInfoSection}>
+          <View style={[styles.basicInfoSection, !isCreating && styles.basicInfoAfterAvatar]}>
             <TextInput
               style={[styles.input, styles.roleNameInput, { backgroundColor: "rgba(255,255,255,0.008)", color: theme.text }]}
               placeholder="角色名称"
