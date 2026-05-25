@@ -87,7 +87,7 @@ import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfi
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
-import { LEFT_DRAWER_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
 import { canManageMemberPermissions, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
@@ -150,13 +150,6 @@ const styles = StyleSheet.create({
   kav: { flex: 1 },
   panelContainer: { flex: 1, overflow: "hidden" },
   center: { flex: 1 },
-  leftDrawer: {
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-    top: 0,
-    width: LEFT_DRAWER_WIDTH,
-  },
   rightDrawer: {
     bottom: 0,
     position: "absolute",
@@ -210,15 +203,13 @@ export default function ChatShell() {
   const messageListScrollGesture = useMemo<GestureType>(() => Gesture.Native(), []);
   const {
     panGesture,
-    openLeft,
     close,
     closeImmediately,
     centerStyle,
-    leftDrawerStyle,
     rightDrawerStyle,
     overlayStyle,
     translateX,
-  } = useGestureDrawer(messageListScrollGesture, { allowLeftDrawerSwipe: false });
+  } = useGestureDrawer(messageListScrollGesture);
 
   const [isOverlayInteractive, setIsOverlayInteractive] = useState(false);
 
@@ -511,8 +502,7 @@ export default function ChatShell() {
     setCurrentContactId(null);
     setActiveDmTab(getDmTabForBackTarget(dmBackTarget));
     setDrawerMode("dm");
-    openLeft();
-  }, [dmBackTarget, openLeft]);
+  }, [dmBackTarget]);
 
   const handleSelectMessageAnchor = useCallback((message: Message) => {
     setMessageAnchorId(message.messageId ?? null);
@@ -1016,35 +1006,6 @@ export default function ChatShell() {
             : (
                 <GestureDetector gesture={panGesture}>
                   <View style={styles.panelContainer}>
-                    <Animated.View style={[styles.leftDrawer, leftDrawerStyle]}>
-                      <LeftDrawer
-                        activeDmTab={activeDmTab}
-                        activeSpaces={activeSpaces}
-                        availableRooms={availableRooms}
-                        currentContactId={currentContactId}
-                        currentRoomId={selectedRoomId}
-                        currentSpaceId={selectedSpaceId}
-                        dmConversations={dmConversations}
-                        dmIsPending={dmInboxQuery.isPending}
-                        drawerMode={drawerMode}
-                        onCreateRoom={isSpaceOwner ? () => setCreateRoomVisible(true) : undefined}
-                        onCreateSpace={() => setCreateSpaceVisible(true)}
-                        onChangeDmTab={setActiveDmTab}
-                        onRefresh={() => void handleRefreshWorkspace()}
-                        onSelectConversation={handleSelectConversation}
-                        onSelectRoom={handleSelectRoom}
-                        onSelectSpace={handleSelectSpace}
-                        onSwitchMode={setDrawerMode}
-                        roomsError={roomsQuery.error}
-                        roomsIsError={roomsQuery.isError}
-                        roomsIsPending={roomsQuery.isPending}
-                        spacesError={spacesQuery.error}
-                        spacesIsError={spacesQuery.isError}
-                        spacesIsPending={spacesQuery.isPending}
-                        unreadCounts={roomUnreadCounts}
-                      />
-                    </Animated.View>
-
                     <Animated.View style={[styles.center, centerStyle]}>
                       {!currentContactId && !searchPageVisible && (
                         <ChatHeader
