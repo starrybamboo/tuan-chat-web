@@ -108,7 +108,7 @@ export function MessageActionMenu({
   const visibleActions = actions.filter(a => a.show);
 
   return (
-    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>
         <Pressable
           style={StyleSheet.absoluteFill}
