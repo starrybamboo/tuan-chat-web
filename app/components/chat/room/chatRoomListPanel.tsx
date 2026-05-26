@@ -529,6 +529,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                               title="频道与文档"
                               isExpanded={isRoomDocSectionExpanded}
                               onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
+                              actionTitle={canEdit ? "新增分类" : undefined}
+                              onAction={canEdit ? openAddCategory : undefined}
                               className="flex h-full min-h-0 flex-col"
                               contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
                               fillContent
@@ -575,6 +577,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                             title="频道与文档"
                             isExpanded={isRoomDocSectionExpanded}
                             onToggleExpanded={() => toggleSidebarSection(ROOM_DOC_SECTION_KEY)}
+                            actionTitle={canEdit ? "新增分类" : undefined}
+                            onAction={canEdit ? openAddCategory : undefined}
                             className={fillSectionClassName}
                             contentClassName={roomDocSectionContentClassName}
                             fillContent

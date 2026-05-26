@@ -3,7 +3,7 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
-import { AddIcon, ChevronDown } from "@/icons";
+import { AddIcon, ChevronDown, FolderIcon } from "@/icons";
 
 interface RoomSidebarCategoryHeaderProps {
   categoryId: string;
@@ -132,6 +132,7 @@ export default function RoomSidebarCategoryHeader({
         <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
       </button>
 
+      <FolderIcon className="size-4 shrink-0 text-base-content/55" aria-hidden="true" />
       <span className="flex-1 truncate cursor-pointer">{categoryName}</span>
 
       {canEdit && (
