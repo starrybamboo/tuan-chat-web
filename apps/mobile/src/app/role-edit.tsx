@@ -89,10 +89,6 @@ const styles = StyleSheet.create({
   basicInfoAfterAvatar: {
     marginTop: -Spacing.xl,
   },
-  basicInfoDivider: {
-    alignSelf: "stretch",
-    height: StyleSheet.hairlineWidth,
-  },
   input: {
     borderRadius: Radius.md,
     boxShadow: "none",
@@ -492,7 +488,6 @@ export default function RoleEditScreen() {
               onChangeText={setRoleName}
               maxLength={50}
             />
-            <View style={[styles.basicInfoDivider, { backgroundColor: theme.border }]} />
             <View style={styles.roleDescriptionArea}>
               <TextInput
                 style={[styles.input, styles.roleDescriptionInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text, height: descriptionInputHeight }]}
