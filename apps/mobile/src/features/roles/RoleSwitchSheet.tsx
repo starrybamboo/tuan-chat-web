@@ -13,7 +13,7 @@ import { avatarThumbUrl } from "@/lib/media-url";
 
 import { useRoleAvatarsQuery } from "./useRoleAvatarsQuery";
 
-const AVATAR_SIZE = 36;
+const AVATAR_SIZE = 44;
 const AVATAR_GRID_COLUMNS = 4;
 const AVATAR_GRID_GAP = Spacing.md;
 const SHEET_HORIZONTAL_PADDING = Spacing.xl;
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     flexDirection: "row",
     gap: Spacing.lg,
-    minHeight: 52,
+    minHeight: 60,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
   },
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     flexDirection: "row",
     gap: Spacing.lg,
-    minHeight: 52,
+    minHeight: 60,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
   },
