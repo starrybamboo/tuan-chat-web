@@ -459,7 +459,7 @@ export default function RoleEditScreen() {
                 accessibilityRole="button"
                 style={[
                   styles.roleAvatarButton,
-                  { borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth, boxShadow: "none", outlineWidth: 0 },
+                  { borderColor: theme.border, borderStyle: "dashed", borderWidth: StyleSheet.hairlineWidth, boxShadow: "none", outlineWidth: 0 },
                 ]}
               >
                 {avatarThumbSrc
