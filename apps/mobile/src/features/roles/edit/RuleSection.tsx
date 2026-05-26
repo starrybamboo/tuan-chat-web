@@ -13,10 +13,9 @@ const DEFAULT_RULE_ID = 1;
 
 const styles = StyleSheet.create({
   section: {
-    borderRadius: Radius.xl,
     gap: Spacing.md,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.xxl,
+    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.sm,
   },
   summaryRow: {
     alignItems: "center",
@@ -27,7 +26,12 @@ const styles = StyleSheet.create({
     alignItems: "baseline",
     flexDirection: "row",
     flex: 1,
+    minWidth: 0,
     gap: Spacing.sm,
+  },
+  sectionDivider: {
+    alignSelf: "stretch",
+    height: StyleSheet.hairlineWidth,
   },
   searchInput: {
     borderRadius: Radius.md,
@@ -100,16 +104,20 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
   }, [theme.border, handleSelectFromPicker, normalizedRuleId]);
 
   return (
-    <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+    <View style={styles.section}>
       <View style={styles.summaryRow}>
         <View style={styles.summaryTextRow}>
           <ThemedText type="heading">规则系统：</ThemedText>
-          <ThemedText type="heading" themeColor="textSecondary">{selectedRuleName}</ThemedText>
+          <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1}>
+            {selectedRuleName}
+          </ThemedText>
         </View>
-        <Pressable onPress={() => setSheetVisible(true)}>
-          <ThemedText themeColor="accent" type="small">浏览全部</ThemedText>
+        <Pressable hitSlop={8} onPress={() => setSheetVisible(true)}>
+          <ThemedText themeColor="accent" type="smallBold">浏览全部</ThemedText>
         </Pressable>
       </View>
+
+      <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
 
       <BottomSheetModal visible={sheetVisible} onClose={() => setSheetVisible(false)} maxHeight="70%" backgroundColor={theme.backgroundElement} handleColor={theme.border}>
         <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, flex: 1 }}>
