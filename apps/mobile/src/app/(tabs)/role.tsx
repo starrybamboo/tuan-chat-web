@@ -1,8 +1,9 @@
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -56,11 +57,10 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     alignItems: "center",
-    borderRadius: Radius.md,
-    borderWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: 0,
     paddingVertical: Spacing.lg,
   },
   roleSection: {
@@ -123,25 +123,21 @@ function RoleListItem({
 }
 
 function RoleSectionHeader({
-  accentColor,
-  backgroundColor,
-  borderColor,
   collapsed,
   count,
+  dividerColor,
   onPress,
   title,
 }: {
-  accentColor: string;
-  backgroundColor: string;
-  borderColor: string;
   collapsed: boolean;
   count: number;
+  dividerColor: string;
   onPress: () => void;
   title: string;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.sectionHeader, { backgroundColor, borderColor }]}>
-      <ThemedText type="heading" style={{ color: accentColor }}>
+    <Pressable onPress={onPress} style={[styles.sectionHeader, { borderBottomColor: dividerColor }]}>
+      <ThemedText type="heading">
         {`${title} (${count})`}
       </ThemedText>
       <ThemedText themeColor="textSecondary" style={styles.collapseArrow}>
@@ -209,11 +205,9 @@ export default function RoleScreen() {
                 <>
                   <View style={styles.roleSection}>
                     <RoleSectionHeader
-                      accentColor={theme.accent}
-                      backgroundColor={theme.accentMuted}
-                      borderColor={theme.accent}
                       collapsed={rolesCollapsed}
                       count={normalRoles.length}
+                      dividerColor={theme.border}
                       onPress={toggleRoles}
                       title="角色"
                     />
@@ -242,11 +236,9 @@ export default function RoleScreen() {
                     ? (
                         <View style={styles.roleSection}>
                           <RoleSectionHeader
-                            accentColor={theme.success}
-                            backgroundColor={theme.successMuted}
-                            borderColor={theme.success}
                             collapsed={diceCollapsed}
                             count={diceRoles.length}
+                            dividerColor={theme.border}
                             onPress={toggleDice}
                             title="骰娘"
                           />
