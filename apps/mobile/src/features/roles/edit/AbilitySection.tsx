@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.md,
     justifyContent: "space-between",
+    marginBottom: Spacing.md,
   },
   dots: {
     alignItems: "center",
@@ -440,19 +441,6 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   return (
     <>
       <View>
-        <FlatList
-          ref={carouselRef}
-          data={sections}
-          getItemLayout={getSectionLayout}
-          horizontal
-          keyExtractor={item => item.key}
-          onMomentumScrollEnd={handleCarouselScrollEnd}
-          pagingEnabled
-          renderItem={renderAbilityCard}
-          showsHorizontalScrollIndicator={false}
-          snapToAlignment="start"
-          style={[styles.carousel, { height: carouselHeight }]}
-        />
         <View style={styles.carouselFooter}>
           <View style={styles.dots}>
             {sections.map((section, index) => {
@@ -478,6 +466,19 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
             {pageCount}
           </ThemedText>
         </View>
+        <FlatList
+          ref={carouselRef}
+          data={sections}
+          getItemLayout={getSectionLayout}
+          horizontal
+          keyExtractor={item => item.key}
+          onMomentumScrollEnd={handleCarouselScrollEnd}
+          pagingEnabled
+          renderItem={renderAbilityCard}
+          showsHorizontalScrollIndicator={false}
+          snapToAlignment="start"
+          style={[styles.carousel, { height: carouselHeight }]}
+        />
       </View>
 
       {/* Edit field sheet */}
