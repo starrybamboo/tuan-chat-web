@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
 import { SquareUploadButton } from "@/components/SquareUploadButton";
 import { ThemedText } from "@/components/themed-text";
@@ -21,25 +22,12 @@ const STICKER_SIZE = 72;
 const GRID_GAP = 12;
 
 const styles = StyleSheet.create({
-  overlay: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    flex: 1,
-    justifyContent: "flex-end",
-  },
   sheet: {
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    maxHeight: "42%",
     paddingBottom: Spacing.xxl,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xl,
-  },
-  handle: {
-    alignSelf: "center",
-    borderRadius: 2,
-    height: 4,
-    marginBottom: Spacing.xl,
-    width: 36,
   },
   title: {
     fontSize: 16,
@@ -126,70 +114,72 @@ export function ExpressionPickerSheet({
   }, [createStickerMutation, uploading]);
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={[styles.sheet, { backgroundColor: theme.surface }]} onStartShouldSetResponder={() => true}>
-          <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.title}>表情</ThemedText>
+    <BottomSheetModal
+      backgroundColor={theme.surface}
+      handleColor={theme.border}
+      maxHeight="42%"
+      onClose={onClose}
+      sheetStyle={styles.sheet}
+      visible={visible}
+    >
+      <ThemedText style={styles.title}>表情</ThemedText>
 
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {userStickersQuery.isPending
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {userStickersQuery.isPending
+          ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator color={theme.textSecondary} size="small" />
+              </View>
+            )
+          : userStickersQuery.isError
+            ? (
+                <View style={styles.emptyState}>
+                  <ThemedText themeColor="textSecondary" type="small">表情包加载失败</ThemedText>
+                </View>
+              )
+            : stickers.length === 0
               ? (
-                  <View style={styles.emptyState}>
-                    <ActivityIndicator color={theme.textSecondary} size="small" />
+                  <View style={styles.emptyAction}>
+                    <SquareUploadButton
+                      accessibilityLabel="上传表情包"
+                      borderColor={theme.accent}
+                      disabled={uploading}
+                      onPress={() => void handleUploadSticker()}
+                      size={72}
+                    >
+                      <ThemedText themeColor="accent" type="small">
+                        {uploading ? "..." : "+"}
+                      </ThemedText>
+                    </SquareUploadButton>
+                    <ThemedText themeColor="textSecondary" type="small">
+                      还没有可用的表情包，点加号上传
+                    </ThemedText>
                   </View>
                 )
-              : userStickersQuery.isError
-                ? (
-                    <View style={styles.emptyState}>
-                      <ThemedText themeColor="textSecondary" type="small">表情包加载失败</ThemedText>
-                    </View>
-                  )
-                : stickers.length === 0
-                  ? (
-                      <View style={styles.emptyAction}>
-                        <SquareUploadButton
-                          accessibilityLabel="上传表情包"
-                          borderColor={theme.accent}
-                          disabled={uploading}
-                          onPress={() => void handleUploadSticker()}
-                          size={72}
+              : (
+                  <View style={styles.grid}>
+                    {stickers.map((sticker) => {
+                      const stickerMediaType = sticker.mediaType?.trim() || "image";
+                      return (
+                        <Pressable
+                          key={sticker.stickerId ?? sticker.fileId}
+                          onPress={() => {
+                            onSelectExpression(sticker);
+                            onClose();
+                          }}
+                          style={styles.item}
                         >
-                          <ThemedText themeColor="accent" type="small">
-                            {uploading ? "..." : "+"}
-                          </ThemedText>
-                        </SquareUploadButton>
-                        <ThemedText themeColor="textSecondary" type="small">
-                          还没有可用的表情包，点加号上传
-                        </ThemedText>
-                      </View>
-                    )
-                  : (
-                      <View style={styles.grid}>
-                        {stickers.map((sticker) => {
-                          const stickerMediaType = sticker.mediaType?.trim() || "image";
-                          return (
-                            <Pressable
-                              key={sticker.stickerId ?? sticker.fileId}
-                              onPress={() => {
-                                onSelectExpression(sticker);
-                                onClose();
-                              }}
-                              style={styles.item}
-                            >
-                              <CachedImage
-                                uri={mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low")}
-                                contentFit="contain"
-                                style={styles.sticker}
-                              />
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                    )}
-          </ScrollView>
-        </View>
-      </Pressable>
-    </Modal>
+                          <CachedImage
+                            uri={mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low")}
+                            contentFit="contain"
+                            style={styles.sticker}
+                          />
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                )}
+      </ScrollView>
+    </BottomSheetModal>
   );
 }
