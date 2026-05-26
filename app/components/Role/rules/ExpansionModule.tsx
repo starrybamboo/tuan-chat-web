@@ -1,4 +1,5 @@
-import { DownloadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
+import type { RoleConfigTabKey } from "./configTabMeta";
+import { DownloadSimpleIcon, MaskHappyIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
@@ -7,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
+import { ROLE_CONFIG_TAB_ITEMS } from "./configTabMeta";
 import { ConfigurationSection } from "./ConfigurationSection";
 import NumericalEditorSmall from "./NumericalEditorSmall";
 import PerformanceEditor from "./PerformanceEditor";
@@ -50,7 +52,7 @@ export default function ExpansionModule({
   const isDiceMaiden = !!(roleQuery.data?.data?.diceMaiden || roleQuery.data?.data?.type === 1);
 
   // 当前选中的Tab，依据角色类型设置默认
-  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
+  const [activeTab, setActiveTab] = useState<RoleConfigTabKey>("basic");
   const isSmall = size === "small";
 
   // API Hooks
@@ -324,6 +326,7 @@ export default function ExpansionModule({
               roleId={roleId}
               ruleId={selectedRuleId}
               fieldType="basic"
+              configKey="basic"
               customLabel="基础属性"
               hideExternalTitlesOnMobile
             />
@@ -352,6 +355,7 @@ export default function ExpansionModule({
               roleId={roleId}
               ruleId={selectedRuleId}
               fieldType="ability"
+              configKey="ability"
               customLabel="能力"
               hideExternalTitlesOnMobile
             />
@@ -380,6 +384,7 @@ export default function ExpansionModule({
               roleId={roleId}
               ruleId={selectedRuleId}
               fieldType="skill"
+              configKey="skill"
               customLabel="技能"
               hideExternalTitlesOnMobile
             />
@@ -400,6 +405,7 @@ export default function ExpansionModule({
           <Section
             key="act"
             title="表演字段配置"
+            icon={<MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />}
             className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
             collapsible={false}
             hideTitleOnMobile
@@ -425,38 +431,18 @@ export default function ExpansionModule({
     ? (
         <div className={`flex min-w-0 items-center gap-1 md:gap-2 rounded-lg ${isSmall ? "w-full" : ""}`}>
           <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-nowrap md:justify-start md:gap-3 ${isSmall ? "" : ""}`}>
-            <button
-              type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setActiveTab("basic")}
-            >
-              <span className="md:hidden">基础</span>
-              <span className="hidden md:inline">基础配置</span>
-            </button>
-            <button
-              type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setActiveTab("ability")}
-            >
-              <span className="md:hidden">能力</span>
-              <span className="hidden md:inline">能力配置</span>
-            </button>
-            <button
-              type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setActiveTab("skill")}
-            >
-              <span className="md:hidden">技能</span>
-              <span className="hidden md:inline">技能配置</span>
-            </button>
-            <button
-              type="button"
-              className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setActiveTab("act")}
-            >
-              <span className="md:hidden">表演</span>
-              <span className="hidden md:inline">表演配置</span>
-            </button>
+            {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
+              <button
+                key={key}
+                type="button"
+                className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === key ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => setActiveTab(key)}
+              >
+                <Icon className="size-4 shrink-0" weight="bold" aria-hidden="true" />
+                <span className="md:hidden">{shortLabel}</span>
+                <span className="hidden md:inline">{label}</span>
+              </button>
+            ))}
           </div>
           {hasDesktopQuickTools && (
             <div className="hidden shrink-0 items-center gap-2 md:flex">
@@ -586,8 +572,8 @@ export default function ExpansionModule({
                                         collapsible={false}
                                       >
                                         <div className="flex justify-between items-center mb-4">
-                                          <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-                                            ⚡
+                                          <h3 className="card-title ml-1 flex items-center gap-2 text-lg">
+                                            <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
                                             骰娘文案配置
                                           </h3>
                                           <div className="flex items-center gap-2">
@@ -621,8 +607,8 @@ export default function ExpansionModule({
                                       collapsible={false}
                                     >
                                       <div className="flex justify-between items-center mb-4">
-                                        <h3 className="card-title text-lg flex items-center gap-2 ml-1">
-                                          ⚡
+                                        <h3 className="card-title ml-1 flex items-center gap-2 text-lg">
+                                          <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
                                           骰娘文案配置
                                         </h3>
                                         <div className="flex items-center gap-2">

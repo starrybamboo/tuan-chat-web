@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { DiceSix, UserCircle } from "phosphor-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -63,6 +64,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: Spacing.lg,
   },
+  sectionHeaderLabel: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  sectionHeaderIcon: {
+    flexShrink: 0,
+  },
   roleSection: {
     gap: Spacing.md,
   },
@@ -125,21 +134,28 @@ function RoleListItem({
 function RoleSectionHeader({
   collapsed,
   count,
+  Icon,
   dividerColor,
+  iconColor,
   onPress,
   title,
 }: {
   collapsed: boolean;
   count: number;
+  Icon: typeof UserCircle;
   dividerColor: string;
+  iconColor: string;
   onPress: () => void;
   title: string;
 }) {
   return (
     <Pressable onPress={onPress} style={[styles.sectionHeader, { borderBottomColor: dividerColor }]}>
-      <ThemedText type="heading">
-        {`${title} (${count})`}
-      </ThemedText>
+      <View style={styles.sectionHeaderLabel}>
+        <Icon color={iconColor} size={20} weight="fill" style={styles.sectionHeaderIcon} />
+        <ThemedText type="heading">
+          {`${title} (${count})`}
+        </ThemedText>
+      </View>
       <ThemedText themeColor="textSecondary" style={styles.collapseArrow}>
         {collapsed ? "▶" : "▼"}
       </ThemedText>
@@ -168,7 +184,7 @@ export default function RoleScreen() {
   const diceRoles = sortByTimeDesc(allRoles.filter(r => r.type === 1 && r.state !== 1));
 
   const [rolesCollapsed, setRolesCollapsed] = useState(false);
-  const [diceCollapsed, setDiceCollapsed] = useState(false);
+  const [diceCollapsed, setDiceCollapsed] = useState(true);
 
   const handleOpenCreate = () => {
     router.push("/role-edit");
@@ -203,11 +219,38 @@ export default function RoleScreen() {
               )
             : (
                 <>
+                  {diceRoles.length > 0
+                    ? (
+                        <View style={styles.roleSection}>
+                          <RoleSectionHeader
+                            collapsed={diceCollapsed}
+                            count={diceRoles.length}
+                            Icon={DiceSix}
+                            dividerColor={theme.border}
+                            iconColor={theme.textSecondary}
+                            onPress={toggleDice}
+                            title="骰娘"
+                          />
+                          {!diceCollapsed && diceRoles.map(role => (
+                            <RoleListItem
+                              key={role.roleId}
+                              backgroundColor={diceCardBackground}
+                              borderColor={theme.border}
+                              role={role}
+                              onPress={() => handleOpenEdit(role)}
+                            />
+                          ))}
+                        </View>
+                      )
+                    : null}
+
                   <View style={styles.roleSection}>
                     <RoleSectionHeader
                       collapsed={rolesCollapsed}
                       count={normalRoles.length}
+                      Icon={UserCircle}
                       dividerColor={theme.border}
+                      iconColor={theme.textSecondary}
                       onPress={toggleRoles}
                       title="角色"
                     />
@@ -231,29 +274,6 @@ export default function RoleScreen() {
                           )
                     )}
                   </View>
-
-                  {diceRoles.length > 0
-                    ? (
-                        <View style={styles.roleSection}>
-                          <RoleSectionHeader
-                            collapsed={diceCollapsed}
-                            count={diceRoles.length}
-                            dividerColor={theme.border}
-                            onPress={toggleDice}
-                            title="骰娘"
-                          />
-                          {!diceCollapsed && diceRoles.map(role => (
-                            <RoleListItem
-                              key={role.roleId}
-                              backgroundColor={diceCardBackground}
-                              borderColor={theme.border}
-                              role={role}
-                              onPress={() => handleOpenEdit(role)}
-                            />
-                          ))}
-                        </View>
-                      )
-                    : null}
                 </>
               )}
         </ScrollView>
