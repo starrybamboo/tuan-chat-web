@@ -3,7 +3,7 @@ import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
-import { AddIcon, ChevronDown, FolderIcon } from "@/icons";
+import { AddIcon, ChevronDown } from "@/icons";
 
 interface RoomSidebarCategoryHeaderProps {
   categoryId: string;
@@ -45,10 +45,12 @@ export default function RoomSidebarCategoryHeader({
   const handleToggleExpanded = () => {
     toggleCategoryExpanded(categoryId);
   };
+  const toggleButtonClassName = "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-300/55 hover:text-base-content/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+  const actionButtonClassName = "ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 opacity-0 transition-[opacity,color,background-color] duration-150 hover:bg-base-300/55 hover:text-base-content/90 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 group-hover:opacity-100";
 
   return (
     <div
-      className="flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium opacity-80 select-none hover:bg-base-300/40"
+      className="group flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium opacity-80 select-none hover:bg-base-300/40 focus-within:bg-base-300/40"
       draggable={canEdit}
       onClick={(e) => {
         const target = e.target as HTMLElement | null;
@@ -122,7 +124,7 @@ export default function RoomSidebarCategoryHeader({
     >
       <button
         type="button"
-        className="btn btn-ghost btn-xs"
+        className={toggleButtonClassName}
         onClick={(e) => {
           e.stopPropagation();
           handleToggleExpanded();
@@ -132,13 +134,12 @@ export default function RoomSidebarCategoryHeader({
         <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
       </button>
 
-      <FolderIcon className="size-4 shrink-0 text-base-content/55" aria-hidden="true" />
       <span className="flex-1 truncate cursor-pointer">{categoryName}</span>
 
       {canEdit && (
         <button
           type="button"
-          className="btn btn-ghost btn-xs"
+          className={actionButtonClassName}
           title={addTitle}
           onClick={(e) => {
             e.preventDefault();
@@ -146,7 +147,9 @@ export default function RoomSidebarCategoryHeader({
             onTriggerCategoryAdd(categoryId);
           }}
         >
-          <AddIcon />
+          <span className="inline-flex size-5 items-center justify-center">
+            <AddIcon />
+          </span>
         </button>
       )}
     </div>
