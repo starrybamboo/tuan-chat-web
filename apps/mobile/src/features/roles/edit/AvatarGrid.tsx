@@ -97,12 +97,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: Radius.full,
     borderWidth: 2,
-    height: 24,
+    height: 18,
     justifyContent: "center",
     position: "absolute",
-    left: 8,
-    top: 8,
-    width: 24,
+    left: 6,
+    top: 6,
+    width: 18,
     zIndex: 1,
   },
   selectedOverlay: {
@@ -376,7 +376,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
                   },
                 ]}
               >
-                {isSelectedForDeletion ? <Check size={14} color="#fff" weight="bold" /> : null}
+                {isSelectedForDeletion ? <Check size={11} color="#fff" weight="bold" /> : null}
               </View>
             )
           : null}
