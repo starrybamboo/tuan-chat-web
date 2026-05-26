@@ -28,8 +28,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.md,
     justifyContent: "space-between",
-    marginTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    marginBottom: Spacing.md,
   },
   dots: {
     alignItems: "center",
@@ -210,19 +209,6 @@ export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetP
             )
           : (
               <>
-                <FlatList
-                  ref={carouselRef}
-                  data={sections}
-                  getItemLayout={getSectionLayout}
-                  horizontal
-                  keyExtractor={section => section.title}
-                  onMomentumScrollEnd={handleScrollEnd}
-                  pagingEnabled
-                  renderItem={renderSectionCard}
-                  showsHorizontalScrollIndicator={false}
-                  snapToAlignment="start"
-                  style={[styles.carousel, { height: carouselHeight }]}
-                />
                 <View style={styles.carouselFooter}>
                   <View style={styles.dots}>
                     {sections.map((section, index) => {
@@ -248,6 +234,19 @@ export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetP
                     {pageCount}
                   </ThemedText>
                 </View>
+                <FlatList
+                  ref={carouselRef}
+                  data={sections}
+                  getItemLayout={getSectionLayout}
+                  horizontal
+                  keyExtractor={section => section.title}
+                  onMomentumScrollEnd={handleScrollEnd}
+                  pagingEnabled
+                  renderItem={renderSectionCard}
+                  showsHorizontalScrollIndicator={false}
+                  snapToAlignment="start"
+                  style={[styles.carousel, { height: carouselHeight }]}
+                />
               </>
             )}
       </View>
