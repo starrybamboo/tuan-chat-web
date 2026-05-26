@@ -344,6 +344,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
   const scrollDebugCountRef = useRef(0);
   const previousPaginatedLengthRef = useRef<number | null>(null);
   const [actionMenuMessage, setActionMenuMessage] = useState<MessageDirectResponse | null>(null);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [pendingMessageIds, setPendingMessageIds] = useState<Set<number>>(() => new Set());
   const [failedMessageIds, setFailedMessageIds] = useState<Set<number>>(() => new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -406,6 +407,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     setErrorMessage(null);
     sendInFlightRef.current = false;
     setActionMenuMessage(null);
+    setActionMenuVisible(false);
     setPendingMessageIds(new Set());
     setFailedMessageIds(new Set());
     isAtBottomRef.current = true;
@@ -656,7 +658,12 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
             : null}
           <View style={styles.bubbleWrapper}>
             <Pressable
-              onLongPress={item.status !== 1 ? () => setActionMenuMessage(item) : undefined}
+              onLongPress={item.status !== 1
+                ? () => {
+                    setActionMenuMessage(item);
+                    setActionMenuVisible(true);
+                  }
+                : undefined}
               style={[
                 styles.bubble,
                 {
@@ -930,8 +937,8 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         currentUserId={currentUserId}
         message={actionMenuMessage}
         onAction={(action, message) => void handleMessageAction(action, message)}
-        onClose={() => setActionMenuMessage(null)}
-        visible={actionMenuMessage !== null}
+        onClose={() => setActionMenuVisible(false)}
+        visible={actionMenuVisible}
       />
     </View>
   );

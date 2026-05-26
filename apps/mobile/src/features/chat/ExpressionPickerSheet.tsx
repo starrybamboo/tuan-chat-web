@@ -22,13 +22,6 @@ const STICKER_SIZE = 72;
 const GRID_GAP = 12;
 
 const styles = StyleSheet.create({
-  sheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingBottom: Spacing.xxl,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-  },
   title: {
     fontSize: 16,
     fontWeight: "600",
@@ -117,9 +110,7 @@ export function ExpressionPickerSheet({
     <BottomSheetModal
       backgroundColor={theme.surface}
       handleColor={theme.border}
-      maxHeight="42%"
       onClose={onClose}
-      sheetStyle={styles.sheet}
       visible={visible}
     >
       <ThemedText style={styles.title}>表情</ThemedText>

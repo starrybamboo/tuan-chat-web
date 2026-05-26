@@ -1,7 +1,8 @@
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
@@ -18,11 +19,10 @@ const AVATAR_GRID_GAP = Spacing.md;
 const SHEET_HORIZONTAL_PADDING = Spacing.xl;
 const GRID_HORIZONTAL_PADDING = Spacing.xl;
 
-interface RoleSwitchListItem {
-  type: "narrator" | "role" | "empty";
-  key: string;
-  role?: UserRole;
-}
+type RoleSwitchListItem
+  = { type: "narrator"; key: string }
+    | { type: "role"; key: string; role: UserRole }
+    | { type: "empty"; key: string };
 
 const styles = StyleSheet.create({
   sheet: {},
@@ -139,7 +139,7 @@ function groupAvatarsByCategory(avatars: RoleAvatar[]): Map<string, RoleAvatar[]
   return map;
 }
 
-interface RoleSwitchSheetProps {
+type RoleSwitchSheetProps = {
   currentAvatarId: number | undefined;
   currentRoleId: number | undefined;
   customRoleName?: string;
@@ -150,7 +150,7 @@ interface RoleSwitchSheetProps {
   onSelectRole: (roleId: number | undefined) => void;
   roles: UserRole[];
   visible: boolean;
-}
+};
 
 export function RoleSwitchSheet({
   currentAvatarId,

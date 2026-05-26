@@ -14,9 +14,7 @@ import {
 } from "react";
 import {
   Alert,
-
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -34,6 +32,7 @@ import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
@@ -165,25 +164,8 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  clueScopeOverlay: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    flex: 1,
-    justifyContent: "flex-end",
-  },
   clueScopeSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
     gap: Spacing.sm,
-    paddingBottom: Spacing.xxxl,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-  },
-  clueScopeHandle: {
-    alignSelf: "center",
-    borderRadius: 2,
-    height: 4,
-    marginBottom: Spacing.lg,
-    width: 36,
   },
   clueScopeAction: {
     borderRadius: Radius.md,
@@ -250,6 +232,7 @@ export default function ChatShell() {
   const messageAnchorIdRef = useRef(messageAnchorId);
   const messageAttachmentsRef = useRef(messageAttachments);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [clueScopeMessage, setClueScopeMessage] = useState<Message | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(() => new Set());
@@ -920,7 +903,7 @@ export default function ChatShell() {
   ]);
 
   const handleMessageAction = useCallback(async (action: MessageAction, message: Message) => {
-    setActionMenuMessage(null);
+    setActionMenuVisible(false);
     if (action === "reply") {
       handleSelectMessageAnchor(message);
     }
@@ -1054,6 +1037,7 @@ export default function ChatShell() {
                                   onLongPressMessage={(msg) => {
                                     closeImmediately();
                                     setActionMenuMessage(msg);
+                                    setActionMenuVisible(true);
                                   }}
                                   onRetry={() => {
                                     void roomMessagesQuery.refetch();
@@ -1223,52 +1207,42 @@ export default function ChatShell() {
         hasHostPrivileges={isSpaceOwner}
         message={actionMenuMessage}
         onAction={(action, msg) => void handleMessageAction(action, msg)}
-        onClose={() => setActionMenuMessage(null)}
-        visible={actionMenuMessage !== null}
+        onClose={() => setActionMenuVisible(false)}
+        visible={actionMenuVisible}
       />
-      <Modal
-        animationType="fade"
-        transparent
+      <BottomSheetModal
+        backgroundColor={theme.surface}
+        handleColor={theme.border}
+        onClose={() => setClueScopeMessage(null)}
+        sheetStyle={styles.clueScopeSheet}
         visible={clueScopeMessage !== null}
-        onRequestClose={() => setClueScopeMessage(null)}
       >
-        <View style={styles.clueScopeOverlay}>
-          <Pressable
-            accessibilityLabel="关闭线索夹选择"
-            accessibilityRole="button"
-            onPress={() => setClueScopeMessage(null)}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={[styles.clueScopeSheet, { backgroundColor: theme.surface }]}>
-            <View style={[styles.clueScopeHandle, { backgroundColor: theme.border }]} />
-            <ThemedText type="smallBold" themeColor="textSecondary">添加到线索</ThemedText>
-            <Pressable
-              accessibilityLabel="添加到我的线索"
-              accessibilityRole="button"
-              onPress={() => {
-                if (clueScopeMessage) {
-                  void handleCopyMessageToClueFolder(clueScopeMessage, "private");
-                }
-              }}
-              style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
-            >
-              <ThemedText>我的线索</ThemedText>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="添加到公共线索"
-              accessibilityRole="button"
-              onPress={() => {
-                if (clueScopeMessage) {
-                  void handleCopyMessageToClueFolder(clueScopeMessage, "public");
-                }
-              }}
-              style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
-            >
-              <ThemedText>公共线索</ThemedText>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        <ThemedText type="smallBold" themeColor="textSecondary">添加到线索</ThemedText>
+        <Pressable
+          accessibilityLabel="添加到我的线索"
+          accessibilityRole="button"
+          onPress={() => {
+            if (clueScopeMessage) {
+              void handleCopyMessageToClueFolder(clueScopeMessage, "private");
+            }
+          }}
+          style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
+        >
+          <ThemedText>我的线索</ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="添加到公共线索"
+          accessibilityRole="button"
+          onPress={() => {
+            if (clueScopeMessage) {
+              void handleCopyMessageToClueFolder(clueScopeMessage, "public");
+            }
+          }}
+          style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
+        >
+          <ThemedText>公共线索</ThemedText>
+        </Pressable>
+      </BottomSheetModal>
       <RoleSwitchSheet
         currentAvatarId={selectedAvatarId}
         currentRoleId={selectedRoleId}
