@@ -1,3 +1,4 @@
+import { GearSix } from "phosphor-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -10,10 +11,12 @@ import { useRuleDetailQuery, useRulePageQuery } from "@/features/roles/useRuleQu
 import { useTheme } from "@/hooks/use-theme";
 
 const DEFAULT_RULE_ID = 1;
+const DEFAULT_RULE_NAME = "coc7th";
 
 const styles = StyleSheet.create({
   section: {
     gap: Spacing.md,
+    paddingHorizontal: Spacing.xxl,
     paddingBottom: Spacing.lg,
     paddingTop: Spacing.sm,
   },
@@ -23,10 +26,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   summaryTextRow: {
-    alignItems: "baseline",
+    alignItems: "center",
     flexDirection: "row",
     flex: 1,
     minWidth: 0,
+    gap: Spacing.sm,
+  },
+  summaryTitleRow: {
+    alignItems: "center",
+    flexDirection: "row",
     gap: Spacing.sm,
   },
   sectionDivider: {
@@ -71,7 +79,7 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
   const selectedRuleQuery = useRuleDetailQuery(normalizedRuleId, { enabled: normalizedRuleId !== DEFAULT_RULE_ID });
   const rulePageQuery = useRulePageQuery(page, keyword || undefined, 10, { enabled: sheetVisible });
   const selectedRuleName = normalizedRuleId === DEFAULT_RULE_ID
-    ? "coc"
+    ? DEFAULT_RULE_NAME
     : selectedRuleQuery.data?.ruleName ?? `规则 #${normalizedRuleId}`;
 
   const handleSelectFromPicker = useCallback((rule: Rule) => {
@@ -107,8 +115,11 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
     <View style={styles.section}>
       <View style={styles.summaryRow}>
         <View style={styles.summaryTextRow}>
-          <ThemedText type="heading">规则系统：</ThemedText>
-          <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1}>
+          <View style={styles.summaryTitleRow}>
+            <GearSix size={19} color={theme.text} weight="bold" />
+            <ThemedText type="heading">规则系统：</ThemedText>
+          </View>
+          <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
             {selectedRuleName}
           </ThemedText>
         </View>

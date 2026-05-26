@@ -115,6 +115,8 @@ const styles = StyleSheet.create({
   roleDescriptionInput: {
     alignSelf: "stretch",
     borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.lg,
     minHeight: DESCRIPTION_INPUT_MIN_HEIGHT,
     textAlign: "left",
     width: "100%",
@@ -491,11 +493,7 @@ export default function RoleEditScreen() {
             />
             <View style={[styles.basicInfoDivider, { backgroundColor: theme.border }]} />
             <TextInput
-              style={[
-                styles.input,
-                styles.roleDescriptionInput,
-                { backgroundColor: "rgba(255,255,255,0.008)", borderColor: theme.border, color: theme.text, height: descriptionInputHeight },
-              ]}
+              style={[styles.input, styles.roleDescriptionInput, { backgroundColor: theme.backgroundElement, borderColor: theme.border, color: theme.text, height: descriptionInputHeight }]}
               placeholder="角色描述"
               placeholderTextColor={theme.textSecondary}
               value={description}
