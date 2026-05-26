@@ -1,7 +1,7 @@
 import { router } from "expo-router";
-import { DiceSix, MagnifyingGlass, UserCircle, X } from "phosphor-react-native";
+import { Check, CheckCircle, DiceSix, MagnifyingGlass, Trash, UserCircle, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
@@ -12,7 +12,9 @@ import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
 import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
+import { useDeleteRoleMutation } from "@/features/roles/useRoleMutations";
 import { useTheme } from "@/hooks/use-theme";
+import { confirmAction } from "@/lib/confirm";
 import { avatarThumbUrl } from "@/lib/media-url";
 
 const ROLE_LIST_AVATAR_SIZE = 48;
@@ -22,10 +24,16 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { gap: Spacing.xl, paddingBottom: 120, paddingHorizontal: Spacing.xxl, paddingTop: Spacing.xxxl },
   hero: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  searchToolbar: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
   searchBox: {
     alignItems: "center",
     borderRadius: Radius.md,
     borderWidth: 1,
+    flex: 1,
     flexDirection: "row",
     gap: Spacing.md,
     minHeight: 44,
@@ -46,6 +54,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 28,
   },
+  toolbarActionButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  toolbarActions: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
   roleItem: {
     alignItems: "center",
     borderWidth: 1,
@@ -54,6 +74,14 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.lg,
+  },
+  selectionBadge: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    height: 22,
+    justifyContent: "center",
+    width: 22,
   },
   roleAvatar: {
     alignItems: "center",
@@ -122,14 +150,45 @@ function RoleListItem({
   borderColor,
   onPress,
   role,
+  selected = false,
+  selectionMode = false,
 }: {
   backgroundColor: string;
   borderColor: string;
   onPress: () => void;
   role: UserRole;
+  selected?: boolean;
+  selectionMode?: boolean;
 }) {
+  const theme = useTheme();
   return (
-    <Pressable onPress={onPress} style={[styles.roleItem, { backgroundColor, borderColor }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={selectionMode ? { selected } : undefined}
+      onPress={onPress}
+      style={[
+        styles.roleItem,
+        {
+          backgroundColor: selected ? theme.accentMuted : backgroundColor,
+          borderColor: selected ? theme.accent : borderColor,
+        },
+      ]}
+    >
+      {selectionMode
+        ? (
+            <View
+              style={[
+                styles.selectionBadge,
+                {
+                  backgroundColor: selected ? theme.accent : "transparent",
+                  borderColor: selected ? theme.accent : theme.textSecondary,
+                },
+              ]}
+            >
+              {selected ? <Check color="#fff" size={13} weight="bold" /> : null}
+            </View>
+          )
+        : null}
       {role.avatarFileId
         ? (
             <CachedImage uri={avatarThumbUrl(role.avatarFileId)} style={styles.roleAvatar} />
@@ -212,6 +271,7 @@ export default function RoleScreen() {
   const { session } = useAuthSession();
   const userId = session?.userId ?? null;
   const myRolesQuery = useMyRolesQuery(userId);
+  const deleteRoleMutation = useDeleteRoleMutation();
   const roleCardBackground = theme.backgroundElement;
   const diceCardBackground = theme.surface;
 
@@ -231,14 +291,68 @@ export default function RoleScreen() {
 
   const [rolesCollapsed, setRolesCollapsed] = useState(false);
   const [diceCollapsed, setDiceCollapsed] = useState(true);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<Set<number>>(() => new Set());
+  const selectedRoleCount = selectedRoleIds.size;
 
   const handleOpenCreate = () => {
     router.push("/role-edit");
   };
 
-  const handleOpenEdit = (role: UserRole) => {
+  const toggleRoleSelection = useCallback((roleId: number) => {
+    setSelectedRoleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(roleId)) {
+        next.delete(roleId);
+      }
+      else {
+        next.add(roleId);
+      }
+      return next;
+    });
+  }, []);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedRoleIds(new Set());
+  }, []);
+
+  const handleOpenEdit = useCallback((role: UserRole) => {
+    if (selectionMode) {
+      toggleRoleSelection(role.roleId);
+      return;
+    }
     router.push({ pathname: "/role-edit", params: { roleId: String(role.roleId) } });
-  };
+  }, [selectionMode, toggleRoleSelection]);
+
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedRoleCount === 0 || deleteRoleMutation.isPending) {
+      return;
+    }
+
+    const roleIds = Array.from(selectedRoleIds);
+    const confirmed = await confirmAction({
+      confirmText: "删除",
+      destructive: true,
+      message: `确定要删除选中的 ${roleIds.length} 个角色吗？删除后无法恢复。`,
+      title: "删除角色",
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteRoleMutation.mutateAsync(roleIds);
+      exitSelectionMode();
+    }
+    catch (error: any) {
+      Alert.alert("删除失败", error?.message ?? "请稍后重试");
+    }
+  }, [deleteRoleMutation, exitSelectionMode, selectedRoleCount, selectedRoleIds]);
+
+  const enterSelectionMode = useCallback(() => {
+    setSelectionMode(true);
+  }, []);
 
   const toggleRoles = useCallback(() => setRolesCollapsed(v => !v), []);
   const toggleDice = useCallback(() => setDiceCollapsed(v => !v), []);
@@ -257,22 +371,70 @@ export default function RoleScreen() {
             </Pressable>
           </View>
 
-          <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-            <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
-            <TextInput
-              onChangeText={setSearchText}
-              placeholder="搜索角色、骰娘"
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.searchInput, { color: theme.text }]}
-              value={searchText}
-            />
-            {searchText.length > 0
+          <View style={styles.searchToolbar}>
+            <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
+              <TextInput
+                onChangeText={setSearchText}
+                placeholder="搜索角色、骰娘"
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.searchInput, { color: theme.text }]}
+                value={searchText}
+              />
+              {searchText.length > 0
+                ? (
+                    <Pressable
+                      accessibilityLabel="清空搜索"
+                      accessibilityRole="button"
+                      onPress={() => setSearchText("")}
+                      style={styles.clearSearchButton}
+                    >
+                      <X color={theme.textSecondary} size={16} weight="bold" />
+                    </Pressable>
+                  )
+                : null}
+            </View>
+            {selectionMode
               ? (
-                  <Pressable onPress={() => setSearchText("")} style={styles.clearSearchButton}>
-                    <X color={theme.textSecondary} size={16} weight="bold" />
-                  </Pressable>
+                  <View style={styles.toolbarActions}>
+                    <Pressable
+                      accessibilityLabel="删除选中角色"
+                      accessibilityRole="button"
+                      disabled={selectedRoleCount === 0 || deleteRoleMutation.isPending}
+                      onPress={handleBatchDelete}
+                      style={[
+                        styles.toolbarActionButton,
+                        {
+                          backgroundColor: selectedRoleCount === 0 || deleteRoleMutation.isPending ? theme.backgroundElement : theme.dangerMuted,
+                          borderColor: selectedRoleCount === 0 || deleteRoleMutation.isPending ? theme.border : theme.danger,
+                          opacity: selectedRoleCount === 0 || deleteRoleMutation.isPending ? 0.5 : 1,
+                        },
+                      ]}
+                    >
+                      {deleteRoleMutation.isPending
+                        ? <ActivityIndicator color={theme.danger} size="small" />
+                        : <Trash color={selectedRoleCount === 0 ? theme.textSecondary : theme.danger} size={20} weight="bold" />}
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel="退出选择模式"
+                      accessibilityRole="button"
+                      onPress={exitSelectionMode}
+                      style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                    >
+                      <X color={theme.text} size={20} weight="bold" />
+                    </Pressable>
+                  </View>
                 )
-              : null}
+              : (
+                  <Pressable
+                    accessibilityLabel="进入选择模式"
+                    accessibilityRole="button"
+                    onPress={enterSelectionMode}
+                    style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                  >
+                    <CheckCircle color={theme.text} size={24} weight="bold" />
+                  </Pressable>
+                )}
           </View>
 
           {myRolesQuery.isPending
@@ -308,6 +470,8 @@ export default function RoleScreen() {
                                       key={role.roleId}
                                       backgroundColor={diceCardBackground}
                                       borderColor={theme.border}
+                                      selected={selectedRoleIds.has(role.roleId)}
+                                      selectionMode={selectionMode}
                                       role={role}
                                       onPress={() => handleOpenEdit(role)}
                                     />
@@ -341,6 +505,8 @@ export default function RoleScreen() {
                                 key={role.roleId}
                                 backgroundColor={roleCardBackground}
                                 borderColor={theme.border}
+                                selected={selectedRoleIds.has(role.roleId)}
+                                selectionMode={selectionMode}
                                 role={role}
                                 onPress={() => handleOpenEdit(role)}
                               />
