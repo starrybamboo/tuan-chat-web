@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { CaretLeft, FloppyDisk, Trash } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,9 +32,42 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
+    height: 52,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+  headerTitle: {
+    maxWidth: "42%",
+  },
+  headerBackButton: {
+    alignItems: "center",
+    height: 36,
+    justifyContent: "center",
+    left: Spacing.lg,
+    position: "absolute",
+    width: 36,
+  },
+  headerActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+    position: "absolute",
+    right: Spacing.lg,
+  },
+  headerActionButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: Spacing.sm,
+    height: 34,
+    justifyContent: "center",
+    minWidth: 58,
+    paddingHorizontal: Spacing.sm,
+  },
+  headerActionText: {
+    fontSize: 14,
+    fontWeight: "700",
   },
   content: {
     gap: Spacing.xxl,
@@ -90,11 +124,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.sm,
-  },
-  deleteButton: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.lg,
   },
   profileHeader: {
     alignItems: "center",
@@ -172,6 +201,7 @@ export default function RoleEditScreen() {
   const updateMutation = useUpdateRoleMutation();
   const deleteMutation = useDeleteRoleMutation();
   const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isDeleting = deleteMutation.isPending;
 
   const closeRoleEdit = useCallback(() => {
     if (router.canGoBack()) {
@@ -316,11 +346,15 @@ export default function RoleEditScreen() {
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
-            <Pressable onPress={closeRoleEdit}>
-              <ThemedText themeColor="accent">返回</ThemedText>
+            <Pressable
+              onPress={closeRoleEdit}
+              style={styles.headerBackButton}
+              accessibilityLabel="返回"
+              accessibilityRole="button"
+            >
+              <CaretLeft size={22} color={theme.text} weight="bold" />
             </Pressable>
-            <ThemedText type="heading">角色参数无效</ThemedText>
-            <View />
+            <ThemedText type="heading" numberOfLines={1} style={styles.headerTitle}>角色参数无效</ThemedText>
           </View>
           <View style={styles.invalidState}>
             <ThemedText themeColor="textSecondary" style={{ textAlign: "center" }}>
@@ -342,13 +376,57 @@ export default function RoleEditScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Pressable onPress={closeRoleEdit}>
-            <ThemedText themeColor="accent">取消</ThemedText>
+          <Pressable
+            onPress={closeRoleEdit}
+            style={styles.headerBackButton}
+            accessibilityLabel="返回"
+            accessibilityRole="button"
+          >
+            <CaretLeft size={22} color={theme.text} weight="bold" />
           </Pressable>
-          <ThemedText type="heading">{isCreating ? "创建角色" : "编辑角色"}</ThemedText>
-          <Pressable onPress={handleSave} disabled={isSaving}>
-            <ThemedText themeColor="accent">{isSaving ? "保存中..." : "保存"}</ThemedText>
-          </Pressable>
+          <ThemedText type="heading" numberOfLines={1} style={styles.headerTitle}>
+            {isCreating ? "创建角色" : "编辑角色"}
+          </ThemedText>
+          <View style={styles.headerActions}>
+            {roleId !== null
+              ? (
+                  <Pressable
+                    onPress={handleDelete}
+                    disabled={isDeleting}
+                    style={[
+                      styles.headerActionButton,
+                      {
+                        borderColor: theme.danger,
+                        backgroundColor: theme.dangerMuted,
+                        opacity: isDeleting ? 0.5 : 1,
+                      },
+                    ]}
+                    accessibilityLabel="删除角色"
+                    accessibilityRole="button"
+                  >
+                    <Trash size={15} color={theme.danger} weight="bold" />
+                    <ThemedText style={[styles.headerActionText, { color: theme.danger }]}>删除</ThemedText>
+                  </Pressable>
+                )
+              : null}
+            <Pressable
+              onPress={handleSave}
+              disabled={isSaving}
+              style={[
+                styles.headerActionButton,
+                {
+                  borderColor: theme.accent,
+                  backgroundColor: theme.accentMuted,
+                  opacity: isSaving ? 0.5 : 1,
+                },
+              ]}
+              accessibilityLabel="保存角色"
+              accessibilityRole="button"
+            >
+              <FloppyDisk size={15} color={theme.accent} weight="bold" />
+              <ThemedText style={[styles.headerActionText, { color: theme.accent }]}>保存</ThemedText>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
@@ -450,18 +528,6 @@ export default function RoleEditScreen() {
           {/* Ability Editor */}
           {roleId !== null && validSelectedRuleId !== null
             ? <AbilitySection roleId={roleId} ruleId={validSelectedRuleId} />
-            : null}
-
-          {/* Delete */}
-          {roleId !== null
-            ? (
-                <Pressable
-                  onPress={handleDelete}
-                  style={[styles.deleteButton, { backgroundColor: theme.backgroundElement }]}
-                >
-                  <ThemedText style={{ color: "#ef4444" }}>删除角色</ThemedText>
-                </Pressable>
-              )
             : null}
         </ScrollView>
         {roleId !== null
