@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
-
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
@@ -13,16 +12,17 @@ import { avatarThumbUrl } from "@/lib/media-url";
 
 import { useRoleAvatarsQuery } from "./useRoleAvatarsQuery";
 
-const AVATAR_SIZE = 44;
+const AVATAR_SIZE = 36;
 const AVATAR_GRID_COLUMNS = 4;
 const AVATAR_GRID_GAP = Spacing.md;
 const SHEET_HORIZONTAL_PADDING = Spacing.xl;
 const GRID_HORIZONTAL_PADDING = Spacing.xl;
 
-type RoleSwitchListItem
-  = { type: "narrator"; key: string }
-    | { type: "role"; key: string; role: UserRole }
-    | { type: "empty"; key: string };
+interface RoleSwitchListItem {
+  type: "narrator" | "role" | "empty";
+  key: string;
+  role?: UserRole;
+}
 
 const styles = StyleSheet.create({
   sheet: {},
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     flexDirection: "row",
     gap: Spacing.lg,
-    minHeight: 60,
+    minHeight: 52,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
   },
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     flexDirection: "row",
     gap: Spacing.lg,
-    minHeight: 60,
+    minHeight: 52,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
   },
@@ -139,7 +139,7 @@ function groupAvatarsByCategory(avatars: RoleAvatar[]): Map<string, RoleAvatar[]
   return map;
 }
 
-type RoleSwitchSheetProps = {
+interface RoleSwitchSheetProps {
   currentAvatarId: number | undefined;
   currentRoleId: number | undefined;
   customRoleName?: string;
@@ -150,7 +150,7 @@ type RoleSwitchSheetProps = {
   onSelectRole: (roleId: number | undefined) => void;
   roles: UserRole[];
   visible: boolean;
-};
+}
 
 export function RoleSwitchSheet({
   currentAvatarId,

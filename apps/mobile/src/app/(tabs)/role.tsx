@@ -1,9 +1,8 @@
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -13,6 +12,8 @@ import { useAuthSession } from "@/features/auth/auth-session";
 import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
+
+const ROLE_LIST_AVATAR_SIZE = 48;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -31,13 +32,13 @@ const styles = StyleSheet.create({
   roleAvatar: {
     alignItems: "center",
     borderRadius: Radius.full,
-    height: 40,
+    height: ROLE_LIST_AVATAR_SIZE,
     justifyContent: "center",
-    width: 40,
+    width: ROLE_LIST_AVATAR_SIZE,
   },
   avatarText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
   },
   stateBlock: {
