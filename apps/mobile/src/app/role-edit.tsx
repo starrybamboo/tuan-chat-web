@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -16,11 +17,13 @@ import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
 import { useRoleAvatarsQuery } from "@/features/roles/useRoleAvatarsQuery";
 import { useCreateRoleMutation, useDeleteRoleMutation, useUpdateRoleMutation } from "@/features/roles/useRoleMutations";
 import { useTheme } from "@/hooks/use-theme";
-import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
+import { avatarThumbUrl } from "@/lib/media-url";
+import { readMobileKeyValue, writeMobileKeyValue } from "@/lib/mobile-key-value-storage";
 
 const DESCRIPTION_INPUT_MIN_HEIGHT = 38;
+const DEFAULT_ROLE_EDIT_RULE_ID = 1;
 const ROLE_LIST_ROUTE = "/(tabs)/role";
-const ROLE_EDIT_HIGHLIGHT_COLOR = "rgba(140, 200, 255, 0.55)";
+const ROLE_EDIT_RULE_STORAGE_SCOPE = "role-edit-rule";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -66,8 +69,6 @@ const styles = StyleSheet.create({
   },
   roleNameInput: {
     alignSelf: "center",
-    borderColor: ROLE_EDIT_HIGHLIGHT_COLOR,
-    borderWidth: 1,
     fontSize: 22,
     fontWeight: "700",
     minHeight: 44,
@@ -128,17 +129,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
-  avatarPreviewOverlay: {
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.9)",
-    flex: 1,
-    justifyContent: "center",
-  },
-  avatarPreviewImage: {
-    borderRadius: Radius.lg,
-    height: 280,
-    width: 280,
-  },
 });
 
 export default function RoleEditScreen() {
@@ -161,8 +151,8 @@ export default function RoleEditScreen() {
   const [description, setDescription] = useState(existingRole?.description ?? "");
   const [roleType, setRoleType] = useState<number>(existingRole?.type ?? 0);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | null>(existingRole?.avatarId ?? null);
-  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
+  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(DEFAULT_ROLE_EDIT_RULE_ID);
+  const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
   const [descriptionInputHeight, setDescriptionInputHeight] = useState(DESCRIPTION_INPUT_MIN_HEIGHT);
   const hydratedRoleIdRef = useRef<number | "create" | null>(null);
 
@@ -177,7 +167,6 @@ export default function RoleEditScreen() {
     return found?.avatarFileId ?? existingRole?.avatarFileId ?? null;
   }, [selectedAvatarId, avatarsQuery.data, existingRole?.avatarFileId]);
   const avatarThumbSrc = avatarThumbUrl(displayAvatarFileId);
-  const avatarPreviewSrc = displayAvatarFileId ? mediaFileUrl(displayAvatarFileId, "image", "original") : "";
 
   const createMutation = useCreateRoleMutation();
   const updateMutation = useUpdateRoleMutation();
@@ -209,7 +198,7 @@ export default function RoleEditScreen() {
       setDescription("");
       setRoleType(0);
       setSelectedAvatarId(null);
-      setSelectedRuleId(null);
+      setSelectedRuleId(DEFAULT_ROLE_EDIT_RULE_ID);
       return;
     }
 
@@ -222,9 +211,49 @@ export default function RoleEditScreen() {
     setDescription(existingRole.description ?? "");
     setRoleType(existingRole.type ?? 0);
     setSelectedAvatarId(existingRole.avatarId ?? null);
-    setSelectedRuleId(null);
+    setSelectedRuleId(DEFAULT_ROLE_EDIT_RULE_ID);
   }, [existingRole, isCreating, isInvalidRoleRoute, roleId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (roleId === null) {
+      return;
+    }
+
+    let cancelled = false;
+    void readMobileKeyValue<number>(`role:${roleId}`, {
+      scope: ROLE_EDIT_RULE_STORAGE_SCOPE,
+      userId,
+    }).then((entry) => {
+      const storedRuleId = entry?.value;
+      if (!cancelled && typeof storedRuleId === "number" && storedRuleId > 0) {
+        setSelectedRuleId(storedRuleId);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roleId, userId]);
+
+  const handleRuleChange = useCallback((nextRuleId: number | null) => {
+    const normalizedRuleId = typeof nextRuleId === "number" && nextRuleId > 0
+      ? nextRuleId
+      : DEFAULT_ROLE_EDIT_RULE_ID;
+    setSelectedRuleId(normalizedRuleId);
+
+    if (roleId !== null) {
+      void writeMobileKeyValue(`role:${roleId}`, normalizedRuleId, {
+        scope: ROLE_EDIT_RULE_STORAGE_SCOPE,
+        userId,
+      });
+    }
+  }, [roleId, userId]);
+
+  const handleAvatarSelect = useCallback((avatarId: number) => {
+    setSelectedAvatarId(avatarId);
+    setAvatarSheetVisible(false);
+  }, []);
 
   const handleSave = useCallback(async () => {
     if (isSaving) {
@@ -330,13 +359,9 @@ export default function RoleEditScreen() {
           {!isCreating && (
             <View style={styles.profileHeader}>
               <Pressable
-                onPress={() => {
-                  if (avatarThumbSrc) {
-                    setAvatarPreviewVisible(true);
-                  }
-                }}
-                accessibilityLabel="查看角色头像"
-                accessibilityRole="imagebutton"
+                onPress={() => setAvatarSheetVisible(true)}
+                accessibilityLabel="编辑角色头像"
+                accessibilityRole="button"
                 style={[styles.roleAvatarButton, { boxShadow: "none", outlineWidth: 0 }]}
               >
                 {avatarThumbSrc
@@ -412,24 +437,12 @@ export default function RoleEditScreen() {
             )}
           </View>
 
-          {/* Avatar Grid - only show for existing roles */}
-          {roleId !== null
-            ? (
-                <AvatarGrid
-                  roleId={roleId}
-                  currentAvatarId={selectedAvatarId}
-                  onAvatarSelect={setSelectedAvatarId}
-                />
-              )
-            : null}
-
           {/* Rule Selection */}
           {roleId !== null
             ? (
                 <RuleSection
-                  roleId={roleId}
                   selectedRuleId={selectedRuleId}
-                  onRuleChange={setSelectedRuleId}
+                  onRuleChange={handleRuleChange}
                 />
               )
             : null}
@@ -451,27 +464,23 @@ export default function RoleEditScreen() {
               )
             : null}
         </ScrollView>
-        <Modal
-          visible={avatarPreviewVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setAvatarPreviewVisible(false)}
-        >
-          <Pressable
-            style={styles.avatarPreviewOverlay}
-            onPress={() => setAvatarPreviewVisible(false)}
-          >
-            {avatarPreviewSrc
-              ? (
-                  <CachedImage
-                    uri={avatarPreviewSrc}
-                    style={styles.avatarPreviewImage}
-                    contentFit="cover"
-                  />
-                )
-              : null}
-          </Pressable>
-        </Modal>
+        {roleId !== null
+          ? (
+              <BottomSheetModal
+                visible={avatarSheetVisible}
+                onClose={() => setAvatarSheetVisible(false)}
+                maxHeight="70%"
+                backgroundColor={theme.backgroundElement}
+                handleColor={theme.border}
+              >
+                <AvatarGrid
+                  roleId={roleId}
+                  currentAvatarId={selectedAvatarId}
+                  onAvatarSelect={handleAvatarSelect}
+                />
+              </BottomSheetModal>
+            )
+          : null}
       </SafeAreaView>
     </ThemedView>
   );
