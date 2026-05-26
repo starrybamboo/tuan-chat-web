@@ -19,6 +19,7 @@ import { avatarThumbUrl } from "@/lib/media-url";
 
 const GRID_COLUMNS = 4;
 const GRID_ITEM_SIZE = 72;
+const ROLE_EDIT_HIGHLIGHT_COLOR = "#8cc8ff";
 
 type AvatarCropSource = MobileMessageAttachment & {
   height: number;
@@ -77,6 +78,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: Radius.md,
     borderWidth: 2,
+    boxShadow: "none",
+    outlineWidth: 0,
     height: GRID_ITEM_SIZE,
     justifyContent: "center",
     overflow: "hidden",
@@ -276,7 +279,14 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
               onAvatarSelect?.(avatar.avatarId);
             }
           }}
-          style={[styles.avatarItem, { borderColor: isCurrent ? theme.accent : theme.border, height: avatarSize, width: avatarSize }]}
+          style={[
+            styles.avatarItem,
+            {
+              borderColor: isCurrent ? ROLE_EDIT_HIGHLIGHT_COLOR : theme.border,
+              height: avatarSize,
+              width: avatarSize,
+            },
+          ]}
         >
           {avatar.avatarFileId
             ? (

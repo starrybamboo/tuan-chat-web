@@ -20,6 +20,7 @@ import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 
 const DESCRIPTION_INPUT_MIN_HEIGHT = 38;
 const ROLE_LIST_ROUTE = "/(tabs)/role";
+const ROLE_EDIT_HIGHLIGHT_COLOR = "#8cc8ff";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -61,6 +62,10 @@ const styles = StyleSheet.create({
   },
   roleNameInput: {
     alignSelf: "center",
+    borderColor: ROLE_EDIT_HIGHLIGHT_COLOR,
+    borderWidth: 1,
+    boxShadow: "none",
+    outlineWidth: 0,
     fontSize: 22,
     fontWeight: "700",
     minHeight: 44,
@@ -96,6 +101,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     height: 96,
     width: 96,
+  },
+  roleAvatarButton: {
+    borderColor: ROLE_EDIT_HIGHLIGHT_COLOR,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    overflow: "hidden",
   },
   roleAvatarFallback: {
     alignItems: "center",
@@ -326,6 +337,7 @@ export default function RoleEditScreen() {
                 }}
                 accessibilityLabel="查看角色头像"
                 accessibilityRole="imagebutton"
+                style={[styles.roleAvatarButton, { boxShadow: "none", outlineWidth: 0 }]}
               >
                 {avatarThumbSrc
                   ? (
