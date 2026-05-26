@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -37,6 +37,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: Spacing.lg,
     paddingVertical: 6,
+  },
+  carousel: {
+    flexGrow: 0,
+  },
+  carouselFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+    justifyContent: "space-between",
+  },
+  dots: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  dot: {
+    borderRadius: Radius.full,
+    height: 7,
+    width: 7,
+  },
+  sectionPage: {
+    paddingRight: Spacing.md,
   },
   numericColumns: {
     flexDirection: "row",
@@ -95,6 +117,12 @@ const styles = StyleSheet.create({
 
 type SectionKey = "act" | "basic" | "ability" | "skill" | "record" | "extra";
 
+type AbilityDisplaySection = {
+  fields: Record<string, string>;
+  key: SectionKey;
+  label: string;
+};
+
 const SECTION_LABELS: Record<SectionKey, string> = {
   act: "表演",
   basic: "基础",
@@ -135,6 +163,7 @@ type AbilitySectionProps = {
 
 export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   const theme = useTheme();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const abilityQuery = useAbilityByRuleAndRoleQuery(roleId, ruleId);
   const ruleDetailQuery = useRuleDetailQuery(ruleId);
   const setAbilityMutation = useSetRoleAbilityMutation();
@@ -154,12 +183,14 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     key: string;
   } | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const carouselRef = useRef<FlatList<AbilityDisplaySection>>(null);
 
   const ability = abilityQuery.data;
   const rule = ruleDetailQuery.data;
 
   const sections = useMemo(() => {
-    const result: { key: SectionKey; label: string; fields: Record<string, string> }[] = [];
+    const result: AbilityDisplaySection[] = [];
     const sectionKeys: SectionKey[] = ["act", "basic", "ability", "skill", "record", "extra"];
 
     for (const key of sectionKeys) {
@@ -181,6 +212,11 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     }
     return result;
   }, [ability, rule]);
+  const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2);
+  const carouselHeight = Math.max(240, Math.min(windowHeight * 0.36, 380));
+  const pageCount = sections.length;
+  const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
+  const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
 
   const handleFieldPress = useCallback((section: SectionKey, key: string, value: string) => {
     setEditingField({ section, key, value });
@@ -304,26 +340,38 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     autoCreatedRef.current = false;
   }, [ruleId]);
 
-  if (!ability) {
-    return null;
-  }
+  const handleCarouselScrollEnd = useCallback((event: { nativeEvent: { contentOffset: { x: number } } }) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+    setActiveSectionIndex(Math.max(0, Math.min(nextIndex, pageCount - 1)));
+  }, [pageCount, pageWidth]);
 
-  return (
-    <>
-      {sections.map(({ key: sectionKey, label, fields }) => {
-        const entries = Object.entries(fields);
-        const useNumericLayout = NUMERIC_SECTIONS.includes(sectionKey)
-          && entries.some(([, v]) => isNumericValue(String(v ?? "")));
+  const handleDotPress = useCallback((index: number) => {
+    carouselRef.current?.scrollToOffset({ animated: true, offset: pageWidth * index });
+    setActiveSectionIndex(index);
+  }, [pageWidth]);
 
-        return (
-          <View key={sectionKey} style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="heading">{label}</ThemedText>
-              <Pressable onPress={() => { setAddingSection(sectionKey); setNewFieldName(""); }}>
-                <ThemedText themeColor="accent" type="small">+ 添加</ThemedText>
-              </Pressable>
-            </View>
+  const getSectionLayout = useCallback((_: ArrayLike<AbilityDisplaySection> | null | undefined, index: number) => ({
+    index,
+    length: pageWidth,
+    offset: pageWidth * index,
+  }), [pageWidth]);
 
+  const renderAbilityCard = useCallback(({ item }: { item: AbilityDisplaySection }) => {
+    const entries = Object.entries(item.fields);
+    const useNumericLayout = NUMERIC_SECTIONS.includes(item.key)
+      && entries.some(([, v]) => isNumericValue(String(v ?? "")));
+
+    return (
+      <View style={[styles.sectionPage, { width: pageWidth }]}>
+        <View style={[styles.section, { backgroundColor: theme.backgroundElement, flex: 1 }]}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="heading">{item.label}</ThemedText>
+            <Pressable onPress={() => { setAddingSection(item.key); setNewFieldName(""); }}>
+              <ThemedText themeColor="accent" type="small">+ 添加</ThemedText>
+            </Pressable>
+          </View>
+
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {useNumericLayout
               ? (
                   <View style={styles.numericColumns}>
@@ -331,7 +379,7 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
                       {entries.filter((_, i) => i % 2 === 0).map(([fieldKey, fieldValue]) => (
                         <Pressable
                           key={fieldKey}
-                          onPress={() => handleFieldPress(sectionKey, fieldKey, String(fieldValue ?? ""))}
+                          onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
                           style={[styles.numericRow, { backgroundColor: theme.background }]}
                         >
                           <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
@@ -347,7 +395,7 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
                       {entries.filter((_, i) => i % 2 === 1).map(([fieldKey, fieldValue]) => (
                         <Pressable
                           key={fieldKey}
-                          onPress={() => handleFieldPress(sectionKey, fieldKey, String(fieldValue ?? ""))}
+                          onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
                           style={[styles.numericRow, { backgroundColor: theme.background }]}
                         >
                           <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
@@ -370,7 +418,7 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
                       return (
                         <Pressable
                           key={fieldKey}
-                          onPress={() => handleFieldPress(sectionKey, fieldKey, String(fieldValue ?? ""))}
+                          onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
                           style={[styles.tagItem, { borderColor: theme.border }]}
                         >
                           <ThemedText type="small" numberOfLines={1}>{displayText}</ThemedText>
@@ -379,9 +427,58 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
                     })}
                   </View>
                 )}
+          </ScrollView>
+        </View>
+      </View>
+    );
+  }, [handleFieldPress, pageWidth, theme.background, theme.backgroundElement, theme.border]);
+
+  if (!ability) {
+    return null;
+  }
+
+  return (
+    <>
+      <View>
+        <FlatList
+          ref={carouselRef}
+          data={sections}
+          getItemLayout={getSectionLayout}
+          horizontal
+          keyExtractor={item => item.key}
+          onMomentumScrollEnd={handleCarouselScrollEnd}
+          pagingEnabled
+          renderItem={renderAbilityCard}
+          showsHorizontalScrollIndicator={false}
+          snapToAlignment="start"
+          style={[styles.carousel, { height: carouselHeight }]}
+        />
+        <View style={styles.carouselFooter}>
+          <View style={styles.dots}>
+            {sections.map((section, index) => {
+              const active = index === resolvedActiveSectionIndex;
+              return (
+                <Pressable
+                  key={section.key}
+                  accessibilityLabel={`切换到${section.label}`}
+                  accessibilityRole="button"
+                  onPress={() => handleDotPress(index)}
+                  style={[
+                    styles.dot,
+                    { backgroundColor: active ? theme.accent : theme.border },
+                    active && { width: 18 },
+                  ]}
+                />
+              );
+            })}
           </View>
-        );
-      })}
+          <ThemedText themeColor="textSecondary" type="caption">
+            {displayIndex}
+            /
+            {pageCount}
+          </ThemedText>
+        </View>
+      </View>
 
       {/* Edit field sheet */}
       <BottomSheetModal visible={!!editingField} onClose={() => setEditingField(null)} backgroundColor={theme.backgroundElement} handleColor={theme.border}>
