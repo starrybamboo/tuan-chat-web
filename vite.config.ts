@@ -253,6 +253,18 @@ export default defineConfig(() => {
         },
         // 手动添加与 tsconfig.json paths 对应的 alias，避免使用 tsconfigPaths 的动态解析
         {
+          find: /^api$/,
+          replacement: resolve(__dirname, "api/index.ts"),
+        },
+        {
+          find: /^api\/(.*)$/,
+          replacement: resolve(__dirname, "api/$1"),
+        },
+        {
+          find: /^app\/(.*)$/,
+          replacement: resolve(__dirname, "app/$1"),
+        },
+        {
           find: /^@tuanchat\/domain$/,
           replacement: resolve(__dirname, "packages/tuanchat-domain/src/index.ts"),
         },
