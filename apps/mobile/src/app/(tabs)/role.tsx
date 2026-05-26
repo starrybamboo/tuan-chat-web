@@ -1,7 +1,7 @@
 import { router } from "expo-router";
-import { DiceSix, UserCircle } from "phosphor-react-native";
-import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { DiceSix, MagnifyingGlass, UserCircle, X } from "phosphor-react-native";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
@@ -22,6 +22,26 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   content: { gap: Spacing.xl, paddingBottom: 120, paddingHorizontal: Spacing.xxl, paddingTop: Spacing.xxxl },
   hero: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  searchBox: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: Spacing.md,
+    minHeight: 44,
+    paddingHorizontal: Spacing.lg,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: Spacing.sm,
+  },
+  clearSearchButton: {
+    alignItems: "center",
+    height: 28,
+    justifyContent: "center",
+    width: 28,
+  },
   roleItem: {
     alignItems: "center",
     borderWidth: 1,
@@ -171,6 +191,18 @@ function sortByTimeDesc(roles: UserRole[]) {
   });
 }
 
+function matchesRoleSearch(role: UserRole, keyword: string) {
+  if (!keyword)
+    return true;
+
+  return [
+    role.roleName,
+    role.description,
+    typeof role.roleId === "number" ? `#${role.roleId}` : undefined,
+    typeof role.roleId === "number" ? String(role.roleId) : undefined,
+  ].some(value => (value ?? "").toLocaleLowerCase().includes(keyword));
+}
+
 export default function RoleScreen() {
   const theme = useTheme();
   const { session } = useAuthSession();
@@ -179,9 +211,19 @@ export default function RoleScreen() {
   const roleCardBackground = theme.backgroundElement;
   const diceCardBackground = theme.surface;
 
-  const allRoles = myRolesQuery.data ?? [];
-  const normalRoles = sortByTimeDesc(allRoles.filter(r => r.type === 0 && r.state !== 1));
-  const diceRoles = sortByTimeDesc(allRoles.filter(r => r.type === 1 && r.state !== 1));
+  const allRoles = useMemo(() => myRolesQuery.data ?? [], [myRolesQuery.data]);
+  const [searchText, setSearchText] = useState("");
+  const searchKeyword = searchText.trim().toLocaleLowerCase();
+  const isSearching = searchKeyword.length > 0;
+  const normalRoles = useMemo(
+    () => sortByTimeDesc(allRoles.filter(r => r.type === 0 && r.state !== 1 && matchesRoleSearch(r, searchKeyword))),
+    [allRoles, searchKeyword],
+  );
+  const diceRoles = useMemo(
+    () => sortByTimeDesc(allRoles.filter(r => r.type === 1 && r.state !== 1 && matchesRoleSearch(r, searchKeyword))),
+    [allRoles, searchKeyword],
+  );
+  const hasDiceRoles = allRoles.some(r => r.type === 1 && r.state !== 1);
 
   const [rolesCollapsed, setRolesCollapsed] = useState(false);
   const [diceCollapsed, setDiceCollapsed] = useState(true);
@@ -211,6 +253,24 @@ export default function RoleScreen() {
             </Pressable>
           </View>
 
+          <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+            <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
+            <TextInput
+              onChangeText={setSearchText}
+              placeholder="搜索角色、骰娘"
+              placeholderTextColor={theme.textSecondary}
+              style={[styles.searchInput, { color: theme.text }]}
+              value={searchText}
+            />
+            {searchText.length > 0
+              ? (
+                  <Pressable onPress={() => setSearchText("")} style={styles.clearSearchButton}>
+                    <X color={theme.textSecondary} size={16} weight="bold" />
+                  </Pressable>
+                )
+              : null}
+          </View>
+
           {myRolesQuery.isPending
             ? (
                 <View style={styles.stateBlock}>
@@ -219,7 +279,7 @@ export default function RoleScreen() {
               )
             : (
                 <>
-                  {diceRoles.length > 0
+                  {hasDiceRoles
                     ? (
                         <View style={styles.roleSection}>
                           <RoleSectionHeader
@@ -231,15 +291,25 @@ export default function RoleScreen() {
                             onPress={toggleDice}
                             title="骰娘"
                           />
-                          {!diceCollapsed && diceRoles.map(role => (
-                            <RoleListItem
-                              key={role.roleId}
-                              backgroundColor={diceCardBackground}
-                              borderColor={theme.border}
-                              role={role}
-                              onPress={() => handleOpenEdit(role)}
-                            />
-                          ))}
+                          {(!diceCollapsed || isSearching) && (
+                            diceRoles.length === 0
+                              ? (
+                                  <View style={[styles.emptyCard, { backgroundColor: diceCardBackground, borderColor: theme.border }]}>
+                                    <ThemedText themeColor="textSecondary" type="small">无匹配骰娘</ThemedText>
+                                  </View>
+                                )
+                              : (
+                                  diceRoles.map(role => (
+                                    <RoleListItem
+                                      key={role.roleId}
+                                      backgroundColor={diceCardBackground}
+                                      borderColor={theme.border}
+                                      role={role}
+                                      onPress={() => handleOpenEdit(role)}
+                                    />
+                                  ))
+                                )
+                          )}
                         </View>
                       )
                     : null}
@@ -254,11 +324,11 @@ export default function RoleScreen() {
                       onPress={toggleRoles}
                       title="角色"
                     />
-                    {!rolesCollapsed && (
+                    {(!rolesCollapsed || isSearching) && (
                       normalRoles.length === 0
                         ? (
                             <View style={[styles.emptyCard, { backgroundColor: roleCardBackground, borderColor: theme.border }]}>
-                              <ThemedText themeColor="textSecondary" type="small">暂无角色</ThemedText>
+                              <ThemedText themeColor="textSecondary" type="small">{isSearching ? "无匹配角色" : "暂无角色"}</ThemedText>
                             </View>
                           )
                         : (
