@@ -213,7 +213,8 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     }
     return result;
   }, [ability, rule]);
-  const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2);
+  const carouselSidePeek = Spacing.xl;
+  const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2 - carouselSidePeek * 2);
   const carouselHeight = Math.max(240, Math.min(windowHeight * 0.36, 380));
   const pageCount = sections.length;
   const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
@@ -468,15 +469,18 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         </View>
         <FlatList
           ref={carouselRef}
+          contentContainerStyle={{ paddingHorizontal: carouselSidePeek }}
           data={sections}
+          decelerationRate="fast"
+          disableIntervalMomentum
           getItemLayout={getSectionLayout}
           horizontal
           keyExtractor={item => item.key}
           onMomentumScrollEnd={handleCarouselScrollEnd}
-          pagingEnabled
           renderItem={renderAbilityCard}
           showsHorizontalScrollIndicator={false}
           snapToAlignment="start"
+          snapToInterval={pageWidth}
           style={[styles.carousel, { height: carouselHeight }]}
         />
       </View>
