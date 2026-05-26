@@ -31,6 +31,7 @@ import type { MobileMessageMode } from "@/features/messages/mobileMessageCompose
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -73,7 +74,8 @@ import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 import { RoleSwitchSheet } from "@/features/roles/RoleSwitchSheet";
-import { useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
+import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
+import { useAddRoomRoleMutation, useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
 import { CreateRoomSheet } from "@/features/rooms/CreateRoomSheet";
 import { useUserRoomsQuery } from "@/features/rooms/use-user-rooms-query";
 import { useRoomUnreadCounts } from "@/features/rooms/useRoomUnreadCounts";
@@ -88,7 +90,7 @@ import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
 import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
-import { canManageMemberPermissions, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
+import { canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
 import { useCopyMessageToClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
@@ -180,6 +182,7 @@ export default function ChatShell() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
+  const currentUserId = session?.userId ?? null;
   const { selectedSpaceId, selectedRoomId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const messageListScrollGesture = useMemo<GestureType>(() => Gesture.Native(), []);
@@ -217,6 +220,8 @@ export default function ChatShell() {
   const { editMessage } = useEditRoomMessageMutation(selectedRoomId);
   const { deleteMessage, deleteMessages } = useDeleteRoomMessageMutation(selectedRoomId);
   const roomRolesQuery = useRoomRolesQuery(selectedRoomId);
+  const myRolesQuery = useMyRolesQuery(currentUserId);
+  const addRoomRoleMutation = useAddRoomRoleMutation();
   const roomUnreadCounts = useRoomUnreadCounts(selectedRoomId);
 
   const [draftMessage, setDraftMessage] = useState("");
@@ -258,7 +263,6 @@ export default function ChatShell() {
     messageAttachmentsRef.current = messageAttachments;
   }, [draftMessage, draftRoleIdInput, messageAnchorId, messageAttachments]);
 
-  const currentUserId = session?.userId ?? null;
   const pendingTargetContactId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.contactId as string | string[] | undefined), [searchParams.contactId]);
   const pendingTargetSpaceId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.spaceId as string | string[] | undefined), [searchParams.spaceId]);
   const pendingTargetRoomId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.roomId as string | string[] | undefined), [searchParams.roomId]);
@@ -283,6 +287,10 @@ export default function ChatShell() {
   const currentRoomMember = useMemo(() => findCurrentMember(roomMembers, currentUserId), [currentUserId, roomMembers]);
   const isSpaceOwner = hasHostMemberType(currentSpaceMember?.memberType);
   const isSpectator = !currentRoomMember && !isSpaceOwner;
+  const canAddRoomRole = canManageRoomRoles(currentSpaceMember?.memberType)
+    && typeof selectedRoomId === "number"
+    && selectedRoomId > 0
+    && !isSpectator;
   const roomMessages = useMemo(() => {
     return selectVisibleMainRoomMessages(roomMessagesQuery.messages, {
       currentUserId,
@@ -306,6 +314,11 @@ export default function ChatShell() {
   }, [messageAnchorId, roomMessages]);
 
   const roomRoles = useMemo(() => roomRolesQuery.data ?? [], [roomRolesQuery.data]);
+  const myRoles = useMemo(() => myRolesQuery.data ?? [], [myRolesQuery.data]);
+  const addableRoomRoles = useMemo(() => {
+    const existingRoleIds = new Set(roomRoles.map(role => role.roleId));
+    return myRoles.filter(role => role.state !== 1 && !existingRoleIds.has(role.roleId));
+  }, [myRoles, roomRoles]);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const selectableRoomRoles = useMemo(() => {
     if (isSpectator)
@@ -319,6 +332,38 @@ export default function ChatShell() {
       return null;
     return roomRoles.find(r => r.roleId === selectedRoleId) ?? null;
   }, [roomRoles, selectedRoleId]);
+
+  const handleAddRoomRole = useCallback(async (role: UserRole) => {
+    if (!canAddRoomRole || !selectedRoomId || addRoomRoleMutation.isPending) {
+      return;
+    }
+
+    try {
+      await addRoomRoleMutation.mutateAsync({
+        roomId: selectedRoomId,
+        roleIdList: [role.roleId],
+      });
+      await roomRolesQuery.refetch();
+      setSelectedRoleId(role.roleId);
+      setSelectedAvatarId(undefined);
+      setSelectedAvatarFileId(undefined);
+      setRoleSwitchVisible(false);
+    }
+    catch (error) {
+      Alert.alert("添加角色失败", getErrorMessage(error, "请稍后重试"));
+    }
+  }, [addRoomRoleMutation, canAddRoomRole, roomRolesQuery, selectedRoomId]);
+
+  const handleOpenCreateRoomRole = useCallback(() => {
+    if (!canAddRoomRole || !selectedRoomId) {
+      return;
+    }
+    setRoleSwitchVisible(false);
+    router.push({
+      pathname: "/role-edit",
+      params: { addToRoomId: String(selectedRoomId) },
+    });
+  }, [canAddRoomRole, selectedRoomId]);
 
   const currentRoomUnreadCount = selectedRoomId ? (roomUnreadCounts[selectedRoomId] ?? 0) : 0;
   const draftRoleId = useMemo(() => {
@@ -1244,12 +1289,17 @@ export default function ChatShell() {
         </Pressable>
       </BottomSheetModal>
       <RoleSwitchSheet
+        addableRoles={addableRoomRoles}
+        canAddRole={canAddRoomRole}
         currentAvatarId={selectedAvatarId}
         currentRoleId={selectedRoleId}
         customRoleName={draftCustomRoleName}
         canSelectNarrator={isSpaceOwner}
+        isAddingRole={addRoomRoleMutation.isPending}
+        onAddRole={role => void handleAddRoomRole(role)}
         onChangeCustomRoleName={setDraftCustomRoleName}
         onClose={() => setRoleSwitchVisible(false)}
+        onCreateRole={handleOpenCreateRoomRole}
         onSelectAvatar={(avatarId, avatarFileId) => {
           setSelectedAvatarId(avatarId);
           setSelectedAvatarFileId(avatarFileId);
