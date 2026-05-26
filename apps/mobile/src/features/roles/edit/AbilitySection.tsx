@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import { CardsIcon, GaugeIcon, IdentificationCardIcon, ListChecksIcon, MaskHappyIcon, SwordIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { Alert, Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -227,6 +227,7 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   }, [ability, rule]);
   const carouselSidePeek = Spacing.xl;
   const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2 - carouselSidePeek * 2);
+  const [trackTranslateX] = useState(() => new Animated.Value(carouselSidePeek));
   const pageCount = sections.length;
   const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
   const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
@@ -355,18 +356,24 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     autoCreatedRef.current = false;
   }, [ruleId]);
 
+  const animateTrackToIndex = useCallback((index: number) => {
+    Animated.spring(trackTranslateX, {
+      damping: 22,
+      mass: 0.7,
+      stiffness: 220,
+      toValue: carouselSidePeek - index * pageWidth,
+      useNativeDriver: true,
+    }).start();
+  }, [carouselSidePeek, pageWidth, trackTranslateX]);
+
+  useEffect(() => {
+    animateTrackToIndex(resolvedActiveSectionIndex);
+  }, [animateTrackToIndex, resolvedActiveSectionIndex]);
+
   const handleDotPress = useCallback((index: number) => {
     setActiveSectionIndex(index);
-  }, []);
-
-  const moveActiveSectionBy = useCallback((delta: number) => {
-    setActiveSectionIndex((current) => {
-      if (pageCount <= 0) {
-        return current;
-      }
-      return Math.max(0, Math.min(current + delta, pageCount - 1));
-    });
-  }, [pageCount]);
+    animateTrackToIndex(index);
+  }, [animateTrackToIndex]);
 
   const carouselPanResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -374,14 +381,30 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
       const absDy = Math.abs(gestureState.dy);
       return absDx > 14 && absDx > absDy * 1.25;
     },
+    onPanResponderGrant: () => {
+      trackTranslateX.stopAnimation();
+    },
+    onPanResponderMove: (_, gestureState) => {
+      const leftLimit = resolvedActiveSectionIndex < pageCount - 1 ? pageWidth : pageWidth * 0.18;
+      const rightLimit = resolvedActiveSectionIndex > 0 ? pageWidth : pageWidth * 0.18;
+      const clampedDx = Math.max(-leftLimit, Math.min(rightLimit, gestureState.dx));
+      trackTranslateX.setValue(carouselSidePeek - resolvedActiveSectionIndex * pageWidth + clampedDx);
+    },
     onPanResponderRelease: (_, gestureState) => {
       const shouldMove = Math.abs(gestureState.dx) > 44 || Math.abs(gestureState.vx) > 0.35;
+      let nextIndex = resolvedActiveSectionIndex;
       if (!shouldMove) {
+        animateTrackToIndex(nextIndex);
         return;
       }
-      moveActiveSectionBy(gestureState.dx < 0 ? 1 : -1);
+      nextIndex = Math.max(0, Math.min(resolvedActiveSectionIndex + (gestureState.dx < 0 ? 1 : -1), pageCount - 1));
+      setActiveSectionIndex(nextIndex);
+      animateTrackToIndex(nextIndex);
     },
-  }), [moveActiveSectionBy]);
+    onPanResponderTerminate: () => {
+      animateTrackToIndex(resolvedActiveSectionIndex);
+    },
+  }), [animateTrackToIndex, carouselSidePeek, pageCount, pageWidth, resolvedActiveSectionIndex, trackTranslateX]);
 
   const handleSectionLayout = useCallback((sectionKey: SectionKey, height: number) => {
     setMeasuredHeights((current) => {
@@ -512,15 +535,15 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
           {...carouselPanResponder.panHandlers}
           style={[styles.carousel, { height: activeCarouselHeight }]}
         >
-          <View
+          <Animated.View
             style={{
               alignItems: "flex-start",
               flexDirection: "row",
-              transform: [{ translateX: carouselSidePeek - resolvedActiveSectionIndex * pageWidth }],
+              transform: [{ translateX: trackTranslateX }],
             }}
           >
             {sections.map(section => renderAbilityCard({ item: section }))}
-          </View>
+          </Animated.View>
         </View>
       </View>
 
