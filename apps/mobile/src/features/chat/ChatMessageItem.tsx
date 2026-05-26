@@ -20,6 +20,7 @@ import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
+import { getMobileMessageAuthorLabel, isNarratorMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { getMessagePreview } from "./mobileChatUtils";
 import {
@@ -122,10 +123,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function isNarrator(message: Message): boolean {
-  return !message.roleId || message.roleId <= 0;
-}
-
 function isOutOfCharacterSpeech(content?: string | null): boolean {
   if (typeof content !== "string" || content.length === 0)
     return false;
@@ -138,19 +135,7 @@ function isOutOfCharacterSpeech(content?: string | null): boolean {
 }
 
 function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): string {
-  if (isNarrator(message))
-    return "";
-
-  const customName = (message.customRoleName ?? "").trim();
-  if (customName)
-    return customName;
-
-  const role = typeof message.roleId === "number" ? roomRolesById.get(message.roleId) : undefined;
-  const roleName = (role?.roleName ?? "").trim();
-  if (roleName)
-    return roleName;
-
-  return "未选择角色";
+  return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: "未选择角色" });
 }
 
 function getDiceDisplayText(message: Message, canViewHiddenReply = false): string {
@@ -222,7 +207,7 @@ export const ChatMessageItem = memo(({
   simultaneousGestures,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
-  const narrator = isNarrator(message);
+  const narrator = isNarratorMessage(message);
   const isStateEvent = message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const usesSystemRow = narrator || isStateEvent;
   const displayName = getDisplayRoleName(message, roomRolesById);
@@ -412,7 +397,7 @@ export const ChatMessageItem = memo(({
       >
         {shouldRenderAvatar ? renderAvatar() : null}
         <View style={styles.body}>
-          {!isGrouped && !usesSystemRow
+          {!isGrouped && !isStateEvent
             ? (
                 <View style={styles.authorRow}>
                   {displayName
