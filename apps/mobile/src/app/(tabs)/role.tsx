@@ -32,8 +32,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   searchInput: {
+    boxShadow: "none",
     flex: 1,
     fontSize: 15,
+    outlineColor: "transparent",
+    outlineStyle: "solid",
+    outlineWidth: 0,
     paddingVertical: Spacing.sm,
   },
   clearSearchButton: {
