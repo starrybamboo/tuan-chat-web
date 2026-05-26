@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { resolveSelectableRoomRoles } from "@tuanchat/domain/room-identity";
@@ -71,6 +72,31 @@ export function useRoomRolesQuery(
     },
     queryKey: ["roomRoles", roomId ?? null],
     staleTime: options.staleTime ?? 60_000,
+  });
+}
+
+function assertRoomRoleMutationSuccess(result: { success?: boolean; errMsg?: string } | null | undefined, fallbackMessage: string) {
+  if (result?.success === false) {
+    throw new Error(result.errMsg?.trim() || fallbackMessage);
+  }
+}
+
+/** 将角色绑定到房间，并失效房间角色列表缓存。 */
+export function useAddRoomRoleMutation(client: RoomRoleClient) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: RoomRoleAddRequest) => {
+      const result = await client.roomRoleController.addRole(request);
+      assertRoomRoleMutationSuccess(result, "添加房间角色失败");
+      return result;
+    },
+    mutationKey: ["addRoomRole"],
+    onSuccess: (_result, request) => {
+      queryClient.invalidateQueries({ queryKey: ["roomRoles", request.roomId] });
+      queryClient.invalidateQueries({ queryKey: getRoomBaseRolesQueryKey(request.roomId) });
+      queryClient.invalidateQueries({ queryKey: getRoomNpcRolesQueryKey(request.roomId) });
+    },
   });
 }
 

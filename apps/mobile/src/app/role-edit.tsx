@@ -14,11 +14,12 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
 import { AbilitySection } from "@/features/roles/edit/AbilitySection";
 import { AvatarGrid } from "@/features/roles/edit/AvatarGrid";
-import { resolveRoleEditRouteState } from "@/features/roles/edit/roleEditRouteParams";
+import { resolveOptionalPositiveRouteParam, resolveRoleEditRouteState } from "@/features/roles/edit/roleEditRouteParams";
 import { RuleSection } from "@/features/roles/edit/RuleSection";
 import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
 import { useRoleAvatarsQuery } from "@/features/roles/useRoleAvatarsQuery";
 import { useCreateRoleMutation, useDeleteRoleMutation, useUpdateRoleMutation } from "@/features/roles/useRoleMutations";
+import { useAddRoomRoleMutation } from "@/features/roles/useRoomRolesQuery";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
 import { readMobileKeyValue, writeMobileKeyValue } from "@/lib/mobile-key-value-storage";
@@ -167,10 +168,11 @@ export default function RoleEditScreen() {
   const theme = useTheme();
   const { session } = useAuthSession();
   const userId = session?.userId ?? null;
-  const params = useLocalSearchParams<{ roleId?: string | string[] }>();
+  const params = useLocalSearchParams<{ addToRoomId?: string | string[]; roleId?: string | string[] }>();
   const scrollViewRef = useRef<ScrollView>(null);
   const abilitySectionYRef = useRef(0);
   const routeState = useMemo(() => resolveRoleEditRouteState(params.roleId), [params.roleId]);
+  const addToRoomId = useMemo(() => resolveOptionalPositiveRouteParam(params.addToRoomId), [params.addToRoomId]);
   const roleId = routeState.kind === "edit" ? routeState.roleId : null;
   const isCreating = routeState.kind === "create";
   const hasValidRoleId = routeState.kind === "edit";
@@ -205,7 +207,8 @@ export default function RoleEditScreen() {
   const createMutation = useCreateRoleMutation();
   const updateMutation = useUpdateRoleMutation();
   const deleteMutation = useDeleteRoleMutation();
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const addRoomRoleMutation = useAddRoomRoleMutation();
+  const isSaving = createMutation.isPending || updateMutation.isPending || addRoomRoleMutation.isPending;
   const isDeleting = deleteMutation.isPending;
 
   const closeRoleEdit = useCallback(() => {
@@ -217,7 +220,6 @@ export default function RoleEditScreen() {
     router.replace(ROLE_LIST_ROUTE as any);
   }, []);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Query data hydrates the editable form once per role/create route. */
   useEffect(() => {
     if (isInvalidRoleRoute) {
       hydratedRoleIdRef.current = null;
@@ -248,7 +250,6 @@ export default function RoleEditScreen() {
     setSelectedAvatarId(existingRole.avatarId ?? null);
     setSelectedRuleId(DEFAULT_ROLE_EDIT_RULE_ID);
   }, [existingRole, isCreating, isInvalidRoleRoute, roleId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (roleId === null) {
@@ -311,11 +312,21 @@ export default function RoleEditScreen() {
     }
     try {
       if (isCreating) {
-        await createMutation.mutateAsync({
+        const result = await createMutation.mutateAsync({
           roleName: roleName.trim(),
           description: description.trim(),
           type: roleType,
         });
+        const createdRoleId = result.data;
+        if (!result.success || typeof createdRoleId !== "number" || createdRoleId <= 0) {
+          throw new Error(result.errMsg?.trim() || "创建角色失败");
+        }
+        if (addToRoomId !== null) {
+          await addRoomRoleMutation.mutateAsync({
+            roomId: addToRoomId,
+            roleIdList: [createdRoleId],
+          });
+        }
       }
       else {
         if (roleId === null) {
@@ -334,7 +345,7 @@ export default function RoleEditScreen() {
     catch (e: any) {
       Alert.alert("保存失败", e?.message ?? "请稍后重试");
     }
-  }, [roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving, closeRoleEdit]);
+  }, [addRoomRoleMutation, addToRoomId, roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving, closeRoleEdit]);
 
   const handleDelete = useCallback(async () => {
     if (roleId === null)

@@ -1,3 +1,4 @@
+import { CaretLeft, UserPlus } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
@@ -26,10 +27,29 @@ type RoleSwitchListItem
 
 const styles = StyleSheet.create({
   sheet: {},
+  headerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+    justifyContent: "space-between",
+    marginBottom: Spacing.lg,
+  },
+  headerTitleGroup: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+    gap: Spacing.sm,
+  },
   title: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: Spacing.lg,
+  },
+  iconButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    height: 34,
+    justifyContent: "center",
+    width: 34,
   },
   customNameInput: {
     borderRadius: Radius.md,
@@ -108,7 +128,20 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: "center",
+    gap: Spacing.md,
     paddingVertical: Spacing.xxl,
+  },
+  createRoleButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    marginHorizontal: Spacing.xl,
+    minHeight: 40,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
 });
 
@@ -140,12 +173,17 @@ function groupAvatarsByCategory(avatars: RoleAvatar[]): Map<string, RoleAvatar[]
 }
 
 type RoleSwitchSheetProps = {
+  addableRoles?: UserRole[];
+  canAddRole?: boolean;
   currentAvatarId: number | undefined;
   currentRoleId: number | undefined;
   customRoleName?: string;
   canSelectNarrator?: boolean;
+  isAddingRole?: boolean;
+  onAddRole?: (role: UserRole) => Promise<void> | void;
   onChangeCustomRoleName?: (name: string) => void;
   onClose: () => void;
+  onCreateRole?: () => void;
   onSelectAvatar: (avatarId: number | undefined, avatarFileId: number | undefined) => void;
   onSelectRole: (roleId: number | undefined) => void;
   roles: UserRole[];
@@ -153,12 +191,17 @@ type RoleSwitchSheetProps = {
 };
 
 export function RoleSwitchSheet({
+  addableRoles = [],
+  canAddRole = false,
   currentAvatarId,
   currentRoleId,
   customRoleName,
   canSelectNarrator = false,
+  isAddingRole = false,
+  onAddRole,
   onChangeCustomRoleName,
   onClose,
+  onCreateRole,
   onSelectAvatar,
   onSelectRole,
   roles,
@@ -167,6 +210,7 @@ export function RoleSwitchSheet({
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const [expandedRoleId, setExpandedRoleId] = useState<number | null>(null);
+  const [sheetMode, setSheetMode] = useState<"select" | "add">("select");
 
   const avatarGridItemSize = useMemo(() => {
     const horizontalPadding = (SHEET_HORIZONTAL_PADDING + GRID_HORIZONTAL_PADDING) * 2;
@@ -208,16 +252,36 @@ export function RoleSwitchSheet({
     }
   }, [currentRoleId, onSelectAvatar, onSelectRole]);
 
+  const handleClose = useCallback(() => {
+    setSheetMode("select");
+    setExpandedRoleId(null);
+    onClose();
+  }, [onClose]);
+
   const handleSelectAvatar = useCallback((avatarId: number, avatarFileId: number | undefined) => {
     onSelectAvatar(avatarId, avatarFileId);
-    onClose();
-  }, [onClose, onSelectAvatar]);
+    handleClose();
+  }, [handleClose, onSelectAvatar]);
 
   const handleSelectNarrator = useCallback(() => {
     onSelectRole(undefined);
     onSelectAvatar(undefined, undefined);
-    onClose();
-  }, [onClose, onSelectAvatar, onSelectRole]);
+    handleClose();
+  }, [handleClose, onSelectAvatar, onSelectRole]);
+
+  const handleOpenAddMode = useCallback(() => {
+    setExpandedRoleId(null);
+    setSheetMode("add");
+  }, []);
+
+  const handleCreateRole = useCallback(() => {
+    setSheetMode("select");
+    onCreateRole?.();
+  }, [onCreateRole]);
+
+  const handleAddRole = useCallback((role: UserRole) => {
+    void onAddRole?.(role);
+  }, [onAddRole]);
 
   const renderAvatarItem = useCallback(({ item: avatar }: { item: RoleAvatar }) => {
     const isAvatarSelected = currentAvatarId === avatar.avatarId;
@@ -347,18 +411,100 @@ export function RoleSwitchSheet({
     );
   }, [activeExpandedRoleId, currentRoleId, handleSelectNarrator, handleSelectRole, isNarrator, renderExpandedAvatars, theme.accent, theme.backgroundElement]);
 
+  const renderAddableRoleItem = useCallback(({ item: role }: { item: UserRole }) => {
+    return (
+      <Pressable
+        disabled={isAddingRole}
+        onPress={() => handleAddRole(role)}
+        style={({ pressed }) => [
+          styles.roleItem,
+          pressed && { backgroundColor: theme.backgroundElement },
+          isAddingRole && { opacity: 0.55 },
+        ]}
+      >
+        {role.avatarFileId
+          ? (
+              <CachedImage uri={avatarThumbUrl(role.avatarFileId)} style={styles.avatar} />
+            )
+          : (
+              <View style={[styles.avatar, { backgroundColor: getRoleColor(role.roleId) }]}>
+                <ThemedText style={styles.avatarText}>
+                  {(role.roleName ?? "").slice(0, 1) || "R"}
+                </ThemedText>
+              </View>
+            )}
+        <View style={styles.roleInfo}>
+          <ThemedText type="smallBold">{role.roleName ?? `角色 #${role.roleId}`}</ThemedText>
+          <ThemedText type="caption" themeColor="textSecondary">{getRoleTypeLabel(role.type)}</ThemedText>
+        </View>
+        {isAddingRole ? <ActivityIndicator size="small" color={theme.accent} /> : null}
+      </Pressable>
+    );
+  }, [handleAddRole, isAddingRole, theme.accent, theme.backgroundElement]);
+
+  const renderCreateRoleButton = useCallback(() => {
+    if (!onCreateRole) {
+      return null;
+    }
+
+    return (
+      <Pressable
+        onPress={handleCreateRole}
+        style={({ pressed }) => [
+          styles.createRoleButton,
+          {
+            backgroundColor: theme.accentMuted,
+            borderColor: theme.accent,
+          },
+          pressed && { opacity: 0.75 },
+        ]}
+      >
+        <UserPlus size={16} color={theme.accent} weight="bold" />
+        <ThemedText type="smallBold" themeColor="accent">创建新角色</ThemedText>
+      </Pressable>
+    );
+  }, [handleCreateRole, onCreateRole, theme.accent, theme.accentMuted]);
+
   return (
     <BottomSheetModal
       backgroundColor={theme.surface}
       handleColor={theme.border}
       maxHeight="70%"
-      onClose={onClose}
+      onClose={handleClose}
       sheetStyle={styles.sheet}
       visible={visible}
     >
-      <ThemedText style={styles.title}>选择角色</ThemedText>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitleGroup}>
+          {sheetMode === "add"
+            ? (
+                <Pressable
+                  accessibilityLabel="返回选择角色"
+                  accessibilityRole="button"
+                  onPress={() => setSheetMode("select")}
+                  style={({ pressed }) => [styles.iconButton, pressed && { backgroundColor: theme.backgroundElement }]}
+                >
+                  <CaretLeft size={18} color={theme.text} weight="bold" />
+                </Pressable>
+              )
+            : null}
+          <ThemedText style={styles.title}>{sheetMode === "add" ? "添加角色" : "选择角色"}</ThemedText>
+        </View>
+        {canAddRole && sheetMode === "select"
+          ? (
+              <Pressable
+                accessibilityLabel="添加角色"
+                accessibilityRole="button"
+                onPress={handleOpenAddMode}
+                style={({ pressed }) => [styles.iconButton, { backgroundColor: theme.backgroundElement }, pressed && { opacity: 0.75 }]}
+              >
+                <UserPlus size={18} color={theme.accent} weight="bold" />
+              </Pressable>
+            )
+          : null}
+      </View>
 
-      {onChangeCustomRoleName != null
+      {sheetMode === "select" && onChangeCustomRoleName != null
         ? (
             <TextInput
               onChangeText={onChangeCustomRoleName}
@@ -377,15 +523,39 @@ export function RoleSwitchSheet({
           )
         : null}
 
-      <FlatList
-        data={roleListItems}
-        keyExtractor={item => item.key}
-        renderItem={renderRoleItem}
-        style={styles.roleList}
-        contentContainerStyle={styles.roleListContent}
-        removeClippedSubviews={false}
-        showsVerticalScrollIndicator={false}
-      />
+      {sheetMode === "add"
+        ? (
+            addableRoles.length > 0
+              ? (
+                  <FlatList
+                    data={addableRoles}
+                    keyExtractor={role => `add-role:${role.roleId}`}
+                    ListHeaderComponent={renderCreateRoleButton}
+                    renderItem={renderAddableRoleItem}
+                    style={styles.roleList}
+                    contentContainerStyle={styles.roleListContent}
+                    removeClippedSubviews={false}
+                    showsVerticalScrollIndicator={false}
+                  />
+                )
+              : (
+                  <View style={styles.emptyState}>
+                    <ThemedText themeColor="textSecondary" type="small">暂无可添加角色</ThemedText>
+                    {renderCreateRoleButton()}
+                  </View>
+                )
+          )
+        : (
+            <FlatList
+              data={roleListItems}
+              keyExtractor={item => item.key}
+              renderItem={renderRoleItem}
+              style={styles.roleList}
+              contentContainerStyle={styles.roleListContent}
+              removeClippedSubviews={false}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
     </BottomSheetModal>
   );
 }
