@@ -23,6 +23,7 @@ import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
+import { getMobileMessageAuthorLabel, isNarratorMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { formatMessageDateTime } from "./mobileChatUtils";
 
@@ -31,16 +32,8 @@ type MessageItem = {
 };
 
 function getSearchAuthorLabel(message: Message, roomRolesById?: RoomRolesById): string {
-  const customRoleName = message.customRoleName?.trim();
-  if (customRoleName)
-    return customRoleName;
-
-  if (message.roleId && message.roleId > 0) {
-    const roleName = roomRolesById?.get(message.roleId)?.roleName?.trim();
-    return roleName || getMessageAuthorLabel(message);
-  }
-
-  return getMessageAuthorLabel(message);
+  const fallbackLabel = isNarratorMessage(message) ? undefined : getMessageAuthorLabel(message);
+  return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: fallbackLabel });
 }
 
 type ChatSearchPageProps = {
