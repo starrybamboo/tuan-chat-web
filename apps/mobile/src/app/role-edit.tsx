@@ -20,7 +20,7 @@ import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 
 const DESCRIPTION_INPUT_MIN_HEIGHT = 38;
 const ROLE_LIST_ROUTE = "/(tabs)/role";
-const ROLE_EDIT_HIGHLIGHT_COLOR = "#8cc8ff";
+const ROLE_EDIT_HIGHLIGHT_COLOR = "rgba(140, 200, 255, 0.55)";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -105,9 +105,7 @@ const styles = StyleSheet.create({
     width: 96,
   },
   roleAvatarButton: {
-    borderColor: ROLE_EDIT_HIGHLIGHT_COLOR,
     borderRadius: Radius.full,
-    borderWidth: 1,
     overflow: "hidden",
   },
   roleAvatarFallback: {
