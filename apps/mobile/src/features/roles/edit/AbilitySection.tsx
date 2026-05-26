@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     justifyContent: "space-between",
     marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xxl,
   },
   dots: {
     alignItems: "center",
@@ -172,9 +173,11 @@ function AbilitySheetContent({ children }: { children: ReactNode }) {
 type AbilitySectionProps = {
   roleId: number;
   ruleId: number;
+  /** Runs before the active carousel page changes, usually to reset the parent scroll position. */
+  onBeforeActiveSectionChange?: () => void;
 };
 
-export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
+export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: AbilitySectionProps) {
   const theme = useTheme();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const abilityQuery = useAbilityByRuleAndRoleQuery(roleId, ruleId);
@@ -233,24 +236,6 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
   const activeSectionKey = sections[resolvedActiveSectionIndex]?.key;
   const activeCarouselHeight = activeSectionKey ? (measuredHeights[activeSectionKey] ?? Math.max(240, Math.round(windowHeight * 0.28))) : Math.max(240, Math.round(windowHeight * 0.28));
-  const carouselBleedHeight = useMemo(() => {
-    const adjacentIndexes = [resolvedActiveSectionIndex - 1, resolvedActiveSectionIndex + 1];
-    let maxBleed = 0;
-
-    for (const index of adjacentIndexes) {
-      const sectionKey = sections[index]?.key;
-      if (!sectionKey)
-        continue;
-
-      const sectionHeight = measuredHeights[sectionKey];
-      if (sectionHeight != null) {
-        maxBleed = Math.max(maxBleed, sectionHeight - activeCarouselHeight);
-      }
-    }
-
-    return Math.max(0, maxBleed);
-  }, [activeCarouselHeight, measuredHeights, resolvedActiveSectionIndex, sections]);
-  const carouselHeight = activeCarouselHeight + carouselBleedHeight;
 
   const handleFieldPress = useCallback((section: SectionKey, key: string, value: string) => {
     setEditingField({ section, key, value });
@@ -388,10 +373,23 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     animateTrackToIndex(resolvedActiveSectionIndex);
   }, [animateTrackToIndex, resolvedActiveSectionIndex]);
 
+  const changeActiveSection = useCallback((index: number) => {
+    const nextIndex = pageCount === 0 ? 0 : Math.max(0, Math.min(index, pageCount - 1));
+    if (nextIndex === resolvedActiveSectionIndex) {
+      animateTrackToIndex(nextIndex);
+      return;
+    }
+
+    onBeforeActiveSectionChange?.();
+    requestAnimationFrame(() => {
+      setActiveSectionIndex(nextIndex);
+      animateTrackToIndex(nextIndex);
+    });
+  }, [animateTrackToIndex, onBeforeActiveSectionChange, pageCount, resolvedActiveSectionIndex]);
+
   const handleDotPress = useCallback((index: number) => {
-    setActiveSectionIndex(index);
-    animateTrackToIndex(index);
-  }, [animateTrackToIndex]);
+    changeActiveSection(index);
+  }, [changeActiveSection]);
 
   const carouselPanResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -416,13 +414,12 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         return;
       }
       nextIndex = Math.max(0, Math.min(resolvedActiveSectionIndex + (gestureState.dx < 0 ? 1 : -1), pageCount - 1));
-      setActiveSectionIndex(nextIndex);
-      animateTrackToIndex(nextIndex);
+      changeActiveSection(nextIndex);
     },
     onPanResponderTerminate: () => {
       animateTrackToIndex(resolvedActiveSectionIndex);
     },
-  }), [animateTrackToIndex, carouselSidePeek, pageCount, pageWidth, resolvedActiveSectionIndex, trackTranslateX]);
+  }), [animateTrackToIndex, carouselSidePeek, changeActiveSection, pageCount, pageWidth, resolvedActiveSectionIndex, trackTranslateX]);
 
   const handleSectionLayout = useCallback((sectionKey: SectionKey, height: number) => {
     setMeasuredHeights((current) => {
@@ -552,7 +549,7 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         </View>
         <View
           {...carouselPanResponder.panHandlers}
-          style={[styles.carousel, { height: carouselHeight }]}
+          style={[styles.carousel, { height: activeCarouselHeight }]}
         >
           <Animated.View
             style={{

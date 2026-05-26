@@ -1,3 +1,5 @@
+import type { LayoutChangeEvent } from "react-native";
+
 import { router, useLocalSearchParams } from "expo-router";
 import { CaretLeft, FloppyDisk, Trash } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -103,6 +105,7 @@ const styles = StyleSheet.create({
   },
   roleNameInput: {
     alignSelf: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
     fontSize: 22,
     fontWeight: "700",
     minHeight: 44,
@@ -111,6 +114,7 @@ const styles = StyleSheet.create({
   },
   roleDescriptionInput: {
     alignSelf: "stretch",
+    borderWidth: StyleSheet.hairlineWidth,
     minHeight: DESCRIPTION_INPUT_MIN_HEIGHT,
     textAlign: "left",
     width: "100%",
@@ -165,6 +169,8 @@ export default function RoleEditScreen() {
   const { session } = useAuthSession();
   const userId = session?.userId ?? null;
   const params = useLocalSearchParams<{ roleId?: string | string[] }>();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const abilitySectionYRef = useRef(0);
   const routeState = useMemo(() => resolveRoleEditRouteState(params.roleId), [params.roleId]);
   const roleId = routeState.kind === "edit" ? routeState.roleId : null;
   const isCreating = routeState.kind === "create";
@@ -283,6 +289,17 @@ export default function RoleEditScreen() {
   const handleAvatarSelect = useCallback((avatarId: number) => {
     setSelectedAvatarId(avatarId);
     setAvatarSheetVisible(false);
+  }, []);
+
+  const handleAbilitySectionLayout = useCallback((event: LayoutChangeEvent) => {
+    abilitySectionYRef.current = event.nativeEvent.layout.y;
+  }, []);
+
+  const scrollToAbilitySectionTop = useCallback(() => {
+    scrollViewRef.current?.scrollTo({
+      animated: true,
+      y: Math.max(0, abilitySectionYRef.current - Spacing.lg),
+    });
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -430,6 +447,7 @@ export default function RoleEditScreen() {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
@@ -464,7 +482,7 @@ export default function RoleEditScreen() {
           {/* Basic Info */}
           <View style={[styles.basicInfoSection, !isCreating && styles.basicInfoAfterAvatar]}>
             <TextInput
-              style={[styles.input, styles.roleNameInput, { backgroundColor: "rgba(255,255,255,0.008)", color: theme.text }]}
+              style={[styles.input, styles.roleNameInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text }]}
               placeholder="角色名称"
               placeholderTextColor={theme.textSecondary}
               value={roleName}
@@ -476,7 +494,7 @@ export default function RoleEditScreen() {
               style={[
                 styles.input,
                 styles.roleDescriptionInput,
-                { backgroundColor: "rgba(255,255,255,0.008)", color: theme.text, height: descriptionInputHeight },
+                { backgroundColor: "rgba(255,255,255,0.008)", borderColor: theme.border, color: theme.text, height: descriptionInputHeight },
               ]}
               placeholder="角色描述"
               placeholderTextColor={theme.textSecondary}
@@ -527,7 +545,15 @@ export default function RoleEditScreen() {
 
           {/* Ability Editor */}
           {roleId !== null && validSelectedRuleId !== null
-            ? <AbilitySection roleId={roleId} ruleId={validSelectedRuleId} />
+            ? (
+                <View onLayout={handleAbilitySectionLayout}>
+                  <AbilitySection
+                    roleId={roleId}
+                    ruleId={validSelectedRuleId}
+                    onBeforeActiveSectionChange={scrollToAbilitySectionTop}
+                  />
+                </View>
+              )
             : null}
         </ScrollView>
         {roleId !== null
