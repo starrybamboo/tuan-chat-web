@@ -3,6 +3,7 @@ import React from "react";
 
 export default function Section({
   title,
+  icon,
   children,
   className = "",
   defaultOpen = true,
@@ -10,6 +11,7 @@ export default function Section({
   hideTitleOnMobile = false,
 }: {
   title?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   defaultOpen?: boolean;
@@ -17,15 +19,15 @@ export default function Section({
   hideTitleOnMobile?: boolean;
 }) {
   const titleClassName = hideTitleOnMobile
-    ? "hidden md:block px-4 text-lg font-semibold mb-2"
-    : "px-4 text-lg font-semibold mb-2";
+    ? "hidden md:flex items-center gap-2 px-4 text-lg font-semibold mb-2"
+    : "flex items-center gap-2 px-4 text-lg font-semibold mb-2";
 
   if (!collapsible) {
     return (
       <div className={`border border-base-300 rounded-xl py-4 ${className}`}>
         {title && (
           <div className={titleClassName}>
-            ⚡
+            {icon}
             {title}
           </div>
         )}
@@ -40,7 +42,8 @@ export default function Section({
     <div className={`collapse collapse-arrow border border-base-300 ${className}`}>
 
       <input type="checkbox" defaultChecked={defaultOpen} />
-      <div className={`collapse-title px-4 py-3 text-lg font-semibold ${hideTitleOnMobile ? "hidden md:block" : ""}`}>
+      <div className={`collapse-title px-4 py-3 text-lg font-semibold ${hideTitleOnMobile ? "hidden md:flex" : "flex"} items-center gap-2`}>
+        {icon}
         {title}
       </div>
       <div className="collapse-content">

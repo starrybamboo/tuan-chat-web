@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 
+import { CardsIcon, GaugeIcon, IdentificationCardIcon, ListChecksIcon, MaskHappyIcon, SwordIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -39,7 +40,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   carousel: {
-    flexGrow: 0,
   },
   carouselFooter: {
     alignItems: "center",
@@ -124,6 +124,17 @@ type AbilityDisplaySection = {
   label: string;
 };
 
+type SectionIconComponent = ComponentType<any>;
+
+const SECTION_ICON_MAP: Record<SectionKey, SectionIconComponent> = {
+  act: MaskHappyIcon,
+  basic: IdentificationCardIcon,
+  ability: GaugeIcon,
+  skill: SwordIcon,
+  record: ListChecksIcon,
+  extra: CardsIcon,
+};
+
 const SECTION_LABELS: Record<SectionKey, string> = {
   act: "表演",
   basic: "基础",
@@ -185,7 +196,9 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   } | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const carouselRef = useRef<FlatList<AbilityDisplaySection>>(null);
+  const [measuredHeights, setMeasuredHeights] = useState<Partial<Record<SectionKey, number>>>({});
+  const carouselRef = useRef<ScrollView>(null);
+  const dragStartIndexRef = useRef(0);
 
   const ability = abilityQuery.data;
   const rule = ruleDetailQuery.data;
@@ -215,10 +228,11 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   }, [ability, rule]);
   const carouselSidePeek = Spacing.xl;
   const pageWidth = Math.max(240, windowWidth - Spacing.xxl * 2 - carouselSidePeek * 2);
-  const carouselHeight = Math.max(240, Math.min(windowHeight * 0.36, 380));
   const pageCount = sections.length;
   const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
   const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
+  const activeSectionKey = sections[resolvedActiveSectionIndex]?.key;
+  const activeCarouselHeight = activeSectionKey ? (measuredHeights[activeSectionKey] ?? Math.max(240, Math.round(windowHeight * 0.28))) : Math.max(240, Math.round(windowHeight * 0.28));
 
   const handleFieldPress = useCallback((section: SectionKey, key: string, value: string) => {
     setEditingField({ section, key, value });
@@ -342,98 +356,124 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     autoCreatedRef.current = false;
   }, [ruleId]);
 
+  const handleCarouselScrollBegin = useCallback(() => {
+    dragStartIndexRef.current = resolvedActiveSectionIndex;
+  }, [resolvedActiveSectionIndex]);
+
   const handleCarouselScrollEnd = useCallback((event: { nativeEvent: { contentOffset: { x: number } } }) => {
-    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
-    setActiveSectionIndex(Math.max(0, Math.min(nextIndex, pageCount - 1)));
+    if (pageCount <= 0) {
+      return;
+    }
+    const rawIndex = Math.max(0, Math.min(Math.round(event.nativeEvent.contentOffset.x / pageWidth), pageCount - 1));
+    const dragStartIndex = dragStartIndexRef.current;
+    const clampedIndex = rawIndex > dragStartIndex
+      ? Math.min(dragStartIndex + 1, pageCount - 1)
+      : rawIndex < dragStartIndex
+        ? Math.max(dragStartIndex - 1, 0)
+        : rawIndex;
+    if (clampedIndex !== rawIndex) {
+      carouselRef.current?.scrollTo({ animated: true, x: clampedIndex * pageWidth, y: 0 });
+    }
+    setActiveSectionIndex(clampedIndex);
   }, [pageCount, pageWidth]);
 
   const handleDotPress = useCallback((index: number) => {
-    carouselRef.current?.scrollToOffset({ animated: true, offset: pageWidth * index });
+    carouselRef.current?.scrollTo({ animated: true, x: pageWidth * index, y: 0 });
     setActiveSectionIndex(index);
   }, [pageWidth]);
 
-  const getSectionLayout = useCallback((_: ArrayLike<AbilityDisplaySection> | null | undefined, index: number) => ({
-    index,
-    length: pageWidth,
-    offset: pageWidth * index,
-  }), [pageWidth]);
+  const handleSectionLayout = useCallback((sectionKey: SectionKey, height: number) => {
+    setMeasuredHeights((current) => {
+      const previous = current[sectionKey];
+      if (previous != null && Math.abs(previous - height) < 1) {
+        return current;
+      }
+      return { ...current, [sectionKey]: height };
+    });
+  }, []);
 
-  const renderAbilityCard = useCallback(({ item }: { item: AbilityDisplaySection }) => {
+  const renderAbilityCard = useCallback((info: { item: AbilityDisplaySection }) => {
+    const { item } = info;
     const entries = Object.entries(item.fields);
     const useNumericLayout = NUMERIC_SECTIONS.includes(item.key)
       && entries.some(([, v]) => isNumericValue(String(v ?? "")));
+    const SectionIcon = SECTION_ICON_MAP[item.key];
 
     return (
-      <View style={[styles.sectionPage, { width: pageWidth }]}>
-        <View style={[styles.section, { backgroundColor: theme.backgroundElement, flex: 1 }]}>
+      <View
+        onLayout={event => handleSectionLayout(item.key, event.nativeEvent.layout.height)}
+        style={[styles.sectionPage, { width: pageWidth }]}
+      >
+        <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
           <View style={styles.sectionHeader}>
-            <ThemedText type="heading">{item.label}</ThemedText>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
+              <SectionIcon size={18} color={theme.textSecondary} weight="bold" />
+              <ThemedText type="heading">{item.label}</ThemedText>
+            </View>
             <Pressable onPress={() => { setAddingSection(item.key); setNewFieldName(""); }}>
               <ThemedText themeColor="accent" type="small">+ 添加</ThemedText>
             </Pressable>
           </View>
 
-          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            {useNumericLayout
-              ? (
-                  <View style={styles.numericColumns}>
-                    <View style={styles.numericColumn}>
-                      {entries.filter((_, i) => i % 2 === 0).map(([fieldKey, fieldValue]) => (
-                        <Pressable
-                          key={fieldKey}
-                          onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
-                          style={[styles.numericRow, { backgroundColor: theme.background }]}
-                        >
-                          <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
-                            {fieldKey}
-                          </ThemedText>
-                          <ThemedText type="smallBold" themeColor="accent">
-                            {String(fieldValue ?? "0")}
-                          </ThemedText>
-                        </Pressable>
-                      ))}
-                    </View>
-                    <View style={styles.numericColumn}>
-                      {entries.filter((_, i) => i % 2 === 1).map(([fieldKey, fieldValue]) => (
-                        <Pressable
-                          key={fieldKey}
-                          onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
-                          style={[styles.numericRow, { backgroundColor: theme.background }]}
-                        >
-                          <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
-                            {fieldKey}
-                          </ThemedText>
-                          <ThemedText type="smallBold" themeColor="accent">
-                            {String(fieldValue ?? "0")}
-                          </ThemedText>
-                        </Pressable>
-                      ))}
-                    </View>
+          {useNumericLayout
+            ? (
+                <View style={styles.numericColumns}>
+                  <View style={styles.numericColumn}>
+                    {entries.filter((_, i) => i % 2 === 0).map(([fieldKey, fieldValue]) => (
+                      <Pressable
+                        key={fieldKey}
+                        onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
+                        style={[styles.numericRow, { backgroundColor: theme.background }]}
+                      >
+                        <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
+                          {fieldKey}
+                        </ThemedText>
+                        <ThemedText type="smallBold" themeColor="accent">
+                          {String(fieldValue ?? "0")}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
                   </View>
-                )
-              : (
-                  <View style={styles.tagGrid}>
-                    {entries.map(([fieldKey, fieldValue]) => {
-                      const displayText = fieldValue
-                        ? `${fieldKey}: ${String(fieldValue).slice(0, 12)}${String(fieldValue).length > 12 ? "…" : ""}`
-                        : fieldKey;
-                      return (
-                        <Pressable
-                          key={fieldKey}
-                          onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
-                          style={[styles.tagItem, { borderColor: theme.border }]}
-                        >
-                          <ThemedText type="small" numberOfLines={1}>{displayText}</ThemedText>
-                        </Pressable>
-                      );
-                    })}
+                  <View style={styles.numericColumn}>
+                    {entries.filter((_, i) => i % 2 === 1).map(([fieldKey, fieldValue]) => (
+                      <Pressable
+                        key={fieldKey}
+                        onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
+                        style={[styles.numericRow, { backgroundColor: theme.background }]}
+                      >
+                        <ThemedText type="small" numberOfLines={1} style={{ flex: 1 }}>
+                          {fieldKey}
+                        </ThemedText>
+                        <ThemedText type="smallBold" themeColor="accent">
+                          {String(fieldValue ?? "0")}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
                   </View>
-                )}
-          </ScrollView>
+                </View>
+              )
+            : (
+                <View style={styles.tagGrid}>
+                  {entries.map(([fieldKey, fieldValue]) => {
+                    const displayText = fieldValue
+                      ? `${fieldKey}: ${String(fieldValue).slice(0, 12)}${String(fieldValue).length > 12 ? "…" : ""}`
+                      : fieldKey;
+                    return (
+                      <Pressable
+                        key={fieldKey}
+                        onPress={() => handleFieldPress(item.key, fieldKey, String(fieldValue ?? ""))}
+                        style={[styles.tagItem, { borderColor: theme.border }]}
+                      >
+                        <ThemedText type="small" numberOfLines={1}>{displayText}</ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
         </View>
       </View>
     );
-  }, [handleFieldPress, pageWidth, theme.background, theme.backgroundElement, theme.border]);
+  }, [handleFieldPress, handleSectionLayout, pageWidth, theme.background, theme.backgroundElement, theme.border, theme.textSecondary]);
 
   if (!ability) {
     return null;
@@ -467,22 +507,21 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
             {pageCount}
           </ThemedText>
         </View>
-        <FlatList
+        <ScrollView
           ref={carouselRef}
-          contentContainerStyle={{ paddingHorizontal: carouselSidePeek }}
-          data={sections}
+          contentContainerStyle={{ alignItems: "flex-start", paddingHorizontal: carouselSidePeek }}
           decelerationRate="fast"
           disableIntervalMomentum
-          getItemLayout={getSectionLayout}
           horizontal
-          keyExtractor={item => item.key}
           onMomentumScrollEnd={handleCarouselScrollEnd}
-          renderItem={renderAbilityCard}
+          onScrollBeginDrag={handleCarouselScrollBegin}
           showsHorizontalScrollIndicator={false}
           snapToAlignment="start"
           snapToInterval={pageWidth}
-          style={[styles.carousel, { height: carouselHeight }]}
-        />
+          style={[styles.carousel, { height: activeCarouselHeight }]}
+        >
+          {sections.map(section => renderAbilityCard({ item: section }))}
+        </ScrollView>
       </View>
 
       {/* Edit field sheet */}
