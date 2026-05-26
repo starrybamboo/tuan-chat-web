@@ -152,6 +152,38 @@ describe("uploadMobileMessageAttachments", () => {
     expect(client.mediaController.completeUpload).toHaveBeenCalledWith(77);
   });
 
+  it("allows sticker uploads to use the sticker media scene", async () => {
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    const client = createMediaClient({
+      data: {
+        fileId: 432,
+        mediaType: "image",
+        uploadRequired: false,
+      },
+    });
+
+    const result = await uploadMobileMessageAttachments(client as any, [{
+      id: "sticker",
+      uri: "file:///tmp/sticker.png",
+      fileName: "sticker.png",
+      mimeType: "image/png",
+      kind: "image",
+      width: 128,
+      height: 128,
+    }], { scene: 2 });
+
+    expect(result.uploadedImages[0]?.fileId).toBe(432);
+    expect(client.mediaController.prepareUpload).toHaveBeenCalledWith(expect.objectContaining({
+      fileName: "sticker.png",
+      scene: 2,
+      sizeBytes: 5,
+      mimeType: "image/png",
+      contentType: "image/png",
+    }));
+    expect(fileSystemMock.uploadAsync).not.toHaveBeenCalled();
+    expect(client.mediaController.completeUpload).not.toHaveBeenCalled();
+  });
+
   it("uploads web image derivatives from their own blob URIs", async () => {
     platformMock.OS = "web";
     const originalBlob = new Blob(["original"]);

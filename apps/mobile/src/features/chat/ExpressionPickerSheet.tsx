@@ -20,6 +20,7 @@ import { useUserStickersQuery } from "./useUserStickersQuery";
 
 const STICKER_SIZE = 72;
 const GRID_GAP = 12;
+const STICKER_UPLOAD_SCENE = 2;
 
 const styles = StyleSheet.create({
   title: {
@@ -89,7 +90,7 @@ export function ExpressionPickerSheet({
         return;
       }
 
-      const uploaded = await uploadMobileMessageAttachments(mobileApiClient, [picked]);
+      const uploaded = await uploadMobileMessageAttachments(mobileApiClient, [picked], { scene: STICKER_UPLOAD_SCENE });
       const uploadedImage = uploaded.uploadedImages[0];
       if (!uploadedImage) {
         throw new Error("表情包上传失败。");
