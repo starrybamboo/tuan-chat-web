@@ -1,4 +1,4 @@
-import { GearSix } from "phosphor-react-native";
+import { GearSix, List } from "phosphor-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -36,6 +36,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: Spacing.sm,
+  },
+  ruleNameButton: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  listButton: {
+    alignItems: "center",
+    height: 36,
+    justifyContent: "center",
+    width: 36,
   },
   sectionDivider: {
     alignSelf: "stretch",
@@ -119,12 +129,26 @@ export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) 
             <GearSix size={19} color={theme.text} weight="bold" />
             <ThemedText type="heading">规则系统：</ThemedText>
           </View>
-          <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {selectedRuleName}
-          </ThemedText>
+          <Pressable
+            accessibilityLabel="浏览规则"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => setSheetVisible(true)}
+            style={styles.ruleNameButton}
+          >
+            <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1}>
+              {selectedRuleName}
+            </ThemedText>
+          </Pressable>
         </View>
-        <Pressable hitSlop={8} onPress={() => setSheetVisible(true)}>
-          <ThemedText themeColor="accent" type="smallBold">浏览全部</ThemedText>
+        <Pressable
+          accessibilityLabel="浏览全部规则"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setSheetVisible(true)}
+          style={styles.listButton}
+        >
+          <List size={24} color={theme.accent} weight="bold" />
         </Pressable>
       </View>
 
