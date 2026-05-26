@@ -16,7 +16,6 @@ const DEFAULT_RULE_NAME = "coc7th";
 const styles = StyleSheet.create({
   section: {
     gap: Spacing.md,
-    paddingHorizontal: Spacing.xxl,
     paddingBottom: Spacing.lg,
     paddingTop: Spacing.sm,
   },
@@ -24,6 +23,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
+    paddingHorizontal: Spacing.xxl,
   },
   summaryTextRow: {
     alignItems: "center",
