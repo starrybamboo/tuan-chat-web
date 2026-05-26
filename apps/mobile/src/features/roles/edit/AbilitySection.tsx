@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 
 import { CardsIcon, GaugeIcon, IdentificationCardIcon, ListChecksIcon, MaskHappyIcon, SwordIcon } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { Alert, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   carousel: {
+    overflow: "hidden",
   },
   carouselFooter: {
     alignItems: "center",
@@ -197,8 +198,6 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   const [renameValue, setRenameValue] = useState("");
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [measuredHeights, setMeasuredHeights] = useState<Partial<Record<SectionKey, number>>>({});
-  const carouselRef = useRef<ScrollView>(null);
-  const dragStartIndexRef = useRef(0);
 
   const ability = abilityQuery.data;
   const rule = ruleDetailQuery.data;
@@ -356,31 +355,33 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
     autoCreatedRef.current = false;
   }, [ruleId]);
 
-  const handleCarouselScrollBegin = useCallback(() => {
-    dragStartIndexRef.current = resolvedActiveSectionIndex;
-  }, [resolvedActiveSectionIndex]);
-
-  const handleCarouselScrollEnd = useCallback((event: { nativeEvent: { contentOffset: { x: number } } }) => {
-    if (pageCount <= 0) {
-      return;
-    }
-    const rawIndex = Math.max(0, Math.min(Math.round(event.nativeEvent.contentOffset.x / pageWidth), pageCount - 1));
-    const dragStartIndex = dragStartIndexRef.current;
-    const clampedIndex = rawIndex > dragStartIndex
-      ? Math.min(dragStartIndex + 1, pageCount - 1)
-      : rawIndex < dragStartIndex
-        ? Math.max(dragStartIndex - 1, 0)
-        : rawIndex;
-    if (clampedIndex !== rawIndex) {
-      carouselRef.current?.scrollTo({ animated: true, x: clampedIndex * pageWidth, y: 0 });
-    }
-    setActiveSectionIndex(clampedIndex);
-  }, [pageCount, pageWidth]);
-
   const handleDotPress = useCallback((index: number) => {
-    carouselRef.current?.scrollTo({ animated: true, x: pageWidth * index, y: 0 });
     setActiveSectionIndex(index);
-  }, [pageWidth]);
+  }, []);
+
+  const moveActiveSectionBy = useCallback((delta: number) => {
+    setActiveSectionIndex((current) => {
+      if (pageCount <= 0) {
+        return current;
+      }
+      return Math.max(0, Math.min(current + delta, pageCount - 1));
+    });
+  }, [pageCount]);
+
+  const carouselPanResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      const absDx = Math.abs(gestureState.dx);
+      const absDy = Math.abs(gestureState.dy);
+      return absDx > 14 && absDx > absDy * 1.25;
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const shouldMove = Math.abs(gestureState.dx) > 44 || Math.abs(gestureState.vx) > 0.35;
+      if (!shouldMove) {
+        return;
+      }
+      moveActiveSectionBy(gestureState.dx < 0 ? 1 : -1);
+    },
+  }), [moveActiveSectionBy]);
 
   const handleSectionLayout = useCallback((sectionKey: SectionKey, height: number) => {
     setMeasuredHeights((current) => {
@@ -507,21 +508,20 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
             {pageCount}
           </ThemedText>
         </View>
-        <ScrollView
-          ref={carouselRef}
-          contentContainerStyle={{ alignItems: "flex-start", paddingHorizontal: carouselSidePeek }}
-          decelerationRate="fast"
-          disableIntervalMomentum
-          horizontal
-          onMomentumScrollEnd={handleCarouselScrollEnd}
-          onScrollBeginDrag={handleCarouselScrollBegin}
-          showsHorizontalScrollIndicator={false}
-          snapToAlignment="start"
-          snapToInterval={pageWidth}
+        <View
+          {...carouselPanResponder.panHandlers}
           style={[styles.carousel, { height: activeCarouselHeight }]}
         >
-          {sections.map(section => renderAbilityCard({ item: section }))}
-        </ScrollView>
+          <View
+            style={{
+              alignItems: "flex-start",
+              flexDirection: "row",
+              transform: [{ translateX: carouselSidePeek - resolvedActiveSectionIndex * pageWidth }],
+            }}
+          >
+            {sections.map(section => renderAbilityCard({ item: section }))}
+          </View>
+        </View>
       </View>
 
       {/* Edit field sheet */}
