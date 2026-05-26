@@ -112,11 +112,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     width: "44%",
   },
+  roleDescriptionArea: {
+    paddingHorizontal: Spacing.xxl,
+  },
   roleDescriptionInput: {
     alignSelf: "stretch",
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     minHeight: DESCRIPTION_INPUT_MIN_HEIGHT,
     textAlign: "left",
     width: "100%",
@@ -492,18 +493,20 @@ export default function RoleEditScreen() {
               maxLength={50}
             />
             <View style={[styles.basicInfoDivider, { backgroundColor: theme.border }]} />
-            <TextInput
-              style={[styles.input, styles.roleDescriptionInput, { backgroundColor: theme.backgroundElement, borderColor: theme.border, color: theme.text, height: descriptionInputHeight }]}
-              placeholder="角色描述"
-              placeholderTextColor={theme.textSecondary}
-              value={description}
-              onChangeText={setDescription}
-              onContentSizeChange={(event) => {
-                setDescriptionInputHeight(Math.max(DESCRIPTION_INPUT_MIN_HEIGHT, event.nativeEvent.contentSize.height));
-              }}
-              multiline
-              maxLength={140}
-            />
+            <View style={styles.roleDescriptionArea}>
+              <TextInput
+                style={[styles.input, styles.roleDescriptionInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text, height: descriptionInputHeight }]}
+                placeholder="角色描述"
+                placeholderTextColor={theme.textSecondary}
+                value={description}
+                onChangeText={setDescription}
+                onContentSizeChange={(event) => {
+                  setDescriptionInputHeight(Math.max(DESCRIPTION_INPUT_MIN_HEIGHT, event.nativeEvent.contentSize.height));
+                }}
+                multiline
+                maxLength={140}
+              />
+            </View>
             {isCreating && (
               <View>
                 <ThemedText type="small" themeColor="textSecondary" style={{ marginBottom: Spacing.sm }}>
