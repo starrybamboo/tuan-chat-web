@@ -74,11 +74,16 @@ const styles = StyleSheet.create({
   },
   narratorAvatar: {
     alignItems: "center",
-    backgroundColor: "rgba(139, 148, 158, 0.15)",
+    backgroundColor: "#6366f1",
     borderRadius: Radius.full,
     height: AVATAR_SIZE,
     justifyContent: "center",
     width: AVATAR_SIZE,
+  },
+  narratorAvatarText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   body: {
     flex: 1,
@@ -294,7 +299,7 @@ export const ChatMessageItem = memo(({
     if (narrator) {
       return (
         <View style={styles.narratorAvatar}>
-          <ThemedText style={{ fontSize: 16 }}>N</ThemedText>
+          <ThemedText style={styles.narratorAvatarText}>旁</ThemedText>
         </View>
       );
     }
