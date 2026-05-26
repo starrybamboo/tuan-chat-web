@@ -141,16 +141,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     overflow: "hidden",
   },
-  roleAvatarCornerAccent: {
-    bottom: 0,
-    borderBottomRightRadius: Radius.full,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    height: 30,
-    position: "absolute",
-    right: 0,
-    width: 30,
-  },
   roleAvatarFallback: {
     alignItems: "center",
     backgroundColor: "#6366f1",
@@ -467,7 +457,10 @@ export default function RoleEditScreen() {
                 onPress={() => setAvatarSheetVisible(true)}
                 accessibilityLabel="编辑角色头像"
                 accessibilityRole="button"
-                style={[styles.roleAvatarButton, { boxShadow: "none", outlineWidth: 0 }]}
+                style={[
+                  styles.roleAvatarButton,
+                  { borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth, boxShadow: "none", outlineWidth: 0 },
+                ]}
               >
                 {avatarThumbSrc
                   ? (
@@ -484,10 +477,6 @@ export default function RoleEditScreen() {
                         </ThemedText>
                       </View>
                     )}
-                <View
-                  pointerEvents="none"
-                  style={[styles.roleAvatarCornerAccent, { borderRightColor: theme.border, borderBottomColor: theme.border }]}
-                />
               </Pressable>
             </View>
           )}
