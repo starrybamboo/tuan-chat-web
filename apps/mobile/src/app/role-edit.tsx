@@ -141,6 +141,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     overflow: "hidden",
   },
+  roleAvatarCornerAccent: {
+    bottom: 0,
+    borderBottomRightRadius: Radius.full,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 30,
+    position: "absolute",
+    right: 0,
+    width: 30,
+  },
   roleAvatarFallback: {
     alignItems: "center",
     backgroundColor: "#6366f1",
@@ -474,6 +484,10 @@ export default function RoleEditScreen() {
                         </ThemedText>
                       </View>
                     )}
+                <View
+                  pointerEvents="none"
+                  style={[styles.roleAvatarCornerAccent, { borderRightColor: theme.border, borderBottomColor: theme.border }]}
+                />
               </Pressable>
             </View>
           )}
