@@ -198,7 +198,7 @@ export default function ChatShell() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
-  const { selectedSpaceId, selectedRoomId, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
+  const { selectedSpaceId, selectedRoomId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const messageListScrollGesture = useMemo<GestureType>(() => Gesture.Native(), []);
   const {
@@ -314,6 +314,10 @@ export default function ChatShell() {
     return dmConversations.find(conv => conv.contactId === currentContactId) ?? null;
   }, [currentContactId, dmConversations]);
   const currentDmContactName = currentDmConversation?.contactName ?? (currentContactId ? `用户 #${currentContactId}` : null);
+
+  useEffect(() => {
+    setChatTabBarHidden(selectedRoomId != null || currentContactId != null || pendingTargetRoomId != null || pendingTargetContactId != null);
+  }, [currentContactId, pendingTargetContactId, pendingTargetRoomId, selectedRoomId, setChatTabBarHidden]);
   const selectedAnchorMessage = useMemo(() => {
     return roomMessages.find(item => item.message.messageId === messageAnchorId)?.message ?? null;
   }, [messageAnchorId, roomMessages]);
