@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   carousel: {
-    overflow: "hidden",
+    overflow: "visible",
   },
   carouselFooter: {
     alignItems: "center",
@@ -233,6 +233,24 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
   const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
   const activeSectionKey = sections[resolvedActiveSectionIndex]?.key;
   const activeCarouselHeight = activeSectionKey ? (measuredHeights[activeSectionKey] ?? Math.max(240, Math.round(windowHeight * 0.28))) : Math.max(240, Math.round(windowHeight * 0.28));
+  const carouselBleedHeight = useMemo(() => {
+    const adjacentIndexes = [resolvedActiveSectionIndex - 1, resolvedActiveSectionIndex + 1];
+    let maxBleed = 0;
+
+    for (const index of adjacentIndexes) {
+      const sectionKey = sections[index]?.key;
+      if (!sectionKey)
+        continue;
+
+      const sectionHeight = measuredHeights[sectionKey];
+      if (sectionHeight != null) {
+        maxBleed = Math.max(maxBleed, sectionHeight - activeCarouselHeight);
+      }
+    }
+
+    return Math.max(0, maxBleed);
+  }, [activeCarouselHeight, measuredHeights, resolvedActiveSectionIndex, sections]);
+  const carouselHeight = activeCarouselHeight + carouselBleedHeight;
 
   const handleFieldPress = useCallback((section: SectionKey, key: string, value: string) => {
     setEditingField({ section, key, value });
@@ -425,6 +443,7 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
 
     return (
       <View
+        key={item.key}
         onLayout={event => handleSectionLayout(item.key, event.nativeEvent.layout.height)}
         style={[styles.sectionPage, { width: pageWidth }]}
       >
@@ -533,12 +552,13 @@ export function AbilitySection({ roleId, ruleId }: AbilitySectionProps) {
         </View>
         <View
           {...carouselPanResponder.panHandlers}
-          style={[styles.carousel, { height: activeCarouselHeight }]}
+          style={[styles.carousel, { height: carouselHeight }]}
         >
           <Animated.View
             style={{
               alignItems: "flex-start",
               flexDirection: "row",
+              overflow: "visible",
               transform: [{ translateX: trackTranslateX }],
             }}
           >
