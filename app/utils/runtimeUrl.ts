@@ -14,6 +14,13 @@ const LOOPBACK_HOSTNAMES = new Set([
   "[::1]",
 ]);
 
+const TUANCHAT_HOSTED_HOSTNAMES = new Set([
+  "tuan.chat",
+  "www.tuan.chat",
+  "test.tuan.chat",
+  "www.test.tuan.chat",
+]);
+
 function getRuntimeWindow(): RuntimeWindowLike | null {
   if (typeof window === "undefined" || !window.location?.href || !window.location?.origin) {
     return null;
@@ -66,6 +73,15 @@ function isSecureRuntimeContext(runtimeWindow: RuntimeWindowLike): boolean {
 
 function getCurrentHost(runtimeWindow: RuntimeWindowLike): string {
   return new URL(runtimeWindow.location.origin).host;
+}
+
+function getCurrentHostname(runtimeWindow: RuntimeWindowLike): string {
+  return new URL(runtimeWindow.location.origin).hostname.toLowerCase();
+}
+
+function isTuanChatHostedAlias(url: URL, runtimeWindow: RuntimeWindowLike): boolean {
+  return TUANCHAT_HOSTED_HOSTNAMES.has(url.hostname.toLowerCase())
+    && TUANCHAT_HOSTED_HOSTNAMES.has(getCurrentHostname(runtimeWindow));
 }
 
 function buildCurrentOriginUrl(
@@ -135,6 +151,10 @@ export function resolveRuntimeApiBaseUrl(envBaseUrl: string | undefined): string
     return toNormalizedSameOriginPath(url);
   }
 
+  if (isTuanChatHostedAlias(url, runtimeWindow)) {
+    return toNormalizedSameOriginPath(url);
+  }
+
   warnOnInsecureLoopbackRequest(url, runtimeWindow);
 
   if (isHttpsPage(runtimeWindow) && url.protocol === "http:") {
@@ -197,7 +217,7 @@ export function resolveRuntimeWebSocketBaseUrl(
     url.protocol = "wss:";
   }
 
-  if (url.host === getCurrentHost(runtimeWindow)) {
+  if (url.host === getCurrentHost(runtimeWindow) || isTuanChatHostedAlias(url, runtimeWindow)) {
     return toCurrentOriginWebSocketBaseUrl(url, runtimeWindow, normalizedFallbackPath);
   }
 
