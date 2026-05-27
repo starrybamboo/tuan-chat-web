@@ -41,17 +41,23 @@ describe("mediaUrl", () => {
     expect(avatarThumbUrl(7)).toBe("https://tuan.chat/media/v1/files/007/7/image/low.webp");
   });
 
+  it("会在线上页面把默认媒体域名归一到直连后端域名", () => {
+    stubWindowLocation("https://test.tuan.chat");
+
+    expect(mediaUrl(1001, "image", "low")).toBe("https://api.tuan.chat/media/v1/files/001/1001/image/low.webp");
+  });
+
   it("允许显式 CDN 配置覆盖默认线上域名", () => {
     vi.stubEnv("VITE_MEDIA_CDN_BASE_URL", "https://cdn.example.com/");
 
     expect(mediaUrl(1001, "image", "low")).toBe("https://cdn.example.com/media/v1/files/001/1001/image/low.webp");
   });
 
-  it("会在 HTTPS 页面把不安全 CDN 地址回退到当前站点", () => {
+  it("会在线上 HTTPS 页面把不安全 CDN 地址归一到直连后端域名", () => {
     stubWindowLocation("https://tuan.chat");
     vi.stubEnv("VITE_MEDIA_CDN_BASE_URL", "http://101.126.143.129");
 
-    expect(mediaUrl(1001, "image", "low")).toBe("https://tuan.chat/media/v1/files/001/1001/image/low.webp");
+    expect(mediaUrl(1001, "image", "low")).toBe("https://api.tuan.chat/media/v1/files/001/1001/image/low.webp");
   });
 
   it("将已有媒体 URL 改写为适合展示场景的图片档位", () => {

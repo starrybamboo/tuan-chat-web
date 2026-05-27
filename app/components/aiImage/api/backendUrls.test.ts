@@ -17,10 +17,10 @@ describe("backendUrls", () => {
     vi.unstubAllGlobals();
   });
 
-  it("会为同源 API 生成相对代理地址", () => {
+  it("会为线上 API 生成直连后端地址", () => {
     stubWindowLocation("https://test.tuan.chat");
 
-    expect(resolveBackendGenerateImageUrl()).toBe("/api/novelapi/ai/generate-image");
-    expect(resolveBackendAugmentImageUrl()).toBe("/api/novelapi/ai/augment-image");
+    expect(resolveBackendGenerateImageUrl()).toBe("https://api.tuan.chat/api/novelapi/ai/generate-image");
+    expect(resolveBackendAugmentImageUrl()).toBe("https://api.tuan.chat/api/novelapi/ai/augment-image");
   });
 });

@@ -21,6 +21,8 @@ const TUANCHAT_HOSTED_HOSTNAMES = new Set([
   "www.test.tuan.chat",
 ]);
 
+const TUANCHAT_DIRECT_API_ORIGIN = "https://api.tuan.chat";
+
 function getRuntimeWindow(): RuntimeWindowLike | null {
   if (typeof window === "undefined" || !window.location?.href || !window.location?.origin) {
     return null;
@@ -79,9 +81,13 @@ function getCurrentHostname(runtimeWindow: RuntimeWindowLike): string {
   return new URL(runtimeWindow.location.origin).hostname.toLowerCase();
 }
 
+function isCurrentTuanChatHosted(runtimeWindow: RuntimeWindowLike): boolean {
+  return TUANCHAT_HOSTED_HOSTNAMES.has(getCurrentHostname(runtimeWindow));
+}
+
 function isTuanChatHostedAlias(url: URL, runtimeWindow: RuntimeWindowLike): boolean {
   return TUANCHAT_HOSTED_HOSTNAMES.has(url.hostname.toLowerCase())
-    && TUANCHAT_HOSTED_HOSTNAMES.has(getCurrentHostname(runtimeWindow));
+    && isCurrentTuanChatHosted(runtimeWindow);
 }
 
 function buildCurrentOriginUrl(
@@ -130,13 +136,52 @@ function toCurrentOriginWebSocketBaseUrl(
   return toNormalizedAbsoluteUrl(buildCurrentOriginWebSocketUrl(runtimeWindow, pathname, url.search));
 }
 
+function normalizeFallbackPath(fallbackPath: string): string {
+  return fallbackPath.startsWith("/") ? fallbackPath : `/${fallbackPath}`;
+}
+
+function buildDirectApiUrlFromPath(pathname: string, search: string = ""): string {
+  const direct = new URL(TUANCHAT_DIRECT_API_ORIGIN);
+  direct.pathname = pathname || "/";
+  direct.search = search;
+  return toNormalizedAbsoluteUrl(direct);
+}
+
+function buildDirectApiUrl(url: URL, fallbackPath: string): string {
+  const pathname = url.pathname && url.pathname !== "/" ? url.pathname : fallbackPath;
+  return buildDirectApiUrlFromPath(pathname, url.search);
+}
+
+function buildDirectApiWebSocketUrlFromPath(pathname: string, search: string = ""): string {
+  const direct = new URL(buildDirectApiUrlFromPath(pathname, search));
+  direct.protocol = "wss:";
+  return toNormalizedAbsoluteUrl(direct);
+}
+
+function buildDirectApiWebSocketUrl(url: URL, fallbackPath: string): string {
+  const pathname = url.pathname && url.pathname !== "/" ? url.pathname : fallbackPath;
+  return buildDirectApiWebSocketUrlFromPath(pathname, url.search);
+}
+
+function shouldUseDirectApiOrigin(url: URL, runtimeWindow: RuntimeWindowLike): boolean {
+  if (!isCurrentTuanChatHosted(runtimeWindow)) {
+    return false;
+  }
+
+  return url.origin === runtimeWindow.location.origin
+    || isTuanChatHostedAlias(url, runtimeWindow)
+    || (isHttpsPage(runtimeWindow) && (url.protocol === "http:" || url.protocol === "ws:"));
+}
+
 export function resolveRuntimeApiBaseUrl(envBaseUrl: string | undefined): string | undefined {
   const runtimeWindow = getRuntimeWindow();
   if (!runtimeWindow) {
     return envBaseUrl;
   }
 
-  const fallback = runtimeWindow.location.origin;
+  const fallback = isCurrentTuanChatHosted(runtimeWindow)
+    ? buildDirectApiUrlFromPath("/api")
+    : runtimeWindow.location.origin;
   const rawUrl = String(envBaseUrl ?? "").trim();
   if (!rawUrl) {
     return fallback;
@@ -145,6 +190,10 @@ export function resolveRuntimeApiBaseUrl(envBaseUrl: string | undefined): string
   const url = createRuntimeUrl(rawUrl, runtimeWindow);
   if (!url) {
     return fallback;
+  }
+
+  if (shouldUseDirectApiOrigin(url, runtimeWindow)) {
+    return buildDirectApiUrl(url, "/api");
   }
 
   if (url.origin === runtimeWindow.location.origin) {
@@ -173,17 +222,45 @@ export function resolveRuntimeMediaBaseUrl(
   if (!runtimeWindow) {
     return rawUrl ? trimTrailingSlash(rawUrl) : fallbackAbsoluteUrl;
   }
-  if (!rawUrl) {
-    return fallbackAbsoluteUrl;
-  }
 
-  const url = createRuntimeUrl(rawUrl, runtimeWindow);
+  const url = createRuntimeUrl(rawUrl || fallbackAbsoluteUrl, runtimeWindow);
   if (!url) {
     return fallbackAbsoluteUrl;
   }
 
+  if (shouldUseDirectApiOrigin(url, runtimeWindow)) {
+    return buildDirectApiUrl(url, "/");
+  }
+
   if (isHttpsPage(runtimeWindow) && url.protocol === "http:") {
     return toCurrentOriginAbsoluteUrl(url, runtimeWindow);
+  }
+
+  return toNormalizedAbsoluteUrl(url);
+}
+
+export function resolveRuntimeTuanChatServiceBaseUrl(
+  envBaseUrl: string | undefined,
+  fallbackPath: string,
+  localFallbackBaseUrl: string,
+): string {
+  const runtimeWindow = getRuntimeWindow();
+  const rawUrl = String(envBaseUrl ?? "").trim();
+  if (!runtimeWindow) {
+    return rawUrl ? trimTrailingSlash(rawUrl) : localFallbackBaseUrl;
+  }
+
+  const normalizedFallbackPath = normalizeFallbackPath(fallbackPath);
+  const fallback = isCurrentTuanChatHosted(runtimeWindow)
+    ? `${TUANCHAT_DIRECT_API_ORIGIN}${normalizedFallbackPath}`
+    : localFallbackBaseUrl;
+  const url = createRuntimeUrl(rawUrl || fallback, runtimeWindow);
+  if (!url) {
+    return fallback;
+  }
+
+  if (shouldUseDirectApiOrigin(url, runtimeWindow)) {
+    return buildDirectApiUrl(url, normalizedFallbackPath);
   }
 
   return toNormalizedAbsoluteUrl(url);
@@ -198,8 +275,10 @@ export function resolveRuntimeWebSocketBaseUrl(
     return envBaseUrl;
   }
 
-  const normalizedFallbackPath = fallbackPath.startsWith("/") ? fallbackPath : `/${fallbackPath}`;
-  const fallback = toNormalizedAbsoluteUrl(buildCurrentOriginWebSocketUrl(runtimeWindow, normalizedFallbackPath));
+  const normalizedFallbackPath = normalizeFallbackPath(fallbackPath);
+  const fallback = isCurrentTuanChatHosted(runtimeWindow)
+    ? buildDirectApiWebSocketUrlFromPath(normalizedFallbackPath)
+    : toNormalizedAbsoluteUrl(buildCurrentOriginWebSocketUrl(runtimeWindow, normalizedFallbackPath));
   const rawUrl = String(envBaseUrl ?? "").trim();
   if (!rawUrl) {
     return fallback;
@@ -215,6 +294,10 @@ export function resolveRuntimeWebSocketBaseUrl(
   }
   else if (url.protocol === "https:") {
     url.protocol = "wss:";
+  }
+
+  if (shouldUseDirectApiOrigin(url, runtimeWindow)) {
+    return buildDirectApiWebSocketUrl(url, normalizedFallbackPath);
   }
 
   if (url.host === getCurrentHost(runtimeWindow) || isTuanChatHostedAlias(url, runtimeWindow)) {

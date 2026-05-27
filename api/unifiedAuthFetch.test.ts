@@ -101,7 +101,7 @@ describe("fetchWithUnifiedAuth", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(recoverAuthTokenFromSessionMock).toHaveBeenCalledWith("/api");
+    expect(recoverAuthTokenFromSessionMock).toHaveBeenCalledWith("https://api.tuan.chat/api");
     expect(handleUnauthorizedMock).not.toHaveBeenCalled();
   });
 
