@@ -8,18 +8,20 @@ import type {
 import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
-import type { MobileMessageAttachment } from "./mobileMessageAttachment";
-import type { MobileMediaType as MediaType } from "../../lib/media-url";
-import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
 import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
 import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
-import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "../../lib/mobile-image-compress";
-import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "./mobileMessageAttachment";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 
-const CHAT_ATTACHMENT_UPLOAD_SCENE = 1 as const;
+import type { MobileMediaType as MediaType } from "../../lib/media-url";
+import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
+import type { MobileMessageAttachment } from "./mobileMessageAttachment";
+
+import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "../../lib/mobile-image-compress";
+import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "./mobileMessageAttachment";
+
+const DEFAULT_ATTACHMENT_UPLOAD_SCENE = 1 as const;
 const CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY = "originalCopy";
 
 type MediaUploadClient = Pick<TuanChat, "mediaController">;
@@ -29,6 +31,14 @@ type UploadedMobileMessageAttachments = {
   uploadedImages: UploadedImageMessageDraftAsset[];
   uploadedSoundMessage: UploadedSoundMessageDraftAsset | null;
   uploadedVideos: UploadedVideoMessageDraftAsset[];
+};
+
+/** 媒体上传业务场景：1 聊天室，2 表情包，3 角色差分，4 仓库图片。 */
+export type MobileAttachmentUploadScene = 1 | 2 | 3 | 4;
+
+export type UploadMobileMessageAttachmentsOptions = {
+  /** 上传业务场景：1 聊天室，2 表情包，3 角色差分，4 仓库图片。 */
+  scene?: MobileAttachmentUploadScene;
 };
 
 type AttachmentUploadPayload = {
@@ -413,6 +423,7 @@ async function prepareMediaUpload(
   attachment: MobileMessageAttachment,
   payload: AttachmentUploadPayload,
   mimeType: string,
+  scene: MobileAttachmentUploadScene,
   useOriginalCopy: boolean,
 ): Promise<MediaPrepareUploadResponse> {
   try {
@@ -422,7 +433,7 @@ async function prepareMediaUpload(
     }
     const result = await client.mediaController.prepareUpload({
       fileName: attachment.fileName,
-      scene: CHAT_ATTACHMENT_UPLOAD_SCENE,
+      scene,
       sha256: payload.sha256,
       sizeBytes: payload.size,
       mimeType,
@@ -468,6 +479,7 @@ async function generateImageDerivatives(uri: string): Promise<ImageDerivatives> 
 async function uploadAttachmentThroughMediaService(
   client: MediaUploadClient,
   attachment: MobileMessageAttachment,
+  scene: MobileAttachmentUploadScene,
 ): Promise<{ fileId: number; mediaType: MediaType; size: number }> {
   const mimeType = resolveAttachmentMimeType(attachment);
   const payload = await resolveAttachmentUploadPayload(attachment);
@@ -476,7 +488,7 @@ async function uploadAttachmentThroughMediaService(
 
   const derivatives = isImage ? await generateImageDerivatives(attachment.uri) : null;
 
-  const prepared = await prepareMediaUpload(client, attachment, payload, mimeType, false);
+  const prepared = await prepareMediaUpload(client, attachment, payload, mimeType, scene, false);
   const fileId = prepared.fileId!;
   const resolvedMediaType = normalizeMediaType(prepared.mediaType, mimeType);
 
@@ -503,19 +515,22 @@ async function uploadAttachmentThroughMediaService(
   };
 }
 
+/** 上传移动端消息附件，并返回可直接写入消息草稿的稳定媒体 fileId 元数据。 */
 export async function uploadMobileMessageAttachments(
   client: MediaUploadClient,
   attachments: MobileMessageAttachment[],
+  options: UploadMobileMessageAttachmentsOptions = {},
 ): Promise<UploadedMobileMessageAttachments> {
   const uploadedFiles: UploadedFileMessageDraftAsset[] = [];
   const uploadedImages: UploadedImageMessageDraftAsset[] = [];
   const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
   let uploadedSoundMessage: UploadedSoundMessageDraftAsset | null = null;
 
+  const scene = options.scene ?? DEFAULT_ATTACHMENT_UPLOAD_SCENE;
   const uploadedAttachments = await Promise.all(attachments.map(async (attachment) => {
     return {
       attachment,
-      uploaded: await uploadAttachmentThroughMediaService(client, attachment),
+      uploaded: await uploadAttachmentThroughMediaService(client, attachment, scene),
     };
   }));
 

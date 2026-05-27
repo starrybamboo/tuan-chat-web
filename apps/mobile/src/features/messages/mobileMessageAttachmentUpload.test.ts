@@ -152,6 +152,101 @@ describe("uploadMobileMessageAttachments", () => {
     expect(client.mediaController.completeUpload).toHaveBeenCalledWith(77);
   });
 
+  it("allows sticker uploads to use the sticker media scene", async () => {
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    const client = createMediaClient({
+      data: {
+        fileId: 432,
+        mediaType: "image",
+        uploadRequired: false,
+      },
+    });
+
+    const result = await uploadMobileMessageAttachments(client as any, [{
+      id: "sticker",
+      uri: "file:///tmp/sticker.png",
+      fileName: "sticker.png",
+      mimeType: "image/png",
+      kind: "image",
+      width: 128,
+      height: 128,
+    }], { scene: 2 });
+
+    expect(result.uploadedImages[0]?.fileId).toBe(432);
+    expect(client.mediaController.prepareUpload).toHaveBeenCalledWith(expect.objectContaining({
+      fileName: "sticker.png",
+      scene: 2,
+      sizeBytes: 5,
+      mimeType: "image/png",
+      contentType: "image/png",
+    }));
+    expect(fileSystemMock.uploadAsync).not.toHaveBeenCalled();
+    expect(client.mediaController.completeUpload).not.toHaveBeenCalled();
+  });
+
+  it("uploads cropped sticker webp as the original file for sticker scene", async () => {
+    platformMock.OS = "web";
+    const stickerBlob = new Blob(["sticker-webp"], { type: "image/webp" });
+    const lowBlob = new Blob(["low"]);
+    const mediumBlob = new Blob(["medium"]);
+    const uploadedBodies = new Map<string, BodyInit | null | undefined>();
+    const fetchMock = vi.fn(async (input: any, init?: any) => {
+      const url = String(input);
+      if (init?.method === "PUT") {
+        uploadedBodies.set(url, init.body);
+        return { ok: true, status: 200 };
+      }
+      const blobByUrl: Record<string, Blob> = {
+        "blob://sticker-webp": stickerBlob,
+        "blob://sticker-low": lowBlob,
+        "blob://sticker-medium": mediumBlob,
+      };
+      return {
+        ok: true,
+        blob: async () => blobByUrl[url],
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    imageCompressMock.compressImageToWebp.mockReset();
+    imageCompressMock.compressImageToWebp
+      .mockResolvedValueOnce({ uri: "blob://sticker-low", size: 3 })
+      .mockResolvedValueOnce({ uri: "blob://sticker-medium", size: 6 });
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    const client = createMediaClient({
+      data: {
+        fileId: 777,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 99,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/sticker-original" },
+          low: { uploadUrl: "https://oss.example.com/sticker-low" },
+          medium: { uploadUrl: "https://oss.example.com/sticker-medium" },
+        },
+      },
+    });
+
+    await uploadMobileMessageAttachments(client as any, [{
+      id: "sticker-webp",
+      uri: "blob://sticker-webp",
+      fileName: "sticker.webp",
+      mimeType: "image/webp",
+      kind: "image",
+      width: 256,
+      height: 256,
+    }], { scene: 2 });
+
+    expect(client.mediaController.prepareUpload).toHaveBeenCalledWith(expect.objectContaining({
+      fileName: "sticker.webp",
+      scene: 2,
+      mimeType: "image/webp",
+      contentType: "image/webp",
+    }));
+    expect(uploadedBodies.get("https://oss.example.com/sticker-original")).toBe(stickerBlob);
+    expect(uploadedBodies.get("https://oss.example.com/sticker-low")).toBe(lowBlob);
+    expect(uploadedBodies.get("https://oss.example.com/sticker-medium")).toBe(mediumBlob);
+  });
+
   it("uploads web image derivatives from their own blob URIs", async () => {
     platformMock.OS = "web";
     const originalBlob = new Blob(["original"]);
