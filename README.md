@@ -151,9 +151,9 @@ pnpm lint:fix
 
 自动部署：
 
-- `main` 推送：生产部署到 `https://tuan.chat/`
-- `dev` 推送：测试部署到 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）
-- 前端 CD 的 SSH 连接优先读取 `SERVER_HOST` / `SERVER_PORT` / `SERVER_USERNAME` / `SERVER_PASSWORD`，兼容旧的 `SSH_*`，并会回退到 `UPDATE_SERVER_*`；若都未配置，默认主机与端口为 `38.14.195.6:22`
+- 前端通过 Cloudflare Pages 部署；`main` 部署到项目 `tuan-chat-web` 并对应 `https://tuan.chat/`，`dev` 部署到项目 `tuan-chat-web-test` 并对应 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）。
+- 需要在 GitHub Secrets 配置 `CLOUDFLARE_ACCOUNT_ID` 与 `CLOUDFLARE_API_TOKEN`。
+- Pages Functions 会把 `/api`、`/ws`、`/tts`、`/terre` 转发到后端源站，把 `/media`、`/avatar`、`/updates` 转发到媒体/静态源站。默认源站均为 DNS-only 的 `http://media-origin.tuan.chat`，避免 Pages 直接 fetch 裸 IP 触发 Cloudflare 1003，也避开 `api-origin.tuan.chat` 的源站 WAF 拦截；可在 Cloudflare Pages 环境变量中用 `TUANCHAT_API_ORIGIN`、`TUANCHAT_MEDIA_ORIGIN` 覆盖。
 
 Electron 增量更新发布：
 
