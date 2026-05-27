@@ -30,6 +30,12 @@ describe("resolveRuntimeWebSocketBaseUrl", () => {
     expect(resolveRuntimeWebSocketBaseUrl("https://api.example.com/ws")).toBe("wss://api.example.com/ws");
   });
 
+  it("会把 tuan.chat 托管域名之间的 WebSocket 配置归一成当前站点 WSS", () => {
+    stubWindowLocation("https://test.tuan.chat");
+
+    expect(resolveRuntimeWebSocketBaseUrl("wss://tuan.chat/ws")).toBe("wss://test.tuan.chat/ws");
+  });
+
   it("会在本地 HTTP 开发页保留本机 WebSocket 地址", () => {
     stubWindowLocation("http://localhost:5177");
 

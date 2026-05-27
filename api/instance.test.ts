@@ -24,10 +24,16 @@ describe("resolveApiBaseUrl", () => {
     expect(resolveApiBaseUrl("https://tuan.chat/api")).toBe("/api");
   });
 
-  it("会保留跨源 API 绝对地址", () => {
+  it("会把 tuan.chat 托管域名之间的 API 配置归一成同源路径", () => {
     stubWindowLocation("https://tuan.chat");
 
-    expect(resolveApiBaseUrl("https://test.tuan.chat/api")).toBe("https://test.tuan.chat/api");
+    expect(resolveApiBaseUrl("https://test.tuan.chat/api")).toBe("/api");
+  });
+
+  it("会保留外部 API 绝对地址", () => {
+    stubWindowLocation("https://tuan.chat");
+
+    expect(resolveApiBaseUrl("https://api.example.com/api")).toBe("https://api.example.com/api");
   });
 
   it("会在本地 HTTP 开发页保留本机后端地址", () => {

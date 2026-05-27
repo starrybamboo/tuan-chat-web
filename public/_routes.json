@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "include": [
+    "/api",
+    "/api/*",
+    "/ws",
+    "/ws/*",
+    "/tts",
+    "/tts/*",
+    "/terre",
+    "/terre/*",
+    "/media",
+    "/media/*",
+    "/avatar",
+    "/avatar/*",
+    "/updates",
+    "/updates/*"
+  ],
+  "exclude": []
+}
