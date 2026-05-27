@@ -1,6 +1,7 @@
 type PagesEnv = {
   TUANCHAT_API_ORIGIN?: string;
   TUANCHAT_MEDIA_ORIGIN?: string;
+  TUANCHAT_RESOLVE_OVERRIDE?: string;
 };
 
 type PagesContext = {
@@ -9,8 +10,15 @@ type PagesContext = {
   next: () => Promise<Response>;
 };
 
-const DEFAULT_API_ORIGIN = "http://media-origin.tuan.chat";
-const DEFAULT_MEDIA_ORIGIN = "http://media-origin.tuan.chat";
+type CloudflareRequestInit = RequestInit & {
+  cf?: {
+    resolveOverride?: string;
+  };
+};
+
+const DEFAULT_API_ORIGIN = "https://origin.tuan.chat";
+const DEFAULT_MEDIA_ORIGIN = "https://origin.tuan.chat";
+const DEFAULT_RESOLVE_OVERRIDE = "";
 
 const API_PREFIXES = [
   "/api",
@@ -28,6 +36,10 @@ const MEDIA_PREFIXES = [
 function normalizeOrigin(value: string | undefined, fallback: string): string {
   const raw = String(value || fallback).trim().replace(/\/+$/, "");
   return raw || fallback;
+}
+
+function normalizeOptionalValue(value: string | undefined, fallback: string): string {
+  return String(value || fallback).trim();
 }
 
 function shouldProxy(pathname: string, prefixes: string[]): boolean {
@@ -50,15 +62,20 @@ function createProxyHeaders(request: Request): Headers {
   return headers;
 }
 
-async function proxyRequest(request: Request, targetUrl: string): Promise<Response> {
-  const init: RequestInit = {
+async function proxyRequest(request: Request, targetUrl: string, resolveOverride: string): Promise<Response> {
+  const init: CloudflareRequestInit = {
     method: request.method,
     headers: createProxyHeaders(request),
     body: request.body,
     redirect: "manual",
   };
 
-  return fetch(new Request(targetUrl, init));
+  if (resolveOverride) {
+    // 使用源站允许的 Host，同时把解析定向到 DNS-only 源站，避免 Pages fetch 裸 IP。
+    init.cf = { resolveOverride };
+  }
+
+  return fetch(targetUrl, init);
 }
 
 export async function onRequest(context: PagesContext): Promise<Response> {
@@ -66,12 +83,14 @@ export async function onRequest(context: PagesContext): Promise<Response> {
 
   if (shouldProxy(url.pathname, API_PREFIXES)) {
     const origin = normalizeOrigin(context.env.TUANCHAT_API_ORIGIN, DEFAULT_API_ORIGIN);
-    return proxyRequest(context.request, buildTargetUrl(url, origin));
+    const resolveOverride = normalizeOptionalValue(context.env.TUANCHAT_RESOLVE_OVERRIDE, DEFAULT_RESOLVE_OVERRIDE);
+    return proxyRequest(context.request, buildTargetUrl(url, origin), resolveOverride);
   }
 
   if (shouldProxy(url.pathname, MEDIA_PREFIXES)) {
     const origin = normalizeOrigin(context.env.TUANCHAT_MEDIA_ORIGIN, DEFAULT_MEDIA_ORIGIN);
-    return proxyRequest(context.request, buildTargetUrl(url, origin));
+    const resolveOverride = normalizeOptionalValue(context.env.TUANCHAT_RESOLVE_OVERRIDE, DEFAULT_RESOLVE_OVERRIDE);
+    return proxyRequest(context.request, buildTargetUrl(url, origin), resolveOverride);
   }
 
   return context.next();
