@@ -6,36 +6,23 @@ import {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withSpring,
 } from "react-native-reanimated";
 
 import { clamp, snapPoint, SPRING_CONFIG } from "@/lib/animations";
-import {
-  LEFT_DRAWER_WIDTH,
-  RIGHT_DRAWER_WIDTH,
-} from "@/lib/layout-constants";
+import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 
 import {
-  DRAWER_SWIPE_HINT_DELAY_MS,
   getGestureDrawerAxisConfig,
-  resolveCloseWithSwipeHintStartPosition,
-  shouldUseSyntheticSwipeHint,
+  getRightDrawerClampRange,
+  getRightDrawerSnapPoints,
 } from "./useGestureDrawerConfig";
-
-function adjacentSnapPoints(position: number): readonly number[] {
-  "worklet";
-  if (position > LEFT_DRAWER_WIDTH * 0.5)
-    return [0, LEFT_DRAWER_WIDTH];
-  if (position < -RIGHT_DRAWER_WIDTH * 0.5)
-    return [-RIGHT_DRAWER_WIDTH, 0];
-  return [-RIGHT_DRAWER_WIDTH, 0, LEFT_DRAWER_WIDTH];
-}
 
 export function useGestureDrawer(scrollGesture?: GestureType) {
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
   const axisConfig = getGestureDrawerAxisConfig();
+  const snapPoints = getRightDrawerSnapPoints(RIGHT_DRAWER_WIDTH);
 
   const basePanGesture = Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
@@ -44,29 +31,21 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
       context.set(translateX.get());
     })
     .onUpdate((e) => {
+      const range = getRightDrawerClampRange(RIGHT_DRAWER_WIDTH);
       translateX.set(clamp(
         context.get() + e.translationX,
-        -RIGHT_DRAWER_WIDTH,
-        LEFT_DRAWER_WIDTH,
+        range.min,
+        range.max,
       ));
     })
     .onEnd((e) => {
       const currentPosition = translateX.get();
-      const targets = adjacentSnapPoints(currentPosition);
-      const destination = snapPoint(currentPosition, e.velocityX, targets);
+      const destination = snapPoint(currentPosition, e.velocityX, snapPoints);
       translateX.set(withSpring(destination, SPRING_CONFIG));
     });
   const panGesture = scrollGesture
     ? basePanGesture.simultaneousWithExternalGesture(scrollGesture)
     : basePanGesture;
-
-  const openLeft = useCallback(() => {
-    translateX.set(withSpring(LEFT_DRAWER_WIDTH, SPRING_CONFIG));
-  }, [translateX]);
-
-  const openRight = useCallback(() => {
-    translateX.set(withSpring(-RIGHT_DRAWER_WIDTH, SPRING_CONFIG));
-  }, [translateX]);
 
   const close = useCallback(() => {
     translateX.set(withSpring(0, SPRING_CONFIG));
@@ -77,23 +56,8 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
     translateX.set(0);
   }, [translateX]);
 
-  const closeWithSwipeHint = useCallback(() => {
-    const currentPosition = translateX.get();
-    const shouldDelaySpring = shouldUseSyntheticSwipeHint(currentPosition);
-    // Route 页没有真实展开的抽屉位移时，先补一个短促的左侧 peek，再弹回 0。
-    cancelAnimation(translateX);
-    translateX.set(resolveCloseWithSwipeHintStartPosition(currentPosition));
-    translateX.set(shouldDelaySpring
-      ? withDelay(DRAWER_SWIPE_HINT_DELAY_MS, withSpring(0, SPRING_CONFIG))
-      : withSpring(0, SPRING_CONFIG));
-  }, [translateX]);
-
   const centerStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.get() }],
-  }));
-
-  const leftDrawerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.get() - LEFT_DRAWER_WIDTH }],
   }));
 
   const rightDrawerStyle = useAnimatedStyle(() => ({
@@ -101,19 +65,15 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
   }));
 
   const overlayStyle = useAnimatedStyle(() => ({
-    opacity: Math.abs(translateX.get()) / LEFT_DRAWER_WIDTH * 0.5,
+    opacity: Math.abs(translateX.get()) / RIGHT_DRAWER_WIDTH * 0.5,
   }));
 
   return {
     panGesture,
     translateX,
-    openLeft,
-    openRight,
     close,
     closeImmediately,
-    closeWithSwipeHint,
     centerStyle,
-    leftDrawerStyle,
     rightDrawerStyle,
     overlayStyle,
   };

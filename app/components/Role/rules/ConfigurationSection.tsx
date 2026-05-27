@@ -1,6 +1,8 @@
+import type { RoleConfigTabKey } from "./configTabMeta";
 import { useMemo } from "react";
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
 import Section from "../Editors/Section";
+import { getRoleConfigTabItem } from "./configTabMeta";
 import NumericalEditor from "./NumericalEditor";
 
 interface ConfigurationSectionProps {
@@ -8,6 +10,7 @@ interface ConfigurationSectionProps {
   roleId: number;
   ruleId: number;
   fieldType: "basic" | "ability" | "skill";
+  configKey: RoleConfigTabKey;
   customLabel: string; // e.g., "基础属性", "能力", "技能"
   hideExternalTitlesOnMobile?: boolean;
   // 数据源
@@ -95,6 +98,7 @@ export function ConfigurationSection({
   roleId,
   ruleId,
   fieldType,
+  configKey,
   customLabel,
   hideExternalTitlesOnMobile = false,
   abilityData,
@@ -152,6 +156,7 @@ export function ConfigurationSection({
   const sectionHeaderClassName = hideExternalTitlesOnMobile
     ? "hidden md:flex items-center gap-2"
     : "flex items-center gap-2";
+  const { Icon } = getRoleConfigTabItem(configKey);
 
   return (
     <Section
@@ -162,8 +167,9 @@ export function ConfigurationSection({
       <div className="space-y-6">
         <div className="space-y-4">
           <div className={sectionHeaderClassName}>
+            <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
             <h4 className="text-lg font-semibold">
-              ⚡已自定义的
+              已自定义的
               {customLabel}
             </h4>
             <div className="badge badge-success badge-sm min-w-6">{modifiedCount}</div>
@@ -252,8 +258,9 @@ export function ConfigurationSection({
         {templateCount > 0 && (
           <div className="space-y-4">
             <div className={sectionHeaderClassName}>
+              <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
               <h4 className="text-lg font-semibold">
-                ⚡规则模版
+                规则模版
                 {customLabel}
               </h4>
               <div className="badge badge-info badge-sm">{templateCount}</div>

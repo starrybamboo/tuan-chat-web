@@ -1,8 +1,12 @@
+import type { LayoutChangeEvent } from "react-native";
+
 import { router, useLocalSearchParams } from "expo-router";
+import { CaretLeft, FloppyDisk, Trash } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -10,15 +14,20 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/auth-session";
 import { AbilitySection } from "@/features/roles/edit/AbilitySection";
 import { AvatarGrid } from "@/features/roles/edit/AvatarGrid";
-import { resolveRoleEditRouteState } from "@/features/roles/edit/roleEditRouteParams";
+import { resolveOptionalPositiveRouteParam, resolveRoleEditRouteState } from "@/features/roles/edit/roleEditRouteParams";
 import { RuleSection } from "@/features/roles/edit/RuleSection";
 import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
 import { useRoleAvatarsQuery } from "@/features/roles/useRoleAvatarsQuery";
 import { useCreateRoleMutation, useDeleteRoleMutation, useUpdateRoleMutation } from "@/features/roles/useRoleMutations";
+import { useAddRoomRoleMutation } from "@/features/roles/useRoomRolesQuery";
 import { useTheme } from "@/hooks/use-theme";
-import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
+import { avatarThumbUrl } from "@/lib/media-url";
+import { readMobileKeyValue, writeMobileKeyValue } from "@/lib/mobile-key-value-storage";
 
 const DESCRIPTION_INPUT_MIN_HEIGHT = 38;
+const DEFAULT_ROLE_EDIT_RULE_ID = 1;
+const ROLE_LIST_ROUTE = "/(tabs)/role";
+const ROLE_EDIT_RULE_STORAGE_SCOPE = "role-edit-rule";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -26,9 +35,42 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
+    height: 52,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+  headerTitle: {
+    maxWidth: "42%",
+  },
+  headerBackButton: {
+    alignItems: "center",
+    height: 36,
+    justifyContent: "center",
+    left: Spacing.lg,
+    position: "absolute",
+    width: 36,
+  },
+  headerActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+    position: "absolute",
+    right: Spacing.lg,
+  },
+  headerActionButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: Spacing.sm,
+    height: 34,
+    justifyContent: "center",
+    minWidth: 58,
+    paddingHorizontal: Spacing.sm,
+  },
+  headerActionText: {
+    fontSize: 14,
+    fontWeight: "700",
   },
   content: {
     gap: Spacing.xxl,
@@ -45,25 +87,37 @@ const styles = StyleSheet.create({
   basicInfoSection: {
     gap: Spacing.md,
   },
+  basicInfoAfterAvatar: {
+    marginTop: -Spacing.xl,
+  },
   input: {
     borderRadius: Radius.md,
+    boxShadow: "none",
     fontSize: 15,
+    outlineColor: "transparent",
+    outlineStyle: "solid",
+    outlineWidth: 0,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
   roleNameInput: {
     alignSelf: "center",
-    fontSize: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    fontSize: 22,
     fontWeight: "700",
-    minHeight: 38,
+    minHeight: 44,
     textAlign: "center",
     width: "44%",
   },
+  roleDescriptionArea: {
+    paddingHorizontal: Spacing.xxl,
+  },
   roleDescriptionInput: {
-    alignSelf: "center",
+    alignSelf: "stretch",
+    borderBottomWidth: StyleSheet.hairlineWidth,
     minHeight: DESCRIPTION_INPUT_MIN_HEIGHT,
-    textAlign: "center",
-    width: "68%",
+    textAlign: "left",
+    width: "100%",
   },
   typeRow: {
     flexDirection: "row",
@@ -75,11 +129,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.sm,
   },
-  deleteButton: {
-    alignItems: "center",
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.lg,
-  },
   profileHeader: {
     alignItems: "center",
     gap: Spacing.md,
@@ -88,6 +137,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     height: 96,
     width: 96,
+  },
+  roleAvatarButton: {
+    borderRadius: Radius.full,
+    overflow: "hidden",
   },
   roleAvatarFallback: {
     alignItems: "center",
@@ -109,25 +162,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
-  avatarPreviewOverlay: {
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.9)",
-    flex: 1,
-    justifyContent: "center",
-  },
-  avatarPreviewImage: {
-    borderRadius: Radius.lg,
-    height: 280,
-    width: 280,
-  },
 });
 
 export default function RoleEditScreen() {
   const theme = useTheme();
   const { session } = useAuthSession();
   const userId = session?.userId ?? null;
-  const params = useLocalSearchParams<{ roleId?: string | string[] }>();
+  const params = useLocalSearchParams<{ addToRoomId?: string | string[]; roleId?: string | string[] }>();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const abilitySectionYRef = useRef(0);
   const routeState = useMemo(() => resolveRoleEditRouteState(params.roleId), [params.roleId]);
+  const addToRoomId = useMemo(() => resolveOptionalPositiveRouteParam(params.addToRoomId), [params.addToRoomId]);
   const roleId = routeState.kind === "edit" ? routeState.roleId : null;
   const isCreating = routeState.kind === "create";
   const hasValidRoleId = routeState.kind === "edit";
@@ -142,8 +187,8 @@ export default function RoleEditScreen() {
   const [description, setDescription] = useState(existingRole?.description ?? "");
   const [roleType, setRoleType] = useState<number>(existingRole?.type ?? 0);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | null>(existingRole?.avatarId ?? null);
-  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
+  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(DEFAULT_ROLE_EDIT_RULE_ID);
+  const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
   const [descriptionInputHeight, setDescriptionInputHeight] = useState(DESCRIPTION_INPUT_MIN_HEIGHT);
   const hydratedRoleIdRef = useRef<number | "create" | null>(null);
 
@@ -158,14 +203,23 @@ export default function RoleEditScreen() {
     return found?.avatarFileId ?? existingRole?.avatarFileId ?? null;
   }, [selectedAvatarId, avatarsQuery.data, existingRole?.avatarFileId]);
   const avatarThumbSrc = avatarThumbUrl(displayAvatarFileId);
-  const avatarPreviewSrc = displayAvatarFileId ? mediaFileUrl(displayAvatarFileId, "image", "original") : "";
 
   const createMutation = useCreateRoleMutation();
   const updateMutation = useUpdateRoleMutation();
   const deleteMutation = useDeleteRoleMutation();
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const addRoomRoleMutation = useAddRoomRoleMutation();
+  const isSaving = createMutation.isPending || updateMutation.isPending || addRoomRoleMutation.isPending;
+  const isDeleting = deleteMutation.isPending;
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Query data hydrates the editable form once per role/create route. */
+  const closeRoleEdit = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(ROLE_LIST_ROUTE as any);
+  }, []);
+
   useEffect(() => {
     if (isInvalidRoleRoute) {
       hydratedRoleIdRef.current = null;
@@ -181,7 +235,7 @@ export default function RoleEditScreen() {
       setDescription("");
       setRoleType(0);
       setSelectedAvatarId(null);
-      setSelectedRuleId(null);
+      setSelectedRuleId(DEFAULT_ROLE_EDIT_RULE_ID);
       return;
     }
 
@@ -194,9 +248,59 @@ export default function RoleEditScreen() {
     setDescription(existingRole.description ?? "");
     setRoleType(existingRole.type ?? 0);
     setSelectedAvatarId(existingRole.avatarId ?? null);
-    setSelectedRuleId(null);
+    setSelectedRuleId(DEFAULT_ROLE_EDIT_RULE_ID);
   }, [existingRole, isCreating, isInvalidRoleRoute, roleId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (roleId === null) {
+      return;
+    }
+
+    let cancelled = false;
+    void readMobileKeyValue<number>(`role:${roleId}`, {
+      scope: ROLE_EDIT_RULE_STORAGE_SCOPE,
+      userId,
+    }).then((entry) => {
+      const storedRuleId = entry?.value;
+      if (!cancelled && typeof storedRuleId === "number" && storedRuleId > 0) {
+        setSelectedRuleId(storedRuleId);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roleId, userId]);
+
+  const handleRuleChange = useCallback((nextRuleId: number | null) => {
+    const normalizedRuleId = typeof nextRuleId === "number" && nextRuleId > 0
+      ? nextRuleId
+      : DEFAULT_ROLE_EDIT_RULE_ID;
+    setSelectedRuleId(normalizedRuleId);
+
+    if (roleId !== null) {
+      void writeMobileKeyValue(`role:${roleId}`, normalizedRuleId, {
+        scope: ROLE_EDIT_RULE_STORAGE_SCOPE,
+        userId,
+      });
+    }
+  }, [roleId, userId]);
+
+  const handleAvatarSelect = useCallback((avatarId: number) => {
+    setSelectedAvatarId(avatarId);
+    setAvatarSheetVisible(false);
+  }, []);
+
+  const handleAbilitySectionLayout = useCallback((event: LayoutChangeEvent) => {
+    abilitySectionYRef.current = event.nativeEvent.layout.y;
+  }, []);
+
+  const scrollToAbilitySectionTop = useCallback(() => {
+    scrollViewRef.current?.scrollTo({
+      animated: true,
+      y: Math.max(0, abilitySectionYRef.current - Spacing.lg),
+    });
+  }, []);
 
   const handleSave = useCallback(async () => {
     if (isSaving) {
@@ -208,11 +312,21 @@ export default function RoleEditScreen() {
     }
     try {
       if (isCreating) {
-        await createMutation.mutateAsync({
+        const result = await createMutation.mutateAsync({
           roleName: roleName.trim(),
           description: description.trim(),
           type: roleType,
         });
+        const createdRoleId = result.data;
+        if (!result.success || typeof createdRoleId !== "number" || createdRoleId <= 0) {
+          throw new Error(result.errMsg?.trim() || "创建角色失败");
+        }
+        if (addToRoomId !== null) {
+          await addRoomRoleMutation.mutateAsync({
+            roomId: addToRoomId,
+            roleIdList: [createdRoleId],
+          });
+        }
       }
       else {
         if (roleId === null) {
@@ -226,12 +340,12 @@ export default function RoleEditScreen() {
           ...(selectedAvatarId != null && { avatarId: selectedAvatarId }),
         });
       }
-      router.back();
+      closeRoleEdit();
     }
     catch (e: any) {
       Alert.alert("保存失败", e?.message ?? "请稍后重试");
     }
-  }, [roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving]);
+  }, [addRoomRoleMutation, addToRoomId, roleName, description, roleType, roleId, isCreating, selectedAvatarId, createMutation, updateMutation, isSaving, closeRoleEdit]);
 
   const handleDelete = useCallback(async () => {
     if (roleId === null)
@@ -244,7 +358,7 @@ export default function RoleEditScreen() {
         onPress: async () => {
           try {
             await deleteMutation.mutateAsync([roleId]);
-            router.back();
+            closeRoleEdit();
           }
           catch (e: any) {
             Alert.alert("删除失败", e?.message ?? "请稍后重试");
@@ -252,25 +366,29 @@ export default function RoleEditScreen() {
         },
       },
     ]);
-  }, [roleId, deleteMutation]);
+  }, [roleId, deleteMutation, closeRoleEdit]);
 
   if (isInvalidRoleRoute) {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
-            <Pressable onPress={() => router.back()}>
-              <ThemedText themeColor="accent">返回</ThemedText>
+            <Pressable
+              onPress={closeRoleEdit}
+              style={styles.headerBackButton}
+              accessibilityLabel="返回"
+              accessibilityRole="button"
+            >
+              <CaretLeft size={22} color={theme.text} weight="bold" />
             </Pressable>
-            <ThemedText type="heading">角色参数无效</ThemedText>
-            <View />
+            <ThemedText type="heading" numberOfLines={1} style={styles.headerTitle}>角色参数无效</ThemedText>
           </View>
           <View style={styles.invalidState}>
             <ThemedText themeColor="textSecondary" style={{ textAlign: "center" }}>
               当前角色链接无效，请从角色列表重新打开。
             </ThemedText>
             <Pressable
-              onPress={() => router.back()}
+              onPress={closeRoleEdit}
               style={[styles.invalidBackButton, { backgroundColor: theme.backgroundElement }]}
             >
               <ThemedText themeColor="accent">返回上一页</ThemedText>
@@ -285,16 +403,61 @@ export default function RoleEditScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
-            <ThemedText themeColor="accent">取消</ThemedText>
+          <Pressable
+            onPress={closeRoleEdit}
+            style={styles.headerBackButton}
+            accessibilityLabel="返回"
+            accessibilityRole="button"
+          >
+            <CaretLeft size={22} color={theme.text} weight="bold" />
           </Pressable>
-          <ThemedText type="heading">{isCreating ? "创建角色" : "编辑角色"}</ThemedText>
-          <Pressable onPress={handleSave} disabled={isSaving}>
-            <ThemedText themeColor="accent">{isSaving ? "保存中..." : "保存"}</ThemedText>
-          </Pressable>
+          <ThemedText type="heading" numberOfLines={1} style={styles.headerTitle}>
+            {isCreating ? "创建角色" : "编辑角色"}
+          </ThemedText>
+          <View style={styles.headerActions}>
+            {roleId !== null
+              ? (
+                  <Pressable
+                    onPress={handleDelete}
+                    disabled={isDeleting}
+                    style={[
+                      styles.headerActionButton,
+                      {
+                        borderColor: theme.danger,
+                        backgroundColor: theme.dangerMuted,
+                        opacity: isDeleting ? 0.5 : 1,
+                      },
+                    ]}
+                    accessibilityLabel="删除角色"
+                    accessibilityRole="button"
+                  >
+                    <Trash size={15} color={theme.danger} weight="bold" />
+                    <ThemedText style={[styles.headerActionText, { color: theme.danger }]}>删除</ThemedText>
+                  </Pressable>
+                )
+              : null}
+            <Pressable
+              onPress={handleSave}
+              disabled={isSaving}
+              style={[
+                styles.headerActionButton,
+                {
+                  borderColor: theme.accent,
+                  backgroundColor: theme.accentMuted,
+                  opacity: isSaving ? 0.5 : 1,
+                },
+              ]}
+              accessibilityLabel="保存角色"
+              accessibilityRole="button"
+            >
+              <FloppyDisk size={15} color={theme.accent} weight="bold" />
+              <ThemedText style={[styles.headerActionText, { color: theme.accent }]}>保存</ThemedText>
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
@@ -302,13 +465,13 @@ export default function RoleEditScreen() {
           {!isCreating && (
             <View style={styles.profileHeader}>
               <Pressable
-                onPress={() => {
-                  if (avatarThumbSrc) {
-                    setAvatarPreviewVisible(true);
-                  }
-                }}
-                accessibilityLabel="查看角色头像"
-                accessibilityRole="imagebutton"
+                onPress={() => setAvatarSheetVisible(true)}
+                accessibilityLabel="编辑角色头像"
+                accessibilityRole="button"
+                style={[
+                  styles.roleAvatarButton,
+                  { borderColor: theme.border, borderStyle: "dashed", borderWidth: StyleSheet.hairlineWidth, boxShadow: "none", outlineWidth: 0 },
+                ]}
               >
                 {avatarThumbSrc
                   ? (
@@ -330,31 +493,29 @@ export default function RoleEditScreen() {
           )}
 
           {/* Basic Info */}
-          <View style={styles.basicInfoSection}>
+          <View style={[styles.basicInfoSection, !isCreating && styles.basicInfoAfterAvatar]}>
             <TextInput
-              style={[styles.input, styles.roleNameInput, { backgroundColor: "rgba(255,255,255,0.008)", color: theme.text }]}
+              style={[styles.input, styles.roleNameInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text }]}
               placeholder="角色名称"
               placeholderTextColor={theme.textSecondary}
               value={roleName}
               onChangeText={setRoleName}
               maxLength={50}
             />
-            <TextInput
-              style={[
-                styles.input,
-                styles.roleDescriptionInput,
-                { backgroundColor: "rgba(255,255,255,0.008)", color: theme.text, height: descriptionInputHeight },
-              ]}
-              placeholder="角色描述"
-              placeholderTextColor={theme.textSecondary}
-              value={description}
-              onChangeText={setDescription}
-              onContentSizeChange={(event) => {
-                setDescriptionInputHeight(Math.max(DESCRIPTION_INPUT_MIN_HEIGHT, event.nativeEvent.contentSize.height));
-              }}
-              multiline
-              maxLength={140}
-            />
+            <View style={styles.roleDescriptionArea}>
+              <TextInput
+                style={[styles.input, styles.roleDescriptionInput, { backgroundColor: "rgba(255,255,255,0.008)", borderBottomColor: theme.border, color: theme.text, height: descriptionInputHeight }]}
+                placeholder="角色描述"
+                placeholderTextColor={theme.textSecondary}
+                value={description}
+                onChangeText={setDescription}
+                onContentSizeChange={(event) => {
+                  setDescriptionInputHeight(Math.max(DESCRIPTION_INPUT_MIN_HEIGHT, event.nativeEvent.contentSize.height));
+                }}
+                multiline
+                maxLength={140}
+              />
+            </View>
             {isCreating && (
               <View>
                 <ThemedText type="small" themeColor="textSecondary" style={{ marginBottom: Spacing.sm }}>
@@ -382,66 +543,46 @@ export default function RoleEditScreen() {
             )}
           </View>
 
-          {/* Avatar Grid - only show for existing roles */}
-          {roleId !== null
-            ? (
-                <AvatarGrid
-                  roleId={roleId}
-                  currentAvatarId={selectedAvatarId}
-                  onAvatarSelect={setSelectedAvatarId}
-                />
-              )
-            : null}
-
           {/* Rule Selection */}
           {roleId !== null
             ? (
                 <RuleSection
-                  roleId={roleId}
                   selectedRuleId={selectedRuleId}
-                  onRuleChange={setSelectedRuleId}
+                  onRuleChange={handleRuleChange}
                 />
               )
             : null}
 
           {/* Ability Editor */}
           {roleId !== null && validSelectedRuleId !== null
-            ? <AbilitySection roleId={roleId} ruleId={validSelectedRuleId} />
-            : null}
-
-          {/* Delete */}
-          {roleId !== null
             ? (
-                <Pressable
-                  onPress={handleDelete}
-                  style={[styles.deleteButton, { backgroundColor: theme.backgroundElement }]}
-                >
-                  <ThemedText style={{ color: "#ef4444" }}>删除角色</ThemedText>
-                </Pressable>
+                <View onLayout={handleAbilitySectionLayout}>
+                  <AbilitySection
+                    roleId={roleId}
+                    ruleId={validSelectedRuleId}
+                    onBeforeActiveSectionChange={scrollToAbilitySectionTop}
+                  />
+                </View>
               )
             : null}
         </ScrollView>
-        <Modal
-          visible={avatarPreviewVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setAvatarPreviewVisible(false)}
-        >
-          <Pressable
-            style={styles.avatarPreviewOverlay}
-            onPress={() => setAvatarPreviewVisible(false)}
-          >
-            {avatarPreviewSrc
-              ? (
-                  <CachedImage
-                    uri={avatarPreviewSrc}
-                    style={styles.avatarPreviewImage}
-                    contentFit="cover"
-                  />
-                )
-              : null}
-          </Pressable>
-        </Modal>
+        {roleId !== null
+          ? (
+              <BottomSheetModal
+                visible={avatarSheetVisible}
+                onClose={() => setAvatarSheetVisible(false)}
+                maxHeight="70%"
+                backgroundColor={theme.backgroundElement}
+                handleColor={theme.border}
+              >
+                <AvatarGrid
+                  roleId={roleId}
+                  currentAvatarId={selectedAvatarId}
+                  onAvatarSelect={handleAvatarSelect}
+                />
+              </BottomSheetModal>
+            )
+          : null}
       </SafeAreaView>
     </ThemedView>
   );

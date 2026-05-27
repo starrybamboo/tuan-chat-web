@@ -13,7 +13,7 @@ let bundlePath = "";
 
 function resolveAppAlias(specifier: string) {
   const withoutAlias = specifier.slice(2);
-  const basePath = path.join("D:\\A_collection\\tuan-chat-web\\app", withoutAlias);
+  const basePath = path.resolve("app", withoutAlias);
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -56,7 +56,7 @@ describe("sidebar section browser e2e", () => {
 
     await build({
       entryPoints: [
-        "D:\\A_collection\\tuan-chat-web\\app\\components\\chat\\room\\sidebarSection.e2e.harness.tsx",
+        path.resolve("app/components/chat/room/sidebarSection.e2e.harness.tsx"),
       ],
       outfile: bundlePath,
       bundle: true,

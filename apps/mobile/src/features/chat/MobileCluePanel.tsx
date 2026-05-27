@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -19,7 +21,6 @@ import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
 import { getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
 import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
 import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
 
@@ -54,15 +55,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.lg,
   },
-  editorBackdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
   editorSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
     gap: Spacing.lg,
-    padding: Spacing.xl,
   },
   editorHeader: {
     alignItems: "center",
@@ -142,6 +136,7 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
   const { deleteMessage } = useDeleteRoomMessageMutation(roomId);
   const sendRoomMessageMutation = useSendRoomMessageMutation(currentRoomId, currentUserId ?? 0);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [draftContent, setDraftContent] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -175,7 +170,7 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
   };
 
   const handleAction = async (action: MessageAction, message: Message) => {
-    setActionMenuMessage(null);
+    setActionMenuVisible(false);
     setActionError(null);
     if (action === "copy") {
       const text = message.content?.trim();
@@ -267,42 +262,45 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
         hasHostPrivileges={isKP}
         message={actionMenuMessage}
         onAction={(action, message) => void handleAction(action, message)}
-        onClose={() => setActionMenuMessage(null)}
-        visible={actionMenuMessage !== null}
+        onClose={() => setActionMenuVisible(false)}
+        visible={actionMenuVisible}
       />
-      <Modal animationType="slide" transparent visible={editingMessage !== null} onRequestClose={closeEditor}>
-        <View style={styles.editorBackdrop} pointerEvents="box-none">
-          <View style={[styles.editorSheet, { backgroundColor: theme.surface }]}>
-            <View style={styles.editorHeader}>
-              <ThemedText style={[styles.editorTitle, { color: theme.text }]}>编辑线索</ThemedText>
-              <Pressable onPress={closeEditor} style={[styles.editorButton, { backgroundColor: theme.backgroundElement }]}>
-                <ThemedText type="smallBold" themeColor="textSecondary">取消</ThemedText>
-              </Pressable>
-              <Pressable onPress={() => void handleSaveEdit()} style={[styles.editorButton, { backgroundColor: theme.accentMuted }]}>
-                <ThemedText type="smallBold" themeColor="accent">保存</ThemedText>
-              </Pressable>
-            </View>
-            <TextInput
-              multiline
-              onChangeText={setDraftContent}
-              placeholder="写下这条线索..."
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.editorInput,
-                {
-                  backgroundColor: theme.backgroundElement,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
-              ]}
-              value={draftContent}
-            />
-            {actionError
-              ? <ThemedText type="caption" style={{ color: theme.danger }}>{actionError}</ThemedText>
-              : null}
-          </View>
+      <BottomSheetModal
+        backgroundColor={theme.surface}
+        handleColor={theme.border}
+        maxHeight="70%"
+        onClose={closeEditor}
+        sheetStyle={styles.editorSheet}
+        visible={editingMessage !== null}
+      >
+        <View style={styles.editorHeader}>
+          <ThemedText style={[styles.editorTitle, { color: theme.text }]}>编辑线索</ThemedText>
+          <Pressable onPress={closeEditor} style={[styles.editorButton, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText type="smallBold" themeColor="textSecondary">取消</ThemedText>
+          </Pressable>
+          <Pressable onPress={() => void handleSaveEdit()} style={[styles.editorButton, { backgroundColor: theme.accentMuted }]}>
+            <ThemedText type="smallBold" themeColor="accent">保存</ThemedText>
+          </Pressable>
         </View>
-      </Modal>
+        <TextInput
+          multiline
+          onChangeText={setDraftContent}
+          placeholder="写下这条线索..."
+          placeholderTextColor={theme.textSecondary}
+          style={[
+            styles.editorInput,
+            {
+              backgroundColor: theme.backgroundElement,
+              borderColor: theme.border,
+              color: theme.text,
+            },
+          ]}
+          value={draftContent}
+        />
+        {actionError
+          ? <ThemedText type="caption" style={{ color: theme.danger }}>{actionError}</ThemedText>
+          : null}
+      </BottomSheetModal>
     </>
   );
 
@@ -316,7 +314,10 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
           keyExtractor={getMessageKey}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => setActionMenuMessage(item)}
+              onPress={() => {
+                setActionMenuMessage(item);
+                setActionMenuVisible(true);
+              }}
               style={[styles.clueCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
             >
               <TextEnhanceRenderer

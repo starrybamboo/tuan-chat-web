@@ -23,6 +23,7 @@ import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-av
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
+import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 import {
   buildVisibleMessageMap,
   getMessageListItemKey,
@@ -77,7 +78,6 @@ type ChatMessageListProps = {
   multiSelectMode?: boolean;
   multiSelectedIds?: Set<number>;
   noRole?: boolean;
-  drawerPanGesture: GestureType;
   nativeScrollGesture: GestureType;
   onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
   onLongPressMessage: (message: Message) => void;
@@ -104,7 +104,6 @@ export function ChatMessageList({
   multiSelectMode,
   multiSelectedIds,
   noRole,
-  drawerPanGesture,
   nativeScrollGesture,
   onExecuteCommandRequest,
   onLongPressMessage,
@@ -121,8 +120,8 @@ export function ChatMessageList({
   const prevLengthRef = useRef(getVisibleMessageItems(messages).length);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const messageItemSimultaneousGestures = useMemo(
-    () => [nativeScrollGesture, drawerPanGesture],
-    [drawerPanGesture, nativeScrollGesture],
+    () => getMessageItemSimultaneousGestures(nativeScrollGesture),
+    [nativeScrollGesture],
   );
 
   const visibleMessages = useMemo(

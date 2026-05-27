@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -12,9 +13,6 @@ import { useGetUserProfileQuery } from "@tuanchat/query/users";
 const AVATAR_SIZE = 64;
 
 const styles = StyleSheet.create({
-  overlay: { backgroundColor: "rgba(0,0,0,0.5)", flex: 1, justifyContent: "flex-end" },
-  sheet: { borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, paddingBottom: Spacing.xxxl, paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl },
-  handle: { alignSelf: "center", borderRadius: 2, height: 4, marginBottom: Spacing.xl, width: 36 },
   profileSection: { alignItems: "center", gap: Spacing.lg, paddingVertical: Spacing.xl },
   avatar: { borderRadius: Radius.full, height: AVATAR_SIZE, width: AVATAR_SIZE },
   avatarFallback: { alignItems: "center", backgroundColor: "#6366f1", borderRadius: Radius.full, height: AVATAR_SIZE, justifyContent: "center", width: AVATAR_SIZE },
@@ -46,60 +44,60 @@ export function UserProfileSheet({ avatarFileId, onClose, userId, username, visi
 
   return (
     <>
-      <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-        <Pressable style={styles.overlay} onPress={onClose}>
-          <View style={[styles.sheet, { backgroundColor: theme.surface }]} onStartShouldSetResponder={() => true}>
-            <View style={[styles.handle, { backgroundColor: theme.border }]} />
-            <View style={styles.profileSection}>
-              <Pressable
-                onPress={() => avatarUrl && setAvatarPreviewVisible(true)}
-                accessibilityLabel="查看用户头像"
-                accessibilityRole="imagebutton"
-              >
-                {avatarUrl
-                  ? (
-                      <CachedImage uri={avatarUrl} style={styles.avatar} />
-                    )
-                  : (
-                      <View style={styles.avatarFallback}>
-                        <ThemedText style={{ color: "#fff", fontSize: 24, fontWeight: "700" }}>
-                          {displayName.slice(0, 1).toUpperCase()}
-                        </ThemedText>
-                      </View>
-                    )}
-              </Pressable>
-              <ThemedText type="title">{displayName}</ThemedText>
-              <ThemedText themeColor="textSecondary">
-                用户 ID:
-                {displayUserId ?? "-"}
-              </ThemedText>
-              {profile?.description
-                ? (
-                    <ThemedText style={{ textAlign: "center" }} themeColor="textSecondary">
-                      {profile.description}
+      <BottomSheetModal
+        backgroundColor={theme.surface}
+        handleColor={theme.border}
+        onClose={onClose}
+        visible={visible}
+      >
+        <View style={styles.profileSection}>
+          <Pressable
+            onPress={() => avatarUrl && setAvatarPreviewVisible(true)}
+            accessibilityLabel="查看用户头像"
+            accessibilityRole="imagebutton"
+          >
+            {avatarUrl
+              ? (
+                  <CachedImage uri={avatarUrl} style={styles.avatar} />
+                )
+              : (
+                  <View style={styles.avatarFallback}>
+                    <ThemedText style={{ color: "#fff", fontSize: 24, fontWeight: "700" }}>
+                      {displayName.slice(0, 1).toUpperCase()}
                     </ThemedText>
-                  )
-                : null}
-              {profile?.gender
-                ? (
-                    <ThemedText themeColor="textSecondary">
-                      性别：
-                      {profile.gender}
-                    </ThemedText>
-                  )
-                : null}
-              {profileQuery.isPending && visible
-                ? (
-                    <ThemedText type="caption" themeColor="textSecondary">正在加载完整资料…</ThemedText>
-                  )
-                : null}
-            </View>
-            <Pressable onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText>关闭</ThemedText>
-            </Pressable>
-          </View>
+                  </View>
+                )}
+          </Pressable>
+          <ThemedText type="title">{displayName}</ThemedText>
+          <ThemedText themeColor="textSecondary">
+            用户 ID:
+            {displayUserId ?? "-"}
+          </ThemedText>
+          {profile?.description
+            ? (
+                <ThemedText style={{ textAlign: "center" }} themeColor="textSecondary">
+                  {profile.description}
+                </ThemedText>
+              )
+            : null}
+          {profile?.gender
+            ? (
+                <ThemedText themeColor="textSecondary">
+                  性别：
+                  {profile.gender}
+                </ThemedText>
+              )
+            : null}
+          {profileQuery.isPending && visible
+            ? (
+                <ThemedText type="caption" themeColor="textSecondary">正在加载完整资料…</ThemedText>
+              )
+            : null}
+        </View>
+        <Pressable onPress={onClose} style={[styles.closeBtn, { backgroundColor: theme.backgroundElement }]}>
+          <ThemedText>关闭</ThemedText>
         </Pressable>
-      </Modal>
+      </BottomSheetModal>
       <Modal
         visible={visible && avatarPreviewVisible}
         transparent

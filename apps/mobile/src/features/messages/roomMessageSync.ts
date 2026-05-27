@@ -6,16 +6,20 @@ import {
 } from "@tuanchat/query/room-message";
 import { reconcileOptimisticRoomMessagesInList } from "@tuanchat/query/room-message-lifecycle";
 
+import type {
+  RoomMessagesQueryData,
+  RoomMessagesSyncResult,
+} from "./roomMessagesQueryData";
+
 import {
   extractRoomMessagesFromQueryData,
-  type RoomMessagesQueryData,
-  type RoomMessagesSyncResult,
   updateRoomMessagesQueryData,
 } from "./roomMessagesQueryData";
 
+export type { RoomMessagesSyncResult } from "./roomMessagesQueryData";
+
 type RoomMessageSyncClient = {
   chatController: {
-    getAllMessage: (roomId: number) => Promise<unknown>;
     getHistoryMessages: (request: { roomId: number; syncId: number }) => Promise<unknown>;
   };
 };
@@ -60,7 +64,10 @@ export async function fetchRoomMessagesWithLocalSync(
     };
   }
 
-  const result = await deps.client.chatController.getAllMessage(roomId);
+  const result = await deps.client.chatController.getHistoryMessages({
+    roomId,
+    syncId: 0,
+  });
   return {
     messages: extractChatMessageResponses(result),
     mode: "full",
