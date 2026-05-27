@@ -6,6 +6,8 @@
  * index-tts2 在one-shot的情况下，表现非常优秀，情感迁移非常牛逼，唯一的问题是很吃显存，需要8G显存
  * https://github.com/index-tts/index-tts
  */
+import { resolveRuntimeTuanChatServiceBaseUrl } from "@/utils/runtimeUrl";
+
 export type InferRequest = {
   /** 目标文本 */
   text: string;
@@ -480,5 +482,9 @@ export function createTTSApi(baseURL: string = "http://localhost:9000") {
 }
 
 // 创建 TTS API 实例,从环境变量获取 URL
-const TTS_API_URL = import.meta.env.VITE_TTS_URL || "http://localhost:9000";
+const TTS_API_URL = resolveRuntimeTuanChatServiceBaseUrl(
+  import.meta.env.VITE_TTS_URL,
+  "/tts",
+  "http://localhost:9000",
+);
 export const ttsApi = createTTSApi(TTS_API_URL);

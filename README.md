@@ -81,8 +81,8 @@ pnpm release:electron -- --bump patch
 在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
 
 ```plain text
-VITE_API_BASE_URL=https://tuan.chat/api
-VITE_API_WS_URL=wss://tuan.chat/ws
+VITE_API_BASE_URL=https://api.tuan.chat/api
+VITE_API_WS_URL=wss://api.tuan.chat/ws
 VITE_TERRE_URL=http://localhost:3001
 VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ```
@@ -153,8 +153,8 @@ pnpm lint:fix
 
 - 前端通过 Cloudflare Pages 部署；`main` 部署到项目 `tuan-chat-web` 并对应 `https://tuan.chat/`，`dev` 部署到项目 `tuan-chat-web-test` 并对应 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）。
 - 需要在 GitHub Secrets 配置 `CLOUDFLARE_ACCOUNT_ID` 与 `CLOUDFLARE_API_TOKEN`。
-- Pages Functions 会把 `/api`、`/ws`、`/tts`、`/terre` 转发到后端源站，把 `/media`、`/avatar`、`/updates` 转发到媒体/静态源站。默认源站为已放行的 `https://origin.tuan.chat`，避免 Pages 直接 fetch 裸 IP 触发 Cloudflare 1003，也避免把未放行的源站子域名作为 Host 送到火山 WAF；可在 Cloudflare Pages 环境变量中用 `TUANCHAT_API_ORIGIN`、`TUANCHAT_MEDIA_ORIGIN`、`TUANCHAT_API_HOST`、`TUANCHAT_MEDIA_HOST`、`TUANCHAT_ORIGIN_HOST`、`TUANCHAT_API_RESOLVE_OVERRIDE`、`TUANCHAT_MEDIA_RESOLVE_OVERRIDE`、`TUANCHAT_RESOLVE_OVERRIDE` 覆盖。
-- `public/_routes.json` 限定只有 API、WebSocket、TTS、Terre、媒体与更新路径会触发 Pages Functions；静态资源和 SPA fallback 保持 Pages 静态托管，避免消耗 Workers/Pages Functions 请求额度。
+- 线上 Web 运行时会把 API、WebSocket、TTS 与媒体默认归一到直连后端域名 `https://api.tuan.chat`，不再把主流量打到 Pages Functions。跨域请求由后端 CORS 处理，浏览器会按需发送 OPTIONS 预检。
+- Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管，避免消耗 Workers/Pages Functions 请求额度。
 
 Electron 增量更新发布：
 
