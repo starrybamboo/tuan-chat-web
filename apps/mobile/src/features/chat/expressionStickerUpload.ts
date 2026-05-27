@@ -3,10 +3,13 @@ import type { UploadedImageMessageDraftAsset } from "@tuanchat/domain/message-dr
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 import type { StickerCreateRequest } from "@tuanchat/openapi-client/models/StickerCreateRequest";
 
+import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 const STICKER_UPLOAD_FALLBACK_ERROR_MESSAGE = "表情包上传失败。";
 const STICKER_CROP_FILE_SUFFIX = "sticker";
 const STICKER_CROP_FILE_EXTENSION = "webp";
+const MAX_STICKER_NAME_LENGTH = 100;
 
 function normalizeStickerFormat(format?: string | null): string | null {
   if (!format) {
@@ -19,6 +22,10 @@ function normalizeStickerFormat(format?: string | null): string | null {
 function getFileExtension(fileName: string): string | null {
   const matchedExtension = fileName.toLowerCase().match(/\.([a-z0-9]+)$/);
   return matchedExtension?.[1] ?? null;
+}
+
+function truncateStickerName(name: string) {
+  return Array.from(name).slice(0, MAX_STICKER_NAME_LENGTH).join("");
 }
 
 function resolveStickerFormat(attachment: Pick<MobileMessageAttachment, "fileName" | "mimeType">): string | null {
@@ -42,8 +49,9 @@ export function buildStickerCreateRequest(
     throw new Error("表情仅支持 jpg/jpeg/png/gif/webp");
   }
 
+  const name = attachment.fileName.trim() || uploadedImage.fileName.trim() || `表情.${format}`;
   return {
-    name: attachment.fileName.trim() || uploadedImage.fileName.trim() || `表情.${format}`,
+    name: truncateStickerName(name),
     fileId: uploadedImage.fileId,
     fileSize: uploadedImage.size,
     width: uploadedImage.width > 0 ? uploadedImage.width : undefined,
@@ -53,9 +61,7 @@ export function buildStickerCreateRequest(
 }
 
 export function getStickerUploadErrorMessage(error: unknown) {
-  return error instanceof Error && error.message.trim()
-    ? error.message.trim()
-    : STICKER_UPLOAD_FALLBACK_ERROR_MESSAGE;
+  return extractOpenApiErrorMessage(error, STICKER_UPLOAD_FALLBACK_ERROR_MESSAGE);
 }
 
 export function createStickerCropFileName(fileName: string, now = Date.now()) {
