@@ -153,7 +153,7 @@ pnpm lint:fix
 
 - 前端通过 Cloudflare Pages 部署；`main` 部署到项目 `tuan-chat-web` 并对应 `https://tuan.chat/`，`dev` 部署到项目 `tuan-chat-web-test` 并对应 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）。
 - 需要在 GitHub Secrets 配置 `CLOUDFLARE_ACCOUNT_ID` 与 `CLOUDFLARE_API_TOKEN`。
-- Pages Functions 会把 `/api`、`/ws`、`/tts`、`/terre` 转发到后端源站，把 `/media`、`/avatar`、`/updates` 转发到媒体/静态源站。默认源站为 `https://origin.tuan.chat`，避免 Pages 直接 fetch 裸 IP 触发 Cloudflare 1003，也避免把未放行的源站子域名作为 Host 送到火山 WAF；可在 Cloudflare Pages 环境变量中用 `TUANCHAT_API_ORIGIN`、`TUANCHAT_MEDIA_ORIGIN`、`TUANCHAT_RESOLVE_OVERRIDE` 覆盖。
+- Pages Functions 会把 `/api`、`/ws`、`/tts`、`/terre` 转发到后端源站，把 `/media`、`/avatar`、`/updates` 转发到媒体/静态源站。默认源站为已放行的 `https://origin.tuan.chat`，避免 Pages 直接 fetch 裸 IP 触发 Cloudflare 1003，也避免把未放行的源站子域名作为 Host 送到火山 WAF；可在 Cloudflare Pages 环境变量中用 `TUANCHAT_API_ORIGIN`、`TUANCHAT_MEDIA_ORIGIN`、`TUANCHAT_API_HOST`、`TUANCHAT_MEDIA_HOST`、`TUANCHAT_ORIGIN_HOST`、`TUANCHAT_API_RESOLVE_OVERRIDE`、`TUANCHAT_MEDIA_RESOLVE_OVERRIDE`、`TUANCHAT_RESOLVE_OVERRIDE` 覆盖。
 
 Electron 增量更新发布：
 
