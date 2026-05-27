@@ -1,7 +1,6 @@
 import type { GestureType } from "react-native-gesture-handler";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import { memo, useMemo } from "react";
 import { StyleSheet, Vibration, View } from "react-native";
 import { Gesture, GestureDetector, Pressable } from "react-native-gesture-handler";
@@ -16,11 +15,14 @@ import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMedi
 import { useTheme } from "@/hooks/use-theme";
 import { mediaFileUrl } from "@/lib/media-url";
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
+import { getMobileMessageAuthorLabel, isNarratorMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
+import { getMessagePreview } from "./mobileChatUtils";
 import {
   ClueCard,
   DocCard,
@@ -31,7 +33,6 @@ import {
   StateEventCard,
   WebgalChooseCard,
 } from "./MobileMessageCards";
-import { getMessagePreview } from "./mobileChatUtils";
 
 const AVATAR_SIZE = 40;
 
@@ -73,11 +74,16 @@ const styles = StyleSheet.create({
   },
   narratorAvatar: {
     alignItems: "center",
-    backgroundColor: "rgba(139, 148, 158, 0.15)",
+    backgroundColor: "#6366f1",
     borderRadius: Radius.full,
     height: AVATAR_SIZE,
     justifyContent: "center",
     width: AVATAR_SIZE,
+  },
+  narratorAvatarText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   body: {
     flex: 1,
@@ -122,10 +128,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function isNarrator(message: Message): boolean {
-  return !message.roleId || message.roleId <= 0;
-}
-
 function isOutOfCharacterSpeech(content?: string | null): boolean {
   if (typeof content !== "string" || content.length === 0)
     return false;
@@ -138,19 +140,7 @@ function isOutOfCharacterSpeech(content?: string | null): boolean {
 }
 
 function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): string {
-  if (isNarrator(message))
-    return "";
-
-  const customName = (message.customRoleName ?? "").trim();
-  if (customName)
-    return customName;
-
-  const role = typeof message.roleId === "number" ? roomRolesById.get(message.roleId) : undefined;
-  const roleName = (role?.roleName ?? "").trim();
-  if (roleName)
-    return roleName;
-
-  return "未选择角色";
+  return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: "未选择角色" });
 }
 
 function getDiceDisplayText(message: Message, canViewHiddenReply = false): string {
@@ -222,7 +212,7 @@ export const ChatMessageItem = memo(({
   simultaneousGestures,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
-  const narrator = isNarrator(message);
+  const narrator = isNarratorMessage(message);
   const isStateEvent = message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const usesSystemRow = narrator || isStateEvent;
   const displayName = getDisplayRoleName(message, roomRolesById);
@@ -298,12 +288,18 @@ export const ChatMessageItem = memo(({
       ? gesture.simultaneousWithExternalGesture(...simultaneousGestures)
       : gesture;
   }, [message, onLongPress, simultaneousGestures]);
+  const shouldRenderAvatar = !isGrouped && !isOOC && !isStateEvent;
+  const messageRowStyle = isStateEvent
+    ? styles.rowNarrator
+    : isOOC
+      ? styles.rowOOC
+      : isGrouped ? styles.rowGrouped : styles.row;
 
   const renderAvatar = () => {
     if (narrator) {
       return (
         <View style={styles.narratorAvatar}>
-          <ThemedText style={{ fontSize: 16 }}>N</ThemedText>
+          <ThemedText style={styles.narratorAvatarText}>旁</ThemedText>
         </View>
       );
     }
@@ -355,16 +351,12 @@ export const ChatMessageItem = memo(({
         <View style={{ flex: 1 }}>
           <View
             style={[
-              usesSystemRow
-                ? styles.rowNarrator
-                : isOOC
-                  ? styles.rowOOC
-                  : isGrouped ? styles.rowGrouped : styles.row,
-              !isGrouped && !usesSystemRow && !isOOC && styles.rowFull,
+              messageRowStyle,
+              shouldRenderAvatar && styles.rowFull,
               isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
             ]}
           >
-            {!isGrouped && !usesSystemRow && !isOOC ? renderAvatar() : null}
+            {shouldRenderAvatar ? renderAvatar() : null}
             <View style={styles.body}>
               {message.messageType === MESSAGE_TYPE.IMG
                 ? (() => {
@@ -378,18 +370,18 @@ export const ChatMessageItem = memo(({
                   ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[视频]</ThemedText>
                   : message.messageType === MESSAGE_TYPE.SOUND
                     ? <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>{getCompactMediaText(message)}</ThemedText>
-                  : message.messageType === MESSAGE_TYPE.DICE
-                    ? renderDiceTurnContent(2)
-                    : (
-                        <TextEnhanceRenderer
-                          content={getMessagePreview(message)}
-                          style={[
-                            styles.content,
-                            { color: usesSystemRow ? theme.textSecondary : theme.text },
-                          ]}
-                          numberOfLines={2}
-                        />
-                    )}
+                    : message.messageType === MESSAGE_TYPE.DICE
+                      ? renderDiceTurnContent(2)
+                      : (
+                          <TextEnhanceRenderer
+                            content={getMessagePreview(message)}
+                            style={[
+                              styles.content,
+                              { color: usesSystemRow ? theme.textSecondary : theme.text },
+                            ]}
+                            numberOfLines={2}
+                          />
+                        )}
             </View>
           </View>
         </View>
@@ -401,20 +393,16 @@ export const ChatMessageItem = memo(({
     <GestureDetector gesture={longPressGesture}>
       <View
         style={[
-          usesSystemRow
-            ? styles.rowNarrator
-            : isOOC
-              ? styles.rowOOC
-              : isGrouped ? styles.rowGrouped : styles.row,
-          !isGrouped && !usesSystemRow && !isOOC && styles.rowFull,
+          messageRowStyle,
+          shouldRenderAvatar && styles.rowFull,
           isSelectedAnchor && styles.rowHighlight,
           isSelectedAnchor && { backgroundColor: theme.accentMuted },
           isOOC && { backgroundColor: "rgba(150, 150, 150, 0.05)" },
         ]}
       >
-        {!isGrouped && !usesSystemRow && !isOOC ? renderAvatar() : null}
+        {shouldRenderAvatar ? renderAvatar() : null}
         <View style={styles.body}>
-          {!isGrouped && !usesSystemRow
+          {!isGrouped && !isStateEvent
             ? (
                 <View style={styles.authorRow}>
                   {displayName
@@ -452,15 +440,15 @@ export const ChatMessageItem = memo(({
             ? message.messageType === MESSAGE_TYPE.DICE
               ? renderDiceTurnContent()
               : (
-                <TextEnhanceRenderer
-                  content={getMessagePreview(message)}
-                  style={[
-                    styles.content,
-                    { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
-                    isOOC && { fontStyle: "italic" },
-                  ]}
-                />
-              )
+                  <TextEnhanceRenderer
+                    content={getMessagePreview(message)}
+                    style={[
+                      styles.content,
+                      { color: usesSystemRow ? theme.textSecondary : isOOC ? theme.textSecondary : theme.text },
+                      isOOC && { fontStyle: "italic" },
+                    ]}
+                  />
+                )
             : null}
           {message.messageType === MESSAGE_TYPE.INTRO_TEXT
             ? <IntroTextCard content={message.content} />

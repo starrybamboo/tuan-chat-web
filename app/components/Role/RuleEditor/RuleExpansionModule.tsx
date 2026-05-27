@@ -1,6 +1,9 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+import type { RoleConfigTabKey } from "../rules/configTabMeta";
+import { MaskHappyIcon } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 import Section from "../Editors/Section";
+import { ROLE_CONFIG_TAB_ITEMS } from "../rules/configTabMeta";
 import { RuleConfigurationSection } from "./RuleConfigurationSection";
 import RulePerformanceEditor from "./RulePerformanceEditor";
 
@@ -19,7 +22,7 @@ export default function RuleExpansionModule({
   forcedEditing?: boolean;
   saveSignal?: number;
 }) {
-  const [activeTab, setActiveTab] = useState<"basic" | "ability" | "skill" | "act">("basic");
+  const [activeTab, setActiveTab] = useState<RoleConfigTabKey>("basic");
 
   const handleBasicEditingChange = useCallback(
     (editing: boolean) => onModuleEditingChange?.("basic", editing),
@@ -66,44 +69,25 @@ export default function RuleExpansionModule({
       {/* 顶部 Tab 按钮条，依据角色类型条件渲染 */}
       <div className="flex gap-1 md:gap-2 rounded-lg">
         <>
-          <button
-            type="button"
-            className={`btn btn-md rounded-lg ${activeTab === "basic" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("basic")}
-          >
-            <span className="md:hidden">基础</span>
-            <span className="hidden md:inline">基础配置</span>
-          </button>
-          <button
-            type="button"
-            className={`btn btn-md rounded-lg ${activeTab === "ability" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("ability")}
-          >
-            <span className="md:hidden">能力</span>
-            <span className="hidden md:inline">能力配置</span>
-          </button>
-          <button
-            type="button"
-            className={`btn btn-md rounded-lg ${activeTab === "skill" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("skill")}
-          >
-            <span className="md:hidden">技能</span>
-            <span className="hidden md:inline">技能配置</span>
-          </button>
-          <button
-            type="button"
-            className={`btn btn-md rounded-lg ${activeTab === "act" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setActiveTab("act")}
-          >
-            <span className="md:hidden">表演</span>
-            <span className="hidden md:inline">表演配置</span>
-          </button>
+          {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              className={`btn btn-md inline-flex items-center gap-1.5 rounded-lg ${activeTab === key ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setActiveTab(key)}
+            >
+              <Icon className="size-4 shrink-0" weight="bold" aria-hidden="true" />
+              <span className="md:hidden">{shortLabel}</span>
+              <span className="hidden md:inline">{label}</span>
+            </button>
+          ))}
         </>
       </div>
 
       <div className={activeTab === "basic" ? "block" : "hidden"} aria-hidden={activeTab !== "basic"}>
         <RuleConfigurationSection
           customLabel="基础属性"
+          configKey="basic"
           localEdits={localRule.basicDefault}
           onDataChange={handleBasicChange}
           cloneVersion={cloneVersion}
@@ -116,6 +100,7 @@ export default function RuleExpansionModule({
       <div className={activeTab === "ability" ? "block" : "hidden"} aria-hidden={activeTab !== "ability"}>
         <RuleConfigurationSection
           customLabel="能力"
+          configKey="ability"
           localEdits={localRule.abilityFormula}
           onDataChange={handleAbilityChange}
           cloneVersion={cloneVersion}
@@ -128,6 +113,7 @@ export default function RuleExpansionModule({
       <div className={activeTab === "skill" ? "block" : "hidden"} aria-hidden={activeTab !== "skill"}>
         <RuleConfigurationSection
           customLabel="技能"
+          configKey="skill"
           localEdits={localRule.skillDefault}
           onDataChange={handleSkillChange}
           cloneVersion={cloneVersion}
@@ -144,9 +130,8 @@ export default function RuleExpansionModule({
         >
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <h4 className="text-lg font-semibold">
-                ⚡表演模版
-              </h4>
+              <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+              <h4 className="text-lg font-semibold">表演模版</h4>
               <div className="badge badge-info badge-sm">{Object.keys(localRule.actTemplate ?? {}).length}</div>
             </div>
             <RulePerformanceEditor

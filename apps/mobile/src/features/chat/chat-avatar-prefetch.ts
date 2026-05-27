@@ -1,12 +1,12 @@
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
-
-import { avatarThumbUrl } from "../../lib/media-url";
-import { mediaFileUrl } from "../../lib/media-url";
+import { avatarThumbUrl, mediaFileUrl } from "../../lib/media-url";
 import { resolveMessageAvatarFileId } from "./chat-avatar-utils";
 
 /**

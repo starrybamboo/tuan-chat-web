@@ -50,13 +50,12 @@ const styles = StyleSheet.create({
 
 type ChatHeaderProps = {
   onBackToRoutePage: () => void;
-  onOpenDrawer: () => void;
   onSearch: () => void;
   roomName: string | null;
   unreadCount?: number;
 };
 
-export function ChatHeader({ onBackToRoutePage, onOpenDrawer: _onOpenDrawer, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
+export function ChatHeader({ onBackToRoutePage, onSearch, roomName, unreadCount = 0 }: ChatHeaderProps) {
   const theme = useTheme();
 
   return (

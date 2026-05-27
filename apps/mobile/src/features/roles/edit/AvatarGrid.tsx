@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
+import { Check, Checks, Trash, X } from "phosphor-react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 
 import { CachedImage } from "@/components/CachedImage";
+import { SquareUploadButton } from "@/components/SquareUploadButton";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
@@ -18,6 +20,7 @@ import { avatarThumbUrl } from "@/lib/media-url";
 
 const GRID_COLUMNS = 4;
 const GRID_ITEM_SIZE = 72;
+const ROLE_EDIT_HIGHLIGHT_COLOR = "#8cc8ff";
 
 type AvatarCropSource = MobileMessageAttachment & {
   height: number;
@@ -76,6 +79,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: Radius.md,
     borderWidth: 2,
+    boxShadow: "none",
+    outlineWidth: 0,
     height: GRID_ITEM_SIZE,
     justifyContent: "center",
     overflow: "hidden",
@@ -88,25 +93,37 @@ const styles = StyleSheet.create({
     height: "100%",
     width: "100%",
   },
-  deleteBadge: {
+  selectionBadge: {
     alignItems: "center",
-    borderRadius: 10,
-    height: 20,
+    borderRadius: Radius.full,
+    borderWidth: 2,
+    height: 18,
     justifyContent: "center",
     position: "absolute",
-    right: -6,
-    top: -6,
-    width: 20,
+    left: 6,
+    top: 6,
+    width: 18,
     zIndex: 1,
   },
-  addButton: {
+  selectedOverlay: {
+    bottom: 0,
+    left: 0,
+    opacity: 0.24,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  headerActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  iconButton: {
     alignItems: "center",
     borderRadius: Radius.md,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    height: GRID_ITEM_SIZE,
+    height: 32,
     justifyContent: "center",
-    width: GRID_ITEM_SIZE,
+    width: 32,
   },
   emptyState: {
     alignItems: "center",
@@ -127,11 +144,17 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
   const updateAvatarMutation = useUpdateAvatarMutation();
   const deleteAvatarMutation = useDeleteAvatarMutation();
   const [uploading, setUploading] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedAvatarIds, setSelectedAvatarIds] = useState<Set<number>>(() => new Set());
   const [cropSource, setCropSource] = useState<AvatarCropSource | null>(null);
   const [gridWidth, setGridWidth] = useState(0);
 
   const avatars = useMemo(() => avatarsQuery.data ?? [], [avatarsQuery.data]);
+  const selectableAvatarIds = useMemo(
+    () => avatars.map(avatar => avatar.avatarId).filter((avatarId): avatarId is number => typeof avatarId === "number" && avatarId > 0),
+    [avatars],
+  );
+  const allSelected = selectableAvatarIds.length > 0 && selectedAvatarIds.size === selectableAvatarIds.length;
   const gridGap = Spacing.md;
   const avatarSize = gridWidth > 0
     ? Math.floor((gridWidth - gridGap * (GRID_COLUMNS - 1)) / GRID_COLUMNS)
@@ -142,8 +165,30 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
       avatar,
       key: `avatar:${avatar.avatarId ?? avatar.avatarFileId ?? "unknown"}`,
     })),
-    ...(editing ? [{ type: "add" as const, key: "avatar:add" }] : []),
-  ], [avatars, editing]);
+    ...(!selectionMode ? [{ type: "add" as const, key: "avatar:add" }] : []),
+  ], [avatars, selectionMode]);
+
+  useEffect(() => {
+    if (selectedAvatarIds.size === 0) {
+      return;
+    }
+
+    const validAvatarIds = new Set(selectableAvatarIds);
+    let changed = false;
+    const nextSelected = new Set<number>();
+    selectedAvatarIds.forEach((avatarId) => {
+      if (validAvatarIds.has(avatarId)) {
+        nextSelected.add(avatarId);
+      }
+      else {
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      setSelectedAvatarIds(nextSelected);
+    }
+  }, [selectableAvatarIds, selectedAvatarIds]);
 
   const handlePickImage = useCallback(async () => {
     if (uploading || cropSource) {
@@ -229,60 +274,132 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
     setCropSource(null);
   }, []);
 
-  const handleDelete = useCallback((avatar: RoleAvatar) => {
-    if (!avatar.avatarId)
+  const handleBatchDelete = useCallback(() => {
+    if (selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending) {
       return;
-    const doDelete = () => deleteAvatarMutation.mutate({ avatarId: avatar.avatarId!, roleId });
+    }
+    if (selectedAvatarIds.size >= selectableAvatarIds.length) {
+      Alert.alert("无法删除", "至少需要保留一个头像。");
+      return;
+    }
+
+    const avatarIdsToDelete = Array.from(selectedAvatarIds);
+    const doDelete = async () => {
+      const nextAvatarId = avatars.find(avatar => avatar.avatarId && !selectedAvatarIds.has(avatar.avatarId))?.avatarId;
+      if (currentAvatarId && selectedAvatarIds.has(currentAvatarId) && nextAvatarId) {
+        onAvatarSelect?.(nextAvatarId);
+      }
+
+      try {
+        for (const avatarId of avatarIdsToDelete) {
+          await deleteAvatarMutation.mutateAsync({ avatarId, roleId });
+        }
+        setSelectedAvatarIds(new Set());
+        setSelectionMode(false);
+      }
+      catch (error: any) {
+        Alert.alert("删除失败", error?.message ?? "请稍后重试");
+      }
+    };
+
     if (Platform.OS === "web") {
-      if (window.confirm("确定要删除这个头像吗？"))
-        doDelete();
+      if (window.confirm(`确定要删除选中的 ${selectedAvatarIds.size} 个头像吗？`))
+        void doDelete();
     }
     else {
-      Alert.alert("删除头像", "确定要删除这个头像吗？", [
+      Alert.alert("删除头像", `确定要删除选中的 ${selectedAvatarIds.size} 个头像吗？`, [
         { text: "取消", style: "cancel" },
-        { text: "删除", style: "destructive", onPress: doDelete },
+        { text: "删除", style: "destructive", onPress: () => void doDelete() },
       ]);
     }
-  }, [deleteAvatarMutation, roleId]);
+  }, [avatars, currentAvatarId, deleteAvatarMutation, onAvatarSelect, roleId, selectableAvatarIds.length, selectedAvatarIds]);
 
-  const toggleEditing = useCallback(() => setEditing(prev => !prev), []);
+  const enterSelectionMode = useCallback(() => {
+    if (selectableAvatarIds.length === 0) {
+      return;
+    }
+    setSelectionMode(true);
+  }, [selectableAvatarIds.length]);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedAvatarIds(new Set());
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedAvatarIds(allSelected ? new Set() : new Set(selectableAvatarIds));
+  }, [allSelected, selectableAvatarIds]);
+
+  const toggleAvatarSelection = useCallback((avatarId: number) => {
+    setSelectedAvatarIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(avatarId)) {
+        next.delete(avatarId);
+      }
+      else {
+        next.add(avatarId);
+      }
+      return next;
+    });
+  }, []);
 
   const renderAvatarItem = useCallback(({ item }: { item: AvatarGridItem }) => {
     if (item.type === "add") {
       return (
-        <Pressable
-          onPress={handlePickImage}
+        <SquareUploadButton
+          accessibilityLabel="上传头像"
+          borderColor={theme.accent}
           disabled={uploading || !!cropSource}
-          style={[styles.addButton, { borderColor: theme.accent, height: avatarSize, width: avatarSize }]}
+          onPress={handlePickImage}
+          size={avatarSize}
         >
           <ThemedText themeColor="accent" type="small">
             {uploading ? "..." : "+"}
           </ThemedText>
-        </Pressable>
+        </SquareUploadButton>
       );
     }
 
     const avatar = item.avatar;
     const isCurrent = avatar.avatarId === currentAvatarId;
+    const isSelectedForDeletion = avatar.avatarId ? selectedAvatarIds.has(avatar.avatarId) : false;
     return (
       <View style={styles.avatarWrapper}>
-        {editing
+        {selectionMode
           ? (
-              <Pressable
-                onPress={() => handleDelete(avatar)}
-                style={[styles.deleteBadge, { backgroundColor: "#ef4444" }]}
+              <View
+                style={[
+                  styles.selectionBadge,
+                  {
+                    backgroundColor: isSelectedForDeletion ? theme.accent : theme.backgroundElement,
+                    borderColor: isSelectedForDeletion ? theme.accent : theme.textSecondary,
+                  },
+                ]}
               >
-                <ThemedText style={{ color: "#fff", fontSize: 12, lineHeight: 14 }}>x</ThemedText>
-              </Pressable>
+                {isSelectedForDeletion ? <Check size={11} color="#fff" weight="bold" /> : null}
+              </View>
             )
           : null}
         <Pressable
           onPress={() => {
-            if (!editing && avatar.avatarId) {
+            if (!avatar.avatarId) {
+              return;
+            }
+            if (selectionMode) {
+              toggleAvatarSelection(avatar.avatarId);
+            }
+            else {
               onAvatarSelect?.(avatar.avatarId);
             }
           }}
-          style={[styles.avatarItem, { borderColor: isCurrent ? theme.accent : theme.border, height: avatarSize, width: avatarSize }]}
+          style={[
+            styles.avatarItem,
+            {
+              borderColor: isSelectedForDeletion ? theme.accent : (isCurrent ? ROLE_EDIT_HIGHLIGHT_COLOR : theme.border),
+              height: avatarSize,
+              width: avatarSize,
+            },
+          ]}
         >
           {avatar.avatarFileId
             ? (
@@ -295,20 +412,63 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
             : (
                 <ThemedText themeColor="textSecondary" type="small">?</ThemedText>
               )}
+          {selectionMode && isSelectedForDeletion
+            ? <View style={[styles.selectedOverlay, { backgroundColor: theme.accent }]} />
+            : null}
         </Pressable>
       </View>
     );
-  }, [avatarSize, cropSource, currentAvatarId, editing, handleDelete, handlePickImage, onAvatarSelect, theme.accent, theme.border, uploading]);
+  }, [avatarSize, cropSource, currentAvatarId, handlePickImage, onAvatarSelect, selectedAvatarIds, selectionMode, theme.accent, theme.backgroundElement, theme.border, theme.textSecondary, toggleAvatarSelection, uploading]);
 
   return (
     <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
       <View style={styles.sectionHeader}>
         <ThemedText type="heading">头像</ThemedText>
-        <Pressable onPress={toggleEditing}>
-          <ThemedText themeColor="accent" type="small">
-            {editing ? "完成" : "编辑"}
-          </ThemedText>
-        </Pressable>
+        {selectionMode
+          ? (
+              <View style={styles.headerActions}>
+                <Pressable
+                  onPress={toggleSelectAll}
+                  style={[styles.iconButton, { backgroundColor: theme.backgroundSelected }]}
+                  accessibilityLabel={allSelected ? "取消全选头像" : "全选头像"}
+                  accessibilityRole="button"
+                >
+                  <Checks size={20} color={theme.text} />
+                </Pressable>
+                <Pressable
+                  onPress={handleBatchDelete}
+                  disabled={selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending}
+                  style={[
+                    styles.iconButton,
+                    {
+                      backgroundColor: selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending
+                        ? theme.backgroundSelected
+                        : theme.dangerMuted,
+                      opacity: selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending ? 0.5 : 1,
+                    },
+                  ]}
+                  accessibilityLabel="删除选中头像"
+                  accessibilityRole="button"
+                >
+                  <Trash size={20} color={selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending ? theme.textSecondary : theme.danger} />
+                </Pressable>
+                <Pressable
+                  onPress={exitSelectionMode}
+                  style={styles.iconButton}
+                  accessibilityLabel="退出头像选择模式"
+                  accessibilityRole="button"
+                >
+                  <X size={22} color={theme.text} />
+                </Pressable>
+              </View>
+            )
+          : (
+              <Pressable onPress={enterSelectionMode} disabled={selectableAvatarIds.length === 0}>
+                <ThemedText themeColor="accent" type="small">
+                  编辑
+                </ThemedText>
+              </Pressable>
+            )}
       </View>
 
       {avatars.length === 0 && !uploading

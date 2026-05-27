@@ -1,3 +1,5 @@
+import type { GestureType } from "react-native-gesture-handler";
+
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { buildMessageSearchText } from "@tuanchat/domain/message-search";
 import { ArrowLeft, MagnifyingGlass, X } from "phosphor-react-native";
@@ -12,8 +14,6 @@ import {
 import { GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { GestureType } from "react-native-gesture-handler";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { ThemedText } from "@/components/themed-text";
@@ -23,6 +23,7 @@ import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
+import { getMobileMessageAuthorLabel, isNarratorMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { formatMessageDateTime } from "./mobileChatUtils";
 
@@ -31,16 +32,8 @@ type MessageItem = {
 };
 
 function getSearchAuthorLabel(message: Message, roomRolesById?: RoomRolesById): string {
-  const customRoleName = message.customRoleName?.trim();
-  if (customRoleName)
-    return customRoleName;
-
-  if (message.roleId && message.roleId > 0) {
-    const roleName = roomRolesById?.get(message.roleId)?.roleName?.trim();
-    return roleName || getMessageAuthorLabel(message);
-  }
-
-  return getMessageAuthorLabel(message);
+  const fallbackLabel = isNarratorMessage(message) ? undefined : getMessageAuthorLabel(message);
+  return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: fallbackLabel });
 }
 
 type ChatSearchPageProps = {

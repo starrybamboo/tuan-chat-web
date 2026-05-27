@@ -8,6 +8,8 @@ import {
   getRoomMessageLocalRenderKey,
 } from "@tuanchat/query/room-message-lifecycle";
 
+import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
+
 import {
   extractChatMessageResponses,
   fetchRoomMessagesWithLocalSync,
@@ -37,18 +39,18 @@ function createRoomMessage(
 }
 
 function createQueryClientStub(initialMessages: ChatMessageResponse[] = []) {
-  const data = new Map<string, ChatMessageResponse[]>();
+  const data = new Map<string, RoomMessagesQueryData>();
   data.set(JSON.stringify(getAllRoomMessagesQueryKey(9)), initialMessages);
 
   return {
     getQueryData: vi.fn((queryKey: readonly unknown[]) => {
       return data.get(JSON.stringify(queryKey));
     }),
-    setQueryData: vi.fn((queryKey: readonly unknown[], updater: (current?: ChatMessageResponse[]) => ChatMessageResponse[]) => {
+    setQueryData: vi.fn((queryKey: readonly unknown[], updater: (current: RoomMessagesQueryData) => RoomMessagesQueryData) => {
       const key = JSON.stringify(queryKey);
       data.set(key, updater(data.get(key)));
     }),
-    snapshot: () => data.get(JSON.stringify(getAllRoomMessagesQueryKey(9))) ?? [],
+    snapshot: () => extractChatMessageResponses(data.get(JSON.stringify(getAllRoomMessagesQueryKey(9)))),
   };
 }
 
@@ -69,7 +71,6 @@ describe("roomMessageSync", () => {
     const historyMessages = [createRoomMessage(4)];
     const client = {
       chatController: {
-        getAllMessage: vi.fn(),
         getHistoryMessages: vi.fn().mockResolvedValue({ data: historyMessages }),
       },
     };
@@ -86,15 +87,13 @@ describe("roomMessageSync", () => {
       roomId: 9,
       syncId: 4,
     });
-    expect(client.chatController.getAllMessage).not.toHaveBeenCalled();
   });
 
-  it("没有本地缓存时回退到全量消息接口", async () => {
+  it("没有本地缓存时用 syncId=0 拉取全量历史", async () => {
     const allMessages = [createRoomMessage(1), createRoomMessage(2)];
     const client = {
       chatController: {
-        getAllMessage: vi.fn().mockResolvedValue({ data: allMessages }),
-        getHistoryMessages: vi.fn(),
+        getHistoryMessages: vi.fn().mockResolvedValue({ data: allMessages }),
       },
     };
 
@@ -106,8 +105,10 @@ describe("roomMessageSync", () => {
       mode: "full",
     });
 
-    expect(client.chatController.getAllMessage).toHaveBeenCalledWith(9);
-    expect(client.chatController.getHistoryMessages).not.toHaveBeenCalled();
+    expect(client.chatController.getHistoryMessages).toHaveBeenCalledWith({
+      roomId: 9,
+      syncId: 0,
+    });
   });
 
   it("写入 query cache 时同步写入房间消息磁盘缓存", async () => {

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { GearSix, List } from "phosphor-react-native";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
@@ -6,41 +7,49 @@ import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { useRoleAbilityListQuery } from "@/features/roles/useAbilityMutations";
 import { useRuleDetailQuery, useRulePageQuery } from "@/features/roles/useRuleQueries";
 import { useTheme } from "@/hooks/use-theme";
 
+const DEFAULT_RULE_ID = 1;
+const DEFAULT_RULE_NAME = "coc7th";
+
 const styles = StyleSheet.create({
   section: {
-    borderRadius: Radius.xl,
-    gap: Spacing.lg,
+    gap: Spacing.md,
+    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
+  summaryRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.xxl,
   },
-  sectionHeader: {
+  summaryTextRow: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.sm,
   },
-  ruleItem: {
+  summaryTitleRow: {
     alignItems: "center",
-    borderRadius: Radius.md,
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
   },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: Spacing.lg,
+  ruleNameButton: {
+    flexShrink: 1,
+    minWidth: 0,
   },
-  addButton: {
+  listButton: {
     alignItems: "center",
-    borderRadius: Radius.md,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  sectionDivider: {
+    alignSelf: "stretch",
+    height: StyleSheet.hairlineWidth,
   },
   searchInput: {
     borderRadius: Radius.md,
@@ -64,49 +73,24 @@ const styles = StyleSheet.create({
 });
 
 type RuleSectionProps = {
-  roleId: number;
   selectedRuleId: number | null;
   onRuleChange: (ruleId: number | null) => void;
 };
 
-function OwnedRuleItem({ ruleId, isSelected, onPress, theme }: {
-  ruleId: number;
-  isSelected: boolean;
-  onPress: () => void;
-  theme: ReturnType<typeof useTheme>;
-}) {
-  const ruleDetailQuery = useRuleDetailQuery(ruleId, { enabled: true });
-  const ruleName = ruleDetailQuery.data?.ruleName ?? `规则 #${ruleId}`;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.ruleItem, { backgroundColor: isSelected ? `${theme.accent}18` : theme.background }]}
-    >
-      <ThemedText type="small" themeColor={isSelected ? "accent" : "text"}>{ruleName}</ThemedText>
-      {isSelected && <ThemedText themeColor="accent" type="caption">当前</ThemedText>}
-    </Pressable>
-  );
-}
-
-export function RuleSection({ roleId, selectedRuleId, onRuleChange }: RuleSectionProps) {
+export function RuleSection({ selectedRuleId, onRuleChange }: RuleSectionProps) {
   const theme = useTheme();
   const [sheetVisible, setSheetVisible] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
 
-  const abilitiesQuery = useRoleAbilityListQuery(roleId);
+  const normalizedRuleId = typeof selectedRuleId === "number" && selectedRuleId > 0
+    ? selectedRuleId
+    : DEFAULT_RULE_ID;
+  const selectedRuleQuery = useRuleDetailQuery(normalizedRuleId, { enabled: normalizedRuleId !== DEFAULT_RULE_ID });
   const rulePageQuery = useRulePageQuery(page, keyword || undefined, 10, { enabled: sheetVisible });
-
-  const ownedRuleIds = useMemo(() => {
-    const abilities = abilitiesQuery.data ?? [];
-    const ids = [...new Set(abilities.map(a => a.ruleId).filter((id): id is number => typeof id === "number" && id > 0))];
-    return ids;
-  }, [abilitiesQuery.data]);
-
-  const handleSelectOwned = useCallback((ruleId: number) => {
-    onRuleChange(ruleId);
-  }, [onRuleChange]);
+  const selectedRuleName = normalizedRuleId === DEFAULT_RULE_ID
+    ? DEFAULT_RULE_NAME
+    : selectedRuleQuery.data?.ruleName ?? `规则 #${normalizedRuleId}`;
 
   const handleSelectFromPicker = useCallback((rule: Rule) => {
     if (rule.ruleId) {
@@ -116,7 +100,7 @@ export function RuleSection({ roleId, selectedRuleId, onRuleChange }: RuleSectio
   }, [onRuleChange]);
 
   const renderPickerItem = useCallback(({ item }: { item: Rule }) => {
-    const isOwned = ownedRuleIds.includes(item.ruleId ?? 0);
+    const isSelected = item.ruleId === normalizedRuleId;
     return (
       <Pressable
         onPress={() => handleSelectFromPicker(item)}
@@ -124,7 +108,7 @@ export function RuleSection({ roleId, selectedRuleId, onRuleChange }: RuleSectio
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm }}>
           <ThemedText type="smallBold">{item.ruleName ?? "未命名规则"}</ThemedText>
-          {isOwned && <ThemedText themeColor="accent" type="caption">已拥有</ThemedText>}
+          {isSelected && <ThemedText themeColor="accent" type="caption">当前</ThemedText>}
         </View>
         {item.ruleDescription
           ? (
@@ -135,36 +119,40 @@ export function RuleSection({ roleId, selectedRuleId, onRuleChange }: RuleSectio
           : null}
       </Pressable>
     );
-  }, [theme.border, handleSelectFromPicker, ownedRuleIds]);
+  }, [theme.border, handleSelectFromPicker, normalizedRuleId]);
 
   return (
-    <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-      <View style={styles.sectionHeader}>
-        <ThemedText type="heading">规则系统</ThemedText>
-        <Pressable onPress={() => setSheetVisible(true)}>
-          <ThemedText themeColor="accent" type="small">浏览全部</ThemedText>
+    <View style={styles.section}>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryTextRow}>
+          <View style={styles.summaryTitleRow}>
+            <GearSix size={19} color={theme.text} weight="bold" />
+            <ThemedText type="heading">规则系统：</ThemedText>
+          </View>
+          <Pressable
+            accessibilityLabel="浏览规则"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => setSheetVisible(true)}
+            style={styles.ruleNameButton}
+          >
+            <ThemedText type="heading" themeColor="textSecondary" numberOfLines={1}>
+              {selectedRuleName}
+            </ThemedText>
+          </Pressable>
+        </View>
+        <Pressable
+          accessibilityLabel="浏览全部规则"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={() => setSheetVisible(true)}
+          style={styles.listButton}
+        >
+          <List size={24} color={theme.accent} weight="bold" />
         </Pressable>
       </View>
 
-      {abilitiesQuery.isLoading
-        ? <ActivityIndicator color={theme.accent} />
-        : ownedRuleIds.length === 0
-          ? (
-              <View style={styles.emptyState}>
-                <ThemedText themeColor="textSecondary" type="small">暂无规则，点击浏览全部添加</ThemedText>
-              </View>
-            )
-          : (
-              ownedRuleIds.map(ruleId => (
-                <OwnedRuleItem
-                  key={ruleId}
-                  ruleId={ruleId}
-                  isSelected={ruleId === selectedRuleId}
-                  onPress={() => handleSelectOwned(ruleId)}
-                  theme={theme}
-                />
-              ))
-            )}
+      <View style={[styles.sectionDivider, { backgroundColor: theme.border }]} />
 
       <BottomSheetModal visible={sheetVisible} onClose={() => setSheetVisible(false)} maxHeight="70%" backgroundColor={theme.backgroundElement} handleColor={theme.border}>
         <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, flex: 1 }}>

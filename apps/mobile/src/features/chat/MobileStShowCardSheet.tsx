@@ -1,12 +1,13 @@
 import { X } from "phosphor-react-native";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { FlatList, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
-import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
+import type { StShowCardModel, StShowCardSection } from "../../components/common/dicer/cmdExe/stShowCard";
 
 const styles = StyleSheet.create({
   closeButton: {
@@ -18,6 +19,26 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: Spacing.xxl,
+  },
+  carousel: {
+    flexGrow: 0,
+  },
+  carouselFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+    justifyContent: "space-between",
+    marginBottom: Spacing.md,
+  },
+  dots: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  dot: {
+    borderRadius: Radius.full,
+    height: 7,
+    width: 7,
   },
   emptyPanel: {
     borderRadius: Radius.md,
@@ -50,10 +71,13 @@ const styles = StyleSheet.create({
     minWidth: 72,
     textAlign: "right",
   },
+  sectionPage: {
+    paddingRight: Spacing.md,
+  },
   section: {
     borderRadius: Radius.md,
     borderWidth: 1,
-    marginBottom: Spacing.lg,
+    flex: 1,
     overflow: "hidden",
   },
   sectionHeader: {
@@ -80,12 +104,69 @@ type MobileStShowCardSheetProps = {
 
 export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetProps) {
   const theme = useTheme();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const carouselRef = useRef<FlatList<StShowCardSection>>(null);
+  const sections = model?.sections ?? [];
+  const totalRows = sections.reduce((total, section) => total + section.rows.length, 0);
+  const pageWidth = Math.max(280, windowWidth - Spacing.xl * 2);
+  const carouselHeight = Math.max(280, Math.min(windowHeight * 0.62, 520));
+  const pageCount = sections.length;
+  const resolvedActiveSectionIndex = pageCount === 0 ? 0 : Math.min(activeSectionIndex, pageCount - 1);
+  const displayIndex = pageCount === 0 ? 0 : resolvedActiveSectionIndex + 1;
+
+  const handleScrollEnd = useCallback((event: { nativeEvent: { contentOffset: { x: number } } }) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+    setActiveSectionIndex(Math.max(0, Math.min(nextIndex, pageCount - 1)));
+  }, [pageCount, pageWidth]);
+
+  const handleDotPress = useCallback((index: number) => {
+    carouselRef.current?.scrollToOffset({ animated: true, offset: pageWidth * index });
+    setActiveSectionIndex(index);
+  }, [pageWidth]);
+
+  const getSectionLayout = useCallback((_: ArrayLike<StShowCardSection> | null | undefined, index: number) => ({
+    index,
+    length: pageWidth,
+    offset: pageWidth * index,
+  }), [pageWidth]);
+
+  const renderSectionCard = useCallback(({ item: section }: { item: StShowCardSection }) => (
+    <View style={[styles.sectionPage, { width: pageWidth }]}>
+      <View
+        style={[styles.section, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+      >
+        <View style={[styles.sectionHeader, { borderBottomColor: theme.border }]}>
+          <ThemedText type="smallBold">{section.title}</ThemedText>
+          <ThemedText themeColor="textSecondary" type="caption">
+            {section.rows.length}
+            {" 项"}
+          </ThemedText>
+        </View>
+        <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+          <View style={styles.sectionRows}>
+            {section.rows.map((row, index) => (
+              <View
+                key={`${section.title}-${row.key}`}
+                style={[
+                  styles.row,
+                  { borderBottomColor: theme.border },
+                  index === section.rows.length - 1 && { borderBottomWidth: 0 },
+                ]}
+              >
+                <ThemedText style={styles.rowKey}>{row.key}</ThemedText>
+                <ThemedText style={styles.rowValue} type="smallBold">{row.value}</ThemedText>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    </View>
+  ), [pageWidth, theme.backgroundElement, theme.border]);
 
   if (!model) {
     return null;
   }
-
-  const totalRows = model.sections.reduce((total, section) => total + section.rows.length, 0);
 
   return (
     <BottomSheetModal
@@ -119,43 +200,56 @@ export function MobileStShowCardSheet({ model, onClose }: MobileStShowCardSheetP
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {model.sections.length === 0
+      <View style={styles.content}>
+        {pageCount === 0
           ? (
               <View style={[styles.emptyPanel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                 <ThemedText themeColor="textSecondary">没有可显示的属性。</ThemedText>
               </View>
             )
-          : model.sections.map(section => (
-              <View
-                key={section.title}
-                style={[styles.section, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-              >
-                <View style={[styles.sectionHeader, { borderBottomColor: theme.border }]}>
-                  <ThemedText type="smallBold">{section.title}</ThemedText>
+          : (
+              <>
+                <View style={styles.carouselFooter}>
+                  <View style={styles.dots}>
+                    {sections.map((section, index) => {
+                      const active = index === resolvedActiveSectionIndex;
+                      return (
+                        <Pressable
+                          key={section.title}
+                          accessibilityLabel={`切换到${section.title}`}
+                          accessibilityRole="button"
+                          onPress={() => handleDotPress(index)}
+                          style={[
+                            styles.dot,
+                            { backgroundColor: active ? theme.accent : theme.border },
+                            active && { width: 18 },
+                          ]}
+                        />
+                      );
+                    })}
+                  </View>
                   <ThemedText themeColor="textSecondary" type="caption">
-                    {section.rows.length}
-                    {" 项"}
+                    {displayIndex}
+                    /
+                    {pageCount}
                   </ThemedText>
                 </View>
-                <View style={styles.sectionRows}>
-                  {section.rows.map((row, index) => (
-                    <View
-                      key={`${section.title}-${row.key}`}
-                      style={[
-                        styles.row,
-                        { borderBottomColor: theme.border },
-                        index === section.rows.length - 1 && { borderBottomWidth: 0 },
-                      ]}
-                    >
-                      <ThemedText style={styles.rowKey}>{row.key}</ThemedText>
-                      <ThemedText style={styles.rowValue} type="smallBold">{row.value}</ThemedText>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
-      </ScrollView>
+                <FlatList
+                  ref={carouselRef}
+                  data={sections}
+                  getItemLayout={getSectionLayout}
+                  horizontal
+                  keyExtractor={section => section.title}
+                  onMomentumScrollEnd={handleScrollEnd}
+                  pagingEnabled
+                  renderItem={renderSectionCard}
+                  showsHorizontalScrollIndicator={false}
+                  snapToAlignment="start"
+                  style={[styles.carousel, { height: carouselHeight }]}
+                />
+              </>
+            )}
+      </View>
     </BottomSheetModal>
   );
 }

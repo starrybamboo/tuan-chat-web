@@ -7,7 +7,10 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import { useRoomRolesQuery as useSharedRoomRolesQuery } from "@tuanchat/query/room-roles";
+import {
+  useAddRoomRoleMutation as useSharedAddRoomRoleMutation,
+  useRoomRolesQuery as useSharedRoomRolesQuery,
+} from "@tuanchat/query/room-roles";
 
 const ROOM_ROLES_SNAPSHOT_TTL_MS = 5 * 60_000;
 
@@ -37,4 +40,9 @@ export function useRoomRolesQuery(roomId: number | null) {
     ...snapshotQuery,
     data: snapshotQuery.data ?? [],
   };
+}
+
+/** 将当前用户选择的角色加入指定房间。 */
+export function useAddRoomRoleMutation() {
+  return useSharedAddRoomRoleMutation(mobileApiClient);
 }

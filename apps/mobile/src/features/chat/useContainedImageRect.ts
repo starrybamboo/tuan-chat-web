@@ -8,6 +8,11 @@ export type ContainedRect = {
   height: number;
 };
 
+export type ImageSize = {
+  height: number;
+  width: number;
+};
+
 const EMPTY_RECT: ContainedRect = { left: 0, top: 0, width: 0, height: 0 };
 
 type ContainedRectState = {
@@ -15,6 +20,11 @@ type ContainedRectState = {
   containerWidth: number;
   imageUrl: string;
   rect: ContainedRect;
+};
+
+type ImageSizeState = {
+  imageUrl: string;
+  size: ImageSize;
 };
 
 function computeContainedRect(
@@ -97,4 +107,47 @@ export function useContainedImageRect(imageUrl: string, containerWidth: number, 
   }
 
   return rectState.rect;
+}
+
+export function useImageSize(imageUrl: string): ImageSize | null {
+  const [sizeState, setSizeState] = useState<ImageSizeState | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl) {
+      return;
+    }
+
+    let disposed = false;
+    Image.getSize(
+      imageUrl,
+      (width, height) => {
+        if (disposed) {
+          return;
+        }
+        setSizeState({
+          imageUrl,
+          size: { width, height },
+        });
+      },
+      () => {
+        if (disposed) {
+          return;
+        }
+        setSizeState({
+          imageUrl,
+          size: { width: 0, height: 0 },
+        });
+      },
+    );
+
+    return () => {
+      disposed = true;
+    };
+  }, [imageUrl]);
+
+  if (sizeState?.imageUrl !== imageUrl) {
+    return null;
+  }
+
+  return sizeState.size;
 }

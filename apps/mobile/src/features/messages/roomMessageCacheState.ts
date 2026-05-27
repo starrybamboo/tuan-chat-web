@@ -1,5 +1,5 @@
-import type { RoomMessagesSyncResult } from "./roomMessageSync";
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
+import type { RoomMessagesSyncResult } from "./roomMessageSync";
 
 function isRoomMessagesSyncResult(value: RoomMessagesQueryData): value is RoomMessagesSyncResult {
   return Boolean(value)

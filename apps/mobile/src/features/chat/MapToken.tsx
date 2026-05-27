@@ -9,6 +9,7 @@ type MapTokenProps = {
   avatarUrl: string | null;
   hasStatus?: boolean;
   isSelected: boolean;
+  onLongPress?: () => void;
   name: string;
   onPress: () => void;
   size: number;
@@ -20,6 +21,7 @@ export const MapToken = memo(({
   hasStatus = false,
   isSelected,
   name,
+  onLongPress,
   onPress,
   size,
   statusText,
@@ -29,6 +31,7 @@ export const MapToken = memo(({
     <Pressable
       accessibilityHint={statusText}
       accessibilityLabel={statusText ? `${name}，${statusText}` : name}
+      onLongPress={onLongPress}
       onPress={onPress}
     >
       <View

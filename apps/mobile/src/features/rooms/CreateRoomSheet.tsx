@@ -1,16 +1,15 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   StyleSheet,
   TextInput,
-  View,
 } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
@@ -19,25 +18,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 
 const styles = StyleSheet.create({
-  overlay: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    paddingBottom: Spacing.xxxl,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-  },
-  handle: {
-    alignSelf: "center",
-    borderRadius: 2,
-    height: 4,
-    marginBottom: Spacing.xl,
-    width: 36,
-  },
   title: {
     fontSize: 16,
     fontWeight: "600",
@@ -140,54 +120,54 @@ export function CreateRoomSheet({ onClose, onCreated, spaceId, visible }: Create
   };
 
   return (
-    <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={[styles.sheet, { backgroundColor: theme.surface }]} onStartShouldSetResponder={() => true}>
-          <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          <ThemedText style={styles.title}>创建房间</ThemedText>
+    <BottomSheetModal
+      backgroundColor={theme.surface}
+      handleColor={theme.border}
+      onClose={onClose}
+      visible={visible}
+    >
+      <ThemedText style={styles.title}>创建房间</ThemedText>
 
-          <TextInput
-            autoFocus
-            onChangeText={setName}
-            placeholder="房间名称"
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
-            value={name}
-          />
+      <TextInput
+        autoFocus
+        onChangeText={setName}
+        placeholder="房间名称"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+        value={name}
+      />
 
-          <Pressable
-            disabled={loading}
-            onPress={() => void handlePickAvatar()}
-            style={[styles.avatarButton, { borderColor: theme.border, backgroundColor: theme.background }]}
-          >
-            <ThemedText type="small" themeColor={avatarAttachment ? "text" : "textSecondary"}>
-              {avatarAttachment ? `头像：${avatarAttachment.fileName}` : "选择房间头像（可选）"}
-            </ThemedText>
-          </Pressable>
-
-          {errorMessage
-            ? (
-                <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
-                  {errorMessage}
-                </ThemedText>
-              )
-            : null}
-
-          <Pressable
-            disabled={!name.trim() || loading}
-            onPress={handleCreate}
-            style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}
-          >
-            {loading
-              ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                )
-              : (
-                  <ThemedText style={styles.buttonText}>创建</ThemedText>
-                )}
-          </Pressable>
-        </View>
+      <Pressable
+        disabled={loading}
+        onPress={() => void handlePickAvatar()}
+        style={[styles.avatarButton, { borderColor: theme.border, backgroundColor: theme.background }]}
+      >
+        <ThemedText type="small" themeColor={avatarAttachment ? "text" : "textSecondary"}>
+          {avatarAttachment ? `头像：${avatarAttachment.fileName}` : "选择房间头像（可选）"}
+        </ThemedText>
       </Pressable>
-    </Modal>
+
+      {errorMessage
+        ? (
+            <ThemedText style={{ color: theme.danger, fontSize: 12, marginBottom: Spacing.md }}>
+              {errorMessage}
+            </ThemedText>
+          )
+        : null}
+
+      <Pressable
+        disabled={!name.trim() || loading}
+        onPress={handleCreate}
+        style={[styles.button, { backgroundColor: name.trim() ? theme.accent : theme.backgroundElement, opacity: loading ? 0.6 : 1 }]}
+      >
+        {loading
+          ? (
+              <ActivityIndicator color="#fff" size="small" />
+            )
+          : (
+              <ThemedText style={styles.buttonText}>创建</ThemedText>
+            )}
+      </Pressable>
+    </BottomSheetModal>
   );
 }

@@ -14,9 +14,7 @@ import {
 } from "react";
 import {
   Alert,
-
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -33,7 +31,9 @@ import type { MobileMessageMode } from "@/features/messages/mobileMessageCompose
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
@@ -66,15 +66,16 @@ import {
   canMobileMessageModeUseAttachments,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
+import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { useMobileCommandRequests } from "@/features/messages/useMobileCommandRequests";
 import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
 import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
-import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
 import { RoleSwitchSheet } from "@/features/roles/RoleSwitchSheet";
-import { useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
+import { useMyRolesQuery } from "@/features/roles/useMyRolesQuery";
+import { useAddRoomRoleMutation, useRoomRolesQuery } from "@/features/roles/useRoomRolesQuery";
 import { CreateRoomSheet } from "@/features/rooms/CreateRoomSheet";
 import { useUserRoomsQuery } from "@/features/rooms/use-user-rooms-query";
 import { useRoomUnreadCounts } from "@/features/rooms/useRoomUnreadCounts";
@@ -87,9 +88,9 @@ import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfi
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
-import { LEFT_DRAWER_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
-import { canManageMemberPermissions, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
+import { canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
 import { useCopyMessageToClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
@@ -150,13 +151,6 @@ const styles = StyleSheet.create({
   kav: { flex: 1 },
   panelContainer: { flex: 1, overflow: "hidden" },
   center: { flex: 1 },
-  leftDrawer: {
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-    top: 0,
-    width: LEFT_DRAWER_WIDTH,
-  },
   rightDrawer: {
     bottom: 0,
     position: "absolute",
@@ -172,25 +166,8 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  clueScopeOverlay: {
-    backgroundColor: "rgba(0,0,0,0.5)",
-    flex: 1,
-    justifyContent: "flex-end",
-  },
   clueScopeSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
     gap: Spacing.sm,
-    paddingBottom: Spacing.xxxl,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-  },
-  clueScopeHandle: {
-    alignSelf: "center",
-    borderRadius: 2,
-    height: 4,
-    marginBottom: Spacing.lg,
-    width: 36,
   },
   clueScopeAction: {
     borderRadius: Radius.md,
@@ -205,17 +182,15 @@ export default function ChatShell() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
-  const { selectedSpaceId, selectedRoomId, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
+  const currentUserId = session?.userId ?? null;
+  const { selectedSpaceId, selectedRoomId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const messageListScrollGesture = useMemo<GestureType>(() => Gesture.Native(), []);
   const {
     panGesture,
-    openLeft,
     close,
     closeImmediately,
-    closeWithSwipeHint,
     centerStyle,
-    leftDrawerStyle,
     rightDrawerStyle,
     overlayStyle,
     translateX,
@@ -245,6 +220,8 @@ export default function ChatShell() {
   const { editMessage } = useEditRoomMessageMutation(selectedRoomId);
   const { deleteMessage, deleteMessages } = useDeleteRoomMessageMutation(selectedRoomId);
   const roomRolesQuery = useRoomRolesQuery(selectedRoomId);
+  const myRolesQuery = useMyRolesQuery(currentUserId);
+  const addRoomRoleMutation = useAddRoomRoleMutation();
   const roomUnreadCounts = useRoomUnreadCounts(selectedRoomId);
 
   const [draftMessage, setDraftMessage] = useState("");
@@ -260,6 +237,7 @@ export default function ChatShell() {
   const messageAnchorIdRef = useRef(messageAnchorId);
   const messageAttachmentsRef = useRef(messageAttachments);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
+  const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [clueScopeMessage, setClueScopeMessage] = useState<Message | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(() => new Set());
@@ -285,7 +263,6 @@ export default function ChatShell() {
     messageAttachmentsRef.current = messageAttachments;
   }, [draftMessage, draftRoleIdInput, messageAnchorId, messageAttachments]);
 
-  const currentUserId = session?.userId ?? null;
   const pendingTargetContactId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.contactId as string | string[] | undefined), [searchParams.contactId]);
   const pendingTargetSpaceId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.spaceId as string | string[] | undefined), [searchParams.spaceId]);
   const pendingTargetRoomId = useMemo(() => parsePositiveIntegerSearchParam(searchParams.roomId as string | string[] | undefined), [searchParams.roomId]);
@@ -310,6 +287,10 @@ export default function ChatShell() {
   const currentRoomMember = useMemo(() => findCurrentMember(roomMembers, currentUserId), [currentUserId, roomMembers]);
   const isSpaceOwner = hasHostMemberType(currentSpaceMember?.memberType);
   const isSpectator = !currentRoomMember && !isSpaceOwner;
+  const canAddRoomRole = canManageRoomRoles(currentSpaceMember?.memberType)
+    && typeof selectedRoomId === "number"
+    && selectedRoomId > 0
+    && !isSpectator;
   const roomMessages = useMemo(() => {
     return selectVisibleMainRoomMessages(roomMessagesQuery.messages, {
       currentUserId,
@@ -324,11 +305,20 @@ export default function ChatShell() {
     return dmConversations.find(conv => conv.contactId === currentContactId) ?? null;
   }, [currentContactId, dmConversations]);
   const currentDmContactName = currentDmConversation?.contactName ?? (currentContactId ? `用户 #${currentContactId}` : null);
+
+  useEffect(() => {
+    setChatTabBarHidden(selectedRoomId != null || currentContactId != null || pendingTargetRoomId != null || pendingTargetContactId != null);
+  }, [currentContactId, pendingTargetContactId, pendingTargetRoomId, selectedRoomId, setChatTabBarHidden]);
   const selectedAnchorMessage = useMemo(() => {
     return roomMessages.find(item => item.message.messageId === messageAnchorId)?.message ?? null;
   }, [messageAnchorId, roomMessages]);
 
   const roomRoles = useMemo(() => roomRolesQuery.data ?? [], [roomRolesQuery.data]);
+  const myRoles = useMemo(() => myRolesQuery.data ?? [], [myRolesQuery.data]);
+  const addableRoomRoles = useMemo(() => {
+    const existingRoleIds = new Set(roomRoles.map(role => role.roleId));
+    return myRoles.filter(role => role.state !== 1 && !existingRoleIds.has(role.roleId));
+  }, [myRoles, roomRoles]);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const selectableRoomRoles = useMemo(() => {
     if (isSpectator)
@@ -342,6 +332,38 @@ export default function ChatShell() {
       return null;
     return roomRoles.find(r => r.roleId === selectedRoleId) ?? null;
   }, [roomRoles, selectedRoleId]);
+
+  const handleAddRoomRole = useCallback(async (role: UserRole) => {
+    if (!canAddRoomRole || !selectedRoomId || addRoomRoleMutation.isPending) {
+      return;
+    }
+
+    try {
+      await addRoomRoleMutation.mutateAsync({
+        roomId: selectedRoomId,
+        roleIdList: [role.roleId],
+      });
+      await roomRolesQuery.refetch();
+      setSelectedRoleId(role.roleId);
+      setSelectedAvatarId(undefined);
+      setSelectedAvatarFileId(undefined);
+      setRoleSwitchVisible(false);
+    }
+    catch (error) {
+      Alert.alert("添加角色失败", getErrorMessage(error, "请稍后重试"));
+    }
+  }, [addRoomRoleMutation, canAddRoomRole, roomRolesQuery, selectedRoomId]);
+
+  const handleOpenCreateRoomRole = useCallback(() => {
+    if (!canAddRoomRole || !selectedRoomId) {
+      return;
+    }
+    setRoleSwitchVisible(false);
+    router.push({
+      pathname: "/role-edit",
+      params: { addToRoomId: String(selectedRoomId) },
+    });
+  }, [canAddRoomRole, selectedRoomId]);
 
   const currentRoomUnreadCount = selectedRoomId ? (roomUnreadCounts[selectedRoomId] ?? 0) : 0;
   const draftRoleId = useMemo(() => {
@@ -504,16 +526,15 @@ export default function ChatShell() {
     setDmBackTarget(nextDmState.backTarget);
     setDrawerMode("dm");
     if (nextDmState.shouldCloseDrawer) {
-      closeWithSwipeHint();
+      close();
     }
-  }, [closeWithSwipeHint]);
+  }, [close]);
 
   const handleBackFromDmChat = useCallback(() => {
     setCurrentContactId(null);
     setActiveDmTab(getDmTabForBackTarget(dmBackTarget));
     setDrawerMode("dm");
-    openLeft();
-  }, [dmBackTarget, openLeft]);
+  }, [dmBackTarget]);
 
   const handleSelectMessageAnchor = useCallback((message: Message) => {
     setMessageAnchorId(message.messageId ?? null);
@@ -927,7 +948,7 @@ export default function ChatShell() {
   ]);
 
   const handleMessageAction = useCallback(async (action: MessageAction, message: Message) => {
-    setActionMenuMessage(null);
+    setActionMenuVisible(false);
     if (action === "reply") {
       handleSelectMessageAnchor(message);
     }
@@ -1017,40 +1038,10 @@ export default function ChatShell() {
             : (
                 <GestureDetector gesture={panGesture}>
                   <View style={styles.panelContainer}>
-                    <Animated.View style={[styles.leftDrawer, leftDrawerStyle]}>
-                      <LeftDrawer
-                        activeDmTab={activeDmTab}
-                        activeSpaces={activeSpaces}
-                        availableRooms={availableRooms}
-                        currentContactId={currentContactId}
-                        currentRoomId={selectedRoomId}
-                        currentSpaceId={selectedSpaceId}
-                        dmConversations={dmConversations}
-                        dmIsPending={dmInboxQuery.isPending}
-                        drawerMode={drawerMode}
-                        onCreateRoom={isSpaceOwner ? () => setCreateRoomVisible(true) : undefined}
-                        onCreateSpace={() => setCreateSpaceVisible(true)}
-                        onChangeDmTab={setActiveDmTab}
-                        onRefresh={() => void handleRefreshWorkspace()}
-                        onSelectConversation={handleSelectConversation}
-                        onSelectRoom={handleSelectRoom}
-                        onSelectSpace={handleSelectSpace}
-                        onSwitchMode={setDrawerMode}
-                        roomsError={roomsQuery.error}
-                        roomsIsError={roomsQuery.isError}
-                        roomsIsPending={roomsQuery.isPending}
-                        spacesError={spacesQuery.error}
-                        spacesIsError={spacesQuery.isError}
-                        spacesIsPending={spacesQuery.isPending}
-                        unreadCounts={roomUnreadCounts}
-                      />
-                    </Animated.View>
-
                     <Animated.View style={[styles.center, centerStyle]}>
                       {!currentContactId && !searchPageVisible && (
                         <ChatHeader
                           roomName={selectedRoom?.name ?? null}
-                          onOpenDrawer={openLeft}
                           onBackToRoutePage={handleBackToRoutePage}
                           onSearch={() => setSearchPageVisible(true)}
                           unreadCount={currentRoomUnreadCount}
@@ -1073,24 +1064,25 @@ export default function ChatShell() {
                               <DmChatView
                                 contactId={currentContactId}
                                 contactName={currentDmContactName ?? `用户 #${currentContactId}`}
-                              contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
-                              currentUserId={currentUserId}
-                              messages={currentDmConversation?.messages ?? []}
-                              nativeScrollGesture={messageListScrollGesture}
-                              onBack={handleBackFromDmChat}
-                            />
+                                contactAvatarFileId={currentDmConversation?.contactAvatarFileId}
+                                currentUserId={currentUserId}
+                                messages={currentDmConversation?.messages ?? []}
+                                nativeScrollGesture={messageListScrollGesture}
+                                onBack={handleBackFromDmChat}
+                              />
                             )
                           : (
                               <>
                                 <ChatMessageList
-                                  drawerPanGesture={panGesture}
                                   messages={roomMessages}
                                   multiSelectMode={multiSelectMode}
                                   multiSelectedIds={multiSelectedIds}
                                   nativeScrollGesture={messageListScrollGesture}
                                   selectedAnchorId={messageAnchorId}
                                   onLongPressMessage={(msg) => {
+                                    closeImmediately();
                                     setActionMenuMessage(msg);
+                                    setActionMenuVisible(true);
                                   }}
                                   onRetry={() => {
                                     void roomMessagesQuery.refetch();
@@ -1260,59 +1252,54 @@ export default function ChatShell() {
         hasHostPrivileges={isSpaceOwner}
         message={actionMenuMessage}
         onAction={(action, msg) => void handleMessageAction(action, msg)}
-        onClose={() => setActionMenuMessage(null)}
-        visible={actionMenuMessage !== null}
+        onClose={() => setActionMenuVisible(false)}
+        visible={actionMenuVisible}
       />
-      <Modal
-        animationType="fade"
-        transparent
+      <BottomSheetModal
+        backgroundColor={theme.surface}
+        handleColor={theme.border}
+        onClose={() => setClueScopeMessage(null)}
+        sheetStyle={styles.clueScopeSheet}
         visible={clueScopeMessage !== null}
-        onRequestClose={() => setClueScopeMessage(null)}
       >
-        <View style={styles.clueScopeOverlay}>
-          <Pressable
-            accessibilityLabel="关闭线索夹选择"
-            accessibilityRole="button"
-            onPress={() => setClueScopeMessage(null)}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={[styles.clueScopeSheet, { backgroundColor: theme.surface }]}>
-            <View style={[styles.clueScopeHandle, { backgroundColor: theme.border }]} />
-            <ThemedText type="smallBold" themeColor="textSecondary">添加到线索</ThemedText>
-            <Pressable
-              accessibilityLabel="添加到我的线索"
-              accessibilityRole="button"
-              onPress={() => {
-                if (clueScopeMessage) {
-                  void handleCopyMessageToClueFolder(clueScopeMessage, "private");
-                }
-              }}
-              style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
-            >
-              <ThemedText>我的线索</ThemedText>
-            </Pressable>
-            <Pressable
-              accessibilityLabel="添加到公共线索"
-              accessibilityRole="button"
-              onPress={() => {
-                if (clueScopeMessage) {
-                  void handleCopyMessageToClueFolder(clueScopeMessage, "public");
-                }
-              }}
-              style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
-            >
-              <ThemedText>公共线索</ThemedText>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        <ThemedText type="smallBold" themeColor="textSecondary">添加到线索</ThemedText>
+        <Pressable
+          accessibilityLabel="添加到我的线索"
+          accessibilityRole="button"
+          onPress={() => {
+            if (clueScopeMessage) {
+              void handleCopyMessageToClueFolder(clueScopeMessage, "private");
+            }
+          }}
+          style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
+        >
+          <ThemedText>我的线索</ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="添加到公共线索"
+          accessibilityRole="button"
+          onPress={() => {
+            if (clueScopeMessage) {
+              void handleCopyMessageToClueFolder(clueScopeMessage, "public");
+            }
+          }}
+          style={({ pressed }) => [styles.clueScopeAction, pressed && { backgroundColor: theme.backgroundElement }]}
+        >
+          <ThemedText>公共线索</ThemedText>
+        </Pressable>
+      </BottomSheetModal>
       <RoleSwitchSheet
+        addableRoles={addableRoomRoles}
+        canAddRole={canAddRoomRole}
         currentAvatarId={selectedAvatarId}
         currentRoleId={selectedRoleId}
         customRoleName={draftCustomRoleName}
         canSelectNarrator={isSpaceOwner}
+        isAddingRole={addRoomRoleMutation.isPending}
+        onAddRole={role => void handleAddRoomRole(role)}
         onChangeCustomRoleName={setDraftCustomRoleName}
         onClose={() => setRoleSwitchVisible(false)}
+        onCreateRole={handleOpenCreateRoomRole}
         onSelectAvatar={(avatarId, avatarFileId) => {
           setSelectedAvatarId(avatarId);
           setSelectedAvatarFileId(avatarFileId);
