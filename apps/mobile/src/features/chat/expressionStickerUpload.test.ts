@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 
-import { buildStickerCreateRequest } from "./expressionStickerUpload";
+import { buildStickerCreateRequest, createStickerCropFileName, getStickerUploadErrorMessage } from "./expressionStickerUpload";
 
 describe("expressionStickerUpload", () => {
   const attachment = {
@@ -38,5 +38,15 @@ describe("expressionStickerUpload", () => {
       size: 2048,
       width: 256,
     })).toThrow("表情仅支持 jpg/jpeg/png/gif/webp");
+  });
+
+  it("会把上传异常转换成可展示的错误文案", () => {
+    expect(getStickerUploadErrorMessage(new Error("文件不属于表情包场景"))).toBe("文件不属于表情包场景");
+    expect(getStickerUploadErrorMessage(null)).toBe("表情包上传失败。");
+  });
+
+  it("会为裁剪后的表情生成 webp 文件名", () => {
+    expect(createStickerCropFileName("sticker.png", 123)).toBe("sticker_sticker_123.webp");
+    expect(createStickerCropFileName("  ", 123)).toBe("sticker_sticker_123.webp");
   });
 });

@@ -4,6 +4,9 @@ import type { MobileMessageAttachment } from "@/features/messages/mobileMessageA
 import type { StickerCreateRequest } from "@tuanchat/openapi-client/models/StickerCreateRequest";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+const STICKER_UPLOAD_FALLBACK_ERROR_MESSAGE = "表情包上传失败。";
+const STICKER_CROP_FILE_SUFFIX = "sticker";
+const STICKER_CROP_FILE_EXTENSION = "webp";
 
 function normalizeStickerFormat(format?: string | null): string | null {
   if (!format) {
@@ -47,4 +50,15 @@ export function buildStickerCreateRequest(
     height: uploadedImage.height > 0 ? uploadedImage.height : undefined,
     format,
   };
+}
+
+export function getStickerUploadErrorMessage(error: unknown) {
+  return error instanceof Error && error.message.trim()
+    ? error.message.trim()
+    : STICKER_UPLOAD_FALLBACK_ERROR_MESSAGE;
+}
+
+export function createStickerCropFileName(fileName: string, now = Date.now()) {
+  const baseName = fileName.trim().replace(/\.[^.]+$/, "") || "sticker";
+  return `${baseName}_${STICKER_CROP_FILE_SUFFIX}_${now}.${STICKER_CROP_FILE_EXTENSION}`;
 }
