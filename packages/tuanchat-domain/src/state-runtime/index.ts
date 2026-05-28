@@ -1,7 +1,6 @@
 export {
   buildCombatStateRuntime,
   buildStateRuntime,
-  buildStateSnapshotEvents,
   compareStateValueText,
   createStateDefinition,
   EMPTY_STATE_DEFINITION_RESOLVER,
