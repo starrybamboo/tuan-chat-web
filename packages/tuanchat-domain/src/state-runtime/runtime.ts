@@ -25,7 +25,6 @@ import {
   formatStateScopeLabel,
   getNormalizedStateEventExtra,
   STATE_EVENT_SCOPE_KIND,
-  STATE_EVENT_SOURCE_KIND,
   STATE_EVENT_STACK_MODE,
   STATE_EVENT_STATUS_MODIFIER_OP,
   STATE_EVENT_VAR_OP,
@@ -165,13 +164,10 @@ function buildSummary(
   primaryCandidates: string[],
   scopeLabels: string[],
   detailLines: string[],
-  options: { commandName?: string } = {},
 ): StateEventMessageSummary {
-  const primaryText = options.commandName === "stateSync"
-    ? "同步状态快照"
-    : primaryCandidates.length === 1
-      ? primaryCandidates[0]
-      : `执行了 ${primaryCandidates.length} 个状态事件`;
+  const primaryText = primaryCandidates.length === 1
+    ? primaryCandidates[0]
+    : `执行了 ${primaryCandidates.length} 个状态事件`;
   const secondaryParts: string[] = [];
   if (scopeLabels.length === 1) {
     secondaryParts.push(scopeLabels[0]);
@@ -179,10 +175,7 @@ function buildSummary(
   else if (scopeLabels.length > 1) {
     secondaryParts.push(scopeLabels.join(" / "));
   }
-  if (options.commandName === "stateSync") {
-    secondaryParts.push(`${primaryCandidates.length} 个状态项`);
-  }
-  else if (primaryCandidates.length > 1) {
+  if (primaryCandidates.length > 1) {
     secondaryParts.push(primaryCandidates.join("；"));
   }
   return {
@@ -572,11 +565,7 @@ export function buildStateRuntime({
       }
     });
 
-    messageSummariesByMessageId[message.messageId] = buildSummary(primaryCandidates, [...scopeLabels], detailLines, {
-      commandName: normalizedExtra.source.kind === STATE_EVENT_SOURCE_KIND.COMMAND
-        ? normalizedExtra.source.commandName
-        : undefined,
-    });
+    messageSummariesByMessageId[message.messageId] = buildSummary(primaryCandidates, [...scopeLabels], detailLines);
   });
 
   const { baseDisplayValues, derivedDisplayValues } = buildDisplayValues({
@@ -675,108 +664,4 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
     hasMapConfigState,
     hasMapState,
   };
-}
-
-function toSortedStateValueEntries(values: StateValueMap): Array<[string, number]> {
-  return Object.entries(values)
-    .filter(([, value]) => Number.isFinite(value))
-    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey, "zh-CN"));
-}
-
-function toSnapshotVarEvents(params: Pick<CombatStateRuntime, "roomVars" | "roleVarsByRoleId">): StateEventAtom[] {
-  const events: StateEventAtom[] = [];
-  toSortedStateValueEntries(params.roomVars).forEach(([key, value]) => {
-    events.push({
-      type: "varOp",
-      scope: { kind: STATE_EVENT_SCOPE_KIND.ROOM },
-      key,
-      op: STATE_EVENT_VAR_OP.SET,
-      value,
-    });
-  });
-
-  Object.entries(params.roleVarsByRoleId)
-    .map(([roleId, values]) => [Number(roleId), values] as const)
-    .filter(([roleId]) => Number.isInteger(roleId) && roleId > 0)
-    .sort(([leftRoleId], [rightRoleId]) => leftRoleId - rightRoleId)
-    .forEach(([roleId, values]) => {
-      toSortedStateValueEntries(values).forEach(([key, value]) => {
-        events.push({
-          type: "varOp",
-          scope: { kind: STATE_EVENT_SCOPE_KIND.ROLE, roleId },
-          key,
-          op: STATE_EVENT_VAR_OP.SET,
-          value,
-        });
-      });
-    });
-
-  return events;
-}
-
-function toSnapshotMapEvents(params: Pick<CombatStateRuntime, "hasMapConfigState" | "mapConfig" | "mapTokens">): StateEventAtom[] {
-  const events: StateEventAtom[] = [];
-  if (params.mapConfig) {
-    events.push({
-      type: "mapConfigUpsert",
-      mapFileId: params.mapConfig.mapFileId,
-      ...(params.mapConfig.imageUrl ? { imageUrl: params.mapConfig.imageUrl } : {}),
-      gridRows: params.mapConfig.gridRows,
-      gridCols: params.mapConfig.gridCols,
-      gridColor: params.mapConfig.gridColor,
-      clearTokens: true,
-    });
-  }
-  else if (params.hasMapConfigState) {
-    events.push({ type: "mapConfigClear" });
-  }
-
-  params.mapTokens
-    .filter(token => token.roleId > 0 && token.rowIndex >= 0 && token.colIndex >= 0)
-    .sort((left, right) => left.roleId - right.roleId)
-    .forEach((token) => {
-      events.push({
-        type: "mapTokenUpsert",
-        roleId: token.roleId,
-        rowIndex: token.rowIndex,
-        colIndex: token.colIndex,
-      });
-    });
-
-  return events;
-}
-
-function toSnapshotStatusEvents(params: Pick<CombatStateRuntime, "activeStates">): StateEventAtom[] {
-  return params.activeStates.map((state) => {
-    const durationTurns = typeof state.remainingTurns === "number" && state.remainingTurns > 0
-      ? Math.trunc(state.remainingTurns)
-      : undefined;
-    return {
-      type: "statusApply",
-      scope: state.scope,
-      statusId: state.statusId,
-      ...(typeof durationTurns === "number" ? { durationTurns } : {}),
-    };
-  });
-}
-
-export function buildStateSnapshotEvents(
-  runtime: Pick<
-    CombatStateRuntime,
-    "activeStates" | "combatRoundActive" | "hasMapConfigState" | "mapConfig" | "mapTokens" | "roleVarsByRoleId" | "roomVars" | "turn"
-  >,
-): StateEventAtom[] {
-  const events: StateEventAtom[] = [];
-  if (runtime.combatRoundActive) {
-    events.push({ type: "combatRoundStart" });
-    for (let index = 0; index < runtime.turn; index += 1) {
-      events.push({ type: "nextTurn" });
-    }
-  }
-
-  events.push(...toSnapshotVarEvents(runtime));
-  events.push(...toSnapshotMapEvents(runtime));
-  // 状态放在回合事件之后写入，避免快照内的 nextTurn 立刻扣减剩余回合。
-  events.push(...toSnapshotStatusEvents(runtime));
-  return events;
 }

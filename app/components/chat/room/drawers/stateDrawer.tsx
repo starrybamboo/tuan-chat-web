@@ -4,15 +4,12 @@ import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
 
-import { ArrowsClockwise, Broom } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { getAllRoomMessagesQueryKey, patchInsertMessages } from "@tuanchat/query/chat";
-import { tuanchat } from "api/instance";
+import { Broom } from "@phosphor-icons/react";
 import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildStateSnapshotEvents, getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
+import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -34,8 +31,6 @@ import {
 import {
   buildImportRoleInitiativeEvents,
 } from "./initiativeListEvents";
-import { buildStateSyncMessageRequest } from "./stateSyncRequest";
-import StateSyncTargetDialog from "./stateSyncTargetDialog";
 
 interface StateValueRow {
   key: string;
@@ -307,13 +302,11 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
 export default function StateDrawer() {
   const roomContext = React.use(RoomContext);
   const spaceContext = React.use(SpaceContext);
-  const queryClient = useQueryClient();
   const runtime = useStateRuntimeContext();
   const currentUserId = useGlobalUserId();
   const [isAdvancingTurn, setIsAdvancingTurn] = React.useState(false);
   const [isStartingCombat, setIsStartingCombat] = React.useState(false);
   const [isEndingCombat, setIsEndingCombat] = React.useState(false);
-  const [isStateSyncDialogOpen, setIsStateSyncDialogOpen] = React.useState(false);
   const [isImportPopupOpen, setIsImportPopupOpen] = React.useState(false);
   const spaceOwner = Boolean(spaceContext.isSpaceOwner);
   const curUserId = currentUserId ?? -1;
@@ -327,8 +320,6 @@ export default function StateDrawer() {
   const canEndCombat = runtime.combatRoundActive;
   const canStartCombat = !runtime.combatRoundActive;
   const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
-  const snapshotEvents = React.useMemo(() => buildStateSnapshotEvents(runtime), [runtime]);
-  const canSyncState = snapshotEvents.length > 0;
 
   const initiativeList = React.useMemo<Initiative[]>(() => {
     return runtime.participants.map((participant) => {
@@ -505,41 +496,6 @@ export default function StateDrawer() {
     }
   }, [canStartCombat, isStartingCombat, roomContext, spaceOwner]);
 
-  const handleSyncStateToRooms = React.useCallback(async (targetRoomIds: number[]) => {
-    if (snapshotEvents.length === 0) {
-      toast.error("当前没有可同步的房间状态");
-      return false;
-    }
-    const normalizedTargetRoomIds = Array.from(new Set(targetRoomIds))
-      .filter(roomId => roomId > 0 && roomId !== roomContext.roomId);
-    if (normalizedTargetRoomIds.length === 0) {
-      toast.error("请选择要导入的目标房间");
-      return false;
-    }
-
-    try {
-      const requests = normalizedTargetRoomIds.map(targetRoomId => buildStateSyncMessageRequest({
-        targetRoomId,
-        events: snapshotEvents,
-      }));
-      const result = await patchInsertMessages(tuanchat, requests);
-      if (!result.success || (result.data?.length ?? 0) !== requests.length) {
-        toast.error("同步状态失败");
-        return false;
-      }
-      normalizedTargetRoomIds.forEach((targetRoomId) => {
-        void queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(targetRoomId) });
-      });
-      toast.success(`已同步状态到 ${normalizedTargetRoomIds.length} 个房间`);
-      return true;
-    }
-    catch (error) {
-      console.error("同步状态失败", error);
-      toast.error(error instanceof Error && error.message ? error.message : "同步状态失败");
-      return false;
-    }
-  }, [queryClient, roomContext.roomId, snapshotEvents]);
-
   const roleNameById = React.useMemo(() => {
     const nextMap: Record<number, string> = {};
     const allRoles = roomContext.roomAllRoles ?? roomContext.roomRolesThatUserOwn;
@@ -714,18 +670,6 @@ export default function StateDrawer() {
                   导入先攻
                 </button>
               )}
-              <button
-                type="button"
-                className="btn btn-outline btn-xs h-8 min-h-8 gap-1 rounded-lg px-3 text-[11px]"
-                onClick={() => {
-                  setIsStateSyncDialogOpen(true);
-                }}
-                disabled={!canSyncState || !spaceContext.spaceId || !roomContext.roomId}
-                title="选择目标房间导入当前状态"
-              >
-                <ArrowsClockwise className="size-3.5" />
-                导出状态
-              </button>
               {spaceOwner && (
                 <button
                   type="button"
@@ -864,14 +808,6 @@ export default function StateDrawer() {
         onClose={() => setIsImportPopupOpen(false)}
         onRollAllInitiative={spaceOwner ? handleRollAllInitiative : undefined}
         onImportSingle={roleId => void handleImportSingle(roleId)}
-      />
-      <StateSyncTargetDialog
-        currentRoomId={roomContext.roomId ?? -1}
-        eventCount={snapshotEvents.length}
-        isOpen={isStateSyncDialogOpen}
-        onClose={() => setIsStateSyncDialogOpen(false)}
-        onSync={handleSyncStateToRooms}
-        spaceId={spaceContext.spaceId ?? -1}
       />
     </div>
   );
