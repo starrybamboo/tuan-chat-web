@@ -4,12 +4,15 @@ import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
 
-import { Broom } from "@phosphor-icons/react";
+import { ArrowsClockwise, Broom } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getAllRoomMessagesQueryKey, patchInsertMessages } from "@tuanchat/query/chat";
+import { tuanchat } from "api/instance";
 import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
+import { buildStateSnapshotEvents, getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -22,7 +25,7 @@ import {
 } from "@/types/stateEvent";
 import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
-import { buildEndCombatMessageRequest, executeAllInitiativeRolls } from "./initiativeCommandRequest";
+import { buildEndCombatMessageRequest, buildStartCombatMessageRequest, executeAllInitiativeRolls } from "./initiativeCommandRequest";
 import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
   extractAgilityFromQuery,
@@ -31,6 +34,8 @@ import {
 import {
   buildImportRoleInitiativeEvents,
 } from "./initiativeListEvents";
+import { buildStateSyncMessageRequest } from "./stateSyncRequest";
+import StateSyncTargetDialog from "./stateSyncTargetDialog";
 
 interface StateValueRow {
   key: string;
@@ -302,10 +307,13 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
 export default function StateDrawer() {
   const roomContext = React.use(RoomContext);
   const spaceContext = React.use(SpaceContext);
+  const queryClient = useQueryClient();
   const runtime = useStateRuntimeContext();
   const currentUserId = useGlobalUserId();
   const [isAdvancingTurn, setIsAdvancingTurn] = React.useState(false);
+  const [isStartingCombat, setIsStartingCombat] = React.useState(false);
   const [isEndingCombat, setIsEndingCombat] = React.useState(false);
+  const [isStateSyncDialogOpen, setIsStateSyncDialogOpen] = React.useState(false);
   const [isImportPopupOpen, setIsImportPopupOpen] = React.useState(false);
   const spaceOwner = Boolean(spaceContext.isSpaceOwner);
   const curUserId = currentUserId ?? -1;
@@ -316,7 +324,11 @@ export default function StateDrawer() {
     : roomRolesThatUserOwn.filter(role => role.userId === curUserId);
   const rollableRoles = spaceOwner ? visibleRoomRoles : importableRoles;
   const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(role => role.roleId));
-  const canEndCombat = runtime.participants.length > 0 || runtime.turn > 0;
+  const canEndCombat = runtime.combatRoundActive;
+  const canStartCombat = !runtime.combatRoundActive;
+  const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
+  const snapshotEvents = React.useMemo(() => buildStateSnapshotEvents(runtime), [runtime]);
+  const canSyncState = snapshotEvents.length > 0;
 
   const initiativeList = React.useMemo<Initiative[]>(() => {
     return runtime.participants.map((participant) => {
@@ -457,6 +469,76 @@ export default function StateDrawer() {
       setIsEndingCombat(false);
     }
   }, [canEndCombat, isEndingCombat, roomContext, spaceOwner]);
+
+  const handleStartCombat = React.useCallback(async () => {
+    if (!spaceOwner || isStartingCombat) {
+      return;
+    }
+    if (!canStartCombat) {
+      toast.error("当前战斗已经开始");
+      return;
+    }
+    if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
+      toast.error("当前房间暂不能开始战斗");
+      return;
+    }
+
+    setIsStartingCombat(true);
+    try {
+      const createdMessage = await roomContext.sendMessageWithInsert(buildStartCombatMessageRequest({
+        roomId: roomContext.roomId,
+        roleId: roomContext.curRoleId ?? -1,
+        avatarId: roomContext.curAvatarId ?? -1,
+      }));
+      if (!createdMessage) {
+        toast.error("开始战斗失败");
+        return;
+      }
+      toast.success("已开始战斗");
+    }
+    catch (error) {
+      console.error("开始战斗失败", error);
+      toast.error(error instanceof Error && error.message ? error.message : "开始战斗失败");
+    }
+    finally {
+      setIsStartingCombat(false);
+    }
+  }, [canStartCombat, isStartingCombat, roomContext, spaceOwner]);
+
+  const handleSyncStateToRooms = React.useCallback(async (targetRoomIds: number[]) => {
+    if (snapshotEvents.length === 0) {
+      toast.error("当前没有可同步的房间状态");
+      return false;
+    }
+    const normalizedTargetRoomIds = Array.from(new Set(targetRoomIds))
+      .filter(roomId => roomId > 0 && roomId !== roomContext.roomId);
+    if (normalizedTargetRoomIds.length === 0) {
+      toast.error("请选择要导入的目标房间");
+      return false;
+    }
+
+    try {
+      const requests = normalizedTargetRoomIds.map(targetRoomId => buildStateSyncMessageRequest({
+        targetRoomId,
+        events: snapshotEvents,
+      }));
+      const result = await patchInsertMessages(tuanchat, requests);
+      if (!result.success || (result.data?.length ?? 0) !== requests.length) {
+        toast.error("同步状态失败");
+        return false;
+      }
+      normalizedTargetRoomIds.forEach((targetRoomId) => {
+        void queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(targetRoomId) });
+      });
+      toast.success(`已同步状态到 ${normalizedTargetRoomIds.length} 个房间`);
+      return true;
+    }
+    catch (error) {
+      console.error("同步状态失败", error);
+      toast.error(error instanceof Error && error.message ? error.message : "同步状态失败");
+      return false;
+    }
+  }, [queryClient, roomContext.roomId, snapshotEvents]);
 
   const roleNameById = React.useMemo(() => {
     const nextMap: Record<number, string> = {};
@@ -617,7 +699,10 @@ export default function StateDrawer() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-end gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/42">回合</span>
-              <span className="text-2xl font-semibold leading-none text-base-content">{runtime.turn}</span>
+              <span className="text-2xl font-semibold leading-none text-base-content">{displayedRound}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${runtime.combatRoundActive ? "bg-primary/14 text-primary" : "bg-base-200 text-base-content/45"}`}>
+                {runtime.combatRoundActive ? "战斗轮进行中" : "未进入战斗轮"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               {importableRoles.length > 0 && (
@@ -629,6 +714,31 @@ export default function StateDrawer() {
                   导入先攻
                 </button>
               )}
+              <button
+                type="button"
+                className="btn btn-outline btn-xs h-8 min-h-8 gap-1 rounded-lg px-3 text-[11px]"
+                onClick={() => {
+                  setIsStateSyncDialogOpen(true);
+                }}
+                disabled={!canSyncState || !spaceContext.spaceId || !roomContext.roomId}
+                title="选择目标房间导入当前状态"
+              >
+                <ArrowsClockwise className="size-3.5" />
+                导出状态
+              </button>
+              {spaceOwner && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]"
+                  onClick={() => {
+                    void handleStartCombat();
+                  }}
+                  disabled={!canStartCombat || isStartingCombat || !roomContext.sendMessageWithInsert || !roomContext.roomId}
+                  title="写入开始战斗事件"
+                >
+                  {isStartingCombat ? "开始中..." : "开始战斗"}
+                </button>
+              )}
               {spaceOwner && (
                 <button
                   type="button"
@@ -637,7 +747,7 @@ export default function StateDrawer() {
                     void handleEndCombat();
                   }}
                   disabled={!canEndCombat || isEndingCombat || !roomContext.sendMessageWithInsert || !roomContext.roomId}
-                  title="结束战斗并清空先攻"
+                  title="结束战斗轮并将回合归零"
                 >
                   <Broom className="size-3.5" />
                   {isEndingCombat ? "结束中..." : "结束战斗"}
@@ -754,6 +864,14 @@ export default function StateDrawer() {
         onClose={() => setIsImportPopupOpen(false)}
         onRollAllInitiative={spaceOwner ? handleRollAllInitiative : undefined}
         onImportSingle={roleId => void handleImportSingle(roleId)}
+      />
+      <StateSyncTargetDialog
+        currentRoomId={roomContext.roomId ?? -1}
+        eventCount={snapshotEvents.length}
+        isOpen={isStateSyncDialogOpen}
+        onClose={() => setIsStateSyncDialogOpen(false)}
+        onSync={handleSyncStateToRooms}
+        spaceId={spaceContext.spaceId ?? -1}
       />
     </div>
   );

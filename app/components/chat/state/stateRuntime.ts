@@ -2,6 +2,7 @@ export type {
   ActiveStateInstance,
   BuildCombatStateRuntimeParams,
   BuildStateRuntimeParams,
+  CombatMapConfig,
   CombatMapToken,
   CombatParticipant,
   CombatStateRuntime,
@@ -15,5 +16,6 @@ export type {
 export {
   buildCombatStateRuntime,
   buildStateRuntime,
+  buildStateSnapshotEvents,
   getFallbackRoleAbilityValue,
 } from "@tuanchat/domain/state-runtime";

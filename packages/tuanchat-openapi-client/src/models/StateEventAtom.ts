@@ -48,5 +48,29 @@ export type StateEventAtom = {
      * 地图 token 列坐标，仅 mapTokenUpsert 使用
      */
     colIndex?: number;
+    /**
+     * 战斗地图图片文件 ID，仅 mapConfigUpsert 使用
+     */
+    mapFileId?: number;
+    /**
+     * 战斗地图图片访问地址，仅 mapConfigUpsert 使用
+     */
+    imageUrl?: string;
+    /**
+     * 战斗地图网格行数，仅 mapConfigUpsert 使用
+     */
+    gridRows?: number;
+    /**
+     * 战斗地图网格列数，仅 mapConfigUpsert 使用
+     */
+    gridCols?: number;
+    /**
+     * 战斗地图网格颜色，仅 mapConfigUpsert 使用
+     */
+    gridColor?: string;
+    /**
+     * 是否在更新地图配置时清空 token，仅 mapConfigUpsert 使用
+     */
+    clearTokens?: boolean;
 };
 

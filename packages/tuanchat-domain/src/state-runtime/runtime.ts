@@ -5,6 +5,7 @@ import type {
   ActiveStateInstance,
   BuildCombatStateRuntimeParams,
   BuildStateRuntimeParams,
+  CombatMapConfig,
   CombatMapToken,
   CombatStateRuntime,
   StateDefinition,
@@ -24,6 +25,7 @@ import {
   formatStateScopeLabel,
   getNormalizedStateEventExtra,
   STATE_EVENT_SCOPE_KIND,
+  STATE_EVENT_SOURCE_KIND,
   STATE_EVENT_STACK_MODE,
   STATE_EVENT_STATUS_MODIFIER_OP,
   STATE_EVENT_VAR_OP,
@@ -159,10 +161,17 @@ function collectScopeLabel(scope: StateEventScope): string {
   return formatStateScopeLabel(scope);
 }
 
-function buildSummary(primaryCandidates: string[], scopeLabels: string[], detailLines: string[]): StateEventMessageSummary {
-  const primaryText = primaryCandidates.length === 1
-    ? primaryCandidates[0]
-    : `执行了 ${primaryCandidates.length} 个状态事件`;
+function buildSummary(
+  primaryCandidates: string[],
+  scopeLabels: string[],
+  detailLines: string[],
+  options: { commandName?: string } = {},
+): StateEventMessageSummary {
+  const primaryText = options.commandName === "stateSync"
+    ? "同步状态快照"
+    : primaryCandidates.length === 1
+      ? primaryCandidates[0]
+      : `执行了 ${primaryCandidates.length} 个状态事件`;
   const secondaryParts: string[] = [];
   if (scopeLabels.length === 1) {
     secondaryParts.push(scopeLabels[0]);
@@ -170,7 +179,10 @@ function buildSummary(primaryCandidates: string[], scopeLabels: string[], detail
   else if (scopeLabels.length > 1) {
     secondaryParts.push(scopeLabels.join(" / "));
   }
-  if (primaryCandidates.length > 1) {
+  if (options.commandName === "stateSync") {
+    secondaryParts.push(`${primaryCandidates.length} 个状态项`);
+  }
+  else if (primaryCandidates.length > 1) {
     secondaryParts.push(primaryCandidates.join("；"));
   }
   return {
@@ -185,6 +197,9 @@ function isScopedStateAtom(atom: StateEventAtom): atom is Extract<StateEventAtom
 }
 
 function formatCombatAtomPrimary(atom: Exclude<StateEventAtom, Extract<StateEventAtom, { scope: StateEventScope }> | { type: "nextTurn" }>): string {
+  if (atom.type === "combatRoundStart") {
+    return "进入战斗轮";
+  }
   if (atom.type === "combatRoundEnd") {
     return "结束战斗";
   }
@@ -193,6 +208,12 @@ function formatCombatAtomPrimary(atom: Exclude<StateEventAtom, Extract<StateEven
   }
   if (atom.type === "mapTokenRemove") {
     return `移除地图角色 #${atom.roleId}`;
+  }
+  if (atom.type === "mapConfigUpsert") {
+    return `更新地图配置 ${atom.gridRows}×${atom.gridCols}`;
+  }
+  if (atom.type === "mapConfigClear") {
+    return "清空地图配置";
   }
   return "战斗事件";
 }
@@ -416,6 +437,7 @@ export function buildStateRuntime({
   const messageSummariesByMessageId: Record<number, StateEventMessageSummary> = {};
   let activeStates: ActiveStateInstance[] = [];
   let turn = 0;
+  let combatRoundActive = false;
 
   effectiveMessages.forEach((message) => {
     const normalizedExtra = getNormalizedStateEventExtra(message.extra);
@@ -503,9 +525,17 @@ export function buildStateRuntime({
 
       if (atom.type === "combatRoundEnd") {
         const previousTurn = turn;
+        combatRoundActive = false;
         turn = 0;
         primaryCandidates.push("结束战斗");
         detailLines.push(`结束战斗 · 回合 ${previousTurn} -> 0`);
+        return;
+      }
+
+      if (atom.type === "combatRoundStart") {
+        combatRoundActive = true;
+        primaryCandidates.push("进入战斗轮");
+        detailLines.push(`进入战斗轮 · 当前回合 ${turn}`);
         return;
       }
 
@@ -542,7 +572,11 @@ export function buildStateRuntime({
       }
     });
 
-    messageSummariesByMessageId[message.messageId] = buildSummary(primaryCandidates, [...scopeLabels], detailLines);
+    messageSummariesByMessageId[message.messageId] = buildSummary(primaryCandidates, [...scopeLabels], detailLines, {
+      commandName: normalizedExtra.source.kind === STATE_EVENT_SOURCE_KIND.COMMAND
+        ? normalizedExtra.source.commandName
+        : undefined,
+    });
   });
 
   const { baseDisplayValues, derivedDisplayValues } = buildDisplayValues({
@@ -556,6 +590,7 @@ export function buildStateRuntime({
 
   return {
     turn,
+    combatRoundActive,
     roomVars: cloneValueMap(roomVars),
     roleVarsByRoleId: cloneRoleVarsMap(roleVarsByRoleId),
     activeStates: [...activeStates],
@@ -570,6 +605,8 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
   const stateRuntime = buildStateRuntime(params);
   const effectiveMessages = params.messages.filter(message => message.status !== 1 && message.messageType === MESSAGE_TYPE.STATE_EVENT);
   const mapTokensByRoleId = new Map<number, CombatMapToken>();
+  let mapConfig: CombatMapConfig | null = null;
+  let hasMapConfigState = false;
   let hasMapState = false;
 
   effectiveMessages.forEach((message) => {
@@ -592,6 +629,36 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
       if (atom.type === "mapTokenRemove") {
         hasMapState = true;
         mapTokensByRoleId.delete(atom.roleId);
+        return;
+      }
+
+      if (atom.type === "mapConfigUpsert") {
+        hasMapState = true;
+        hasMapConfigState = true;
+        mapConfig = {
+          mapFileId: atom.mapFileId,
+          ...(atom.imageUrl ? { imageUrl: atom.imageUrl } : {}),
+          gridRows: atom.gridRows,
+          gridCols: atom.gridCols,
+          gridColor: atom.gridColor,
+        };
+        if (atom.clearTokens) {
+          mapTokensByRoleId.clear();
+          return;
+        }
+        mapTokensByRoleId.forEach((token, roleId) => {
+          if (token.rowIndex >= atom.gridRows || token.colIndex >= atom.gridCols) {
+            mapTokensByRoleId.delete(roleId);
+          }
+        });
+        return;
+      }
+
+      if (atom.type === "mapConfigClear") {
+        hasMapState = true;
+        hasMapConfigState = true;
+        mapConfig = null;
+        mapTokensByRoleId.clear();
       }
     });
   });
@@ -602,8 +669,114 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
     ...stateRuntime,
     participants: [],
     participantsById: {},
+    mapConfig,
     mapTokens,
     mapTokensByRoleId: Object.fromEntries(mapTokens.map(token => [token.roleId, token])),
+    hasMapConfigState,
     hasMapState,
   };
+}
+
+function toSortedStateValueEntries(values: StateValueMap): Array<[string, number]> {
+  return Object.entries(values)
+    .filter(([, value]) => Number.isFinite(value))
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey, "zh-CN"));
+}
+
+function toSnapshotVarEvents(params: Pick<CombatStateRuntime, "roomVars" | "roleVarsByRoleId">): StateEventAtom[] {
+  const events: StateEventAtom[] = [];
+  toSortedStateValueEntries(params.roomVars).forEach(([key, value]) => {
+    events.push({
+      type: "varOp",
+      scope: { kind: STATE_EVENT_SCOPE_KIND.ROOM },
+      key,
+      op: STATE_EVENT_VAR_OP.SET,
+      value,
+    });
+  });
+
+  Object.entries(params.roleVarsByRoleId)
+    .map(([roleId, values]) => [Number(roleId), values] as const)
+    .filter(([roleId]) => Number.isInteger(roleId) && roleId > 0)
+    .sort(([leftRoleId], [rightRoleId]) => leftRoleId - rightRoleId)
+    .forEach(([roleId, values]) => {
+      toSortedStateValueEntries(values).forEach(([key, value]) => {
+        events.push({
+          type: "varOp",
+          scope: { kind: STATE_EVENT_SCOPE_KIND.ROLE, roleId },
+          key,
+          op: STATE_EVENT_VAR_OP.SET,
+          value,
+        });
+      });
+    });
+
+  return events;
+}
+
+function toSnapshotMapEvents(params: Pick<CombatStateRuntime, "hasMapConfigState" | "mapConfig" | "mapTokens">): StateEventAtom[] {
+  const events: StateEventAtom[] = [];
+  if (params.mapConfig) {
+    events.push({
+      type: "mapConfigUpsert",
+      mapFileId: params.mapConfig.mapFileId,
+      ...(params.mapConfig.imageUrl ? { imageUrl: params.mapConfig.imageUrl } : {}),
+      gridRows: params.mapConfig.gridRows,
+      gridCols: params.mapConfig.gridCols,
+      gridColor: params.mapConfig.gridColor,
+      clearTokens: true,
+    });
+  }
+  else if (params.hasMapConfigState) {
+    events.push({ type: "mapConfigClear" });
+  }
+
+  params.mapTokens
+    .filter(token => token.roleId > 0 && token.rowIndex >= 0 && token.colIndex >= 0)
+    .sort((left, right) => left.roleId - right.roleId)
+    .forEach((token) => {
+      events.push({
+        type: "mapTokenUpsert",
+        roleId: token.roleId,
+        rowIndex: token.rowIndex,
+        colIndex: token.colIndex,
+      });
+    });
+
+  return events;
+}
+
+function toSnapshotStatusEvents(params: Pick<CombatStateRuntime, "activeStates">): StateEventAtom[] {
+  return params.activeStates.map((state) => {
+    const durationTurns = typeof state.remainingTurns === "number" && state.remainingTurns > 0
+      ? Math.trunc(state.remainingTurns)
+      : undefined;
+    return {
+      type: "statusApply",
+      scope: state.scope,
+      statusId: state.statusId,
+      ...(typeof durationTurns === "number" ? { durationTurns } : {}),
+    };
+  });
+}
+
+export function buildStateSnapshotEvents(
+  runtime: Pick<
+    CombatStateRuntime,
+    "activeStates" | "combatRoundActive" | "hasMapConfigState" | "mapConfig" | "mapTokens" | "roleVarsByRoleId" | "roomVars" | "turn"
+  >,
+): StateEventAtom[] {
+  const events: StateEventAtom[] = [];
+  if (runtime.combatRoundActive) {
+    events.push({ type: "combatRoundStart" });
+    for (let index = 0; index < runtime.turn; index += 1) {
+      events.push({ type: "nextTurn" });
+    }
+  }
+
+  events.push(...toSnapshotVarEvents(runtime));
+  events.push(...toSnapshotMapEvents(runtime));
+  // 状态放在回合事件之后写入，避免快照内的 nextTurn 立刻扣减剩余回合。
+  events.push(...toSnapshotStatusEvents(runtime));
+  return events;
 }
