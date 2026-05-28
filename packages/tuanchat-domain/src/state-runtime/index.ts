@@ -1,6 +1,7 @@
 export {
   buildCombatStateRuntime,
   buildStateRuntime,
+  buildStateSnapshotEvents,
   compareStateValueText,
   createStateDefinition,
   EMPTY_STATE_DEFINITION_RESOLVER,
@@ -13,6 +14,7 @@ export type {
   ActiveStateInstance,
   BuildCombatStateRuntimeParams,
   BuildStateRuntimeParams,
+  CombatMapConfig,
   CombatMapToken,
   CombatParticipant,
   CombatStateRuntime,

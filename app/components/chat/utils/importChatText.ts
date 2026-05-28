@@ -1,8 +1,16 @@
+import { stripUnsupportedImportedMediaPlaceholders } from "./cqMediaImport";
+
 type ImportedChatLine = {
   lineNumber: number;
   raw: string;
   speakerName: string;
   content: string;
+  diceTurn?: ImportedDiceTurn;
+};
+
+export type ImportedDiceTurn = {
+  dicerSpeakerName: string;
+  replyContent: string;
 };
 
 export const IMPORT_SPECIAL_ROLE_ID = {
@@ -19,13 +27,45 @@ function normalizeLineBreaks(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
+function normalizeImportedContent(content: string) {
+  const withoutEchoVoiceMarker = content.trim().replace(/\s*\{\*\}\s*$/, "");
+  return stripUnsupportedImportedMediaPlaceholders(withoutEchoVoiceMarker);
+}
+
+function stripForumCodeMarkup(text: string) {
+  return text
+    .replace(/\[\/?(?:color|size|font|[biu])(?:=[^\]]*)?\]/gi, "")
+    .replace(/\[br\s*\/?\]/gi, "\n");
+}
+
+function stripEchoDicePrefix(text: string) {
+  return text.replace(/^\s*#\s+/, "");
+}
+
+function normalizeLineForInlineParsing(rawLine: string) {
+  return stripEchoDicePrefix(stripForumCodeMarkup(rawLine)).trim();
+}
+
+function normalizeImportedSpeakerName(speakerName: string) {
+  return speakerName
+    .trim()
+    .replace(/\s*,\s*KP$/i, "")
+    .replace(/\s*[（(]\d+[）)]\s*$/, "")
+    .trim();
+}
+
+function stripInlineTimePrefix(text: string) {
+  const timePrefix = String.raw`(?:\d{2,4}[./-]\d{1,2}[./-]\d{1,2}\s+)?\d{1,2}:\d{2}(?::\d{2})?`;
+  return text.replace(new RegExp(String.raw`^\s*${timePrefix}\s+`), "").trim();
+}
+
 function parseTaggedChatText(lines: string[]): ImportChatTextParseResult {
   const messages: ImportedChatLine[] = [];
   const invalidLines: Array<{ lineNumber: number; raw: string }> = [];
 
   for (let index = 0; index < lines.length; index++) {
     const raw = lines[index] ?? "";
-    const trimmed = raw.trim();
+    const trimmed = normalizeLineForInlineParsing(raw);
     const lineNumber = index + 1;
 
     if (!trimmed) {
@@ -44,7 +84,7 @@ function parseTaggedChatText(lines: string[]): ImportChatTextParseResult {
       continue;
     }
 
-    const speakerName = trimmed.slice(1, closeIndex).trim();
+    const speakerName = normalizeImportedSpeakerName(trimmed.slice(1, closeIndex));
     let rest = trimmed.slice(closeIndex + 1);
     rest = rest.replace(/^\s+/, "");
 
@@ -55,10 +95,12 @@ function parseTaggedChatText(lines: string[]): ImportChatTextParseResult {
     }
 
     let content = rest.slice(1);
-    content = content.replace(/^\s+/, "").trim();
+    content = normalizeImportedContent(content.replace(/^\s+/, ""));
 
     if (!speakerName || !content) {
-      invalidLines.push({ lineNumber, raw });
+      if (!speakerName || !rest.includes("[mirai:image:")) {
+        invalidLines.push({ lineNumber, raw });
+      }
       continue;
     }
 
@@ -69,6 +111,99 @@ function parseTaggedChatText(lines: string[]): ImportChatTextParseResult {
       content,
     });
   }
+
+  return { messages, invalidLines };
+}
+
+function matchInlineAngleMessage(rawLine: string): { speakerName: string; content: string } | null {
+  const withoutMarkup = normalizeLineForInlineParsing(rawLine);
+  const trimmed = stripInlineTimePrefix(withoutMarkup);
+  if (!trimmed.startsWith("<")) {
+    return null;
+  }
+  const closeIndex = trimmed.indexOf(">");
+  if (closeIndex <= 1) {
+    return null;
+  }
+  let rest = trimmed.slice(closeIndex + 1).trimStart();
+  if (rest[0] === ":" || rest[0] === "：") {
+    rest = rest.slice(1).trimStart();
+  }
+
+  const speakerName = normalizeImportedSpeakerName(trimmed.slice(1, closeIndex));
+  const content = normalizeImportedContent(rest);
+  if (!speakerName || !content) {
+    return null;
+  }
+  return { speakerName, content };
+}
+
+function parseInlineAngleChatText(lines: string[]): ImportChatTextParseResult {
+  const messages: ImportedChatLine[] = [];
+  const invalidLines: Array<{ lineNumber: number; raw: string }> = [];
+  let currentMessage:
+    | {
+      lineNumber: number;
+      rawLine: string;
+      speakerName: string;
+      contentLines: string[];
+    }
+    | null = null;
+
+  const flushCurrentMessage = () => {
+    if (!currentMessage) {
+      return;
+    }
+    const rawContent = currentMessage.contentLines.join("\n").trim();
+    const content = normalizeImportedContent(rawContent);
+    if (!content) {
+      if (!rawContent.includes("[mirai:image:")) {
+        invalidLines.push({ lineNumber: currentMessage.lineNumber, raw: currentMessage.rawLine });
+      }
+      currentMessage = null;
+      return;
+    }
+    messages.push({
+      lineNumber: currentMessage.lineNumber,
+      raw: currentMessage.rawLine,
+      speakerName: currentMessage.speakerName,
+      content,
+    });
+    currentMessage = null;
+  };
+
+  for (let index = 0; index < lines.length; index++) {
+    const raw = lines[index] ?? "";
+    const trimmed = normalizeLineForInlineParsing(raw);
+    const lineNumber = index + 1;
+
+    if (!trimmed) {
+      if (currentMessage) {
+        currentMessage.contentLines.push("");
+      }
+      continue;
+    }
+
+    const message = matchInlineAngleMessage(raw);
+    if (message) {
+      flushCurrentMessage();
+      currentMessage = {
+        lineNumber,
+        rawLine: raw,
+        speakerName: message.speakerName,
+        contentLines: [message.content],
+      };
+      continue;
+    }
+
+    if (currentMessage) {
+      currentMessage.contentLines.push(normalizeImportedContent(stripForumCodeMarkup(raw)));
+      continue;
+    }
+
+    invalidLines.push({ lineNumber, raw });
+  }
+  flushCurrentMessage();
 
   return { messages, invalidLines };
 }
@@ -107,9 +242,12 @@ function parseQqChatText(lines: string[]): ImportChatTextParseResult {
     if (!currentMessage) {
       return;
     }
-    const content = currentMessage.contentLines.join("\n").trim();
+    const rawContent = currentMessage.contentLines.join("\n").trim();
+    const content = normalizeImportedContent(rawContent);
     if (!content) {
-      invalidLines.push({ lineNumber: currentMessage.lineNumber, raw: currentMessage.rawHeaderLine });
+      if (!rawContent.includes("[mirai:image:")) {
+        invalidLines.push({ lineNumber: currentMessage.lineNumber, raw: currentMessage.rawHeaderLine });
+      }
       currentMessage = null;
       return;
     }
@@ -175,13 +313,86 @@ function chooseBetterParseResult(
   return first;
 }
 
+function isLikelyDicerCommand(content: string) {
+  const normalized = content.trim();
+  return (normalized.startsWith(".") || normalized.startsWith(",")) && normalized.length > 1;
+}
+
+function getDicerCommandName(content: string) {
+  const matched = content.trim().match(/^[.,]\s*([a-z][a-z0-9]*)\b/i);
+  return matched?.[1]?.toLowerCase() ?? null;
+}
+
+function shouldIgnoreImportedControlCommand(message: ImportedChatLine) {
+  return getDicerCommandName(message.content) === "log";
+}
+
+function extractDiceReplyActor(content: string): string | null {
+  const normalized = content.trim();
+  const matched = normalized.match(/<([^<>]+)>[^，。,.]*(?:掷出了|检定结果为)/);
+  const actor = matched?.[1]?.trim();
+  return actor || null;
+}
+
+function mergeImportedDiceTurns(messages: ImportedChatLine[]): ImportedChatLine[] {
+  const merged: ImportedChatLine[] = [];
+  for (const message of messages) {
+    const previous = merged[merged.length - 1];
+    const isDicerReply = isDicerSpeakerName(message.speakerName);
+    const diceReplyActor = isDicerReply ? extractDiceReplyActor(message.content) : null;
+    const sameDicerAsPreviousReply = Boolean(
+      previous?.diceTurn
+      && isDicerReply
+      && normalizeSpeakerName(previous.diceTurn.dicerSpeakerName) === normalizeSpeakerName(message.speakerName),
+    );
+    const shouldAppendToPreviousReply = sameDicerAsPreviousReply && Boolean(previous);
+    const shouldStartDiceTurn = Boolean(
+      previous
+      && isDicerReply
+      && isLikelyDicerCommand(previous.content)
+      && (!diceReplyActor || normalizeSpeakerName(previous.speakerName) === normalizeSpeakerName(diceReplyActor)),
+    );
+
+    if (shouldAppendToPreviousReply && previous?.diceTurn) {
+      merged[merged.length - 1] = {
+        ...previous,
+        diceTurn: {
+          ...previous.diceTurn,
+          replyContent: `${previous.diceTurn.replyContent}\n${message.content}`,
+        },
+      };
+      continue;
+    }
+
+    if (!shouldStartDiceTurn || !previous) {
+      merged.push(message);
+      continue;
+    }
+
+    merged[merged.length - 1] = {
+      ...previous,
+      diceTurn: {
+        dicerSpeakerName: message.speakerName,
+        replyContent: message.content,
+      },
+    };
+  }
+  return merged;
+}
+
 export function parseImportedChatText(text: string): ImportChatTextParseResult {
   const normalized = normalizeLineBreaks(String(text ?? ""));
   const lines = normalized.split("\n");
 
   const taggedResult = parseTaggedChatText(lines);
   const qqResult = parseQqChatText(lines);
-  return chooseBetterParseResult(taggedResult, qqResult);
+  const inlineAngleResult = parseInlineAngleChatText(lines);
+  const chosen = [taggedResult, qqResult, inlineAngleResult].reduce(chooseBetterParseResult);
+  const messages = chosen.messages.filter(message => !shouldIgnoreImportedControlCommand(message));
+  return {
+    ...chosen,
+    messages: mergeImportedDiceTurns(messages),
+  };
 }
 
 export function normalizeSpeakerName(name: string) {
@@ -194,6 +405,7 @@ export function isDicerSpeakerName(name: string) {
     return false;
   }
   return normalized === "骰娘"
+    || normalized.startsWith("海豹")
     || normalized === "dice"
     || normalized === "dicer"
     || normalized === "dicebot";

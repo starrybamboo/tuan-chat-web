@@ -82,6 +82,10 @@ export type StateEventNextTurn = {
   type: "nextTurn";
 };
 
+export type StateEventCombatRoundStart = {
+  type: "combatRoundStart";
+};
+
 export type StateEventCombatRoundEnd = {
   type: "combatRoundEnd";
 };
@@ -98,18 +102,49 @@ export type StateEventMapTokenRemove = {
   roleId: number;
 };
 
+export type StateEventMapConfigUpsert = {
+  type: "mapConfigUpsert";
+  mapFileId: number;
+  imageUrl?: string;
+  gridRows: number;
+  gridCols: number;
+  gridColor: string;
+  clearTokens?: boolean;
+};
+
+export type StateEventMapConfigClear = {
+  type: "mapConfigClear";
+};
+
 export type StateEventAtom
   = | StateEventVarOp
     | StateEventStatusApply
     | StateEventStatusRemove
     | StateEventNextTurn
+    | StateEventCombatRoundStart
     | StateEventCombatRoundEnd
     | StateEventMapTokenUpsert
-    | StateEventMapTokenRemove;
+    | StateEventMapTokenRemove
+    | StateEventMapConfigUpsert
+    | StateEventMapConfigClear;
 
 export type StateEventExtra = {
   source: StateEventSource;
   events: StateEventAtom[];
+};
+
+export type LegacyMapTokenSnapshot = {
+  roleId?: unknown;
+  rowIndex?: unknown;
+  colIndex?: unknown;
+};
+
+export type LegacyMapConfigSnapshot = {
+  mapFileId?: unknown;
+  gridRows?: unknown;
+  gridCols?: unknown;
+  gridColor?: unknown;
+  tokens?: LegacyMapTokenSnapshot[] | null;
 };
 
 export type StateScopeLabelOptions = {
@@ -164,6 +199,23 @@ function toNonNegativeInteger(value: unknown): number | undefined {
     return undefined;
   }
   return Math.trunc(normalized);
+}
+
+function toOptionalBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+  return undefined;
 }
 
 function normalizeStateEventSource(rawSource: unknown): StateEventSource | undefined {
@@ -222,6 +274,10 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
     return { type: "nextTurn" };
   }
 
+  if (type === "combatRoundStart") {
+    return { type: "combatRoundStart" };
+  }
+
   if (type === "combatRoundEnd") {
     return { type: "combatRoundEnd" };
   }
@@ -246,6 +302,31 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
     return roleId
       ? { type: "mapTokenRemove", roleId }
       : undefined;
+  }
+
+  if (type === "mapConfigUpsert") {
+    const mapFileId = toPositiveInteger(atom.mapFileId);
+    const imageUrl = toTrimmedString(atom.imageUrl);
+    const gridRows = toPositiveInteger(atom.gridRows);
+    const gridCols = toPositiveInteger(atom.gridCols);
+    const gridColor = toTrimmedString(atom.gridColor);
+    const clearTokens = toOptionalBoolean(atom.clearTokens);
+    if (!mapFileId || !gridRows || !gridCols || !gridColor) {
+      return undefined;
+    }
+    return {
+      type: "mapConfigUpsert",
+      mapFileId,
+      ...(imageUrl ? { imageUrl } : {}),
+      gridRows,
+      gridCols,
+      gridColor,
+      ...(typeof clearTokens === "boolean" ? { clearTokens } : {}),
+    };
+  }
+
+  if (type === "mapConfigClear") {
+    return { type: "mapConfigClear" };
   }
 
   const scope = normalizeStateEventScope(atom.scope);
@@ -367,6 +448,59 @@ export function buildUiStateEventExtra(events: StateEventAtom[]): StateEventExtr
   };
 }
 
+export function buildMapStateEventsFromSnapshot(
+  map: LegacyMapConfigSnapshot | null | undefined,
+  options: {
+    clearTokens?: boolean;
+    imageUrl?: string;
+    includeTokens?: boolean;
+  } = {},
+): StateEventAtom[] {
+  const mapFileId = toPositiveInteger(map?.mapFileId);
+  if (!mapFileId) {
+    return [];
+  }
+  const gridRows = toPositiveInteger(map?.gridRows) ?? 10;
+  const gridCols = toPositiveInteger(map?.gridCols) ?? 10;
+  const gridColor = toTrimmedString(map?.gridColor) ?? "#808080";
+  const imageUrl = toTrimmedString(options.imageUrl);
+  const includeTokens = options.includeTokens ?? true;
+  const clearTokens = options.clearTokens ?? includeTokens;
+  const events: StateEventAtom[] = [{
+    type: "mapConfigUpsert",
+    mapFileId,
+    ...(imageUrl ? { imageUrl } : {}),
+    gridRows,
+    gridCols,
+    gridColor,
+    ...(clearTokens ? { clearTokens: true } : {}),
+  }];
+
+  if (!includeTokens) {
+    return events;
+  }
+
+  (map?.tokens ?? []).forEach((token) => {
+    const roleId = toPositiveInteger(token.roleId);
+    const rowIndex = toNonNegativeInteger(token.rowIndex);
+    const colIndex = toNonNegativeInteger(token.colIndex);
+    if (!roleId || typeof rowIndex !== "number" || typeof colIndex !== "number") {
+      return;
+    }
+    if (rowIndex >= gridRows || colIndex >= gridCols) {
+      return;
+    }
+    events.push({
+      type: "mapTokenUpsert",
+      roleId,
+      rowIndex,
+      colIndex,
+    });
+  });
+
+  return events;
+}
+
 export function toApiStateEventExtra(extra: StateEventExtra): ApiStateEventExtra {
   return extra as ApiStateEventExtra;
 }
@@ -415,11 +549,15 @@ export function formatStateScopeLabel(scope: StateEventScope, options?: StateSco
   if (scope.kind === STATE_EVENT_SCOPE_KIND.ROOM) {
     return options?.roomLabel ?? "房间";
   }
-  const mappedRoleName = options?.roleNameById?.[scope.roleId];
+  return formatStateRoleLabel(scope.roleId, options);
+}
+
+export function formatStateRoleLabel(roleId: number, options?: StateScopeLabelOptions): string {
+  const mappedRoleName = options?.roleNameById?.[roleId];
   if (typeof mappedRoleName === "string" && mappedRoleName.trim()) {
     return mappedRoleName.trim();
   }
-  return options?.fallbackRoleLabel?.(scope.roleId) ?? `角色 #${scope.roleId}`;
+  return options?.fallbackRoleLabel?.(roleId) ?? `角色 #${roleId}`;
 }
 
 export function collectStateEventScopeLabels(
@@ -452,15 +590,26 @@ export function formatStateEventAtomDetail(atom: StateEventAtom, options?: State
     return "推进到下一回合";
   }
 
+  if (atom.type === "combatRoundStart") {
+    return "进入战斗轮";
+  }
+
   if (atom.type === "combatRoundEnd") {
     return "结束战斗";
   }
 
   if (atom.type === "mapTokenUpsert") {
-    return `地图角色 #${atom.roleId} 移动到 第 ${atom.rowIndex + 1} 行 · 第 ${atom.colIndex + 1} 列`;
+    return `${formatStateRoleLabel(atom.roleId, options)} 移动到 第 ${atom.rowIndex + 1} 行 · 第 ${atom.colIndex + 1} 列`;
   }
   if (atom.type === "mapTokenRemove") {
-    return `移除地图角色 #${atom.roleId}`;
+    return `移除 ${formatStateRoleLabel(atom.roleId, options)}`;
+  }
+  if (atom.type === "mapConfigUpsert") {
+    const tokenLabel = atom.clearTokens ? " · 清空角色位置" : "";
+    return `更新地图配置 #${atom.mapFileId} · ${atom.gridRows}×${atom.gridCols} · ${atom.gridColor}${tokenLabel}`;
+  }
+  if (atom.type === "mapConfigClear") {
+    return "清空地图配置";
   }
   const scopeLabel = formatStateScopeLabel(atom.scope, options);
   if (atom.type === "varOp") {
@@ -498,6 +647,9 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
   if (firstEvent.type === "nextTurn") {
     return "[状态] 下一回合";
   }
+  if (firstEvent.type === "combatRoundStart") {
+    return "[战斗] 进入战斗轮";
+  }
   if (firstEvent.type === "combatRoundEnd") {
     return "[战斗] 结束战斗";
   }
@@ -512,6 +664,12 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
   }
   if (firstEvent.type === "mapTokenRemove") {
     return `[战斗] 移除地图角色 #${firstEvent.roleId}`;
+  }
+  if (firstEvent.type === "mapConfigUpsert") {
+    return "[战斗] 更新地图配置";
+  }
+  if (firstEvent.type === "mapConfigClear") {
+    return "[战斗] 清空地图";
   }
   return `[状态] ${fallback}`;
 }

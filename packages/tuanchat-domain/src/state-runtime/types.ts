@@ -60,6 +60,7 @@ export type StateEventMessageSummary = {
 
 export type StateRuntime = {
   turn: number;
+  combatRoundActive: boolean;
   roomVars: StateValueMap;
   roleVarsByRoleId: Record<number, StateValueMap>;
   activeStates: ActiveStateInstance[];
@@ -92,11 +93,21 @@ export type CombatMapToken = {
   colIndex: number;
 };
 
+export type CombatMapConfig = {
+  mapFileId: number;
+  imageUrl?: string;
+  gridRows: number;
+  gridCols: number;
+  gridColor: string;
+};
+
 export type CombatStateRuntime = StateRuntime & {
   participants: CombatParticipant[];
   participantsById: Record<string, CombatParticipant>;
+  mapConfig: CombatMapConfig | null;
   mapTokens: CombatMapToken[];
   mapTokensByRoleId: Record<number, CombatMapToken>;
+  hasMapConfigState: boolean;
   hasMapState: boolean;
 };
 

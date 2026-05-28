@@ -205,6 +205,20 @@ describe("buildStateRuntime", () => {
     expect(afterNextTurn.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(100);
     expect(afterNextTurn.messageSummariesByMessageId[2]?.primaryText).toBe("回合 0 -> 1");
   });
+
+  it("combatRoundStart / combatRoundEnd 会切换战斗轮状态", () => {
+    const runtime = buildStateRuntime({
+      messages: [
+        createStateMessage(1, buildCommandStateEventExtra("combat", [{ type: "combatRoundStart" }])),
+        createStateMessage(2, buildCommandStateEventExtra("combat", [{ type: "combatRoundEnd" }])),
+      ],
+    });
+
+    expect(runtime.combatRoundActive).toBe(false);
+    expect(runtime.turn).toBe(0);
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("进入战斗轮");
+    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("结束战斗");
+  });
 });
 
 describe("buildCombatStateRuntime", () => {

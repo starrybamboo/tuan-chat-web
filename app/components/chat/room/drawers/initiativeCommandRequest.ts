@@ -1,11 +1,18 @@
-import { buildUiStateEventExtra, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
+import {
+  buildEndCombatStateEventExtra,
+  buildStartCombatStateEventExtra,
+  END_COMBAT_CONTENT,
+  START_COMBAT_CONTENT,
+} from "@tuanchat/domain/state-command";
+
+import { toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 
 import type { ChatMessageRequest, UserRole } from "../../../../../api";
 
 import { MessageType } from "../../../../../api/wsModels";
 
 export const ALL_INITIATIVE_COMMAND = ".ri";
-export const END_COMBAT_CONTENT = "战斗结束：清空先攻";
+export { END_COMBAT_CONTENT, START_COMBAT_CONTENT };
 
 type ExecuteCommand = (payload: {
   command: string;
@@ -20,6 +27,12 @@ type ExecuteAllInitiativeRollsParams = {
 };
 
 type BuildEndCombatMessageRequestParams = {
+  avatarId?: number;
+  roleId?: number;
+  roomId: number;
+};
+
+type BuildStartCombatMessageRequestParams = {
   avatarId?: number;
   roleId?: number;
   roomId: number;
@@ -54,6 +67,17 @@ export function buildEndCombatMessageRequest(params: BuildEndCombatMessageReques
     avatarId: params.avatarId ?? -1,
     content: END_COMBAT_CONTENT,
     messageType: MessageType.STATE_EVENT,
-    extra: toApiMessageExtraWithStateEvent(buildUiStateEventExtra([{ type: "combatRoundEnd" }])),
+    extra: toApiMessageExtraWithStateEvent(buildEndCombatStateEventExtra()),
+  };
+}
+
+export function buildStartCombatMessageRequest(params: BuildStartCombatMessageRequestParams): ChatMessageRequest {
+  return {
+    roomId: params.roomId,
+    roleId: params.roleId ?? -1,
+    avatarId: params.avatarId ?? -1,
+    content: START_COMBAT_CONTENT,
+    messageType: MessageType.STATE_EVENT,
+    extra: toApiMessageExtraWithStateEvent(buildStartCombatStateEventExtra()),
   };
 }

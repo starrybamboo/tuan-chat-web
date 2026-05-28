@@ -4,8 +4,10 @@ import { MessageType } from "../../../../../api/wsModels";
 import {
   ALL_INITIATIVE_COMMAND,
   buildEndCombatMessageRequest,
+  buildStartCombatMessageRequest,
   END_COMBAT_CONTENT,
   executeAllInitiativeRolls,
+  START_COMBAT_CONTENT,
 } from "./initiativeCommandRequest";
 
 describe("initiativeCommandRequest", () => {
@@ -58,6 +60,33 @@ describe("initiativeCommandRequest", () => {
           events: [
             {
               type: "combatRoundEnd",
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it("构建开始战斗显式状态消息", () => {
+    expect(buildStartCombatMessageRequest({
+      roomId: 12,
+      roleId: 34,
+      avatarId: 56,
+    })).toEqual({
+      roomId: 12,
+      roleId: 34,
+      avatarId: 56,
+      content: START_COMBAT_CONTENT,
+      messageType: MessageType.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "ui",
+            parserVersion: "state-event-v1",
+          },
+          events: [
+            {
+              type: "combatRoundStart",
             },
           ],
         },
