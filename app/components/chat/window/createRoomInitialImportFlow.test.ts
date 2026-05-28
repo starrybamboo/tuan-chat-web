@@ -3,8 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { runCreateRoomPostCreateSteps } from "./createRoomInitialImportFlow";
 
 describe("runCreateRoomPostCreateSteps", () => {
-  it("先继承状态，再导入初始对话，最后通知创建成功", async () => {
-    const runStateSync = vi.fn().mockResolvedValue(undefined);
+  it("先导入初始对话，再通知创建成功", async () => {
     const importInitialMessages = vi.fn().mockResolvedValue(undefined);
     const onImportError = vi.fn();
     const onImportSuccess = vi.fn();
@@ -19,18 +18,15 @@ describe("runCreateRoomPostCreateSteps", () => {
       onImportError,
       onImportSuccess,
       onSuccess,
-      runStateSync,
       setImportProgress,
       setSubmitPhase,
     });
 
-    expect(setSubmitPhase).toHaveBeenNthCalledWith(1, "syncingState");
-    expect(setSubmitPhase).toHaveBeenNthCalledWith(2, "importing");
+    expect(setSubmitPhase).toHaveBeenNthCalledWith(1, "importing");
     expect(importInitialMessages).toHaveBeenCalledWith(22, [{ content: "开场" }], expect.any(Function));
     expect(onImportSuccess).toHaveBeenCalledTimes(1);
     expect(onImportError).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith(22);
-    expect(runStateSync.mock.invocationCallOrder[0]).toBeLessThan(importInitialMessages.mock.invocationCallOrder[0]);
     expect(importInitialMessages.mock.invocationCallOrder[0]).toBeLessThan(onSuccess.mock.invocationCallOrder[0]);
   });
 

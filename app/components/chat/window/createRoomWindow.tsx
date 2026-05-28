@@ -1,28 +1,21 @@
-import type { Room } from "../../../../api";
 import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
 import type { InitialImportChatMessage } from "./initialChatImport";
-import type { RoomStateInheritanceHistoryItem } from "./roomStateInheritance";
 
-import { ArrowsClockwise, ChatCircleText, Trash } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { getAllRoomMessagesQueryKey, patchInsertMessages } from "@tuanchat/query/chat";
-import { useCreateRoomMutation, useGetSpaceInfoQuery, useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
+import { ChatCircleText, Trash } from "@phosphor-icons/react";
+import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useGetUserRolesQuery } from "api/queryHooks";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import toast from "react-hot-toast";
-import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import checkBack from "@/components/common/autoContrastText";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { PlusIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
-import { tuanchat } from "../../../../api/instance";
 import { runCreateRoomPostCreateSteps } from "./createRoomInitialImportFlow";
 import ImportChatMessagesWindow from "./importChatMessagesWindow";
 import { sendInitialImportChatMessages } from "./initialChatImport";
-import { buildInheritedRoomStateSyncRequest } from "./roomStateInheritance";
 
 interface CreateRoomWindowProps {
   spaceId: number;
@@ -33,16 +26,10 @@ interface CreateRoomWindowProps {
   onSubmittingChange?: (isSubmitting: boolean) => void;
 }
 
-type CreateRoomSubmitPhase = "creating" | "importing" | "syncingState" | null;
-
-function getRoomId(room: Room): number {
-  return typeof room.roomId === "number" ? room.roomId : -1;
-}
+type CreateRoomSubmitPhase = "creating" | "importing" | null;
 
 export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = false, onCancel, onSuccess, onSubmittingChange }: CreateRoomWindowProps) {
   const userId = useGlobalUserId();
-  const queryClient = useQueryClient();
-  const roomHeaders = useEntityHeaderOverrideStore(state => state.headers);
   const getUserInfo = useGetUserInfoQuery(Number(userId));
   const userInfo = getUserInfo.data?.data;
   const userRolesQuery = useGetUserRolesQuery(Number(userId));
@@ -52,7 +39,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
 
   const createRoomMutation = useCreateRoomMutation(spaceId);
   const getSpaceInfo = useGetSpaceInfoQuery(spaceId);
-  const userRoomsQuery = useGetUserRoomsQuery(spaceId > 0 ? spaceId : -1);
   const spaceInfo = getSpaceInfo.data?.data;
   const defaultRoomAvatarFileId = spaceInfo?.avatarFileId;
   const defaultRoomAvatar = imageLowUrl(defaultRoomAvatarFileId) || spaceAvatarThumbUrl || undefined;
@@ -63,33 +49,14 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
   const [roomNameDraft, setRoomNameDraft] = useState<string | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [initialImportMessages, setInitialImportMessages] = useState<InitialImportChatMessage[]>([]);
-  const [inheritStateRoomId, setInheritStateRoomId] = useState<number | null>(null);
   const [submitPhase, setSubmitPhase] = useState<CreateRoomSubmitPhase>(null);
-  const [importProgress, setImportProgress] = useState<{ sent: number; total: number } | null>(null);
+  const [, setImportProgress] = useState<{ sent: number; total: number } | null>(null);
   const roomAvatar = roomAvatarDraft ?? defaultRoomAvatar;
   const roomName = roomNameDraft ?? defaultRoomName;
   const isSubmitting = submitPhase !== null || createRoomMutation.isPending;
   const canSubmit = roomName.trim().length > 0 && !isSubmitting;
 
   const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
-
-  const inheritableRooms = useMemo(() => {
-    return (userRoomsQuery.data?.data?.rooms ?? [])
-      .filter(room => getRoomId(room) > 0 && room.status !== 1);
-  }, [userRoomsQuery.data?.data?.rooms]);
-
-  const selectedInheritStateRoom = useMemo(() => {
-    return inheritableRooms.find(room => getRoomId(room) === inheritStateRoomId);
-  }, [inheritStateRoomId, inheritableRooms]);
-
-  function resolveRoomDisplayName(room: Room): string {
-    const roomId = getRoomId(room);
-    return roomHeaders[`room:${roomId}`]?.title || room.name || `房间 #${roomId}`;
-  }
-
-  const selectedInheritStateRoomName = selectedInheritStateRoom
-    ? resolveRoomDisplayName(selectedInheritStateRoom)
-    : null;
 
   useEffect(() => {
     if (roomAvatar) {
@@ -106,12 +73,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
     onSubmittingChange?.(isSubmitting);
     return () => onSubmittingChange?.(false);
   }, [isSubmitting, onSubmittingChange]);
-
-  useEffect(() => {
-    if (inheritStateRoomId && !inheritableRooms.some(room => getRoomId(room) === inheritStateRoomId)) {
-      setInheritStateRoomId(null);
-    }
-  }, [inheritStateRoomId, inheritableRooms]);
 
   async function createRoom() {
     if (!canSubmit) {
@@ -137,44 +98,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
         onImportError: error => toast.error(error instanceof Error ? error.message : "房间已创建，但初始对话导入失败"),
         onImportSuccess: () => toast.success("初始对话已导入"),
         onSuccess,
-        runStateSync: typeof newRoomId === "number" && inheritStateRoomId
-          ? async () => {
-            const sourceRoomId = inheritStateRoomId;
-            const sourceRoomName = selectedInheritStateRoomName ?? `房间 #${sourceRoomId}`;
-            const toastId = `room-state-inheritance-${newRoomId}`;
-            toast.loading(`正在继承「${sourceRoomName}」状态`, { id: toastId });
-            try {
-              const historyResponse = await tuanchat.chatController.getHistoryMessages({
-                roomId: sourceRoomId,
-                syncId: 0,
-              });
-              if (historyResponse?.success === false) {
-                throw new Error(historyResponse?.errMsg?.trim() || "读取来源房间状态失败");
-              }
-              const sourceMessages = Array.isArray(historyResponse?.data)
-                ? historyResponse.data as RoomStateInheritanceHistoryItem[]
-                : [];
-              const request = buildInheritedRoomStateSyncRequest({
-                sourceMessages,
-                targetRoomId: newRoomId,
-              });
-              if (request) {
-                const insertResult = await patchInsertMessages(tuanchat, [request]);
-                if (!insertResult.success || (insertResult.data?.length ?? 0) !== 1) {
-                  throw new Error(insertResult.errMsg || "继承房间状态失败");
-                }
-                void queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(newRoomId) });
-                toast.success(`已继承「${sourceRoomName}」状态`, { id: toastId });
-              }
-              else {
-                toast.success(`「${sourceRoomName}」暂无可继承状态`, { id: toastId });
-              }
-            }
-            catch (error) {
-              toast.error(error instanceof Error ? error.message : "房间已创建，但继承状态失败", { id: toastId });
-            }
-          }
-          : undefined,
         setImportProgress,
         setSubmitPhase,
       });
@@ -187,14 +110,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
       setImportProgress(null);
     }
   }
-
-  const submitLabel = submitPhase === "importing"
-    ? "正在导入..."
-    : submitPhase === "syncingState"
-      ? "正在继承状态..."
-      : submitPhase === "creating" || createRoomMutation.isPending
-        ? "创建中..."
-        : "创建房间";
 
   return (
     <>
@@ -254,42 +169,6 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                 />
               </div>
 
-              <div className="rounded-lg border border-base-300/70 bg-base-200/30 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <ArrowsClockwise className="size-4 text-primary" weight="duotone" />
-                      继承状态
-                    </div>
-                    <p className="mt-1 truncate text-xs text-base-content/55">
-                      {selectedInheritStateRoomName ? `来源：${selectedInheritStateRoomName}` : "未选择来源房间"}
-                    </p>
-                  </div>
-                </div>
-                <select
-                  className="select select-bordered mt-3 w-full bg-base-100"
-                  value={inheritStateRoomId ?? ""}
-                  disabled={isSubmitting || userRoomsQuery.isLoading || inheritableRooms.length === 0}
-                  onChange={(event) => {
-                    const nextRoomId = Number(event.target.value);
-                    setInheritStateRoomId(Number.isFinite(nextRoomId) && nextRoomId > 0 ? nextRoomId : null);
-                  }}
-                  aria-label="选择要继承状态的来源房间"
-                >
-                  <option value="">
-                    {userRoomsQuery.isLoading ? "加载房间中..." : "不继承"}
-                  </option>
-                  {inheritableRooms.map((room) => {
-                    const roomId = getRoomId(room);
-                    return (
-                      <option key={roomId} value={roomId}>
-                        {resolveRoomDisplayName(room)}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
               {isKP && (
                 <div className="rounded-lg border border-base-300/70 bg-base-200/30 p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -299,15 +178,10 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                         初始对话
                       </div>
                       <p className="mt-1 text-xs text-base-content/55">
-                        {submitPhase === "importing" && importProgress
-                          ? `正在导入 ${importProgress.sent} / ${importProgress.total} 条。`
-                          : initialImportMessages.length > 0
-                            ? `已准备 ${initialImportMessages.length} 条，点击创建房间后自动导入。`
-                            : "可先粘贴聊天记录，创建后写入这个房间。"}
+                        {initialImportMessages.length > 0
+                          ? `已准备 ${initialImportMessages.length} 条，点击创建房间后自动导入。`
+                          : "可先粘贴聊天记录，创建后写入这个房间。"}
                       </p>
-                      {submitPhase === "importing" && importProgress && (
-                        <progress className="progress progress-primary mt-3 h-2 w-full" value={importProgress.sent} max={importProgress.total}></progress>
-                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {initialImportMessages.length > 0 && (
@@ -354,7 +228,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
           >
             {isSubmitting && <span className="loading loading-spinner loading-sm" />}
             <PlusIcon className="size-4" />
-            {submitLabel}
+            {isSubmitting ? "创建中..." : "创建房间"}
           </button>
         </footer>
       </div>
