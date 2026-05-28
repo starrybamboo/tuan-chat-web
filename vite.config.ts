@@ -221,7 +221,6 @@ export default defineConfig(() => {
     ],
     base: "/",
     resolve: {
-
       // Keep compatibility with upstream playground sources that import "*.js" while
       // the actual file may be TypeScript (e.g. setup.js -> setup.ts).
       // This mirrors the upstream playground Vite config.
@@ -253,51 +252,15 @@ export default defineConfig(() => {
         },
         // 手动添加与 tsconfig.json paths 对应的 alias，避免使用 tsconfigPaths 的动态解析
         {
-          find: /^api$/,
-          replacement: resolve(__dirname, "api/index.ts"),
-        },
-        {
-          find: /^api\/(.*)$/,
-          replacement: resolve(__dirname, "api/$1"),
-        },
-        {
-          find: /^app\/(.*)$/,
-          replacement: resolve(__dirname, "app/$1"),
-        },
-        {
-          find: /^@tuanchat\/domain$/,
+          find: "@tuanchat/domain",
           replacement: resolve(__dirname, "packages/tuanchat-domain/src/index.ts"),
-        },
-        {
-          find: /^@tuanchat\/domain\/message-draft$/,
-          replacement: resolve(__dirname, "packages/tuanchat-domain/src/messageDraft.ts"),
-        },
-        {
-          find: /^@tuanchat\/domain\/message-preview$/,
-          replacement: resolve(__dirname, "packages/tuanchat-domain/src/messagePreview.ts"),
-        },
-        {
-          find: /^@tuanchat\/domain\/message-search$/,
-          replacement: resolve(__dirname, "packages/tuanchat-domain/src/messageSearch.ts"),
-        },
-        {
-          find: /^@tuanchat\/domain\/message-time$/,
-          replacement: resolve(__dirname, "packages/tuanchat-domain/src/messageTime.ts"),
-        },
-        {
-          find: /^@tuanchat\/domain\/message-type$/,
-          replacement: resolve(__dirname, "packages/tuanchat-domain/src/messageType.ts"),
-        },
-        {
-          find: /^@tuanchat\/domain\/state-command$/,
-          replacement: resolve(__dirname, "packages/tuanchat-domain/src/stateCommand.ts"),
         },
         {
           find: /^@tuanchat\/domain\/(.*)$/,
           replacement: resolve(__dirname, "packages/tuanchat-domain/src/$1"),
         },
         {
-          find: /^@tuanchat\/galgame-ai-contract$/,
+          find: "@tuanchat/galgame-ai-contract",
           replacement: resolve(__dirname, "packages/galgame-ai-contract/src/index.ts"),
         },
         {
@@ -305,7 +268,7 @@ export default defineConfig(() => {
           replacement: resolve(__dirname, "packages/galgame-ai-contract/src/$1"),
         },
         {
-          find: /^@tuanchat\/local-db$/,
+          find: "@tuanchat/local-db",
           replacement: resolve(__dirname, "packages/tuanchat-local-db/src/index.ts"),
         },
         {
@@ -313,7 +276,7 @@ export default defineConfig(() => {
           replacement: resolve(__dirname, "packages/tuanchat-local-db/src/$1"),
         },
         {
-          find: /^@tuanchat\/openapi-client$/,
+          find: "@tuanchat/openapi-client",
           replacement: resolve(__dirname, "packages/tuanchat-openapi-client/src/index.ts"),
         },
         {
@@ -321,7 +284,7 @@ export default defineConfig(() => {
           replacement: resolve(__dirname, "packages/tuanchat-openapi-client/src/$1"),
         },
         {
-          find: /^@tuanchat\/query$/,
+          find: "@tuanchat/query",
           replacement: resolve(__dirname, "packages/tuanchat-query/src/index.ts"),
         },
         {
