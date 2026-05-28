@@ -62,6 +62,7 @@
 - Cloudflare Pages 部署优先使用官方 Wrangler 命令行，例如 `pnpm dlx wrangler@latest pages deploy dist --project-name <project> --branch <branch> --commit-dirty=true`；部署前可用 `pnpm dlx wrangler@latest whoami` 验证当前登录态。
 - Wrangler 4.x 不提供 DNS 记录管理子命令，也没有 DNS 写入 OAuth scope；需要新增或修改 DNS 记录时，使用带 `Zone / DNS / Edit` 与 `Zone / Zone / Read` 权限的 Cloudflare API Token 调用 Cloudflare REST API，不要误以为当前 Wrangler 登录态可以改 DNS。
 - 如果修改了 WebGAL 引擎（含 WebGAL/packages/webgal 或 WebGAL/packages/parser），需自动执行同步脚本：D:\\A_webgal\\WebGAL\\sync-terre-engine.ps1。
+- WebGAL / Terre 联动改造必须优先复用 WebGAL 原生机制，包括脚本命令、`setVar` 变量系统、资源目录、场景回放和已有 UI 渲染语义；只有原生机制无法表达需求时才允许扩展，并且扩展应保持向后兼容、可回放、可降级，不得用破坏性更新绕过原生命令或另起一套并行状态系统。
 - Terre 连接地址在所有环境统一固定为：VITE_TERRE_URL=http://localhost:3001、VITE_TERRE_WS=ws://localhost:3001/api/webgalsync；除非用户明确要求，否则禁止修改这两个变量，包括 .env.development、.env.production、.env.test 与 CI/CD 注入值。
 - 如果用户提到“团剧共创”与 WebGAL / Terre 联动、完整设置开关、角色发言聚焦、空间级 WebGAL 设置，先读 docs/reference/webgal-tuanchat-index.md。
 - helloagent 不要落文档知识库。
