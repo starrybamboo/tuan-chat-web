@@ -17,6 +17,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CROP_SIZE = SCREEN_WIDTH * 0.8;
 const CROP_TOP = (SCREEN_HEIGHT - CROP_SIZE) / 2;
 const CROP_LEFT = (SCREEN_WIDTH - CROP_SIZE) / 2;
+const DEFAULT_OUTPUT_SIZE = 256;
+const DEFAULT_OUTPUT_COMPRESS = 0.85;
 
 const styles = StyleSheet.create({
   overlay: {
@@ -94,6 +96,10 @@ type AvatarCropModalProps = {
   imageHeight: number;
   onConfirm: (croppedUri: string) => Promise<void> | void;
   onCancel: () => void;
+  outputCompress?: number;
+  outputFormat?: ImageManipulator.SaveFormat;
+  outputSize?: number;
+  processingErrorMessage?: string;
 };
 
 export function AvatarCropModal({
@@ -103,6 +109,10 @@ export function AvatarCropModal({
   imageHeight,
   onConfirm,
   onCancel,
+  outputCompress = DEFAULT_OUTPUT_COMPRESS,
+  outputFormat = ImageManipulator.SaveFormat.JPEG,
+  outputSize = DEFAULT_OUTPUT_SIZE,
+  processingErrorMessage = "头像处理失败，请重试。",
 }: AvatarCropModalProps) {
   const theme = useTheme();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -196,20 +206,20 @@ export function AvatarCropModal({
         imageUri,
         [
           { crop: { originX, originY, width, height } },
-          { resize: { width: 256, height: 256 } },
+          { resize: { width: outputSize, height: outputSize } },
         ],
-        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+        { compress: outputCompress, format: outputFormat },
       );
 
       await onConfirm(result.uri);
     }
     catch (error) {
-      setErrorMessage(error instanceof Error && error.message.trim() ? error.message.trim() : "头像处理失败，请重试。");
+      setErrorMessage(error instanceof Error && error.message.trim() ? error.message.trim() : processingErrorMessage);
     }
     finally {
       setIsProcessing(false);
     }
-  }, [imageUri, imageWidth, imageHeight, baseScale, scale, translateX, translateY, onConfirm, isProcessing]);
+  }, [imageUri, imageWidth, imageHeight, baseScale, scale, translateX, translateY, outputCompress, outputFormat, outputSize, onConfirm, processingErrorMessage, isProcessing]);
 
   const handleCancel = useCallback(() => {
     if (isProcessing) {
