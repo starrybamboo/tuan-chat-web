@@ -1,4 +1,5 @@
-import { BellIcon, BellSlashIcon, InfoIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
+import type { RoomSettingTab } from "@/components/chat/chatPage.types";
+import { AddressBookIcon, BellIcon, BellSlashIcon, InfoIcon, TrashIcon, UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useEffect, useRef, useState } from "react";
@@ -14,7 +15,7 @@ interface ChatPageContextMenuProps {
   activeRoomId: number | null;
   onClose: () => void;
   onInvitePlayer?: (roomId: number) => void;
-  onOpenRoomSetting?: (roomId: number) => void;
+  onOpenRoomSetting?: (roomId: number, tab?: RoomSettingTab) => void;
 }
 
 export default function ChatPageContextMenu({
@@ -67,6 +68,10 @@ export default function ChatPageContextMenu({
 
   const activeDissolveRoomId = dissolveTargetRoomId;
   const menuButtonClassName = "flex w-full items-center gap-2.5 text-left";
+  const handleOpenRoomSetting = (tab?: RoomSettingTab) => {
+    onOpenRoomSetting?.(contextMenu?.roomId ?? -1, tab);
+    onClose();
+  };
 
   return (
     <>
@@ -82,12 +87,37 @@ export default function ChatPageContextMenu({
                 type="button"
                 className={menuButtonClassName}
                 onClick={() => {
-                  onOpenRoomSetting?.(contextMenu.roomId);
-                  onClose();
+                  handleOpenRoomSetting();
                 }}
               >
                 <InfoIcon className="size-4 shrink-0" weight="regular" />
                 <span>房间资料</span>
+              </button>
+            </li>
+
+            <li className="relative group">
+              <button
+                type="button"
+                className={menuButtonClassName}
+                onClick={() => {
+                  handleOpenRoomSetting("member");
+                }}
+              >
+                <UsersIcon className="size-4 shrink-0" weight="regular" />
+                <span>房间成员</span>
+              </button>
+            </li>
+
+            <li className="relative group">
+              <button
+                type="button"
+                className={menuButtonClassName}
+                onClick={() => {
+                  handleOpenRoomSetting("role");
+                }}
+              >
+                <AddressBookIcon className="size-4 shrink-0" weight="regular" />
+                <span>房间角色</span>
               </button>
             </li>
 
