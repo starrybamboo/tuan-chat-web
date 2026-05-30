@@ -9,6 +9,7 @@ import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 
@@ -135,6 +136,7 @@ function SpaceTrpgSettingWindow() {
     });
 
     await Promise.all([updatePromise, extraPromise]);
+    invalidateDicerRoleResolveCache(spaceId);
 
     lastSavedSnapshotRef.current = snapshot;
     dirtyRef.current = false;

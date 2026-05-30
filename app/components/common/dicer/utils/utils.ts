@@ -41,6 +41,23 @@ const roleDicerBindCache = new Map<number, ExpiringCacheEntry<number | null>>();
 const roleDiceTypeCache = new Map<number, ExpiringCacheEntry<boolean>>();
 let userDicerRoleCache: ExpiringCacheEntry<number | null> | null = null;
 
+export function invalidateDicerRoleResolveCache(spaceId?: number | null): void {
+  const normalizedSpaceId = Number(spaceId);
+  if (!Number.isFinite(normalizedSpaceId) || normalizedSpaceId <= 0) {
+    resolvedDicerRoleCache.clear();
+    spaceSnapshotCache.clear();
+    return;
+  }
+
+  const spaceIdKeyPrefix = `${Math.trunc(normalizedSpaceId)}:`;
+  spaceSnapshotCache.delete(Math.trunc(normalizedSpaceId));
+  for (const key of resolvedDicerRoleCache.keys()) {
+    if (key.startsWith(spaceIdKeyPrefix)) {
+      resolvedDicerRoleCache.delete(key);
+    }
+  }
+}
+
 const UTILS = {
   /**
    * 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false
