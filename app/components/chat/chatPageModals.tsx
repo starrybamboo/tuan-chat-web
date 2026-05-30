@@ -198,6 +198,7 @@ export default function ChatPageModals({
           handleAddMember={onAddRoomMember}
           showSpace={true}
           inviteCodeType={1}
+          targetRoomId={inviteRoomId}
         />
       </ToastWindow>
 

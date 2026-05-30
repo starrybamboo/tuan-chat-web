@@ -5,7 +5,7 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CheckIcon, CopyIcon, InfoIcon, Link } from "@/icons";
-import { useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useGetMemberListQuery, useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
 interface MemberLike {
@@ -20,6 +20,7 @@ interface AddMemberWindowProps {
   showSpace?: boolean;
   inviteCodeType?: 0 | 1;
   targetType?: "room" | "space";
+  targetRoomId?: number | null;
   title?: string;
   subtitle?: string;
   embedded?: boolean;
@@ -35,13 +36,18 @@ export default function AddMemberWindow({
   headerExtra,
   inviteCodeType = 0,
   showSpace = false,
+  targetRoomId,
   subtitle,
   targetType = "room",
   title,
 }: AddMemberWindowProps) {
   const spaceContext = use(SpaceContext);
   const roomContext = use(RoomContext);
-  const roomMembers = roomContext.roomMembers ?? [];
+  const resolvedTargetRoomId = typeof targetRoomId === "number" && Number.isFinite(targetRoomId) && targetRoomId > 0
+    ? targetRoomId
+    : roomContext.roomId;
+  const roomMembersQuery = useGetMemberListQuery(resolvedTargetRoomId ?? -1);
+  const roomMembers = roomMembersQuery.data?.data ?? roomContext.roomMembers ?? [];
   const spaceMembersQuery = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1);
   const spaceMembers = spaceMembersQuery.data?.data ?? [];
 
@@ -353,7 +359,7 @@ function MemberRow({
       {isAdded
         ? (
             <button className="btn btn-ghost btn-sm min-w-20" type="button" disabled={true}>
-              已加入
+              已添加
             </button>
           )
         : (
@@ -380,7 +386,7 @@ function MemberCard({
       {isAdded
         ? (
             <button className="btn btn-ghost btn-sm min-w-20" type="button" disabled={true}>
-              已加入
+              已添加
             </button>
           )
         : (
