@@ -1,6 +1,7 @@
 import type { Message } from "../../../../../api";
 
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
+import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
@@ -62,7 +63,7 @@ export function MessagePreviewContent({
       const caption = previewText.replace(/^\[图片\]\s*/, "").trim();
       return (
         <span className="inline-flex items-center gap-2 min-w-0 align-middle">
-          <img
+          <MediaImage
             src={imgUrl}
             referrerPolicy="no-referrer"
             className="max-h-[64px] w-auto object-contain rounded"

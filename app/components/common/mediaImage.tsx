@@ -1,10 +1,11 @@
-import type { ImgHTMLAttributes, SyntheticEvent } from "react";
+import type { ImgHTMLAttributes, Ref, SyntheticEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
 
 type MediaImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   fallbackSrc?: string;
+  ref?: Ref<HTMLImageElement>;
 };
 
 function normalizeImageSrc(src: string | null | undefined): string {
@@ -23,6 +24,7 @@ export function resolveMediaOriginalFallbackSrc(src: string | null | undefined):
 export function MediaImage({
   fallbackSrc,
   onError: externalOnError,
+  ref,
   src,
   ...props
 }: MediaImageProps) {
@@ -61,6 +63,7 @@ export function MediaImage({
   return (
     <img
       {...props}
+      ref={ref}
       src={displaySrc}
       onError={handleError}
     />

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
+import { MediaImage } from "@/components/common/mediaImage";
 import { TrashIcon } from "@/icons";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -520,7 +521,7 @@ export function MessageEditorAtomicBlock({
 
                 {isImageBlock
                   ? (
-                      <img
+                      <MediaImage
                         src={uploadedMediaUrl}
                         alt={message.content?.trim() || uploadMeta.title}
                         width={typeof mediaDimensions?.width === "number" ? mediaDimensions.width : undefined}

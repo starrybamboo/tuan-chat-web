@@ -26,17 +26,20 @@ describe("resolveBetterImgIntrinsicSize", () => {
   });
 
   it("可按调用方要求把媒体系统 URL 改写为 high 预览档", () => {
-    expect(resolveBetterImgZoomSrc("/media/v1/files/045/45/image/low.webp", undefined, "high"))
+    expect(resolveBetterImgZoomSrc("/media/v1/files/045/45/image/low.webp", "/media/v1/files/045/45/image/low.webp", "high"))
       .toBe("/media/v1/files/045/45/image/high.webp");
   });
 
   it("可按调用方要求把媒体系统 URL 改写为 original 预览档", () => {
-    expect(resolveBetterImgZoomSrc("/media/v1/files/045/45/image/medium.webp", undefined, "original"))
+    expect(resolveBetterImgZoomSrc("/media/v1/files/045/45/image/medium.webp", "/media/v1/files/045/45/image/medium.webp", "original"))
       .toBe("/media/v1/files/045/45/original");
   });
 
-  it("有本地回退对象 URL 时优先使用本地预览", () => {
-    expect(resolveBetterImgZoomSrc("/media/v1/files/045/45/image/low.webp", "blob:fallback", "high"))
-      .toBe("blob:fallback");
+  it("当前展示图已回退到 original 时，预览继续使用 original", () => {
+    expect(resolveBetterImgZoomSrc(
+      "/media/v1/files/045/45/image/medium.webp",
+      "/media/v1/files/045/45/original",
+      "medium",
+    )).toBe("/media/v1/files/045/45/original");
   });
 });

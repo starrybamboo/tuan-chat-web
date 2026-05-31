@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
@@ -122,7 +123,7 @@ const RoleToken = React.memo(({
       title={role.roleName}
     >
       <div className="h-full w-full overflow-hidden rounded-full">
-        <img
+        <MediaImage
           src={roleAvatarUrl}
           alt={role.roleName}
           draggable={false}
@@ -945,7 +946,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
         ref={containerRef}
         className="relative flex-1 overflow-hidden bg-base-300/40"
       >
-        <img
+        <MediaImage
           ref={imageRef}
           src={mapImageUrl}
           alt="地图"

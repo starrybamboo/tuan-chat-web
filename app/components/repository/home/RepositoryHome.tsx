@@ -3,6 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import Pagination from "@/components/common/pagination";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 
@@ -148,7 +149,7 @@ export function ContentCard({
         {(shouldShowImage || shouldShowPlaceholder) && (
           <figure className={`relative overflow-hidden bg-base-200 ${aspectClasses[imageAspect]}`}>
             {shouldShowImage && (
-              <img
+              <MediaImage
                 src={displayImage}
                 alt={imageAlt || title || "Content image"}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"

@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 
@@ -308,7 +309,7 @@ function SpaceTrpgSettingWindow() {
                           ? (
                               <div className="avatar">
                                 <div className="w-10 h-10 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
-                                  <img src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
+                                  <MediaImage src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
                                 </div>
                               </div>
                             )

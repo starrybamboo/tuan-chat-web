@@ -4,6 +4,7 @@ import type { Role } from "../../types";
 import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useId, useState } from "react";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { MediaImage } from "@/components/common/mediaImage";
 import { BaselineDeleteOutline } from "@/icons";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
@@ -331,7 +332,7 @@ export function SpriteListGrid({
                   >
                     {displayAvatarUrl
                       ? (
-                          <img
+                          <MediaImage
                             src={displayAvatarUrl}
                             alt={`头像 ${index + 1}`}
                             className="w-full h-full object-cover pointer-events-none"

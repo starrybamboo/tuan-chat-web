@@ -21,6 +21,7 @@ import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useR
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Drawer } from "vaul";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
@@ -883,7 +884,7 @@ export function SpriteSettingsPopup({
                                       <div className="w-16 h-16 rounded-md overflow-hidden bg-base-200 flex items-center justify-center shrink-0">
                                         {displayUrl
                                           ? (
-                                              <img
+                                              <MediaImage
                                                 src={displayUrl}
                                                 alt={name}
                                                 className="w-full h-full object-cover"

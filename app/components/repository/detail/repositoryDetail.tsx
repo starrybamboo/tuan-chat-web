@@ -7,6 +7,7 @@ import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 import Author from "./author";
 import {
@@ -182,44 +183,8 @@ export default function RepositoryDetailComponent({
   };
 
   useEffect(() => {
-    if (!displayRepositoryImage) {
-      setImageLoading(false);
-      setImageError(false);
-      return;
-    }
-    let disposed = false;
-    setImageLoading(true);
+    setImageLoading(Boolean(displayRepositoryImage));
     setImageError(false);
-
-    const image = new Image();
-    const handleLoad = () => {
-      if (disposed)
-        return;
-      setImageLoading(false);
-      setImageError(false);
-    };
-    const handleError = () => {
-      if (disposed)
-        return;
-      setImageLoading(false);
-      setImageError(true);
-    };
-    image.onload = handleLoad;
-    image.onerror = handleError;
-    image.src = displayRepositoryImage;
-
-    if (image.complete) {
-      if (image.naturalWidth > 0)
-        handleLoad();
-      else
-        handleError();
-    }
-
-    return () => {
-      disposed = true;
-      image.onload = null;
-      image.onerror = null;
-    };
   }, [displayRepositoryImage]);
 
   useEffect(() => {
@@ -438,7 +403,7 @@ export default function RepositoryDetailComponent({
                                 </div>
                               </div>
                             )}
-                            <img
+                            <MediaImage
                               className={`aspect-square object-cover w-full z-0 ${imageLoading || imageError ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
                               src={displayRepositoryImage}
                               onLoad={() => setImageLoading(false)}

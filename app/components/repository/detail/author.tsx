@@ -1,6 +1,7 @@
 import { useGetUserProfileQuery } from "api/hooks/UserHooks";
 import { useCallback, useState } from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -43,7 +44,7 @@ export default function Author({ userId }: { userId?: number }) {
             <div className="skeleton h-14 w-14 shrink-0 rounded-full"></div>
           )
         : (
-            <img
+            <MediaImage
               className="h-14 w-14 shrink-0 rounded-full object-cover transition-opacity hover:opacity-80 cursor-pointer"
               src={data.avatar}
               onClick={handleAvatarClick}

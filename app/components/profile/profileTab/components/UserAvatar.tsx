@@ -1,6 +1,7 @@
 import type { UserInfoResponse } from "../../../../../api";
 import React, { useState } from "react";
 
+import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import { imageLowUrl } from "@/utils/mediaUrl";
@@ -90,7 +91,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     if (hasAvatar) {
       return (
         <div className="relative w-full h-full">
-          <img
+          <MediaImage
             src={avatarSrc}
             alt={user?.username}
             className={`object-cover transition-all duration-300 ${

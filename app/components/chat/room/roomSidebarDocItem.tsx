@@ -10,6 +10,7 @@ import {
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+import { MediaImage } from "@/components/common/mediaImage";
 
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
@@ -183,7 +184,7 @@ export default function RoomSidebarDocItem({
         {displayCoverUrl
           ? (
               <>
-                <img
+                <MediaImage
                   src={displayCoverUrl}
                   alt={title || "doc"}
                   draggable={false}

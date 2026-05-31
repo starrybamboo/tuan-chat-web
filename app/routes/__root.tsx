@@ -85,6 +85,14 @@ const isTestBuild = import.meta.env.MODE === "test";
 const shouldEnableReactScan = typeof window !== "undefined" && (isTestBuild || import.meta.env.DEV);
 const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
 const BUG_FEEDBACK_SPLASH_SESSION_KEY = "tc:bug-feedback-splash:2026-05-20";
+const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC = "https://static.cloudflareinsights.com/beacon.min.js";
+const CLOUDFLARE_WEB_ANALYTICS_TOKEN = "bd3746d5fcac46db97172d382492de26";
+const CLOUDFLARE_WEB_ANALYTICS_HOSTS = new Set([
+  "tuan.chat",
+  "www.tuan.chat",
+  "test.tuan.chat",
+  "www.test.tuan.chat",
+]);
 
 if (shouldEnableReactScan) {
   void import("react-scan")
@@ -123,6 +131,28 @@ if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window
     childList: true,
     characterData: true,
   });
+}
+
+function getCloudflareWebAnalyticsScripts() {
+  // 只在线上 Web 域名加载，避免本地开发和 Electron `app://` 壳污染站点统计。
+  if (
+    !import.meta.env.PROD
+    || typeof window === "undefined"
+    || window.location.protocol !== "https:"
+    || !CLOUDFLARE_WEB_ANALYTICS_HOSTS.has(window.location.hostname.toLowerCase())
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      "src": CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC,
+      "defer": true,
+      "data-cf-beacon": JSON.stringify({
+        token: CLOUDFLARE_WEB_ANALYTICS_TOKEN,
+      }),
+    },
+  ];
 }
 
 export function links() {
@@ -359,6 +389,7 @@ export const Route = createRootRoute({
       ...meta({ params: {} }),
     ],
     links: links(),
+    scripts: getCloudflareWebAnalyticsScripts(),
   }),
   component: RootRouteComponent,
   errorComponent: ErrorBoundary,

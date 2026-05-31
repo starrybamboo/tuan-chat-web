@@ -1,6 +1,7 @@
 import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
+import { MediaImage } from "@/components/common/mediaImage";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 import {
   BASE_TEMPLATE_OPTIONS,
@@ -443,7 +444,7 @@ export function SpaceWebgalGameConfigSection({
               </div>
               {hasTitleImage && (
                 <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
-                  <img
+                  <MediaImage
                     src={titleImagePreviewSrc}
                     alt="标题背景图预览"
                     className="h-full w-full object-cover"
@@ -491,7 +492,7 @@ export function SpaceWebgalGameConfigSection({
               </div>
               {hasStartupLogo && (
                 <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
-                  <img
+                  <MediaImage
                     src={startupLogoPreviewSrc}
                     alt="启动图预览"
                     className="h-full w-full object-cover"

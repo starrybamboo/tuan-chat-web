@@ -8,6 +8,7 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import BetterImg from "@/components/common/betterImg";
+import { MediaImage } from "@/components/common/mediaImage";
 import { DiceFiveIcon, FileTextIcon, ImageIcon, Link, MusicNote, PlayIcon, PlusIcon, TrashIcon } from "@/icons";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -591,7 +592,7 @@ function MessageEditorDocCardPreview({ message }: { message: MessageEditorMessag
       <div className="relative mt-1 h-14 w-20 shrink-0 overflow-hidden rounded-sm bg-base-200">
         {displayCoverUrl
           ? (
-              <img src={displayCoverUrl} alt={resolvedTitle} draggable={false} className="h-full w-full object-cover" />
+              <MediaImage src={displayCoverUrl} alt={resolvedTitle} draggable={false} className="h-full w-full object-cover" />
             )
           : (
               <div className="flex h-full w-full items-center justify-center">

@@ -11,6 +11,7 @@ import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import checkBack from "@/components/common/autoContrastText";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
@@ -241,10 +242,11 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
               copperedCompressionPreset="avatarThumb"
             >
               <div className="group relative size-28 overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm">
-                <img
+                <MediaImage
                   src={spaceAvatarThumb}
                   alt="space avatar"
                   className="size-full object-cover transition duration-200 group-hover:scale-105 group-hover:brightness-75"
+                  fallbackSrc="/favicon.ico"
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-base-100/10 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
                   <span className={`${spaceAvatarThumbTextColor} rounded bg-base-100/70 px-2 py-1 text-xs font-semibold`}>
@@ -427,7 +429,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                 {dicerRoleId && !dicerRoleError && linkedDicerRole
                   ? (
                       <span className="flex size-8 shrink-0 overflow-hidden rounded-lg ring-1 ring-base-300/70">
-                        <img src={dicerAvatarUrl} alt={linkedDicerRole.roleName || "骰娘"} className="size-full object-cover" />
+                        <MediaImage src={dicerAvatarUrl} alt={linkedDicerRole.roleName || "骰娘"} className="size-full object-cover" />
                       </span>
                     )
                   : (

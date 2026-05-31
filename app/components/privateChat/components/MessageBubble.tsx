@@ -1,6 +1,7 @@
 import type { MessageDirectResponse } from "../../../../api";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import BetterImg from "@/components/common/betterImg";
+import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 
@@ -27,7 +28,7 @@ function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
     <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-base-300 text-xs font-semibold text-base-content/60">
       {fileId
         ? (
-            <img
+            <MediaImage
               src={avatarThumbUrl(fileId)}
               alt=""
               width={32}

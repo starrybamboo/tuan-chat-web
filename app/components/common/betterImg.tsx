@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { SyntheticEvent } from "react";
+import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
+import { useEffect, useMemo, useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
-import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
 import { imageUrlWithQuality } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
@@ -31,10 +32,13 @@ type BetterImgZoomQuality = "medium" | "high" | "original";
 
 export function resolveBetterImgZoomSrc(
   imgSrc: string | undefined,
-  fallbackObjectUrl: string | undefined,
+  currentDisplaySrc: string | undefined,
   zoomQuality: BetterImgZoomQuality,
 ) {
-  return fallbackObjectUrl ?? (typeof imgSrc === "string" ? imageUrlWithQuality(imgSrc, zoomQuality) : imgSrc);
+  if (typeof currentDisplaySrc === "string" && currentDisplaySrc && currentDisplaySrc !== imgSrc) {
+    return currentDisplaySrc;
+  }
+  return typeof imgSrc === "string" ? imageUrlWithQuality(imgSrc, zoomQuality) : imgSrc;
 }
 
 function isFileSource(src: string | File | undefined): src is File {
@@ -78,41 +82,22 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
   transparent?: boolean;
   zoomQuality?: BetterImgZoomQuality;
 }) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [fallbackObjectUrl, setFallbackObjectUrl] = useState<string | undefined>();
   const imgSrc = useFileObjectUrl(src);
-  const displayImgSrc = fallbackObjectUrl ?? imgSrc;
-  const zoomImgSrc = resolveBetterImgZoomSrc(typeof imgSrc === "string" ? imgSrc : undefined, fallbackObjectUrl, zoomQuality);
+  const [displayImgSrc, setDisplayImgSrc] = useState<string | undefined>(imgSrc);
+  const zoomImgSrc = resolveBetterImgZoomSrc(typeof imgSrc === "string" ? imgSrc : undefined, displayImgSrc, zoomQuality);
   const intrinsicSize = resolveBetterImgIntrinsicSize(size);
 
   useEffect(() => {
-    setFallbackObjectUrl(undefined);
-  }, [src]);
+    setDisplayImgSrc(imgSrc);
+  }, [imgSrc]);
 
-  useEffect(() => {
-    if (!fallbackObjectUrl) {
+  const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+    if (typeof imgSrc !== "string") {
       return;
     }
-    return () => {
-      URL.revokeObjectURL(fallbackObjectUrl);
-    };
-  }, [fallbackObjectUrl]);
-
-  const handleLoad = () => {
-    if (typeof displayImgSrc !== "string") {
-      return;
-    }
-    markObservedWebgalAsset(displayImgSrc);
-  };
-  const handleError = () => {
-    if (!isFileSource(src) || fallbackObjectUrl) {
-      return;
-    }
-    void compressImage(src, MEDIA_COMPRESSION_PROFILES.image.low)
-      .then((previewFile) => {
-        setFallbackObjectUrl(URL.createObjectURL(previewFile));
-      })
-      .catch(() => {});
+    const nextDisplaySrc = event.currentTarget.currentSrc || event.currentTarget.src || imgSrc;
+    setDisplayImgSrc(nextDisplaySrc);
+    markObservedWebgalAsset(nextDisplaySrc);
   };
 
   const openToastWindow = () => {
@@ -129,16 +114,14 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
         className="block max-w-full"
         onClick={openToastWindow}
       >
-        <img
-          ref={imgRef}
-          src={displayImgSrc}
+        <MediaImage
+          src={imgSrc}
           referrerPolicy="no-referrer"
           width={intrinsicSize.width}
           height={intrinsicSize.height}
           className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
           alt="img"
           onLoad={handleLoad}
-          onError={handleError}
         />
       </button>
 

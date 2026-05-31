@@ -1,4 +1,5 @@
 import React from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { DisplayChatBubble } from "./displayChatBubble";
 
@@ -67,7 +68,7 @@ function AvatarPreviewComponent({
             <canvas ref={previewCanvasRef} className={`object-contain ${imageClassName} w-full h-full`} />
           )
         : (
-            <img
+            <MediaImage
               src={displayAvatarUrl}
               alt="预览"
               className={`object-contain ${imageClassName}`}

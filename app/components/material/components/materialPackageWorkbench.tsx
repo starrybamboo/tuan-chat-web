@@ -18,6 +18,7 @@ import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/mode
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -625,7 +626,7 @@ export default function MaterialPackageWorkbench({
                 <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
                   {displayCoverUrl
                     ? (
-                        <img
+                        <MediaImage
                           src={displayCoverUrl}
                           alt={draft.name || "素材包封面"}
                           draggable={false}
@@ -750,7 +751,7 @@ export default function MaterialPackageWorkbench({
                 <div className="flex flex-1 flex-col justify-center overflow-hidden rounded-[22px] border border-base-300 bg-base-950/90 shadow-inner">
                   {displayCoverUrl
                     ? (
-                        <img
+                        <MediaImage
                           src={displayCoverUrl}
                           alt={draft.name || "素材包封面"}
                           className="aspect-square w-full object-cover"

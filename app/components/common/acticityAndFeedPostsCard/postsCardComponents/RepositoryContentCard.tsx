@@ -1,4 +1,5 @@
 import React from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 
 interface RepositoryContentCardProps {
@@ -32,7 +33,7 @@ const RepositoryContentCard: React.FC<RepositoryContentCardProps> = ({
         <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0">
           {repositoryImage
             ? (
-                <img
+                <MediaImage
                   src={repositoryImage}
                   alt={name || "仓库图片"}
                   className="w-full h-full object-cover rounded-lg"
