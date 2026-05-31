@@ -59,7 +59,8 @@ describe("roomMessageStreamApi", () => {
       roomId: 10,
     });
 
-    expect(patchRoomMessagesMock).toHaveBeenCalledWith(10, {
+    expect(patchRoomMessagesMock).toHaveBeenCalledWith({
+      roomId: 10,
       operations: [
         {
           clientId: "block_1",
@@ -90,5 +91,24 @@ describe("roomMessageStreamApi", () => {
 
     expect(messages).toEqual([]);
     expect(patchRoomMessagesMock).not.toHaveBeenCalled();
+  });
+
+  it("远端业务失败时不把 patch 当作成功响应读取", async () => {
+    patchRoomMessagesMock.mockRejectedValueOnce(new Error("批量变更无权限"));
+
+    await expect(patchRemoteRoomMessageStream({
+      operations: [
+        {
+          message: {
+            content: "saved",
+            messageType: 1,
+            position: 2,
+          },
+          op: "insert",
+          position: 2,
+        },
+      ],
+      roomId: 10,
+    })).rejects.toThrow("批量变更无权限");
   });
 });

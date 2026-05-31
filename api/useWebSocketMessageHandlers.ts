@@ -139,7 +139,10 @@ export function useWebSocketMessageHandlers({
 
       if (m.messageType === MessageType.SOUND) {
         const sound = getSoundMessageExtra(m.extra);
-        const url = mediaFileUrl(sound?.fileId, sound?.mediaType, "high");
+        const source = sound?.source;
+        const url = source?.kind === "external"
+          ? source.url
+          : mediaFileUrl(source?.fileId, "audio", "high");
         if (url && typeof m.messageId === "number") {
           const purpose = resolveAudioAutoPlayPurposeFromAnnotationTransition(previousMessage, m);
           if (purpose) {

@@ -57,6 +57,42 @@ describe("chatHistoryOptimistic", () => {
     expect(duplicateIds).toEqual([-1]);
   });
 
+  it("图片乐观残影和服务端消息 extra 不一致时也会清理", () => {
+    const duplicateIds = collectPersistedOptimisticDuplicateIds([
+      createMessageResponse({
+        messageId: -1,
+        syncId: -1,
+        position: 100,
+        content: "本地说明",
+        extra: {
+          imageMessage: {
+            source: { kind: "internal", fileId: -1 },
+            localFile: { name: "scene.png", size: 12 },
+            width: 1,
+            height: 1,
+            background: false,
+          },
+        } as any,
+      }),
+      createMessageResponse({
+        messageId: 101,
+        syncId: 501,
+        position: 501,
+        content: "",
+        extra: {
+          imageMessage: {
+            source: { kind: "internal", fileId: 42 },
+            width: 640,
+            height: 480,
+            background: false,
+          },
+        } as any,
+      }),
+    ]);
+
+    expect(duplicateIds).toEqual([-1]);
+  });
+
   it("会把显式标记为本地乐观的消息当作残影", () => {
     const duplicateIds = collectPersistedOptimisticDuplicateIds([
       createMessageResponse({

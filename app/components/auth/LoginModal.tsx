@@ -14,6 +14,7 @@ import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
+import { resolveRegisterInviteCodeFromLocation, withRegisterInviteCode } from "./registerInviteCode";
 import { hasTurnstileSiteKey, TurnstileWidget } from "./turnstile";
 import { useVerificationCodeCooldown } from "./useVerificationCodeCooldown";
 
@@ -75,6 +76,7 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
+  const [registerInviteCode, setRegisterInviteCode] = useState("");
   const [registerVerificationCode, setRegisterVerificationCode] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -102,6 +104,10 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const isForgotMode = mode === "forgot";
 
   const redirectParam = searchParams.get("redirect");
+  const inviteCodeFromLocation = useMemo(() => resolveRegisterInviteCodeFromLocation({
+    pathname: location.pathname,
+    searchStr: location.searchStr,
+  }), [location.pathname, location.searchStr]);
 
   const replaceSearchParams = useCallback((nextSearchParams: URLSearchParams) => {
     router.history.replace(appendPathQuery(location.pathname, nextSearchParams, location.hash));
@@ -145,6 +151,12 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
 
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
 
+  useEffect(() => {
+    if (isRegisterMode) {
+      setRegisterInviteCode(inviteCodeFromLocation);
+    }
+  }, [inviteCodeFromLocation, isRegisterMode]);
+
   function applyMode(nextMode: AuthMode) {
     const nextSearchParams = new URLSearchParams();
     nextSearchParams.set("mode", nextMode);
@@ -160,6 +172,7 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
     setConfirmPassword("");
     setEmail("");
     setForgotEmail("");
+    setRegisterInviteCode("");
     setRegisterVerificationCode("");
     setLoginMethod("username");
     loginTurnstile.reset();
@@ -244,13 +257,18 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; email: string; verificationCode: string; turnstileToken?: string }) => {
+    mutationFn: async (data: { username: string; password: string; email: string; inviteCode: string; verificationCode: string; turnstileToken?: string }) => {
       await verifyEmailVerificationCode({
         email: data.email,
         code: data.verificationCode,
         purpose: "REGISTER",
       });
-      return registerUser({ username: data.username, password: data.password, email: data.email, turnstileToken: data.turnstileToken });
+      return registerUser(withRegisterInviteCode({
+        username: data.username,
+        password: data.password,
+        email: data.email,
+        turnstileToken: data.turnstileToken,
+      }, data.inviteCode));
     },
     onSuccess: (res, variables) => {
       if (res.success && res.data) {
@@ -356,6 +374,7 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       username: username.trim(),
       password,
       email: email.trim(),
+      inviteCode: registerInviteCode,
       verificationCode: registerVerificationCode.trim(),
       turnstileToken: turnstileToken || undefined,
     });
@@ -445,6 +464,8 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
                       setUsername={setUsername}
                       email={email}
                       setEmail={setEmail}
+                      inviteCode={registerInviteCode}
+                      setInviteCode={setRegisterInviteCode}
                       verificationCode={registerVerificationCode}
                       setVerificationCode={setRegisterVerificationCode}
                       sendVerificationCode={handleSendRegisterVerificationCode}

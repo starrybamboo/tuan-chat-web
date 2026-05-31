@@ -11,9 +11,9 @@ import { CachedImage } from "@/components/CachedImage";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
+import { resolveMessageMediaUrl } from "@/features/messages/messageMediaSource";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
 import { useTheme } from "@/hooks/use-theme";
-import { mediaFileUrl } from "@/lib/media-url";
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
 import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
@@ -361,7 +361,7 @@ export const ChatMessageItem = memo(({
               {message.messageType === MESSAGE_TYPE.IMG
                 ? (() => {
                     const img = getImageMessageExtra(message.extra);
-                    const thumbUri = img?.fileId ? mediaFileUrl(img.fileId, "image", "low") : null;
+                    const thumbUri = resolveMessageMediaUrl(img, "medium", "image");
                     return thumbUri
                       ? <CachedImage uri={thumbUri} style={{ borderRadius: Radius.sm, height: 40, width: 40 }} />
                       : <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>[图片]</ThemedText>;

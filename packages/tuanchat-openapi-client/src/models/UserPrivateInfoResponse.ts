@@ -40,6 +40,10 @@ export type UserPrivateInfoResponse = {
      */
     email?: string;
     /**
+     * 当前账号的邀请码，唯一且永久有效
+     */
+    inviteCode?: string;
+    /**
      * 私有扩展字段，JSON 格式
      */
     extra?: Record<string, Record<string, any>>;

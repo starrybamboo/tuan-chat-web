@@ -403,7 +403,7 @@ function buildMaterialOverviewAsset(message: MessageDraft, index: number): Mater
   if (message.messageType === MessageType.IMG) {
     const image = getImageMessageExtra(message.extra);
     return {
-      key: `image-${index}-${image?.fileId ?? image?.fileName ?? "asset"}`,
+      key: `image-${index}-${image?.source?.fileId ?? image?.source?.url ?? image?.fileName ?? "asset"}`,
       typeLabel: "图片",
       title: image?.fileName || `图片素材 ${index + 1}`,
       metaText: [
@@ -416,7 +416,7 @@ function buildMaterialOverviewAsset(message: MessageDraft, index: number): Mater
   if (message.messageType === MessageType.SOUND) {
     const sound = getSoundMessageExtra(message.extra);
     return {
-      key: `sound-${index}-${sound?.fileId ?? sound?.fileName ?? "asset"}`,
+      key: `sound-${index}-${sound?.source?.fileId ?? sound?.source?.url ?? sound?.fileName ?? "asset"}`,
       typeLabel: "音频",
       title: sound?.fileName || `音频素材 ${index + 1}`,
       metaText: [
@@ -429,7 +429,7 @@ function buildMaterialOverviewAsset(message: MessageDraft, index: number): Mater
   if (message.messageType === MessageType.VIDEO) {
     const video = getVideoMessageExtra(message.extra);
     return {
-      key: `video-${index}-${video?.fileId ?? video?.fileName ?? "asset"}`,
+      key: `video-${index}-${video?.source?.fileId ?? video?.source?.url ?? video?.fileName ?? "asset"}`,
       typeLabel: "视频",
       title: video?.fileName || `视频素材 ${index + 1}`,
       metaText: [

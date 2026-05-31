@@ -6,15 +6,9 @@ const MEDIA_EXT: Partial<Record<MediaType, string>> = {
   video: "webm",
 };
 
-const DEFAULT_MEDIA_CDN_BASE_URL = "https://tuan.chat";
+const DEFAULT_MEDIA_CDN_BASE_URL = "https://media.tuan.chat";
 const FALLBACK_MEDIA_TYPE: MediaType = "image";
 const MEDIA_FILE_URL_PATTERN = /^(?<prefix>.*?\/media\/v1\/files\/)(?<shard>\d{3})\/(?<fileId>\d+)\/(?:(?<mediaType>image|audio|video|document|other)\/(?<quality>low|medium|high)(?:\.[^/?#]+)?|original)(?:[?#].*)?$/;
-
-function normalizeQuality(quality: MediaQualityInput): MediaQuality {
-  if (quality === "high")
-    return "medium";
-  return quality;
-}
 
 function resolveAvailableQuality(mediaType: MediaType, quality: MediaQuality): MediaQuality {
   if (quality !== "original" && (mediaType === "audio" || mediaType === "video" || mediaType === "document" || mediaType === "other")) {
@@ -56,7 +50,7 @@ export function mediaUrl(
   }
   const shard = mediaShard(fileId);
   const base = `${(cdnBaseUrl ?? DEFAULT_MEDIA_CDN_BASE_URL).replace(/\/$/, "")}/media/v1/files/${shard}/${fileId}`;
-  const resolvedQuality = resolveAvailableQuality(mediaType, normalizeQuality(quality));
+  const resolvedQuality = resolveAvailableQuality(mediaType, quality);
   if (resolvedQuality === "original") {
     return `${base}/original`;
   }
@@ -92,7 +86,7 @@ export function mediaFileUrlWithQuality(
   }
 
   const base = `${groups.prefix}${groups.shard}/${groups.fileId}`;
-  const resolvedQuality = resolveAvailableQuality(mediaType, normalizeQuality(quality));
+  const resolvedQuality = resolveAvailableQuality(mediaType, quality);
   if (resolvedQuality === "original") {
     return `${base}/original`;
   }
@@ -147,15 +141,13 @@ export const imageLowUrl = (fileId?: number | string | null, cdnBaseUrl?: string
 /** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. */
 export const imagePreviewUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
 export const imageMediumUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
-/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. "high" maps to "medium". */
-export const imageHighUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "medium", cdnBaseUrl);
+export const imageHighUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "high", cdnBaseUrl);
 export const imageOriginalUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "original", cdnBaseUrl);
 export const imageLowUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "low");
 /** @deprecated Use `imageUrlWithQuality(url, "medium")` instead. */
 export const imagePreviewUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
 export const imageMediumUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
-/** @deprecated Use `imageUrlWithQuality(url, "medium")` instead. "high" maps to "medium". */
-export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "medium");
+export const imageHighUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "high");
 export const imageOriginalUrlFromUrl = (url?: string | null) => imageUrlWithQuality(url, "original");
 /** @deprecated Use `mediaUrl(fileId, "image", "low")` instead. */
 export const avatarThumbUrl = (fileId?: number | string | null, cdnBaseUrl?: string) => mediaUrl(fileId, "image", "low", cdnBaseUrl);

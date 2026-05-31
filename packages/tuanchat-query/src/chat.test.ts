@@ -3,13 +3,11 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import {
-  flattenRoomMessagePages,
   getRoomMessageSyncGapStart,
   markRoomMessageDeletedData,
   markRoomMessagesDeleted,
   mergeRoomMessages,
   selectVisibleMainRoomMessages,
-  upsertRoomMessagesInfiniteData,
   upsertRoomMessagesListData,
 } from "./chat";
 
@@ -70,76 +68,6 @@ describe("chat room message helpers", () => {
       createChatMessageResponse(1, 10),
       deletedMessage,
     ]);
-  });
-
-  it("扁平化分页消息时也会复用同一套去重规则", () => {
-    expect(flattenRoomMessagePages([
-      {
-        data: {
-          list: [createChatMessageResponse(3, 30), createChatMessageResponse(1, 10)],
-        },
-      },
-      {
-        data: {
-          list: [createChatMessageResponse(2, 20), createChatMessageResponse(1, 10, {
-            content: "第一页更新版",
-          })],
-        },
-      },
-    ])).toEqual([
-      createChatMessageResponse(1, 10, {
-        content: "第一页更新版",
-      }),
-      createChatMessageResponse(2, 20),
-      createChatMessageResponse(3, 30),
-    ]);
-  });
-
-  it("实时插入新消息时只回写第一页，保留历史页游标", () => {
-    const currentData = {
-      pageParams: [{
-        pageSize: 20,
-        roomId: 9,
-      }],
-      pages: [{
-        success: true,
-        data: {
-          cursor: 120,
-          isLast: false,
-          list: [createChatMessageResponse(2, 20), createChatMessageResponse(3, 30)],
-        },
-      }, {
-        success: true,
-        data: {
-          cursor: 60,
-          isLast: true,
-          list: [createChatMessageResponse(1, 10)],
-        },
-      }],
-    };
-
-    expect(upsertRoomMessagesInfiniteData(currentData, 9, [
-      createChatMessageResponse(4, 40),
-      createChatMessageResponse(3, 30, {
-        content: "来自 ws 的更新版",
-      }),
-    ])).toEqual({
-      pageParams: currentData.pageParams,
-      pages: [{
-        success: true,
-        data: {
-          cursor: 120,
-          isLast: false,
-          list: [
-            createChatMessageResponse(2, 20),
-            createChatMessageResponse(3, 30, {
-              content: "来自 ws 的更新版",
-            }),
-            createChatMessageResponse(4, 40),
-          ],
-        },
-      }, currentData.pages[1]],
-    });
   });
 
   it("支持移动端全量列表 upsert 和删除标记", () => {

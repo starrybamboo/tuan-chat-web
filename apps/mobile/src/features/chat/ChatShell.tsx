@@ -3,6 +3,13 @@ import type { GestureType } from "react-native-gesture-handler";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { buildMessageDraftsFromUploadedMedia } from "@tuanchat/domain/message-draft";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import {
+  buildEndCombatStateEventExtra,
+  buildStartCombatStateEventExtra,
+  END_COMBAT_CONTENT,
+  START_COMBAT_CONTENT,
+} from "@tuanchat/domain/state-command";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   startTransition,
@@ -92,6 +99,7 @@ import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
 import { canManageMemberPermissions, canManageRoomRoles, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { resolveSendIdentity } from "@tuanchat/domain/room-identity";
+import { toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
 import { useCopyMessageToClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
@@ -241,6 +249,7 @@ export default function ChatShell() {
   const [clueScopeMessage, setClueScopeMessage] = useState<Message | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<number>>(() => new Set());
+  const [isSendingCombatRoundEvent, setIsSendingCombatRoundEvent] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
   const [selectedAvatarFileId, setSelectedAvatarFileId] = useState<number | undefined>(undefined);
@@ -600,6 +609,7 @@ export default function ChatShell() {
         customRoleName: sendIdentity.customRoleName,
         replayMessageId: submittedMessageAnchorId ?? undefined,
         roleId: sendIdentity.roleId,
+        ruleId: selectedRuleId,
       };
       if (messageMode === MOBILE_MESSAGE_MODE.TEXT) {
         if (isSpaceOwner && containsCommandRequestAllToken(resolvedDraftMessage)) {
@@ -731,6 +741,7 @@ export default function ChatShell() {
         content: ".next",
         customRoleName: sendIdentity.customRoleName,
         roleId: sendIdentity.roleId,
+        ruleId: selectedRuleId,
       });
     }
     catch (error) {
@@ -745,6 +756,68 @@ export default function ChatShell() {
     roomRoles,
     selectableRoomRoles,
     selectedAvatarId,
+    selectedRuleId,
+    sendRoomMessageMutation,
+  ]);
+
+  const sendCombatRoundEvent = useCallback(async (kind: "end" | "start") => {
+    if (!isSpaceOwner) {
+      setMessageError("只有主持人可以切换战斗轮。");
+      return;
+    }
+    if (!selectedRoomId || selectedRoomId <= 0) {
+      setMessageError("请先选择一个房间。");
+      return;
+    }
+    if (isSendingCombatRoundEvent) {
+      return;
+    }
+
+    try {
+      setIsSendingCombatRoundEvent(true);
+      setMessageError(null);
+      const effectiveRoleId = draftRoleId ?? currentRole?.roleId ?? -1;
+      const effectiveRole = effectiveRoleId > 0
+        ? roomRoles.find(role => role.roleId === effectiveRoleId)
+        : null;
+      const sendIdentity = resolveSendIdentity({
+        currentAvatarId: selectedAvatarId ?? effectiveRole?.avatarId ?? currentRole?.avatarId ?? -1,
+        customRoleName: draftCustomRoleName,
+        inputContent: kind === "start" ? START_COMBAT_CONTENT : END_COMBAT_CONTENT,
+        isSpaceOwner,
+        isSpectator,
+        roleId: effectiveRoleId,
+      });
+
+      await sendRoomMessageMutation.sendRequest({
+        avatarId: sendIdentity.avatarId,
+        content: kind === "start" ? START_COMBAT_CONTENT : END_COMBAT_CONTENT,
+        customRoleName: sendIdentity.customRoleName,
+        extra: toApiMessageExtraWithStateEvent(kind === "start"
+          ? buildStartCombatStateEventExtra()
+          : buildEndCombatStateEventExtra()),
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+        roleId: sendIdentity.roleId,
+        roomId: selectedRoomId,
+      });
+    }
+    catch (error) {
+      setMessageError(getErrorMessage(error, kind === "start" ? "开始战斗失败。" : "结束战斗失败。"));
+    }
+    finally {
+      setIsSendingCombatRoundEvent(false);
+    }
+  }, [
+    currentRole?.avatarId,
+    currentRole?.roleId,
+    draftCustomRoleName,
+    draftRoleId,
+    isSendingCombatRoundEvent,
+    isSpaceOwner,
+    isSpectator,
+    roomRoles,
+    selectedAvatarId,
+    selectedRoomId,
     sendRoomMessageMutation,
   ]);
 
@@ -1234,9 +1307,12 @@ export default function ChatShell() {
                               onAdvanceTurn={() => void handleAdvanceTurn()}
                               onClose={close}
                               onEnterStateCommandMode={handleEnterStateMode}
+                              onEndCombat={() => void sendCombatRoundEvent("end")}
+                              onStartCombat={() => void sendCombatRoundEvent("start")}
                               roomId={selectedRoomId}
                               roomRoles={roomRoles}
                               ruleId={selectedRuleId}
+                              isSendingCombatRoundEvent={isSendingCombatRoundEvent}
                               spaceId={selectedSpaceId}
                             />
                           )}

@@ -20,6 +20,16 @@ function buildMessage(partial: Partial<ChatMessageResponse["message"]>): ChatMes
 }
 
 describe("getChatFrameItemKey", () => {
+  it("乐观消息提交后优先沿用本地渲染 key，避免容器重建", () => {
+    const key = getChatFrameItemKey(0, buildMessage({
+      messageId: 101,
+      tcLocalRenderKey: "room-message:optimistic:-1:2026-05-29T00:00:00.000Z",
+      __tcStableKey: "fallback",
+    } as any));
+
+    expect(key).toBe("local:room-message:optimistic:-1:2026-05-29T00:00:00.000Z");
+  });
+
   it("乐观消息优先使用 stable key", () => {
     const key = getChatFrameItemKey(0, buildMessage({
       messageId: -1,

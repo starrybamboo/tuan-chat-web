@@ -10,6 +10,11 @@ type RectLike = {
   height: number;
 };
 
+type GridCellLike = {
+  rowIndex: number;
+  colIndex: number;
+};
+
 export function clampGridDimension(value: number): number {
   if (!Number.isFinite(value)) {
     return MIN_GRID_DIMENSION;
@@ -67,4 +72,13 @@ export function buildTokenPositionStyle(
     top: `${((rowIndex + 0.5) / safeRows) * 100}%`,
     transform: "translate(-50%, -50%)",
   };
+}
+
+export function shouldCommitGridCellMove(
+  currentCell: GridCellLike | null | undefined,
+  nextCell: GridCellLike,
+): boolean {
+  return !currentCell
+    || currentCell.rowIndex !== nextCell.rowIndex
+    || currentCell.colIndex !== nextCell.colIndex;
 }

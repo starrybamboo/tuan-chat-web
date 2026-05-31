@@ -20,7 +20,6 @@ export type RoleAbility = {
   basic?: Record<string, string>;
   ability?: Record<string, string>;
   skill?: Record<string, string>;
-  record?: Record<string, string>;
   extra?: Record<string, string>;
 };
 

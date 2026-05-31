@@ -2,6 +2,7 @@ import { AddressBookIcon, UsersIcon } from "@phosphor-icons/react";
 import { lazy, Suspense, use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import { canManageMemberPermissions, canManageRoomRoles, canViewRoomNpcRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
@@ -25,8 +26,12 @@ export default function RoomUserList({ type}: { type: string }) {
   const isRole = type === "Role";
 
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
   const roomId = roomContext.roomId ?? -1;
   const members = roomContext.roomMembers;
+  const spaceMembers = spaceContext.spaceMembers;
+  const visibleMembers = spaceMembers.length > 0 ? spaceMembers : members;
+  const roomMemberUserIds = useMemo(() => members.map(member => member.userId).filter((userId): userId is number => typeof userId === "number"), [members]);
   // 全局登录用户对应的member
   const curMember = roomContext.curMember;
   const currentMemberType = curMember?.memberType;
@@ -106,9 +111,16 @@ export default function RoomUserList({ type}: { type: string }) {
                 <>
                   <UsersIcon className="inline size-5" />
                   <p className="text-start font-semibold">
-                    群成员-
-                    {members.length}
+                    空间成员-
+                    {visibleMembers.length}
                   </p>
+                  {visibleMembers.length !== members.length && (
+                    <span className="text-xs text-base-content/50">
+                      房间内
+                      {" "}
+                      {members.length}
+                    </span>
+                  )}
                 </>
               )}
         </div>
@@ -164,9 +176,10 @@ export default function RoomUserList({ type}: { type: string }) {
             )
           : (
               <MemberLists
-                members={members}
+                members={visibleMembers}
                 className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"}
                 isSpace={false}
+                roomMemberUserIds={roomMemberUserIds}
               />
             )}
       </div>

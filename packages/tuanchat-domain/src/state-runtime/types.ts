@@ -63,6 +63,7 @@ export type StateRuntime = {
   combatRoundActive: boolean;
   roomVars: StateValueMap;
   roleVarsByRoleId: Record<number, StateValueMap>;
+  recordedRoleValueKeysByRoleId: Record<number, string[]>;
   activeStates: ActiveStateInstance[];
   baseDisplayValues: StateDisplayValues;
   derivedDisplayValues: StateDisplayValues;

@@ -1205,14 +1205,14 @@ const cachedMessages = await chatHistory.loadHistory(roomId);
 
 ### 2.5. GZIP 压缩传输
 
-对于批量获取消息的接口（`getAllMessage`、`getHistoryMessages`），使用 GZIP 压缩来优化带宽传输：
+对于批量获取消息的接口（`getHistoryMessages`），使用 GZIP 压缩来优化带宽传输：
 
 **后端实现**：
 ```java
-@GetMapping("/message/all")
-public void getAllMessage(@Valid @RequestParam Long roomId, HttpServletResponse response) throws Exception {
+@PostMapping("/message/history")
+public void getHistoryMessages(@Valid @RequestBody HistoryMessageRequest request, HttpServletResponse response) throws Exception {
     // 获取消息列表
-    List<ChatMessageResponse> messages = chatService.getAllMessage(roomId, uid);
+    List<ChatMessageResponse> messages = chatService.getHistoryMessages(request.getRoomId(), request.getSyncId(), uid, request.getCommitId());
     
     // 将数据转换为JSON并压缩
     String jsonData = objectMapper.writeValueAsString(ApiResult.success(messages));
@@ -1230,12 +1230,12 @@ public void getAllMessage(@Valid @RequestParam Long roomId, HttpServletResponse 
 
 **前端处理**：
 ```typescript
-// 浏览器自动处理 gzip 解压，无需额外代码
-public getAllMessage(roomId: number): CancelablePromise<ApiResultListChatMessageResponse> {
+// 浏览器自动处理 gzip 解压，无需额外代码；syncId=0 表示读取完整 baseline
+public getHistoryMessages(requestBody: HistoryMessageRequest): CancelablePromise<ApiResultListChatMessageResponse> {
     return this.httpRequest.request({
-        method: 'GET',
-        url: '/capi/chat/message/all',
-        query: { 'roomId': roomId },
+        method: 'POST',
+        url: '/capi/chat/message/history',
+        body: requestBody,
     });
 }
 ```
@@ -1570,7 +1570,6 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
 
 
 

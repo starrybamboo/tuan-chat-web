@@ -17,7 +17,7 @@ export class SpaceDocControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public renameDoc2(
+    public renameDoc(
         requestBody: SpaceDocRenameRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
@@ -66,7 +66,7 @@ export class SpaceDocControllerService {
      * @returns ApiResultListSpaceDocResponse OK
      * @throws ApiError
      */
-    public listDocs2(
+    public listDocs(
         spaceId: number,
     ): CancelablePromise<ApiResultListSpaceDocResponse> {
         return this.httpRequest.request({

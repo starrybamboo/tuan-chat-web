@@ -99,6 +99,7 @@ export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResp
       positiveMediaLooseKeys.add(buildOptimisticLooseKey(message, {
         ignoreContent: true,
         ignoreAnnotations: true,
+        ignoreExtra: true,
       }));
     }
     if (message.messageType === MessageType.DICE) {
@@ -121,6 +122,7 @@ export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResp
       ? buildOptimisticLooseKey(message, {
           ignoreContent: true,
           ignoreAnnotations: true,
+          ignoreExtra: true,
         })
       : "";
     const diceLooseKey = message.messageType === MessageType.DICE

@@ -8,8 +8,10 @@ import { buildBattleOverlaySnapshot } from "./battleOverlaySnapshot";
 function createRuntime(patch: Partial<CombatStateRuntime> = {}): CombatStateRuntime {
   return {
     turn: 0,
+    combatRoundActive: false,
     roomVars: {},
     roleVarsByRoleId: {},
+    recordedRoleValueKeysByRoleId: {},
     activeStates: [],
     baseDisplayValues: {
       room: {},
@@ -23,8 +25,10 @@ function createRuntime(patch: Partial<CombatStateRuntime> = {}): CombatStateRunt
     messageSummariesByMessageId: {},
     participants: [],
     participantsById: {},
+    mapConfig: null,
     mapTokens: [],
     mapTokensByRoleId: {},
+    hasMapConfigState: false,
     hasMapState: false,
     ...patch,
   };
@@ -45,6 +49,34 @@ describe("battleOverlaySnapshot", () => {
     });
   });
 
+  it("战斗轮开启时即使没有地图和角色战斗状态也显示 overlay", () => {
+    expect(buildBattleOverlaySnapshot({
+      roomId: 12,
+      roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
+      runtime: createRuntime({
+        combatRoundActive: true,
+      }),
+    })).toMatchObject({
+      visible: true,
+      roomId: 12,
+      round: 0,
+      map: null,
+      roles: [],
+    });
+  });
+
+  it("可以用视觉战斗态覆盖运行时战斗轮状态", () => {
+    expect(buildBattleOverlaySnapshot({
+      roomId: 12,
+      roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
+      runtime: createRuntime(),
+      combatRoundActiveOverride: true,
+    })).toMatchObject({
+      visible: true,
+      round: 0,
+    });
+  });
+
   it("从运行时提取 HP、先攻、状态标签并计算 HP 百分比", () => {
     const snapshot = buildBattleOverlaySnapshot({
       roomId: 12,
@@ -57,6 +89,7 @@ describe("battleOverlaySnapshot", () => {
       }],
       runtime: createRuntime({
         turn: 2,
+        combatRoundActive: true,
         baseDisplayValues: {
           room: {},
           rolesByRoleId: {
@@ -100,6 +133,32 @@ describe("battleOverlaySnapshot", () => {
     expect(snapshot.roles[0]?.avatarUrl).toContain("100");
   });
 
+  it("非战斗轮只保留底图和角色元数据，不提前显示 overlay", () => {
+    const map: RoomDndMapSnapshot = {
+      roomId: 12,
+      mapFileId: 200,
+      gridRows: 8,
+      gridCols: 9,
+      gridColor: "#64748b",
+      tokens: [{ roleId: 3, rowIndex: 1, colIndex: 2 }],
+    };
+
+    const snapshot = buildBattleOverlaySnapshot({
+      roomId: 12,
+      map,
+      roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
+      runtime: createRuntime(),
+      includeEmptyRoles: true,
+      useStaticMapTokensFallback: false,
+    });
+
+    expect(snapshot.visible).toBe(false);
+    expect(snapshot.round).toBeNull();
+    expect(snapshot.map?.imageUrl).toContain("200");
+    expect(snapshot.map?.tokens).toEqual([]);
+    expect(snapshot.roles).toMatchObject([{ roleId: 3, name: "露娜" }]);
+  });
+
   it("优先使用状态运行时 token 并投影到地图 snapshot", () => {
     const map: RoomDndMapSnapshot = {
       roomId: 12,
@@ -115,6 +174,7 @@ describe("battleOverlaySnapshot", () => {
       map,
       roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
       runtime: createRuntime({
+        combatRoundActive: true,
         hasMapState: true,
         mapTokens: [{ roleId: 3, rowIndex: 4, colIndex: 5 }],
         mapTokensByRoleId: {
@@ -137,5 +197,59 @@ describe("battleOverlaySnapshot", () => {
     });
     expect(snapshot.map?.imageUrl).toContain("200");
     expect(snapshot.roles.map(role => role.roleId)).toEqual([3]);
+  });
+
+  it("优先使用状态运行时地图配置，并在清空配置后不回退旧房间地图", () => {
+    const map: RoomDndMapSnapshot = {
+      roomId: 12,
+      mapFileId: 200,
+      gridRows: 8,
+      gridCols: 9,
+      gridColor: "#64748b",
+      tokens: [],
+    };
+
+    const snapshot = buildBattleOverlaySnapshot({
+      roomId: 12,
+      map,
+      roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
+      runtime: createRuntime({
+        combatRoundActive: true,
+        hasMapState: true,
+        hasMapConfigState: true,
+        mapConfig: {
+          mapFileId: 201,
+          imageUrl: "https://example.test/map-201.png",
+          gridRows: 10,
+          gridCols: 12,
+          gridColor: "#22c55e",
+        },
+        mapTokens: [{ roleId: 3, rowIndex: 4, colIndex: 5 }],
+        mapTokensByRoleId: {
+          3: { roleId: 3, rowIndex: 4, colIndex: 5 },
+        },
+      }),
+    });
+
+    expect(snapshot.map).toMatchObject({
+      imageUrl: "https://example.test/map-201.png",
+      gridRows: 10,
+      gridCols: 12,
+      gridColor: "#22c55e",
+    });
+
+    const clearedSnapshot = buildBattleOverlaySnapshot({
+      roomId: 12,
+      map,
+      roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
+      runtime: createRuntime({
+        combatRoundActive: true,
+        hasMapState: true,
+        hasMapConfigState: true,
+        mapConfig: null,
+      }),
+    });
+
+    expect(clearedSnapshot.map).toBeNull();
   });
 });

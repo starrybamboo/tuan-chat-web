@@ -11,6 +11,7 @@ export interface ToastWindowFrameProps {
   hiddenScrollbar?: boolean;
   disableScroll?: boolean;
   showCloseButton?: boolean;
+  rootClassName?: string;
   panelClassName?: string;
   bodyClassName?: string;
 }
@@ -24,6 +25,7 @@ export function ToastWindowFrame({
   hiddenScrollbar = false,
   disableScroll = false,
   showCloseButton = true,
+  rootClassName = "",
   panelClassName = "",
   bodyClassName = "",
 }: ToastWindowFrameProps) {
@@ -38,7 +40,7 @@ export function ToastWindowFrame({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="modal modal-open">
+        <div className={`modal modal-open ${rootClassName}`}>
           <motion.div
             className={`relative flex flex-col
                ${transparent ? "bg-transparent w-full h-screen" : "bg-base-100 dark:bg-base-300"}

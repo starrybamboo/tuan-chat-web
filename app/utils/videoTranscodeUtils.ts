@@ -1,5 +1,3 @@
-import bundledCoreJsUrl from "@ffmpeg/core?url";
-import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import * as bundledFfmpegWrapperUrlModule from "@ffmpeg/ffmpeg?url";
 import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
 import * as bundledFfmpegUtilUrlModule from "@ffmpeg/util?url";
@@ -8,7 +6,6 @@ import { copyBytesToBlobPart } from "@/utils/blobParts";
 import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
-  shouldUseBundledFfmpegCore,
 } from "@/utils/ffmpegCoreSourceConfig";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
@@ -306,33 +303,7 @@ async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffm
   const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
   const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
   const candidates = getFfmpegCoreBaseUrlCandidates();
-  const bundledCandidates = shouldUseBundledFfmpegCore()
-    ? [{
-        label: "bundled",
-        coreJs: bundledCoreJsUrl,
-        wasm: bundledCoreWasmUrl,
-      }]
-    : [];
   const errors: string[] = [];
-
-  for (const candidate of bundledCandidates) {
-    try {
-      const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(candidate.wasm, "application/wasm", loadTimeoutMs);
-      await withTimeout(
-        ffmpeg.load({
-          coreURL: candidate.coreJs,
-          wasmURL,
-          classWorkerURL,
-        }),
-        loadTimeoutMs,
-        "FFmpeg 核心加载",
-      );
-      return ffmpeg;
-    }
-    catch (error) {
-      errors.push(`${candidate.label}: ${normalizeErrorMessage(error)}`);
-    }
-  }
 
   for (const baseUrl of candidates) {
     try {

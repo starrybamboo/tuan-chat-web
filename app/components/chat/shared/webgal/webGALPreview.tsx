@@ -1,5 +1,5 @@
 /**
- * WebGAL 实时渲染预览面板
+ * WebGAL 预览面板
  * 以 iframe 形式嵌入到聊天室侧边栏
  */
 
@@ -7,12 +7,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { deriveCombatVisualActiveAtMessageIndex } from "@/components/chat/hooks/chatFrameCombatVisualState";
 import { fetchRoomDndMap, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import {
   buildBattleOverlayMessage,
   buildBattleOverlaySnapshot,
+  TUANCHAT_BATTLE_OVERLAY_READY_MESSAGE_TYPE,
+  TUANCHAT_BATTLE_OVERLAY_SCHEMA_VERSION,
 } from "@/components/chat/shared/webgal/battleOverlaySnapshot";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
@@ -34,9 +37,9 @@ export default function WebGALPreview({
 }: WebGALPreviewProps) {
   const spaceContext = use(SpaceContext);
   const roomContext = use(RoomContext);
+  const combatRuntime = useOptionalStateRuntimeContext();
   const spaceId = spaceContext.spaceId ?? null;
   const roomId = typeof roomContext.roomId === "number" && roomContext.roomId > 0 ? roomContext.roomId : null;
-  const stateRuntime = useOptionalStateRuntimeContext();
   const queryClient = useQueryClient();
   const router = useRouter();
   const location = useLocation();
@@ -44,6 +47,10 @@ export default function WebGALPreview({
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
   const setRealtimeRenderQueryClient = useRealtimeRenderStore(state => state.setQueryClient);
+  const realtimeStatus = useRealtimeRenderStore(state => state.status);
+  const autoAdvanceEnabled = useRealtimeRenderStore(state => state.autoAdvanceEnabled);
+  const setAutoAdvanceEnabled = useRealtimeRenderStore(state => state.setAutoAdvanceEnabled);
+
   useEffect(() => {
     setRealtimeRenderQueryClient(queryClient);
   }, [queryClient, setRealtimeRenderQueryClient]);
@@ -52,7 +59,6 @@ export default function WebGALPreview({
     void ensureHydrated(spaceId);
   }, [ensureHydrated, spaceId]);
 
-  const realtimeStatus = useRealtimeRenderStore(state => state.status);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const mapQuery = useQuery({
@@ -81,12 +87,27 @@ export default function WebGALPreview({
     realtimeStatus,
     isWebgalPaneActive,
   });
+  const combatVisualActive = useMemo(() => {
+    const messages = roomContext.chatHistory?.messages ?? [];
+    return messages.length > 0
+      ? deriveCombatVisualActiveAtMessageIndex(messages, messages.length - 1)
+      : false;
+  }, [roomContext.chatHistory?.messages]);
   const battleOverlaySnapshot = useMemo(() => buildBattleOverlaySnapshot({
     roomId,
     map: mapQuery.data ?? null,
     roles: roomContext.roomAllRoles ?? [],
-    runtime: stateRuntime,
-  }), [mapQuery.data, roomContext.roomAllRoles, roomId, stateRuntime]);
+    runtime: combatRuntime,
+    combatRoundActiveOverride: combatVisualActive,
+    includeEmptyRoles: true,
+    useStaticMapTokensFallback: false,
+  }), [
+    combatVisualActive,
+    combatRuntime,
+    mapQuery.data,
+    roomContext.roomAllRoles,
+    roomId,
+  ]);
   const postBattleOverlaySnapshot = useCallback(() => {
     const targetWindow = iframeRef.current?.contentWindow;
     if (!targetWindow) {
@@ -94,6 +115,27 @@ export default function WebGALPreview({
     }
     targetWindow.postMessage(buildBattleOverlayMessage(battleOverlaySnapshot), "*");
   }, [battleOverlaySnapshot]);
+
+  useEffect(() => {
+    const handleBattleOverlayReady = (event: MessageEvent<unknown>) => {
+      if (event.source !== iframeRef.current?.contentWindow) {
+        return;
+      }
+      const data = event.data;
+      if (
+        !data
+        || typeof data !== "object"
+        || Array.isArray(data)
+        || (data as { type?: unknown }).type !== TUANCHAT_BATTLE_OVERLAY_READY_MESSAGE_TYPE
+        || (data as { schemaVersion?: unknown }).schemaVersion !== TUANCHAT_BATTLE_OVERLAY_SCHEMA_VERSION
+      ) {
+        return;
+      }
+      postBattleOverlaySnapshot();
+    };
+    window.addEventListener("message", handleBattleOverlayReady);
+    return () => window.removeEventListener("message", handleBattleOverlayReady);
+  }, [postBattleOverlaySnapshot]);
 
   useEffect(() => {
     if (!previewState.showPreviewFrame) {
@@ -106,8 +148,20 @@ export default function WebGALPreview({
     return (
       <div className={`flex flex-col h-full ${className ?? ""}`}>
         <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
-          <span className="font-medium text-sm">WebGAL 实时预览</span>
+          <span className="font-medium text-sm">WebGAL 预览</span>
           <div className="flex items-center gap-2">
+            <label
+              className="flex items-center gap-1.5 text-xs text-base-content/80"
+              title="开启后，尾部新消息到达时自动推进 WebGAL 预览"
+            >
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-xs"
+                checked={autoAdvanceEnabled}
+                onChange={event => setAutoAdvanceEnabled(event.currentTarget.checked)}
+              />
+              <span>实时渲染</span>
+            </label>
             <button
               type="button"
               className="btn btn-ghost btn-xs"
@@ -145,8 +199,20 @@ export default function WebGALPreview({
   return (
     <div className={`flex flex-col h-full ${className ?? ""}`}>
       <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
-        <span className="font-medium text-sm">WebGAL 实时预览</span>
+        <span className="font-medium text-sm">WebGAL 预览</span>
         <div className="flex items-center gap-2">
+          <label
+            className="flex items-center gap-1.5 text-xs text-base-content/80"
+            title="开启后，尾部新消息到达时自动推进 WebGAL 预览"
+          >
+            <input
+              type="checkbox"
+              className="toggle toggle-primary toggle-xs"
+              checked={autoAdvanceEnabled}
+              onChange={event => setAutoAdvanceEnabled(event.currentTarget.checked)}
+            />
+            <span>实时渲染</span>
+          </label>
           <button
             type="button"
             className="btn btn-ghost btn-xs"
@@ -190,7 +256,7 @@ export default function WebGALPreview({
             <iframe
               ref={iframeRef}
               src={previewUrl ?? undefined}
-              title="WebGAL 实时预览"
+              title="WebGAL 预览"
               allow="autoplay; fullscreen"
               sandbox="allow-scripts allow-same-origin"
               onLoad={postBattleOverlaySnapshot}

@@ -81,23 +81,6 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 通过邀请链接加入房间，返回spaceId
-     * @param code
-     * @returns ApiResultLong OK
-     * @throws ApiError
-     */
-    public invited(
-        code: string,
-    ): CancelablePromise<ApiResultLong> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/space/member/invited/{code}',
-            path: {
-                'code': code,
-            },
-        });
-    }
-    /**
      * 在空间内新增观战成员
      * @param requestBody
      * @returns ApiResultVoid OK
@@ -108,7 +91,7 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/space/member/',
+            url: '/space/member',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -124,9 +107,26 @@ export class SpaceMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/space/member/',
+            url: '/space/member',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * 通过邀请链接加入房间，返回spaceId
+     * @param code
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public invited(
+        code: string,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/space/member/invited/{code}',
+            path: {
+                'code': code,
+            },
         });
     }
     /**

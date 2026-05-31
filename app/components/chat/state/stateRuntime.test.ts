@@ -47,7 +47,7 @@ function createRoleAbility(overrides?: Partial<RoleAbility>): RoleAbility {
 }
 
 describe("buildStateRuntime", () => {
-  it("在房间内尚未物化变量时，相对 varOp 会基于 role_ability 兜底", () => {
+  it("role varOp 只作为记录摘要，不再物化为房间内角色变量", () => {
     const runtime = buildStateRuntime({
       messages: [
         createStateMessage(1, buildCommandStateEventExtra("st", [{
@@ -63,12 +63,13 @@ describe("buildStateRuntime", () => {
       },
     });
 
-    expect(runtime.roleVarsByRoleId[3]).toEqual({ hp: 98 });
-    expect(runtime.derivedDisplayValues.rolesByRoleId[3]).toEqual({ hp: 98 });
-    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP 100 -> 98");
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
+    expect(runtime.recordedRoleValueKeysByRoleId[3]).toEqual(["hp"]);
+    expect(runtime.derivedDisplayValues.rolesByRoleId[3]).toEqual({ hp: 100 });
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP - 2");
   });
 
-  it("删除最早的物化消息后，后续相对 varOp 会重新基于 fallback 计算", () => {
+  it("多条 role varOp 只记录操作本身，不会演算当前角色值", () => {
     const messages = [
       createStateMessage(1, buildCommandStateEventExtra("st", [{
         type: "varOp",
@@ -86,57 +87,50 @@ describe("buildStateRuntime", () => {
       }])),
     ];
 
-    const fallbackAbility = {
-      3: createRoleAbility({ ability: { hp: "100" } }),
-    };
-
-    const fullRuntime = buildStateRuntime({
+    const runtime = buildStateRuntime({
       messages,
-      fallbackRoleAbilitiesByRoleId: fallbackAbility,
-    });
-    const recomputedRuntime = buildStateRuntime({
-      messages: [messages[1]],
-      fallbackRoleAbilitiesByRoleId: fallbackAbility,
+      fallbackRoleAbilitiesByRoleId: {
+        3: createRoleAbility({ ability: { hp: "100" } }),
+      },
     });
 
-    expect(fullRuntime.roleVarsByRoleId[3]?.hp).toBe(96);
-    expect(recomputedRuntime.roleVarsByRoleId[3]?.hp).toBe(98);
-    expect(recomputedRuntime.messageSummariesByMessageId[2]?.primaryText).toBe("HP 100 -> 98");
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
+    expect(runtime.recordedRoleValueKeysByRoleId[3]).toEqual(["hp"]);
+    expect(runtime.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(100);
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP - 2");
+    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP - 2");
   });
 
-  it("一旦更早消息用绝对值物化变量，后续 role_ability 变更不会影响该房间变量", () => {
+  it("旧的 role set 记录摘要展示为单纯赋值", () => {
     const messages = [
       createStateMessage(1, buildCommandStateEventExtra("st", [{
         type: "varOp",
         scope: buildRoleStateEventScope(3),
         key: "hp",
         op: STATE_EVENT_VAR_OP.SET,
-        value: 120,
+        value: 20,
       }])),
       createStateMessage(2, buildCommandStateEventExtra("st", [{
         type: "varOp",
         scope: buildRoleStateEventScope(3),
         key: "hp",
-        op: STATE_EVENT_VAR_OP.SUB,
-        value: 2,
+        op: STATE_EVENT_VAR_OP.SET,
+        value: 50,
       }])),
     ];
 
-    const runtimeFrom100 = buildStateRuntime({
+    const runtime = buildStateRuntime({
       messages,
       fallbackRoleAbilitiesByRoleId: {
-        3: createRoleAbility({ ability: { hp: "100" } }),
-      },
-    });
-    const runtimeFrom200 = buildStateRuntime({
-      messages,
-      fallbackRoleAbilitiesByRoleId: {
-        3: createRoleAbility({ ability: { hp: "200" } }),
+        3: createRoleAbility({ ability: { hp: "50" } }),
       },
     });
 
-    expect(runtimeFrom100.roleVarsByRoleId[3]?.hp).toBe(118);
-    expect(runtimeFrom200.roleVarsByRoleId[3]?.hp).toBe(118);
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
+    expect(runtime.recordedRoleValueKeysByRoleId[3]).toEqual(["hp"]);
+    expect(runtime.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(50);
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP = 20");
+    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP = 50");
   });
 
   it("仅存在 fallback role_ability 的角色也会出现在显示值中", () => {
@@ -191,7 +185,8 @@ describe("buildStateRuntime", () => {
           scope: buildRoleStateEventScope(3),
           statusId: "poison-v1",
         }])),
-        createStateMessage(2, buildCommandStateEventExtra("next", [{ type: "nextTurn" }])),
+        createStateMessage(2, buildCommandStateEventExtra("combat", [{ type: "combatRoundStart" }])),
+        createStateMessage(3, buildCommandStateEventExtra("next", [{ type: "nextTurn" }])),
       ],
       fallbackRoleAbilitiesByRoleId: {
         3: createRoleAbility({ ability: { hp: "100" } }),
@@ -203,7 +198,20 @@ describe("buildStateRuntime", () => {
     expect(afterNextTurn.turn).toBe(1);
     expect(afterNextTurn.activeStates).toEqual([]);
     expect(afterNextTurn.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(100);
-    expect(afterNextTurn.messageSummariesByMessageId[2]?.primaryText).toBe("回合 0 -> 1");
+    expect(afterNextTurn.messageSummariesByMessageId[3]?.primaryText).toBe("回合 0 -> 1");
+  });
+
+  it("nextTurn 在战斗开始前不会推进回合", () => {
+    const runtime = buildStateRuntime({
+      messages: [
+        createStateMessage(1, buildCommandStateEventExtra("next", [{ type: "nextTurn" }])),
+      ],
+    });
+
+    expect(runtime.turn).toBe(0);
+    expect(runtime.combatRoundActive).toBe(false);
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("未开始战斗");
+    expect(runtime.messageSummariesByMessageId[1]?.detailLines).toContain("未开始战斗，忽略下一回合");
   });
 
   it("combatRoundStart / combatRoundEnd 会切换战斗轮状态", () => {
@@ -241,10 +249,10 @@ describe("buildCombatStateRuntime", () => {
     });
 
     expect(runtime.participants).toEqual([]);
-    expect(runtime.roleVarsByRoleId[3]?.initiative).toBe(13);
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
   });
 
-  it("ruleId 7 走通用 combat runtime，状态和角色变量同源显示", () => {
+  it("ruleId 7 走通用 combat runtime，状态效果作用于角色卡基础值", () => {
     const resolver = new MemoryStateDefinitionResolver([
       createStateDefinition({
         statusId: "burn-v1",
@@ -283,12 +291,12 @@ describe("buildCombatStateRuntime", () => {
         ]),
       ],
       fallbackRoleAbilitiesByRoleId: {
-        3: createRoleAbility({ ability: { hp: "20", maxHp: "20" } }),
+        3: createRoleAbility({ ability: { hp: "18", maxHp: "20" }, skill: { initiative: "16" } }),
       },
       resolver,
     });
 
-    expect(runtime.roleVarsByRoleId[3]).toMatchObject({ hp: 18, initiative: 16 });
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
     expect(runtime.baseDisplayValues.rolesByRoleId[3]).toMatchObject({ hp: 18, initiative: 16, maxHp: 20 });
     expect(runtime.derivedDisplayValues.rolesByRoleId[3]).toMatchObject({ hp: 15, initiative: 16, maxHp: 20 });
     expect(runtime.activeStates.map(state => state.statusName)).toEqual(["燃烧"]);

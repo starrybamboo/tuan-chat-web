@@ -106,6 +106,7 @@ export function StatePanel({
     roomRoles,
     ruleId,
   });
+  const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
   const {
     activeStates,
     baseDisplayValues,
@@ -161,7 +162,12 @@ export function StatePanel({
           <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}>
             <View>
               <ThemedText type="caption" themeColor="textSecondary">当前回合</ThemedText>
-              <ThemedText type="subtitle">{runtime.turn}</ThemedText>
+              <ThemedText type="subtitle">{displayedRound}</ThemedText>
+              <View style={[styles.pill, { alignSelf: "flex-start", backgroundColor: runtime.combatRoundActive ? theme.accentMuted : theme.surface }]}>
+                <ThemedText type="caption" style={{ color: runtime.combatRoundActive ? theme.accent : theme.textSecondary }}>
+                  {runtime.combatRoundActive ? "战斗轮进行中" : "未进入战斗轮"}
+                </ThemedText>
+              </View>
             </View>
             <View style={{ flexDirection: "row", gap: Spacing.sm }}>
               <Pressable onPress={onAdvanceTurn} style={[styles.button, { backgroundColor: theme.accentMuted, borderColor: theme.accent }]}>

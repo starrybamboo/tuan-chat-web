@@ -105,6 +105,7 @@ interface MessageEditorProps {
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
 
 interface MessageEditorHistoryFocus {
   blockId: string;
@@ -735,7 +736,13 @@ export default function MessageEditor({
     incomingRoomMessagesFingerprintRef.current = nextFingerprint;
 
     if (dirtySinceLoadRef.current) {
-      toast("房间里有新的消息变更，保存后会同步到当前文档视图");
+      // 文档自动保存会回写房间消息流；这类自发回流不应提示为外部变更。
+      if (activeRemoteSaveGenerationRef.current !== null) {
+        return;
+      }
+      toast("房间里有新的消息变更，保存后会同步到当前文档视图", {
+        id: ROOM_DOC_REMOTE_CHANGE_TOAST_ID,
+      });
       return;
     }
 

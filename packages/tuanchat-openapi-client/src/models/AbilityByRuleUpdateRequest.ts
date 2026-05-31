@@ -3,10 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 能力更新请求
+ * 按角色和规则更新能力请求
  */
-export type AbilityUpdateRequest2 = {
+export type AbilityByRuleUpdateRequest = {
+    /**
+     * 角色 ID
+     */
     roleId: number;
+    /**
+     * 规则 ID
+     */
     ruleId: number;
     /**
      * 表演相关字段，不能为null，必须为单层
@@ -24,10 +30,6 @@ export type AbilityUpdateRequest2 = {
      * 技能字段，不能为null，必须为单层
      */
     skill?: Record<string, string>;
-    /**
-     * 记录字段，不能为null，必须为单层
-     */
-    record?: Record<string, string>;
     /**
      * 扩展属性字段，不能为null，必须为单层
      */

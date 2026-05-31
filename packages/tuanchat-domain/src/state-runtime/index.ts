@@ -1,4 +1,17 @@
 export {
+  applyRoleVarOpsToAbility,
+  cloneRoleAbilityForWriteThrough,
+  collectRoleVarOps,
+  persistRoleAbilitySnapshot,
+  writeRoleVarOpsThroughAbilities,
+} from "./roleVarWriteThrough";
+
+export type {
+  RoleVarWriteThroughDeps,
+  WriteRoleVarOpsParams,
+} from "./roleVarWriteThrough";
+
+export {
   buildCombatStateRuntime,
   buildStateRuntime,
   compareStateValueText,

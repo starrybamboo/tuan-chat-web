@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 
-import type { AbilityFieldUpdateRequest2 } from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest2";
+import type { AbilityByRuleFieldUpdateRequest } from "@tuanchat/openapi-client/models/AbilityByRuleFieldUpdateRequest";
+import type { AbilityByRuleUpdateRequest } from "@tuanchat/openapi-client/models/AbilityByRuleUpdateRequest";
 import type { AbilitySetRequest } from "@tuanchat/openapi-client/models/AbilitySetRequest";
-import type { AbilityUpdateRequest2 } from "@tuanchat/openapi-client/models/AbilityUpdateRequest2";
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
@@ -11,6 +11,36 @@ type AbilityClient = Pick<TuanChat, "abilityController">;
 
 export const ROLE_ABILITY_BY_RULE_QUERY_KEY = "roleAbilityByRule";
 export const ROLE_ABILITY_LIST_QUERY_KEY = "listRoleAbility";
+
+function getApiResultErrorMessage(result: { errMsg?: string } | null | undefined, fallback: string): string {
+  const message = result?.errMsg?.trim();
+  return message || fallback;
+}
+
+export function assertSuccessfulAbilityApiResult<T extends { success?: boolean; errMsg?: string } | null | undefined>(
+  result: T,
+  fallback: string,
+): T {
+  if (result?.success !== true) {
+    throw new Error(getApiResultErrorMessage(result, fallback));
+  }
+  return result;
+}
+
+async function setRoleAbilityWithSuccessGuard(client: AbilityClient, req: AbilitySetRequest) {
+  const result = await client.abilityController.setRoleAbility(req);
+  return assertSuccessfulAbilityApiResult(result, "创建角色能力失败");
+}
+
+async function updateRoleAbilityByRuleWithSuccessGuard(client: AbilityClient, req: AbilityByRuleUpdateRequest) {
+  const result = await client.abilityController.updateRoleAbilityByRule(req);
+  return assertSuccessfulAbilityApiResult(result, "更新角色能力失败");
+}
+
+async function updateRoleAbilityFieldByRuleWithSuccessGuard(client: AbilityClient, req: AbilityByRuleFieldUpdateRequest) {
+  const result = await client.abilityController.updateRoleAbilityFieldByRule(req);
+  return assertSuccessfulAbilityApiResult(result, "更新角色能力字段失败");
+}
 
 export function roleAbilityByRuleQueryKey(roleId?: number | null, ruleId?: number | null): readonly unknown[] {
   if (typeof roleId === "number" && roleId > 0 && typeof ruleId === "number" && ruleId > 0) {
@@ -49,7 +79,7 @@ export function useRoleAbilitiesByRule(
         return {};
       }
       const entries = await Promise.all(sortedRoleIds.map(async (roleId) => {
-        const response = await client.abilityController.getByRuleAndRole(ruleId, roleId);
+        const response = await client.abilityController.getRoleAbilityByRule(ruleId, roleId);
         return [String(roleId), response.data ?? null] as const;
       }));
       return Object.fromEntries(entries.filter((entry): entry is readonly [string, RoleAbility] => Boolean(entry[1])));
@@ -109,7 +139,7 @@ export function useAbilityByRuleAndRoleQuery(
   return useQuery<RoleAbility | null>({
     queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
     queryFn: async () => {
-      const res = await client.abilityController.getByRuleAndRole(ruleId, roleId);
+      const res = await client.abilityController.getRoleAbilityByRule(ruleId, roleId);
       return res.data ?? null;
     },
     staleTime: options.staleTime ?? 60_000,
@@ -120,7 +150,7 @@ export function useAbilityByRuleAndRoleQuery(
 export function useSetRoleAbilityMutation(client: AbilityClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (req: AbilitySetRequest) => client.abilityController.setRoleAbility(req),
+    mutationFn: (req: AbilitySetRequest) => setRoleAbilityWithSuccessGuard(client, req),
     mutationKey: ["setRoleAbility"],
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
@@ -132,7 +162,7 @@ export function useSetRoleAbilityMutation(client: AbilityClient) {
 export function useUpdateRoleAbilityByRoleIdMutation(client: AbilityClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (req: AbilityUpdateRequest2) => client.abilityController.updateRoleAbility1(req),
+    mutationFn: (req: AbilityByRuleUpdateRequest) => updateRoleAbilityByRuleWithSuccessGuard(client, req),
     mutationKey: ["updateRoleAbilityByRoleId"],
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
@@ -144,7 +174,7 @@ export function useUpdateRoleAbilityByRoleIdMutation(client: AbilityClient) {
 export function useUpdateKeyFieldByRoleIdMutation(client: AbilityClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (req: AbilityFieldUpdateRequest2) => client.abilityController.updateRoleAbilityField1(req),
+    mutationFn: (req: AbilityByRuleFieldUpdateRequest) => updateRoleAbilityFieldByRuleWithSuccessGuard(client, req),
     mutationKey: ["updateRoleAbilityFieldByRoleId"],
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });

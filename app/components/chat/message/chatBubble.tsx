@@ -560,11 +560,13 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     />
   );
 
-  const canEditContent = canEdit
-    && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT);
+  const isEditableContentMessage = message.messageType === MESSAGE_TYPE.TEXT
+    || message.messageType === MESSAGE_TYPE.INTRO_TEXT
+    || message.messageType === MESSAGE_TYPE.IMG;
+  const canEditContent = canEdit && isEditableContentMessage;
   const canShowTextStyleToolbar = isEditingContent
     && canEdit
-    && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT || message.messageType === MESSAGE_TYPE.DICE);
+    && (isEditableContentMessage || message.messageType === MESSAGE_TYPE.DICE);
   const textStyleToolbar = canShowTextStyleToolbar
     ? (
         <TextStyleToolbar
@@ -1014,6 +1016,29 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
               />
             </div>
           );
+        case MESSAGE_TYPE.IMG:
+          return (
+            <div className="flex min-w-0 flex-col gap-1">
+              <MessageContentRenderer
+                message={{ ...message, content: "" }}
+                annotations={annotations}
+                cacheKeyBase={`chat:${message.messageId}`}
+              />
+              {(message.content || canEditContent) && (
+                <EditableMessageContent
+                  content={message.content ?? ""}
+                  onCommit={handleContentUpdate}
+                  className={`editable-field whitespace-pre-wrap break-words text-sm text-base-content/80 ${message.content ? "" : "sr-only"}`}
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-sm text-base-content/80"
+                  placeholder="添加图片说明"
+                  onEditingChange={setIsEditingContent}
+                  editInputRef={editInputRef}
+                  shouldIgnoreBlur={shouldIgnoreEditBlur}
+                  canEdit={canEditContent}
+                />
+              )}
+            </div>
+          );
         case MESSAGE_TYPE.FORWARD:
           return <ForwardMessage messageResponse={chatMessageResponse} />;
         case MESSAGE_TYPE.DICE: {
@@ -1105,7 +1130,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
         ? (
             <div
               className="group relative flex w-full justify-center"
-              key={message.messageId}
             >
               {messageHoverToolbar}
               <div className="flex w-full max-w-4xl items-start justify-center gap-1.5 px-1.5 sm:px-3">
@@ -1119,7 +1143,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           ? (
               <div
                 className={CHAT_MESSAGE_ROW_CLASS}
-                key={message.messageId}
               >
                 {messageHoverToolbar}
                 {/* Avatar */}
@@ -1157,6 +1180,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                             isRounded={true}
                             withTitle={false}
                             stopToastWindow={true}
+                            alt={speakerDisplayName || "角色"}
                             useDefaultAvatarFallback={false}
                           />
                         )}
@@ -1246,7 +1270,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           : (
               <div
                 className="flex w-full py-1.5 sm:py-2 relative"
-                key={message.messageId}
               >
                 {messageHoverToolbar}
                 {/* 圆角矩形头像 */}
@@ -1285,6 +1308,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                               isRounded={false}
                               withTitle={false}
                               stopToastWindow={true}
+                              alt={speakerDisplayName || "角色"}
                               useDefaultAvatarFallback={false}
                             >
                             </RoleAvatarComponent>
@@ -1450,8 +1474,7 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
       if (!prevExtra.imageMessage || !nextExtra.imageMessage) {
         return false;
       }
-      if (prevExtra.imageMessage.fileId !== nextExtra.imageMessage.fileId
-        || prevExtra.imageMessage.mediaType !== nextExtra.imageMessage.mediaType
+      if (JSON.stringify(prevExtra.imageMessage.source) !== JSON.stringify(nextExtra.imageMessage.source)
         || prevExtra.imageMessage.background !== nextExtra.imageMessage.background
         || prevExtra.imageMessage.width !== nextExtra.imageMessage.width
         || prevExtra.imageMessage.height !== nextExtra.imageMessage.height) {

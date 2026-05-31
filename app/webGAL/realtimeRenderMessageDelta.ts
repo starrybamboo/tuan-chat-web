@@ -93,6 +93,10 @@ function isSceneStatefulMessage(
     return true;
   }
 
+  if (messageType === MESSAGE_TYPE.STATE_EVENT) {
+    return true;
+  }
+
   if (messageType === MESSAGE_TYPE.INTRO_TEXT) {
     return false;
   }

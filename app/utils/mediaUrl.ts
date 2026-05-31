@@ -41,11 +41,36 @@ export {
 
 export type { LegacyMediaQuality, MediaQuality, MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
 
-const DEFAULT_MEDIA_CDN_BASE_URL = "https://tuan.chat";
+const DEFAULT_MEDIA_CDN_BASE_URL = "https://media.tuan.chat";
+const LEGACY_MEDIA_CDN_HOSTNAMES = new Set([
+  "tuan.chat",
+  "www.tuan.chat",
+  "test.tuan.chat",
+  "www.test.tuan.chat",
+]);
+
+function normalizeConfiguredMediaBaseUrl(rawBaseUrl: string): string {
+  const value = rawBaseUrl.trim();
+  if (!value) {
+    return DEFAULT_MEDIA_CDN_BASE_URL;
+  }
+
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    if (LEGACY_MEDIA_CDN_HOSTNAMES.has(hostname)) {
+      return DEFAULT_MEDIA_CDN_BASE_URL;
+    }
+  }
+  catch {
+    // 非标准 URL 交给运行时归一化处理。
+  }
+
+  return value;
+}
 
 function getCdnBaseUrl(): string {
   const envBase = String(import.meta.env.VITE_MEDIA_CDN_BASE_URL ?? "").trim();
-  return resolveRuntimeMediaBaseUrl(envBase, DEFAULT_MEDIA_CDN_BASE_URL);
+  return resolveRuntimeMediaBaseUrl(normalizeConfiguredMediaBaseUrl(envBase), DEFAULT_MEDIA_CDN_BASE_URL);
 }
 
 export function mediaUrl(
@@ -84,7 +109,6 @@ export const imageLowUrl = (fileId?: number | string | null) => _imageLowUrl(fil
 /** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. */
 export const imagePreviewUrl = (fileId?: number | string | null) => _imagePreviewUrl(fileId, getCdnBaseUrl());
 export const imageMediumUrl = (fileId?: number | string | null) => _imageMediumUrl(fileId, getCdnBaseUrl());
-/** @deprecated Use `mediaUrl(fileId, "image", "medium")` instead. "high" maps to "medium". */
 export const imageHighUrl = (fileId?: number | string | null) => _imageHighUrl(fileId, getCdnBaseUrl());
 export const imageOriginalUrl = (fileId?: number | string | null) => _imageOriginalUrl(fileId, getCdnBaseUrl());
 /** @deprecated Use `mediaUrl(fileId, "image", "low")` instead. */

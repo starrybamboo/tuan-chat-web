@@ -19,6 +19,22 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class RoomControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
+     * 更新房间信息(名称、头像、场景简要描述)
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRoom(
+        requestBody: RoomUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/room',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
      * 更新房间禁言状态
      * @param requestBody
      * @returns ApiResultVoid OK
@@ -82,22 +98,6 @@ export class RoomControllerService {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/room/extra',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 更新房间信息(名称、头像、场景简要描述)
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoom(
-        requestBody: RoomUpdateRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/room/',
             body: requestBody,
             mediaType: 'application/json',
         });

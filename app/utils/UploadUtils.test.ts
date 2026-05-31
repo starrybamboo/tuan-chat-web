@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { transcodeAudioFileToOpusOrThrow } from "./audioTranscodeUtils";
 import { uploadGeneratedMediaFiles, uploadMediaFile } from "./mediaUpload";
@@ -50,10 +50,10 @@ describe("uploadUtils media service adapter", () => {
       fileId: 42,
       fileName: "clip.webm",
       mediaType: "video",
-      originalUrl: "https://tuan.chat/media/v1/files/042/42/video/low.webm",
+      originalUrl: "https://media.tuan.chat/media/v1/files/042/42/video/low.webm",
       size: transcodedFile.size,
       uploadRequired: true,
-      url: "https://tuan.chat/media/v1/files/042/42/video/low.webm",
+      url: "https://media.tuan.chat/media/v1/files/042/42/video/low.webm",
     });
   });
 
@@ -77,7 +77,7 @@ describe("uploadUtils media service adapter", () => {
       original: file,
     }), { scene: 1 });
     expect(uploadMediaFile).not.toHaveBeenCalled();
-    expect(result.url).toBe("https://tuan.chat/media/v1/files/043/43/video/low.webm");
+    expect(result.url).toBe("https://media.tuan.chat/media/v1/files/043/43/video/low.webm");
     expect(result.fileId).toBe(43);
   });
 
@@ -104,7 +104,7 @@ describe("uploadUtils media service adapter", () => {
       original: file,
     }), { scene: 1 });
     expect(uploadMediaFile).not.toHaveBeenCalled();
-    expect(result.url).toBe("https://tuan.chat/media/v1/files/044/44/video/low.webm");
+    expect(result.url).toBe("https://media.tuan.chat/media/v1/files/044/44/video/low.webm");
     warnSpy.mockRestore();
   });
 
@@ -141,7 +141,7 @@ describe("uploadUtils media service adapter", () => {
       original: transcodedFile,
     }), { scene: 1 });
     expect(uploadMediaFile).not.toHaveBeenCalled();
-    expect(result.url).toBe("https://tuan.chat/media/v1/files/046/46/audio/low.webm");
+    expect(result.url).toBe("https://media.tuan.chat/media/v1/files/046/46/audio/low.webm");
   });
 
   it("音频转码失败时回退上传原音频，不再二次触发转码", async () => {
@@ -167,7 +167,7 @@ describe("uploadUtils media service adapter", () => {
       original: file,
     }), { scene: 1 });
     expect(uploadMediaFile).not.toHaveBeenCalled();
-    expect(result.url).toBe("https://tuan.chat/media/v1/files/047/47/audio/low.webm");
+    expect(result.url).toBe("https://media.tuan.chat/media/v1/files/047/47/audio/low.webm");
     warnSpy.mockRestore();
   });
 
@@ -184,7 +184,7 @@ describe("uploadUtils media service adapter", () => {
     const result = await utils.uploadImg(file, 1);
 
     expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 1 });
-    expect(result).toBe("https://tuan.chat/media/v1/files/045/45/image/medium.webp");
+    expect(result).toBe("https://media.tuan.chat/media/v1/files/045/45/image/medium.webp");
   });
 
   it("图片上传入口会拒绝无法识别为图片的文件", async () => {
@@ -220,3 +220,4 @@ describe("uploadUtils media service adapter", () => {
     }
   });
 });
+

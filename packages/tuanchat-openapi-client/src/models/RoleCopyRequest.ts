@@ -19,8 +19,12 @@ export type RoleCopyRequest = {
      */
     newRoleDescription?: string;
     /**
-     * 目标角色类型，当前仅支持 1（骰娘）
+     * 目标角色类型，支持 1（骰娘）或 2（NPC）
      */
     targetType?: number;
+    /**
+     * 目标空间ID；复制为 NPC 时必填
+     */
+    spaceId?: number;
 };
 

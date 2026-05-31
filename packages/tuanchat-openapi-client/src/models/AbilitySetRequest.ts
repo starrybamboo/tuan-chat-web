@@ -31,10 +31,6 @@ export type AbilitySetRequest = {
      */
     skill?: Record<string, string>;
     /**
-     * 记录字段
-     */
-    record?: Record<string, string>;
-    /**
      * 能力扩展属性
      */
     extra?: Record<string, string>;

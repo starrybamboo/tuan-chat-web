@@ -17,6 +17,34 @@ const MESSAGE_DRAG_HANDLE_CLASS = [
   "hover:bg-base-300/70 hover:text-base-content/70",
 ].join(" ");
 
+export function getChatFrameMessageItemClassName(params: {
+  canJumpToWebGAL: boolean;
+  isDragging: boolean;
+  isSelected: boolean;
+  messageSendStateClass: string;
+  shouldPlayWebgalModeEntryAnimation: boolean;
+  showDragHandle: boolean;
+}): string {
+  const {
+    canJumpToWebGAL,
+    isDragging,
+    isSelected,
+    messageSendStateClass,
+    shouldPlayWebgalModeEntryAnimation,
+    showDragHandle,
+  } = params;
+
+  return [
+    showDragHandle ? MESSAGE_DRAG_GUTTER_CLASS : "",
+    messageSendStateClass,
+    shouldPlayWebgalModeEntryAnimation ? "webgal-mode-message-entry" : "",
+    "relative group transition-opacity",
+    isSelected ? "bg-info-content/40 hover:bg-info-content/40" : "",
+    isDragging ? "pointer-events-auto" : "",
+    canJumpToWebGAL ? `cursor-pointer ${isSelected ? "" : "hover:bg-base-200/50"}` : "",
+  ].filter(Boolean).join(" ");
+}
+
 interface ChatFrameMessageItemProps {
   chatMessageResponse: ChatMessageResponse;
   isSelected: boolean;
@@ -95,8 +123,14 @@ export default function ChatFrameMessageItem({
 
   return (
     <div
-      className={`
-        ${showDragHandle ? MESSAGE_DRAG_GUTTER_CLASS : ""} ${messageSendStateClass} ${shouldPlayWebgalModeEntryAnimation ? "webgal-mode-message-entry" : ""} relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""} ${canJumpToWebGAL ? "cursor-pointer hover:bg-base-200/50" : ""}`}
+      className={getChatFrameMessageItemClassName({
+        canJumpToWebGAL,
+        isDragging,
+        isSelected,
+        messageSendStateClass,
+        shouldPlayWebgalModeEntryAnimation,
+        showDragHandle,
+      })}
       style={webgalModeEntryAnimationStyle}
       data-message-id={chatMessageResponse.message.messageId}
       onClick={onMessageClick}

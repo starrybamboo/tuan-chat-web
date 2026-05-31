@@ -109,13 +109,14 @@ describe("mediaUpload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("非聊天室图片会先生成 WebP original，再生成 low -> medium", async () => {
+  it("非聊天室图片会先生成 WebP original，再生成 low -> medium -> high", async () => {
     const order: string[] = [];
-    compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number }) => {
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number; maxSizeKB?: number }) => {
       order.push(`start-${profile.maxWidthOrHeight}`);
       await Promise.resolve();
       order.push(`end-${profile.maxWidthOrHeight}`);
-      return new File([String(profile.maxWidthOrHeight)], `derived-${profile.maxWidthOrHeight}.webp`, { type: "image/webp" });
+      const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
+      return new File([new Uint8Array(bytes)], `derived-${profile.maxWidthOrHeight}.webp`, { type: "image/webp" });
     });
 
     const file = new File([new Uint8Array(1024)], "demo.png", { type: "image/png" });
@@ -128,14 +129,22 @@ describe("mediaUpload", () => {
       "end-200",
       "start-512",
       "end-512",
+      "start-2560",
+      "end-2560",
     ]);
     expect(result.filesByQuality.original?.name).toBe("derived-2560.webp");
     expect(result.filesByQuality.low?.name).toBe("derived-200.webp");
     expect(result.filesByQuality.medium?.name).toBe("derived-512.webp");
+    expect(result.filesByQuality.high?.name).toBe("derived-2560.webp");
+    expect(result.metadata.uploadedQualities).toEqual(["original", "low", "medium", "high"]);
   });
 
   it("图片 low 档派生标准与 40KB 缩略图上限保持一致", async () => {
     const file = new File([new Uint8Array(1024)], "demo.png", { type: "image/png" });
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
+      const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
+      return new File([new Uint8Array(bytes)], `derived-${profile.maxSizeKB}.webp`, { type: "image/webp" });
+    });
 
     await generateMediaUploadFiles(file);
 
@@ -166,19 +175,42 @@ describe("mediaUpload", () => {
       forceOutput: true,
     }));
     expect(result.filesByQuality.original?.name).toBe("derived-3072.webp");
+    expect(result.filesByQuality.low).toBeUndefined();
+    expect(result.metadata.uploadedQualities).toEqual(["original"]);
   });
 
-  it("聊天室场景的图片只生成 low 和 medium，不生成 original 上传文件", async () => {
+  it("聊天室场景的图片也会生成 WebP original、low、medium 和 high", async () => {
     const file = new File([new Uint8Array(1024)], "room.png", { type: "image/png" });
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number; maxSizeKB?: number }) => {
+      const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
+      return new File([new Uint8Array(bytes)], `derived-${profile.maxWidthOrHeight}.webp`, { type: "image/webp" });
+    });
 
     const result = await generateMediaUploadFiles(file, 1);
 
-    expect(Object.keys(result.filesByQuality).sort()).toEqual(["low", "medium"]);
-    expect(result.filesByQuality.original).toBeUndefined();
+    expect(Object.keys(result.filesByQuality).sort()).toEqual(["high", "low", "medium", "original"]);
+    expect(result.filesByQuality.original?.type).toBe("image/webp");
+    expect(result.filesByQuality.high?.name).toBe("derived-2560.webp");
+    expect(compressImageMock).toHaveBeenCalledWith(file, expect.objectContaining({
+      maxWidthOrHeight: 2560,
+      maxSizeKB: 3072,
+      fileType: "image/webp",
+      preserveNovelAiMetadata: true,
+      forceOutput: true,
+    }));
+    expect(compressImageMock).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({
+      maxWidthOrHeight: 2560,
+      maxSizeKB: 800,
+      fileType: "image/webp",
+    }));
   });
 
-  it("聊天室场景上传图片时只会上传 low 和 medium 目标", async () => {
+  it("聊天室场景上传图片时会上传 original、low、medium 和 high 目标", async () => {
     const file = new File([new Uint8Array(1024)], "room.png", { type: "image/png" });
+    compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
+      const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
+      return new File([new Uint8Array(bytes)], `derived-${profile.maxSizeKB}.webp`, { type: "image/webp" });
+    });
     prepareUploadMock.mockResolvedValueOnce({
       success: true,
       data: {
@@ -187,8 +219,10 @@ describe("mediaUpload", () => {
         uploadRequired: true,
         sessionId: 99,
         uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
           low: { uploadUrl: "https://oss.example.com/low" },
           medium: { uploadUrl: "https://oss.example.com/medium" },
+          high: { uploadUrl: "https://oss.example.com/high" },
         },
       },
     });
@@ -201,7 +235,7 @@ describe("mediaUpload", () => {
       mediaType: "image",
       uploadRequired: true,
     });
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(4);
     expect(prepareUploadMock).toHaveBeenCalledWith(expect.objectContaining({
       scene: 1,
     }));
@@ -254,8 +288,6 @@ describe("mediaUpload", () => {
         sessionId: 99,
         uploadTargets: {
           original: { uploadUrl: "https://oss.example.com/original" },
-          low: { uploadUrl: "https://oss.example.com/low" },
-          medium: { uploadUrl: "https://oss.example.com/medium" },
         },
       },
     });

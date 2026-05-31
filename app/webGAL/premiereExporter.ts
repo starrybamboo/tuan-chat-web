@@ -1,11 +1,11 @@
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { createTTSApi } from "@/tts/engines/index/apiClient";
 import {
   getFigurePositionFromAnnotations,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import type { ChatMessageResponse } from "../../api";
 
@@ -469,7 +469,7 @@ export class PremiereExporter {
         bgUrl = (msg.webgal as any).bgUrl;
       }
       else if (isBgAnnotation) {
-        bgUrl = mediaFileUrl(msg.extra?.imageMessage?.fileId, msg.extra?.imageMessage?.mediaType, "medium");
+        bgUrl = resolveMessageMediaUrl(msg.extra?.imageMessage, "medium", "image");
       }
 
       // Check if this is a "pure background switch" (Has BG, No Text, No Voice logic triggered yet)

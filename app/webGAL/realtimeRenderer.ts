@@ -1,13 +1,15 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import type { StateEventExtra } from "@/types/stateEvent";
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
 import type { FigureAnimationSettings } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
+import { deriveCombatVisualActiveAtMessageIndex, getCombatVisualSignal } from "@/components/chat/hooks/chatFrameCombatVisualState";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
-import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 import {
   ANNOTATION_IDS,
@@ -25,9 +27,10 @@ import {
   isImageMessageBackground,
   isImageMessageShown,
 } from "@/types/messageAnnotations";
+import { buildCommandStateEventExtra, getNormalizedStateEventExtra } from "@/types/stateEvent";
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
-import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
+import { extractWebgalDicePayload } from "@/types/webgalDice";
 import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, mediaFileUrl } from "@/utils/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
@@ -67,6 +70,7 @@ import {
   uploadBackgroundAsset,
   uploadBgmAsset,
   uploadImageFigureAsset,
+  uploadMapImageAsset,
   uploadSoundEffectAsset,
   uploadSpriteAsset,
   uploadVideoAsset,
@@ -74,13 +78,16 @@ import {
 import { DEFAULT_REALTIME_GAME_CONFIG } from "./realtimeRendererConfig";
 import {
   buildMergedTrpgDiceMessage,
+  buildPlayEffectLine,
+  buildTrpgDicePerformLines,
   canMergeTrpgDicePair,
   DEFAULT_DICE_SOUND_FILE,
   DEFAULT_DICE_SOUND_FOLDER,
   DICE_MERGE_WAIT_MS,
   getDiceContentFromMessage,
   isPotentialTrpgDiceMessage,
-  TRPG_DICE_PIXI_EFFECT,
+  resolveRealtimeDiceMiniAvatarDefault,
+  resolveRealtimeDiceRenderMode,
 } from "./realtimeRendererDice";
 import {
   buildClearFigureLines,
@@ -101,7 +108,6 @@ import {
 import { getSafeExtensionFromUrl, hashString } from "./realtimeRendererFileNames";
 import {
   parseGameConfig,
-  sanitizeGameConfigValue,
   serializeGameConfig,
   upsertGameConfigEntry,
 } from "./realtimeRendererGameConfig";
@@ -123,9 +129,19 @@ import {
   resolveRealtimeTtsEmotionVector,
 } from "./realtimeRendererTts";
 import {
+  applyTuanChatStateEventToMapTokenRoleIds,
+  buildTuanChatStateEventVarLines,
+  buildTuanChatWebgalInitVarLines,
+} from "./realtimeRendererTuanChatVars";
+import {
+  buildRoomSceneCompilation,
+  buildWebgalSceneName,
+  resolveProjectableMediaUrl,
+  resolvePublishedGameName,
+} from "./spaceWebgalCompiler";
+import { compileRealtimeRenderMessageLines, type RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
+import {
   parseWorkflowRoomMap,
-  splitDiceContentToSteps,
-
 } from "./realtimeRendererWorkflow";
 import {
   buildStartSceneContent,
@@ -139,7 +155,7 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-trpg-dice-v2";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-battle-overlay-dice-speaker-focus-grid-v13";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
@@ -154,14 +170,21 @@ function resolveRoleMiniAvatarUrl(avatar: RoleAvatar | undefined): string {
 }
 
 type RenderMessageOptions = {
+  autoJump?: boolean;
   bypassDiceMerge?: boolean;
   skipBookkeeping?: boolean;
+};
+
+type SyncMessageOptions = {
+  force?: boolean;
+  forceReload?: boolean;
 };
 
 type PendingDiceMergeEntry = {
   message: ChatMessageResponse;
   roomId: number;
   syncToFile: boolean;
+  autoJump: boolean;
   timer: ReturnType<typeof setTimeout>;
 };
 
@@ -180,6 +203,7 @@ type InitProgress = {
 type SharedUploadCache = {
   uploadedSpritesMap: Map<string, string>;
   uploadedBackgroundsMap: Map<string, string>;
+  uploadedMapImagesMap: Map<string, string>;
   uploadedImageFiguresMap: Map<string, string>;
   uploadedBgmsMap: Map<string, string>;
   uploadedVideosMap: Map<string, string>;
@@ -203,6 +227,7 @@ export class RealtimeRenderer {
   private sceneContextMap = new Map<number, RendererContext>(); // roomId -> context
   private uploadedSpritesMap = new Map<string, string>(); // `${roleDir}_${avatarId}` -> `roleDir/fileName`
   private uploadedBackgroundsMap = new Map<string, string>(); // url -> fileName
+  private uploadedMapImagesMap = new Map<string, string>(); // source url -> ./game/background/fileName
   private uploadedImageFiguresMap = new Map<string, string>(); // url -> fileName
   private uploadedBgmsMap = new Map<string, string>(); // url -> fileName
   private uploadedVideosMap = new Map<string, string>(); // url -> fileName
@@ -222,11 +247,13 @@ export class RealtimeRenderer {
   private renderedFigureStateMap = new Map<number, Map<string, RoomFigureRenderState>>(); // roomId -> slotId -> 最近一次下发的立绘状态
   private renderedMiniAvatarVisibleMap = new Map<number, boolean>(); // roomId -> 最近一次下发的小头像是否可见
   private messageRenderStateSnapshotMap = new Map<string, RoomRenderStateSnapshot>(); // `${roomId}_${messageId}` -> 消息执行后的房间状态快照
+  private combatRoundActiveMap = new Map<number, boolean>(); // roomId -> STATE_EVENT 回放出的战斗轮状态
+  private mapTokenRoleIdsMap = new Map<number, Set<number>>();
   private annotationEffectSoundCache = new Map<string, string>(); // effectId -> 可用音效文件名
   private roomSyncBatchDepthMap = new Map<number, number>();
   private roomSyncPendingSet = new Set<number>();
-  // 自动跳转已永久关闭，避免新增消息打断当前预览位置
-  private readonly autoJumpEnabled = false;
+  private autoJumpEnabled = false;
+  private autoJumpRequestDepth = 0;
 
   // 小头像相关
   private miniAvatarEnabled: boolean = false;
@@ -250,6 +277,7 @@ export class RealtimeRenderer {
     const sharedUploadCache = RealtimeRenderer.getSharedUploadCache(this.gameName);
     this.uploadedSpritesMap = sharedUploadCache.uploadedSpritesMap;
     this.uploadedBackgroundsMap = sharedUploadCache.uploadedBackgroundsMap;
+    this.uploadedMapImagesMap = sharedUploadCache.uploadedMapImagesMap;
     this.uploadedImageFiguresMap = sharedUploadCache.uploadedImageFiguresMap;
     this.uploadedBgmsMap = sharedUploadCache.uploadedBgmsMap;
     this.uploadedVideosMap = sharedUploadCache.uploadedVideosMap;
@@ -267,6 +295,7 @@ export class RealtimeRenderer {
     const created: SharedUploadCache = {
       uploadedSpritesMap: new Map<string, string>(),
       uploadedBackgroundsMap: new Map<string, string>(),
+      uploadedMapImagesMap: new Map<string, string>(),
       uploadedImageFiguresMap: new Map<string, string>(),
       uploadedBgmsMap: new Map<string, string>(),
       uploadedVideosMap: new Map<string, string>(),
@@ -307,6 +336,115 @@ export class RealtimeRenderer {
     catch (error) {
       console.warn("[RealtimeRenderer] 写入引擎标记失败:", error);
     }
+  }
+
+  private async buildSceneInitLinesWithTuanChatVars(): Promise<string[]> {
+    const roleIds = [...this.roleMap.keys()].filter(roleId => roleId > 0).sort((left, right) => left - right);
+    const avatarUrlsByRoleId: Record<number, string> = {};
+    await Promise.all(roleIds.map(async (roleId) => {
+      const avatarUrl = await this.uploadRoleAvatarForMapToken(roleId);
+      if (avatarUrl) {
+        avatarUrlsByRoleId[roleId] = avatarUrl;
+      }
+    }));
+    return [
+      ...buildTuanChatWebgalInitVarLines({ roleIds, avatarUrlsByRoleId }),
+      ...buildSceneInitLines(),
+    ];
+  }
+
+  private async uploadRoleAvatarForMapToken(roleId: number): Promise<string | null> {
+    const role = this.roleMap.get(roleId);
+    const avatarUrl = mediaFileUrl(role?.avatarFileId, role?.avatarMediaType || "image", "low")
+      || buildAvatarUrl(role?.avatarFileId);
+    if (!avatarUrl) {
+      return null;
+    }
+    const fileName = await uploadImageFigureAsset(this.getAssetUploadContext(), avatarUrl, `token_role_${roleId}`);
+    return fileName ? `./game/figure/${fileName}` : null;
+  }
+
+  private getMapTokenRoleIds(roomId: number): Set<number> {
+    const existing = this.mapTokenRoleIdsMap.get(roomId);
+    if (existing) {
+      return existing;
+    }
+    const created = new Set<number>();
+    this.mapTokenRoleIdsMap.set(roomId, created);
+    return created;
+  }
+
+  private setMapTokenRoleIds(roomId: number, roleIds: Iterable<number>): void {
+    this.mapTokenRoleIdsMap.set(roomId, new Set(roleIds));
+  }
+
+  private async resolveStateEventMapImages(stateEvent: StateEventExtra): Promise<StateEventExtra> {
+    const events = await Promise.all(stateEvent.events.map(async (event) => {
+      if (event.type !== "mapConfigUpsert") {
+        return event;
+      }
+      const sourceUrl = event.imageUrl || mediaFileUrl(event.mapFileId, "image", "medium");
+      if (!sourceUrl) {
+        return event;
+      }
+      const localImageUrl = await uploadMapImageAsset(this.getAssetUploadContext(), sourceUrl, event.mapFileId);
+      return localImageUrl ? { ...event, imageUrl: localImageUrl } : event;
+    }));
+    return { ...stateEvent, events };
+  }
+
+  private async appendStateEventVarLines(
+    roomId: number,
+    stateEvent: StateEventExtra,
+    syncToFile: boolean,
+  ): Promise<void> {
+    const stateEventWithLocalMapImages = await this.resolveStateEventMapImages(stateEvent);
+    const result = buildTuanChatStateEventVarLines({
+      stateEvent: stateEventWithLocalMapImages,
+      mapTokenRoleIds: this.getMapTokenRoleIds(roomId),
+    });
+    this.setMapTokenRoleIds(roomId, result.mapTokenRoleIds);
+    for (const line of result.lines) {
+      await this.appendLine(roomId, line, syncToFile);
+    }
+  }
+
+  private hasExplicitCombatRoundEvent(extra: StateEventExtra | undefined, type: "combatRoundStart" | "combatRoundEnd"): boolean {
+    return Boolean(extra?.events.some(event => event.type === type));
+  }
+
+  private async appendSyntheticCombatRoundMarkerIfNeeded(
+    roomId: number,
+    message: ChatMessageResponse["message"],
+    syncToFile: boolean,
+    options?: RenderMessageOptions,
+  ): Promise<void> {
+    if (options?.skipBookkeeping) {
+      return;
+    }
+
+    const signal = getCombatVisualSignal(message);
+    if (!signal) {
+      return;
+    }
+
+    const active = this.combatRoundActiveMap.get(roomId) ?? false;
+    if ((signal === "start" && active) || (signal === "end" && !active)) {
+      return;
+    }
+
+    const normalized = getNormalizedStateEventExtra(message.extra);
+    const eventType = signal === "start" ? "combatRoundStart" : "combatRoundEnd";
+    if (this.hasExplicitCombatRoundEvent(normalized, eventType)) {
+      return;
+    }
+
+    await this.appendStateEventVarLines(
+      roomId,
+      buildCommandStateEventExtra("combat", [{ type: eventType }]),
+      syncToFile,
+    );
+    this.combatRoundActiveMap.set(roomId, signal === "start");
   }
 
   private getDesiredBaseTemplate(): "none" | "black" {
@@ -447,6 +585,7 @@ export class RealtimeRenderer {
   private clearUploadCaches(): void {
     this.uploadedSpritesMap.clear();
     this.uploadedBackgroundsMap.clear();
+    this.uploadedMapImagesMap.clear();
     this.uploadedImageFiguresMap.clear();
     this.uploadedBgmsMap.clear();
     this.uploadedVideosMap.clear();
@@ -519,8 +658,196 @@ export class RealtimeRenderer {
     clearMessageRenderStateSnapshotsForRoom(this.getRoomRenderStateStores(), roomId);
   }
 
+  private clearRoomMessageTracking(roomId: number): void {
+    const roomPrefix = `${roomId}_`;
+    for (const key of Array.from(this.messageLineMap.keys())) {
+      if (key.startsWith(roomPrefix)) {
+        this.messageLineMap.delete(key);
+      }
+    }
+    this.clearMessageRenderStateSnapshotsForRoom(roomId);
+  }
+
+  private resetRoomRenderState(roomId: number): void {
+    this.currentSpriteStateMap.set(roomId, new Set());
+    this.renderedFigureStateMap.set(roomId, new Map());
+    this.renderedMiniAvatarVisibleMap.delete(roomId);
+    this.lastFigureSlotIdMap.delete(roomId);
+    this.mapTokenRoleIdsMap.delete(roomId);
+  }
+
+  private clearRoomRebuildState(roomId: number): void {
+    this.roomSyncBatchDepthMap.delete(roomId);
+    this.roomSyncPendingSet.delete(roomId);
+    this.combatRoundActiveMap.delete(roomId);
+    this.clearPendingDiceMerge(roomId);
+  }
+
   private pruneRoomStateFromLine(roomId: number, startLine: number): void {
     pruneRoomStateFromLine(this.getRoomRenderStateStores(), roomId, startLine);
+  }
+
+  private applyCombatRoundStateEvent(roomId: number, extra: StateEventExtra | undefined): void {
+    if (!extra) {
+      return;
+    }
+    let active = this.combatRoundActiveMap.get(roomId) ?? false;
+    extra.events.forEach((event) => {
+      if (event.type === "combatRoundStart") {
+        active = true;
+        return;
+      }
+      if (event.type === "combatRoundEnd") {
+        active = false;
+      }
+    });
+    this.combatRoundActiveMap.set(roomId, active);
+  }
+
+  private resolveCombatRoundActiveBefore(messages: ChatMessageResponse[], endExclusiveIndex: number): boolean {
+    if (endExclusiveIndex <= 0) {
+      return false;
+    }
+    return deriveCombatVisualActiveAtMessageIndex(messages, endExclusiveIndex - 1);
+  }
+
+  private resolveMapTokenRoleIdsBefore(messages: ChatMessageResponse[], endExclusiveIndex: number): number[] {
+    let roleIds: number[] = [];
+    messages.slice(0, Math.max(0, endExclusiveIndex)).forEach(({ message }) => {
+      if (message.status === 1 || message.messageType !== MESSAGE_TYPE.STATE_EVENT) {
+        return;
+      }
+      const normalizedExtra = getNormalizedStateEventExtra(message.extra);
+      if (!normalizedExtra) {
+        return;
+      }
+      roleIds = applyTuanChatStateEventToMapTokenRoleIds(normalizedExtra.events, roleIds);
+    });
+    return roleIds;
+  }
+
+  private buildSharedCompilerAvatarMap(messages: ChatMessageResponse[]): Map<number, RoleAvatar> {
+    const avatarIds = new Set<number>();
+    this.roleMap.forEach((role) => {
+      const avatarId = Number(role.avatarId ?? 0);
+      if (avatarId > 0) {
+        avatarIds.add(avatarId);
+      }
+    });
+    messages.forEach(({ message }) => {
+      const avatarId = Number(message.avatarId ?? 0);
+      if (avatarId > 0) {
+        avatarIds.add(avatarId);
+      }
+    });
+
+    const avatarMap = new Map<number, RoleAvatar>();
+    avatarIds.forEach((avatarId) => {
+      const avatar = this.getCachedRoleAvatar(avatarId);
+      if (avatar) {
+        avatarMap.set(avatarId, avatar);
+      }
+    });
+    return avatarMap;
+  }
+
+  private isSharedCompilerEligibleMessage(message: ChatMessageResponse): boolean {
+    const payload = message.message;
+    if (payload.status === 1) {
+      return true;
+    }
+    if (hasMiniAvatarAnnotation(payload.annotations)) {
+      return false;
+    }
+    if (getEffectFromAnnotations(payload.annotations) || getSceneEffectFromAnnotations(payload.annotations)) {
+      return false;
+    }
+    const voiceRenderSettings = payload.webgal?.voiceRenderSettings as {
+      emotionVector?: number[];
+      figureAnimation?: FigureAnimationSettings;
+    } | undefined;
+    if (voiceRenderSettings?.figureAnimation) {
+      return false;
+    }
+    switch (payload.messageType as number) {
+      case MESSAGE_TYPE.TEXT:
+      case MESSAGE_TYPE.INTRO_TEXT:
+      case MESSAGE_TYPE.IMG:
+      case MESSAGE_TYPE.SOUND:
+      case MESSAGE_TYPE.VIDEO:
+      case MESSAGE_TYPE.WEBGAL_CHOOSE:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private canUseSharedCompilerForHistory(messages: ChatMessageResponse[]): boolean {
+    if (this.ttsConfig.enabled || this.miniAvatarEnabled || this.autoFigureEnabled) {
+      return false;
+    }
+    return messages.every(message => this.isSharedCompilerEligibleMessage(message));
+  }
+
+  private async tryRenderHistoryWithSharedCompiler(
+    messages: ChatMessageResponse[],
+    roomId: number,
+  ): Promise<boolean> {
+    if (!this.canUseSharedCompilerForHistory(messages)) {
+      return false;
+    }
+
+    const room = this.roomMap.get(roomId);
+    if (!room) {
+      return false;
+    }
+
+    try {
+      const initLines = await this.buildSceneInitLinesWithTuanChatVars();
+      const compiledRoomScene = buildRoomSceneCompilation(
+        room,
+        messages,
+        this.workflowGraph,
+        this.roomMap,
+        targetRoomId => this.getSceneName(targetRoomId),
+        new Map(this.roleMap.entries()),
+        this.buildSharedCompilerAvatarMap(messages),
+      );
+      const staticSceneContent = compiledRoomScene.content.replace(/\r\n/g, "\n").trimEnd();
+      const combinedSceneContent = [...initLines, staticSceneContent].filter(Boolean).join("\n");
+      const sceneName = this.getSceneName(roomId);
+
+      await this.ensureWorkflowEndScenes();
+      await getTerreApis().manageGameControllerEditTextFile({
+        path: `games/${this.gameName}/game/scene/${sceneName}.txt`,
+        textFile: combinedSceneContent,
+      });
+
+      this.clearRoomMessageTracking(roomId);
+      this.resetRoomRenderState(roomId);
+      this.clearRoomRebuildState(roomId);
+      this.sceneContextMap.set(roomId, {
+        lineNumber: combinedSceneContent ? combinedSceneContent.split("\n").length : 0,
+        text: combinedSceneContent,
+      });
+      this.renderedFigureStateMap.set(
+        roomId,
+        new Map(
+          Array.from(compiledRoomScene.renderedFigures.entries()).map(([slotId, state]) => [slotId, { ...state }]),
+        ),
+      );
+      if (compiledRoomScene.lastFigureSlotId) {
+        this.lastFigureSlotIdMap.set(roomId, compiledRoomScene.lastFigureSlotId);
+      }
+      this.combatRoundActiveMap.set(roomId, false);
+      this.setMapTokenRoleIds(roomId, []);
+      debugRealtimeRender(`[RealtimeRenderer] 房间 ${sceneName} 已复用 shared compiler 完成全量场景重建`);
+      return true;
+    }
+    catch (error) {
+      console.warn("[RealtimeRenderer] shared compiler 全量渲染失败，回退到 preview runtime:", error);
+      return false;
+    }
   }
 
   /**
@@ -528,8 +855,7 @@ export class RealtimeRenderer {
    */
   private getSceneName(roomId: number): string {
     const room = this.roomMap.get(roomId);
-    const roomName = room?.name?.replace(/\n/g, "").replace(/[/\\:*?"<>|]/g, "_") || `room`;
-    return `${roomName}_${roomId}`;
+    return buildWebgalSceneName(roomId, room?.name);
   }
 
   /**
@@ -555,6 +881,19 @@ export class RealtimeRenderer {
       ensureInitActive();
       debugRealtimeRender(`[RealtimeRenderer] 游戏 ${this.gameName} 存在: ${gameExists}`);
 
+      // realtime_* 为临时渲染工程。该标记用于识别是否已应用当前模板/脚本升级（例如战斗覆盖层或骰子渲染升级）。
+      if (gameExists) {
+        const markerMatched = await this.hasExpectedEngineMarker();
+        if (!markerMatched) {
+          // realtime 工程是可再生的预览缓存；模板/引擎升级后需要重建，避免复用旧 index/assets。
+          await getTerreApis().manageGameControllerDelete({ gameName: this.gameName });
+          ensureInitActive();
+          this.clearUploadCaches();
+          gameExists = false;
+          debugRealtimeRender(`[RealtimeRenderer] 未命中当前 realtime 模板标记，已删除旧游戏并准备重建: ${this.gameName}`);
+        }
+      }
+
       if (gameExists) {
         const currentTemplatePreset = await this.getCurrentTemplatePreset();
         ensureInitActive();
@@ -574,14 +913,6 @@ export class RealtimeRenderer {
           this.clearUploadCaches();
           gameExists = false;
           debugRealtimeRender(`[RealtimeRenderer] 已按模板配置重建游戏: ${this.gameName}`);
-        }
-      }
-
-      // realtime_* 为临时渲染工程。该标记用于识别是否已应用当前模板/脚本升级（例如 TRPG 骰子渲染升级）。
-      if (gameExists) {
-        const markerMatched = await this.hasExpectedEngineMarker();
-        if (!markerMatched) {
-          debugRealtimeRender(`[RealtimeRenderer] 未命中当前 realtime 模板标记，保留现有游戏不自动重建: ${this.gameName}`);
         }
       }
 
@@ -828,12 +1159,7 @@ export class RealtimeRenderer {
     const configEntries = parseGameConfig(rawConfig);
     const primaryRoom = this.pickPrimaryRoomForConfig();
 
-    if (this.gameConfig.gameNameFromRoomNameEnabled) {
-      const normalizedSpaceName = sanitizeGameConfigValue(this.spaceName);
-      const namePrefix = normalizedSpaceName || "space";
-      const gameName = `${namePrefix}_${this.spaceId}`;
-      upsertGameConfigEntry(configEntries, "Game_name", gameName);
-    }
+    upsertGameConfigEntry(configEntries, "Game_name", resolvePublishedGameName(this.spaceId, this.spaceName, this.gameConfig));
 
     upsertGameConfigEntry(configEntries, "Description", this.gameConfig.description);
     upsertGameConfigEntry(configEntries, "Package_name", this.gameConfig.packageName);
@@ -849,21 +1175,31 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
     const avatarUrl = buildAvatarUrl(primaryRoom?.avatarFileId) || avatarOriginalUrl(primaryRoom?.avatarFileId);
-    const titleImageUrl = mediaFileUrl(this.gameConfig.titleImageFileId, "image", "medium")
-      || String(this.gameConfig.titleImageUrl ?? "").trim();
-    const originalTitleImageUrl = mediaFileUrl(this.gameConfig.originalTitleImageFileId ?? this.gameConfig.titleImageFileId, "image", "original")
-      || String(this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl ?? "").trim();
-    const startupLogoUrl = mediaFileUrl(this.gameConfig.startupLogoFileId, "image", "medium")
-      || String(this.gameConfig.startupLogoUrl ?? "").trim();
-    const originalStartupLogoUrl = mediaFileUrl(this.gameConfig.originalStartupLogoFileId ?? this.gameConfig.startupLogoFileId, "image", "original")
-      || String(this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl ?? "").trim();
-    const typingSoundSeUrl = mediaFileUrl(this.gameConfig.typingSoundSeFileId, this.gameConfig.typingSoundSeMediaType || "audio", "original")
-      || String(this.gameConfig.typingSoundSeUrl ?? "").trim();
+    const titleImageUrl = resolveProjectableMediaUrl(this.gameConfig.titleImageFileId, "image", "medium", this.gameConfig.titleImageUrl);
+    const titleImageUploadUrl = resolveProjectableMediaUrl(
+      this.gameConfig.originalTitleImageFileId ?? this.gameConfig.titleImageFileId,
+      "image",
+      "medium",
+      this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl,
+    );
+    const startupLogoUrl = resolveProjectableMediaUrl(this.gameConfig.startupLogoFileId, "image", "medium", this.gameConfig.startupLogoUrl);
+    const startupLogoUploadUrl = resolveProjectableMediaUrl(
+      this.gameConfig.originalStartupLogoFileId ?? this.gameConfig.startupLogoFileId,
+      "image",
+      "medium",
+      this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl,
+    );
+    const typingSoundSeUrl = resolveProjectableMediaUrl(
+      this.gameConfig.typingSoundSeFileId,
+      (this.gameConfig.typingSoundSeMediaType as "audio" | "image" | "video" | undefined) || "audio",
+      "low",
+      this.gameConfig.typingSoundSeUrl,
+    );
     const roomId = Number(primaryRoom?.roomId ?? 0);
 
     if (titleImageUrl) {
       try {
-        const titleSourceUrl = originalTitleImageUrl || titleImageUrl;
+        const titleSourceUrl = titleImageUploadUrl || titleImageUrl;
         const titleExt = getFileExtensionFromUrl(titleSourceUrl, "webp");
         const titleImageName = `custom_title_${hashString(titleSourceUrl)}.${titleExt}`;
         const uploadedTitleImage = await uploadFile(
@@ -895,7 +1231,7 @@ export class RealtimeRenderer {
 
     if (startupLogoUrl) {
       try {
-        const logoSourceUrl = originalStartupLogoUrl || startupLogoUrl;
+        const logoSourceUrl = startupLogoUploadUrl || startupLogoUrl;
         const logoExt = getFileExtensionFromUrl(logoSourceUrl, "webp");
         const logoName = `custom_logo_${hashString(logoSourceUrl)}.${logoExt}`;
         const uploadedLogo = await uploadFile(
@@ -977,17 +1313,14 @@ export class RealtimeRenderer {
   public async initRoomScene(roomId: number): Promise<void> {
     const sceneName = this.getSceneName(roomId);
     const path = `games/${this.gameName}/game/scene/${sceneName}.txt`;
-    const initLines = buildSceneInitLines();
+    const initLines = await this.buildSceneInitLinesWithTuanChatVars();
     const initialContent = initLines.join("\n");
 
     try {
       await getTerreApis().manageGameControllerEditTextFile({ path, textFile: initialContent });
+      this.clearRoomMessageTracking(roomId);
+      this.resetRoomRenderState(roomId);
       this.sceneContextMap.set(roomId, { lineNumber: initLines.length, text: initialContent });
-      this.currentSpriteStateMap.set(roomId, new Set());
-      this.renderedFigureStateMap.set(roomId, new Map());
-      this.renderedMiniAvatarVisibleMap.delete(roomId);
-      this.lastFigureSlotIdMap.delete(roomId);
-      this.clearMessageRenderStateSnapshotsForRoom(roomId);
       debugRealtimeRender(`[RealtimeRenderer] 房间场景初始化成功: ${sceneName}`);
     }
     catch (error) {
@@ -1006,7 +1339,7 @@ export class RealtimeRenderer {
       // 如果没有房间，创建一个默认场景
       debugRealtimeRender(`[RealtimeRenderer] 没有房间信息，创建默认场景`);
       const path = `games/${this.gameName}/game/scene/start.txt`;
-      const initLines = buildSceneInitLines();
+      const initLines = await this.buildSceneInitLinesWithTuanChatVars();
       await getTerreApis().manageGameControllerEditTextFile({
         path,
         textFile: initLines.join("\n"),
@@ -1061,7 +1394,7 @@ export class RealtimeRenderer {
     }
     this.currentRoomId = roomId;
     // 发送场景切换同步
-    this.sendSyncMessage(roomId);
+    this.sendSyncMessage(roomId, { force: true });
   }
 
   /**
@@ -1147,13 +1480,15 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 发送同步消息到指定房间的场景（自动跳转关闭时不发送）
+   * 发送同步消息到指定房间的场景。
+   * 默认强制刷新当前行；只有实时渲染开关触发的单次请求才跳到最新行。
    */
-  private sendSyncMessage(roomId: number): void {
+  private sendSyncMessage(roomId: number, options: SyncMessageOptions = {}): void {
     if (this.disposed) {
       return;
     }
-    if (!this.autoJumpEnabled) {
+    const shouldJumpToLatestLine = this.autoJumpEnabled && this.autoJumpRequestDepth > 0;
+    if (!options.force && !shouldJumpToLatestLine) {
       return;
     }
     const sceneName = this.getSceneName(roomId);
@@ -1163,7 +1498,7 @@ export class RealtimeRenderer {
       return;
     }
 
-    const msg = getAsyncMsg(`${sceneName}.txt`, context.lineNumber);
+    const msg = getAsyncMsg(`${sceneName}.txt`, context.lineNumber, options.forceReload === true);
     const msgStr = JSON.stringify(msg);
 
     if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
@@ -1297,6 +1632,14 @@ export class RealtimeRenderer {
     }
   }
 
+  public setRuleId(ruleId: number | null | undefined): void {
+    void ruleId;
+  }
+
+  public setAutoJumpEnabled(enabled: boolean): void {
+    this.autoJumpEnabled = enabled;
+  }
+
   /**
    * 设置头像信息缓存
    */
@@ -1309,6 +1652,7 @@ export class RealtimeRenderer {
       gameName: this.gameName,
       uploadedSpritesMap: this.uploadedSpritesMap,
       uploadedBackgroundsMap: this.uploadedBackgroundsMap,
+      uploadedMapImagesMap: this.uploadedMapImagesMap,
       uploadedImageFiguresMap: this.uploadedImageFiguresMap,
       uploadedBgmsMap: this.uploadedBgmsMap,
       uploadedVideosMap: this.uploadedVideosMap,
@@ -1426,7 +1770,10 @@ export class RealtimeRenderer {
     return uploadSoundEffectAsset(this.getAssetUploadContext(), url);
   }
 
-  private resolveDiceSound(payload: WebgalDiceRenderPayload | null, useDefault: boolean): { url: string; volume?: number } | null {
+  private async resolveDiceSound(
+    payload: WebgalDiceRenderPayload | null,
+    useDefault: boolean,
+  ): Promise<{ url: string; volume?: number } | null> {
     const sound = payload?.sound;
     if (sound?.enabled === false) {
       return null;
@@ -1437,7 +1784,8 @@ export class RealtimeRenderer {
       : undefined;
     const directUrl = typeof sound?.url === "string" ? sound.url.trim() : "";
     if (directUrl) {
-      return { url: directUrl, volume };
+      const fileName = await this.uploadSoundEffect(directUrl);
+      return fileName ? { url: `./game/vocal/${fileName}`, volume } : null;
     }
     if (!useDefault) {
       return null;
@@ -1449,8 +1797,7 @@ export class RealtimeRenderer {
     const folder = typeof sound?.folder === "string" && sound.folder.trim()
       ? sound.folder.trim().replace(/^\/+|\/+$/g, "")
       : DEFAULT_DICE_SOUND_FOLDER;
-    const base = getTerreBaseUrl().replace(/\/$/, "");
-    return { url: `${base}/games/${this.gameName}/game/${folder}/${fileName}`, volume };
+    return { url: `./game/${folder}/${fileName}`, volume };
   }
 
   private async resolveAnnotationEffectSound(effectId: string | undefined): Promise<{ url: string } | null> {
@@ -1461,9 +1808,8 @@ export class RealtimeRenderer {
       const cached = this.annotationEffectSoundCache.get(effectId);
       if (!cached)
         return null;
-      const base = getTerreBaseUrl().replace(/\/$/, "");
       return {
-        url: `${base}/games/${this.gameName}/game/se/effects/${cached}`,
+        url: `./game/se/effects/${cached}`,
       };
     }
     const soundCandidates = getEffectSoundFileCandidates(effectId);
@@ -1478,9 +1824,8 @@ export class RealtimeRenderer {
           continue;
         }
         this.annotationEffectSoundCache.set(effectId, soundFileName);
-        const base = getTerreBaseUrl().replace(/\/$/, "");
         return {
-          url: `${base}/games/${this.gameName}/game/se/effects/${soundFileName}`,
+          url: `./game/se/effects/${soundFileName}`,
         };
       }
       catch {
@@ -1580,7 +1925,10 @@ export class RealtimeRenderer {
       }
       clearTimeout(currentEntry.timer);
       this.pendingDiceMergeMap.delete(key);
-      await this.renderMessage(currentEntry.message, currentEntry.roomId, currentEntry.syncToFile, { bypassDiceMerge: true });
+      await this.renderMessage(currentEntry.message, currentEntry.roomId, currentEntry.syncToFile, {
+        autoJump: currentEntry.autoJump,
+        bypassDiceMerge: true,
+      });
     }
   }
 
@@ -1588,6 +1936,7 @@ export class RealtimeRenderer {
     message: ChatMessageResponse,
     roomId: number,
     syncToFile: boolean,
+    options?: RenderMessageOptions,
   ): Promise<boolean> {
     const msg = message.message;
     if ((msg.messageType as number) !== MESSAGE_TYPE.DICE || !syncToFile || !msg.messageId) {
@@ -1604,10 +1953,16 @@ export class RealtimeRenderer {
       this.pendingDiceMergeMap.delete(pendingKey);
       if (canMergeTrpgDicePair(pendingEntry.message, message)) {
         const mergedMessage = buildMergedTrpgDiceMessage(pendingEntry.message, message);
-        await this.renderMessage(mergedMessage, roomId, syncToFile, { bypassDiceMerge: true });
+        await this.renderMessage(mergedMessage, roomId, syncToFile, {
+          autoJump: pendingEntry.autoJump || options?.autoJump === true,
+          bypassDiceMerge: true,
+        });
         return true;
       }
-      await this.renderMessage(pendingEntry.message, pendingEntry.roomId, pendingEntry.syncToFile, { bypassDiceMerge: true });
+      await this.renderMessage(pendingEntry.message, pendingEntry.roomId, pendingEntry.syncToFile, {
+        autoJump: pendingEntry.autoJump,
+        bypassDiceMerge: true,
+      });
     }
 
     if (!isPotentialTrpgDiceMessage(msg)) {
@@ -1623,16 +1978,68 @@ export class RealtimeRenderer {
         return;
       }
       this.pendingDiceMergeMap.delete(key);
-      void this.renderMessage(nextEntry.message, nextEntry.roomId, nextEntry.syncToFile, { bypassDiceMerge: true });
+      void this.renderMessage(nextEntry.message, nextEntry.roomId, nextEntry.syncToFile, {
+        autoJump: nextEntry.autoJump,
+        bypassDiceMerge: true,
+      });
     }, DICE_MERGE_WAIT_MS);
-    this.pendingDiceMergeMap.set(key, { message, roomId, syncToFile, timer });
+    this.pendingDiceMergeMap.set(key, { message, roomId, syncToFile, autoJump: options?.autoJump === true, timer });
     return true;
+  }
+
+  private buildRealtimeRenderMessageCompilerInput(
+    message: ChatMessageResponse["message"],
+    overrides: Partial<RealtimeRenderMessageCompilerInput>,
+  ): RealtimeRenderMessageCompilerInput {
+    return {
+      message,
+      roleName: "",
+      roleId: 0,
+      processedContent: "",
+      renderContent: "",
+      isNarrator: false,
+      isIntroText: false,
+      isDiceMessage: false,
+      diceRenderMode: null,
+      diceContent: "",
+      dicePayload: null,
+      hasDiceScriptLines: false,
+      dialogNext: false,
+      dialogNotend: false,
+      dialogConcat: false,
+      introHold: false,
+      dialogFigureIdPart: "",
+      shouldClearBackground: false,
+      isBackgroundImageMessage: false,
+      shouldClearBgm: false,
+      shouldClearImageFigure: false,
+      shouldClearFigure: false,
+      ...overrides,
+    };
+  }
+
+  private async appendCompiledLines(roomId: number, lines: string[], syncToFile: boolean): Promise<void> {
+    for (const line of lines) {
+      await this.appendLine(roomId, line, syncToFile);
+    }
   }
 
   /**
    * 渲染一条消息到指定房间
    */
   public async renderMessage(
+    message: ChatMessageResponse,
+    roomId?: number,
+    syncToFile: boolean = true,
+    options?: RenderMessageOptions,
+  ): Promise<void> {
+    await this.appendMessage(message, roomId, syncToFile, options);
+  }
+
+  /**
+   * 增量追加一条消息到指定房间
+   */
+  public async appendMessage(
     message: ChatMessageResponse,
     roomId?: number,
     syncToFile: boolean = true,
@@ -1654,7 +2061,7 @@ export class RealtimeRenderer {
         if ((msg.messageType as number) !== MESSAGE_TYPE.DICE) {
           await this.flushPendingDiceMergeForRoom(targetRoomId);
         }
-        const merged = await this.tryRenderMergedTrpgDiceMessage(message, targetRoomId, syncToFile);
+        const merged = await this.tryRenderMergedTrpgDiceMessage(message, targetRoomId, syncToFile, options);
         if (merged) {
           return;
         }
@@ -1699,6 +2106,8 @@ export class RealtimeRenderer {
       if (msg.status === 1)
         return;
 
+      await this.appendSyntheticCombatRoundMarkerIfNeeded(targetRoomId, msg, syncToFile, options);
+
       const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
       const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
         && isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
@@ -1718,7 +2127,7 @@ export class RealtimeRenderer {
       if (msg.messageType === 2) {
         const imageMessage = msg.extra?.imageMessage;
         if (imageMessage) {
-          const imageSourceUrl = mediaFileUrl(imageMessage.fileId, imageMessage.mediaType, "original");
+          const imageSourceUrl = resolveMessageMediaUrl(imageMessage, "medium", "image");
           const isBackground = isImageMessageBackground(msg.annotations, imageMessage);
           if (isBackground) {
             const bgFileName = await this.uploadBackground(imageSourceUrl);
@@ -1764,10 +2173,10 @@ export class RealtimeRenderer {
       // 处理视频消息（Type 14）
       if ((msg.messageType as number) === MESSAGE_TYPE.VIDEO) {
         const messageExtra = msg.extra as ({
-          videoMessage?: { fileId?: number; mediaType?: string; fileName?: string };
+          videoMessage?: { source?: { kind?: string; fileId?: number; url?: string }; fileName?: string };
         } | undefined);
         const videoMsg = messageExtra?.videoMessage;
-        const url = mediaFileUrl(videoMsg?.fileId, videoMsg?.mediaType, "medium");
+        const url = resolveMessageMediaUrl(videoMsg, "medium", "video");
         if (!url) {
           finalizeMessageLineRange();
           return;
@@ -1791,7 +2200,7 @@ export class RealtimeRenderer {
       const soundMsg = msg.extra?.soundMessage;
 
       if (soundMsg) {
-        const url = mediaFileUrl(soundMsg.fileId, soundMsg.mediaType, "medium");
+        const url = resolveMessageMediaUrl(soundMsg, "medium", "audio");
         if (!url) {
           finalizeMessageLineRange();
           return;
@@ -1820,7 +2229,7 @@ export class RealtimeRenderer {
         // 处理音效（playEffect）
           const seFileName = await this.uploadSoundEffect(url);
           if (seFileName) {
-            let command = `playEffect:${seFileName}`;
+            let command = `playEffect:./game/vocal/${seFileName}`;
             const vol = (soundMsg as any).volume;
             if (vol !== undefined) {
               command += ` -volume=${vol}`;
@@ -1891,13 +2300,30 @@ export class RealtimeRenderer {
           finalizeMessageLineRange();
           return;
         }
-        const lines = buildWebgalChooseScriptLines(payload, msg.messageId ?? Date.now());
-        for (const line of lines) {
-          await this.appendLine(targetRoomId, line, syncToFile, true);
+        const lines = compileRealtimeRenderMessageLines(
+          this.buildRealtimeRenderMessageCompilerInput(msg, {
+            chooseLines: buildWebgalChooseScriptLines(payload, msg.messageId ?? Date.now()),
+          }),
+        );
+        await this.appendCompiledLines(targetRoomId, lines, syncToFile);
+        if (syncToFile) {
+          this.sendSyncMessage(targetRoomId);
         }
+        finalizeMessageLineRange();
+        return;
+      }
+
+      if ((msg.messageType as number) === MESSAGE_TYPE.STATE_EVENT) {
+        const normalizedStateEventExtra = getNormalizedStateEventExtra(msg.extra);
+        if (!options?.skipBookkeeping) {
+          this.applyCombatRoundStateEvent(targetRoomId, normalizedStateEventExtra);
+        }
+        if (normalizedStateEventExtra) {
+          await this.appendStateEventVarLines(targetRoomId, normalizedStateEventExtra, syncToFile);
+        }
+        finalizeMessageLineRange();
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
-        finalizeMessageLineRange();
         return;
       }
 
@@ -1907,32 +2333,28 @@ export class RealtimeRenderer {
         ? getDiceContentFromMessage(msg, dicePayload)
         : "";
       const hasDiceScriptLines = Boolean(isDiceMessage && dicePayload?.lines && dicePayload.lines.length > 0);
-      const autoDiceMode = isDiceMessage
-        ? (isLikelyAnkoDiceContent(diceContent)
-            ? "anko"
-            : (isLikelyTrpgDiceContent(diceContent) ? "trpg" : "narration"))
-        : "narration";
-      const diceModeFromPayloadRaw = isDiceMessage ? dicePayload?.mode : undefined;
-      const shouldForceTrpgMode = isDiceMessage
-        && autoDiceMode === "trpg"
-        && diceModeFromPayloadRaw !== "anko"
-        && diceModeFromPayloadRaw !== "script";
-      const diceModeFromPayload = shouldForceTrpgMode ? "trpg" : diceModeFromPayloadRaw;
+      const combatRoundActive = isDiceMessage ? (this.combatRoundActiveMap.get(targetRoomId) ?? false) : false;
       const diceRenderMode = isDiceMessage
-        ? (diceModeFromPayload === "script" && !hasDiceScriptLines
-            ? autoDiceMode
-            : (diceModeFromPayload ?? (hasDiceScriptLines ? "script" : autoDiceMode)))
+        ? resolveRealtimeDiceRenderMode({
+            combatRoundActive,
+            content: diceContent,
+            hasScriptLines: hasDiceScriptLines,
+            payload: dicePayload,
+          })
         : null;
 
       if (isDiceMessage && diceRenderMode === "script" && hasDiceScriptLines) {
-        const diceSound = this.resolveDiceSound(dicePayload, Boolean(dicePayload?.sound));
-        if (diceSound) {
-          const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-          await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-        }
-        for (const line of dicePayload?.lines ?? []) {
-          await this.appendLine(targetRoomId, line, syncToFile, true);
-        }
+        const diceSound = await this.resolveDiceSound(dicePayload, Boolean(dicePayload?.sound));
+        const lines = compileRealtimeRenderMessageLines(
+          this.buildRealtimeRenderMessageCompilerInput(msg, {
+            isDiceMessage: true,
+            diceRenderMode,
+            dicePayload,
+            hasDiceScriptLines,
+            soundLine: diceSound ? buildPlayEffectLine(diceSound) : null,
+          }),
+        );
+        await this.appendCompiledLines(targetRoomId, lines, syncToFile);
         finalizeMessageLineRange();
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
@@ -1995,7 +2417,11 @@ export class RealtimeRenderer {
         ? (dicePayload?.showFigure ?? (roleId > 0))
         : undefined;
       const diceShowMiniAvatar = isDiceMessage
-        ? (dicePayload?.showMiniAvatar ?? (roleId > 0))
+        ? resolveRealtimeDiceMiniAvatarDefault({
+            mode: diceRenderMode,
+            roleId,
+            payload: dicePayload,
+          })
         : undefined;
 
       // 立绘位置：只有当消息明确设置了有效的 figurePosition 时才显示立绘
@@ -2120,7 +2546,7 @@ export class RealtimeRenderer {
           this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
         }
       }
-      else if (hadVisibleMiniAvatar || this.miniAvatarEnabled || forceMiniAvatar || diceShowMiniAvatar !== undefined) {
+      else if (hadVisibleMiniAvatar || forceMiniAvatar || diceShowMiniAvatar === false) {
         await this.appendLine(targetRoomId, "miniAvatar:none;", syncToFile);
         this.renderedMiniAvatarVisibleMap.set(targetRoomId, false);
       }
@@ -2140,136 +2566,57 @@ export class RealtimeRenderer {
         ? ` -figureId=${resolveFigureSlot(figurePosition).id}`
         : "";
 
-      // 根据消息类型生成不同的指令
-      if (isIntroText) {
-      // 黑屏文字（intro）：intro:文字|换行文字|换行文字;
-      // 使用 | 作为换行分隔符，将空格转换为换行
-        const introContent = processedContent.replace(/ +/g, "|");
-        const holdPart = introHold ? " -hold" : "";
-        await this.appendLine(targetRoomId, `intro:${introContent}${holdPart};`, syncToFile);
+      const diceSound = isDiceMessage ? await this.resolveDiceSound(dicePayload, true) : null;
+      let vocalPart = "";
+      if (!isIntroText && !isDiceMessage && this.ttsConfig.enabled
+        && renderContent.trim().length > 0
+        && roleId !== 0
+        && roleId !== 2
+        && !renderContent.startsWith(".")
+        && !renderContent.startsWith("。")) {
+        const vocalFileName = await generateAndUploadVocal({
+          text: processedContent,
+          roleId,
+          avatarTitle: avatar?.avatarTitle,
+          customEmotionVector,
+          getTtsConfig: () => this.ttsConfig,
+          voiceFileMap: this.voiceFileMap,
+          uploadedVocalsMap: this.uploadedVocalsMap,
+          ttsGeneratingMap: this.ttsGeneratingMap,
+          gameName: this.gameName,
+        });
+        vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
       }
-      else if (isDiceMessage) {
-        const diceSound = this.resolveDiceSound(dicePayload, true);
-        const useDialogDice = diceRenderMode === "dialog";
-        const modePart = diceRenderMode ? ` -mode=${diceRenderMode}` : "";
-        const appendDiceOverlayLine = async (content: string) => {
-          if (!content.trim()) {
-            return;
-          }
-          await this.appendLine(targetRoomId, `dice:${content}${modePart};`, syncToFile, true);
-        };
-        const appendDiceDialogLine = async (content: string, notend: boolean = false, concat: boolean = false) => {
-          const notendPart = !isNarrator && notend ? " -notend" : "";
-          const concatPart = !isNarrator && concat ? " -concat" : "";
-          const nextPart = dialogNext ? " -next" : "";
-          if (isNarrator) {
-            await this.appendLine(targetRoomId, `:${content}${nextPart};`, syncToFile);
-          }
-          else {
-            await this.appendLine(targetRoomId, `${roleName}: ${content}${dialogFigureIdPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
-          }
-        };
-        if (diceRenderMode === "trpg") {
-          await this.appendLine(targetRoomId, `pixi:${TRPG_DICE_PIXI_EFFECT} -once -duration=950 -scale=1.08 -next;`, syncToFile);
-        }
 
-        if (diceRenderMode === "anko") {
-          const finalProcessed = TextEnhanceSyntax.processContent(diceContent);
-          if (diceSound) {
-            const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-            await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-          }
-          if (useDialogDice) {
-            await appendDiceDialogLine(finalProcessed, dialogNotend, dialogConcat);
-          }
-          else {
-            await appendDiceOverlayLine(finalProcessed);
-          }
-        }
-        else {
-          const stepLines = splitDiceContentToSteps(diceContent);
-          const shouldTwoStep = stepLines.length > 1 && dicePayload?.twoStep !== false;
-          if (shouldTwoStep) {
-            const previewRaw = stripDiceResultTokens(diceContent);
-            const previewProcessed = TextEnhanceSyntax.processContent(previewRaw);
-            const finalProcessed = TextEnhanceSyntax.processContent(diceContent);
-            if (previewProcessed.trim() && previewProcessed !== finalProcessed) {
-              if (useDialogDice) {
-                await appendDiceDialogLine(previewProcessed);
-              }
-              else {
-                await appendDiceOverlayLine(previewProcessed);
-              }
-              if (diceSound) {
-                const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-                await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-              }
-            }
-            else if (diceSound) {
-              const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-              await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-            }
-            if (useDialogDice) {
-              await appendDiceDialogLine(finalProcessed, dialogNotend, dialogConcat);
-            }
-            else {
-              await appendDiceOverlayLine(finalProcessed);
-            }
-            finalizeMessageLineRange();
-            if (syncToFile) {
-              this.sendSyncMessage(targetRoomId);
-            }
-            return;
-          }
-          if (diceSound) {
-            const volumePart = typeof diceSound.volume === "number" ? ` -volume=${diceSound.volume}` : "";
-            await this.appendLine(targetRoomId, `playEffect:${diceSound.url}${volumePart} -next;`, syncToFile);
-          }
-          if (useDialogDice) {
-            await appendDiceDialogLine(processedContent, dialogNotend, dialogConcat);
-          }
-          else {
-            await appendDiceOverlayLine(processedContent);
-          }
-        }
-      }
-      else if (isNarrator) {
-      // 旁白：冒号前留空，如 :这是一句旁白;
-      // 旁白不显示立绘和小头像
-        const nextPart = dialogNext ? " -next" : "";
-        await this.appendLine(targetRoomId, `:${processedContent}${nextPart};`, syncToFile);
-      }
-      else {
-      // 普通对话：角色名: 对话内容;
-      // 生成语音（如果启用了 TTS）
-        let vocalFileName: string | null = null;
-        if (this.ttsConfig.enabled
-          && renderContent.trim().length > 0
-          && roleId !== 0 // 跳过系统角色
-          && roleId !== 2 // 跳过骰娘
-          && !isDiceMessage
-          && !renderContent.startsWith(".") // 跳过指令
-          && !renderContent.startsWith("。")) {
-          vocalFileName = await generateAndUploadVocal({
-            text: processedContent,
-            roleId,
-            avatarTitle: avatar?.avatarTitle,
-            customEmotionVector,
-            getTtsConfig: () => this.ttsConfig,
-            voiceFileMap: this.voiceFileMap,
-            uploadedVocalsMap: this.uploadedVocalsMap,
-            ttsGeneratingMap: this.ttsGeneratingMap,
-            gameName: this.gameName,
-          });
-        }
-
-        // 添加对话行（包含语音和 -notend/-concat 参数）
-        const vocalPart = vocalFileName ? ` -${vocalFileName}` : "";
-        const notendPart = dialogNotend ? " -notend" : "";
-        const concatPart = dialogConcat ? " -concat" : "";
-        const nextPart = dialogNext ? " -next" : "";
-        await this.appendLine(targetRoomId, `${roleName}: ${processedContent}${vocalPart}${dialogFigureIdPart}${notendPart}${concatPart}${nextPart};`, syncToFile);
-      }
+      const compiledLines = compileRealtimeRenderMessageLines(
+        this.buildRealtimeRenderMessageCompilerInput(msg, {
+          roleName,
+          roleId,
+          processedContent,
+          renderContent,
+          isNarrator,
+          isIntroText,
+          isDiceMessage,
+          diceRenderMode,
+          diceContent,
+          dicePayload,
+          hasDiceScriptLines,
+          dialogNext,
+          dialogNotend,
+          dialogConcat,
+          introHold,
+          dialogFigureIdPart,
+          shouldClearBackground: false,
+          isBackgroundImageMessage: false,
+          shouldClearBgm: false,
+          shouldClearImageFigure: false,
+          shouldClearFigure,
+          soundLine: diceSound ? buildPlayEffectLine(diceSound) : null,
+          diceTrpgLines: isDiceMessage ? buildTrpgDicePerformLines(diceSound) : null,
+          vocalPart,
+        }),
+      );
+      await this.appendCompiledLines(targetRoomId, compiledLines, syncToFile);
 
       finalizeMessageLineRange();
 
@@ -2279,7 +2626,17 @@ export class RealtimeRenderer {
       }
     };
 
-    await this.runWithRoomSyncBatch(targetRoomId, syncToFile, renderImpl);
+    if (options?.autoJump) {
+      this.autoJumpRequestDepth += 1;
+    }
+    try {
+      await this.runWithRoomSyncBatch(targetRoomId, syncToFile, renderImpl);
+    }
+    finally {
+      if (options?.autoJump) {
+        this.autoJumpRequestDepth = Math.max(0, this.autoJumpRequestDepth - 1);
+      }
+    }
   }
 
   /**
@@ -2292,7 +2649,15 @@ export class RealtimeRenderer {
     const targetRoomId = roomId ?? this.currentRoomId;
     if (!targetRoomId)
       return;
+    if (await this.tryRenderHistoryWithSharedCompiler(messages, targetRoomId)) {
+      if (!this.disposed) {
+        this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+      }
+      return;
+    }
     this.clearPendingDiceMerge(targetRoomId);
+    this.combatRoundActiveMap.set(targetRoomId, false);
+    this.setMapTokenRoleIds(targetRoomId, []);
 
     // 批量处理消息，不进行文件同步和 WebSocket 同步
     for (let index = 0; index < messages.length; index += 1) {
@@ -2333,7 +2698,7 @@ export class RealtimeRenderer {
     if (this.disposed) {
       return;
     }
-    this.sendSyncMessage(targetRoomId);
+    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
   }
 
   public async rerenderHistoryFromIndex(
@@ -2347,6 +2712,13 @@ export class RealtimeRenderer {
 
     const targetRoomId = roomId ?? this.currentRoomId;
     if (!targetRoomId) {
+      return;
+    }
+
+    if (await this.tryRenderHistoryWithSharedCompiler(messages, targetRoomId)) {
+      if (!this.disposed) {
+        this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+      }
       return;
     }
 
@@ -2386,6 +2758,11 @@ export class RealtimeRenderer {
       : undefined;
 
     this.clearPendingDiceMerge(targetRoomId);
+    this.combatRoundActiveMap.set(
+      targetRoomId,
+      this.resolveCombatRoundActiveBefore(messages, effectiveStartIndex),
+    );
+    this.setMapTokenRoleIds(targetRoomId, this.resolveMapTokenRoleIdsBefore(messages, effectiveStartIndex));
 
     const existingLines = context.text.split("\n");
     context.text = existingLines.slice(0, startLineRange.startLine - 1).join("\n");
@@ -2420,7 +2797,7 @@ export class RealtimeRenderer {
     if (this.disposed) {
       return;
     }
-    this.sendSyncMessage(targetRoomId);
+    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
   }
 
   /**
@@ -2439,7 +2816,7 @@ export class RealtimeRenderer {
     }
 
     await this.appendLine(targetRoomId, "changeBg:none -next;", true);
-    this.sendSyncMessage(targetRoomId);
+    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
   }
 
   /**
@@ -2462,7 +2839,7 @@ export class RealtimeRenderer {
     }
     this.renderedFigureStateMap.delete(targetRoomId);
     this.lastFigureSlotIdMap.delete(targetRoomId);
-    this.sendSyncMessage(targetRoomId);
+    this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
   }
 
   /**
@@ -2470,21 +2847,9 @@ export class RealtimeRenderer {
    */
   public async resetScene(roomId?: number): Promise<void> {
     if (roomId) {
-      // 重置房间场景时，必须清理该房间的消息行号映射，否则后续跳转/更新会基于旧行号导致顺序错乱
-      for (const key of Array.from(this.messageLineMap.keys())) {
-        if (key.startsWith(`${roomId}_`)) {
-          this.messageLineMap.delete(key);
-        }
-      }
-      this.clearMessageRenderStateSnapshotsForRoom(roomId);
       await this.initRoomScene(roomId);
-      this.currentSpriteStateMap.set(roomId, new Set());
-      this.renderedFigureStateMap.set(roomId, new Map());
-      this.renderedMiniAvatarVisibleMap.delete(roomId);
-      this.roomSyncBatchDepthMap.delete(roomId);
-      this.roomSyncPendingSet.delete(roomId);
-      this.clearPendingDiceMerge(roomId);
-      this.sendSyncMessage(roomId);
+      this.clearRoomRebuildState(roomId);
+      this.sendSyncMessage(roomId, { force: true, forceReload: true });
     }
     else {
       // 重置所有房间
@@ -2496,6 +2861,8 @@ export class RealtimeRenderer {
       this.roomSyncPendingSet.clear();
       this.messageLineMap.clear();
       this.messageRenderStateSnapshotMap.clear();
+      this.combatRoundActiveMap.clear();
+      this.mapTokenRoleIdsMap.clear();
       this.clearPendingDiceMerge();
     }
   }
@@ -2692,6 +3059,8 @@ export class RealtimeRenderer {
     this.roomSyncBatchDepthMap.clear();
     this.roomSyncPendingSet.clear();
     this.messageRenderStateSnapshotMap.clear();
+    this.combatRoundActiveMap.clear();
+    this.mapTokenRoleIdsMap.clear();
     this.onStatusChange = undefined;
     this.onProgressChange = undefined;
   }

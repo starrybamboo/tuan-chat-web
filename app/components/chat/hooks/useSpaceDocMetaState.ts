@@ -205,7 +205,7 @@ export default function useSpaceDocMetaState({
     }
 
     try {
-      await tuanchat.spaceDocController.renameDoc2({
+      await tuanchat.spaceDocController.renameDoc({
         docId: normalizedDocId,
         title: normalizedTitle,
       });

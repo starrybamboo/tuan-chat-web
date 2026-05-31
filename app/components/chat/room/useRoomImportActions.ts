@@ -8,25 +8,25 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
+import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
-import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
 import { getPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
 import { recordDocCardShareObservation } from "@/components/chat/infra/doc/shared/docCardShareObservability";
 import { buildDocCardReferencePayload } from "@/components/chat/message/docCard/docCardMedia";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
+import { buildImportedChatMessageRequests } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
-import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { readMessageEditorSnapshotExcerpt } from "@/components/messageEditor/model/messageEditorCodec";
-import { setFigurePositionAnnotation } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, RoleAvatar } from "../../../../api";
 
+import { fetchRoleAvatarsWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MessageType } from "../../../../api/wsModels";
 
 type UseRoomImportActionsParams = {
@@ -45,15 +45,8 @@ type UseRoomImportActionsParams = {
   roomUiStoreApi: RoomUiStoreApi;
 };
 
-type ImportMessageItem = {
-  roleId: number;
-  content: string;
-  speakerName?: string;
-  figurePosition?: Exclude<FigurePosition, undefined>;
-};
-
 type UseRoomImportActionsResult = {
-  handleImportChatText: (messages: ImportMessageItem[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
+  handleImportChatText: (messages: ImportChatRequestMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   handleSendClueCard: (payload: ClueRefDragPayload) => Promise<void>;
   handleSendDocCard: (payload: DocRefDragPayload) => Promise<void>;
   handleSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void>;
@@ -88,7 +81,7 @@ export default function useRoomImportActions({
   roomUiStoreApi,
 }: UseRoomImportActionsParams): UseRoomImportActionsResult {
   const handleImportChatText = useCallback(async (
-    messages: ImportMessageItem[],
+    messages: ImportChatRequestMessage[],
     onProgress?: (sent: number, total: number) => void,
   ) => {
     if (isSubmitting) {
@@ -129,6 +122,7 @@ export default function useRoomImportActions({
 
       let dicerRoleId: number | null = null;
       let dicerAvatarId: number | null = null;
+      let dicerAvatars: RoleAvatar[] = [];
 
       const ensureDicerSender = async () => {
         if (dicerRoleId != null && dicerAvatarId != null) {
@@ -140,7 +134,10 @@ export default function useRoomImportActions({
         );
         dicerRoleId = resolvedDicerRoleId;
         const ensured = await ensureAvatarIdForRole(resolvedDicerRoleId);
-        dicerAvatarId = ensured > 0 ? ensured : 0;
+        dicerAvatarId = ensured > 0 ? ensured : -1;
+        if (queryClient) {
+          dicerAvatars = (await fetchRoleAvatarsWithCache(queryClient, resolvedDicerRoleId).catch(() => null))?.data ?? [];
+        }
       };
 
       const uniqueRoleIds = isSpectator
@@ -154,71 +151,25 @@ export default function useRoomImportActions({
         await ensureAvatarIdForRole(roleId);
       }
 
-      if (!isSpectator && messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER)) {
+      if (!isSpectator && messages.some(m => m.roleId === IMPORT_SPECIAL_ROLE_ID.DICER || m.diceTurn)) {
         await ensureDicerSender();
       }
 
-      const total = messages.length;
-      for (let i = 0; i < messages.length; i++) {
-        const msg = messages[i];
-        let roleId = msg.roleId;
-        let avatarId = -1;
-        let messageType = MessageType.TEXT;
-        let extra: Record<string, unknown> = {};
-        const figurePosition = msg.figurePosition;
+      const requests = buildImportedChatMessageRequests(messages, {
+        roomId,
+        isSpectator,
+        dicerRoleId,
+        dicerAvatarId,
+        dicerAvatars,
+        draftCustomRoleNameMap,
+        resolveAvatarId: roleId => resolvedAvatarIdByRole.get(roleId) ?? -1,
+      });
 
-        if (isSpectator) {
-          roleId = -1;
-        }
-        else if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
-          await ensureDicerSender();
-          roleId = dicerRoleId ?? roleId;
-          avatarId = dicerAvatarId ?? 0;
-          messageType = MessageType.DICE;
-          extra = { result: msg.content };
-        }
-        else {
-          avatarId = roleId <= 0 ? -1 : await ensureAvatarIdForRole(roleId);
-        }
-
-        const request: ChatMessageRequest = {
-          roomId,
-          roleId,
-          avatarId,
-          content: isSpectator
-            ? (buildOutOfCharacterSpeechContent(msg.content) ?? "")
-            : msg.content,
-          messageType,
-          extra,
-        };
-
-        if (!isSpectator) {
-          const importedSpeakerName = (msg.speakerName ?? "").trim();
-          if (importedSpeakerName) {
-            request.customRoleName = importedSpeakerName;
-          }
-          else {
-            const draftCustomRoleName = draftCustomRoleNameMap[roleId];
-            if (draftCustomRoleName?.trim()) {
-              request.customRoleName = draftCustomRoleName.trim();
-            }
-          }
-        }
-
-        if (!isSpectator && messageType === MessageType.TEXT && roleId > 0 && figurePosition) {
-          request.annotations = setFigurePositionAnnotation(request.annotations, figurePosition);
-        }
-
-        const createdMessage = await sendMessageWithInsert(request);
-        if (!createdMessage) {
-          break;
-        }
-        onProgress?.(i + 1, total);
-
-        if (total >= 30) {
-          await new Promise(resolve => setTimeout(resolve, 30));
-        }
+      const createdMessages = await sendMessageBatch(requests);
+      if (createdMessages.length !== requests.length) {
+        throw new Error("导入消息失败");
       }
+      onProgress?.(createdMessages.length, requests.length);
     }
     finally {
       roomUiStoreApi.getState().setInsertAfterMessageId(prevInsertAfter);
@@ -233,7 +184,7 @@ export default function useRoomImportActions({
     roomContext,
     roomId,
     roomUiStoreApi,
-    sendMessageWithInsert,
+    sendMessageBatch,
     setIsSubmitting,
   ]);
 

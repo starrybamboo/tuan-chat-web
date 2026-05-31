@@ -39,8 +39,8 @@ const cmdSt = new CommandExecutor(
   "st",
   [],
   "属性设置",
-  [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
-  ".st [属性名][属性值] / .st show [属性名]...",
+  [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 手枪 1d4+1d8"],
+  ".st [属性名][属性值/掷骰表达式] / .st show [属性名]...",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
@@ -58,6 +58,24 @@ const cmdSt = new CommandExecutor(
     if (!curAbility) {
       cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
       return false;
+    }
+
+    if (args.length >= 2 && !/^[-+]?\d+$/.test(args[1].trim())) {
+      const rawKey = args[0].trim();
+      const normalizedKey = rawKey.toLowerCase();
+      const key = FU_PROPERTY_ALIASES[normalizedKey] || rawKey;
+      const expression = args.slice(1).join("").trim();
+      if (!rawKey || !expression) {
+        cpi.sendToast("错误：属性名或掷骰表达式不能为空");
+        return false;
+      }
+      curAbility.skill = {
+        ...curAbility.skill,
+        [key]: expression,
+      };
+      cpi.setRoleAbilityList(role.roleId, curAbility);
+      cpi.replyMessage(`掷骰表达式设置成功：${role?.roleName || "当前角色"}的${key} = ${expression}`);
+      return true;
     }
 
     // st 实现

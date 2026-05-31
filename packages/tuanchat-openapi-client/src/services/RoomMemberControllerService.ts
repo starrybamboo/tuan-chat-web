@@ -21,7 +21,7 @@ export class RoomMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/room/member/',
+            url: '/room/member',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -37,7 +37,7 @@ export class RoomMemberControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/room/member/',
+            url: '/room/member',
             body: requestBody,
             mediaType: 'application/json',
         });

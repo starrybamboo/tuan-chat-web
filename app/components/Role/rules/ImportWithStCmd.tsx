@@ -8,7 +8,7 @@ import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateKeyFieldByRoleIdMutation,
-  useUpdateRoleAbilityMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "../../../../api/hooks/ruleQueryHooks";
 
@@ -141,7 +141,7 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promis
   const abilityList = abilityQuery.data?.data ?? [];
   const ruleDetailQuery = useRuleDetailQuery(ruleId);
 
-  const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
+  const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const updateKeyFieldByRoleIdMutation = useUpdateKeyFieldByRoleIdMutation(); // 删除错位字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
 
@@ -174,7 +174,8 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => Promis
     // 已存在能力则更新，否则创建，并保留本次导入后的字段内容
     if (shouldUpdate) {
       await updateAbilityMutation.mutateAsync({
-        abilityId: parsed.draft.abilityId as number,
+        roleId,
+        ruleId,
         act: parsed.draft.act,
         basic: parsed.draft.basic,
         ability: parsed.draft.ability,

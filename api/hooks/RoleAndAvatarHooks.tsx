@@ -450,6 +450,9 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
           voiceFileId: data.voiceFileId,
           extra: data.extra,
         });
+        if (!isSuccessfulApiResult(updateRes)) {
+          throw new Error(getApiResultErrorMessage(updateRes, "角色保存失败"));
+        }
         return updateRes;
       }
     },
@@ -647,30 +650,33 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
   });
 }
 
-// 复制角色：统一走后端 /role/copy（当前后端仅支持复制为骰娘）
-export type TargetType = "dicer";
+// 复制角色：统一走后端 /role/copy
+export type TargetType = "dicer" | "npc";
+
+const COPY_ROLE_TARGET_TYPE: Record<TargetType, number> = {
+  dicer: 1,
+  npc: 2,
+};
 
 interface CopyRoleArgs {
   sourceRole: Role;
   targetType?: TargetType;
   newName?: string;
   newDescription?: string;
+  spaceId?: number;
 }
 
 export function useCopyRoleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["copyRole"],
-    mutationFn: async ({ sourceRole, targetType = "dicer", newName, newDescription }: CopyRoleArgs): Promise<Role> => {
-      if (targetType !== "dicer") {
-        throw new Error("后端当前仅支持复制为骰娘");
-      }
-
+    mutationFn: async ({ sourceRole, targetType = "dicer", newName, newDescription, spaceId }: CopyRoleArgs): Promise<Role> => {
       const copyRes = await tuanchat.roleController.copyRole({
         sourceRoleId: sourceRole.id,
         newRoleName: newName?.trim() || undefined,
         newRoleDescription: newDescription?.trim() || undefined,
-        targetType: 1,
+        targetType: COPY_ROLE_TARGET_TYPE[targetType],
+        spaceId: targetType === "npc" ? spaceId : undefined,
       });
 
       const copiedRole = copyRes?.data;
@@ -694,6 +700,12 @@ export function useCopyRoleMutation() {
           console.warn("复制角色后获取头像失败", error);
         }
       }
+
+      seedUserRoleQueryCache(queryClient, {
+        ...copiedRole,
+        avatarUrl,
+        avatarThumbUrl: avatarThumb,
+      } as any);
 
       return {
         id: copiedRole.roleId,

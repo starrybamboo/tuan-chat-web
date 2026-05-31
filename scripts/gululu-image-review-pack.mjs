@@ -20,6 +20,8 @@ const BROAD_PATH_SEGMENTS = new Set([
   "未识别",
   "背景",
   "道具",
+  "gululu",
+  "remote",
 ]);
 const IGNORED_SPEAKERS = new Set([
   "ATK",
@@ -38,13 +40,62 @@ const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".bm
 const SAFE_ALIAS_OVERRIDES = new Map([
   ["阿空", "灵乌路空"],
   ["阿燐", "火焰猫燐"],
+  ["阿求", "稗田阿求"],
+  ["爱丽丝", "爱丽丝·玛格特洛依德"],
+  ["白莲", "圣白莲"],
+  ["布都", "物部布都"],
+  ["橙", "橙"],
+  ["弁弁", "九十九弁弁"],
+  ["八桥", "九十九八桥"],
+  ["堇子", "宇佐见堇子"],
+  ["董子", "宇佐见堇子"],
+  ["辉夜", "蓬莱山辉夜"],
+  ["慧音", "上白泽慧音"],
+  ["合欢乃", "坂田合欢"],
+  ["华扇", "茨木华扇"],
+  ["荷取", "河城荷取"],
+  ["觉", "古明地觉"],
+  ["影狼", "今泉影狼"],
+  ["雷鼓", "堀川雷鼓"],
+  ["蓝", "八云蓝"],
+  ["老郭", "郭海皇"],
+  ["灵梦", "博丽灵梦"],
+  ["烈", "烈海王"],
+  ["妹红", "藤原妹红"],
+  ["米斯蒂娅", "米斯蒂娅·萝蕾拉"],
+  ["魔理沙", "雾雨魔理沙"],
+  ["猯藏", "二岩猯藏"],
+  ["青娥", "霍青娥"],
+  ["神子", "丰聪耳神子"],
+  ["四季", "四季映姬"],
+  ["探女", "稀神探女"],
+  ["针妙丸", "少名针妙丸"],
+  ["永琳", "八意永琳"],
   ["师匠", "八意永琳"],
+  ["太子", "丰聪耳神子"],
+  ["天子", "比那名居天子"],
+  ["文文", "射命丸文"],
+  ["小伞", "多多良小伞"],
+  ["咲夜", "十六夜咲夜"],
+  ["一轮", "云居一轮"],
+  ["妖梦", "魂魄妖梦"],
+  ["幽香", "风见幽香"],
+  ["幽幽子", "西行寺幽幽子"],
+  ["勇仪", "星熊勇仪"],
+  ["早苗", "东风谷早苗"],
   ["茨华仙", "茨木华扇"],
   ["恋恋", "古明地恋"],
   ["梅莉", "玛艾露贝莉·赫恩"],
   ["梦烈", "烈海王"],
-  ["老郭", "郭海皇"],
-  ["文文", "射命丸文"],
+  ["鵺", "封兽鵺"],
+  ["芙兰", "芙兰朵露·斯卡雷特"],
+  ["芙兰朵露", "芙兰朵露·斯卡雷特"],
+  ["霖之助", "森近霖之助"],
+  ["正邪", "鬼人正邪"],
+  ["紫", "八云紫"],
+  ["紫苑", "依神紫苑"],
+  ["女苑", "依神女苑"],
+  ["萃香", "伊吹萃香"],
 ]);
 
 function normalizeLineBreaks(text) {
@@ -60,10 +111,13 @@ function normalizeRelPath(rawPath) {
     .replace(/^\/+/, "");
 }
 
+function replaceInvalidPathChars(value) {
+  return Array.from(value, char => ("<>:\"/\\|?*".includes(char) || char.charCodeAt(0) <= 0x1F) ? "_" : char).join("");
+}
+
 function safeSegment(value) {
-  const normalized = String(value || "未识别")
+  const normalized = replaceInvalidPathChars(String(value || "未识别"))
     .trim()
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
     .replace(/\s+/g, " ")
     .slice(0, 80);
   return normalized || "未识别";
@@ -141,7 +195,7 @@ function scoreEvidence(evidence) {
 }
 
 function normalizeLearnedAlias(character, aliasMap) {
-  return aliasMap.get(character) ?? character;
+  return aliasMap.get(character) ?? SAFE_ALIAS_OVERRIDES.get(character) ?? character;
 }
 
 function choosePathCharacter(relPath) {
@@ -283,9 +337,21 @@ async function readCorrections(correctionsPath) {
     for (const line of lines) {
       const cells = parseCsvLine(line);
       const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""]));
-      const key = row.sha256 || row.sourceRelPath;
-      if (key) {
-        rows.set(key, row);
+      const hasManualCorrection = Boolean(
+        row.confirmedCharacter?.trim()
+        || /^(?:[1y是]|true|yes)$/i.test(row.exclude ?? "")
+        || row.notes?.trim(),
+      );
+      for (const key of [row.sourceRelPath, row.sha256].filter(Boolean)) {
+        const existing = rows.get(key);
+        const existingHasManualCorrection = Boolean(
+          existing?.confirmedCharacter?.trim()
+          || /^(?:[1y是]|true|yes)$/i.test(existing?.exclude ?? "")
+          || existing?.notes?.trim(),
+        );
+        if (!existing || hasManualCorrection || !existingHasManualCorrection) {
+          rows.set(key, row);
+        }
       }
     }
     return rows;
@@ -296,6 +362,49 @@ async function readCorrections(correctionsPath) {
     }
     throw error;
   }
+}
+
+function isManualCorrection(row) {
+  return Boolean(
+    row?.confirmedCharacter?.trim()
+    || /^(?:[1y是]|true|yes)$/i.test(row?.exclude ?? "")
+    || row?.notes?.trim(),
+  );
+}
+
+function correctionForImageRecord(image, corrections) {
+  const byHash = corrections.get(image.sha256);
+  if (isManualCorrection(byHash)) {
+    return byHash;
+  }
+  for (const relPath of image.sourceRelPaths ?? [image.relPath]) {
+    const byPath = corrections.get(relPath);
+    if (isManualCorrection(byPath)) {
+      return byPath;
+    }
+  }
+  return byHash ?? corrections.get(image.relPath);
+}
+
+function mergeImageRecordsByHash(imageRecords, corrections) {
+  const recordsByHash = new Map();
+  for (const record of imageRecords) {
+    const records = recordsByHash.get(record.sha256) ?? [];
+    records.push(record);
+    recordsByHash.set(record.sha256, records);
+  }
+
+  return [...recordsByHash.values()].map((records) => {
+    const representative = records.find(record => isManualCorrection(corrections.get(record.relPath))) ?? records[0];
+    const sourceRelPaths = records.map(record => record.relPath);
+    return {
+      ...representative,
+      contexts: records.flatMap(record => record.contexts),
+      duplicateCount: records.length,
+      duplicateSourceRelPaths: sourceRelPaths.filter(relPath => relPath !== representative.relPath),
+      sourceRelPaths,
+    };
+  });
 }
 
 function collectContextSpeakers(contexts) {
@@ -380,7 +489,7 @@ function learnCharacterAliases(records) {
   const learnedAliases = [...candidatesByAlias.values()]
     .filter(item => item.alias !== item.canonical)
     .sort((left, right) => left.alias.localeCompare(right.alias, "zh-Hans-CN"));
-  const aliasMap = new Map(learnedAliases.map(item => [item.alias, item.canonical]));
+  const aliasMap = new Map([...SAFE_ALIAS_OVERRIDES, ...learnedAliases.map(item => [item.alias, item.canonical])]);
   return { aliasMap, learnedAliases };
 }
 
@@ -446,7 +555,7 @@ function classifyImage(image, contexts, vision, correction, aliasMap) {
   const evidence = buildEvidence(image, contexts, vision, aliasMap);
   const scored = scoreEvidence(evidence);
   const [top, second] = scored;
-  const correctedCharacter = correction?.confirmedCharacter?.trim();
+  const correctedCharacter = normalizeLearnedAlias(correction?.confirmedCharacter?.trim(), aliasMap);
   const excluded = /^(?:[1y是]|true|yes)$/i.test(correction?.exclude ?? "");
 
   if (excluded) {
@@ -459,6 +568,21 @@ function classifyImage(image, contexts, vision, correction, aliasMap) {
       evidence,
       excluded: true,
       reviewStatus: "excluded",
+    };
+  }
+  const keptMangaPanel = correction?.assetKind === "manga-panel"
+    || correction?.notes?.includes("人物漫画分镜保留");
+  if (keptMangaPanel) {
+    // 人物漫画分镜需要保留，但未必能安全绑定到单个角色。
+    return {
+      assetKind: "manga-panel",
+      bucket: correctedCharacter || "漫画分镜",
+      candidateCharacter: correctedCharacter,
+      confidence: correctedCharacter ? 1 : 0,
+      confirmed: true,
+      evidence,
+      excluded: false,
+      reviewStatus: "confirmed",
     };
   }
   if (correctedCharacter) {
@@ -656,15 +780,15 @@ async function assertSafeOutputDir(root, outDir) {
 async function buildReviewPack(args) {
   const sourceRoot = path.resolve(args.root);
   const outDir = path.resolve(args.outDir);
+  const corrections = await readCorrections(args.corrections);
   await assertSafeOutputDir(sourceRoot, outDir);
 
   const imagesDir = path.join(sourceRoot, "images");
   await stat(imagesDir);
-  const [{ markdown, meta }, images, visionByHash, corrections] = await Promise.all([
+  const [{ markdown, meta }, images, visionByHash] = await Promise.all([
     readAllPartMarkdown(sourceRoot),
     listImages(imagesDir),
     readVisionCache(sourceRoot),
-    readCorrections(args.corrections),
   ]);
   const contextsByImage = extractImageContexts(parseFloors(markdown));
   const imageRecords = [];
@@ -678,15 +802,19 @@ async function buildReviewPack(args) {
     });
   }
   const { aliasMap, learnedAliases } = learnCharacterAliases(imageRecords);
+  const uniqueImageRecords = mergeImageRecordsByHash(imageRecords, corrections);
   const entries = [];
 
-  for (const image of imageRecords) {
-    const correction = corrections.get(image.sha256) ?? corrections.get(image.relPath);
+  for (const image of uniqueImageRecords) {
+    const correction = correctionForImageRecord(image, corrections);
     const classification = classifyImage(image, image.contexts, image.vision, correction, aliasMap);
     const ext = path.extname(image.relPath);
     const baseName = `${safeSegment(path.basename(image.relPath, ext))}_${image.sha256.slice(0, 10)}${ext}`;
     const bucket = safeSegment(classification.bucket);
-    const outputRelPath = path.join("by-character", bucket, baseName).replace(/\\/g, "/");
+    const reviewSubdir = REVIEW_BUCKETS.has(classification.bucket) && classification.candidateCharacter
+      ? path.join(bucket, safeSegment(classification.candidateCharacter))
+      : bucket;
+    const outputRelPath = path.join("by-character", reviewSubdir, baseName).replace(/\\/g, "/");
     const outputPath = path.join(outDir, outputRelPath);
     await mkdir(path.dirname(outputPath), { recursive: true });
     const materializedAs = await materializeImage(image.absolutePath, outputPath, args.materialize);
@@ -707,6 +835,9 @@ async function buildReviewPack(args) {
       sha256: image.sha256,
       sourceAbsPath: image.absolutePath,
       sourceRelPath: image.relPath,
+      duplicateCount: image.duplicateCount,
+      duplicateSourceRelPaths: image.duplicateSourceRelPaths,
+      sourceRelPaths: image.sourceRelPaths,
     });
   }
 

@@ -76,17 +76,19 @@ describe("useRoomImportActions", () => {
     mockedSetCachedDocSnapshot.mockReset();
   });
 
-  it("导入链路在发送失败后停止推进进度", async () => {
+  it("导入链路一次性批量发送并恢复回复/插入状态", async () => {
     const roomUiStoreApi = createRoomUiStore();
     roomUiStoreApi.getState().setReplyMessage({
       messageId: 200,
     } as ChatMessageResponse["message"]);
     roomUiStoreApi.getState().setInsertAfterMessageId(300);
 
-    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>()
-      .mockResolvedValueOnce(createMessage(1))
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(createMessage(3));
+    const sendMessageWithInsert = vi.fn<(...args: any[]) => any>();
+    const sendMessageBatch = vi.fn<(...args: any[]) => any>(async () => [
+      createMessage(1),
+      createMessage(2),
+      createMessage(3),
+    ]);
     const onProgress = vi.fn<(...args: any[]) => any>();
     const setIsSubmitting = vi.fn<(...args: any[]) => any>();
 
@@ -100,7 +102,7 @@ describe("useRoomImportActions", () => {
       setIsSubmitting,
       roomContext: {} as any,
       sendMessageWithInsert,
-      sendMessageBatch: vi.fn<(...args: any[]) => any>(async () => []),
+      sendMessageBatch,
       ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
       roomUiStoreApi,
     });
@@ -111,13 +113,156 @@ describe("useRoomImportActions", () => {
       { roleId: 3, content: "第三条" },
     ], onProgress);
 
-    expect(sendMessageWithInsert).toHaveBeenCalledTimes(2);
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
+    expect(sendMessageBatch).toHaveBeenCalledTimes(1);
+    expect(sendMessageBatch.mock.calls[0]?.[0].map((request: any) => request.content)).toEqual([
+      "第一条",
+      "第二条",
+      "第三条",
+    ]);
     expect(onProgress).toHaveBeenCalledTimes(1);
-    expect(onProgress).toHaveBeenCalledWith(1, 3);
+    expect(onProgress).toHaveBeenCalledWith(3, 3);
     expect(roomUiStoreApi.getState().replyMessage?.messageId).toBe(200);
     expect(roomUiStoreApi.getState().insertAfterMessageId).toBe(300);
     expect(setIsSubmitting).toHaveBeenNthCalledWith(1, true);
     expect(setIsSubmitting).toHaveBeenNthCalledWith(2, false);
+  });
+
+  it("导入骰娘消息时在批量请求里使用房间骰娘身份", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageBatch = vi.fn<(...args: any[]) => any>(async () => [createMessage(1)]);
+
+    const { handleImportChatText } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
+      roomContext: {} as any,
+      sendMessageWithInsert: vi.fn<(...args: any[]) => any>(),
+      sendMessageBatch,
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async (roleId: number) => roleId === 1000 ? 1001 : 7),
+      roomUiStoreApi,
+    });
+
+    await handleImportChatText([
+      { roleId: -2, speakerName: "海豹一号机", content: "由于a 灵感，<木落>掷出了 D20=5" },
+    ]);
+
+    expect(sendMessageBatch).toHaveBeenCalledWith([
+      expect.objectContaining({
+        roleId: 1000,
+        avatarId: 1001,
+        messageType: MESSAGE_TYPE.DICE,
+        customRoleName: "海豹一号机",
+        extra: { diceResult: { result: "由于a 灵感，<木落>掷出了 D20=5" } },
+      }),
+    ]);
+  });
+
+  it("导入骰子指令和骰娘回复合并项时由发起人发送 diceTurn", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageBatch = vi.fn<(...args: any[]) => any>(async () => [createMessage(1)]);
+
+    const { handleImportChatText } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
+      roomContext: {} as any,
+      sendMessageWithInsert: vi.fn<(...args: any[]) => any>(),
+      sendMessageBatch,
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async (roleId: number) => roleId === 1000 ? 1001 : 7),
+      roomUiStoreApi,
+    });
+
+    await handleImportChatText([
+      {
+        roleId: 3,
+        speakerName: "木落",
+        content: ".ra 灵感",
+        diceTurn: {
+          dicerSpeakerName: "海豹一号机",
+          replyContent: "由于a 灵感，<木落>掷出了 D20=5",
+        },
+      },
+    ]);
+
+    expect(sendMessageBatch).toHaveBeenCalledWith([
+      expect.objectContaining({
+        roomId: 1,
+        roleId: 3,
+        avatarId: 7,
+        content: ".ra 灵感",
+        customRoleName: "木落",
+        messageType: MESSAGE_TYPE.DICE,
+        extra: {
+          diceTurn: {
+            command: ".ra 灵感",
+            replies: [{
+              content: "由于a 灵感，<木落>掷出了 D20=5",
+              roleId: 1000,
+              avatarId: 1001,
+              customRoleName: "海豹一号机",
+            }],
+          },
+        },
+      }),
+    ]);
+  });
+
+  it("房间导入 CQ 视频时通过批量请求发送外链视频消息", async () => {
+    const roomUiStoreApi = createRoomUiStore();
+    const sendMessageBatch = vi.fn<(...args: any[]) => any>(async () => [createMessage(1)]);
+
+    const { handleImportChatText } = useRoomImportActions({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn<(...args: any[]) => any>(),
+      roomContext: {} as any,
+      sendMessageWithInsert: vi.fn<(...args: any[]) => any>(),
+      sendMessageBatch,
+      ensureRuntimeAvatarIdForRole: vi.fn<(...args: any[]) => any>(async () => 7),
+      roomUiStoreApi,
+    });
+
+    await handleImportChatText([
+      {
+        roleId: 3,
+        speakerName: "博丽灵梦",
+        content: "录像 [CQ:video,file=replay.mp4,url=https://example.com/replay.mp4]",
+      },
+    ]);
+
+    expect(sendMessageBatch).toHaveBeenCalledWith([
+      expect.objectContaining({
+        roomId: 1,
+        roleId: 3,
+        avatarId: 7,
+        content: "录像",
+        customRoleName: "博丽灵梦",
+        messageType: MESSAGE_TYPE.VIDEO,
+        extra: {
+          videoMessage: {
+            source: {
+              kind: "external",
+              url: "https://example.com/replay.mp4",
+              provider: "cq",
+            },
+            fileName: "replay.mp4",
+          },
+        },
+      }),
+    ]);
   });
 
   it("发送共享文档卡片时保留源文档所属空间和 roomId", async () => {

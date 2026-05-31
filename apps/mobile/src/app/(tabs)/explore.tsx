@@ -4,8 +4,10 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   TextInput,
   View,
@@ -29,7 +31,9 @@ import { useUnreadCountQuery } from "@/features/notifications/useUnreadCountQuer
 import { useUpdateProfileMutation } from "@/features/profile/useUpdateProfileMutation";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
+import { setStringAsync } from "@/lib/clipboard";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
+import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 
 const AVATAR_SIZE = 120;
 const NOTIFICATION_DOT_SIZE = 8;
@@ -47,6 +51,8 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12 },
   fieldInput: { borderRadius: Radius.md, borderWidth: 1, fontSize: 15, minHeight: 40, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   genderChip: { borderRadius: Radius.full, borderWidth: 1, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm },
+  inviteCodeBox: { borderRadius: Radius.md, borderWidth: 1, gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg },
+  inviteCodeText: { fontSize: 24, fontWeight: "700", letterSpacing: 2 },
   saveButton: { alignItems: "center", borderRadius: Radius.md, minHeight: 44, justifyContent: "center", paddingHorizontal: Spacing.xl },
   notifRow: { borderRadius: Radius.md, gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg },
   notifDot: {
@@ -81,6 +87,7 @@ export default function ProfileScreen() {
   const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
+  const [inviteShareFeedback, setInviteShareFeedback] = useState("");
 
   const startEditing = () => {
     setEditUsername(user?.username ?? "");
@@ -156,11 +163,44 @@ export default function ProfileScreen() {
 
   const avatarThumbSrc = avatarThumbUrl(user?.avatarFileId);
   const avatarPreviewSrc = user?.avatarFileId ? mediaFileUrl(user.avatarFileId, "image", "original") : "";
+  const inviteCode = user?.inviteCode ?? "";
+  const inviteRegisterLink = buildAccountInviteRegisterUrl(inviteCode, "https://tuan.chat");
   const unreadCount = unreadQuery.data ?? 0;
   const notifications = notificationsQuery.data ?? [];
   const filteredNotifications = notifFilter === "unread"
     ? notifications.filter(n => !n.isRead)
     : notifications;
+
+  const showInviteShareFeedback = (message: string) => {
+    setInviteShareFeedback(message);
+    setTimeout(() => setInviteShareFeedback(""), 1800);
+  };
+
+  const handleShareInviteLink = async () => {
+    if (!inviteRegisterLink) {
+      Alert.alert("邀请码未生成", "请稍后重试。");
+      return;
+    }
+
+    try {
+      if (Platform.OS === "web") {
+        const copied = await setStringAsync(inviteRegisterLink);
+        if (!copied) {
+          throw new Error("复制失败");
+        }
+        showInviteShareFeedback("已复制注册链接");
+        return;
+      }
+      await Share.share({
+        title: "团剧共创邀请",
+        message: `来团剧共创一起创作：${inviteRegisterLink}`,
+      });
+      showInviteShareFeedback("已打开分享");
+    }
+    catch (e: any) {
+      Alert.alert("分享失败", e?.message ?? "请稍后重试");
+    }
+  };
 
   if (isBootstrapping) {
     return (
@@ -223,6 +263,26 @@ export default function ProfileScreen() {
               <ThemedText>查看日志 / 反馈问题</ThemedText>
             </Pressable>
           </ThemedView>
+
+          {/* Invite Code */}
+          {inviteCode
+            ? (
+                <ThemedView type="backgroundElement" style={styles.card}>
+                  <ThemedText type="smallBold" style={styles.cardTitle}>邀请码</ThemedText>
+                  <View style={[styles.inviteCodeBox, { borderColor: theme.border, backgroundColor: theme.backgroundSelected }]}>
+                    <ThemedText style={styles.inviteCodeText}>{inviteCode}</ThemedText>
+                  </View>
+                  <Pressable
+                    onPress={() => void handleShareInviteLink()}
+                    style={[styles.saveButton, { backgroundColor: theme.accent }]}
+                  >
+                    <ThemedText style={{ color: "#fff", fontWeight: "600" }}>
+                      {inviteShareFeedback || "分享注册链接"}
+                    </ThemedText>
+                  </Pressable>
+                </ThemedView>
+              )
+            : null}
 
           {/* Notifications Card */}
           <ThemedView type="backgroundElement" style={styles.card}>

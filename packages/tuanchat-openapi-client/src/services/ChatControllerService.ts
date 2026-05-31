@@ -3,14 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessageResponse';
-import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
 import type { ApiResultListMessage } from '../models/ApiResultListMessage';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
-import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
 import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';
 import type { Message } from '../models/Message';
-import type { MessageBySyncIdRequest } from '../models/MessageBySyncIdRequest';
 import type { RoomMessageStreamPatchRequest } from '../models/RoomMessageStreamPatchRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -52,8 +49,8 @@ export class ChatControllerService {
         });
     }
     /**
-     * 发送消息（备用）
-     * 从设计上是为了弱网环境的处理，但实际上没怎么用
+     * 发送单条消息
+     * 创建一条房间消息并返回持久化后的消息
      * @param requestBody
      * @returns ApiResultMessage OK
      * @throws ApiError
@@ -88,55 +85,16 @@ export class ChatControllerService {
     /**
      * 复合批量变更消息
      * 按 insert/update/delete/move 操作一次性变更指定房间消息
-     * @param roomId
      * @param requestBody
      * @returns ApiResultListMessage OK
      * @throws ApiError
      */
     public patchRoomMessages(
-        roomId: number,
         requestBody: RoomMessageStreamPatchRequest,
     ): CancelablePromise<ApiResultListMessage> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/chat/rooms/{roomId}/messages/patch',
-            path: {
-                'roomId': roomId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 根据syncId获取单条消息
-     * 用于在收到syncId间隔的消息时，重新获取缺失的消息
-     * @param requestBody
-     * @returns ApiResultChatMessageResponse OK
-     * @throws ApiError
-     */
-    public getMessageBySyncId(
-        requestBody: MessageBySyncIdRequest,
-    ): CancelablePromise<ApiResultChatMessageResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/message/sync',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 按页获取消息列表
-     * 用的是游标翻页
-     * @param requestBody
-     * @returns ApiResultCursorPageBaseResponseChatMessageResponse OK
-     * @throws ApiError
-     */
-    public getMsgPage(
-        requestBody: ChatMessagePageRequest,
-    ): CancelablePromise<ApiResultCursorPageBaseResponseChatMessageResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/chat/message/page',
+            url: '/chat/message/patch',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -159,20 +117,23 @@ export class ChatControllerService {
         });
     }
     /**
-     * 获取一个群的所有消息
-     * 根据 position 降序排序，返回gzip压缩的数据
+     * 根据syncId获取单条消息
+     * 用于在收到syncId间隔的消息时，重新获取缺失的消息
      * @param roomId
-     * @returns any OK
+     * @param syncId
+     * @returns ApiResultChatMessageResponse OK
      * @throws ApiError
      */
-    public getAllMessage(
+    public getMessageBySyncId(
         roomId: number,
-    ): CancelablePromise<any> {
+        syncId: number,
+    ): CancelablePromise<ApiResultChatMessageResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/chat/message/all',
+            url: '/chat/message/sync',
             query: {
                 'roomId': roomId,
+                'syncId': syncId,
             },
         });
     }

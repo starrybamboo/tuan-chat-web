@@ -10,6 +10,7 @@ import {
   hasHostPrivileges,
   SPACE_MEMBER_TYPE,
 } from "@/components/chat/utils/memberPermissions";
+import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
@@ -67,6 +68,7 @@ function MemberActionMenuItem({
 
 function ActionButtons({
   member,
+  isRoomMember,
   isSpace,
   canManageRoomMembership,
   canManageSpaceMemberPermissions,
@@ -77,6 +79,7 @@ function ActionButtons({
   spaceMemberTypeActions,
 }: {
   member: SpaceMember;
+  isRoomMember: boolean;
   isSpace: boolean;
   canManageRoomMembership: boolean;
   canManageSpaceMemberPermissions: boolean;
@@ -93,10 +96,14 @@ function ActionButtons({
   const firstItemRef = useRef<HTMLButtonElement | null>(null);
 
   const isSelf = curUserId === member.userId;
-  const canManageRoomTarget = !isSpace && canManageRoomMembership && !isSelf;
+  const canLeaveRoom = !isSpace && isSelf && isRoomMember;
+  const canLeaveSpace = isSpace && isSelf;
+  const canManageRoomTarget = !isSpace && isRoomMember && canManageRoomMembership && !isSelf;
   const canManageSpaceTarget = isSpace && canManageSpaceMemberPermissions && !isSelf;
+  const canSendFriendRequest = !isSelf && typeof member.userId === "number" && member.userId > 0;
+  const firstManagedAction = !canSendFriendRequest;
 
-  const shouldHide = !isSelf && !canManageRoomTarget && !canManageSpaceTarget;
+  const shouldHide = !canSendFriendRequest && !canLeaveRoom && !canLeaveSpace && !canManageRoomTarget && !canManageSpaceTarget;
   const closeMenuAndRefocus = useCallback(() => {
     setOpen(false);
     triggerBtnRef.current?.focus();
@@ -198,10 +205,20 @@ function ActionButtons({
           className={`menu menu-xs dropdown-content absolute right-0 z-20 p-2 shadow bg-base-200 rounded-box w-48 overflow-auto max-h-60 animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
           aria-label="成员操作菜单"
         >
-          {isSelf && <MemberActionMenuItem first firstItemRef={firstItemRef} label={isSpace ? "退出空间" : "退出群聊"} onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />}
+          {canSendFriendRequest && (
+            <FriendRequestButton
+              targetUserId={member.userId}
+              targetUsername={member.username}
+              variant="menu-item"
+              first
+              firstItemRef={firstItemRef}
+              onAfterClick={closeMenuAndRefocus}
+            />
+          )}
+          {(canLeaveRoom || canLeaveSpace) && <MemberActionMenuItem first firstItemRef={firstItemRef} label={isSpace ? "退出空间" : "退出群聊"} onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />}
           {canManageRoomTarget && (
             <>
-              <MemberActionMenuItem first={!isSelf} firstItemRef={firstItemRef} label="移出房间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />
+              <MemberActionMenuItem first={firstManagedAction} firstItemRef={firstItemRef} label="移出房间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />
             </>
           )}
           {canManageSpaceTarget && (
@@ -209,7 +226,7 @@ function ActionButtons({
               {spaceMemberTypeActions.map((action, index) => (
                 <MemberActionMenuItem
                   key={`${member.userId}-${action.memberType}`}
-                  first={!isSelf && index === 0}
+                  first={firstManagedAction && index === 0}
                   firstItemRef={firstItemRef}
                   label={action.label}
                   onClick={() => onUpdateMemberType(action.memberType)}
@@ -226,7 +243,17 @@ function ActionButtons({
   );
 }
 
-export default function MemberLists({ members, className, isSpace }: { members: (SpaceMember)[]; className?: string; isSpace: boolean }) {
+export default function MemberLists({
+  className,
+  isSpace,
+  members,
+  roomMemberUserIds,
+}: {
+  members: (SpaceMember)[];
+  className?: string;
+  isSpace: boolean;
+  roomMemberUserIds?: number[];
+}) {
   // 获取上下文与全局信息
   const curUserId = useGlobalUserId() ?? -1;
   const roomContext = use(RoomContext);
@@ -242,10 +269,17 @@ export default function MemberLists({ members, className, isSpace }: { members: 
   const mutateSpaceMember = useDeleteSpaceMemberMutation();
   const updateSpaceMemberTypeMutation = useUpdateSpaceMemberTypeMutation();
   const transferLeader = useTransferLeader();
+  const roomMemberUserIdSet = useMemo(() => {
+    return new Set(roomMemberUserIds ?? []);
+  }, [roomMemberUserIds]);
+  const shouldShowRoomMembership = !isSpace && roomMemberUserIds != null;
 
   const buildHandlers = useCallback((member: SpaceMember) => {
     const onRemove = () => {
       if (!isSpace) {
+        if (!roomMemberUserIdSet.has(member.userId ?? -1)) {
+          return;
+        }
         mutateRoomMember.mutate(
           { roomId, userIdList: [member.userId ?? 0] },
           {
@@ -304,7 +338,7 @@ export default function MemberLists({ members, className, isSpace }: { members: 
       },
     );
     return { onRemove, onUpdateMemberType, onTransfer };
-  }, [isSpace, mutateRoomMember, mutateSpaceMember, roomId, spaceId, transferLeader, updateSpaceMemberTypeMutation]);
+  }, [isSpace, mutateRoomMember, mutateSpaceMember, roomId, roomMemberUserIdSet, spaceId, transferLeader, updateSpaceMemberTypeMutation]);
 
   const sortedMembers = useMemo(() => {
     return [...members].sort((a, b) => {
@@ -321,6 +355,7 @@ export default function MemberLists({ members, className, isSpace }: { members: 
       {sortedMembers.map((member) => {
         const { onRemove, onUpdateMemberType, onTransfer } = buildHandlers(member);
         const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
+        const isRoomMember = isSpace || !shouldShowRoomMembership || roomMemberUserIdSet.has(member.userId ?? -1);
         return (
           <div className={`bg-base-200 p-3 rounded-lg ${className ?? ""}`} key={member.userId}>
             <div className="flex items-start justify-between gap-3">
@@ -329,8 +364,14 @@ export default function MemberLists({ members, className, isSpace }: { members: 
               </div>
               <div className="flex items-center gap-2">
                 {isSpace && <MemberTypeTag memberType={member.memberType} />}
+                {shouldShowRoomMembership && (
+                  <span className={`badge badge-sm ${isRoomMember ? "badge-primary" : "badge-ghost"}`}>
+                    {isRoomMember ? "房间内" : "空间成员"}
+                  </span>
+                )}
                 <ActionButtons
                   member={member}
+                  isRoomMember={isRoomMember}
                   isSpace={isSpace}
                   canManageRoomMembership={canManageRoomMembership}
                   canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}

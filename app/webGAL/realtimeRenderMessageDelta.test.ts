@@ -83,6 +83,42 @@ describe("realtimeRenderMessageDelta", () => {
     })).toBe("suffix");
   });
 
+  it("状态事件改动走后缀重渲染，避免脚本状态时间线失真", () => {
+    const previous = createResponse({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: ".combat start",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "combat",
+            parserVersion: "state-event-v1",
+          },
+          events: [{ type: "combatRoundStart" }],
+        },
+      },
+    }).message;
+    const next = createResponse({
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      content: ".combat end",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "combat",
+            parserVersion: "state-event-v1",
+          },
+          events: [{ type: "combatRoundEnd" }],
+        },
+      },
+    }).message;
+
+    expect(getRealtimeRenderUpdateStrategy(previous, next, {
+      autoFigureEnabled: false,
+      miniAvatarEnabled: false,
+    })).toBe("suffix");
+  });
+
   it("能区分同序更新里的局部替换和后缀重渲染起点", () => {
     const previousMessagesById = new Map<number, ChatMessageResponse["message"]>([
       [1, createResponse({ messageId: 1, content: "a" }).message],

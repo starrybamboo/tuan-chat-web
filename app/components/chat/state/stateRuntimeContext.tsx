@@ -19,6 +19,7 @@ import { buildCombatStateRuntime } from "./stateRuntime";
 export type StateRuntimeContextValue = CombatStateRuntime & {
   currentRoleId: number;
   fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined>;
+  resolver: StateDefinitionResolver;
   isAbilityLoading: boolean;
 };
 
@@ -113,8 +114,9 @@ export function StateRuntimeProvider({
     ...runtime,
     currentRoleId,
     fallbackRoleAbilitiesByRoleId,
+    resolver,
     isAbilityLoading: abilityQueries.some(query => query.isLoading),
-  }), [abilityQueries, currentRoleId, fallbackRoleAbilitiesByRoleId, runtime]);
+  }), [abilityQueries, currentRoleId, fallbackRoleAbilitiesByRoleId, resolver, runtime]);
 
   return (
     <StateRuntimeContext value={value}>

@@ -9,6 +9,7 @@ interface InitiativeImportDialogProps {
   importableRoles: InitiativeRoleRef[];
   abilityQueries: InitiativeAbilityQuery[];
   initiativeList: Initiative[];
+  importedRoleIds?: ReadonlySet<number>;
   onClose: () => void;
   onRollAllInitiative?: () => Promise<void> | void;
   onImportSingle: (roleId: number) => void;
@@ -19,6 +20,7 @@ export function InitiativeImportDialog({
   importableRoles,
   abilityQueries,
   initiativeList,
+  importedRoleIds,
   onClose,
   onRollAllInitiative,
   onImportSingle,
@@ -71,7 +73,7 @@ export function InitiativeImportDialog({
             const loading = q?.isLoading ?? false;
             const hasData = !!q?.data && q.data.success;
             const name = role.roleName ?? `角色${role.roleId}`;
-            const isImported = initiativeList.some((item) => {
+            const isImported = importedRoleIds?.has(role.roleId) ?? initiativeList.some((item) => {
               if (typeof item.roleId === "number") {
                 return item.roleId === role.roleId;
               }
@@ -101,7 +103,7 @@ export function InitiativeImportDialog({
                   disabled={loading || !hasData}
                   onClick={() => onImportSingle(role.roleId)}
                 >
-                  {isImported ? "再次导入" : "导入"}
+                  {isImported ? "复制导入" : "导入"}
                 </button>
               </div>
             );

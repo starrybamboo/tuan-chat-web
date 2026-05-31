@@ -56,6 +56,46 @@ describe("通用骰子指令", () => {
     expect(cpi.replyMessage).toHaveBeenCalledWith("掷骰结果：1d20 = 1d20[11] = 11");
   });
 
+  it("r 支持从 skill 读取掷骰表达式别名", async () => {
+    vi.spyOn(Math, "random")
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0.5);
+    (cpi.getRoleAbilityList as any).mockReturnValue({
+      skill: {
+        手枪: "1d8+1d4",
+      },
+    });
+
+    const executor = executorPublic.cmdMap.get("r");
+    await executor?.solve(["手枪"], [{ roleId: 1, roleName: "调查员" }] as any, cpi);
+
+    expect(cpi.replyMessage).toHaveBeenCalledWith("掷骰结果：手枪 = 1d8+1d4 = 1d8[1]+1d4[3] = 4");
+  });
+
+  it("st 支持把掷骰表达式写入 skill", async () => {
+    const ability = {
+      skill: {},
+    };
+    (cpi.getRoleAbilityList as any).mockReturnValue(ability);
+
+    const executor = executorPublic.cmdMap.get("st");
+    await executor?.solve(["手枪", "1d4+1d8"], [{ roleId: 1, roleName: "调查员" }] as any, cpi);
+
+    expect(cpi.setRoleAbilityList).toHaveBeenCalledWith(1, {
+      skill: {
+        手枪: "1d4+1d8",
+      },
+    });
+    expect(cpi.replyMessage).toHaveBeenCalledWith("掷骰表达式设置成功：调查员的手枪 = 1d4+1d8");
+  });
+
+  it("不再注册 set/get 掷骰表达式命令", () => {
+    expect(executorPublic.cmdMap.get("set")).toBeUndefined();
+    expect(executorPublic.cmdMap.get("alias")).toBeUndefined();
+    expect(executorPublic.cmdMap.get("get")).toBeUndefined();
+    expect(executorPublic.cmdMap.get("use")).toBeUndefined();
+  });
+
   it("ri 读取单个角色的敏捷作为先攻", async () => {
     const ability = {
       basic: { 敏捷: "65" },

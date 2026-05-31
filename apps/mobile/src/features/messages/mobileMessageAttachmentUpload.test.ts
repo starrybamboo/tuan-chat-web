@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
+import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
+
 const platformMock = vi.hoisted(() => ({
   OS: "ios",
 }));
@@ -19,8 +22,8 @@ const fileSystemMock = vi.hoisted(() => ({
 const imageCompressMock = vi.hoisted(() => ({
   compressImageToWebp: vi.fn(),
   IMAGE_COMPRESS_PROFILES: {
-    low: { maxWidthOrHeight: 200, maxSizeKB: 40, quality: 0.72 },
-    medium: { maxWidthOrHeight: 512, maxSizeKB: 150, quality: 0.76 },
+    low: { maxWidthOrHeight: 200, maxSizeKB: 40, quality: 1 },
+    medium: { maxWidthOrHeight: 512, maxSizeKB: 150, quality: 1 },
   },
 }));
 
@@ -70,6 +73,20 @@ function createMediaClient(response: {
   };
 }
 
+function createApiResultError(message: string) {
+  const request: ApiRequestOptions = {
+    method: "POST",
+    url: "/media/upload/prepare",
+  };
+  return new ApiError(request, {
+    body: { success: false, errMsg: message },
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    url: "https://api.example.com/media/upload/prepare",
+  }, message);
+}
+
 describe("uploadMobileMessageAttachments", () => {
   beforeEach(() => {
     platformMock.OS = "ios";
@@ -117,7 +134,6 @@ describe("uploadMobileMessageAttachments", () => {
 
     expect(result.uploadedImages).toEqual([{
       fileId: 321,
-      mediaType: "image",
       width: 640,
       height: 480,
       size: 5,
@@ -127,7 +143,6 @@ describe("uploadMobileMessageAttachments", () => {
       "fileId",
       "fileName",
       "height",
-      "mediaType",
       "size",
       "width",
     ]);
@@ -322,6 +337,31 @@ describe("uploadMobileMessageAttachments", () => {
     }]))
       .rejects
       .toThrow("准备上传失败：类型不支持");
+
+    expect(fileSystemMock.uploadAsync).not.toHaveBeenCalled();
+    expect(client.mediaController.completeUpload).not.toHaveBeenCalled();
+  });
+
+  it("propagates generated client ApiError errMsg before uploading any binary", async () => {
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    const client = {
+      mediaController: {
+        prepareUpload: vi.fn(async () => {
+          throw createApiResultError("准备上传失败：空间已归档");
+        }),
+        completeUpload: vi.fn(),
+      },
+    };
+
+    await expect(uploadMobileMessageAttachments(client as any, [{
+      id: "file",
+      uri: "file:///tmp/archive.zip",
+      fileName: "archive.zip",
+      mimeType: "application/zip",
+      kind: "file",
+    }]))
+      .rejects
+      .toThrow("准备上传失败：空间已归档");
 
     expect(fileSystemMock.uploadAsync).not.toHaveBeenCalled();
     expect(client.mediaController.completeUpload).not.toHaveBeenCalled();

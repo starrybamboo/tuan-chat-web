@@ -67,6 +67,7 @@ export default function ChatPageModals({
   const docTitleInputRef = React.useRef<HTMLInputElement | null>(null);
   const draftDocTitleRef = React.useRef(createDocTitle);
   const wasCreateInCategoryOpenRef = React.useRef(false);
+  const [isCreateRoomSubmitting, setIsCreateRoomSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     const wasOpen = wasCreateInCategoryOpenRef.current;
@@ -76,6 +77,9 @@ export default function ChatPageModals({
       if (docTitleInputRef.current) {
         docTitleInputRef.current.value = createDocTitle;
       }
+    }
+    if (!isCreateInCategoryOpen) {
+      setIsCreateRoomSubmitting(false);
     }
   }, [createDocTitle, isCreateInCategoryOpen]);
 
@@ -96,7 +100,11 @@ export default function ChatPageModals({
 
       <ToastWindow
         isOpen={isCreateInCategoryOpen}
-        onClose={closeCreateInCategory}
+        onClose={() => {
+          if (!isCreateRoomSubmitting) {
+            closeCreateInCategory();
+          }
+        }}
         disableScroll={true}
         panelClassName="!max-w-none !p-0 overflow-hidden rounded-lg border border-base-300/70 shadow-2xl"
       >
@@ -113,13 +121,14 @@ export default function ChatPageModals({
                 icon={<ChatCircleIcon className="size-4" weight="regular" />}
                 inputName="create_in_category_mode"
                 label="创建房间"
+                disabled={isCreateRoomSubmitting}
                 onSelect={() => setCreateInCategoryMode("room")}
               />
 
               <CreateModeOption
                 active={createInCategoryMode === "doc"}
                 description="仅 KP 可创建，文档会放入当前分类。"
-                disabled={!isKPInSpace}
+                disabled={!isKPInSpace || isCreateRoomSubmitting}
                 icon={<FileTextIcon className="size-4" weight="regular" />}
                 inputName="create_in_category_mode"
                 label="创建文档"
@@ -180,8 +189,10 @@ export default function ChatPageModals({
                   <CreateRoomWindow
                     spaceId={activeSpaceId || -1}
                     spaceAvatarThumbUrl={activeSpaceAvatar}
+                    isKP={isKPInSpace}
                     onCancel={closeCreateInCategory}
                     onSuccess={onRoomCreated}
+                    onSubmittingChange={setIsCreateRoomSubmitting}
                   />
                 )}
           </main>

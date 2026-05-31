@@ -8,6 +8,10 @@ import type { RoomMessageStreamPatchOperation } from './RoomMessageStreamPatchOp
  */
 export type RoomMessageStreamPatchRequest = {
     /**
+     * 房间 ID
+     */
+    roomId: number;
+    /**
      * 消息级变更操作列表
      */
     operations: Array<RoomMessageStreamPatchOperation>;

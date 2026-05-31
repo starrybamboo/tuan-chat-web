@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { FriendListRequest } from "@tuanchat/openapi-client/models/FriendListRequest";
 import type { FriendReqHandleRequest } from "@tuanchat/openapi-client/models/FriendReqHandleRequest";
+import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type FriendClient = Pick<TuanChat, "friendController">;
+
+export const FRIEND_REQUEST_STATUS_PENDING = 1;
+export const FRIEND_REQUEST_TYPE_RECEIVED = "received";
 
 export function getFriendsQueryKey(request: FriendListRequest = { pageNo: 1, pageSize: 100 }) {
   return ["friends", request] as const;
@@ -21,6 +25,15 @@ export function getBlacklistQueryKey(request: { pageNo?: number; pageSize?: numb
 
 export function getFriendCheckQueryKey(targetUserId: number) {
   return ["friendCheck", targetUserId] as const;
+}
+
+export function getPendingReceivedFriendRequests(
+  requests: FriendReqResponse[] | null | undefined,
+): FriendReqResponse[] {
+  return (requests ?? []).filter(request =>
+    request.status === FRIEND_REQUEST_STATUS_PENDING
+    && request.type === FRIEND_REQUEST_TYPE_RECEIVED,
+  );
 }
 
 export function useFriendsQuery(
@@ -48,7 +61,7 @@ export function useFriendRequestsQuery(
     enabled: options.enabled ?? true,
     queryFn: async () => {
       const res = await client.friendController.getFriendRequestPage(request);
-      return res.data?.list ?? [];
+      return getPendingReceivedFriendRequests(res.data?.list);
     },
     queryKey: getFriendRequestsQueryKey(request),
     staleTime: options.staleTime ?? 30_000,

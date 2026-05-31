@@ -3,10 +3,40 @@ import type { Message } from "../../../../api";
 import React from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
-import { collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateEventPreviewText, formatStateScopeLabel, getNormalizedStateEventExtra } from "@/types/stateEvent";
+import { collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateEventPreviewText, formatStateRoleLabel, formatStateScopeLabel, getNormalizedStateEventExtra } from "@/types/stateEvent";
 
 interface StateMessageCardProps {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
+}
+
+export function buildStateRoleLabelReplacements(
+  events: NonNullable<ReturnType<typeof getNormalizedStateEventExtra>>["events"],
+  roleNameById: Record<number, string>,
+): Array<{ rawLabel: string; displayLabel: string }> {
+  const seen = new Set<string>();
+  const replacements = events.flatMap((event) => {
+    if (event.type === "mapTokenUpsert" || event.type === "mapTokenRemove") {
+      const rawLabel = `地图角色 #${event.roleId}`;
+      if (seen.has(rawLabel)) {
+        return [];
+      }
+      seen.add(rawLabel);
+      const displayLabel = formatStateRoleLabel(event.roleId, { roleNameById });
+      return rawLabel === displayLabel ? [] : [{ rawLabel, displayLabel }];
+    }
+
+    if (event.type === "nextTurn" || !("scope" in event)) {
+      return [];
+    }
+    const rawLabel = formatStateScopeLabel(event.scope);
+    if (seen.has(rawLabel)) {
+      return [];
+    }
+    seen.add(rawLabel);
+    const displayLabel = formatStateScopeLabel(event.scope, { roleNameById });
+    return rawLabel === displayLabel ? [] : [{ rawLabel, displayLabel }];
+  });
+  return replacements.sort((left, right) => right.rawLabel.length - left.rawLabel.length);
 }
 
 export default function StateMessageCard({ message }: StateMessageCardProps) {
@@ -35,24 +65,12 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
     }
     return collectStateEventScopeLabels(normalizedStateEvent.events, { roleNameById });
   }, [normalizedStateEvent, roleNameById]);
-  const scopeLabelReplacements = React.useMemo(() => {
+  const roleLabelReplacements = React.useMemo(() => {
     if (!normalizedStateEvent) {
       return [];
     }
 
-    const seen = new Set<string>();
-    return normalizedStateEvent.events.flatMap((event) => {
-      if (event.type === "nextTurn" || !("scope" in event)) {
-        return [];
-      }
-      const rawLabel = formatStateScopeLabel(event.scope);
-      if (seen.has(rawLabel)) {
-        return [];
-      }
-      seen.add(rawLabel);
-      const displayLabel = formatStateScopeLabel(event.scope, { roleNameById });
-      return rawLabel === displayLabel ? [] : [{ rawLabel, displayLabel }];
-    });
+    return buildStateRoleLabelReplacements(normalizedStateEvent.events, roleNameById);
   }, [normalizedStateEvent, roleNameById]);
   const fallbackDetailLines = React.useMemo(() => {
     if (!normalizedStateEvent) {
@@ -63,21 +81,25 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
 
   const primaryText = summary?.primaryText
     ?? formatStateEventPreviewText(message.extra, message.content).replace(/^\[状态\]\s*/, "");
-  const compactPrimaryText = primaryText.replace(/\s*->\s*/g, "→");
+  const displayPrimaryText = roleLabelReplacements.reduce(
+    (nextText, pair) => nextText.replaceAll(pair.rawLabel, pair.displayLabel),
+    primaryText,
+  );
+  const compactPrimaryText = displayPrimaryText.replace(/\s*->\s*/g, "→");
   const isCombatInitiativeBatchSummary = primaryText.startsWith("全员先攻 ");
   const compactText = !isCombatInitiativeBatchSummary && scopeLabels.length > 0
     ? `${scopeLabels.join(" / ")} · ${compactPrimaryText}`
     : compactPrimaryText;
   const detailLines = React.useMemo(() => {
     const baseLines = summary?.detailLines ?? fallbackDetailLines;
-    if (scopeLabelReplacements.length === 0) {
+    if (roleLabelReplacements.length === 0) {
       return baseLines;
     }
-    return baseLines.map(line => scopeLabelReplacements.reduce(
+    return baseLines.map(line => roleLabelReplacements.reduce(
       (nextLine, pair) => nextLine.replaceAll(pair.rawLabel, pair.displayLabel),
       line,
     ));
-  }, [fallbackDetailLines, scopeLabelReplacements, summary?.detailLines]);
+  }, [fallbackDetailLines, roleLabelReplacements, summary?.detailLines]);
   const sourceLabel = normalizedStateEvent
     ? `${normalizedStateEvent.source.kind}${normalizedStateEvent.source.commandName ? ` / ${normalizedStateEvent.source.commandName}` : ""} / ${normalizedStateEvent.source.parserVersion}`
     : "未知来源";

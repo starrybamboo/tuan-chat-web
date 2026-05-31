@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { normalizeMessageExtraForMatch } from "@/types/messageDraft";
-import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
+import { getRoomMessageLocalRenderKey, isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
@@ -159,11 +159,13 @@ function pushBucketValue(bucket: Map<string, number[]>, key: string, messageId: 
 function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
   exact: Map<string, number[]>;
   loose: Map<string, number[]>;
+  mediaPosition: Map<string, number[]>;
   mediaLoose: Map<string, number[]>;
   diceLoose: Map<string, number[]>;
 } {
   const exact = new Map<string, number[]>();
   const loose = new Map<string, number[]>();
+  const mediaPosition = new Map<string, number[]>();
   const mediaLoose = new Map<string, number[]>();
   const diceLoose = new Map<string, number[]>();
   const now = Date.now();
@@ -181,8 +183,23 @@ function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
     pushBucketValue(loose, buildOptimisticMatchKey(message, { includePosition: false }), message.messageId);
     if (isMediaMessageType(message.messageType)) {
       pushBucketValue(
+        mediaPosition,
+        buildOptimisticMatchKey(message, {
+          includePosition: true,
+          ignoreContent: true,
+          ignoreAnnotations: true,
+          ignoreExtra: true,
+        }),
+        message.messageId,
+      );
+      pushBucketValue(
         mediaLoose,
-        buildOptimisticMatchKey(message, { includePosition: false, ignoreContent: true, ignoreAnnotations: true }),
+        buildOptimisticMatchKey(message, {
+          includePosition: false,
+          ignoreContent: true,
+          ignoreAnnotations: true,
+          ignoreExtra: true,
+        }),
         message.messageId,
       );
     }
@@ -199,7 +216,7 @@ function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
     }
   }
 
-  return { exact, loose, mediaLoose, diceLoose };
+  return { exact, loose, mediaPosition, mediaLoose, diceLoose };
 }
 
 function consumeOptimisticCandidate(
@@ -269,6 +286,24 @@ function mergeMessageForLocalState(
     ...existing,
     ...incoming,
     message: mergedMessage,
+  };
+}
+
+export function inheritOptimisticRenderKeyForLocalState(
+  optimisticMessage: ChatMessageResponse | undefined,
+  incomingMessage: ChatMessageResponse,
+): ChatMessageResponse {
+  const localRenderKey = getRoomMessageLocalRenderKey(optimisticMessage?.message);
+  if (!localRenderKey) {
+    return incomingMessage;
+  }
+
+  return {
+    ...incomingMessage,
+    message: {
+      ...incomingMessage.message,
+      tcLocalRenderKey: localRenderKey,
+    } as ChatMessageResponse["message"],
   };
 }
 
@@ -374,6 +409,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
           let hasChanges = false;
 
           roomScopedMessages.forEach((msg) => {
+            let incomingMessage = msg;
             const incomingMessageId = msg.message.messageId;
             const existingMsg = messageMap.get(incomingMessageId);
             if (!existingMsg && incomingMessageId > 0) {
@@ -384,6 +420,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
                     includePosition: false,
                     ignoreContent: true,
                     ignoreAnnotations: true,
+                    ignoreExtra: true,
+                  })
+                : "";
+              const mediaPositionKey = isMediaMessageType(msg.message.messageType)
+                ? buildOptimisticMatchKey(msg.message, {
+                    includePosition: true,
+                    ignoreContent: true,
+                    ignoreAnnotations: true,
+                    ignoreExtra: true,
                   })
                 : "";
               const diceLooseKey = msg.message.messageType === MessageType.DICE
@@ -395,6 +440,9 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
                 : "";
               const matchedOptimisticId = consumeOptimisticCandidate(messageMap, optimisticBuckets.exact, exactKey)
                 ?? consumeOptimisticCandidate(messageMap, optimisticBuckets.loose, looseKey)
+                ?? (mediaPositionKey
+                  ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaPosition, mediaPositionKey)
+                  : undefined)
                 ?? (diceLooseKey
                   ? consumeOptimisticCandidate(messageMap, optimisticBuckets.diceLoose, diceLooseKey)
                   : undefined)
@@ -402,6 +450,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
                   ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaLoose, mediaLooseKey)
                   : undefined);
               if (matchedOptimisticId !== undefined && matchedOptimisticId !== incomingMessageId) {
+                const matchedOptimisticMessage = messageMap.get(matchedOptimisticId);
+                incomingMessage = inheritOptimisticRenderKeyForLocalState(matchedOptimisticMessage, msg);
                 if (messageMap.delete(matchedOptimisticId)) {
                   hasChanges = true;
                 }
@@ -409,8 +459,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
             }
             const latestExisting = messageMap.get(incomingMessageId);
             const mergedMessage = latestExisting
-              ? mergeMessageForLocalState(latestExisting, msg)
-              : msg;
+              ? mergeMessageForLocalState(latestExisting, incomingMessage)
+              : incomingMessage;
             // 只有在消息真正变化时才更新
             if (!latestExisting || JSON.stringify(latestExisting) !== JSON.stringify(mergedMessage)) {
               messageMap.set(incomingMessageId, mergedMessage);

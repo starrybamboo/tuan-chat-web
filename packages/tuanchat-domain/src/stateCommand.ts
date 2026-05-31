@@ -1,6 +1,6 @@
 import type { StateEventExtra } from "./state-event";
 
-import { buildCommandStateEventExtra, buildRoleStateEventScope, STATE_EVENT_VAR_OP } from "./state-event";
+import { buildCommandStateEventExtra, buildRoleStateEventScope, buildUiStateEventExtra, STATE_EVENT_VAR_OP } from "./state-event";
 
 type ParseSimpleStateCommandParams = {
   inputText: string;
@@ -14,10 +14,23 @@ export type ParsedSimpleStateCommand = {
   stateEvent: StateEventExtra;
 };
 
+export const START_COMBAT_CONTENT = "战斗开始";
+export const END_COMBAT_CONTENT = "战斗结束：回合归零";
+
 const SIMPLE_ST_SPACED_RE = /^[.。/]st\s+(\S+) +([+-]?\d+(?:\.\d+)?)\s*$/i;
 // eslint-disable-next-line regexp/no-super-linear-backtracking -- anchored regex on short user input, no real risk
 const SIMPLE_ST_COMPACT_SIGNED_RE = /^[.。/]st\s+(.+?)([+-]\d+(?:\.\d+)?)\s*$/i;
 const SIMPLE_NEXT_RE = /^[.。/]next\s*$/i;
+const SIMPLE_COMBAT_START_RE = /^[.。/](?:combat\s+start|startcombat|start-combat)\s*$/i;
+const SIMPLE_COMBAT_END_RE = /^[.。/](?:combat\s+end|endcombat|end-combat)\s*$/i;
+
+export function buildStartCombatStateEventExtra(): StateEventExtra {
+  return buildUiStateEventExtra([{ type: "combatRoundStart" }]);
+}
+
+export function buildEndCombatStateEventExtra(): StateEventExtra {
+  return buildUiStateEventExtra([{ type: "combatRoundEnd" }]);
+}
 
 export function parseSimpleStateCommand({
   inputText,
@@ -33,6 +46,20 @@ export function parseSimpleStateCommand({
     return {
       content: trimmedInputText,
       stateEvent: buildCommandStateEventExtra("next", [{ type: "nextTurn" }]),
+    };
+  }
+
+  if (SIMPLE_COMBAT_START_RE.test(trimmedWithoutMentions)) {
+    return {
+      content: START_COMBAT_CONTENT,
+      stateEvent: buildStartCombatStateEventExtra(),
+    };
+  }
+
+  if (SIMPLE_COMBAT_END_RE.test(trimmedWithoutMentions)) {
+    return {
+      content: END_COMBAT_CONTENT,
+      stateEvent: buildEndCombatStateEventExtra(),
     };
   }
 

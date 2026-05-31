@@ -5,18 +5,24 @@ import {
   buildChatMessageRequestFromDraft,
 } from "@tuanchat/domain/message-draft";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { assertOpenApiResultSuccess, extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { parseSimpleStateCommand } from "@tuanchat/domain/state-command";
+import { writeRoleVarOpsThroughAbilities } from "@tuanchat/domain/state-runtime";
 import { useRef } from "react";
 
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 
 import { mobileApiClient } from "@/lib/api";
-import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import {
   getAllRoomMessagesQueryKey,
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
+import {
+  roleAbilityByRuleQueryKey,
+  roleAbilityListQueryKey,
+} from "@tuanchat/query/role-abilities";
 import {
   commitOptimisticRoomMessageInList,
   createOptimisticRoomMessage,
@@ -36,6 +42,7 @@ type SendMessageContext = {
   customRoleName?: string;
   replayMessageId?: number;
   roleId?: number;
+  ruleId?: number | null;
 };
 
 function requirePositiveRoomId(roomId: number | null): number {
@@ -150,6 +157,22 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
     catch (error) {
       throw new Error(extractOpenApiErrorMessage(error, "发送消息失败。"));
     }
+  };
+
+  const loadRoleAbilityByRule = async (roleId: number, ruleId: number): Promise<RoleAbility | null> => {
+    const cached = queryClient.getQueryData<RoleAbility>(roleAbilityByRuleQueryKey(roleId, ruleId));
+    if (cached) {
+      return cached;
+    }
+    const response = await mobileApiClient.abilityController.getRoleAbilityByRule(ruleId, roleId);
+    return response.data ?? null;
+  };
+
+  const invalidateRoleAbilityCaches = async (roleId: number, ruleId: number) => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: roleAbilityByRuleQueryKey(roleId, ruleId) }),
+      queryClient.invalidateQueries({ queryKey: roleAbilityListQueryKey(roleId) }),
+    ]);
   };
 
   const sendRequest = async (request: ChatMessageRequest) => {
@@ -307,8 +330,24 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
     });
 
     if (!parsed) {
-      throw new Error("当前只支持 .next，或带角色 ID 的 .st 变量 +/-数值。");
+      throw new Error("当前只支持 .next、.combat start、.combat end，或带角色 ID 的 .st 变量 +/-数值。");
     }
+
+    const ruleId = input.ruleId ?? -1;
+    const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+      events: parsed.stateEvent.events,
+      ruleId,
+      loadRoleAbility: loadRoleAbilityByRule,
+      createRoleAbility: async (request) => {
+        const result = await mobileApiClient.abilityController.setRoleAbility(request);
+        return assertOpenApiResultSuccess(result, "创建角色能力失败。");
+      },
+      updateRoleAbility: async (request) => {
+        const result = await mobileApiClient.abilityController.updateRoleAbilityByRule(request);
+        return assertOpenApiResultSuccess(result, "更新角色能力失败。");
+      },
+    });
+    await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(roleId, ruleId)));
 
     return sendDraftMessage({
       content: parsed.content,

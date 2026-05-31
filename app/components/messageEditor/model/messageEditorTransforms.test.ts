@@ -234,17 +234,15 @@ describe("messageEditorTransforms", () => {
     ]);
 
     expect(nextImage.extra?.imageMessage).toEqual({
-      fileId: 1,
+      source: { kind: "internal", fileId: 1 },
       fileName: "cover.png",
-      mediaType: "image/png",
       size: 123,
       width: 320,
       height: 180,
     });
     expect(nextVideo.extra?.videoMessage).toEqual({
-      fileId: 3,
+      source: { kind: "internal", fileId: 3 },
       fileName: "clip.mp4",
-      mediaType: "video/mp4",
       size: 456,
       second: 12,
       width: 640,
@@ -344,12 +342,12 @@ describe("messageEditorTransforms", () => {
     expect(merged[0].extra?.imageMessage).toMatchObject({
       editorHeight: 158,
       editorWidth: 280,
-      fileId: 1,
+      source: { kind: "internal", fileId: 1 },
     });
     expect(merged[1].extra?.videoMessage).toMatchObject({
       editorHeight: 169,
       editorWidth: 300,
-      fileId: 2,
+      source: { kind: "internal", fileId: 2 },
     });
   });
 

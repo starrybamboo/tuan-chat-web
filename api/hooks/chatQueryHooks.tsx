@@ -10,7 +10,6 @@ import type { SpaceAddRequest } from "@tuanchat/openapi-client/models/SpaceAddRe
 import type { SpaceOwnerTransferRequest } from "@tuanchat/openapi-client/models/SpaceOwnerTransferRequest";
 import type { PlayerGrantRequest } from "@tuanchat/openapi-client/models/PlayerGrantRequest";
 import type { SpaceMemberTypeUpdateRequest } from "@tuanchat/openapi-client/models/SpaceMemberTypeUpdateRequest";
-import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
 import type { RoomRoleDeleteRequest } from "@tuanchat/openapi-client/models/RoomRoleDeleteRequest";
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
 import type { RoomMemberAddRequest } from "@tuanchat/openapi-client/models/RoomMemberAddRequest";
@@ -27,7 +26,6 @@ import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceA
 import type { SpaceRecoverRequest } from "@tuanchat/openapi-client/models/SpaceRecoverRequest";
 import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "@tuanchat/openapi-client/models/HistoryMessageRequest";
-import type {MessageBySyncIdRequest} from "@tuanchat/openapi-client/models/MessageBySyncIdRequest";
 import type { ApiResultString } from "@tuanchat/openapi-client/models/ApiResultString";
 import {
     usePatchMessagesMutation as useSharedPatchMessagesMutation,
@@ -644,8 +642,8 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  */
 export function useGetAllMessageQuery(roomId: number) {
     return useQuery({
-        queryKey: ['getAllMessage', roomId],
-        queryFn: () => tuanchat.chatController.getAllMessage(roomId),
+        queryKey: ['getHistoryMessages', roomId, 0],
+        queryFn: () => tuanchat.chatController.getHistoryMessages({ roomId, syncId: 0 }),
         staleTime: 0 // 实时数据不缓存
     });
 }
@@ -660,18 +658,6 @@ export function useSendMessageMutation(roomId: number) {
 
 export function usePatchMessagesMutation(roomId: number) {
     return useSharedPatchMessagesMutation(tuanchat, roomId);
-}
-
-/**
- * 分页获取消息
- * @param requestBody 分页请求参数
- */
-export function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
-    return useQuery({
-        queryKey: ['getMsgPage', requestBody],
-        queryFn: () => tuanchat.chatController.getMsgPage(requestBody),
-        staleTime: 30000 // 30秒缓存
-    });
 }
 
 /**
@@ -698,10 +684,10 @@ export function useUpdateMessageMutation() {
  * 用于在收到syncId间隔的消息时，重新获取缺失的消息
  * @param requestBody 请求参数
  */
-export function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
+export function useGetMessageBySyncIdQuery(requestBody: { roomId: number; syncId: number }) {
     return useQuery({
         queryKey: ['getMessageBySyncId', requestBody],
-        queryFn: () => tuanchat.chatController.getMessageBySyncId(requestBody),
+        queryFn: () => tuanchat.chatController.getMessageBySyncId(requestBody.roomId, requestBody.syncId),
         staleTime: 0, // 实时数据不缓存
         enabled: !!requestBody.syncId // 当有syncId时才启用查询
     });

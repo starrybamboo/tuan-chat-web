@@ -140,25 +140,15 @@ function ChatToolbar({
     if (!onToggleWebgalLinkMode) {
       return;
     }
-    if (webgalLinkMode) {
-      onToggleWebgalLinkMode();
-      return;
-    }
-    if (onToggleRunMode && runModeEnabled) {
-      onToggleRunMode();
-    }
     onToggleWebgalLinkMode();
-  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, webgalLinkMode]);
+  }, [onToggleWebgalLinkMode]);
 
   const handleToggleRunMode = useCallback(() => {
     if (!onToggleRunMode) {
       return;
     }
-    if (!runModeEnabled && onToggleWebgalLinkMode && webgalLinkMode) {
-      onToggleWebgalLinkMode();
-    }
     onToggleRunMode();
-  }, [onToggleRunMode, onToggleWebgalLinkMode, runModeEnabled, webgalLinkMode]);
+  }, [onToggleRunMode]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -294,7 +284,7 @@ function ChatToolbar({
                   className="dropdown-content menu bg-base-100 rounded-box z-9999 w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
                 >
                   <StickerWindow onChoose={async (emoji) => {
-                    const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "low");
+                    const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "medium");
                     updateEmojiUrls((draft) => {
                       const newUrl = emojiUrl;
                       if (newUrl && !draft.includes(newUrl)) {

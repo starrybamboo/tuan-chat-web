@@ -5,7 +5,7 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import UTILS, { invalidateDicerRoleResolveCache } from "./utils";
 
 vi.mock("@tuanchat/query/users", () => ({
-  fetchMyUserInfoWithCache: vi.fn(async () => ({ data: { extra: {} } })),
+  fetchMyUserInfoWithCache: vi.fn(async () => ({ data: { extra: { dicerRoleId: 12 } } })),
 }));
 
 vi.mock("../../../../../api/hooks/chatQueryHooks", () => ({
@@ -38,6 +38,38 @@ describe("dicer role resolve cache", () => {
   beforeEach(() => {
     invalidateDicerRoleResolveCache();
     vi.clearAllMocks();
+  });
+
+  it("空间骰娘优先于角色和用户绑定", async () => {
+    const roomContext = {
+      spaceId: 42,
+      curRoleId: 7,
+      roomMembers: [],
+      roomRolesThatUserOwn: [],
+    } satisfies RoomContextType;
+
+    const resolved = await UTILS.getDicerRoleId(roomContext, {
+      spaceSnapshot: { extra: { dicerRoleId: 11 } },
+      currentRoleSnapshot: { roleId: 7, extra: { dicerRoleId: 10 } },
+    });
+
+    expect(resolved).toBe(11);
+  });
+
+  it("没有空间骰娘时仍会回退到角色绑定", async () => {
+    const roomContext = {
+      spaceId: 43,
+      curRoleId: 8,
+      roomMembers: [],
+      roomRolesThatUserOwn: [],
+    } satisfies RoomContextType;
+
+    const resolved = await UTILS.getDicerRoleId(roomContext, {
+      spaceSnapshot: { extra: {} },
+      currentRoleSnapshot: { roleId: 8, extra: { dicerRoleId: 10 } },
+    });
+
+    expect(resolved).toBe(10);
   });
 
   it("空间骰娘变更后按空间清理旧解析结果", async () => {

@@ -21,9 +21,10 @@ const DEFAULT_DB = {
   database: "tuanchat_local",
 };
 const DEFAULT_OSS = {
-  endpoint: "https://tuan.chat",
-  bucket: "avatar",
-  region: "us-east-1",
+  endpoint: "https://0dc970eea48999f7d3496809fa89a025.r2.cloudflarestorage.com",
+  publicEndpoint: "https://media.tuan.chat",
+  bucket: "tuan-chat",
+  region: "auto",
 };
 const DEFAULT_FALLBACK_AVATAR_URL = "http://tuan.chat/avatar/avatar/5275ec2f0e6ba166343a5ec60c5674d8_31076.webp";
 const ENTITY_CONFIGS = {
@@ -67,7 +68,8 @@ async function main() {
   };
   const ossConfig = {
     endpoint: trimTrailingSlash(args.ossEndpoint ?? process.env.OSS_ENDPOINT ?? DEFAULT_OSS.endpoint),
-    bucket: args.ossBucket ?? process.env.OSS_BUCKET ?? DEFAULT_OSS.bucket,
+    publicEndpoint: trimTrailingSlash(args.ossPublicEndpoint ?? process.env.OSS_PUBLIC_ENDPOINT ?? DEFAULT_OSS.publicEndpoint),
+    bucket: args.ossBucketName ?? args.ossBucket ?? process.env.OSS_BUCKET_NAME ?? process.env.OSS_BUCKET ?? DEFAULT_OSS.bucket,
     accessKey: args.ossAccessKey ?? process.env.OSS_ACCESS_KEY,
     secretKey: args.ossSecretKey ?? process.env.OSS_SECRET_KEY,
     region: args.ossRegion ?? process.env.OSS_REGION ?? DEFAULT_OSS.region,
@@ -466,7 +468,7 @@ async function putObject(ossConfig, objectName, body, contentType) {
     throw new Error(`upload ${response.status} ${response.statusText}: ${text.slice(0, 300)}`);
   }
 
-  return `${ossConfig.endpoint}/${ossConfig.bucket}/${objectName}`;
+  return `${ossConfig.publicEndpoint || ossConfig.endpoint}/${ossConfig.bucket}/${objectName}`;
 }
 
 function buildBackfillObjectName(row, entityConfig, oldBytes, newBytes) {
@@ -631,7 +633,8 @@ Options:
   --pg-password <password>      默认读取 PGPASSWORD
   --pg-database <database>      默认 ${DEFAULT_DB.database}
   --oss-endpoint <url>          默认 ${DEFAULT_OSS.endpoint}
-  --oss-bucket <bucket>         默认 ${DEFAULT_OSS.bucket}
+  --oss-public-endpoint <url>   默认 ${DEFAULT_OSS.publicEndpoint}
+  --oss-bucket-name <bucket>    默认 ${DEFAULT_OSS.bucket}
   --oss-access-key <key>        默认读取 OSS_ACCESS_KEY
   --oss-secret-key <secret>     默认读取 OSS_SECRET_KEY
   --oss-region <region>         默认 ${DEFAULT_OSS.region}

@@ -304,8 +304,6 @@ export function useWebSocket() {
 
     // 本次 connect 属于“正常建立连接”，重置手动关闭标记。
     closingRef.current = false;
-    // 连接前，先重置消息
-    queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
       if (!WS_URL) {
         console.error("WebSocket base URL is not configured");

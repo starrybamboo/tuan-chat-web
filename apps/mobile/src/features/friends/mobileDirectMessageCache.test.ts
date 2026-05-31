@@ -10,6 +10,7 @@ import {
   upsertCachedDirectReadLine,
   writeCachedDirectMessages,
 } from "./mobileDirectMessageCache";
+import { createMobileOptimisticDirectMessage } from "./mobileDirectMessageOptimistic";
 
 const repositoryMock = vi.hoisted(() => ({
   clearUserMessages: vi.fn(),
@@ -70,6 +71,25 @@ describe("mobileDirectMessageCache", () => {
     expect(repositoryMock.markMessagesRecalled).toHaveBeenCalledWith(7, [1]);
     expect(repositoryMock.upsertReadLine).toHaveBeenCalledWith(7, 42, 9);
     expect(repositoryMock.clearUserMessages).toHaveBeenCalledWith(7);
+  });
+
+  it("写入磁盘缓存前会跳过私聊本地临时消息", async () => {
+    const committed = createDirectMessage(1);
+    const optimistic = createMobileOptimisticDirectMessage({
+      currentUserId: 7,
+      optimisticMessageId: -1,
+      optimisticSyncId: 9001,
+      request: {
+        content: "optimistic",
+        extra: {},
+        messageType: 1,
+        receiverId: 42,
+      },
+    });
+
+    await writeCachedDirectMessages(7, [optimistic!, committed]);
+
+    expect(repositoryMock.upsertMessages).toHaveBeenCalledWith(7, [committed]);
   });
 
   it("非法用户或空输入不会触发本地数据库", async () => {

@@ -3,7 +3,7 @@ import type { GestureType } from "react-native-gesture-handler";
 
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
+import { Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
 import { GestureDetector, Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { resolveBottomThresholdTransition } from "@/features/chat/messageListScrollState";
 import { DmMessageActionMenu } from "@/features/friends/DmMessageActionMenu";
+import { resolveInternalMessageMediaFileId } from "@/features/messages/messageMediaSource";
 import { mergePickedMessageAttachments, MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
@@ -291,7 +292,8 @@ function logDmChatViewDebug(event: string, detail: Record<string, unknown>) {
   if (!__DEV__) {
     return;
   }
-  console.warn(DM_CHAT_VIEW_DEBUG_PREFIX, event, detail);
+  // eslint-disable-next-line no-console -- development-only diagnostics for direct message rendering.
+  console.debug(DM_CHAT_VIEW_DEBUG_PREFIX, event, detail);
 }
 
 type DirectMessageRenderContent
@@ -305,7 +307,7 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
 
   if (message.messageType === 2) {
     const image = getImageMessageExtra(message.extra);
-    return image?.fileId
+    return resolveInternalMessageMediaFileId(image)
       ? { kind: "media", text: message.content?.trim() || getDirectMessagePreviewText(message) }
       : { kind: "text", text: getDirectMessagePreviewText(message) };
   }
@@ -328,7 +330,7 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
   return { kind: "text", text: message.content?.trim() || getDirectMessagePreviewText(message) };
 }
 
-type MessageSendStatus = "sending" | "sent" | "delivered" | "failed";
+type MessageSendStatus = "sent" | "delivered" | "failed";
 
 export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, nativeScrollGesture, onBack }: DmChatViewProps) {
   const theme = useTheme();
@@ -345,7 +347,6 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
   const previousPaginatedLengthRef = useRef<number | null>(null);
   const [actionMenuMessage, setActionMenuMessage] = useState<MessageDirectResponse | null>(null);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
-  const [pendingMessageIds, setPendingMessageIds] = useState<Set<number>>(() => new Set());
   const [failedMessageIds, setFailedMessageIds] = useState<Set<number>>(() => new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
@@ -408,7 +409,6 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     sendInFlightRef.current = false;
     setActionMenuMessage(null);
     setActionMenuVisible(false);
-    setPendingMessageIds(new Set());
     setFailedMessageIds(new Set());
     isAtBottomRef.current = true;
     setIsAtBottom(true);
@@ -516,6 +516,9 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
       return;
     }
 
+    const previousDraft = draft;
+    const previousAttachments = attachments;
+    const previousReplyMessage = replyMessage;
     const text = draft.trim();
     if (!text && attachments.length === 0)
       return;
@@ -541,24 +544,28 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         throw new Error("消息内容不能为空。");
       }
 
-      for (const request of requests) {
-        await sendMutation.mutateAsync(request);
-      }
-
       setDraft("");
+      setInputHeight(COMPOSER_MIN_HEIGHT);
       setAttachments([]);
       setReplyMessage(null);
       isAtBottomRef.current = true;
       setIsAtBottom(true);
+
+      for (const request of requests) {
+        await sendMutation.mutateAsync(request);
+      }
     }
     catch (error) {
+      setDraft(previousDraft);
+      setAttachments(previousAttachments);
+      setReplyMessage(previousReplyMessage);
       setErrorMessage(getErrorMessage(error, "发送私聊消息失败。"));
     }
     finally {
       sendInFlightRef.current = false;
       setIsSending(false);
     }
-  }, [attachments, contactId, draft, replyMessage?.messageId, sendMutation]);
+  }, [attachments, contactId, draft, replyMessage, sendMutation]);
 
   const _handlePickAttachments = useCallback(async (kind: MobileMessageAttachmentKind) => {
     setErrorMessage(null);
@@ -614,12 +621,11 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     const msgId = message.messageId;
     if (typeof msgId === "number" && failedMessageIds.has(msgId))
       return "failed";
-    if (typeof msgId === "number" && pendingMessageIds.has(msgId))
-      return "sending";
     return "sent";
-  }, [currentUserId, failedMessageIds, pendingMessageIds]);
+  }, [currentUserId, failedMessageIds]);
 
-  const canSend = (draft.trim().length > 0 || attachments.length > 0) && !isSending;
+  const hasSendContent = draft.trim().length > 0 || attachments.length > 0;
+  const canSend = hasSendContent && !isSending;
   const contactAvatarUrl = avatarThumbUrl(contactAvatarFileId);
 
   const renderItem = useCallback(({ item, index }: { item: MessageDirectResponse; index: number }) => {
@@ -695,21 +701,17 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
               {isMine && status
                 ? (
                     <View style={styles.statusIcon}>
-                      {status === "sending"
+                      {status === "failed"
                         ? (
-                            <ActivityIndicator size={10} color={theme.textSecondary} />
+                            <Warning size={12} color={theme.danger} weight="fill" />
                           )
-                        : status === "failed"
+                        : status === "delivered"
                           ? (
-                              <Warning size={12} color={theme.danger} weight="fill" />
+                              <Checks size={12} color={theme.accent} />
                             )
-                          : status === "delivered"
-                            ? (
-                                <Checks size={12} color={theme.accent} />
-                              )
-                            : (
-                                <Check size={12} color={theme.textSecondary} />
-                              )}
+                          : (
+                              <Check size={12} color={theme.textSecondary} />
+                            )}
                     </View>
                   )
                 : null}
@@ -921,13 +923,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
               accessibilityLabel="发送消息"
               accessibilityRole="button"
             >
-              {isSending
-                ? (
-                    <ActivityIndicator color={theme.accent} size="small" />
-                  )
-                : (
-                    <PaperPlaneTilt size={24} color={canSend ? theme.accent : theme.textSecondary} weight="fill" />
-                  )}
+              <PaperPlaneTilt size={24} color={hasSendContent ? theme.accent : theme.textSecondary} weight="fill" />
             </Pressable>
           </Animated.View>
         </View>

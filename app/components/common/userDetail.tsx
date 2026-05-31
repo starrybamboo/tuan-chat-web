@@ -1,5 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
@@ -26,6 +27,7 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
+  const canInteractWithUser = typeof user?.userId === "number" && user.userId !== loginUserId;
 
   const followingsQuery = useGetUserFollowingsQuery(userId, {
     pageNo: 1,
@@ -43,8 +45,8 @@ export function UserDetail({ userId }: UserDetailProps) {
   };
 
   return (
-    <div className="card bg-base-100 relative w-90 shadow-lg">
-      <div className="card-body p-4 gap-3">
+    <div className="card relative w-[360px] overflow-hidden rounded-xl border border-base-300/70 bg-base-100/95 shadow-xl backdrop-blur">
+      <div className="card-body gap-3 p-4">
         {/* 顶部：头像 + 名称/描述 */}
         <div className="flex items-start gap-4">
           <div className="avatar">
@@ -68,7 +70,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                   )}
             </div>
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center flex-wrap gap-2">
               {userQuery.isLoading
                 ? (
@@ -105,6 +107,13 @@ export function UserDetail({ userId }: UserDetailProps) {
                   )}
             </div>
           </div>
+          {canInteractWithUser && (
+            <FollowButton
+              userId={user.userId}
+              width="w-auto"
+              className="h-7 min-h-7 shrink-0 rounded-full px-3 text-xs"
+            />
+          )}
         </div>
 
         {/* 用户标签 */}
@@ -113,40 +122,46 @@ export function UserDetail({ userId }: UserDetailProps) {
         </div>
 
         {/* 统计 + 操作区域 */}
-        <div className="flex items-center justify-between mt-2 gap-4">
-          <div className="flex gap-6">
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <div className="flex shrink-0 items-center gap-5">
             {/* 关注 */}
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col">
               <a
                 href={`/profile/${userId}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="group flex min-w-9 flex-col items-start gap-0.5 whitespace-nowrap"
               >
-                <span className="text-sm font-medium pr-2">{followStats.following}</span>
-                <span className="text-[11px] opacity-70 leading-none mt-0.5">关注</span>
+                <span className="text-sm font-semibold leading-none text-base-content group-hover:text-info">{followStats.following}</span>
+                <span className="text-[11px] leading-none text-base-content/55">关注</span>
               </a>
             </div>
 
             {/* 粉丝 */}
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col">
               <a
                 href={`/profile/${userId}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="group flex min-w-9 flex-col items-start gap-0.5 whitespace-nowrap"
               >
-                <span className="text-sm font-medium pr-2">{followStats.followers}</span>
-                <span className="text-[11px] opacity-70 leading-none mt-0.5">粉丝</span>
+                <span className="text-sm font-semibold leading-none text-base-content group-hover:text-info">{followStats.followers}</span>
+                <span className="text-[11px] leading-none text-base-content/55">粉丝</span>
               </a>
             </div>
           </div>
 
-          {user?.userId !== loginUserId && (
-            <div className="flex items-center gap-2 ml-auto">
-              <FollowButton userId={user?.userId || 0} />
+          {canInteractWithUser && (
+            <div className="ml-auto flex w-[184px] items-center gap-2">
+              <FriendRequestButton
+                targetUserId={user.userId}
+                targetUsername={user?.username}
+                className="btn btn-sm flex h-8 min-h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-base-300/80 bg-base-100/70 px-2 text-sm hover:border-info/40 hover:bg-base-200 hover:text-info"
+              />
 
               <button
                 type="button"
-                className="btn btn-sm flex items-center h-8 px-3 border border-gray-300 hover:text-primary flex-shrink-0"
+                className="btn btn-sm flex h-8 min-h-8 flex-1 items-center gap-1.5 rounded-md border border-base-300/80 bg-base-100/70 px-3 text-sm hover:border-info/40 hover:bg-base-200 hover:text-info"
                 onClick={() => router.history.push(`/chat/private/${userId}`)}
               >
                 <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">

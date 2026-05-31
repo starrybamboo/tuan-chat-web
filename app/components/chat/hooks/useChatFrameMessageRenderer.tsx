@@ -78,7 +78,6 @@ export default function useChatFrameMessageRenderer({
 
     return (
       <ChatFrameMessageItem
-        key={messageId}
         chatMessageResponse={chatMessageResponse}
         isSelected={isSelected}
         isDragging={isDragging}

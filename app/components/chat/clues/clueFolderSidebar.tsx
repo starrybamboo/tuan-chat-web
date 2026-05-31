@@ -11,7 +11,6 @@ import {
   getAllRoomMessagesQueryKey,
   markRoomMessageDeletedData,
   replaceRoomMessageListData,
-  upsertRoomMessagesInfiniteData,
   upsertRoomMessagesListData,
 } from "@tuanchat/query/chat";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -284,6 +283,23 @@ function isSuccess(result: ApiResultLike | null | undefined): boolean {
   return result?.success === true;
 }
 
+export function getAutoJoinPublicClueSpaceId({
+  canManagePublicClueMembers,
+  clueRoom,
+  scope,
+  spaceId,
+}: {
+  canManagePublicClueMembers?: boolean;
+  clueRoom?: Room | null;
+  scope: ClueFolderScope;
+  spaceId?: number | null;
+}): number | null {
+  if (scope !== "public" || clueRoom || canManagePublicClueMembers) {
+    return null;
+  }
+  return typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0 ? spaceId : null;
+}
+
 function getErrorMessage(result: ApiResultLike | null | undefined, fallback: string): string {
   return result?.errMsg?.trim() || fallback;
 }
@@ -316,59 +332,23 @@ function patchAllMessageCache(
   });
 }
 
-function patchRoomMessagesCache(
-  queryClient: QueryClient,
-  roomId: number,
-  updater: (messages: ChatMessageResponse[]) => ChatMessageResponse[],
-) {
-  queryClient.setQueriesData({ queryKey: ["getRoomMessages", roomId] }, (oldData: unknown) => {
-    if (!isRecord(oldData) || !Array.isArray(oldData.pages)) {
-      return oldData;
-    }
-    const firstPage = oldData.pages[0];
-    if (!isRecord(firstPage) || !isRecord(firstPage.data) || !Array.isArray(firstPage.data.list)) {
-      return oldData;
-    }
-    const nextPages = [...oldData.pages];
-    nextPages[0] = {
-      ...firstPage,
-      data: {
-        ...firstPage.data,
-        list: updater(extractClueMessages(firstPage.data.list)),
-      },
-    };
-    return {
-      ...oldData,
-      pages: nextPages,
-    };
-  });
-}
-
 function patchClueMessageCreated(queryClient: QueryClient, roomId: number, message: Message) {
   const response: ChatMessageResponse = { message };
   patchAllMessageCache(queryClient, roomId, messages => upsertRoomMessagesListData(messages, [response]));
-  queryClient.setQueriesData({ queryKey: ["getRoomMessages", roomId] }, (oldData: unknown) => {
-    return upsertRoomMessagesInfiniteData(oldData as any, roomId, [response]);
-  });
 }
 
 function patchClueMessageUpdated(queryClient: QueryClient, message: Message) {
   const response: ChatMessageResponse = { message };
   const messageId = message.messageId;
   patchAllMessageCache(queryClient, message.roomId, messages => replaceRoomMessageListData(messages, messageId, response));
-  patchRoomMessagesCache(queryClient, message.roomId, messages => replaceRoomMessageListData(messages, messageId, response));
 }
 
 function patchClueMessageDeleted(queryClient: QueryClient, roomId: number, messageId: number) {
   patchAllMessageCache(queryClient, roomId, messages => markRoomMessageDeletedData(messages, messageId));
-  patchRoomMessagesCache(queryClient, roomId, messages => markRoomMessageDeletedData(messages, messageId));
 }
 
 async function invalidateClueMessageQueries(queryClient: QueryClient, roomId: number) {
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(roomId) }),
-    queryClient.invalidateQueries({ queryKey: ["getRoomMessages", roomId] }),
-  ]);
+  await queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(roomId) });
 }
 
 function ClueFolderSection({
@@ -529,6 +509,10 @@ export default function ClueFolderSidebar({
   const clearNavigationTarget = useClueReferenceNavigationStore(state => state.clearTarget);
   const websocketUtils = useGlobalWebSocket();
   const lastMarkedReadSyncRef = useRef<Record<number, number>>({});
+  const publicJoinRequestRef = useRef<{ requested: boolean; spaceId: number | null }>({
+    requested: false,
+    spaceId: null,
+  });
   const receivedMessages = useMemo(() => {
     return room ? (websocketUtils.receivedMessages[room.roomId] ?? []) : [];
   }, [room, websocketUtils.receivedMessages]);
@@ -587,15 +571,29 @@ export default function ClueFolderSidebar({
   }, [createRequestKey, onCreateRequestHandled]);
 
   useEffect(() => {
-    if (scope !== "public") {
+    const targetSpaceId = getAutoJoinPublicClueSpaceId({
+      canManagePublicClueMembers,
+      clueRoom: room,
+      scope,
+      spaceId,
+    });
+    if (!targetSpaceId) {
+      publicJoinRequestRef.current = { requested: false, spaceId: null };
       return;
     }
-    if (!room && !canManagePublicClueMembers) {
-      void joinPublicClueFolder().catch((error) => {
-        console.warn("[ClueFolder] join public clue folder failed", error);
-      });
+    if (publicJoinRequestRef.current.spaceId !== targetSpaceId) {
+      publicJoinRequestRef.current = { requested: false, spaceId: targetSpaceId };
     }
-  }, [canManagePublicClueMembers, joinPublicClueFolder, room, scope]);
+    if (publicJoinRequestRef.current.requested) {
+      return;
+    }
+
+    // 避免 mutation 状态触发重渲染后重复加入公共线索夹。
+    publicJoinRequestRef.current.requested = true;
+    void joinPublicClueFolder().catch((error) => {
+      console.warn("[ClueFolder] join public clue folder failed", error);
+    });
+  }, [canManagePublicClueMembers, joinPublicClueFolder, room, scope, spaceId]);
 
   const openEditEditor = (message: Message) => {
     if (draftAttachmentRef.current) {
@@ -816,7 +814,6 @@ export default function ClueFolderSidebar({
               fileId: uploadedImage.fileId,
               fileName: draftAttachment.file.name,
               height,
-              mediaType: uploadedImage.mediaType,
               size,
               width,
             }],
@@ -833,7 +830,6 @@ export default function ClueFolderSidebar({
             uploadedSoundMessage: {
               fileId: uploadedAudio.fileId,
               fileName: draftAttachment.file.name,
-              mediaType: uploadedAudio.mediaType,
               second,
               size: draftAttachment.file.size,
             },
@@ -847,7 +843,6 @@ export default function ClueFolderSidebar({
             uploadedVideos: [{
               fileId: uploadedVideo.fileId,
               fileName: draftAttachment.file.name,
-              mediaType: uploadedVideo.mediaType,
               second,
               size: uploadedVideo.size,
             }],

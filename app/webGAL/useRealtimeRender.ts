@@ -39,6 +39,7 @@ export type InitProgress = {
 type UseRealtimeRenderOptions = {
   spaceId: number;
   spaceName?: string;
+  ruleId?: number | null;
   workflowRoomMap?: Record<string, Array<string>>;
   enabled?: boolean;
   roles?: UserRole[];
@@ -52,8 +53,14 @@ type UseRealtimeRenderOptions = {
   voiceFiles?: Map<number, File>;
   /** 自动填充立绘是否启用（没有设置立绘时自动填充左侧立绘） */
   autoFigureEnabled?: boolean;
+  /** 尾部新消息到达时是否自动推进 WebGAL 预览 */
+  autoAdvanceEnabled?: boolean;
   /** 游戏配置（写入 config.txt） */
   gameConfig?: RealtimeWebgalGameConfig;
+};
+
+type RenderMessageOptions = {
+  autoAdvance?: boolean;
 };
 
 type UseRealtimeRenderReturn = {
@@ -70,7 +77,7 @@ type UseRealtimeRenderReturn = {
   /** 停止实时渲染 */
   stop: () => void;
   /** 渲染单条消息 */
-  renderMessage: (message: ChatMessageResponse, roomId?: number) => Promise<void>;
+  renderMessage: (message: ChatMessageResponse, roomId?: number, options?: RenderMessageOptions) => Promise<void>;
   /** 渲染历史消息 */
   renderHistory: (messages: ChatMessageResponse[], roomId?: number) => Promise<void>;
   /** 从给定索引起重渲染历史后缀 */
@@ -106,6 +113,7 @@ type UseRealtimeRenderReturn = {
 function useRealtimeRender({
   spaceId,
   spaceName,
+  ruleId,
   workflowRoomMap,
   enabled,
   roles = [],
@@ -115,6 +123,7 @@ function useRealtimeRender({
   miniAvatarEnabled = false,
   voiceFiles,
   autoFigureEnabled = true,
+  autoAdvanceEnabled = false,
   gameConfig,
 }: UseRealtimeRenderOptions): UseRealtimeRenderReturn {
   const [status, setStatus] = useState<RealtimeRenderStatus>("idle");
@@ -176,6 +185,12 @@ function useRealtimeRender({
   }, [spaceName]);
 
   useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setRuleId(ruleId);
+    }
+  }, [ruleId]);
+
+  useEffect(() => {
     ttsConfigRef.current = ttsConfig;
     if (rendererRef.current && ttsConfig) {
       rendererRef.current.setTTSConfig(ttsConfig);
@@ -194,6 +209,12 @@ function useRealtimeRender({
       rendererRef.current.setAutoFigureEnabled(autoFigureEnabled);
     }
   }, [autoFigureEnabled]);
+
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setAutoJumpEnabled(autoAdvanceEnabled);
+    }
+  }, [autoAdvanceEnabled]);
 
   useEffect(() => {
     gameConfigRef.current = gameConfig;
@@ -278,6 +299,7 @@ function useRealtimeRender({
       rendererRef.current = renderer;
       renderer.setQueryClient(queryClient);
       renderer.setSpaceName(spaceNameRef.current);
+      renderer.setRuleId(ruleId);
       renderer.setWorkflowRoomMap(workflowRoomMapRef.current);
 
       // 设置小头像配置
@@ -285,6 +307,7 @@ function useRealtimeRender({
 
       // 设置自动填充立绘配置
       renderer.setAutoFigureEnabled(autoFigureEnabled);
+      renderer.setAutoJumpEnabled(autoAdvanceEnabled);
 
       // 设置 config.txt 同步配置
       if (gameConfigRef.current) {
@@ -412,7 +435,7 @@ function useRealtimeRender({
       setInitProgress(null);
       return false;
     }
-  }, [spaceId, status, roles, queryClient, miniAvatarEnabled, autoFigureEnabled, hasCachedAvatar, fetchAndCacheAvatars]);
+  }, [spaceId, status, roles, queryClient, miniAvatarEnabled, autoFigureEnabled, autoAdvanceEnabled, ruleId, hasCachedAvatar, fetchAndCacheAvatars]);
 
   // 停止实时渲染
   const stop = useCallback(() => {
@@ -425,7 +448,7 @@ function useRealtimeRender({
   }, []);
 
   // 渲染单条消息
-  const renderMessage = useCallback(async (message: ChatMessageResponse, roomId?: number): Promise<void> => {
+  const renderMessage = useCallback(async (message: ChatMessageResponse, roomId?: number, options?: RenderMessageOptions): Promise<void> => {
     if (!rendererRef.current) {
       debugRealtimeRender("实时渲染器未就绪，无法渲染消息");
       return;
@@ -447,7 +470,9 @@ function useRealtimeRender({
     }
 
     await rendererRef.current.preloadMessageAssets([message]);
-    await rendererRef.current.renderMessage(message, roomId);
+    await rendererRef.current.appendMessage(message, roomId, true, {
+      autoJump: options?.autoAdvance === true,
+    });
   }, [queryClient]);
 
   // 渲染历史消息

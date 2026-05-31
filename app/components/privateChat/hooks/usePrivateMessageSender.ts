@@ -2,6 +2,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { useImmer } from "use-immer";
 
+import { internalMessageMediaSource } from "@/components/chat/message/messageMediaSource";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -98,8 +99,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
             messageType: MESSAGE_TYPE.IMG,
             extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
               imageMessage: {
-                fileId: image.uploadedImage.fileId,
-                mediaType: image.uploadedImage.mediaType,
+                source: internalMessageMediaSource(image.uploadedImage.fileId),
                 size: image.size > 0 ? image.size : image.file.size,
                 fileName: image.file.name || `${userId}-${Date.now()}`,
                 width: image.width,
@@ -154,8 +154,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
             messageType: MESSAGE_TYPE.IMG,
             extra: buildMessageExtraForRequest(MESSAGE_TYPE.IMG, {
               imageMessage: {
-                fileId: meta?.fileId,
-                mediaType: meta?.mediaType || "image",
+                source: internalMessageMediaSource(meta.fileId),
                 size: size > 0 ? size : 0,
                 fileName: meta?.fileName || emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,

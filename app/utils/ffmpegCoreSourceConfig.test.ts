@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   getFfmpegCoreBaseUrlCandidates,
   getFfmpegWrapperUrlCandidates,
-  shouldUseBundledFfmpegCore,
 } from "./ffmpegCoreSourceConfig";
 
 describe("ffmpegCoreSourceConfig", () => {
@@ -16,12 +15,6 @@ describe("ffmpegCoreSourceConfig", () => {
       "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.9/dist/esm",
       "https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm",
     ]);
-  });
-
-  it("配置 skip bundled 后会强制走远端 core", () => {
-    expect(shouldUseBundledFfmpegCore({
-      VITE_FFMPEG_CORE_SKIP_BUNDLED: "true",
-    })).toBe(false);
   });
 
   it("能解析多候选 wrapper url", () => {
@@ -39,6 +32,15 @@ describe("ffmpegCoreSourceConfig", () => {
     const candidates = getFfmpegCoreBaseUrlCandidates({
       VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK: "true",
     });
+
+    expect(candidates).toEqual([
+      "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.9/dist/esm",
+      "https://unpkg.com/@ffmpeg/core@0.12.9/dist/esm",
+    ]);
+  });
+
+  it("未配置 core base url 时默认使用远程 ESM core，避免把 wasm 打进静态产物", () => {
+    const candidates = getFfmpegCoreBaseUrlCandidates({});
 
     expect(candidates).toEqual([
       "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.9/dist/esm",

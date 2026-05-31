@@ -1,17 +1,25 @@
 import type { Initiative, InitiativeDraft, SortDirection, SortKey } from "./initiativeListTypes";
 import type { StateEventAtom } from "@/types/stateEvent";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   buildCommandStateEventExtra,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
-import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
+import { invalidateRoleAbilityCaches } from "../../../../../api/hooks/abilityMutationInvalidation";
+import {
+  loadRoleAbilityByRule,
+  setRoleAbilityWithSuccessGuard,
+  updateRoleAbilityByRuleWithSuccessGuard,
+  useGetRolesAbilitiesQueries,
+} from "../../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
 import { executeAllInitiativeRolls } from "./initiativeCommandRequest";
 import { InitiativeImportDialog } from "./initiativeImportDialog";
@@ -51,6 +59,7 @@ export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
   const runtime = useStateRuntimeContext();
+  const queryClient = useQueryClient();
   const currentUserId = useGlobalUserId();
   const [newItem, setNewItem] = useState<InitiativeDraft>({ name: "", value: "", hp: "", maxHp: "" });
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -104,6 +113,15 @@ export default function InitiativeList() {
     }
 
     try {
+      const ruleId = spaceContext.ruleId ?? -1;
+      const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+        events,
+        ruleId,
+        loadRoleAbility: loadRoleAbilityByRule,
+        createRoleAbility: setRoleAbilityWithSuccessGuard,
+        updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
+      });
+      await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
       const createdMessage = await roomContext.sendMessageWithInsert({
         roomId: roomContext.roomId,
         roleId: roomContext.curRoleId ?? -1,
@@ -123,7 +141,7 @@ export default function InitiativeList() {
       toast.error("写入先攻事件失败");
       return false;
     }
-  }, [roomContext]);
+  }, [queryClient, roomContext, spaceContext.ruleId]);
 
   const handleRollAllInitiative = useCallback(async () => {
     if (!spaceOwner) {

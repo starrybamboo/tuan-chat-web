@@ -177,7 +177,7 @@ function Emoji({
   setEmojiMetaByUrl: (url: string, meta: { fileId?: number; width?: number; height?: number; mediaType?: string; size?: number; fileName?: string }) => void;
 }) {
   const onChoose = async (emoji: StickerType) => {
-    const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "low");
+    const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "medium");
     // 添加到表情列表
     updateEmojiUrls((draft) => {
       const newUrl = emojiUrl;

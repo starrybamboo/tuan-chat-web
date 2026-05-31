@@ -8,6 +8,24 @@
 - `app/components/chat/core/realtimeRenderOrchestrator.tsx`
 - `app/components/chat/core/realtimeRenderGuards.ts`
 
+## 0. 三层边界
+
+1. 输入快照层：`space / room / message / role / avatar / gameConfig` 的统一快照，只负责把业务数据整理成可编译输入。
+2. 纯编译层：共享的 `spaceWebgalCompiler`，负责 `config.txt`、`start.txt`、房间场景和发布包。
+3. 输出层：`RealtimeRenderer` 负责 Terre 预览写入与增量运行时，`publishRenderer` 负责 Pages `packageData`，后端只做部署和受控 fallback。
+
+preview-only 能力只属于输出层：
+- WebSocket 跳转
+- 本机 TTS
+- 资源预热 / 本地上传
+- 自动立绘 / 小头像等运行时辅助状态
+
+publishable 能力必须走共享编译层：
+- 空间设置投影
+- 房间静态场景
+- workflow 跳转
+- 共享模板 / manifest / icon 规则
+
 ## 1. 总体流程规则
 
 1. 渲染工程粒度：按 `space` 建立游戏目录，游戏名固定为 `realtime_{spaceId}`。  

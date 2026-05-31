@@ -1,6 +1,7 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import { getMobileDirectMessageRepository } from "../../lib/mobile-local-db";
+import { filterPersistableDirectMessages } from "./mobileDirectMessageOptimistic";
 
 function isPositiveId(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -33,12 +34,13 @@ export async function writeCachedDirectMessages(
   currentUserId: number | null | undefined,
   messages: MessageDirectResponse[],
 ): Promise<void> {
-  if (!isPositiveId(currentUserId) || messages.length === 0) {
+  const persistableMessages = filterPersistableDirectMessages(messages);
+  if (!isPositiveId(currentUserId) || persistableMessages.length === 0) {
     return;
   }
 
   const repository = await getMobileDirectMessageRepository();
-  await repository.upsertMessages(currentUserId, messages);
+  await repository.upsertMessages(currentUserId, persistableMessages);
 }
 
 export async function markCachedDirectMessagesRecalled(

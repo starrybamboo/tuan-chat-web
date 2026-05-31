@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { RoomRoleAddRequest } from "@tuanchat/openapi-client/models/RoomRoleAddRequest";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { resolveSelectableRoomRoles } from "@tuanchat/domain/room-identity";

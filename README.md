@@ -83,6 +83,7 @@ pnpm release:electron -- --bump patch
 ```plain text
 VITE_API_BASE_URL=https://api.tuan.chat/api
 VITE_API_WS_URL=wss://api.tuan.chat/ws
+VITE_MEDIA_CDN_BASE_URL=https://media.tuan.chat
 VITE_TERRE_URL=http://localhost:3001
 VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ```
@@ -153,7 +154,7 @@ pnpm lint:fix
 
 - 前端通过 Cloudflare Pages 部署；`main` 部署到项目 `tuan-chat-web` 并对应 `https://tuan.chat/`，`dev` 部署到项目 `tuan-chat-web-test` 并对应 `https://test.tuan.chat/`（test 模式构建，开启 React Scan）。
 - 需要在 GitHub Secrets 配置 `CLOUDFLARE_ACCOUNT_ID` 与 `CLOUDFLARE_API_TOKEN`。
-- 线上 Web 运行时会把 API、WebSocket、TTS 与媒体默认归一到直连后端域名 `https://api.tuan.chat`，不再把主流量打到 Pages Functions。跨域请求由后端 CORS 处理，浏览器会按需发送 OPTIONS 预检。
+- 线上 Web 运行时会把 API、WebSocket、TTS 默认归一到直连后端域名 `https://api.tuan.chat`，媒体默认归一到独立直读域名 `https://media.tuan.chat`，不再把主流量打到 Pages Functions。跨域请求由后端 CORS 处理，浏览器会按需发送 OPTIONS 预检。
 - Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管，避免消耗 Workers/Pages Functions 请求额度。
 
 Electron 增量更新发布：
@@ -165,7 +166,7 @@ Electron 增量更新发布：
 - 工作流优先读取 `UPDATE_*`，未配置时会回退到 CD 使用的 `SERVER_*` / `SSH_*` 凭据。
 - 若 `UPDATE_SERVER_PATH` 填的是站点根目录（如 `/www/wwwroot/tuan-chat-web`），工作流会自动追加 `/updates`。
 - 可选 Secrets：
-- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `101.126.143.129`）
+- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `24.233.10.150`）
 - `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（默认 `22`）
 - `UPDATE_SERVER_USERNAME`：SSH 用户名（默认回退 `SERVER_USERNAME` / `SSH_USERNAME`）
 - `UPDATE_SERVER_PASSWORD`：SSH 密码（默认回退 `SERVER_PASSWORD` / `SSH_PASSWORD`）

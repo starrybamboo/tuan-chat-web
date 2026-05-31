@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { deriveCombatVisualActiveAtMessageIndex } from "@/components/chat/hooks/chatFrameCombatVisualState";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import {
   getSceneEffectFromAnnotations,
   hasClearBackgroundAnnotation,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -131,7 +131,7 @@ export default function useChatFrameVisualEffects({
     // 从清除背景之后（或从头）开始寻找新的背景图片
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
-        newBgUrl = mediaFileUrl(bg.imageMessage?.fileId, bg.imageMessage?.mediaType, "medium") || null;
+        newBgUrl = resolveMessageMediaUrl(bg.imageMessage, "medium", "image") || null;
       }
       else if (bg.index > currentMessageIndex) {
         break;

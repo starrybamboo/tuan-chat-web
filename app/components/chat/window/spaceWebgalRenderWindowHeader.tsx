@@ -1,5 +1,6 @@
 import type { BatchProgress } from "./spaceWebgalRenderWindowParts";
 import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
+import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 
 import { buildStatusMeta } from "./spaceWebgalRenderWindowParts";
 
@@ -13,8 +14,11 @@ interface SpaceWebgalRenderWindowHeaderProps {
   terrePortInput: string;
   terrePortError: string | null;
   webgalEditorUrl: string;
+  publishStatus: WebgalPublishJobStatus | null;
+  isPublishing: boolean;
   batchProgress: BatchProgress | null;
   onToggleRealtimeRender: () => void;
+  onPublish: () => void;
   onToggleRenderPortExpanded: () => void;
   onTerrePortInputChange: (value: string) => void;
   onSaveTerrePort: () => void;
@@ -30,13 +34,24 @@ export function SpaceWebgalRenderWindowHeader({
   terrePortInput,
   terrePortError,
   webgalEditorUrl,
+  publishStatus,
+  isPublishing,
   batchProgress,
   onToggleRealtimeRender,
+  onPublish,
   onToggleRenderPortExpanded,
   onTerrePortInputChange,
   onSaveTerrePort,
 }: SpaceWebgalRenderWindowHeaderProps) {
   const renderStatusMeta = buildStatusMeta(realtimeStatus);
+  const publishedUrl = publishStatus?.deploymentUrl || publishStatus?.branchUrl || "";
+  const publishStatusLabel = publishStatus?.status === "running" || publishStatus?.status === "pending"
+    ? "发布中"
+    : publishStatus?.status === "success"
+      ? "已发布"
+      : publishStatus?.status === "failed"
+        ? "发布失败"
+        : "";
 
   return (
     <div className="rounded-lg border border-base-300 bg-base-100 p-4">
@@ -87,7 +102,32 @@ export function SpaceWebgalRenderWindowHeader({
         >
           打开 WebGAL 编辑器
         </a>
+        <button
+          type="button"
+          className="btn btn-sm btn-secondary"
+          disabled={isPublishing}
+          onClick={onPublish}
+        >
+          {isPublishing ? "发布中..." : "发布到 Pages"}
+        </button>
+        {publishedUrl && (
+          <a
+            href={publishedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-sm btn-outline"
+            title="打开已发布页面"
+          >
+            打开发布页
+          </a>
+        )}
       </div>
+      {publishStatusLabel && (
+        <div className={`mt-3 text-sm ${publishStatus?.status === "failed" ? "text-error" : "text-base-content/80"}`}>
+          {publishStatusLabel}
+          {publishStatus?.status === "failed" && publishStatus.errorMessage ? `：${publishStatus.errorMessage}` : ""}
+        </div>
+      )}
       {renderPortExpanded && (
         <div className="mt-3 rounded-md border border-base-300 px-3 py-2">
           <div className="flex flex-wrap items-center justify-between gap-2">

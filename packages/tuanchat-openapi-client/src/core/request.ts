@@ -283,6 +283,35 @@ export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): 
     }
 };
 
+type ApiResultFailureBody = {
+    errMsg?: unknown;
+    message?: unknown;
+    success: false;
+};
+
+const isApiResultFailureBody = (body: unknown): body is ApiResultFailureBody => {
+    return typeof body === 'object'
+        && body !== null
+        && Object.prototype.hasOwnProperty.call(body, 'success')
+        && (body as { success?: unknown }).success === false;
+};
+
+const getApiResultErrorMessage = (body: ApiResultFailureBody): string => {
+    if (typeof body.errMsg === 'string' && body.errMsg.trim() !== '') {
+        return body.errMsg.trim();
+    }
+    if (typeof body.message === 'string' && body.message.trim() !== '') {
+        return body.message.trim();
+    }
+    return 'ApiResult Error';
+};
+
+export const catchApiResultFailure = (options: ApiRequestOptions, result: ApiResult): void => {
+    if (isApiResultFailureBody(result.body)) {
+        throw new ApiError(options, result, getApiResultErrorMessage(result.body));
+    }
+};
+
 /**
  * Request method
  * @param config The OpenAPI configuration object
@@ -312,6 +341,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
                 };
 
                 catchErrorCodes(options, result);
+                catchApiResultFailure(options, result);
 
                 resolve(result.body);
             }

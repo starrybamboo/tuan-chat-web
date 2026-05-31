@@ -67,6 +67,7 @@ export function ImgUploader({
     const isNativeButton = children.type === "button";
     const isDisabled = childProps.disabled === true;
 
+    // eslint-disable-next-line react/no-clone-element -- preserve caller-provided trigger markup while adding upload behavior.
     return React.cloneElement(children, {
       role: isNativeButton ? childProps.role : (childProps.role ?? "button"),
       tabIndex: isNativeButton ? childProps.tabIndex : (childProps.tabIndex ?? 0),

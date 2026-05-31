@@ -9,13 +9,11 @@ interface SpaceInvitePanelProps {
   onAddSpectator: (userId: number) => void;
   onAddPlayer: (userId: number) => void;
   title?: string;
-  subtitle?: string;
 }
 
 export default function SpaceInvitePanel({
   onAddPlayer,
   onAddSpectator,
-  subtitle = "通过好友列表或邀请链接，把成员加入当前空间。",
   title = "邀请空间成员",
 }: SpaceInvitePanelProps) {
   const spaceContext = React.use(SpaceContext);
@@ -57,7 +55,6 @@ export default function SpaceInvitePanel({
                 <div className="space-y-2">
                   <InviteModeCard
                     active={spaceInviteMode === "player"}
-                    description="加入空间后授予玩家身份。"
                     icon={<UserPlusIcon className="size-4" weight="regular" />}
                     inputName="space_invite_mode"
                     label="邀请玩家"
@@ -65,7 +62,6 @@ export default function SpaceInvitePanel({
                   />
                   <InviteModeCard
                     active={spaceInviteMode === "spectator"}
-                    description="加入空间成员，不授予玩家身份。"
                     icon={<UsersIcon className="size-4" weight="regular" />}
                     inputName="space_invite_mode"
                     label="邀请观战"
@@ -73,23 +69,11 @@ export default function SpaceInvitePanel({
                   />
                 </div>
               )
-            : (
-                <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm leading-6 text-primary">
-                  <InfoIcon className="mt-0.5 size-4 shrink-0" />
-                  <span>当前身份可邀请观战成员加入空间。</span>
-                </div>
-              )}
+            : null}
 
-          {effectiveInviteMode === "player" && (
-            <div className="flex items-start gap-2 rounded-lg border border-base-300/70 bg-base-200/45 px-3 py-2 text-xs leading-5 text-base-content/60">
-              <InfoIcon className="mt-0.5 size-4 shrink-0 text-primary/75" />
-              <span>邀请玩家会在加入空间后自动授予玩家身份。</span>
-            </div>
-          )}
         </div>
       )}
       inviteCodeType={effectiveInviteMode === "player" ? 1 : 0}
-      subtitle={subtitle}
       targetType="space"
       title={title}
     />
@@ -98,14 +82,12 @@ export default function SpaceInvitePanel({
 
 function InviteModeCard({
   active,
-  description,
   icon,
   inputName,
   label,
   onSelect,
 }: {
   active: boolean;
-  description: string;
   icon: React.ReactNode;
   inputName: string;
   label: string;
@@ -130,7 +112,6 @@ function InviteModeCard({
           {icon}
           {label}
         </span>
-        <span className="mt-1 block text-xs leading-5 text-base-content/60">{description}</span>
       </span>
     </label>
   );

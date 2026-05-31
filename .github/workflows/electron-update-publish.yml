@@ -203,7 +203,7 @@ jobs:
               "${UPDATE_SERVER_HOST_SECRET:-}" \
               "${SERVER_HOST_SECRET:-}" \
               "${SSH_HOST_SECRET:-}" \
-              "38.14.195.6"
+              "24.233.10.150"
           )"
 
           UPDATE_SERVER_PORT="$(

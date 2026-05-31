@@ -15,6 +15,7 @@ export interface ToastWindowStateProps {
   hiddenScrollbar?: boolean;
   disableScroll?: boolean;
   showCloseButton?: boolean;
+  rootClassName?: string;
   panelClassName?: string;
   bodyClassName?: string;
 }
@@ -28,6 +29,7 @@ export function useToastWindow({
   hiddenScrollbar = false,
   disableScroll = false,
   showCloseButton = true,
+  rootClassName,
   panelClassName,
   bodyClassName,
 }: ToastWindowStateProps) {
@@ -45,6 +47,7 @@ export function useToastWindow({
     hiddenScrollbar: boolean;
     disableScroll: boolean;
     showCloseButton: boolean;
+    rootClassName?: string;
     panelClassName?: string;
     bodyClassName?: string;
   } | null>(null);
@@ -118,6 +121,7 @@ export function useToastWindow({
       hiddenScrollbar,
       disableScroll,
       showCloseButton,
+      rootClassName,
       panelClassName,
       bodyClassName,
     };
@@ -127,6 +131,7 @@ export function useToastWindow({
       || prevOptionsRef.current.hiddenScrollbar !== nextOptions.hiddenScrollbar
       || prevOptionsRef.current.disableScroll !== nextOptions.disableScroll
       || prevOptionsRef.current.showCloseButton !== nextOptions.showCloseButton
+      || prevOptionsRef.current.rootClassName !== nextOptions.rootClassName
       || prevOptionsRef.current.panelClassName !== nextOptions.panelClassName
       || prevOptionsRef.current.bodyClassName !== nextOptions.bodyClassName;
 
@@ -141,6 +146,7 @@ export function useToastWindow({
         hiddenScrollbar,
         disableScroll,
         showCloseButton,
+        rootClassName,
         panelClassName,
         bodyClassName,
         onclose: handleClose,
@@ -157,7 +163,7 @@ export function useToastWindow({
     }
 
     prevOptionsRef.current = nextOptions;
-  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, disableScroll, showCloseButton, panelClassName, bodyClassName, handleClose]);
+  }, [isOpen, wrappedChildren, fullScreen, transparent, hiddenScrollbar, disableScroll, showCloseButton, rootClassName, panelClassName, bodyClassName, handleClose]);
 
   useEffect(() => {
     return () => {

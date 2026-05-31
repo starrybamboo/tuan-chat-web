@@ -42,8 +42,7 @@ describe("galgame authoring projection", () => {
       annotations: [ANNOTATION_IDS.BGM],
       extra: {
         soundMessage: {
-          fileId: 10,
-          mediaType: "audio",
+          source: { kind: "internal", fileId: 10 },
           size: 1,
           fileName: "bgm.mp3",
           second: 3,
@@ -56,8 +55,7 @@ describe("galgame authoring projection", () => {
       annotations: [ANNOTATION_IDS.BACKGROUND],
       extra: {
         imageMessage: {
-          fileId: 11,
-          mediaType: "image",
+          source: { kind: "internal", fileId: 11 },
           size: 1,
           fileName: "bg.png",
           background: true,

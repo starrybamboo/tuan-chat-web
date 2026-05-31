@@ -233,7 +233,7 @@ export function ExpressionPickerSheet({
                           style={styles.item}
                         >
                           <CachedImage
-                            uri={mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "low")}
+                            uri={mediaFileUrl(sticker.fileId, stickerMediaType === "image" ? "image" : "other", "medium")}
                             contentFit="contain"
                             style={styles.sticker}
                           />

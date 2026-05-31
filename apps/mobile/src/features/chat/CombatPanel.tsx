@@ -1,4 +1,3 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
@@ -80,10 +79,14 @@ const styles = StyleSheet.create({
 
 type CombatPanelProps = {
   currentRoleId: number | null;
+  isKP: boolean;
+  isSendingCombatRoundEvent: boolean;
   isStateCommandMode: boolean;
   messages: Message[];
   onAdvanceTurn: () => void;
+  onEndCombat: () => void;
   onEnterStateCommandMode: () => void;
+  onStartCombat: () => void;
   roomRoles: UserRole[];
   ruleId: number | null | undefined;
 };
@@ -99,12 +102,24 @@ function formatStatValue(baseValue: number, derivedValue: number): string {
   return `${derivedValue}/${baseValue}`;
 }
 
+function collectCombatDisplayKeys(recordedKeys: string[], activeStates: ReturnType<typeof useRoomStateRuntime>["activeStates"]): string[] {
+  const keys = new Set(recordedKeys);
+  activeStates.forEach((state) => {
+    state.modifiers.forEach(modifier => keys.add(modifier.key));
+  });
+  return [...keys].sort((left, right) => left.localeCompare(right, "zh-CN"));
+}
+
 export function CombatPanel({
   currentRoleId,
+  isKP,
+  isSendingCombatRoundEvent,
   isStateCommandMode,
   messages,
   onAdvanceTurn,
+  onEndCombat,
   onEnterStateCommandMode,
+  onStartCombat,
   roomRoles,
   ruleId,
 }: CombatPanelProps) {
@@ -115,6 +130,7 @@ export function CombatPanel({
     roomRoles,
     ruleId,
   });
+  const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
 
   const roleNameById = useMemo(() => {
     return Object.fromEntries(roomRoles.map(role => [role.roleId, role.roleName?.trim() || null]));
@@ -126,8 +142,8 @@ export function CombatPanel({
       .map((role) => {
         const baseValues = runtime.baseDisplayValues.rolesByRoleId[role.roleId] ?? {};
         const displayValues = runtime.derivedDisplayValues.rolesByRoleId[role.roleId] ?? {};
-        const keys = [...new Set([...Object.keys(baseValues), ...Object.keys(displayValues)])];
         const activeStates = runtime.activeStates.filter(item => item.scope.kind === "role" && item.scope.roleId === role.roleId);
+        const keys = collectCombatDisplayKeys(runtime.recordedRoleValueKeysByRoleId[role.roleId] ?? [], activeStates);
         const initiative = displayValues.initiative ?? baseValues.initiative ?? null;
         return { activeStates, initiative, keys, role };
       })
@@ -138,14 +154,8 @@ export function CombatPanel({
     runtime.activeStates,
     runtime.baseDisplayValues.rolesByRoleId,
     runtime.derivedDisplayValues.rolesByRoleId,
+    runtime.recordedRoleValueKeysByRoleId,
   ]);
-
-  const recentCombatMessages = useMemo(() => {
-    return [...messages]
-      .filter(message => message.messageType === MESSAGE_TYPE.STATE_EVENT)
-      .sort((left, right) => (right.messageId ?? 0) - (left.messageId ?? 0))
-      .slice(0, 8);
-  }, [messages]);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -163,11 +173,67 @@ export function CombatPanel({
           <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between", gap: Spacing.md }}>
             <View style={{ flex: 1 }}>
               <ThemedText type="caption" themeColor="textSecondary">当前回合</ThemedText>
-              <ThemedText type="subtitle">{runtime.turn}</ThemedText>
+              <ThemedText type="subtitle">{displayedRound}</ThemedText>
+              <View style={[styles.pill, { alignSelf: "flex-start", backgroundColor: runtime.combatRoundActive ? theme.accentMuted : theme.surface }]}>
+                <ThemedText type="caption" style={{ color: runtime.combatRoundActive ? theme.accent : theme.textSecondary }}>
+                  {runtime.combatRoundActive ? "战斗轮进行中" : "未进入战斗轮"}
+                </ThemedText>
+              </View>
             </View>
-            <Pressable onPress={onAdvanceTurn} style={[styles.button, { backgroundColor: theme.accentMuted, borderColor: theme.accent }]}>
-              <ThemedText style={{ color: theme.accent }} type="smallBold">下一回合</ThemedText>
-            </Pressable>
+            <View style={{ gap: Spacing.sm }}>
+              {isKP
+                ? (
+                    <Pressable
+                      disabled={runtime.combatRoundActive || isSendingCombatRoundEvent}
+                      onPress={onStartCombat}
+                      style={[
+                        styles.button,
+                        {
+                          backgroundColor: runtime.combatRoundActive || isSendingCombatRoundEvent ? theme.surface : theme.accentMuted,
+                          borderColor: runtime.combatRoundActive || isSendingCombatRoundEvent ? theme.border : theme.accent,
+                          opacity: runtime.combatRoundActive || isSendingCombatRoundEvent ? 0.55 : 1,
+                        },
+                      ]}
+                    >
+                      <ThemedText style={{ color: runtime.combatRoundActive ? theme.textSecondary : theme.accent }} type="smallBold">
+                        {isSendingCombatRoundEvent ? "处理中..." : "开始战斗"}
+                      </ThemedText>
+                    </Pressable>
+                  )
+                : null}
+              <Pressable
+                disabled={!runtime.combatRoundActive || isSendingCombatRoundEvent}
+                onPress={onAdvanceTurn}
+                style={[
+                  styles.button,
+                  {
+                    backgroundColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.accentMuted : theme.surface,
+                    borderColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.accent : theme.border,
+                    opacity: runtime.combatRoundActive && !isSendingCombatRoundEvent ? 1 : 0.55,
+                  },
+                ]}
+              >
+                <ThemedText style={{ color: runtime.combatRoundActive ? theme.accent : theme.textSecondary }} type="smallBold">下一回合</ThemedText>
+              </Pressable>
+              {isKP
+                ? (
+                    <Pressable
+                      disabled={!runtime.combatRoundActive || isSendingCombatRoundEvent}
+                      onPress={onEndCombat}
+                      style={[
+                        styles.button,
+                        {
+                          backgroundColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.surface : theme.surface,
+                          borderColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.danger : theme.border,
+                          opacity: runtime.combatRoundActive && !isSendingCombatRoundEvent ? 1 : 0.55,
+                        },
+                      ]}
+                    >
+                      <ThemedText style={{ color: runtime.combatRoundActive ? theme.danger : theme.textSecondary }} type="smallBold">结束战斗</ThemedText>
+                    </Pressable>
+                  )
+                : null}
+            </View>
           </View>
 
           <Pressable
@@ -279,37 +345,6 @@ export function CombatPanel({
                         </View>
                       ))}
                     </View>
-                  </View>
-                );
-              })}
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="smallBold">最近战斗事件</ThemedText>
-          {recentCombatMessages.length === 0
-            ? (
-                <View style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-                  <ThemedText themeColor="textSecondary">还没有战斗状态事件。</ThemedText>
-                </View>
-              )
-            : recentCombatMessages.map((message) => {
-                const summary = runtime.messageSummariesByMessageId[message.messageId ?? -1];
-                return (
-                  <View
-                    key={message.messageId}
-                    style={[styles.panel, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-                  >
-                    <View style={{ gap: Spacing.xs }}>
-                      <ThemedText type="smallBold">{summary?.primaryText ?? (message.content?.trim() || "战斗事件")}</ThemedText>
-                      {summary?.secondaryText && (
-                        <ThemedText themeColor="textSecondary" type="caption">{summary.secondaryText}</ThemedText>
-                      )}
-                    </View>
-                    {(summary?.detailLines ?? []).map((line, index) => (
-                      <ThemedText key={`${message.messageId}-${index}`} themeColor="textSecondary" type="caption">
-                        {line}
-                      </ThemedText>
-                    ))}
                   </View>
                 );
               })}

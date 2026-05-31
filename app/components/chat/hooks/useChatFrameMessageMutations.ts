@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { PatchMessagesRequest } from "@tuanchat/query/chat";
 
 import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
@@ -14,7 +15,6 @@ import type {
   Message,
   RoomMessageStreamItem,
   RoomMessageStreamPatchOperation,
-  RoomMessageStreamPatchRequest,
 } from "../../../../api";
 
 type UseChatFrameMessageMutationsParams = {
@@ -22,7 +22,7 @@ type UseChatFrameMessageMutationsParams = {
   roomContext: RoomContextType;
   deleteMessageMutation: UseMutationResult<ApiResultMessage, unknown, number, unknown>;
   updateMessageMutation: UseMutationResult<ApiResultMessage, unknown, Message, unknown>;
-  patchMessagesMutation: UseMutationResult<ApiResultListMessage, unknown, RoomMessageStreamPatchRequest, unknown>;
+  patchMessagesMutation: UseMutationResult<ApiResultListMessage, unknown, PatchMessagesRequest, unknown>;
 };
 
 export default function useChatFrameMessageMutations({

@@ -1,11 +1,13 @@
-import type { UserRole } from "../../../../../api";
 import type { RoomDndMapSnapshot } from "@/components/chat/shared/map/roomDndMapApi";
 import type { ActiveStateInstance, CombatStateRuntime } from "@/components/chat/state/stateRuntime";
 
 import { getRoomDndMapImageUrl } from "@/components/chat/shared/map/roomDndMapApi";
-import { avatarUrl as buildAvatarUrl, imageLowUrl as buildAvatarThumbUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+
+import type { UserRole } from "../../../../../api";
 
 export const TUANCHAT_BATTLE_OVERLAY_MESSAGE_TYPE = "TUANCHAT_BATTLE_OVERLAY_SYNC";
+export const TUANCHAT_BATTLE_OVERLAY_READY_MESSAGE_TYPE = "TUANCHAT_BATTLE_OVERLAY_READY";
 export const TUANCHAT_BATTLE_OVERLAY_SCHEMA_VERSION = 1;
 
 export type BattleOverlayStatusSnapshot = {
@@ -63,6 +65,17 @@ type BuildBattleOverlaySnapshotParams = {
   map?: RoomDndMapSnapshot | null;
   roles?: UserRole[] | null;
   runtime?: CombatStateRuntime | null;
+  combatRoundActiveOverride?: boolean;
+  includeEmptyRoles?: boolean;
+  useStaticMapTokensFallback?: boolean;
+};
+
+type ResolvedMapConfig = {
+  imageUrl?: string;
+  mapFileId?: number;
+  gridRows: number;
+  gridCols: number;
+  gridColor: string;
 };
 
 function normalizePositiveNumber(value: unknown): number | null {
@@ -100,7 +113,7 @@ function clampHpPercent(hp: number | null, maxHp: number | null): number | null 
 }
 
 function buildStatusSnapshots(states: ActiveStateInstance[]): BattleOverlayStatusSnapshot[] {
-  return states.map((state) => ({
+  return states.map(state => ({
     instanceId: state.instanceId,
     name: state.statusName,
     ...(typeof state.remainingTurns === "number" ? { remainingTurns: state.remainingTurns } : {}),
@@ -131,11 +144,27 @@ function resolveCurrentActorRoleId(runtime: CombatStateRuntime | null | undefine
   return bestRoleId;
 }
 
+function resolveMapConfig(
+  runtime: CombatStateRuntime | null | undefined,
+  map: RoomDndMapSnapshot | null | undefined,
+): ResolvedMapConfig | null {
+  if (runtime?.mapConfig) {
+    return runtime.mapConfig;
+  }
+  if (runtime?.hasMapConfigState) {
+    return null;
+  }
+  return map ?? null;
+}
+
 export function buildBattleOverlaySnapshot({
   roomId,
   map,
   roles,
   runtime,
+  combatRoundActiveOverride,
+  includeEmptyRoles = false,
+  useStaticMapTokensFallback = true,
 }: BuildBattleOverlaySnapshotParams): BattleOverlaySnapshot {
   const roleById = new Map<number, UserRole>();
   (roles ?? []).forEach((role) => {
@@ -158,13 +187,19 @@ export function buildBattleOverlaySnapshot({
       roleIds.add(state.scope.roleId);
     }
   });
+  const tokens = runtime?.hasMapState || !useStaticMapTokensFallback
+    ? (runtime?.mapTokens ?? [])
+    : (map?.tokens ?? []);
   const tokenRoleIds = new Set<number>();
-  (runtime?.mapTokens ?? map?.tokens ?? []).forEach((token) => {
+  tokens.forEach((token) => {
     roleIds.add(token.roleId);
     tokenRoleIds.add(token.roleId);
   });
 
-  const currentActorRoleId = resolveCurrentActorRoleId(runtime, roleIds);
+  const combatRoundActive = combatRoundActiveOverride ?? runtime?.combatRoundActive === true;
+  const currentActorRoleId = combatRoundActive
+    ? resolveCurrentActorRoleId(runtime, roleIds)
+    : null;
   const roleSnapshots = [...roleIds]
     .map((roleId): BattleOverlayRoleSnapshot => {
       const role = roleById.get(roleId);
@@ -189,18 +224,21 @@ export function buildBattleOverlaySnapshot({
         isCurrentActor: currentActorRoleId === roleId,
       };
     })
-    .filter(role => role.hp != null || role.initiative != null || role.statuses.length > 0 || tokenRoleIds.has(role.roleId))
+    .filter(role => includeEmptyRoles
+      || role.hp != null
+      || role.initiative != null
+      || role.statuses.length > 0
+      || tokenRoleIds.has(role.roleId))
     .sort((left, right) => getRoleSortValue(right) - getRoleSortValue(left) || left.name.localeCompare(right.name, "zh-CN"));
 
-  const tokens = runtime?.hasMapState
-    ? runtime.mapTokens
-    : (map?.tokens ?? []);
-  const mapSnapshot: BattleOverlayMapSnapshot | null = map || tokens.length > 0
+  const mapConfig = resolveMapConfig(runtime, map);
+  const mapImageUrl = mapConfig?.imageUrl || getRoomDndMapImageUrl(mapConfig);
+  const mapSnapshot: BattleOverlayMapSnapshot | null = mapConfig || tokens.length > 0
     ? {
-        imageUrl: getRoomDndMapImageUrl(map),
-        gridRows: map?.gridRows ?? 10,
-        gridCols: map?.gridCols ?? 10,
-        gridColor: map?.gridColor ?? "#808080",
+        imageUrl: mapImageUrl,
+        gridRows: mapConfig?.gridRows ?? 10,
+        gridCols: mapConfig?.gridCols ?? 10,
+        gridColor: mapConfig?.gridColor ?? "#808080",
         tokens: tokens.map((token) => {
           const role = roleById.get(token.roleId);
           return {
@@ -214,16 +252,13 @@ export function buildBattleOverlaySnapshot({
       }
     : null;
 
-  const round = typeof runtime?.turn === "number" && runtime.turn > 0 ? runtime.turn : null;
+  const round = combatRoundActive && typeof runtime?.turn === "number"
+    ? runtime.turn
+    : null;
   const currentActorName = currentActorRoleId != null
     ? buildRoleName(roleById.get(currentActorRoleId), currentActorRoleId)
     : "";
-  const visible = Boolean(
-    mapSnapshot?.imageUrl
-    || (mapSnapshot?.tokens.length ?? 0) > 0
-    || round != null
-    || roleSnapshots.some(role => role.hp != null || role.initiative != null || role.statuses.length > 0),
-  );
+  const visible = combatRoundActive;
 
   return {
     schemaVersion: TUANCHAT_BATTLE_OVERLAY_SCHEMA_VERSION,
@@ -233,7 +268,7 @@ export function buildBattleOverlaySnapshot({
     currentActorRoleId,
     currentActorName,
     map: mapSnapshot,
-    roles: visible ? roleSnapshots : [],
+    roles: includeEmptyRoles || visible ? roleSnapshots : [],
   };
 }
 

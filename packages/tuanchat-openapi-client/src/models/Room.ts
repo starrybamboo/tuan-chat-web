@@ -16,7 +16,7 @@ export type Room = {
      */
     spaceId?: number;
     /**
-     * 房间类型 1游戏房间 2全员房间 3战斗房间 4文档房间
+     * 房间类型 1游戏房间 2全员房间 4文档房间
      */
     roomType?: number;
     /**
@@ -63,4 +63,3 @@ export type Room = {
      */
     effectiveCommitId?: number;
 };
-

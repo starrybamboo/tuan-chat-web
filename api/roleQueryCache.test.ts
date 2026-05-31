@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+﻿import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import {
@@ -91,8 +91,8 @@ describe("roleQueryCache", () => {
         roleId: 7,
         avatarId: 55,
         avatarFileId: 2002,
-        avatarUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
-        avatarThumbUrl: "https://tuan.chat/media/v1/files/002/2002/image/low.webp",
+        avatarUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
+        avatarThumbUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/low.webp",
       }),
     ]);
   });
@@ -120,8 +120,8 @@ describe("roleQueryCache", () => {
       expect.objectContaining({
         roleId: 7,
         avatarFileId: 2002,
-        avatarUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
-        avatarThumbUrl: "https://tuan.chat/media/v1/files/002/2002/image/low.webp",
+        avatarUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
+        avatarThumbUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/low.webp",
       }),
     ]);
   });
@@ -147,8 +147,8 @@ describe("roleQueryCache", () => {
         expect.objectContaining({
           roleId: 7,
           avatarFileId: 3003,
-          avatarUrl: "https://tuan.chat/media/v1/files/003/3003/image/medium.webp",
-          avatarThumbUrl: "https://tuan.chat/media/v1/files/003/3003/image/low.webp",
+          avatarUrl: "https://media.tuan.chat/media/v1/files/003/3003/image/medium.webp",
+          avatarThumbUrl: "https://media.tuan.chat/media/v1/files/003/3003/image/low.webp",
         }),
       ],
     });
@@ -169,3 +169,4 @@ describe("roleQueryCache", () => {
     expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([8]);
   });
 });
+

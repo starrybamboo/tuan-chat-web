@@ -29,19 +29,12 @@ export function getFfmpegCoreBaseUrlCandidates(env: Record<string, unknown> = ((
     : [];
   const useDefaultCdnFallback = typeof env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === "string"
     ? env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK.toLowerCase() === "true"
-    : env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK === true;
-  const defaultCandidates = useDefaultCdnFallback
+    : env.VITE_FFMPEG_CORE_USE_DEFAULT_CDN_FALLBACK !== false;
+  const defaultCandidates = useDefaultCdnFallback || envCandidates.length === 0
     ? DEFAULT_FFMPEG_CORE_BASE_URLS.map(normalizeFfmpegCoreBaseUrl)
     : [];
 
   return Array.from(new Set([...envCandidates, ...defaultCandidates]));
-}
-
-export function shouldUseBundledFfmpegCore(env: Record<string, unknown> = ((import.meta as any).env ?? {})): boolean {
-  const skipBundled = typeof env.VITE_FFMPEG_CORE_SKIP_BUNDLED === "string"
-    ? env.VITE_FFMPEG_CORE_SKIP_BUNDLED.toLowerCase() === "true"
-    : env.VITE_FFMPEG_CORE_SKIP_BUNDLED === true;
-  return !skipBundled;
 }
 
 export function getFfmpegWrapperUrlCandidates(env: Record<string, unknown> = ((import.meta as any).env ?? {})): string[] {

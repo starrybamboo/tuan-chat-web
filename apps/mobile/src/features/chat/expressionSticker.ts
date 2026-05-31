@@ -17,7 +17,6 @@ export function buildExpressionDraftAsset(sticker: Sticker): UploadedImageMessag
     fileId: sticker.fileId ?? 0,
     fileName,
     height: sticker.height && sticker.height > 0 ? sticker.height : FALLBACK_STICKER_SIZE,
-    mediaType: sticker.mediaType?.trim() || "image",
     size: sticker.fileSize && sticker.fileSize > 0 ? sticker.fileSize : FALLBACK_STICKER_FILE_SIZE,
     width: sticker.width && sticker.width > 0 ? sticker.width : FALLBACK_STICKER_SIZE,
   };

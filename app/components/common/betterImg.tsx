@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
 import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
-import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
+import { imageUrlWithQuality } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
 /**
@@ -16,6 +17,24 @@ export function resolveBetterImgIntrinsicSize(size?: { width?: number; height?: 
     ? size.height
     : undefined;
   return { width, height };
+}
+
+export function resolveBetterImgPreviewToastOptions(transparent: boolean): ToastWindowOptions {
+  return {
+    fullScreen: true,
+    transparent,
+    rootClassName: "z-[11000]",
+  };
+}
+
+type BetterImgZoomQuality = "medium" | "high" | "original";
+
+export function resolveBetterImgZoomSrc(
+  imgSrc: string | undefined,
+  fallbackObjectUrl: string | undefined,
+  zoomQuality: BetterImgZoomQuality,
+) {
+  return fallbackObjectUrl ?? (typeof imgSrc === "string" ? imageUrlWithQuality(imgSrc, zoomQuality) : imgSrc);
 }
 
 function isFileSource(src: string | File | undefined): src is File {
@@ -49,19 +68,21 @@ export function useFileObjectUrl(src: string | File | undefined): string | undef
  * @param onClose 可选的回调函数，如果填写了该回调函数，那么图片左上角会出现一个关闭按钮，点击后调用onClose回调函数。
  * @param size 图片的尺寸，用于优化加载体验
  * @param transparent
+ * @param zoomQuality 点击预览时使用的图片质量档
  */
-function BetterImg({ src, className, onClose, size, transparent = true }: {
+function BetterImg({ src, className, onClose, size, transparent = true, zoomQuality = "medium" }: {
   src: string | File | undefined;
   className?: string;
   onClose?: () => void;
   size?: { width?: number; height?: number };
   transparent?: boolean;
+  zoomQuality?: BetterImgZoomQuality;
 }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [fallbackObjectUrl, setFallbackObjectUrl] = useState<string | undefined>();
   const imgSrc = useFileObjectUrl(src);
   const displayImgSrc = fallbackObjectUrl ?? imgSrc;
-  const zoomImgSrc = fallbackObjectUrl ?? (typeof imgSrc === "string" ? imagePreviewUrlFromUrl(imgSrc) : imgSrc);
+  const zoomImgSrc = resolveBetterImgZoomSrc(typeof imgSrc === "string" ? imgSrc : undefined, fallbackObjectUrl, zoomQuality);
   const intrinsicSize = resolveBetterImgIntrinsicSize(size);
 
   useEffect(() => {
@@ -97,10 +118,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
   const openToastWindow = () => {
     toastWindow(
       onClose => <ResizableImg src={zoomImgSrc} onClose={onClose} />,
-      {
-        fullScreen: true,
-        transparent,
-      },
+      resolveBetterImgPreviewToastOptions(transparent),
     );
   };
 
@@ -114,6 +132,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
         <img
           ref={imgRef}
           src={displayImgSrc}
+          referrerPolicy="no-referrer"
           width={intrinsicSize.width}
           height={intrinsicSize.height}
           className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}

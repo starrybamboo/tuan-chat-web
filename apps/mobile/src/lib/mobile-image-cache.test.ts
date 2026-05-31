@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getCachedImageUriSync,
@@ -94,7 +94,7 @@ vi.mock("expo-image", () => ({
   },
 }));
 
-const LOW_URL = "https://tuan.chat/media/v1/files/007/7/image/low.webp";
+const LOW_URL = "https://media.tuan.chat/media/v1/files/007/7/image/low.webp";
 const LOW_FILE_URI = "file:///mock/cache/mobile-image-cache/7_low.webp";
 
 beforeEach(() => {
@@ -118,9 +118,9 @@ afterEach(() => {
 describe("getCacheKey", () => {
   it("extracts fileId and quality from media URL", () => {
     expect(getCacheKey(LOW_URL)).toBe("7_low");
-    expect(getCacheKey("https://tuan.chat/media/v1/files/123/123456/image/medium.webp")).toBe("123456_medium");
-    expect(getCacheKey("https://tuan.chat/media/v1/files/001/1/image/high.webp")).toBe("1_high");
-    expect(getCacheKey("https://tuan.chat/media/v1/files/001/1/original")).toBe("1_original");
+    expect(getCacheKey("https://media.tuan.chat/media/v1/files/123/123456/image/medium.webp")).toBe("123456_medium");
+    expect(getCacheKey("https://media.tuan.chat/media/v1/files/001/1/image/high.webp")).toBe("1_high");
+    expect(getCacheKey("https://media.tuan.chat/media/v1/files/001/1/original")).toBe("1_original");
   });
 
   it("returns URL as-is for non-media URLs", () => {
@@ -129,8 +129,8 @@ describe("getCacheKey", () => {
   });
 
   it("normalizes media URLs with different query strings to the same cache key", () => {
-    const a = "https://tuan.chat/media/v1/files/007/7/image/low.webp?token=a";
-    const b = "https://tuan.chat/media/v1/files/007/7/image/low.webp?token=b";
+    const a = "https://media.tuan.chat/media/v1/files/007/7/image/low.webp?token=a";
+    const b = "https://media.tuan.chat/media/v1/files/007/7/image/low.webp?token=b";
     expect(getCacheKey(a)).toBe("7_low");
     expect(getCacheKey(b)).toBe("7_low");
   });
@@ -237,7 +237,7 @@ describe("native disk cache", () => {
 
 describe("prefetchImages", () => {
   it("prefetches only URLs not already cached", async () => {
-    const url2 = "https://tuan.chat/media/v1/files/012/12/image/low.webp";
+    const url2 = "https://media.tuan.chat/media/v1/files/012/12/image/low.webp";
 
     await prefetchImage(LOW_URL);
     fileSystemMock.MockFile.downloadFileAsync.mockClear();
@@ -254,8 +254,8 @@ describe("prefetchImages", () => {
 
   it("records successful URLs individually even when one fails", async () => {
     const url1 = LOW_URL;
-    const url2 = "https://tuan.chat/media/v1/files/012/12/image/low.webp";
-    const url3 = "https://tuan.chat/media/v1/files/099/99/image/low.webp";
+    const url2 = "https://media.tuan.chat/media/v1/files/012/12/image/low.webp";
+    const url3 = "https://media.tuan.chat/media/v1/files/099/99/image/low.webp";
 
     fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
       if (url === url2)
@@ -271,3 +271,4 @@ describe("prefetchImages", () => {
     expect(isAlreadyCached(url3)).toBe(true);
   });
 });
+

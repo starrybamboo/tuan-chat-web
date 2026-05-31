@@ -8,8 +8,6 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 interface RoomWindowOverlaysProps {
   isImportChatTextOpen: boolean;
   setIsImportChatTextOpen: (isOpen: boolean) => void;
-  isKP: boolean;
-  isSpectator: boolean;
   availableRoles: UserRole[];
   importInitialRawText?: string;
   onImportChatText: (
@@ -35,8 +33,6 @@ interface RoomWindowOverlaysProps {
 export default function RoomWindowOverlays({
   isImportChatTextOpen,
   setIsImportChatTextOpen,
-  isKP,
-  isSpectator,
   availableRoles,
   importInitialRawText,
   onImportChatText,
@@ -54,10 +50,12 @@ export default function RoomWindowOverlays({
       <ToastWindow
         isOpen={isImportChatTextOpen}
         onClose={() => setIsImportChatTextOpen(false)}
+        showCloseButton={false}
+        disableScroll
+        panelClassName="overflow-hidden rounded-2xl border border-base-300 p-0 shadow-2xl"
+        bodyClassName="overflow-hidden"
       >
         <ImportChatMessagesWindow
-          isKP={isKP}
-          isSpectator={isSpectator}
           availableRoles={availableRoles}
           initialRawText={importInitialRawText}
           onImport={onImportChatText}

@@ -1,5 +1,3 @@
-import bundledCoreJsUrl from "@ffmpeg/core?url";
-import bundledCoreWasmUrl from "@ffmpeg/core/wasm?url";
 import * as bundledFfmpegWrapperUrlModule from "@ffmpeg/ffmpeg?url";
 import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
 import * as bundledFfmpegUtilUrlModule from "@ffmpeg/util?url";
@@ -10,7 +8,6 @@ import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
   getFfmpegWrapperUrlCandidates,
-  shouldUseBundledFfmpegCore,
 } from "@/utils/ffmpegCoreSourceConfig";
 import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
 
@@ -250,15 +247,6 @@ async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffm
   const { FFmpeg } = await loadFfmpegModule(debugEnabled, debugPrefix);
 
   const candidates = getFfmpegCoreBaseUrlCandidates();
-  const bundledCandidates = shouldUseBundledFfmpegCore()
-    ? [
-        {
-          label: "bundled",
-          coreJs: bundledCoreJsUrl,
-          wasm: bundledCoreWasmUrl,
-        },
-      ]
-    : [];
   const classWorkerURL = toAbsoluteUrl(bundledWorkerUrl);
 
   const ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg = new FFmpeg();
@@ -280,29 +268,6 @@ async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffm
   }
 
   const errors: string[] = [];
-  for (const c of bundledCandidates) {
-    try {
-      if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg core candidate`, c.label);
-
-      const coreURL = c.coreJs;
-      const wasmURL = await resolvePersistentFfmpegAssetBlobUrl(c.wasm, "application/wasm", loadTimeoutMs);
-
-      await withTimeout(ffmpeg.load({ coreURL, wasmURL, classWorkerURL }), loadTimeoutMs, "FFmpeg 核心加载");
-
-      if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg loaded`, { label: c.label });
-
-      return ffmpeg;
-    }
-    catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      errors.push(`${c.label}: ${msg}`);
-      if (debugEnabled)
-        console.warn(`${debugPrefix} ffmpeg core candidate failed`, { label: c.label, msg });
-    }
-  }
-
   for (const baseUrl of candidates) {
     try {
       if (debugEnabled)
@@ -326,7 +291,7 @@ async function createFfmpegInstance(loadTimeoutMs: number): Promise<import("@ffm
     }
   }
 
-  throw new Error(`FFmpeg 核心加载失败（已尝试 ${bundledCandidates.length + candidates.length} 个源）：\n${errors.join("\n")}`);
+  throw new Error(`FFmpeg 核心加载失败（已尝试 ${candidates.length} 个源）：\n${errors.join("\n")}`);
 }
 
 async function getFfmpeg(loadTimeoutMs: number): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {

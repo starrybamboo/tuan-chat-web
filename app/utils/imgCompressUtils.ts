@@ -9,17 +9,16 @@ import {
 } from "@/utils/novelaiImageMetadata";
 
 export type MediaType = "image" | "audio" | "video" | "document" | "other";
-export type MediaQuality = "original" | "low" | "medium";
-/** @deprecated Use MediaQuality instead. "high" is mapped to "medium" internally. */
-export type LegacyMediaQuality = "high";
-export type MediaQualityInput = MediaQuality | LegacyMediaQuality;
+export type MediaQuality = "original" | "low" | "medium" | "high";
+export type LegacyMediaQuality = Extract<MediaQuality, "high">;
+export type MediaQualityInput = MediaQuality;
 
 export const MEDIA_COMPRESSION_PROFILES = {
   image: {
     original: {
       maxWidthOrHeight: 2560,
       maxSizeKB: 3072,
-      quality: 0.82,
+      quality: 1,
       fileType: "image/webp",
       preserveNovelAiMetadata: true,
       forceOutput: true,
@@ -27,7 +26,7 @@ export const MEDIA_COMPRESSION_PROFILES = {
     low: {
       maxWidthOrHeight: 200,
       maxSizeKB: 40,
-      quality: 0.72,
+      quality: 1,
       fileType: "image/webp",
       preserveNovelAiMetadata: false,
       forceOutput: true,
@@ -35,7 +34,7 @@ export const MEDIA_COMPRESSION_PROFILES = {
     medium: {
       maxWidthOrHeight: 512,
       maxSizeKB: 150,
-      quality: 0.76,
+      quality: 1,
       fileType: "image/webp",
       preserveNovelAiMetadata: true,
       forceOutput: true,
@@ -43,7 +42,7 @@ export const MEDIA_COMPRESSION_PROFILES = {
     high: {
       maxWidthOrHeight: 2560,
       maxSizeKB: 800,
-      quality: 0.82,
+      quality: 1,
       fileType: "image/webp",
       preserveNovelAiMetadata: true,
       forceOutput: true,
@@ -105,7 +104,7 @@ export const IMAGE_COMPRESSION_PRESETS = {
     ...MEDIA_COMPRESSION_PROFILES.image.low,
   },
   videoCover: {
-    label: "视频封面（历史 preset，映射到 high）",
+    label: "视频封面",
     ...MEDIA_COMPRESSION_PROFILES.image.high,
   },
   originalImage: {

@@ -22,6 +22,10 @@ type CachedRoomMessagesState = {
   roomId: number | null;
 };
 
+function deferStateUpdate(update: () => void) {
+  void Promise.resolve().then(update);
+}
+
 export function useRoomMessagesQuery(
   roomId: number | null,
   options: { staleTime?: number } = {},
@@ -64,13 +68,20 @@ export function useRoomMessagesQuery(
     let disposed = false;
 
     if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
-      setCachedMessagesState((currentState) => {
-        if (currentState.roomId === null && currentState.messages.length === 0) {
-          return currentState;
+      deferStateUpdate(() => {
+        if (disposed) {
+          return;
         }
-        return { messages: [], roomId: null };
+        setCachedMessagesState((currentState) => {
+          if (currentState.roomId === null && currentState.messages.length === 0) {
+            return currentState;
+          }
+          return { messages: [], roomId: null };
+        });
       });
-      return;
+      return () => {
+        disposed = true;
+      };
     }
 
     void readCachedRoomMessages(roomId).then((nextCachedMessages) => {
@@ -85,19 +96,28 @@ export function useRoomMessagesQuery(
   }, [isAuthenticated, roomId]);
 
   useEffect(() => {
+    let disposed = false;
+
     if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
       return;
     }
 
     if (shouldResetCachedRoomMessages(query.data, query.isSuccess)) {
-      setCachedMessagesState((currentState) => {
-        if (currentState.roomId === roomId && currentState.messages.length === 0) {
-          return currentState;
+      deferStateUpdate(() => {
+        if (disposed) {
+          return;
         }
-        return { messages: [], roomId };
+        setCachedMessagesState((currentState) => {
+          if (currentState.roomId === roomId && currentState.messages.length === 0) {
+            return currentState;
+          }
+          return { messages: [], roomId };
+        });
       });
       void clearCachedRoomMessages(roomId);
-      return;
+      return () => {
+        disposed = true;
+      };
     }
 
     if (messages.length > 0) {

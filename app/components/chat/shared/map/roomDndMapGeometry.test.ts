@@ -6,6 +6,7 @@ import {
   MAX_GRID_DIMENSION,
   MIN_GRID_DIMENSION,
   resolveGridCellAtPoint,
+  shouldCommitGridCellMove,
 } from "./roomDndMapGeometry";
 
 describe("roomDndMapGeometry", () => {
@@ -57,5 +58,11 @@ describe("roomDndMapGeometry", () => {
       top: "37.5%",
       transform: "translate(-50%, -50%)",
     });
+  });
+
+  it("角色停在原格子时不需要提交移动事件", () => {
+    expect(shouldCommitGridCellMove({ rowIndex: 2, colIndex: 3 }, { rowIndex: 2, colIndex: 3 })).toBe(false);
+    expect(shouldCommitGridCellMove({ rowIndex: 2, colIndex: 3 }, { rowIndex: 2, colIndex: 4 })).toBe(true);
+    expect(shouldCommitGridCellMove(undefined, { rowIndex: 2, colIndex: 3 })).toBe(true);
   });
 });

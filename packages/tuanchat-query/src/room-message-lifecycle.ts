@@ -274,6 +274,7 @@ function buildOptimisticMatchKeys(message: Message): string[] {
     keys.push(buildOptimisticLooseKey(message, {
       ignoreContent: true,
       ignoreAnnotations: true,
+      ignoreExtra: true,
     }));
   }
   if (message.messageType === MESSAGE_TYPE.DICE) {
@@ -387,6 +388,7 @@ export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResp
       positiveMediaLooseKeys.add(buildOptimisticLooseKey(message, {
         ignoreContent: true,
         ignoreAnnotations: true,
+        ignoreExtra: true,
       }));
     }
     if (message.messageType === MESSAGE_TYPE.DICE) {
@@ -410,6 +412,7 @@ export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResp
         && positiveMediaLooseKeys.has(buildOptimisticLooseKey(message, {
           ignoreContent: true,
           ignoreAnnotations: true,
+          ignoreExtra: true,
         })))
         || (message.messageType === MESSAGE_TYPE.DICE
           && positiveDiceLooseKeys.has(buildOptimisticLooseKey(message, {

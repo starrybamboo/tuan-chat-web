@@ -1,9 +1,10 @@
 import type { Message } from "../../../../api";
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
 import { FileArrowUpIcon } from "@phosphor-icons/react";
+import { useEffect, useMemo } from "react";
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import WebgalChooseMessage from "@/components/chat/message/webgalChooseMessage";
 import StateMessageCard from "@/components/chat/state/stateMessageCard";
 import BetterImg from "@/components/common/betterImg";
@@ -22,7 +23,7 @@ import {
 } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
-import { mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 
 type ReadonlyRenderableMessage = Pick<
   Message,
@@ -43,6 +44,46 @@ interface MessageContentRendererProps {
   cacheKeyBase?: string;
 }
 
+type LocalImageMessagePayload = NonNullable<ReturnType<typeof getImageMessageExtra>> & {
+  localFile?: File;
+};
+
+type LocalMediaMessagePayload = {
+  localFile?: File;
+};
+
+function getLocalPreviewFile(payload: LocalMediaMessagePayload | undefined): File | undefined {
+  if (typeof File === "undefined") {
+    return undefined;
+  }
+  const localFile = payload?.localFile;
+  return localFile instanceof File ? localFile : undefined;
+}
+
+function getLocalImagePreviewFile(payload: ReturnType<typeof getImageMessageExtra>): File | undefined {
+  return getLocalPreviewFile(payload as LocalImageMessagePayload | undefined);
+}
+
+function useLocalPreviewUrl(file: File | undefined): string | undefined {
+  const objectUrl = useMemo(() => {
+    if (!file || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+      return undefined;
+    }
+    return URL.createObjectURL(file);
+  }, [file]);
+
+  useEffect(() => {
+    if (!objectUrl || typeof URL === "undefined" || typeof URL.revokeObjectURL !== "function") {
+      return;
+    }
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [objectUrl]);
+
+  return objectUrl;
+}
+
 function formatFileSize(bytes?: number) {
   if (!bytes || Number.isNaN(bytes)) {
     return "";
@@ -59,18 +100,6 @@ function formatFileSize(bytes?: number) {
   return `${valueLabel} ${units[unitIndex]}`;
 }
 
-function resolveMediaPayloadUrl(
-  payload: { fileId?: number; mediaType?: string } | undefined,
-  quality: MediaQuality,
-  expectedMediaType?: MediaType,
-) {
-  if (typeof payload?.fileId === "number" && payload.fileId <= 0) {
-    return "";
-  }
-  const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
-  return mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
-}
-
 export default function MessageContentRenderer({
   message,
   annotations: providedAnnotations,
@@ -78,6 +107,10 @@ export default function MessageContentRenderer({
 }: MessageContentRendererProps) {
   const effectiveAnnotationsBase = normalizeAnnotations(providedAnnotations ?? message.annotations);
   const imagePayload = getImageMessageExtra(message.extra);
+  const soundPayload = getSoundMessageExtra(message.extra);
+  const videoPayload = getVideoMessageExtra(message.extra);
+  const localSoundUrl = useLocalPreviewUrl(getLocalPreviewFile(soundPayload as LocalMediaMessagePayload | undefined));
+  const localVideoUrl = useLocalPreviewUrl(getLocalPreviewFile(videoPayload as LocalMediaMessagePayload | undefined));
   const effectiveAnnotations = message.messageType === MESSAGE_TYPE.IMG && imagePayload?.background
     ? (effectiveAnnotationsBase.includes(ANNOTATION_IDS.BACKGROUND)
         ? effectiveAnnotationsBase
@@ -105,17 +138,19 @@ export default function MessageContentRenderer({
         </div>
       );
     case MESSAGE_TYPE.IMG: {
-      const imgUrl = resolveMediaPayloadUrl(imagePayload, "low", "image");
-      const imgWidth = typeof imagePayload?.width === "number" ? imagePayload.width : undefined;
-      const imgHeight = typeof imagePayload?.height === "number" ? imagePayload.height : undefined;
+      const localPreviewFile = getLocalImagePreviewFile(imagePayload);
+      const imgSrc = localPreviewFile ?? resolveMessageMediaUrl(imagePayload, "medium", "image");
+      const imgWidth = !localPreviewFile && typeof imagePayload?.width === "number" ? imagePayload.width : undefined;
+      const imgHeight = !localPreviewFile && typeof imagePayload?.height === "number" ? imagePayload.height : undefined;
 
       return (
         <div className="flex flex-col gap-1">
-          {imgUrl
+          {imgSrc
             ? (
                 <BetterImg
-                  src={imgUrl}
+                  src={imgSrc}
                   size={{ width: imgWidth, height: imgHeight }}
+                  zoomQuality="original"
                   className="h-auto max-h-[350px] max-w-full rounded"
                 />
               )
@@ -132,7 +167,7 @@ export default function MessageContentRenderer({
     }
     case MESSAGE_TYPE.FILE: {
       const fileMessage = getFileMessageExtra(message.extra);
-      const fileUrl = resolveMediaPayloadUrl(fileMessage, "low");
+      const fileUrl = mediaFileUrl(fileMessage?.fileId, fileMessage?.mediaType, "low");
       const fileName = fileMessage?.fileName || message.content || "文件";
       const sizeLabel = formatFileSize(fileMessage?.size);
       const contentNode = (
@@ -160,8 +195,7 @@ export default function MessageContentRenderer({
         : contentNode;
     }
     case MESSAGE_TYPE.VIDEO: {
-      const videoMessage = getVideoMessageExtra(message.extra);
-      const videoUrl = resolveMediaPayloadUrl(videoMessage, "low", "video");
+      const videoUrl = localVideoUrl ?? resolveMessageMediaUrl(videoPayload, "low", "video");
       return (
         <div className="flex min-w-0 w-full max-w-[420px] flex-col gap-2">
           {videoUrl
@@ -201,12 +235,11 @@ export default function MessageContentRenderer({
       );
     }
     case MESSAGE_TYPE.SOUND: {
-      const soundMessage = getSoundMessageExtra(message.extra);
-      const audioUrl = resolveMediaPayloadUrl(soundMessage, "low", "audio");
-      const duration = soundMessage?.second;
+      const audioUrl = localSoundUrl ?? resolveMessageMediaUrl(soundPayload, "low", "audio");
+      const duration = soundPayload?.second;
       const purpose = resolveRenderedSoundMessagePurpose({
         annotations: effectiveAnnotations,
-        payloadPurpose: soundMessage?.purpose,
+        payloadPurpose: soundPayload?.purpose,
       });
       return (
         <div className="flex flex-col gap-2">
@@ -219,7 +252,7 @@ export default function MessageContentRenderer({
                   cacheKey={`${resolvedCacheKeyBase}:audio`}
                   url={audioUrl}
                   duration={typeof duration === "number" ? duration : undefined}
-                  title={soundMessage?.fileName}
+                  title={soundPayload?.fileName}
                 />
               )
             : (

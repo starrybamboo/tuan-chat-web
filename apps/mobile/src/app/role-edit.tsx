@@ -1,12 +1,11 @@
 import type { LayoutChangeEvent } from "react-native";
 
 import { router, useLocalSearchParams } from "expo-router";
-import { CaretLeft, FloppyDisk, Trash } from "phosphor-react-native";
+import { CaretLeft } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -162,6 +161,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
   },
+  previewOverlay: {
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.78)",
+    flex: 1,
+    justifyContent: "center",
+    padding: Spacing.xxl,
+  },
+  previewImage: {
+    borderRadius: Radius.xl,
+    height: "72%",
+    width: "92%",
+  },
+  previewFallback: {
+    alignItems: "center",
+    backgroundColor: "#6366f1",
+    justifyContent: "center",
+  },
+  previewCloseButton: {
+    borderRadius: Radius.md,
+    marginTop: Spacing.xl,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.md,
+  },
 });
 
 export default function RoleEditScreen() {
@@ -188,7 +210,7 @@ export default function RoleEditScreen() {
   const [roleType, setRoleType] = useState<number>(existingRole?.type ?? 0);
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | null>(existingRole?.avatarId ?? null);
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(DEFAULT_ROLE_EDIT_RULE_ID);
-  const [avatarSheetVisible, setAvatarSheetVisible] = useState(false);
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const [descriptionInputHeight, setDescriptionInputHeight] = useState(DESCRIPTION_INPUT_MIN_HEIGHT);
   const hydratedRoleIdRef = useRef<number | "create" | null>(null);
 
@@ -288,7 +310,6 @@ export default function RoleEditScreen() {
 
   const handleAvatarSelect = useCallback((avatarId: number) => {
     setSelectedAvatarId(avatarId);
-    setAvatarSheetVisible(false);
   }, []);
 
   const handleAbilitySectionLayout = useCallback((event: LayoutChangeEvent) => {
@@ -431,7 +452,6 @@ export default function RoleEditScreen() {
                     accessibilityLabel="删除角色"
                     accessibilityRole="button"
                   >
-                    <Trash size={15} color={theme.danger} weight="bold" />
                     <ThemedText style={[styles.headerActionText, { color: theme.danger }]}>删除</ThemedText>
                   </Pressable>
                 )
@@ -450,7 +470,6 @@ export default function RoleEditScreen() {
               accessibilityLabel="保存角色"
               accessibilityRole="button"
             >
-              <FloppyDisk size={15} color={theme.accent} weight="bold" />
               <ThemedText style={[styles.headerActionText, { color: theme.accent }]}>保存</ThemedText>
             </Pressable>
           </View>
@@ -465,8 +484,8 @@ export default function RoleEditScreen() {
           {!isCreating && (
             <View style={styles.profileHeader}>
               <Pressable
-                onPress={() => setAvatarSheetVisible(true)}
-                accessibilityLabel="编辑角色头像"
+                onPress={() => setAvatarPreviewVisible(true)}
+                accessibilityLabel="查看角色头像大图"
                 accessibilityRole="button"
                 style={[
                   styles.roleAvatarButton,
@@ -543,6 +562,17 @@ export default function RoleEditScreen() {
             )}
           </View>
 
+          {/* Avatar Selector */}
+          {roleId !== null
+            ? (
+                <AvatarGrid
+                  roleId={roleId}
+                  currentAvatarId={selectedAvatarId}
+                  onAvatarSelect={handleAvatarSelect}
+                />
+              )
+            : null}
+
           {/* Rule Selection */}
           {roleId !== null
             ? (
@@ -566,23 +596,38 @@ export default function RoleEditScreen() {
               )
             : null}
         </ScrollView>
-        {roleId !== null
-          ? (
-              <BottomSheetModal
-                visible={avatarSheetVisible}
-                onClose={() => setAvatarSheetVisible(false)}
-                maxHeight="70%"
-                backgroundColor={theme.backgroundElement}
-                handleColor={theme.border}
-              >
-                <AvatarGrid
-                  roleId={roleId}
-                  currentAvatarId={selectedAvatarId}
-                  onAvatarSelect={handleAvatarSelect}
-                />
-              </BottomSheetModal>
-            )
-          : null}
+        <Modal
+          visible={avatarPreviewVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setAvatarPreviewVisible(false)}
+        >
+          <Pressable
+            style={styles.previewOverlay}
+            onPress={() => setAvatarPreviewVisible(false)}
+            accessibilityLabel="关闭头像预览"
+            accessibilityRole="button"
+          >
+            {avatarThumbSrc
+              ? (
+                  <CachedImage
+                    uri={avatarThumbSrc}
+                    style={styles.previewImage}
+                    contentFit="contain"
+                  />
+                )
+              : (
+                  <View style={[styles.previewImage, styles.previewFallback]}>
+                    <ThemedText style={{ color: "#fff", fontSize: 48, fontWeight: "700" }}>
+                      {(roleName || "R").slice(0, 1).toUpperCase()}
+                    </ThemedText>
+                  </View>
+                )}
+            <View style={[styles.previewCloseButton, { backgroundColor: theme.backgroundElement }]}>
+              <ThemedText themeColor="accent">关闭</ThemedText>
+            </View>
+          </Pressable>
+        </Modal>
       </SafeAreaView>
     </ThemedView>
   );

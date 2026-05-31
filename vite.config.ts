@@ -107,12 +107,18 @@ function ossUploadProxyPlugin(): Plugin {
 
           const body = await readBody(req);
           const headers = new Headers();
-          const contentType = String(req.headers["content-type"] || "").trim();
-          if (contentType)
-            headers.set("content-type", contentType);
-          const cacheControl = String(req.headers["cache-control"] || "").trim();
-          if (cacheControl)
-            headers.set("cache-control", cacheControl);
+          for (const [key, value] of Object.entries(req.headers)) {
+            if (!shouldForwardOssUploadHeader(key)) {
+              continue;
+            }
+            const values = Array.isArray(value) ? value : [value];
+            values.forEach((item) => {
+              const normalizedValue = String(item ?? "").trim();
+              if (normalizedValue) {
+                headers.append(key, normalizedValue);
+              }
+            });
+          }
 
           const upstreamRes = await undiciFetch(targetUrl.toString(), {
             method: "PUT",
@@ -156,6 +162,18 @@ function ossUploadProxyPlugin(): Plugin {
       });
     },
   };
+}
+
+function shouldForwardOssUploadHeader(headerName: string): boolean {
+  const normalized = headerName.toLowerCase();
+  return ![
+    "connection",
+    "content-length",
+    "host",
+    "origin",
+    "referer",
+    "x-tc-oss-upload-url",
+  ].includes(normalized);
 }
 
 function electronDevPingPlugin(): Plugin {
@@ -249,6 +267,18 @@ export default defineConfig(() => {
         {
           find: "@",
           replacement: resolve(__dirname, "app"),
+        },
+        {
+          find: /^api$/,
+          replacement: resolve(__dirname, "api/index.ts"),
+        },
+        {
+          find: /^api\/(.*)$/,
+          replacement: resolve(__dirname, "api/$1"),
+        },
+        {
+          find: /^app\/(.*)$/,
+          replacement: resolve(__dirname, "app/$1"),
         },
         // 手动添加与 tsconfig.json paths 对应的 alias，避免使用 tsconfigPaths 的动态解析
         {

@@ -2,6 +2,7 @@ import type { UserInfoResponse } from "../../../../../api";
 import { useRouter } from "@tanstack/react-router";
 import React from "react";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
+import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 
 interface ProfileEditingActions {
   isEditingProfile: boolean;
@@ -90,6 +91,11 @@ export const UserActions: React.FC<UserActionsProps> = ({
     return (
       <div className="flex-col">
         <FollowButton userId={user?.userId || -1} />
+        <FriendRequestButton
+          targetUserId={user?.userId}
+          targetUsername={user?.username}
+          className="mt-4 flex h-8 min-h-8 btn btn-sm btn-ghost gap-1.5 rounded-md border border-base-300 bg-base-100 px-3 hover:border-info/40 hover:text-info"
+        />
         <button
           type="button"
           className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300"
@@ -120,9 +126,14 @@ export const UserActions: React.FC<UserActionsProps> = ({
   return (
     <div className="flex-col w-full mt-4">
       <FollowButton userId={user?.userId || 0} className="w-full" />
+      <FriendRequestButton
+        targetUserId={user?.userId}
+        targetUsername={user?.username}
+        className="btn mt-4 flex h-8 min-h-8 w-full gap-1.5 rounded-md border border-base-300 bg-base-100/70 px-3 text-sm transition-colors hover:border-info/40 hover:bg-base-200 hover:text-info"
+      />
       <button
         type="button"
-        className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer mt-4"
+        className="btn mt-4 flex h-8 min-h-8 w-full gap-1.5 rounded-md border border-base-300 bg-base-100/70 px-3 text-sm transition-colors hover:border-info/40 hover:bg-base-200 hover:text-info"
         onClick={() => router.history.push(`/chat/private/${userId}`)}
       >
         <svg

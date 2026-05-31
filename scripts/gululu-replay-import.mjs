@@ -17,6 +17,51 @@ const SPEAKER_LINE_PATTERN = /^\s*(?<speaker>[^:：\r\n]{1,18})\s*[:：]\s*(?<co
 const LOOSE_SPEAKER_QUOTE_PATTERN = /^\s*(?<speaker>[\p{Script=Han}A-Za-z0-9·]{1,10})\s*[“"‘'](?<content>.*)$/u;
 const IGNORED_SPEAKER_PATTERN = /^(?:BGM|HP|Hp|Atk|ATK|攻击|技能|必杀技|PS|T\d+|\d+)$/;
 const LOOSE_SPEAKER_DENY_PATTERN = /^(?:除了|虽然|如果|因为|不过|然后|于是|这里|这时|然而|但是|而且|那么|顺便|实际原因|收下吧)$/;
+const ROLE_ALIAS_OVERRIDES = new Map([
+  ["阿空", "灵乌路空"],
+  ["阿燐", "火焰猫燐"],
+  ["阿求", "稗田阿求"],
+  ["爱丽丝", "爱丽丝·玛格特洛依德"],
+  ["白莲", "圣白莲"],
+  ["布都", "物部布都"],
+  ["橙", "橙"],
+  ["辉夜", "蓬莱山辉夜"],
+  ["慧音", "上白泽慧音"],
+  ["华扇", "茨木华扇"],
+  ["觉", "古明地觉"],
+  ["雷鼓", "堀川雷鼓"],
+  ["蓝", "八云蓝"],
+  ["老郭", "郭海皇"],
+  ["灵梦", "博丽灵梦"],
+  ["烈", "烈海王"],
+  ["妹红", "藤原妹红"],
+  ["魔理沙", "雾雨魔理沙"],
+  ["猯藏", "二岩猯藏"],
+  ["青娥", "霍青娥"],
+  ["神子", "丰聪耳神子"],
+  ["四季", "四季映姬"],
+  ["永琳", "八意永琳"],
+  ["师匠", "八意永琳"],
+  ["太子", "丰聪耳神子"],
+  ["天子", "比那名居天子"],
+  ["文文", "射命丸文"],
+  ["小伞", "多多良小伞"],
+  ["咲夜", "十六夜咲夜"],
+  ["妖梦", "魂魄妖梦"],
+  ["幽香", "风见幽香"],
+  ["幽幽子", "西行寺幽幽子"],
+  ["勇仪", "星熊勇仪"],
+  ["早苗", "东风谷早苗"],
+  ["茨华仙", "茨木华扇"],
+  ["恋恋", "古明地恋"],
+  ["梅莉", "玛艾露贝莉·赫恩"],
+  ["梦烈", "烈海王"],
+  ["芙兰", "芙兰朵露"],
+  ["紫", "八云紫"],
+  ["紫苑", "依神紫苑"],
+  ["女苑", "依神女苑"],
+  ["萃香", "伊吹萃香"],
+]);
 
 export function normalizeGululuImagePath(rawPath) {
   return rawPath.trim().replace(/\\/g, "/").replace(/^\.\.\/images\//, "");
@@ -36,6 +81,11 @@ function trimLooseQuotedContent(content) {
 
 function isIgnorableSpeakerName(name) {
   return IGNORED_SPEAKER_PATTERN.test(trimSpeakerName(name));
+}
+
+function normalizeRoleName(name) {
+  const trimmed = trimSpeakerName(name);
+  return ROLE_ALIAS_OVERRIDES.get(trimmed) ?? trimmed;
 }
 
 function hasDiceRoll(line) {
@@ -145,8 +195,9 @@ export function buildImageSpeakerVotes(floors) {
       if (!speaker) {
         continue;
       }
+      const roleName = normalizeRoleName(speaker);
       const imageVotes = votes.get(segment.imagePath) ?? new Map();
-      imageVotes.set(speaker, (imageVotes.get(speaker) ?? 0) + 1);
+      imageVotes.set(roleName, (imageVotes.get(roleName) ?? 0) + 1);
       votes.set(segment.imagePath, imageVotes);
     }
   }
@@ -235,6 +286,7 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
         content: speakerLine.content,
         inferred: false,
         kind: "dialog",
+        roleName: normalizeRoleName(speakerLine.speakerName),
         speakerName: speakerLine.speakerName,
       });
       continue;
@@ -245,6 +297,7 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
         content: line,
         inferred: true,
         kind: "dialog",
+        roleName: normalizeRoleName(inferredSpeaker),
         speakerName: inferredSpeaker,
       });
       continue;
@@ -348,10 +401,13 @@ export function buildGululuReplayImportPackage(floors, options = {}) {
     if (message.kind !== "dialog" || !message.speakerName) {
       continue;
     }
-    const role = rolesByName.get(message.speakerName) ?? {
+    const roleName = message.roleName || normalizeRoleName(message.speakerName);
+    const role = rolesByName.get(roleName) ?? {
+      aliases: new Map(),
       avatarImages: new Map(),
-      name: message.speakerName,
+      name: roleName,
     };
+    role.aliases.set(message.speakerName, (role.aliases.get(message.speakerName) ?? 0) + 1);
     if (message.imagePath) {
       const avatar = role.avatarImages.get(message.imagePath) ?? {
         count: 0,
@@ -361,12 +417,15 @@ export function buildGululuReplayImportPackage(floors, options = {}) {
       avatar.count += 1;
       role.avatarImages.set(message.imagePath, avatar);
     }
-    rolesByName.set(message.speakerName, role);
+    rolesByName.set(roleName, role);
   }
 
   const roles = [...rolesByName.values()]
     .map(role => ({
       avatarImages: [...role.avatarImages.values()].sort((left, right) => right.count - left.count),
+      aliases: [...role.aliases.entries()]
+        .map(([name, count]) => ({ count, name }))
+        .sort((left, right) => right.count - left.count),
       defaultAvatarPath: [...role.avatarImages.values()].sort((left, right) => right.count - left.count)[0]?.imagePath,
       name: role.name,
     }))

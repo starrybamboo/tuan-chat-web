@@ -18,6 +18,7 @@ import RoomComposerHeader from "@/components/chat/room/roomComposerHeader";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
+import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
@@ -219,12 +220,19 @@ function RoomComposerPanelImpl({
   const toggleAutoReplyMode = useRoomPreferenceStore(state => state.toggleAutoReplyMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const setRunModeEnabled = useRoomPreferenceStore(state => state.setRunModeEnabled);
+  const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const draftCustomRoleNameMap = useRoomPreferenceStore(state => state.draftCustomRoleNameMap);
   const setDraftCustomRoleNameForRole = useRoomPreferenceStore(state => state.setDraftCustomRoleNameForRole);
 
   const onToggleRunMode = React.useCallback(() => {
-    setRunModeEnabled(!runModeEnabled);
-  }, [runModeEnabled, setRunModeEnabled]);
+    if (runModeEnabled) {
+      setRunModeEnabled(false);
+      setSideDrawerState("none");
+      return;
+    }
+    setRunModeEnabled(true);
+    setSideDrawerState("map");
+  }, [runModeEnabled, setRunModeEnabled, setSideDrawerState]);
 
   const currentRole = React.useMemo(() => {
     return selectableRoles.find(role => role.roleId === curRoleId);

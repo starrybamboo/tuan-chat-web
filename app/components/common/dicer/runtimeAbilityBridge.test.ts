@@ -75,7 +75,7 @@ describe("runtimeAbilityBridge", () => {
     });
   });
 
-  it("会从房间 STATE_EVENT 中解析目标角色当前数值", () => {
+  it("不会把角色级 STATE_EVENT 暴露为目标角色当前数值", () => {
     const roleId = 9;
     const fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined> = {
       [roleId]: {},
@@ -85,10 +85,7 @@ describe("runtimeAbilityBridge", () => {
       createStateEventMessage(1, { kind: "role", roleId }, "设计", 20),
     ], fallbackRoleAbilitiesByRoleId);
 
-    expect(runtimeValuesByRoleId[roleId]).toEqual({ 设计: 20 });
-    expect(mergeRuntimeRoleValuesIntoAbility({}, runtimeValuesByRoleId[roleId]).skill).toEqual({
-      设计: "20",
-    });
+    expect(runtimeValuesByRoleId[roleId]).toBeUndefined();
   });
 
   it("会暴露房间级 STATE_EVENT 数值，供旧骰子命令读取共享变量", () => {
@@ -100,6 +97,26 @@ describe("runtimeAbilityBridge", () => {
     expect(mergeRuntimeRoleValuesIntoAbility({}, runtimeStateValues.room, { overrideExisting: false }).skill).toEqual({
       难度: "15",
     });
+  });
+
+  it("会暴露显式状态事件派生出的战斗轮状态", () => {
+    const runtimeStateValues = buildRuntimeStateValues([{
+      message: {
+        ...createStateEventMessage(1, { kind: "room" }, "难度", 15).message,
+        extra: {
+          stateEvent: {
+            source: {
+              kind: "command",
+              commandName: "ri",
+              parserVersion: "state-event-v1",
+            },
+            events: [{ type: "combatRoundStart" }],
+          },
+        },
+      },
+    }], {});
+
+    expect(runtimeStateValues.combatRoundActive).toBe(true);
   });
 
   it("会把旧骰子命令写回的数值差异转换为角色状态事件", () => {

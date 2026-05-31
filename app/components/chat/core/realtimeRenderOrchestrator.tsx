@@ -1,9 +1,12 @@
 import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
-import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "react-hot-toast";
+import {
+  getMaxRenderedMessagePosition,
+  shouldAutoAdvanceAppendedMessage,
+} from "@/components/chat/core/realtimeRenderAutoAdvance";
 import {
   shouldProcessHistoryDelta,
   shouldRenderInitialHistory,
@@ -11,7 +14,6 @@ import {
 } from "@/components/chat/core/realtimeRenderGuards";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
-import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { isImageMessageBackground } from "@/types/messageAnnotations";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
@@ -48,6 +50,7 @@ export interface RealtimeRenderOrchestratorApi {
 interface Props {
   spaceId: number;
   spaceName?: string;
+  ruleId?: number | null;
   roomId: number;
   room: Room | undefined;
   roles: UserRole[];
@@ -59,6 +62,7 @@ interface Props {
 export default function RealtimeRenderOrchestrator({
   spaceId,
   spaceName,
+  ruleId,
   roomId,
   room,
   roles,
@@ -80,14 +84,10 @@ export default function RealtimeRenderOrchestrator({
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const setIsRealtimeRenderEnabled = useRealtimeRenderStore(state => state.setEnabled);
 
-  const sideDrawerState = useSideDrawerStore(state => state.state);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
-
-  const prevSideDrawerStateRef = useRef<SideDrawerState>("none");
-
   const realtimeTTSEnabled = useRealtimeRenderStore(state => state.ttsEnabled);
   const realtimeMiniAvatarEnabled = useRealtimeRenderStore(state => state.miniAvatarEnabled);
   const realtimeAutoFigureEnabled = useRealtimeRenderStore(state => state.autoFigureEnabled);
+  const realtimeAutoAdvanceEnabled = useRealtimeRenderStore(state => state.autoAdvanceEnabled);
   const realtimeGameConfig = useRealtimeRenderStore(state => state.gameConfig);
   const ttsApiUrl = useRealtimeRenderStore(state => state.ttsApiUrl);
 
@@ -105,12 +105,14 @@ export default function RealtimeRenderOrchestrator({
   const realtimeRender = useRealtimeRender({
     spaceId,
     spaceName,
+    ruleId,
     enabled: isRealtimeRenderEnabled,
     roles,
     rooms: room ? [room] : [],
     ttsConfig: realtimeTTSConfig,
     miniAvatarEnabled: realtimeMiniAvatarEnabled,
     autoFigureEnabled: realtimeAutoFigureEnabled,
+    autoAdvanceEnabled: realtimeAutoAdvanceEnabled,
     gameConfig: realtimeGameConfig,
   });
 
@@ -266,11 +268,8 @@ export default function RealtimeRenderOrchestrator({
       stopRealtimeRender();
       setIsRealtimeRenderEnabled(false);
       resetHistoryTracking();
-      if (sideDrawerState === "webgal") {
-        setSideDrawerState("none");
-      }
     }
-  }, [dismissRealtimeRenderToasts, resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState, stopRealtimeRender]);
+  }, [dismissRealtimeRenderToasts, resetHistoryTracking, roomId, setIsRealtimeRenderEnabled, stopRealtimeRender]);
 
   useEffect(() => {
     if (!shouldRenderInitialHistory({
@@ -382,7 +381,6 @@ export default function RealtimeRenderOrchestrator({
         if (success) {
           toast.success("实时渲染已开启", { id: "webgal-init" });
           setIsRealtimeRenderEnabled(true);
-          setSideDrawerState("webgal");
           await renderHistoryMessages();
         }
         else {
@@ -407,32 +405,18 @@ export default function RealtimeRenderOrchestrator({
     finally {
       isStartingRealtimeRenderRef.current = false;
     }
-  }, [dismissRealtimeRenderToasts, ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, setSideDrawerState, spaceId, stopRealtimeRender]);
+  }, [dismissRealtimeRenderToasts, ensureHydrated, realtimeRender, renderHistoryMessages, setIsRealtimeRenderEnabled, spaceId, stopRealtimeRender]);
 
   const handleToggleRealtimeRender = useCallback(async () => {
     if (realtimeRender.isActive) {
       dismissRealtimeRenderToasts();
       realtimeRender.stop();
       setIsRealtimeRenderEnabled(false);
-      setSideDrawerState("none");
       toast.success("已关闭实时渲染");
       return;
     }
     await startRealtimeRender();
-  }, [dismissRealtimeRenderToasts, realtimeRender, setIsRealtimeRenderEnabled, setSideDrawerState, startRealtimeRender]);
-
-  useEffect(() => {
-    const prevSideDrawerState = prevSideDrawerStateRef.current;
-    prevSideDrawerStateRef.current = sideDrawerState;
-
-    if (sideDrawerState !== "webgal" || prevSideDrawerState === "webgal") {
-      return;
-    }
-    if (realtimeRender.isActive) {
-      return;
-    }
-    void startRealtimeRender();
-  }, [realtimeRender.isActive, sideDrawerState, startRealtimeRender]);
+  }, [dismissRealtimeRenderToasts, realtimeRender, setIsRealtimeRenderEnabled, startRealtimeRender]);
 
   useEffect(() => {
     if (realtimeRender.initProgress && realtimeRender.status === "initializing") {
@@ -451,13 +435,10 @@ export default function RealtimeRenderOrchestrator({
     toast.error(appendWebgalLaunchHints("实时渲染连接失败，请确认 WebGAL 已启动"), { id: "webgal-error" });
     stopRealtimeRender();
     setIsRealtimeRenderEnabled(false);
-    if (sideDrawerState === "webgal") {
-      setSideDrawerState("none");
-    }
     hasRenderedHistoryRef.current = false;
     lastRenderedMessageIdRef.current = null;
     lastBackgroundMessageIdRef.current = null;
-  }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled, sideDrawerState, setSideDrawerState]);
+  }, [realtimeStatus, stopRealtimeRender, setIsRealtimeRenderEnabled]);
 
   const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
     if (!realtimeRender.isActive) {
@@ -741,9 +722,19 @@ export default function RealtimeRenderOrchestrator({
       const appendedMessages = orderedHistoryMessages.slice(prevIds.length);
       void (async () => {
         isRenderingHistoryRef.current = true;
+        let previousMaxPosition = getMaxRenderedMessagePosition(orderedHistoryMessages.slice(0, prevIds.length));
         try {
           for (const message of appendedMessages) {
-            await realtimeRender.renderMessage(message, roomId);
+            const autoAdvance = shouldAutoAdvanceAppendedMessage({
+              enabled: realtimeAutoAdvanceEnabled,
+              message,
+              previousMaxPosition,
+            });
+            await realtimeRender.renderMessage(message, roomId, { autoAdvance });
+            const position = message.message.position;
+            if (typeof position === "number" && Number.isFinite(position)) {
+              previousMaxPosition = previousMaxPosition == null ? position : Math.max(previousMaxPosition, position);
+            }
           }
           commitRenderedHistoryState(orderedHistoryMessages);
         }
@@ -769,6 +760,7 @@ export default function RealtimeRenderOrchestrator({
     commitRenderedHistoryState,
     orderedHistoryMessages,
     realtimeAutoFigureEnabled,
+    realtimeAutoAdvanceEnabled,
     realtimeMiniAvatarEnabled,
     realtimeRender,
     rerenderHistoryFromIndexInWebGAL,

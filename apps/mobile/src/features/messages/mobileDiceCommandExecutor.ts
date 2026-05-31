@@ -16,6 +16,7 @@ import {
 
   toApiMessageExtraWithStateEvent,
 } from "@tuanchat/domain/state-event";
+import { persistRoleAbilitySnapshot } from "@tuanchat/domain/state-runtime";
 import {
   roleAbilityByRuleQueryKey,
   roleAbilityListQueryKey,
@@ -165,7 +166,6 @@ function normalizeRoleAbility(
     basic: { ...(ability?.basic ?? {}) },
     ability: { ...(ability?.ability ?? {}) },
     skill: { ...(ability?.skill ?? {}) },
-    record: { ...(ability?.record ?? {}) },
     extra: { ...(ability?.extra ?? {}) },
   };
 }
@@ -181,7 +181,7 @@ async function getOrFetchRoleAbility(
   }
 
   try {
-    const response = await mobileApiClient.abilityController.getByRuleAndRole(ruleId, roleId);
+    const response = await mobileApiClient.abilityController.getRoleAbilityByRule(ruleId, roleId);
     return normalizeRoleAbility(response.data ?? {}, roleId, ruleId);
   }
   catch {
@@ -218,28 +218,24 @@ async function persistRoleAbility(
 ): Promise<void> {
   const roleId = requirePositiveId(afterAbility.roleId, "角色能力缺少角色 ID，无法保存。");
   const ruleId = requirePositiveId(afterAbility.ruleId, "角色能力缺少规则 ID，无法保存。");
-  const request = {
+  const changed = await persistRoleAbilitySnapshot({
+    beforeAbility,
+    afterAbility,
     roleId,
     ruleId,
-    act: afterAbility.act,
-    basic: afterAbility.basic,
-    ability: afterAbility.ability,
-    skill: afterAbility.skill,
-    record: afterAbility.record,
-    extra: afterAbility.extra,
-  };
-
-  if (beforeAbility?.abilityId || afterAbility.abilityId) {
-    await mobileApiClient.abilityController.updateRoleAbility1(request);
-    cacheRoleAbility(queryClient, afterAbility);
-    return;
-  }
-
-  const result = await mobileApiClient.abilityController.setRoleAbility(request);
-  cacheRoleAbility(queryClient, {
-    ...afterAbility,
-    abilityId: result.data ?? afterAbility.abilityId,
+    loadRoleAbility: (targetRoleId, targetRuleId) => getOrFetchRoleAbility(queryClient, targetRoleId, targetRuleId),
+    createRoleAbility: async (request) => {
+      const result = await mobileApiClient.abilityController.setRoleAbility(request);
+      if (typeof result.data === "number" && result.data > 0) {
+        afterAbility.abilityId = result.data;
+      }
+      return result;
+    },
+    updateRoleAbility: request => mobileApiClient.abilityController.updateRoleAbilityByRule(request),
   });
+  if (changed) {
+    cacheRoleAbility(queryClient, afterAbility);
+  }
 }
 
 function buildDiceTurnMessageExtra(command: string, replies: DiceTurnReplyPayload[]) {
@@ -393,12 +389,9 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
   let spaceDicerDataModified = false;
 
   const buildCurrentRoleAbility = (roleId: number): RoleAbility => {
-    const roleRuntimeMergedAbility = mergeRuntimeRoleValuesIntoAbility(
-      baseRoleAbilities.get(roleId),
-      runtimeStateValues.rolesByRoleId[roleId],
-    );
+    // 房间级状态变量作为共享兜底注入，角色当前值以角色卡为准。
     const ability = mergeRuntimeRoleValuesIntoAbility(
-      roleRuntimeMergedAbility,
+      baseRoleAbilities.get(roleId),
       runtimeStateValues.room,
       { overrideExisting: false },
     );
