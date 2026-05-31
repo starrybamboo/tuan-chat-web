@@ -85,7 +85,7 @@ The system SHALL extract NovelAI metadata from source PNG/WebP files and embed i
 
 ### Requirement: Chat room media rendering SHALL use fixed quality tiers
 
-Chat room media upload and rendering on both Web and mobile clients SHALL use fixed quality tiers independent of the generic media URL fallback behavior.
+Chat room media upload and rendering on both Web and mobile clients SHALL use fixed quality tiers for the initial request. Runtime display-layer fallback MAY still retry `original` when a requested image variant is unavailable.
 
 Image uploads in chat rooms SHALL generate only `low` and `medium` tiers. Chat room image uploads SHALL NOT generate or upload `original` or `high`.
 
@@ -93,23 +93,25 @@ Sound and video uploads in chat rooms SHALL generate only the `low` tier. Chat r
 
 File, document, and other attachment uploads in chat rooms SHALL generate only the `low` tier. Chat room file/document/other uploads SHALL NOT generate or upload `medium`, `high`, or `original`.
 
-Image message inline previews SHALL always request the `low` tier. Opening or tapping an image message for large-image viewing SHALL request the `medium` tier. Chat room image viewing SHALL NOT request `high` or `original`.
+Image message inline previews SHALL always request the `low` tier first. Opening or tapping an image message for large-image viewing SHALL request the `medium` tier first. Chat room image viewing SHALL NOT proactively request `high`, and it SHALL only retry `original` after the requested image variant fails to load.
 
 Sound, video, file, document, and other attachment messages in chat rooms SHALL always request the `low` tier for playback/opening. Chat room rendering for these media types SHALL NOT request `medium`, `high`, or `original`.
 
 #### Scenario: Web chat room renders image messages
 - **WHEN** the Web client renders an image message inline in a chat room
-- **THEN** it SHALL request the image `low` tier
+- **THEN** it SHALL request the image `low` tier first
 - **WHEN** the user opens the image in the large-image viewer
-- **THEN** it SHALL request the image `medium` tier
-- **AND** it SHALL NOT request `high` or `original` for chat room image viewing
+- **THEN** it SHALL request the image `medium` tier first
+- **AND** it SHALL NOT proactively request `high`
+- **WHEN** the requested `low` or `medium` image variant fails to load
+- **THEN** it SHALL retry the same image with the `original` URL as a display fallback
 
 #### Scenario: Mobile chat room renders image messages
 - **WHEN** the mobile client renders an image message inline in a chat room
 - **THEN** it SHALL request the image `low` tier
 - **WHEN** the user taps the image to view it larger
 - **THEN** it SHALL request the image `medium` tier
-- **AND** it SHALL NOT request `high` or `original` for chat room image viewing
+- **AND** it SHALL NOT proactively request `high` or `original` for chat room image viewing
 
 #### Scenario: Chat room renders sound messages
 - **WHEN** either Web or mobile renders or opens a sound message in a chat room

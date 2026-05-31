@@ -243,7 +243,7 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                       type="button"
                       className="block w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border border-base-300 bg-base-200/30"
                     >
-                      <img
+                      <MediaImage
                         src={getPublishPostImagePreviewUrl(img)}
                         alt={img.name ?? `img-${idx}`}
                         className="w-full h-full object-cover"

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { MediaImage } from "@/components/common/mediaImage";
 import MoodRegulator from "@/components/common/MoodRegulator";
 import { getEffectiveAvatarUrl } from "../utils";
 
@@ -144,7 +145,7 @@ export function AvatarSettingsTab({
                     <div className="shrink-0">
                       {avatarDisplayUrl
                         ? (
-                            <img
+                            <MediaImage
                               src={avatarDisplayUrl}
                               alt="头像预览"
                               className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg object-contain bg-base-200"

@@ -1,4 +1,5 @@
 import type { Role } from "../types";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 // 1. 从 Props 接口中移除 onSelect
@@ -29,7 +30,7 @@ export function RoleListItem({
       <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onSelect}>
         <div className="avatar shrink-0">
           <div className="w-12 h-12 md:w-14 md:h-14 rounded-full">
-            <img src={avatarSrc} alt={role.name || "default avatar"} loading="lazy" />
+            <MediaImage src={avatarSrc} alt={role.name || "default avatar"} loading="lazy" fallbackSrc={role.avatar || ROLE_DEFAULT_AVATAR_URL} />
           </div>
         </div>
         <div className="flex-1 min-w-0 max-w-32 overflow-hidden">

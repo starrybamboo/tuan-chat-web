@@ -7,6 +7,7 @@ import { buildMaterialSidebarTree } from "@/components/chat/room/materialSidebar
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+import { MediaImage } from "@/components/common/mediaImage";
 import { parseNodePath, serializeNodePath } from "@/components/material/components/materialPackageTreeUtils";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 
@@ -299,7 +300,7 @@ export default function RoomSidebarMaterialPackageItem({
           <div className="flex size-8 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
             {coverUrl
               ? (
-                  <img
+                  <MediaImage
                     src={coverUrl}
                     alt={packageName}
                     draggable={false}

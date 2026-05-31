@@ -3,6 +3,7 @@ import type { Transform } from "../TransformControl";
 import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
@@ -308,7 +309,7 @@ export function PreviewTab({
           spriteUrl
             ? (
                 <div className="w-full h-full flex items-center justify-center p-4">
-                  <img
+                  <MediaImage
                     src={spritePreviewUrl ?? spriteUrl}
                     alt="立绘预览"
                     className="max-w-full max-h-full object-contain"

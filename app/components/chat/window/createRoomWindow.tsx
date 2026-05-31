@@ -8,6 +8,7 @@ import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useState } from "react";
 import toast from "react-hot-toast";
 import checkBack from "@/components/common/autoContrastText";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -137,10 +138,11 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                 copperedCompressionPreset="avatarThumb"
               >
                 <div className="group relative size-28 overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm">
-                  <img
+                  <MediaImage
                     src={roomAvatar}
                     alt="room avatar"
                     className="size-full object-cover transition duration-200 group-hover:scale-105 group-hover:brightness-75"
+                    fallbackSrc="/favicon.ico"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-base-100/10 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
                     <span className={`${roomAvatarTextColor} rounded bg-base-100/70 px-2 py-1 text-xs font-semibold`}>

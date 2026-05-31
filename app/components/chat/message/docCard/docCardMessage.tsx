@@ -8,6 +8,7 @@ import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { documentModalShellClassName, getDocumentModalFrameClassName } from "@/components/chat/shared/components/documentModalShell";
 import { setDocRefDragData } from "@/components/chat/utils/docRef";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { extractDocCardReferencePayload, resolveDocCardDisplayCoverUrl } from "./docCardMedia";
@@ -91,7 +92,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
             <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg border border-base-300 bg-base-200">
               {displayCoverUrl
                 ? (
-                    <img src={displayCoverUrl} alt={title} draggable={false} className="h-full w-full object-cover" />
+                    <MediaImage src={displayCoverUrl} alt={title} draggable={false} className="h-full w-full object-cover" />
                   )
                 : (
                     <div className="flex h-full w-full items-center justify-center">
