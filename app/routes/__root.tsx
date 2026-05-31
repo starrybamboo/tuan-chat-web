@@ -1,6 +1,7 @@
 import type {
   RouteMetaArgs,
 } from "@/routes/routeTypes";
+import type { CloudflareWebAnalyticsStatus } from "@/utils/cloudflareWebAnalytics";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
@@ -14,6 +15,7 @@ import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
+import { cloudflareWebAnalytics } from "@/utils/cloudflareWebAnalytics";
 import { installDiagnosticConsoleCapture } from "@/utils/diagnosticConsole";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "@/app.css";
@@ -85,14 +87,6 @@ const isTestBuild = import.meta.env.MODE === "test";
 const shouldEnableReactScan = typeof window !== "undefined" && (isTestBuild || import.meta.env.DEV);
 const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
 const BUG_FEEDBACK_SPLASH_SESSION_KEY = "tc:bug-feedback-splash:2026-05-20";
-const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC = "https://static.cloudflareinsights.com/beacon.min.js";
-const CLOUDFLARE_WEB_ANALYTICS_TOKEN = "bd3746d5fcac46db97172d382492de26";
-const CLOUDFLARE_WEB_ANALYTICS_HOSTS = new Set([
-  "tuan.chat",
-  "www.tuan.chat",
-  "test.tuan.chat",
-  "www.test.tuan.chat",
-]);
 
 if (shouldEnableReactScan) {
   void import("react-scan")
@@ -131,28 +125,6 @@ if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window
     childList: true,
     characterData: true,
   });
-}
-
-function getCloudflareWebAnalyticsScripts() {
-  // 只在线上 Web 域名加载，避免本地开发和 Electron `app://` 壳污染站点统计。
-  if (
-    !import.meta.env.PROD
-    || typeof window === "undefined"
-    || window.location.protocol !== "https:"
-    || !CLOUDFLARE_WEB_ANALYTICS_HOSTS.has(window.location.hostname.toLowerCase())
-  ) {
-    return [];
-  }
-
-  return [
-    {
-      "src": CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC,
-      "defer": true,
-      "data-cf-beacon": JSON.stringify({
-        token: CLOUDFLARE_WEB_ANALYTICS_TOKEN,
-      }),
-    },
-  ];
 }
 
 export function links() {
@@ -214,11 +186,16 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
   const [isBugFeedbackSplashOpen, setIsBugFeedbackSplashOpen] = React.useState(false);
+  const [cloudflareWebAnalyticsStatus, setCloudflareWebAnalyticsStatus] = React.useState<CloudflareWebAnalyticsStatus>(
+    () => cloudflareWebAnalytics.getStatus(),
+  );
   const authStatusQuery = useQuery({
     queryKey: ["authStatus"],
     queryFn: checkAuthStatus,
   });
   const isLoggedIn = authStatusQuery.data?.isLoggedIn === true;
+  const isAnalyticsBlockedByAdBlocker = cloudflareWebAnalyticsStatus === "blocked";
+  const shouldShowBugFeedbackGuide = isLoggedIn;
 
   React.useEffect(() => {
     const msg = consumeAuthToast();
@@ -234,6 +211,13 @@ function App() {
     catch {
       // ignore
     }
+  }, []);
+
+  React.useEffect(() => {
+    setCloudflareWebAnalyticsStatus(cloudflareWebAnalytics.getStatus());
+    const unsubscribe = cloudflareWebAnalytics.subscribe(setCloudflareWebAnalyticsStatus);
+    void cloudflareWebAnalytics.ensureLoaded();
+    return unsubscribe;
   }, []);
 
   React.useEffect(() => {
@@ -260,7 +244,14 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined" || authStatusQuery.isLoading || !isLoggedIn) {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (authStatusQuery.isLoading && !isAnalyticsBlockedByAdBlocker) {
+      setIsBugFeedbackSplashOpen(false);
+      return;
+    }
+    if (!shouldShowBugFeedbackGuide && !isAnalyticsBlockedByAdBlocker) {
       setIsBugFeedbackSplashOpen(false);
       return;
     }
@@ -272,7 +263,7 @@ function App() {
       // ignore
     }
     setIsBugFeedbackSplashOpen(true);
-  }, [authStatusQuery.isLoading, isLoggedIn]);
+  }, [authStatusQuery.isLoading, isAnalyticsBlockedByAdBlocker, shouldShowBugFeedbackGuide]);
 
   const closeBugFeedbackSplash = React.useCallback(() => {
     setIsBugFeedbackSplashOpen(false);
@@ -336,10 +327,19 @@ function App() {
         </div>
       )}
       {isBugFeedbackSplashOpen && (
-        <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Bug反馈指引">
+        <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Bug反馈与诊断提示">
           <div className="modal-box max-w-2xl">
-            <h3 className="text-lg font-bold">Bug 反馈指引</h3>
+            <h3 className="text-lg font-bold">Bug 反馈与诊断提示</h3>
             <div className="mt-4 space-y-3 leading-7">
+              {isAnalyticsBlockedByAdBlocker && (
+                <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm leading-7 text-base-content">
+                  <p className="font-semibold text-warning">检测到浏览器可能拦截了诊断脚本</p>
+                  <p className="mt-2">
+                    当前站点使用 Cloudflare 的 JS beacon 收集性能和错误现场，用于性能优化和 Bug 分析。
+                    如果你开启了广告拦截插件，建议将当前站点加入白名单，或临时关闭插件后刷新页面，以便我们拿到更完整的诊断数据。
+                  </p>
+                </div>
+              )}
               <p>
                 如果你在使用过程中遇到了 Bug，可以通过以下步骤快速反馈，帮助我们尽快修复问题：
               </p>
@@ -360,7 +360,7 @@ function App() {
           <button
             type="button"
             className="modal-backdrop"
-            aria-label="关闭Bug反馈指引"
+            aria-label="关闭Bug反馈与诊断提示"
             onClick={closeBugFeedbackSplash}
           />
         </div>
@@ -389,7 +389,6 @@ export const Route = createRootRoute({
       ...meta({ params: {} }),
     ],
     links: links(),
-    scripts: getCloudflareWebAnalyticsScripts(),
   }),
   component: RootRouteComponent,
   errorComponent: ErrorBoundary,
