@@ -1,6 +1,7 @@
 import type { Room } from "../../../../../api";
 import React from "react";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 import { resolveEntityImageUrl } from "./entityImageUrl";
 
@@ -56,17 +57,11 @@ export default function RoomButton({
               )
             : null}
           <div className="mask mask-squircle size-8">
-            <img
+            <MediaImage
               src={displayAvatar}
               alt={displayName}
               draggable={false}
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (img.dataset.fallbackApplied)
-                  return;
-                img.dataset.fallbackApplied = "1";
-                img.src = fallbackAvatar;
-              }}
+              fallbackSrc={fallbackAvatar}
             />
           </div>
         </div>

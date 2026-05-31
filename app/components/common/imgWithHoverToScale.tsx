@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
@@ -143,7 +144,7 @@ export default function ImgWithHoverToScale({
               transformOrigin: "top left",
             }}
           >
-            <img
+            <MediaImage
               src={previewSrc}
               alt={alt}
               style={{
@@ -165,7 +166,7 @@ export default function ImgWithHoverToScale({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <img
+      <MediaImage
         src={src}
         alt={alt}
         className={className}

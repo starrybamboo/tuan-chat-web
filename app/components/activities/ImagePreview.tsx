@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
 import { imageMediumUrlFromUrl, imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 
@@ -99,7 +100,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           className="relative w-full aspect-square bg-base-100 rounded-lg overflow-hidden cursor-pointer"
           onClick={handleEnlargedClick}
         >
-          <img
+          <MediaImage
             key={`pic-${enlargedIndex}`}
             src={currentImage}
             alt={`图片 ${enlargedIndex + 1}`}
@@ -176,7 +177,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       >
         {images.slice(0, maxPreview).map((img: string, idx: number) => (
           <div key={img} className="relative">
-            <img
+            <MediaImage
               src={imageMediumUrlFromUrl(img)}
               alt={`图片 ${idx + 1}`}
               className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"

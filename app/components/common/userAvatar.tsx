@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { MediaImage } from "@/components/common/mediaImage";
 import { buildUserProfileNavigation } from "@/components/common/userAvatarNavigation";
 import { UserDetail } from "@/components/common/userDetail";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
@@ -246,10 +247,11 @@ export default function UserAvatarComponent({
     >
       <div className="avatar group/avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} overflow-hidden`}>
-          <img
+          <MediaImage
             src={resolvedAvatar}
             alt="Avatar"
             className={avatarImageHoverClassName}
+            fallbackSrc="/favicon.ico"
           />
         </div>
       </div>

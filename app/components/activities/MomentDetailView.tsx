@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import CommentPanel from "@/components/common/comment/commentPanel";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
@@ -132,11 +133,12 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                       <div className="skeleton w-16 h-16 rounded-full flex-shrink-0"></div>
                     )
                   : (
-                      <img
+                      <MediaImage
                         className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
                         src={data.avatar}
                         onClick={handleAvatarClick}
                         alt="用户头像"
+                        fallbackSrc="/favicon.ico"
                       />
                     )}
 
@@ -202,7 +204,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   <div className="mt-4 p-4 bg-base-200 rounded-lg border border-base-300">
                     <div className="flex items-center gap-3">
                       {repositoryCoverUrl && (
-                        <img
+                        <MediaImage
                           src={repositoryCoverUrl}
                           alt={feed.repositoryVO.repositoryName}
                           className="w-12 h-12 rounded-lg object-cover"
@@ -241,7 +243,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                           key={img}
                           className="aspect-square overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         >
-                          <img
+                          <MediaImage
                             src={imageMediumUrlFromUrl(img)}
                             alt={`图片 ${idx + 1}`}
                             className="w-full h-full object-cover"

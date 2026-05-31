@@ -1,5 +1,6 @@
 import type { Space } from "../../../../../api";
 import { motion } from "motion/react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
@@ -46,23 +47,19 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
                 )
               : null}
             <div className="avatar mask mask-squircle size-10">
-              <img
+              <MediaImage
                 src={displayAvatar}
                 alt={displayName}
                 draggable={false}
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  if (img.dataset.fallbackApplied)
-                    return;
+                fallbackSrc={fallbackAvatar}
+                onError={() => {
                   if (isDev) {
-                    console.warn("[SpaceButton] avatar load failed, fallback applied", {
+                    console.warn("[SpaceButton] avatar load failed after derivative/original fallback", {
                       spaceId: space.spaceId,
                       spaceName: displayName,
                       avatar: displayAvatar,
                     });
                   }
-                  img.dataset.fallbackApplied = "1";
-                  img.src = fallbackAvatar;
                 }}
               />
             </div>

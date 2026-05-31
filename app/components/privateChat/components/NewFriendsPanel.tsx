@@ -8,6 +8,7 @@ import {
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
 import { Search, XMarkICon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
@@ -151,12 +152,13 @@ export default function NewFriendsPanel() {
                   <div className="flex items-center justify-between rounded-md bg-base-200/40 p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="avatar w-9 h-9 shrink-0 overflow-hidden rounded-full bg-base-300">
-                        <img
+                        <MediaImage
                           className="h-full w-full rounded-full object-cover"
                           src={imageLowUrl(searchUserInfo?.avatarFileId)}
                           alt=""
                           width={36}
                           height={36}
+                          fallbackSrc="/favicon.ico"
                         />
                       </div>
                       <div className="min-w-0">
@@ -251,13 +253,14 @@ export default function NewFriendsPanel() {
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="avatar w-9 h-9 shrink-0 overflow-hidden rounded-full bg-base-300">
-                          <img
+                          <MediaImage
                             className="h-full w-full rounded-full object-cover"
                             src={imageLowUrl(user?.avatarFileId)}
                             alt=""
                             width={36}
                             height={36}
                             loading="lazy"
+                            fallbackSrc="/favicon.ico"
                           />
                         </div>
                         <div className="min-w-0">
