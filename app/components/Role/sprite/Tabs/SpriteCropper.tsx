@@ -7,6 +7,7 @@ import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransf
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
+import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
   canvasPreview,
@@ -651,16 +652,6 @@ export function SpriteCropper({
       let loadFail = 0;
       const failedLoadItems: Array<{ index: number; avatarId?: number; imageUrl?: string }> = [];
 
-      const loadImageOnce = (imageUrl: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-          const tempImg = new Image();
-          tempImg.crossOrigin = "anonymous";
-          tempImg.onload = () => resolve(tempImg);
-          tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
-          tempImg.src = imageUrl;
-        });
-      };
-
       const loadImageWithRetry = async (imageUrl: string): Promise<HTMLImageElement> => {
         let lastError: unknown;
         for (let attempt = 1; attempt <= MAX_LOAD_ATTEMPTS; attempt += 1) {
@@ -668,7 +659,7 @@ export function SpriteCropper({
             if (attempt > 1) {
               await new Promise(resolve => setTimeout(resolve, LOAD_RETRY_DELAY_MS * attempt));
             }
-            return await loadImageOnce(imageUrl);
+            return await loadMediaImageWithOriginalFallback(imageUrl);
           }
           catch (error) {
             lastError = error;
@@ -1005,7 +996,7 @@ export function SpriteCropper({
                   aspect={isAvatarMode ? 1 : undefined}
                   minHeight={10}
                 >
-                  <img
+                  <MediaImage
                     ref={imgRef}
                     alt="Sprite to crop"
                     src={currentUrl}
@@ -1303,7 +1294,7 @@ export function SpriteCropper({
                     aspect={isAvatarMode ? 1 : undefined}
                     minHeight={10}
                   >
-                    <img
+                    <MediaImage
                       ref={imgRef}
                       alt="Sprite to crop modal"
                       src={currentUrl}
