@@ -2,6 +2,7 @@ import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { PublishPostImageAsset } from "./publishPostMedia";
 import React, { useEffect, useRef, useState } from "react";
 import StickerWindow from "@/components/chat/window/StickerWindow";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
@@ -205,10 +206,11 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 sm:mb-6">
       <div className="flex items-start space-x-4">
         <div className="pointer-events-none relative flex-shrink-0">
-          <img
+          <MediaImage
             src={imageLowUrl(user?.avatarFileId) || undefined}
             alt={user?.username}
             className="mask mask-circle w-12 h-12 sm:w-14 sm:h-14 object-cover"
+            fallbackSrc="/favicon.ico"
           />
         </div>
 

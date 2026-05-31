@@ -1,11 +1,11 @@
 import type { ImageProps } from "expo-image";
 
 import { Image } from "expo-image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getCachedImageUriSync, resolveCachedImageUri } from "@/lib/mobile-image-cache";
 
-import { resolveCachedImagePointerEvents } from "./cachedImageModel";
+import { resolveCachedImageOriginalFallbackUri, resolveCachedImagePointerEvents } from "./cachedImageModel";
 
 type CachedImagePointerEventsProp = Parameters<typeof resolveCachedImagePointerEvents>[0];
 
@@ -14,34 +14,55 @@ type CachedImageProps = Omit<ImageProps, "pointerEvents" | "source"> & {
   uri: string | null | undefined;
 };
 
-export function CachedImage({ pointerEvents, uri, ...props }: CachedImageProps) {
+export function CachedImage({ onError: externalOnError, pointerEvents, uri, ...props }: CachedImageProps) {
+  const [requestedUri, setRequestedUri] = useState(uri);
   const [asyncResolvedImage, setAsyncResolvedImage] = useState<{ resolvedUri: string; uri: string } | null>(null);
+  const hasTriedOriginalFallbackRef = useRef(false);
   const resolvedPointerEvents = resolveCachedImagePointerEvents(pointerEvents);
-  const syncResolvedUri = getCachedImageUriSync(uri);
-  const asyncResolvedUri = asyncResolvedImage && asyncResolvedImage.uri === uri ? asyncResolvedImage.resolvedUri : null;
+  const syncResolvedUri = getCachedImageUriSync(requestedUri);
+  const asyncResolvedUri = asyncResolvedImage && asyncResolvedImage.uri === requestedUri ? asyncResolvedImage.resolvedUri : null;
   const resolvedUri = syncResolvedUri ?? asyncResolvedUri;
 
   useEffect(() => {
-    const nextUri = getCachedImageUriSync(uri);
-    if (nextUri || !uri) {
+    hasTriedOriginalFallbackRef.current = false;
+    setAsyncResolvedImage(null);
+    setRequestedUri(uri);
+  }, [uri]);
+
+  useEffect(() => {
+    const nextUri = getCachedImageUriSync(requestedUri);
+    if (nextUri || !requestedUri) {
       return;
     }
 
     let cancelled = false;
-    void resolveCachedImageUri(uri).then((cachedUri) => {
+    void resolveCachedImageUri(requestedUri).then((cachedUri) => {
       if (!cancelled && cachedUri) {
-        setAsyncResolvedImage({ resolvedUri: cachedUri, uri });
+        setAsyncResolvedImage({ resolvedUri: cachedUri, uri: requestedUri });
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [uri]);
+  }, [requestedUri]);
 
   if (!resolvedUri) {
     return null;
   }
+
+  const handleError: NonNullable<ImageProps["onError"]> = (event) => {
+    if (!hasTriedOriginalFallbackRef.current) {
+      hasTriedOriginalFallbackRef.current = true;
+      const fallbackUri = resolveCachedImageOriginalFallbackUri(requestedUri);
+      if (fallbackUri) {
+        setAsyncResolvedImage(null);
+        setRequestedUri(fallbackUri);
+        return;
+      }
+    }
+    externalOnError?.(event);
+  };
 
   return (
     <Image
@@ -50,6 +71,7 @@ export function CachedImage({ pointerEvents, uri, ...props }: CachedImageProps) 
       recyclingKey={resolvedUri}
       source={{ uri: resolvedUri }}
       {...props}
+      onError={handleError}
     />
   );
 }

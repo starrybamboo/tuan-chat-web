@@ -11,6 +11,7 @@ import {
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { MediaImage } from "@/components/common/mediaImage";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
 
@@ -168,12 +169,13 @@ export default function UserSearch() {
                       className="flex items-center justify-between p-2 rounded-md bg-base-100"
                     >
                       <div className="flex items-center gap-2">
-                        <img
+                        <MediaImage
                           className="rounded-full"
                           src={imageLowUrl(user?.avatarFileId)}
                           alt="UserAvatar"
                           width={32}
                           height={32}
+                          fallbackSrc="/favicon.ico"
                         />
                         <span className="font-bold">{user?.username}</span>
                         <span className="opacity-70">
@@ -247,12 +249,13 @@ export default function UserSearch() {
                           router.history.push(`/chat/private/${searchUserInfo?.userId}`);
                         }}
                       >
-                        <img
+                        <MediaImage
                           className="rounded-full"
                           src={imageLowUrl(searchUserInfo?.avatarFileId)}
                           alt="FriendAvatar"
                           width={40}
                           height={40}
+                          fallbackSrc="/favicon.ico"
                         />
                         <span>{searchUserInfo?.userId}</span>
                         <span className="font-bold">{searchUserInfo?.username}</span>
@@ -355,12 +358,13 @@ export default function UserSearch() {
                         className="flex min-w-0 flex-1 items-center gap-2 text-left"
                         onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
                       >
-                        <img
+                        <MediaImage
                           className="rounded-full"
                           src={imageLowUrl(friend?.avatarFileId)}
                           alt="FriendAvatar"
                           width={40}
                           height={40}
+                          fallbackSrc="/favicon.ico"
                         />
                         <span>{friend?.userId}</span>
                         <span className="font-bold">{friend?.username}</span>

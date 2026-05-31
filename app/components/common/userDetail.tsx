@@ -1,6 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { FriendRequestButton } from "@/components/common/FriendRequestButton";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
@@ -61,10 +62,11 @@ export function UserDetail({ userId }: UserDetailProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <img
+                      <MediaImage
                         src={imageLowUrl(user?.avatarFileId) || undefined}
                         alt={user?.username}
                         className="mask mask-circle w-16 h-16 object-cover"
+                        fallbackSrc="/favicon.ico"
                       />
                     </a>
                   )}

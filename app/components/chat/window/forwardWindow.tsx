@@ -3,6 +3,7 @@ import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageAct
 import { Check, X } from "@phosphor-icons/react";
 import { useCallback, useMemo, useState } from "react";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
 import {
   useGetUserRoomsQuery,
@@ -267,16 +268,10 @@ function ForwardWindow({
                         </span>
                         <div className="avatar">
                           <div className="mask mask-squircle size-9">
-                            <img
+                            <MediaImage
                               src={avatar}
                               alt={displayName}
-                              onError={(event) => {
-                                const img = event.currentTarget;
-                                if (img.dataset.fallbackApplied)
-                                  return;
-                                img.dataset.fallbackApplied = "1";
-                                img.src = "/favicon.ico";
-                              }}
+                              fallbackSrc="/favicon.ico"
                             />
                           </div>
                         </div>
@@ -334,16 +329,10 @@ function ForwardWindow({
                             <div className="flex min-w-0 items-center gap-2.5">
                               <div className="avatar">
                                 <div className="mask mask-squircle size-8">
-                                  <img
+                                  <MediaImage
                                     src={avatar}
                                     alt={displayName}
-                                    onError={(event) => {
-                                      const img = event.currentTarget;
-                                      if (img.dataset.fallbackApplied)
-                                        return;
-                                      img.dataset.fallbackApplied = "1";
-                                      img.src = "/favicon.ico";
-                                    }}
+                                    fallbackSrc="/favicon.ico"
                                   />
                                 </div>
                               </div>

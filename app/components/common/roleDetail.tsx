@@ -3,9 +3,11 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
@@ -98,10 +100,11 @@ export function RoleDetail({
                         )
                       : (
                           <div className="bg-neutral text-neutral-content flex items-center justify-center text-3xl">
-                            <img
+                            <MediaImage
                               src={avatarUrl}
                               alt="avatar"
                               className="w-20 h-20 object-cover"
+                              fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
                             />
                           </div>
                         )}

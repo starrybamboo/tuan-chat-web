@@ -3,6 +3,7 @@ import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
+import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
 import { SearchFilled, XMarkICon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
@@ -114,13 +115,14 @@ export default function FriendsListPanel() {
                         onClick={() => friend?.userId && handleClickFriend(friend.userId)}
                       >
                         <div className="avatar w-9 h-9 flex-shrink-0 overflow-hidden rounded-full bg-base-300">
-                          <img
+                          <MediaImage
                             className="h-full w-full rounded-full object-cover"
                             src={imageLowUrl(friend?.avatarFileId)}
                             alt=""
                             width={36}
                             height={36}
                             loading="lazy"
+                            fallbackSrc="/favicon.ico"
                           />
                         </div>
                         <div className="min-w-0 flex-1">

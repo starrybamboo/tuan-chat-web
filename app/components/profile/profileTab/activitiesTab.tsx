@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useGetMomentFeedStatsQuery,
@@ -103,10 +104,11 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                     )
                   : (
                       <div className="flex flex-col items-center space-y-4">
-                        <img
+                        <MediaImage
                           src={imageLowUrl(userData?.avatarFileId) || "favicon.ico"}
                           alt="用户头像"
                           className="w-20 h-20 rounded-full object-cover border-2 border-base-300"
+                          fallbackSrc="/favicon.ico"
                         />
                         <div className="text-center">
                           <h3 className="font-bold text-lg">{userData?.username || "未知用户"}</h3>

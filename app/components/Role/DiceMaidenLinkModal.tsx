@@ -1,6 +1,7 @@
 import type { UserRole } from "../../../api";
 import { useGetInfiniteUserRolesQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 
@@ -39,7 +40,7 @@ function DiceMaidenRoleItem({
           {/* 骰娘头像 */}
           <div className="avatar">
             <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-              <img src={avatarUrl} alt={role.roleName || "骰娘"} />
+              <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
             </div>
           </div>
           <div className="flex-1">
@@ -78,7 +79,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
         <div className="flex items-center gap-3">
           <div className="avatar">
             <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-              <img src={avatarUrl} alt={role.roleName || "骰娘"} />
+              <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
             </div>
           </div>
           <div className="flex-1">

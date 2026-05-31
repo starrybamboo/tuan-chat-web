@@ -1,5 +1,6 @@
 import type { UserRole } from "../../../../api";
 import React, { useState } from "react";
+import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -25,13 +26,11 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ role }) => {
       >
         {/* 头像区 */}
         <figure className="aspect-square overflow-hidden bg-base-200">
-          <img
+          <MediaImage
             src={avatarUrl}
             alt={role?.roleName || "角色头像"}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = ROLE_DEFAULT_AVATAR_URL;
-            }}
+            fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
           />
         </figure>
 

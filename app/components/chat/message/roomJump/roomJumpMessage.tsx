@@ -6,6 +6,7 @@ import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl } from "@/utils/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
@@ -169,18 +170,12 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
         {/* Avatar */}
         <div className="relative shrink-0">
           <div className={`mask mask-squircle size-11 overflow-hidden border ${canDirectJump ? "border-info/20" : "border-base-content/10"}`}>
-            <img
+            <MediaImage
               src={displayAvatar}
               alt={displayRoomName}
               draggable={false}
               className="h-full w-full object-cover"
-              onError={(event) => {
-                const img = event.currentTarget;
-                if (img.dataset.fallbackApplied)
-                  return;
-                img.dataset.fallbackApplied = "1";
-                img.src = "/favicon.ico";
-              }}
+              fallbackSrc="/favicon.ico"
             />
           </div>
           <div className={`absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full border-2 border-base-100 ${canDirectJump ? "bg-info text-info-content" : "bg-base-300 text-base-content/70"}`}>
