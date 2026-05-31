@@ -1,5 +1,12 @@
 lint.out
 
+# Local temp artifacts
+/.codex-tmp/
+/.tmp/
+/.tanstack/tmp/
+/apps/mobile/.expo-export-web/
+__pycache__/
+
 # Agent skills (local only)
 .agents/skills/
 .agent/skills/

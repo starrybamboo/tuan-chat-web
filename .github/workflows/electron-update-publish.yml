@@ -211,7 +211,7 @@ jobs:
               "${UPDATE_SERVER_PORT_SECRET:-}" \
               "${SERVER_PORT_SECRET:-}" \
               "${SSH_PORT_SECRET:-}" \
-              "22"
+              "31282"
           )"
 
           UPDATE_SERVER_USERNAME="$(
@@ -238,11 +238,13 @@ jobs:
               || true
           )"
 
-          if [[ -n "${UPDATE_SERVER_PRIVATE_KEY}" ]]; then
-            UPDATE_SERVER_AUTH_MODE="key"
-            UPDATE_SERVER_PASSWORD=""
-          else
+          if [[ -n "${UPDATE_SERVER_PASSWORD}" ]]; then
             UPDATE_SERVER_AUTH_MODE="password"
+          elif [[ -n "${UPDATE_SERVER_PRIVATE_KEY}" ]]; then
+            UPDATE_SERVER_AUTH_MODE="key"
+          else
+            echo "缺少更新发布凭据：请配置 UPDATE_SERVER_PASSWORD / SERVER_PASSWORD / SSH_PASSWORD，或 UPDATE_SERVER_PRIVATE_KEY / SERVER_PRIVATE_KEY / SSH_PRIVATE_KEY" >&2
+            exit 1
           fi
 
           test -n "${UPDATE_SERVER_HOST}" || { echo "缺少更新发布主机：请配置 UPDATE_SERVER_HOST / SERVER_HOST / SSH_HOST"; exit 1; }
