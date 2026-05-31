@@ -35,6 +35,7 @@ jobs:
       BACKEND_API_BASE_URL: /api
       BACKEND_WS_URL: /ws
       BACKEND_TTS_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'https://test.tuan.chat/tts') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'https://tuan.chat/tts') || (github.ref_name == 'dev' && 'https://test.tuan.chat/tts') || 'https://tuan.chat/tts' }}
+      VITE_MEDIA_CDN_BASE_URL: https://media.tuan.chat
       PUBLIC_SITE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'https://test.tuan.chat') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'https://tuan.chat') || (github.ref_name == 'dev' && 'https://test.tuan.chat') || 'https://tuan.chat' }}
     steps:
       - name: Checkout
