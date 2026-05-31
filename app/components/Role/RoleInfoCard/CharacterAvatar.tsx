@@ -3,6 +3,7 @@ import type { Role } from "../types";
 
 import { useState } from "react";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { SpriteSettingsPopup } from "../sprite/SpriteSettingsPopup";
 
@@ -66,10 +67,11 @@ export default function CharacterAvatar({
             editable ? "bg-black/0 group-hover:bg-black/10" : "bg-black/5"
           }`}
           />
-          <img
+          <MediaImage
             src={selectedAvatarUrl || ROLE_DEFAULT_AVATAR_URL}
             alt="Character Avatar"
             className={`h-full w-full object-contain transition-transform duration-300 ${editable ? "group-hover:scale-105" : ""}`}
+            fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
           />
         </div>
       </div>
