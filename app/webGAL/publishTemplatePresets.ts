@@ -1,10 +1,11 @@
-import defaultChooseScss from "../../../WebGAL_Terre/packages/terre2/assets/templates/WebGAL_Default_Template/Stage/Choose/choose.scss?raw";
-import defaultTextboxScss from "../../../WebGAL_Terre/packages/terre2/assets/templates/WebGAL_Default_Template/Stage/TextBox/textbox.scss?raw";
-import defaultTitleScss from "../../../WebGAL_Terre/packages/terre2/assets/templates/WebGAL_Default_Template/UI/Title/title.scss?raw";
-import defaultTemplateJson from "../../../WebGAL_Terre/packages/terre2/assets/templates/WebGAL_Default_Template/template.json?raw";
-import blackTextboxScss from "../../../WebGAL_Terre/packages/terre2/public/templates/WebGAL Black/Stage/TextBox/textbox.scss?raw";
-import blackTitleScss from "../../../WebGAL_Terre/packages/terre2/public/templates/WebGAL Black/UI/Title/title.scss?raw";
-import blackTemplateJson from "../../../WebGAL_Terre/packages/terre2/public/templates/WebGAL Black/template.json?raw";
+// WebGAL 模板文件已 vendored 到仓库内，避免 CI 依赖外部 WebGAL_Terre 工作区。
+import defaultChooseScss from "./templates/default/Stage/Choose/choose.scss?raw";
+import defaultTextboxScss from "./templates/default/Stage/TextBox/textbox.scss?raw";
+import defaultTitleScss from "./templates/default/UI/Title/title.scss?raw";
+import defaultTemplateJson from "./templates/default/template.json?raw";
+import blackTextboxScss from "./templates/black/Stage/TextBox/textbox.scss?raw";
+import blackTitleScss from "./templates/black/UI/Title/title.scss?raw";
+import blackTemplateJson from "./templates/black/template.json?raw";
 
 export type PublishTemplatePreset = {
   chooseScss: string;
