@@ -22,5 +22,9 @@ export type UserRegisterRequest = {
      * Cloudflare Turnstile 校验 token
      */
     turnstileToken?: string;
+    /**
+     * 账号邀请码，可选
+     */
+    inviteCode?: string;
 };
 

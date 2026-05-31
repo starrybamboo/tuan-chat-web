@@ -26,7 +26,7 @@ function createStateMessage(
 }
 
 describe("buildCombatStateRuntime", () => {
-  it("通过 role var 维护先攻值，不再生成参与者列表", () => {
+  it("role var 只保留为记录摘要，不再物化为角色变量", () => {
     const runtime = buildCombatStateRuntime({
       messages: [
         createStateMessage(1, [
@@ -39,10 +39,17 @@ describe("buildCombatStateRuntime", () => {
           },
         ]),
       ],
+      fallbackRoleAbilitiesByRoleId: {
+        3: {
+          roleId: 3,
+          ruleId: 7,
+          skill: { initiative: "14" },
+        },
+      },
     });
 
     expect(runtime.participants).toEqual([]);
-    expect(runtime.roleVarsByRoleId[3]?.initiative).toBe(14);
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
     expect(runtime.derivedDisplayValues.rolesByRoleId[3]?.initiative).toBe(14);
   });
 
@@ -148,8 +155,8 @@ describe("buildCombatStateRuntime", () => {
   it("combatRoundEnd 会将回合归零", () => {
     const runtime = buildCombatStateRuntime({
       messages: [
-        createStateMessage(1, [{ type: "nextTurn" }]),
-        createStateMessage(2, [{ type: "combatRoundStart" }]),
+        createStateMessage(1, [{ type: "combatRoundStart" }]),
+        createStateMessage(2, [{ type: "nextTurn" }]),
         createStateMessage(3, [{ type: "combatRoundEnd" }]),
       ],
     });
@@ -158,6 +165,19 @@ describe("buildCombatStateRuntime", () => {
     expect(runtime.combatRoundActive).toBe(false);
     expect(runtime.messageSummariesByMessageId[3]?.primaryText).toBe("结束战斗");
     expect(runtime.messageSummariesByMessageId[3]?.detailLines).toContain("结束战斗 · 回合 1 -> 0");
+  });
+
+  it("nextTurn 在战斗开始前不会推进回合", () => {
+    const runtime = buildCombatStateRuntime({
+      messages: [
+        createStateMessage(1, [{ type: "nextTurn" }]),
+      ],
+    });
+
+    expect(runtime.turn).toBe(0);
+    expect(runtime.combatRoundActive).toBe(false);
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("未开始战斗");
+    expect(runtime.messageSummariesByMessageId[1]?.detailLines).toContain("未开始战斗，忽略下一回合");
   });
 
   it("combatRoundStart 会标记战斗轮进行中", () => {
@@ -223,11 +243,19 @@ describe("buildCombatStateRuntime", () => {
         createStateMessage(4, [{ type: "combatRoundEnd" }]),
       ],
       resolver,
+      fallbackRoleAbilitiesByRoleId: {
+        3: {
+          roleId: 3,
+          ruleId: 7,
+          ability: { hp: "18" },
+        },
+      },
     });
 
     expect(runtime.combatRoundActive).toBe(false);
     expect(runtime.turn).toBe(0);
-    expect(runtime.roleVarsByRoleId[3]?.hp).toBe(18);
+    expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
+    expect(runtime.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(18);
     expect(runtime.activeStates.map(state => [state.statusName, state.remainingTurns])).toEqual([["护盾", 2]]);
     expect(runtime.mapTokens).toEqual([{ roleId: 3, rowIndex: 2, colIndex: 4 }]);
   });

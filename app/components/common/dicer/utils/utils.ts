@@ -470,23 +470,25 @@ async function getDicerRoleIdRaw(roomContext: RoomContextType, options?: DicerRo
   const currentRoleId = Number(roomContext.curRoleId);
   // 旁白/未选角色（<=0）统一走空间骰娘，避免触发 getRole(-1) 后回退到默认 2。
   const hasSelectedRole = Number.isFinite(currentRoleId) && currentRoleId > 0;
+  const spaceDicerRoleId = toPositiveRoleId(extraRecord.dicerRoleId ?? space?.dicerRoleId);
+
+  // 空间骰娘是房间级默认值，优先于角色/用户的自定义绑定。
+  if (spaceDicerRoleId != null) {
+    return spaceDicerRoleId;
+  }
 
   if (allowCustomDicerRole && hasSelectedRole) {
-    // 首先尝试获取角色绑定的骰娘角色id
     const roleDicerRoleId = await getRoleBoundDicerRoleId(currentRoleId, options);
     if (roleDicerRoleId != null) {
       return roleDicerRoleId;
     }
-    // 如果没有绑定，则尝试从用户配置中获取骰娘角色id
     const userDicerRoleId = await getUserBoundDicerRoleId(options);
     if (userDicerRoleId != null) {
       return userDicerRoleId;
     }
   }
 
-  // 如果关闭自定义或未绑定，则尝试从空间配置中获取骰娘角色id
-  return toPositiveRoleId(extraRecord.dicerRoleId ?? space?.dicerRoleId ?? DEFAULT_DICER_ROLE_ID)
-    ?? DEFAULT_DICER_ROLE_ID;
+  return DEFAULT_DICER_ROLE_ID;
 }
 
 function normalizeRecord(value: unknown): Record<string, unknown> {

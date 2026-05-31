@@ -49,6 +49,19 @@ describe("stateEvent display helpers", () => {
     })).toBe("博士 · HP - 2");
   });
 
+  it("地图详情格式化会复用角色名映射", () => {
+    expect(formatStateEventAtomDetail({
+      type: "mapTokenUpsert",
+      roleId: 14244,
+      rowIndex: 5,
+      colIndex: 3,
+    }, {
+      roleNameById: {
+        14244: "降星驰",
+      },
+    })).toBe("降星驰 移动到 第 6 行 · 第 4 列");
+  });
+
   it("状态 key 会显示为用户可读标签", () => {
     expect(formatStateKeyLabel("initiative")).toBe("先攻");
     expect(formatStateKeyLabel("hp")).toBe("HP");

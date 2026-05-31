@@ -522,13 +522,13 @@ export function setMessageEditorUploadedMedia(
   payload: MessageEditorUploadedMediaPayload,
 ): MessageEditorMessage {
   const nextExtra = { ...toMessageEditorExtra(message.extra) } as MessageEditorExtra;
+  const source = { kind: "internal", fileId: payload.fileId };
 
   if (message.messageType === MESSAGE_TYPE.IMG) {
     nextExtra.imageMessage = {
       ...nextExtra.imageMessage,
-      fileId: payload.fileId,
+      source,
       fileName: payload.fileName,
-      mediaType: payload.mediaType,
       size: payload.size,
       ...(typeof payload.width === "number" ? { width: payload.width } : {}),
       ...(typeof payload.height === "number" ? { height: payload.height } : {}),
@@ -546,9 +546,8 @@ export function setMessageEditorUploadedMedia(
   else if (message.messageType === MESSAGE_TYPE.SOUND) {
     nextExtra.soundMessage = {
       ...nextExtra.soundMessage,
-      fileId: payload.fileId,
+      source,
       fileName: payload.fileName,
-      mediaType: payload.mediaType,
       size: payload.size,
       ...(typeof payload.second === "number" ? { second: payload.second } : {}),
     };
@@ -556,9 +555,8 @@ export function setMessageEditorUploadedMedia(
   else if (message.messageType === MESSAGE_TYPE.VIDEO) {
     nextExtra.videoMessage = {
       ...nextExtra.videoMessage,
-      fileId: payload.fileId,
+      source,
       fileName: payload.fileName,
-      mediaType: payload.mediaType,
       size: payload.size,
       ...(typeof payload.second === "number" ? { second: payload.second } : {}),
       ...(typeof payload.width === "number" ? { width: payload.width } : {}),

@@ -17,6 +17,18 @@ import {
   upsertCachedDirectReadLine,
   writeCachedDirectMessages,
 } from "./mobileDirectMessageCache";
+import {
+  createMobileOptimisticDirectMessage,
+  removeMobileOptimisticDirectMessageData,
+  replaceMobileOptimisticDirectMessageData,
+} from "./mobileDirectMessageOptimistic";
+
+let nextOptimisticDirectMessageId = -Date.now() * 1000;
+let nextOptimisticDirectSyncId = Date.now() * 1000;
+
+type SendDmMutationContext = {
+  optimisticMessageId?: number;
+};
 
 function isPositiveUserId(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -44,13 +56,44 @@ export function useSendDmMutation(currentUserId?: number | null) {
   const mutation = useMutation({
     mutationFn: (request: MessageDirectSendRequest) => mobileApiClient.messageDirectController.sendMessage(request),
     mutationKey: ["sendDirectMessage", currentUserId ?? null],
-    onSuccess: (result) => {
+    onMutate: async (request): Promise<SendDmMutationContext> => {
+      const optimisticMessage = createMobileOptimisticDirectMessage({
+        currentUserId,
+        optimisticMessageId: nextOptimisticDirectMessageId--,
+        optimisticSyncId: nextOptimisticDirectSyncId++,
+        request,
+      });
+
+      if (!optimisticMessage) {
+        return {};
+      }
+
+      await queryClient.cancelQueries({ queryKey: getDirectInboxQueryKey(currentUserId) });
+      upsertDirectInboxQueryData(queryClient, currentUserId, [optimisticMessage]);
+      return { optimisticMessageId: optimisticMessage.messageId };
+    },
+    onError: (_error, _request, context) => {
+      queryClient.setQueryData<MessageDirectResponse[]>(
+        getDirectInboxQueryKey(currentUserId),
+        current => removeMobileOptimisticDirectMessageData(current, context?.optimisticMessageId),
+      );
+    },
+    onSuccess: (result, _request, context) => {
       if (result.data) {
-        upsertDirectInboxQueryData(queryClient, currentUserId, [result.data]);
+        queryClient.setQueryData<MessageDirectResponse[]>(
+          getDirectInboxQueryKey(currentUserId),
+          current => replaceMobileOptimisticDirectMessageData(current, context?.optimisticMessageId, result.data),
+        );
         void writeCachedDirectMessages(currentUserId, [result.data]).catch((error) => {
           warnDiskCacheFailure("写入已发送私聊消息磁盘缓存", error);
         });
+        return;
       }
+
+      queryClient.setQueryData<MessageDirectResponse[]>(
+        getDirectInboxQueryKey(currentUserId),
+        current => removeMobileOptimisticDirectMessageData(current, context?.optimisticMessageId),
+      );
     },
   });
 

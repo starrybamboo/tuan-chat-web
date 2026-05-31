@@ -216,6 +216,50 @@ describe("reconcileOptimisticRoomMessagesInList", () => {
     expect(getRoomMessageLocalRenderKey(result[1].message)).toBe(optimisticRenderKey);
   });
 
+  it("reconciles optimistic image messages even when local preview extra differs from server extra", () => {
+    const optimistic = createOptimisticRoomMessage({
+      content: "本地说明",
+      messageType: 2,
+      roomId: 10,
+      roleId: 3,
+      extra: {
+        imageMessage: {
+          source: { kind: "internal", fileId: -1 },
+          localFile: { name: "scene.png", size: 12 },
+          width: 1,
+          height: 1,
+          background: false,
+        },
+      } as any,
+    }, {
+      currentUserId: 5,
+      optimisticId: -1,
+      position: 2,
+    });
+    const optimisticRenderKey = getRoomMessageLocalRenderKey(optimistic.message);
+    const incoming = msg(50, 2, {
+      content: "",
+      messageType: 2,
+      roleId: 3,
+      roomId: 10,
+      syncId: 50,
+      userId: 5,
+      extra: {
+        imageMessage: {
+          source: { kind: "internal", fileId: 45 },
+          width: 640,
+          height: 480,
+          background: false,
+        },
+      } as any,
+    });
+
+    const result = reconcileOptimisticRoomMessagesInList([msg(1, 1), optimistic], [incoming]);
+
+    expect(result.map(item => item.message.messageId)).toEqual([1, 50]);
+    expect(getRoomMessageLocalRenderKey(result[1].message)).toBe(optimisticRenderKey);
+  });
+
   it("keeps non-matching optimistic messages", () => {
     const optimistic = createOptimisticRoomMessage({
       content: "hello",
@@ -350,6 +394,42 @@ describe("collectPersistedOptimisticDuplicateIds", () => {
     const messages = [
       msg(100, 1, { roomId: 10, userId: 5, messageType: 2, content: "url1", annotations: ["a"] }),
       msg(-1, 2, { roomId: 10, userId: 5, messageType: 2, content: "url2", annotations: ["b"] }),
+    ];
+    const duplicates = collectPersistedOptimisticDuplicateIds(messages);
+    expect(duplicates).toEqual([-1]);
+  });
+
+  it("uses loose matching for media messages when optimistic and server extras differ", () => {
+    const messages = [
+      msg(100, 1, {
+        roomId: 10,
+        userId: 5,
+        messageType: 2,
+        content: "",
+        extra: {
+          imageMessage: {
+            source: { kind: "internal", fileId: 45 },
+            width: 640,
+            height: 480,
+            background: false,
+          },
+        } as any,
+      }),
+      msg(-1, 2, {
+        roomId: 10,
+        userId: 5,
+        messageType: 2,
+        content: "本地说明",
+        extra: {
+          imageMessage: {
+            source: { kind: "internal", fileId: -1 },
+            localFile: { name: "scene.png", size: 12 },
+            width: 1,
+            height: 1,
+            background: false,
+          },
+        } as any,
+      }),
     ];
     const duplicates = collectPersistedOptimisticDuplicateIds(messages);
     expect(duplicates).toEqual([-1]);

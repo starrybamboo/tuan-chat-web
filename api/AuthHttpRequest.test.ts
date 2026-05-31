@@ -59,6 +59,20 @@ function createApiError(url: string, status = 401, statusText = "Unauthorized") 
   );
 }
 
+function createApiResultFailure(url: string) {
+  return new ApiError(
+    createRequestOptions(url),
+    {
+      url,
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      body: { success: false, errMsg: "业务失败" },
+    },
+    "业务失败",
+  );
+}
+
 function createResolvedPromise<T>(value: T): CancelablePromise<T> {
   return new CancelablePromise<T>((resolve) => {
     resolve(value);
@@ -121,5 +135,18 @@ describe("AuthHttpRequest", () => {
     expect(recoverAuthTokenFromSessionMock).not.toHaveBeenCalled();
     expect(handleUnauthorizedMock).not.toHaveBeenCalled();
   });
-});
 
+  it("HTTP 200 的业务失败不应触发 token 恢复", async () => {
+    const requestOptions = createRequestOptions("/room/info");
+    const businessError = createApiResultFailure(requestOptions.url);
+
+    requestMock.mockReturnValueOnce(createRejectedPromise(businessError));
+
+    const httpRequest = new AuthHttpRequest(createConfig());
+
+    await expect(httpRequest.request(requestOptions)).rejects.toBe(businessError);
+    expect(requestMock).toHaveBeenCalledTimes(1);
+    expect(recoverAuthTokenFromSessionMock).not.toHaveBeenCalled();
+    expect(handleUnauthorizedMock).not.toHaveBeenCalled();
+  });
+});

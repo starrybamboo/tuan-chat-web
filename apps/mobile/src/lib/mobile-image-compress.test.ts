@@ -61,7 +61,7 @@ describe("mobile image compression", () => {
     expect(imageManipulatorMock.manipulateAsync).toHaveBeenCalledWith(
       "file:///source/avatar.png",
       [{ resize: { width: 200, height: 150 } }],
-      { compress: 0.72, format: "webp" },
+      { compress: 1, format: "webp" },
     );
   });
 
@@ -81,7 +81,7 @@ describe("mobile image compression", () => {
       2,
       "file:///cache/round-1.webp",
       [{ resize: { width: 384, height: 288 } }],
-      { compress: expect.closeTo(0.494, 3), format: "webp" },
+      { compress: 0.65, format: "webp" },
     );
   });
 

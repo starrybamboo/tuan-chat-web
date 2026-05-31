@@ -7,6 +7,7 @@ import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { avatarThumbUrl, mediaFileUrl } from "../../lib/media-url";
+import { resolveInternalMessageMediaFileId } from "../messages/messageMediaSource";
 import { resolveMessageAvatarFileId } from "./chat-avatar-utils";
 
 /**
@@ -45,12 +46,13 @@ export function collectChatImageThumbUrls(messages: readonly Message[]) {
     }
 
     const image = getImageMessageExtra(message.extra);
-    if (image?.fileId == null || image.fileId <= 0 || seenFileIds.has(image.fileId)) {
+    const fileId = resolveInternalMessageMediaFileId(image);
+    if (fileId == null || seenFileIds.has(fileId)) {
       continue;
     }
 
-    seenFileIds.add(image.fileId);
-    const url = mediaFileUrl(image.fileId, "image", "low");
+    seenFileIds.add(fileId);
+    const url = mediaFileUrl(fileId, "image", "low");
     if (url) {
       urls.push(url);
     }

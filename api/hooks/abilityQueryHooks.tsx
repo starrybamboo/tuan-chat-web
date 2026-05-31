@@ -2,12 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { CachedRoleAbility } from "./roleAbilityCacheData";
 
 import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
-import type {AbilityUpdateRequest} from "@tuanchat/openapi-client/models/AbilityUpdateRequest";
 import {tuanchat} from "../instance";
-import type {AbilityFieldUpdateRequest} from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest";
+import type {AbilityByRuleFieldUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleFieldUpdateRequest";
+import type {AbilityByRuleUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleUpdateRequest";
 import type {AbilitySetRequest} from "@tuanchat/openapi-client/models/AbilitySetRequest";
-import type {AbilityFieldUpdateRequest2} from "@tuanchat/openapi-client/models/AbilityFieldUpdateRequest2";
-import type {AbilityUpdateRequest2} from "@tuanchat/openapi-client/models/AbilityUpdateRequest2";
 import { relayAiGatewayText } from "../../app/utils/aiRelay";
 import {
     invalidateRoleAbilityCaches,
@@ -50,6 +48,36 @@ function isSuccessfulApiResult(result: { success?: boolean } | null | undefined)
     return result?.success === true;
 }
 
+function getApiResultErrorMessage(result: { errMsg?: string } | null | undefined, fallback: string): string {
+    const message = result?.errMsg?.trim();
+    return message || fallback;
+}
+
+export function assertSuccessfulAbilityApiResult<T extends { success?: boolean; errMsg?: string } | null | undefined>(
+    result: T,
+    fallback: string,
+): T {
+    if (!isSuccessfulApiResult(result)) {
+        throw new Error(getApiResultErrorMessage(result, fallback));
+    }
+    return result;
+}
+
+export async function setRoleAbilityWithSuccessGuard(req: AbilitySetRequest) {
+    const result = await tuanchat.abilityController.setRoleAbility(req);
+    return assertSuccessfulAbilityApiResult(result, "创建角色能力失败");
+}
+
+export async function updateRoleAbilityByRuleWithSuccessGuard(req: AbilityByRuleUpdateRequest) {
+    const result = await tuanchat.abilityController.updateRoleAbilityByRule(req);
+    return assertSuccessfulAbilityApiResult(result, "更新角色能力失败");
+}
+
+export async function updateRoleAbilityFieldByRuleWithSuccessGuard(req: AbilityByRuleFieldUpdateRequest) {
+    const result = await tuanchat.abilityController.updateRoleAbilityFieldByRule(req);
+    return assertSuccessfulAbilityApiResult(result, "更新角色能力字段失败");
+}
+
 export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
     const statusCode = error?.response?.status || error?.status;
     if (statusCode && statusCode >= 400 && statusCode < 500) {
@@ -60,7 +88,7 @@ export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
 
 export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Promise<CachedRoleAbility | null> {
     try {
-        const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+        const res = await tuanchat.abilityController.getRoleAbilityByRule(ruleId, roleId);
         if (res.success && res.data) {
             return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
         }
@@ -84,7 +112,7 @@ export function fetchRoleAbilityByRuleWithCache(queryClient: QueryClient, roleId
     });
 }
 
-type RoleAbilityFullMutationPayload = AbilitySetRequest | AbilityUpdateRequest2;
+type RoleAbilityFullMutationPayload = AbilitySetRequest | AbilityByRuleUpdateRequest;
 
 function setRoleAbilityByRuleCache(queryClient: QueryClient, payload: RoleAbilityFullMutationPayload) {
     const normalized = normalizeRoleAbilityCacheData(payload, {
@@ -136,7 +164,7 @@ function patchStringRecord(
     return next;
 }
 
-function patchRoleAbilityFieldsCache(queryClient: QueryClient, payload: AbilityFieldUpdateRequest2) {
+function patchRoleAbilityFieldsCache(queryClient: QueryClient, payload: AbilityByRuleFieldUpdateRequest) {
     queryClient.setQueryData(roleAbilityByRuleQueryKey(payload.roleId, payload.ruleId), (old: CachedRoleAbility | null | undefined) => {
         const base = normalizeRoleAbilityCacheData(old ?? {}, {
             roleId: payload.roleId,
@@ -166,7 +194,6 @@ function patchRoleAbilityFieldsCache(queryClient: QueryClient, payload: AbilityF
             basic,
             ability,
             skill,
-            record: patchStringRecord(base.record, payload.recordFields),
             extra: patchStringRecord(base.extra, payload.extraFields),
             actTemplate: act,
             basicDefault: basic,
@@ -580,7 +607,7 @@ export function useGetRolesAbilitiesQueries(roleIds: number[]) {
 export function useSetRoleAbilityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AbilitySetRequest) => tuanchat.abilityController.setRoleAbility(req),
+        mutationFn: setRoleAbilityWithSuccessGuard,
         mutationKey: ["setRoleAbility"],
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
@@ -602,20 +629,10 @@ export function useDeleteRoleAbilityMutation() {
     })
 }
 
-export function useUpdateRoleAbilityMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: AbilityUpdateRequest) => tuanchat.abilityController.updateRoleAbility(req),
-        mutationKey: ["updateRoleAbility"],
-        onSuccess: () => {
-            return invalidateRoleAbilityCaches(queryClient);
-        }
-    })
-}
 export function useUpdateRoleAbilityByRoleIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AbilityUpdateRequest2) => tuanchat.abilityController.updateRoleAbility1(req),
+        mutationFn: updateRoleAbilityByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
@@ -637,20 +654,10 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     })
 }
 
-export function useUpdateKeyFieldMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn:  (req: AbilityFieldUpdateRequest) => tuanchat.abilityController.updateRoleAbilityField(req),
-        mutationKey: ["updateRoleAbilityField"],
-        onSuccess: () => {
-            return invalidateRoleAbilityCaches(queryClient);
-        }
-    })
-}
 export function useUpdateKeyFieldByRoleIdMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn:  (req: AbilityFieldUpdateRequest2) => tuanchat.abilityController.updateRoleAbilityField1(req),
+        mutationFn: updateRoleAbilityFieldByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
         onMutate: async (variables) => {
             await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });

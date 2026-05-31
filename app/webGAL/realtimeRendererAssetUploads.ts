@@ -11,6 +11,7 @@ export type RealtimeAssetUploadContext = {
   gameName: string;
   uploadedSpritesMap: Map<string, string>;
   uploadedBackgroundsMap: Map<string, string>;
+  uploadedMapImagesMap: Map<string, string>;
   uploadedImageFiguresMap: Map<string, string>;
   uploadedBgmsMap: Map<string, string>;
   uploadedVideosMap: Map<string, string>;
@@ -90,6 +91,29 @@ export async function uploadBackgroundAsset(
   }
   catch (error) {
     console.error("上传背景失败:", error);
+    return null;
+  }
+}
+
+export async function uploadMapImageAsset(
+  context: RealtimeAssetUploadContext,
+  url: string,
+  mapFileId: number,
+): Promise<string | null> {
+  if (context.uploadedMapImagesMap.has(url)) {
+    return context.uploadedMapImagesMap.get(url) || null;
+  }
+
+  try {
+    const path = `games/${context.gameName}/game/background/`;
+    const targetName = buildImageFileName(url, `map_${mapFileId}`, "map");
+    const fileName = await uploadFile(url, path, targetName);
+    const localUrl = `./game/background/${fileName}`;
+    context.uploadedMapImagesMap.set(url, localUrl);
+    return localUrl;
+  }
+  catch (error) {
+    console.error("上传地图图片失败:", error);
     return null;
   }
 }

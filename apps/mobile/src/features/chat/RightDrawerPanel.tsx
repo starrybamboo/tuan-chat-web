@@ -34,11 +34,14 @@ type RightDrawerPanelProps = {
   currentUserId: number | null;
   currentRoleId: number | null;
   isKP: boolean;
+  isSendingCombatRoundEvent: boolean;
   isStateCommandMode: boolean;
   messages: Message[];
   onAdvanceTurn: () => void;
   onClose: () => void;
+  onEndCombat: () => void;
   onEnterStateCommandMode: () => void;
+  onStartCombat: () => void;
   roomId: number | null;
   roomRoles: UserRole[];
   ruleId: number | null | undefined;
@@ -50,11 +53,14 @@ export function RightDrawerPanel({
   currentUserId,
   currentRoleId,
   isKP,
+  isSendingCombatRoundEvent,
   isStateCommandMode,
   messages,
   onAdvanceTurn,
   onClose: _onClose,
+  onEndCombat,
   onEnterStateCommandMode,
+  onStartCombat,
   roomId,
   roomRoles,
   ruleId,
@@ -79,10 +85,14 @@ export function RightDrawerPanel({
         {activeTab === "combat" && (
           <CombatPanel
             currentRoleId={currentRoleId}
+            isKP={isKP}
+            isSendingCombatRoundEvent={isSendingCombatRoundEvent}
             isStateCommandMode={isStateCommandMode}
             messages={messages}
             onAdvanceTurn={onAdvanceTurn}
+            onEndCombat={onEndCombat}
             onEnterStateCommandMode={onEnterStateCommandMode}
+            onStartCombat={onStartCombat}
             roomRoles={roomRoles}
             ruleId={ruleId}
           />

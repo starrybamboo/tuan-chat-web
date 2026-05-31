@@ -4,6 +4,7 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./account-invite": "./src/account-invite.ts",
     "./clue-folder": "./src/clue-folder.ts",
     "./direct-message": "./src/direct-message.ts",
     "./member-permissions": "./src/member-permissions.ts",

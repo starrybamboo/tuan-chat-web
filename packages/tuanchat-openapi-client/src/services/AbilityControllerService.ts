@@ -3,12 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AbilityBatchQueryRequest } from '../models/AbilityBatchQueryRequest';
-import type { AbilityFieldUpdateRequest } from '../models/AbilityFieldUpdateRequest';
-import type { AbilityFieldUpdateRequest2 } from '../models/AbilityFieldUpdateRequest2';
+import type { AbilityByRuleFieldUpdateRequest } from '../models/AbilityByRuleFieldUpdateRequest';
+import type { AbilityByRuleUpdateRequest } from '../models/AbilityByRuleUpdateRequest';
 import type { AbilityPageRequest } from '../models/AbilityPageRequest';
 import type { AbilitySetRequest } from '../models/AbilitySetRequest';
-import type { AbilityUpdateRequest } from '../models/AbilityUpdateRequest';
-import type { AbilityUpdateRequest2 } from '../models/AbilityUpdateRequest2';
 import type { ApiResultListRoleAbility } from '../models/ApiResultListRoleAbility';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultMapStringRoleAbility } from '../models/ApiResultMapStringRoleAbility';
@@ -19,6 +17,60 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class AbilityControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 根据角色id和规则id获取能力
+     * @param ruleId
+     * @param roleId
+     * @returns ApiResultRoleAbility OK
+     * @throws ApiError
+     */
+    public getRoleAbilityByRule(
+        ruleId: number,
+        roleId: number,
+    ): CancelablePromise<ApiResultRoleAbility> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/role/ability/by-rule',
+            query: {
+                'ruleId': ruleId,
+                'roleId': roleId,
+            },
+        });
+    }
+    /**
+     * 按角色和规则更新能力
+     * 更新指定角色在指定规则下的能力信息，act和ability字段不能同时为null或者空json
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRoleAbilityByRule(
+        requestBody: AbilityByRuleUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/role/ability/by-rule',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 按角色和规则更新能力字段
+     * 更改能力字段或删除字段
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRoleAbilityFieldByRule(
+        requestBody: AbilityByRuleFieldUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/role/ability/by-rule/field',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
     /**
      * 根据能力id获取角色能力
      * @param abilityId
@@ -34,23 +86,6 @@ export class AbilityControllerService {
             query: {
                 'abilityId': abilityId,
             },
-        });
-    }
-    /**
-     * 更新能力
-     * 更新指定角色的能力信息，act和ability字段不能同时为null或者空json
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoleAbility(
-        requestBody: AbilityUpdateRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/role/ability',
-            body: requestBody,
-            mediaType: 'application/json',
         });
     }
     /**
@@ -88,23 +123,6 @@ export class AbilityControllerService {
         });
     }
     /**
-     * 更新能力字段
-     * 更改能力字段或删除字段
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoleAbilityField(
-        requestBody: AbilityFieldUpdateRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/role/ability/field',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
      * 分页查询角色能力
      * 根据角色Id分页查询角色能力
      * @param requestBody
@@ -117,40 +135,6 @@ export class AbilityControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/role/ability/page',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 更新能力
-     * 更新指定角色的能力信息，act和ability字段不能同时为null或者空json
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoleAbility1(
-        requestBody: AbilityUpdateRequest2,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/role/ability/byRule',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 更新能力字段
-     * 更改能力字段或删除字段
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoleAbilityField1(
-        requestBody: AbilityFieldUpdateRequest2,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/role/ability/byRule/field',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -189,26 +173,6 @@ export class AbilityControllerService {
             query: {
                 'roleId': roleId,
                 'commitId': commitId,
-            },
-        });
-    }
-    /**
-     * 根据角色id和规则id获取能力
-     * @param ruleId
-     * @param roleId
-     * @returns ApiResultRoleAbility OK
-     * @throws ApiError
-     */
-    public getByRuleAndRole(
-        ruleId: number,
-        roleId: number,
-    ): CancelablePromise<ApiResultRoleAbility> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/role/ability/',
-            query: {
-                'ruleId': ruleId,
-                'roleId': roleId,
             },
         });
     }

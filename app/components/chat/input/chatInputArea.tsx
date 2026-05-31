@@ -1,6 +1,7 @@
 import type { UserRole } from "../../../../api";
 import React, { useImperativeHandle, useRef } from "react";
 import { extractEditablePlainText } from "@/components/chat/input/chatInputPlainText";
+import { insertPlainTextWithUndo } from "@/components/chat/input/undoablePlainText";
 import { getEditorRange } from "@/utils/getSelectionCoords";
 
 // --- 外部接口 ---
@@ -348,16 +349,9 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
         if (!editor) {
           return;
         }
-        if (savedRange) {
-          const selection = window.getSelection();
-          selection?.removeAllRanges();
-          selection?.addRange(savedRange);
+        if (insertPlainTextWithUndo(editor, plainText, { range: savedRange })) {
+          handleInputInternal();
         }
-        insertNodeAtCursorInternal(document.createTextNode(plainText), {
-          replaceSelection: true,
-          moveCursorToEnd: true,
-        });
-        handleInputInternal();
       };
       if (props.onPasteText?.(plainText, insertPlainText)) {
         e.preventDefault();

@@ -17,9 +17,9 @@ type SendRoomMessageMutationMock = {
 
 const mobileApiClientMock = vi.hoisted(() => ({
   abilityController: {
-    getByRuleAndRole: vi.fn(),
     setRoleAbility: vi.fn(),
-    updateRoleAbility1: vi.fn(),
+    getRoleAbilityByRule: vi.fn(),
+    updateRoleAbilityByRule: vi.fn(),
   },
   spaceController: {
     setSpaceExtra: vi.fn(),
@@ -98,9 +98,9 @@ function createParams(overrides: Partial<ExecuteMobileDicerCommandParams> = {}):
 
 describe("mobileDiceCommandExecutor", () => {
   beforeEach(() => {
-    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({ data: null });
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({ data: null });
     mobileApiClientMock.abilityController.setRoleAbility.mockResolvedValue({ data: 99 });
-    mobileApiClientMock.abilityController.updateRoleAbility1.mockResolvedValue({ data: {} });
+    mobileApiClientMock.abilityController.updateRoleAbilityByRule.mockResolvedValue({ data: {} });
     mobileApiClientMock.spaceController.setSpaceExtra.mockResolvedValue({ data: {} });
   });
 
@@ -142,7 +142,7 @@ describe("mobileDiceCommandExecutor", () => {
     vi.spyOn(Math, "random")
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0.1);
-    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -173,7 +173,7 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st 会保存角色能力并生成状态事件", async () => {
-    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -185,7 +185,7 @@ describe("mobileDiceCommandExecutor", () => {
 
     await executeMobileDicerCommand(params);
 
-    expect(mobileApiClientMock.abilityController.updateRoleAbility1).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mobileApiClientMock.abilityController.updateRoleAbilityByRule).toHaveBeenCalledWith(expect.objectContaining({
       roleId: actorRole.roleId,
       ruleId: 1,
       skill: expect.objectContaining({ 力量: "60" }),
@@ -213,7 +213,7 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st show 有 UI 回调时不发送消息并打开属性卡模型", async () => {
-    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -248,7 +248,7 @@ describe("mobileDiceCommandExecutor", () => {
   });
 
   it("执行 .st show 没有 UI 回调时保留文本降级回复", async () => {
-    mobileApiClientMock.abilityController.getByRuleAndRole.mockResolvedValue({
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,

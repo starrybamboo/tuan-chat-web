@@ -16,6 +16,13 @@ type PreparedImagePayload = {
   isGif: boolean;
 };
 
+function resolveChatroomImageUrlQuality(quality: MediaQuality): MediaQuality {
+  if (quality === "low" || quality === "high") {
+    return quality;
+  }
+  return "medium";
+}
+
 export type UploadedDualImageResult = {
   fileId: number;
   mediaType: MediaType;
@@ -51,7 +58,7 @@ export class UploadUtils {
   ): Promise<UploadedMediaAssetResult> {
     const uploaded = await uploadMediaFile(file, { scene });
     const sceneQuality = scene === 1
-      ? (uploaded.mediaType === "image" ? "medium" : "low")
+      ? (uploaded.mediaType === "image" ? "high" : "low")
       : "original";
     const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, sceneQuality);
     return {
@@ -63,7 +70,7 @@ export class UploadUtils {
       uploadRequired: uploaded.uploadRequired,
       url: mediaFileUrl(uploaded.fileId, uploaded.mediaType, scene === 1
         ? (uploaded.mediaType === "image"
-            ? (quality === "low" ? "low" : "medium")
+            ? resolveChatroomImageUrlQuality(quality)
             : "low")
         : quality) || originalUrl,
     };
@@ -86,7 +93,7 @@ export class UploadUtils {
       filesByQuality,
     }, { scene });
     const sceneQuality = scene === 1
-      ? (uploaded.mediaType === "image" ? "medium" : "low")
+      ? (uploaded.mediaType === "image" ? "high" : "low")
       : "original";
     const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, sceneQuality);
     return {
@@ -98,7 +105,7 @@ export class UploadUtils {
       uploadRequired: uploaded.uploadRequired,
       url: mediaFileUrl(uploaded.fileId, uploaded.mediaType, scene === 1
         ? (uploaded.mediaType === "image"
-            ? (quality === "low" ? "low" : "medium")
+            ? resolveChatroomImageUrlQuality(quality)
             : "low")
         : quality) || originalUrl,
     };

@@ -1,8 +1,8 @@
-import { CheckerboardIcon, FilmSlateIcon, Sparkle, SwordIcon } from "@phosphor-icons/react";
+import { FilmSlateIcon, Sparkle } from "@phosphor-icons/react";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { BranchIcon, FolderIcon, WebgalIcon } from "@/icons";
+import { BranchIcon, WebgalIcon } from "@/icons";
 
 interface ChatToolbarDockProps {
   isInline: boolean;
@@ -21,22 +21,17 @@ interface ChatToolbarDockProps {
 
 export default function ChatToolbarDock({
   isInline,
-  isRunModeOnly,
   showWebgalControls,
   onSendEffect,
   onToggleRealtimeRender,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen = false,
-  showRunControls,
   showCopilotControl = false,
 }: ChatToolbarDockProps) {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
-  const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const isCombatDrawerOpen = sideDrawerState === "combat" || sideDrawerState === "initiative" || sideDrawerState === "state";
-  const isClueDrawerOpen = sideDrawerState === "clue";
   const isCopilotControlTemporarilyHidden = true;
   const handleToggleCopilotDrawer = () => {
     setSideDrawerState(sideDrawerState === "copilot" ? "none" : "copilot");
@@ -44,9 +39,7 @@ export default function ChatToolbarDock({
 
   return (
     <div
-      className={`flex ${isInline ? "mr-2 items-start gap-2 flex-nowrap" : "mt-1 items-center gap-2 flex-wrap justify-end grow"} ${
-        isInline && showRunControls && isRunModeOnly ? "min-h-8" : ""
-      }`}
+      className={`flex ${isInline ? "mr-2 items-start gap-2 flex-nowrap" : "mt-1 items-center gap-2 flex-wrap justify-end grow"}`}
     >
       {/* 暂时隐藏：AI 对话按钮后续继续开发时再恢复显示。 */}
       {showCopilotControl && !isCopilotControlTemporarilyHidden && (
@@ -104,34 +97,6 @@ export default function ChatToolbarDock({
         >
           <WebgalIcon className={`size-5 cursor-pointer mb-2 md:mb-0 ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
         </button>
-      )}
-
-      {showRunControls && runModeEnabled && (
-        <div className="flex gap-2 ml-0.5 mb-1 md:mb-0 md:mt-1">
-          <button
-            type="button"
-            className="tooltip tooltip-top"
-            data-tip="线索"
-            data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(isClueDrawerOpen ? "none" : "clue")}
-          >
-            <FolderIcon className="size-6 jump_icon" />
-          </button>
-
-          <button type="button" className="tooltip tooltip-top" data-tip="战斗面板" data-side-drawer-toggle="true" onClick={() => setSideDrawerState(isCombatDrawerOpen ? "none" : "combat")}>
-            <SwordIcon className="size-6 jump_icon" />
-          </button>
-
-          <button
-            type="button"
-            className="tooltip tooltip-top"
-            data-tip="地图"
-            data-side-drawer-toggle="true"
-            onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
-          >
-            <CheckerboardIcon className="size-6 jump_icon" />
-          </button>
-        </div>
       )}
     </div>
   );

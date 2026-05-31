@@ -148,7 +148,6 @@ describe("direct message helpers", () => {
         fileId: 12,
         fileName: "a.png",
         height: 600,
-        mediaType: "image",
         size: 1024,
         width: 800,
       }],
@@ -160,10 +159,12 @@ describe("direct message helpers", () => {
         extra: {
           imageMessage: {
             background: false,
-            fileId: 12,
             fileName: "a.png",
             height: 600,
-            mediaType: "image",
+            source: {
+              kind: "internal",
+              fileId: 12,
+            },
             size: 1024,
             width: 800,
           },

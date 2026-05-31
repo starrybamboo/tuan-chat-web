@@ -20,12 +20,12 @@
 
 ## 3. 新开空间/房间后“应该有什么”（验收清单）
 
-### TC-01 新建空间自动带出默认房间
+### TC-01 新建空间自动带出主聊天房
 - 前置条件：账号A未创建该空间。
 - 输入与操作：账号A在聊天页创建空间。
-- 预期输出：空间创建成功后，自动出现一个名为`默认房间`的房间。
+- 预期输出：空间创建成功后，自动出现一个名为`主聊天房`的房间，类型为`全员房间`。
 - 预期输出：房间可直接进入聊天窗口。
-- 截图位：`【截图位-01：新空间内默认房间】`
+- 截图位：`【截图位-01：新空间内主聊天房】`
 
 ### TC-02 空间默认描述与规则默认值
 - 前置条件：刚创建的新空间。
@@ -35,7 +35,7 @@
 - 截图位：`【截图位-02：空间资料默认描述/规则】`
 
 ### TC-03 场景简要描述文案
-- 前置条件：TC-01 的默认房间。
+- 前置条件：TC-01 的主聊天房。
 - 输入与操作：打开房间资料（场景简要描述编辑区）。
 - 预期输出：默认描述语义为`场景简要描述`，历史“房间默认描述”/“场景默认描述”应视为迁移后文案。
 - 截图位：`【截图位-03：房间资料默认描述】`
@@ -368,8 +368,8 @@
 
 ## 12. 最小回归路线（10~15分钟）
 
-1. 创建新空间并确认自动出现`默认房间`。
-2. 进入默认房间，确认可正常发送文本。
+1. 创建新空间并确认自动出现`主聊天房`。
+2. 进入主聊天房，确认可正常发送文本。
 3. 上传图片并发送，确认消息渲染正确。
 4. 发送音频或文件，确认消息渲染正确。
 5. 打开`房间成员`与`房间角色`抽屉。
@@ -404,7 +404,7 @@
 - 消息渲染类型：`tuan-chat-web/app/components/chat/message/chatBubble.tsx`
 - 左侧分类树与重置默认：`tuan-chat-web/app/components/chat/room/sidebarTree.ts`
 - 分类/文档侧栏GUI：`tuan-chat-web/app/components/chat/room/chatRoomListPanel.tsx`
-- 后端空间创建默认房间：`TuanChat/src/main/java/com/jxc/tuanchat/room/service/SpaceService.java`
+- 后端空间创建主聊天房：`TuanChat/src/main/java/com/jxc/tuanchat/room/service/SpaceService.java`
 - 后端房间创建默认命名：`TuanChat/src/main/java/com/jxc/tuanchat/room/service/RoomService.java`
 - 后端消息类型：`TuanChat/src/main/java/com/jxc/tuanchat/chat/enums/MessageTypeEnum.java`
 - 后端消息内容长度限制：`TuanChat/src/main/java/com/jxc/tuanchat/chat/domain/request/message/ChatMessageRequest.java`

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-24",
+  "updatedAt": "2026-05-31",
   "classifications": {
     "retained-non-media-url": "URL 本身是业务值或外部/运行时端点，不表示 TuanChat 托管媒体文件。",
     "retained-temporary-runtime-url": "仅用于浏览器/移动端预览、data/object/blob URL 或运行时派生展示，不允许进入业务持久化请求。",
@@ -338,6 +338,14 @@
       "readPolicy": "角色详情 UI 当前选择头像展示 URL。",
       "writePolicy": "仅用于组件状态/预览，不进入业务持久化请求。",
       "retirementCondition": "角色 UI 全部改为传递 fileId 和媒体适配结果。"
+    },
+    {
+      "field": "coverAvatarUrl",
+      "classification": "retained-temporary-runtime-url",
+      "replacement": "coverAvatarFileId",
+      "readPolicy": "WebGAL 发布/预览快照里由房间头像投影出的封面头像展示 URL。",
+      "writePolicy": "仅用于运行时快照兼容和预览，不进入业务长期持久化请求；优先保存 coverAvatarFileId。",
+      "retirementCondition": "WebGAL 封面头像链路完全改为 fileId 解析，不再接收 legacy URL。"
     },
     {
       "field": "selectedSpriteUrl",

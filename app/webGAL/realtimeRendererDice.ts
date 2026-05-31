@@ -1,7 +1,7 @@
-import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
+import type { WebgalDiceRenderMode, WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { extractWebgalDicePayload, isLikelyTrpgDiceContent } from "@/types/webgalDice";
+import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
 import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import type { ChatMessageResponse } from "../../api";
@@ -10,8 +10,15 @@ export const DEFAULT_DICE_SOUND_FILE = "nettimato-rolling-dice-1.wav";
 export const DEFAULT_DICE_SOUND_FOLDER = "se";
 export const DICE_MERGE_WAIT_MS = 260;
 export const TRPG_DICE_PIXI_EFFECT = "effect.trpgDiceBurst";
+export const TRPG_DICE_PIXI_DURATION_MS = 720;
+export const TRPG_DICE_PIXI_SCALE = 1.08;
 
 const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
+
+export interface RealtimeDiceSoundLine {
+  url: string;
+  volume?: number;
+}
 
 function getDiceTurnContentFromMessage(msg: ChatMessageResponse["message"]): string | undefined {
   if (!msg.extra?.diceTurn) {
@@ -55,6 +62,60 @@ export function isPotentialTrpgDiceMessage(msg: ChatMessageResponse["message"]):
     return false;
   }
   return isLikelyTrpgDiceContent(normalized) || DICE_COMMAND_PATTERN.test(normalized);
+}
+
+export function resolveRealtimeDiceRenderMode(params: {
+  combatRoundActive: boolean;
+  content: string;
+  hasScriptLines: boolean;
+  payload?: WebgalDiceRenderPayload | null;
+}): WebgalDiceRenderMode {
+  const { combatRoundActive, content, hasScriptLines, payload } = params;
+  const autoMode: WebgalDiceRenderMode = combatRoundActive
+    ? "trpg"
+    : (isLikelyAnkoDiceContent(content)
+        ? "anko"
+        : (isLikelyTrpgDiceContent(content) ? "trpg" : "narration"));
+
+  const payloadMode = payload?.mode;
+  // TRPG 骰点结果需要回到可识别的骰子演出，避免旧导入里 dialog/narration 把 D100 结果降级成普通台词。
+  const shouldForceTrpgMode = autoMode === "trpg" && payloadMode !== "anko" && payloadMode !== "script";
+  if (shouldForceTrpgMode) {
+    return "trpg";
+  }
+  if (payloadMode === "script" && !hasScriptLines) {
+    return autoMode;
+  }
+  return payloadMode ?? (hasScriptLines ? "script" : autoMode);
+}
+
+export function buildTrpgDicePixiPerformLine(): string {
+  return `pixiPerform:${TRPG_DICE_PIXI_EFFECT} -once -duration=${TRPG_DICE_PIXI_DURATION_MS} -scale=${TRPG_DICE_PIXI_SCALE} -next;`;
+}
+
+export function buildPlayEffectLine(sound: RealtimeDiceSoundLine): string {
+  const volumePart = typeof sound.volume === "number" ? ` -volume=${sound.volume}` : "";
+  return `playEffect:${sound.url}${volumePart} -next;`;
+}
+
+export function buildTrpgDicePerformLines(sound?: RealtimeDiceSoundLine | null): string[] {
+  const lines = [buildTrpgDicePixiPerformLine()];
+  if (sound) {
+    lines.push(buildPlayEffectLine(sound));
+  }
+  return lines;
+}
+
+export function resolveRealtimeDiceMiniAvatarDefault(params: {
+  mode: WebgalDiceRenderMode | null;
+  roleId: number;
+  payload?: WebgalDiceRenderPayload | null;
+}): boolean | undefined {
+  const explicit = params.payload?.showMiniAvatar;
+  if (explicit !== undefined) {
+    return explicit;
+  }
+  return params.mode === "dialog" && params.roleId > 0 ? true : undefined;
 }
 
 export function canMergeTrpgDicePair(command: ChatMessageResponse, reply: ChatMessageResponse): boolean {

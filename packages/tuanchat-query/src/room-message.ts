@@ -1,18 +1,9 @@
-import type { InfiniteData } from "@tanstack/react-query";
-
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
-import type { ApiResultCursorPageBaseResponseChatMessageResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseChatMessageResponse";
-import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { getDiceResultExtra, getDiceTurnExtra } from "@tuanchat/domain/message-extra";
-
-export type RoomMessagesInfiniteQueryData = InfiniteData<
-  ApiResultCursorPageBaseResponseChatMessageResponse,
-  ChatMessagePageRequest
->;
 
 function toFiniteNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -224,73 +215,4 @@ export function getRoomMessageSyncGapStart(
   }
   const maxKnownSyncId = getMaxRoomMessageSyncId(currentMessages);
   return incomingSyncId > maxKnownSyncId + 1 ? maxKnownSyncId + 1 : null;
-}
-
-export function flattenRoomMessagePages(
-  pages: Array<{ data?: { list?: ChatMessageResponse[] } }> | undefined,
-): ChatMessageResponse[] {
-  if (!pages || pages.length === 0) {
-    return [];
-  }
-
-  return mergeRoomMessages(...pages.map(page => page.data?.list));
-}
-
-export function upsertRoomMessagesInfiniteData(
-  currentData: RoomMessagesInfiniteQueryData | undefined,
-  roomId: number,
-  incomingMessages: ChatMessageResponse[],
-  pageSize: number = 20,
-): RoomMessagesInfiniteQueryData {
-  const nextIncomingMessages = mergeRoomMessages(incomingMessages);
-  if (nextIncomingMessages.length === 0) {
-    return currentData ?? {
-      pageParams: [{
-        roomId,
-        pageSize,
-      }],
-      pages: [{
-        success: true,
-        data: {
-          isLast: true,
-          list: [],
-        },
-      }],
-    };
-  }
-
-  if (!currentData || currentData.pages.length === 0) {
-    return {
-      pageParams: [{
-        roomId,
-        pageSize,
-      }],
-      pages: [{
-        success: true,
-        data: {
-          isLast: true,
-          list: nextIncomingMessages,
-        },
-      }],
-    };
-  }
-
-  const [firstPage, ...restPages] = currentData.pages;
-  const mergedFirstPageMessages = mergeRoomMessages(firstPage.data?.list, nextIncomingMessages);
-
-  return {
-    pageParams: currentData.pageParams.length > 0
-      ? currentData.pageParams
-      : [{
-          roomId,
-          pageSize,
-        }],
-    pages: [{
-      ...firstPage,
-      data: {
-        ...firstPage.data,
-        list: mergedFirstPageMessages,
-      },
-    }, ...restPages],
-  };
 }

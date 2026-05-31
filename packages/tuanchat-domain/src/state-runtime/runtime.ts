@@ -82,11 +82,11 @@ function cloneRoleVarsMap(value: Record<number, StateValueMap>): Record<number, 
   return Object.fromEntries(Object.entries(value).map(([roleId, vars]) => [Number(roleId), cloneValueMap(vars)]));
 }
 
-function ensureRoleVars(roleVarsByRoleId: Record<number, StateValueMap>, roleId: number): StateValueMap {
-  if (!roleVarsByRoleId[roleId]) {
-    roleVarsByRoleId[roleId] = {};
-  }
-  return roleVarsByRoleId[roleId];
+function cloneRoleKeySets(value: Map<number, Set<string>>): Record<number, string[]> {
+  return Object.fromEntries([...value.entries()].map(([roleId, keys]) => [
+    roleId,
+    [...keys].sort((left, right) => left.localeCompare(right, "zh-CN")),
+  ]));
 }
 
 function ensureRoleKeySet(roleKeySets: Map<number, Set<string>>, roleId: number): Set<string> {
@@ -133,15 +133,10 @@ function readScopeBaseValue(
   scope: StateEventScope,
   key: string,
   roomVars: StateValueMap,
-  roleVarsByRoleId: Record<number, StateValueMap>,
   fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined>,
 ): number {
   if (scope.kind === STATE_EVENT_SCOPE_KIND.ROOM) {
     return roomVars[key] ?? 0;
-  }
-  const roleVars = roleVarsByRoleId[scope.roleId];
-  if (roleVars && typeof roleVars[key] === "number") {
-    return roleVars[key];
   }
   return getFallbackRoleAbilityValue(fallbackRoleAbilitiesByRoleId[scope.roleId], key) ?? 0;
 }
@@ -187,6 +182,15 @@ function buildSummary(
 
 function isScopedStateAtom(atom: StateEventAtom): atom is Extract<StateEventAtom, { scope: StateEventScope }> {
   return "scope" in atom;
+}
+
+function formatVarOpRecordPrimary(atom: Extract<StateEventAtom, { type: "varOp" }>): string {
+  const opLabel = atom.op === STATE_EVENT_VAR_OP.SET
+    ? "="
+    : atom.op === STATE_EVENT_VAR_OP.ADD
+      ? "+"
+      : "-";
+  return `${formatStateKeyLabel(atom.key)} ${opLabel} ${formatStateNumericValue(atom.value)}`;
 }
 
 function formatCombatAtomPrimary(atom: Exclude<StateEventAtom, Extract<StateEventAtom, { scope: StateEventScope }> | { type: "nextTurn" }>): string {
@@ -426,6 +430,7 @@ export function buildStateRuntime({
   const roleVarsByRoleId: Record<number, StateValueMap> = {};
   const observedRoomKeys = new Set<string>();
   const observedRoleKeysByRoleId = new Map<number, Set<string>>();
+  const recordedRoleValueKeysByRoleId = new Map<number, Set<string>>();
   const unresolvedStates: UnresolvedState[] = [];
   const messageSummariesByMessageId: Record<number, StateEventMessageSummary> = {};
   let activeStates: ActiveStateInstance[] = [];
@@ -452,24 +457,22 @@ export function buildStateRuntime({
       }
 
       if (atom.type === "varOp") {
-        if (atom.scope.kind === STATE_EVENT_SCOPE_KIND.ROOM) {
-          observedRoomKeys.add(atom.key);
-        }
-        else {
+        if (atom.scope.kind !== STATE_EVENT_SCOPE_KIND.ROOM) {
           ensureRoleKeySet(observedRoleKeysByRoleId, atom.scope.roleId).add(atom.key);
+          ensureRoleKeySet(recordedRoleValueKeysByRoleId, atom.scope.roleId).add(atom.key);
+          primaryCandidates.push(formatVarOpRecordPrimary(atom));
+          detailLines.push(formatStateEventAtomDetail(atom));
+          return;
         }
-        const beforeValue = readScopeBaseValue(atom.scope, atom.key, roomVars, roleVarsByRoleId, fallbackRoleAbilitiesByRoleId);
+
+        observedRoomKeys.add(atom.key);
+        const beforeValue = readScopeBaseValue(atom.scope, atom.key, roomVars, fallbackRoleAbilitiesByRoleId);
         const afterValue = atom.op === STATE_EVENT_VAR_OP.SET
           ? atom.value
           : atom.op === STATE_EVENT_VAR_OP.ADD
             ? beforeValue + atom.value
             : beforeValue - atom.value;
-        if (atom.scope.kind === STATE_EVENT_SCOPE_KIND.ROOM) {
-          roomVars[atom.key] = afterValue;
-        }
-        else {
-          ensureRoleVars(roleVarsByRoleId, atom.scope.roleId)[atom.key] = afterValue;
-        }
+        roomVars[atom.key] = afterValue;
         primaryCandidates.push(`${formatStateKeyLabel(atom.key)} ${formatStateNumericValue(beforeValue)} -> ${formatStateNumericValue(afterValue)}`);
         detailLines.push(`${formatStateEventAtomDetail(atom)} · ${formatStateNumericValue(beforeValue)} -> ${formatStateNumericValue(afterValue)}`);
         return;
@@ -538,6 +541,12 @@ export function buildStateRuntime({
         return;
       }
 
+      if (!combatRoundActive) {
+        primaryCandidates.push("未开始战斗");
+        detailLines.push("未开始战斗，忽略下一回合");
+        return;
+      }
+
       const previousTurn = turn;
       turn += 1;
       const expiredStates: ActiveStateInstance[] = [];
@@ -582,6 +591,7 @@ export function buildStateRuntime({
     combatRoundActive,
     roomVars: cloneValueMap(roomVars),
     roleVarsByRoleId: cloneRoleVarsMap(roleVarsByRoleId),
+    recordedRoleValueKeysByRoleId: cloneRoleKeySets(recordedRoleValueKeysByRoleId),
     activeStates: [...activeStates],
     baseDisplayValues,
     derivedDisplayValues,

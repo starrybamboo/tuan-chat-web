@@ -1,27 +1,43 @@
 import type { UserRole } from "../../../../../api";
 import type { Initiative } from "./initiativeListTypes";
+import type { Role } from "@/components/Role/types";
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
 
 import { Broom } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
+  buildRoleStateEventScope,
   buildCommandStateEventExtra,
   formatStateKeyLabel,
   formatStateNumericValue,
   formatStateScopeLabel,
+  STATE_EVENT_VAR_OP,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
-import { useGetRolesAbilitiesQueries } from "../../../../../api/hooks/abilityQueryHooks";
+import { invalidateRoleAbilityCaches } from "../../../../../api/hooks/abilityMutationInvalidation";
+import {
+  loadRoleAbilityByRule,
+  setRoleAbilityWithSuccessGuard,
+  updateRoleAbilityByRuleWithSuccessGuard,
+  useUpdateKeyFieldByRoleIdMutation,
+  useGetRolesAbilitiesQueries,
+} from "../../../../../api/hooks/abilityQueryHooks";
+import { useAddRoomRoleMutation, useDeleteMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
+import { useCopyRoleMutation } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { MessageType } from "../../../../../api/wsModels";
+import { getCombatRoundControlState } from "./combatRoundControls";
 import { buildEndCombatMessageRequest, buildStartCombatMessageRequest, executeAllInitiativeRolls } from "./initiativeCommandRequest";
 import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
@@ -31,6 +47,18 @@ import {
 import {
   buildImportRoleInitiativeEvents,
 } from "./initiativeListEvents";
+import {
+  buildNextCopiedInitiativeRoleName,
+  collectCombatInitiativeRecords,
+  collectRecordedRoleValueIds,
+  compareCombatRoleRowsByInitiative,
+  buildRoleAbilityFieldDeletePatch,
+  isInlineRoleValueKey,
+  isInitiativeRoleValueKey,
+  parseCustomCombatStateKey,
+  readCombatRoleInitiativeValue,
+  shouldCommitCombatRoleValueEdit,
+} from "./stateDrawerRoleRows";
 
 interface StateValueRow {
   key: string;
@@ -51,7 +79,9 @@ interface PrimaryStatViewModel {
 }
 
 interface RoleStateRowViewModel {
+  canDelete?: boolean;
   roleId: number;
+  rowId: string;
   roleName: string;
   avatarId: number;
   isCurrent: boolean;
@@ -60,6 +90,18 @@ interface RoleStateRowViewModel {
   secondaryRows: StateValueRow[];
   activeStates: ActiveStateInstance[];
   hasRoomContent: boolean;
+  sourceMessageId?: number;
+}
+
+interface RoleValueEditState {
+  key: string;
+  roleId: number;
+  valueKey: string;
+}
+
+interface DuplicateInitiativeImportState {
+  roleId: number;
+  roleName: string;
 }
 
 const PRIMARY_STAT_CONFIGS: PrimaryStatConfig[] = [
@@ -84,6 +126,19 @@ const PRIMARY_STAT_CONFIGS: PrimaryStatConfig[] = [
     className: "border-success/20 bg-success/10 text-success",
   },
 ];
+
+function toCopyableRole(role: UserRole): Role {
+  return {
+    id: role.roleId,
+    name: role.roleName?.trim() || `角色${role.roleId}`,
+    description: role.description ?? "",
+    avatarId: role.avatarId ?? -1,
+    type: role.type,
+    voiceUrl: role.voiceUrl,
+    voiceFileId: role.voiceFileId,
+    extra: role.extra,
+  };
+}
 
 function readNumber(values: Record<string, unknown>, keys: string[]): number | null {
   for (const key of keys) {
@@ -122,6 +177,7 @@ function buildRoleValueRows(
   const displayValues = runtime.derivedDisplayValues.rolesByRoleId[roleId] ?? {};
   const fallbackAbility = runtime.fallbackRoleAbilitiesByRoleId[roleId];
   const keys = new Set<string>(Object.keys(roleVars));
+  (runtime.recordedRoleValueKeysByRoleId[roleId] ?? []).forEach(key => keys.add(key));
 
   roleStates.forEach((state) => {
     state.modifiers.forEach((modifier) => {
@@ -188,7 +244,7 @@ function splitRoleRows(rows: StateValueRow[]): {
 
   return {
     primaryStats,
-    secondaryRows: rows.filter(row => !consumedKeys.has(row.key)),
+    secondaryRows: rows.filter(row => !consumedKeys.has(row.key) && isInlineRoleValueKey(row.key)),
   };
 }
 
@@ -228,6 +284,11 @@ function StatPill({
   );
 }
 
+function parseFiniteRoleValue(value: string): number | null {
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function StatusPill({ state }: { state: ActiveStateInstance }) {
   const isEndingSoon = typeof state.remainingTurns === "number" && state.remainingTurns <= 1;
   return (
@@ -240,7 +301,103 @@ function StatusPill({ state }: { state: ActiveStateInstance }) {
   );
 }
 
-function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
+function EditableStatPill({
+  editKey,
+  editingKey,
+  editingValue,
+  initialValue,
+  onCommit,
+  setEditingValue,
+  startEditing,
+  stopEditing,
+  text,
+  className,
+}: {
+  className?: string;
+  editKey: string;
+  editingKey: string | null;
+  editingValue: string;
+  initialValue: number;
+  onCommit: (value: number) => void;
+  setEditingValue: (value: string) => void;
+  startEditing: (key: string, value: string) => void;
+  stopEditing: () => void;
+  text: string;
+}) {
+  if (editingKey === editKey) {
+    return (
+      <input
+        type="number"
+        autoFocus
+        className="input input-xs h-6 min-h-6 w-20 rounded-full border-base-300 bg-base-100 px-2 text-right text-[11px] tabular-nums"
+        value={editingValue}
+        onChange={event => setEditingValue(event.target.value)}
+        onBlur={() => {
+          const parsed = parseFiniteRoleValue(editingValue);
+          if (parsed != null) {
+            onCommit(parsed);
+          }
+          stopEditing();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            const parsed = parseFiniteRoleValue(editingValue);
+            if (parsed != null) {
+              onCommit(parsed);
+            }
+            stopEditing();
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            stopEditing();
+          }
+        }}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium leading-none transition hover:border-primary/40 hover:bg-primary/8 ${className ?? "border-base-300/70 bg-base-100/75 text-base-content/70"}`}
+      title="点击编辑"
+      onClick={() => startEditing(editKey, String(initialValue))}
+    >
+      {text}
+    </button>
+  );
+}
+
+function CompactRoleRow({
+  editingKey,
+  editingValue,
+  onCommitRoleValue,
+  onDelete,
+  row,
+  setEditingValue,
+  startEditing,
+  stopEditing,
+}: {
+  editingKey: string | null;
+  editingValue: string;
+  onCommitRoleValue: (roleId: number, valueKey: string, value: number) => void;
+  onDelete?: (row: RoleStateRowViewModel) => void;
+  row: RoleStateRowViewModel;
+  setEditingValue: (value: string) => void;
+  startEditing: (state: RoleValueEditState) => void;
+  stopEditing: () => void;
+}) {
+  const buildEditKey = (valueKey: string) => `${row.roleId}:${valueKey}`;
+  const startValueEditing = (valueKey: string, value: string) => {
+    startEditing({
+      key: buildEditKey(valueKey),
+      roleId: row.roleId,
+      valueKey,
+    });
+    setEditingValue(value);
+  };
+
   return (
     <div className={`rounded-2xl border px-3 py-2.5 ${
       row.isCurrent
@@ -268,7 +425,17 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
                 当前
               </span>
             )}
-            <StatPill text={formatInitiativeText(row.initiative)} />
+            <EditableStatPill
+              editKey={buildEditKey("initiative")}
+              editingKey={editingKey}
+              editingValue={editingValue}
+              initialValue={row.initiative ?? 0}
+              onCommit={value => onCommitRoleValue(row.roleId, "initiative", value)}
+              setEditingValue={setEditingValue}
+              startEditing={(_, value) => startValueEditing("initiative", value)}
+              stopEditing={stopEditing}
+              text={formatInitiativeText(row.initiative)}
+            />
             {!row.hasRoomContent && (
               <span className="text-[11px] text-base-content/45">无房间态</span>
             )}
@@ -276,15 +443,31 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
           {row.hasRoomContent && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {row.primaryStats.map(item => (
-                <StatPill
+                <EditableStatPill
                   key={`${row.roleId}:${item.config.label}`}
+                  editKey={buildEditKey(item.row.key)}
+                  editingKey={editingKey}
+                  editingValue={editingValue}
+                  initialValue={item.row.displayValue}
+                  onCommit={value => onCommitRoleValue(row.roleId, item.row.key, value)}
+                  setEditingValue={setEditingValue}
+                  startEditing={(_, value) => startValueEditing(item.row.key, value)}
+                  stopEditing={stopEditing}
                   text={formatPrimaryStatText(item)}
                   className={item.config.className}
                 />
               ))}
               {row.secondaryRows.map(item => (
-                <StatPill
+                <EditableStatPill
                   key={`${row.roleId}:${item.key}`}
+                  editKey={buildEditKey(item.key)}
+                  editingKey={editingKey}
+                  editingValue={editingValue}
+                  initialValue={item.displayValue}
+                  onCommit={value => onCommitRoleValue(row.roleId, item.key, value)}
+                  setEditingValue={setEditingValue}
+                  startEditing={(_, value) => startValueEditing(item.key, value)}
+                  stopEditing={stopEditing}
                   text={`${formatStateKeyLabel(item.key)} ${compareStateValueText(item)}`}
                 />
               ))}
@@ -294,6 +477,18 @@ function CompactRoleRow({ row }: { row: RoleStateRowViewModel }) {
             </div>
           )}
         </div>
+        {row.canDelete && (
+          <div className="ml-auto flex shrink-0 items-start justify-end pl-2">
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs h-6 min-h-6 rounded-md px-2 text-[11px] text-error hover:bg-error/10"
+              title="删除这条先攻记录"
+              onClick={() => onDelete?.(row)}
+            >
+              删除
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -303,11 +498,19 @@ export default function StateDrawer() {
   const roomContext = React.use(RoomContext);
   const spaceContext = React.use(SpaceContext);
   const runtime = useStateRuntimeContext();
+  const queryClient = useQueryClient();
+  const deleteMessageMutation = useDeleteMessageMutation();
+  const addRoomRoleMutation = useAddRoomRoleMutation();
+  const copyRoleMutation = useCopyRoleMutation();
+  const updateKeyFieldByRoleIdMutation = useUpdateKeyFieldByRoleIdMutation();
   const currentUserId = useGlobalUserId();
   const [isAdvancingTurn, setIsAdvancingTurn] = React.useState(false);
   const [isStartingCombat, setIsStartingCombat] = React.useState(false);
   const [isEndingCombat, setIsEndingCombat] = React.useState(false);
   const [isImportPopupOpen, setIsImportPopupOpen] = React.useState(false);
+  const [editingRoleValue, setEditingRoleValue] = React.useState<RoleValueEditState | null>(null);
+  const [editingRoleValueText, setEditingRoleValueText] = React.useState("");
+  const [duplicateImportRole, setDuplicateImportRole] = React.useState<DuplicateInitiativeImportState | null>(null);
   const spaceOwner = Boolean(spaceContext.isSpaceOwner);
   const curUserId = currentUserId ?? -1;
   const roomRolesThatUserOwn = roomContext.roomRolesThatUserOwn ?? [];
@@ -317,8 +520,7 @@ export default function StateDrawer() {
     : roomRolesThatUserOwn.filter(role => role.userId === curUserId);
   const rollableRoles = spaceOwner ? visibleRoomRoles : importableRoles;
   const abilityQueries = useGetRolesAbilitiesQueries(importableRoles.map(role => role.roleId));
-  const canEndCombat = runtime.combatRoundActive;
-  const canStartCombat = !runtime.combatRoundActive;
+  const { canAdvanceTurn, canEndCombat, canStartCombat, primaryAction } = getCombatRoundControlState(runtime.combatRoundActive);
   const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
 
   const initiativeList = React.useMemo<Initiative[]>(() => {
@@ -346,6 +548,45 @@ export default function StateDrawer() {
     });
   }, [runtime.participants]);
 
+  const importedInitiativeRoleIds = React.useMemo(() => {
+    const roleIds = new Set<number>();
+    initiativeList.forEach((item) => {
+      if (typeof item.roleId === "number" && item.roleId > 0) {
+        roleIds.add(item.roleId);
+      }
+    });
+    collectCombatInitiativeRecords(roomContext.chatHistory?.messages).forEach((record) => {
+      if (record.roleId > 0) {
+        roleIds.add(record.roleId);
+      }
+    });
+    Object.entries(runtime.recordedRoleValueKeysByRoleId).forEach(([rawRoleId, keys]) => {
+      const roleId = Number(rawRoleId);
+      if (roleId > 0 && keys.some(isInitiativeRoleValueKey)) {
+        roleIds.add(roleId);
+      }
+    });
+    Object.entries(runtime.baseDisplayValues.rolesByRoleId).forEach(([rawRoleId, values]) => {
+      const roleId = Number(rawRoleId);
+      if (roleId > 0 && typeof readCombatRoleInitiativeValue(values) === "number") {
+        roleIds.add(roleId);
+      }
+    });
+    Object.entries(runtime.derivedDisplayValues.rolesByRoleId).forEach(([rawRoleId, values]) => {
+      const roleId = Number(rawRoleId);
+      if (roleId > 0 && typeof readCombatRoleInitiativeValue(values) === "number") {
+        roleIds.add(roleId);
+      }
+    });
+    return roleIds;
+  }, [
+    initiativeList,
+    roomContext.chatHistory?.messages,
+    runtime.baseDisplayValues.rolesByRoleId,
+    runtime.derivedDisplayValues.rolesByRoleId,
+    runtime.recordedRoleValueKeysByRoleId,
+  ]);
+
   const sendCombatEvents = React.useCallback(async (events: StateEventAtom[], content = ".combat") => {
     if (!roomContext.sendMessageWithInsert || !roomContext.roomId) {
       toast.error("当前房间暂不能写入先攻事件");
@@ -353,6 +594,15 @@ export default function StateDrawer() {
     }
 
     try {
+      const ruleId = spaceContext.ruleId ?? -1;
+      const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+        events,
+        ruleId,
+        loadRoleAbility: loadRoleAbilityByRule,
+        createRoleAbility: setRoleAbilityWithSuccessGuard,
+        updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
+      });
+      await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
       const createdMessage = await roomContext.sendMessageWithInsert({
         roomId: roomContext.roomId,
         roleId: roomContext.curRoleId ?? -1,
@@ -372,15 +622,13 @@ export default function StateDrawer() {
       toast.error("写入先攻事件失败");
       return false;
     }
-  }, [roomContext]);
+  }, [queryClient, roomContext, spaceContext.ruleId]);
 
-  const handleImportSingle = React.useCallback(async (roleId: number) => {
-    const idx = importableRoles.findIndex(role => role.roleId === roleId);
-    if (idx === -1) {
-      return;
-    }
-
-    const query = abilityQueries[idx];
+  const importRoleIntoInitiative = React.useCallback(async (
+    roleId: number,
+    name: string,
+    query: (typeof abilityQueries)[number] | undefined,
+  ) => {
     const res = query?.data;
     if (res?.success && Array.isArray(res.data) && spaceContext.ruleId) {
       const hasMatchingRule = res.data.some(item => item.ruleId === spaceContext.ruleId);
@@ -393,8 +641,6 @@ export default function StateDrawer() {
     const ruleId = spaceContext.ruleId ?? undefined;
     const initiative = extractAgilityFromQuery(ruleId, query) ?? 0;
     const hpData = extractHpFromQuery(ruleId, query);
-    const role = importableRoles[idx];
-    const name = role.roleName ?? `角色${role.roleId}`;
     await sendCombatEvents(buildImportRoleInitiativeEvents({
       hp: hpData?.hp ?? null,
       initiative,
@@ -402,7 +648,85 @@ export default function StateDrawer() {
       roleId,
       name,
     }), ".combat import");
-  }, [abilityQueries, importableRoles, initiativeList, sendCombatEvents, spaceContext.ruleId]);
+  }, [sendCombatEvents, spaceContext.ruleId]);
+
+  const handleImportSingle = React.useCallback(async (roleId: number) => {
+    const idx = importableRoles.findIndex(role => role.roleId === roleId);
+    if (idx === -1) {
+      return;
+    }
+
+    const role = importableRoles[idx];
+    const name = role.roleName?.trim() || `角色${role.roleId}`;
+    const isAlreadyImported = importedInitiativeRoleIds.has(roleId);
+    if (isAlreadyImported) {
+      setDuplicateImportRole({ roleId, roleName: name });
+      return;
+    }
+
+    await importRoleIntoInitiative(roleId, name, abilityQueries[idx]);
+  }, [abilityQueries, importedInitiativeRoleIds, importRoleIntoInitiative, importableRoles]);
+
+  const handleConfirmDuplicateImport = React.useCallback(async () => {
+    if (!duplicateImportRole || copyRoleMutation.isPending || addRoomRoleMutation.isPending) {
+      return;
+    }
+    const targetSpaceId = roomContext.spaceId ?? spaceContext.spaceId;
+    if (!roomContext.roomId || !targetSpaceId) {
+      toast.error("当前房间暂不能加入复制角色");
+      return;
+    }
+
+    const idx = importableRoles.findIndex(role => role.roleId === duplicateImportRole.roleId);
+    const sourceRole = importableRoles[idx];
+    if (!sourceRole) {
+      toast.error("未找到要复制的角色");
+      setDuplicateImportRole(null);
+      return;
+    }
+
+    const existingNames = [
+      ...(roomContext.roomAllRoles ?? []),
+      ...importableRoles,
+    ]
+      .map(role => role.roleName?.trim())
+      .filter((name): name is string => Boolean(name));
+    const copiedName = buildNextCopiedInitiativeRoleName(duplicateImportRole.roleName, existingNames);
+
+    try {
+      const copiedRole = await copyRoleMutation.mutateAsync({
+        sourceRole: toCopyableRole(sourceRole),
+        targetType: "npc",
+        newName: copiedName,
+        newDescription: sourceRole.description,
+        spaceId: targetSpaceId,
+      });
+      await addRoomRoleMutation.mutateAsync({
+        roomId: roomContext.roomId,
+        roleIdList: [copiedRole.id],
+        type: 2,
+      });
+      await importRoleIntoInitiative(copiedRole.id, copiedRole.name || copiedName, abilityQueries[idx]);
+      setDuplicateImportRole(null);
+      setIsImportPopupOpen(false);
+      toast.success(`已复制 ${copiedName} 并导入先攻`);
+    }
+    catch (error) {
+      console.error("复制角色并导入先攻失败", error);
+      toast.error(error instanceof Error && error.message ? error.message : "复制角色并导入先攻失败");
+    }
+  }, [
+    abilityQueries,
+    addRoomRoleMutation,
+    copyRoleMutation,
+    duplicateImportRole,
+    importRoleIntoInitiative,
+    importableRoles,
+    roomContext.roomAllRoles,
+    roomContext.roomId,
+    roomContext.spaceId,
+    spaceContext.spaceId,
+  ]);
 
   const handleRollAllInitiative = React.useCallback(async () => {
     if (!spaceOwner) {
@@ -517,6 +841,10 @@ export default function StateDrawer() {
     if (isAdvancingTurn || !roomContext.sendMessageWithInsert || !roomContext.roomId) {
       return;
     }
+    if (!canAdvanceTurn) {
+      toast.error("请先开始战斗");
+      return;
+    }
 
     setIsAdvancingTurn(true);
     try {
@@ -541,9 +869,75 @@ export default function StateDrawer() {
       setIsAdvancingTurn(false);
     }
   }, [
+    canAdvanceTurn,
     isAdvancingTurn,
     roomContext,
   ]);
+
+  const handleDeleteRoleRow = React.useCallback(async (row: RoleStateRowViewModel) => {
+    const messageId = row.sourceMessageId;
+    if (deleteMessageMutation.isPending || updateKeyFieldByRoleIdMutation.isPending) {
+      return;
+    }
+    if (!messageId) {
+      const ruleId = spaceContext.ruleId ?? -1;
+      if (!Number.isFinite(ruleId) || ruleId <= 0) {
+        toast.error("当前空间没有有效规则，无法删除先攻字段");
+        return;
+      }
+      try {
+        const cachedAbility = runtime.fallbackRoleAbilitiesByRoleId[row.roleId];
+        const patch = buildRoleAbilityFieldDeletePatch(cachedAbility, "initiative")
+          ?? buildRoleAbilityFieldDeletePatch(await loadRoleAbilityByRule(row.roleId, ruleId), "initiative");
+        if (!patch) {
+          toast.error("未找到可删除的先攻字段");
+          return;
+        }
+        await updateKeyFieldByRoleIdMutation.mutateAsync({
+          roleId: row.roleId,
+          ruleId,
+          ...patch,
+        });
+        toast.success("已删除先攻记录");
+      }
+      catch (error) {
+        console.error("删除先攻字段失败", error);
+        toast.error("删除先攻记录失败");
+      }
+      return;
+    }
+
+    const targetMessage = roomContext.chatHistory?.messages.find(item => item.message.messageId === messageId);
+    if (targetMessage) {
+      await roomContext.chatHistory?.addOrUpdateMessage({
+        ...targetMessage,
+        message: {
+          ...targetMessage.message,
+          status: 1,
+        },
+      });
+    }
+    try {
+      const response = await deleteMessageMutation.mutateAsync(messageId);
+      if (response?.data) {
+        await roomContext.chatHistory?.addOrUpdateMessage({
+          ...targetMessage,
+          message: {
+            ...targetMessage?.message,
+            ...response.data,
+          },
+        } as any);
+      }
+      toast.success("已删除先攻记录");
+    }
+    catch (error) {
+      console.error("删除先攻记录失败", error);
+      if (targetMessage) {
+        await roomContext.chatHistory?.addOrUpdateMessage(targetMessage);
+      }
+      toast.error("删除先攻记录失败");
+    }
+  }, [deleteMessageMutation, roomContext.chatHistory, runtime.fallbackRoleAbilitiesByRoleId, spaceContext.ruleId, updateKeyFieldByRoleIdMutation]);
 
   const roomRows = React.useMemo(() => {
     const baseValues = runtime.baseDisplayValues.room;
@@ -556,6 +950,11 @@ export default function StateDrawer() {
         displayValue: displayValues[key] ?? baseValues[key] ?? 0,
       }));
   }, [runtime.baseDisplayValues.room, runtime.derivedDisplayValues.room]);
+
+  const visibleRoomRows = React.useMemo(
+    () => roomRows.filter(row => !parseCustomCombatStateKey(row.key)),
+    [roomRows],
+  );
 
   const roleById = React.useMemo(() => {
     const nextMap = new Map<number, UserRole>();
@@ -573,6 +972,37 @@ export default function StateDrawer() {
   );
 
   const roleRows = React.useMemo(() => {
+    const initiativeRecords = collectCombatInitiativeRecords(roomContext.chatHistory?.messages);
+    const initiativeRecordRoleIds = new Set(initiativeRecords.map(record => record.roleId));
+    const initiativeRecordRows = initiativeRecords.map((record): RoleStateRowViewModel => {
+      const role = roleById.get(record.roleId);
+      const activeStates = runtime.activeStates.filter(
+        state => state.scope.kind === "role" && state.scope.roleId === record.roleId,
+      );
+      const rows: StateValueRow[] = [];
+      if (typeof record.hp === "number") {
+        rows.push({ key: "hp", baseValue: record.hp, displayValue: record.hp });
+      }
+      if (typeof record.maxHp === "number") {
+        rows.push({ key: "maxHp", baseValue: record.maxHp, displayValue: record.maxHp });
+      }
+      const { primaryStats, secondaryRows } = splitRoleRows(rows);
+      return {
+        canDelete: true,
+        roleId: record.roleId,
+        rowId: record.recordId,
+        roleName: role?.roleName?.trim() || `角色 #${record.roleId}`,
+        avatarId: role?.avatarId ?? -1,
+        isCurrent: record.roleId === runtime.currentRoleId,
+        initiative: record.initiative,
+        primaryStats,
+        secondaryRows,
+        activeStates,
+        hasRoomContent: true,
+        sourceMessageId: record.sourceMessageId,
+      };
+    });
+
     const roleIds = new Set<number>();
     (roomContext.roomAllRoles ?? []).forEach((role) => {
       if (role.roleId > 0) {
@@ -585,13 +1015,15 @@ export default function StateDrawer() {
         roleIds.add(roleId);
       }
     });
+    collectRecordedRoleValueIds(runtime.recordedRoleValueKeysByRoleId).forEach(roleId => roleIds.add(roleId));
     runtime.activeStates.forEach((state) => {
       if (state.scope.kind === "role" && state.scope.roleId > 0) {
         roleIds.add(state.scope.roleId);
       }
     });
 
-    return [...roleIds]
+    const aggregateRows = [...roleIds]
+      .filter(roleId => !initiativeRecordRoleIds.has(roleId))
       .sort((left, right) => {
         if (left === runtime.currentRoleId) {
           return -1;
@@ -611,28 +1043,59 @@ export default function StateDrawer() {
         );
         const rows = buildRoleValueRows(runtime, roleId, activeStates);
         const { primaryStats, secondaryRows } = splitRoleRows(rows);
+        const baseValues = runtime.baseDisplayValues.rolesByRoleId[roleId] ?? {};
+        const derivedValues = runtime.derivedDisplayValues.rolesByRoleId[roleId] ?? {};
+        const initiative = participant?.initiative
+          ?? readCombatRoleInitiativeValue(derivedValues)
+          ?? readCombatRoleInitiativeValue(baseValues);
+        const hasRecordedValues = (runtime.recordedRoleValueKeysByRoleId[roleId]?.length ?? 0) > 0;
         // 先攻本身也是战斗状态的一部分；只有先攻的角色也要进入主卡片区。
         const hasRoomContent = primaryStats.length > 0
           || secondaryRows.length > 0
           || activeStates.length > 0
-          || typeof participant?.initiative === "number";
+          || typeof initiative === "number"
+          || hasRecordedValues;
         return {
+          canDelete: typeof initiative === "number",
           roleId,
+          rowId: `role:${roleId}`,
           roleName: role?.roleName?.trim() || `角色 #${roleId}`,
           avatarId: role?.avatarId ?? -1,
           isCurrent: roleId === runtime.currentRoleId,
-          initiative: participant?.initiative ?? null,
+          initiative,
           primaryStats,
           secondaryRows,
           activeStates,
           hasRoomContent,
         };
-      });
+      })
+      .sort(compareCombatRoleRowsByInitiative);
+
+    return [...initiativeRecordRows, ...aggregateRows].sort(compareCombatRoleRowsByInitiative);
   }, [
     roleById,
+    roomContext.chatHistory?.messages,
     roomContext.roomAllRoles,
     runtime,
   ]);
+
+  const handleCommitRoleValue = React.useCallback((roleId: number, valueKey: string, value: number) => {
+    const row = roleRows.find(row => row.roleId === roleId && editingRoleValue?.key === `${row.roleId}:${valueKey}`);
+    const previousValue = valueKey === "initiative"
+      ? row?.initiative
+      : row?.primaryStats.find(item => item.row.key === valueKey)?.row.displayValue
+        ?? row?.secondaryRows.find(item => item.key === valueKey)?.displayValue;
+    if (!shouldCommitCombatRoleValueEdit(previousValue, value)) {
+      return;
+    }
+    void sendCombatEvents([{
+      type: "varOp",
+      scope: buildRoleStateEventScope(roleId),
+      key: valueKey,
+      op: STATE_EVENT_VAR_OP.SET,
+      value,
+    }], ".combat update");
+  }, [editingRoleValue?.key, roleRows, sendCombatEvents]);
 
   const rolesWithContent = roleRows.filter(row => row.hasRoomContent);
   const rolesWithoutContent = roleRows.filter(row => !row.hasRoomContent);
@@ -645,7 +1108,7 @@ export default function StateDrawer() {
       return !roleIdsWithContent.has(participant.roleId);
     });
   }, [rolesWithContent, runtime.participants]);
-  const shouldShowRoomSummary = roomRows.length > 0 || roomStates.length > 0;
+  const shouldShowRoomSummary = visibleRoomRows.length > 0 || roomStates.length > 0;
   const shouldShowUnresolvedStates = runtime.unresolvedStates.length > 0;
 
   return (
@@ -670,7 +1133,7 @@ export default function StateDrawer() {
                   导入先攻
                 </button>
               )}
-              {spaceOwner && (
+              {spaceOwner && primaryAction === "start" && (
                 <button
                   type="button"
                   className="btn btn-outline btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]"
@@ -683,7 +1146,7 @@ export default function StateDrawer() {
                   {isStartingCombat ? "开始中..." : "开始战斗"}
                 </button>
               )}
-              {spaceOwner && (
+              {spaceOwner && primaryAction === "end" && (
                 <button
                   type="button"
                   className="btn btn-outline btn-error btn-xs h-8 min-h-8 gap-1 rounded-lg px-3 text-[11px]"
@@ -703,7 +1166,7 @@ export default function StateDrawer() {
                 onClick={() => {
                   void handleAdvanceTurn();
                 }}
-                disabled={isAdvancingTurn || !roomContext.sendMessageWithInsert || !roomContext.roomId}
+                disabled={!canAdvanceTurn || isAdvancingTurn || !roomContext.sendMessageWithInsert || !roomContext.roomId}
               >
                 {isAdvancingTurn ? "推进中..." : "下一回合"}
               </button>
@@ -714,7 +1177,7 @@ export default function StateDrawer() {
           )}
           {shouldShowRoomSummary && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {roomRows.map(row => (
+              {visibleRoomRows.map(row => (
                 <StatPill
                   key={`room:${row.key}`}
                   text={`${formatStateKeyLabel(row.key)} ${compareStateValueText(row)}`}
@@ -736,7 +1199,20 @@ export default function StateDrawer() {
                 {rolesWithContent.length > 0 && (
                   <div className="space-y-2">
                     {rolesWithContent.map(row => (
-                      <CompactRoleRow key={row.roleId} row={row} />
+                      <CompactRoleRow
+                        key={row.rowId}
+                        editingKey={editingRoleValue?.key ?? null}
+                        editingValue={editingRoleValueText}
+                        onCommitRoleValue={handleCommitRoleValue}
+                        onDelete={handleDeleteRoleRow}
+                        row={row}
+                        setEditingValue={setEditingRoleValueText}
+                        startEditing={setEditingRoleValue}
+                        stopEditing={() => {
+                          setEditingRoleValue(null);
+                          setEditingRoleValueText("");
+                        }}
+                      />
                     ))}
                   </div>
                 )}
@@ -805,10 +1281,44 @@ export default function StateDrawer() {
         importableRoles={importableRoles}
         abilityQueries={abilityQueries}
         initiativeList={initiativeList}
+        importedRoleIds={importedInitiativeRoleIds}
         onClose={() => setIsImportPopupOpen(false)}
         onRollAllInitiative={spaceOwner ? handleRollAllInitiative : undefined}
         onImportSingle={roleId => void handleImportSingle(roleId)}
       />
+      <ToastWindow
+        isOpen={Boolean(duplicateImportRole)}
+        onClose={() => setDuplicateImportRole(null)}
+        fullScreen={false}
+      >
+        <div className="w-80 max-w-[calc(100vw-2rem)] space-y-4 p-4">
+          <div>
+            <h3 className="text-base font-semibold">复制角色并导入？</h3>
+            <p className="mt-2 text-sm leading-6 text-base-content/70">
+              {duplicateImportRole?.roleName ?? "这个角色"}
+              已经在先攻表中。确认后会复制成新的 NPC，加入当前房间和空间，再导入先攻。
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={copyRoleMutation.isPending || addRoomRoleMutation.isPending}
+              onClick={() => setDuplicateImportRole(null)}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={copyRoleMutation.isPending || addRoomRoleMutation.isPending}
+              onClick={() => void handleConfirmDuplicateImport()}
+            >
+              {copyRoleMutation.isPending || addRoomRoleMutation.isPending ? "处理中..." : "复制并导入"}
+            </button>
+          </div>
+        </div>
+      </ToastWindow>
     </div>
   );
 }

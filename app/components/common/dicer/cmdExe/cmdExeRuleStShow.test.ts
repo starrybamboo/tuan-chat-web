@@ -48,4 +48,27 @@ describe("规则 st show 委托", () => {
     expect(result).toBe(true);
     expect(executeStShowCommandMock).toHaveBeenCalledWith(["show", "图书馆"], role, cpi);
   });
+
+  it("fU 的 .st 支持把掷骰表达式按 FU 别名写入 skill", async () => {
+    const role = {
+      roleId: 1,
+      roleName: "维洛",
+      userId: 1,
+      type: 0,
+    } as UserRole;
+    const ability = {
+      skill: {},
+    };
+    (cpi.getRoleAbilityList as any).mockReturnValue(ability);
+
+    const result = await executorFu.cmdMap.get("st")?.solve(["dex", "1d4+1d8"], [role], cpi);
+
+    expect(result).toBe(true);
+    expect(cpi.setRoleAbilityList).toHaveBeenCalledWith(1, {
+      skill: {
+        敏捷: "1d4+1d8",
+      },
+    });
+    expect(cpi.replyMessage).toHaveBeenCalledWith("掷骰表达式设置成功：维洛的敏捷 = 1d4+1d8");
+  });
 });

@@ -16,7 +16,6 @@ describe("expressionSticker", () => {
       fileId: 42,
       fileName: "开心.gif",
       height: 160,
-      mediaType: "image",
       size: 4096,
       width: 120,
     });
@@ -30,7 +29,6 @@ describe("expressionSticker", () => {
       fileId: 7,
       fileName: "表情.png",
       height: 256,
-      mediaType: "image",
       size: 1,
       width: 256,
     });

@@ -1,4 +1,4 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+﻿import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it } from "vitest";
 
 import type { Message } from "@tuanchat/openapi-client/models/Message";
@@ -14,8 +14,10 @@ function createMessage(avatarFileId?: number | null, roleId?: number | null, ima
       ? {}
       : {
           imageMessage: {
-            fileId: imageFileId,
-            mediaType: "image",
+            source: {
+              kind: "internal",
+              fileId: imageFileId,
+            },
           },
         },
     messageType: imageFileId == null ? MESSAGE_TYPE.TEXT : MESSAGE_TYPE.IMG,
@@ -34,8 +36,8 @@ describe("collectChatAvatarThumbUrls", () => {
         createMessage(null),
       ]),
     ).toEqual([
-      "https://tuan.chat/media/v1/files/007/7/image/low.webp",
-      "https://tuan.chat/media/v1/files/012/12/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/007/7/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/012/12/image/low.webp",
     ]);
   });
 
@@ -50,7 +52,7 @@ describe("collectChatAvatarThumbUrls", () => {
         createMessage(undefined, 8),
       ], roomRolesById),
     ).toEqual([
-      "https://tuan.chat/media/v1/files/021/21/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/021/21/image/low.webp",
     ]);
   });
 
@@ -64,8 +66,9 @@ describe("collectChatAvatarThumbUrls", () => {
         createMessage(null, null, null),
       ]),
     ).toEqual([
-      "https://tuan.chat/media/v1/files/011/11/image/low.webp",
-      "https://tuan.chat/media/v1/files/022/22/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/011/11/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/022/22/image/low.webp",
     ]);
   });
 });
+

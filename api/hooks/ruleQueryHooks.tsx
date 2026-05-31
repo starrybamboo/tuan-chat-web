@@ -170,7 +170,10 @@ async function fetchRules(page: number, keyword?: string, pageSize: number = 4, 
     keyword,
     authorId,
   });
-  const list = (res.success && res.data?.list) ? (res.data.list as unknown as Rule[]) : ([] as Rule[]);
+  if (res.success === false) {
+    throw new Error(res.errMsg?.trim() || '获取规则列表失败');
+  }
+  const list = res.data?.list ? (res.data.list as unknown as Rule[]) : ([] as Rule[]);
   const meta: Pick<PageBaseRespRuleResponse, 'pageNo' | 'pageSize' | 'totalRecords' | 'isLast'> = {
     pageNo: res.data?.pageNo,
     pageSize: res.data?.pageSize,

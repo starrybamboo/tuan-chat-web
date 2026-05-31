@@ -57,28 +57,49 @@ async function executeRollCommand(
   options?: {
     fallbackInput?: string;
     prependInput?: string;
+    role?: UserRole;
   },
 ): Promise<boolean> {
   const isForceToast = UTILS.doesHaveArg(args, "h");
   const rawInput = args.join("");
-  const input = rawInput
+  const expressionAlias = resolveRollExpressionAlias(rawInput, options?.role, cpi);
+  const input = expressionAlias?.expression ?? (rawInput
     ? `${options?.prependInput ?? ""}${rawInput}`
-    : options?.fallbackInput ?? `1d${cpi.getSpaceData("defaultDice") || "100"}`;
+    : options?.fallbackInput ?? `1d${cpi.getSpaceData("defaultDice") || "100"}`);
   try {
     const diceResult = roll(input);
+    const inputText = expressionAlias ? `${expressionAlias.alias} = ${input}` : input;
     if (isForceToast) {
-      cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`, {
+      cpi.replyMessage(`掷骰结果：${inputText} = ${diceResult.expanded} = ${diceResult.result}`, {
         visibility: "kp_and_sender",
       });
       return true;
     }
-    cpi.replyMessage(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);
+    cpi.replyMessage(`掷骰结果：${inputText} = ${diceResult.expanded} = ${diceResult.result}`);
     return true;
   }
   catch (error) {
     cpi.replyMessage(`掷骰错误：${error ?? "未知错误"}`);
     return false;
   }
+}
+
+function resolveRollExpressionAlias(
+  rawInput: string,
+  role: UserRole | undefined,
+  cpi: CPI,
+): { alias: string; expression: string } | null {
+  const alias = rawInput.trim();
+  if (!alias || !role) {
+    return null;
+  }
+
+  const ability = cpi.getRoleAbilityList(role.roleId);
+  const expression = ability ? UTILS.getRoleAbilityValue(ability, alias)?.trim() : undefined;
+  if (!expression || !/\d*d\d+/i.test(expression)) {
+    return null;
+  }
+  return expression ? { alias, expression } : null;
 }
 
 function readPublicInitiativeValue(ability: RoleAbility): number | null {
@@ -111,10 +132,12 @@ const cmdR = new CommandExecutor(
   "r",
   ["r"],
   "掷骰",
-  [".r 1d100", ".r 3d6*5", ".r"],
-  ".r [掷骰表达式]",
-  async (args: string[], _mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    return executeRollCommand(args, cpi);
+  [".r 1d100", ".r 3d6*5", ".r 手枪", ".r"],
+  ".r [掷骰表达式/表达式别名]",
+  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
+    return executeRollCommand(args, cpi, {
+      role: mentioned[0],
+    });
   },
 );
 executorPublic.addCmd(cmdR);
@@ -166,8 +189,8 @@ const cmdSt = new CommandExecutor(
   "st",
   [],
   "属性设置",
-  [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 力量 -25"],
-  ".st [属性名][属性值] / .st show [属性名]...",
+  [".st 力量70", ".st show", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 力量 -25", ".st 手枪 1d4+1d8"],
+  ".st [属性名][属性值/掷骰表达式] / .st show [属性名]...",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
@@ -183,6 +206,22 @@ const cmdSt = new CommandExecutor(
     if (!curAbility) {
       cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
       return false;
+    }
+
+    if (args.length >= 2 && !/^[-+]?\d+$/.test(args[1].trim())) {
+      const key = args[0].trim();
+      const expression = args.slice(1).join("").trim();
+      if (!key || !expression) {
+        cpi.sendToast("错误：属性名或掷骰表达式不能为空");
+        return false;
+      }
+      curAbility.skill = {
+        ...curAbility.skill,
+        [key]: expression,
+      };
+      cpi.setRoleAbilityList(role.roleId, curAbility);
+      cpi.replyMessage(`掷骰表达式设置成功：${role?.roleName || "当前角色"}的${key} = ${expression}`);
+      return true;
     }
 
     const applyChange = (rawKey: string, operator: string, value: number) => {
@@ -248,122 +287,6 @@ const cmdSt = new CommandExecutor(
   },
 );
 executorPublic.addCmd(cmdSt);
-
-/**
- * 自定义变量设置指令
- */
-const cmdSet = new CommandExecutor(
-  "set",
-  ["set", "alias"],
-  "设置自定义变量",
-  [".set 手枪 1d8+1d4", ".set 闪电旋风劈 6d10"],
-  ".set [变量名] [变量内容]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    const role = mentioned[0];
-    if (!role) {
-      cpi.replyMessage("错误：未找到指定角色");
-      return false;
-    }
-
-    // 检查参数是否充足
-    if (args.length < 1) {
-      cpi.replyMessage("错误：请指定变量名称");
-      return false;
-    }
-
-    const varName = args[0].trim();
-    // 变量内容：从第二个参数开始，将所有参数合并为一个字符串
-    const varContent = args.slice(1).join(" ").trim();
-
-    // 获取当前角色能力信息
-    const curAbility = cpi.getRoleAbilityList(role.roleId);
-    if (!curAbility) {
-      cpi.replyMessage("错误：无法获取角色信息");
-      return false;
-    }
-
-    // 确保record对象存在
-    if (!curAbility.record) {
-      curAbility.record = {};
-    }
-
-    // 存储变量到record字段
-    const oldValue = curAbility.record[varName];
-    curAbility.record[varName] = varContent;
-
-    // 保存更新后的能力信息
-    cpi.setRoleAbilityList(role.roleId, curAbility);
-
-    // 生成回复消息
-    let replyMsg = `变量设置成功：${role?.roleName || "当前角色"}的变量`;
-    if (oldValue !== undefined) {
-      replyMsg += `\n${varName} "${oldValue}" -> "${varContent}"`;
-    }
-    else {
-      replyMsg += `\n${varName}: "${varContent}"`;
-    }
-
-    cpi.replyMessage(replyMsg);
-    return true;
-  },
-);
-executorPublic.addCmd(cmdSet);
-
-/**
- * 自定义变量读取指令
- */
-const cmdGet = new CommandExecutor(
-  "get",
-  ["use"],
-  "读取自定义变量",
-  [".get 手枪", ".get 闪电旋风劈"],
-  ".get [变量名]",
-  async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
-    const role = mentioned[0];
-    if (!role) {
-      cpi.replyMessage("错误：未找到指定角色");
-      return false;
-    }
-
-    // 检查参数是否充足
-    if (args.length < 1) {
-      cpi.replyMessage("错误：请指定变量名称");
-      return false;
-    }
-
-    const varName = args[0].trim();
-
-    // 获取当前角色能力信息
-    const curAbility = cpi.getRoleAbilityList(role.roleId);
-    if (!curAbility) {
-      cpi.replyMessage("错误：无法获取角色信息");
-      return false;
-    }
-
-    // 检查record对象和变量是否存在
-    if (!curAbility.record || !curAbility.record[varName]) {
-      cpi.replyMessage(`错误：变量 "${varName}" 不存在`);
-      return false;
-    }
-
-    const varContent = curAbility.record[varName];
-
-    // 尝试用dice虚拟机解析变量内容
-    try {
-      const diceResult = roll(varContent);
-      // 解析成功，返回结果
-      cpi.replyMessage(`变量 "${varName}" 的内容：${varContent}\n解析结果：${diceResult.expanded} = ${diceResult.result}`);
-    }
-    // eslint-disable-next-line unused-imports/no-unused-vars
-    catch (error) {
-      // 解析失败，返回原始字符串
-      cpi.replyMessage(`变量 "${varName}" 的内容：${varContent}`);
-    }
-
-    return true;
-  },
-);
-executorPublic.addCmd(cmdGet);
 
 /**
  * 设置默认骰子面数指令

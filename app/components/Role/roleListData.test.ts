@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 
 import type { RoleAvatar } from "api";
 
@@ -19,8 +19,8 @@ describe("roleListData", () => {
       avatarUrl: "https://legacy.example/avatar.webp",
       avatarThumbUrl: "https://legacy.example/avatar-low.webp",
     })).toEqual({
-      avatarUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
-      avatarThumbUrl: "https://tuan.chat/media/v1/files/002/2002/image/low.webp",
+      avatarUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
+      avatarThumbUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/low.webp",
     });
   });
 
@@ -88,11 +88,12 @@ describe("roleListData", () => {
       expect.objectContaining({
         id: 7,
         name: "调查员",
-        avatar: "https://tuan.chat/media/v1/files/001/1001/image/medium.webp",
-        avatarThumb: "https://tuan.chat/media/v1/files/001/1001/image/low.webp",
+        avatar: "https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp",
+        avatarThumb: "https://media.tuan.chat/media/v1/files/001/1001/image/low.webp",
       }),
     ]);
     expect(queryClient.getQueryData).toHaveBeenCalledWith(["getRoleAvatar", 55]);
     expect(seedRoleAvatarQueryCaches).not.toHaveBeenCalled();
   });
 });
+

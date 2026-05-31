@@ -1,8 +1,8 @@
 import type { MessageDirectResponse } from "../../../../api";
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import BetterImg from "@/components/common/betterImg";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
-import { avatarThumbUrl, mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
+import { avatarThumbUrl } from "@/utils/mediaUrl";
 
 interface MessageBubbleProps {
   message: MessageDirectResponse; // 消息内容
@@ -19,15 +19,6 @@ function formatMessageTimeLabel(createTime?: string | null) {
     return "";
   }
   return parsed.toLocaleString("zh-CN", { hour12: false });
-}
-
-function resolveMediaPayloadUrl(
-  payload: { fileId?: number; mediaType?: string } | undefined,
-  quality: MediaQuality,
-  expectedMediaType?: MediaType,
-) {
-  const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
-  return mediaFileUrl(payload?.fileId, resolvedMediaType, quality);
 }
 
 function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
@@ -64,9 +55,10 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
       return (
         <div data-message-id={message.messageId}>
           <BetterImg
-            src={resolveMediaPayloadUrl(imgData, "medium", "image")}
+            src={resolveMessageMediaUrl(imgData, "medium", "image")}
             size={{ width: imgData?.width, height: imgData?.height }}
             className="max-h-[40vh] max-w-[245px] rounded-lg"
+            zoomQuality="original"
           />
         </div>
       );
@@ -74,7 +66,7 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
 
     if (message.messageType === 14) {
       const videoMessage = getVideoMessageExtra(message.extra);
-      const videoUrl = resolveMediaPayloadUrl(videoMessage, "medium", "video");
+      const videoUrl = resolveMessageMediaUrl(videoMessage, "medium", "video");
       if (videoUrl) {
         return (
           <div data-message-id={message.messageId}>

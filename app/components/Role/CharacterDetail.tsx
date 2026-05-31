@@ -34,6 +34,13 @@ interface CharacterDetailProps {
   onKickOut?: () => void;
 }
 
+function getMutationErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return fallback;
+}
+
 export default function CharacterDetail(props: CharacterDetailProps) {
   return <CharacterDetailInner key={props.role.id} {...props} />;
 }
@@ -331,8 +338,8 @@ function CharacterDetailInner({
   const saveRoleBase = (nextRole: Role) => {
     const cleanedRole = buildCleanedRole(nextRole);
     updateRole(cleanedRole, {
-      onError: () => {
-        toast.error("角色保存失败");
+      onError: (error) => {
+        toast.error(`角色保存失败：${getMutationErrorMessage(error, "请稍后重试")}`);
       },
     });
   };

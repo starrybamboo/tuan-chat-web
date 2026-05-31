@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { toast } from "react-hot-toast";
 
+import type { ImportedDiceTurn } from "@/components/chat/utils/importChatText";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -12,6 +13,7 @@ type ImportChatItem = {
   content: string;
   speakerName?: string;
   figurePosition?: Exclude<FigurePosition, undefined>;
+  diceTurn?: ImportedDiceTurn;
 };
 
 type UseRoomOverlaysControllerParams = {
@@ -22,6 +24,7 @@ type UseRoomOverlaysControllerParams = {
       content: string;
       speakerName?: string;
       figurePosition?: Exclude<FigurePosition, undefined>;
+      diceTurn?: ImportedDiceTurn;
     }>,
     onProgress?: (sent: number, total: number) => void,
   ) => Promise<void>;
@@ -71,6 +74,7 @@ export default function useRoomOverlaysController({
       content: i.content,
       speakerName: i.speakerName,
       figurePosition: i.figurePosition as Exclude<FigurePosition, undefined> | undefined,
+      diceTurn: i.diceTurn,
     })), onProgress);
   }, [handleImportChatText]);
 

@@ -1,13 +1,7 @@
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-
 import type { ChatMessageResponse } from "../../../../api";
 
 const COMBAT_START_EVENT_TYPES = new Set(["combatRoundStart", "combatStart"]);
 const COMBAT_END_EVENT_TYPES = new Set(["combatRoundEnd", "combatEnd"]);
-const COMBAT_STATE_EVENT_TYPES = new Set(["nextTurn", "mapTokenUpsert", "mapTokenRemove"]);
-const INITIATIVE_COMMAND_PATTERN = /^[.。/]ri(?:\s|$)/i;
-const COMBAT_START_TEXT_PATTERN = /(?:战斗轮?|combat)\s*(?:开始|开启|启动|start)|(?:进入|开始)\s*(?:战斗轮?|combat)/i;
-const COMBAT_END_TEXT_PATTERN = /(?:战斗轮?|combat)\s*(?:结束|终止|关闭|end)|(?:退出|结束)\s*(?:战斗轮?|combat)/i;
 
 type CombatVisualSignal = "start" | "end" | null;
 
@@ -15,12 +9,6 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
-}
-
-function getCommandRequestCommand(extra: unknown): string {
-  const commandRequest = toRecord(toRecord(extra)?.commandRequest);
-  const command = commandRequest?.command;
-  return typeof command === "string" ? command.trim() : "";
 }
 
 function getStateEventSignal(extra: unknown): CombatVisualSignal {
@@ -42,12 +30,6 @@ function getStateEventSignal(extra: unknown): CombatVisualSignal {
     if (COMBAT_END_EVENT_TYPES.has(type)) {
       signal = "end";
     }
-    if (COMBAT_STATE_EVENT_TYPES.has(type)) {
-      signal = "start";
-    }
-    if (type === "varOp" && toRecord(event)?.key === "initiative") {
-      signal = "start";
-    }
   });
   return signal;
 }
@@ -60,21 +42,6 @@ export function getCombatVisualSignal(message: ChatMessageResponse["message"]): 
   const stateEventSignal = getStateEventSignal(message.extra);
   if (stateEventSignal) {
     return stateEventSignal;
-  }
-
-  const content = String(message.content ?? "").trim();
-  if (COMBAT_END_TEXT_PATTERN.test(content)) {
-    return "end";
-  }
-  if (COMBAT_START_TEXT_PATTERN.test(content)) {
-    return "start";
-  }
-
-  if ((message.messageType as number) === MESSAGE_TYPE.COMMAND_REQUEST) {
-    const command = getCommandRequestCommand(message.extra) || content;
-    if (INITIATIVE_COMMAND_PATTERN.test(command)) {
-      return "start";
-    }
   }
 
   return null;

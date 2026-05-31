@@ -14,6 +14,7 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 import { PlusIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
 import { runCreateRoomPostCreateSteps } from "./createRoomInitialImportFlow";
+import { createRoomNameDraftFromInput, resolveCreateRoomNameInputState } from "./createRoomNameDraft";
 import ImportChatMessagesWindow from "./importChatMessagesWindow";
 import { sendInitialImportChatMessages } from "./initialChatImport";
 
@@ -52,9 +53,9 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
   const [submitPhase, setSubmitPhase] = useState<CreateRoomSubmitPhase>(null);
   const [, setImportProgress] = useState<{ sent: number; total: number } | null>(null);
   const roomAvatar = roomAvatarDraft ?? defaultRoomAvatar;
-  const roomName = roomNameDraft ?? defaultRoomName;
+  const { canSubmitRoomName, roomName } = resolveCreateRoomNameInputState(defaultRoomName, roomNameDraft);
   const isSubmitting = submitPhase !== null || createRoomMutation.isPending;
-  const canSubmit = roomName.trim().length > 0 && !isSubmitting;
+  const canSubmit = canSubmitRoomName && !isSubmitting;
 
   const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
 
@@ -163,8 +164,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                   className="input input-bordered w-full bg-base-100 text-base"
                   disabled={isSubmitting}
                   onChange={(e) => {
-                    const inputValue = e.target.value;
-                    setRoomNameDraft(inputValue === "" ? null : inputValue);
+                    setRoomNameDraft(createRoomNameDraftFromInput(e.target.value));
                   }}
                 />
               </div>

@@ -9,8 +9,8 @@ export type ImageCompressProfile = {
 };
 
 export const IMAGE_COMPRESS_PROFILES = {
-  low: { maxWidthOrHeight: 200, maxSizeKB: 40, quality: 0.72 },
-  medium: { maxWidthOrHeight: 512, maxSizeKB: 150, quality: 0.76 },
+  low: { maxWidthOrHeight: 200, maxSizeKB: 40, quality: 1 },
+  medium: { maxWidthOrHeight: 512, maxSizeKB: 150, quality: 1 },
 } as const satisfies Record<string, ImageCompressProfile>;
 
 export type ImageDerivativeResult = {

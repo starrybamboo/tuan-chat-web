@@ -88,17 +88,17 @@
 
 **重要修复：** 消息拉取逻辑有问题。
 
-**问题：** 当前使用 `POST /chat/message/page`（游标分页），但应该使用 `GET /chat/message/all` 一次拉取所有消息。
+**现状：** 使用 `POST /chat/message/history` 且 `syncId=0` 一次拉取完整 baseline。
 
-**Web 端做法：** 使用 `getAllMessage(roomId)` 一次性获取所有消息（gzip 压缩），staleTime: 0。
+**Web 端做法：** 使用 `getHistoryMessages({ roomId, syncId: 0 })` 一次性获取完整历史（gzip 压缩），staleTime: 0。
 
 **修复计划：**
-- 将 `useRoomMessagesInfiniteQuery`（分页）改为 `useRoomMessagesQuery`（一次全量拉取）
-- 使用 `chatController.getAllMessage(roomId)` API
+- 使用 `useRoomMessagesQuery` 一次全量拉取
+- 使用 `chatController.getHistoryMessages({ roomId, syncId: 0 })` API
 - 本地搜索在已拉取的全量消息中进行关键词匹配
 
 **API：**
-- `GET /chat/message/all?roomId=xxx` → `getAllMessage(roomId)` — 获取房间所有消息
+- `POST /chat/message/history` + `{ roomId, syncId: 0 }` — 获取房间完整 baseline 消息
 
 ---
 
@@ -174,7 +174,7 @@
 
 ## 实施优先级
 
-1. **修复消息拉取逻辑** — 改为 `getAllMessage` 全量拉取（影响所有后续功能）
+1. **修复消息拉取逻辑** — 改为 `getHistoryMessages({ roomId, syncId: 0 })` 全量拉取（影响所有后续功能）
 2. **Message Annotation** — 标注系统（和 web 端一致）
 3. **角色管理完善** — 编辑/创建/头像
 4. **私聊/好友完善** — 好友管理 + 完整 DM 聊天

@@ -38,18 +38,18 @@ export function useClueFolderActions({
   spaceId,
   spaceMembers = [],
 }: UseClueFolderActionsParams) {
-  const joinPublicClueFolderMutation = useJoinPublicClueFolderMutation(tuanchat);
-  const ensureClueFolderRoomMutation = useEnsureClueFolderRoomMutation(tuanchat);
-  const copyMessageToClueFolderMutation = useCopyMessageToClueFolderMutation(tuanchat);
+  const { mutateAsync: joinPublicClueFolderAsync } = useJoinPublicClueFolderMutation(tuanchat);
+  const { mutateAsync: ensureClueFolderRoomAsync } = useEnsureClueFolderRoomMutation(tuanchat);
+  const { mutateAsync: copyMessageToClueFolderAsync } = useCopyMessageToClueFolderMutation(tuanchat);
 
   const ensureClueFolderRoom = useCallback(async (scope: ClueFolderScope) => {
-    return (await ensureClueFolderRoomMutation.mutateAsync({
+    return (await ensureClueFolderRoomAsync({
       currentUserId,
       scope,
       spaceId,
       spaceMembers,
     })).room;
-  }, [currentUserId, ensureClueFolderRoomMutation, spaceId, spaceMembers]);
+  }, [currentUserId, ensureClueFolderRoomAsync, spaceId, spaceMembers]);
 
   const joinPublicClueFolder = useCallback(async () => {
     const resolvedSpaceId = toPositiveNumber(spaceId);
@@ -57,13 +57,13 @@ export function useClueFolderActions({
       throw new Error("未选择空间，无法查看公共线索");
     }
 
-    return (await joinPublicClueFolderMutation.mutateAsync(resolvedSpaceId)).room;
-  }, [joinPublicClueFolderMutation, spaceId]);
+    return (await joinPublicClueFolderAsync(resolvedSpaceId)).room;
+  }, [joinPublicClueFolderAsync, spaceId]);
 
   const copyMessageToClueFolder = useCallback(async (sourceMessage: Message, scope: ClueFolderScope) => {
     const toastId = toast.loading(scope === "private" ? "正在收藏到我的线索..." : "正在收藏到公共线索...");
     try {
-      await copyMessageToClueFolderMutation.mutateAsync({
+      await copyMessageToClueFolderAsync({
         currentUserId,
         fallbackRoleId,
         hasHostPrivileges,
@@ -80,7 +80,7 @@ export function useClueFolderActions({
       toast.error(error instanceof Error ? error.message : "收藏线索失败", { id: toastId });
     }
   }, [
-    copyMessageToClueFolderMutation,
+    copyMessageToClueFolderAsync,
     currentUserId,
     fallbackRoleId,
     hasHostPrivileges,

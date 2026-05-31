@@ -15,8 +15,7 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
-          fileId: "42",
-          mediaType: " image ",
+          source: { kind: "internal", fileId: "42" },
           fileName: " cover.png ",
           width: "1920",
           height: 1080,
@@ -33,8 +32,7 @@ describe("messageDraft request normalization", () => {
 
     expect(request.extra).toEqual({
       imageMessage: {
-        fileId: 42,
-        mediaType: "image",
+        source: { kind: "internal", fileId: 42 },
         fileName: "cover.png",
         width: 1920,
         height: 1080,
@@ -70,8 +68,7 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
-          fileId: 43,
-          mediaType: "audio",
+          source: { kind: "internal", fileId: 43 },
           fileName: "a.mp3",
           size: 4096,
           purpose: "BGM",
@@ -258,8 +255,7 @@ describe("messageDraft request normalization", () => {
   it("乐观匹配也只接受非扁平 extra", () => {
     expect(normalizeMessageExtraForMatch(MESSAGE_TYPE.IMG, {
       imageMessage: {
-        fileId: 45,
-        mediaType: "image",
+        source: { kind: "internal", fileId: 45 },
         fileName: "a.png",
         width: 512,
         height: 512,
@@ -268,8 +264,7 @@ describe("messageDraft request normalization", () => {
       },
     })).toEqual({
       imageMessage: {
-        fileId: 45,
-        mediaType: "image",
+        source: { kind: "internal", fileId: 45 },
         fileName: "a.png",
         width: 512,
         height: 512,
@@ -384,7 +379,6 @@ describe("messageDraft request normalization", () => {
       videoAnnotations: ["video-annotation"],
       uploadedImages: [{
         fileId: 101,
-        mediaType: "image",
         width: 640,
         height: 360,
         size: 2048,
@@ -393,7 +387,6 @@ describe("messageDraft request normalization", () => {
       }],
       uploadedSoundMessage: {
         fileId: 102,
-        mediaType: "audio",
         fileName: "voice.webm",
         size: 4096,
         second: 2,
@@ -401,7 +394,6 @@ describe("messageDraft request normalization", () => {
       },
       uploadedVideos: [{
         fileId: 103,
-        mediaType: "video",
         fileName: "clip.mp4",
         size: 8192,
         second: 12,
@@ -418,8 +410,7 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
-          fileId: 101,
-          mediaType: "image",
+          source: { kind: "internal", fileId: 101 },
           width: 640,
           height: 360,
           size: 2048,
@@ -433,8 +424,7 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
-          fileId: 102,
-          mediaType: "audio",
+          source: { kind: "internal", fileId: 102 },
           fileName: "voice.webm",
           size: 4096,
           second: 2,
@@ -447,8 +437,7 @@ describe("messageDraft request normalization", () => {
       messageType: MESSAGE_TYPE.VIDEO,
       extra: {
         videoMessage: {
-          fileId: 103,
-          mediaType: "video",
+          source: { kind: "internal", fileId: 103 },
           fileName: "clip.mp4",
           size: 8192,
           second: 12,

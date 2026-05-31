@@ -119,7 +119,8 @@ export async function patchRemoteRoomMessageStream(params: {
   if (operations.length === 0) {
     return [];
   }
-  const result = await tuanchat.chatController.patchRoomMessages(params.roomId, {
+  const result = await tuanchat.chatController.patchRoomMessages({
+    roomId: params.roomId,
     operations,
   });
   return readRoomMessageStreamMessages(unwrapApiResult(result, "批量变更房间消息列表失败"));

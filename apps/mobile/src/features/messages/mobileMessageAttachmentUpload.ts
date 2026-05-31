@@ -542,7 +542,6 @@ export async function uploadMobileMessageAttachments(
 
       uploadedImages.push({
         fileId: uploaded.fileId,
-        mediaType: uploaded.mediaType,
         width: attachment.width,
         height: attachment.height,
         size: uploaded.size,
@@ -554,7 +553,6 @@ export async function uploadMobileMessageAttachments(
     if (attachment.kind === MOBILE_MESSAGE_ATTACHMENT_KIND.VIDEO) {
       uploadedVideos.push({
         fileId: uploaded.fileId,
-        mediaType: uploaded.mediaType,
         fileName: attachment.fileName,
         size: uploaded.size,
       });
@@ -573,7 +571,6 @@ export async function uploadMobileMessageAttachments(
 
     uploadedSoundMessage = {
       fileId: uploaded.fileId,
-      mediaType: uploaded.mediaType,
       fileName: attachment.fileName,
       size: uploaded.size,
     };

@@ -79,7 +79,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
     ]);
     return {
       fileId: uploadedImage.fileId,
-      mediaType: uploadedImage.mediaType,
       width,
       height,
       size,
@@ -106,7 +105,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
 
     uploadedImages.push({
       fileId: meta.fileId,
-      mediaType: meta?.mediaType || "image",
       width,
       height,
       size,
@@ -122,7 +120,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
     const uploadedVideo = await uploadUtils.uploadVideo(attachment, 1);
     uploadedVideos.push({
       fileId: uploadedVideo.fileId,
-      mediaType: uploadedVideo.mediaType,
       fileName: uploadedVideo.fileName,
       size: uploadedVideo.size,
       second: await readMediaDuration(attachment),
@@ -140,7 +137,6 @@ export async function buildMessageDraftsFromComposerSnapshot({
     const uploadedAudio = await uploadUtils.uploadAudioAsset(audioFile, 1, 0);
     uploadedSoundMessage = {
       fileId: uploadedAudio.fileId,
-      mediaType: uploadedAudio.mediaType,
       fileName: audioFile.name,
       size: audioFile.size,
       second: audioSecond,

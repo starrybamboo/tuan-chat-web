@@ -174,12 +174,15 @@ async function resolveMessages(params: GetGalAuthoringContextParams, client: Gal
     return params.localSnapshot.messages;
   }
 
-  const cached = getCachedQueryData(params.queryClient, ["getAllMessage", params.roomId]);
+  const cached = getCachedQueryData(params.queryClient, ["getHistoryMessages", params.roomId, 0]);
   if (cached !== undefined) {
     return extractMessagePayload(cached);
   }
 
-  const response = await client.chatController.getAllMessage(params.roomId);
+  const response = await client.chatController.getHistoryMessages({
+    roomId: params.roomId,
+    syncId: 0,
+  });
   return extractMessagePayload(response);
 }
 

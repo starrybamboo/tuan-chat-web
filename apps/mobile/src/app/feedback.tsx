@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { CaretLeft } from "phosphor-react-native";
 import { useState } from "react";
 import {
   Alert,
@@ -20,6 +21,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: { gap: Spacing.xxl, paddingBottom: 120, paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl },
+  header: { alignItems: "center", flexDirection: "row", gap: Spacing.sm },
+  headerBackButton: { alignItems: "center", height: 36, justifyContent: "center", width: 36 },
   card: { borderRadius: Radius.lg, gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.xl },
   logBox: { borderRadius: Radius.md, maxHeight: 300, padding: Spacing.lg },
   logText: { fontFamily: "monospace", fontSize: 11 },
@@ -69,9 +72,14 @@ export default function FeedbackScreen() {
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.lg }}>
-            <Pressable onPress={() => router.back()}>
-              <ThemedText themeColor="accent">返回</ThemedText>
+          <View style={styles.header}>
+            <Pressable
+              onPress={() => router.back()}
+              style={styles.headerBackButton}
+              accessibilityLabel="返回"
+              accessibilityRole="button"
+            >
+              <CaretLeft size={22} color={theme.text} weight="bold" />
             </Pressable>
             <ThemedText type="title">问题反馈</ThemedText>
           </View>

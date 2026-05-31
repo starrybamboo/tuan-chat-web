@@ -3,10 +3,10 @@ import type { MessageEditorMessage } from "../messageEditorTypes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { TrashIcon } from "@/icons";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
 interface MessageEditorAtomicBlockProps {
@@ -144,34 +144,28 @@ function hasUploadedMedia(message: MessageEditorMessage) {
   }
 
   if (message.messageType === MESSAGE_TYPE.IMG) {
-    return Boolean(message.extra?.imageMessage?.fileId);
+    return Boolean(message.extra?.imageMessage?.source);
   }
   if (message.messageType === MESSAGE_TYPE.FILE) {
     return Boolean(message.extra?.fileMessage?.fileId);
   }
   if (message.messageType === MESSAGE_TYPE.SOUND) {
-    return Boolean(message.extra?.soundMessage?.fileId);
+    return Boolean(message.extra?.soundMessage?.source);
   }
   if (message.messageType === MESSAGE_TYPE.VIDEO) {
-    return Boolean(message.extra?.videoMessage?.fileId);
+    return Boolean(message.extra?.videoMessage?.source);
   }
   return true;
 }
 
 function resolveUploadedImageUrl(message: MessageEditorMessage) {
   const imageMessage = getImageMessageExtra(message.extra);
-  if (typeof imageMessage?.fileId !== "number" || imageMessage.fileId <= 0) {
-    return "";
-  }
-  return mediaFileUrl(imageMessage.fileId, imageMessage.mediaType, "medium");
+  return resolveMessageMediaUrl(imageMessage, "medium", "image");
 }
 
 function resolveUploadedVideoUrl(message: MessageEditorMessage) {
   const videoMessage = getVideoMessageExtra(message.extra);
-  if (typeof videoMessage?.fileId !== "number" || videoMessage.fileId <= 0) {
-    return "";
-  }
-  return mediaFileUrl(videoMessage.fileId, videoMessage.mediaType, "low");
+  return resolveMessageMediaUrl(videoMessage, "low", "video");
 }
 
 function resolveMediaDimensions(payload: unknown) {
@@ -267,7 +261,7 @@ export function MessageEditorAtomicBlock({
     const height = typeof mediaDimensions?.height === "number" && mediaDimensions.height > 0 ? mediaDimensions.height : 0;
     return width > 0 && height > 0 ? height / width : 1;
   }, [mediaDimensions?.height, mediaDimensions?.width, mediaEditorSize?.height, mediaEditorSize?.width]);
-  const mediaIdentity = `${mediaPayload?.fileId ?? ""}:${mediaPayload?.mediaType ?? ""}`;
+  const mediaIdentity = JSON.stringify(mediaPayload?.source ?? mediaPayload ?? {});
 
   useEffect(() => {
     setDisplayWidth(mediaEditorSizeRef.current.width ?? null);

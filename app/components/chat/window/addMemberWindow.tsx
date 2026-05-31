@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MagnifyingGlassIcon, UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, UsersIcon } from "@phosphor-icons/react";
 import { use, useMemo, useState } from "react";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -22,7 +22,6 @@ interface AddMemberWindowProps {
   targetType?: "room" | "space";
   targetRoomId?: number | null;
   title?: string;
-  subtitle?: string;
   embedded?: boolean;
   headerExtra?: ReactNode;
 }
@@ -37,7 +36,6 @@ export default function AddMemberWindow({
   inviteCodeType = 0,
   showSpace = false,
   targetRoomId,
-  subtitle,
   targetType = "room",
   title,
 }: AddMemberWindowProps) {
@@ -60,11 +58,7 @@ export default function AddMemberWindow({
   const invite = useSpaceInviteCodeQuery(spaceContext.spaceId ?? -1, inviteCodeType, duration);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const currentInviteLink = invite.data?.data ? `${origin}/invite/${invite.data.data}` : "生成中...";
-  const inviteRoleLabel = inviteCodeType === 1 ? "玩家" : "观战";
   const defaultTitle = targetType === "space" ? "邀请空间成员" : "邀请成员";
-  const defaultSubtitle = targetType === "space"
-    ? "通过好友列表或邀请链接把成员加入当前空间。"
-    : "邀请好友加入当前房间，也可以从空间成员中快速添加。";
 
   const friendListQuery = useGetFriendListQuery({ pageNo: 1, pageSize: 100 });
   const friends = useMemo(() => friendListQuery.data?.data ?? [], [friendListQuery.data?.data]);
@@ -120,7 +114,6 @@ export default function AddMemberWindow({
       <PanelSection
         icon={<Link className="size-5" />}
         title="邀请链接"
-        description={`复制${inviteRoleLabel}邀请链接，在其他应用里发送。`}
       >
         <label className="mb-2 block text-xs font-medium text-base-content/60" htmlFor="invite-link-input">
           链接
@@ -152,7 +145,6 @@ export default function AddMemberWindow({
       <PanelSection
         icon={<InfoIcon className="size-5" />}
         title="有效期"
-        description={`当前邀请链接将在 ${duration} 天后过期。`}
       >
         {isEditingInvite
           ? (
@@ -317,12 +309,10 @@ export default function AddMemberWindow({
 
 function PanelSection({
   children,
-  description,
   icon,
   title,
 }: {
   children: ReactNode;
-  description: string;
   icon: ReactNode;
   title: string;
 }) {
@@ -334,7 +324,6 @@ function PanelSection({
         </div>
         <div className="min-w-0">
           <h3 className="font-semibold leading-6">{title}</h3>
-          <p className="mt-1 text-sm leading-5 text-base-content/60">{description}</p>
         </div>
       </div>
       {children}

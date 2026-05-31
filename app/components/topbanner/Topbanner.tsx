@@ -1,6 +1,7 @@
 import { BugBeetleIcon, ChatsIcon, CheckCircleIcon, GearSixIcon, IdentificationCardIcon, PaintBrushBroadIcon, SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -16,7 +17,7 @@ import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
-import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
+import { useGetMyUserInfoQuery } from "../../../api/hooks/UserHooks";
 import ThemeSwitch from "../themeSwitch";
 
 const LazyLoginButton = lazy(() => import("../auth/LoginButton"));
@@ -164,8 +165,15 @@ export default function Topbar() {
   const isLoggedIn = authStatus?.isLoggedIn || false;
   const userId = isLoggedIn ? (authStatus?.uid ?? 0) : 0;
 
-  const userInfoQuery = useGetUserInfoQuery(userId);
-  const username = userInfoQuery.data?.data?.username;
+  const userInfoQuery = useGetMyUserInfoQuery({ enabled: isLoggedIn, staleTime: 0 });
+  const privateUserInfo = userInfoQuery.data?.data;
+  const isCurrentPrivateUser = privateUserInfo?.userId === userId;
+  const username = isCurrentPrivateUser ? privateUserInfo?.username : undefined;
+  const inviteCode = isCurrentPrivateUser ? (privateUserInfo?.inviteCode ?? "") : "";
+  const inviteRegisterLink = buildAccountInviteRegisterUrl(
+    inviteCode,
+    typeof window === "undefined" ? undefined : window.location.origin,
+  );
 
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
@@ -184,6 +192,25 @@ export default function Topbar() {
     (document.activeElement as HTMLElement)?.blur();
     navigate({ to: "/login" });
   };
+
+  const handleCopyInviteLink = useCallback(async () => {
+    if (!inviteRegisterLink) {
+      toast.error("邀请码还没有生成，请稍后重试。");
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      toast.error("当前环境不支持复制到剪贴板。");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(inviteRegisterLink);
+      toast.success("邀请链接已复制");
+    }
+    catch {
+      toast.error("复制失败，请稍后重试。");
+    }
+  }, [inviteRegisterLink]);
 
   const exportBugReportLog = useCallback(() => {
     const result = exportDiagnosticConsoleFile();
@@ -347,6 +374,31 @@ export default function Topbar() {
                           </div>
                         </div>
                       </div>
+
+                      {inviteCode
+                        ? (
+                            <div className="px-2 pt-2">
+                              <div className="rounded-md border border-base-300 bg-base-200/60 p-3">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 text-xs text-base-content/60">
+                                    <IdentificationCardIcon className="size-4" />
+                                    <span>邀请码</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-xs h-7 min-h-7 px-2"
+                                    onClick={handleCopyInviteLink}
+                                  >
+                                    复制链接
+                                  </button>
+                                </div>
+                                <div className="mt-1 font-mono text-lg font-semibold tracking-widest text-base-content">
+                                  {inviteCode}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        : null}
 
                       {/* Body */}
                       <div className="p-2 space-y-1">

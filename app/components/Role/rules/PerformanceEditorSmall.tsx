@@ -3,7 +3,8 @@ import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { getGridSpan } from "@/utils/gridSpan";
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
@@ -17,6 +18,13 @@ interface PerformanceEditorSmallProps {
   ruleId: number;
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "请稍后重试";
+}
+
 export default function PerformanceEditorSmall({
   fields,
   onChange,
@@ -27,34 +35,66 @@ export default function PerformanceEditorSmall({
   const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
   const pendingChangesRef = useRef<Record<string, string>>({});
+  const [localFields, setLocalFields] = useState(fields);
 
-  const fieldKeys = Object.keys(fields);
+  const fieldKeys = Object.keys(localFields);
   const contentWrapperClass = "mt-2 pr-1";
+
+  useEffect(() => {
+    pendingChangesRef.current = {};
+    setLocalFields(fields);
+  }, [fields, roleId, ruleId]);
+
+  const restoreFieldsAfterError = (error: unknown) => {
+    pendingChangesRef.current = {};
+    setLocalFields(fields);
+    onChange(fields);
+    toast.error(`背景描述更新失败：${getErrorMessage(error)}`);
+  };
 
   const handleDeleteField = (key: string) => {
     takePendingValue(key);
     commitPendingChanges();
-    const updatedFields = { ...fields };
+    const updatedFields = { ...localFields };
     delete updatedFields[key];
-    onChange(updatedFields);
-    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
-      [key]: null,
-    }));
+    setLocalFields(updatedFields);
+    updateKeyField(
+      buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+        [key]: null,
+      }),
+      {
+        onSuccess: () => {
+          onChange(updatedFields);
+        },
+        onError: restoreFieldsAfterError,
+      },
+    );
   };
 
   const handleAddField = (key: string, value: string) => {
     const nextKey = key.trim();
-    if (!nextKey || nextKey in fields)
+    if (!nextKey || nextKey in localFields)
       return;
-    commitPendingChanges();
-    onChange({ ...fields, [nextKey]: value });
-    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
-      [nextKey]: value,
-    }));
+    const pendingChanges = pendingChangesRef.current;
+    const updatedFields = { ...localFields, ...pendingChanges, [nextKey]: value };
+    pendingChangesRef.current = {};
+    setLocalFields(updatedFields);
+    updateFieldValue(
+      buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+        ...pendingChanges,
+        [nextKey]: value,
+      }),
+      {
+        onSuccess: () => {
+          onChange(updatedFields);
+        },
+        onError: restoreFieldsAfterError,
+      },
+    );
   };
 
   const handleValueChange = (key: string, value: string) => {
-    onChange({ ...fields, [key]: value });
+    setLocalFields(prev => ({ ...prev, [key]: value }));
     pendingChangesRef.current = {
       ...pendingChangesRef.current,
       [key]: value,
@@ -66,11 +106,27 @@ export default function PerformanceEditorSmall({
     if (Object.keys(pendingChanges).length === 0) {
       return;
     }
+    const updatedFields = {
+      ...localFields,
+      ...pendingChanges,
+    };
     pendingChangesRef.current = {};
     updateFieldValue(
       buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
         ...pendingChanges,
       }),
+      {
+        onSuccess: () => {
+          onChange(updatedFields);
+        },
+        onError: (error) => {
+          pendingChangesRef.current = {
+            ...pendingChanges,
+            ...pendingChangesRef.current,
+          };
+          restoreFieldsAfterError(error);
+        },
+      },
     );
   };
 
@@ -85,26 +141,33 @@ export default function PerformanceEditorSmall({
   };
 
   const handleRename = (oldKey: string, newKey: string) => {
-    if (!newKey.trim() || newKey === oldKey || newKey in fields) {
+    if (!newKey.trim() || newKey === oldKey || newKey in localFields) {
       return;
     }
     const pendingValue = takePendingValue(oldKey);
     commitPendingChanges();
-    const newFields = { ...fields };
+    const newFields = { ...localFields };
     newFields[newKey] = pendingValue ?? newFields[oldKey];
     delete newFields[oldKey];
-    onChange(newFields);
+    setLocalFields(newFields);
     updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
       [oldKey]: newKey,
     }), {
       onSuccess: () => {
         if (pendingValue === undefined) {
+          onChange(newFields);
           return;
         }
         updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
           [newKey]: pendingValue,
-        }));
+        }), {
+          onSuccess: () => {
+            onChange(newFields);
+          },
+          onError: restoreFieldsAfterError,
+        });
       },
+      onError: restoreFieldsAfterError,
     });
   };
 
@@ -204,7 +267,7 @@ export default function PerformanceEditorSmall({
           }}
         >
           {fieldKeys.map((key) => {
-            const { colSpan, rowSpan } = getGridSpan(fields[key] || "");
+            const { colSpan, rowSpan } = getGridSpan(localFields[key] || "");
             return (
               <div
                 key={key}
@@ -215,7 +278,7 @@ export default function PerformanceEditorSmall({
               >
                 <PerformanceField
                   fieldKey={key}
-                  value={fields[key] || ""}
+                  value={localFields[key] || ""}
                   onValueChange={handleValueChange}
                   onDelete={handleDeleteField}
                   onRename={handleRename}

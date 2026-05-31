@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
@@ -5,6 +7,8 @@ import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
 import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
+import { internalMessageMediaSource, resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
+import { writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
 import { parseSimpleStateCommand } from "@/components/chat/state/stateCommandParser";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
@@ -16,11 +20,16 @@ import { isCommand } from "@/components/common/dicer/cmdPre";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
-import { mediaFileUrl } from "@/utils/mediaUrl";
 import { UploadUtils } from "@/utils/UploadUtils";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 
+import { invalidateRoleAbilityCaches } from "../../../../api/hooks/abilityMutationInvalidation";
+import {
+  loadRoleAbilityByRule,
+  setRoleAbilityWithSuccessGuard,
+  updateRoleAbilityByRuleWithSuccessGuard,
+} from "../../../../api/hooks/abilityQueryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
 type CommandExecutor = (payload: {
@@ -35,6 +44,7 @@ type UseChatMessageSubmitParams = {
   spaceId: number;
   isSpaceOwner: boolean;
   curRoleId: number;
+  ruleId?: number;
   notMember: boolean;
   noRole: boolean;
   isSubmitting: boolean;
@@ -50,6 +60,7 @@ type UseChatMessageSubmitParams = {
   stripCommandRequestAllToken: (text: string) => string;
   extractFirstCommandText: (text: string) => string | null;
   setInputText: (text: string) => void;
+  queryClient?: QueryClient;
   roomUiStoreApi: RoomUiStoreApi;
 };
 
@@ -70,6 +81,18 @@ type SubmittedComposerSnapshot = {
   fileAttachments: File[];
   audioFile: File | null;
   tempAnnotations: string[];
+};
+
+type LocalOptimisticImageMessage = NonNullable<ChatMessageRequest["extra"]["imageMessage"]> & {
+  localFile: File;
+};
+
+type LocalOptimisticSoundMessage = NonNullable<ChatMessageRequest["extra"]["soundMessage"]> & {
+  localFile: File;
+};
+
+type LocalOptimisticVideoMessage = NonNullable<ChatMessageRequest["extra"]["videoMessage"]> & {
+  localFile: File;
 };
 
 function shouldRestoreOptimisticallyClearedInput(current: SubmittedInputSnapshot): boolean {
@@ -153,6 +176,16 @@ function buildPendingAttachmentRequests(params: {
   };
 
   for (const imgFile of params.imgFiles) {
+    const imageMessage: LocalOptimisticImageMessage = {
+      source: internalMessageMediaSource(-1),
+      localFile: imgFile,
+      fileName: imgFile.name,
+      size: positiveOrFallback(imgFile.size, 1),
+      background: false,
+      width: 1,
+      height: 1,
+    };
+
     pushRequest({
       roomId: params.roomId,
       roleId: params.roleId,
@@ -160,15 +193,7 @@ function buildPendingAttachmentRequests(params: {
       content,
       messageType: MessageType.IMG,
       extra: {
-        imageMessage: {
-          fileId: -1,
-          fileName: imgFile.name,
-          mediaType: imgFile.type || "image",
-          size: positiveOrFallback(imgFile.size, 1),
-          background: false,
-          width: 1,
-          height: 1,
-        },
+        imageMessage,
       },
     });
   }
@@ -183,10 +208,9 @@ function buildPendingAttachmentRequests(params: {
       messageType: MessageType.IMG,
       extra: {
         imageMessage: {
-          fileId: positiveOrFallback(meta?.fileId, -1),
+          source: internalMessageMediaSource(positiveOrFallback(meta?.fileId, -1)),
           fileName: meta?.fileName || "emoji",
           height: positiveOrFallback(meta?.height, 1),
-          mediaType: meta?.mediaType || "image",
           size: positiveOrFallback(meta?.size, 1),
           width: positiveOrFallback(meta?.width, 1),
           background: false,
@@ -196,6 +220,14 @@ function buildPendingAttachmentRequests(params: {
   }
 
   if (params.audioFile) {
+    const soundMessage: LocalOptimisticSoundMessage = {
+      source: internalMessageMediaSource(-1),
+      localFile: params.audioFile,
+      fileName: params.audioFile.name,
+      size: positiveOrFallback(params.audioFile.size, 1),
+      second: 1,
+    };
+
     pushRequest({
       roomId: params.roomId,
       roleId: params.roleId,
@@ -203,13 +235,7 @@ function buildPendingAttachmentRequests(params: {
       content,
       messageType: MessageType.SOUND,
       extra: {
-        soundMessage: {
-          fileId: -1,
-          fileName: params.audioFile.name,
-          mediaType: params.audioFile.type || "audio",
-          size: positiveOrFallback(params.audioFile.size, 1),
-          second: 1,
-        },
+        soundMessage,
       },
     });
   }
@@ -218,6 +244,14 @@ function buildPendingAttachmentRequests(params: {
     if (!isVideoAttachment(attachment)) {
       continue;
     }
+    const videoMessage: LocalOptimisticVideoMessage = {
+      source: internalMessageMediaSource(-1),
+      localFile: attachment,
+      fileName: attachment.name,
+      size: positiveOrFallback(attachment.size, 1),
+      second: 1,
+    };
+
     pushRequest({
       roomId: params.roomId,
       roleId: params.roleId,
@@ -225,13 +259,7 @@ function buildPendingAttachmentRequests(params: {
       content,
       messageType: MessageType.VIDEO,
       extra: {
-        videoMessage: {
-          fileId: -1,
-          fileName: attachment.name,
-          mediaType: attachment.type || "video",
-          size: positiveOrFallback(attachment.size, 1),
-          second: 1,
-        },
+        videoMessage,
       },
     });
   }
@@ -244,6 +272,7 @@ export default function useChatMessageSubmit({
   spaceId,
   isSpaceOwner,
   curRoleId,
+  ruleId = -1,
   notMember,
   noRole,
   discardLocalOptimisticMessages,
@@ -257,6 +286,7 @@ export default function useChatMessageSubmit({
   stripCommandRequestAllToken,
   extractFirstCommandText,
   setInputText,
+  queryClient,
   roomUiStoreApi,
 }: UseChatMessageSubmitParams): UseChatMessageSubmitResult {
   const uploadUtilsRef = useRef(new UploadUtils());
@@ -411,6 +441,24 @@ export default function useChatMessageSubmit({
         : -1;
 
       if (parsedStateCommand) {
+        try {
+          const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+            events: parsedStateCommand.stateEvent.events,
+            ruleId,
+            loadRoleAbility: loadRoleAbilityByRule,
+            createRoleAbility: setRoleAbilityWithSuccessGuard,
+            updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
+          });
+          if (queryClient && changedRoleIds.length > 0) {
+            await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
+          }
+        }
+        catch (error) {
+          console.error("写入角色卡失败", error);
+          toast.error(error instanceof Error && error.message ? error.message : "写入角色卡失败");
+          return;
+        }
+
         const stateEventMsg: ChatMessageRequest = {
           content: parsedStateCommand.content,
           messageType: MessageType.STATE_EVENT,
@@ -604,10 +652,10 @@ export default function useChatMessageSubmit({
           return;
         }
 
-        const requestExtra = request.extra as { soundMessage?: { fileId?: number; mediaType?: string } } | undefined;
-        const createdExtra = createdMessage.extra as { soundMessage?: { fileId?: number; mediaType?: string } } | undefined;
-        const requestUrl = mediaFileUrl(requestExtra?.soundMessage?.fileId, requestExtra?.soundMessage?.mediaType, "low");
-        const createdUrl = mediaFileUrl(createdExtra?.soundMessage?.fileId, createdExtra?.soundMessage?.mediaType, "low");
+        const requestExtra = request.extra as { soundMessage?: { source?: { kind?: string; fileId?: number; url?: string } } } | undefined;
+        const createdExtra = createdMessage.extra as { soundMessage?: { source?: { kind?: string; fileId?: number; url?: string } } } | undefined;
+        const requestUrl = resolveMessageMediaUrl(requestExtra?.soundMessage, "low", "audio");
+        const createdUrl = resolveMessageMediaUrl(createdExtra?.soundMessage, "low", "audio");
         const autoplayUrl = requestUrl || createdUrl;
         if (!autoplayUrl) {
           return;
@@ -678,6 +726,8 @@ export default function useChatMessageSubmit({
     isSpaceOwner,
     noRole,
     notMember,
+    queryClient,
+    ruleId,
     roomId,
     roomUiStoreApi,
     sendMessageBatchWithLocalOptimistic,

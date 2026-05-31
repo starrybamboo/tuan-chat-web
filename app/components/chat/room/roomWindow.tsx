@@ -17,6 +17,7 @@ import { buildGalPatchMutationPlan, executeGalPatchMutationPlan, galPatchProposa
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
+import { handleRoomMessageHistoryShortcutEvent } from "@/components/chat/room/messageHistoryShortcuts";
 import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
 import RoomWindowLayout from "@/components/chat/room/roomWindowLayout";
@@ -37,7 +38,6 @@ import useRoomRoleState from "@/components/chat/room/useRoomRoleState";
 import { compareChatMessageResponsesByOrder, compareMessagesByOrder } from "@/components/chat/shared/messageOrder";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
-import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -415,6 +415,7 @@ function RoomWindow({
     spaceId,
     isSpaceOwner: Boolean(spaceContext.isSpaceOwner),
     curRoleId,
+    ruleId: space?.ruleId ?? -1,
     notMember,
     noRole,
     isSubmitting,
@@ -430,6 +431,7 @@ function RoomWindow({
     stripCommandRequestAllToken,
     extractFirstCommandText,
     setInputText,
+    queryClient,
     roomUiStoreApi: roomUiStore,
   });
   const {
@@ -474,18 +476,35 @@ function RoomWindow({
     insertAsPlainText: () => void;
     text: string;
   } | null>(null);
+  const canImportChatText = Boolean(spaceContext.isSpaceOwner);
+
+  useEffect(() => {
+    if (!canImportChatText && isImportChatTextOpen) {
+      setIsImportChatTextOpen(false);
+      setImportInitialRawText(undefined);
+    }
+  }, [canImportChatText, isImportChatTextOpen, setIsImportChatTextOpen]);
+
   const handleSetImportChatTextOpen = useCallback((isOpen: boolean) => {
+    if (isOpen && !canImportChatText) {
+      toast.error("只有 KP 可以导入对话");
+      return;
+    }
     setIsImportChatTextOpen(isOpen);
     if (!isOpen) {
       setImportInitialRawText(undefined);
     }
-  }, [setIsImportChatTextOpen]);
+  }, [canImportChatText, setIsImportChatTextOpen]);
   const handleRequestDocImportTextPaste = useCallback((text: string, insertAsPlainText: () => void) => {
+    if (!canImportChatText) {
+      insertAsPlainText();
+      return;
+    }
     setPendingImportTextPaste({
       insertAsPlainText,
       text,
     });
-  }, []);
+  }, [canImportChatText]);
   const handleUseDocPasteAsPlainText = useCallback(() => {
     const pending = pendingImportTextPaste;
     setPendingImportTextPaste(null);
@@ -496,10 +515,15 @@ function RoomWindow({
     if (!pending) {
       return;
     }
+    if (!canImportChatText) {
+      setPendingImportTextPaste(null);
+      pending.insertAsPlainText();
+      return;
+    }
     setImportInitialRawText(pending.text);
     setPendingImportTextPaste(null);
     setIsImportChatTextOpen(true);
-  }, [pendingImportTextPaste, setIsImportChatTextOpen]);
+  }, [canImportChatText, pendingImportTextPaste, setIsImportChatTextOpen]);
 
   const {
     handlePasteFiles,
@@ -584,7 +608,7 @@ function RoomWindow({
 
     const action = roomUiStore.getState().popMessageRedo();
     if (!action) {
-      toast("没有可回退的消息操作", { icon: "ℹ️" });
+      toast("没有可重做的消息操作", { icon: "ℹ️" });
       return;
     }
 
@@ -600,7 +624,7 @@ function RoomWindow({
         });
         syncMessageAfterHistoryApply(response?.data ?? { ...action.after, status: 0 });
         roomUiStore.getState().restoreMessageUndo(action);
-        toast.success("已回退发送");
+        toast.success("已重做发送");
         return;
       }
 
@@ -614,19 +638,19 @@ function RoomWindow({
         };
         syncMessageAfterHistoryApply(response?.data ?? fallbackDeleted);
         roomUiStore.getState().restoreMessageUndo(action);
-        toast.success("已回退删除");
+        toast.success("已重做删除");
         return;
       }
 
       const response = await updateMessageMutation.mutateAsync(action.after);
       syncMessageAfterHistoryApply(response?.data ?? action.after);
       roomUiStore.getState().restoreMessageUndo(action);
-      toast.success("已回退修改");
+      toast.success("已重做修改");
     }
     catch (error) {
-      console.error("回退消息操作失败", error);
+      console.error("重做消息操作失败", error);
       roomUiStore.getState().restoreMessageRedo(action);
-      toast.error("回退失败，请稍后重试");
+      toast.error("重做失败，请稍后重试");
     }
     finally {
       roomUiStore.getState().setApplyingMessageUndo(false);
@@ -637,46 +661,14 @@ function RoomWindow({
 
   useEffect(() => {
     const handleGlobalUndoKeyDown = (event: KeyboardEvent) => {
-      const isUndoShortcut = (event.ctrlKey || event.metaKey)
-        && !event.shiftKey
-        && event.key.toLowerCase() === "z";
-      const isRedoShortcutByY = (event.ctrlKey || event.metaKey)
-        && !event.shiftKey
-        && event.key.toLowerCase() === "y";
-      const isRedoShortcutByShiftZ = (event.ctrlKey || event.metaKey)
-        && event.shiftKey
-        && event.key.toLowerCase() === "z";
-      const isRedoShortcut = isRedoShortcutByY || isRedoShortcutByShiftZ;
-      if (!isUndoShortcut && !isRedoShortcut) {
-        return;
-      }
-
-      const target = event.target as HTMLElement | null;
-      if (target) {
-        const tagName = target.tagName;
-        const isEditableTarget = target.isContentEditable || tagName === "INPUT" || tagName === "TEXTAREA";
-        if (isEditableTarget) {
-          if (target.closest("[data-chat-input-scope=\"message-edit\"]")) {
-            return;
-          }
-          if (target.closest(".editable-field")) {
-            return;
-          }
-          const isChatInput = target.classList.contains("chatInputTextarea");
-          const hasInputText = useChatInputUiStore.getState().plainText.trim().length > 0;
-          if (!isChatInput || hasInputText) {
-            return;
-          }
-        }
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      if (isUndoShortcut) {
-        void handleUndoLastMessageAction();
-        return;
-      }
-      void handleRedoLastMessageAction();
+      handleRoomMessageHistoryShortcutEvent(event, {
+        onRedo: () => {
+          void handleRedoLastMessageAction();
+        },
+        onUndo: () => {
+          void handleUndoLastMessageAction();
+        },
+      });
     };
 
     window.addEventListener("keydown", handleGlobalUndoKeyDown, true);
@@ -1173,6 +1165,7 @@ function RoomWindow({
               <RealtimeRenderOrchestrator
                 spaceId={spaceId}
                 spaceName={spaceName}
+                ruleId={space?.ruleId ?? -1}
                 roomId={roomId}
                 room={room}
                 roles={roomAllRoles}
@@ -1218,10 +1211,8 @@ function RoomWindow({
           </RoomDocRefDropLayer>
           {!viewMode && (
             <RoomWindowOverlays
-              isImportChatTextOpen={isImportChatTextOpen}
+              isImportChatTextOpen={canImportChatText && isImportChatTextOpen}
               setIsImportChatTextOpen={handleSetImportChatTextOpen}
-              isKP={Boolean(spaceContext.isSpaceOwner)}
-              isSpectator={isSpectator}
               availableRoles={roomRolesThatUserOwn}
               importInitialRawText={importInitialRawText}
               onImportChatText={handleImportChatItems}

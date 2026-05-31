@@ -26,7 +26,6 @@ export function buildStShowCardModel(props: StShowCardProps): StShowCardModel {
     ["基础", props.ability.basic],
     ["能力", props.ability.ability],
     ["技能", props.ability.skill],
-    ["记录", props.ability.record],
   ] as const;
   const requested = new Set((props.requestedKeys ?? []).map(key => key.trim()).filter(Boolean));
 

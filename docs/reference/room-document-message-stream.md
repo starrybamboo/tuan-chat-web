@@ -29,8 +29,8 @@
 3. 不再使用 `sdoc:123:description` 这类 description 占位引用。空间/房间描述回到纯文本 `description`。
 4. `message.content` 不升级为 `TEXT`。消息长度限制是产品和渲染边界的一部分，WebGAL 本身不能渲染过长消息。
 5. 文档 view 不使用 `/chat/{spaceId}/doc/{roomId}` 这种独立路由语义，统一回到 `/chat/{spaceId}/{roomId}`，通过 room 信息和当前 view mode 决定渲染方式。
-6. 文档同步不走独立 `/doc-room/{roomId}/sync` 主链路，归一到 room message stream 接口。
-7. 文档 patch 接口是 `POST /chat/message-stream/{roomId}/patch`，新增、更新、移动、删除都合并到 patch 语义里。
+6. 文档同步不走独立 `/doc-room/{roomId}/sync` 主链路，归一到 room/message 的 history 与 patch 接口。
+7. 文档 patch 接口是 `POST /chat/message/patch`，请求体携带 `roomId`，新增、更新、移动、删除都合并到 patch 语义里。
 8. 文档本地存储使用项目统一的 SQLite room message cache，不另起一套文档 snapshot 主缓存。
 9. 文档不是多人实时共同编辑场景，不引入 CRDT 或逐字实时同步。
 10. 文档和聊天室的区别只在 view 和 workload：聊天室即时提交，文档 lazy 批量提交。
@@ -284,7 +284,7 @@ lazy 的具体含义：
 
 - 文档和聊天室底层统一为 room message stream。
 - 文档视图通过同一份 room message cache 渲染。
-- 文档同步使用 message-stream patch。
+- 文档同步使用 `POST /chat/message/patch`。
 - 聊天室乐观消息和文档 patch 通过统一本地状态协调。
 - 文档 view 切换不再代表永久转换。
 

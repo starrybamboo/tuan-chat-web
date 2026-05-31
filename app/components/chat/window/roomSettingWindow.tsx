@@ -34,6 +34,14 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   // 获取房间成员和角色
   const membersQuery = useGetMemberListQuery(propRoomId ?? -1);
   const roomMembers = useMemo(() => membersQuery.data?.data ?? [], [membersQuery.data?.data]);
+  const visibleMembers = useMemo(() => {
+    return spaceContext.spaceMembers.length > 0 ? spaceContext.spaceMembers : roomMembers;
+  }, [roomMembers, spaceContext.spaceMembers]);
+  const roomMemberUserIds = useMemo(() => {
+    return roomMembers
+      .map(member => member.userId)
+      .filter((userId): userId is number => typeof userId === "number");
+  }, [roomMembers]);
   const roomRolesQuery = useGetRoomRoleQuery(propRoomId ?? -1);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
   // 获取房间NPC角色
@@ -129,10 +137,17 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                       <div className="flex flex-row justify-center items-center gap-2 px-4">
                         <p>
                           房间成员 -
-                          {roomMembers.length}
+                          {visibleMembers.length}
                         </p>
+                        {visibleMembers.length !== roomMembers.length && (
+                          <span className="text-xs text-base-content/50">
+                            房间内
+                            {" "}
+                            {roomMembers.length}
+                          </span>
+                        )}
                       </div>
-                      <MemberLists members={roomMembers} isSpace={false} />
+                      <MemberLists members={visibleMembers} isSpace={false} roomMemberUserIds={roomMemberUserIds} />
                     </div>
                   </div>
                 )}

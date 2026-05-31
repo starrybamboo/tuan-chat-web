@@ -27,7 +27,7 @@ export function getMobileMessageInputPlaceholder(mode: MobileMessageMode) {
     case MOBILE_MESSAGE_MODE.COMMAND_REQUEST:
       return "输入先攻指令，例如 .ri";
     case MOBILE_MESSAGE_MODE.STATE_EVENT:
-      return "输入 .st hp -2 或 .next";
+      return "输入 .st hp -2、.next 或 .combat start";
     case MOBILE_MESSAGE_MODE.TEXT:
     default:
       return "先用真实接口发一条消息";
@@ -39,7 +39,7 @@ export function getMobileMessageModeHint(mode: MobileMessageMode) {
     case MOBILE_MESSAGE_MODE.COMMAND_REQUEST:
       return "会发送结构化 commandRequest，当前默认允许所有成员点击执行。";
     case MOBILE_MESSAGE_MODE.STATE_EVENT:
-      return "当前支持 .next，发送 .st 时需要填写角色 ID。";
+      return "当前支持 .next、.combat start、.combat end，发送 .st 时需要填写角色 ID。";
     case MOBILE_MESSAGE_MODE.TEXT:
     default:
       return "可选回复某条消息，也支持图片 / 视频附件；角色 ID 为空时按普通用户发送。";

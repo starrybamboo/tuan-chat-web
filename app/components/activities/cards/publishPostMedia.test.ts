@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 
 import {
   buildMomentFeedRequestFromPostMedia,
@@ -21,8 +21,8 @@ describe("publishPostMedia", () => {
     expect(result.invalidImageIds).toEqual([]);
     expect(result.request).toEqual({
       content: "新动态",
-      imageUrls: ["https://tuan.chat/media/v1/files/001/1001/image/medium.webp"],
-      originalImageUrls: ["https://tuan.chat/media/v1/files/001/1001/original"],
+      imageUrls: ["https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp"],
+      originalImageUrls: ["https://media.tuan.chat/media/v1/files/001/1001/original"],
     });
   });
 
@@ -52,7 +52,7 @@ describe("publishPostMedia", () => {
       id: "emoji_7",
       fileId: 2002,
       mediaType: "image",
-      previewUrl: "https://tuan.chat/media/v1/files/002/2002/image/medium.webp",
+      previewUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
     });
   });
 
@@ -61,6 +61,7 @@ describe("publishPostMedia", () => {
       fileId: 3003,
       mediaType: "image",
       previewUrl: "https://legacy.example/old.webp",
-    })).toBe("https://tuan.chat/media/v1/files/003/3003/image/medium.webp");
+    })).toBe("https://media.tuan.chat/media/v1/files/003/3003/image/medium.webp");
   });
 });
+

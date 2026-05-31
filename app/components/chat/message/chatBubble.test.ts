@@ -55,7 +55,17 @@ vi.mock("@/components/chat/message/diff/MessageTextDiffPreview", () => ({
 }));
 
 vi.mock("@/components/chat/message/editableMessageContent", () => ({
-  default: () => null,
+  default: ({ content, className, canEdit, placeholder }: {
+    content?: string;
+    className?: string;
+    canEdit?: boolean;
+    placeholder?: string;
+  }) => createElement("div", {
+    className,
+    "data-testid": "editable-content",
+    "data-can-edit": String(Boolean(canEdit)),
+    "data-placeholder": placeholder ?? "",
+  }, content ?? ""),
 }));
 
 vi.mock("@/components/chat/message/preview/forwardMessage", () => ({
@@ -86,6 +96,10 @@ vi.mock("@/components/common/userAccess", () => ({
 
 vi.mock("@/components/common/toastWindow/toastWindow", () => ({
   default: {},
+}));
+
+vi.mock("@/components/globalContextProvider", () => ({
+  useGlobalUserId: () => 32,
 }));
 
 vi.mock("react-hot-toast", () => ({
@@ -188,5 +202,54 @@ describe("chatBubble annotations", () => {
     }));
 
     expect(html).toContain("[检定请求] .rc 射击");
+  });
+
+  it("图片消息正文会渲染成可编辑 caption", () => {
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: {
+        message: {
+          ...createChatMessageResponse([]).message,
+          content: "图片说明",
+          messageType: MESSAGE_TYPE.IMG,
+          extra: {
+            imageMessage: {
+              source: { kind: "internal", fileId: 45 },
+              background: false,
+              width: 640,
+              height: 480,
+            },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("data-testid=\"message-content\"");
+    expect(html).toContain("data-testid=\"editable-content\"");
+    expect(html).toContain("data-can-edit=\"true\"");
+    expect(html).toContain("图片说明");
+  });
+
+  it("空图片正文也保留编辑入口给工具栏触发", () => {
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: {
+        message: {
+          ...createChatMessageResponse([]).message,
+          content: "",
+          messageType: MESSAGE_TYPE.IMG,
+          extra: {
+            imageMessage: {
+              source: { kind: "internal", fileId: 45 },
+              background: false,
+              width: 640,
+              height: 480,
+            },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("data-testid=\"editable-content\"");
+    expect(html).toContain("data-placeholder=\"添加图片说明\"");
+    expect(html).toContain("sr-only");
   });
 });

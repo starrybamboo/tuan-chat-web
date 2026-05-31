@@ -955,7 +955,6 @@ interface RoleAbility {
   basic?: Record<string, string>;  // 基础属性（力量、敏捷等）
   ability?: Record<string, string>; // 特殊能力
   skill?: Record<string, string>;  // 技能列表
-  record?: Record<string, string>; // 记录信息
   extra?: Record<string, string>;  // 扩展字段
 }
 ```
@@ -1041,12 +1040,12 @@ ability.basic.敏捷 = "80";
 cpi.setRoleAbilityList(role.roleId, ability);
 
 // 完整示例：属性设置命令
-const cmdSet = new CommandExecutor("set", [], "设置属性", [], "",
+const cmdSet = new CommandExecutor("st", [], "设置属性", [], "",
   async (args, mentioned, cpi) => {
     const role = mentioned[0];
     const ability = cpi.getRoleAbilityList(role.roleId);
   
-    // 解析参数：.set 力量70 敏捷80
+    // 解析参数：.st 力量70 敏捷80
     const updates: string[] = [];
     for (const arg of args) {
       const match = arg.match(/^([^\d]+)(\d+)$/);
@@ -1849,9 +1848,9 @@ UTILS.getDicerRoleId(
 
 **查找优先级:**
 
-1. 当前角色绑定的骰娘ID
-2. 当前用户配置的骰娘ID
-3. 空间配置的骰娘ID
+1. 空间配置的骰娘ID
+2. 当前角色绑定的骰娘ID
+3. 当前用户配置的骰娘ID
 4. 默认骰娘ID（2）
 
 ### UTILS + CPI 完整工作流
@@ -2472,8 +2471,8 @@ const cmdSt = new CommandExecutor(
   "st",
   [],
   "属性设置",
-  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
-  ".st [属性名][属性值] / .st show [属性名]",
+  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5", ".st 手枪 1d4+1d8"],
+  ".st [属性名][属性值/掷骰表达式] / .st show [属性名]",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const role = mentioned[0];
     const input = args.join("");
@@ -2508,6 +2507,21 @@ const cmdSt = new CommandExecutor(
     }
 
     // ========== 设置模式 ==========
+    // 掷骰表达式会写入 skill，供 .r [表达式别名] 展开使用。
+    if (args.length >= 2 && !/^[-+]?\d+$/.test(args[1].trim())) {
+      const rawKey = args[0].trim();
+      const normalizedKey = rawKey.toLowerCase();
+      const key = ABILITY_MAP[normalizedKey] || rawKey;
+      const expression = args.slice(1).join("").trim();
+      curAbility.skill = {
+        ...curAbility.skill,
+        [key]: expression,
+      };
+      cpi.setRoleAbilityList(role.roleId, curAbility);
+      cpi.replyMessage(`掷骰表达式设置成功：${role?.roleName || "当前角色"}的${key} = ${expression}`);
+      return true;
+    }
+
     // 使用正则匹配所有"属性名+操作符+数值"的组合
     const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
 
@@ -2786,7 +2800,6 @@ interface RoleAbility {
   basic?: Record<string, string>;     // 基础属性（力量、敏捷等）
   ability?: Record<string, string>;   // 特殊能力
   skill?: Record<string, string>;     // 技能列表
-  record?: Record<string, string>;    // 记录信息
   extra?: Record<string, string>;     // 扩展字段
 }
 

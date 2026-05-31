@@ -1,63 +1,20 @@
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
 import type { ApiResultListMessage } from "@tuanchat/openapi-client/models/ApiResultListMessage";
-import type { ChatMessagePageRequest } from "@tuanchat/openapi-client/models/ChatMessagePageRequest";
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
 import type { RoomMessageStreamPatchRequest } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
+import { assertOpenApiResultSuccess } from "@tuanchat/domain/open-api-result";
+
 export * from "./room-message";
 
-export type RoomMessagesQueryOptions = {
-  enabled?: boolean;
-  pageSize?: number;
-  staleTime?: number;
-};
-
 type ChatClient = Pick<TuanChat, "chatController">;
-
-export function getRoomMessagesQueryKey(roomId: number, pageSize: number = 20) {
-  return ["getRoomMessages", roomId, pageSize] as const;
-}
+export type PatchMessagesRequest = Omit<RoomMessageStreamPatchRequest, "roomId">;
 
 export function getAllRoomMessagesQueryKey(roomId: number) {
-  return ["getAllMessage", roomId] as const;
-}
-
-export function useRoomMessagesInfiniteQuery(
-  client: ChatClient,
-  roomId: number,
-  options?: RoomMessagesQueryOptions,
-) {
-  const pageSize = options?.pageSize ?? 20;
-
-  return useInfiniteQuery({
-    queryKey: getRoomMessagesQueryKey(roomId, pageSize),
-    queryFn: ({ pageParam }) => client.chatController.getMsgPage(pageParam),
-    initialPageParam: {
-      roomId,
-      pageSize,
-    } satisfies ChatMessagePageRequest,
-    getNextPageParam: (lastPage) => {
-      if (!lastPage.data || lastPage.data.isLast) {
-        return undefined;
-      }
-
-      const cursor = lastPage.data.cursor;
-      if (typeof cursor !== "number") {
-        return undefined;
-      }
-
-      return {
-        roomId,
-        pageSize,
-        cursor,
-      } satisfies ChatMessagePageRequest;
-    },
-    staleTime: options?.staleTime ?? 30_000,
-    enabled: (options?.enabled ?? true) && roomId > 0,
-  });
+  return ["getHistoryMessages", roomId, 0] as const;
 }
 
 export function useSendMessageMutation(client: ChatClient, roomId: number) {
@@ -99,12 +56,11 @@ export async function patchInsertMessages(client: ChatClient, requests: ChatMess
 
   const createdMessages: NonNullable<ApiResultListMessage["data"]> = [];
   for (const [roomId, roomRequests] of requestsByRoomId) {
-    const result = await client.chatController.patchRoomMessages(roomId, {
+    const result = await client.chatController.patchRoomMessages({
+      roomId,
       operations: roomRequests.map(toRoomMessageInsertOperation),
     });
-    if (!result.success) {
-      return result;
-    }
+    assertOpenApiResultSuccess(result, "批量发送消息失败");
     createdMessages.push(...(result.data ?? []));
   }
 
@@ -113,7 +69,10 @@ export async function patchInsertMessages(client: ChatClient, requests: ChatMess
 
 export function usePatchMessagesMutation(client: ChatClient, roomId: number) {
   return useMutation({
-    mutationFn: (req: RoomMessageStreamPatchRequest) => client.chatController.patchRoomMessages(roomId, req),
+    mutationFn: (req: PatchMessagesRequest) => client.chatController.patchRoomMessages({
+      ...req,
+      roomId,
+    }),
     mutationKey: ["patchMessages", roomId],
   });
 }

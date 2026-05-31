@@ -13,12 +13,24 @@ export type MessageDraft = OpenApiMessageDraft & {
   tcLocalSyncState?: MessageDraftLocalSyncState;
 };
 
+export type InternalMessageMediaSource = {
+  kind: "internal";
+  fileId: number;
+};
+
+export type ExternalMessageMediaSource = {
+  kind: "external";
+  url: string;
+  provider?: string;
+};
+
+export type MessageMediaSource = InternalMessageMediaSource | ExternalMessageMediaSource;
+
 export type UploadedImageMessageDraftAsset = {
   background?: boolean;
   fileId: number;
   fileName: string;
   height: number;
-  mediaType: string;
   size: number;
   width: number;
 };
@@ -26,7 +38,6 @@ export type UploadedImageMessageDraftAsset = {
 export type UploadedSoundMessageDraftAsset = {
   fileId: number;
   fileName: string;
-  mediaType: string;
   purpose?: string;
   second?: number;
   size: number;
@@ -35,7 +46,6 @@ export type UploadedSoundMessageDraftAsset = {
 export type UploadedVideoMessageDraftAsset = {
   fileId: number;
   fileName: string;
-  mediaType: string;
   second?: number;
   size: number;
 };
@@ -107,6 +117,26 @@ function toPositiveNumber(value: unknown): number | undefined {
   return typeof normalized === "number" && normalized > 0 ? normalized : undefined;
 }
 
+function normalizeMediaSource(rawSource: unknown, fallbackFileId?: unknown): MessageExtraRecord {
+  const source = toRecord(rawSource);
+  const kind = toTrimmedString(source.kind);
+  if (kind === "external") {
+    return compactRecord({
+      kind,
+      url: toTrimmedString(source.url),
+      provider: toTrimmedString(source.provider),
+    });
+  }
+  return compactRecord({
+    kind: "internal",
+    fileId: toPositiveNumber(source.fileId) ?? toPositiveNumber(fallbackFileId),
+  });
+}
+
+function internalMediaSource(fileId: number): InternalMessageMediaSource {
+  return { kind: "internal", fileId };
+}
+
 function toLooseBoolean(value: unknown): boolean | undefined {
   if (typeof value === "boolean") {
     return value;
@@ -170,8 +200,7 @@ function pickPayload(rawExtra: unknown, ...keys: string[]): MessageExtraRecord {
 function normalizeImagePayload(rawExtra: unknown, options?: { defaultBackground?: boolean }): MessageExtraRecord {
   const image = pickPayload(rawExtra, "imageMessage");
   return compactRecord({
-    fileId: toPositiveNumber(image.fileId),
-    mediaType: toTrimmedString(image.mediaType),
+    source: normalizeMediaSource(image.source, image.fileId),
     fileName: toTrimmedString(image.fileName),
     width: toPositiveNumber(image.width),
     height: toPositiveNumber(image.height),
@@ -183,8 +212,7 @@ function normalizeImagePayload(rawExtra: unknown, options?: { defaultBackground?
 function normalizeSoundPayload(rawExtra: unknown): MessageExtraRecord {
   const sound = pickPayload(rawExtra, "soundMessage");
   return compactRecord({
-    fileId: toPositiveNumber(sound.fileId),
-    mediaType: toTrimmedString(sound.mediaType),
+    source: normalizeMediaSource(sound.source, sound.fileId),
     fileName: toTrimmedString(sound.fileName),
     size: toPositiveNumber(sound.size),
     second: toPositiveNumber(sound.second),
@@ -196,8 +224,7 @@ function normalizeSoundPayload(rawExtra: unknown): MessageExtraRecord {
 function normalizeVideoPayload(rawExtra: unknown): MessageExtraRecord {
   const video = pickPayload(rawExtra, "videoMessage");
   return compactRecord({
-    fileId: toPositiveNumber(video.fileId),
-    mediaType: toTrimmedString(video.mediaType),
+    source: normalizeMediaSource(video.source, video.fileId),
     fileName: toTrimmedString(video.fileName),
     size: toPositiveNumber(video.size),
     second: toPositiveNumber(video.second),
@@ -393,7 +420,9 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
   switch (messageType) {
     case MESSAGE_TYPE.IMG: {
       const image = normalizeImagePayload(extra);
-      const missingFields = collectMissingFields(image, ["fileId", "mediaType", "fileName", "size", "width", "height"]);
+      const source = toRecord(image.source);
+      const missingFields = collectMissingFields(image, ["source", "fileName", "width", "height"])
+        .concat(collectMissingFields(source, source.kind === "external" ? ["kind", "url"] : ["kind", "fileId"]));
       if (missingFields.length > 0) {
         throw new Error(`图片素材缺少必要字段：${missingFields.join("、")}`);
       }
@@ -401,7 +430,9 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
     }
     case MESSAGE_TYPE.SOUND: {
       const sound = normalizeSoundPayload(extra);
-      const missingFields = collectMissingFields(sound, ["fileId", "mediaType", "fileName", "size", "second"]);
+      const source = toRecord(sound.source);
+      const missingFields = collectMissingFields(sound, ["source", "fileName", "second"])
+        .concat(collectMissingFields(source, source.kind === "external" ? ["kind", "url"] : ["kind", "fileId"]));
       if (missingFields.length > 0) {
         throw new Error(`音频素材缺少必要字段：${missingFields.join("、")}`);
       }
@@ -409,7 +440,9 @@ function assertMessageExtraReadyForRequest(messageType: number, extra: MessageEx
     }
     case MESSAGE_TYPE.VIDEO: {
       const video = normalizeVideoPayload(extra);
-      const missingFields = collectMissingFields(video, ["fileId", "mediaType", "fileName", "size"]);
+      const source = toRecord(video.source);
+      const missingFields = collectMissingFields(video, ["source", "fileName"])
+        .concat(collectMissingFields(source, source.kind === "external" ? ["kind", "url"] : ["kind", "fileId"]));
       if (missingFields.length > 0) {
         throw new Error(`视频素材缺少必要字段：${missingFields.join("、")}`);
       }
@@ -564,8 +597,7 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.IMG,
       extra: {
         imageMessage: {
-          fileId: image.fileId,
-          mediaType: image.mediaType,
+          source: internalMediaSource(image.fileId),
           width: image.width,
           height: image.height,
           size: image.size,
@@ -584,8 +616,7 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.SOUND,
       extra: {
         soundMessage: {
-          fileId: uploadedSoundMessage.fileId,
-          mediaType: uploadedSoundMessage.mediaType,
+          source: internalMediaSource(uploadedSoundMessage.fileId),
           fileName: uploadedSoundMessage.fileName,
           size: uploadedSoundMessage.size,
           ...(typeof uploadedSoundMessage.second === "number" ? { second: uploadedSoundMessage.second } : {}),
@@ -603,8 +634,7 @@ export function buildMessageDraftsFromUploadedMedia({
       messageType: MESSAGE_TYPE.VIDEO,
       extra: {
         videoMessage: {
-          fileId: video.fileId,
-          mediaType: video.mediaType,
+          source: internalMediaSource(video.fileId),
           fileName: video.fileName,
           size: video.size,
           ...(typeof video.second === "number" ? { second: video.second } : {}),

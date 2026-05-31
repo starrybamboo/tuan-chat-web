@@ -4,6 +4,7 @@ import { uploadFile } from "./fileOperator";
 import {
   getAndUploadMiniAvatarAsset,
   getAndUploadSpriteAsset,
+  uploadMapImageAsset,
 } from "./realtimeRendererAssetUploads";
 
 vi.mock("./fileOperator", () => ({
@@ -16,6 +17,7 @@ function createContext(): RealtimeAssetUploadContext {
     gameName: "realtime_1",
     uploadedSpritesMap: new Map(),
     uploadedBackgroundsMap: new Map(),
+    uploadedMapImagesMap: new Map(),
     uploadedImageFiguresMap: new Map(),
     uploadedBgmsMap: new Map(),
     uploadedVideosMap: new Map(),
@@ -97,6 +99,20 @@ describe("realtimeRendererAssetUploads", () => {
     expect(result).toBe("role_1/mini_7.webp");
     expect(uploadFile).toHaveBeenCalledOnce();
     expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("9918");
+  });
+
+  it("上传地图图片到 WebGAL 背景目录并返回本地相对路径", async () => {
+    const context = createContext();
+
+    const result = await uploadMapImageAsset(context, "http://localhost:3001/map.png?sig=a=b", 12);
+
+    expect(result).toBe("./game/background/map_12.png");
+    expect(uploadFile).toHaveBeenCalledWith(
+      "http://localhost:3001/map.png?sig=a=b",
+      "games/realtime_1/game/background/",
+      "map_12.png",
+    );
+    expect(context.uploadedMapImagesMap.get("http://localhost:3001/map.png?sig=a=b")).toBe("./game/background/map_12.png");
   });
 
   it("头像不属于当前角色时不会上传立绘或小头像", async () => {

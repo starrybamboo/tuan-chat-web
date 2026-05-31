@@ -8,6 +8,7 @@ import { useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
+import { persistRoleAbilitySnapshot } from "@/components/chat/state/roleVarWriteThrough";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
@@ -22,7 +23,12 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { fetchRoleAbilityByRuleWithCache } from "../../../../api/hooks/abilityQueryHooks";
+import { invalidateRoleAbilityCaches } from "../../../../api/hooks/abilityMutationInvalidation";
+import {
+  fetchRoleAbilityByRuleWithCache,
+  setRoleAbilityWithSuccessGuard,
+  updateRoleAbilityByRuleWithSuccessGuard,
+} from "../../../../api/hooks/abilityQueryHooks";
 import { useGetSpaceInfoQuery, useSendMessageMutation, useSetSpaceExtraMutation } from "../../../../api/hooks/chatQueryHooks";
 import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
@@ -511,7 +517,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         Object.fromEntries(mentionedRoleEntries),
       );
       const runtimeRoomValues = runtimeStateValues.room;
-      const runtimeRoleValuesByRoleId = runtimeStateValues.rolesByRoleId;
       const roleAbilitySnapshotsBeforeCommand = new Map<number, RoleAbility>();
       const commandRoleAbilities = new Map<number, RoleAbility>();
       const mutatedRoleIds = new Set<number>();
@@ -554,13 +559,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       };
 
       const buildCurrentRoleAbility = (roleId: number): RoleAbility => {
-        const roleRuntimeMergedAbility = mergeRuntimeRoleValuesIntoAbility(
-          baseRoleAbilities.get(roleId),
-          runtimeRoleValuesByRoleId[roleId],
-        );
-        // 房间级状态变量作为共享兜底注入，避免覆盖角色自身或角色运行态变量。
+        // 房间级状态变量作为共享兜底注入，避免覆盖角色卡自身字段。
         const ability = mergeRuntimeRoleValuesIntoAbility(
-          roleRuntimeMergedAbility,
+          baseRoleAbilities.get(roleId),
           runtimeRoomValues,
           { overrideExisting: false },
         );
@@ -662,13 +663,34 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           afterAbility,
         ));
       }
+      for (const id of mutatedRoleIds) {
+        const afterAbility = commandRoleAbilities.get(id);
+        if (!afterAbility) {
+          continue;
+        }
+        const changed = await persistRoleAbilitySnapshot({
+          roleId: id,
+          ruleId,
+          beforeAbility: roleAbilitySnapshotsBeforeCommand.get(id) ?? buildCurrentRoleAbility(id),
+          afterAbility,
+          loadRoleAbility: roleId => getOrFetchRoleAbility(queryClient, ruleId, roleId),
+          createRoleAbility: setRoleAbilityWithSuccessGuard,
+          updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
+        });
+        if (changed) {
+          await invalidateRoleAbilityCaches(queryClient, { roleId: id, ruleId });
+        }
+      }
       // 更新 Space dicerData（如果被修改）
       if (spaceDicerDataModified && space && space.spaceId) {
-        setSpaceExtraMutation.mutate({
+        const result = await setSpaceExtraMutation.mutateAsync({
           spaceId: space.spaceId,
           key: "dicerData",
           value: JSON.stringify(spaceDicerData),
         });
+        if (!result?.success) {
+          throw new Error(result?.errMsg || "保存房间骰子设置失败");
+        }
       }
 
       const sendGeneratedStateEvent = async (options?: {

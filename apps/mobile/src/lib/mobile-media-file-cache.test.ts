@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   cleanupMobileMediaFileCache,
@@ -117,9 +117,9 @@ vi.mock("expo-file-system", () => ({
   },
 }));
 
-const VIDEO_URL = "https://tuan.chat/media/v1/files/007/7/video/low.webm";
+const VIDEO_URL = "https://media.tuan.chat/media/v1/files/007/7/video/low.webm";
 const VIDEO_FILE_URI = "file:///mock/cache/mobile-media-file-cache/7_video_low.webm";
-const ORIGINAL_FILE_URL = "https://tuan.chat/media/v1/files/012/12/original";
+const ORIGINAL_FILE_URL = "https://media.tuan.chat/media/v1/files/012/12/original";
 const ORIGINAL_PDF_FILE_URI = "file:///mock/cache/mobile-media-file-cache/12_file_original.pdf";
 
 beforeEach(() => {
@@ -281,3 +281,4 @@ describe("mobile media file cache", () => {
     expect(getCachedMediaFileUriSync(VIDEO_URL)).toBe(`content://${encodeURIComponent(VIDEO_FILE_URI)}`);
   });
 });
+

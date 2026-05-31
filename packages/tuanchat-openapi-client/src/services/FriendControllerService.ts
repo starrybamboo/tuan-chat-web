@@ -70,7 +70,7 @@ export class FriendControllerService {
     }
     /**
      * 获取好友申请列表
-     * 分页获取当前用户的好友申请列表（包含发送的和接收的）
+     * 分页获取当前用户收到的待处理好友申请列表
      * @param requestBody
      * @returns ApiResultPageBaseRespFriendReqResponse OK
      * @throws ApiError

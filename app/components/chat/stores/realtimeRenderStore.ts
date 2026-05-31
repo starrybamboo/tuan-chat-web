@@ -111,6 +111,9 @@ type RealtimeRenderState = {
   /** 实时渲染自动填充立绘开关 */
   autoFigureEnabled: boolean;
 
+  /** WebGAL 预览是否在尾部新消息到达时自动推进 */
+  autoAdvanceEnabled: boolean;
+
   /** 单条房间内容预警阈值（超过时提示拆分） */
   roomContentAlertThreshold: number;
 
@@ -151,6 +154,7 @@ type RealtimeRenderState = {
   setTtsEnabled: (value: boolean) => void;
   setMiniAvatarEnabled: (value: boolean) => void;
   setAutoFigureEnabled: (value: boolean) => void;
+  setAutoAdvanceEnabled: (value: boolean) => void;
   setRoomContentAlertThreshold: (value: number) => void;
   setTtsApiUrl: (value: string) => void;
   setTerrePortOverride: (port: number | null) => void;
@@ -304,6 +308,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   ttsEnabled: false,
   miniAvatarEnabled: false,
   autoFigureEnabled: false,
+  autoAdvanceEnabled: false,
   roomContentAlertThreshold: DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
   ttsApiUrl: "",
   terrePortOverride: null,
@@ -321,6 +326,7 @@ export const useRealtimeRenderStore = create<RealtimeRenderState>((set, get) => 
   setEnabled: value => set(state => (state.enabled === value ? state : { enabled: value })),
   setTtsEnabled: value => set(state => (state.ttsEnabled === value ? state : { ttsEnabled: value })),
   setMiniAvatarEnabled: value => set(state => (state.miniAvatarEnabled === value ? state : { miniAvatarEnabled: value })),
+  setAutoAdvanceEnabled: value => set(state => (state.autoAdvanceEnabled === value ? state : { autoAdvanceEnabled: value })),
   setAutoFigureEnabled: (value) => {
     if (get().autoFigureEnabled === value)
       return;

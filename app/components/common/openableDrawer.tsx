@@ -160,6 +160,17 @@ export function OpenAbleDrawer({
   }, [bounds.max, bounds.min, clamp, controlledWidth]);
 
   useEffect(() => {
+    if (Number.isFinite(controlledWidth)) {
+      return;
+    }
+
+    queueMicrotask(() => setWidth((prev) => {
+      const nextWidth = clamp(initialWidth, bounds.min, bounds.max);
+      return nextWidth === prev ? prev : nextWidth;
+    }));
+  }, [bounds.max, bounds.min, clamp, controlledWidth, initialWidth]);
+
+  useEffect(() => {
     if (!isOpen || typeof ResizeObserver === "undefined") {
       return;
     }

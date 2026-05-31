@@ -52,7 +52,7 @@ describe("repositoryDetail helpers", () => {
 
   it("预览房间保留仍有效的选择，否则回退到第一个可用房间", () => {
     const rooms = [
-      { roomId: 11, name: "默认房间" },
+      { roomId: 11, name: "主聊天房" },
       { roomId: 12, name: "第二房间" },
     ];
 

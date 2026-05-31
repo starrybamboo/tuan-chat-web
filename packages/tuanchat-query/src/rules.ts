@@ -25,7 +25,10 @@ async function fetchRulePage(
     pageSize,
     keyword,
   });
-  const list = (res.success && res.data?.list) ? (res.data.list as Rule[]) : ([] as Rule[]);
+  if (res.success === false) {
+    throw new Error(res.errMsg?.trim() || "获取规则列表失败");
+  }
+  const list = res.data?.list ? (res.data.list as Rule[]) : ([] as Rule[]);
   const meta = {
     pageNo: res.data?.pageNo,
     pageSize: res.data?.pageSize,
@@ -80,7 +83,10 @@ export function useRuleDetailQuery(
     queryKey: getRuleDetailQueryKey(ruleId),
     queryFn: async () => {
       const res = await client.ruleController.getRuleDetail(ruleId);
-      if (res.success && res.data) {
+      if (res.success === false) {
+        throw new Error(res.errMsg?.trim() || "获取规则详情失败");
+      }
+      if (res.data) {
         return res.data;
       }
       throw new Error("获取规则详情失败");

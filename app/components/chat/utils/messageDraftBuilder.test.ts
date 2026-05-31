@@ -176,8 +176,7 @@ describe("messageDraftBuilder", () => {
     expect(drafts[0]?.messageType).toBe(MessageType.VIDEO);
     expect(drafts[0]?.extra).toMatchObject({
       videoMessage: {
-        fileId: 456,
-        mediaType: "video",
+        source: { kind: "internal", fileId: 456 },
         fileName: "clip.mp4",
         size: videoFile.size,
         second: 7,
@@ -237,7 +236,7 @@ describe("messageDraftBuilder", () => {
     expect(drafts).toHaveLength(2);
     expect(drafts[0]?.extra).toMatchObject({
       imageMessage: {
-        fileId: 101,
+        source: { kind: "internal", fileId: 101 },
         fileName: "a.png",
         width: 800,
         height: 600,
@@ -246,7 +245,7 @@ describe("messageDraftBuilder", () => {
     });
     expect(drafts[1]?.extra).toMatchObject({
       imageMessage: {
-        fileId: 202,
+        source: { kind: "internal", fileId: 202 },
         fileName: "b.png",
         width: 640,
         height: 480,
@@ -255,7 +254,7 @@ describe("messageDraftBuilder", () => {
     });
   });
 
-  it("表情消息会保留媒体 fileId 和 mediaType", async () => {
+  it("表情消息会保留内部媒体 source", async () => {
     const uploadUtils = createUploadUtilsMock();
     const emojiUrl = "/media/v1/files/077/77/image/low.webp";
 
@@ -283,8 +282,7 @@ describe("messageDraftBuilder", () => {
     expect(drafts).toHaveLength(1);
     expect(drafts[0]?.extra).toMatchObject({
       imageMessage: {
-        fileId: 77,
-        mediaType: "image",
+        source: { kind: "internal", fileId: 77 },
       },
     });
   });

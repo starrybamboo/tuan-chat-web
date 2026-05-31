@@ -1,7 +1,7 @@
 import type {
   RouteMetaArgs,
 } from "@/routes/routeTypes";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
@@ -12,6 +12,7 @@ import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPrefere
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { queryClient } from "@/queryClient";
+import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { installDiagnosticConsoleCapture } from "@/utils/diagnosticConsole";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
@@ -81,8 +82,24 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 }
 
 const isTestBuild = import.meta.env.MODE === "test";
+const shouldEnableReactScan = typeof window !== "undefined" && (isTestBuild || import.meta.env.DEV);
 const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
 const BUG_FEEDBACK_SPLASH_SESSION_KEY = "tc:bug-feedback-splash:2026-05-20";
+
+if (shouldEnableReactScan) {
+  void import("react-scan")
+    .then(({ scan }) => {
+      scan({
+        enabled: true,
+        showToolbar: true,
+        // test 站点是 production build，需要显式强制开启。
+        dangerouslyForceRunInProduction: isTestBuild,
+      });
+    })
+    .catch(() => {
+      // ignore
+    });
+}
 
 if (typeof window !== "undefined" && import.meta.env.MODE === "test" && !(window as any).__tcTestTitleTagInstalled) {
   // test 环境为标签页标题追加标识，避免与正式环境混淆。
@@ -167,6 +184,11 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
   const [isBugFeedbackSplashOpen, setIsBugFeedbackSplashOpen] = React.useState(false);
+  const authStatusQuery = useQuery({
+    queryKey: ["authStatus"],
+    queryFn: checkAuthStatus,
+  });
+  const isLoggedIn = authStatusQuery.data?.isLoggedIn === true;
 
   React.useEffect(() => {
     const msg = consumeAuthToast();
@@ -208,8 +230,10 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined")
+    if (typeof window === "undefined" || authStatusQuery.isLoading || !isLoggedIn) {
+      setIsBugFeedbackSplashOpen(false);
       return;
+    }
     try {
       if (window.sessionStorage.getItem(BUG_FEEDBACK_SPLASH_SESSION_KEY) === "1")
         return;
@@ -218,7 +242,7 @@ function App() {
       // ignore
     }
     setIsBugFeedbackSplashOpen(true);
-  }, []);
+  }, [authStatusQuery.isLoading, isLoggedIn]);
 
   const closeBugFeedbackSplash = React.useCallback(() => {
     setIsBugFeedbackSplashOpen(false);

@@ -5,13 +5,11 @@ import { File, PauseCircle, PlayCircle } from "phosphor-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 
-import type { MobileMediaType } from "@/lib/media-url";
-
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { mediaFileUrl } from "@/lib/media-url";
+import { mediaFileUrl, normalizeMediaType } from "@/lib/media-url";
 import { resolveCachedMediaFileUri } from "@/lib/mobile-media-file-cache";
 import {
   getFileMessageExtra,
@@ -20,6 +18,7 @@ import {
   getVideoMessageExtra,
 } from "@tuanchat/domain/message-extra";
 
+import { resolveMessageMediaUrl } from "./messageMediaSource";
 import {
   activateMobileAudioPlayback,
   deactivateMobileAudioPlayback,
@@ -86,13 +85,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function normalizeMediaType(value: string | null | undefined, fallback: MobileMediaType): MobileMediaType {
-  if (value === "image" || value === "audio" || value === "video" || value === "document" || value === "other") {
-    return value;
-  }
-  return fallback;
-}
-
 function formatSize(size?: number | null) {
   if (!size || size <= 0)
     return null;
@@ -110,6 +102,10 @@ function formatDuration(second?: number | null) {
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function normalizeFileMediaType(value: string | null | undefined) {
+  return value ? normalizeMediaType(value) : "document";
 }
 
 async function openMediaUrl(url: string, options: { fileName?: string | null } = {}) {
@@ -276,11 +272,10 @@ export function MobileMessageMediaPreview({
 
   if (messageType === MESSAGE_TYPE.IMG) {
     const image = getImageMessageExtra(extra);
-    if (!image?.fileId)
+    const thumbUrl = resolveMessageMediaUrl(image, "medium", "image");
+    const fullSizeUrl = resolveMessageMediaUrl(image, "original", "image");
+    if (!image || !thumbUrl || !fullSizeUrl)
       return null;
-    const mediaType = normalizeMediaType(image.mediaType, "image");
-    const thumbUrl = mediaFileUrl(image.fileId, mediaType, "low");
-    const fullSizeUrl = mediaFileUrl(image.fileId, mediaType, "medium");
     const rawWidth = image.width && image.width > 0 ? image.width : MAX_IMAGE_WIDTH;
     const rawHeight = image.height && image.height > 0 ? image.height : MAX_IMAGE_WIDTH;
     const scale = Math.min(MAX_IMAGE_WIDTH / rawWidth, MAX_IMAGE_HEIGHT / rawHeight, 1);
@@ -316,10 +311,9 @@ export function MobileMessageMediaPreview({
 
   if (messageType === MESSAGE_TYPE.VIDEO) {
     const video = getVideoMessageExtra(extra);
-    if (!video?.fileId)
+    const videoUrl = resolveMessageMediaUrl(video, "low", "video");
+    if (!video || !videoUrl)
       return null;
-    const mediaType = normalizeMediaType(video.mediaType, "video");
-    const videoUrl = mediaFileUrl(video.fileId, mediaType, "low");
     const meta = [formatDuration(video.second), formatSize(video.size)].filter(Boolean).join(" · ");
 
     return <EmbeddedVideoCard compact={compact} content={content} fileName={video.fileName} meta={meta} url={videoUrl} />;
@@ -327,10 +321,9 @@ export function MobileMessageMediaPreview({
 
   if (messageType === MESSAGE_TYPE.SOUND) {
     const sound = getSoundMessageExtra(extra);
-    if (!sound?.fileId)
+    const audioUrl = resolveMessageMediaUrl(sound, "low", "audio");
+    if (!sound || !audioUrl)
       return null;
-    const mediaType = normalizeMediaType(sound.mediaType, "audio");
-    const audioUrl = mediaFileUrl(sound.fileId, mediaType, "low");
     const meta = [formatDuration(sound.second), formatSize(sound.size)].filter(Boolean).join(" · ");
 
     return (
@@ -349,7 +342,7 @@ export function MobileMessageMediaPreview({
     const file = getFileMessageExtra(extra);
     if (!file?.fileId)
       return null;
-    const mediaType = normalizeMediaType(file.mediaType, "document");
+    const mediaType = normalizeFileMediaType(file.mediaType);
     const fileUrl = mediaFileUrl(file.fileId, mediaType, "low");
     const size = formatSize(file.size);
 

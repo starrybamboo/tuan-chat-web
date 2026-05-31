@@ -3,10 +3,17 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 能力字段更新请求
+ * 按角色和规则更新能力字段请求
  */
-export type AbilityFieldUpdateRequest = {
-    abilityId: number;
+export type AbilityByRuleFieldUpdateRequest = {
+    /**
+     * 角色 ID
+     */
+    roleId: number;
+    /**
+     * 规则 ID
+     */
+    ruleId: number;
     /**
      * 新key为null代表删除
      */
@@ -23,10 +30,6 @@ export type AbilityFieldUpdateRequest = {
      * 新key为null代表删除
      */
     skillFields?: Record<string, string>;
-    /**
-     * 新key为null代表删除
-     */
-    recordFields?: Record<string, string>;
     /**
      * 新key为null代表删除
      */

@@ -40,7 +40,7 @@ describe("getGalAuthoringContext", () => {
           getRoomInfo: failRequest,
           getUserRooms: failRequest,
         },
-        chatController: { getAllMessage: failRequest },
+        chatController: { getHistoryMessages: failRequest },
         roomRoleController: {
           roomRole: failRequest,
           roomNpcRole: failRequest,
@@ -90,7 +90,7 @@ describe("getGalAuthoringContext", () => {
           getRoomInfo: async () => ({ data: { spaceId: 5, roomId: 10 } }),
           getUserRooms: async () => ({ data: { rooms: [{ spaceId: 5, roomId: 10 }] } }),
         },
-        chatController: { getAllMessage: async () => ({ data: [] }) },
+        chatController: { getHistoryMessages: async () => ({ data: [] }) },
         roomRoleController: {
           roomRole: async () => ({ data: [{ userId: 1, roleId: 7, roleName: "千夏", type: 1 }] }),
           roomNpcRole: async () => ({ data: [] }),
@@ -138,7 +138,7 @@ describe("getGalAuthoringContext", () => {
         }),
       },
       chatController: {
-        getAllMessage: async () => ({
+        getHistoryMessages: async () => ({
           data: [
             { message: createMessage({ messageId: 2, position: 2, roleId: 0, content: "旁白" }) },
             { message: createMessage({ messageId: 1, position: 1, roleId: 7, content: "对白" }) },
@@ -255,7 +255,7 @@ describe("getGalAuthoringContext", () => {
           getRoomInfo: async () => ({ data: { spaceId: 5, roomId: 10 } }),
           getUserRooms: async () => ({ data: { rooms: [] } }),
         },
-        chatController: { getAllMessage: async () => ({ data: [] }) },
+        chatController: { getHistoryMessages: async () => ({ data: [] }) },
         roomRoleController: {
           roomRole: async () => ({ data: [] }),
           roomNpcRole: async () => ({ data: [] }),
@@ -297,8 +297,8 @@ describe("getGalAuthoringContext", () => {
           }),
         },
         chatController: {
-          getAllMessage: async (roomId: number) => ({
-            data: roomId === 11
+          getHistoryMessages: async (request: { roomId: number }) => ({
+            data: request.roomId === 11
               ? [
                   { message: createMessage({ roomId: 11, messageId: 21, position: 1, roleId: 0, content: "雨声压低了脚步。" }) },
                 ]

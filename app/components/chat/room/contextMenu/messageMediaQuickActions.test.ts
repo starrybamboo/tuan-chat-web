@@ -27,8 +27,7 @@ function createImageMessage(partial?: Partial<Message>): Message {
     annotations: [],
     extra: {
       imageMessage: {
-        fileId: 10,
-        mediaType: "image",
+        source: { kind: "internal", fileId: 10 },
         fileName: "bg.webp",
         width: 1920,
         height: 1080,
@@ -55,8 +54,7 @@ function createSoundMessage(partial?: Partial<Message>): Message {
     annotations: [],
     extra: {
       soundMessage: {
-        fileId: 20,
-        mediaType: "audio",
+        source: { kind: "internal", fileId: 20 },
         fileName: "bgm.mp3",
         size: 4096,
         second: 10,
@@ -80,8 +78,7 @@ describe("messageMediaQuickActions", () => {
       annotations: [ANNOTATION_IDS.BACKGROUND],
       extra: {
         imageMessage: {
-          fileId: 10,
-          mediaType: "image",
+          source: { kind: "internal", fileId: 10 },
           fileName: "bg.webp",
           width: 1920,
           height: 1080,
@@ -101,8 +98,7 @@ describe("messageMediaQuickActions", () => {
       annotations: [ANNOTATION_IDS.SE],
       extra: {
         soundMessage: {
-          fileId: 20,
-          mediaType: "audio",
+          source: { kind: "internal", fileId: 20 },
           fileName: "bgm.mp3",
           size: 4096,
           second: 10,
@@ -121,8 +117,7 @@ describe("messageMediaQuickActions", () => {
     const next = toggleSoundMessageBgm(createSoundMessage({
       extra: {
         soundMessage: {
-          fileId: 20,
-          mediaType: "audio",
+          source: { kind: "internal", fileId: 20 },
           fileName: "bgm.mp3",
           size: 4096,
           second: 10,

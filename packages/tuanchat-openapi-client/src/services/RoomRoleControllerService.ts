@@ -21,7 +21,7 @@ export class RoomRoleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/room/role/',
+            url: '/room/role',
             body: requestBody,
             mediaType: 'application/json',
         });
@@ -37,7 +37,7 @@ export class RoomRoleControllerService {
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/room/role/',
+            url: '/room/role',
             body: requestBody,
             mediaType: 'application/json',
         });

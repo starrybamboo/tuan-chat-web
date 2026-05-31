@@ -46,7 +46,6 @@ export default function useRealtimeRenderControls(): UseRealtimeRenderControlsRe
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
   const sideDrawerState = useSideDrawerStore(state => state.state);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const shouldMountRealtimeRender = shouldMountRealtimeRenderOrchestrator({
     isActive: isRealtimeRenderActive,
     isEnabled: isRealtimeRenderEnabled,
@@ -73,8 +72,7 @@ export default function useRealtimeRenderControls(): UseRealtimeRenderControlsRe
     // The orchestrator is lazy-loaded so普通聊天室首屏不会拉起 WebGAL renderer。
     pendingToggleRef.current = true;
     setLoadRequested(true);
-    setSideDrawerState("webgal");
-  }, [setSideDrawerState]);
+  }, []);
 
   const jumpToMessageInWebGAL = useCallback((messageId: number): boolean => {
     return realtimeRenderApiRef.current?.jumpToMessage(messageId) ?? false;

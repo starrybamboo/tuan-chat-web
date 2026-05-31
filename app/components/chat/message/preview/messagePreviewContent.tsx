@@ -1,8 +1,9 @@
 import type { Message } from "../../../../../api";
 
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { imageLowUrlFromUrl, mediaFileUrl } from "@/utils/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
@@ -26,11 +27,9 @@ function getStringField(value: unknown, key: string): string {
 
 function resolveImagePreviewUrl(imageMessage: unknown): string {
   const imageRecord = imageMessage && typeof imageMessage === "object" && !Array.isArray(imageMessage)
-    ? imageMessage as { fileId?: number; mediaType?: string }
+    ? imageMessage as { source?: { kind?: string; fileId?: number; url?: string } }
     : undefined;
-  const fileUrl = typeof imageRecord?.fileId === "number" && imageRecord.fileId <= 0
-    ? ""
-    : mediaFileUrl(imageRecord?.fileId, imageRecord?.mediaType, "low");
+  const fileUrl = resolveMessageMediaUrl(imageRecord, "medium", "image");
   if (fileUrl) {
     return fileUrl;
   }
@@ -38,7 +37,7 @@ function resolveImagePreviewUrl(imageMessage: unknown): string {
   const legacyUrl = getStringField(imageMessage, "imageUrl")
     || getStringField(imageMessage, "url")
     || getStringField(imageMessage, "src");
-  return imageLowUrlFromUrl(legacyUrl);
+  return imageMediumUrlFromUrl(legacyUrl);
 }
 
 export function MessagePreviewContent({
@@ -65,6 +64,7 @@ export function MessagePreviewContent({
         <span className="inline-flex items-center gap-2 min-w-0 align-middle">
           <img
             src={imgUrl}
+            referrerPolicy="no-referrer"
             className="max-h-[64px] w-auto object-contain rounded"
             alt=""
             width={width}

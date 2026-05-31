@@ -230,6 +230,17 @@ async function buildImageVariantFile(
   return await compressImage(file, profile);
 }
 
+async function buildImageVariantFileWhenUseful(
+  original: File,
+  quality: Exclude<MediaQuality, "original">,
+  profile: ImageMediaProfile,
+): Promise<File | undefined> {
+  if (original.size <= profile.maxSizeKB * 1024) {
+    return undefined;
+  }
+  return await buildImageVariantFile(original, quality, profile);
+}
+
 async function buildImageOriginalFile(file: File): Promise<File> {
   const profile = MEDIA_COMPRESSION_PROFILES.image.original;
   return file.type === "image/gif"
@@ -251,27 +262,31 @@ async function extractImageMetadata(file: File) {
 
 async function generateImageUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
-  const isChatroom = isChatroomUploadScene(scene);
 
   const imageMetadataPromise = extractImageMetadata(normalizedFile);
-  const original = isChatroom
-    ? normalizedFile
-    : await (async () => {
-        const result = await buildImageOriginalFile(normalizedFile);
-        assertMaxBytes(result, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
-        return result;
-      })();
+  const original = await (async () => {
+    const result = await buildImageOriginalFile(normalizedFile);
+    assertMaxBytes(result, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
+    return result;
+  })();
   const imageMetadata = await imageMetadataPromise;
 
-  const low = await buildImageVariantFile(original, "low", MEDIA_COMPRESSION_PROFILES.image.low);
-  const medium = await buildImageVariantFile(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium);
+  const low = await buildImageVariantFileWhenUseful(original, "low", MEDIA_COMPRESSION_PROFILES.image.low);
+  const medium = await buildImageVariantFileWhenUseful(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium);
+  const high = await buildImageVariantFileWhenUseful(original, "high", MEDIA_COMPRESSION_PROFILES.image.high);
+  const filesByQuality = { original, low, medium, high };
 
   return {
     original,
     mediaType: "image",
     hasNovelAiMetadata: imageMetadata.hasNovelAiMetadata,
-    metadata: imageMetadata.metadata,
-    filesByQuality: isChatroom ? { low, medium } : { original, low, medium },
+    metadata: {
+      ...imageMetadata.metadata,
+      uploadedQualities: Object.entries(filesByQuality)
+        .filter(([, value]) => Boolean(value))
+        .map(([quality]) => quality),
+    },
+    filesByQuality,
   };
 }
 

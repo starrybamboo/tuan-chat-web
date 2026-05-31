@@ -3,6 +3,7 @@ import {
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useEffect, useReducer, useState } from "react";
+import toast from "react-hot-toast";
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
@@ -58,6 +59,13 @@ function dataReducer(state: NumericalData, action: DataAction): NumericalData {
   }
 }
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "请稍后重试";
+}
+
 export default function NumericalEditorSmall({
   data,
   onChange,
@@ -74,6 +82,12 @@ export default function NumericalEditorSmall({
   useEffect(() => {
     dispatch({ type: "SYNC_PROPS", payload: data });
   }, [data]);
+
+  const rollbackAfterError = (error: unknown) => {
+    dispatch({ type: "SYNC_PROPS", payload: data });
+    onChange(data);
+    toast.error(`能力更新失败：${getErrorMessage(error)}`);
+  };
 
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
     dispatch({
@@ -95,6 +109,7 @@ export default function NumericalEditorSmall({
         onChange(updatedData);
         setEditingKey(null);
       },
+      onError: rollbackAfterError,
     });
   };
 
@@ -115,6 +130,7 @@ export default function NumericalEditorSmall({
       onSuccess: () => {
         onChange(updatedData);
       },
+      onError: rollbackAfterError,
     });
   };
 
@@ -131,6 +147,7 @@ export default function NumericalEditorSmall({
         onChange(updatedData);
         setEditingKey(prevKey => (prevKey === fieldKey ? null : prevKey));
       },
+      onError: rollbackAfterError,
     });
   };
 
@@ -156,6 +173,7 @@ export default function NumericalEditorSmall({
         onChange(updatedData);
         setEditingKey(newKey);
       },
+      onError: rollbackAfterError,
     });
   };
 

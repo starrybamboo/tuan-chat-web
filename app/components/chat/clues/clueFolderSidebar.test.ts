@@ -7,6 +7,7 @@ import type { ChatMessageResponse, Message } from "../../../../api";
 import {
   buildClueDragPayload,
   getClueAttachmentKind,
+  getAutoJoinPublicClueSpaceId,
   getReorderedCluePosition,
   hasRenderableClueImage,
 } from "./clueFolderSidebar";
@@ -132,5 +133,32 @@ describe("clueFolderSidebar", () => {
     });
 
     expect(hasRenderableClueImage(message)).toBe(false);
+  });
+
+  it("仅在非主持且公共线索房间缺失时自动加入公共线索", () => {
+    expect(getAutoJoinPublicClueSpaceId({
+      canManagePublicClueMembers: false,
+      clueRoom: null,
+      scope: "public",
+      spaceId: 12,
+    })).toBe(12);
+    expect(getAutoJoinPublicClueSpaceId({
+      canManagePublicClueMembers: true,
+      clueRoom: null,
+      scope: "public",
+      spaceId: 12,
+    })).toBeNull();
+    expect(getAutoJoinPublicClueSpaceId({
+      canManagePublicClueMembers: false,
+      clueRoom: createMessage({ roomId: 3 }) as any,
+      scope: "public",
+      spaceId: 12,
+    })).toBeNull();
+    expect(getAutoJoinPublicClueSpaceId({
+      canManagePublicClueMembers: false,
+      clueRoom: null,
+      scope: "private",
+      spaceId: 12,
+    })).toBeNull();
   });
 });

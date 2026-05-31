@@ -37,7 +37,6 @@ function cloneRoleAbility(ability: RoleAbility): RoleAbility {
       basic: { ...ability?.basic },
       ability: { ...ability?.ability },
       skill: { ...ability?.skill },
-      record: { ...ability?.record },
       extra: { ...ability?.extra },
     } as RoleAbility;
   }

@@ -1,7 +1,8 @@
-import type { ChatMessageResponse, UserRole } from "../../../../api";
+import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../../../api";
 
 import type { BatchProgress, CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchRoleAvatarsWithCache } from "api/hooks/RoleAndAvatarHooks";
 import {
   fetchRoomNpcRoleWithCache,
   fetchRoomRoleWithCache,
@@ -20,6 +21,10 @@ import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
+import { getWebgalPublishJob, startWebgalPublish } from "@/webGAL/publishClient";
+import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
+import { renderWebgalPublishPackage } from "@/webGAL/publishRenderer";
+import { buildSpaceWebgalInputSnapshot } from "@/webGAL/spaceWebgalSnapshot";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { tuanchat } from "../../../../api/instance";
 import { SpaceWebgalRenderWindowHeader } from "./spaceWebgalRenderWindowHeader";
@@ -50,6 +55,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [spaceInfoQuery.data?.data?.roomMap]);
   const renderableRooms = useMemo(() => rooms.filter(isRenderableRoom), [rooms]);
   const spaceName = spaceInfoQuery.data?.data?.name;
+  const ruleId = spaceInfoQuery.data?.data?.ruleId ?? -1;
 
   const ensureHydrated = useRealtimeRenderStore(state => state.ensureHydrated);
   const setRealtimeRenderQueryClient = useRealtimeRenderStore(state => state.setQueryClient);
@@ -94,6 +100,8 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const [roomContentAlertThresholdInput, setRoomContentAlertThresholdInput] = useState("");
   const [renderPortExpanded, setRenderPortExpanded] = useState(false);
   const [sectionExpandedMap, setSectionExpandedMap] = useState<Record<CollapsibleSectionKey, boolean>>(DEFAULT_SECTION_EXPANDED);
+  const [publishStatus, setPublishStatus] = useState<WebgalPublishJobStatus | null>(null);
+  const publishPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setRealtimeRenderQueryClient(queryClient);
@@ -160,6 +168,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   const realtimeRender = useRealtimeRender({
     spaceId,
     spaceName,
+    ruleId,
     workflowRoomMap,
     roles: allRoomRoles,
     rooms: renderableRooms,
@@ -201,8 +210,35 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     return () => {
       stopRealtimeRender();
       resetRealtimeRuntime();
+      if (publishPollingTimeoutRef.current) {
+        clearTimeout(publishPollingTimeoutRef.current);
+      }
     };
   }, [resetRealtimeRuntime, stopRealtimeRender]);
+
+  const pollPublishJob = useCallback((jobId: string) => {
+    if (publishPollingTimeoutRef.current) {
+      clearTimeout(publishPollingTimeoutRef.current);
+    }
+    publishPollingTimeoutRef.current = setTimeout(async () => {
+      try {
+        const nextStatus = await getWebgalPublishJob(jobId);
+        setPublishStatus(nextStatus);
+        if (nextStatus.status === "success") {
+          toast.success("WebGAL 已发布到 Cloudflare Pages", { id: "space-webgal-publish" });
+          return;
+        }
+        if (nextStatus.status === "failed") {
+          toast.error(`发布失败：${nextStatus.errorMessage || "请稍后重试"}`, { id: "space-webgal-publish" });
+          return;
+        }
+        pollPublishJob(jobId);
+      }
+      catch (error) {
+        toast.error(`查询发布状态失败：${getErrorMessage(error)}`, { id: "space-webgal-publish" });
+      }
+    }, 2000);
+  }, []);
 
   const loadAllRoomRoles = useCallback(async (targetRooms: RenderableRoom[]): Promise<UserRole[]> => {
     const roleMap = new Map<number, UserRole>();
@@ -232,6 +268,105 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     }
     return Array.from(roleMap.values());
   }, [queryClient]);
+
+  const handlePublish = useCallback(async () => {
+    if (publishStatus?.status === "pending" || publishStatus?.status === "running") {
+      return;
+    }
+    if (renderableRooms.length === 0) {
+      toast("当前空间没有可发布的房间");
+      return;
+    }
+
+    toast.loading("正在整理 WebGAL 发布包...", { id: "space-webgal-publish" });
+    try {
+      await ensureHydrated(spaceId);
+
+      const mergedRoles = await loadAllRoomRoles(renderableRooms);
+      const roleAvatarMap = new Map<number, RoleAvatar>();
+      for (const role of mergedRoles) {
+        const roleId = Number(role.roleId ?? 0);
+        if (!Number.isFinite(roleId) || roleId <= 0) {
+          continue;
+        }
+        const roleAvatarsResponse = await fetchRoleAvatarsWithCache(queryClient, roleId).catch(() => null);
+        extractArrayPayload<RoleAvatar>(roleAvatarsResponse).forEach((avatar) => {
+          const avatarId = Number(avatar.avatarId ?? 0);
+          if (Number.isFinite(avatarId) && avatarId > 0) {
+            roleAvatarMap.set(avatarId, avatar);
+          }
+        });
+      }
+
+      const messagesByRoomId: Record<number, ChatMessageResponse[]> = {};
+      for (const room of renderableRooms) {
+        const roomMessagesResponse = await tuanchat.chatController.getHistoryMessages({
+          roomId: room.roomId,
+          syncId: 0,
+        });
+        messagesByRoomId[room.roomId] = sortMessagesForRender(
+          extractArrayPayload<ChatMessageResponse>(roomMessagesResponse),
+        ).filter(message => message.message.status !== 1);
+      }
+
+      const primaryCoverAvatarFileId = Number(
+        spaceInfoQuery.data?.data?.avatarFileId
+        ?? renderableRooms[0]?.avatarFileId
+        ?? 0,
+      ) || undefined;
+      const publishSnapshot = buildSpaceWebgalInputSnapshot({
+        spaceId,
+        spaceName,
+        workflowRoomMap,
+        rooms: renderableRooms,
+        messagesByRoomId,
+        roles: mergedRoles,
+        avatars: Array.from(roleAvatarMap.values()),
+        gameConfig,
+        coverAvatarFileId: primaryCoverAvatarFileId,
+      });
+      const publishPackage = await renderWebgalPublishPackage(publishSnapshot);
+
+      toast.loading("正在上传到 Cloudflare Pages...", { id: "space-webgal-publish" });
+      const status = await startWebgalPublish({
+        spaceId,
+        packageData: {
+          entrypoint: publishPackage.entrypoint,
+          files: publishPackage.files.map(file => ({
+            path: file.path,
+            content: file.content,
+            contentType: file.contentType,
+            contentEncoding: file.contentEncoding,
+          })),
+        },
+      });
+      setPublishStatus(status);
+      if (status.status === "success") {
+        toast.success("WebGAL 已发布到 Cloudflare Pages", { id: "space-webgal-publish" });
+        return;
+      }
+      if (status.status === "failed") {
+        toast.error(`发布失败：${status.errorMessage || "请稍后重试"}`, { id: "space-webgal-publish" });
+        return;
+      }
+      pollPublishJob(status.jobId);
+    }
+    catch (error) {
+      toast.error(`发布失败：${getErrorMessage(error)}`, { id: "space-webgal-publish" });
+    }
+  }, [
+    ensureHydrated,
+    gameConfig,
+    loadAllRoomRoles,
+    pollPublishJob,
+    publishStatus?.status,
+    queryClient,
+    renderableRooms,
+    spaceId,
+    spaceInfoQuery.data?.data?.avatarFileId,
+    spaceName,
+    workflowRoomMap,
+  ]);
 
   const handleStartRealtimeRender = useCallback(async (): Promise<boolean> => {
     if (realtimeStatus === "initializing") {
@@ -338,7 +473,10 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
         }));
 
         try {
-          const roomMessagesResponse = await tuanchat.chatController.getAllMessage(roomId);
+          const roomMessagesResponse = await tuanchat.chatController.getHistoryMessages({
+            roomId,
+            syncId: 0,
+          });
           const messages = sortMessagesForRender(
             extractArrayPayload<ChatMessageResponse>(roomMessagesResponse),
           ).filter(message => message.message.status !== 1);
@@ -647,6 +785,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
 
   const isAllSectionsExpanded = COLLAPSIBLE_SECTION_KEYS.every(key => sectionExpandedMap[key]);
   const isAllSectionsCollapsed = COLLAPSIBLE_SECTION_KEYS.every(key => !sectionExpandedMap[key]);
+  const isPublishing = publishStatus?.status === "pending" || publishStatus?.status === "running";
 
   const isTtsConfigVisible = sectionExpandedMap.ttsLayer;
   const handleToggleRenderPortExpanded = useCallback(() => {
@@ -671,8 +810,11 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
           terrePortInput={terrePortInput}
           terrePortError={terrePortError}
           webgalEditorUrl={webgalEditorUrl}
+          publishStatus={publishStatus}
+          isPublishing={isPublishing}
           batchProgress={batchProgress}
           onToggleRealtimeRender={handleToggleRealtimeRender}
+          onPublish={handlePublish}
           onToggleRenderPortExpanded={handleToggleRenderPortExpanded}
           onTerrePortInputChange={handleTerrePortInputChange}
           onSaveTerrePort={handleSaveTerrePort}

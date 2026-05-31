@@ -12,6 +12,7 @@ type MergeRuntimeValuesOptions = {
 type NumericAbilitySection = "basic" | "ability" | "skill";
 
 export type RuntimeStateValues = {
+  combatRoundActive: boolean;
   room: RuntimeRoleValues;
   rolesByRoleId: Record<number, RuntimeRoleValues>;
 };
@@ -25,7 +26,6 @@ export function cloneRoleAbility(ability: RoleAbility | null | undefined): RoleA
     basic: { ...ability?.basic },
     ability: { ...ability?.ability },
     skill: { ...ability?.skill },
-    record: { ...ability?.record },
     extra: { ...ability?.extra },
   };
 }
@@ -143,6 +143,7 @@ export function buildRuntimeStateValues(
 ): RuntimeStateValues {
   if (!messages || messages.length === 0) {
     return {
+      combatRoundActive: false,
       room: {},
       rolesByRoleId: {},
     };
@@ -151,11 +152,12 @@ export function buildRuntimeStateValues(
   const runtime = buildStateRuntime({
     messages: messages.map(item => item.message),
     fallbackRoleAbilitiesByRoleId,
-  }).derivedDisplayValues;
+  });
 
   return {
-    room: runtime.room,
-    rolesByRoleId: runtime.rolesByRoleId,
+    combatRoundActive: runtime.combatRoundActive,
+    room: runtime.derivedDisplayValues.room,
+    rolesByRoleId: runtime.roleVarsByRoleId,
   };
 }
 

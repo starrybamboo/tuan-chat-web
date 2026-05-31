@@ -24,16 +24,32 @@ import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class SpaceControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 更新空间归档状态
+     * 更新空间信息（名称、头像、描述、规则）
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public updateSpaceArchiveStatus(
-        requestBody: SpaceArchiveRequest,
+    public updateSpace(
+        requestBody: SpaceUpdateRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
+            url: '/space',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 创建空间
+     * @param requestBody
+     * @returns ApiResultSpace OK
+     * @throws ApiError
+     */
+    public createSpace(
+        requestBody: SpaceAddRequest,
+    ): CancelablePromise<ApiResultSpace> {
+        return this.httpRequest.request({
+            method: 'POST',
             url: '/space',
             body: requestBody,
             mediaType: 'application/json',
@@ -108,33 +124,17 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 更新空间信息（名称、头像、描述、规则）
+     * 更新空间归档状态
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public updateSpace(
-        requestBody: SpaceUpdateRequest,
+    public updateSpaceArchiveStatus(
+        requestBody: SpaceArchiveRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
-            url: '/space/',
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * 创建空间
-     * @param requestBody
-     * @returns ApiResultSpace OK
-     * @throws ApiError
-     */
-    public createSpace(
-        requestBody: SpaceAddRequest,
-    ): CancelablePromise<ApiResultSpace> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/space/',
+            url: '/space/archive',
             body: requestBody,
             mediaType: 'application/json',
         });

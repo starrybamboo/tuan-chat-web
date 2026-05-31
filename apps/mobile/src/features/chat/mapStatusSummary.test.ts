@@ -38,13 +38,16 @@ function createRole(roleId: number, roleName: string): UserRole {
   } as UserRole;
 }
 
-function createRoleAbility(roleId: number, ability: RoleAbility["ability"] = {}): RoleAbility {
+function createRoleAbility(
+  roleId: number,
+  sections: Pick<RoleAbility, "ability" | "skill"> = {},
+): RoleAbility {
   return {
-    ability,
+    ability: sections.ability ?? {},
     basic: {},
     roleId,
     ruleId: 1,
-    skill: {},
+    skill: sections.skill ?? {},
   };
 }
 
@@ -64,7 +67,10 @@ describe("mapStatusSummary", () => {
     ]);
     const runtime = buildCombatStateRuntime({
       fallbackRoleAbilitiesByRoleId: {
-        7: createRoleAbility(7, { hp: "20", maxHp: "20" }),
+        7: createRoleAbility(7, {
+          ability: { hp: "18", maxHp: "20" },
+          skill: { initiative: "16" },
+        }),
       },
       messages: [
         createStateMessage(1, [
@@ -119,7 +125,7 @@ describe("mapStatusSummary", () => {
   it("includes state-only roles even when they do not have map tokens", () => {
     const runtime = buildCombatStateRuntime({
       fallbackRoleAbilitiesByRoleId: {
-        9: createRoleAbility(9, { maxHp: "30" }),
+        9: createRoleAbility(9, { ability: { hp: "18", maxHp: "30" } }),
       },
       messages: [
         createStateMessage(1, [{

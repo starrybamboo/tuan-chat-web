@@ -77,6 +77,18 @@ function roleNameFor(roleById: Map<number, RoleLike>, roleId: number): string {
 
 function collectRuntimeRoleIds(runtime: RuntimeForMapStatus): Set<number> {
   const roleIds = new Set<number>();
+  Object.keys(runtime.baseDisplayValues.rolesByRoleId).forEach((value) => {
+    const roleId = Number(value);
+    if (roleId > 0) {
+      roleIds.add(roleId);
+    }
+  });
+  Object.keys(runtime.derivedDisplayValues.rolesByRoleId).forEach((value) => {
+    const roleId = Number(value);
+    if (roleId > 0) {
+      roleIds.add(roleId);
+    }
+  });
   Object.keys(runtime.roleVarsByRoleId).forEach((value) => {
     const roleId = Number(value);
     if (roleId > 0) {

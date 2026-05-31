@@ -119,7 +119,7 @@ export default function StickerWindow({ onChoose }:
                   className={`aspect-square cursor-pointer rounded-lg p-1 transition-transform relative ${deleteButtonVisible ? "" : "hover:scale-105"}`}
                 >
                   <img
-                    src={mediaFileUrl(sticker.fileId, sticker.mediaType, "low")}
+                    src={mediaFileUrl(sticker.fileId, sticker.mediaType, "medium")}
                     alt={sticker.name}
                     className="w-full h-full object-contain"
                     loading="lazy"

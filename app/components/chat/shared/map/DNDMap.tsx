@@ -1,19 +1,21 @@
 import type { UserRole } from "../../../../../api";
-import type { RoomDndMapSnapshot, RoomDndMapToken } from "./roomDndMapApi";
+import type { RoomDndMapToken } from "./roomDndMapApi";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { StateEventAtom } from "@/types/stateEvent";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { TrashIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
-import { confirmToast } from "@/components/common/comfirmToast";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   buildCommandStateEventExtra,
+  buildMapStateEventsFromSnapshot,
   formatStateNumericValue,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
@@ -23,12 +25,9 @@ import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/
 import { MessageType } from "../../../../../api/wsModels";
 
 import {
-  applyRoomDndMapChange,
-  clearRoomDndMap,
   fetchRoomDndMap,
   getRoomDndMapImageUrl,
   roomDndMapQueryKey,
-  upsertRoomDndMap,
 } from "./roomDndMapApi";
 import {
   buildGridOverlayStyle,
@@ -36,6 +35,7 @@ import {
   clampGridDimension,
   MAX_GRID_DIMENSION,
   resolveGridCellAtPoint,
+  shouldCommitGridCellMove,
 } from "./roomDndMapGeometry";
 
 const GRID_COLOR_OPTIONS = [
@@ -50,6 +50,8 @@ const GRID_COLOR_OPTIONS = [
 const DEFAULT_GRID_ROWS = 10;
 const DEFAULT_GRID_COLS = 10;
 const DEFAULT_GRID_COLOR = "#808080";
+const CHATROOM_UPLOAD_SCENE = 1;
+const MAP_TOKEN_DRAG_THRESHOLD_PX = 4;
 
 interface DNDMapProps {
   roomId?: number;
@@ -63,18 +65,45 @@ interface RoleTokenStatus {
   maxHp: number | null;
 }
 
+interface EffectiveMapConfig {
+  mapFileId?: number;
+  imageUrl?: string;
+  gridRows: number;
+  gridCols: number;
+  gridColor: string;
+}
+
+interface DraggingMapTokenState {
+  source: "map" | "pool";
+  pointerId: number;
+  roleId: number;
+  startClientX: number;
+  startClientY: number;
+  currentClientX: number;
+  currentClientY: number;
+  isDragging: boolean;
+}
+
 const RoleToken = React.memo(({
   role,
   size = 42,
   isSelected = false,
   status,
   onClick,
+  onPointerCancel,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }: {
   role: UserRole;
   size?: number;
   isSelected?: boolean;
   status?: RoleTokenStatus | null;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onPointerCancel?: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerDown?: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerMove?: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerUp?: (event: React.PointerEvent<HTMLDivElement>) => void;
 }) => {
   const roleAvatarUrl = useResolvedRoleAvatarUrl(role);
   const sizeStyle = { width: `${size}px`, height: `${size}px` };
@@ -82,16 +111,23 @@ const RoleToken = React.memo(({
     <div
       className={`group relative rounded-full border border-base-300 bg-base-100 shadow-sm ${
         isSelected ? "ring-2 ring-primary" : ""
-      } cursor-pointer`}
+      } cursor-pointer select-none touch-none`}
       style={sizeStyle}
+      draggable={false}
       onClick={onClick}
+      onPointerCancel={onPointerCancel}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
       title={role.roleName}
     >
       <div className="h-full w-full overflow-hidden rounded-full">
         <img
           src={roleAvatarUrl}
           alt={role.roleName}
+          draggable={false}
           className="w-full h-full object-cover"
+          onDragStart={event => event.preventDefault()}
         />
       </div>
       {status && (
@@ -332,14 +368,95 @@ function MapStateStrip({
   );
 }
 
+function ClearMapConfirmDialog({
+  isOpen,
+  onCancel,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div className="modal modal-open z-[9999]" role="dialog" aria-modal="true" aria-labelledby="clear-map-title">
+      <div className="modal-box max-w-md rounded-lg border border-base-300 bg-base-100 p-0 shadow-2xl">
+        <div className="flex items-start gap-3 border-b border-base-300 px-5 py-4">
+          <div className="grid size-10 shrink-0 place-items-center rounded-md bg-error/12 text-error">
+            <WarningCircleIcon className="size-6" weight="fill" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 id="clear-map-title" className="text-base font-semibold text-base-content">
+              清空地图
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-base-content/68">
+              当前地图图片、网格设置和所有角色位置都会被清空。这个操作会写入房间记录，所有成员都会看到变化。
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-square btn-xs"
+            aria-label="取消清空地图"
+            onClick={onCancel}
+          >
+            <XIcon className="size-4" />
+          </button>
+        </div>
+
+        <div className="bg-base-200/35 px-5 py-3 text-xs leading-5 text-base-content/60">
+          如果只是想移动某个角色，可以选中角色后放回角色池，不需要清空整张地图。
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-4">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onCancel}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            className="btn btn-error btn-sm"
+            onClick={onConfirm}
+          >
+            <TrashIcon className="size-4" weight="regular" />
+            清空地图
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        className="modal-backdrop"
+        aria-label="关闭清空地图确认"
+        onClick={onCancel}
+      >
+        关闭
+      </button>
+    </div>,
+    document.body,
+  );
+}
+
 export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DNDMapProps) {
   const roomContext = use(RoomContext);
   const roomId = roomIdProp ?? roomContext.roomId ?? -1;
-  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const stateRuntime = useOptionalStateRuntimeContext();
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [draggingToken, setDraggingToken] = useState<DraggingMapTokenState | null>(null);
+  const [isClearMapConfirmOpen, setIsClearMapConfirmOpen] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const draggingTokenRef = useRef<DraggingMapTokenState | null>(null);
+  const migratedLegacyMapKeysRef = useRef(new Set<string>());
+  const migratingLegacyMapKeyRef = useRef<string | null>(null);
+  const suppressNextTokenClickRef = useRef(false);
 
   const { data: roomRolesData } = useGetRoomRoleQuery(roomId);
   const { data: roomNpcRolesData } = useGetRoomNpcRoleQuery(roomId);
@@ -356,10 +473,19 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   });
 
   const map = mapQuery.data ?? null;
-  const gridRows = map?.gridRows ?? DEFAULT_GRID_ROWS;
-  const gridCols = map?.gridCols ?? DEFAULT_GRID_COLS;
-  const gridColor = map?.gridColor ?? DEFAULT_GRID_COLOR;
-  const mapImageUrl = getRoomDndMapImageUrl(map);
+  const effectiveMapConfig = useMemo<EffectiveMapConfig | null>(() => {
+    if (stateRuntime?.mapConfig) {
+      return stateRuntime.mapConfig;
+    }
+    if (stateRuntime?.hasMapConfigState) {
+      return null;
+    }
+    return map;
+  }, [map, stateRuntime?.hasMapConfigState, stateRuntime?.mapConfig]);
+  const gridRows = effectiveMapConfig?.gridRows ?? DEFAULT_GRID_ROWS;
+  const gridCols = effectiveMapConfig?.gridCols ?? DEFAULT_GRID_COLS;
+  const gridColor = effectiveMapConfig?.gridColor ?? DEFAULT_GRID_COLOR;
+  const mapImageUrl = effectiveMapConfig?.imageUrl || getRoomDndMapImageUrl(effectiveMapConfig);
 
   const sharedMapTokens = useMemo(() => {
     if (!stateRuntime?.hasMapState) {
@@ -446,69 +572,90 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     }
   }, [roomContext, roomId]);
 
-  const mapUpsertMutation = useMutation({
-    mutationFn: upsertRoomDndMap,
-    onMutate: (payload) => {
-      queryClient.setQueryData(roomDndMapQueryKey(roomId), prev => (
-        applyRoomDndMapChange(prev as RoomDndMapSnapshot | null, {
-          roomId,
-          op: "map_upsert",
-          map: {
-            mapFileId: payload.mapFileId,
-            gridRows: payload.gridRows,
-            gridCols: payload.gridCols,
-            gridColor: payload.gridColor,
-          },
-          clearTokens: payload.clearTokens,
-        })
-      ));
-    },
-    onError: () => {
-      queryClient.invalidateQueries({ queryKey: roomDndMapQueryKey(roomId) });
-      toast.error("地图更新失败，请重试");
-    },
-    onSuccess: (data) => {
-      if (data) {
-        queryClient.setQueryData(roomDndMapQueryKey(roomId), data);
-      }
-    },
-  });
+  useEffect(() => {
+    if (!mapQuery.isSuccess || !map || !stateRuntime || stateRuntime.hasMapConfigState) {
+      return;
+    }
+    const migrationEvents = buildMapStateEventsFromSnapshot(map, {
+      imageUrl: getRoomDndMapImageUrl(map),
+      includeTokens: !stateRuntime.hasMapState,
+    });
+    if (migrationEvents.length === 0) {
+      return;
+    }
 
-  const mapClearMutation = useMutation({
-    mutationFn: () => clearRoomDndMap(roomId),
-    onMutate: () => {
-      queryClient.setQueryData(roomDndMapQueryKey(roomId), null);
-    },
-    onError: () => {
-      queryClient.invalidateQueries({ queryKey: roomDndMapQueryKey(roomId) });
-      toast.error("清空地图失败，请重试");
-    },
-  });
+    const migrationKey = [
+      roomId,
+      map.mapFileId ?? "no-map",
+      map.updatedAt ?? "no-updated-at",
+      stateRuntime.hasMapState ? "config-only" : "with-tokens",
+    ].join(":");
+    if (migratedLegacyMapKeysRef.current.has(migrationKey) || migratingLegacyMapKeyRef.current === migrationKey) {
+      return;
+    }
+
+    migratingLegacyMapKeyRef.current = migrationKey;
+    void sendMapStateEvents(migrationEvents, ".combat map-migrate").then((ok) => {
+      if (ok) {
+        migratedLegacyMapKeysRef.current.add(migrationKey);
+      }
+      if (migratingLegacyMapKeyRef.current === migrationKey) {
+        migratingLegacyMapKeyRef.current = null;
+      }
+    });
+  }, [
+    map,
+    mapQuery.isSuccess,
+    roomId,
+    sendMapStateEvents,
+    stateRuntime,
+  ]);
+
+  const buildMapConfigUpsertEvent = useCallback((patch: {
+    mapFileId?: number;
+    imageUrl?: string;
+    gridRows?: number;
+    gridCols?: number;
+    gridColor?: string;
+    clearTokens?: boolean;
+  }): StateEventAtom | null => {
+    const mapFileId = patch.mapFileId ?? effectiveMapConfig?.mapFileId;
+    if (!mapFileId) {
+      toast.error("请先上传地图");
+      return null;
+    }
+    const imageUrl = patch.imageUrl || effectiveMapConfig?.imageUrl || getRoomDndMapImageUrl({ mapFileId });
+    return {
+      type: "mapConfigUpsert",
+      mapFileId,
+      imageUrl,
+      gridRows: patch.gridRows ?? gridRows,
+      gridCols: patch.gridCols ?? gridCols,
+      gridColor: patch.gridColor ?? gridColor,
+      ...(patch.clearTokens ? { clearTokens: true } : {}),
+    };
+  }, [effectiveMapConfig?.imageUrl, effectiveMapConfig?.mapFileId, gridColor, gridCols, gridRows]);
 
   const handleUploadMap = async (file: File) => {
     if (!roomId || roomId <= 0) {
       return;
     }
     try {
-      const uploadedImage = await uploadMediaFile(file);
+      const uploadedImage = await uploadMediaFile(file, { scene: CHATROOM_UPLOAD_SCENE });
       if (!uploadedImage.fileId) {
         toast.error("上传失败，请重试");
         return;
       }
-      mapUpsertMutation.mutate({
-        roomId,
+      const event = buildMapConfigUpsertEvent({
         mapFileId: uploadedImage.fileId,
-        gridRows: map?.gridRows ?? DEFAULT_GRID_ROWS,
-        gridCols: map?.gridCols ?? DEFAULT_GRID_COLS,
-        gridColor: map?.gridColor ?? DEFAULT_GRID_COLOR,
+        imageUrl: getRoomDndMapImageUrl({ mapFileId: uploadedImage.fileId }),
+        gridRows,
+        gridCols,
+        gridColor,
         clearTokens: true,
       });
-      const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-        type: "mapTokenRemove",
-        roleId: token.roleId,
-      }));
-      if (clearTokenEvents.length > 0) {
-        void sendMapStateEvents(clearTokenEvents, ".combat map-clear");
+      if (event) {
+        void sendMapStateEvents([event], ".combat map-config");
       }
     }
     catch (err) {
@@ -518,42 +665,42 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   };
 
   const handleReset = useCallback(() => {
-    confirmToast(() => {
-      mapClearMutation.mutate();
-      const clearTokenEvents: StateEventAtom[] = tokens.map(token => ({
-        type: "mapTokenRemove",
-        roleId: token.roleId,
-      }));
-      if (clearTokenEvents.length > 0) {
-        void sendMapStateEvents(clearTokenEvents, ".combat map-clear");
-      }
-      setSelectedRoleId(null);
-    }, "确认清空地图与角色位置？", "清空地图");
-  }, [mapClearMutation, sendMapStateEvents, tokens]);
+    setIsClearMapConfirmOpen(true);
+  }, []);
+
+  const handleConfirmReset = useCallback(() => {
+    setIsClearMapConfirmOpen(false);
+    void sendMapStateEvents([{ type: "mapConfigClear" }], ".combat map-clear");
+    setSelectedRoleId(null);
+  }, [sendMapStateEvents]);
 
   const handleGridChange = useCallback((nextRows: number, nextCols: number) => {
-    if (!roomId || roomId <= 0 || !map) {
+    if (!roomId || roomId <= 0) {
       return;
     }
-    mapUpsertMutation.mutate({
-      roomId,
+    const event = buildMapConfigUpsertEvent({
       gridRows: nextRows,
       gridCols: nextCols,
       gridColor,
     });
-  }, [gridColor, map, mapUpsertMutation, roomId]);
+    if (event) {
+      void sendMapStateEvents([event], ".combat map-grid");
+    }
+  }, [buildMapConfigUpsertEvent, gridColor, roomId, sendMapStateEvents]);
 
   const handleGridColorChange = useCallback((nextColor: string) => {
-    if (!roomId || roomId <= 0 || !map) {
+    if (!roomId || roomId <= 0) {
       return;
     }
-    mapUpsertMutation.mutate({
-      roomId,
+    const event = buildMapConfigUpsertEvent({
       gridRows,
       gridCols,
       gridColor: nextColor,
     });
-  }, [gridCols, gridRows, map, mapUpsertMutation, roomId]);
+    if (event) {
+      void sendMapStateEvents([event], ".combat map-grid");
+    }
+  }, [buildMapConfigUpsertEvent, gridCols, gridRows, roomId, sendMapStateEvents]);
 
   const handleRemoveRole = useCallback((roleId: number) => {
     if (!roomId || roomId <= 0) {
@@ -573,6 +720,9 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     if (!roomId || roomId <= 0) {
       return;
     }
+    if (!shouldCommitGridCellMove(tokenByRoleId.get(roleId), { rowIndex, colIndex })) {
+      return;
+    }
     const occupant = roleByCellKey.get(buildCellKey(rowIndex, colIndex));
     const events: StateEventAtom[] = [];
     if (occupant && occupant.roleId !== roleId) {
@@ -588,7 +738,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       colIndex,
     });
     void sendMapStateEvents(events, ".combat map-move");
-  }, [roleByCellKey, roomId, sendMapStateEvents]);
+  }, [roleByCellKey, roomId, sendMapStateEvents, tokenByRoleId]);
 
   const resolveOverlayCell = useCallback((clientX: number, clientY: number) => {
     const overlay = overlayRef.current;
@@ -603,6 +753,122 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       gridCols,
     });
   }, [gridCols, gridRows]);
+
+  const setDraggingTokenState = useCallback((next: DraggingMapTokenState | null) => {
+    draggingTokenRef.current = next;
+    setDraggingToken(next);
+  }, []);
+
+  const handleTokenPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>, token: RoomDndMapToken) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingTokenState({
+      source: "map",
+      pointerId: event.pointerId,
+      roleId: token.roleId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      currentClientX: event.clientX,
+      currentClientY: event.clientY,
+      isDragging: false,
+    });
+  }, [setDraggingTokenState]);
+
+  const handleRolePoolTokenPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>, roleId: number) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingTokenState({
+      source: "pool",
+      pointerId: event.pointerId,
+      roleId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      currentClientX: event.clientX,
+      currentClientY: event.clientY,
+      isDragging: false,
+    });
+  }, [setDraggingTokenState]);
+
+  const updateDraggingTokenPoint = useCallback((pointerId: number, clientX: number, clientY: number) => {
+    const drag = draggingTokenRef.current;
+    if (!drag || drag.pointerId !== pointerId) {
+      return;
+    }
+    const distance = Math.hypot(clientX - drag.startClientX, clientY - drag.startClientY);
+    setDraggingTokenState({
+      ...drag,
+      currentClientX: clientX,
+      currentClientY: clientY,
+      isDragging: drag.isDragging || distance >= MAP_TOKEN_DRAG_THRESHOLD_PX,
+    });
+  }, [setDraggingTokenState]);
+
+  const finishDraggingTokenPoint = useCallback((pointerId: number, clientX: number, clientY: number) => {
+    const drag = draggingTokenRef.current;
+    if (!drag || drag.pointerId !== pointerId) {
+      return;
+    }
+    setDraggingTokenState(null);
+
+    const distance = Math.hypot(clientX - drag.startClientX, clientY - drag.startClientY);
+    const didDrag = drag.isDragging || distance >= MAP_TOKEN_DRAG_THRESHOLD_PX;
+    if (!didDrag) {
+      return;
+    }
+
+    suppressNextTokenClickRef.current = true;
+    window.setTimeout(() => {
+      suppressNextTokenClickRef.current = false;
+    }, 0);
+
+    const cell = resolveOverlayCell(clientX, clientY);
+    if (!cell) {
+      return;
+    }
+    handlePlaceRole(drag.roleId, cell.rowIndex, cell.colIndex);
+    setSelectedRoleId(null);
+  }, [handlePlaceRole, resolveOverlayCell, setDraggingTokenState]);
+
+  const handleTokenPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    updateDraggingTokenPoint(event.pointerId, event.clientX, event.clientY);
+  }, [updateDraggingTokenPoint]);
+
+  const handleTokenPointerEnd = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    finishDraggingTokenPoint(event.pointerId, event.clientX, event.clientY);
+  }, [finishDraggingTokenPoint]);
+
+  useEffect(() => {
+    if (!draggingToken) {
+      return;
+    }
+
+    const handleWindowPointerMove = (event: PointerEvent) => {
+      event.preventDefault();
+      updateDraggingTokenPoint(event.pointerId, event.clientX, event.clientY);
+    };
+    const handleWindowPointerEnd = (event: PointerEvent) => {
+      event.preventDefault();
+      finishDraggingTokenPoint(event.pointerId, event.clientX, event.clientY);
+    };
+
+    window.addEventListener("pointermove", handleWindowPointerMove, { passive: false });
+    window.addEventListener("pointerup", handleWindowPointerEnd, { passive: false });
+    window.addEventListener("pointercancel", handleWindowPointerEnd, { passive: false });
+    return () => {
+      window.removeEventListener("pointermove", handleWindowPointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerEnd);
+      window.removeEventListener("pointercancel", handleWindowPointerEnd);
+    };
+  }, [draggingToken, finishDraggingTokenPoint, updateDraggingTokenPoint]);
 
   const handleMapOverlayClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!selectedRoleId) {
@@ -627,7 +893,11 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     setSelectedRoleId(null);
   }, [handleRemoveRole, selectedRoleId, tokenByRoleId]);
 
-  if (mapQuery.isLoading) {
+  const draggingPoolRole = draggingToken?.source === "pool"
+    ? rolesById[draggingToken.roleId]
+    : undefined;
+
+  if (mapQuery.isLoading && !effectiveMapConfig) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-base-200">
         <span className="loading loading-spinner loading-md" />
@@ -650,6 +920,27 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
   return (
     <div className="w-full h-full bg-base-200 flex flex-col overflow-hidden">
+      <ClearMapConfirmDialog
+        isOpen={isClearMapConfirmOpen}
+        onCancel={() => setIsClearMapConfirmOpen(false)}
+        onConfirm={handleConfirmReset}
+      />
+      {draggingPoolRole && draggingToken?.isDragging && (
+        <div
+          className="pointer-events-none fixed z-[10000] -translate-x-1/2 -translate-y-1/2 opacity-85 drop-shadow-xl"
+          style={{
+            left: `${draggingToken.currentClientX}px`,
+            top: `${draggingToken.currentClientY}px`,
+          }}
+        >
+          <RoleToken
+            role={draggingPoolRole}
+            size={tokenSize}
+            isSelected
+            status={roleStatusById[draggingPoolRole.roleId]}
+          />
+        </div>
+      )}
       <div
         ref={containerRef}
         className="relative flex-1 overflow-hidden bg-base-300/40"
@@ -683,13 +974,29 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               if (!role) {
                 return null;
               }
+              const tokenStyle = buildTokenPositionStyle(token.rowIndex, token.colIndex, gridRows, gridCols);
+              const tokenDrag = draggingToken?.roleId === token.roleId ? draggingToken : null;
+              const dragOffsetX = tokenDrag ? tokenDrag.currentClientX - tokenDrag.startClientX : 0;
+              const dragOffsetY = tokenDrag ? tokenDrag.currentClientY - tokenDrag.startClientY : 0;
               return (
                 <div
                   key={token.roleId}
-                  className="absolute z-10"
-                  style={buildTokenPositionStyle(token.rowIndex, token.colIndex, gridRows, gridCols)}
+                  className={`absolute z-10 touch-none ${tokenDrag?.isDragging ? "z-20 cursor-grabbing" : ""}`}
+                  style={{
+                    ...tokenStyle,
+                    transform: tokenDrag
+                      ? `${tokenStyle.transform ?? ""} translate(${dragOffsetX}px, ${dragOffsetY}px)`
+                      : tokenStyle.transform,
+                  }}
+                  onPointerDown={event => handleTokenPointerDown(event, token)}
+                  onPointerMove={handleTokenPointerMove}
+                  onPointerUp={handleTokenPointerEnd}
+                  onPointerCancel={handleTokenPointerEnd}
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (suppressNextTokenClickRef.current) {
+                      return;
+                    }
                     if (!selectedRoleId) {
                       setSelectedRoleId(token.roleId);
                       return;
@@ -795,8 +1102,15 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   size={rolePoolTokenSize}
                   isSelected={selectedRoleId === role.roleId}
                   status={roleStatusById[role.roleId]}
+                  onPointerDown={event => handleRolePoolTokenPointerDown(event, role.roleId)}
+                  onPointerMove={handleTokenPointerMove}
+                  onPointerUp={handleTokenPointerEnd}
+                  onPointerCancel={handleTokenPointerEnd}
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (suppressNextTokenClickRef.current) {
+                      return;
+                    }
                     setSelectedRoleId(prev => (prev === role.roleId ? null : role.roleId));
                   }}
                 />

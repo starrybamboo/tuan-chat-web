@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+﻿import { vi } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   triggerAudioAutoPlayMock: vi.fn(),
   toastErrorMock: vi.fn(),
   isCommandMock: vi.fn(),
+  writeRoleVarOpsThroughAbilitiesMock: vi.fn(),
 }));
 
 vi.mock("react", async () => {
@@ -45,6 +46,10 @@ vi.mock("@/components/chat/utils/roomJump", () => ({
 
 vi.mock("@/components/common/dicer/cmdPre", () => ({
   isCommand: mocks.isCommandMock,
+}));
+
+vi.mock("@/components/chat/state/roleVarWriteThrough", () => ({
+  writeRoleVarOpsThroughAbilities: mocks.writeRoleVarOpsThroughAbilitiesMock,
 }));
 
 vi.mock("@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime", () => ({
@@ -91,6 +96,7 @@ describe("useChatMessageSubmit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isCommandMock.mockReturnValue(false);
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValue({ changedRoleIds: [], roleVarOps: [] });
     mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([]);
     useChatInputUiStore.getState().reset();
     useChatComposerStore.getState().reset();
@@ -288,19 +294,22 @@ describe("useChatMessageSubmit", () => {
       avatarId: 7,
     }));
     expect((pendingRequests[0].extra as any).imageMessage).toEqual(expect.objectContaining({
-      fileId: -1,
+      source: { kind: "internal", fileId: -1 },
+      localFile: expect.any(File),
       fileName: "scene.png",
       background: false,
       width: 1,
       height: 1,
     }));
     expect((pendingRequests[1].extra as any).soundMessage).toEqual(expect.objectContaining({
-      fileId: -1,
+      source: { kind: "internal", fileId: -1 },
+      localFile: expect.any(File),
       fileName: "voice.mp3",
       second: 1,
     }));
     expect((pendingRequests[2].extra as any).videoMessage).toEqual(expect.objectContaining({
-      fileId: -1,
+      source: { kind: "internal", fileId: -1 },
+      localFile: expect.any(File),
       fileName: "clip.webm",
     }));
 
@@ -311,8 +320,7 @@ describe("useChatMessageSubmit", () => {
         annotations: [ANNOTATION_IDS.BGM],
         extra: {
           imageMessage: {
-            fileId: 101,
-            mediaType: "image",
+            source: { kind: "internal", fileId: 101 },
             fileName: "scene.png",
             size: 5,
             width: 640,
@@ -327,8 +335,7 @@ describe("useChatMessageSubmit", () => {
         annotations: [ANNOTATION_IDS.BGM],
         extra: {
           soundMessage: {
-            fileId: 102,
-            mediaType: "audio",
+            source: { kind: "internal", fileId: 102 },
             fileName: "voice.mp3",
             size: 5,
             second: 3,
@@ -342,8 +349,7 @@ describe("useChatMessageSubmit", () => {
         annotations: [ANNOTATION_IDS.BGM],
         extra: {
           videoMessage: {
-            fileId: 103,
-            mediaType: "video",
+            source: { kind: "internal", fileId: 103 },
             fileName: "clip.webm",
             size: 5,
             second: 4,
@@ -498,8 +504,7 @@ describe("useChatMessageSubmit", () => {
         annotations: [ANNOTATION_IDS.BGM],
         extra: {
           soundMessage: {
-            fileId: 12,
-            mediaType: "audio",
+            source: { kind: "internal", fileId: 12 },
             fileName: "bgm.mp3",
             size: 1024,
             second: 3,
@@ -527,8 +532,7 @@ describe("useChatMessageSubmit", () => {
       messageType: MessageType.SOUND,
       extra: {
         soundMessage: {
-          fileId: 12,
-          mediaType: "audio",
+          source: { kind: "internal", fileId: 12 },
           fileName: "bgm.mp3",
           size: 1024,
           second: 3,
@@ -565,7 +569,7 @@ describe("useChatMessageSubmit", () => {
       roomId: 1,
       messageId: 10,
       purpose: "bgm",
-      url: "https://tuan.chat/media/v1/files/012/12/audio/low.webm",
+      url: "https://media.tuan.chat/media/v1/files/012/12/audio/low.webm",
     });
   });
 
@@ -647,6 +651,7 @@ describe("useChatMessageSubmit", () => {
       spaceId: 2,
       isSpaceOwner: false,
       curRoleId: 3,
+      ruleId: 7,
       notMember: false,
       noRole: false,
       isSubmitting: false,
@@ -665,6 +670,19 @@ describe("useChatMessageSubmit", () => {
     await handleMessageSubmit();
 
     expect(commandExecutor).not.toHaveBeenCalled();
+    expect(mocks.writeRoleVarOpsThroughAbilitiesMock).toHaveBeenCalledWith(expect.objectContaining({
+      ruleId: 7,
+      events: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "sub",
+        value: 2,
+      }],
+    }));
     expect(sendMessageWithInsert.mock.calls[0]?.[0]).not.toHaveProperty("replayMessageId");
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
@@ -713,6 +731,7 @@ describe("useChatMessageSubmit", () => {
       spaceId: 2,
       isSpaceOwner: false,
       curRoleId: 3,
+      ruleId: 7,
       notMember: false,
       noRole: false,
       isSubmitting: false,
@@ -731,6 +750,18 @@ describe("useChatMessageSubmit", () => {
     await handleMessageSubmit();
 
     expect(commandExecutor).not.toHaveBeenCalled();
+    expect(mocks.writeRoleVarOpsThroughAbilitiesMock).toHaveBeenCalledWith(expect.objectContaining({
+      events: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "add",
+        value: 6,
+      }],
+    }));
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: ".st hp+6",
@@ -754,6 +785,47 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
+  });
+
+  it("简单 .st 写角色卡失败时不发送 STATE_EVENT 记录", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockRejectedValue(new Error("角色卡保存失败"));
+    useChatInputUiStore.setState({
+      plainText: ".st hp-2",
+      textWithoutMentions: ".st hp-2",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async () => createMessage(25));
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      ruleId: 7,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).not.toHaveBeenCalled();
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("角色卡保存失败");
   });
 
   it("简单 .next 会生成 STATE_EVENT(nextTurn)", async () => {
@@ -896,3 +968,4 @@ describe("useChatMessageSubmit", () => {
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });
 });
+

@@ -317,13 +317,13 @@
         "tags": [
           "space-controller"
         ],
-        "summary": "更新空间归档状态",
-        "operationId": "updateSpaceArchiveStatus",
+        "summary": "更新空间信息（名称、头像、描述、规则）",
+        "operationId": "updateSpace",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SpaceArchiveRequest"
+                "$ref": "#/components/schemas/SpaceUpdateRequest"
               }
             }
           },
@@ -336,6 +336,35 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "space-controller"
+        ],
+        "summary": "创建空间",
+        "operationId": "createSpace",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultSpace"
                 }
               }
             }
@@ -751,7 +780,7 @@
           "space-doc-controller"
         ],
         "summary": "重命名 Space 文档房间",
-        "operationId": "renameDoc_2",
+        "operationId": "renameDoc",
         "requestBody": {
           "content": {
             "application/json": {
@@ -776,18 +805,18 @@
         }
       }
     },
-    "/space/": {
+    "/space/archive": {
       "put": {
         "tags": [
           "space-controller"
         ],
-        "summary": "更新空间信息（名称、头像、描述、规则）",
-        "operationId": "updateSpace",
+        "summary": "更新空间归档状态",
+        "operationId": "updateSpaceArchiveStatus",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SpaceUpdateRequest"
+                "$ref": "#/components/schemas/SpaceArchiveRequest"
               }
             }
           },
@@ -800,35 +829,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "space-controller"
-        ],
-        "summary": "创建空间",
-        "operationId": "createSpace",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SpaceAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultSpace"
                 }
               }
             }
@@ -849,6 +849,37 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RuleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/room": {
+      "put": {
+        "tags": [
+          "room-controller"
+        ],
+        "summary": "更新房间信息(名称、头像、场景简要描述)",
+        "operationId": "updateRoom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomUpdateRequest"
               }
             }
           },
@@ -1147,37 +1178,6 @@
         }
       }
     },
-    "/room/": {
-      "put": {
-        "tags": [
-          "room-controller"
-        ],
-        "summary": "更新房间信息(名称、头像、场景简要描述)",
-        "operationId": "updateRoom",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/role": {
       "get": {
         "tags": [
@@ -1310,16 +1310,25 @@
         }
       }
     },
-    "/role/ability": {
+    "/role/ability/by-rule": {
       "get": {
         "tags": [
           "AbilityController"
         ],
-        "summary": "根据能力id获取角色能力",
-        "operationId": "getRoleAbility",
+        "summary": "根据角色id和规则id获取能力",
+        "operationId": "getRoleAbilityByRule",
         "parameters": [
           {
-            "name": "abilityId",
+            "name": "ruleId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "roleId",
             "in": "query",
             "required": true,
             "schema": {
@@ -1345,79 +1354,19 @@
         "tags": [
           "AbilityController"
         ],
-        "summary": "更新能力",
-        "description": "更新指定角色的能力信息，act和ability字段不能同时为null或者空json",
-        "operationId": "updateRoleAbility",
+        "summary": "按角色和规则更新能力",
+        "description": "更新指定角色在指定规则下的能力信息，act和ability字段不能同时为null或者空json",
+        "operationId": "updateRoleAbilityByRule",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AbilityUpdateRequest"
+                "$ref": "#/components/schemas/AbilityByRuleUpdateRequest"
               }
             }
           },
           "required": true
         },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "AbilityController"
-        ],
-        "summary": "创建能力",
-        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能同时为null或者空json",
-        "operationId": "setRoleAbility",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AbilitySetRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultLong"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "AbilityController"
-        ],
-        "summary": "根据id删除能力",
-        "operationId": "deleteRoleAbility",
-        "parameters": [
-          {
-            "name": "abilityId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -1432,19 +1381,19 @@
         }
       }
     },
-    "/role/ability/field": {
+    "/role/ability/by-rule/field": {
       "put": {
         "tags": [
           "AbilityController"
         ],
-        "summary": "更新能力字段",
+        "summary": "按角色和规则更新能力字段",
         "description": "更改能力字段或删除字段",
-        "operationId": "updateRoleAbilityField",
+        "operationId": "updateRoleAbilityFieldByRule",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AbilityFieldUpdateRequest"
+                "$ref": "#/components/schemas/AbilityByRuleFieldUpdateRequest"
               }
             }
           },
@@ -1682,8 +1631,8 @@
         "tags": [
           "ChatController"
         ],
-        "summary": "发送消息（备用）",
-        "description": "从设计上是为了弱网环境的处理，但实际上没怎么用",
+        "summary": "发送单条消息",
+        "description": "创建一条房间消息并返回持久化后的消息",
         "operationId": "sendMessage_1",
         "requestBody": {
           "content": {
@@ -2693,38 +2642,7 @@
         }
       }
     },
-    "/space/member/invited/{code}": {
-      "post": {
-        "tags": [
-          "space-member-controller"
-        ],
-        "summary": "通过邀请链接加入房间，返回spaceId",
-        "operationId": "invited",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultLong"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/space/member/": {
+    "/space/member": {
       "post": {
         "tags": [
           "space-member-controller"
@@ -2777,6 +2695,37 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/member/invited/{code}": {
+      "post": {
+        "tags": [
+          "space-member-controller"
+        ],
+        "summary": "通过邀请链接加入房间，返回spaceId",
+        "operationId": "invited",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
                 }
               }
             }
@@ -3096,7 +3045,7 @@
         }
       }
     },
-    "/room/role/": {
+    "/room/role": {
       "post": {
         "tags": [
           "room-role-controller"
@@ -3156,7 +3105,7 @@
         }
       }
     },
-    "/room/member/": {
+    "/room/member": {
       "post": {
         "tags": [
           "room-member-controller"
@@ -3372,6 +3321,98 @@
         }
       }
     },
+    "/role/ability": {
+      "get": {
+        "tags": [
+          "AbilityController"
+        ],
+        "summary": "根据能力id获取角色能力",
+        "operationId": "getRoleAbility",
+        "parameters": [
+          {
+            "name": "abilityId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultRoleAbility"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AbilityController"
+        ],
+        "summary": "创建能力",
+        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能同时为null或者空json",
+        "operationId": "setRoleAbility",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbilitySetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AbilityController"
+        ],
+        "summary": "根据id删除能力",
+        "operationId": "deleteRoleAbility",
+        "parameters": [
+          {
+            "name": "abilityId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/role/ability/page": {
       "post": {
         "tags": [
@@ -3397,70 +3438,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultPageBaseRespRoleAbility"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/role/ability/byRule": {
-      "post": {
-        "tags": [
-          "AbilityController"
-        ],
-        "summary": "更新能力",
-        "description": "更新指定角色的能力信息，act和ability字段不能同时为null或者空json",
-        "operationId": "updateRoleAbility_1",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AbilityUpdateRequest2"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/role/ability/byRule/field": {
-      "post": {
-        "tags": [
-          "AbilityController"
-        ],
-        "summary": "更新能力字段",
-        "description": "更改能力字段或删除字段",
-        "operationId": "updateRoleAbilityField_1",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AbilityFieldUpdateRequest2"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -4163,7 +4140,7 @@
           "FriendController"
         ],
         "summary": "获取好友申请列表",
-        "description": "分页获取当前用户的好友申请列表（包含发送的和接收的）",
+        "description": "分页获取当前用户收到的待处理好友申请列表",
         "operationId": "getFriendRequestPage",
         "requestBody": {
           "content": {
@@ -5091,7 +5068,7 @@
         }
       }
     },
-    "/chat/rooms/{roomId}/messages/patch": {
+    "/chat/message/patch": {
       "post": {
         "tags": [
           "ChatController"
@@ -5099,17 +5076,6 @@
         "summary": "复合批量变更消息",
         "description": "按 insert/update/delete/move 操作一次性变更指定房间消息",
         "operationId": "patchRoomMessages",
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -5127,70 +5093,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListMessage"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/chat/message/sync": {
-      "post": {
-        "tags": [
-          "ChatController"
-        ],
-        "summary": "根据syncId获取单条消息",
-        "description": "用于在收到syncId间隔的消息时，重新获取缺失的消息",
-        "operationId": "getMessageBySyncId",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MessageBySyncIdRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultChatMessageResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/chat/message/page": {
-      "post": {
-        "tags": [
-          "ChatController"
-        ],
-        "summary": "按页获取消息列表",
-        "description": "用的是游标翻页",
-        "operationId": "getMsgPage",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatMessagePageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseChatMessageResponse"
                 }
               }
             }
@@ -5871,7 +5773,7 @@
           "space-doc-controller"
         ],
         "summary": "获取 Space 文档房间列表",
-        "operationId": "listDocs_2",
+        "operationId": "listDocs",
         "parameters": [
           {
             "name": "spaceId",
@@ -6253,47 +6155,6 @@
         }
       }
     },
-    "/role/ability/": {
-      "get": {
-        "tags": [
-          "AbilityController"
-        ],
-        "summary": "根据角色id和规则id获取能力",
-        "operationId": "getByRuleAndRole",
-        "parameters": [
-          {
-            "name": "ruleId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "roleId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoleAbility"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/notification/unread/count": {
       "get": {
         "tags": [
@@ -6598,17 +6459,26 @@
         }
       }
     },
-    "/chat/message/all": {
+    "/chat/message/sync": {
       "get": {
         "tags": [
           "ChatController"
         ],
-        "summary": "获取一个群的所有消息",
-        "description": "根据 position 降序排序，返回gzip压缩的数据",
-        "operationId": "getAllMessage",
+        "summary": "根据syncId获取单条消息",
+        "description": "用于在收到syncId间隔的消息时，重新获取缺失的消息",
+        "operationId": "getMessageBySyncId",
         "parameters": [
           {
             "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "syncId",
             "in": "query",
             "required": true,
             "schema": {
@@ -6619,7 +6489,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultChatMessageResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -7058,6 +6935,10 @@
             "type": "string",
             "description": "用户邮箱"
           },
+          "inviteCode": {
+            "type": "string",
+            "description": "当前账号的邀请码，唯一且永久有效"
+          },
           "extra": {
             "type": "object",
             "additionalProperties": {
@@ -7153,23 +7034,49 @@
         },
         "description": "标签表"
       },
-      "SpaceArchiveRequest": {
+      "SpaceUpdateRequest": {
         "required": [
-          "archived",
           "spaceId"
         ],
         "type": "object",
         "properties": {
           "spaceId": {
             "type": "integer",
-            "description": "空间 id",
+            "description": "空间ID",
             "format": "int64"
           },
-          "archived": {
-            "type": "boolean",
-            "description": "是否归档 true归档 false取消归档"
+          "name": {
+            "type": "string",
+            "description": "空间名称"
+          },
+          "avatarFileId": {
+            "type": "integer",
+            "description": "空间头像媒体文件 ID",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string",
+            "description": "空间描述"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "空间规则",
+            "format": "int64"
+          },
+          "roomMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "房间（场景）地图",
+              "items": {
+                "type": "string",
+                "description": "房间（场景）地图"
+              }
+            },
+            "description": "房间（场景）地图"
           }
-        }
+        },
+        "description": "空间信息更新请求"
       },
       "ApiResultVoid": {
         "required": [
@@ -7660,49 +7567,23 @@
         },
         "description": "重命名 Space 共享文档请求"
       },
-      "SpaceUpdateRequest": {
+      "SpaceArchiveRequest": {
         "required": [
+          "archived",
           "spaceId"
         ],
         "type": "object",
         "properties": {
           "spaceId": {
             "type": "integer",
-            "description": "空间ID",
+            "description": "空间 id",
             "format": "int64"
           },
-          "name": {
-            "type": "string",
-            "description": "空间名称"
-          },
-          "avatarFileId": {
-            "type": "integer",
-            "description": "空间头像媒体文件 ID",
-            "format": "int64"
-          },
-          "description": {
-            "type": "string",
-            "description": "空间描述"
-          },
-          "ruleId": {
-            "type": "integer",
-            "description": "空间规则",
-            "format": "int64"
-          },
-          "roomMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "房间（场景）地图",
-              "items": {
-                "type": "string",
-                "description": "房间（场景）地图"
-              }
-            },
-            "description": "房间（场景）地图"
+          "archived": {
+            "type": "boolean",
+            "description": "是否归档 true归档 false取消归档"
           }
-        },
-        "description": "空间信息更新请求"
+        }
       },
       "RuleUpdateRequest": {
         "required": [
@@ -7760,6 +7641,33 @@
           }
         },
         "description": "规则更新请求对象"
+      },
+      "RoomUpdateRequest": {
+        "required": [
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "房间名称"
+          },
+          "avatarFileId": {
+            "type": "integer",
+            "description": "房间头像媒体文件 ID",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string",
+            "description": "场景简要描述，概述本房间的剧情走向"
+          }
+        },
+        "description": "房间信息更新请求"
       },
       "RoomMuteRequest": {
         "required": [
@@ -7988,33 +7896,6 @@
         },
         "description": "基础返回体"
       },
-      "RoomUpdateRequest": {
-        "required": [
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "房间ID",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "房间名称"
-          },
-          "avatarFileId": {
-            "type": "integer",
-            "description": "房间头像媒体文件 ID",
-            "format": "int64"
-          },
-          "description": {
-            "type": "string",
-            "description": "场景简要描述，概述本房间的剧情走向"
-          }
-        },
-        "description": "房间信息更新请求"
-      },
       "RoleUpdateRequest": {
         "required": [
           "roleId"
@@ -8070,25 +7951,31 @@
         },
         "description": "更新角色请求体"
       },
-      "AbilityUpdateRequest": {
+      "AbilityByRuleUpdateRequest": {
         "required": [
-          "abilityId"
+          "roleId",
+          "ruleId"
         ],
         "type": "object",
         "properties": {
-          "abilityId": {
+          "roleId": {
             "type": "integer",
-            "description": "能力ID",
+            "description": "角色 ID",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "规则 ID",
             "format": "int64"
           },
           "act": {
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "表演相关字段，不能为空或null，必须为单层",
+              "description": "表演相关字段，不能为null，必须为单层",
               "example": "{\"外貌\":\"外貌描述\",\"体型\":\"体型描述\"}"
             },
-            "description": "表演相关字段，不能为空或null，必须为单层",
+            "description": "表演相关字段，不能为null，必须为单层",
             "example": {
               "外貌": "外貌描述",
               "体型": "体型描述"
@@ -8098,10 +7985,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "基础属性字段，不能为空或null，必须为单层",
+              "description": "基础属性字段，不能为null，必须为单层",
               "example": "{\"str\":\"50\",\"力量\":\"$str\"}"
             },
-            "description": "基础属性字段，不能为空或null，必须为单层",
+            "description": "基础属性字段，不能为null，必须为单层",
             "example": {
               "str": "50",
               "力量": "$str"
@@ -8111,10 +7998,10 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "能力字段，不能为空或null，必须为单层",
+              "description": "能力字段，不能为null，必须为单层",
               "example": "{\"db\":\"1d4\"}"
             },
-            "description": "能力字段，不能为空或null，必须为单层",
+            "description": "能力字段，不能为null，必须为单层",
             "example": {
               "db": "1d4"
             }
@@ -8123,51 +8010,45 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "技能字段，不能为空或null，必须为单层",
+              "description": "技能字段，不能为null，必须为单层",
               "example": "{\"侦查\":\"六十\"}"
             },
-            "description": "技能字段，不能为空或null，必须为单层",
+            "description": "技能字段，不能为null，必须为单层",
             "example": {
               "侦查": "六十"
-            }
-          },
-          "record": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "记录字段，不能为空或null，必须为单层",
-              "example": "{\"记录1\":\"记录内容1\",\"记录2\":\"记录内容2\"}"
-            },
-            "description": "记录字段，不能为空或null，必须为单层",
-            "example": {
-              "记录1": "记录内容1",
-              "记录2": "记录内容2"
             }
           },
           "extra": {
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "扩展属性字段，不能为空或null，必须为单层",
+              "description": "扩展属性字段，不能为null，必须为单层",
               "example": "{\"key1\":\"value1\",\"key2\":\"value2\"}"
             },
-            "description": "扩展属性字段，不能为空或null，必须为单层",
+            "description": "扩展属性字段，不能为null，必须为单层",
             "example": {
               "key1": "value1",
               "key2": "value2"
             }
           }
         },
-        "description": "能力更新请求"
+        "description": "按角色和规则更新能力请求"
       },
-      "AbilityFieldUpdateRequest": {
+      "AbilityByRuleFieldUpdateRequest": {
         "required": [
-          "abilityId"
+          "roleId",
+          "ruleId"
         ],
         "type": "object",
         "properties": {
-          "abilityId": {
+          "roleId": {
             "type": "integer",
+            "description": "角色 ID",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "规则 ID",
             "format": "int64"
           },
           "actFields": {
@@ -8222,19 +8103,6 @@
               "旧key2": "新key2"
             }
           },
-          "recordFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
           "extraFields": {
             "type": "object",
             "additionalProperties": {
@@ -8249,7 +8117,7 @@
             }
           }
         },
-        "description": "能力字段更新请求"
+        "description": "按角色和规则更新能力字段请求"
       },
       "MaterialPackageUpdateRequest": {
         "required": [
@@ -8761,23 +8629,14 @@
       "ImageMessage": {
         "required": [
           "background",
-          "fileId",
-          "fileName",
           "height",
-          "mediaType",
-          "size",
+          "source",
           "width"
         ],
         "type": "object",
         "properties": {
-          "fileId": {
-            "type": "integer",
-            "description": "媒体文件 ID",
-            "format": "int64"
-          },
-          "mediaType": {
-            "type": "string",
-            "description": "媒体类型：image/audio/video/document/other"
+          "source": {
+            "$ref": "#/components/schemas/MediaSource"
           },
           "size": {
             "type": "integer",
@@ -8803,6 +8662,32 @@
             "format": "int32"
           }
         }
+      },
+      "MediaSource": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "来源类型：internal/external"
+          },
+          "fileId": {
+            "type": "integer",
+            "description": "内部媒体文件 ID，仅 internal 来源使用",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string",
+            "description": "外链资源 URL，仅 external 来源使用"
+          },
+          "provider": {
+            "type": "string",
+            "description": "外部来源标识，如 cq"
+          }
+        },
+        "description": "媒体资源来源"
       },
       "Message": {
         "required": [
@@ -9026,22 +8911,13 @@
       },
       "SoundMessage": {
         "required": [
-          "fileId",
-          "fileName",
-          "mediaType",
           "second",
-          "size"
+          "source"
         ],
         "type": "object",
         "properties": {
-          "fileId": {
-            "type": "integer",
-            "description": "媒体文件 ID",
-            "format": "int64"
-          },
-          "mediaType": {
-            "type": "string",
-            "description": "媒体类型：image/audio/video/document/other"
+          "source": {
+            "$ref": "#/components/schemas/MediaSource"
           },
           "size": {
             "type": "integer",
@@ -9072,7 +8948,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "pattern": "^(varOp|statusApply|statusRemove|nextTurn|combatRoundEnd|mapTokenUpsert|mapTokenRemove)$",
+            "pattern": "^(varOp|statusApply|statusRemove|nextTurn|combatRoundStart|combatRoundEnd|mapTokenUpsert|mapTokenRemove|mapConfigUpsert|mapConfigClear)$",
             "type": "string",
             "description": "事件类型"
           },
@@ -9132,6 +9008,41 @@
             "type": "integer",
             "description": "地图 token 列坐标，仅 mapTokenUpsert 使用",
             "format": "int32"
+          },
+          "mapFileId": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "战斗地图图片文件 ID，仅 mapConfigUpsert 使用",
+            "format": "int64"
+          },
+          "imageUrl": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": "string",
+            "description": "战斗地图图片访问地址，仅 mapConfigUpsert 使用"
+          },
+          "gridRows": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "战斗地图网格行数，仅 mapConfigUpsert 使用",
+            "format": "int32"
+          },
+          "gridCols": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "战斗地图网格列数，仅 mapConfigUpsert 使用",
+            "format": "int32"
+          },
+          "gridColor": {
+            "maxLength": 64,
+            "minLength": 0,
+            "pattern": "^\\S+$",
+            "type": "string",
+            "description": "战斗地图网格颜色，仅 mapConfigUpsert 使用"
+          },
+          "clearTokens": {
+            "type": "boolean",
+            "description": "是否在更新地图配置时清空 token，仅 mapConfigUpsert 使用"
           }
         },
         "description": "状态原子事件列表"
@@ -9205,21 +9116,12 @@
       },
       "VideoMessage": {
         "required": [
-          "fileId",
-          "fileName",
-          "mediaType",
-          "size"
+          "source"
         ],
         "type": "object",
         "properties": {
-          "fileId": {
-            "type": "integer",
-            "description": "媒体文件 ID",
-            "format": "int64"
-          },
-          "mediaType": {
-            "type": "string",
-            "description": "媒体类型：image/audio/video/document/other"
+          "source": {
+            "$ref": "#/components/schemas/MediaSource"
           },
           "size": {
             "type": "integer",
@@ -9735,6 +9637,12 @@
           "turnstileToken": {
             "type": "string",
             "description": "Cloudflare Turnstile 校验 token"
+          },
+          "inviteCode": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "账号邀请码，可选"
           }
         },
         "description": "用户注册请求"
@@ -9986,6 +9894,149 @@
         },
         "description": "基础返回体"
       },
+      "SpaceAddRequest": {
+        "required": [
+          "ruleId"
+        ],
+        "type": "object",
+        "properties": {
+          "userIdList": {
+            "type": "array",
+            "description": "邀请的uid列表",
+            "items": {
+              "type": "integer",
+              "description": "邀请的uid列表",
+              "format": "int64"
+            }
+          },
+          "spaceName": {
+            "type": "string",
+            "description": "空间名称"
+          },
+          "avatarFileId": {
+            "type": "integer",
+            "description": "空间头像媒体文件 ID",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "空间规则",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResultSpace": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Space"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "Space": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间id",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "空间名称"
+          },
+          "avatarFileId": {
+            "type": "integer",
+            "description": "空间头像媒体文件 ID",
+            "format": "int64"
+          },
+          "avatarMediaType": {
+            "type": "string",
+            "description": "空间头像媒体类型"
+          },
+          "description": {
+            "type": "string",
+            "description": "空间描述"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "空间规则",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "空间拥有者id",
+            "format": "int64"
+          },
+          "status": {
+            "type": "integer",
+            "description": "状态：0正常 1删除 2归档",
+            "format": "int32"
+          },
+          "repositoryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parentCommitId": {
+            "type": "integer",
+            "description": "克隆来源的base commitId（用于fork追踪）",
+            "format": "int64"
+          },
+          "dicerRoleId": {
+            "type": "integer",
+            "description": "骰子角色id",
+            "format": "int64"
+          },
+          "roomMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "extra": {
+            "type": "string",
+            "description": "其他信息"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archiveView": {
+            "type": "boolean",
+            "description": "当前返回是否来自归档视图"
+          },
+          "effectiveCommitId": {
+            "type": "integer",
+            "description": "当前返回实际命中的 commitId；在线视图为空",
+            "format": "int64"
+          }
+        },
+        "description": "Space对象"
+      },
       "ApiResultTutorialPullResponse": {
         "required": [
           "success"
@@ -10112,7 +10163,7 @@
           },
           "roomType": {
             "type": "integer",
-            "description": "房间类型 1游戏房间 2全员房间 3战斗房间 4文档房间",
+            "description": "房间类型 1游戏房间 2全员房间 4文档房间",
             "format": "int32"
           },
           "name": {
@@ -10537,149 +10588,6 @@
           }
         },
         "description": "根据repositoryId克隆空间请求"
-      },
-      "SpaceAddRequest": {
-        "required": [
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "userIdList": {
-            "type": "array",
-            "description": "邀请的uid列表",
-            "items": {
-              "type": "integer",
-              "description": "邀请的uid列表",
-              "format": "int64"
-            }
-          },
-          "spaceName": {
-            "type": "string",
-            "description": "空间名称"
-          },
-          "avatarFileId": {
-            "type": "integer",
-            "description": "空间头像媒体文件 ID",
-            "format": "int64"
-          },
-          "ruleId": {
-            "type": "integer",
-            "description": "空间规则",
-            "format": "int64"
-          }
-        }
-      },
-      "ApiResultSpace": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/Space"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "Space": {
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "description": "空间id",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "空间名称"
-          },
-          "avatarFileId": {
-            "type": "integer",
-            "description": "空间头像媒体文件 ID",
-            "format": "int64"
-          },
-          "avatarMediaType": {
-            "type": "string",
-            "description": "空间头像媒体类型"
-          },
-          "description": {
-            "type": "string",
-            "description": "空间描述"
-          },
-          "ruleId": {
-            "type": "integer",
-            "description": "空间规则",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "空间拥有者id",
-            "format": "int64"
-          },
-          "status": {
-            "type": "integer",
-            "description": "状态：0正常 1删除 2归档",
-            "format": "int32"
-          },
-          "repositoryId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "parentCommitId": {
-            "type": "integer",
-            "description": "克隆来源的base commitId（用于fork追踪）",
-            "format": "int64"
-          },
-          "dicerRoleId": {
-            "type": "integer",
-            "description": "骰子角色id",
-            "format": "int64"
-          },
-          "roomMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "extra": {
-            "type": "string",
-            "description": "其他信息"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "archiveView": {
-            "type": "boolean",
-            "description": "当前返回是否来自归档视图"
-          },
-          "effectiveCommitId": {
-            "type": "integer",
-            "description": "当前返回实际命中的 commitId；在线视图为空",
-            "format": "int64"
-          }
-        },
-        "description": "Space对象"
       },
       "RulePageRequest": {
         "type": "object",
@@ -11234,10 +11142,10 @@
             "type": "string",
             "format": "date-time"
           },
-          "npc": {
+          "diceMaiden": {
             "type": "boolean"
           },
-          "diceMaiden": {
+          "npc": {
             "type": "boolean"
           },
           "role": {
@@ -11363,19 +11271,6 @@
             "description": "技能字段",
             "example": {
               "侦查": "60"
-            }
-          },
-          "record": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "记录字段",
-              "example": "{\"记录1\":\"记录内容1\",\"记录2\":\"记录内容2\"}"
-            },
-            "description": "记录字段",
-            "example": {
-              "记录1": "记录内容1",
-              "记录2": "记录内容2"
             }
           },
           "extra": {
@@ -11538,12 +11433,6 @@
               "侦查": "六十"
             }
           },
-          "record": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
           "extra": {
             "type": "object",
             "additionalProperties": {
@@ -11554,195 +11443,6 @@
           }
         },
         "description": "角色能力"
-      },
-      "AbilityUpdateRequest2": {
-        "required": [
-          "roleId",
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "roleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "ruleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "act": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "表演相关字段，不能为null，必须为单层",
-              "example": "{\"外貌\":\"外貌描述\",\"体型\":\"体型描述\"}"
-            },
-            "description": "表演相关字段，不能为null，必须为单层",
-            "example": {
-              "外貌": "外貌描述",
-              "体型": "体型描述"
-            }
-          },
-          "basic": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "基础属性字段，不能为null，必须为单层",
-              "example": "{\"str\":\"50\",\"力量\":\"$str\"}"
-            },
-            "description": "基础属性字段，不能为null，必须为单层",
-            "example": {
-              "str": "50",
-              "力量": "$str"
-            }
-          },
-          "ability": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "能力字段，不能为null，必须为单层",
-              "example": "{\"db\":\"1d4\"}"
-            },
-            "description": "能力字段，不能为null，必须为单层",
-            "example": {
-              "db": "1d4"
-            }
-          },
-          "skill": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "技能字段，不能为null，必须为单层",
-              "example": "{\"侦查\":\"六十\"}"
-            },
-            "description": "技能字段，不能为null，必须为单层",
-            "example": {
-              "侦查": "六十"
-            }
-          },
-          "record": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "记录字段，不能为null，必须为单层",
-              "example": "{\"记录1\":\"记录内容1\",\"记录2\":\"记录内容2\"}"
-            },
-            "description": "记录字段，不能为null，必须为单层",
-            "example": {
-              "记录1": "记录内容1",
-              "记录2": "记录内容2"
-            }
-          },
-          "extra": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "扩展属性字段，不能为null，必须为单层",
-              "example": "{\"key1\":\"value1\",\"key2\":\"value2\"}"
-            },
-            "description": "扩展属性字段，不能为null，必须为单层",
-            "example": {
-              "key1": "value1",
-              "key2": "value2"
-            }
-          }
-        },
-        "description": "能力更新请求"
-      },
-      "AbilityFieldUpdateRequest2": {
-        "required": [
-          "roleId",
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "roleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "ruleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "actFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
-          "basicFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
-          "abilityFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
-          "skillFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
-          "recordFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
-          "extraFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          }
-        }
       },
       "AbilityBatchQueryRequest": {
         "required": [
@@ -12656,37 +12356,6 @@
         },
         "description": "基础翻页返回"
       },
-      "ApiResultMapLongInteger": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "description": "返回对象",
-              "format": "int32"
-            },
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
       "FriendBlockRequest": {
         "required": [
           "targetUserId"
@@ -13465,6 +13134,37 @@
         },
         "description": "批量计数器查询参数"
       },
+      "ApiResultMapLongInteger": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "description": "返回对象",
+              "format": "int32"
+            },
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
       "CommentAddRequest": {
         "required": [
           "content",
@@ -13945,6 +13645,73 @@
         },
         "description": "更新已读位置请求"
       },
+      "ChatMessageRequest": {
+        "required": [
+          "extra",
+          "messageType",
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间id",
+            "format": "int64"
+          },
+          "messageType": {
+            "type": "integer",
+            "description": "消息类型",
+            "format": "int32"
+          },
+          "roleId": {
+            "type": "integer",
+            "description": "发送者扮演的角色的id",
+            "format": "int64"
+          },
+          "avatarId": {
+            "type": "integer",
+            "description": "发送者扮演的角色的立绘id",
+            "format": "int64"
+          },
+          "content": {
+            "maxLength": 1024,
+            "minLength": 0,
+            "type": "string",
+            "description": "消息内容"
+          },
+          "annotations": {
+            "type": "array",
+            "description": "消息标注",
+            "items": {
+              "type": "string",
+              "description": "消息标注"
+            }
+          },
+          "customRoleName": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string",
+            "description": "自定义角色名（为空则使用角色名）"
+          },
+          "replayMessageId": {
+            "type": "integer",
+            "description": "回复的消息id,如果没有别传就好",
+            "format": "int64"
+          },
+          "webgal": {
+            "type": "object",
+            "description": "webgal相关的演出设置"
+          },
+          "position": {
+            "type": "number",
+            "description": "消息位置（可选，用于插入消息排序）",
+            "format": "double"
+          },
+          "extra": {
+            "$ref": "#/components/schemas/MessageExtra"
+          }
+        }
+      },
       "RoomMessageStreamItem": {
         "type": "object",
         "properties": {
@@ -14036,10 +13803,16 @@
       },
       "RoomMessageStreamPatchRequest": {
         "required": [
-          "operations"
+          "operations",
+          "roomId"
         ],
         "type": "object",
         "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间 ID",
+            "format": "int64"
+          },
           "operations": {
             "maxItems": 200,
             "minItems": 0,
@@ -14080,190 +13853,6 @@
           }
         },
         "description": "基础返回体"
-      },
-      "ChatMessageRequest": {
-        "required": [
-          "extra",
-          "messageType",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "房间id",
-            "format": "int64"
-          },
-          "messageType": {
-            "type": "integer",
-            "description": "消息类型",
-            "format": "int32"
-          },
-          "roleId": {
-            "type": "integer",
-            "description": "发送者扮演的角色的id",
-            "format": "int64"
-          },
-          "avatarId": {
-            "type": "integer",
-            "description": "发送者扮演的角色的立绘id",
-            "format": "int64"
-          },
-          "content": {
-            "maxLength": 1024,
-            "minLength": 0,
-            "type": "string",
-            "description": "消息内容"
-          },
-          "annotations": {
-            "type": "array",
-            "description": "消息标注",
-            "items": {
-              "type": "string",
-              "description": "消息标注"
-            }
-          },
-          "customRoleName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "description": "自定义角色名（为空则使用角色名）"
-          },
-          "replayMessageId": {
-            "type": "integer",
-            "description": "回复的消息id,如果没有别传就好",
-            "format": "int64"
-          },
-          "webgal": {
-            "type": "object",
-            "description": "webgal相关的演出设置"
-          },
-          "position": {
-            "type": "number",
-            "description": "消息位置（可选，用于插入消息排序）",
-            "format": "double"
-          },
-          "extra": {
-            "$ref": "#/components/schemas/MessageExtra"
-          }
-        }
-      },
-      "MessageBySyncIdRequest": {
-        "required": [
-          "roomId",
-          "syncId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "房间ID",
-            "format": "int64"
-          },
-          "syncId": {
-            "type": "integer",
-            "description": "消息同步ID",
-            "format": "int64"
-          }
-        },
-        "description": "根据房间ID和syncId获取单条消息的请求"
-      },
-      "ApiResultChatMessageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/ChatMessageResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ChatMessagePageRequest": {
-        "required": [
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（上次翻页的最后一条记录的标识）",
-            "format": "double"
-          },
-          "pageSize": {
-            "minimum": 1,
-            "type": "integer",
-            "description": "每页大小",
-            "format": "int32"
-          },
-          "roomId": {
-            "type": "integer",
-            "description": "会话id",
-            "format": "int64"
-          }
-        },
-        "description": "聊天分页请求"
-      },
-      "ApiResultCursorPageBaseResponseChatMessageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/CursorPageBaseResponseChatMessageResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CursorPageBaseResponseChatMessageResponse": {
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（下次翻页带上这参数）",
-            "format": "double"
-          },
-          "isLast": {
-            "type": "boolean",
-            "description": "是否最后一页"
-          },
-          "list": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/ChatMessageResponse"
-            }
-          }
-        },
-        "description": "游标翻页返回"
       },
       "HistoryMessageRequest": {
         "required": [
@@ -15269,33 +14858,6 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultDouble": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "number",
-            "description": "返回对象",
-            "format": "double"
-          }
-        },
-        "description": "基础返回体"
-      },
       "ApiResultNotificationUnreadCountResponse": {
         "required": [
           "success"
@@ -15467,6 +15029,31 @@
             "items": {
               "$ref": "#/components/schemas/MessageSessionResponse"
             }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultChatMessageResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChatMessageResponse"
           }
         },
         "description": "基础返回体"
@@ -15702,29 +15289,6 @@
         },
         "description": "添加标签请求"
       },
-      "PlayerRevokeRequest": {
-        "required": [
-          "spaceId",
-          "uidList"
-        ],
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "description": "空间号",
-            "format": "int64"
-          },
-          "uidList": {
-            "type": "array",
-            "description": "需要撤销管理的列表",
-            "items": {
-              "type": "integer",
-              "description": "需要撤销管理的列表",
-              "format": "int64"
-            }
-          }
-        }
-      },
       "SpaceMemberDeleteRequest": {
         "required": [
           "spaceId",
@@ -15743,6 +15307,29 @@
             "items": {
               "type": "integer",
               "description": "删除的用户id",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "PlayerRevokeRequest": {
+        "required": [
+          "spaceId",
+          "uidList"
+        ],
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间号",
+            "format": "int64"
+          },
+          "uidList": {
+            "type": "array",
+            "description": "需要撤销管理的列表",
+            "items": {
+              "type": "integer",
+              "description": "需要撤销管理的列表",
               "format": "int64"
             }
           }

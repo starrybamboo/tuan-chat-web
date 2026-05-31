@@ -287,6 +287,7 @@ export function ResizableImg({
       <img
         ref={imgRef}
         src={src}
+        referrerPolicy="no-referrer"
         className="max-w-none max-h-none"
         alt="img"
         width={size?.width}

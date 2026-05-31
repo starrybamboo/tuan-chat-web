@@ -4,6 +4,7 @@ import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/we
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { extractDocCardReferencePayload, resolveDocCardDisplayCoverUrl } from "@/components/chat/message/docCard/docCardMedia";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
+import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { createWebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import BetterImg from "@/components/common/betterImg";
@@ -11,7 +12,7 @@ import { DiceFiveIcon, FileTextIcon, ImageIcon, Link, MusicNote, PlayIcon, PlusI
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { formatWebgalChooseSummary } from "@/types/webgalChoose";
-import { imageMediumUrl, mediaFileUrl, normalizeMediaType } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/mediaUrl";
 import { resolveMessageEditorGenericBlockText } from "../model/messageEditorAtomicDisplay";
 import { normalizeMessageEditorContent, setMessageEditorWebgalChooseOptions, updateMessageEditorTextContent } from "../model/messageEditorTransforms";
 
@@ -219,14 +220,16 @@ function formatFileSize(bytes?: number) {
 }
 
 function resolveMediaPayloadUrl(
-  payload: { fileId?: number; mediaType?: string } | undefined,
+  payload: { fileId?: number; mediaType?: string; source?: { kind?: string; fileId?: number; url?: string } } | undefined,
   expectedMediaType?: "image" | "audio" | "video",
 ) {
+  if (expectedMediaType) {
+    return resolveMessageMediaUrl(payload, "low", expectedMediaType);
+  }
   if (typeof payload?.fileId === "number" && payload.fileId <= 0) {
     return "";
   }
-  const resolvedMediaType = payload?.mediaType ? normalizeMediaType(payload.mediaType) : expectedMediaType;
-  return mediaFileUrl(payload?.fileId, resolvedMediaType, "low");
+  return mediaFileUrl(payload?.fileId, payload?.mediaType, "low");
 }
 
 function readChooseOptionValues(message: MessageEditorMessage): WebgalChooseOptionValue[] {
@@ -421,9 +424,7 @@ function MessageEditorChooseEditor({
 function MessageEditorImagePreview(props: MessageEditorAtomicContentProps) {
   const { message } = props;
   const imagePayload = getImageMessageExtra(message.extra);
-  const imgUrl = (typeof imagePayload?.fileId === "number" && imagePayload.fileId > 0
-    ? imageMediumUrl(imagePayload.fileId)
-    : "") || resolveMediaPayloadUrl(imagePayload, "image");
+  const imgUrl = resolveMessageMediaUrl(imagePayload, "medium", "image");
   const imgWidth = typeof imagePayload?.width === "number" ? imagePayload.width : undefined;
   const imgHeight = typeof imagePayload?.height === "number" ? imagePayload.height : undefined;
 
