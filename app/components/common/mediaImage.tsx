@@ -21,6 +21,34 @@ export function resolveMediaOriginalFallbackSrc(src: string | null | undefined):
   return originalSrc !== normalized ? originalSrc : undefined;
 }
 
+function loadImageOnce(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+export async function loadMediaImageWithOriginalFallback(src: string | null | undefined): Promise<HTMLImageElement> {
+  const normalized = normalizeImageSrc(src);
+  if (!normalized) {
+    throw new Error("Image src is empty");
+  }
+
+  try {
+    return await loadImageOnce(normalized);
+  }
+  catch (error) {
+    const originalFallbackSrc = resolveMediaOriginalFallbackSrc(normalized);
+    if (!originalFallbackSrc) {
+      throw error;
+    }
+    return await loadImageOnce(originalFallbackSrc);
+  }
+}
+
 export function MediaImage({
   fallbackSrc,
   onError: externalOnError,

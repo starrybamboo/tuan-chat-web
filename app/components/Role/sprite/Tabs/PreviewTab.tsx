@@ -3,7 +3,7 @@ import type { Transform } from "../TransformControl";
 import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { MediaImage } from "@/components/common/mediaImage";
+import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
@@ -115,20 +115,7 @@ export function PreviewTab({
       if (cached)
         return cached;
 
-      const promise = new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-
-        img.onload = () => {
-          resolve(img);
-        };
-
-        img.onerror = (error) => {
-          reject(error);
-        };
-
-        img.src = url;
-      }).catch((error) => {
+      const promise = loadMediaImageWithOriginalFallback(url).catch((error) => {
         // 失败的条目不缓存，方便下次重试
         imageLoadCacheRef.current.delete(url);
         throw error;
