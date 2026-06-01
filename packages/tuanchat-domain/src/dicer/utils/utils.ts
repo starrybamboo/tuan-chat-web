@@ -69,12 +69,28 @@ const UTILS = {
   async getDicerRoleId(
     roomContext: { curRoleId?: number; spaceId?: number },
     options?: {
+      currentRoleSnapshot?: { extra?: unknown; roleId?: unknown } | null;
       spaceSnapshot?: { dicerRoleId?: unknown; extra?: unknown } | null;
     },
   ): Promise<number> {
-    void roomContext;
     const spaceExtra = normalizeRecord(options?.spaceSnapshot?.extra);
-    const resolved = toPositiveRoleId(spaceExtra.dicerRoleId ?? options?.spaceSnapshot?.dicerRoleId);
+    const rawAllowCustom = spaceExtra.allowCustomDicerRole;
+    const allowCustomDicerRole = rawAllowCustom === undefined
+      ? true
+      : rawAllowCustom === true
+        || rawAllowCustom === "true"
+        || rawAllowCustom === 1
+        || rawAllowCustom === "1";
+    const currentRoleId = Number(roomContext.curRoleId);
+    const roleSnapshot = options?.currentRoleSnapshot;
+    const roleExtra = normalizeRecord(roleSnapshot?.extra);
+    const roleDicerRoleId = allowCustomDicerRole
+      && Number.isFinite(currentRoleId)
+      && currentRoleId > 0
+      && toPositiveRoleId(roleSnapshot?.roleId) === Math.trunc(currentRoleId)
+      ? toPositiveRoleId(roleExtra.dicerRoleId)
+      : null;
+    const resolved = roleDicerRoleId ?? toPositiveRoleId(spaceExtra.dicerRoleId ?? options?.spaceSnapshot?.dicerRoleId);
     return resolved ?? DEFAULT_DICER_ROLE_ID;
   },
 };
