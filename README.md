@@ -154,12 +154,9 @@ pnpm lint:fix
 
 - 前端通过 Cloudflare Pages Git 集成自动部署；项目 `tuan-chat-web` 连接 GitHub 仓库 `starrybamboo/tuan-chat-web`，生产分支为 `main`，对应 `https://tuan.chat/`；项目 `tuan-chat-web-test` 连接同一仓库，生产分支为 `dev`，对应 `https://test.tuan.chat/`。
 - Cloudflare Pages 构建配置：
-  - `tuan-chat-web`：构建命令 `pnpm build --mode production`，输出目录 `dist`。
-  - `tuan-chat-web-test`：构建命令 `pnpm build --mode test`，输出目录 `dist`。
-- Cloudflare Pages 环境变量：
-  - `tuan-chat-web`：`VITE_API_BASE_URL=/api`、`VITE_API_WS_URL=/ws`、`VITE_TTS_URL=https://tuan.chat/tts`、`VITE_PUBLIC_SITE_URL=https://tuan.chat`、`VITE_MEDIA_CDN_BASE_URL=https://media.tuan.chat`、`VITE_ENABLE_REACT_SCAN=false`。
-  - `tuan-chat-web-test`：`VITE_API_BASE_URL=/api`、`VITE_API_WS_URL=/ws`、`VITE_TTS_URL=https://test.tuan.chat/tts`、`VITE_PUBLIC_SITE_URL=https://test.tuan.chat`、`VITE_MEDIA_CDN_BASE_URL=https://media.tuan.chat`、`VITE_ENABLE_REACT_SCAN=true`。
-- `.github/workflows/cd.yaml` 仅保留手动兜底部署入口，不再监听 `main` / `dev` push，避免与 Cloudflare Pages Git 集成重复部署。
+  - 两个项目都使用构建命令 `pnpm run build`，输出目录 `dist`。
+  - 构建脚本会在 Cloudflare Pages 环境中按分支自动选择模式：`main` 使用 `.env.production`，`dev` 使用 `.env.test`。
+- Cloudflare Pages 环境变量由仓库内 `.env.production` / `.env.test` 提供，控制台中无需重复配置同名变量；若控制台中配置了同名变量，会覆盖仓库文件。- `.github/workflows/cd.yaml` 仅保留手动兜底部署入口，不再监听 `main` / `dev` push，避免与 Cloudflare Pages Git 集成重复部署。
 - 线上 Web 运行时会把 API、WebSocket、TTS 默认归一到直连后端域名 `https://api.tuan.chat`，媒体默认归一到独立直读域名 `https://media.tuan.chat`，不再把主流量打到 Pages Functions。跨域请求由后端 CORS 处理，浏览器会按需发送 OPTIONS 预检。
 - Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管，避免消耗 Workers/Pages Functions 请求额度。
 
@@ -283,3 +280,4 @@ https://reactsvgicons.com/
 https://virtuoso.dev/
 
 虚拟列表的轮子，但ahook中也提供了虚拟列表，可按情况选择
+
