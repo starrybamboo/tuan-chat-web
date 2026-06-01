@@ -1,8 +1,6 @@
-name: TuanChat Cloudflare Pages 部署
+name: TuanChat Cloudflare Pages 手动部署
 
 on:
-  push:
-    branches: ["main", "dev"]
   workflow_dispatch:
     inputs:
       deploy_env:
@@ -26,7 +24,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: 构建并部署到 Cloudflare Pages
+    name: 手动构建并部署到 Cloudflare Pages
     runs-on: ubuntu-latest
     env:
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
