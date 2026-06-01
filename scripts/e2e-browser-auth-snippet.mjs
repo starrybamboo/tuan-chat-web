@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import process from "node:process";
 
-const DEFAULT_INPUT_FILE = ".tmp/e2e-auth-state.json";
+const DEFAULT_INPUT_FILE = ".auth/e2e-storage-state.json";
 
 function printHelp() {
   console.log(`Usage: pnpm e2e:browser-auth-snippet [options]
