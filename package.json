@@ -7,7 +7,7 @@
   "author": "Tuan Chat",
   "main": "electron/main.js",
   "scripts": {
-    "build": "vite build",
+    "build": "node ./scripts/build.mjs",
     "dev": "node ./scripts/dev.mjs",
     "dev:force": "node ./scripts/dev.mjs --force",
     "start": "node ./scripts/start.mjs",
@@ -191,3 +191,4 @@
     "*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,html,yml,yaml,ps1,sql}": "node ./scripts/check-encoding.mjs"
   }
 }
+
