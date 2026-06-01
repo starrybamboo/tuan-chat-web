@@ -112,16 +112,25 @@ export function OpenAbleDrawer({
       return { min: baseMin, max: baseMax };
     }
 
-    const parentWidth = containerRef.current?.parentElement?.clientWidth;
-    if (!parentWidth) {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const parentWidth = containerRef.current?.parentElement?.clientWidth ?? 0;
+    const viewportWidth = typeof window === "undefined" ? 0 : window.innerWidth;
+    // 父 flex 可能随抽屉一起变宽；结合视口位置才能在窄桌面保住同级主内容宽度。
+    const availableViewportWidth = containerRect && viewportWidth > 0
+      ? handlePosition === "right"
+        ? Math.max(0, viewportWidth - containerRect.left)
+        : Math.max(0, containerRect.right)
+      : 0;
+    const constraintWidth = Math.max(parentWidth, availableViewportWidth);
+    if (!constraintWidth) {
       return { min: baseMin, max: baseMax };
     }
 
-    const maxAllowed = Math.max(0, parentWidth - safeMinRemainingWidth);
+    const maxAllowed = Math.max(0, constraintWidth - safeMinRemainingWidth);
     const effectiveMax = Math.min(baseMax, maxAllowed);
     const effectiveMin = Math.min(baseMin, effectiveMax);
     return { min: effectiveMin, max: effectiveMax };
-  }, [getBaseBounds, isOpen, minRemainingWidth, overWrite, screenSize]);
+  }, [getBaseBounds, handlePosition, isOpen, minRemainingWidth, overWrite, screenSize]);
 
   const syncBoundsAndWidth = useCallback(() => {
     const next = recomputeBounds();

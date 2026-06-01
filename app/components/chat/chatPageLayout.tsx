@@ -103,6 +103,7 @@ export default function ChatPageLayout({
                       initialWidth={chatLeftPanelWidth}
                       minWidth={200}
                       maxWidth={700}
+                      minRemainingWidth={520}
                       onWidthChange={setChatLeftPanelWidth}
                       handlePosition="right"
                     >
