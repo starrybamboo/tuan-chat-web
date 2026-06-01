@@ -1,6 +1,5 @@
 import type { Room } from "api";
 
-import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { buildDocCardCoverReferenceFields } from "@/components/chat/message/docCard/docCardMedia";
 
 export type SidebarLeafNode = {
@@ -36,8 +35,33 @@ export type MinimalDocMeta = {
   imageMediaType?: string;
 };
 
-function isSidebarVisibleDocId(docId: string): boolean {
-  return parseSpaceDocId(docId)?.kind === "independent";
+function normalizeSidebarDocId(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return String(value);
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (/^\d+$/.test(normalized)) {
+    return normalized;
+  }
+
+  const legacyMatch = normalized.match(/^sdoc:(\d+):description$/);
+  if (legacyMatch) {
+    return legacyMatch[1]!;
+  }
+
+  return null;
+}
+
+function isSidebarVisibleDocId(docId: unknown): boolean {
+  return normalizeSidebarDocId(docId) != null;
 }
 
 export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefined): MinimalDocMeta[] {
@@ -48,10 +72,8 @@ export function extractDocMetasFromSidebarTree(tree: SidebarTree | null | undefi
     for (const node of cat?.items ?? []) {
       if (node?.type !== "doc")
         continue;
-      const id = typeof node.targetId === "string" ? node.targetId : "";
+      const id = normalizeSidebarDocId(node.targetId);
       if (!id)
-        continue;
-      if (!isSidebarVisibleDocId(id))
         continue;
       if (seen.has(id))
         continue;
@@ -89,8 +111,11 @@ export function collectExistingDocIds(tree: SidebarTree | null | undefined): Set
   const ids = new Set<string>();
   for (const cat of tree?.categories ?? []) {
     for (const item of cat.items ?? []) {
-      if (item.type === "doc" && typeof (item as any).targetId === "string") {
-        ids.add((item as any).targetId);
+      if (item.type === "doc") {
+        const id = normalizeSidebarDocId((item as any).targetId);
+        if (id) {
+          ids.add(id);
+        }
       }
     }
   }
@@ -114,7 +139,7 @@ export function applySidebarDocFallbackCache(params: {
       if (node?.type !== "doc")
         continue;
 
-      const docId = typeof node.targetId === "string" ? node.targetId : "";
+      const docId = normalizeSidebarDocId(node.targetId);
       if (!docId)
         continue;
 
@@ -199,10 +224,7 @@ function normalizeRoomId(v: unknown): number | null {
 }
 
 function normalizeDocId(v: unknown): string | null {
-  if (typeof v === "string" && v.trim().length > 0) {
-    return v;
-  }
-  return null;
+  return normalizeSidebarDocId(v);
 }
 
 function buildRoomNode(roomId: number, fallbackTitle?: string): SidebarLeafNode {
