@@ -1,98 +1,80 @@
-# 简介
+# 团剧共创前端
 
-> 文档维护人：降星驰（QQ：735845305，Email：735845305@qq.com）
+团剧共创前端仓库包含 Web、Electron 桌面端和 Expo 移动端。Web 端以 React、TanStack Router、React Query、Tailwind CSS v4 为主；桌面端通过 Electron 打包；移动端位于 `apps/mobile`，通过 pnpm workspace 复用共享包。
 
-这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面设计。使用electron构建pc客户端，使用混合开发模式构建安卓客户端。基于webgal导出跑团replay。
+## 环境要求
 
-## 在开始之前
+- Node.js 22 或更高版本
+- pnpm 9.6.0
+- 本地开发默认需要 TuanChat 后端运行在 `http://localhost:8081`，WebSocket 运行在 `ws://localhost:8090`
+- Electron 打包如需携带 WebGAL_Terre，需要准备 `WebGAL_Terre` release 目录
 
-### node版本
-
-请确保你的node版本在22及以上。
-
-### 安装依赖
+安装依赖：
 
 ```bash
 pnpm install
 ```
 
-### electron安装与配置
-
-如果你的开发不涉及electron，可跳过此步。
-
-在安装electron依赖的时候，如果遇到
-
-```
-Electron failed to install correctly,
- please delete node_modules/electron and try installing again
-```
-
-尝试
+## 常用命令
 
 ```bash
-node node_modules/electron/install.js
+pnpm dev
+pnpm dev:force
+pnpm build
+pnpm start
+pnpm test
+pnpm test:e2e
+pnpm test:coverage
+pnpm lint
+pnpm lint:fix
+pnpm typecheck
+pnpm encoding:check
+pnpm openapi
 ```
 
-如果要执行 electron 打包（electron-builder）：
+- `pnpm dev`：启动 Vite 开发服务，默认端口 `5177`，并自动打开浏览器。
+- `pnpm dev:force`：清理隔离的 Vite optimize deps 缓存后启动开发服务。
+- `pnpm build`：构建 Web 产物。
+- `pnpm start`：服务化运行已构建产物；运行前需要先 `pnpm build`。
+- `pnpm test:e2e`：运行 `*.e2e.test.ts` 浏览器端测试。
+- `pnpm openapi`：从 `packages/tuanchat-openapi-client/tuanchat_OpenAPI.json` 重新生成 OpenAPI client，并执行结果守卫补丁。
 
-- 安装包会携带 `WebGAL_Terre` 运行时。
-- `pnpm electron:prepare:resources` 默认会从 `D:\A_webgal\WebGAL_Terre\release` 同步运行时到 `extraResources/`（按仓库相对路径等价于 `..\..\A_webgal\WebGAL_Terre\release`）。
-- 如果 `WebGAL_Terre` 不在默认位置，可设置环境变量 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
-- 也可以手动把 `WebGAL_Terre` release 内容放到 `extraResources/`，并确保 `WebGAL_Terre.exe` 位于该目录根层级。
-
-#### electron-builder 工具下载不稳定（Windows）
-
-Windows 下 `nsis` / `winCodeSign` 等工具会在首次构建时由 electron-builder 自动下载到本机缓存；如果网络波动导致下载失败，建议：
-
-- 先只构建 zip：`pnpm electron:build:win:zip`
-- 再单独构建 nsis：`pnpm electron:build:win:nsis`
-- 固定缓存目录（可选）：设置环境变量 `ELECTRON_BUILDER_CACHE` 指向一个稳定路径（例如 `D:\cache\electron-builder`），避免系统盘空间/权限/清理工具影响
-- 使用镜像（可选，网络环境需要时）：设置 `ELECTRON_BUILDER_BINARIES_MIRROR` 指向可用镜像源
-
-这些设置只影响构建时下载工具，不影响应用运行。
-
-#### 一键自动化发布 Electron（本地 + 云端）
-
-当客户端需要发新版本时，建议统一使用以下命令：
+移动端常用入口：
 
 ```bash
-pnpm release:electron -- --bump patch
+pnpm mobile:android
+pnpm mobile:android:start
+pnpm mobile:android:emulator
+pnpm mobile:start
+pnpm mobile:web
+pnpm mobile:lint
+pnpm mobile:typecheck
 ```
 
-该命令会按顺序执行：
+移动端更细的 Android 调试约定见 `apps/mobile/README.md`。
 
-- 校验工作区干净且当前分支为 `main`
-- `git pull --rebase origin main`
-- 更新 `package.json` 版本号
-- 本地打包 Windows 客户端（默认 `zip + nsis`）
-- 自动提交版本号并 `git push origin main`
-- 触发云端增量更新工作流（`main` 推送自动触发）
+## 环境变量
 
-常用参数：
+仓库提供三个模式文件：
 
-- `--bump patch|minor|major`：按语义版本递增
-- `--version x.y.z`：直接指定版本号（与 `--bump` 二选一）
-- `--local-build all|zip|nsis|none`：本地打包策略（默认 `all`）
-- `--no-push`：只做本地提交，不推送
-- `--message "..."`：自定义提交信息
+- `.env.development`：本地开发，默认 `VITE_API_BASE_URL=http://localhost:8081`、`VITE_API_WS_URL=ws://localhost:8090`。
+- `.env.test`：测试环境构建，默认连接 `https://test.tuan.chat`。
+- `.env.production`：生产环境构建，默认连接 `https://tuan.chat`。
 
-### 配置环境
+本机私有覆盖请使用 `.env.development.local`、`.env.local` 等已被 gitignore 忽略的文件。不要提交账号、密码、token 或其他敏感配置。
 
-在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
+固定约定：
 
 ```plain text
-VITE_API_BASE_URL=https://api.tuan.chat/api
-VITE_API_WS_URL=wss://api.tuan.chat/ws
-VITE_MEDIA_CDN_BASE_URL=https://media.tuan.chat
 VITE_TERRE_URL=http://localhost:3001
 VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ```
 
-测试环境可使用 `.env.test`（已提供），默认域名为 `https://test.tuan.chat`，并且会开启 `VITE_ENABLE_REACT_SCAN=true`。
+除非明确需要调整 WebGAL_Terre 联动地址，否则不要修改这两个变量。
 
-### 自动测试登录态
+## 自动测试登录态
 
-需要跑依赖登录态的浏览器/e2e 测试时，不要反复走登录页 UI。先在本机创建 `.env.development.local`（该文件已被 gitignore 忽略，不会提交）：
+需要跑依赖登录态的 Playwright、Codex Browser 或 Computer Use 测试时，不要反复走登录页 UI。先在本机 `.env.development.local` 配置测试账号：
 
 ```plain text
 TC_E2E_USER_ID=10001
@@ -108,7 +90,9 @@ TC_E2E_APP_ORIGIN=http://localhost:5177
 pnpm test:e2e:auth-state
 ```
 
-脚本会调用 `/user/login`，并把 Playwright 可复用的本机登录态写到 `.auth/e2e-storage-state.json`。`.auth/` 是固定的本机认证缓存目录，已被 gitignore 忽略，不要提交。测试里直接复用该文件：
+脚本会调用 `/user/login`，并把 Playwright 可复用的本机登录态写到 `.auth/e2e-storage-state.json`。`.auth/` 是固定的本机认证缓存目录，已被 gitignore 忽略，不要提交。
+
+Playwright 测试复用方式：
 
 ```ts
 const context = await browser.newContext({
@@ -116,125 +100,109 @@ const context = await browser.newContext({
 });
 ```
 
-如果是 Codex Browser / Computer Use 这类已经打开页面的手动浏览器测试，先进入对应的本地页面，再运行：
+已经打开页面的 Browser / Computer Use 测试可生成页面注入脚本：
 
 ```bash
 pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js
 ```
 
-把 `.auth/e2e-browser-auth-snippet.js` 的内容作为页面脚本执行即可注入同一份 `token` / `uid` 并自动刷新页面。目标页面 origin 必须与 `TC_E2E_APP_ORIGIN` 一致；如果 storageState 中有多个 origin，可加 `--origin http://localhost:5177` 指定。
+在目标页面执行生成脚本即可写入同一份 `token` / `uid` 并自动刷新页面。目标页面 origin 必须与 `TC_E2E_APP_ORIGIN` 一致；如果 storageState 中有多个 origin，可加 `--origin http://localhost:5177` 指定。
 
-### IDE设置
+## OpenAPI 与共享包
 
-#### Vscode 设置
+- `packages/tuanchat-openapi-client`：生成的 TuanChat OpenAPI client、模型和基础 request 逻辑。
+- `api/`：Web 端 API 实例、认证请求封装、React Query hooks、WebSocket 入口和 NovelAI client。
+- `packages/tuanchat-query`：可在 Web / Mobile 之间复用的查询和缓存更新逻辑。
+- `packages/tuanchat-domain`：纯业务规则、消息草稿、消息类型、状态指令、骰子等可复用领域逻辑。
+- `packages/tuanchat-local-db`：本地数据库相关共享逻辑。
+- `packages/galgame-ai-contract`：Galgame AI 协议与 schema。
 
-仓库包含一个 `.vscode` 文件夹，其中包含设置。该设置会阻止默认的 `prettier` 扩展，并使用 `esLint` 进行保存时的格式化。格式化程序已在 `eslint.config.mjs` 文件中预先配置。请确保你已在 Vscode 中安装了 `eslint` 扩展。
-
-**由于 Vscode 的限制，在你克隆仓库并安装依赖后，需要在终端中运行 `pnpm lint`以完成 eslint 的设置。**
-
-#### Webstorm 设置
-
-注意将设置中开启 `Run eslint --fix on save` 就可以，无需装别的插件（万一tailwind没提示就装一个tailwind的插件）。
-
-![开启Run eslint --fix on save](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=NmJlMTFkOWRmNTBlOWYxMTUxYzk1ZDhkM2Y5OGIyMDBfYUttUVd1TWtYcEVzQld6d3lZQlFHTGdqbnUzck5uclZfVG9rZW46TGF0aGJmdEtqb2F3V3h4cGkySGNpQ2ZYbmxnXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
-
-### 启动！！！
+后端接口变化后，优先同步 OpenAPI JSON，再运行：
 
 ```bash
-pnpm dev
+pnpm openapi
 ```
 
-项目已预先配置了 `husky` 和 `lint-staged`，以便在每次提交前运行 lint，并执行编码/乱码检测（`node ./scripts/check-encoding.mjs`）。
+不要手改生成产物来绕过类型或接口问题。
 
-如果因为 lint 错误而提交失败，可以运行以下命令修复错误：
+## Electron
+
+开发：
 
 ```bash
-pnpm lint:fix
+pnpm electron:dev
 ```
 
-这将对整个仓库进行 lint，修复 `eslint` 可修复的错误，并显示其余的错误。
+打包：
 
-## CI/CD 流程
+```bash
+pnpm electron:build
+pnpm electron:build:win:zip
+pnpm electron:build:win:nsis
+pnpm electron:build:mac:zip
+pnpm electron:build:mac:dmg
+```
 
-自动化测试
+Electron 打包前会运行：
 
-自动部署：
+```bash
+pnpm electron:prepare:resources
+```
+
+该脚本会把 WebGAL_Terre release 同步到 `extraResources/`。默认解析逻辑在 `scripts/prepare-electron-extra-resources.mjs` 和 `scripts/resolve-webgal-terre-release.ps1`；如果默认位置不可用，可设置 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
+
+Windows 下 electron-builder 首次下载 `nsis` / `winCodeSign` 可能受网络影响。可先构建 zip，再单独构建 nsis；必要时设置 `ELECTRON_BUILDER_CACHE` 或 `ELECTRON_BUILDER_BINARIES_MIRROR`。
+
+## CI/CD
+
+Web 部署：
 
 - 前端通过 Cloudflare Pages Git 集成自动部署；项目 `tuan-chat-web` 连接 GitHub 仓库 `starrybamboo/tuan-chat-web`，生产分支为 `main`，对应 `https://tuan.chat/`；项目 `tuan-chat-web-test` 连接同一仓库，生产分支为 `dev`，对应 `https://test.tuan.chat/`。
 - Cloudflare Pages 构建配置：
   - 两个项目都使用构建命令 `pnpm run build`，输出目录 `dist`。
   - 构建脚本会在 Cloudflare Pages 环境中按分支自动选择模式：`main` 使用 `.env.production`，`dev` 使用 `.env.test`。
-- Cloudflare Pages 环境变量由仓库内 `.env.production` / `.env.test` 提供，控制台中无需重复配置同名变量；若控制台中配置了同名变量，会覆盖仓库文件。- `.github/workflows/cd.yaml` 仅保留手动兜底部署入口，不再监听 `main` / `dev` push，避免与 Cloudflare Pages Git 集成重复部署。
-- 线上 Web 运行时会把 API、WebSocket、TTS 默认归一到直连后端域名 `https://api.tuan.chat`，媒体默认归一到独立直读域名 `https://media.tuan.chat`，不再把主流量打到 Pages Functions。跨域请求由后端 CORS 处理，浏览器会按需发送 OPTIONS 预检。
-- Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管，避免消耗 Workers/Pages Functions 请求额度。
+- Cloudflare Pages 环境变量由仓库内 `.env.production` / `.env.test` 提供，控制台中无需重复配置同名变量；若控制台中配置了同名变量，会覆盖仓库文件。
+- `.github/workflows/cd.yaml` 是 Cloudflare Pages 手动兜底部署入口。
+- `deploy_env=test` 会使用 `tuan-chat-web-test` 项目和 `test` mode。
+- `deploy_env=production` 会使用 `tuan-chat-web` 项目和 `production` mode。
+- 构建产物目录为 `dist`，部署命令使用 `wrangler pages deploy dist`。
+- 线上 Web 运行时会把 API、WebSocket、TTS 默认归一到直连后端域名 `https://api.tuan.chat`，媒体默认归一到独立直读域名 `https://media.tuan.chat`，不再把主流量打到 Pages Functions。
+- Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管。
 
-Electron 增量更新发布：
+Electron 增量更新：
 
-- `main` 推送会触发 `.github/workflows/electron-update-publish.yml`
-- 工作流会构建 NSIS 包并发布以下文件：`latest.yml`、`*Setup*.exe`、`*Setup*.exe.blockmap`
-- 客户端更新地址（electron-builder `publish.url`）：`https://tuan.chat/updates/`
-- 默认发布目录：`/www/wwwroot/tuan-chat-web/updates`
-- 工作流优先读取 `UPDATE_*`，未配置时会回退到 CD 使用的 `SERVER_*` / `SSH_*` 凭据。
-- 若 `UPDATE_SERVER_PATH` 填的是站点根目录（如 `/www/wwwroot/tuan-chat-web`），工作流会自动追加 `/updates`。
-- 可选 Secrets：
-- `UPDATE_SERVER_HOST`：更新服务器 SSH 地址（默认 `24.233.10.150`）
-- `UPDATE_SERVER_PORT`：更新服务器 SSH 端口（默认 `22`）
-- `UPDATE_SERVER_USERNAME`：SSH 用户名（默认回退 `SERVER_USERNAME` / `SSH_USERNAME`）
-- `UPDATE_SERVER_PASSWORD`：SSH 密码（默认回退 `SERVER_PASSWORD` / `SSH_PASSWORD`）
-- `UPDATE_SERVER_PATH`：远端发布目录（默认 `/www/wwwroot/tuan-chat-web/updates`）
+- `.github/workflows/electron-update-publish.yml` 在 `main` push 或手动触发时运行。
+- 未配置 `WEBGAL_TERRE_RELEASE_URL` 时会跳过发布。
+- 工作流构建 Windows NSIS 包，收集 `latest.yml`、`*Setup*.exe` 和 `*.blockmap`，并发布到 `https://tuan.chat/updates/` 对应目录。
 
-# 文件架构
+## 目录结构
 
-### core/\*\* ， models/\*\*，services/\*\*，
+```plain text
+app/                         Web 端 React 应用
+app/routes/                  TanStack Router 文件路由
+app/components/              页面组件和业务组件
+app/utils/                   Web 端工具函数
+app/webGAL/                  WebGAL 联动与渲染
+api/                         Web 端 API 实例、hooks、WebSocket
+apps/mobile/                 Expo 移动端
+electron/                    Electron 主进程和桌面端集成
+functions/                   Cloudflare Pages Functions 兜底入口
+packages/                    workspace 共享包
+public/                      静态资源和 Pages routes 配置
+scripts/                     本地开发、生成、导入、打包脚本
+```
 
-这些由openApi自动生成。
+## 开发约定
 
-### useWebsocket.tsx
+- 新增或修改测试文件后，按影响范围运行 `pnpm test` 或对应 e2e / package 测试。
+- 修改 Web / Electron / 根配置后，默认需要关注 `pnpm test`、`pnpm lint`、`pnpm typecheck`。
+- 仅修改文档时至少运行 `pnpm encoding:check`。
+- 新增 API hook 前先搜索 `api/hooks/**` 和 `packages/tuanchat-query/**`，避免重复封装。
+- mutation 成功后要按现有模式 invalidate 或更新对应 query cache。
+- 图标优先使用 `@phosphor-icons/react`；移动端使用 `phosphor-react-native`。
+- UI 样式使用 Tailwind CSS v4；输入框样式不要直接套 daisyUI input。
 
-websocket的utils
-
-- 已支持好友申请推送（WS `type=21`）的基础处理（缓存刷新钩子）。
-- 为了方便排查“还有哪些 WS 类型没处理”，会把已实现/未处理类型与最近消息记录到 `window.__TC_WS_DEBUG__`，并在首次遇到未知 `type` ʱ `console.warn`。
-
-### hooks/\*\* ，useQueryHooks.tsx
-
-存放react-query相关的钩子函数。
-
-如果要用react-query，请把新的钩子函数放在hooks文件夹下对应的文件内。
-
-并且**一定要注意有没有已经定义好了的钩子函数，不要重复定义！**（ctrl+shift+f全局搜索一下）
-
-并且mutation后记得invalidate对应的请求。
-
-## ./app
-
-### components
-
-页面组件都放这里，按照大模块分类。common文件夹内放公用的组件。
-
-### routes
-
-对应路由的最终页面。
-
-### updateLogs
-
-存放更新日志（会以弹窗形式给用户看）
-
-### webgal
-
-webgal相关
-
-### utils
-
-存放各种工具类
-
-## ./android
-
-安卓客户端的工程文件夹，用android studio打开。使用混合开发模式。
-
-# 依赖
-
-### Blocksuite 参考仓库
+## 参考资料
 
 自 2026-04-18 起，团剧共创使用的 Blocksuite 参考仓库统一迁移到：
 
@@ -243,49 +211,4 @@ webgal相关
 
 详细说明见 `docs/integrations/blocksuite.md` 和 `docs/vendors/blocksuite/index.md`。
 
-### UI库
-
-https://daisyui.com/
-
-https://tailwindcss.com/
-
-### Ahooks
-
-阿里的钩子函数库，很实用。
-
-https://ahooks.js.org/zh-CN/
-
-### useHooks
-
-同样是一个实用的钩子函数库。
-
-https://usehooks.com/
-
-### React-taost
-
-用于发送通知
-
-https://react-hot-toast.com/docs
-
-![](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=Y2ExMGJkYTUxMzBmM2YxZmZiYmY0ZTllNzQxYTQ0ZjhfRDYzVEZDVVB0eHAySUQ4aHV0ekt4TGxhcGZ5WVIzbHFfVG9rZW46Ull6dmIxdUpEb25yd0h4ZjFsMWNUcTdkbk5nXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
-
-### eslint
-
-修正格式。在每次commit的时候都会进行eslint的检查。如果检查不通过commit会失败。
-
-如果你用的ide是webstorm，可以在这里打开eslint错误的自动修复：
-
-![开启Run eslint --fix on save](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=ZGNkMTEwMmQyZGYwYzhhMzdlMmNmNjk0MmEyZTZhZjdfYUFBVDYyT2RRemVmQ2tKenpsYTVmcXFQTThMTm1IdTlfVG9rZW46VXFZV2JZdFhGbzdwb1R4SEQ0UWM4cXJlblBnXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
-
-### icon库
-
-到这个网站上搜索后直接复制粘贴就行。
-
-https://reactsvgicons.com/
-
-### react-virtuoso
-
-https://virtuoso.dev/
-
-虚拟列表的轮子，但ahook中也提供了虚拟列表，可按情况选择
-
+更细的代理协作规则见 `AGENTS.md`。
