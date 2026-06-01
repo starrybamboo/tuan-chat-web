@@ -41,6 +41,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e:auth-state": "node ./scripts/e2e-auth-state.mjs",
+    "e2e:browser-auth-snippet": "node ./scripts/e2e-browser-auth-snippet.mjs",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "optimize:ai-style-images": "node ./scripts/optimize-ai-style-images.mjs",
     "backfill:list-avatar": "node ./scripts/backfill-space-avatar-compression.mjs",
