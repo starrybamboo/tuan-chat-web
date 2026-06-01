@@ -141,7 +141,7 @@ describe("sidebarTree", () => {
     });
   });
 
-  it("normalizeSidebarTree 会把迁移后的旧 docId 统一成规范字符串", () => {
+  it("normalizeSidebarTree 会把 numeric targetId 统一成规范字符串", () => {
     const tree = normalizeSidebarTree({
       tree: {
         schemaVersion: 2,
@@ -150,12 +150,6 @@ describe("sidebarTree", () => {
             categoryId: "cat:docs",
             name: "文档",
             items: [
-              {
-                nodeId: "doc:sdoc:22:description",
-                type: "doc",
-                targetId: "sdoc:22:description",
-                fallbackTitle: "旧文档",
-              },
               {
                 nodeId: "doc:23",
                 type: "doc",
@@ -168,19 +162,12 @@ describe("sidebarTree", () => {
       } as any,
       roomsInSpace: [],
       docMetas: [
-        { id: "22", title: "旧文档" },
         { id: "23", title: "数字文档" },
       ],
       includeDocs: true,
     });
 
     expect(tree.categories[0]?.items).toEqual([
-      {
-        nodeId: "doc:22",
-        type: "doc",
-        targetId: "22",
-        fallbackTitle: "旧文档",
-      },
       {
         nodeId: "doc:23",
         type: "doc",
@@ -189,10 +176,32 @@ describe("sidebarTree", () => {
       },
     ]);
     expect(extractDocMetasFromSidebarTree(tree)).toEqual([
-      { id: "22", title: "旧文档" },
       { id: "23", title: "数字文档" },
     ]);
-    expect(collectExistingDocIds(tree)).toEqual(new Set(["22", "23"]));
+    expect(collectExistingDocIds(tree)).toEqual(new Set(["23"]));
+  });
+
+  it("extractDocMetasFromSidebarTree 会忽略未 remap 的 legacy sdoc 节点", () => {
+    const tree = {
+      schemaVersion: 2,
+      categories: [
+        {
+          categoryId: "cat:docs",
+          name: "文档",
+          items: [
+            {
+              nodeId: "doc:sdoc:22:description",
+              type: "doc",
+              targetId: "sdoc:22:description",
+              fallbackTitle: "旧文档",
+            },
+          ],
+        },
+      ],
+    } as any;
+
+    expect(extractDocMetasFromSidebarTree(tree)).toEqual([]);
+    expect(collectExistingDocIds(tree)).toEqual(new Set());
   });
 
   it("applySidebarDocFallbackCache 有 fileId override 时删除旧 fallbackImageUrl", () => {
