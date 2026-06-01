@@ -10,10 +10,10 @@ import {
   hasHostPrivileges,
   SPACE_MEMBER_TYPE,
 } from "@/components/chat/utils/memberPermissions";
-import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
+  useAddRoomMemberMutation,
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
   useTransferLeader,
@@ -32,6 +32,82 @@ function getSpaceMemberTypeActions(memberType?: number | null): Array<{ memberTy
     actions.push({ memberType: SPACE_MEMBER_TYPE.OBSERVER, label: "设为OB" });
   }
   return actions;
+}
+
+export function resolveRoomMemberAction({
+  canManageRoomMembership,
+  currentUserId,
+  isRoomMember,
+  memberUserId,
+}: {
+  canManageRoomMembership: boolean;
+  currentUserId: number;
+  isRoomMember: boolean;
+  memberUserId?: number | null;
+}): { danger: boolean; label: string; kind: "invite" | "remove" } | null {
+  const isSelf = currentUserId === memberUserId;
+  const canLeaveRoom = isSelf && isRoomMember;
+  const canRemoveRoomMember = isRoomMember && canManageRoomMembership && !isSelf;
+  const canInviteToRoom = !isRoomMember && canManageRoomMembership && !isSelf;
+
+  if (!canLeaveRoom && !canRemoveRoomMember && !canInviteToRoom) {
+    return null;
+  }
+
+  if (canInviteToRoom) {
+    return { danger: false, kind: "invite", label: "邀请" };
+  }
+
+  return {
+    danger: true,
+    kind: "remove",
+    label: canLeaveRoom ? "退出" : "移除",
+  };
+}
+
+export function splitMemberGroups({
+  isSpace,
+  members,
+  roomMemberUserIds,
+}: {
+  isSpace: boolean;
+  members: SpaceMember[];
+  roomMemberUserIds?: number[];
+}): { roomMembers: SpaceMember[]; shouldSplit: boolean; spaceMembers: SpaceMember[] } {
+  if (isSpace || roomMemberUserIds == null) {
+    return {
+      roomMembers: members,
+      shouldSplit: false,
+      spaceMembers: [],
+    };
+  }
+
+  const roomMemberUserIdSet = new Set(roomMemberUserIds);
+  return {
+    roomMembers: members.filter(member => roomMemberUserIdSet.has(member.userId ?? -1)),
+    shouldSplit: true,
+    spaceMembers: members.filter(member => !roomMemberUserIdSet.has(member.userId ?? -1)),
+  };
+}
+
+export function getSpaceMemberMenuLabels({
+  canLeaveSpace,
+  canManageSpaceTarget,
+  memberType,
+}: {
+  canLeaveSpace: boolean;
+  canManageSpaceTarget: boolean;
+  memberType?: number | null;
+}): string[] {
+  const labels: string[] = [];
+  if (canLeaveSpace) {
+    labels.push("退出空间");
+  }
+  if (canManageSpaceTarget) {
+    labels.push(...getSpaceMemberTypeActions(memberType).map(action => action.label));
+    labels.push("转让GM/KP", "移出空间");
+  }
+  return labels;
 }
 
 function MemberActionMenuItem({
@@ -66,11 +142,46 @@ function MemberActionMenuItem({
   );
 }
 
-function ActionButtons({
+function RoomMemberActionButton({
   member,
   isRoomMember,
-  isSpace,
   canManageRoomMembership,
+  curUserId,
+  onRemove,
+  onInvite,
+}: {
+  member: SpaceMember;
+  isRoomMember: boolean;
+  canManageRoomMembership: boolean;
+  curUserId: number;
+  onRemove: () => void;
+  onInvite: () => void;
+}) {
+  const action = resolveRoomMemberAction({
+    canManageRoomMembership,
+    currentUserId: curUserId,
+    isRoomMember,
+    memberUserId: member.userId,
+  });
+
+  if (!action) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      className={`btn btn-xs btn-ghost px-2 ${action.danger ? "text-error" : "text-primary"}`}
+      onClick={action.kind === "invite" ? onInvite : onRemove}
+      aria-label={action.label}
+    >
+      {action.label}
+    </button>
+  );
+}
+
+function SpaceMemberActionMenu({
+  member,
   canManageSpaceMemberPermissions,
   curUserId,
   onRemove,
@@ -79,9 +190,6 @@ function ActionButtons({
   spaceMemberTypeActions,
 }: {
   member: SpaceMember;
-  isRoomMember: boolean;
-  isSpace: boolean;
-  canManageRoomMembership: boolean;
   canManageSpaceMemberPermissions: boolean;
   curUserId: number;
   onRemove: () => void;
@@ -96,23 +204,24 @@ function ActionButtons({
   const firstItemRef = useRef<HTMLButtonElement | null>(null);
 
   const isSelf = curUserId === member.userId;
-  const canLeaveRoom = !isSpace && isSelf && isRoomMember;
-  const canLeaveSpace = isSpace && isSelf;
-  const canManageRoomTarget = !isSpace && isRoomMember && canManageRoomMembership && !isSelf;
-  const canManageSpaceTarget = isSpace && canManageSpaceMemberPermissions && !isSelf;
-  const canSendFriendRequest = !isSelf && typeof member.userId === "number" && member.userId > 0;
-  const firstManagedAction = !canSendFriendRequest;
+  const canLeaveSpace = isSelf;
+  const canManageSpaceTarget = canManageSpaceMemberPermissions && !isSelf;
+  const menuLabels = getSpaceMemberMenuLabels({
+    canLeaveSpace,
+    canManageSpaceTarget,
+    memberType: member.memberType,
+  });
+  const shouldHide = menuLabels.length === 0;
 
-  const shouldHide = !canSendFriendRequest && !canLeaveRoom && !canLeaveSpace && !canManageRoomTarget && !canManageSpaceTarget;
   const closeMenuAndRefocus = useCallback(() => {
     setOpen(false);
     triggerBtnRef.current?.focus();
   }, []);
 
-  // 外部点击关闭 & 键盘Esc关闭
   useEffect(() => {
-    if (!open)
+    if (!open) {
       return;
+    }
     const handleDocClick = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -123,12 +232,9 @@ function ActionButtons({
         setOpen(false);
         triggerBtnRef.current?.focus();
       }
-      if (e.key === "ArrowDown") {
-        // 下箭头聚焦第一项
-        if (firstItemRef.current) {
-          e.preventDefault();
-          firstItemRef.current.focus();
-        }
+      if (e.key === "ArrowDown" && firstItemRef.current) {
+        e.preventDefault();
+        firstItemRef.current.focus();
       }
     };
     document.addEventListener("mousedown", handleDocClick);
@@ -139,49 +245,35 @@ function ActionButtons({
     };
   }, [open]);
 
-  // 打开后聚焦第一项 & 计算位置（仅决定向上/向下放置，避免 inline style）
   useEffect(() => {
-    if (open) {
-      const triggerRect = triggerBtnRef.current?.getBoundingClientRect();
-      requestAnimationFrame(() => {
-        if (triggerRect) {
-          const viewportH = window.innerHeight;
-          const estimatedHeight = 220; // 近似值（菜单 max-h 固定，不需要精确）
-          const menuHeight = estimatedHeight;
-
-          // 计算向下和向上的可用空间
-          const spaceBelow = viewportH - triggerRect.bottom;
-          const spaceAbove = triggerRect.top;
-
-          // 优化的定位逻辑（默认向上优先）：
-          // 1. 如果上方空间充足（至少比菜单高度多20px的缓冲），向上放置
-          // 2. 如果上方空间不足但下方空间充足，向下放置
-          // 3. 如果两边都不够，选择空间更大的一边
-          let nextPlaceUp = true; // 默认向上
-
-          if (spaceAbove < menuHeight + 20) {
-            // 上方空间不足
-            if (spaceBelow >= menuHeight + 20) {
-              // 下方空间充足，向下放置
-              nextPlaceUp = false;
-            }
-            else {
-              // 两边都不够，选择空间更大的一边
-              nextPlaceUp = spaceAbove > spaceBelow;
-            }
-          }
-
-          setPlaceUp(nextPlaceUp);
-        }
-      });
-      if (firstItemRef.current) {
-        requestAnimationFrame(() => firstItemRef.current?.focus());
+    if (!open) {
+      return;
+    }
+    const triggerRect = triggerBtnRef.current?.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      if (!triggerRect) {
+        return;
       }
+      const viewportH = window.innerHeight;
+      const menuHeight = 220;
+      const spaceBelow = viewportH - triggerRect.bottom;
+      const spaceAbove = triggerRect.top;
+
+      let nextPlaceUp = true;
+      if (spaceAbove < menuHeight + 20) {
+        nextPlaceUp = spaceBelow >= menuHeight + 20 ? false : spaceAbove > spaceBelow;
+      }
+
+      setPlaceUp(nextPlaceUp);
+    });
+    if (firstItemRef.current) {
+      requestAnimationFrame(() => firstItemRef.current?.focus());
     }
   }, [open]);
 
-  if (shouldHide)
+  if (shouldHide) {
     return null;
+  }
 
   return (
     <div className="relative" ref={wrapperRef}>
@@ -189,7 +281,7 @@ function ActionButtons({
         ref={triggerBtnRef}
         type="button"
         className="btn btn-ghost btn-xs px-2"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(openState => !openState)}
         aria-label="更多操作"
         aria-controls={`member-menu-${member.userId}`}
       >
@@ -202,31 +294,25 @@ function ActionButtons({
       {open && (
         <ul
           id={`member-menu-${member.userId}`}
-          className={`menu menu-xs dropdown-content absolute right-0 z-20 p-2 shadow bg-base-200 rounded-box w-48 overflow-auto max-h-60 animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
+          className={`menu menu-xs dropdown-content absolute right-0 z-20 max-h-60 w-48 overflow-auto rounded-box bg-base-200 p-2 shadow animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
           aria-label="成员操作菜单"
         >
-          {canSendFriendRequest && (
-            <FriendRequestButton
-              targetUserId={member.userId}
-              targetUsername={member.username}
-              variant="menu-item"
-              first
+          {menuLabels.includes("退出空间") && (
+            <MemberActionMenuItem
+              first={true}
               firstItemRef={firstItemRef}
+              label="退出空间"
+              onClick={onRemove}
               onAfterClick={closeMenuAndRefocus}
+              danger={true}
             />
-          )}
-          {(canLeaveRoom || canLeaveSpace) && <MemberActionMenuItem first firstItemRef={firstItemRef} label={isSpace ? "退出空间" : "退出群聊"} onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />}
-          {canManageRoomTarget && (
-            <>
-              <MemberActionMenuItem first={firstManagedAction} firstItemRef={firstItemRef} label="移出房间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />
-            </>
           )}
           {canManageSpaceTarget && (
             <>
               {spaceMemberTypeActions.map((action, index) => (
                 <MemberActionMenuItem
                   key={`${member.userId}-${action.memberType}`}
-                  first={firstManagedAction && index === 0}
+                  first={index === 0 && !canLeaveSpace}
                   firstItemRef={firstItemRef}
                   label={action.label}
                   onClick={() => onUpdateMemberType(action.memberType)}
@@ -234,12 +320,63 @@ function ActionButtons({
                 />
               ))}
               <MemberActionMenuItem firstItemRef={firstItemRef} label="转让GM/KP" onClick={onTransfer} onAfterClick={closeMenuAndRefocus} />
-              <MemberActionMenuItem firstItemRef={firstItemRef} label="移出空间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger />
+              <MemberActionMenuItem firstItemRef={firstItemRef} label="移出空间" onClick={onRemove} onAfterClick={closeMenuAndRefocus} danger={true} />
             </>
           )}
         </ul>
       )}
     </div>
+  );
+}
+
+function ActionButtons({
+  member,
+  isRoomMember,
+  isSpace,
+  canManageRoomMembership,
+  canManageSpaceMemberPermissions,
+  curUserId,
+  onRemove,
+  onInvite,
+  onTransfer,
+  onUpdateMemberType,
+  spaceMemberTypeActions,
+}: {
+  member: SpaceMember;
+  isRoomMember: boolean;
+  isSpace: boolean;
+  canManageRoomMembership: boolean;
+  canManageSpaceMemberPermissions: boolean;
+  curUserId: number;
+  onRemove: () => void;
+  onInvite: () => void;
+  onTransfer: () => void;
+  onUpdateMemberType: (memberType: number) => void;
+  spaceMemberTypeActions: Array<{ memberType: number; label: string }>;
+}) {
+  if (!isSpace) {
+    return (
+      <RoomMemberActionButton
+        member={member}
+        isRoomMember={isRoomMember}
+        canManageRoomMembership={canManageRoomMembership}
+        curUserId={curUserId}
+        onRemove={onRemove}
+        onInvite={onInvite}
+      />
+    );
+  }
+
+  return (
+    <SpaceMemberActionMenu
+      member={member}
+      canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}
+      curUserId={curUserId}
+      onRemove={onRemove}
+      onTransfer={onTransfer}
+      onUpdateMemberType={onUpdateMemberType}
+      spaceMemberTypeActions={spaceMemberTypeActions}
+    />
   );
 }
 
@@ -249,12 +386,11 @@ export default function MemberLists({
   members,
   roomMemberUserIds,
 }: {
-  members: (SpaceMember)[];
+  members: SpaceMember[];
   className?: string;
   isSpace: boolean;
   roomMemberUserIds?: number[];
 }) {
-  // 获取上下文与全局信息
   const curUserId = useGlobalUserId() ?? -1;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -264,48 +400,66 @@ export default function MemberLists({
   const canManageSpaceMemberPermissions = Boolean(spaceContext.canManageMemberPermissions);
   const canManageRoomMembership = hasHostPrivileges(spaceContext.memberType);
 
-  // mutations
-  const mutateRoomMember = useDeleteRoomMemberMutation();
-  const mutateSpaceMember = useDeleteSpaceMemberMutation();
+  const addRoomMemberMutation = useAddRoomMemberMutation();
+  const deleteRoomMemberMutation = useDeleteRoomMemberMutation();
+  const deleteSpaceMemberMutation = useDeleteSpaceMemberMutation();
   const updateSpaceMemberTypeMutation = useUpdateSpaceMemberTypeMutation();
   const transferLeader = useTransferLeader();
-  const roomMemberUserIdSet = useMemo(() => {
-    return new Set(roomMemberUserIds ?? []);
-  }, [roomMemberUserIds]);
-  const shouldShowRoomMembership = !isSpace && roomMemberUserIds != null;
 
-  const buildHandlers = useCallback((member: SpaceMember) => {
+  const buildHandlers = useCallback((member: SpaceMember, isRoomMember: boolean) => {
+    const isSelf = curUserId === member.userId;
+
     const onRemove = () => {
       if (!isSpace) {
-        if (!roomMemberUserIdSet.has(member.userId ?? -1)) {
+        if (!isRoomMember) {
           return;
         }
-        mutateRoomMember.mutate(
+        deleteRoomMemberMutation.mutate(
           { roomId, userIdList: [member.userId ?? 0] },
           {
             onSuccess: () => {
-              toast.success("已移出房间");
+              toast.success(isSelf ? "已退出房间" : "已移出房间");
             },
             onError: (error: any) => {
-              toast.error(error?.message ? `移出房间失败：${error.message}` : "移出房间失败");
+              const actionLabel = isSelf ? "退出房间" : "移出房间";
+              toast.error(error?.message ? `${actionLabel}失败：${error.message}` : `${actionLabel}失败`);
             },
           },
         );
+        return;
       }
-      else if (isSpace) {
-        mutateSpaceMember.mutate(
-          { spaceId, userIdList: [member.userId ?? 0] },
-          {
-            onSuccess: () => {
-              toast.success("已移出空间");
-            },
-            onError: (error: any) => {
-              toast.error(error?.message ? `移出空间失败：${error.message}` : "移出空间失败");
-            },
+
+      deleteSpaceMemberMutation.mutate(
+        { spaceId, userIdList: [member.userId ?? 0] },
+        {
+          onSuccess: () => {
+            toast.success(isSelf ? "已退出空间" : "已移出空间");
           },
-        );
-      }
+          onError: (error: any) => {
+            const actionLabel = isSelf ? "退出空间" : "移出空间";
+            toast.error(error?.message ? `${actionLabel}失败：${error.message}` : `${actionLabel}失败`);
+          },
+        },
+      );
     };
+
+    const onInvite = () => {
+      if (isSpace || isRoomMember || !canManageRoomMembership) {
+        return;
+      }
+      addRoomMemberMutation.mutate(
+        { roomId, userIdList: [member.userId ?? 0] },
+        {
+          onSuccess: () => {
+            toast.success("已邀请至房间");
+          },
+          onError: (error: any) => {
+            toast.error(error?.message ? `邀请失败：${error.message}` : "邀请失败");
+          },
+        },
+      );
+    };
+
     const onUpdateMemberType = (memberType: number) => {
       const nextLabel = getSpaceMemberTypeActions(member.memberType)
         .find(action => action.memberType === memberType)
@@ -326,6 +480,7 @@ export default function MemberLists({
         },
       );
     };
+
     const onTransfer = () => transferLeader.mutate(
       { spaceId, newLeaderId: member.userId ?? 0 },
       {
@@ -337,8 +492,9 @@ export default function MemberLists({
         },
       },
     );
-    return { onRemove, onUpdateMemberType, onTransfer };
-  }, [isSpace, mutateRoomMember, mutateSpaceMember, roomId, roomMemberUserIdSet, spaceId, transferLeader, updateSpaceMemberTypeMutation]);
+
+    return { onInvite, onRemove, onTransfer, onUpdateMemberType };
+  }, [addRoomMemberMutation, canManageRoomMembership, curUserId, deleteRoomMemberMutation, deleteSpaceMemberMutation, isSpace, roomId, spaceId, transferLeader, updateSpaceMemberTypeMutation]);
 
   const sortedMembers = useMemo(() => {
     return [...members].sort((a, b) => {
@@ -350,42 +506,64 @@ export default function MemberLists({
     });
   }, [members]);
 
-  return (
-    <div className="flex flex-col gap-2">
-      {sortedMembers.map((member) => {
-        const { onRemove, onUpdateMemberType, onTransfer } = buildHandlers(member);
-        const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
-        const isRoomMember = isSpace || !shouldShowRoomMembership || roomMemberUserIdSet.has(member.userId ?? -1);
-        return (
-          <div className={`bg-base-200 p-3 rounded-lg ${className ?? ""}`} key={member.userId}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-row gap-3 items-center">
-                <UserAvatarByUser user={member} width={10} isRounded={true} withName={true} />
-              </div>
-              <div className="flex items-center gap-2">
-                {isSpace && <MemberTypeTag memberType={member.memberType} />}
-                {shouldShowRoomMembership && (
-                  <span className={`badge badge-sm ${isRoomMember ? "badge-primary" : "badge-ghost"}`}>
-                    {isRoomMember ? "房间内" : "空间成员"}
-                  </span>
-                )}
-                <ActionButtons
-                  member={member}
-                  isRoomMember={isRoomMember}
-                  isSpace={isSpace}
-                  canManageRoomMembership={canManageRoomMembership}
-                  canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}
-                  curUserId={curUserId}
-                  onRemove={onRemove}
-                  onTransfer={onTransfer}
-                  onUpdateMemberType={onUpdateMemberType}
-                  spaceMemberTypeActions={spaceMemberTypeActions}
-                />
+  const groupedMembers = useMemo(() => splitMemberGroups({
+    isSpace,
+    members: sortedMembers,
+    roomMemberUserIds,
+  }), [isSpace, roomMemberUserIds, sortedMembers]);
+
+  function renderMemberCards(memberRows: SpaceMember[], isRoomMember: boolean, testId: string) {
+    return (
+      <div className="flex flex-col gap-2" data-testid={testId}>
+        {memberRows.map((member) => {
+          const { onInvite, onRemove, onTransfer, onUpdateMemberType } = buildHandlers(member, isRoomMember);
+          const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
+
+          return (
+            <div className={`rounded-lg bg-base-200 p-3 ${className ?? ""}`} key={member.userId}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-row items-center gap-3">
+                  <UserAvatarByUser user={member} width={10} isRounded={true} withName={true} />
+                </div>
+                <div className="flex items-center gap-2">
+                  {isSpace && <MemberTypeTag memberType={member.memberType} />}
+                  <ActionButtons
+                    member={member}
+                    isRoomMember={isRoomMember}
+                    isSpace={isSpace}
+                    canManageRoomMembership={canManageRoomMembership}
+                    canManageSpaceMemberPermissions={canManageSpaceMemberPermissions}
+                    curUserId={curUserId}
+                    onRemove={onRemove}
+                    onInvite={onInvite}
+                    onTransfer={onTransfer}
+                    onUpdateMemberType={onUpdateMemberType}
+                    spaceMemberTypeActions={spaceMemberTypeActions}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (!groupedMembers.shouldSplit) {
+    return (
+      <div className="flex flex-col gap-2">
+        {renderMemberCards(sortedMembers, true, "member-list-all-members")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {groupedMembers.roomMembers.length > 0 && renderMemberCards(groupedMembers.roomMembers, true, "member-list-room-members")}
+      {groupedMembers.roomMembers.length > 0 && groupedMembers.spaceMembers.length > 0 && (
+        <div className="my-3 h-px w-full bg-base-300/90" aria-hidden="true" />
+      )}
+      {groupedMembers.spaceMembers.length > 0 && renderMemberCards(groupedMembers.spaceMembers, false, "member-list-space-members")}
     </div>
   );
 };

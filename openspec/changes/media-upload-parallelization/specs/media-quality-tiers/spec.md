@@ -1,144 +1,137 @@
 ## ADDED Requirements
 
-### Requirement: All media types SHALL use three quality tiers only
+### Requirement: Image uploads SHALL normalize into a WebP original plus sparse derived tiers
 
-The system SHALL generate exactly three quality tiers for all media types: `original`, `low`, and `medium`. The `high` tier SHALL NOT be generated or uploaded. The `filesByQuality.high` field SHALL be set to `undefined` for type compatibility.
+The system SHALL normalize every uploaded image into a WebP `original` asset, and SHALL treat `low`, `medium`, and `high` as optional derived tiers. The client SHALL generate and upload a derived tier only when the normalized `original` still exceeds that tier's byte budget. The actual uploaded image tier set SHALL be recorded in `metadata.uploadedQualities`, and the media service SHALL honor that set when issuing upload targets.
 
-#### Scenario: Image upload generates three tiers
-- **WHEN** a user uploads an image file
-- **THEN** the system SHALL generate `original` (WebP, ≤3MiB), `low`, and `medium` variants
-- **AND** `filesByQuality.high` SHALL be `undefined`
-- **AND** no compression work SHALL be performed for the high tier
+- **original**: maxWidthOrHeight=2560, maxSizeKB=3072, quality=1, WebP, preserve NovelAI metadata
+- **low**: maxWidthOrHeight=200, maxSizeKB=40, quality=1, WebP, do not preserve NovelAI metadata
+- **medium**: maxWidthOrHeight=512, maxSizeKB=150, quality=1, WebP, preserve NovelAI metadata
+- **high**: maxWidthOrHeight=2560, maxSizeKB=800, quality=1, WebP, preserve NovelAI metadata
 
-#### Scenario: Audio upload generates three tiers
-- **WHEN** a user uploads an audio file
-- **THEN** the system SHALL generate `original` (source or transcoded at high-profile settings if >20MB), `low`, and `medium` variants
-- **AND** `filesByQuality.high` SHALL be `undefined`
+#### Scenario: Non-chatroom image upload generates every useful tier
+- **WHEN** a user uploads an image outside a chat room
+- **AND** the normalized `original` is larger than 800KB
+- **THEN** the system SHALL generate and upload `original`, `low`, `medium`, and `high`
+- **AND** `metadata.uploadedQualities` SHALL equal `["original", "low", "medium", "high"]`
 
-#### Scenario: Video upload generates three tiers
-- **WHEN** a user uploads a video file
-- **THEN** the system SHALL generate `original` (source or transcoded at high-profile settings if >200MB), `low`, and `medium` variants
-- **AND** `filesByQuality.high` SHALL be `undefined`
+#### Scenario: Small image skips redundant derived tiers
+- **WHEN** a user uploads an image
+- **AND** the normalized `original` is already within a derived tier's byte budget
+- **THEN** the system SHALL omit that derived tier from `metadata.uploadedQualities`
+- **AND** the system SHALL NOT upload a duplicate object for that omitted tier
 
-### Requirement: Image quality tier parameters
+#### Scenario: Original-only image upload
+- **WHEN** a user uploads an image
+- **AND** the normalized `original` is less than or equal to 40KB
+- **THEN** the system SHALL upload only `original`
+- **AND** `metadata.uploadedQualities` SHALL equal `["original"]`
 
-The system SHALL use the following parameters for image quality tiers:
+#### Scenario: Chatroom image upload uses the same sparse image rules
+- **WHEN** a user uploads an image in a chat room
+- **THEN** the system SHALL still generate a WebP `original`
+- **AND** the system SHALL apply the same `low` / `medium` / `high` usefulness test based on the normalized `original` size
+- **AND** the actual uploaded tiers SHALL be encoded in `metadata.uploadedQualities`
 
-- **original**: Always WebP, maxWidthOrHeight=2560, maxSizeKB=3072, quality=0.82
-- **low**: maxWidthOrHeight=200, maxSizeKB=40, quality=0.72, WebP format. Used for: avatar thumbnails, small thumbnails
-- **medium**: maxWidthOrHeight=512, maxSizeKB=150, quality=0.76, WebP format. Used for: avatars, list covers, card covers
+#### Scenario: Prepare-upload honors uploaded image qualities
+- **WHEN** the client submits image metadata containing `uploadedQualities`
+- **THEN** the media service SHALL issue upload targets only for those listed image tiers
+- **AND** the media service SHALL NOT require omitted image tiers to complete the upload
 
-#### Scenario: Image compressed to original tier
-- **WHEN** an image file is uploaded outside a chat room
-- **THEN** the system SHALL convert it to WebP using the original profile (maxWidthOrHeight=2560, quality=0.82)
-- **AND** the result SHALL be ≤3MiB
+### Requirement: NovelAI metadata SHALL be preserved on non-thumbnail WebP image tiers
 
-#### Scenario: Non-WebP image original rejected by backend
-- **WHEN** a non-chatroom image prepare request declares a canonical source MIME other than `image/webp`
-- **THEN** the backend SHALL reject the prepare request
-
-### Requirement: Audio quality tier parameters
-
-The system SHALL use the following parameters for audio quality tiers:
-
-- **original**: Source file if ≤20MB; otherwise transcoded at 192kbps Opus/WebM
-- **low**: 64kbps Opus/WebM. Used for: preview playback, low-bandwidth scenarios
-- **medium**: 128kbps Opus/WebM. Used for: standard playback
-
-#### Scenario: Audio transcoded to low tier
-- **WHEN** the system generates the low audio variant
-- **THEN** it SHALL transcode to Opus codec at 64kbps in WebM container
-
-#### Scenario: Audio transcoded to medium tier
-- **WHEN** the system generates the medium audio variant
-- **THEN** it SHALL transcode to Opus codec at 128kbps in WebM container
-
-### Requirement: Video quality tier parameters
-
-The system SHALL use the following parameters for video quality tiers:
-
-- **original**: Source file if ≤200MB; otherwise transcoded at maxHeight=1080, CRF=32, VP9/WebM
-- **low**: maxHeight=360, CRF=42, VP8/WebM. Used for: thumbnail previews, low-bandwidth
-- **medium**: maxHeight=720, CRF=36, VP8/WebM. Used for: standard playback
-
-#### Scenario: Video transcoded to low tier
-- **WHEN** the system generates the low video variant
-- **THEN** it SHALL transcode to VP8 codec at maxHeight=360, CRF=42 in WebM container
-
-#### Scenario: Video transcoded to medium tier
-- **WHEN** the system generates the medium video variant
-- **THEN** it SHALL transcode to VP8 codec at maxHeight=720, CRF=36 in WebM container
-
-### Requirement: NovelAI metadata SHALL be preserved in medium tier images
-
-The system SHALL extract NovelAI metadata from source PNG/WebP files and embed it into the medium quality WebP output. The low tier SHALL NOT preserve metadata (too small to be useful).
+The system SHALL preserve NovelAI metadata on image `original`, `medium`, and `high` outputs. The `low` tier SHALL NOT preserve NovelAI metadata.
 
 #### Scenario: Source image contains NovelAI metadata
 - **WHEN** a PNG or WebP image contains NovelAI metadata
-- **THEN** the medium variant SHALL embed the metadata into the output WebP
-- **AND** the low variant SHALL NOT contain the metadata
-- **AND** the system SHALL verify metadata can be read back after embedding
+- **THEN** the generated `original`, `medium`, and `high` WebP outputs SHALL embed that metadata
+- **AND** the `low` output SHALL NOT contain the metadata
+- **AND** the system SHALL verify that the embedded metadata can be read back successfully
 
 #### Scenario: Embedded metadata causes size overflow
-- **WHEN** embedding NovelAI metadata causes the medium variant to exceed maxSizeKB
-- **THEN** the system SHALL throw an error and block the upload
+- **WHEN** preserving NovelAI metadata causes a target image tier to exceed its maxSizeKB limit
+- **THEN** the system SHALL throw an error
+- **AND** the upload SHALL be blocked
 
-### Requirement: Chat room media rendering SHALL use fixed quality tiers
+### Requirement: Non-image uploads SHALL use scene-specific quality tier sets
 
-Chat room media upload and rendering on both Web and mobile clients SHALL use fixed quality tiers for the initial request. Runtime display-layer fallback MAY still retry `original` when a requested image variant is unavailable.
+The system SHALL keep scene-specific tier behavior for audio, video, document, and other uploads.
 
-Image uploads in chat rooms SHALL generate only `low` and `medium` tiers. Chat room image uploads SHALL NOT generate or upload `original` or `high`.
+- **Audio outside chat rooms**: `original`, `low`, `medium`
+- **Audio in chat rooms**: `low` only
+- **Video outside chat rooms**: `original`, `low`, `medium`
+- **Video in chat rooms**: `low` only
+- **Document/other outside chat rooms**: `original`, `low`
+- **Document/other in chat rooms**: `low` only
 
-Sound and video uploads in chat rooms SHALL generate only the `low` tier. Chat room sound and video uploads SHALL NOT generate or upload `medium`, `high`, or `original`.
+For oversize non-chatroom uploads, the system SHALL transcode the `original` asset into the high-profile preset used to satisfy the original size cap, but SHALL NOT expose a separate public `high` output for audio or video.
 
-File, document, and other attachment uploads in chat rooms SHALL generate only the `low` tier. Chat room file/document/other uploads SHALL NOT generate or upload `medium`, `high`, or `original`.
+#### Scenario: Non-chatroom audio upload
+- **WHEN** a user uploads audio outside a chat room
+- **THEN** the system SHALL expose `original`, `low`, and `medium`
+- **AND** it SHALL transcode `low` to 64kbps Opus/WebM and `medium` to 128kbps Opus/WebM when transcoding is required
+- **AND** it MAY reuse the source file for `original`, `low`, and `medium` when the source is already `audio/webm`
+- **AND** the `original` SHALL otherwise remain the source file when it is at most 20MB
+- **AND** the `original` SHALL otherwise be transcoded with the high-profile 192kbps Opus/WebM preset and remain at most 20MB
 
-Image message inline previews SHALL always request the `low` tier first. Opening or tapping an image message for large-image viewing SHALL request the `medium` tier first. Chat room image viewing SHALL NOT proactively request `high`, and it SHALL only retry `original` after the requested image variant fails to load.
+#### Scenario: Chatroom audio upload
+- **WHEN** a user uploads audio in a chat room
+- **THEN** the system SHALL upload only the `low` audio tier
+- **AND** it SHALL NOT upload `original` or `medium`
 
-Sound, video, file, document, and other attachment messages in chat rooms SHALL always request the `low` tier for playback/opening. Chat room rendering for these media types SHALL NOT request `medium`, `high`, or `original`.
+#### Scenario: Non-chatroom video upload
+- **WHEN** a user uploads video outside a chat room
+- **THEN** the system SHALL expose `original`, `low`, and `medium`
+- **AND** it SHALL transcode `low` to maxHeight=360, CRF=42, WebM and `medium` to maxHeight=720, CRF=36, WebM when transcoding is required
+- **AND** it MAY reuse the source file for `original`, `low`, and `medium` when the source is already `video/webm`
+- **AND** the `original` SHALL otherwise remain the source file when it is at most 200MB
+- **AND** the `original` SHALL otherwise be transcoded with the high-profile maxHeight=1080, CRF=32, WebM preset and remain at most 200MB
 
-#### Scenario: Web chat room renders image messages
-- **WHEN** the Web client renders an image message inline in a chat room
-- **THEN** it SHALL request the image `low` tier first
-- **WHEN** the user opens the image in the large-image viewer
-- **THEN** it SHALL request the image `medium` tier first
-- **AND** it SHALL NOT proactively request `high`
-- **WHEN** the requested `low` or `medium` image variant fails to load
-- **THEN** it SHALL retry the same image with the `original` URL as a display fallback
+#### Scenario: Chatroom video upload
+- **WHEN** a user uploads video in a chat room
+- **THEN** the system SHALL upload only the `low` video tier
+- **AND** it SHALL NOT upload `original` or `medium`
 
-#### Scenario: Mobile chat room renders image messages
-- **WHEN** the mobile client renders an image message inline in a chat room
-- **THEN** it SHALL request the image `low` tier
-- **WHEN** the user taps the image to view it larger
-- **THEN** it SHALL request the image `medium` tier
-- **AND** it SHALL NOT proactively request `high` or `original` for chat room image viewing
+#### Scenario: Non-chatroom file-like upload
+- **WHEN** a user uploads a document or other attachment outside a chat room
+- **THEN** the system SHALL upload `original` and `low`
 
-#### Scenario: Chat room renders sound messages
-- **WHEN** either Web or mobile renders or opens a sound message in a chat room
-- **THEN** it SHALL request the sound `low` tier
-- **AND** it SHALL NOT request `medium`, `high`, or `original`
+#### Scenario: Chatroom file-like upload
+- **WHEN** a user uploads a document or other attachment in a chat room
+- **THEN** the system SHALL upload only `low`
 
-#### Scenario: Chat room renders video messages
-- **WHEN** either Web or mobile renders or opens a video message in a chat room
-- **THEN** it SHALL request the video `low` tier
-- **AND** it SHALL NOT request `medium`, `high`, or `original`
+### Requirement: Media rendering SHALL request media-service tier URLs directly
 
-#### Scenario: Chat room renders file/document/other attachment messages
-- **WHEN** either Web or mobile renders or opens a file, document, or other attachment message in a chat room
-- **THEN** it SHALL request the attachment `low` tier
-- **AND** it SHALL NOT request `medium`, `high`, or `original`
+Web and mobile clients SHALL request media assets through the media service tier URLs directly. The requested URL SHALL remain the primary source of truth for runtime rendering, and client-side fallback logic SHALL only act as a secondary defense layer.
 
-#### Scenario: Chat room uploads an image
-- **WHEN** the Web or mobile client uploads an image in a chat room
-- **THEN** it SHALL generate and upload only `low` and `medium`
-- **AND** it SHALL NOT generate or upload `original` or `high`
+#### Scenario: Image rendering starts from a tier URL
+- **WHEN** a client renders an internal image asset
+- **THEN** it SHALL request a tier URL such as `/media/v1/files/{shard}/{fileId}/image/low.webp`, `/image/medium.webp`, `/image/high.webp`, or `/original`
+- **AND** it SHALL NOT rewrite the request into a different asset URL before the first fetch
 
-#### Scenario: Chat room uploads audio or video
-- **WHEN** the Web or mobile client uploads sound or video in a chat room
-- **THEN** it SHALL generate and upload only `low`
-- **AND** it SHALL NOT generate or upload `medium`, `high`, or `original`
+### Requirement: Missing derived media objects SHALL permanently redirect to original
 
-#### Scenario: Chat room uploads file-like attachments
-- **WHEN** the Web or mobile client uploads a file, document, or other attachment in a chat room
-- **THEN** it SHALL generate and upload only `low`
-- **AND** it SHALL NOT generate or upload `medium`, `high`, or `original`
+When a requested non-`original` media object is unavailable but an `original` object exists for the same file, the media service SHALL handle the primary fallback by issuing an HTTP `308 Permanent Redirect` to the `original` URL. This redirect-based fallback SHALL cover sparse image uploads, old stale variant URLs, and storage states where a derivative object is missing but the `original` remains readable. Runtime display-layer fallback MAY still retry `original` when the redirect path is bypassed or the image element still ends in an error state.
+
+#### Scenario: Missing image variant redirects to original
+- **WHEN** a client requests `/media/v1/files/{shard}/{fileId}/image/medium.webp`
+- **AND** that object does not exist
+- **AND** `/media/v1/files/{shard}/{fileId}/original` exists
+- **THEN** the media service SHALL return `308 Permanent Redirect`
+- **AND** the `Location` header SHALL point to `/media/v1/files/{shard}/{fileId}/original`
+- **AND** the response SHALL use immutable public caching
+
+#### Scenario: Sparse image upload omits a tier
+- **WHEN** an image upload intentionally omits `medium` or `high` because `original` is already small enough
+- **AND** a client later requests the omitted image tier URL
+- **THEN** the media service SHALL permanently redirect that request to `original`
+
+#### Scenario: Existing derived object does not redirect
+- **WHEN** a client requests a derived object that does exist in storage
+- **THEN** the media service SHALL serve that requested object directly
+- **AND** it SHALL NOT redirect to `original`
+
+#### Scenario: Display-layer fallback remains a secondary guard
+- **WHEN** a direct image load still surfaces an error to the client after the media-service path is attempted
+- **THEN** display-layer helpers such as `MediaImage` and image preloading utilities MAY retry the corresponding `original` URL
+- **AND** that client retry SHALL be treated as defense in depth rather than the primary fallback path
