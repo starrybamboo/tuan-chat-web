@@ -14,6 +14,16 @@ vi.mock("@/components/chat/message/media/CachedVideoMessage", () => ({
   },
 }));
 
+vi.mock("@/components/common/mediaImage", () => ({
+  MediaImage: ({ alt, className, src }: { alt?: string; className?: string; src?: string }) => {
+    return createElement("img", {
+      alt,
+      className,
+      src,
+    });
+  },
+}));
+
 describe("messageEditorAtomicBlock", () => {
   function renderBlock(message = createMessageEditorBlockDraft("image")) {
     return renderToStaticMarkup(createElement(MessageEditorAtomicBlock, {
@@ -151,4 +161,3 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).not.toContain("更换文件");
   });
 });
-

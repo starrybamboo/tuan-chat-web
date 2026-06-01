@@ -3,9 +3,9 @@
 ## 任务完成要求
 
 - 在任务被视为完成之前，必须根据本轮实际修改范围运行对应验收命令，并在答复中说明结果。
-- 修改 Web / Electron / 根应用代码（含 app、api、electron、根构建配置）时，默认验收为 pnpm test、pnpm lint、pnpm typecheck 全部通过。
-- 修改 mobile 代码（apps/mobile）时，至少运行 pnpm lint:mobile 和 pnpm typecheck:mobile；如改动影响共享业务逻辑或测试覆盖范围，还需补充 pnpm test 或对应 vitest 目标。
-- 修改共享包（packages 下非生成代码）时，运行受影响包相关测试；若共享逻辑会影响 Web 或 mobile 调用方，还需补充对应端的 lint / typecheck / test 命令。
+- 修改网页端 / Electron / 根应用代码（含 app、api、electron、根构建配置）时，默认验收为 pnpm test、pnpm lint、pnpm typecheck 全部通过。
+- 修改移动端代码（apps/mobile）时，至少运行 pnpm lint:mobile 和 pnpm typecheck:mobile；如改动影响共享业务逻辑或测试覆盖范围，还需补充 pnpm test 或对应 vitest 目标。
+- 修改共享包（packages 下非生成代码）时，运行受影响包相关测试；若共享逻辑会影响网页端或移动端调用方，还需补充对应端的 lint / typecheck / test 命令。
 - 仅修改文档、说明或不会影响运行时的配置时，运行与文件类型对应的轻量验收命令；文本文件至少运行 pnpm encoding:check。
 - 如果对应验收命令因既有无关问题失败，必须在答复中明确失败命令、失败位置，以及是否与本轮修改相关。
 
@@ -19,15 +19,20 @@
 - 新增功能前先看能否抽出可复用的共享逻辑。
 - 避免在多个文件重复实现同一逻辑。
 - 不要为了赶进度在局部补丁式绕过问题，优先修正根因。
-- 尽量失败即停，不要写不必要的 fallback。
+- 尽量失败即停，不要写不必要的回退逻辑。
 - 业务层不要吞错；让异常尽早冒泡，必要时只在边界层处理。
-- 优先直接调用 owning module 或 service，不要无意义地加一层抽象。
+- 优先直接调用所属模块或服务，不要无意义地加一层抽象。
+
+## 文档要求
+
+- 项目文档必须使用中文书写，术语、命令、路径、环境变量、协议名和代码标识可保留英文。
+- 新增或修改项目文档时，应将非术语性的英文内容翻译成中文，避免中英文随意混写。
 
 ## 编码约定
 
 - 需要对外暴露的类型、接口、函数、类要补充注释；关键分支逻辑也要有功能性注释。
-- 写代码时优先复用现有 common 组件/ util 函数；如果公共逻辑明显可复用，先抽到 common/util 再使用。
-- 不要创建本地重复类型，也不要为了绕 TypeScript 问题去 cast 成临时替身类型。
+- 写代码时优先复用现有公共组件和工具函数；如果公共逻辑明显可复用，先抽到 common/util 再使用。
+- 不要创建本地重复类型，也不要为了绕过 TypeScript 问题把类型强转成临时替身类型。
 - 尽量不要手写显式返回类型，除非 TypeScript 推断不稳或公共契约需要。
 - 单元测试要严格镜像源码目录结构，每个测试文件只测试对应源文件的行为。
 - 测试要能证明问题真实存在；不要只写“会通过但证明不了什么”的测试。
@@ -35,18 +40,18 @@
 ## React 与状态管理
 
 - 避免 React 最大更新深度和 useSyncExternalStore 循环；在 useEffect 写回状态前先做相等性判断。
-- 对对象和数组比较时，优先按 id、长度或关键字段判断，避免每次 render 都触发 setState。
-- 避免 Zustand 选择器返回新对象；需要组合字段时用 shallow，或拆成多个 selector。
+- 对对象和数组比较时，优先按 id、长度或关键字段判断，避免每次渲染都触发 setState。
+- 避免 Zustand 选择器返回新对象；需要组合字段时用 shallow，或拆成多个选择器。
 - store 的 set 和更新函数在没有变化时应返回旧 state 或 prev，避免订阅者反复触发更新。
 - useSearchParamsState 的 defaultValue 必须是稳定引用；默认值会变化时传 shortenUrl=false，避免 URL 和默认值来回写。
 
 ## UI 与前端约束
 
 - 前端页面不要产生对功能进行叙述的文字。
-- input 样式不要使用 daisy UI，优先使用 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary。
+- 输入框样式不要使用 daisy UI，优先使用 transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary。
 - 默认圆角使用 rounded-md。
-- 需要 Icon 时使用 phosophorIcon。
-- 使用 tailwind css v4 的样式类。
+- 需要图标时使用 phosophorIcon。
+- 使用 Tailwind CSS v4 的样式类。
 
 ## 代码与平台注意事项
 
