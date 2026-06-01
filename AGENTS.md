@@ -45,6 +45,14 @@
 - store 的 set 和更新函数在没有变化时应返回旧 state 或 prev，避免订阅者反复触发更新。
 - useSearchParamsState 的 defaultValue 必须是稳定引用；默认值会变化时传 shortenUrl=false，避免 URL 和默认值来回写。
 
+## 浏览器测试登录态
+
+- 需要登录态的 Playwright / Codex Browser / Computer Use 验证，不要反复走登录页 UI。
+- 优先运行 `pnpm test:e2e:auth-state` 生成 `.auth/e2e-storage-state.json`。
+- Playwright 测试使用 `storageState: ".auth/e2e-storage-state.json"`。
+- 已打开页面的 Browser / Computer Use 测试，运行 `pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js`，再在目标页面执行生成脚本注入登录态。
+- `.auth/` 是本机认证缓存目录，包含敏感登录态，禁止提交。
+
 ## UI 与前端约束
 
 - 前端页面不要产生对功能进行叙述的文字。
