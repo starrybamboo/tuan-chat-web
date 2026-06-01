@@ -3,6 +3,7 @@ lint.out
 # Local temp artifacts
 /.codex-tmp/
 /.tmp/
+/.auth/
 /.tanstack/tmp/
 /apps/mobile/.expo-export-web/
 __pycache__/

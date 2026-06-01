@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import process from "node:process";
 
 const DEFAULT_ENV_FILE = ".env.development.local";
-const DEFAULT_OUTPUT_FILE = ".tmp/e2e-auth-state.json";
+const DEFAULT_OUTPUT_FILE = ".auth/e2e-storage-state.json";
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function printHelp() {

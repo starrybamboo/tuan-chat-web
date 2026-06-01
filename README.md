@@ -108,21 +108,21 @@ TC_E2E_APP_ORIGIN=http://localhost:5177
 pnpm test:e2e:auth-state
 ```
 
-脚本会调用 `/user/login`，并把 Playwright 可复用的登录态写到 `.tmp/e2e-auth-state.json`。测试里直接复用该文件：
+脚本会调用 `/user/login`，并把 Playwright 可复用的本机登录态写到 `.auth/e2e-storage-state.json`。`.auth/` 是固定的本机认证缓存目录，已被 gitignore 忽略，不要提交。测试里直接复用该文件：
 
 ```ts
 const context = await browser.newContext({
-  storageState: ".tmp/e2e-auth-state.json",
+  storageState: ".auth/e2e-storage-state.json",
 });
 ```
 
 如果是 Codex Browser / Computer Use 这类已经打开页面的手动浏览器测试，先进入对应的本地页面，再运行：
 
 ```bash
-pnpm e2e:browser-auth-snippet -- --output .tmp/e2e-browser-auth-snippet.js
+pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js
 ```
 
-把 `.tmp/e2e-browser-auth-snippet.js` 的内容作为页面脚本执行即可注入同一份 `token` / `uid` 并自动刷新页面。目标页面 origin 必须与 `TC_E2E_APP_ORIGIN` 一致；如果 storageState 中有多个 origin，可加 `--origin http://localhost:5177` 指定。
+把 `.auth/e2e-browser-auth-snippet.js` 的内容作为页面脚本执行即可注入同一份 `token` / `uid` 并自动刷新页面。目标页面 origin 必须与 `TC_E2E_APP_ORIGIN` 一致；如果 storageState 中有多个 origin，可加 `--origin http://localhost:5177` 指定。
 
 ### IDE设置
 
