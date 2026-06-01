@@ -52,11 +52,6 @@ function normalizeSidebarDocId(value: unknown): string | null {
     return normalized;
   }
 
-  const legacyMatch = normalized.match(/^sdoc:(\d+):description$/);
-  if (legacyMatch) {
-    return legacyMatch[1]!;
-  }
-
   return null;
 }
 
