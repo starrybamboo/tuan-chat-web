@@ -52,7 +52,7 @@ export default function ChatPageLayout({
           </button>
         </div>
       )}
-      {screenSize !== "lg"
+      {screenSize === "sm"
         ? (
             <>
               <div className="bg-base-200 h-full flex-shrink-0 z-20">
