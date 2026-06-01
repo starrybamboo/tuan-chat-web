@@ -21,6 +21,9 @@ const mobileApiClientMock = vi.hoisted(() => ({
     getRoleAbilityByRule: vi.fn(),
     updateRoleAbilityByRule: vi.fn(),
   },
+  roleController: {
+    getRole: vi.fn(),
+  },
   spaceController: {
     setSpaceExtra: vi.fn(),
   },
@@ -101,6 +104,7 @@ describe("mobileDiceCommandExecutor", () => {
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({ data: null });
     mobileApiClientMock.abilityController.setRoleAbility.mockResolvedValue({ data: 99 });
     mobileApiClientMock.abilityController.updateRoleAbilityByRule.mockResolvedValue({ data: {} });
+    mobileApiClientMock.roleController.getRole.mockResolvedValue({ data: null });
     mobileApiClientMock.spaceController.setSpaceExtra.mockResolvedValue({ data: {} });
   });
 
@@ -136,6 +140,65 @@ describe("mobileDiceCommandExecutor", () => {
       }),
     }));
     expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+  });
+
+  it("角色绑定骰娘优先于空间默认骰娘", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const params = createParams({
+      roomRoles: [
+        { ...actorRole, extra: { dicerRoleId: "88" } },
+        { roleId: 88, roleName: "专属骰娘", type: 1, userId: 200 },
+      ],
+      space: {
+        dicerRoleId: 2,
+        extra: JSON.stringify({ dicerRoleId: 77 }),
+        ruleId: 1,
+        spaceId: 1,
+      },
+    });
+
+    await executeMobileDicerCommand(params);
+
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest?.extra).toEqual(expect.objectContaining({
+      diceTurn: expect.objectContaining({
+        replies: [
+          expect.objectContaining({
+            roleId: 88,
+          }),
+        ],
+      }),
+    }));
+  });
+
+  it("空间禁用角色自定义骰娘时使用空间骰娘", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const params = createParams({
+      roomRoles: [
+        { ...actorRole, extra: { dicerRoleId: "88" } },
+        { roleId: 77, roleName: "空间骰娘", type: 1, userId: 200 },
+        { roleId: 88, roleName: "专属骰娘", type: 1, userId: 201 },
+      ],
+      space: {
+        dicerRoleId: 2,
+        extra: JSON.stringify({ allowCustomDicerRole: false, dicerRoleId: 77 }),
+        ruleId: 1,
+        spaceId: 1,
+      },
+    });
+
+    await executeMobileDicerCommand(params);
+
+    const sentDiceRequest = params.sendRoomMessageMutation.sendRequest.mock.calls[0]?.[0];
+    expect(sentDiceRequest?.extra).toEqual(expect.objectContaining({
+      diceTurn: expect.objectContaining({
+        replies: [
+          expect.objectContaining({
+            roleId: 77,
+          }),
+        ],
+      }),
+    }));
   });
 
   it("执行 CoC .rc 指令并生成检定回复", async () => {

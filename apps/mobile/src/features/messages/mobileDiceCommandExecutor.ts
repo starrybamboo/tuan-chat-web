@@ -141,16 +141,56 @@ function readSpaceDicerData(space: Space | null | undefined): Record<string, str
   return result;
 }
 
-function resolveDicerRoleId(space: Space | null | undefined): number {
+function toPositiveRoleId(value: unknown): number | null {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return null;
+  }
+  return Math.trunc(numeric);
+}
+
+function allowsCustomDicerRole(space: Space | null | undefined): boolean {
   const extra = readRecord(space?.extra);
-  const candidates = [space?.dicerRoleId, extra.dicerRoleId];
-  for (const candidate of candidates) {
-    const numeric = Number(candidate);
-    if (Number.isFinite(numeric) && numeric > 0) {
-      return Math.trunc(numeric);
+  const rawAllowCustom = extra.allowCustomDicerRole;
+  return rawAllowCustom === undefined
+    ? true
+    : rawAllowCustom === true
+      || rawAllowCustom === "true"
+      || rawAllowCustom === 1
+      || rawAllowCustom === "1";
+}
+
+async function isDiceMaidenRole(roleId: number, roomRoles: readonly UserRole[]): Promise<boolean> {
+  if (roleId === 2) {
+    return true;
+  }
+
+  const roomRole = roomRoles.find(role => role.roleId === roleId);
+  if (roomRole) {
+    return Boolean(roomRole.roleName && roomRole.type === 1);
+  }
+
+  const roleResponse = await mobileApiClient.roleController.getRole(roleId);
+  const role = roleResponse.data;
+  return Boolean(role?.roleName && role.type === 1);
+}
+
+async function resolveDicerRoleId(params: {
+  currentRole: UserRole | null | undefined;
+  roomRoles: readonly UserRole[];
+  space: Space | null | undefined;
+}): Promise<number> {
+  if (allowsCustomDicerRole(params.space)) {
+    const roleExtra = readRecord(params.currentRole?.extra);
+    const roleDicerRoleId = toPositiveRoleId(roleExtra.dicerRoleId);
+    if (roleDicerRoleId != null) {
+      return (await isDiceMaidenRole(roleDicerRoleId, params.roomRoles)) ? roleDicerRoleId : 2;
     }
   }
-  return 2;
+
+  const spaceExtra = readRecord(params.space?.extra);
+  const spaceDicerRoleId = toPositiveRoleId(spaceExtra.dicerRoleId ?? params.space?.dicerRoleId) ?? 2;
+  return (await isDiceMaidenRole(spaceDicerRoleId, params.roomRoles)) ? spaceDicerRoleId : 2;
 }
 
 function normalizeRoleAbility(
@@ -540,7 +580,14 @@ export async function executeMobileDicerCommand(params: ExecuteMobileDicerComman
     return;
   }
 
-  const dicerRoleId = resolveDicerRoleId(params.space);
+  const currentRole = params.sendIdentity.roleId && params.sendIdentity.roleId > 0
+    ? params.roomRoles.find(role => role.roleId === params.sendIdentity.roleId)
+    : null;
+  const dicerRoleId = await resolveDicerRoleId({
+    currentRole,
+    roomRoles: params.roomRoles,
+    space: params.space,
+  });
   const copywritingSuffix = copywritingKey ? "" : "";
   const diceReplies = dicerMessageQueue.map((queuedMessage): DiceTurnReplyPayload => ({
     content: buildDicerReplyContent(queuedMessage.content, copywritingSuffix),
