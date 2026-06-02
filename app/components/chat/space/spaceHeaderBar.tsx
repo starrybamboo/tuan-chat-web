@@ -1,5 +1,5 @@
 import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
-import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, HouseIcon, PlusIcon, SignOutIcon, TrashIcon } from "@phosphor-icons/react";
+import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, FolderPlusIcon, HouseIcon, SignOutIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
@@ -9,7 +9,7 @@ import { prepareSpaceDocsForArchive } from "@/components/chat/infra/doc/space/pr
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
-import { AddIcon, ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
+import { ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
 interface SpaceHeaderBarProps {
@@ -240,6 +240,8 @@ export default function SpaceHeaderBar({
             className="btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg w-full"
             aria-label="空间选项"
             aria-expanded={isOptionsMenuOpen}
+            aria-haspopup="menu"
+            title="打开空间菜单"
             onClick={() => setIsOptionsMenuOpen(current => !current)}
           >
             <HouseIcon className="size-4 opacity-70 inline-block" weight="fill" />
@@ -328,7 +330,7 @@ export default function SpaceHeaderBar({
                         onAddCategory();
                       }}
                     >
-                      <PlusIcon className="size-4 opacity-70" weight="bold" />
+                      <FolderPlusIcon className="size-4 opacity-70" weight="regular" />
                       <span className="flex-1 text-left">新增分类</span>
                     </button>
                   </li>
@@ -423,8 +425,9 @@ export default function SpaceHeaderBar({
                 className="btn btn-ghost btn-sm btn-square hover:text-info"
                 onClick={onInviteMember}
                 aria-label="邀请成员"
+                title="邀请成员"
               >
-                <AddIcon />
+                <UserPlusIcon className="size-4" weight="regular" />
               </button>
             </div>
           )}

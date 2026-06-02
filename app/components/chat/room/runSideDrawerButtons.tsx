@@ -3,9 +3,8 @@ import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
-import { FolderIcon, WebgalIcon } from "@/icons";
+import { FolderIcon } from "@/icons";
 
 interface RunSideDrawerButtonsProps {
   className?: string;
@@ -13,7 +12,7 @@ interface RunSideDrawerButtonsProps {
   tooltipPlacement?: "top" | "bottom" | "right";
 }
 
-type RunSideDrawerTarget = "clue" | "combat" | "map" | "webgal";
+type RunSideDrawerTarget = "clue" | "combat" | "map";
 
 function isRunSideDrawerTargetOpen(state: SideDrawerState, target: RunSideDrawerTarget): boolean {
   if (target === "combat") {
@@ -34,13 +33,11 @@ export default function RunSideDrawerButtons({
   orientation = "row",
   tooltipPlacement = "top",
 }: RunSideDrawerButtonsProps) {
-  const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const isCombatDrawerOpen = sideDrawerState === "combat" || sideDrawerState === "initiative" || sideDrawerState === "state";
   const isClueDrawerOpen = sideDrawerState === "clue";
   const isMapDrawerOpen = sideDrawerState === "map";
-  const isWebgalDrawerOpen = sideDrawerState === "webgal";
 
   const tooltipClassName = tooltipPlacement === "bottom"
     ? "tooltip-bottom"
@@ -105,13 +102,6 @@ export default function RunSideDrawerButtons({
         onClick: () => setSideDrawerState(getNextRunSideDrawerState(sideDrawerState, "map")),
       })}
 
-      {renderButton({
-        icon: <WebgalIcon className={`size-4 jump_icon ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />,
-        isActive: isWebgalDrawerOpen,
-        label: "WebGAL",
-        tip: isWebgalDrawerOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览",
-        onClick: () => setSideDrawerState(getNextRunSideDrawerState(sideDrawerState, "webgal")),
-      })}
     </div>
   );
 }

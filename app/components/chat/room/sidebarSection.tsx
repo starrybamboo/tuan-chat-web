@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
+import { FolderPlusIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { AddIcon, ChevronDown } from "@/icons";
+import { ChevronDown } from "@/icons";
 
 interface SidebarSectionProps {
   title: string;
@@ -66,6 +67,7 @@ export default function SidebarSection({
             type="button"
             className={actionButtonClassName}
             title={actionTitle}
+            aria-label={actionTitle}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -73,7 +75,7 @@ export default function SidebarSection({
             }}
           >
             <span className="inline-flex size-5 items-center justify-center">
-              {actionIcon ?? <AddIcon />}
+              {actionIcon ?? <FolderPlusIcon className="size-4" weight="regular" />}
             </span>
           </button>
         )}

@@ -36,6 +36,9 @@ export default function ChatToolbarDock({
   const handleToggleCopilotDrawer = () => {
     setSideDrawerState(sideDrawerState === "copilot" ? "none" : "copilot");
   };
+  const handleToggleWebgalDrawer = () => {
+    setSideDrawerState(sideDrawerState === "webgal" ? "none" : "webgal");
+  };
 
   return (
     <div
@@ -87,13 +90,15 @@ export default function ChatToolbarDock({
         </button>
       )}
 
-      {/* 实时渲染按钮：仅在联动模式开启时展示 */}
+      {/* WebGAL 入口：打开独立预览侧栏，实时渲染开关留在侧栏内部。 */}
       {showWebgalControls && webgalLinkMode && onToggleRealtimeRender && (
         <button
           type="button"
-          className={`tooltip tooltip-top mt-0.5 md:mt-1 ${isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
-          data-tip={isRealtimeRenderActive ? "关闭实时渲染" : "开启实时渲染"}
-          onClick={onToggleRealtimeRender}
+          className={`tooltip tooltip-top mt-0.5 md:mt-1 ${sideDrawerState === "webgal" ? "text-info" : isRealtimeRenderActive ? "text-success" : "hover:text-info"}`}
+          data-tip={sideDrawerState === "webgal" ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
+          aria-label={sideDrawerState === "webgal" ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
+          title={sideDrawerState === "webgal" ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
+          onClick={handleToggleWebgalDrawer}
         >
           <WebgalIcon className={`size-5 cursor-pointer mb-2 md:mb-0 ${isRealtimeRenderActive ? "animate-pulse" : ""}`} />
         </button>

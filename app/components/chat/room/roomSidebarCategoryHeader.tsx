@@ -2,8 +2,9 @@ import type { DragEvent, MouseEvent } from "react";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
+import { ListPlusIcon } from "@phosphor-icons/react";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
-import { AddIcon, ChevronDown } from "@/icons";
+import { ChevronDown } from "@/icons";
 
 interface RoomSidebarCategoryHeaderProps {
   categoryId: string;
@@ -141,6 +142,8 @@ export default function RoomSidebarCategoryHeader({
           type="button"
           className={actionButtonClassName}
           title={addTitle}
+          aria-label={addTitle}
+          aria-haspopup="dialog"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -148,7 +151,7 @@ export default function RoomSidebarCategoryHeader({
           }}
         >
           <span className="inline-flex size-5 items-center justify-center">
-            <AddIcon />
+            <ListPlusIcon className="size-4" weight="regular" />
           </span>
         </button>
       )}
