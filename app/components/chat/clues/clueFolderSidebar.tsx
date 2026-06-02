@@ -1061,7 +1061,7 @@ export default function ClueFolderSidebar({
             )}
 
             <textarea
-              className="textarea textarea-bordered min-h-40 w-full resize-y text-sm leading-6"
+              className="textarea textarea-bordered min-h-72 max-h-[60vh] w-full resize-y text-sm leading-6"
               value={draftContent}
               placeholder="写下这条线索..."
               disabled={isSaving || isDeleting}
