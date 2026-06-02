@@ -30,6 +30,7 @@ export default function ChatToolbarDock({
 }: ChatToolbarDockProps) {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
+  const realtimeRenderStatus = useRealtimeRenderStore(state => state.status);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
   const isCopilotControlTemporarilyHidden = true;
@@ -37,7 +38,14 @@ export default function ChatToolbarDock({
     setSideDrawerState(sideDrawerState === "copilot" ? "none" : "copilot");
   };
   const handleToggleWebgalDrawer = () => {
-    setSideDrawerState(sideDrawerState === "webgal" ? "none" : "webgal");
+    if (sideDrawerState === "webgal") {
+      setSideDrawerState("none");
+      return;
+    }
+    setSideDrawerState("webgal");
+    if (!isRealtimeRenderActive && realtimeRenderStatus !== "initializing") {
+      void onToggleRealtimeRender?.();
+    }
   };
 
   return (
