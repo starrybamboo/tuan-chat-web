@@ -3,8 +3,9 @@
 ## 任务完成要求
 
 - 在任务被视为完成之前，必须根据本轮实际修改范围运行对应验收命令，并在答复中说明结果。
-- 修改网页端 / Electron / 根应用代码（含 app、api、electron、根构建配置）时，默认验收为 pnpm test、pnpm lint、pnpm typecheck 全部通过。
-- 修改移动端代码（apps/mobile）时，至少运行 pnpm lint:mobile 和 pnpm typecheck:mobile；如改动影响共享业务逻辑或测试覆盖范围，还需补充 pnpm test 或对应 vitest 目标。
+- 不要随意运行全量测试；开发或修复功能后，优先运行受影响模块、文件或功能域的定向测试，并在答复中说明覆盖范围。
+- 修改网页端 / Electron / 根应用代码（含 app、api、electron、根构建配置）时，优先运行相关 Vitest 目标、相关 lint/typecheck 命令或更小范围的验收；只有改动触及共享基础逻辑、构建配置、跨模块契约，或用户明确要求完整验收时，才运行 pnpm test、pnpm lint、pnpm typecheck 全量组合。
+- 修改移动端代码（apps/mobile）时，优先运行受影响范围的 mobile lint/typecheck/test；如改动影响共享业务逻辑或测试覆盖范围，还需补充对应 vitest 目标，必要时再扩大到 pnpm test。
 - 修改共享包（packages 下非生成代码）时，运行受影响包相关测试；若共享逻辑会影响网页端或移动端调用方，还需补充对应端的 lint / typecheck / test 命令。
 - 仅修改文档、说明或不会影响运行时的配置时，运行与文件类型对应的轻量验收命令；文本文件至少运行 pnpm encoding:check。
 - 如果对应验收命令因既有无关问题失败，必须在答复中明确失败命令、失败位置，以及是否与本轮修改相关。
