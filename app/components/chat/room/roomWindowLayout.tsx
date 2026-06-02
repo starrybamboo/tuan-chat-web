@@ -11,6 +11,7 @@ import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
 import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
 import SubRoomWindow from "@/components/chat/room/subRoomWindow";
+import WebgalPreviewDrawer from "@/components/chat/room/webgalPreviewDrawer";
 
 type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
@@ -211,6 +212,8 @@ export default function RoomWindowLayout({
                         onGalPatchProposalGenerated={onGalPatchProposalGenerated}
                       />
                     )}
+
+                    {!hideSecondaryPanels && <WebgalPreviewDrawer />}
                   </motion.div>
                 )}
           </div>

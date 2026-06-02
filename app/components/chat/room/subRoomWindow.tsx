@@ -3,22 +3,20 @@ import ClueDrawer from "@/components/chat/clues/clueDrawer";
 import CombatDrawer from "@/components/chat/room/drawers/combatDrawer";
 import RunSideDrawerButtons from "@/components/chat/room/runSideDrawerButtons";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
-import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
-import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { XMarkICon } from "@/icons";
 
-type SubPane = "map" | "combat" | "clue" | "webgal";
+type SubPane = "map" | "combat" | "clue";
 
 function isCombatDrawerState(state: string): boolean {
   return state === "combat" || state === "initiative" || state === "state";
 }
 
-function isSubRoomDrawerState(state: string): state is "map" | "combat" | "clue" | "initiative" | "state" | "webgal" {
-  return state === "map" || state === "clue" || isCombatDrawerState(state) || state === "webgal";
+function isSubRoomDrawerState(state: string): state is "map" | "combat" | "clue" | "initiative" | "state" {
+  return state === "map" || state === "clue" || isCombatDrawerState(state);
 }
 
 function SubRoomWindowImpl() {
@@ -39,7 +37,6 @@ function SubRoomWindowImpl() {
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
   const setRunModeEnabled = useRoomPreferenceStore(state => state.setRunModeEnabled);
 
-  const webgalPreviewUrl = useRealtimeRenderStore(state => state.previewUrl);
   const prevSideDrawerStateRef = React.useRef(sideDrawerState);
 
   React.useEffect(() => {
@@ -67,12 +64,7 @@ function SubRoomWindowImpl() {
       setActivePane("clue");
       setRunModeEnabled(true);
     }
-    else if (sideDrawerState === "webgal") {
-      setIsOpen(true);
-      setActivePane("webgal");
-      setRunModeEnabled(true);
-    }
-    else if (sideDrawerState === "none" && isSubRoomDrawerState(prevSideDrawerState)) {
+    else if (!isSubRoomDrawerState(sideDrawerState) && isSubRoomDrawerState(prevSideDrawerState)) {
       setIsOpen(false);
       setRunModeEnabled(false);
     }
@@ -167,13 +159,6 @@ function SubRoomWindowImpl() {
             <div className="h-full overflow-hidden">
               <ClueDrawer />
             </div>
-          )}
-          {activePane === "webgal" && (
-            <WebGALPreview
-              previewUrl={webgalPreviewUrl}
-              onClose={close}
-              className="h-full"
-            />
           )}
         </div>
       </div>
