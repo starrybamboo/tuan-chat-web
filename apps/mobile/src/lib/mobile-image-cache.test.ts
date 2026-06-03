@@ -118,6 +118,7 @@ const MEDIUM_URL = "https://media.tuan.chat/media/v1/files/007/7/image/medium.we
 const ORIGINAL_URL = "https://media.tuan.chat/media/v1/files/007/7/original";
 const LOW_FILE_URI = "file:///mock/document/mobile-image-cache/7_low.webp";
 const ORIGINAL_FILE_URI = "file:///mock/document/mobile-image-cache/7_original.img";
+const DERIVATIVE_STATUS_FILE_URI = "file:///mock/document/mobile-image-cache/derived-status-v1.json";
 
 beforeEach(() => {
   resetCache();
@@ -173,6 +174,7 @@ describe("native disk cache", () => {
     );
     expect(getCachedImageUriSync(LOW_URL)).toBe(LOW_FILE_URI);
     expect(isAlreadyCached(LOW_URL)).toBe(true);
+    expect(fileSystemMock.fileContents.has(DERIVATIVE_STATUS_FILE_URI)).toBe(false);
   });
 
   it("returns the local file URI when resolving an uncached remote image", async () => {
@@ -232,6 +234,25 @@ describe("native disk cache", () => {
 
     expect(resolvedUri).toBe(ORIGINAL_FILE_URI);
     expect(fileSystemMock.MockFile.downloadFileAsync).not.toHaveBeenCalled();
+  });
+
+  it("does not persist missing status when the derivative failure is transient", async () => {
+    fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
+      if (url === LOW_URL) {
+        throw new Error("network error");
+      }
+      fileSystemMock.existingFiles.add(destination.uri);
+      return { uri: destination.uri };
+    });
+
+    const resolvedUri = await resolveCachedImageUri(LOW_URL);
+
+    expect(resolvedUri).toBe(ORIGINAL_FILE_URI);
+    expect(fileSystemMock.fileContents.has(DERIVATIVE_STATUS_FILE_URI)).toBe(false);
+
+    resetCache({ clearPersistent: false });
+
+    expect(getCachedImageUriSync(MEDIUM_URL)).toBeNull();
   });
 
   it("does not redownload an already cached URL", async () => {
