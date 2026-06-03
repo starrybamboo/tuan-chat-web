@@ -1,17 +1,34 @@
 import { Directory, File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
 
-import { extractMediaFileIdFromUrl } from "@tuanchat/domain/media-url";
+import { extractMediaFileIdFromUrl, imageOriginalUrlFromUrl } from "@tuanchat/domain/media-url";
 
 const CACHE_DIR_NAME = "mobile-image-cache";
+const DERIVATIVE_STATUS_FILE_NAME = "derived-status-v1.json";
 const WEB_CACHE_NAME = "tuanchat-mobile-image-cache-v1";
 const FAILURE_BACKOFF_MS = 30_000;
+
+type MediaImageDerivativeStatus = "available" | "missing";
+
+type MediaImageDerivativeRecord = {
+  fileId: number;
+  status: MediaImageDerivativeStatus;
+  updatedAt: number;
+};
+
+type MediaImageDerivativeStorage = {
+  records: MediaImageDerivativeRecord[];
+  version: 1;
+};
 
 const webPrefetchedKeys = new Set<string>();
 const failedKeys = new Map<string, number>();
 const nativeInflightRequests = new Map<string, Promise<string | null>>();
 const webInflightRequests = new Map<string, Promise<string | null>>();
 const webObjectUrls = new Map<string, string>();
+const nativeDerivativeStatusRecords = new Map<number, MediaImageDerivativeRecord>();
+
+let nativeDerivativeStatusLoaded = false;
 
 function isRemoteUrl(url: string): boolean {
   return /^https?:\/\//i.test(url.trim());
@@ -49,7 +66,7 @@ function getCacheFileName(url: string): string {
 }
 
 function getCacheDirectory(): Directory {
-  return new Directory(Paths.cache, CACHE_DIR_NAME);
+  return new Directory(Paths.document, CACHE_DIR_NAME);
 }
 
 function ensureCacheDirectory(): Directory {
@@ -64,6 +81,10 @@ function getCacheFile(url: string): File {
   return new File(getCacheDirectory(), getCacheFileName(url));
 }
 
+function getDerivativeStatusFile(): File {
+  return new File(getCacheDirectory(), DERIVATIVE_STATUS_FILE_NAME);
+}
+
 export function getCacheKey(url: string): string {
   const fileId = extractMediaFileIdFromUrl(url);
   if (fileId != null) {
@@ -74,6 +95,121 @@ export function getCacheKey(url: string): string {
 
 function normalizeCacheKey(url: string): string {
   return getCacheKey(url);
+}
+
+function resolveImageDerivativeInfo(url: string | null | undefined): {
+  fileId: number;
+  normalizedUrl: string;
+  originalFallbackUri: string;
+} | null {
+  const normalizedUrl = typeof url === "string" ? url.trim() : "";
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  const fileId = extractMediaFileIdFromUrl(normalizedUrl);
+  const originalFallbackUri = imageOriginalUrlFromUrl(normalizedUrl);
+  if (fileId == null || originalFallbackUri === normalizedUrl) {
+    return null;
+  }
+
+  return {
+    fileId,
+    normalizedUrl,
+    originalFallbackUri,
+  };
+}
+
+function ensureNativeDerivativeStatusLoaded(): void {
+  if (nativeDerivativeStatusLoaded) {
+    return;
+  }
+  nativeDerivativeStatusLoaded = true;
+
+  if (!shouldUseNativeDiskCache()) {
+    return;
+  }
+
+  try {
+    const file = getDerivativeStatusFile();
+    if (!file.exists) {
+      return;
+    }
+
+    const parsed = JSON.parse(file.textSync()) as Partial<MediaImageDerivativeStorage> | null;
+    const records = Array.isArray(parsed?.records) ? parsed.records : [];
+    for (const record of records) {
+      if (!record || typeof record.fileId !== "number") {
+        continue;
+      }
+      if (record.status !== "available" && record.status !== "missing") {
+        continue;
+      }
+      nativeDerivativeStatusRecords.set(record.fileId, {
+        fileId: record.fileId,
+        status: record.status,
+        updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : 0,
+      });
+    }
+  }
+  catch {
+    nativeDerivativeStatusRecords.clear();
+  }
+}
+
+function persistNativeDerivativeStatus(): void {
+  if (!shouldUseNativeDiskCache()) {
+    return;
+  }
+
+  try {
+    ensureCacheDirectory();
+    getDerivativeStatusFile().write(JSON.stringify({
+      records: Array.from(nativeDerivativeStatusRecords.values())
+        .sort((left, right) => right.updatedAt - left.updatedAt),
+      version: 1,
+    } satisfies MediaImageDerivativeStorage));
+  }
+  catch {
+    // 派生图状态只是优化；写入失败时仍保留内存状态和图片 fallback。
+  }
+}
+
+function readNativeDerivativeStatus(url: string): MediaImageDerivativeStatus | null {
+  const derivativeInfo = resolveImageDerivativeInfo(url);
+  if (!derivativeInfo) {
+    return null;
+  }
+
+  ensureNativeDerivativeStatusLoaded();
+  return nativeDerivativeStatusRecords.get(derivativeInfo.fileId)?.status ?? null;
+}
+
+function rememberNativeDerivativeStatus(url: string, status: MediaImageDerivativeStatus): void {
+  const derivativeInfo = resolveImageDerivativeInfo(url);
+  if (!derivativeInfo) {
+    return;
+  }
+
+  ensureNativeDerivativeStatusLoaded();
+  nativeDerivativeStatusRecords.set(derivativeInfo.fileId, {
+    fileId: derivativeInfo.fileId,
+    status,
+    updatedAt: Date.now(),
+  });
+  persistNativeDerivativeStatus();
+}
+
+function resolveOriginalFallbackUrl(url: string): string | null {
+  return resolveImageDerivativeInfo(url)?.originalFallbackUri ?? null;
+}
+
+function resolveNativeDisplayUrl(url: string): string {
+  const originalUrl = resolveOriginalFallbackUrl(url);
+  if (!originalUrl || readNativeDerivativeStatus(url) !== "missing") {
+    return url;
+  }
+  return originalUrl;
 }
 
 function getWebCacheRequest(url: string): Request {
@@ -149,7 +285,7 @@ export function getCachedImageUriSync(url: string | null | undefined): string | 
     return webObjectUrls.get(normalizeCacheKey(url)) ?? null;
   }
 
-  const file = getCacheFile(url);
+  const file = getCacheFile(resolveNativeDisplayUrl(url));
   return file.exists ? file.uri : null;
 }
 
@@ -215,6 +351,30 @@ async function downloadImageToDisk(url: string): Promise<string | null> {
   return request;
 }
 
+async function resolveNativeCachedImageUri(url: string): Promise<string | null> {
+  const displayUrl = resolveNativeDisplayUrl(url);
+  const preferredCachedUri = await downloadImageToDisk(displayUrl);
+  if (preferredCachedUri) {
+    if (displayUrl === url) {
+      rememberNativeDerivativeStatus(url, "available");
+    }
+    return preferredCachedUri;
+  }
+
+  const originalUrl = displayUrl === url ? resolveOriginalFallbackUrl(url) : null;
+  if (!originalUrl) {
+    return null;
+  }
+
+  const originalCachedUri = await downloadImageToDisk(originalUrl);
+  if (!originalCachedUri) {
+    return null;
+  }
+
+  rememberNativeDerivativeStatus(url, "missing");
+  return originalCachedUri;
+}
+
 export async function resolveCachedImageUri(url: string | null | undefined): Promise<string | null> {
   const cachedUri = getCachedImageUriSync(url);
   if (cachedUri || !url) {
@@ -227,7 +387,7 @@ export async function resolveCachedImageUri(url: string | null | undefined): Pro
     return await resolveWebCachedImageUri(url);
   }
 
-  return await downloadImageToDisk(url);
+  return await resolveNativeCachedImageUri(url);
 }
 
 export async function prefetchImage(url: string): Promise<boolean> {
@@ -236,7 +396,7 @@ export async function prefetchImage(url: string): Promise<boolean> {
   if (!shouldUseNativeDiskCache()) {
     return (await resolveWebCachedImageUri(url)) != null;
   }
-  return (await downloadImageToDisk(url)) != null;
+  return (await resolveNativeCachedImageUri(url)) != null;
 }
 
 export async function prefetchImages(urls: readonly string[]): Promise<void> {
@@ -246,13 +406,29 @@ export async function prefetchImages(urls: readonly string[]): Promise<void> {
   await Promise.all(pending.map(prefetchImage));
 }
 
-export function resetCache(): void {
+export function resetCache(options: { clearPersistent?: boolean } = {}): void {
   webPrefetchedKeys.clear();
   failedKeys.clear();
   nativeInflightRequests.clear();
   webInflightRequests.clear();
+  nativeDerivativeStatusRecords.clear();
+  nativeDerivativeStatusLoaded = false;
   for (const objectUrl of webObjectUrls.values()) {
     URL.revokeObjectURL(objectUrl);
   }
   webObjectUrls.clear();
+
+  if (options.clearPersistent === false || !shouldUseNativeDiskCache()) {
+    return;
+  }
+
+  try {
+    const statusFile = getDerivativeStatusFile();
+    if (statusFile.exists) {
+      statusFile.delete();
+    }
+  }
+  catch {
+    // ignore test/runtime cleanup failures
+  }
 }
