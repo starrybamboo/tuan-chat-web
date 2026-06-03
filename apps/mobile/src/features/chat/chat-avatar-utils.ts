@@ -34,6 +34,21 @@ export function resolveMessageAvatarFileId(message: Pick<Message, "avatarFileId"
   return null;
 }
 
+export function resolveMessageAvatarId(message: Pick<Message, "avatarId" | "roleId">, roomRolesById?: RoomRolesById) {
+  if (isPositiveInteger(message.avatarId)) {
+    return message.avatarId;
+  }
+
+  if (isPositiveInteger(message.roleId)) {
+    const roleAvatarId = roomRolesById?.get(message.roleId)?.avatarId;
+    if (isPositiveInteger(roleAvatarId)) {
+      return roleAvatarId;
+    }
+  }
+
+  return null;
+}
+
 export function resolveMessageAvatarUrl(message: Pick<Message, "avatarFileId" | "roleId">, roomRolesById?: RoomRolesById) {
   const avatarFileId = resolveMessageAvatarFileId(message, roomRolesById);
   return avatarFileId ? avatarThumbUrl(avatarFileId) : null;

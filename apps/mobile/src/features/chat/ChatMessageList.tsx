@@ -23,6 +23,7 @@ import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-av
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
+import { getMobileMessageAuthorLabel } from "./messageAuthorLabel";
 import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 import {
   buildVisibleMessageMap,
@@ -46,13 +47,9 @@ const styles = StyleSheet.create({
 });
 
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
-  if (!msg.roleId || msg.roleId <= 0)
-    return "旁白";
-  const custom = (msg.customRoleName ?? "").trim();
-  if (custom)
-    return custom;
-  const role = roomRolesById.get(msg.roleId);
-  return (role?.roleName ?? "").trim() || "未知角色";
+  return getMobileMessageAuthorLabel(msg, roomRolesById, {
+    unknownRoleLabel: typeof msg.userId === "number" && msg.userId > 0 ? `用户 #${msg.userId}` : "未知角色",
+  });
 }
 
 function shouldGroupWithPrevious(current: Message, previous: Message | undefined): boolean {
@@ -61,6 +58,8 @@ function shouldGroupWithPrevious(current: Message, previous: Message | undefined
   if (current.userId !== previous.userId)
     return false;
   if ((current.roleId ?? 0) !== (previous.roleId ?? 0))
+    return false;
+  if ((current.avatarId ?? 0) !== (previous.avatarId ?? 0))
     return false;
   if ((current.avatarFileId ?? 0) !== (previous.avatarFileId ?? 0))
     return false;

@@ -20,7 +20,7 @@ import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
-import { getMobileMessageAuthorLabel, isNarratorMessage } from "./messageAuthorLabel";
+import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { getMessagePreview } from "./mobileChatUtils";
 import {
@@ -62,14 +62,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   rowOOC: {
+    alignItems: "flex-start",
     borderColor: "rgba(150, 150, 150, 0.2)",
     borderRadius: Radius.md,
     borderStyle: "dashed",
     borderWidth: 1,
+    flexDirection: "row",
+    gap: Spacing.lg,
     marginHorizontal: Spacing.xl,
     marginVertical: Spacing.md,
-    paddingLeft: AVATAR_SIZE + Spacing.lg,
-    paddingRight: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
   narratorAvatar: {
@@ -127,17 +129,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
 });
-
-function isOutOfCharacterSpeech(content?: string | null): boolean {
-  if (typeof content !== "string" || content.length === 0)
-    return false;
-  const trimmedEnd = content.trimEnd();
-  if (trimmedEnd.length === 0)
-    return false;
-  const openBrackets = new Set(["(", "（"]);
-  const closeBrackets = new Set([")", "）"]);
-  return openBrackets.has(content[0]) && closeBrackets.has(trimmedEnd[trimmedEnd.length - 1]);
-}
 
 function getDisplayRoleName(message: Message, roomRolesById: RoomRolesById): string {
   return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: "未选择角色" });
@@ -212,11 +203,11 @@ export const ChatMessageItem = memo(({
   simultaneousGestures,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
+  const isOOC = isOutOfCharacterMessage(message);
   const narrator = isNarratorMessage(message);
   const isStateEvent = message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const usesSystemRow = narrator || isStateEvent;
   const displayName = getDisplayRoleName(message, roomRolesById);
-  const isOOC = !usesSystemRow && message.messageType === 1 && isOutOfCharacterSpeech(message.content);
   const shouldRenderTextPreview = shouldRenderMobileMessageTextPreview(message.messageType);
   const canViewHiddenDiceReply = isSpaceOwner || (currentRoleId > 0 && currentRoleId === message.roleId);
   const renderDiceTurnContent = (numberOfLines?: number) => {
@@ -288,7 +279,7 @@ export const ChatMessageItem = memo(({
       ? gesture.simultaneousWithExternalGesture(...simultaneousGestures)
       : gesture;
   }, [message, onLongPress, simultaneousGestures]);
-  const shouldRenderAvatar = !isGrouped && !isOOC && !isStateEvent;
+  const shouldRenderAvatar = !isGrouped && !isStateEvent;
   const messageRowStyle = isStateEvent
     ? styles.rowNarrator
     : isOOC
@@ -306,7 +297,9 @@ export const ChatMessageItem = memo(({
     return (
       <MessageAvatar
         avatarFileId={message.avatarFileId}
+        avatarId={message.avatarId}
         displayName={displayName}
+        preferUserAvatar={isOOC}
         roleId={message.roleId}
         roomRolesById={roomRolesById}
         size={AVATAR_SIZE}

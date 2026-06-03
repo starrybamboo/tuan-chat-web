@@ -1279,7 +1279,8 @@ export default function ChatShell() {
                               </>
                             )}
                       <Animated.View
-                        style={[styles.overlay, overlayStyle, { pointerEvents: isOverlayInteractive ? "auto" : "none" }]}
+                        pointerEvents={isOverlayInteractive ? "auto" : "none"}
+                        style={[styles.overlay, overlayStyle]}
                       >
                         <Pressable style={{ flex: 1 }} onPress={close} />
                       </Animated.View>

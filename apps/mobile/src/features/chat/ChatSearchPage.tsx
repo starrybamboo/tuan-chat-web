@@ -23,7 +23,7 @@ import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
-import { getMobileMessageAuthorLabel, isNarratorMessage } from "./messageAuthorLabel";
+import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { formatMessageDateTime } from "./mobileChatUtils";
 
@@ -87,7 +87,9 @@ export function ChatSearchPage({ messages, nativeScrollGesture, onClose, onScrol
       >
         <MessageAvatar
           avatarFileId={msg.avatarFileId}
+          avatarId={msg.avatarId}
           displayName={authorLabel}
+          preferUserAvatar={isOutOfCharacterMessage(msg)}
           roleId={msg.roleId}
           roomRolesById={roomRolesById}
           size={36}
