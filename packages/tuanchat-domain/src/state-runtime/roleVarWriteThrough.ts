@@ -8,6 +8,10 @@ import { STATE_EVENT_VAR_OP } from "../state-event";
 
 type NumericAbilitySection = "basic" | "ability" | "skill";
 type RoleVarOp = StateEventVarOp & { scope: { kind: "role"; roleId: number } };
+type RoleVarOpWithSnapshot = RoleVarOp & {
+  afterValue: number;
+  beforeValue: number;
+};
 type RoleAbilitySections = Pick<RoleAbility, NumericAbilitySection>;
 
 export type RoleVarWriteThroughDeps = {
@@ -81,7 +85,7 @@ function writeAbilityNumber(ability: RoleAbility, key: string, value: number): v
   };
 }
 
-function applyRoleVarOp(ability: RoleAbility, op: RoleVarOp): void {
+function applyRoleVarOp(ability: RoleAbility, op: RoleVarOp): RoleVarOpWithSnapshot {
   const beforeValue = readAbilityNumber(ability, op.key);
   const nextValue = op.op === STATE_EVENT_VAR_OP.SET
     ? op.value
@@ -89,6 +93,11 @@ function applyRoleVarOp(ability: RoleAbility, op: RoleVarOp): void {
       ? beforeValue + op.value
       : beforeValue - op.value;
   writeAbilityNumber(ability, op.key, nextValue);
+  return {
+    ...op,
+    beforeValue,
+    afterValue: nextValue,
+  };
 }
 
 function recordsEqual(left: Record<string, string> | undefined, right: Record<string, string> | undefined): boolean {
@@ -139,6 +148,35 @@ export function applyRoleVarOpsToAbility(
   return nextAbility;
 }
 
+export function mergeRoleVarOpSnapshotsIntoEvents(
+  events: StateEventAtom[],
+  roleVarOps: RoleVarOpWithSnapshot[],
+): StateEventAtom[] {
+  const snapshots = [...roleVarOps];
+  return events.map((event) => {
+    if (event.type !== "varOp" || event.scope.kind !== "role") {
+      return event;
+    }
+    return snapshots.shift() ?? event;
+  });
+}
+
+function applyRoleVarOpsToAbilityWithSnapshots(
+  ability: RoleAbility | null | undefined,
+  roleId: number,
+  ruleId: number,
+  ops: RoleVarOp[],
+): { afterAbility: RoleAbility; roleVarOps: RoleVarOpWithSnapshot[] } {
+  const nextAbility = cloneRoleAbilityForWriteThrough(ability);
+  nextAbility.roleId = nextAbility.roleId ?? roleId;
+  nextAbility.ruleId = nextAbility.ruleId ?? ruleId;
+  const roleVarOps = ops.map(op => applyRoleVarOp(nextAbility, op));
+  return {
+    afterAbility: nextAbility,
+    roleVarOps,
+  };
+}
+
 export async function persistRoleAbilitySnapshot(params: RoleVarWriteThroughDeps & {
   afterAbility: RoleAbility;
   beforeAbility: RoleAbility | null | undefined;
@@ -177,7 +215,7 @@ export async function writeRoleVarOpsThroughAbilities({
   loadRoleAbility,
   createRoleAbility,
   updateRoleAbility,
-}: WriteRoleVarOpsParams): Promise<{ changedRoleIds: number[]; roleVarOps: RoleVarOp[] }> {
+}: WriteRoleVarOpsParams): Promise<{ changedRoleIds: number[]; roleVarOps: RoleVarOpWithSnapshot[] }> {
   const roleVarOps = collectRoleVarOps(events);
   if (roleVarOps.length === 0) {
     return { changedRoleIds: [], roleVarOps };
@@ -194,9 +232,11 @@ export async function writeRoleVarOpsThroughAbilities({
   });
 
   const changedRoleIds: number[] = [];
+  const roleVarOpsWithSnapshots: RoleVarOpWithSnapshot[] = [];
   for (const [roleId, ops] of opsByRoleId) {
     const beforeAbility = await loadRoleAbility(roleId, ruleId);
-    const afterAbility = applyRoleVarOpsToAbility(beforeAbility, roleId, ruleId, ops);
+    const { afterAbility, roleVarOps: enrichedOps } = applyRoleVarOpsToAbilityWithSnapshots(beforeAbility, roleId, ruleId, ops);
+    roleVarOpsWithSnapshots.push(...enrichedOps);
     const changed = await persistRoleAbilitySnapshot({
       beforeAbility,
       afterAbility,
@@ -211,5 +251,5 @@ export async function writeRoleVarOpsThroughAbilities({
     }
   }
 
-  return { changedRoleIds, roleVarOps };
+  return { changedRoleIds, roleVarOps: roleVarOpsWithSnapshots };
 }

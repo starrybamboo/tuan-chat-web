@@ -21,6 +21,8 @@ describe("state-event atoms", () => {
           key: "initiative",
           op: STATE_EVENT_VAR_OP.SET,
           value: "18",
+          beforeValue: "12",
+          afterValue: "18",
         },
         {
           type: "mapTokenUpsert",
@@ -47,6 +49,8 @@ describe("state-event atoms", () => {
         key: "initiative",
         op: "set",
         value: 18,
+        beforeValue: 12,
+        afterValue: 18,
       },
       {
         type: "mapTokenUpsert",
@@ -107,6 +111,20 @@ describe("state-event atoms", () => {
     };
 
     expect(formatStateEventPreviewText(extra)).toBe("[战斗] 地图角色 #12 移动");
+  });
+
+  it("带快照的 role varOp 会在预览中显示前后值", () => {
+    expect(formatStateEventPreviewText({
+      stateEvent: buildCommandStateEventExtra("st", [{
+        type: "varOp",
+        scope: buildRoleStateEventScope(12),
+        key: "hp",
+        op: STATE_EVENT_VAR_OP.SUB,
+        value: 3,
+        beforeValue: 10,
+        afterValue: 7,
+      }]),
+    })).toBe("[状态] HP 10 -> 7");
   });
 
   it("map token 详情在提供角色名映射时显示角色名", () => {

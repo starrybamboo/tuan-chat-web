@@ -460,7 +460,11 @@ export function buildStateRuntime({
         if (atom.scope.kind !== STATE_EVENT_SCOPE_KIND.ROOM) {
           ensureRoleKeySet(observedRoleKeysByRoleId, atom.scope.roleId).add(atom.key);
           ensureRoleKeySet(recordedRoleValueKeysByRoleId, atom.scope.roleId).add(atom.key);
-          primaryCandidates.push(formatVarOpRecordPrimary(atom));
+          const beforeValue = atom.beforeValue;
+          const afterValue = atom.afterValue;
+          primaryCandidates.push(typeof beforeValue === "number" && typeof afterValue === "number"
+            ? `${formatStateKeyLabel(atom.key)} ${formatStateNumericValue(beforeValue)} -> ${formatStateNumericValue(afterValue)}`
+            : formatVarOpRecordPrimary(atom));
           detailLines.push(formatStateEventAtomDetail(atom));
           return;
         }

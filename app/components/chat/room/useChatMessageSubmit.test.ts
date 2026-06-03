@@ -1,4 +1,4 @@
-﻿import { vi } from "vitest";
+import { vi } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 
@@ -49,6 +49,15 @@ vi.mock("@/components/common/dicer/cmdPre", () => ({
 }));
 
 vi.mock("@/components/chat/state/roleVarWriteThrough", () => ({
+  mergeRoleVarOpSnapshotsIntoEvents: (events: any[], roleVarOps: any[]) => {
+    const snapshots = [...roleVarOps];
+    return events.map((event) => {
+      if (event.type !== "varOp" || event.scope?.kind !== "role") {
+        return event;
+      }
+      return snapshots.shift() ?? event;
+    });
+  },
   writeRoleVarOpsThroughAbilities: mocks.writeRoleVarOpsThroughAbilitiesMock,
 }));
 
@@ -154,6 +163,21 @@ describe("useChatMessageSubmit", () => {
       extractFirstCommandText: vi.fn(() => null),
       setInputText,
       roomUiStoreApi,
+    });
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedRoleIds: [3],
+      roleVarOps: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "sub",
+        value: 2,
+        beforeValue: 10,
+        afterValue: 8,
+      }],
     });
 
     await handleMessageSubmit();
@@ -703,6 +727,8 @@ describe("useChatMessageSubmit", () => {
             key: "hp",
             op: "sub",
             value: 2,
+            beforeValue: 10,
+            afterValue: 8,
           }],
         },
       },
@@ -746,6 +772,21 @@ describe("useChatMessageSubmit", () => {
       setInputText: vi.fn(),
       roomUiStoreApi,
     });
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedRoleIds: [3],
+      roleVarOps: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "add",
+        value: 6,
+        beforeValue: 8,
+        afterValue: 14,
+      }],
+    });
 
     await handleMessageSubmit();
 
@@ -781,6 +822,8 @@ describe("useChatMessageSubmit", () => {
             key: "hp",
             op: "add",
             value: 6,
+            beforeValue: 8,
+            afterValue: 14,
           }],
         },
       },
@@ -968,4 +1011,3 @@ describe("useChatMessageSubmit", () => {
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
   });
 });
-

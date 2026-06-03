@@ -6,7 +6,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
+import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
@@ -114,13 +114,14 @@ export default function InitiativeList() {
 
     try {
       const ruleId = spaceContext.ruleId ?? -1;
-      const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+      const { changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
         events,
         ruleId,
         loadRoleAbility: loadRoleAbilityByRule,
         createRoleAbility: setRoleAbilityWithSuccessGuard,
         updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
       });
+      const eventsForMessage = mergeRoleVarOpSnapshotsIntoEvents(events, roleVarOps);
       await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
       const createdMessage = await roomContext.sendMessageWithInsert({
         roomId: roomContext.roomId,
@@ -128,7 +129,7 @@ export default function InitiativeList() {
         avatarId: roomContext.curAvatarId ?? -1,
         content,
         messageType: MessageType.STATE_EVENT,
-        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", events)),
+        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", eventsForMessage)),
       });
       if (!createdMessage) {
         toast.error("写入先攻事件失败");

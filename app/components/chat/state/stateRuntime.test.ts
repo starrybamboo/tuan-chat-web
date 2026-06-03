@@ -133,6 +133,28 @@ describe("buildStateRuntime", () => {
     expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP = 50");
   });
 
+  it("带快照的 role varOp 摘要展示事件前后值", () => {
+    const runtime = buildStateRuntime({
+      messages: [
+        createStateMessage(1, buildCommandStateEventExtra("st", [{
+          type: "varOp",
+          scope: buildRoleStateEventScope(3),
+          key: "hp",
+          op: STATE_EVENT_VAR_OP.SUB,
+          value: 3,
+          beforeValue: 10,
+          afterValue: 7,
+        }])),
+      ],
+      fallbackRoleAbilitiesByRoleId: {
+        3: createRoleAbility({ ability: { hp: "7" } }),
+      },
+    });
+
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP 10 -> 7");
+    expect(runtime.messageSummariesByMessageId[1]?.detailLines).toEqual(["角色 #3 · HP 10 -> 7"]);
+  });
+
   it("仅存在 fallback role_ability 的角色也会出现在显示值中", () => {
     const runtime = buildStateRuntime({
       messages: [],
@@ -228,7 +250,6 @@ describe("buildStateRuntime", () => {
     expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("结束战斗");
   });
 });
-
 describe("buildCombatStateRuntime", () => {
   it("web wrapper 忽略旧先攻 extra，参与者不再由 state event 派生", () => {
     const runtime = buildCombatStateRuntime({

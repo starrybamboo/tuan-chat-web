@@ -50,7 +50,21 @@ describe("roleVarWriteThrough", () => {
       ...deps,
     });
 
-    expect(result).toEqual({ changedRoleIds: [3], roleVarOps: events });
+    expect(result).toEqual({
+      changedRoleIds: [3],
+      roleVarOps: [
+        {
+          ...events[0],
+          beforeValue: 3,
+          afterValue: 10,
+        },
+        {
+          ...events[1],
+          beforeValue: 10,
+          afterValue: 8,
+        },
+      ],
+    });
     expect(deps.updateRoleAbility).toHaveBeenCalledWith({
       roleId: 3,
       ruleId: 7,

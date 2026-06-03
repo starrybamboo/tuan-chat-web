@@ -63,6 +63,8 @@ export type StateEventVarOp = {
   key: string;
   op: StateEventVarOpKind;
   value: number;
+  afterValue?: number;
+  beforeValue?: number;
 };
 
 export type StateEventStatusApply = {
@@ -338,6 +340,8 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
     const key = toTrimmedString(atom.key);
     const op = toTrimmedString(atom.op);
     const value = toFiniteNumber(atom.value);
+    const beforeValue = toFiniteNumber(atom.beforeValue);
+    const afterValue = toFiniteNumber(atom.afterValue);
     if (!key || (op !== STATE_EVENT_VAR_OP.SET && op !== STATE_EVENT_VAR_OP.ADD && op !== STATE_EVENT_VAR_OP.SUB) || typeof value !== "number") {
       return undefined;
     }
@@ -347,6 +351,8 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
       key,
       op,
       value,
+      ...(typeof beforeValue === "number" ? { beforeValue } : {}),
+      ...(typeof afterValue === "number" ? { afterValue } : {}),
     };
   }
 
@@ -613,6 +619,9 @@ export function formatStateEventAtomDetail(atom: StateEventAtom, options?: State
   }
   const scopeLabel = formatStateScopeLabel(atom.scope, options);
   if (atom.type === "varOp") {
+    if (typeof atom.beforeValue === "number" && typeof atom.afterValue === "number") {
+      return `${scopeLabel} · ${formatStateKeyLabel(atom.key)} ${formatStateNumericValue(atom.beforeValue)} -> ${formatStateNumericValue(atom.afterValue)}`;
+    }
     const opLabel = atom.op === STATE_EVENT_VAR_OP.SET
       ? "="
       : atom.op === STATE_EVENT_VAR_OP.ADD
@@ -637,6 +646,9 @@ function formatNormalizedStateEventPreviewText(normalized: StateEventExtra | und
     return `[状态] ${fallback}`;
   }
   if (firstEvent.type === "varOp") {
+    if (typeof firstEvent.beforeValue === "number" && typeof firstEvent.afterValue === "number") {
+      return `[状态] ${formatStateKeyLabel(firstEvent.key)} ${formatStateNumericValue(firstEvent.beforeValue)} -> ${formatStateNumericValue(firstEvent.afterValue)}`;
+    }
     const opLabel = firstEvent.op === STATE_EVENT_VAR_OP.SET
       ? "="
       : firstEvent.op === STATE_EVENT_VAR_OP.ADD

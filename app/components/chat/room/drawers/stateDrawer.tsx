@@ -1,8 +1,8 @@
 import type { UserRole } from "../../../../../api";
 import type { Initiative } from "./initiativeListTypes";
-import type { Role } from "@/components/Role/types";
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
+import type { Role } from "@/components/Role/types";
 import type { StateEventAtom } from "@/types/stateEvent";
 
 import { Broom } from "@phosphor-icons/react";
@@ -11,15 +11,15 @@ import React from "react";
 import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
+import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
-  buildRoleStateEventScope,
   buildCommandStateEventExtra,
+  buildRoleStateEventScope,
   formatStateKeyLabel,
   formatStateNumericValue,
   formatStateScopeLabel,
@@ -31,8 +31,8 @@ import {
   loadRoleAbilityByRule,
   setRoleAbilityWithSuccessGuard,
   updateRoleAbilityByRuleWithSuccessGuard,
-  useUpdateKeyFieldByRoleIdMutation,
   useGetRolesAbilitiesQueries,
+  useUpdateKeyFieldByRoleIdMutation,
 } from "../../../../../api/hooks/abilityQueryHooks";
 import { useAddRoomRoleMutation, useDeleteMessageMutation } from "../../../../../api/hooks/chatQueryHooks";
 import { useCopyRoleMutation } from "../../../../../api/hooks/RoleAndAvatarHooks";
@@ -49,12 +49,12 @@ import {
 } from "./initiativeListEvents";
 import {
   buildNextCopiedInitiativeRoleName,
+  buildRoleAbilityFieldDeletePatch,
   collectCombatInitiativeRecords,
   collectRecordedRoleValueIds,
   compareCombatRoleRowsByInitiative,
-  buildRoleAbilityFieldDeletePatch,
-  isInlineRoleValueKey,
   isInitiativeRoleValueKey,
+  isInlineRoleValueKey,
   parseCustomCombatStateKey,
   readCombatRoleInitiativeValue,
   shouldCommitCombatRoleValueEdit,
@@ -595,13 +595,14 @@ export default function StateDrawer() {
 
     try {
       const ruleId = spaceContext.ruleId ?? -1;
-      const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+      const { changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
         events,
         ruleId,
         loadRoleAbility: loadRoleAbilityByRule,
         createRoleAbility: setRoleAbilityWithSuccessGuard,
         updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
       });
+      const eventsForMessage = mergeRoleVarOpSnapshotsIntoEvents(events, roleVarOps);
       await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
       const createdMessage = await roomContext.sendMessageWithInsert({
         roomId: roomContext.roomId,
@@ -609,7 +610,7 @@ export default function StateDrawer() {
         avatarId: roomContext.curAvatarId ?? -1,
         content,
         messageType: MessageType.STATE_EVENT,
-        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", events)),
+        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", eventsForMessage)),
       });
       if (!createdMessage) {
         toast.error("写入先攻事件失败");
