@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getCachedImageUriSync,
@@ -11,8 +11,9 @@ import {
 } from "./mobile-image-cache";
 
 const fileSystemMock = vi.hoisted(() => {
-  const existingDirectories = new Set<string>(["file:///mock/cache"]);
+  const existingDirectories = new Set<string>(["file:///mock/cache", "file:///mock/document"]);
   const existingFiles = new Set<string>();
+  const fileContents = new Map<string, string>();
 
   function getUriPart(part: string | { uri: string }): string {
     return typeof part === "string" ? part : part.uri;
@@ -59,12 +60,27 @@ const fileSystemMock = vi.hoisted(() => {
 
     delete() {
       existingFiles.delete(this.uri);
+      fileContents.delete(this.uri);
+    }
+
+    textSync() {
+      const content = fileContents.get(this.uri);
+      if (content == null) {
+        throw new Error("File does not exist");
+      }
+      return content;
+    }
+
+    write(content: string) {
+      existingFiles.add(this.uri);
+      fileContents.set(this.uri, content);
     }
   }
 
   return {
     existingDirectories,
     existingFiles,
+    fileContents,
     MockDirectory,
     MockFile,
   };
@@ -85,6 +101,9 @@ vi.mock("expo-file-system", () => ({
     get cache() {
       return new fileSystemMock.MockDirectory("file:///mock/cache");
     },
+    get document() {
+      return new fileSystemMock.MockDirectory("file:///mock/document");
+    },
   },
 }));
 
@@ -95,13 +114,18 @@ vi.mock("expo-image", () => ({
 }));
 
 const LOW_URL = "https://media.tuan.chat/media/v1/files/007/7/image/low.webp";
-const LOW_FILE_URI = "file:///mock/cache/mobile-image-cache/7_low.webp";
+const MEDIUM_URL = "https://media.tuan.chat/media/v1/files/007/7/image/medium.webp";
+const ORIGINAL_URL = "https://media.tuan.chat/media/v1/files/007/7/original";
+const LOW_FILE_URI = "file:///mock/document/mobile-image-cache/7_low.webp";
+const ORIGINAL_FILE_URI = "file:///mock/document/mobile-image-cache/7_original.img";
 
 beforeEach(() => {
   resetCache();
   fileSystemMock.existingDirectories.clear();
   fileSystemMock.existingDirectories.add("file:///mock/cache");
+  fileSystemMock.existingDirectories.add("file:///mock/document");
   fileSystemMock.existingFiles.clear();
+  fileSystemMock.fileContents.clear();
   fileSystemMock.MockFile.downloadFileAsync.mockClear();
   fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (_url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
     fileSystemMock.existingFiles.add(destination.uri);
@@ -160,6 +184,56 @@ describe("native disk cache", () => {
     expect(getCachedImageUriSync(LOW_URL)).toBe(LOW_FILE_URI);
   });
 
+  it("falls back to original when the requested derivative is missing", async () => {
+    fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
+      if (url === LOW_URL) {
+        throw new Error("404 derivative missing");
+      }
+      fileSystemMock.existingFiles.add(destination.uri);
+      return { uri: destination.uri };
+    });
+
+    const resolvedUri = await resolveCachedImageUri(LOW_URL);
+
+    expect(resolvedUri).toBe(ORIGINAL_FILE_URI);
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledTimes(2);
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenNthCalledWith(
+      1,
+      LOW_URL,
+      expect.objectContaining({ uri: LOW_FILE_URI }),
+      { idempotent: true },
+    );
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenNthCalledWith(
+      2,
+      ORIGINAL_URL,
+      expect.objectContaining({ uri: ORIGINAL_FILE_URI }),
+      { idempotent: true },
+    );
+    expect(getCachedImageUriSync(LOW_URL)).toBe(ORIGINAL_FILE_URI);
+    expect(isAlreadyCached(LOW_URL)).toBe(true);
+  });
+
+  it("persists derivative missing status and reuses original for the same media file", async () => {
+    fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
+      if (url === LOW_URL) {
+        throw new Error("404 derivative missing");
+      }
+      fileSystemMock.existingFiles.add(destination.uri);
+      return { uri: destination.uri };
+    });
+
+    await resolveCachedImageUri(LOW_URL);
+    resetCache({ clearPersistent: false });
+    fileSystemMock.MockFile.downloadFileAsync.mockClear();
+
+    expect(getCachedImageUriSync(MEDIUM_URL)).toBe(ORIGINAL_FILE_URI);
+
+    const resolvedUri = await resolveCachedImageUri(MEDIUM_URL);
+
+    expect(resolvedUri).toBe(ORIGINAL_FILE_URI);
+    expect(fileSystemMock.MockFile.downloadFileAsync).not.toHaveBeenCalled();
+  });
+
   it("does not redownload an already cached URL", async () => {
     await prefetchImage(LOW_URL);
     fileSystemMock.MockFile.downloadFileAsync.mockClear();
@@ -208,7 +282,7 @@ describe("native disk cache", () => {
 
     const r1 = await prefetchImage(LOW_URL);
     expect(r1).toBe(false);
-    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledTimes(1);
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledTimes(2);
 
     fileSystemMock.MockFile.downloadFileAsync.mockClear();
     const r2 = await prefetchImage(LOW_URL);
@@ -247,7 +321,7 @@ describe("prefetchImages", () => {
     expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledTimes(1);
     expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledWith(
       url2,
-      expect.objectContaining({ uri: "file:///mock/cache/mobile-image-cache/12_low.webp" }),
+      expect.objectContaining({ uri: "file:///mock/document/mobile-image-cache/12_low.webp" }),
       { idempotent: true },
     );
   });
@@ -258,7 +332,7 @@ describe("prefetchImages", () => {
     const url3 = "https://media.tuan.chat/media/v1/files/099/99/image/low.webp";
 
     fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
-      if (url === url2)
+      if (url === url2 || url === "https://media.tuan.chat/media/v1/files/012/12/original")
         throw new Error("network error");
       fileSystemMock.existingFiles.add(destination.uri);
       return { uri: destination.uri };
@@ -271,4 +345,3 @@ describe("prefetchImages", () => {
     expect(isAlreadyCached(url3)).toBe(true);
   });
 });
-
