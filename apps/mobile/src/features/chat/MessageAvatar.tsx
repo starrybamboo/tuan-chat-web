@@ -1,12 +1,16 @@
+import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
+import { mobileApiClient } from "@/lib/api";
+import { avatarThumbUrl } from "@/lib/media-url";
+import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
-import { resolveMessageAvatarUrl } from "./chat-avatar-utils";
+import { resolveMessageAvatarFileId, resolveMessageAvatarId } from "./chat-avatar-utils";
 
 const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
 
@@ -31,7 +35,9 @@ function getAvatarInitial(displayName: string) {
 
 type MessageAvatarProps = {
   avatarFileId?: number | null;
+  avatarId?: number | null;
   displayName?: string | null;
+  preferUserAvatar?: boolean;
   roleId?: number | null;
   roomRolesById?: RoomRolesById;
   size?: number;
@@ -40,19 +46,59 @@ type MessageAvatarProps = {
 
 export const MessageAvatar = memo(({
   avatarFileId,
+  avatarId,
   displayName,
+  preferUserAvatar,
   roleId,
   roomRolesById,
   size = 40,
   userId,
 }: MessageAvatarProps) => {
-  const avatarUrl = resolveMessageAvatarUrl(
+  const resolvedAvatarFileId = resolveMessageAvatarFileId(
     {
       avatarFileId: avatarFileId ?? undefined,
       roleId: roleId ?? undefined,
     },
     roomRolesById,
   );
+  const resolvedAvatarId = resolveMessageAvatarId(
+    {
+      avatarId: avatarId ?? undefined,
+      roleId: roleId ?? undefined,
+    },
+    roomRolesById,
+  );
+  const shouldFetchAvatar = resolvedAvatarFileId == null && resolvedAvatarId != null;
+  const roleAvatarQuery = useQuery({
+    enabled: shouldFetchAvatar,
+    queryFn: async () => {
+      if (resolvedAvatarId == null)
+        return null;
+      const response = await mobileApiClient.avatarController.getRoleAvatar(resolvedAvatarId);
+      return response.data ?? null;
+    },
+    queryKey: ["getRoleAvatar", resolvedAvatarId] as const,
+    staleTime: 24 * 60 * 60_000,
+  });
+  const shouldFetchUserAvatar = Boolean(preferUserAvatar)
+    && resolvedAvatarFileId == null
+    && !roleAvatarQuery.data?.avatarFileId
+    && typeof userId === "number"
+    && userId > 0;
+  const userInfoQuery = useQuery({
+    enabled: shouldFetchUserAvatar,
+    queryFn: async () => {
+      if (typeof userId !== "number" || userId <= 0)
+        return null;
+      const response = await mobileApiClient.userController.getUserInfo(userId);
+      return response.data ?? null;
+    },
+    queryKey: getUserInfoQueryKey(userId ?? -1),
+    staleTime: USER_INFO_STALE_TIME_MS,
+  });
+  const avatarUrl = resolvedAvatarFileId
+    ? avatarThumbUrl(resolvedAvatarFileId)
+    : avatarThumbUrl(roleAvatarQuery.data?.avatarFileId ?? userInfoQuery.data?.avatarFileId);
   const borderRadius = size / 2;
 
   if (avatarUrl) {
