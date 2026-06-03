@@ -21,9 +21,14 @@ type MediaImageDerivativeStorage = {
   version: 1;
 };
 
+type NativeImageDownloadResult = {
+  permanentMissing: boolean;
+  uri: string | null;
+};
+
 const webPrefetchedKeys = new Set<string>();
 const failedKeys = new Map<string, number>();
-const nativeInflightRequests = new Map<string, Promise<string | null>>();
+const nativeInflightRequests = new Map<string, Promise<NativeImageDownloadResult>>();
 const webInflightRequests = new Map<string, Promise<string | null>>();
 const webObjectUrls = new Map<string, string>();
 const nativeDerivativeStatusRecords = new Map<number, MediaImageDerivativeRecord>();
@@ -308,14 +313,22 @@ function isBackedOff(url: string): boolean {
   return true;
 }
 
-async function downloadImageToDisk(url: string): Promise<string | null> {
+function resolveNativeDownloadFailure(error: unknown): NativeImageDownloadResult {
+  const message = error instanceof Error ? error.message : String(error);
+  return {
+    permanentMissing: /\b(?:404|410)\b/.test(message),
+    uri: null,
+  };
+}
+
+async function downloadImageToDisk(url: string): Promise<NativeImageDownloadResult> {
   const key = normalizeCacheKey(url);
   if (isBackedOff(url))
-    return null;
+    return { permanentMissing: false, uri: null };
 
   const cachedUri = getCachedImageUriSync(url);
   if (cachedUri)
-    return cachedUri;
+    return { permanentMissing: false, uri: cachedUri };
 
   const inflight = nativeInflightRequests.get(key);
   if (inflight)
@@ -327,9 +340,9 @@ async function downloadImageToDisk(url: string): Promise<string | null> {
       ensureCacheDirectory();
       const downloaded = await File.downloadFileAsync(url, targetFile, { idempotent: true });
       failedKeys.delete(key);
-      return downloaded.uri;
+      return { permanentMissing: false, uri: downloaded.uri };
     }
-    catch {
+    catch (error) {
       failedKeys.set(key, Date.now());
       // Android can leave a partial file if a download fails mid-stream.
       try {
@@ -340,7 +353,7 @@ async function downloadImageToDisk(url: string): Promise<string | null> {
       catch {
         // Best effort cleanup only.
       }
-      return null;
+      return resolveNativeDownloadFailure(error);
     }
     finally {
       nativeInflightRequests.delete(key);
@@ -353,12 +366,9 @@ async function downloadImageToDisk(url: string): Promise<string | null> {
 
 async function resolveNativeCachedImageUri(url: string): Promise<string | null> {
   const displayUrl = resolveNativeDisplayUrl(url);
-  const preferredCachedUri = await downloadImageToDisk(displayUrl);
-  if (preferredCachedUri) {
-    if (displayUrl === url) {
-      rememberNativeDerivativeStatus(url, "available");
-    }
-    return preferredCachedUri;
+  const preferredDownload = await downloadImageToDisk(displayUrl);
+  if (preferredDownload.uri) {
+    return preferredDownload.uri;
   }
 
   const originalUrl = displayUrl === url ? resolveOriginalFallbackUrl(url) : null;
@@ -366,13 +376,15 @@ async function resolveNativeCachedImageUri(url: string): Promise<string | null> 
     return null;
   }
 
-  const originalCachedUri = await downloadImageToDisk(originalUrl);
-  if (!originalCachedUri) {
+  const originalDownload = await downloadImageToDisk(originalUrl);
+  if (!originalDownload.uri) {
     return null;
   }
 
-  rememberNativeDerivativeStatus(url, "missing");
-  return originalCachedUri;
+  if (preferredDownload.permanentMissing) {
+    rememberNativeDerivativeStatus(url, "missing");
+  }
+  return originalDownload.uri;
 }
 
 export async function resolveCachedImageUri(url: string | null | undefined): Promise<string | null> {
