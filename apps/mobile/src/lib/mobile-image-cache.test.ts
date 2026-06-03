@@ -189,7 +189,7 @@ describe("native disk cache", () => {
   it("falls back to original when the requested derivative is missing", async () => {
     fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
       if (url === LOW_URL) {
-        throw new Error("404 derivative missing");
+        throw new Error("Unable to download a file: response has status: 404");
       }
       fileSystemMock.existingFiles.add(destination.uri);
       return { uri: destination.uri };
@@ -218,7 +218,7 @@ describe("native disk cache", () => {
   it("persists derivative missing status and reuses original for the same media file", async () => {
     fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
       if (url === LOW_URL) {
-        throw new Error("404 derivative missing");
+        throw new Error("Unable to download a file: response has status 404");
       }
       fileSystemMock.existingFiles.add(destination.uri);
       return { uri: destination.uri };
@@ -253,6 +253,24 @@ describe("native disk cache", () => {
     resetCache({ clearPersistent: false });
 
     expect(getCachedImageUriSync(MEDIUM_URL)).toBeNull();
+  });
+
+  it("persists missing status when native download exposes a structured 410 status", async () => {
+    fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
+      if (url === LOW_URL) {
+        throw Object.assign(new Error("gone"), { statusCode: 410 });
+      }
+      fileSystemMock.existingFiles.add(destination.uri);
+      return { uri: destination.uri };
+    });
+
+    const resolvedUri = await resolveCachedImageUri(LOW_URL);
+
+    expect(resolvedUri).toBe(ORIGINAL_FILE_URI);
+
+    resetCache({ clearPersistent: false });
+
+    expect(getCachedImageUriSync(MEDIUM_URL)).toBe(ORIGINAL_FILE_URI);
   });
 
   it("does not redownload an already cached URL", async () => {

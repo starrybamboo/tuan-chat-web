@@ -313,10 +313,27 @@ function isBackedOff(url: string): boolean {
   return true;
 }
 
-function resolveNativeDownloadFailure(error: unknown): NativeImageDownloadResult {
+function extractNativeDownloadHttpStatus(error: unknown): number | null {
+  if (error && typeof error === "object") {
+    const status = (error as { status?: unknown; statusCode?: unknown }).status ?? (error as { statusCode?: unknown }).statusCode;
+    if (typeof status === "number" && Number.isInteger(status)) {
+      return status;
+    }
+  }
+
   const message = error instanceof Error ? error.message : String(error);
+  const statusMatch = message.match(/\bstatus:?\s+(\d{3})\b/i);
+  if (!statusMatch?.[1]) {
+    return null;
+  }
+  const status = Number(statusMatch[1]);
+  return Number.isInteger(status) ? status : null;
+}
+
+function resolveNativeDownloadFailure(error: unknown): NativeImageDownloadResult {
+  const status = extractNativeDownloadHttpStatus(error);
   return {
-    permanentMissing: /\b(?:404|410)\b/.test(message),
+    permanentMissing: status === 404 || status === 410,
     uri: null,
   };
 }
