@@ -73,8 +73,8 @@ describe("useRoomCommandRequests", () => {
     });
   });
 
-  it("首次执行检定请求后会写入本地一次性记录", () => {
-    const commandExecutor = vi.fn<(...args: any[]) => any>(async () => {});
+  it("首次执行检定请求成功后会写入本地一次性记录", async () => {
+    const commandExecutor = vi.fn<(...args: any[]) => any>(async () => true);
     const hook = useRoomCommandRequests({
       roomId: 7,
       userId: 11,
@@ -89,6 +89,7 @@ describe("useRoomCommandRequests", () => {
       command: ".ra 侦查",
       requestMessageId: 101,
     });
+    await Promise.resolve();
 
     expect(commandExecutor).toHaveBeenCalledWith({
       command: ".ra 侦查",
@@ -101,6 +102,67 @@ describe("useRoomCommandRequests", () => {
     expect(persisted).toEqual({
       11: ["7:101"],
     });
+  });
+
+  it("检定请求执行失败时不会写入本地一次性记录，允许后续重试", async () => {
+    const commandExecutor = vi.fn<(...args: any[]) => any>(async () => false);
+    const hook = useRoomCommandRequests({
+      roomId: 7,
+      userId: 11,
+      isSpaceOwner: false,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      commandExecutor,
+    });
+
+    hook.handleExecuteCommandRequest({
+      command: ".ra 侦查",
+      requestMessageId: 101,
+    });
+    await Promise.resolve();
+
+    expect(hook.isCommandRequestConsumed(101)).toBe(false);
+    expect(window.localStorage.getItem(COMMAND_REQUEST_ONCE_STORAGE_KEY)).toBeNull();
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("检定请求未执行成功，请重试");
+
+    hook.handleExecuteCommandRequest({
+      command: ".ra 侦查",
+      requestMessageId: 101,
+    });
+
+    expect(commandExecutor).toHaveBeenCalledTimes(2);
+  });
+
+  it("检定请求执行中再次点击会被临时锁拦截但不会写入已执行", () => {
+    let resolveExecution: ((value: boolean) => void) | undefined;
+    const commandExecutor = vi.fn<(...args: any[]) => any>(() => new Promise<boolean>((resolve) => {
+      resolveExecution = resolve;
+    }));
+    const hook = useRoomCommandRequests({
+      roomId: 7,
+      userId: 11,
+      isSpaceOwner: false,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      commandExecutor,
+    });
+
+    hook.handleExecuteCommandRequest({
+      command: ".ra 侦查",
+      requestMessageId: 101,
+    });
+    hook.handleExecuteCommandRequest({
+      command: ".ra 侦查",
+      requestMessageId: 101,
+    });
+
+    expect(commandExecutor).toHaveBeenCalledTimes(1);
+    expect(hook.isCommandRequestConsumed(101)).toBe(false);
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("检定请求正在执行，请稍后");
+
+    resolveExecution?.(true);
   });
 
   it("同一条检定请求再次执行时会被本地一次性保护拦截", () => {

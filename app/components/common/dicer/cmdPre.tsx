@@ -457,7 +457,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
    * 返回这个函数
    * @param executorProp
    */
-  async function execute(executorProp: ExecutorProp): Promise<void> {
+  async function execute(executorProp: ExecutorProp): Promise<boolean> {
     const command = executorProp.command;
     logDicerFlow("execute.start", {
       roomId,
@@ -693,6 +693,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         }
       }
 
+      let stateEventMessageCommitted = false;
       const sendGeneratedStateEvent = async (options?: {
         position?: number;
       }): Promise<void> => {
@@ -709,6 +710,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra(cmdPart, stateEventAtoms)),
         };
         await sendStateEventMessageWithOptimistic(stateEventRequest);
+        stateEventMessageCommitted = true;
       };
 
       // 发送消息队列
@@ -795,6 +797,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           position: commandAnchorPosition,
         });
       }
+      return commandMessageCommitted || stateEventMessageCommitted;
     }
     catch (error) {
       if (!commandMessageCommitted) {
@@ -802,6 +805,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       }
       console.error("执行骰子指令失败", error);
       toast.error(`执行错误：${error instanceof Error ? error.message : String(error)}`);
+      return false;
     }
   }
 

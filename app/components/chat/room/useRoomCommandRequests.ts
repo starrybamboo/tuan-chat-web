@@ -11,7 +11,7 @@ type CommandExecutor = (payload: {
   command: string;
   originMessage: string;
   replyMessageId: number;
-}) => void;
+}) => boolean | Promise<boolean | void> | void;
 
 type CommandRequestPayload = {
   command: string;
@@ -99,6 +99,7 @@ export default function useRoomCommandRequests({
 }: UseRoomCommandRequestsParams): UseRoomCommandRequestsResult {
   const [consumedRequestKeys, setConsumedRequestKeys] = useState(() => readConsumedRequestKeys(userId));
   const consumedRequestKeysRef = useRef(consumedRequestKeys);
+  const pendingRequestKeysRef = useRef(new Set<string>());
 
   useEffect(() => {
     consumedRequestKeysRef.current = consumedRequestKeys;
@@ -149,18 +150,38 @@ export default function useRoomCommandRequests({
       toast.error("该检定请求已执行");
       return;
     }
+    if (pendingRequestKeysRef.current.has(requestKey)) {
+      toast.error("检定请求正在执行，请稍后");
+      return;
+    }
 
-    const nextConsumedRequestKeys = new Set(currentConsumedRequestKeys);
-    nextConsumedRequestKeys.add(requestKey);
-    consumedRequestKeysRef.current = nextConsumedRequestKeys;
-    writeConsumedRequestKeys(userId, nextConsumedRequestKeys);
-    setConsumedRequestKeys(nextConsumedRequestKeys);
+    pendingRequestKeysRef.current.add(requestKey);
+    void (async () => {
+      try {
+        const executed = await commandExecutor({
+          command: rawCommand,
+          originMessage: rawCommand,
+          replyMessageId: requestMessageId,
+        });
+        if (executed === false) {
+          toast.error("检定请求未执行成功，请重试");
+          return;
+        }
 
-    void commandExecutor({
-      command: rawCommand,
-      originMessage: rawCommand,
-      replyMessageId: requestMessageId,
-    });
+        const nextConsumedRequestKeys = new Set(consumedRequestKeysRef.current);
+        nextConsumedRequestKeys.add(requestKey);
+        consumedRequestKeysRef.current = nextConsumedRequestKeys;
+        writeConsumedRequestKeys(userId, nextConsumedRequestKeys);
+        setConsumedRequestKeys(nextConsumedRequestKeys);
+      }
+      catch (error) {
+        console.error("执行检定请求失败", error);
+        toast.error("检定请求执行失败，请重试");
+      }
+      finally {
+        pendingRequestKeysRef.current.delete(requestKey);
+      }
+    })();
   }, [commandExecutor, isSpaceOwner, isSubmitting, noRole, notMember, roomId, userId]);
 
   return {

@@ -298,7 +298,9 @@ function RoomWindow({
     updateAndRerenderMessageInWebGAL,
   ]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
-  executeCommandRef.current = commandExecutor;
+  executeCommandRef.current = async (payload) => {
+    await commandExecutor(payload);
+  };
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
     roomId,
