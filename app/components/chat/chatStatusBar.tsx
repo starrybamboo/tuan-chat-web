@@ -68,6 +68,23 @@ export default function ChatStatusBar({
     }
   };
 
+  const renderStatusMotionLabel = (t: ChatStatusType) => {
+    const label = renderLabel(t);
+    switch (t) {
+      case "input":
+        return <TypingIndicator name={label} compact />;
+      case "wait":
+        return <WaitingIndicator name={label} compact />;
+      default:
+        return (
+          <>
+            {label}
+            ...
+          </>
+        );
+    }
+  };
+
   // 与 ChatToolbar 状态选择器颜色保持一致
   const colorMap: Record<ChatStatusType, string> = {
     input: "text-info",
@@ -150,8 +167,7 @@ export default function ChatStatusBar({
                     <>
                       {nameNodes[0]}
                       {" "}
-                      {renderLabel(g.type)}
-                      ...
+                      {renderStatusMotionLabel(g.type)}
                     </>
                   )
                 : (
@@ -163,8 +179,7 @@ export default function ChatStatusBar({
                         </React.Fragment>
                       ))}
                       <span className="ml-1">
-                        {renderLabel(g.type)}
-                        ...
+                        {renderStatusMotionLabel(g.type)}
                       </span>
                     </>
                   )}
