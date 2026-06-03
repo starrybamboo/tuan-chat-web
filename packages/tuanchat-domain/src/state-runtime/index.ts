@@ -2,6 +2,7 @@ export {
   applyRoleVarOpsToAbility,
   cloneRoleAbilityForWriteThrough,
   collectRoleVarOps,
+  mergeRoleVarOpSnapshotsIntoEvents,
   persistRoleAbilitySnapshot,
   writeRoleVarOpsThroughAbilities,
 } from "./roleVarWriteThrough";

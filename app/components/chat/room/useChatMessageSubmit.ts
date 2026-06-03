@@ -8,7 +8,7 @@ import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
 import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
 import { internalMessageMediaSource, resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
-import { writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
+import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
 import { parseSimpleStateCommand } from "@/components/chat/state/stateCommandParser";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
@@ -442,13 +442,14 @@ export default function useChatMessageSubmit({
 
       if (parsedStateCommand) {
         try {
-          const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+          const { changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
             events: parsedStateCommand.stateEvent.events,
             ruleId,
             loadRoleAbility: loadRoleAbilityByRule,
             createRoleAbility: setRoleAbilityWithSuccessGuard,
             updateRoleAbility: updateRoleAbilityByRuleWithSuccessGuard,
           });
+          parsedStateCommand.stateEvent.events = mergeRoleVarOpSnapshotsIntoEvents(parsedStateCommand.stateEvent.events, roleVarOps);
           if (queryClient && changedRoleIds.length > 0) {
             await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
           }
