@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import type { UploadUtils } from "@/utils/UploadUtils";
 
 import { MessageType } from "../../../../api/wsModels";
-import { buildMessageDraftsFromComposerSnapshot } from "./messageDraftBuilder";
+import { buildMessageDraftsFromComposerSnapshot, resolveEmojiImageMeta } from "./messageDraftBuilder";
 
 const { getImageSizeMock } = vi.hoisted(() => ({
   getImageSizeMock: vi.fn(),
@@ -284,6 +284,45 @@ describe("messageDraftBuilder", () => {
       imageMessage: {
         source: { kind: "internal", fileId: 77 },
       },
+    });
+  });
+
+  it("表情缺少宽高时会用图片实际尺寸补齐", async () => {
+    const emojiUrl = "/media/v1/files/077/77/image/medium.webp";
+
+    await expect(resolveEmojiImageMeta({
+      emojiUrl,
+      meta: {
+        fileId: 77,
+        mediaType: "image",
+        fileName: "old.webp",
+      },
+      measureImageSize: async () => ({ width: 320, height: 240, size: 4096 }),
+    })).resolves.toEqual({
+      fileId: 77,
+      width: 320,
+      height: 240,
+      size: 4096,
+      fileName: "old.webp",
+    });
+  });
+
+  it("表情缺少宽高且测量失败时会补最小合法尺寸，避免发送校验卡死", async () => {
+    const emojiUrl = "/media/v1/files/077/77/image/medium.webp";
+
+    await expect(resolveEmojiImageMeta({
+      emojiUrl,
+      meta: {
+        fileId: 77,
+        mediaType: "image",
+      },
+      measureImageSize: async () => ({ width: -1, height: -1, size: -1 }),
+    })).resolves.toEqual({
+      fileId: 77,
+      width: 1,
+      height: 1,
+      size: 1,
+      fileName: "emoji",
     });
   });
 

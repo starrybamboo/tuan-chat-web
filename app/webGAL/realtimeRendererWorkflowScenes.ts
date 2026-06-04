@@ -66,10 +66,14 @@ function buildWorkflowTransitionCommand(options: WorkflowTransitionOption[]): st
   if (options.length === 0) {
     return null;
   }
-  if (options.length === 1) {
-    return `changeScene:${options[0].targetScene};`;
-  }
-  return `choose:${options.map(option => `${option.label}:${option.targetScene}`).join("|")};`;
+  return options
+    .map((option) => {
+      const condition = option.condition?.trim();
+      return condition
+        ? `changeScene:${option.targetScene} -when=${condition};`
+        : `changeScene:${option.targetScene};`;
+    })
+    .join("\n");
 }
 
 function buildWorkflowRoomTransitionOptions(
@@ -84,23 +88,15 @@ function buildWorkflowRoomTransitionOptions(
   }
 
   const options = links
-    .map((link) => {
+    .map((link): WorkflowTransitionOption | null => {
       if (!roomMap.has(link.targetId)) {
         return null;
       }
       const targetScene = `${getSceneName(link.targetId)}.txt`;
-      const fallbackLabel = roomMap.get(link.targetId)?.name?.trim() || `房间${link.targetId}`;
-      const rawLabel = link.condition?.trim() || fallbackLabel;
-      const label = sanitizeChooseOptionLabel(rawLabel);
-      if (!label) {
-        return null;
-      }
-      return {
-        label,
-        targetScene,
-      };
+      const condition = link.condition?.trim();
+      return condition ? { targetScene, condition } : { targetScene };
     })
-    .filter((option): option is WorkflowTransitionOption => Boolean(option));
+    .filter((option): option is WorkflowTransitionOption => option !== null);
   return options;
 }
 
@@ -115,12 +111,6 @@ export function getWorkflowEndSceneName(endNodeId: number): string {
   return `__tc_end_${endNodeId}`;
 }
 
-function buildWorkflowEndOptionLabel(endNodeId: number, endOptionCount: number): string {
-  const fallback = endOptionCount > 1 ? `结束${endNodeId}` : "结束";
-  const normalized = sanitizeChooseOptionLabel(fallback);
-  return normalized || `结束${endNodeId}`;
-}
-
 export function buildWorkflowTransitionLineWithEnd({
   roomId,
   workflowGraph,
@@ -129,18 +119,9 @@ export function buildWorkflowTransitionLineWithEnd({
 }: WorkflowSceneOptions & { roomId: number }): string | null {
   const roomOptions = buildWorkflowRoomTransitionOptions(roomId, workflowGraph, roomMap, getSceneName);
   const endNodeIds = getWorkflowEndNodeIdsForRoom(workflowGraph, roomId);
-  const endOptions = endNodeIds
-    .map((endNodeId) => {
-      const label = buildWorkflowEndOptionLabel(endNodeId, endNodeIds.length);
-      if (!label) {
-        return null;
-      }
-      return {
-        label,
-        targetScene: `${getWorkflowEndSceneName(endNodeId)}.txt`,
-      };
-    })
-    .filter((option): option is WorkflowTransitionOption => Boolean(option));
+  const endOptions: WorkflowTransitionOption[] = endNodeIds.map(endNodeId => ({
+    targetScene: `${getWorkflowEndSceneName(endNodeId)}.txt`,
+  }));
 
   return buildWorkflowTransitionCommand([...roomOptions, ...endOptions]);
 }

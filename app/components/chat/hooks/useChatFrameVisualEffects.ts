@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { deriveCombatVisualActiveAtMessageIndex } from "@/components/chat/hooks/chatFrameCombatVisualState";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import {
+  logPersistentMediaImageDebug,
+  resolvePersistentMediaImageSrcSync,
+  startPersistentMediaImageDerivativeProbe,
+} from "@/components/common/mediaPersistentImageCache";
+import {
   getSceneEffectFromAnnotations,
   hasClearBackgroundAnnotation,
   isImageMessageBackground,
@@ -131,7 +136,8 @@ export default function useChatFrameVisualEffects({
     // 从清除背景之后（或从头）开始寻找新的背景图片
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex && bg.index > lastClearIndex) {
-        newBgUrl = resolveMessageMediaUrl(bg.imageMessage, "medium", "image") || null;
+        const rawBgUrl = resolveMessageMediaUrl(bg.imageMessage, "medium", "image");
+        newBgUrl = rawBgUrl ? resolvePersistentMediaImageSrcSync(rawBgUrl) || rawBgUrl : null;
       }
       else if (bg.index > currentMessageIndex) {
         break;
@@ -139,8 +145,12 @@ export default function useChatFrameVisualEffects({
     }
 
     if (newBgUrl !== currentBackgroundUrl) {
-      const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
-      return () => clearTimeout(id);
+      logPersistentMediaImageDebug("background.apply_display_src", {
+        currentBackgroundSrc: currentBackgroundUrl,
+        resolvedDisplaySrc: newBgUrl,
+      });
+      setCurrentBackgroundUrl(newBgUrl);
+      startPersistentMediaImageDerivativeProbe(newBgUrl);
     }
   }, [enableEffects, currentVirtuosoIndex, imgNode, clearBackgroundNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 

@@ -2,11 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 
+import { fetchSpaceInfoWithCache } from "../../../../../api/hooks/chatQueryHooks";
 import UTILS, { invalidateDicerRoleResolveCache } from "./utils";
-
-vi.mock("@tuanchat/query/users", () => ({
-  fetchMyUserInfoWithCache: vi.fn(async () => ({ data: { extra: { dicerRoleId: 12 } } })),
-}));
 
 vi.mock("../../../../../api/hooks/chatQueryHooks", () => ({
   fetchSpaceInfoWithCache: vi.fn(),
@@ -40,7 +37,7 @@ describe("dicer role resolve cache", () => {
     vi.clearAllMocks();
   });
 
-  it("空间骰娘优先于角色和用户绑定", async () => {
+  it("角色绑定优先于空间骰娘", async () => {
     const roomContext = {
       spaceId: 42,
       curRoleId: 7,
@@ -53,10 +50,10 @@ describe("dicer role resolve cache", () => {
       currentRoleSnapshot: { roleId: 7, extra: { dicerRoleId: 10 } },
     });
 
-    expect(resolved).toBe(11);
+    expect(resolved).toBe(10);
   });
 
-  it("没有空间骰娘时仍会回退到角色绑定", async () => {
+  it("没有角色绑定时回退到空间骰娘", async () => {
     const roomContext = {
       spaceId: 43,
       curRoleId: 8,
@@ -65,14 +62,14 @@ describe("dicer role resolve cache", () => {
     } satisfies RoomContextType;
 
     const resolved = await UTILS.getDicerRoleId(roomContext, {
-      spaceSnapshot: { extra: {} },
-      currentRoleSnapshot: { roleId: 8, extra: { dicerRoleId: 10 } },
+      spaceSnapshot: { extra: { dicerRoleId: 11 } },
+      currentRoleSnapshot: { roleId: 8, extra: {} },
     });
 
-    expect(resolved).toBe(10);
+    expect(resolved).toBe(11);
   });
 
-  it("空间骰娘变更后按空间清理旧解析结果", async () => {
+  it("空间骰娘变更后传入的新快照会立即参与计算", async () => {
     const roomContext = {
       spaceId: 42,
       curRoleId: 0,
@@ -88,14 +85,27 @@ describe("dicer role resolve cache", () => {
     });
 
     expect(firstResolved).toBe(10);
-    expect(cachedResolved).toBe(10);
+    expect(cachedResolved).toBe(11);
+  });
 
-    invalidateDicerRoleResolveCache(42);
+  it("传入的空间快照会写入输入层缓存供后续计算复用", async () => {
+    const roomContext = {
+      spaceId: 42,
+      curRoleId: 0,
+      roomMembers: [],
+      roomRolesThatUserOwn: [],
+    } satisfies RoomContextType;
+    const fetchSpaceInfoWithCacheMock = vi.mocked(fetchSpaceInfoWithCache);
 
-    const resolvedAfterInvalidation = await UTILS.getDicerRoleId(roomContext, {
+    const firstResolved = await UTILS.getDicerRoleId(roomContext, {
       spaceSnapshot: { extra: { dicerRoleId: 11 } },
     });
+    const secondResolved = await UTILS.getDicerRoleId(roomContext, {
+      queryClient: {} as any,
+    });
 
-    expect(resolvedAfterInvalidation).toBe(11);
+    expect(firstResolved).toBe(11);
+    expect(secondResolved).toBe(11);
+    expect(fetchSpaceInfoWithCacheMock).not.toHaveBeenCalled();
   });
 });

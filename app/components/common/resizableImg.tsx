@@ -44,6 +44,7 @@ export function ResizableImg({
   const [isInteracting, setIsInteracting] = useState(false);
   const didDragRef = useRef(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isImageReady, setIsImageReady] = useState(false);
 
   // 使用 ref 来存储变换状态，避免不必要的重渲染
   const positionRef = useRef<Point>({ x: 0, y: 0 });
@@ -196,10 +197,9 @@ export function ResizableImg({
     const container = containerRef.current;
     const img = imgRef.current;
     if (!container || !img || !img.naturalWidth)
-      return;
+      return false;
 
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
+    const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect();
     const imgWidth = img.naturalWidth;
     const imgHeight = img.naturalHeight;
 
@@ -210,12 +210,13 @@ export function ResizableImg({
       imageHeight: imgHeight,
     });
     if (!initialTransform) {
-      return;
+      return false;
     }
 
     positionRef.current = { x: initialTransform.x, y: initialTransform.y };
     scaleRef.current = initialTransform.scale;
     updateTransform();
+    return true;
   }, [updateTransform]);
 
   const handleDoubleClick = useCallback(() => {
@@ -234,12 +235,35 @@ export function ResizableImg({
   }, [onClose]);
 
   const handleImageLoad = useCallback(() => {
-    // 立即设置初始位置和缩放
-    resetImageState();
-    setTimeout(() => {
-      setIsLoaded(true);
-    }, 50);
-  }, [resetImageState]);
+    setIsImageReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isImageReady)
+      return;
+
+    const fitImageToViewport = () => {
+      if (resetImageState()) {
+        setIsLoaded(true);
+      }
+    };
+    const container = containerRef.current;
+    const resizeObserver = typeof ResizeObserver !== "undefined" && container
+      ? new ResizeObserver(fitImageToViewport)
+      : undefined;
+
+    // 容器尺寸在弹窗动画/动态视口里可能延后稳定，算出 contain 位置后再显示图片。
+    fitImageToViewport();
+    resizeObserver?.observe(container);
+    window.addEventListener("resize", fitImageToViewport);
+    window.visualViewport?.addEventListener("resize", fitImageToViewport);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", fitImageToViewport);
+      window.visualViewport?.removeEventListener("resize", fitImageToViewport);
+    };
+  }, [isImageReady, resetImageState]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -280,7 +304,7 @@ export function ResizableImg({
 
   return (
     <div
-      className="overflow-hidden rounded-md touch-none select-none h-full w-full"
+      className="relative h-full w-full overflow-hidden rounded-md touch-none select-none"
       ref={containerRef}
       style={{ cursor: isInteracting ? "grabbing" : "grab" }}
     >
@@ -288,7 +312,7 @@ export function ResizableImg({
         ref={imgRef}
         src={src}
         referrerPolicy="no-referrer"
-        className="max-w-none max-h-none"
+        className="absolute left-0 top-0 block max-h-none max-w-none"
         alt="img"
         width={size?.width}
         height={size?.height}

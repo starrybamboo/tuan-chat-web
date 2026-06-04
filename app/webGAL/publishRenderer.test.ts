@@ -252,7 +252,7 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    const content = getFileContent(pkg.files, "game/scene/序章_10.txt");
+    const content = getFileContent(pkg.files, "game/scene/room_10.txt");
     expect(content).toContain("changeBg:https://cdn.example.com/bg.webp -next;");
   });
 
@@ -278,7 +278,7 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    const content = getFileContent(pkg.files, "game/scene/中景_10.txt");
+    const content = getFileContent(pkg.files, "game/scene/room_10.txt");
     expect(content).toContain(mediaFileUrl(2048, "image", "medium"));
     expect(content).not.toContain(mediaFileUrl(2048, "image", "high"));
   });
@@ -299,7 +299,7 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    const content = getFileContent(pkg.files, "game/scene/展示_10.txt");
+    const content = getFileContent(pkg.files, "game/scene/room_10.txt");
     expect(content).toContain("changeFigure:https://cdn.example.com/figure.webp -id=image_message");
     expect(pkg.files.some(file => file.path.includes("figure.webp"))).toBe(false);
   });
@@ -324,7 +324,7 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    const content = getFileContent(pkg.files, "game/scene/音乐_10.txt");
+    const content = getFileContent(pkg.files, "game/scene/room_10.txt");
     expect(content).toContain("bgm:https://cdn.example.com/bgm.webm -volume=70 -next;");
   });
 
@@ -348,7 +348,7 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    const content = getFileContent(pkg.files, "game/scene/对白_10.txt");
+    const content = getFileContent(pkg.files, "game/scene/room_10.txt");
     expect(content).toContain("明日香: 你好：欢迎；来到这里;");
     expect(content).toContain(":风声渐起;");
   });
@@ -358,7 +358,7 @@ describe("renderWebgalPublishPackage", () => {
       rooms: [room(10, "起点"), room(20, "分支")],
       workflowRoomMap: {
         start: ["10"],
-        "10": ["20 成功"],
+        "10": ["20 tuanchat.role.100.hp > 0"],
         endNodes: ["end:1"],
         "endNode:1": ["20"],
       },
@@ -368,9 +368,9 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    expect(getFileContent(pkg.files, "game/scene/start.txt")).toContain("changeScene:起点_10.txt;");
-    expect(getFileContent(pkg.files, "game/scene/起点_10.txt")).toContain("changeScene:分支_20.txt;");
-    expect(getFileContent(pkg.files, "game/scene/分支_20.txt")).toContain("changeScene:__tc_end_1.txt;");
+    expect(getFileContent(pkg.files, "game/scene/start.txt")).toContain("changeScene:room_10.txt;");
+    expect(getFileContent(pkg.files, "game/scene/room_10.txt")).toContain("changeScene:room_20.txt -when=tuanchat.role.100.hp > 0;");
+    expect(getFileContent(pkg.files, "game/scene/room_20.txt")).toContain("changeScene:__tc_end_1.txt;");
     expect(getFileContent(pkg.files, "game/scene/__tc_end_1.txt")).toBe("end;\n");
   });
 });

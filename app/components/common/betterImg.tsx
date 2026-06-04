@@ -1,6 +1,6 @@
 import type { SyntheticEvent } from "react";
 import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
@@ -25,6 +25,9 @@ export function resolveBetterImgPreviewToastOptions(transparent: boolean): Toast
     fullScreen: true,
     transparent,
     rootClassName: "z-[11000]",
+    panelClassName: "max-h-dvh max-w-dvw overflow-hidden",
+    bodyClassName: "overflow-hidden",
+    disableScroll: true,
   };
 }
 
@@ -46,21 +49,20 @@ function isFileSource(src: string | File | undefined): src is File {
 }
 
 export function useFileObjectUrl(src: string | File | undefined): string | undefined {
-  const objectUrl = useMemo(() => {
-    if (!isFileSource(src)) {
-      return undefined;
-    }
-    return URL.createObjectURL(src);
-  }, [src]);
+  const [objectUrl, setObjectUrl] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!objectUrl) {
+    if (!isFileSource(src)) {
+      setObjectUrl(undefined);
       return;
     }
+    const nextObjectUrl = URL.createObjectURL(src);
+    setObjectUrl(nextObjectUrl);
+
     return () => {
-      URL.revokeObjectURL(objectUrl);
+      URL.revokeObjectURL(nextObjectUrl);
     };
-  }, [objectUrl]);
+  }, [src]);
 
   return isFileSource(src) ? objectUrl : src;
 }

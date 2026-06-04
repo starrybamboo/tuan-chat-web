@@ -100,14 +100,26 @@ For oversize non-chatroom uploads, the system SHALL transcode the `original` ass
 - **WHEN** a user uploads a document or other attachment in a chat room
 - **THEN** the system SHALL upload only `low`
 
-### Requirement: Media rendering SHALL request media-service tier URLs directly
+### Requirement: Media rendering SHALL resolve display URLs through derived image status
 
-Web and mobile clients SHALL request media assets through the media service tier URLs directly. The requested URL SHALL remain the primary source of truth for runtime rendering, and client-side fallback logic SHALL only act as a secondary defense layer.
+Web and mobile clients SHALL treat the caller-provided media tier URL as display intent, not always as the final first-fetch URL. For internal image assets, clients MAY maintain a per-file derived-image status cache with `unknown`, `available`, and `missing` semantics. A known `missing` status SHALL allow the client to resolve the display URL to the same file's `original` URL before starting the image or background-image load. This is a breaking change from the previous rule that forbade client-side rewriting before the first fetch.
 
-#### Scenario: Image rendering starts from a tier URL
+#### Scenario: Unknown image tier starts from the requested tier URL
 - **WHEN** a client renders an internal image asset
-- **THEN** it SHALL request a tier URL such as `/media/v1/files/{shard}/{fileId}/image/low.webp`, `/image/medium.webp`, `/image/high.webp`, or `/original`
-- **AND** it SHALL NOT rewrite the request into a different asset URL before the first fetch
+- **AND** the client has no derived-image status record for that file
+- **THEN** it SHALL start display from the requested tier URL such as `/media/v1/files/{shard}/{fileId}/image/low.webp`, `/image/medium.webp`, `/image/high.webp`, or `/original`
+- **AND** it MAY learn the derived-image status from the resulting load, error, or authoritative media metadata
+
+#### Scenario: Known missing image tier starts from original
+- **WHEN** a client renders `/media/v1/files/{shard}/{fileId}/image/medium.webp`
+- **AND** its local derived-image status for that file is `missing`
+- **THEN** it SHALL resolve the display URL to `/media/v1/files/{shard}/{fileId}/original` before starting the browser image load
+- **AND** it SHALL NOT request the known-missing derived object as part of normal display
+
+#### Scenario: Known available image tier preserves the requested tier
+- **WHEN** a client renders `/media/v1/files/{shard}/{fileId}/image/medium.webp`
+- **AND** its local derived-image status for that file is `available`
+- **THEN** it SHALL keep the requested derived URL as the display URL
 
 ### Requirement: Missing derived media objects SHALL permanently redirect to original
 
@@ -135,3 +147,29 @@ When a requested non-`original` media object is unavailable but an `original` ob
 - **WHEN** a direct image load still surfaces an error to the client after the media-service path is attempted
 - **THEN** display-layer helpers such as `MediaImage` and image preloading utilities MAY retry the corresponding `original` URL
 - **AND** that client retry SHALL be treated as defense in depth rather than the primary fallback path
+
+### Requirement: Derived image status caches SHALL use conservative write semantics
+
+Derived image status records SHALL be keyed by media `fileId` and SHALL describe whether non-`original` image objects for that file are known to be usable for display. These records are a display optimization only; they SHALL NOT change upload metadata or the canonical media source stored in messages.
+
+#### Scenario: Derived object failure records missing
+- **WHEN** a client attempts to load or probe an internal image derived URL
+- **AND** that derived object is proven unavailable
+- **THEN** the client MAY write `missing` for that fileId
+- **AND** later display resolution MAY use `original` without retrying that derived object
+
+#### Scenario: Original display does not record derived availability
+- **WHEN** a client displays `/media/v1/files/{shard}/{fileId}/original`
+- **THEN** it SHALL NOT write `available` for that fileId's derived image status
+- **AND** it SHALL NOT clear an existing `missing` record
+
+#### Scenario: Redirected original success does not prove derived availability
+- **WHEN** the media service may satisfy a requested derived URL by redirecting to `/original`
+- **AND** the client cannot distinguish a direct derived-object success from a redirected original success
+- **THEN** the client SHALL NOT write `available` solely because the image element reports a successful load
+- **AND** it SHALL leave the derived-image status unchanged unless authoritative media metadata or a redirect-aware probe proves the derived object exists
+
+#### Scenario: Proven derived object success records available
+- **WHEN** a client has authoritative evidence that a requested derived image object itself exists
+- **THEN** the client MAY write `available` for that fileId
+- **AND** future display resolution MAY keep the requested derived tier URL

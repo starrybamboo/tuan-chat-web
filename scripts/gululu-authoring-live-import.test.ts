@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyGululuLiveImportPlan,
   buildGululuLiveImportPlan,
+  ensureRoomInSidebarTree,
   parseLiveImportArgs,
   runGululuAuthoringLiveImport,
 } from "./gululu-authoring-live-import";
@@ -310,5 +311,131 @@ describe("gululu-authoring-live-import", () => {
       avatarId: 2001,
       roleId: 1001,
     });
+  });
+
+  it("ensureRoomInSidebarTree 会把导入房间追加到频道分类", async () => {
+    const plan = buildGululuLiveImportPlan(createImportPackage(), {
+      skipAvatarUpload: true,
+      targetRoomId: 62,
+      targetSpaceId: 8801,
+    });
+    const setSidebarTree = vi.fn(async (request: { treeJson: string }) => ({
+      data: { treeJson: request.treeJson, version: 8 },
+      success: true,
+    }));
+    const client = {
+      avatarController: {
+        setRoleAvatar: vi.fn(),
+        updateRoleAvatar: vi.fn(),
+      },
+      chatController: {
+        sendMessage1: vi.fn(),
+      },
+      roleController: {
+        createRole: vi.fn(),
+      },
+      roomController: {
+        getUserRooms: vi.fn(async () => ({
+          data: {
+            rooms: [
+              { name: "旧房间", roomId: 1 },
+              { name: "1-62楼复刻导入", roomId: 62 },
+            ],
+            spaceId: 8801,
+          },
+          success: true,
+        })),
+      },
+      roomRoleController: {
+        addRole: vi.fn(),
+        roomNpcRole: vi.fn(),
+      },
+      spaceSidebarTreeController: {
+        getSidebarTree: vi.fn(async () => ({
+          data: {
+            treeJson: JSON.stringify({
+              categories: [{
+                categoryId: "cat:channels",
+                items: [{ fallbackTitle: "旧房间", nodeId: "room:1", targetId: 1, type: "room" }],
+                name: "频道",
+              }],
+              schemaVersion: 2,
+            }),
+            version: 7,
+          },
+          success: true,
+        })),
+        setSidebarTree,
+      },
+    };
+
+    const result = await ensureRoomInSidebarTree(plan, client);
+
+    expect(result).toEqual({
+      action: "added",
+      roomId: 62,
+      spaceId: 8801,
+      version: 8,
+    });
+    expect(setSidebarTree).toHaveBeenCalledWith(expect.objectContaining({
+      expectedVersion: 7,
+      spaceId: 8801,
+    }));
+    const writtenTree = JSON.parse(setSidebarTree.mock.calls[0]![0].treeJson);
+    expect(writtenTree.categories[0].items).toEqual([
+      { fallbackTitle: "旧房间", nodeId: "room:1", targetId: 1, type: "room" },
+      { fallbackTitle: "1-62楼复刻导入", nodeId: "room:62", targetId: 62, type: "room" },
+    ]);
+  });
+
+  it("ensureRoomInSidebarTree 已存在导入房间时不会重复写侧边栏", async () => {
+    const plan = buildGululuLiveImportPlan(createImportPackage(), {
+      skipAvatarUpload: true,
+      targetRoomId: 62,
+      targetSpaceId: 8801,
+    });
+    const client = {
+      avatarController: {
+        setRoleAvatar: vi.fn(),
+        updateRoleAvatar: vi.fn(),
+      },
+      chatController: {
+        sendMessage1: vi.fn(),
+      },
+      roleController: {
+        createRole: vi.fn(),
+      },
+      roomRoleController: {
+        addRole: vi.fn(),
+        roomNpcRole: vi.fn(),
+      },
+      spaceSidebarTreeController: {
+        getSidebarTree: vi.fn(async () => ({
+          data: {
+            treeJson: JSON.stringify({
+              categories: [{
+                categoryId: "cat:channels",
+                items: [{ fallbackTitle: "1-62楼复刻导入", nodeId: "room:62", targetId: 62, type: "room" }],
+                name: "频道",
+              }],
+              schemaVersion: 2,
+            }),
+            version: 9,
+          },
+          success: true,
+        })),
+        setSidebarTree: vi.fn(),
+      },
+    };
+
+    const result = await ensureRoomInSidebarTree(plan, client);
+
+    expect(result).toEqual({
+      action: "already-present",
+      roomId: 62,
+      spaceId: 8801,
+      version: 9,
+    });
+    expect(client.spaceSidebarTreeController.setSidebarTree).not.toHaveBeenCalled();
   });
 });

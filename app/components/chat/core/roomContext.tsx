@@ -63,7 +63,7 @@ export interface RoomContextType {
   /**
    * 更新消息渲染设置并在 WebGAL 中重新渲染跳转
    * @param previousMessage 更新前的消息
-   * @param message 已更新的消息（包含最新的 voiceRenderSettings）
+   * @param message 已更新的消息（包含最新渲染相关字段）
    * @param regenerateTTS 是否重新生成 TTS（当情感向量变化时设为 true）
    * @returns Promise<是否操作成功>
    */

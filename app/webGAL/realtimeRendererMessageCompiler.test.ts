@@ -29,7 +29,6 @@ function createMessage(overrides: Partial<ChatMessageResponse["message"]> = {}):
 function createInput(overrides: Partial<RealtimeRenderMessageCompilerInput> = {}): RealtimeRenderMessageCompilerInput {
   const message = overrides.message ?? createMessage();
   return {
-    message,
     roleName: "明日香",
     roleId: 1,
     processedContent: "你好",
@@ -96,16 +95,16 @@ describe("compileRealtimeRenderMessageLines", () => {
       dicePayload: {
         sound: true,
         lines: [
-          "pixiPerform:effect.trpgDiceBurst -once -next;",
+          "pixiPerform:effect.customDice -once -next;",
           "dice:掷出了 42 -mode=script;",
         ],
-      } as NonNullable<RealtimeRenderMessageCompilerInput["dicePayload"]>,
+      } as unknown as NonNullable<RealtimeRenderMessageCompilerInput["dicePayload"]>,
       soundLine: "playEffect:./game/vocal/dice.wav -next;",
     }));
 
     expect(lines).toEqual([
       "playEffect:./game/vocal/dice.wav -next;",
-      "pixiPerform:effect.trpgDiceBurst -once -next;",
+      "pixiPerform:effect.customDice -once -next;",
       "dice:掷出了 42 -mode=script;",
     ]);
   });

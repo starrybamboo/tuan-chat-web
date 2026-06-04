@@ -8,6 +8,7 @@
 - GIF 光栅化并行化：使用 OffscreenCanvas Worker 替代主线程 canvas，实现 GIF → WebP 转换的真多线程并行
 - 音频/视频并行转码：引入 `isolated` 模式，每次转码调用创建独立 FFmpeg WASM 实例（独立 worker），`Promise.all` 实现真并行；用完即销毁
 - **BREAKING** 去掉 `high` 质量档位：所有媒体类型统一为 original/low/medium 三档，`filesByQuality.high` 设为 `undefined`
+- **BREAKING** 调整图片渲染层派生状态语义：客户端可在已知派生图缺失时，于首次展示请求前直接改用 `original`，并以保守写入规则维护本地派生状态缓存
 - 批量上传两阶段策略：prepare 阶段（压缩 + 媒体上传）全部文件并行，commit 阶段（创建 avatar 记录）按原顺序串行
 - 媒体上传管道优化：各质量版本 PUT 到 OSS 并行执行；SHA-256 去重跳过已存在文件
 - 错误处理：WASM 内存越界时自动重建实例重试（isolated 模式下 terminate 后新建，singleton 模式下 reset 后重新获取）
@@ -25,6 +26,8 @@
 ## Impact
 
 - `app/utils/mediaUpload.ts` — 压缩流程从串行改为 `Promise.all` 并行，去掉 high 档位
+- `app/components/common/mediaImage.tsx` / `mediaPersistentImageCache.ts` — 图片展示层按 fileId 记录派生图 `available` / `missing`，已知缺失时直接展示 `original`
+- `app/components/common/markdown/markDownViewer.tsx` / `app/components/chat/hooks/useChatFrameVisualEffects.ts` — Markdown 图片和房间背景图接入同一套媒体展示解析语义
 - `app/utils/imgCompressUtils.ts` — 图片压缩已使用 `useWebWorker: true`，无需改动
 - `app/utils/audioTranscodeUtils.ts` — 新增 `createFfmpegInstance` 函数，`AudioTranscodeOptions` 增加 `isolated` 字段，转码函数支持独立实例模式
 - `app/utils/videoTranscodeUtils.ts` — 同上，视频转码支持 isolated 模式

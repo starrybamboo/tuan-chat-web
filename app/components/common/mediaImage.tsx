@@ -76,22 +76,22 @@ export function MediaImage({
 
   useEffect(() => {
     fallbackStageRef.current = "initial";
-    const nextSrc = resolvePersistentMediaImageSrcSync(normalizedSrc) || normalizedFallbackSrc || normalizedSrc;
-    logPersistentMediaImageDebug("component.effect", {
-      normalizedSrc,
-      fallbackSrc: normalizedFallbackSrc,
-      nextSrc,
+    const resolvedDisplaySrc = resolvePersistentMediaImageSrcSync(normalizedSrc) || normalizedFallbackSrc || normalizedSrc;
+    logPersistentMediaImageDebug("component.resolve_display_src", {
+      propSrc: normalizedSrc,
+      fallbackPropSrc: normalizedFallbackSrc,
+      resolvedDisplaySrc,
     });
-    setCurrentSrc(nextSrc);
-    startPersistentMediaImageDerivativeProbe(nextSrc);
+    setCurrentSrc(resolvedDisplaySrc);
+    startPersistentMediaImageDerivativeProbe(resolvedDisplaySrc);
   }, [normalizedSrc, normalizedFallbackSrc]);
 
   const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const loadedSrc = event.currentTarget.currentSrc || event.currentTarget.src || currentSrc;
-    logPersistentMediaImageDebug("component.load", {
-      normalizedSrc,
-      currentSrc,
-      loadedSrc,
+    logPersistentMediaImageDebug("component.dom_load", {
+      propSrc: normalizedSrc,
+      renderedSrc: currentSrc,
+      loadedBrowserSrc: loadedSrc,
     });
     rememberPersistentMediaImageDerivedAvailable(loadedSrc);
     externalOnLoad?.(event);
@@ -100,10 +100,10 @@ export function MediaImage({
   const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
     const failedSrc = event.currentTarget.currentSrc || event.currentTarget.src || currentSrc || normalizedSrc;
     const originalFallbackSrc = resolveMediaOriginalFallbackSrc(failedSrc);
-    logPersistentMediaImageDebug("component.error", {
-      normalizedSrc,
-      currentSrc,
-      failedSrc,
+    logPersistentMediaImageDebug("component.dom_error", {
+      propSrc: normalizedSrc,
+      renderedSrc: currentSrc,
+      failedBrowserSrc: failedSrc,
       originalFallbackSrc,
       stage: fallbackStageRef.current,
     });
@@ -132,7 +132,7 @@ export function MediaImage({
     <img
       {...props}
       ref={ref}
-      src={currentSrc || normalizedFallbackSrc || normalizedSrc || ""}
+      src={currentSrc || undefined}
       onLoad={handleLoad}
       onError={handleError}
     />

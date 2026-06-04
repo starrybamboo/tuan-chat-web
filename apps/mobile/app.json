@@ -42,6 +42,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "38ec1acc-f158-4509-80d3-c3a69c31b555"
+      }
+    },
+    "owner": "starrybamboo"
   }
 }

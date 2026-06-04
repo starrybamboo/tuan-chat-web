@@ -118,7 +118,8 @@ publishable 能力必须走共享编译层：
 - `figure.clear`：清理所有立绘槽位（在本消息脚本前执行）
 
 2. 立绘位置与动画
-- `figure.pos.*` 指定槽位。
+- 位置只来自 `annotations` 的 `figure.pos.*`。
+- `figure.pos.*` 指定槽位；立绘资源只使用消息 `avatarId` 对应差分，缺少消息 `avatarId` 时不输出立绘和 `-figureId`。
 - 未指定位置时：
   - `autoFigureEnabled = true` -> 默认 `left`
   - `autoFigureEnabled = false` -> 不显示立绘

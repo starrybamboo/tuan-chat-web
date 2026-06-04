@@ -25,19 +25,6 @@ type MessageAssetWarmupOptions = {
 
 type DiceRenderMode = "script" | "anko" | "trpg" | "narration" | "dialog";
 
-function getRoleLookupValue(roleLookup: ReadonlyMap<number, UserRole>, roleId: number): UserRole | undefined {
-  return roleLookup.get(roleId);
-}
-
-function getEffectiveAvatarId(message: ChatMessageResponse["message"], role?: UserRole): number {
-  const messageAvatarId = Number(message.avatarId ?? 0);
-  if (messageAvatarId > 0) {
-    return messageAvatarId;
-  }
-  const roleAvatarId = Number(role?.avatarId ?? 0);
-  return roleAvatarId > 0 ? roleAvatarId : 0;
-}
-
 function getDiceContent(message: ChatMessageResponse["message"]): string {
   const payload = extractWebgalDicePayload(message.webgal);
   if (payload?.content) {
@@ -154,6 +141,7 @@ export function collectMessageAssetWarmupPlan(
   roleLookup: ReadonlyMap<number, UserRole>,
   options: MessageAssetWarmupOptions,
 ): MessageAssetWarmupPlan {
+  void roleLookup;
   const avatarIds = new Set<number>();
   const spriteTargets = new Map<string, AvatarAssetTarget>();
   const miniAvatarTargets = new Map<string, AvatarAssetTarget>();
@@ -164,21 +152,18 @@ export function collectMessageAssetWarmupPlan(
     if (roleId <= 0 || message.status === 1) {
       continue;
     }
-    const role = getRoleLookupValue(roleLookup, roleId);
-    const avatarId = getEffectiveAvatarId(message, role);
-    if (avatarId <= 0) {
-      continue;
+    const messageAvatarId = Number(message.avatarId ?? 0);
+    if (shouldWarmSprite(message, options) && messageAvatarId > 0) {
+      avatarIds.add(messageAvatarId);
+      spriteTargets.set(`${roleId}_${messageAvatarId}`, { roleId, avatarId: messageAvatarId });
     }
 
-    avatarIds.add(avatarId);
-    const target = { roleId, avatarId };
-    const cacheKey = `${roleId}_${avatarId}`;
-
-    if (shouldWarmSprite(message, options)) {
-      spriteTargets.set(cacheKey, target);
-    }
     if (shouldWarmMiniAvatar(message, options)) {
-      miniAvatarTargets.set(cacheKey, target);
+      if (messageAvatarId <= 0) {
+        continue;
+      }
+      avatarIds.add(messageAvatarId);
+      miniAvatarTargets.set(`${roleId}_${messageAvatarId}`, { roleId, avatarId: messageAvatarId });
     }
   }
 

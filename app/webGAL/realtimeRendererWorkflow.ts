@@ -9,8 +9,8 @@ export type WorkflowLink = {
 };
 
 export type WorkflowTransitionOption = {
-  label: string;
   targetScene: string;
+  condition?: string;
 };
 
 export type WorkflowGraph = {

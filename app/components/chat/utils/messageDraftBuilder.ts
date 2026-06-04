@@ -22,6 +22,14 @@ type EmojiAttachmentMeta = {
   fileName?: string;
 };
 
+type ResolvedEmojiImageMeta = {
+  fileId: number;
+  width: number;
+  height: number;
+  size: number;
+  fileName: string;
+};
+
 type BuildMessageDraftsFromComposerSnapshotParams = {
   inputText: string;
   imgFiles: File[];
@@ -44,6 +52,43 @@ function isVideoAttachment(file: File) {
     return false;
   }
   return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
+}
+
+function positiveOrFallback(value: number | undefined, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+export async function resolveEmojiImageMeta({
+  emojiUrl,
+  meta,
+  measureImageSize = getImageSize,
+}: {
+  emojiUrl: string;
+  meta: EmojiAttachmentMeta | undefined;
+  measureImageSize?: typeof getImageSize;
+}): Promise<ResolvedEmojiImageMeta> {
+  if (typeof meta?.fileId !== "number") {
+    throw new TypeError("表情素材缺少媒体文件 ID，请重新选择表情。");
+  }
+
+  let width = meta.width ?? -1;
+  let height = meta.height ?? -1;
+  let size = meta.size ?? -1;
+
+  if (width <= 0 || height <= 0 || size <= 0) {
+    const measured = await measureImageSize(emojiUrl);
+    width = width > 0 ? width : measured.width;
+    height = height > 0 ? height : measured.height;
+    size = size > 0 ? size : measured.size;
+  }
+
+  return {
+    fileId: meta.fileId,
+    width: positiveOrFallback(width, 1),
+    height: positiveOrFallback(height, 1),
+    size: positiveOrFallback(size, 1),
+    fileName: meta.fileName || "emoji",
+  };
 }
 
 export async function buildMessageDraftsFromComposerSnapshot({
@@ -89,26 +134,14 @@ export async function buildMessageDraftsFromComposerSnapshot({
 
   for (const emojiUrl of emojiUrls) {
     const meta = emojiMetaByUrl[emojiUrl];
-    if (typeof meta?.fileId !== "number") {
-      throw new TypeError("表情素材缺少媒体文件 ID，请重新选择表情。");
-    }
-    let width = meta?.width ?? -1;
-    let height = meta?.height ?? -1;
-    let size = meta?.size ?? -1;
-
-    if (width <= 0 || height <= 0 || size <= 0) {
-      const measured = await getImageSize(emojiUrl);
-      width = width > 0 ? width : measured.width;
-      height = height > 0 ? height : measured.height;
-      size = size > 0 ? size : measured.size;
-    }
+    const resolvedEmoji = await resolveEmojiImageMeta({ emojiUrl, meta });
 
     uploadedImages.push({
-      fileId: meta.fileId,
-      width,
-      height,
-      size,
-      fileName: meta?.fileName || "emoji",
+      fileId: resolvedEmoji.fileId,
+      width: resolvedEmoji.width,
+      height: resolvedEmoji.height,
+      size: resolvedEmoji.size,
+      fileName: resolvedEmoji.fileName,
     });
   }
 
