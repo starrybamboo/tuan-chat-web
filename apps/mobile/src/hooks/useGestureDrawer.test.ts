@@ -5,16 +5,21 @@ import {
   DRAWER_OVERLAY_CAPTURE_OFFSET,
   getGestureDrawerAxisConfig,
   getRightDrawerClampRange,
+  getRightDrawerEdgeHitSlop,
   getRightDrawerSnapPoints,
   shouldDrawerOverlayCaptureTouches,
 } from "./useGestureDrawerConfig";
 
 describe("useGestureDrawer", () => {
-  it("放宽横向起手阈值，同时保留纵向滚动保护", () => {
+  it("收紧横向起手阈值和纵向滚动保护，避免斜向滚动被抽屉抢走", () => {
     expect(getGestureDrawerAxisConfig()).toEqual({
       activeOffsetX: DRAWER_ACTIVE_OFFSET_X,
-      failOffsetY: [-40, 40],
+      failOffsetY: [-12, 12],
     });
+  });
+
+  it("右抽屉只从右边缘热区起手", () => {
+    expect(getRightDrawerEdgeHitSlop()).toEqual({ right: 0, width: 24 });
   });
 
   it("只允许右侧抽屉手势范围", () => {

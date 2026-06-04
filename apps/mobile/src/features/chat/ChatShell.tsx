@@ -21,6 +21,7 @@ import {
 } from "react";
 import {
   Alert,
+  BackHandler,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -113,6 +114,7 @@ import { ChatComposer } from "./ChatComposer";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessageList } from "./ChatMessageList";
 import { ChatSearchPage } from "./ChatSearchPage";
+import { resolveChatShellBackNavigationAction } from "./chatShellBackNavigation";
 import { ExpressionPickerSheet } from "./ExpressionPickerSheet";
 import { buildExpressionDraftAsset } from "./expressionSticker";
 import { MapSheet } from "./MapSheet";
@@ -544,6 +546,95 @@ export default function ChatShell() {
     setActiveDmTab(getDmTabForBackTarget(dmBackTarget));
     setDrawerMode("dm");
   }, [dmBackTarget]);
+  const isRoutePage = !selectedRoomId && !currentContactId;
+
+  const handleSystemBack = useCallback(() => {
+    const action = resolveChatShellBackNavigationAction({
+      actionMenuVisible,
+      clueScopeOpen: clueScopeMessage !== null,
+      createRoomVisible,
+      createSpaceVisible,
+      currentContactId,
+      expressionPickerVisible,
+      isRoutePage,
+      mapSheetVisible,
+      profileSheetOpen: profileSheetState !== null,
+      rightDrawerOpen: isOverlayInteractive,
+      roleSwitchVisible,
+      searchPageVisible,
+      stShowCardOpen: stShowCardModel !== null,
+    });
+
+    switch (action) {
+      case "allow-system-back":
+        return false;
+      case "back-from-dm":
+        handleBackFromDmChat();
+        return true;
+      case "back-to-route-page":
+        handleBackToRoutePage();
+        return true;
+      case "close-action-menu":
+        setActionMenuVisible(false);
+        return true;
+      case "close-clue-scope":
+        setClueScopeMessage(null);
+        return true;
+      case "close-create-room":
+        setCreateRoomVisible(false);
+        return true;
+      case "close-create-space":
+        setCreateSpaceVisible(false);
+        return true;
+      case "close-expression-picker":
+        setExpressionPickerVisible(false);
+        return true;
+      case "close-map-sheet":
+        setMapSheetVisible(false);
+        return true;
+      case "close-profile-sheet":
+        setProfileSheetState(null);
+        return true;
+      case "close-right-drawer":
+        close();
+        return true;
+      case "close-role-switch":
+        setRoleSwitchVisible(false);
+        return true;
+      case "close-search":
+        setSearchPageVisible(false);
+        return true;
+      case "close-st-show-card":
+        setStShowCardModel(null);
+        return true;
+    }
+  }, [
+    actionMenuVisible,
+    clueScopeMessage,
+    close,
+    createRoomVisible,
+    createSpaceVisible,
+    currentContactId,
+    expressionPickerVisible,
+    handleBackFromDmChat,
+    handleBackToRoutePage,
+    isOverlayInteractive,
+    isRoutePage,
+    mapSheetVisible,
+    profileSheetState,
+    roleSwitchVisible,
+    searchPageVisible,
+    stShowCardModel,
+  ]);
+
+  // Room/DM 是 tabs 首页内的局部状态，Android 返回键需要先回到聊天上下文，再交给系统退出。
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return undefined;
+    }
+    const subscription = BackHandler.addEventListener("hardwareBackPress", handleSystemBack);
+    return () => subscription.remove();
+  }, [handleSystemBack]);
 
   const handleSelectMessageAnchor = useCallback((message: Message) => {
     setMessageAnchorId(message.messageId ?? null);
@@ -1071,7 +1162,6 @@ export default function ChatShell() {
   ]);
 
   const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "padding", ios: "padding" });
-  const isRoutePage = !selectedRoomId && !currentContactId;
 
   return (
     <ThemedView style={styles.shell}>

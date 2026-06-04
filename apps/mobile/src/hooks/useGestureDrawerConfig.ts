@@ -1,5 +1,7 @@
-export const DRAWER_ACTIVE_OFFSET_X: [number, number] = [-4, 4];
-export const DRAWER_FAIL_OFFSET_Y: [number, number] = [-40, 40];
+import { DRAWER_EDGE_SWIPE_ZONE_WIDTH } from "../lib/drawer-constants";
+
+export const DRAWER_ACTIVE_OFFSET_X: [number, number] = [-18, 18];
+export const DRAWER_FAIL_OFFSET_Y: [number, number] = [-12, 12];
 export const DRAWER_OVERLAY_CAPTURE_OFFSET = 48;
 
 export function getGestureDrawerAxisConfig() {
@@ -20,6 +22,13 @@ export function getRightDrawerClampRange(rightDrawerWidth: number) {
 export function getRightDrawerSnapPoints(rightDrawerWidth: number): readonly number[] {
   "worklet";
   return [-rightDrawerWidth, 0];
+}
+
+export function getRightDrawerEdgeHitSlop() {
+  return {
+    right: 0,
+    width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
+  };
 }
 
 export function shouldDrawerOverlayCaptureTouches(position: number): boolean {
