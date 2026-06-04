@@ -164,6 +164,120 @@ function ossUploadProxyPlugin(): Plugin {
   };
 }
 
+function webgalAssetProxyPlugin(): Plugin {
+  function buildTuanChatMediaOriginFallbackUrl(targetUrl: URL): string | null {
+    const hostname = targetUrl.hostname.toLowerCase();
+    if (hostname !== "media.tuan.chat" && !hostname.endsWith(".media.tuan.chat")) {
+      return null;
+    }
+    const fallbackUrl = new URL("https://origin.tuan.chat");
+    fallbackUrl.pathname = targetUrl.pathname;
+    fallbackUrl.search = targetUrl.search;
+    return fallbackUrl.toString();
+  }
+
+  function firstHeaderValue(value: string | string[] | undefined, fallback: string): string {
+    if (Array.isArray(value)) {
+      return value.find(item => String(item ?? "").trim()) || fallback;
+    }
+    return String(value || "").trim() || fallback;
+  }
+
+  async function fetchWebgalAssetViaTuanChat(targetUrl: URL, acceptHeader: string | string[] | undefined, userAgentHeader: string | string[] | undefined) {
+    const requestHeaders = {
+      accept: firstHeaderValue(acceptHeader, "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"),
+      referer: "https://tuan.chat/",
+      "user-agent": firstHeaderValue(userAgentHeader, "Mozilla/5.0"),
+    };
+    const firstResponse = await undiciFetch(targetUrl.toString(), {
+      method: "GET",
+      headers: requestHeaders,
+    });
+    if (firstResponse.ok) {
+      return firstResponse;
+    }
+
+    const mediaOriginFallbackUrl = buildTuanChatMediaOriginFallbackUrl(targetUrl);
+    if (!mediaOriginFallbackUrl) {
+      return firstResponse;
+    }
+
+    const fallbackResponse = await undiciFetch(mediaOriginFallbackUrl, {
+      method: "GET",
+      headers: requestHeaders,
+    });
+    return fallbackResponse.ok ? fallbackResponse : firstResponse;
+  }
+
+  return {
+    name: "tc-webgal-asset-proxy",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        try {
+          const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+          if (reqUrl.pathname !== "/api/webgal-asset-proxy") {
+            next();
+            return;
+          }
+
+          if ((req.method || "").toUpperCase() !== "GET") {
+            res.statusCode = 405;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Method Not Allowed");
+            return;
+          }
+
+          const targetUrlRaw = String(reqUrl.searchParams.get("url") || "").trim();
+          let targetUrl: URL;
+          try {
+            targetUrl = new URL(targetUrlRaw);
+          }
+          catch {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Invalid asset URL");
+            return;
+          }
+
+          if (!["http:", "https:"].includes(targetUrl.protocol)) {
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Asset URL protocol must be http(s)");
+            return;
+          }
+
+          const upstreamRes = await fetchWebgalAssetViaTuanChat(targetUrl, req.headers.accept, req.headers["user-agent"]);
+
+          res.statusCode = upstreamRes.status;
+          const contentType = upstreamRes.headers.get("content-type");
+          if (contentType) {
+            res.setHeader("Content-Type", contentType);
+          }
+          const cacheControl = upstreamRes.headers.get("cache-control");
+          if (cacheControl) {
+            res.setHeader("Cache-Control", cacheControl);
+          }
+          res.setHeader("Access-Control-Allow-Origin", "*");
+
+          if (!upstreamRes.body) {
+            res.end();
+            return;
+          }
+
+          await pipeline(Readable.fromWeb(upstreamRes.body as any), res as any);
+        }
+        catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          res.end(`WebGAL asset proxy failed: ${message}`);
+        }
+      });
+    },
+  };
+}
+
 function shouldForwardOssUploadHeader(headerName: string): boolean {
   const normalized = headerName.toLowerCase();
   return ![
@@ -231,6 +345,7 @@ export default defineConfig(() => {
       }),
       tailwindcss(),
       ossUploadProxyPlugin(),
+      webgalAssetProxyPlugin(),
       electronDevPingPlugin(),
       react(),
       babel({

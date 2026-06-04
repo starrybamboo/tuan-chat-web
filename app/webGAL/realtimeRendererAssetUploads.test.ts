@@ -4,6 +4,7 @@ import { uploadFile } from "./fileOperator";
 import {
   getAndUploadMiniAvatarAsset,
   getAndUploadSpriteAsset,
+  uploadImageFigureAsset,
   uploadMapImageAsset,
 } from "./realtimeRendererAssetUploads";
 
@@ -65,6 +66,46 @@ describe("realtimeRendererAssetUploads", () => {
     expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("6488");
   });
 
+  it("上传立绘的首选 sprite medium 源失败时会继续尝试 sprite original 源", async () => {
+    const context = createContext();
+    const avatar = {
+      avatarId: 7,
+      roleId: 1,
+      spriteFileId: 2048,
+      originFileId: 6488,
+    } satisfies RealtimeRoleAvatarSource;
+    vi.mocked(uploadFile)
+      .mockRejectedValueOnce(new Error("medium 404"))
+      .mockResolvedValueOnce("sprite_7.webp");
+
+    const result = await getAndUploadSpriteAsset(context, 7, 1, () => avatar);
+
+    expect(result).toBe("role_1/sprite_7.webp");
+    expect(uploadFile).toHaveBeenCalledTimes(2);
+    expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("2048");
+    expect(String(vi.mocked(uploadFile).mock.calls[1][0])).toContain("2048/original");
+  });
+
+  it("上传立绘的 sprite 源都失败时会继续尝试 origin 源", async () => {
+    const context = createContext();
+    const avatar = {
+      avatarId: 7,
+      roleId: 1,
+      spriteFileId: 2048,
+      originFileId: 6488,
+    } satisfies RealtimeRoleAvatarSource;
+    vi.mocked(uploadFile)
+      .mockRejectedValueOnce(new Error("medium 404"))
+      .mockRejectedValueOnce(new Error("original 404"))
+      .mockResolvedValueOnce("sprite_7.webp");
+
+    const result = await getAndUploadSpriteAsset(context, 7, 1, () => avatar);
+
+    expect(result).toBe("role_1/sprite_7.webp");
+    expect(uploadFile).toHaveBeenCalledTimes(3);
+    expect(String(vi.mocked(uploadFile).mock.calls[2][0])).toContain("6488");
+  });
+
   it("上传立绘允许使用真实 legacy sprite URL", async () => {
     const context = createContext();
     const avatar = {
@@ -101,18 +142,29 @@ describe("realtimeRendererAssetUploads", () => {
     expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("9918");
   });
 
-  it("上传地图图片到 WebGAL 背景目录并返回本地相对路径", async () => {
+  it("同一源图用于不同目标文件名时不会复用成错误角色文件", async () => {
+    const context = createContext();
+
+    const first = await uploadImageFigureAsset(context, "https://example.test/avatar.webp", "token_role_14993");
+    const second = await uploadImageFigureAsset(context, "https://example.test/avatar.webp", "token_role_15223");
+
+    expect(first).toBe("token_role_14993.webp");
+    expect(second).toBe("token_role_15223.webp");
+    expect(uploadFile).toHaveBeenCalledTimes(2);
+  });
+
+  it("上传地图图片到 WebGAL 背景目录并返回本地资源名", async () => {
     const context = createContext();
 
     const result = await uploadMapImageAsset(context, "http://localhost:3001/map.png?sig=a=b", 12);
 
-    expect(result).toBe("./game/background/map_12.png");
+    expect(result).toBe("map_12.png");
     expect(uploadFile).toHaveBeenCalledWith(
       "http://localhost:3001/map.png?sig=a=b",
       "games/realtime_1/game/background/",
       "map_12.png",
     );
-    expect(context.uploadedMapImagesMap.get("http://localhost:3001/map.png?sig=a=b")).toBe("./game/background/map_12.png");
+    expect(context.uploadedMapImagesMap.get("http://localhost:3001/map.png?sig=a=b")).toBe("map_12.png");
   });
 
   it("头像不属于当前角色时不会上传立绘或小头像", async () => {

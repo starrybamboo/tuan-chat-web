@@ -9,9 +9,7 @@ import type { ChatMessageResponse } from "../../api";
 export const DEFAULT_DICE_SOUND_FILE = "nettimato-rolling-dice-1.wav";
 export const DEFAULT_DICE_SOUND_FOLDER = "se";
 export const DICE_MERGE_WAIT_MS = 260;
-export const TRPG_DICE_PIXI_EFFECT = "effect.trpgDiceBurst";
-export const TRPG_DICE_PIXI_DURATION_MS = 720;
-export const TRPG_DICE_PIXI_SCALE = 1.08;
+export const TRPG_DICE_COMMAND = "trpgDice";
 
 const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
 
@@ -40,8 +38,18 @@ export function getDiceContentFromMessage(
   const extraResult = msg.extra && typeof msg.extra === "object"
     ? (msg.extra as { result?: unknown }).result
     : undefined;
+  const messageExtra = msg.extra as ({ authoredDice?: { description?: unknown; result?: unknown } } & typeof msg.extra) | undefined;
+  const authoredDice = messageExtra?.authoredDice;
+  const authoredDescription = authoredDice?.description
+    ? String(authoredDice.description).trim()
+    : "";
+  const authoredResult = authoredDice?.result
+    ? String(authoredDice.result).trim()
+    : "";
+  const authoredContent = [authoredDescription, authoredResult].filter(Boolean).join("\n");
   return payload?.content
     ?? getDiceTurnContentFromMessage(msg)
+    ?? (authoredContent || undefined)
     ?? msg.extra?.diceResult?.result
     ?? (extraResult == null ? undefined : String(extraResult))
     ?? msg.content
@@ -71,14 +79,13 @@ export function resolveRealtimeDiceRenderMode(params: {
   payload?: WebgalDiceRenderPayload | null;
 }): WebgalDiceRenderMode {
   const { combatRoundActive, content, hasScriptLines, payload } = params;
+  const payloadMode = payload?.mode;
   const autoMode: WebgalDiceRenderMode = combatRoundActive
     ? "trpg"
     : (isLikelyAnkoDiceContent(content)
         ? "anko"
         : (isLikelyTrpgDiceContent(content) ? "trpg" : "narration"));
 
-  const payloadMode = payload?.mode;
-  // TRPG 骰点结果需要回到可识别的骰子演出，避免旧导入里 dialog/narration 把 D100 结果降级成普通台词。
   const shouldForceTrpgMode = autoMode === "trpg" && payloadMode !== "anko" && payloadMode !== "script";
   if (shouldForceTrpgMode) {
     return "trpg";
@@ -89,8 +96,8 @@ export function resolveRealtimeDiceRenderMode(params: {
   return payloadMode ?? (hasScriptLines ? "script" : autoMode);
 }
 
-export function buildTrpgDicePixiPerformLine(): string {
-  return `pixiPerform:${TRPG_DICE_PIXI_EFFECT} -once -duration=${TRPG_DICE_PIXI_DURATION_MS} -scale=${TRPG_DICE_PIXI_SCALE} -next;`;
+export function buildTrpgDiceLine(content: string): string {
+  return `${TRPG_DICE_COMMAND}:${content.replace(/\r?\n/g, "|")} -next;`;
 }
 
 export function buildPlayEffectLine(sound: RealtimeDiceSoundLine): string {
@@ -98,8 +105,8 @@ export function buildPlayEffectLine(sound: RealtimeDiceSoundLine): string {
   return `playEffect:${sound.url}${volumePart} -next;`;
 }
 
-export function buildTrpgDicePerformLines(sound?: RealtimeDiceSoundLine | null): string[] {
-  const lines = [buildTrpgDicePixiPerformLine()];
+export function buildTrpgDicePerformLines(content: string, sound?: RealtimeDiceSoundLine | null): string[] {
+  const lines = [buildTrpgDiceLine(content)];
   if (sound) {
     lines.push(buildPlayEffectLine(sound));
   }

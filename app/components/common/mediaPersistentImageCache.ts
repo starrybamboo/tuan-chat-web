@@ -189,11 +189,11 @@ export function resolvePersistentMediaImageSrcSync(src: string | null | undefine
 
   const record = readMediaImageDerivativeRecord(derivativeInfo.fileId);
   const resolvedSrc = record?.status === "missing" ? derivativeInfo.originalSrc : derivativeInfo.normalizedSrc;
-  logPersistentMediaImageDebug("resolve.derivative", {
+  logPersistentMediaImageDebug("resolve.display_src", {
     fileId: derivativeInfo.fileId,
-    requestedSrc: derivativeInfo.normalizedSrc,
-    resolvedSrc,
-    status: record?.status ?? "unknown",
+    requestedDerivativeSrc: derivativeInfo.normalizedSrc,
+    resolvedDisplaySrc: resolvedSrc,
+    derivativeStatus: record?.status ?? "unknown",
   });
   return resolvedSrc;
 }

@@ -6,6 +6,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { resolveMediaContentSource } from "@/components/common/content/mediaContent";
+import { MediaImage } from "@/components/common/mediaImage";
 import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 import LinkComponent from "./linkHandler";
 import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";
@@ -158,7 +159,7 @@ export function MarkDownViewer({
           img(props) {
             const { src, ...rest } = props;
             return (
-              <img
+              <MediaImage
                 {...rest}
                 src={typeof src === "string" ? resolveMediaContentSource(src, "image", "medium") || imagePreviewUrlFromUrl(src) : src}
               />

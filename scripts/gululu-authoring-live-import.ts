@@ -45,6 +45,37 @@ type GululuReplayMessage = {
   speakerName?: string;
 };
 
+type SidebarLeafNode = {
+  fallbackTitle?: string;
+  nodeId: string;
+  targetId: number | string;
+  type: "room" | "doc";
+};
+
+type SidebarTree = {
+  categories: Array<{
+    categoryId: string;
+    collapsed?: boolean;
+    items: SidebarLeafNode[];
+    name: string;
+  }>;
+  schemaVersion: 2;
+};
+
+type SidebarTreeResponse = {
+  spaceId?: number;
+  treeJson?: string;
+  version?: number;
+};
+
+type RoomListResponse = {
+  rooms?: Array<{
+    name?: string;
+    roomId?: number;
+  }>;
+  spaceId?: number;
+};
+
 export type GululuLiveImportArgs = {
   agentId?: string;
   apply?: boolean;
@@ -133,6 +164,17 @@ export type GululuLiveImportClient = {
     addRole: (requestBody: { roleIdList: number[]; roomId: number; type?: number }) => Promise<ApiResult<unknown>>;
     roomNpcRole: (roomId: number) => Promise<ApiResult<UserRole[]>>;
   };
+  roomController?: {
+    getUserRooms: (spaceId: number) => Promise<ApiResult<RoomListResponse>>;
+  };
+  spaceSidebarTreeController?: {
+    getSidebarTree: (spaceId: number) => Promise<ApiResult<SidebarTreeResponse>>;
+    setSidebarTree: (requestBody: {
+      expectedVersion: number;
+      spaceId: number;
+      treeJson: string;
+    }) => Promise<ApiResult<SidebarTreeResponse>>;
+  };
 };
 
 type ApiResult<T> = {
@@ -152,6 +194,13 @@ export type GululuLiveImportApplyResult = {
   avatars: Array<{ action: "created"; avatarId: number; key: string; mediaFileId?: number; roleId: number }>;
   messages: Array<{ messageId?: number; sourceEventIndex: number }>;
   roles: Array<{ action: "created" | "reused"; key: string; roleId: number }>;
+  sidebarTree?: {
+    action: "added" | "already-present" | "skipped";
+    reason?: string;
+    roomId: number;
+    spaceId?: number;
+    version?: number;
+  };
 };
 
 const NPC_ROLE_TYPE = 2;
@@ -619,6 +668,144 @@ async function loadExistingNpcRoles(client: GululuLiveImportClient, roomId: numb
   return assertApiSuccess(result, "读取房间 NPC 角色失败") ?? [];
 }
 
+function normalizeRoomId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function parseStoredSidebarTree(treeJson: string | undefined): SidebarTree | null {
+  if (!treeJson?.trim()) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(treeJson) as SidebarTree;
+    if (parsed?.schemaVersion === 2 && Array.isArray(parsed.categories)) {
+      return parsed;
+    }
+  }
+  catch {
+    return null;
+  }
+  return null;
+}
+
+function buildSidebarRoomNode(roomId: number, fallbackTitle: string): SidebarLeafNode {
+  return {
+    fallbackTitle,
+    nodeId: `room:${roomId}`,
+    targetId: roomId,
+    type: "room",
+  };
+}
+
+function sidebarTreeHasRoom(tree: SidebarTree, roomId: number) {
+  return tree.categories.some(category => (category.items ?? []).some((item) => {
+    return item?.type === "room" && normalizeRoomId(item.targetId) === roomId;
+  }));
+}
+
+function findRoomTitle(rooms: RoomListResponse["rooms"], roomId: number) {
+  const room = (rooms ?? []).find(item => normalizeRoomId(item.roomId) === roomId);
+  return room?.name?.trim() || String(roomId);
+}
+
+function buildDefaultSidebarTreeForImport(rooms: RoomListResponse["rooms"], roomId: number): SidebarTree {
+  const usedRoomIds = new Set<number>();
+  const items: SidebarLeafNode[] = [];
+  for (const room of rooms ?? []) {
+    const nextRoomId = normalizeRoomId(room.roomId);
+    if (!nextRoomId || usedRoomIds.has(nextRoomId)) {
+      continue;
+    }
+    usedRoomIds.add(nextRoomId);
+    items.push(buildSidebarRoomNode(nextRoomId, room.name?.trim() || String(nextRoomId)));
+  }
+  if (!usedRoomIds.has(roomId)) {
+    items.push(buildSidebarRoomNode(roomId, findRoomTitle(rooms, roomId)));
+  }
+  return {
+    categories: [{
+      categoryId: "cat:channels",
+      items,
+      name: "频道",
+    }],
+    schemaVersion: 2,
+  };
+}
+
+function appendRoomToSidebarTree(tree: SidebarTree, roomId: number, fallbackTitle: string): SidebarTree {
+  const next = JSON.parse(JSON.stringify(tree)) as SidebarTree;
+  if (!Array.isArray(next.categories) || next.categories.length === 0) {
+    return buildDefaultSidebarTreeForImport([{ name: fallbackTitle, roomId }], roomId);
+  }
+
+  const category = next.categories.find(item => item.categoryId === "cat:channels")
+    ?? next.categories.find(item => item.name === "频道")
+    ?? next.categories[0]!;
+  category.items = Array.isArray(category.items) ? category.items : [];
+  category.items.push(buildSidebarRoomNode(roomId, fallbackTitle));
+  return next;
+}
+
+export async function ensureRoomInSidebarTree(
+  plan: GululuLiveImportPlan,
+  client: GululuLiveImportClient,
+): Promise<NonNullable<GululuLiveImportApplyResult["sidebarTree"]>> {
+  const spaceId = plan.target.spaceId;
+  const roomId = plan.target.roomId;
+  if (!spaceId) {
+    return { action: "skipped", reason: "missing-space-id", roomId };
+  }
+  if (!client.spaceSidebarTreeController) {
+    return { action: "skipped", reason: "missing-sidebar-tree-controller", roomId, spaceId };
+  }
+
+  const sidebarResponse = assertApiData(
+    await client.spaceSidebarTreeController.getSidebarTree(spaceId),
+    "读取空间侧边栏失败",
+  );
+  const currentTree = parseStoredSidebarTree(sidebarResponse.treeJson);
+  if (currentTree && sidebarTreeHasRoom(currentTree, roomId)) {
+    return {
+      action: "already-present",
+      roomId,
+      spaceId,
+      version: sidebarResponse.version,
+    };
+  }
+
+  const rooms = client.roomController
+    ? assertApiSuccess(await client.roomController.getUserRooms(spaceId), "读取空间房间列表失败")?.rooms ?? []
+    : [];
+  const fallbackTitle = findRoomTitle(rooms, roomId);
+  const nextTree = currentTree
+    ? appendRoomToSidebarTree(currentTree, roomId, fallbackTitle)
+    : buildDefaultSidebarTreeForImport(rooms, roomId);
+  const updated = assertApiData(
+    await client.spaceSidebarTreeController.setSidebarTree({
+      expectedVersion: sidebarResponse.version ?? 0,
+      spaceId,
+      treeJson: JSON.stringify(nextTree),
+    }),
+    "更新空间侧边栏失败",
+  );
+
+  return {
+    action: "added",
+    roomId,
+    spaceId,
+    version: updated.version,
+  };
+}
+
 export async function applyGululuLiveImportPlan(
   plan: GululuLiveImportPlan,
   client: GululuLiveImportClient,
@@ -710,10 +897,13 @@ export async function applyGululuLiveImportPlan(
     });
   }
 
+  const sidebarTree = await ensureRoomInSidebarTree(plan, client);
+
   return {
     avatars: avatarResults,
     messages: messageResults,
     roles: roleResults,
+    sidebarTree,
   };
 }
 

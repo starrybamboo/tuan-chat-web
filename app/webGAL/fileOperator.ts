@@ -2,8 +2,8 @@ import type { GameInfoDto } from "@/webGAL/apis";
 
 import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
 import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
+import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
 import {
-  backfillMirroredWebgalAssetCache,
   fetchObservedWebgalAssetBlob,
   getMirroredWebgalAssetBlob,
   mirrorWebgalAssetBlob,
@@ -41,20 +41,6 @@ type IFile = {
   path: string;
   pathFromBase?: string;
 };
-
-type UploadByUrlResponse = {
-  fileName?: string;
-};
-
-class TerreUploadByUrlError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "TerreUploadByUrlError";
-    this.status = status;
-  }
-}
 
 export type IDebugMessage = {
   event: string;
@@ -109,30 +95,96 @@ function isHttpSourceUrl(url: string): boolean {
   }
 }
 
-async function uploadFileByTerreSourceUrl(sourceUrl: string, targetDirectory: string, fileName: string): Promise<string> {
-  const response = await fetch(`${getTerreBaseUrl()}/api/assets/uploadByUrl`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sourceUrl,
-      targetDirectory,
-      fileName,
-    }),
-  });
+function buildTuanChatWebgalAssetProxyUrl(url: string): string | null {
+  if (!isHttpSourceUrl(url)) {
+    return null;
+  }
+  return `/api/webgal-asset-proxy?url=${encodeURIComponent(url)}`;
+}
 
+function shouldFetchViaTuanChatProxyFirst(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname === "media.tuan.chat" || hostname.endsWith(".media.tuan.chat");
+  }
+  catch {
+    return false;
+  }
+}
+
+function resolveWebgalAssetFetchCandidates(url: string): string[] {
+  const normalizedUrl = String(url ?? "").trim();
+  const candidates = [normalizedUrl];
+  const originalFallbackUrl = imageOriginalUrlFromUrl(normalizedUrl);
+  if (originalFallbackUrl && originalFallbackUrl !== normalizedUrl) {
+    candidates.push(originalFallbackUrl);
+  }
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
+async function fetchSingleWebgalAssetBlob(url: string, shouldUseProxyFallback: boolean): Promise<Blob> {
+  const shouldUseProxyFirst = shouldUseProxyFallback && shouldFetchViaTuanChatProxyFirst(url);
+  if (!shouldUseProxyFirst) {
+    try {
+      const response = await fetch(url, shouldUseProxyFallback ? { cache: "force-cache" } : undefined);
+      if (response.ok) {
+        return await response.blob();
+      }
+    }
+    catch (error) {
+      if (!shouldUseProxyFallback) {
+        throw error;
+      }
+      console.warn("[fileOperator] 直接读取 WebGAL 资源失败，尝试团剧共创资源代理", error);
+    }
+  }
+
+  const proxyUrl = shouldUseProxyFallback ? buildTuanChatWebgalAssetProxyUrl(url) : null;
+  if (!proxyUrl) {
+    throw new Error("Failed to fetch file");
+  }
+  const response = await fetch(proxyUrl, { cache: "force-cache" });
   if (!response.ok) {
-    const errorText = (await response.text()).trim();
-    throw new TerreUploadByUrlError(response.status, errorText || `uploadByUrl failed, status: ${response.status}`);
+    throw new Error(`Failed to fetch file via TuanChat proxy: ${response.statusText}`);
+  }
+  return await response.blob();
+}
+
+export async function fetchWebgalAssetBlob(url: string): Promise<Blob> {
+  const shouldMirrorRemoteUrl = isHttpSourceUrl(url);
+
+  if (shouldMirrorRemoteUrl) {
+    const mirroredBlob = await getMirroredWebgalAssetBlob(url);
+    if (mirroredBlob) {
+      return mirroredBlob;
+    }
+
+    const observedBlob = await fetchObservedWebgalAssetBlob(url);
+    if (observedBlob) {
+      return observedBlob;
+    }
   }
 
-  const result = await response.json() as UploadByUrlResponse;
-  if (!result.fileName) {
-    throw new Error("uploadByUrl returned empty fileName");
+  let lastError: unknown;
+  for (const candidateUrl of resolveWebgalAssetFetchCandidates(url)) {
+    try {
+      const blob = await fetchSingleWebgalAssetBlob(candidateUrl, shouldMirrorRemoteUrl);
+      if (shouldMirrorRemoteUrl) {
+        void mirrorWebgalAssetBlob(url, blob).catch(error =>
+          console.warn("[fileOperator] 写入浏览器资源镜像缓存失败:", error));
+      }
+      return blob;
+    }
+    catch (error) {
+      lastError = error;
+      console.warn("[fileOperator] 读取 WebGAL 资源失败，尝试下一个候选源", {
+        url: candidateUrl,
+        error,
+      });
+    }
   }
 
-  return result.fileName;
+  throw lastError instanceof Error ? lastError : new Error("Failed to fetch file");
 }
 
 /**
@@ -188,41 +240,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
     return uploadedFileName;
   }
 
-  const shouldMirrorRemoteUrl = isHttpSourceUrl(url);
-
-  if (shouldMirrorRemoteUrl) {
-    const mirroredBlob = await getMirroredWebgalAssetBlob(url);
-    if (mirroredBlob) {
-      return await uploadBlobWithOptionalMirror(mirroredBlob, false);
-    }
-
-    const observedBlob = await fetchObservedWebgalAssetBlob(url);
-    if (observedBlob) {
-      return await uploadBlobWithOptionalMirror(observedBlob, false);
-    }
-  }
-
-  if (shouldMirrorRemoteUrl) {
-    try {
-      const uploadedFileName = await uploadFileByTerreSourceUrl(url, path, safeFileName);
-      // Terre 直拉成功后，异步把资源回填到前端镜像缓存，下一次优先命中本地缓存。
-      void backfillMirroredWebgalAssetCache(url);
-      return uploadedFileName;
-    }
-    catch (error) {
-      const shouldFallbackToBrowserUpload = error instanceof TerreUploadByUrlError
-        && (error.status === 404 || error.status === 405 || error.status >= 500);
-      if (!shouldFallbackToBrowserUpload) {
-        throw error;
-      }
-      console.warn("[fileOperator] Terre uploadByUrl 不可用，回退到浏览器上传流程", error);
-    }
-  }
-
-  const response = await fetch(url, shouldMirrorRemoteUrl ? { cache: "force-cache" } : undefined);
-  if (!response.ok)
-    throw new Error(`Failed to fetch file: ${response.statusText}`);
-  const data = await response.blob();
+  const data = await fetchWebgalAssetBlob(url);
 
   /*
   if (shouldTranscodeAudio && !shouldTranscodeAudioByName) {
@@ -235,7 +253,7 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   }
   */
 
-  return await uploadBlobWithOptionalMirror(data, shouldMirrorRemoteUrl);
+  return await uploadBlobWithOptionalMirror(data, false);
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {

@@ -15,7 +15,7 @@ const DICE_PATTERN = /(?:【[^】]*(?:\d*d\d+|\d+d\d+|1d|d\d+)[^】]*】|\[[0-9]
 const BGM_LINE_PATTERN = /^\s*BGM\s*[:：]\s*(?<name>.+?)\s*$/i;
 const SPEAKER_LINE_PATTERN = /^\s*(?<speaker>[^:：\r\n]{1,18})\s*[:：]\s*(?<content>.*)$/;
 const LOOSE_SPEAKER_QUOTE_PATTERN = /^\s*(?<speaker>[\p{Script=Han}A-Za-z0-9·]{1,10})\s*[“"‘'](?<content>.*)$/u;
-const IGNORED_SPEAKER_PATTERN = /^(?:BGM|HP|Hp|Atk|ATK|攻击|技能|必杀技|PS|T\d+|\d+)$/;
+const IGNORED_SPEAKER_PATTERN = /^(?:BGM|HP|Hp|Atk|ATK|攻击|技能|必杀技|PS\d*|T\d+|\d+)$/;
 const LOOSE_SPEAKER_DENY_PATTERN = /^(?:除了|虽然|如果|因为|不过|然后|于是|这里|这时|然而|但是|而且|那么|顺便|实际原因|收下吧)$/;
 const ROLE_ALIAS_OVERRIDES = new Map([
   ["阿空", "灵乌路空"],
@@ -62,6 +62,32 @@ const ROLE_ALIAS_OVERRIDES = new Map([
   ["女苑", "依神女苑"],
   ["萃香", "伊吹萃香"],
 ]);
+const CANONICAL_ROLE_NAMES = new Set(ROLE_ALIAS_OVERRIDES.values());
+const NON_DIALOG_SPEAKER_NAMES = new Set([
+  "作者的独断",
+  "历战的战士",
+  "烈 海 王",
+  "师匠的教导",
+  "数值大的那一方胜利，之后进行伤害判定",
+  "武术之爱",
+  "消力",
+  "完全消力",
+  "攻消力",
+  "两人",
+]);
+const DICE_DESCRIPTION_SPEAKER_NAMES = new Set([
+  "历战的战士",
+  "烈 海 王",
+  "师匠的教导",
+  "数值大的那一方胜利，之后进行伤害判定",
+  "武术之爱",
+  "消力",
+  "完全消力",
+  "攻消力",
+]);
+const NON_DIALOG_SPEAKER_PATTERN = /(?:的教导|的独断|的战士|之爱|那一方胜利|数值.*判定)$/;
+const DICE_DESCRIPTION_SPEAKER_PATTERN = /(?:的教导|的战士|之爱|那一方胜利|数值.*判定)$/;
+const RULE_CONTENT_PATTERN = /(?:【情报不明】|Atk|ATK|Hp|HP|战斗力|最终伤害|普通攻击|技能|判定|回避|大成功|大失败|所需值|无效|起效|发动时|造成伤害|CT\d|X\d|x\d|[+\-]\d|[／/]\d)/;
 
 export function normalizeGululuImagePath(rawPath) {
   return rawPath.trim().replace(/\\/g, "/").replace(/^\.\.\/images\//, "");
@@ -86,6 +112,36 @@ function isIgnorableSpeakerName(name) {
 function normalizeRoleName(name) {
   const trimmed = trimSpeakerName(name);
   return ROLE_ALIAS_OVERRIDES.get(trimmed) ?? trimmed;
+}
+
+function isKnownCharacterSpeaker(name) {
+  const trimmed = trimSpeakerName(name);
+  return ROLE_ALIAS_OVERRIDES.has(trimmed) || CANONICAL_ROLE_NAMES.has(trimmed);
+}
+
+function shouldTreatSpeakerLineAsNarration(speakerName, content) {
+  const speaker = trimSpeakerName(speakerName);
+  if (!speaker) {
+    return true;
+  }
+  if (NON_DIALOG_SPEAKER_NAMES.has(speaker) || NON_DIALOG_SPEAKER_PATTERN.test(speaker)) {
+    return true;
+  }
+  if (/[，,。；;、]/.test(speaker) || /\p{Script=Han}\s+\p{Script=Han}/u.test(speaker)) {
+    return true;
+  }
+  return !isKnownCharacterSpeaker(speaker) && RULE_CONTENT_PATTERN.test(content);
+}
+
+function isDiceDescriptionSpeakerLine(speakerName, content) {
+  const speaker = trimSpeakerName(speakerName);
+  if (!speaker) {
+    return false;
+  }
+  if (DICE_DESCRIPTION_SPEAKER_NAMES.has(speaker) || DICE_DESCRIPTION_SPEAKER_PATTERN.test(speaker)) {
+    return true;
+  }
+  return !isKnownCharacterSpeaker(speaker) && RULE_CONTENT_PATTERN.test(content);
 }
 
 function hasDiceRoll(line) {
@@ -114,12 +170,28 @@ function parseSpeakerLine(line) {
     };
   }
   const speakerName = trimSpeakerName(matched.groups.speaker);
-  if (!speakerName || isIgnorableSpeakerName(speakerName)) {
+  const content = matched.groups.content.trim();
+  if (!speakerName || isIgnorableSpeakerName(speakerName) || shouldTreatSpeakerLineAsNarration(speakerName, content)) {
     return null;
   }
   return {
-    content: matched.groups.content.trim(),
+    content,
     speakerName,
+  };
+}
+
+function parseDiceDescriptionLine(line) {
+  const matched = line.match(SPEAKER_LINE_PATTERN);
+  if (!matched?.groups) {
+    return null;
+  }
+  const speakerName = trimSpeakerName(matched.groups.speaker);
+  const content = matched.groups.content.trim();
+  if (!isDiceDescriptionSpeakerLine(speakerName, content)) {
+    return null;
+  }
+  return {
+    content: `${speakerName}：${content}`,
   };
 }
 
@@ -130,6 +202,9 @@ function isNumberedOptionLine(line) {
 function shouldInferDialogFromImage(line) {
   const normalized = line.trim();
   if (!normalized || normalized.length > 48 || isNumberedOptionLine(normalized)) {
+    return false;
+  }
+  if (SPEAKER_LINE_PATTERN.test(normalized)) {
     return false;
   }
   if (/^[（(【\[]/.test(normalized)) {
@@ -239,6 +314,7 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
   const messages = [];
   const state = { floor, imagePath: segment.imagePath };
   const inferredSpeaker = segment.imagePath ? imageSpeakerMap.get(segment.imagePath)?.speakerName : undefined;
+  let activeDiceDescriptions = [];
   let activeNarration = [];
 
   const flushNarration = () => {
@@ -252,6 +328,19 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
     activeNarration = [];
   };
 
+  const flushDiceDescriptionOnly = () => {
+    if (activeDiceDescriptions.length === 0) {
+      return;
+    }
+    const description = activeDiceDescriptions.join("\n");
+    pushTextMessage(messages, state, {
+      content: description,
+      diceDescription: description,
+      kind: "dice",
+    });
+    activeDiceDescriptions = [];
+  };
+
   for (const rawLine of normalizeLineBreaks(segment.text).split("\n")) {
     const line = rawLine.trim();
     if (!line) {
@@ -262,6 +351,7 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
     const bgmName = parseBgmLine(line);
     if (bgmName) {
       flushNarration();
+      flushDiceDescriptionOnly();
       pushTextMessage(messages, state, {
         bgmName,
         content: `BGM：${bgmName}`,
@@ -272,16 +362,27 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
 
     if (hasDiceRoll(line)) {
       flushNarration();
+      const diceDescription = activeDiceDescriptions.join("\n");
+      activeDiceDescriptions = [];
       pushTextMessage(messages, state, {
         content: line,
+        diceDescription: diceDescription || undefined,
         kind: "dice",
       });
+      continue;
+    }
+
+    const diceDescriptionLine = parseDiceDescriptionLine(line);
+    if (diceDescriptionLine) {
+      flushNarration();
+      activeDiceDescriptions.push(diceDescriptionLine.content);
       continue;
     }
 
     const speakerLine = parseSpeakerLine(line);
     if (speakerLine) {
       flushNarration();
+      flushDiceDescriptionOnly();
       pushTextMessage(messages, state, {
         content: speakerLine.content,
         inferred: false,
@@ -293,6 +394,7 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
     }
 
     if (inferredSpeaker && segment.imagePath && shouldInferDialogFromImage(line)) {
+      flushDiceDescriptionOnly();
       pushTextMessage(messages, state, {
         content: line,
         inferred: true,
@@ -303,9 +405,11 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
       continue;
     }
 
+    flushDiceDescriptionOnly();
     activeNarration.push(line);
   }
   flushNarration();
+  flushDiceDescriptionOnly();
   return messages;
 }
 
@@ -463,6 +567,216 @@ export function buildGululuReplayImportPackage(floors, options = {}) {
   };
 }
 
+function buildAuthoringSource(importPackage, options = {}) {
+  const source = importPackage.source ?? {};
+  const fromFloor = source.fromFloor ?? options.fromFloor;
+  const toFloor = source.toFloor ?? options.toFloor;
+  const workId = options.workId ?? (options.opusId ? `opus-${options.opusId}` : undefined);
+  return {
+    kind: "gululu",
+    key: options.sourceKey ?? `${workId ?? "gululu"}:floors:${fromFloor ?? "unknown"}-${toFloor ?? "unknown"}`,
+    title: source.title,
+    workId,
+  };
+}
+
+function buildMessageSource(batchSource, message, eventIndex) {
+  return {
+    kind: batchSource.kind,
+    eventIndex,
+    originalAssetPath: message.imagePath,
+    originalMediaName: message.bgmName,
+    originalSpeaker: message.speakerName,
+    segmentId: String(message.floor),
+    workId: batchSource.workId,
+  };
+}
+
+function roleSourceKey(roleName) {
+  return `role:${roleName}`;
+}
+
+function avatarSourceKey(imagePath) {
+  return `image:${imagePath}`;
+}
+
+function unresolvedBgmName(message) {
+  return message.bgmName || message.content.replace(/^\s*BGM\s*[:：]\s*/i, "").trim();
+}
+
+function createGululuAuthoringAdapter(authoring, importPackage, options = {}) {
+  const targetRoomId = options.targetRoomId;
+  if (!Number.isInteger(targetRoomId) || targetRoomId <= 0) {
+    throw new Error("targetRoomId must be a positive integer");
+  }
+
+  const batchSource = buildAuthoringSource(importPackage, options);
+  const batch = authoring.startBatch({
+    agentId: options.agentId,
+    force: options.force,
+    rawInput: importPackage,
+    source: batchSource,
+    targetRoomId,
+  });
+  const roleDraftsByName = new Map((importPackage.roles ?? []).map((role) => {
+    return [normalizeRoleName(role.name), role];
+  }));
+  const rolesByName = new Map();
+  const avatarsByRoleAndImage = new Map();
+  const unresolvedBgmByName = new Map();
+
+  const defaultAvatarPathFor = (roleName) => {
+    const normalizedName = normalizeRoleName(roleName);
+    const roleDraft = roleDraftsByName.get(normalizedName);
+    return roleDraft?.defaultAvatarPath ?? roleDraft?.avatarImages?.[0]?.imagePath;
+  };
+
+  const hasAvatarEvidence = (roleName) => Boolean(defaultAvatarPathFor(roleName));
+
+  const ensureRole = (roleName) => {
+    const normalizedName = normalizeRoleName(roleName);
+    const existing = rolesByName.get(normalizedName);
+    if (existing) {
+      return existing;
+    }
+    const role = authoring.upsertRole({
+      batchId: batch.batchId,
+      normalizedName,
+      sourceKey: roleSourceKey(normalizedName),
+    });
+    rolesByName.set(normalizedName, role);
+    return role;
+  };
+
+  for (const role of importPackage.roles ?? []) {
+    if (hasAvatarEvidence(role.name)) {
+      ensureRole(role.name);
+    }
+  }
+
+  const ensureAvatar = (role, imagePath) => {
+    if (!imagePath) {
+      return undefined;
+    }
+    const key = `${role.roleId}:${imagePath}`;
+    const existing = avatarsByRoleAndImage.get(key);
+    if (existing) {
+      return existing;
+    }
+    const avatar = authoring.upsertAvatar({
+      batchId: batch.batchId,
+      fileName: path.basename(imagePath),
+      roleId: role.roleId,
+      sourceAssetKey: avatarSourceKey(imagePath),
+    });
+    avatarsByRoleAndImage.set(key, avatar);
+    return avatar;
+  };
+
+  const ensureUnresolvedBgm = (message, source) => {
+    const originalName = unresolvedBgmName(message);
+    const existing = unresolvedBgmByName.get(originalName);
+    if (existing) {
+      return existing;
+    }
+    const unresolved = authoring.recordUnresolvedMedia({
+      batchId: batch.batchId,
+      originalName,
+      purpose: "bgm",
+      reason: "no BGM media manifest provided",
+      source,
+    });
+    unresolvedBgmByName.set(originalName, unresolved);
+    return unresolved;
+  };
+
+  const authoredMessages = [];
+  importPackage.messages.forEach((message, index) => {
+    const source = buildMessageSource(batchSource, message, index + 1);
+    if (message.kind === "dialog") {
+      const roleName = message.roleName || message.speakerName;
+      const avatarImagePath = message.imagePath || defaultAvatarPathFor(roleName);
+      if (!avatarImagePath) {
+        authoredMessages.push({
+          content: `${message.speakerName}：${message.content}`,
+          kind: "narration",
+          source,
+        });
+        return;
+      }
+
+      const role = ensureRole(roleName);
+      const avatar = ensureAvatar(role, avatarImagePath);
+      authoredMessages.push({
+        avatarId: avatar?.avatarId,
+        content: message.content,
+        customRoleName: message.speakerName && message.speakerName !== role.normalizedName
+          ? message.speakerName
+          : undefined,
+        kind: "dialog",
+        roleId: role.roleId,
+        source,
+      });
+      return;
+    }
+
+    if (message.kind === "dice") {
+      const hasRollResult = hasDiceRoll(message.content);
+      authoredMessages.push({
+        content: message.content,
+        dice: {
+          description: message.diceDescription,
+          options: message.options,
+          result: hasRollResult ? message.content : undefined,
+          rollText: message.rollText,
+        },
+        kind: "dice",
+        source,
+      });
+      return;
+    }
+
+    if (message.kind === "bgm") {
+      const unresolved = ensureUnresolvedBgm(message, source);
+      authoredMessages.push({
+        kind: "bgm",
+        source,
+        unresolvedMediaId: unresolved.unresolvedMediaId,
+      });
+      return;
+    }
+
+    authoredMessages.push({
+      content: message.content,
+      kind: "narration",
+      source,
+    });
+  });
+
+  if (authoredMessages.length > 0) {
+    authoring.writeMessages({
+      batchId: batch.batchId,
+      messages: authoredMessages,
+    });
+  }
+
+  const report = options.commit === false
+    ? authoring.inspectBatch(batch.batchId)
+    : authoring.commitBatch(batch.batchId);
+  return {
+    avatarCount: avatarsByRoleAndImage.size,
+    batch,
+    readiness: authoring.inspectWebgalReadiness(batch.batchId),
+    report,
+    roleCount: rolesByName.size,
+    unresolvedBgmCount: unresolvedBgmByName.size,
+  };
+}
+
+export function applyGululuReplayImportToAuthoring(authoring, importPackage, options = {}) {
+  return createGululuAuthoringAdapter(authoring, importPackage, options);
+}
+
 export function buildImportText(importPackage) {
   const speakerByKind = {
     bgm: "BGM",
@@ -471,7 +785,10 @@ export function buildImportText(importPackage) {
   };
   return importPackage.messages.map((message) => {
     const speaker = message.kind === "dialog" ? message.speakerName : speakerByKind[message.kind];
-    return `[${speaker}]：${message.content}`;
+    const content = message.kind === "dice" && message.diceDescription && message.diceDescription !== message.content
+      ? `${message.diceDescription}\n${message.content}`
+      : message.content;
+    return `[${speaker}]：${content}`;
   }).join("\n");
 }
 

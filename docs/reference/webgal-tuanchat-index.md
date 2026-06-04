@@ -20,6 +20,10 @@
 
 ## 团剧共创关键入口
 
+- 翻译速查表：
+  - `D:\A_collection\tuan-chat-web\docs\reference\webgal-tuanchat-translation-map.md`
+- 实时渲染规则：
+  - `D:\A_collection\tuan-chat-web\docs\reference\webgal-realtime-render-rules.md`
 - 预览面板：
   - `D:\A_collection\tuan-chat-web\app\components\chat\shared\webgal\webGALPreview.tsx`
 - 空间级 WebGAL 设置页：

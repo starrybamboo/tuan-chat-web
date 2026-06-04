@@ -530,7 +530,6 @@ export class PremiereExporter {
             const refBase64 = await this.fileToBase64(refAudioFile);
             const api = createTTSApi(this.ttsApiUrl);
 
-            const voiceSettings = msg.webgal?.voiceRenderSettings as { emotionVector?: number[] } | undefined;
             const ttsReq: InferRequest = {
               text: msg.content,
               prompt_audio_base64: refBase64,
@@ -539,7 +538,6 @@ export class PremiereExporter {
               emo_weight: 0.8,
               temperature: 0.8,
               top_p: 0.8,
-              emo_vector: voiceSettings?.emotionVector,
             };
 
             const res = await api.infer(ttsReq);

@@ -39,8 +39,13 @@ export function deleteAvatarScopedCacheEntries(cache: Map<string, string>, avata
   }
 }
 
-function resolveRoleSpriteUrl(avatar: RealtimeRoleAvatarSource | undefined): string {
-  return resolveRoleAvatarMedia(avatar).sprite.url;
+function resolveRoleSpriteUrls(avatar: RealtimeRoleAvatarSource | undefined): string[] {
+  const media = resolveRoleAvatarMedia(avatar);
+  return Array.from(new Set([
+    media.sprite.url,
+    media.sprite.originalUrl,
+    media.origin.url,
+  ].map(url => url.trim()).filter(Boolean)));
 }
 
 function resolveRoleMiniAvatarUrl(avatar: RealtimeRoleAvatarSource | undefined): string {
@@ -108,9 +113,8 @@ export async function uploadMapImageAsset(
     const path = `games/${context.gameName}/game/background/`;
     const targetName = buildImageFileName(url, `map_${mapFileId}`, "map");
     const fileName = await uploadFile(url, path, targetName);
-    const localUrl = `./game/background/${fileName}`;
-    context.uploadedMapImagesMap.set(url, localUrl);
-    return localUrl;
+    context.uploadedMapImagesMap.set(url, fileName);
+    return fileName;
   }
   catch (error) {
     console.error("上传地图图片失败:", error);
@@ -123,15 +127,16 @@ export async function uploadImageFigureAsset(
   url: string,
   fileName?: string,
 ): Promise<string | null> {
-  if (context.uploadedImageFiguresMap.has(url)) {
-    return context.uploadedImageFiguresMap.get(url) || null;
+  const cacheKey = `${fileName?.trim() || ""}|${url}`;
+  if (context.uploadedImageFiguresMap.has(cacheKey)) {
+    return context.uploadedImageFiguresMap.get(cacheKey) || null;
   }
 
   try {
     const path = `games/${context.gameName}/game/figure/`;
     const targetName = buildImageFileName(url, fileName, "img");
     const uploadedName = await uploadFile(url, path, targetName);
-    context.uploadedImageFiguresMap.set(url, uploadedName);
+    context.uploadedImageFiguresMap.set(cacheKey, uploadedName);
     return uploadedName;
   }
   catch (error) {
@@ -210,14 +215,14 @@ export async function getAndUploadSpriteAsset(
   context: RealtimeAssetUploadContext,
   avatarId: number,
   roleId: number,
-  getCachedRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined,
+  getRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined | Promise<RealtimeRoleAvatarSource | undefined>,
 ): Promise<string | null> {
   const cacheKey = buildRoleAvatarCacheKey(roleId, avatarId);
   if (context.uploadedSpritesMap.has(cacheKey)) {
     return context.uploadedSpritesMap.get(cacheKey) || null;
   }
 
-  const avatar = getCachedRoleAvatar(avatarId);
+  const avatar = await getRoleAvatar(avatarId);
   if (!avatar) {
     console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}`);
     return null;
@@ -227,27 +232,33 @@ export async function getAndUploadSpriteAsset(
     return null;
   }
 
-  const spriteUrl = resolveRoleSpriteUrl(avatar);
-  if (!spriteUrl) {
+  const spriteUrls = resolveRoleSpriteUrls(avatar);
+  if (spriteUrls.length === 0) {
     console.warn(`[RealtimeRenderer] 头像没有可用的 spriteFileId 或 originFileId: avatarId=${avatarId}`);
     return null;
   }
 
-  return uploadSpriteAsset(context, avatarId, spriteUrl, roleId);
+  for (const spriteUrl of spriteUrls) {
+    const uploaded = await uploadSpriteAsset(context, avatarId, spriteUrl, roleId);
+    if (uploaded) {
+      return uploaded;
+    }
+  }
+  return null;
 }
 
 export async function getAndUploadMiniAvatarAsset(
   context: RealtimeAssetUploadContext,
   avatarId: number,
   roleId: number,
-  getCachedRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined,
+  getRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined | Promise<RealtimeRoleAvatarSource | undefined>,
 ): Promise<string | null> {
   const cacheKey = buildRoleAvatarCacheKey(roleId, avatarId);
   if (context.uploadedMiniAvatarsMap.has(cacheKey)) {
     return context.uploadedMiniAvatarsMap.get(cacheKey) || null;
   }
 
-  const avatar = getCachedRoleAvatar(avatarId);
+  const avatar = await getRoleAvatar(avatarId);
   if (avatar && Number(avatar.roleId ?? 0) !== roleId) {
     console.warn(`[RealtimeRenderer] 小头像不属于当前角色: avatarId=${avatarId}, roleId=${roleId}, avatarRoleId=${avatar.roleId}`);
     return null;

@@ -17,6 +17,7 @@ pnpm install
 pnpm android:fast
 pnpm android:open
 pnpm android:dev
+pnpm android:build
 pnpm android:reverse
 pnpm android:emulator
 pnpm android

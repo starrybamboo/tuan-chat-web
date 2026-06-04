@@ -49,3 +49,10 @@
 - [ ] 7.6 验证 high 档位移除：确认 `uploadTargets` 中无 high 对应文件上传，complete 接口不报错
 - [ ] 7.7 验证 SHA-256 去重：重复文件上传跳过实际 PUT
 - [ ] 7.8 低内存设备测试（可选）：确认 3 个 FFmpeg 实例不触发 OOM
+
+## 8. 图片展示派生状态缓存
+
+- [ ] 8.1 `MediaImage` 根据 fileId 派生状态解析最终展示 URL：`missing -> original`，`available/unknown -> requested tier`
+- [ ] 8.2 Markdown 图片和房间背景图复用同一套展示 URL 解析，避免绕过派生状态缓存
+- [ ] 8.3 派生状态缓存写入采用保守语义：`original` 加载成功不得写入 `available`，无法区分重定向到 `original` 时不得仅凭 load 事件写入 `available`
+- [ ] 8.4 增加覆盖 `missing` 直走 `original`、`original` 成功不覆盖 `missing`、重定向不可判定时不误写 `available` 的测试

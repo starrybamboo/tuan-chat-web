@@ -60,7 +60,12 @@ export type CompiledSceneFigureState = {
 export type CompiledRoomSceneResult = {
   content: string;
   lastFigureSlotId?: string;
+  messageLineRanges: Map<number, { startLine: number; endLine: number }>;
   renderedFigures: Map<string, CompiledSceneFigureState>;
+};
+
+type WebgalCompiledRoleAvatar = RoleAvatar & {
+  webgalSpritePath?: string;
 };
 
 const GAME_DIR = "game";
@@ -142,14 +147,8 @@ export function buildWebgalSceneName(roomId: number | string | undefined, roomNa
   const safeRoomId = Number.isFinite(normalizedRoomId) && normalizedRoomId > 0
     ? Math.floor(normalizedRoomId)
     : 0;
-  const safeBaseName = String(roomName ?? (safeRoomId > 0 ? `room_${safeRoomId}` : "room"))
-    .trim()
-    .replace(/[\r\n]+/g, " ")
-    .replace(/[\\/:*?"<>|;]/g, "_")
-    .replace(/\s+/g, "_")
-    .slice(0, 80)
-    || "room";
-  return safeRoomId > 0 ? `${safeBaseName}_${safeRoomId}` : safeBaseName;
+  void roomName;
+  return safeRoomId > 0 ? `room_${safeRoomId}` : "room";
 }
 
 export function resolveProjectableMediaUrl(
@@ -296,12 +295,8 @@ export function buildIndexHtml(spaceName?: string, sharedEngineUrl?: string, inc
   ].join("\n");
 }
 
-function resolveSpriteUrl(avatar: RoleAvatar | undefined): string {
-  const spriteFileId = Number(avatar?.spriteFileId ?? 0);
-  if (spriteFileId <= 0) {
-    return "";
-  }
-  return mediaFileUrl(spriteFileId, "image", "medium");
+function resolveSpriteUrl(avatar: WebgalCompiledRoleAvatar | undefined): string {
+  return avatar?.webgalSpritePath?.trim() || "";
 }
 
 function appendLine(context: { lines: string[] }, line: string | null | undefined): void {
@@ -432,8 +427,7 @@ function renderChooseMessage(context: PublishSceneContext, message: ChatMessageR
 function renderFigureCommands(
   context: PublishSceneContext,
   message: ChatMessageResponse,
-  roleMap: Map<number, UserRole>,
-  avatarMap: Map<number, RoleAvatar>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
 ): string {
   const payload = message.message;
   const roleId = payload.roleId ?? 0;
@@ -446,9 +440,8 @@ function renderFigureCommands(
     return "";
   }
 
-  const role = roleMap.get(roleId);
-  const effectiveAvatarId = Number(payload.avatarId ?? role?.avatarId ?? 0);
-  const avatar = effectiveAvatarId > 0 ? avatarMap.get(effectiveAvatarId) : undefined;
+  const messageAvatarId = Number(payload.avatarId ?? 0);
+  const avatar = messageAvatarId > 0 ? avatarMap.get(messageAvatarId) : undefined;
   const spriteUrl = resolveSpriteUrl(avatar);
   if (!spriteUrl) {
     return "";
@@ -486,7 +479,7 @@ function renderTextMessage(
   context: PublishSceneContext,
   message: ChatMessageResponse,
   roleMap: Map<number, UserRole>,
-  avatarMap: Map<number, RoleAvatar>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
 ): boolean {
   const payload = message.message;
   const isText = (payload.messageType as number) === MESSAGE_TYPE.TEXT;
@@ -516,10 +509,56 @@ function renderTextMessage(
 
   const role = roleMap.get(roleId);
   const roleName = payload.customRoleName || role?.roleName || `角色${roleId}`;
-  const figureIdPart = renderFigureCommands(context, message, roleMap, avatarMap);
+  const figureIdPart = renderFigureCommands(context, message, avatarMap);
   const notendPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_NOTEND) ? " -notend" : "";
   const concatPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_CONCAT) ? " -concat" : "";
   appendLine(context, `${roleName}: ${processedContent}${figureIdPart}${notendPart}${concatPart}${nextPart};`);
+  return true;
+}
+
+function renderDiceMessage(
+  context: PublishSceneContext,
+  message: ChatMessageResponse,
+  roleMap: Map<number, UserRole>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
+): boolean {
+  const payload = message.message;
+  if ((payload.messageType as number) !== MESSAGE_TYPE.DICE) {
+    return false;
+  }
+
+  const extra = payload.extra as {
+    authoredDice?: { description?: unknown; options?: unknown; result?: unknown; rollText?: unknown };
+    diceResult?: { result?: unknown };
+  } | undefined;
+  const authoredOptions = Array.isArray(extra?.authoredDice?.options)
+    ? extra.authoredDice.options.map(item => String(item)).filter(Boolean)
+    : [];
+  const descriptionText = extra?.authoredDice?.description
+    ? String(extra.authoredDice.description).trim()
+    : "";
+  const diceText = String(
+    extra?.authoredDice?.result
+    ?? extra?.diceResult?.result
+    ?? payload.content
+    ?? "",
+  ).trim();
+  const authoredText = [descriptionText, diceText, ...authoredOptions].filter(Boolean).join("\n");
+  const processedContent = TextEnhanceSyntax.processContent(authoredText).replace(/\r?\n/g, "|");
+  if (!processedContent.trim()) {
+    return true;
+  }
+
+  const roleId = payload.roleId ?? 0;
+  if (roleId <= 0) {
+    appendLine(context, `:${processedContent};`);
+    return true;
+  }
+
+  const role = roleMap.get(roleId);
+  const roleName = payload.customRoleName || role?.roleName || `角色${roleId}`;
+  const figureIdPart = renderFigureCommands(context, message, avatarMap);
+  appendLine(context, `${roleName}: ${processedContent}${figureIdPart};`);
   return true;
 }
 
@@ -527,7 +566,7 @@ function renderPublishMessage(
   context: PublishSceneContext,
   message: ChatMessageResponse,
   roleMap: Map<number, UserRole>,
-  avatarMap: Map<number, RoleAvatar>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
 ): void {
   const payload = message.message;
   if (payload.status === 1) {
@@ -545,6 +584,9 @@ function renderPublishMessage(
     return;
   }
   if (renderChooseMessage(context, message)) {
+    return;
+  }
+  if (renderDiceMessage(context, message, roleMap, avatarMap)) {
     return;
   }
   renderTextMessage(context, message, roleMap, avatarMap);
@@ -565,9 +607,16 @@ export function buildRoomSceneCompilation(
     lines: ["changeBg:none -next;"],
     renderedFigures: new Map(),
   };
+  const messageLineRanges = new Map<number, { startLine: number; endLine: number }>();
 
   sortMessages(messages).forEach((message) => {
+    const messageId = Number(message.message.messageId ?? 0);
+    const startLine = context.lines.length + 1;
     renderPublishMessage(context, message, roleMap, avatarMap);
+    const endLine = context.lines.length;
+    if (messageId > 0 && endLine >= startLine) {
+      messageLineRanges.set(messageId, { startLine, endLine });
+    }
   });
 
   const transitionLine = buildWorkflowTransitionLineWithEnd({
@@ -583,6 +632,7 @@ export function buildRoomSceneCompilation(
   return {
     content: ensureTrailingNewline(context.lines.join("\n")),
     lastFigureSlotId: context.lastFigureSlotId,
+    messageLineRanges,
     renderedFigures: new Map(
       Array.from(context.renderedFigures.entries()).map(([slotId, state]) => [slotId, { ...state }]),
     ),

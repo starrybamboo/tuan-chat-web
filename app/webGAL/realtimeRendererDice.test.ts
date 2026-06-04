@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildTrpgDicePerformLines,
-  buildTrpgDicePixiPerformLine,
   resolveRealtimeDiceMiniAvatarDefault,
   resolveRealtimeDiceRenderMode,
 } from "./realtimeRendererDice";
@@ -58,7 +57,7 @@ describe("resolveRealtimeDiceRenderMode", () => {
     })).toBe("trpg");
   });
 
-  it("anko 和可用 script 模式不被 TRPG 自动识别覆盖", () => {
+  it("anko 和普通可用 script 模式不被 TRPG 自动识别覆盖", () => {
     expect(resolveRealtimeDiceRenderMode({
       combatRoundActive: false,
       content: "射击检定：D100=2/90 极难成功",
@@ -74,6 +73,10 @@ describe("resolveRealtimeDiceRenderMode", () => {
       hasScriptLines: true,
       payload: {
         mode: "script",
+        lines: [
+          "pixiPerform:effect.customDice -once -next;",
+          ":自定义脚本骰子;",
+        ],
       },
     })).toBe("script");
   });
@@ -92,22 +95,18 @@ describe("resolveRealtimeDiceRenderMode", () => {
     })).toBe("narration");
   });
 
-  it("TRPG 特效使用 WebGAL 可识别的 pixiPerform 指令", () => {
-    expect(buildTrpgDicePixiPerformLine())
-      .toBe("pixiPerform:effect.trpgDiceBurst -once -duration=720 -scale=1.08 -next;");
-  });
-
-  it("TRPG 骰子实时脚本不再生成 WebGAL dice 浮层命令", () => {
-    const lines = buildTrpgDicePerformLines({
+  it("TRPG 骰子实时脚本使用 trpgDice 覆盖卡片，不生成 pixiPerform 或普通 dice", () => {
+    const lines = buildTrpgDicePerformLines("射击检定：D100=2/90 极难成功", {
       url: "./game/se/dice.wav",
       volume: 60,
     });
 
     expect(lines).toEqual([
-      "pixiPerform:effect.trpgDiceBurst -once -duration=720 -scale=1.08 -next;",
+      "trpgDice:射击检定：D100=2/90 极难成功 -next;",
       "playEffect:./game/se/dice.wav -volume=60 -next;",
     ]);
     expect(lines.some(line => line.startsWith("dice:"))).toBe(false);
+    expect(lines.some(line => line.startsWith("pixiPerform:"))).toBe(false);
   });
 
   it("TRPG 骰子默认不生成 miniAvatar", () => {

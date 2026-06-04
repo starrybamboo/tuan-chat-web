@@ -87,12 +87,46 @@ describe("realtimeRenderAssetWarmup", () => {
       miniAvatarEnabled: false,
     });
 
-    expect(plan.avatarIds).toEqual([101, 22]);
+    expect(plan.avatarIds).toEqual([101]);
     expect(plan.spriteTargets).toEqual([]);
     expect(plan.miniAvatarTargets).toEqual([{ roleId: 1, avatarId: 101 }]);
   });
 
-  it("收集消息缺失头像时会回退到角色默认头像并过滤缓存项", () => {
+  it("figure.pos 只有在消息带 avatarId 时才预热立绘", () => {
+    const roleLookup = new Map<number, UserRole>([
+      [1, createRole(1, 11)],
+    ]);
+
+    const withoutMessageAvatar = collectMessageAssetWarmupPlan([
+      createMessageResponse({
+        roleId: 1,
+        avatarId: 0,
+        annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+      }),
+    ], roleLookup, {
+      autoFigureEnabled: false,
+      miniAvatarEnabled: false,
+    });
+
+    expect(withoutMessageAvatar.avatarIds).toEqual([]);
+    expect(withoutMessageAvatar.spriteTargets).toEqual([]);
+
+    const withMessageAvatar = collectMessageAssetWarmupPlan([
+      createMessageResponse({
+        roleId: 1,
+        avatarId: 101,
+        annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+      }),
+    ], roleLookup, {
+      autoFigureEnabled: false,
+      miniAvatarEnabled: false,
+    });
+
+    expect(withMessageAvatar.avatarIds).toEqual([101]);
+    expect(withMessageAvatar.spriteTargets).toEqual([{ roleId: 1, avatarId: 101 }]);
+  });
+
+  it("收集消息缺失头像时只使用消息 avatarId 并过滤缓存项", () => {
     const roleLookup = new Map<number, UserRole>([
       [1, createRole(1, 11)],
       [2, createRole(2, 22)],

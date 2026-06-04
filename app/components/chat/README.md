@@ -1015,40 +1015,6 @@ class RealtimeRenderer {
 }
 ```
 
-**TTS 集成**：
-
-```typescript
-// 生成 TTS 音频
-async generateTTS(
-  text: string,
-  roleId: number,
-  emotionVector?: number[]
-): Promise<string> {
-  const response = await fetch('/api/tts/generate', {
-    method: 'POST',
-    body: JSON.stringify({
-      text,
-      roleId,
-      emotionVector,
-    }),
-  });
-  const { audioUrl } = await response.json();
-  return audioUrl;
-}
-
-// 在消息中使用 TTS
-if (msg.extra?.voiceRenderSettings?.enableTTS) {
-  const ttsUrl = await this.generateTTS(
-    msg.content,
-    msg.roleId,
-    msg.extra.voiceRenderSettings.emotionVector
-  );
-  command += ` -voice=${ttsUrl}`;
-}
-```
-
----
-
 ## 数据管理
 
 ### SQLite 历史消息缓存
@@ -1570,7 +1536,6 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
 
 
 

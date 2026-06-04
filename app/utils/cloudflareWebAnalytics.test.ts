@@ -50,9 +50,9 @@ class FakeDocument {
   readonly baseURI = "https://test.tuan.chat/chat";
   readonly scripts: FakeScript[] = [];
   readonly head = {
-    appendChild: (node: FakeScript) => {
+    appendChild: (node: { isConnected?: boolean }) => {
       node.isConnected = true;
-      this.scripts.push(node);
+      this.scripts.push(node as FakeScript);
     },
   };
 

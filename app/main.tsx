@@ -1,3 +1,5 @@
+import "./utils/windowTimerBinding";
+
 import { RouterProvider } from "@tanstack/react-router";
 import { startTransition, StrictMode } from "react";
 import { createRoot } from "react-dom/client";

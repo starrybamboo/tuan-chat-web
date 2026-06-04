@@ -157,10 +157,9 @@ Windows 下 electron-builder 首次下载 `nsis` / `winCodeSign` 可能受网络
 
 Web 部署：
 
-- 前端通过 Cloudflare Pages Git 集成自动部署；项目 `tuan-chat-web` 连接 GitHub 仓库 `starrybamboo/tuan-chat-web`，生产分支为 `main`，对应 `https://tuan.chat/`；项目 `tuan-chat-web-test` 连接同一仓库，生产分支为 `dev`，对应 `https://test.tuan.chat/`。
-- Cloudflare Pages 构建配置：
-  - 两个项目都使用构建命令 `pnpm run build`，输出目录 `dist`。
-  - 构建脚本会在 Cloudflare Pages 环境中按分支自动选择模式：`main` 使用 `.env.production`，`dev` 使用 `.env.test`。
+- Cloudflare Pages Git 集成负责自动部署；`tuan-chat-web` 连接 `main` 分支并对应 `https://tuan.chat/`，`tuan-chat-web-test` 连接 `dev` 分支并对应 `https://test.tuan.chat/`。
+- 两个 Pages 项目都使用构建命令 `pnpm run build`，输出目录 `dist`。
+- 构建脚本会在 Cloudflare Pages 环境中按分支自动选择模式：`main` 使用 `.env.production`，`dev` 使用 `.env.test`。
 - Cloudflare Pages 环境变量由仓库内 `.env.production` / `.env.test` 提供，控制台中无需重复配置同名变量；若控制台中配置了同名变量，会覆盖仓库文件。
 - `.github/workflows/cd.yaml` 是 Cloudflare Pages 手动兜底部署入口。
 - `deploy_env=test` 会使用 `tuan-chat-web-test` 项目和 `test` mode。

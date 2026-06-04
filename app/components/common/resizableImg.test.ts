@@ -37,4 +37,13 @@ describe("resolveResizableImgInitialTransform", () => {
       imageHeight: 1200,
     })).toBeUndefined();
   });
+
+  it("容器高度未准备好时不会生成默认原尺寸位置", () => {
+    expect(resolveResizableImgInitialTransform({
+      containerWidth: 390,
+      containerHeight: 0,
+      imageWidth: 3000,
+      imageHeight: 2200,
+    })).toBeUndefined();
+  });
 });

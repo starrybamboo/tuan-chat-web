@@ -1,5 +1,7 @@
 import { getTerreApis } from "@/webGAL/index";
 
+import { fetchWebgalAssetBlob } from "./fileOperator";
+
 async function loadImageElementFromBlob(blob: Blob): Promise<HTMLImageElement> {
   const objectUrl = URL.createObjectURL(blob);
   try {
@@ -16,11 +18,7 @@ async function loadImageElementFromBlob(blob: Blob): Promise<HTMLImageElement> {
 }
 
 export async function createSquarePngBlobFromUrl(url: string, size: number): Promise<Blob> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`下载头像失败: ${response.status} ${response.statusText}`);
-  }
-  const sourceBlob = await response.blob();
+  const sourceBlob = await fetchWebgalAssetBlob(url);
   const image = await loadImageElementFromBlob(sourceBlob);
   const canvas = document.createElement("canvas");
   canvas.width = size;
