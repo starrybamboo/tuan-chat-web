@@ -15,6 +15,7 @@ import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import {
   getGestureDrawerAxisConfig,
   getRightDrawerClampRange,
+  getRightDrawerEdgeHitSlop,
   getRightDrawerSnapPoints,
 } from "./useGestureDrawerConfig";
 
@@ -25,6 +26,7 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
   const snapPoints = getRightDrawerSnapPoints(RIGHT_DRAWER_WIDTH);
 
   const basePanGesture = Gesture.Pan()
+    .hitSlop(getRightDrawerEdgeHitSlop())
     .activeOffsetX(axisConfig.activeOffsetX)
     .failOffsetY(axisConfig.failOffsetY)
     .onStart(() => {

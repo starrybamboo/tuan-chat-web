@@ -31,7 +31,7 @@ export default function RootLayout() {
           <ThemeProvider value={DarkTheme}>
             <AnimatedSplashOverlay />
             <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="role-edit" />
               <Stack.Screen name="feedback" />
