@@ -42,11 +42,17 @@ type CloudflareWebAnalyticsDeps = {
 
 const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_ID = "tc-cloudflare-web-analytics";
 const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC = "https://static.cloudflareinsights.com/beacon.min.js";
-const CLOUDFLARE_WEB_ANALYTICS_TOKEN = "bd3746d5fcac46db97172d382492de26";
+const CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN = "ecffe13cc26a481880812c11e3489111";
+const CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN = "bd9e06f17e3b4f19bd7d6def90fdc7e5";
 const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_STATE_KEY = "tcCfAnalyticsState";
-const CLOUDFLARE_WEB_ANALYTICS_HOSTS = new Set([
-  "tuan.chat",
-  "www.tuan.chat",
+const CLOUDFLARE_WEB_ANALYTICS_TOKENS_BY_HOST = new Map<string, string>([
+  ["tuan.chat", CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN],
+  ["www.tuan.chat", CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN],
+  ["test.tuan.chat", CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN],
+  ["www.test.tuan.chat", CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN],
+] as const);
+const CLOUDFLARE_WEB_ANALYTICS_HOSTS = new Set(CLOUDFLARE_WEB_ANALYTICS_TOKENS_BY_HOST.keys());
+const CLOUDFLARE_WEB_ANALYTICS_TEST_HOSTS = new Set([
   "test.tuan.chat",
   "www.test.tuan.chat",
 ]);
@@ -64,6 +70,10 @@ function createDefaultDeps(): CloudflareWebAnalyticsDeps {
 
 function normalizeHostname(hostname: string | null | undefined) {
   return typeof hostname === "string" ? hostname.trim().toLowerCase() : "";
+}
+
+function resolveCloudflareWebAnalyticsToken(hostname: string | null | undefined) {
+  return CLOUDFLARE_WEB_ANALYTICS_TOKENS_BY_HOST.get(normalizeHostname(hostname)) ?? null;
 }
 
 function normalizeScriptUrl(rawUrl: string, baseURI: string | undefined) {
@@ -96,12 +106,12 @@ function writeCloudflareWebAnalyticsScriptState(
   script.dataset[CLOUDFLARE_WEB_ANALYTICS_SCRIPT_STATE_KEY] = status;
 }
 
-function applyCloudflareWebAnalyticsScriptAttrs(script: CloudflareWebAnalyticsScript) {
+function applyCloudflareWebAnalyticsScriptAttrs(script: CloudflareWebAnalyticsScript, token: string) {
   script.id = CLOUDFLARE_WEB_ANALYTICS_SCRIPT_ID;
   script.src = CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC;
   script.defer = true;
   script.setAttribute("data-cf-beacon", JSON.stringify({
-    token: CLOUDFLARE_WEB_ANALYTICS_TOKEN,
+    token,
   }));
 }
 
@@ -141,6 +151,27 @@ export function shouldEnableCloudflareWebAnalytics(options: {
     && CLOUDFLARE_WEB_ANALYTICS_HOSTS.has(normalizeHostname(options.hostname));
 }
 
+export function resolveCloudflareWebAnalyticsConfig(options: {
+  hostname?: string | null | undefined;
+  isProd: boolean;
+  protocol?: string | null | undefined;
+}) {
+  if (!shouldEnableCloudflareWebAnalytics(options)) {
+    return null;
+  }
+
+  const hostname = normalizeHostname(options.hostname);
+  const token = resolveCloudflareWebAnalyticsToken(hostname);
+  if (!token) {
+    return null;
+  }
+
+  return {
+    environment: CLOUDFLARE_WEB_ANALYTICS_TEST_HOSTS.has(hostname) ? "test" : "production",
+    token,
+  } as const;
+}
+
 export function createCloudflareWebAnalyticsController(rawDeps: Partial<CloudflareWebAnalyticsDeps> = {}) {
   const deps = {
     ...createDefaultDeps(),
@@ -171,7 +202,14 @@ export function createCloudflareWebAnalyticsController(rawDeps: Partial<Cloudfla
   };
 
   const ensureLoaded = async () => {
-    if (!isEligibleRuntime()) {
+    const runtimeWindow = deps.getWindow();
+    const analyticsConfig = resolveCloudflareWebAnalyticsConfig({
+      isProd: deps.isProd,
+      protocol: runtimeWindow?.location.protocol,
+      hostname: runtimeWindow?.location.hostname,
+    });
+
+    if (!analyticsConfig) {
       setStatus("disabled");
       return "disabled" as const;
     }
@@ -194,7 +232,7 @@ export function createCloudflareWebAnalyticsController(rawDeps: Partial<Cloudfla
 
     const script = findExistingCloudflareWebAnalyticsScript(runtimeDocument)
       ?? runtimeDocument.createElement("script");
-    applyCloudflareWebAnalyticsScriptAttrs(script);
+    applyCloudflareWebAnalyticsScriptAttrs(script, analyticsConfig.token);
 
     const existingState = readCloudflareWebAnalyticsScriptState(script);
     if (existingState) {
