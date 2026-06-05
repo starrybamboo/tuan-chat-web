@@ -1,23 +1,20 @@
-import type { GestureType } from "react-native-gesture-handler";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { RoomRolesById } from "./chat-avatar-utils";
+import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
+
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { memo, useMemo } from "react";
-import { StyleSheet, Vibration, View } from "react-native";
-import { Gesture, GestureDetector, Pressable } from "react-native-gesture-handler";
-
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-
+import { memo } from "react";
+import { Pressable, StyleSheet, Vibration, View } from "react-native";
 import { CachedImage } from "@/components/CachedImage";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { resolveMessageMediaUrl } from "@/features/messages/messageMediaSource";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
-import { useTheme } from "@/hooks/use-theme";
-import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
-import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
-import type { RoomRolesById } from "./chat-avatar-utils";
+import { useTheme } from "@/hooks/use-theme";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
@@ -165,7 +162,7 @@ function getCompactMediaText(message: Message): string {
   return getMessagePreview(message);
 }
 
-type ChatMessageItemProps = {
+interface ChatMessageItemProps {
   currentRoleId?: number;
   isCommandRequestConsumed?: (messageId: number) => boolean;
   isGrouped: boolean;
@@ -181,8 +178,7 @@ type ChatMessageItemProps = {
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
-  simultaneousGestures?: GestureType[];
-};
+}
 
 export const ChatMessageItem = memo(({
   currentRoleId = 0,
@@ -200,7 +196,6 @@ export const ChatMessageItem = memo(({
   replyAuthorName,
   replyPreviewText,
   roomRolesById,
-  simultaneousGestures,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const isOOC = isOutOfCharacterMessage(message);
@@ -267,18 +262,6 @@ export const ChatMessageItem = memo(({
       </View>
     );
   };
-  const longPressGesture = useMemo(() => {
-    const gesture = Gesture.LongPress()
-      .minDuration(500)
-      .runOnJS(true)
-      .onStart(() => {
-        Vibration.vibrate(10);
-        onLongPress(message);
-      });
-    return simultaneousGestures?.length
-      ? gesture.simultaneousWithExternalGesture(...simultaneousGestures)
-      : gesture;
-  }, [message, onLongPress, simultaneousGestures]);
   const shouldRenderAvatar = !isGrouped && !isStateEvent;
   const messageRowStyle = isStateEvent
     ? styles.rowNarrator
@@ -312,7 +295,6 @@ export const ChatMessageItem = memo(({
     return (
       <Pressable
         onPress={() => onToggleMultiSelect?.(message)}
-        simultaneousWithExternalGesture={simultaneousGestures}
         style={[
           {
             alignItems: "center",
@@ -383,7 +365,13 @@ export const ChatMessageItem = memo(({
   }
 
   return (
-    <GestureDetector gesture={longPressGesture}>
+    <Pressable
+      delayLongPress={500}
+      onLongPress={() => {
+        Vibration.vibrate(10);
+        onLongPress(message);
+      }}
+    >
       <View
         style={[
           messageRowStyle,
@@ -500,6 +488,6 @@ export const ChatMessageItem = memo(({
             : null}
         </View>
       </View>
-    </GestureDetector>
+    </Pressable>
   );
 });

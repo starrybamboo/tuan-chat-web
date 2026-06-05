@@ -2,6 +2,8 @@ import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  applySoloActiveStagePolicy,
+  applyStagePlan,
   applyGululuGalDirectedImportPlan,
   buildGululuGalDirectedImportPlan,
   parseGululuGalDirectedImportArgs,
@@ -11,6 +13,13 @@ import {
 function createLiveResult() {
   return {
     plan: {
+      avatars: [
+        {
+          fileName: "retsu.png",
+          imagePath: "gululu/retsu.png",
+          key: "role:烈海王:image:gululu/retsu.png",
+        },
+      ],
       messages: [
         {
           avatarKey: "role:烈海王:image:gululu/retsu.png",
@@ -78,6 +87,7 @@ function createLiveResult() {
         {
           avatarId: 2001,
           key: "role:烈海王:image:gululu/retsu.png",
+          mediaFileId: 4001,
           roleId: 1001,
         },
       ],
@@ -143,6 +153,10 @@ describe("gululu-gal-directed-import", () => {
       "10438",
       "--room-name",
       "1-62楼GAL演出版",
+      "--stage-policy",
+      "solo-active",
+      "--stage-plan",
+      "stage.json",
       "--patch-chunk-size",
       "50",
       "--base-url",
@@ -159,6 +173,8 @@ describe("gululu-gal-directed-import", () => {
       liveResult: "old.json",
       patchChunkSize: 50,
       roomName: "1-62楼GAL演出版",
+      stagePlan: "stage.json",
+      stagePolicy: "solo-active",
       targetSpaceId: 10438,
     });
   });
@@ -262,6 +278,139 @@ describe("gululu-gal-directed-import", () => {
           replyContent: "那么烈啊，你要去往何处呢【1d13:9】",
         },
       },
+    });
+  });
+
+  it("solo-active 策略会清理旧立绘并把当前说话人居中", () => {
+    const plan = buildGululuGalDirectedImportPlan(createLiveResult(), createDirectingPlan(), {
+      stagePolicy: "solo-active",
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages[0]!.request.annotations).toEqual([
+      "figure.clear",
+      "figure.anim.enter",
+      "figure.pos.center",
+    ]);
+    expect(plan.messages[0]!.request.webgal).toMatchObject({
+      stage: {
+        position: "center",
+        reason: "solo-active-speaker",
+      },
+    });
+    expect(plan.messages[1]!.request.annotations).toEqual(["figure.clear"]);
+    expect(plan.messages[2]!.request.annotations).toEqual(["figure.clear"]);
+    expect(plan.messages[2]!.request.webgal).toMatchObject({
+      diceRender: {
+        showFigure: false,
+        showMiniAvatar: false,
+      },
+    });
+  });
+
+  it("可以直接输出 solo-active 后处理后的导演计划", () => {
+    const directingPlan = applySoloActiveStagePolicy(createLiveResult(), createDirectingPlan());
+
+    expect(directingPlan.entries.map(entry => entry.annotations)).toEqual([
+      ["figure.clear", "figure.anim.enter", "figure.pos.center"],
+      ["figure.clear"],
+      ["figure.clear"],
+    ]);
+  });
+
+  it("stage plan 会按场景开始清场并覆盖角色槽位", () => {
+    const directingPlan = applyStagePlan(createLiveResult(), createDirectingPlan(), {
+      scenes: [{
+        clearOnStart: true,
+        endEventIndex: 3,
+        rolePositions: {
+          "role:烈海王": "right-center",
+        },
+        sceneId: "opening",
+        startEventIndex: 1,
+      }],
+      schemaVersion: 1,
+    });
+
+    expect(directingPlan.entries[0]).toMatchObject({
+      annotations: ["figure.anim.enter", "figure.clear", "image.clear", "figure.pos.right-center"],
+      webgal: {
+        stage: {
+          position: "right-center",
+          reason: "stage-plan",
+          sceneId: "opening",
+        },
+      },
+    });
+    expect(directingPlan.entries[1]).toMatchObject({
+      annotations: ["figure.clear"],
+      webgal: {
+        stage: {
+          sceneId: "opening",
+        },
+      },
+    });
+  });
+
+  it("编译时可应用 stage plan 且不清掉非舞台 annotations", () => {
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries[0]!.annotations = ["dialog.notend", "figure.pos.center", "figure.anim.enter"];
+
+    const plan = buildGululuGalDirectedImportPlan(createLiveResult(), directingPlan, {
+      stagePlan: {
+        scenes: [{
+          clearOnStart: true,
+          rolePositions: { "role:烈海王": "left" },
+          sceneId: "opening",
+          startEventIndex: 1,
+        }],
+        schemaVersion: 1,
+      },
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages[0]!.request.annotations).toEqual([
+      "dialog.notend",
+      "figure.anim.enter",
+      "figure.clear",
+      "image.clear",
+      "figure.pos.left",
+    ]);
+  });
+
+  it("imageShow 会插入展示图消息并允许原对白去掉错误头像", () => {
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries[0] = {
+      ...directingPlan.entries[0]!,
+      avatarKey: null,
+      imageShow: {
+        clearBefore: true,
+      },
+    };
+
+    const plan = buildGululuGalDirectedImportPlan(createLiveResult(), directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages).toHaveLength(4);
+    expect(plan.messages[0]!.request).toMatchObject({
+      annotations: ["image.clear", "image.show"],
+      avatarId: -1,
+      extra: {
+        imageMessage: {
+          fileName: "retsu.png",
+          source: {
+            fileId: 4001,
+            kind: "internal",
+          },
+        },
+      },
+      messageType: MESSAGE_TYPE.IMG,
+      roleId: -1,
+    });
+    expect(plan.messages[1]!.request).toMatchObject({
+      avatarId: -1,
+      roleId: 1001,
     });
   });
 

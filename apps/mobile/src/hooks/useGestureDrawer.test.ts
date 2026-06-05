@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { DRAWER_EDGE_SWIPE_ZONE_WIDTH } from "../lib/drawer-constants";
 import {
   DRAWER_ACTIVE_OFFSET_X,
   DRAWER_OVERLAY_CAPTURE_OFFSET,
   getGestureDrawerAxisConfig,
   getRightDrawerClampRange,
-  getRightDrawerEdgeHitSlop,
   getRightDrawerSnapPoints,
   shouldDrawerOverlayCaptureTouches,
 } from "./useGestureDrawerConfig";
@@ -19,7 +19,7 @@ describe("useGestureDrawer", () => {
   });
 
   it("右抽屉只从右边缘热区起手", () => {
-    expect(getRightDrawerEdgeHitSlop()).toEqual({ right: 0, width: 24 });
+    expect(DRAWER_EDGE_SWIPE_ZONE_WIDTH).toBe(24);
   });
 
   it("只允许右侧抽屉手势范围", () => {

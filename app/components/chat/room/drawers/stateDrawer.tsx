@@ -12,6 +12,7 @@ import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
+import { NEXT_TURN_CONTENT } from "@/components/chat/state/stateCommandParser";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -853,7 +854,7 @@ export default function StateDrawer() {
         roomId: roomContext.roomId,
         roleId: roomContext.curRoleId ?? -1,
         avatarId: roomContext.curAvatarId ?? -1,
-        content: ".next",
+        content: NEXT_TURN_CONTENT,
         messageType: MessageType.STATE_EVENT,
         extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("next", [{ type: "nextTurn" }])),
       });

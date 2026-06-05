@@ -1,30 +1,27 @@
-import type { GestureType } from "react-native-gesture-handler";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import type { ChatMessageListItem } from "./messageListModel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
-import { FlatList, GestureDetector } from "react-native-gesture-handler";
-
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { prefetchImages } from "@/lib/mobile-image-cache";
 
-import type { ChatMessageListItem } from "./messageListModel";
+import { prefetchImages } from "@/lib/mobile-image-cache";
 
 import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
 import { getMobileMessageAuthorLabel } from "./messageAuthorLabel";
-import { getMessageItemSimultaneousGestures } from "./messageGestureModel";
 import {
   buildVisibleMessageMap,
   getMessageListItemKey,
@@ -66,7 +63,7 @@ function shouldGroupWithPrevious(current: Message, previous: Message | undefined
   return true;
 }
 
-type ChatMessageListProps = {
+interface ChatMessageListProps {
   currentRoleId?: number;
   error: unknown;
   isCommandRequestConsumed?: (messageId: number) => boolean;
@@ -77,14 +74,13 @@ type ChatMessageListProps = {
   multiSelectMode?: boolean;
   multiSelectedIds?: Set<number>;
   noRole?: boolean;
-  nativeScrollGesture: GestureType;
   onExecuteCommandRequest?: (payload: { command: string; messageId: number }) => void;
   onLongPressMessage: (message: Message) => void;
   onRetry?: () => void;
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
-};
+}
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim())
@@ -103,7 +99,6 @@ export function ChatMessageList({
   multiSelectMode,
   multiSelectedIds,
   noRole,
-  nativeScrollGesture,
   onExecuteCommandRequest,
   onLongPressMessage,
   onRetry,
@@ -118,10 +113,6 @@ export function ChatMessageList({
   const [newMessageCount, setNewMessageCount] = useState(0);
   const prevLengthRef = useRef(getVisibleMessageItems(messages).length);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
-  const messageItemSimultaneousGestures = useMemo(
-    () => getMessageItemSimultaneousGestures(nativeScrollGesture),
-    [nativeScrollGesture],
-  );
 
   const visibleMessages = useMemo(
     () => getVisibleMessageItems(messages),
@@ -214,10 +205,9 @@ export function ChatMessageList({
         replyAuthorName={replyAuthorName}
         replyPreviewText={replyPreviewText}
         roomRolesById={roomRolesById}
-        simultaneousGestures={messageItemSimultaneousGestures}
       />
     );
-  }, [currentRoleId, invertedData, isCommandRequestConsumed, isSpaceOwner, messageItemSimultaneousGestures, messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roomRolesById, selectedAnchorId]);
+  }, [currentRoleId, invertedData, isCommandRequestConsumed, isSpaceOwner, messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roomRolesById, selectedAnchorId]);
 
   const keyExtractor = useCallback((item: ChatMessageListItem, index: number) => getMessageListItemKey(item.message, index), []);
 
@@ -257,24 +247,22 @@ export function ChatMessageList({
 
   return (
     <View style={styles.container}>
-      <GestureDetector gesture={nativeScrollGesture}>
-        <FlatList
-          ref={flatListRef}
-          data={invertedData}
-          inverted
-          keyboardDismissMode="interactive"
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          initialNumToRender={12}
-          maxToRenderPerBatch={20}
-          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-          removeClippedSubviews={false}
-          windowSize={15}
-        />
-      </GestureDetector>
+      <FlatList
+        ref={flatListRef}
+        data={invertedData}
+        inverted
+        keyboardDismissMode="interactive"
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        initialNumToRender={12}
+        maxToRenderPerBatch={20}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        removeClippedSubviews={false}
+        windowSize={15}
+      />
       <ChatNewMessagesPill
         count={newMessageCount}
         visible={!isAtBottom}

@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   findScrollableElement,
+  installBrowserShortcutGuard,
   resolveWheelScrollDelta,
-  shouldBlockBrowserShortcut,
 } from "./browserShortcutGuard";
 
 type ScrollableElementLike = {
@@ -36,59 +36,26 @@ function createScrollableElement(overrides: Partial<ScrollableElementLike> = {})
 }
 
 describe("browserShortcutGuard", () => {
-  it("会屏蔽浏览器默认会抢走页面的快捷键", () => {
-    expect(shouldBlockBrowserShortcut({
-      altKey: false,
-      ctrlKey: true,
-      key: "r",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(true);
-    expect(shouldBlockBrowserShortcut({
-      altKey: false,
-      ctrlKey: true,
-      key: "=",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(true);
-    expect(shouldBlockBrowserShortcut({
-      altKey: true,
-      ctrlKey: false,
-      key: "ArrowLeft",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(true);
-    expect(shouldBlockBrowserShortcut({
-      altKey: false,
-      ctrlKey: false,
-      key: "F5",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(true);
-  });
+  it("只注册滚轮拦截，不再注册键盘快捷键拦截", () => {
+    const addEventListener = vi.fn();
+    const removeEventListener = vi.fn();
+    const targetWindow = {
+      addEventListener,
+      document: {
+        querySelector: vi.fn(() => null),
+        scrollingElement: null,
+      },
+      innerHeight: 720,
+      removeEventListener,
+    } as unknown as Window;
 
-  it("不会屏蔽业务快捷键", () => {
-    expect(shouldBlockBrowserShortcut({
-      altKey: false,
-      ctrlKey: true,
-      key: "Enter",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(false);
-    expect(shouldBlockBrowserShortcut({
-      altKey: false,
-      ctrlKey: true,
-      key: "z",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(false);
-    expect(shouldBlockBrowserShortcut({
-      altKey: false,
-      ctrlKey: false,
-      key: "Escape",
-      metaKey: false,
-      shiftKey: false,
-    })).toBe(false);
+    const cleanup = installBrowserShortcutGuard(targetWindow);
+
+    expect(addEventListener.mock.calls.map(([type]) => type)).toEqual(["wheel"]);
+
+    cleanup();
+
+    expect(removeEventListener.mock.calls.map(([type]) => type)).toEqual(["wheel"]);
   });
 
   it("ctrl 加滚轮只换算为滚动量，不做页面缩放", () => {

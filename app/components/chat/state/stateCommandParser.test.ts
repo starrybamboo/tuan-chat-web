@@ -10,7 +10,7 @@ describe("stateCommandParser", () => {
       inputTextWithoutMentions: ".next",
       mentionedRoleCount: 0,
     })).toEqual({
-      content: ".next",
+      content: "下一回合",
       stateEvent: {
         source: {
           kind: "command",
@@ -31,7 +31,7 @@ describe("stateCommandParser", () => {
       inputTextWithoutMentions: ".st hp -2",
       mentionedRoleCount: 0,
     })).toEqual({
-      content: ".st hp -2",
+      content: "状态更新：HP -2",
       stateEvent: {
         source: {
           kind: "command",
@@ -59,7 +59,7 @@ describe("stateCommandParser", () => {
       inputTextWithoutMentions: ".st hp+6",
       mentionedRoleCount: 0,
     })).toEqual({
-      content: ".st hp+6",
+      content: "状态更新：HP +6",
       stateEvent: {
         source: {
           kind: "command",
@@ -80,13 +80,32 @@ describe("stateCommandParser", () => {
     });
   });
 
-  it("保留无空格无符号 .st 直写给旧属性设置命令处理", () => {
+  it("支持无空格无符号 .st 直写，避免落回旧骰娘属性设置", () => {
     expect(parseSimpleStateCommand({
       curRoleId: 3,
       inputText: ".st hp10",
       inputTextWithoutMentions: ".st hp10",
       mentionedRoleCount: 0,
-    })).toBeNull();
+    })).toEqual({
+      content: "状态更新：HP = 10",
+      stateEvent: {
+        source: {
+          kind: "command",
+          commandName: "st",
+          parserVersion: "state-event-v1",
+        },
+        events: [{
+          type: "varOp",
+          scope: {
+            kind: "role",
+            roleId: 3,
+          },
+          key: "hp",
+          op: "set",
+          value: 10,
+        }],
+      },
+    });
   });
 
   it("在没有角色 ID 时拒绝解析 .st", () => {
