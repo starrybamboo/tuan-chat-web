@@ -36,6 +36,7 @@ type SourceMessagePlan = {
 
 type SourceLiveResult = {
   plan?: {
+    avatars?: Array<{ fileName?: string; imagePath?: string; key?: string }>;
     messages?: SourceMessagePlan[];
     source?: Record<string, unknown>;
     stats?: Record<string, number>;
@@ -48,12 +49,20 @@ type SourceLiveResult = {
 
 type SourceLiveResultPlan = NonNullable<SourceLiveResult["plan"]>;
 type MessageTypeDirective = "text" | "intro" | "dice" | number;
+type StagePolicy = "preserve" | "solo-active";
+type FigurePositionDirective = "left" | "left-center" | "center" | "right-center" | "right";
+type ImageShowDirective = boolean | {
+  avatarKey?: string;
+  clearBefore?: boolean;
+  fileName?: string;
+};
 
 export type GululuGalDirectionEntry = {
   annotations?: string[];
   avatarKey?: string | null;
   customRoleName?: string | null;
   eventIndex: number;
+  imageShow?: ImageShowDirective;
   messageType?: MessageTypeDirective;
   note?: string;
   roleKey?: string | null;
@@ -62,6 +71,21 @@ export type GululuGalDirectionEntry = {
 
 export type GululuGalDirectingPlan = {
   entries: GululuGalDirectionEntry[];
+  schemaVersion: 1;
+  source?: Record<string, unknown>;
+};
+
+export type GululuGalStageScene = {
+  clearOnStart?: boolean;
+  endEventIndex?: number;
+  note?: string;
+  rolePositions?: Record<string, FigurePositionDirective>;
+  sceneId: string;
+  startEventIndex: number;
+};
+
+export type GululuGalStagePlan = {
+  scenes: GululuGalStageScene[];
   schemaVersion: 1;
   source?: Record<string, unknown>;
 };
@@ -124,6 +148,8 @@ export type GululuGalDirectedImportArgs = {
   out?: string;
   patchChunkSize?: number;
   roomName?: string;
+  stagePlan?: string;
+  stagePolicy?: StagePolicy;
   targetRoomId?: number;
   targetSpaceId?: number;
 };
@@ -174,6 +200,13 @@ function toPositiveInteger(value: string, flag: string) {
   return parsed;
 }
 
+function toStagePolicy(value: string, flag: string): StagePolicy {
+  if (value === "preserve" || value === "solo-active") {
+    return value;
+  }
+  throw new Error(`${flag} must be preserve or solo-active`);
+}
+
 export function parseGululuGalDirectedImportArgs(argv: string[]): GululuGalDirectedImportArgs {
   const args: GululuGalDirectedImportArgs = {};
   for (let index = 0; index < argv.length; index++) {
@@ -203,6 +236,14 @@ export function parseGululuGalDirectedImportArgs(argv: string[]): GululuGalDirec
     }
     else if (arg === "--room-name") {
       args.roomName = readValue(argv, index, arg);
+      index++;
+    }
+    else if (arg === "--stage-policy") {
+      args.stagePolicy = toStagePolicy(readValue(argv, index, arg), arg);
+      index++;
+    }
+    else if (arg === "--stage-plan") {
+      args.stagePlan = readValue(argv, index, arg);
       index++;
     }
     else if (arg === "--patch-chunk-size") {
@@ -283,6 +324,237 @@ function normalizeAnnotations(value: string[] | undefined) {
   return annotations.length > 0 ? annotations : undefined;
 }
 
+function removeStageAnnotations(value: string[] | undefined) {
+  return (value ?? []).filter(annotation =>
+    !annotation.startsWith("figure.pos.")
+    && !annotation.startsWith("figure.anim.")
+    && annotation !== "figure.clear");
+}
+
+function removeFigurePositionAnnotations(value: string[] | undefined) {
+  return (value ?? []).filter(annotation => !annotation.startsWith("figure.pos."));
+}
+
+function appendUniqueAnnotation(annotations: string[], annotation: string) {
+  if (!annotations.includes(annotation)) {
+    annotations.push(annotation);
+  }
+}
+
+function mergeSoloActiveWebgal(
+  webgal: Record<string, unknown> | undefined,
+  canShowFigure: boolean,
+) {
+  const next = { ...(webgal ?? {}) };
+  if (canShowFigure) {
+    next.stage = {
+      position: "center",
+      reason: "solo-active-speaker",
+    };
+  }
+  const diceRender = getRecordField(next, "diceRender");
+  if (diceRender) {
+    next.diceRender = {
+      ...diceRender,
+      showFigure: false,
+      showMiniAvatar: false,
+    };
+  }
+  return next;
+}
+
+function resolveDirectedRoleKey(entry: GululuGalDirectionEntry, sourceMessage: SourceMessagePlan) {
+  return entry.roleKey === null ? undefined : entry.roleKey ?? sourceMessage.roleKey;
+}
+
+function resolveDirectedAvatarKey(entry: GululuGalDirectionEntry, sourceMessage: SourceMessagePlan) {
+  return entry.avatarKey === null ? undefined : entry.avatarKey ?? sourceMessage.avatarKey;
+}
+
+function resolveImageShowAvatarKey(entry: GululuGalDirectionEntry, sourceMessage: SourceMessagePlan) {
+  if (!entry.imageShow) {
+    return undefined;
+  }
+  if (typeof entry.imageShow === "object" && entry.imageShow.avatarKey) {
+    return entry.imageShow.avatarKey;
+  }
+  return sourceMessage.avatarKey;
+}
+
+function getImageShowClearBefore(entry: GululuGalDirectionEntry) {
+  return typeof entry.imageShow === "object" && entry.imageShow.clearBefore === true;
+}
+
+function getImageShowFileName(entry: GululuGalDirectionEntry) {
+  return typeof entry.imageShow === "object" && entry.imageShow.fileName ? entry.imageShow.fileName : undefined;
+}
+
+function getSceneEndEventIndex(scene: GululuGalStageScene, sortedScenes: GululuGalStageScene[], index: number) {
+  const explicitEnd = scene.endEventIndex;
+  if (explicitEnd != null) {
+    return explicitEnd;
+  }
+  const nextScene = sortedScenes[index + 1];
+  return nextScene ? nextScene.startEventIndex - 1 : Number.MAX_SAFE_INTEGER;
+}
+
+function validateStagePlan(stagePlan: GululuGalStagePlan) {
+  if (stagePlan.schemaVersion !== 1) {
+    throw new Error("stage plan schemaVersion must be 1");
+  }
+  const sortedScenes = [...(stagePlan.scenes ?? [])].sort((left, right) => left.startEventIndex - right.startEventIndex);
+  const seenSceneIds = new Set<string>();
+  let previousEnd = 0;
+  for (let index = 0; index < sortedScenes.length; index++) {
+    const scene = sortedScenes[index]!;
+    if (!scene.sceneId?.trim()) {
+      throw new Error("stage plan sceneId must not be empty");
+    }
+    if (seenSceneIds.has(scene.sceneId)) {
+      throw new Error(`stage plan sceneId 重复：${scene.sceneId}`);
+    }
+    seenSceneIds.add(scene.sceneId);
+    if (!Number.isInteger(scene.startEventIndex) || scene.startEventIndex <= 0) {
+      throw new Error(`stage plan scene ${scene.sceneId} startEventIndex must be a positive integer`);
+    }
+    const endEventIndex = getSceneEndEventIndex(scene, sortedScenes, index);
+    if (!Number.isInteger(endEventIndex) || endEventIndex < scene.startEventIndex) {
+      throw new Error(`stage plan scene ${scene.sceneId} endEventIndex must be >= startEventIndex`);
+    }
+    if (scene.startEventIndex <= previousEnd) {
+      throw new Error(`stage plan scene ${scene.sceneId} overlaps previous scene`);
+    }
+    previousEnd = endEventIndex;
+  }
+  return sortedScenes;
+}
+
+function buildStageSceneLookup(stagePlan: GululuGalStagePlan | undefined) {
+  if (!stagePlan) {
+    return () => undefined;
+  }
+  const sortedScenes = validateStagePlan(stagePlan);
+  return (eventIndex: number) => sortedScenes.find((scene, index) => {
+    const endEventIndex = getSceneEndEventIndex(scene, sortedScenes, index);
+    return eventIndex >= scene.startEventIndex && eventIndex <= endEventIndex;
+  });
+}
+
+function applyStagePlanEntry(params: {
+  scene?: GululuGalStageScene;
+  sourceMessage: SourceMessagePlan;
+  entry: GululuGalDirectionEntry;
+}) {
+  const { scene, sourceMessage } = params;
+  const next = cloneJson(params.entry);
+  if (!scene) {
+    return next;
+  }
+
+  let annotations = [...(next.annotations ?? [])];
+  if (scene.clearOnStart && sourceMessage.source.eventIndex === scene.startEventIndex) {
+    appendUniqueAnnotation(annotations, "figure.clear");
+    appendUniqueAnnotation(annotations, "image.clear");
+  }
+
+  const roleKey = resolveDirectedRoleKey(next, sourceMessage);
+  const avatarKey = resolveDirectedAvatarKey(next, sourceMessage);
+  const messageType = normalizeMessageType(next.messageType, sourceMessage.request.messageType);
+  const canShowFigure = messageType === MESSAGE_TYPE.TEXT && Boolean(roleKey && avatarKey);
+  const position = roleKey ? scene.rolePositions?.[roleKey] : undefined;
+  if (canShowFigure && position) {
+    annotations = removeFigurePositionAnnotations(annotations);
+    appendUniqueAnnotation(annotations, `figure.pos.${position}`);
+  }
+
+  next.annotations = annotations;
+  next.webgal = {
+    ...(next.webgal ?? {}),
+    stage: {
+      ...(getRecordField(next.webgal, "stage") ?? {}),
+      sceneId: scene.sceneId,
+      ...(position ? { position, reason: "stage-plan" } : {}),
+    },
+  };
+  return next;
+}
+
+export function applySoloActiveStagePolicy(
+  liveResult: SourceLiveResult,
+  directingPlan: GululuGalDirectingPlan,
+): GululuGalDirectingPlan {
+  const entriesByIndex = new Map((directingPlan.entries ?? []).map(entry => [entry.eventIndex, entry]));
+  let previousActiveKey: string | undefined;
+  const entries = (liveResult.plan?.messages ?? []).map((sourceMessage) => {
+    const entry = entriesByIndex.get(sourceMessage.source.eventIndex);
+    if (!entry) {
+      throw new Error(`缺少导演计划事件：${sourceMessage.source.eventIndex}`);
+    }
+    const next = cloneJson(entry);
+    const roleKey = resolveDirectedRoleKey(next, sourceMessage);
+    const avatarKey = resolveDirectedAvatarKey(next, sourceMessage);
+    const messageType = normalizeMessageType(next.messageType, sourceMessage.request.messageType);
+    const canShowFigure = messageType === MESSAGE_TYPE.TEXT && Boolean(roleKey && avatarKey);
+    const annotations = removeStageAnnotations(next.annotations);
+
+    if (!canShowFigure || !roleKey) {
+      appendUniqueAnnotation(annotations, "figure.clear");
+      previousActiveKey = undefined;
+    }
+    else {
+      if (previousActiveKey !== roleKey) {
+        appendUniqueAnnotation(annotations, "figure.clear");
+        appendUniqueAnnotation(annotations, "figure.anim.enter");
+      }
+      appendUniqueAnnotation(annotations, "figure.pos.center");
+      previousActiveKey = roleKey;
+    }
+
+    next.annotations = annotations;
+    next.webgal = mergeSoloActiveWebgal(next.webgal, canShowFigure);
+    return next;
+  });
+  return {
+    ...directingPlan,
+    entries,
+  };
+}
+
+function applyStagePolicy(
+  liveResult: SourceLiveResult,
+  directingPlan: GululuGalDirectingPlan,
+  stagePolicy: StagePolicy | undefined,
+) {
+  if (stagePolicy === "solo-active") {
+    return applySoloActiveStagePolicy(liveResult, directingPlan);
+  }
+  return directingPlan;
+}
+
+export function applyStagePlan(
+  liveResult: SourceLiveResult,
+  directingPlan: GululuGalDirectingPlan,
+  stagePlan: GululuGalStagePlan,
+): GululuGalDirectingPlan {
+  const entriesByIndex = new Map((directingPlan.entries ?? []).map(entry => [entry.eventIndex, entry]));
+  const lookupScene = buildStageSceneLookup(stagePlan);
+  const entries = (liveResult.plan?.messages ?? []).map((sourceMessage) => {
+    const entry = entriesByIndex.get(sourceMessage.source.eventIndex);
+    if (!entry) {
+      throw new Error(`缺少导演计划事件：${sourceMessage.source.eventIndex}`);
+    }
+    return applyStagePlanEntry({
+      entry,
+      scene: lookupScene(sourceMessage.source.eventIndex),
+      sourceMessage,
+    });
+  });
+  return {
+    ...directingPlan,
+    entries,
+  };
+}
+
 function buildSourceMetadata(source: SourceMessagePlan["source"]) {
   return {
     kind: "gululu",
@@ -292,6 +564,44 @@ function buildSourceMetadata(source: SourceMessagePlan["source"]) {
     ...(source.imagePath ? { originalAssetPath: source.imagePath } : {}),
     ...(source.sourceTime ? { sourceTime: source.sourceTime } : {}),
   };
+}
+
+type AvatarAssetMapValue = {
+  fileName?: string;
+  imagePath?: string;
+  mediaFileId?: number;
+};
+
+function buildAvatarAssetMap(liveResult: SourceLiveResult) {
+  const assets = new Map<string, AvatarAssetMapValue>();
+  for (const avatar of liveResult.plan?.avatars ?? []) {
+    if (!avatar.key) {
+      continue;
+    }
+    assets.set(avatar.key, {
+      fileName: avatar.fileName,
+      imagePath: avatar.imagePath,
+      ...assets.get(avatar.key),
+    });
+  }
+  for (const avatar of liveResult.result?.avatars ?? []) {
+    if (!avatar.key) {
+      continue;
+    }
+    assets.set(avatar.key, {
+      ...assets.get(avatar.key),
+      ...(avatar.mediaFileId ? { mediaFileId: avatar.mediaFileId } : {}),
+    });
+  }
+  return assets;
+}
+
+function fileNameFromImagePath(imagePath: string | undefined) {
+  if (!imagePath) {
+    return undefined;
+  }
+  const normalized = imagePath.replaceAll("\\", "/");
+  return normalized.split("/").pop();
 }
 
 function mergeWebgal(
@@ -468,6 +778,51 @@ function materializeRequest(params: {
   return request;
 }
 
+function materializeImageShowRequest(params: {
+  avatarAssets: Map<string, AvatarAssetMapValue>;
+  direction: GululuGalDirectionEntry;
+  sourceMessage: SourceMessagePlan;
+  targetRoomId: number;
+}): ChatMessageRequest | undefined {
+  const avatarKey = resolveImageShowAvatarKey(params.direction, params.sourceMessage);
+  if (!avatarKey) {
+    return undefined;
+  }
+  const asset = params.avatarAssets.get(avatarKey);
+  const mediaFileId = asset?.mediaFileId;
+  if (!mediaFileId) {
+    throw new Error(`展示图缺少已上传媒体文件：${avatarKey}`);
+  }
+  const annotations = ["image.show"];
+  if (getImageShowClearBefore(params.direction)) {
+    annotations.unshift("image.clear");
+  }
+  const fileName = getImageShowFileName(params.direction) ?? asset?.fileName ?? fileNameFromImagePath(asset?.imagePath);
+  return {
+    annotations,
+    avatarId: -1,
+    content: "",
+    extra: {
+      imageMessage: {
+        background: false,
+        ...(fileName ? { fileName } : {}),
+        source: {
+          fileId: mediaFileId,
+          kind: "internal",
+        },
+      },
+    },
+    messageType: MESSAGE_TYPE.IMG,
+    roleId: -1,
+    roomId: params.targetRoomId,
+    webgal: mergeWebgal(params.sourceMessage.source, {
+      imageShow: {
+        avatarKey,
+      },
+    }),
+  };
+}
+
 function toInsertOperation(request: ChatMessageRequest): RoomMessageStreamPatchOperation {
   return {
     op: "insert",
@@ -489,7 +844,7 @@ function toInsertOperation(request: ChatMessageRequest): RoomMessageStreamPatchO
 export function buildGululuGalDirectedImportPlan(
   liveResult: SourceLiveResult,
   directingPlan: GululuGalDirectingPlan,
-  options: { roomName?: string; targetRoomId?: number; targetSpaceId: number },
+  options: { roomName?: string; stagePlan?: GululuGalStagePlan; stagePolicy?: StagePolicy; targetRoomId?: number; targetSpaceId: number },
 ): GululuGalDirectedImportPlan {
   if (!Number.isInteger(options.targetSpaceId) || options.targetSpaceId <= 0) {
     throw new Error("targetSpaceId must be a positive integer");
@@ -505,8 +860,12 @@ export function buildGululuGalDirectedImportPlan(
   if (sourceMessages.length === 0) {
     throw new Error("live result plan.messages must not be empty");
   }
+  const policyDirectingPlan = applyStagePolicy(liveResult, directingPlan, options.stagePolicy);
+  const effectiveDirectingPlan = options.stagePlan
+    ? applyStagePlan(liveResult, policyDirectingPlan, options.stagePlan)
+    : policyDirectingPlan;
   const directionsByIndex = new Map<number, GululuGalDirectionEntry>();
-  for (const entry of directingPlan.entries ?? []) {
+  for (const entry of effectiveDirectingPlan.entries ?? []) {
     if (!Number.isInteger(entry.eventIndex) || entry.eventIndex <= 0) {
       throw new Error("direction entry eventIndex must be a positive integer");
     }
@@ -521,13 +880,28 @@ export function buildGululuGalDirectedImportPlan(
 
   const roleIds = buildMap(liveResult.result?.roles, "roleId", "角色");
   const avatarIds = buildMap(liveResult.result?.avatars, "avatarId", "头像");
+  const avatarAssets = buildAvatarAssetMap(liveResult);
   const warnings: string[] = [];
-  const messages = sourceMessages.map((sourceMessage): GululuGalCompiledMessage => {
+  const messages: GululuGalCompiledMessage[] = [];
+  for (const sourceMessage of sourceMessages) {
     const direction = directionsByIndex.get(sourceMessage.source.eventIndex);
     if (!direction) {
       throw new Error(`缺少导演计划事件：${sourceMessage.source.eventIndex}`);
     }
-    return {
+    const imageShowRequest = materializeImageShowRequest({
+      avatarAssets,
+      direction,
+      sourceMessage,
+      targetRoomId: options.targetRoomId ?? 1,
+    });
+    if (imageShowRequest) {
+      messages.push({
+        eventIndex: sourceMessage.source.eventIndex,
+        request: imageShowRequest,
+        source: sourceMessage.source,
+      });
+    }
+    messages.push({
       eventIndex: sourceMessage.source.eventIndex,
       request: materializeRequest({
         avatarIds,
@@ -538,8 +912,8 @@ export function buildGululuGalDirectedImportPlan(
         warnings,
       }),
       source: sourceMessage.source,
-    };
-  });
+    });
+  }
 
   return {
     messages,
@@ -719,8 +1093,11 @@ export async function runGululuGalDirectedImport(argv: string[]) {
   const directingPlanPath = path.resolve(args.directingPlan);
   const liveResult = await readJsonFile<SourceLiveResult>(liveResultPath);
   const directingPlan = await readJsonFile<GululuGalDirectingPlan>(directingPlanPath);
+  const stagePlan = args.stagePlan ? await readJsonFile<GululuGalStagePlan>(path.resolve(args.stagePlan)) : undefined;
   const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
     roomName: args.roomName,
+    stagePlan,
+    stagePolicy: args.stagePolicy,
     targetRoomId: args.targetRoomId,
     targetSpaceId: args.targetSpaceId,
   });

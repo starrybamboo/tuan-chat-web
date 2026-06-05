@@ -1,9 +1,12 @@
-import type { GestureType } from "react-native-gesture-handler";
-
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { RoomRolesById } from "./chat-avatar-utils";
+import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { buildMessageSearchText } from "@tuanchat/domain/message-search";
 import { ArrowLeft, MagnifyingGlass, X } from "phosphor-react-native";
+
 import { useCallback, useMemo, useState } from "react";
+
 import {
   FlatList,
   Pressable,
@@ -11,40 +14,33 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 
-import type { RoomRolesById } from "./chat-avatar-utils";
+import { useTheme } from "@/hooks/use-theme";
 
 import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { formatMessageDateTime } from "./mobileChatUtils";
 
-type MessageItem = {
+interface MessageItem {
   message: Message;
-};
+}
 
 function getSearchAuthorLabel(message: Message, roomRolesById?: RoomRolesById): string {
   const fallbackLabel = isNarratorMessage(message) ? undefined : getMessageAuthorLabel(message);
   return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: fallbackLabel });
 }
 
-type ChatSearchPageProps = {
+interface ChatSearchPageProps {
   messages: MessageItem[];
-  nativeScrollGesture?: GestureType;
   onClose: () => void;
   onScrollToMessage: (messageId: number) => void;
   roomRolesById?: RoomRolesById;
-};
+}
 
-export function ChatSearchPage({ messages, nativeScrollGesture, onClose, onScrollToMessage, roomRolesById }: ChatSearchPageProps) {
+export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRolesById }: ChatSearchPageProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState("");
@@ -100,11 +96,13 @@ export function ChatSearchPage({ messages, nativeScrollGesture, onClose, onScrol
             <ThemedText numberOfLines={1} style={[styles.authorText, { color: theme.text }]}>
               {authorLabel}
             </ThemedText>
-            {time ? (
-              <ThemedText style={[styles.timeText, { color: theme.textSecondary }]}>
-                {time}
-              </ThemedText>
-            ) : null}
+            {time
+              ? (
+                  <ThemedText style={[styles.timeText, { color: theme.textSecondary }]}>
+                    {time}
+                  </ThemedText>
+                )
+              : null}
           </View>
           <ThemedText numberOfLines={2} style={[styles.previewText, { color: theme.textSecondary }]}>
             {preview}
@@ -133,68 +131,62 @@ export function ChatSearchPage({ messages, nativeScrollGesture, onClose, onScrol
             style={[styles.searchInput, { color: theme.text }]}
             returnKeyType="search"
           />
-          {query.length > 0 ? (
-            <Pressable onPress={() => setQuery("")} hitSlop={8}>
-              <X size={14} color={theme.textSecondary} />
-            </Pressable>
-          ) : null}
+          {query.length > 0
+            ? (
+                <Pressable onPress={() => setQuery("")} hitSlop={8}>
+                  <X size={14} color={theme.textSecondary} />
+                </Pressable>
+              )
+            : null}
         </View>
       </View>
 
-      {query.trim() ? (
-        <>
-          <View style={[styles.resultCountBar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-            <ThemedText style={[styles.resultCountText, { color: theme.textSecondary }]}>
-              找到
-              {" "}
-              {filteredMessages.length}
-              {" "}
-              条相关记录
-            </ThemedText>
-          </View>
-          {filteredMessages.length > 0 ? (
-            nativeScrollGesture ? (
-              <GestureDetector gesture={nativeScrollGesture}>
-                <FlatList
-                  data={filteredMessages}
-                  keyExtractor={keyExtractor}
-                  renderItem={renderItem}
-                  contentContainerStyle={{ paddingBottom: insets.bottom }}
-                  keyboardShouldPersistTaps="handled"
-                />
-              </GestureDetector>
-            ) : (
-              <FlatList
-                data={filteredMessages}
-                keyExtractor={keyExtractor}
-                renderItem={renderItem}
-                contentContainerStyle={{ paddingBottom: insets.bottom }}
-                keyboardShouldPersistTaps="handled"
-              />
-            )
-          ) : (
+      {query.trim()
+        ? (
+            <>
+              <View style={[styles.resultCountBar, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                <ThemedText style={[styles.resultCountText, { color: theme.textSecondary }]}>
+                  找到
+                  {" "}
+                  {filteredMessages.length}
+                  {" "}
+                  条相关记录
+                </ThemedText>
+              </View>
+              {filteredMessages.length > 0
+                ? (
+                    <FlatList
+                      data={filteredMessages}
+                      keyExtractor={keyExtractor}
+                      renderItem={renderItem}
+                      contentContainerStyle={{ paddingBottom: insets.bottom }}
+                      keyboardShouldPersistTaps="handled"
+                    />
+                  )
+                : (
+                    <View style={styles.emptyState}>
+                      <MagnifyingGlass size={48} color={theme.textSecondary} weight="thin" />
+                      <ThemedText style={[styles.emptyTitle, { color: theme.textSecondary }]}>
+                        没有找到匹配的聊天记录
+                      </ThemedText>
+                      <ThemedText style={[styles.emptyHint, { color: theme.textSecondary }]}>
+                        尝试使用不同的关键词搜索
+                      </ThemedText>
+                    </View>
+                  )}
+            </>
+          )
+        : (
             <View style={styles.emptyState}>
               <MagnifyingGlass size={48} color={theme.textSecondary} weight="thin" />
               <ThemedText style={[styles.emptyTitle, { color: theme.textSecondary }]}>
-                没有找到匹配的聊天记录
+                搜索消息
               </ThemedText>
               <ThemedText style={[styles.emptyHint, { color: theme.textSecondary }]}>
-                尝试使用不同的关键词搜索
+                输入关键词搜索消息内容或角色名
               </ThemedText>
             </View>
           )}
-        </>
-      ) : (
-        <View style={styles.emptyState}>
-          <MagnifyingGlass size={48} color={theme.textSecondary} weight="thin" />
-          <ThemedText style={[styles.emptyTitle, { color: theme.textSecondary }]}>
-            搜索消息
-          </ThemedText>
-          <ThemedText style={[styles.emptyHint, { color: theme.textSecondary }]}>
-            输入关键词搜索消息内容或角色名
-          </ThemedText>
-        </View>
-      )}
     </View>
   );
 }

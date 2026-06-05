@@ -711,7 +711,7 @@ describe("useChatMessageSubmit", () => {
     expect(sendMessageWithInsert.mock.calls[0]?.[0]).not.toHaveProperty("replayMessageId");
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
-      content: ".st hp -2",
+      content: "状态更新：HP -2",
       extra: {
         stateEvent: {
           source: {
@@ -734,6 +734,7 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
+    expect(String(sendMessageWithInsert.mock.calls[0]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
     expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
 
@@ -807,7 +808,7 @@ describe("useChatMessageSubmit", () => {
     }));
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
-      content: ".st hp+6",
+      content: "状态更新：HP +6",
       extra: {
         stateEvent: {
           source: {
@@ -830,6 +831,103 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
+    expect(String(sendMessageWithInsert.mock.calls[0]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
+  });
+
+  it("连写无符号 .st 赋值会优先编译成 STATE_EVENT(varOp)，不再走旧骰娘", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: ".st hp20",
+      textWithoutMentions: ".st hp20",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async request => ({
+      ...createMessage(26),
+      messageType: request.messageType,
+      content: request.content,
+      extra: request.extra,
+    }));
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedRoleIds: [3],
+      roleVarOps: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "set",
+        value: 20,
+        beforeValue: 30,
+        afterValue: 20,
+      }],
+    });
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      ruleId: 7,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).not.toHaveBeenCalled();
+    expect(mocks.writeRoleVarOpsThroughAbilitiesMock).toHaveBeenCalledWith(expect.objectContaining({
+      events: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "set",
+        value: 20,
+      }],
+    }));
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      messageType: MessageType.STATE_EVENT,
+      content: "状态更新：HP = 20",
+      extra: {
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "st",
+            parserVersion: "state-event-v1",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: 3,
+            },
+            key: "hp",
+            op: "set",
+            value: 20,
+            beforeValue: 30,
+            afterValue: 20,
+          }],
+        },
+      },
+    }));
+    expect(String(sendMessageWithInsert.mock.calls[0]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
   it("简单 .st 写角色卡失败时不发送 STATE_EVENT 记录", async () => {
@@ -913,7 +1011,7 @@ describe("useChatMessageSubmit", () => {
 
     expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
-      content: ".next",
+      content: "下一回合",
       extra: {
         stateEvent: {
           source: {

@@ -1,5 +1,3 @@
-import type { GestureType } from "react-native-gesture-handler";
-
 import { useCallback } from "react";
 import { Gesture } from "react-native-gesture-handler";
 import {
@@ -15,18 +13,16 @@ import { RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
 import {
   getGestureDrawerAxisConfig,
   getRightDrawerClampRange,
-  getRightDrawerEdgeHitSlop,
   getRightDrawerSnapPoints,
 } from "./useGestureDrawerConfig";
 
-export function useGestureDrawer(scrollGesture?: GestureType) {
+export function useGestureDrawer() {
   const translateX = useSharedValue(0);
   const context = useSharedValue(0);
   const axisConfig = getGestureDrawerAxisConfig();
   const snapPoints = getRightDrawerSnapPoints(RIGHT_DRAWER_WIDTH);
 
-  const basePanGesture = Gesture.Pan()
-    .hitSlop(getRightDrawerEdgeHitSlop())
+  const panGesture = Gesture.Pan()
     .activeOffsetX(axisConfig.activeOffsetX)
     .failOffsetY(axisConfig.failOffsetY)
     .onStart(() => {
@@ -45,9 +41,6 @@ export function useGestureDrawer(scrollGesture?: GestureType) {
       const destination = snapPoint(currentPosition, e.velocityX, snapPoints);
       translateX.set(withSpring(destination, SPRING_CONFIG));
     });
-  const panGesture = scrollGesture
-    ? basePanGesture.simultaneousWithExternalGesture(scrollGesture)
-    : basePanGesture;
 
   const close = useCallback(() => {
     translateX.set(withSpring(0, SPRING_CONFIG));

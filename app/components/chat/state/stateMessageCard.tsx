@@ -132,10 +132,10 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
         <div className={STATE_MESSAGE_DETAIL_CLASS}>
           <div>
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-base-content/50">
-              原始命令
+              记录文本
             </div>
             <div className="break-words rounded-md bg-base-200/35 px-2 py-1.5 font-mono text-[12px] text-base-content/76">
-              {message.content || "[空命令]"}
+              {message.content || "[空记录]"}
             </div>
           </div>
 

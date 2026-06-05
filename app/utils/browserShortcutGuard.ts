@@ -1,33 +1,9 @@
-const BLOCKED_MODIFIER_KEYS = new Set([
-  "0",
-  "-",
-  "=",
-  "+",
-  "_",
-  "d",
-  "f",
-  "g",
-  "h",
-  "j",
-  "l",
-  "n",
-  "o",
-  "p",
-  "r",
-  "s",
-  "t",
-  "u",
-  "w",
-  "tab",
-]);
-const BLOCKED_FUNCTION_KEYS = new Set(["f1", "f3", "f5", "f6"]);
 const WHEEL_DELTA_LINE = 1;
 const WHEEL_DELTA_PAGE = 2;
 const WHEEL_LINE_HEIGHT = 16;
 const WHEEL_PIXEL_HEIGHT = 1;
 const CHAT_FRAME_SCROLLER_SELECTOR = "[data-chat-frame-scroller=\"true\"], [data-testid=\"virtuoso-scroller\"], [data-virtuoso-scroller=\"true\"]";
 
-type BrowserShortcutEventLike = Pick<KeyboardEvent, "altKey" | "ctrlKey" | "key" | "metaKey" | "shiftKey">;
 type BrowserWheelEventLike = Pick<WheelEvent, "deltaMode" | "deltaX" | "deltaY">;
 type ScrollableElementLike = {
   clientHeight: number;
@@ -54,20 +30,6 @@ function isScrollableElementLike(value: unknown): value is ScrollableElementLike
     && "clientWidth" in value
     && "scrollHeight" in value
     && "scrollWidth" in value;
-}
-
-export function shouldBlockBrowserShortcut(event: BrowserShortcutEventLike) {
-  const key = String(event.key || "").toLowerCase();
-  if (BLOCKED_FUNCTION_KEYS.has(key)) {
-    return true;
-  }
-  if (event.altKey && (key === "arrowleft" || key === "arrowright")) {
-    return true;
-  }
-  if (!event.ctrlKey && !event.metaKey) {
-    return false;
-  }
-  return BLOCKED_MODIFIER_KEYS.has(key);
 }
 
 export function resolveWheelScrollDelta(event: BrowserWheelEventLike, pageHeight: number) {
@@ -145,13 +107,6 @@ export function findScrollableElement(target: EventTarget | null, left: number, 
 }
 
 export function installBrowserShortcutGuard(targetWindow: Window = window) {
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (!shouldBlockBrowserShortcut(event)) {
-      return;
-    }
-    event.preventDefault();
-  };
-
   const handleWheel = (event: WheelEvent) => {
     if (!event.ctrlKey && !event.metaKey) {
       return;
@@ -164,11 +119,9 @@ export function installBrowserShortcutGuard(targetWindow: Window = window) {
     scrollTarget?.scrollBy({ behavior: "auto", left, top });
   };
 
-  targetWindow.addEventListener("keydown", handleKeyDown, true);
   targetWindow.addEventListener("wheel", handleWheel, { capture: true, passive: false });
 
   return () => {
-    targetWindow.removeEventListener("keydown", handleKeyDown, true);
     targetWindow.removeEventListener("wheel", handleWheel, { capture: true });
   };
 }
