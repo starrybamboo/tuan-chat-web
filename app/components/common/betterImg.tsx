@@ -24,7 +24,7 @@ export function resolveBetterImgPreviewToastOptions(transparent: boolean): Toast
   return {
     fullScreen: true,
     transparent,
-    rootClassName: "z-[11000] items-center justify-center justify-items-center place-items-center",
+    rootClassName: "z-[11000]",
     panelClassName: "max-h-dvh max-w-dvw overflow-hidden",
     bodyClassName: "overflow-hidden",
     disableScroll: true,
@@ -104,11 +104,7 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => (
-        <div className="h-dvh w-dvw max-h-dvh max-w-dvw overflow-hidden">
-          <ResizableImg src={zoomImgSrc} onClose={onClose} />
-        </div>
-      ),
+      onClose => <ResizableImg src={zoomImgSrc} onClose={onClose} />,
       resolveBetterImgPreviewToastOptions(transparent),
     );
   };
