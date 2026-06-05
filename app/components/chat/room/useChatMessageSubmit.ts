@@ -479,6 +479,7 @@ export default function useChatMessageSubmit({
         if (!createdStateEventMessage) {
           return;
         }
+        toast.success("状态已更新", { id: "state-event-sent" });
         hasCommittedOutboundMessage = true;
         hasConsumedFirstMessage = true;
         regularInputText = "";

@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   applyGululuLiveImportPlan,
+  buildGululuImportedSpriteTransform,
   buildGululuLiveImportPlan,
   ensureRoomInSidebarTree,
   parseLiveImportArgs,
@@ -31,10 +32,20 @@ function createImportPackage() {
         kind: "dice" as const,
       },
       {
-        content: "【1d100:90】",
-        diceDescription: "数值大的那一方胜利，之后进行伤害判定：从1-10的选项中决定回避",
+        content: "那么烈啊，你要去往何处呢【1d13:9】",
         floor: 1,
         kind: "dice" as const,
+        options: [
+          "1 博丽神社",
+          "2 红魔馆（是红海皇！）",
+        ],
+        rollText: "那么烈啊，你要去往何处呢【1d13：】",
+      },
+      {
+        content: "【1d20:18+80=98】",
+        floor: 1,
+        kind: "dice" as const,
+        rollText: "【1d20+80：】",
       },
       {
         bgmName: "远野幻想物语",
@@ -148,23 +159,53 @@ describe("gululu-authoring-live-import", () => {
 
     const dice = plan.messages[2]!;
     expect(dice.request).toMatchObject({
-      content: "数值大的那一方胜利，之后进行伤害判定：从1-10的选项中决定回避\n【1d100:90】",
+      content: "那么烈啊，你要去往何处呢【1d13：】\n1 博丽神社\n2 红魔馆（是红海皇！）",
       customRoleName: "骰娘",
       extra: {
-        diceResult: { result: "【1d100:90】" },
+        diceResult: { result: "那么烈啊，你要去往何处呢【1d13:9】" },
         diceTurn: {
-          replies: [{ content: "【1d100:90】", customRoleName: "骰娘" }],
+          command: "那么烈啊，你要去往何处呢【1d13：】\n1 博丽神社\n2 红魔馆（是红海皇！）",
+          replies: [{ content: "那么烈啊，你要去往何处呢【1d13:9】", customRoleName: "骰娘" }],
         },
       },
       messageType: MESSAGE_TYPE.DICE,
     });
 
-    expect(plan.messages[3]!.request).toMatchObject({
+    const bareDice = plan.messages[3]!;
+    expect(bareDice.request).toMatchObject({
+      content: "【1d20+80：】",
+      customRoleName: "骰娘",
+      extra: {
+        diceResult: { result: "【1d20:18+80=98】" },
+        diceTurn: {
+          command: "【1d20+80：】",
+          replies: [{ content: "【1d20:18+80=98】", customRoleName: "骰娘" }],
+        },
+      },
+      messageType: MESSAGE_TYPE.DICE,
+    });
+
+    expect(plan.messages[4]!.request).toMatchObject({
       content: "[BGM] 远野幻想物语",
       customRoleName: "BGM",
       messageType: MESSAGE_TYPE.TEXT,
     });
     expect(plan.warnings).toEqual(["BGM 暂以文本事件保留：远野幻想物语"]);
+  });
+
+  it("会为导入立绘计算不遮挡对话框的默认 transform", () => {
+    const landscape = buildGululuImportedSpriteTransform({ height: 250, width: 500 });
+    expect(landscape).toMatchObject({
+      alpha: 1,
+      positionX: 0,
+      rotation: 0,
+    });
+    expect(landscape.scale).toBeLessThanOrEqual(0.35);
+    expect(landscape.positionY).toBeLessThan(0);
+
+    const portrait = buildGululuImportedSpriteTransform({ height: 900, width: 500 });
+    expect(portrait.scale).toBeLessThanOrEqual(0.46);
+    expect(portrait.positionY).toBeLessThan(landscape.positionY);
   });
 
   it("dry-run 只写计划文件，不调用 live client", async () => {
@@ -193,7 +234,7 @@ describe("gululu-authoring-live-import", () => {
       expect(result.result).toBeUndefined();
       expect(written.stats).toMatchObject({
         avatars: 1,
-        messages: 4,
+        messages: 5,
         roles: 1,
       });
     }
@@ -209,6 +250,8 @@ describe("gululu-authoring-live-import", () => {
       targetRoomId: 62,
       targetSpaceId: 8801,
     });
+    plan.avatars[0]!.filePath = "D:/fixture/images/gululu/retsu.png";
+    plan.avatars[0]!.upload = true;
     const calls: string[] = [];
     const client = {
       avatarController: {
@@ -248,7 +291,16 @@ describe("gululu-authoring-live-import", () => {
     const result = await applyGululuLiveImportPlan(plan, client, {
       uploadAvatarImage: vi.fn(async ({ filePath }) => {
         calls.push(`media.upload:${filePath}`);
-        return 3001;
+        return {
+          mediaFileId: 3001,
+          spriteTransform: {
+            alpha: 1,
+            positionX: 0,
+            positionY: -180,
+            rotation: 0,
+            scale: 0.32,
+          },
+        };
       }),
     });
 
@@ -257,19 +309,49 @@ describe("gululu-authoring-live-import", () => {
       "role.create:烈海王",
       "roomRole.add:1001",
       "avatar.create:1001",
-      "avatar.update:2001:no-media",
+      "media.upload:D:/fixture/images/gululu/retsu.png",
+      "avatar.update:2001:3001",
       "message:1:1001:2001",
       "message:1:-1:-1",
+      "message:6:-1:-1",
       "message:6:-1:-1",
       "message:1:-1:-1",
     ]);
     expect(result.roles).toEqual([{ action: "created", key: "role:烈海王", roleId: 1001 }]);
-    expect(client.chatController.sendMessage1).toHaveBeenCalledTimes(4);
+    expect(result.avatars[0]).toMatchObject({
+      avatarId: 2001,
+      mediaFileId: 3001,
+      spriteTransform: {
+        positionY: -180,
+        scale: 0.32,
+      },
+    });
+    expect(client.avatarController.updateRoleAvatar.mock.calls[0]![0]).toMatchObject({
+      avatarFileId: 3001,
+      originFileId: 3001,
+      spriteFileId: 3001,
+      spriteTransform: {
+        positionY: -180,
+        scale: 0.32,
+      },
+    });
+    expect(client.chatController.sendMessage1).toHaveBeenCalledTimes(5);
     expect(client.chatController.sendMessage1.mock.calls[2]![0]).toMatchObject({
-      content: "数值大的那一方胜利，之后进行伤害判定：从1-10的选项中决定回避\n【1d100:90】",
+      content: "那么烈啊，你要去往何处呢【1d13：】\n1 博丽神社\n2 红魔馆（是红海皇！）",
       extra: {
         diceTurn: {
-          replies: [{ content: "【1d100:90】", customRoleName: "骰娘" }],
+          command: "那么烈啊，你要去往何处呢【1d13：】\n1 博丽神社\n2 红魔馆（是红海皇！）",
+          replies: [{ content: "那么烈啊，你要去往何处呢【1d13:9】", customRoleName: "骰娘" }],
+        },
+      },
+      messageType: MESSAGE_TYPE.DICE,
+    });
+    expect(client.chatController.sendMessage1.mock.calls[3]![0]).toMatchObject({
+      content: "【1d20+80：】",
+      extra: {
+        diceTurn: {
+          command: "【1d20+80：】",
+          replies: [{ content: "【1d20:18+80=98】", customRoleName: "骰娘" }],
         },
       },
       messageType: MESSAGE_TYPE.DICE,

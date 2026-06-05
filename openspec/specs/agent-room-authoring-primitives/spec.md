@@ -1,8 +1,39 @@
 # agent-room-authoring-primitives Specification
 
 ## Purpose
-TBD - created by archiving change import-replay-workflow. Update Purpose after archive.
+Provide generic CLI/API authoring primitives that let AI agents assemble room replay and GAL-style presentations without adding source-specific product features to the room UI.
+
+These primitives are intended for agent-operated workflows: the agent decides how source material should be directed, then submits structured room, role, avatar, media, message, annotation, and WebGAL payloads for the system to validate and persist.
 ## Requirements
+### Requirement: Agent-owned directing plan
+
+The system SHALL treat GAL directing decisions as an explicit agent-authored plan rather than as automatic replay-import product behavior.
+
+#### Scenario: Agent directs a source event stream
+
+- **WHEN** an AI agent converts a source event stream into playable GAL messages
+- **THEN** the agent provides an inspectable directing plan that records per-event choices such as message type, annotations, WebGAL payload, speaker/avatar mapping, figure position, movement, clearing, dice presentation, and media timing
+
+#### Scenario: Code compiles directing choices
+
+- **WHEN** the system receives an agent-authored directing plan
+- **THEN** the system validates referenced roles, avatars, media, annotations, WebGAL payload shape, and target room ids before compiling the plan into generic room authoring API calls
+
+#### Scenario: Code avoids source-specific direction heuristics
+
+- **WHEN** the source kind is replay, Gululu, forum floor, or another imported text stream
+- **THEN** the system SHALL NOT infer fixed character blocking, BGM timing, figure movement, dice style, or emotional effects through replay-specific product heuristics; those choices must come from the agent-authored directing plan
+
+#### Scenario: Roles and avatars are reused across regenerated rooms
+
+- **WHEN** an agent regenerates a directed room from the same source
+- **THEN** the system allows existing roles and avatars to be reused while messages and the target room may be recreated
+
+#### Scenario: Directing plan remains auditable
+
+- **WHEN** an agent applies a directing plan
+- **THEN** the applied messages retain source event metadata sufficient to trace each room message back to the source event and the directing plan entry
+
 ### Requirement: Agent-facing authoring batch
 
 The system SHALL provide CLI/API primitives for AI agents to create, inspect, and clean up room authoring batches.
@@ -139,4 +170,3 @@ The system SHALL export rooms authored through generic primitives without relyin
 
 - **WHEN** WebGAL export processes a BGM event with unresolved media
 - **THEN** the export result reports the unresolved BGM while continuing to export other supported messages
-

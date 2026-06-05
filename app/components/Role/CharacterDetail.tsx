@@ -12,6 +12,7 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { CloseIcon, SlidersIcon } from "app/icons";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
@@ -294,7 +295,7 @@ function CharacterDetailInner({
     // 使用updateRole保存到后端
     updateRole(updatedRole, {
       onSuccess: () => {
-        // 骰娘关联成功
+        invalidateDicerRoleResolveCache();
       },
       onError: (error) => {
         console.error("保存骰娘关联失败:", error);

@@ -9,6 +9,7 @@
     "/tts/*",
     "/terre",
     "/terre/*",
+    "/webgal-asset-proxy",
     "/media",
     "/media/*",
     "/avatar",

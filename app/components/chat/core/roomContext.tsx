@@ -93,7 +93,7 @@ export interface RoomContextType {
     mentionedRoles?: UserRole[];
     originMessage?: string;
     replyMessageId?: number;
-  }) => void | Promise<void>;
+  }) => boolean | void | Promise<boolean | void>;
 }
 
 export const RoomContext = createContext<RoomContextType>({

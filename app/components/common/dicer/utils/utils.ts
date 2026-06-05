@@ -40,6 +40,8 @@ export function invalidateDicerRoleResolveCache(spaceId?: number | null): void {
   const normalizedSpaceId = Number(spaceId);
   if (!Number.isFinite(normalizedSpaceId) || normalizedSpaceId <= 0) {
     spaceSnapshotCache.clear();
+    roleDicerBindCache.clear();
+    roleDiceTypeCache.clear();
     return;
   }
 
@@ -539,7 +541,11 @@ async function getSpaceSnapshot(spaceId: number, options?: DicerRoleResolveOptio
 
 async function getRoleBoundDicerRoleId(roleId: number, options?: DicerRoleResolveOptions): Promise<number | null> {
   const roleSnapshot = options?.currentRoleSnapshot;
-  if (roleSnapshot && toPositiveRoleId(roleSnapshot.roleId) === roleId) {
+  if (
+    roleSnapshot
+    && toPositiveRoleId(roleSnapshot.roleId) === roleId
+    && roleSnapshot.extra !== undefined
+  ) {
     const roleExtra = normalizeRecord(roleSnapshot.extra);
     const snapshotRoleId = toPositiveRoleId(roleExtra.dicerRoleId);
     roleDicerBindCache.set(roleId, writeCacheValue(snapshotRoleId, ROLE_BIND_CACHE_TTL_MS));

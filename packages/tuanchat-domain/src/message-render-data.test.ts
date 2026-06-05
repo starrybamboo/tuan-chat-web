@@ -99,6 +99,26 @@ describe("message-render-data", () => {
     expect(getDiceTurnRenderData(extra, "", true).summary).toBe("D20=19");
   });
 
+  it("infers command display for imported historical dice turns", () => {
+    expect(getDiceTurnRenderData({
+      diceTurn: {
+        command: "【1d20: 18+80=98】",
+        replies: [{ content: "【1d20: 18+80=98】", customRoleName: "骰娘" }],
+      },
+    })).toMatchObject({
+      command: "【1d20+80：】",
+      replies: [{ content: "【1d20: 18+80=98】", customRoleName: "骰娘" }],
+      summary: "【1d20: 18+80=98】",
+    });
+
+    expect(getDiceTurnRenderData({
+      diceTurn: {
+        command: "假腿：每轮战斗都需要进行一次【1d100】的假腿判定",
+        replies: [{ content: "假腿：每轮战斗都需要进行一次【1d100】的假腿判定", customRoleName: "骰娘" }],
+      },
+    }).command).toBe("假腿：每轮战斗都需要进行一次【1d100】的假腿判定");
+  });
+
   it("builds doc, clue, and room jump fallback data", () => {
     expect(getDocCardRenderData({
       docCard: {

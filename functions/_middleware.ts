@@ -41,6 +41,8 @@ const MEDIA_PREFIXES = [
   "/updates",
 ];
 
+const WEBGAL_ASSET_PROXY_PATH = "/webgal-asset-proxy";
+
 function normalizeOrigin(value: string | undefined, fallback: string): string {
   const raw = String(value || fallback).trim().replace(/\/+$/, "");
   return raw || fallback;
@@ -120,8 +122,115 @@ async function proxyRequest(
   return fetch(targetUrl, init);
 }
 
+function isAllowedWebgalAssetTarget(url: URL): boolean {
+  const hostname = url.hostname.toLowerCase();
+  return hostname === "media.tuan.chat"
+    || hostname.endsWith(".media.tuan.chat")
+    || hostname === "origin.tuan.chat";
+}
+
+function buildTuanChatMediaOriginFallbackUrl(targetUrl: URL): string | null {
+  const hostname = targetUrl.hostname.toLowerCase();
+  if (hostname !== "media.tuan.chat" && !hostname.endsWith(".media.tuan.chat")) {
+    return null;
+  }
+  const fallbackUrl = new URL("https://origin.tuan.chat");
+  fallbackUrl.pathname = targetUrl.pathname;
+  fallbackUrl.search = targetUrl.search;
+  return fallbackUrl.toString();
+}
+
+function createWebgalAssetHeaders(request: Request): Headers {
+  const headers = new Headers();
+  headers.set("accept", request.headers.get("accept") || "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+  headers.set("referer", request.headers.get("referer") || `${new URL(request.url).origin}/`);
+  headers.set("user-agent", request.headers.get("user-agent") || "Mozilla/5.0");
+
+  const authorization = request.headers.get("authorization");
+  if (authorization) {
+    headers.set("authorization", authorization);
+  }
+  const cookie = request.headers.get("cookie");
+  if (cookie) {
+    headers.set("cookie", cookie);
+  }
+  return headers;
+}
+
+function copyWebgalAssetResponseHeaders(upstream: Response): Headers {
+  const headers = new Headers();
+  const contentType = upstream.headers.get("content-type");
+  if (contentType) {
+    headers.set("content-type", contentType);
+  }
+  const cacheControl = upstream.headers.get("cache-control");
+  if (cacheControl) {
+    headers.set("cache-control", cacheControl);
+  }
+  const contentLength = upstream.headers.get("content-length");
+  if (contentLength) {
+    headers.set("content-length", contentLength);
+  }
+  headers.set("access-control-allow-origin", "*");
+  return headers;
+}
+
+async function fetchWebgalAssetFromTarget(request: Request, targetUrl: URL): Promise<Response> {
+  const requestHeaders = createWebgalAssetHeaders(request);
+  const firstResponse = await fetch(targetUrl.toString(), {
+    method: "GET",
+    headers: requestHeaders,
+    redirect: "manual",
+  });
+  if (firstResponse.ok) {
+    return firstResponse;
+  }
+
+  const fallbackUrl = buildTuanChatMediaOriginFallbackUrl(targetUrl);
+  if (!fallbackUrl) {
+    return firstResponse;
+  }
+
+  const fallbackResponse = await fetch(fallbackUrl, {
+    method: "GET",
+    headers: requestHeaders,
+    redirect: "manual",
+  });
+  return fallbackResponse.ok ? fallbackResponse : firstResponse;
+}
+
+async function handleWebgalAssetProxyRequest(request: Request, requestUrl: URL): Promise<Response> {
+  if (request.method.toUpperCase() !== "GET") {
+    return new Response("Method Not Allowed", { status: 405 });
+  }
+
+  const targetUrlRaw = String(requestUrl.searchParams.get("url") || "").trim();
+  let targetUrl: URL;
+  try {
+    targetUrl = new URL(targetUrlRaw);
+  }
+  catch {
+    return new Response("Invalid asset URL", { status: 400 });
+  }
+
+  if (!["http:", "https:"].includes(targetUrl.protocol) || !isAllowedWebgalAssetTarget(targetUrl)) {
+    return new Response("Asset URL is not allowed", { status: 400 });
+  }
+
+  const upstream = await fetchWebgalAssetFromTarget(request, targetUrl);
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: copyWebgalAssetResponseHeaders(upstream),
+  });
+}
+
 export async function onRequest(context: PagesContext): Promise<Response> {
   const url = new URL(context.request.url);
+
+  if (url.pathname === WEBGAL_ASSET_PROXY_PATH) {
+    return handleWebgalAssetProxyRequest(context.request, url);
+  }
 
   if (shouldProxy(url.pathname, API_PREFIXES)) {
     const { origin, hostOverride, resolveOverride } = resolveProxyConfig(

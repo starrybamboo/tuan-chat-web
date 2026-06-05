@@ -199,6 +199,42 @@ function isNumberedOptionLine(line) {
   return /^\s*(?:\d+|[一二三四五六七八九十]+)[\s.、]/.test(line);
 }
 
+function isNumberedOptionBlock(content) {
+  const lines = normalizeLineBreaks(content).split("\n").map(line => line.trim()).filter(Boolean);
+  return lines.length > 0 && lines.every(isNumberedOptionLine);
+}
+
+function inferDiceCommandExpression(expression, resultPart) {
+  const trimmedExpression = String(expression ?? "").trim();
+  if (!trimmedExpression || /[+\-*/／/]/.test(trimmedExpression)) {
+    return trimmedExpression;
+  }
+  const calculation = String(resultPart ?? "").trim().split("=")[0]?.trim() ?? "";
+  const modifierMatch = calculation.match(/^[+-]?\d+(?<modifiers>(?:\s*[+\-*/／/]\s*[+-]?\d+(?:\.\d+)?)+)$/);
+  const modifiers = modifierMatch?.groups?.modifiers?.replace(/\s+/g, "");
+  return modifiers ? `${trimmedExpression}${modifiers}` : trimmedExpression;
+}
+
+function stripDiceResultForCommand(content) {
+  return String(content ?? "")
+    .replace(/【([^】]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^】]*?)[:：]([^】]*)】/gi, (_token, expression, resultPart) => {
+      return `【${inferDiceCommandExpression(expression, resultPart)}：】`;
+    })
+    .replace(/\[([^\]]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^\]]*?)[:：]([^\]]*)\]/gi, (_token, expression, resultPart) => {
+      return `[${inferDiceCommandExpression(expression, resultPart)}:]`;
+    });
+}
+
+function buildDiceRollText(content, diceDescription) {
+  const original = String(content ?? "").trim();
+  const command = stripDiceResultForCommand(original).trim();
+  if (!command || command === original) {
+    return undefined;
+  }
+  const description = diceDescription?.trim();
+  return [description, command].filter(Boolean).join("\n");
+}
+
 function shouldInferDialogFromImage(line) {
   const normalized = line.trim();
   if (!normalized || normalized.length > 48 || isNumberedOptionLine(normalized)) {
@@ -368,6 +404,7 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
         content: line,
         diceDescription: diceDescription || undefined,
         kind: "dice",
+        rollText: buildDiceRollText(line, diceDescription),
       });
       continue;
     }
@@ -411,6 +448,46 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
   flushNarration();
   flushDiceDescriptionOnly();
   return messages;
+}
+
+function mergeDiceOptionMessages(messages) {
+  const merged = [];
+  for (const message of messages) {
+    const previous = merged.at(-1);
+    if (
+      previous?.kind === "dice"
+      && message.kind === "narration"
+      && previous.floor === message.floor
+      && isNumberedOptionBlock(message.content)
+    ) {
+      previous.options = [
+        ...(previous.options ?? []),
+        ...normalizeLineBreaks(message.content).split("\n").map(line => line.trim()).filter(Boolean),
+      ];
+      previous.rollText ??= stripDiceResultForCommand(previous.content);
+      previous.imagePath ??= message.imagePath;
+      continue;
+    }
+    merged.push(message);
+  }
+  return merged;
+}
+
+function buildDiceDisplayContent(message) {
+  const content = message.content?.trim() ?? "";
+  const description = message.diceDescription?.trim();
+  const options = (message.options ?? []).map(option => option.trim()).filter(Boolean);
+  const command = message.rollText?.trim() || (description && description !== content ? description : "");
+  if (command) {
+    return [command, ...options, content].filter(Boolean).join("\n").trim();
+  }
+  if (options.length > 0) {
+    return [content || description || "", ...options].filter(Boolean).join("\n").trim();
+  }
+  if (description && description !== content) {
+    return `${description}\n${content}`.trim();
+  }
+  return content || description || "";
 }
 
 function buildReviewedImageMap(manifest) {
@@ -496,9 +573,9 @@ export function buildGululuReplayImportPackage(floors, options = {}) {
     buildImageSpeakerMap(buildImageSpeakerVotes(floors), { minVotes: 2 }),
     reviewedImageMap,
   );
-  const messages = selectedFloors.flatMap((floor) => {
+  const messages = mergeDiceOptionMessages(selectedFloors.flatMap((floor) => {
     return splitImageSegments(floor.body).flatMap(segment => parseSegmentLines(segment, floor, imageSpeakerMap));
-  });
+  }));
 
   const rolesByName = new Map();
   for (const message of messages) {
@@ -723,7 +800,7 @@ function createGululuAuthoringAdapter(authoring, importPackage, options = {}) {
     if (message.kind === "dice") {
       const hasRollResult = hasDiceRoll(message.content);
       authoredMessages.push({
-        content: message.content,
+        content: buildDiceDisplayContent(message),
         dice: {
           description: message.diceDescription,
           options: message.options,
@@ -785,9 +862,7 @@ export function buildImportText(importPackage) {
   };
   return importPackage.messages.map((message) => {
     const speaker = message.kind === "dialog" ? message.speakerName : speakerByKind[message.kind];
-    const content = message.kind === "dice" && message.diceDescription && message.diceDescription !== message.content
-      ? `${message.diceDescription}\n${message.content}`
-      : message.content;
+    const content = message.kind === "dice" ? buildDiceDisplayContent(message) : message.content;
     return `[${speaker}]：${content}`;
   }).join("\n");
 }
