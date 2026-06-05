@@ -637,6 +637,7 @@ export default function ChatShell() {
     if (Platform.OS !== "android") {
       return undefined;
     }
+    // eslint-disable-next-line react-web-api/no-leaked-event-listener -- React Native BackHandler returns a NativeEventSubscription removed below.
     const subscription = BackHandler.addEventListener("hardwareBackPress", handleSystemBack);
     return () => subscription.remove();
   }, [handleSystemBack]);
