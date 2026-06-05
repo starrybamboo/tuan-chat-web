@@ -299,7 +299,7 @@ function RoomWindow({
   ]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
   executeCommandRef.current = async (payload) => {
-    await commandExecutor(payload);
+    return await commandExecutor(payload);
   };
 
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({

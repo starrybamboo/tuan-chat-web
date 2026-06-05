@@ -9,6 +9,12 @@ interface StateMessageCardProps {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
 }
 
+const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] leading-5 shadow-sm backdrop-blur-md transition-colors duration-150";
+const STATE_MESSAGE_IDLE_CLASS = "border-base-content/12 bg-base-100/90 text-base-content hover:border-primary/28 hover:bg-base-100/95";
+const STATE_MESSAGE_TEXT_CLASS = "min-w-0 break-words text-center font-medium text-current";
+const STATE_MESSAGE_ACTION_CLASS = "shrink-0 text-[11px] font-medium text-current opacity-60 transition-opacity hover:opacity-90";
+const STATE_MESSAGE_DETAIL_CLASS = "mt-1 w-full max-w-[32rem] space-y-2 rounded-md border border-base-content/10 bg-base-100/90 px-2.5 py-2 text-xs shadow-sm backdrop-blur-md";
+
 export function buildStateRoleLabelReplacements(
   events: NonNullable<ReturnType<typeof getNormalizedStateEventExtra>>["events"],
   roleNameById: Record<number, string>,
@@ -105,14 +111,14 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
     : "未知来源";
 
   return (
-    <div className="inline-flex max-w-full flex-col items-center">
-      <div className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded px-1.5 py-px text-[12px] leading-5 text-base-content/54 transition-colors duration-150 hover:bg-base-200/20">
-        <span className="min-w-0 break-words text-center text-base-content/68">
+    <div className="inline-flex max-w-full flex-col items-center gap-1">
+      <div className={`${STATE_MESSAGE_CARD_CLASS} ${STATE_MESSAGE_IDLE_CLASS}`}>
+        <span className={STATE_MESSAGE_TEXT_CLASS}>
           {compactText}
         </span>
         <button
           type="button"
-          className="shrink-0 text-[11px] font-medium text-base-content/38 transition-colors hover:text-base-content/72"
+          className={STATE_MESSAGE_ACTION_CLASS}
           onClick={(event) => {
             event.stopPropagation();
             setExpanded(value => !value);
@@ -123,7 +129,7 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
       </div>
 
       {expanded && (
-        <div className="mt-1 w-full max-w-[32rem] space-y-2 border-t border-base-300/40 pt-2 text-xs">
+        <div className={STATE_MESSAGE_DETAIL_CLASS}>
           <div>
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-base-content/50">
               原始命令

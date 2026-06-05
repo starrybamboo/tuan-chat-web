@@ -33,6 +33,33 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function inferDiceCommandExpression(expression: string, resultPart: string) {
+  const trimmedExpression = expression.trim();
+  if (!trimmedExpression || /[+\-*/／/]/.test(trimmedExpression)) {
+    return trimmedExpression;
+  }
+  const calculation = resultPart.trim().split("=")[0]?.trim() ?? "";
+  const modifierMatch = calculation.match(/^[+-]?\d+(?:\.\d+)?((?:\s*[+\-*/／/]\s*[+-]?\d+(?:\.\d+)?)+)$/);
+  const modifiers = modifierMatch?.[1]?.replace(/\s+/g, "");
+  return modifiers ? `${trimmedExpression}${modifiers}` : trimmedExpression;
+}
+
+function inferDiceCommandFromHistoricalResult(content: string) {
+  const original = safeTrim(content);
+  if (!original) {
+    return "";
+  }
+  const command = original
+    .replace(/【([^】]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^】]*?)[:：]([^】]*)】/gi, (_token, expression: string, resultPart: string) => {
+      return `【${inferDiceCommandExpression(expression, resultPart)}：】`;
+    })
+    .replace(/\[([^\]]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^\]]*?)[:：]([^\]]*)\]/gi, (_token, expression: string, resultPart: string) => {
+      return `[${inferDiceCommandExpression(expression, resultPart)}:]`;
+    })
+    .trim();
+  return command !== original ? command : "";
+}
+
 export type ForwardMessageRenderData = {
   count: number;
   hiddenDeletedCount: number;
@@ -78,7 +105,7 @@ export function getDiceTurnRenderData(
   canViewHiddenReply = false,
 ): DiceTurnRenderData {
   const diceTurn = getDiceTurnExtra(extra);
-  const command = safeTrim(diceTurn?.command) || safeTrim(fallbackContent);
+  const rawCommand = safeTrim(diceTurn?.command) || safeTrim(fallbackContent);
   const replies = Array.isArray(diceTurn?.replies)
     ? diceTurn.replies.map((reply) => {
         const replyRecord = toRecord(reply);
@@ -94,6 +121,9 @@ export function getDiceTurnRenderData(
         };
       })
     : [];
+  const visibleSameReply = replies.length === 1 && !replies[0]?.hidden && safeTrim(replies[0]?.content) === rawCommand;
+  const inferredCommand = visibleSameReply ? inferDiceCommandFromHistoricalResult(rawCommand) : "";
+  const command = inferredCommand || rawCommand;
   const visibleReplyTexts = replies
     .filter(reply => !reply.hidden || canViewHiddenReply)
     .map(reply => safeTrim(reply.content))

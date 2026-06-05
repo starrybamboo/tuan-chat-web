@@ -19,7 +19,7 @@ type ExecuteCommand = (payload: {
   mentionedRoles?: UserRole[];
   originMessage?: string;
   replyMessageId?: number;
-}) => void | Promise<void>;
+}) => boolean | void | Promise<boolean | void>;
 
 type ExecuteAllInitiativeRollsParams = {
   executeCommand?: ExecuteCommand;

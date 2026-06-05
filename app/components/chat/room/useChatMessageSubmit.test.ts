@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   buildMessageDraftsFromComposerSnapshotMock: vi.fn(),
   triggerAudioAutoPlayMock: vi.fn(),
   toastErrorMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
   isCommandMock: vi.fn(),
   writeRoleVarOpsThroughAbilitiesMock: vi.fn(),
 }));
@@ -31,7 +32,7 @@ vi.mock("react", async () => {
 vi.mock("react-hot-toast", () => ({
   toast: {
     error: mocks.toastErrorMock,
-    success: vi.fn(),
+    success: mocks.toastSuccessMock,
   },
 }));
 
@@ -733,6 +734,7 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
+    expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
 
   it("连写带符号 .st 会优先编译成 STATE_EVENT(varOp)", async () => {
@@ -869,6 +871,7 @@ describe("useChatMessageSubmit", () => {
     expect(commandExecutor).not.toHaveBeenCalled();
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
     expect(mocks.toastErrorMock).toHaveBeenCalledWith("角色卡保存失败");
+    expect(mocks.toastSuccessMock).not.toHaveBeenCalled();
   });
 
   it("简单 .next 会生成 STATE_EVENT(nextTurn)", async () => {
@@ -922,6 +925,7 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
+    expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
 
   it("其他命令仍然走旧 cmdPre 逻辑", async () => {

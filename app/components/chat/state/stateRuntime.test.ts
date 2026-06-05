@@ -47,7 +47,7 @@ function createRoleAbility(overrides?: Partial<RoleAbility>): RoleAbility {
 }
 
 describe("buildStateRuntime", () => {
-  it("role varOp 只作为记录摘要，不再物化为房间内角色变量", () => {
+  it("role varOp 只作为记录摘要，但会按角色卡最终值倒推显示前后值", () => {
     const runtime = buildStateRuntime({
       messages: [
         createStateMessage(1, buildCommandStateEventExtra("st", [{
@@ -66,10 +66,11 @@ describe("buildStateRuntime", () => {
     expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
     expect(runtime.recordedRoleValueKeysByRoleId[3]).toEqual(["hp"]);
     expect(runtime.derivedDisplayValues.rolesByRoleId[3]).toEqual({ hp: 100 });
-    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP - 2");
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP 102 -> 100");
+    expect(runtime.messageSummariesByMessageId[1]?.detailLines).toEqual(["角色 #3 · HP 102 -> 100"]);
   });
 
-  it("多条 role varOp 只记录操作本身，不会演算当前角色值", () => {
+  it("多条 role varOp 会逐条倒推摘要前后值，不会演算为房间内角色变量", () => {
     const messages = [
       createStateMessage(1, buildCommandStateEventExtra("st", [{
         type: "varOp",
@@ -97,11 +98,11 @@ describe("buildStateRuntime", () => {
     expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
     expect(runtime.recordedRoleValueKeysByRoleId[3]).toEqual(["hp"]);
     expect(runtime.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(100);
-    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP - 2");
-    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP - 2");
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP 104 -> 102");
+    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP 102 -> 100");
   });
 
-  it("旧的 role set 记录摘要展示为单纯赋值", () => {
+  it("旧的 role set 记录摘要展示赋值前后值", () => {
     const messages = [
       createStateMessage(1, buildCommandStateEventExtra("st", [{
         type: "varOp",
@@ -129,8 +130,8 @@ describe("buildStateRuntime", () => {
     expect(runtime.roleVarsByRoleId[3]).toBeUndefined();
     expect(runtime.recordedRoleValueKeysByRoleId[3]).toEqual(["hp"]);
     expect(runtime.derivedDisplayValues.rolesByRoleId[3]?.hp).toBe(50);
-    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP = 20");
-    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP = 50");
+    expect(runtime.messageSummariesByMessageId[1]?.primaryText).toBe("HP 0 -> 20");
+    expect(runtime.messageSummariesByMessageId[2]?.primaryText).toBe("HP 20 -> 50");
   });
 
   it("带快照的 role varOp 摘要展示事件前后值", () => {

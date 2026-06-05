@@ -30,6 +30,15 @@ import {
   STATE_EVENT_VAR_OP,
 } from "../state-event";
 
+type StateEventVarOpAtom = Extract<StateEventAtom, { type: "varOp" }>;
+type StateEventRoleVarOpAtom = StateEventVarOpAtom & { scope: { kind: typeof STATE_EVENT_SCOPE_KIND.ROLE; roleId: number } };
+type StateEventVarOpSnapshot = StateEventVarOpAtom & { afterValue: number; beforeValue: number };
+type RoleVarOpTimelineItem = {
+  atom: StateEventRoleVarOpAtom;
+  atomIndex: number;
+  messageId: number;
+};
+
 export class EmptyStateDefinitionResolver implements StateDefinitionResolver {
   resolveById(): StateDefinition | null {
     return null;
@@ -191,6 +200,154 @@ function formatVarOpRecordPrimary(atom: Extract<StateEventAtom, { type: "varOp" 
       ? "+"
       : "-";
   return `${formatStateKeyLabel(atom.key)} ${opLabel} ${formatStateNumericValue(atom.value)}`;
+}
+
+function formatVarOpSnapshotPrimary(atom: StateEventVarOpSnapshot): string {
+  return `${formatStateKeyLabel(atom.key)} ${formatStateNumericValue(atom.beforeValue)} -> ${formatStateNumericValue(atom.afterValue)}`;
+}
+
+function applyVarOpValue(beforeValue: number, atom: StateEventVarOpAtom): number {
+  if (atom.op === STATE_EVENT_VAR_OP.SET) {
+    return atom.value;
+  }
+  if (atom.op === STATE_EVENT_VAR_OP.ADD) {
+    return beforeValue + atom.value;
+  }
+  return beforeValue - atom.value;
+}
+
+function reverseVarOpValue(afterValue: number, atom: StateEventVarOpAtom): number {
+  if (atom.op === STATE_EVENT_VAR_OP.SET) {
+    return typeof atom.beforeValue === "number" ? atom.beforeValue : 0;
+  }
+  if (atom.op === STATE_EVENT_VAR_OP.ADD) {
+    return afterValue - atom.value;
+  }
+  return afterValue + atom.value;
+}
+
+function stateScopeKey(scope: StateEventScope): string {
+  return scope.kind === STATE_EVENT_SCOPE_KIND.ROOM ? "room" : `role:${scope.roleId}`;
+}
+
+function getTimelineValue(timelineValues: Map<string, number>, scope: StateEventScope, key: string): number | undefined {
+  return timelineValues.get(`${stateScopeKey(scope)}:${key}`);
+}
+
+function setTimelineValue(timelineValues: Map<string, number>, scope: StateEventScope, key: string, value: number): void {
+  timelineValues.set(`${stateScopeKey(scope)}:${key}`, value);
+}
+
+function snapshotKey(messageId: number, atomIndex: number): string {
+  return `${messageId}:${atomIndex}`;
+}
+
+function isRoleVarOpAtom(atom: StateEventAtom): atom is StateEventRoleVarOpAtom {
+  return atom.type === "varOp" && atom.scope.kind === STATE_EVENT_SCOPE_KIND.ROLE;
+}
+
+function collectRoleVarOpTimelineItems(messages: BuildStateRuntimeParams["messages"]): RoleVarOpTimelineItem[] {
+  return messages.flatMap((message) => {
+    const normalizedExtra = getNormalizedStateEventExtra(message.extra);
+    if (!normalizedExtra) {
+      return [];
+    }
+    return normalizedExtra.events.flatMap((atom, atomIndex) => (
+      isRoleVarOpAtom(atom)
+        ? [{ atom, atomIndex, messageId: message.messageId }]
+        : []
+    ));
+  });
+}
+
+function applyForwardRoleVarOpSnapshots(items: RoleVarOpTimelineItem[]): Map<string, StateEventVarOpSnapshot> {
+  const timelineValues = new Map<string, number>();
+  const snapshots = new Map<string, StateEventVarOpSnapshot>();
+
+  items.forEach(({ atom, atomIndex, messageId }) => {
+    const explicitBefore = atom.beforeValue;
+    const explicitAfter = atom.afterValue;
+    const currentValue = getTimelineValue(timelineValues, atom.scope, atom.key);
+    let beforeValue: number | undefined;
+    let afterValue: number | undefined;
+    if (typeof explicitBefore === "number" && typeof explicitAfter === "number") {
+      beforeValue = explicitBefore;
+      afterValue = explicitAfter;
+    }
+    else if (typeof currentValue === "number") {
+      beforeValue = currentValue;
+      afterValue = applyVarOpValue(beforeValue, atom);
+    }
+    else if (atom.op === STATE_EVENT_VAR_OP.SET) {
+      beforeValue = 0;
+      afterValue = atom.value;
+    }
+
+    if (typeof beforeValue !== "number" || typeof afterValue !== "number") {
+      return;
+    }
+    snapshots.set(snapshotKey(messageId, atomIndex), {
+      ...atom,
+      beforeValue,
+      afterValue,
+    });
+    setTimelineValue(timelineValues, atom.scope, atom.key, afterValue);
+  });
+
+  return snapshots;
+}
+
+function collectReverseTimelineValues(
+  items: RoleVarOpTimelineItem[],
+  snapshots: Map<string, StateEventVarOpSnapshot>,
+  fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined>,
+): Map<string, number> {
+  const values = new Map<string, number>();
+  items.forEach(({ atom, atomIndex, messageId }) => {
+    const fallbackValue = getFallbackRoleAbilityValue(fallbackRoleAbilitiesByRoleId[atom.scope.roleId], atom.key);
+    if (typeof fallbackValue === "number") {
+      setTimelineValue(values, atom.scope, atom.key, fallbackValue);
+      return;
+    }
+    const snapshot = snapshots.get(snapshotKey(messageId, atomIndex));
+    if (snapshot) {
+      setTimelineValue(values, atom.scope, atom.key, snapshot.afterValue);
+    }
+  });
+  return values;
+}
+
+function inferRoleVarOpSnapshots(
+  events: BuildStateRuntimeParams["messages"],
+  fallbackRoleAbilitiesByRoleId: Record<number, RoleAbility | null | undefined>,
+): Map<string, StateEventVarOpSnapshot> {
+  const roleVarOps = collectRoleVarOpTimelineItems(events);
+  const inferred = applyForwardRoleVarOpSnapshots(roleVarOps);
+  const timelineValues = collectReverseTimelineValues(roleVarOps, inferred, fallbackRoleAbilitiesByRoleId);
+
+  for (let index = roleVarOps.length - 1; index >= 0; index -= 1) {
+    const { atom, atomIndex, messageId } = roleVarOps[index];
+    const key = snapshotKey(messageId, atomIndex);
+    const existingSnapshot = inferred.get(key);
+    if (existingSnapshot) {
+      setTimelineValue(timelineValues, atom.scope, atom.key, existingSnapshot.beforeValue);
+      continue;
+    }
+    const afterValue = getTimelineValue(timelineValues, atom.scope, atom.key);
+    if (typeof afterValue !== "number") {
+      continue;
+    }
+    const beforeValue = reverseVarOpValue(afterValue, atom);
+    const resolvedAfterValue = applyVarOpValue(beforeValue, atom);
+    inferred.set(key, {
+      ...atom,
+      beforeValue,
+      afterValue: resolvedAfterValue,
+    });
+    setTimelineValue(timelineValues, atom.scope, atom.key, beforeValue);
+  }
+
+  return inferred;
 }
 
 function formatCombatAtomPrimary(atom: Exclude<StateEventAtom, Extract<StateEventAtom, { scope: StateEventScope }> | { type: "nextTurn" }>): string {
@@ -433,6 +590,7 @@ export function buildStateRuntime({
   const recordedRoleValueKeysByRoleId = new Map<number, Set<string>>();
   const unresolvedStates: UnresolvedState[] = [];
   const messageSummariesByMessageId: Record<number, StateEventMessageSummary> = {};
+  const inferredRoleVarOpSnapshots = inferRoleVarOpSnapshots(effectiveMessages, fallbackRoleAbilitiesByRoleId);
   let activeStates: ActiveStateInstance[] = [];
   let turn = 0;
   let combatRoundActive = false;
@@ -460,12 +618,11 @@ export function buildStateRuntime({
         if (atom.scope.kind !== STATE_EVENT_SCOPE_KIND.ROOM) {
           ensureRoleKeySet(observedRoleKeysByRoleId, atom.scope.roleId).add(atom.key);
           ensureRoleKeySet(recordedRoleValueKeysByRoleId, atom.scope.roleId).add(atom.key);
-          const beforeValue = atom.beforeValue;
-          const afterValue = atom.afterValue;
-          primaryCandidates.push(typeof beforeValue === "number" && typeof afterValue === "number"
-            ? `${formatStateKeyLabel(atom.key)} ${formatStateNumericValue(beforeValue)} -> ${formatStateNumericValue(afterValue)}`
+          const inferredSnapshot = inferredRoleVarOpSnapshots.get(snapshotKey(message.messageId, atomIndex));
+          primaryCandidates.push(inferredSnapshot
+            ? formatVarOpSnapshotPrimary(inferredSnapshot)
             : formatVarOpRecordPrimary(atom));
-          detailLines.push(formatStateEventAtomDetail(atom));
+          detailLines.push(formatStateEventAtomDetail(inferredSnapshot ?? atom));
           return;
         }
 

@@ -11,6 +11,8 @@ import {
 import { getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
+import { fetchWithUnifiedAuth } from "../../api/unifiedAuthFetch";
+
 /**
  * WebGAL 调试命令枚举
  * 用于通过 WebSocket 与 WebGAL 引擎通信
@@ -99,7 +101,7 @@ function buildTuanChatWebgalAssetProxyUrl(url: string): string | null {
   if (!isHttpSourceUrl(url)) {
     return null;
   }
-  return `/api/webgal-asset-proxy?url=${encodeURIComponent(url)}`;
+  return `/webgal-asset-proxy?url=${encodeURIComponent(url)}`;
 }
 
 function shouldFetchViaTuanChatProxyFirst(url: string): boolean {
@@ -143,7 +145,7 @@ async function fetchSingleWebgalAssetBlob(url: string, shouldUseProxyFallback: b
   if (!proxyUrl) {
     throw new Error("Failed to fetch file");
   }
-  const response = await fetch(proxyUrl, { cache: "force-cache" });
+  const response = await fetchWithUnifiedAuth(proxyUrl, { cache: "force-cache" });
   if (!response.ok) {
     throw new Error(`Failed to fetch file via TuanChat proxy: ${response.statusText}`);
   }

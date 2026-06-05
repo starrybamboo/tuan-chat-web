@@ -13,6 +13,30 @@ const assetsControllerReadAssetsMock = vi.fn<() => Promise<{
 });
 const assetsControllerUploadMock = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
+function createMockStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    get length() {
+      return data.size;
+    },
+    clear() {
+      data.clear();
+    },
+    getItem(key: string) {
+      return data.has(key) ? data.get(key)! : null;
+    },
+    key(index: number) {
+      return Array.from(data.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      data.delete(key);
+    },
+    setItem(key: string, value: string) {
+      data.set(key, String(value));
+    },
+  };
+}
+
 vi.mock("./index", () => ({
   getTerreApis: vi.fn<() => {
     assetsControllerReadAssets: typeof assetsControllerReadAssetsMock;
@@ -30,8 +54,12 @@ vi.mock("./browserAssetCache", () => ({
 }));
 
 describe("fileOperator.uploadFile", () => {
+  const localStorage = createMockStorage();
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    localStorage.clear();
     assetsControllerReadAssetsMock.mockResolvedValue({
       readDirPath: "",
       dirPath: "",
@@ -86,7 +114,7 @@ describe("fileOperator.uploadFile", () => {
       { cache: "force-cache" },
     );
     const proxyUrl = String(fetchSpy.mock.calls[1][0]);
-    expect(proxyUrl).toContain("/api/webgal-asset-proxy?url=");
+    expect(proxyUrl).toContain("/webgal-asset-proxy?url=");
     expect(decodeURIComponent(proxyUrl)).toContain("https://oss.example.com/avatar/room-cover.webp");
     expect(assetsControllerUploadMock).toHaveBeenCalledTimes(1);
 
@@ -108,7 +136,7 @@ describe("fileOperator.uploadFile", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     const proxyUrl = String(fetchSpy.mock.calls[1][0]);
-    expect(proxyUrl).toContain("/api/webgal-asset-proxy?url=");
+    expect(proxyUrl).toContain("/webgal-asset-proxy?url=");
     expect(assetsControllerUploadMock).toHaveBeenCalledTimes(1);
 
     fetchSpy.mockRestore();
@@ -128,9 +156,40 @@ describe("fileOperator.uploadFile", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const proxyUrl = String(fetchSpy.mock.calls[0][0]);
-    expect(proxyUrl).toContain("/api/webgal-asset-proxy?url=");
+    expect(proxyUrl).toContain("/webgal-asset-proxy?url=");
     expect(decodeURIComponent(proxyUrl)).toContain("https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp");
     expect(assetsControllerUploadMock).toHaveBeenCalledTimes(1);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("media.tuan.chat 资源代理请求会携带当前登录 token", async () => {
+    vi.stubGlobal("window", {
+      localStorage,
+      location: {
+        href: "https://www.tuan.chat/rooms/1",
+        origin: "https://www.tuan.chat",
+      },
+      isSecureContext: true,
+    });
+    window.localStorage.setItem("token", "local-token");
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(new Blob(["avatar"], {
+        type: "image/webp",
+      }), { status: 200 }));
+
+    await expect(uploadFile(
+      "https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp",
+      "games/realtime_1/game/background",
+      "room-cover.webp",
+    )).resolves.toBe("room-cover.webp");
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [proxyUrl, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(proxyUrl).toContain("/webgal-asset-proxy?url=");
+    const headers = new Headers(init.headers);
+    expect(headers.get("Authorization")).toBe("Bearer local-token");
+    expect(init.credentials).toBe("include");
 
     fetchSpy.mockRestore();
   });
@@ -151,8 +210,8 @@ describe("fileOperator.uploadFile", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     const firstProxyUrl = String(fetchSpy.mock.calls[0][0]);
     const secondProxyUrl = String(fetchSpy.mock.calls[1][0]);
-    expect(firstProxyUrl).toContain("/api/webgal-asset-proxy?url=");
-    expect(secondProxyUrl).toContain("/api/webgal-asset-proxy?url=");
+    expect(firstProxyUrl).toContain("/webgal-asset-proxy?url=");
+    expect(secondProxyUrl).toContain("/webgal-asset-proxy?url=");
     expect(decodeURIComponent(firstProxyUrl)).toContain("https://media.tuan.chat/media/v1/files/479/30479/image/medium.webp");
     expect(decodeURIComponent(secondProxyUrl)).toContain("https://media.tuan.chat/media/v1/files/479/30479/original");
     expect(assetsControllerUploadMock).toHaveBeenCalledTimes(1);

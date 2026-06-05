@@ -22,6 +22,12 @@ export type RoleAvatarFieldPatch = {
   avatarThumbUrl?: string;
 };
 
+const ROLE_DETAIL_CACHE_COMPLETE_FIELD = "__tcRoleDetailComplete";
+
+type SeedUserRoleQueryCacheOptions = {
+  detailComplete?: boolean;
+};
+
 function hasRoleId(role?: UserRoleWithAvatarUrls | null): role is UserRoleWithAvatarUrls & { roleId: number } {
   return typeof role?.roleId === "number" && role.roleId > 0;
 }
@@ -44,7 +50,21 @@ function resolveRoleAvatarUrls(role: Pick<UserRoleWithAvatarUrls, "avatarFileId"
   };
 }
 
-export function seedUserRoleQueryCache(queryClient: QueryClient, role?: UserRoleWithAvatarUrls | null): void {
+function omitUndefinedFields<T extends Record<string, unknown>>(record: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(record).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+}
+
+export function isUserRoleDetailCacheComplete(cacheData: unknown): boolean {
+  return Boolean((cacheData as any)?.[ROLE_DETAIL_CACHE_COMPLETE_FIELD]);
+}
+
+export function seedUserRoleQueryCache(
+  queryClient: QueryClient,
+  role?: UserRoleWithAvatarUrls | null,
+  options?: SeedUserRoleQueryCacheOptions,
+): void {
   if (!hasRoleId(role)) {
     return;
   }
@@ -52,12 +72,16 @@ export function seedUserRoleQueryCache(queryClient: QueryClient, role?: UserRole
   const roleAvatarUrls = resolveRoleAvatarUrls(role);
   queryClient.setQueryData(["getRole", role.roleId], (old: any) => {
     const previousData = old?.data ?? {};
+    const rolePatch = options?.detailComplete
+      ? role
+      : omitUndefinedFields(role as Record<string, unknown>);
     return {
       ...(old && typeof old === "object" ? old : {}),
       success: old?.success ?? true,
+      [ROLE_DETAIL_CACHE_COMPLETE_FIELD]: Boolean(options?.detailComplete) || isUserRoleDetailCacheComplete(old),
       data: {
         ...previousData,
-        ...role,
+        ...rolePatch,
         avatarUrl: roleAvatarUrls.avatarUrl || previousData.avatarUrl,
         avatarThumbUrl: roleAvatarUrls.avatarThumbUrl || previousData.avatarThumbUrl,
       },

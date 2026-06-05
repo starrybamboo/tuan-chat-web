@@ -40,6 +40,7 @@ import {
   patchRoomRoleAvatarFieldsInListQueryCache,
   patchUserRoleAvatarFieldsInListQueryCache,
   rollbackUserRoleListQueryCache,
+  isUserRoleDetailCacheComplete,
   seedUserRoleListQueryCache,
   seedUserRoleQueryCache,
 } from "../roleQueryCache";
@@ -57,15 +58,22 @@ export function roleQueryKey(roleId: number): readonly ["getRole", number] {
 
 async function loadRole(queryClient: QueryClient, roleId: number) {
   const res = await tuanchat.roleController.getRole(roleId);
-  seedUserRoleQueryCache(queryClient, res.data);
+  seedUserRoleQueryCache(queryClient, res.data, { detailComplete: true });
   return res;
 }
 
 export function fetchRoleWithCache(queryClient: QueryClient, roleId: number) {
+  const queryKey = roleQueryKey(roleId);
+  const cachedRole = queryClient.getQueryData(queryKey);
+  // 列表接口会种 getRole 缓存，但不一定包含 extra.dicerRoleId 等详情字段。
+  // 详情字段参与骰娘绑定解析，缓存不完整时必须强制拉一次 getRole。
+  const staleTime = cachedRole && !isUserRoleDetailCacheComplete(cachedRole)
+    ? 0
+    : ROLE_DETAIL_STALE_TIME_MS;
   return queryClient.fetchQuery({
-    queryKey: roleQueryKey(roleId),
+    queryKey,
     queryFn: () => loadRole(queryClient, roleId),
-    staleTime: ROLE_DETAIL_STALE_TIME_MS,
+    staleTime,
     retry: shouldRetryRoleQueryError,
   });
 }

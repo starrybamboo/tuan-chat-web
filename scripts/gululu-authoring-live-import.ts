@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
+type SpriteTransform = NonNullable<RoleAvatar["spriteTransform"]>;
+
 type GululuReplayImportPackage = {
   messages?: GululuReplayMessage[];
   roles?: GululuReplayRole[];
@@ -39,6 +41,7 @@ type GululuReplayMessage = {
   floor?: number;
   imagePath?: string;
   kind: "dialog" | "narration" | "dice" | "bgm";
+  options?: string[];
   roleName?: string;
   rollText?: string;
   sourceTime?: string;
@@ -183,15 +186,27 @@ type ApiResult<T> = {
   success?: boolean;
 };
 
+type UploadedAvatarImage = {
+  mediaFileId: number;
+  spriteTransform: SpriteTransform;
+};
+
 type ApplyLiveImportDeps = {
   uploadAvatarImage?: (params: {
     client: GululuLiveImportClient;
     filePath: string;
-  }) => Promise<number>;
+  }) => Promise<UploadedAvatarImage>;
 };
 
 export type GululuLiveImportApplyResult = {
-  avatars: Array<{ action: "created"; avatarId: number; key: string; mediaFileId?: number; roleId: number }>;
+  avatars: Array<{
+    action: "created";
+    avatarId: number;
+    key: string;
+    mediaFileId?: number;
+    roleId: number;
+    spriteTransform?: SpriteTransform;
+  }>;
   messages: Array<{ messageId?: number; sourceEventIndex: number }>;
   roles: Array<{ action: "created" | "reused"; key: string; roleId: number }>;
   sidebarTree?: {
@@ -207,6 +222,28 @@ const NPC_ROLE_TYPE = 2;
 const ROLE_AVATAR_CATEGORY = "gululu-replay";
 const AVATAR_UPLOAD_SCENE = 3;
 const MAX_MESSAGE_CONTENT_LENGTH = 1024;
+const WEBGAL_STAGE_WIDTH = 2560;
+const WEBGAL_STAGE_HEIGHT = 1440;
+const IMPORTED_SPRITE_SAFE_TOP_Y = 80;
+const IMPORTED_SPRITE_SAFE_BOTTOM_Y = 760;
+
+type ImportedSpriteLayoutPreset = {
+  maxHeight: number;
+  maxWidth: number;
+};
+
+const IMPORTED_LANDSCAPE_SPRITE_LAYOUT: ImportedSpriteLayoutPreset = {
+  maxHeight: 420,
+  maxWidth: 1100,
+};
+const IMPORTED_SQUARE_SPRITE_LAYOUT: ImportedSpriteLayoutPreset = {
+  maxHeight: 600,
+  maxWidth: 650,
+};
+const IMPORTED_PORTRAIT_SPRITE_LAYOUT: ImportedSpriteLayoutPreset = {
+  maxHeight: 650,
+  maxWidth: 680,
+};
 
 function readValue(args: string[], index: number, flag: string) {
   const value = args[index + 1];
@@ -222,6 +259,69 @@ function toPositiveInteger(value: string, flag: string) {
     throw new Error(`${flag} must be a positive integer`);
   }
   return parsed;
+}
+
+function roundTransformNumber(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function resolveImportedSpriteLayoutPreset(width: number, height: number): ImportedSpriteLayoutPreset {
+  const ratio = width / height;
+  if (ratio >= 1.25) {
+    return IMPORTED_LANDSCAPE_SPRITE_LAYOUT;
+  }
+  if (ratio >= 0.85) {
+    return IMPORTED_SQUARE_SPRITE_LAYOUT;
+  }
+  return IMPORTED_PORTRAIT_SPRITE_LAYOUT;
+}
+
+export function buildGululuImportedSpriteTransform(input: {
+  height?: number;
+  width?: number;
+}): SpriteTransform {
+  const width = Number(input.width ?? 0);
+  const height = Number(input.height ?? 0);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return {
+      alpha: 1,
+      positionX: 0,
+      positionY: -220,
+      rotation: 0,
+      scale: 0.36,
+    };
+  }
+
+  const containScale = Math.min(WEBGAL_STAGE_WIDTH / width, WEBGAL_STAGE_HEIGHT / height);
+  const renderedWidthAtScaleOne = width * containScale;
+  const renderedHeightAtScaleOne = height * containScale;
+  const preset = resolveImportedSpriteLayoutPreset(width, height);
+  const scale = clampNumber(
+    Math.min(
+      preset.maxWidth / renderedWidthAtScaleOne,
+      preset.maxHeight / renderedHeightAtScaleOne,
+    ),
+    0.12,
+    0.8,
+  );
+  const renderedHeight = renderedHeightAtScaleOne * scale;
+  let centerY = IMPORTED_SPRITE_SAFE_BOTTOM_Y - renderedHeight / 2;
+  const minCenterY = IMPORTED_SPRITE_SAFE_TOP_Y + renderedHeight / 2;
+  if (centerY < minCenterY) {
+    centerY = minCenterY;
+  }
+
+  return {
+    alpha: 1,
+    positionX: 0,
+    positionY: roundTransformNumber(centerY - WEBGAL_STAGE_HEIGHT / 2),
+    rotation: 0,
+    scale: roundTransformNumber(scale),
+  };
 }
 
 export function parseLiveImportArgs(argv: string[]): GululuLiveImportArgs {
@@ -377,10 +477,15 @@ function hasDiceRoll(text: string) {
 function buildDiceVisibleContent(message: GululuReplayMessage) {
   const content = contentOrEmpty(message).trim();
   const description = message.diceDescription?.trim();
-  if (description && description !== content) {
-    return `${description}\n${content}`.trim();
+  const command = message.rollText?.trim() || (description && description !== content ? description : "");
+  const options = (message.options ?? []).map(option => option.trim()).filter(Boolean);
+  if (command) {
+    return [command, ...options].join("\n").trim();
   }
-  return content || description || "";
+  if (description && description !== content) {
+    return [description, ...options, content].join("\n").trim();
+  }
+  return [content || description || "", ...options].filter(Boolean).join("\n").trim();
 }
 
 function buildDiceExtra(message: GululuReplayMessage, options: GululuLiveImportArgs) {
@@ -395,7 +500,7 @@ function buildDiceExtra(message: GululuReplayMessage, options: GululuLiveImportA
   return {
     diceResult: { result },
     diceTurn: {
-      ...(isUsefulText(message.rollText) ? { command: message.rollText.trim() } : {}),
+      ...(visibleContent ? { command: visibleContent } : {}),
       replies: [reply],
     },
   };
@@ -860,9 +965,10 @@ export async function applyGululuLiveImportPlan(
     );
     avatarIds.set(avatar.key, avatarId);
 
-    const mediaFileId = avatar.upload && avatar.filePath && deps.uploadAvatarImage
+    const uploadedAvatar = avatar.upload && avatar.filePath && deps.uploadAvatarImage
       ? await deps.uploadAvatarImage({ client, filePath: avatar.filePath })
       : undefined;
+    const mediaFileId = uploadedAvatar?.mediaFileId;
     assertApiSuccess(
       await client.avatarController.updateRoleAvatar({
         avatarFileId: mediaFileId,
@@ -871,6 +977,7 @@ export async function applyGululuLiveImportPlan(
         category: ROLE_AVATAR_CATEGORY,
         originFileId: mediaFileId,
         roleId,
+        ...(uploadedAvatar?.spriteTransform ? { spriteTransform: uploadedAvatar.spriteTransform } : {}),
         spriteFileId: mediaFileId,
       }),
       `更新头像失败：${avatar.imagePath}`,
@@ -881,6 +988,7 @@ export async function applyGululuLiveImportPlan(
       key: avatar.key,
       ...(mediaFileId ? { mediaFileId } : {}),
       roleId,
+      ...(uploadedAvatar?.spriteTransform ? { spriteTransform: uploadedAvatar.spriteTransform } : {}),
     });
   }
 
@@ -939,7 +1047,7 @@ async function uploadLocalImageAsRoleAvatarMedia(params: {
     };
   };
   filePath: string;
-}) {
+}): Promise<UploadedAvatarImage> {
   if (!params.client.mediaController) {
     throw new Error("当前 client 缺少 mediaController，无法上传头像图片");
   }
@@ -970,7 +1078,13 @@ async function uploadLocalImageAsRoleAvatarMedia(params: {
     if (!prepared.fileId) {
       throw new Error(`头像秒传响应缺少 fileId：${params.filePath}`);
     }
-    return prepared.fileId;
+    return {
+      mediaFileId: prepared.fileId,
+      spriteTransform: buildGululuImportedSpriteTransform({
+        height: metadata.height,
+        width: metadata.width,
+      }),
+    };
   }
   if (!prepared.sessionId || !prepared.uploadTargets) {
     throw new Error(`头像上传响应缺少会话：${params.filePath}`);
@@ -998,7 +1112,13 @@ async function uploadLocalImageAsRoleAvatarMedia(params: {
   if (!completed.fileId) {
     throw new Error(`完成头像上传响应缺少 fileId：${params.filePath}`);
   }
-  return completed.fileId;
+  return {
+    mediaFileId: completed.fileId,
+    spriteTransform: buildGululuImportedSpriteTransform({
+      height: metadata.height,
+      width: metadata.width,
+    }),
+  };
 }
 
 function createDefaultDeps(client: GululuLiveImportClient): ApplyLiveImportDeps {

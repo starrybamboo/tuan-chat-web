@@ -216,7 +216,7 @@ function webgalAssetProxyPlugin(): Plugin {
       server.middlewares.use(async (req, res, next) => {
         try {
           const reqUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-          if (reqUrl.pathname !== "/api/webgal-asset-proxy") {
+          if (reqUrl.pathname !== "/webgal-asset-proxy") {
             next();
             return;
           }
