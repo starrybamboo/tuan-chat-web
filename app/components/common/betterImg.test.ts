@@ -23,7 +23,7 @@ describe("resolveBetterImgIntrinsicSize", () => {
       transparent: true,
       rootClassName: "z-[11000] items-center justify-center justify-items-center place-items-center",
       panelClassName: "max-h-dvh max-w-dvw overflow-hidden",
-      bodyClassName: "flex items-center justify-center overflow-hidden",
+      bodyClassName: "overflow-hidden",
       disableScroll: true,
     });
   });
