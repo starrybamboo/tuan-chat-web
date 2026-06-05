@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createCloudflareWebAnalyticsController,
+  resolveCloudflareWebAnalyticsConfig,
   shouldEnableCloudflareWebAnalytics,
 } from "./cloudflareWebAnalytics";
 
@@ -116,6 +117,30 @@ describe("shouldEnableCloudflareWebAnalytics", () => {
   });
 });
 
+describe("resolveCloudflareWebAnalyticsConfig", () => {
+  it("会为正式域名选择生产 Web Analytics token", () => {
+    expect(resolveCloudflareWebAnalyticsConfig({
+      hostname: "tuan.chat",
+      isProd: true,
+      protocol: "https:",
+    })).toEqual({
+      environment: "production",
+      token: "ecffe13cc26a481880812c11e3489111",
+    });
+  });
+
+  it("会为测试域名选择测试 Web Analytics token", () => {
+    expect(resolveCloudflareWebAnalyticsConfig({
+      hostname: "test.tuan.chat",
+      isProd: true,
+      protocol: "https:",
+    })).toEqual({
+      environment: "test",
+      token: "bd9e06f17e3b4f19bd7d6def90fdc7e5",
+    });
+  });
+});
+
 describe("createCloudflareWebAnalyticsController", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -127,7 +152,7 @@ describe("createCloudflareWebAnalyticsController", () => {
     const loadingPromise = controller.ensureLoaded();
     const script = runtimeDocument.scripts[0];
 
-    expect(script?.getAttribute("data-cf-beacon")).toContain("bd3746d5fcac46db97172d382492de26");
+    expect(script?.getAttribute("data-cf-beacon")).toContain("bd9e06f17e3b4f19bd7d6def90fdc7e5");
 
     script.dispatch("load");
 
