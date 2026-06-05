@@ -21,7 +21,7 @@ describe("resolveBetterImgIntrinsicSize", () => {
     expect(resolveBetterImgPreviewToastOptions(true)).toEqual({
       fullScreen: true,
       transparent: true,
-      rootClassName: "z-[11000] items-center justify-center justify-items-center place-items-center",
+      rootClassName: "z-[11000]",
       panelClassName: "max-h-dvh max-w-dvw overflow-hidden",
       bodyClassName: "overflow-hidden",
       disableScroll: true,
