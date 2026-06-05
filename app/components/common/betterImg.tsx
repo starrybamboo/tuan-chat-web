@@ -26,7 +26,7 @@ export function resolveBetterImgPreviewToastOptions(transparent: boolean): Toast
     transparent,
     rootClassName: "z-[11000] items-center justify-center justify-items-center place-items-center",
     panelClassName: "max-h-dvh max-w-dvw overflow-hidden",
-    bodyClassName: "flex items-center justify-center overflow-hidden",
+    bodyClassName: "overflow-hidden",
     disableScroll: true,
   };
 }
@@ -104,7 +104,11 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => <ResizableImg src={zoomImgSrc} onClose={onClose} />,
+      onClose => (
+        <div className="h-dvh w-dvw max-h-dvh max-w-dvw overflow-hidden">
+          <ResizableImg src={zoomImgSrc} onClose={onClose} />
+        </div>
+      ),
       resolveBetterImgPreviewToastOptions(transparent),
     );
   };
