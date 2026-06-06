@@ -2,9 +2,9 @@
 
 ## 定位
 
-本文是咕噜噜安科文导入 replay 前的**数据清洗规则定义稿**，用于人工审查和重新定义流程。
+本文是咕噜噜安科文导入 replay 前的**AI-first 数据清洗规则定义稿**，用于把原文、图片和上下文整理成可复核、可重生成的 replay 事实层。
 
-本文不声明当前脚本已经全部实现这些规则。正式落地时，应把本文中的字段、分类和门禁规则同步到脚本、修正表和验收报告。
+默认目标是尽可能减少人类参与：程序和 LLM 完成证据聚合、图片分类、视觉聚合、抠图门禁、角色分类和一致性校验；人类只审异常队列和少量抽样结果。本文不声明当前脚本已经全部实现这些规则。正式落地时，应把本文中的字段、分类和门禁规则同步到脚本、修正表和验收报告。
 
 ## 清洗目标
 
@@ -30,6 +30,9 @@ sourceRoot/
 - 图片不是默认头像，必须先判定用途。
 - 地点/背景只从作者显式场景标志行产生，普通正文地点词不切场。
 - 漫画类图片不抠图。
+- 先做证据包和图片聚合，再做角色分类；不能逐张孤立判断后再补救。
+- LLM 是主流程参与者，用于图片类型、视觉合并、角色归属、抠图 QA 和异常解释。
+- 人类只负责最终抽样和异常复核，不负责逐图分类。
 - 图片去重分两层：`sha256` 只处理物理重复；`aHash`、`dHash`、`pHash`、RMSE 或 embedding 只生成视觉相似候选，不能直接自动合并。
 - 每个 AI/人工判断必须写回结构化文件，不能只停留在口头结论。
 
@@ -37,31 +40,23 @@ sourceRoot/
 
 ```mermaid
 flowchart TD
-  A["sourceRoot: meta + parts + images"] --> B["原文清洗"]
-  A --> C["图片证据聚合"]
-
-  B --> B1["楼层解析"]
-  B1 --> B2["作者场景标志识别"]
-  B1 --> B3["消息事件切分"]
-  B3 --> B4["骰子链整理"]
-  B3 --> B5["作者说明/规则说明过滤"]
-
-  C --> C1["sha256 物理去重"]
-  C1 --> C2["感知特征候选"]
-  C2 --> C3["上下文与说话人证据"]
-  C3 --> C4["图片用途分类"]
-  C4 --> C5["视觉重复/差分确认"]
-  C4 --> C6["抠图门禁"]
-
-  B2 --> D["清洗审查包"]
-  B4 --> D
-  B5 --> D
-  C5 --> D
-  C6 --> D
-
-  D --> E["人工/LLM 修正"]
-  E --> F["重新生成导入包"]
-  F --> G["dry-run / live import / GAL directing"]
+  A["sourceRoot: meta + parts + images"] --> B["输入体检"]
+  B --> C["原文事件流"]
+  B --> D["图片证据包"]
+  C --> E["上下文/说话人/场景/BGM 证据"]
+  D --> F["漫画/非漫画/背景/参考初分"]
+  F --> G["sha256 + 感知特征 + LLM 视觉聚合"]
+  G --> H["聚合证据包"]
+  H --> I["抠图门禁与初步清洗"]
+  H --> J["按角色自动分类"]
+  I --> K["角色图库与资源候选"]
+  J --> K
+  K --> L["LLM 视觉一致性校验"]
+  L --> M["异常队列 + 抽样包"]
+  M --> N["人类最终少量校验"]
+  N --> O["写回 corrections / decisions"]
+  O --> P["重新生成导入包"]
+  P --> Q["dry-run / live import / GAL directing"]
 ```
 
 ## 输出文件建议
@@ -73,6 +68,11 @@ sourceRoot/
   cleaning-review/
     source-inventory.json
     floor-audit.csv
+    image-evidence-packs.jsonl
+    image-type-labels.csv
+    image-visual-groups.csv
+    role-classification-candidates.csv
+    ai-review-runs.json
     content-events.json
     scene-events.csv
     speaker-aliases.csv
@@ -85,7 +85,8 @@ sourceRoot/
     image-similarity-candidates.csv
     image-feature-index.json
     matting-decisions.csv
-    unresolved-review.csv
+    anomaly-queue.csv
+    final-sampling-review.csv
     summary.json
 
   image-role-review-copy/
@@ -106,9 +107,26 @@ sourceRoot/
 
 | 执行方 | 负责内容 | 不能负责 |
 | --- | --- | --- |
-| 程序 | 解析楼层、找图片、算 hash、抽上下文、按显式规则分桶、生成报告 | 判断复杂语义、判断漫画图是否适合演出、决定最终角色归属 |
-| LLM | 看图、看上下文、判定用途、识别作者说明、整理场景和演出建议 | 直接修改线上消息作为最终方案 |
-| 人工 | 审查异常队列、确认规则边界、批准最终清洗规则 | 手工改输出目录但不回写 corrections |
+| 程序 | 输入体检、解析楼层、找图片、算 hash/特征、抽上下文、生成证据包、按确定性规则聚合、生成报告 | 在缺少证据时拍板角色归属或视觉合并 |
+| LLM | 主流程视觉/语义判断：漫画/非漫画、参考图、视觉合并、角色分类、抠图 QA、异常解释 | 直接修改线上消息或绕过结构化回写 |
+| 人工 | 最终少量校验：异常队列、每个高频角色抽样、总体分类是否明显跑偏、批准规则边界 | 逐图分类、手工改输出目录但不回写 corrections |
+
+## AI-first 策略
+
+默认不把未知图片批量交给人类。人类只看这些内容：
+
+- LLM 低置信或自相矛盾的图片组。
+- 跨角色相似、同一聚合组多角色冲突、漫画/非漫画边界不清的图片组。
+- 抠图 QA 失败或抠图门禁和产物不一致的图片。
+- 每个高频角色的少量抽样图库，用于确认是否混入明显错图。
+- summary 中显示数量异常的分类桶。
+
+LLM 可以在流程任意需要处介入，但必须满足：
+
+- 输入必须是证据包或聚合证据包，而不是孤立图片。
+- 输出必须是结构化 JSON/CSV。
+- 每个结论必须带 `confidence`、`evidenceSummary`、`reviewStatus`。
+- 低置信结论进入异常队列，不阻塞其他高置信流程。
 
 ## 重生成原则
 
@@ -210,7 +228,7 @@ flowchart TD
 | `performanceUse` | `perform`、`metadata`、`reference`、`exclude` |
 | `imagePath` | 当前事件绑定的原始图片路径 |
 | `sceneId` | 当前作者场景标志产生的场景 ID |
-| `reviewStatus` | `auto`、`needs-human-review`、`ai-confirmed`、`manual-confirmed` |
+| `reviewStatus` | `auto`、`needs-human-review`、`ai-confirmed`、`human-confirmed` |
 
 硬约束：
 
@@ -335,7 +353,7 @@ flowchart TD
 | `imageDecisionStatus` | 图片审查状态 |
 | `assetKind` | 图片用途 |
 | `allowedAsAvatar` | 是否允许作为头像 |
-| `reviewStatus` | `auto`、`needs-human-review`、`confirmed`、`rejected` |
+| `reviewStatus` | `auto`、`ai-confirmed`、`needs-human-review`、`human-confirmed`、`rejected` |
 | `notes` | 说明 |
 
 ### 场景标志规则
@@ -491,35 +509,28 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  A["images/**"] --> I["图片清点与元数据"]
-  I --> H["sha256 物理去重"]
-  H --> P["physicalDuplicate 分组"]
-  P --> F["感知特征候选"]
-  F --> S["相似候选关系"]
-  S --> C["抽取上下文"]
-  C --> E["证据汇总"]
-  E --> K["assetKind 初判"]
-  K --> V["LLM/人工视觉审查"]
-  V --> D["image-decisions"]
-  D --> R{"进入哪条资源线?"}
-
-  R -->|角色头像| Avatar["avatar 资源候选"]
-  R -->|舞台立绘| Sprite["sprite 资源候选"]
-  R -->|背景| Bg["background candidates"]
-  R -->|参考| Ref["reference-only"]
-  R -->|排除| Ex["excluded"]
-
-  Avatar --> M{"抠图门禁"}
-  Sprite --> M
-  Bg --> NoMatte["不走角色抠图"]
-  Ref --> NoMatte
-  Ex --> NoMatte
-  M --> Clean["clean output"]
+  A["images/** + content-events"] --> B["构建 image-evidence-packs"]
+  B --> C["程序特征: sha256 / aHash / dHash / pHash / RMSE / color"]
+  B --> D["上下文证据: 楼层 / 说话人 / 场景 / 周边文本"]
+  C --> E["漫画/非漫画/背景/参考初分"]
+  D --> E
+  E --> F["sha256 自动聚合"]
+  F --> G["感知相似候选"]
+  G --> H["LLM 视觉聚合确认"]
+  H --> I["image-visual-groups"]
+  I --> J["聚合证据包"]
+  J --> K["抠图门禁与初步清洗"]
+  J --> L["按角色自动分类"]
+  K --> M["角色图库/参考图/背景候选"]
+  L --> M
+  M --> N["LLM 角色图库一致性校验"]
+  N --> O["异常队列 + 人类抽样终验"]
+  O --> P["image-decisions / corrections"]
 ```
 
-### 图片证据层
+### 图片证据包
 
-图片清洗要先建立证据层，再做用途和导入决策。证据层只描述“文件是什么、在哪里出现、和哪些图片相似”，不直接决定角色归属。
+图片清洗要先建立证据包，再做用途、聚合、清洗和角色分类。证据包只描述“文件是什么、在哪里出现、上下文是什么、和哪些图片相似”，不直接决定最终角色归属。
 
 每张原始图片至少保留：
 
@@ -532,18 +543,45 @@ flowchart TD
 | `allFloors` | 所有出现楼层 |
 | `contextBefore` / `contextAfter` | 图片前后文本窗口 |
 | `nearbySpeakers` | 图片附近明确说话人 |
+| `nearbyEvents` | 图片前后事件摘要 |
+| `sceneLabel` / `locationName` | 图片出现时的作者场景 |
 | `width` / `height` / `mime` / `fileSize` | 文件基础信息 |
 | `sha256` | 物理去重键 |
 | `featureRefs` | 指向感知特征记录 |
+| `programTypeHints` | 程序初判，例如低彩度、黑白、透明、白底、截图 |
+
+`image-evidence-packs.jsonl` 每行建议结构：
+
+```json
+{
+  "sourceRelPath": "images/gululu/3438_a27d3f490aa6.png",
+  "sha256": "image-sha256",
+  "firstFloor": 84,
+  "allFloors": [84, 91],
+  "nearbySpeakers": ["烈"],
+  "sceneLabel": "午饭后的神灵庙",
+  "contextBefore": "……",
+  "contextAfter": "烈：……",
+  "programTypeHints": {
+    "lowColor": true,
+    "meanChroma": 0.02,
+    "colorfulRatio": 0.01,
+    "hasAlpha": false,
+    "whiteBackgroundLikely": true
+  },
+  "featureRefs": ["image-feature-index.json#image-sha256"]
+}
+```
 
 证据优先级：
 
-1. 人工修正和已批准的 `visual-corrections.csv`。
-2. LLM 看图后写回的结构化视觉结论。
-3. 图片附近明确说话人和当前剧情上下文。
-4. `sha256` 聚合出的同图多上下文证据。
-5. 路径名中的角色目录，且仅当路径确实包含角色信息时使用。
-6. 感知相似候选，只能用于排队和提醒，不是角色事实。
+1. 已批准 corrections 和 decisions。
+2. 聚合后的多上下文证据包。
+3. LLM 看图后写回的结构化视觉结论。
+4. 图片附近明确说话人和当前剧情上下文。
+5. `sha256` 聚合出的同图多上下文证据。
+6. 路径名中的角色目录，且仅当路径确实包含角色信息时使用。
+7. 感知相似候选，只能用于聚合候选和风险排队，不是角色事实。
 
 路径规则：
 
@@ -551,6 +589,99 @@ flowchart TD
 - 历史整理目录如果出现 `东方/丰聪耳神子/...` 这类结构，可作为弱证据。
 - 路径名和画面冲突时，以视觉审查结论为准。
 - 同一 `sha256` 在不同上下文被判成不同角色时，必须进入 `needs-human-review` 或 `conflict`，不能静默选一个。
+
+### 漫画/非漫画初分
+
+漫画初分要尽量自动化，但不能只用“黑白”一条规则。
+
+程序可先生成这些特征：
+
+| 特征 | 用途 |
+| --- | --- |
+| `meanChroma` / `colorfulRatio` | 判断低彩度、黑白或灰度倾向 |
+| `edgeDensity` | 漫画线稿、截图文字、复杂背景的辅助信号 |
+| `textBubbleLikely` | 漫画对白气泡或文字区域提示 |
+| `panelBorderLikely` | 漫画分镜边框提示 |
+| `hasAlpha` | 透明底角色素材提示 |
+| `whiteBackgroundLikely` | 可能需要抠图的白底角色素材提示 |
+| `aspectRatio` / `cropTightness` | 头像裁切、漫画格、背景图的辅助信号 |
+
+初分类建议：
+
+| 初分类 | 定义 | 后续默认 |
+| --- | --- | --- |
+| `manga-like` | 低彩度、线稿/网点/分镜特征明显 | 交给 LLM 细分 `manga-avatar` / `manga-panel` / `reference-only` |
+| `color-character-like` | 彩色角色、立绘、胸像、头像 | 进入非漫画角色素材流程 |
+| `background-like` | 场景、建筑、纯背景 | 进入背景候选，不走角色抠图 |
+| `reference-like` | 规则图、截图、作者说明、多人不可分 | 默认不进演出 |
+| `uncertain` | 程序信号冲突 | 进入 LLM 类型判断 |
+
+硬约束：
+
+- “黑白”只是 `manga-like` 的强信号，不是充分条件。
+- 低彩度立绘、灰度设定图、黑白截图不一定是漫画。
+- 彩色漫画分镜也可能是 `manga-panel`。
+- 漫画分类由 LLM 基于图像和上下文确认；确认后写入 `image-type-labels.csv`。
+- `manga-avatar` 可以作为聊天头像候选，但永不抠图。
+- `manga-panel` 默认 `reference-only`，不进入角色头像和舞台立绘。
+
+### 先聚合再分类
+
+图片角色分类必须消费聚合证据包，不应逐张孤立判断。
+
+聚合顺序：
+
+1. `sha256` 相同自动形成 `physicalDuplicate` 组。
+2. 对唯一 hash 计算感知特征，生成相似候选。
+3. LLM 看候选组和上下文，确认 `visualDuplicate`、`variantGroup`、`single`。
+4. 将所有来源路径、楼层、上下文、说话人投票聚合到 `image-visual-groups`。
+5. 后续抠图、角色分类、参考图排除都以聚合组为单位优先处理。
+
+优势：
+
+- 同一图片多次出现的上下文会叠加，角色归属更稳定。
+- 重复图只需分类一次，降低 LLM 调用和人工抽查成本。
+- 先发现差分组，避免把同角色表情差分误合并。
+- 先确认漫画组，避免漫画头像进入抠图流程。
+
+非漫画聚合要谨慎：
+
+- 彩色立绘/头像相似默认先当 `variantGroup`，除非 LLM 明确确认没有表情、姿势、状态差异。
+- 不同角色之间即使风格相近，也不能合并，只能进入异常队列。
+- LLM 对 `visualDuplicate` 置信度不足时，保留为 `single` 或 `variantGroup`，不要为了降低成本强行合并。
+
+### 按角色自动分类
+
+角色分类发生在视觉聚合之后，输入是聚合证据包。
+
+LLM/程序共同使用：
+
+- 聚合组内所有 `nearbySpeakers` 和楼层上下文。
+- 该组图片视觉内容。
+- 作品级 `speaker-aliases.csv`。
+- 已确认角色图库。
+- 路径弱证据。
+- 与其他角色图库的相似/冲突信息。
+
+输出写入 `role-classification-candidates.csv`：
+
+| 字段 | 说明 |
+| --- | --- |
+| `visualGroupId` | 聚合组 |
+| `candidateRoleName` | 候选角色 |
+| `assetKind` | 图片用途 |
+| `renderUse` | `stage`、`chat-avatar`、`background`、`reference`、`none` |
+| `confidence` | 0-1 |
+| `evidenceSummary` | 主要证据 |
+| `conflictReason` | 冲突原因 |
+| `reviewStatus` | `ai-confirmed`、`needs-human-review`、`human-confirmed`、`rejected` |
+
+人类不逐图分类。人类只看：
+
+- `confidence` 低于阈值的角色分类。
+- 同一视觉组出现多个角色候选。
+- 某角色图库中混入明显风格/作品/人物不同的图。
+- 每个高频角色抽样 contact sheet。
 
 ### `sha256` 物理去重
 
@@ -954,13 +1085,15 @@ flowchart TD
 | `eventIndex` | 是 | 事件序号 |
 | `floor` | 是 | 楼层 |
 | `sourceRelPath` | 否 | 原始图片路径 |
+| `evidencePackId` | 否 | 对应图片证据包 ID |
+| `visualGroupId` | 否 | 聚合后的视觉组 ID |
 | `bindingKind` | 是 | `explicit-segment`、`default-avatar-fallback`、`inferred-from-image`、`directing-image-show` |
 | `speakerName` | 否 | 原始说话人 |
 | `roleName` | 否 | 归一化角色 |
 | `imageDecisionStatus` | 否 | 图片审查状态 |
 | `assetKind` | 否 | 图片用途分类 |
 | `allowedAsAvatar` | 是 | 是否允许作为头像资源 |
-| `reviewStatus` | 是 | `auto`、`needs-human-review`、`confirmed`、`rejected` |
+| `reviewStatus` | 是 | `auto`、`ai-confirmed`、`needs-human-review`、`human-confirmed`、`rejected` |
 | `notes` | 否 | 说明 |
 
 ### `bgm-manifest.csv`
@@ -978,30 +1111,156 @@ flowchart TD
 | `mediaId` | 否 | 上传或复用后的资源 ID |
 | `notes` | 否 | 缺失、版权或匹配说明 |
 
+### `image-evidence-packs.jsonl`
+
+保存每张原始图片的证据包。它是图片 AI 判断的输入层，不是最终分类结果。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `evidencePackId` | 是 | 稳定证据包 ID，建议由 `sha256 + sourceRelPathHash` 生成 |
+| `sourceRelPath` | 是 | 原始图片相对路径 |
+| `sha256` | 是 | 物理去重键 |
+| `firstFloor` | 否 | 首次出现楼层 |
+| `allFloors` | 否 | 所有出现楼层 |
+| `nearbyEvents` | 否 | 图片前后事件摘要 |
+| `nearbySpeakers` | 否 | 图片附近明确说话人 |
+| `contextBefore` / `contextAfter` | 否 | 原文上下文窗口 |
+| `sceneId` / `sceneLabel` / `locationName` | 否 | 图片出现时的作者场景标志 |
+| `sourcePostMeta` | 否 | 作者、时间、来源 URL 等回溯信息 |
+| `programTypeHints` | 否 | 程序特征提示，例如低彩度、白底、透明、截图、疑似分镜 |
+| `featureRefs` | 否 | 指向 `image-feature-index.json` 或向量文件 |
+| `referencedByEventIndexes` | 否 | 关联事件序号 |
+
+硬约束：
+
+- 每次 LLM 判断图片时，输入必须包含证据包或聚合证据包。
+- 证据包可以重复指向同一 `sha256`，但不能丢失不同 `sourceRelPath` 的上下文。
+- 证据包只描述证据，不写最终 `assetKind`、角色或抠图结论。
+
+### `image-type-labels.csv`
+
+保存图片类型初分和 LLM 类型确认结果。它先于角色分类产生，用于阻止漫画图进入抠图流程。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `evidencePackId` | 是 | 证据包 ID |
+| `sourceRelPath` | 是 | 原始图片代表路径 |
+| `sha256` | 是 | 图片 hash |
+| `programTypeHint` | 否 | 程序初判：`manga-like`、`color-character-like`、`background-like`、`reference-like`、`uncertain` |
+| `llmTypeLabel` | 否 | LLM 确认：`manga-avatar`、`manga-panel`、`character-sprite`、`character-avatar-bust`、`character-avatar-chat`、`background`、`reference-only`、`author-asset`、`excluded`、`unknown` |
+| `assetKind` | 是 | 当前采用的图片用途分类 |
+| `renderUse` | 是 | `stage`、`chat-avatar`、`background`、`reference`、`none` |
+| `confidence` | 是 | 0-1 |
+| `evidenceSummary` | 是 | 类型判断依据 |
+| `reviewRunId` | 否 | 对应 `ai-review-runs.json` |
+| `reviewStatus` | 是 | `ai-confirmed`、`needs-human-review`、`human-confirmed`、`rejected` |
+
+硬约束：
+
+- `assetKind=manga-avatar` 或 `manga-panel` 时，后续 `mattingAllowed` 必须为 false。
+- `programTypeHint=manga-like` 不能自动等同于漫画，必须有 LLM 或人工确认。
+- `unknown` 不进入头像、背景或抠图正式资源线。
+
+### `image-visual-groups.csv`
+
+保存 sha256 和感知相似候选经过 LLM/人工确认后的视觉聚合结果。后续角色分类优先以 `visualGroupId` 为单位运行。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `visualGroupId` | 是 | 视觉组 ID |
+| `groupRelationType` | 是 | `physicalDuplicate`、`visualDuplicate`、`variantGroup`、`single` |
+| `canonicalSha256` | 否 | 复用 canonical；`variantGroup` 不得用它减少上传 |
+| `canonicalRelPath` | 否 | canonical 代表路径 |
+| `memberSha256s` | 是 | 组内 hash 列表 |
+| `memberSourceRelPaths` | 是 | 组内来源路径列表 |
+| `memberEvidencePackIds` | 是 | 组内证据包列表 |
+| `aggregatedFloors` | 否 | 聚合后的楼层列表 |
+| `aggregatedSpeakers` | 否 | 聚合后的说话人证据 |
+| `aggregatedScenes` | 否 | 聚合后的场景证据 |
+| `assetKindSummary` | 否 | 组内类型分布 |
+| `relationConfidence` | 是 | 视觉聚合置信度 |
+| `reviewedBy` | 是 | `program`、`llm`、`human` |
+| `reviewRunId` | 否 | 对应 AI 审查运行 |
+| `contactSheetPath` | 否 | 用于复核的图板 |
+| `conflictReason` | 否 | 冲突说明 |
+| `reviewStatus` | 是 | `auto`、`ai-confirmed`、`needs-human-review`、`human-confirmed`、`rejected` |
+
+硬约束：
+
+- `physicalDuplicate` 可以由程序自动确认。
+- `visualDuplicate` 必须有 LLM 或人工确认，除非另有明确高精度视觉验证规则。
+- `variantGroup` 只聚合证据，不减少上传数。
+- 组内出现漫画/非漫画、角色、场景互相冲突时，必须进入异常队列。
+
+### `role-classification-candidates.csv`
+
+保存视觉组到角色/用途的自动分类候选。它是角色分类的候选层，最终导入仍消费 `image-decisions.csv` 中已确认的结论。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `visualGroupId` | 是 | 聚合组 |
+| `candidateRoleName` | 否 | 候选角色；背景、参考图可为空 |
+| `assetKind` | 是 | 图片用途 |
+| `renderUse` | 是 | `stage`、`chat-avatar`、`background`、`reference`、`none` |
+| `locationName` | 否 | 背景候选地点 |
+| `confidence` | 是 | 0-1 |
+| `evidencePackIds` | 是 | 主要证据包 |
+| `speakerEvidence` | 否 | 说话人/别名证据摘要 |
+| `visualEvidence` | 否 | 视觉证据摘要 |
+| `pathEvidence` | 否 | 路径弱证据摘要 |
+| `conflictReason` | 否 | 多角色、路径冲突、风格冲突等 |
+| `reviewRunId` | 否 | 对应 AI 审查运行 |
+| `reviewStatus` | 是 | `ai-confirmed`、`needs-human-review`、`human-confirmed`、`rejected` |
+
+### `ai-review-runs.json`
+
+保存每次 LLM 审查的可追溯记录，避免只留下结论而无法复盘。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `reviewRunId` | 是 | 审查运行 ID |
+| `taskKind` | 是 | `image-type-labeling`、`visual-grouping`、`role-classification`、`matting-qa`、`anomaly-review`、`sampling-review` |
+| `inputRefs` | 是 | 输入文件、证据包、contact sheet 或视觉组引用 |
+| `outputRefs` | 是 | 输出 CSV/JSON 引用 |
+| `model` | 是 | 使用的模型 |
+| `promptVersion` | 是 | prompt 版本 |
+| `confidencePolicy` | 否 | 自动确认阈值策略 |
+| `startedAt` / `finishedAt` | 否 | 运行时间 |
+| `status` | 是 | `succeeded`、`partial`、`failed` |
+| `errorSummary` | 否 | 429、解析失败或输出校验失败摘要 |
+
 ### `image-decisions.csv`
+
+保存最终图片决策索引。它应由证据包、类型标签、视觉组、角色候选和抠图门禁综合生成，不应由人工直接逐图填写。
 
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `sourceRelPath` | 是 | 原始图片相对路径 |
 | `sha256` | 是 | 物理去重键 |
+| `evidencePackId` | 是 | 证据包 ID |
+| `visualGroupId` | 是 | 视觉组 ID |
 | `allSourceRelPaths` | 否 | 同一 `sha256` 的所有来源路径，JSON 数组或分号分隔 |
 | `duplicateSourceRelPaths` | 否 | 除代表图外的物理重复路径 |
-| `decisionStatus` | 是 | `ai-confirmed`、`manual-confirmed`、`needs-human-review`、`reference-only`、`excluded` |
+| `decisionStatus` | 是 | `ai-confirmed`、`human-confirmed`、`needs-human-review`、`reference-only`、`excluded` |
 | `assetKind` | 是 | 图片用途分类 |
 | `renderUse` | 是 | `stage`、`chat-avatar`、`background`、`reference`、`none` |
-| `character` | 否 | 最终角色；正式导入时应来自 `visualCharacter` 或人工确认 |
-| `visualCharacter` | 否 | 视觉确认后的角色，覆盖自动候选 |
-| `visualStatus` | 是 | `unreviewed`、`ai-confirmed`、`manual-confirmed`、`rejected`、`conflict` |
+| `character` | 否 | 最终角色；正式导入时应来自聚合后确认结论 |
+| `candidateRoleName` | 否 | AI 候选角色 |
+| `roleConfidence` | 否 | 角色归属置信度 |
+| `visualStatus` | 是 | `unreviewed`、`ai-confirmed`、`human-confirmed`、`rejected`、`conflict` |
 | `locationName` | 否 | 背景/地点候选 |
 | `mattingAllowed` | 是 | 是否允许抠图 |
 | `needsMatting` | 是 | 是否需要抠图 |
 | `mattingStatus` | 是 | `not-needed`、`pending`、`processed`、`approved`、`rejected`、`skipped-existing-alpha` |
 | `visualRelationType` | 是 | `single`、`physicalDuplicate`、`visualDuplicate`、`variantGroup` |
-| `visualGroupId` | 否 | 视觉关系组 |
 | `canonicalSha256` | 否 | 复用 canonical |
 | `relationStatus` | 是 | `auto`、`candidate`、`confirmed`、`rejected` |
 | `relationReviewedBy` | 否 | `program`、`llm`、`human` |
 | `featureCandidateCount` | 否 | 感知相似候选数量 |
+| `aiReviewRunIds` | 否 | 参与该结论的 AI 审查运行 |
+| `confidence` | 否 | 综合置信度 |
+| `anomalyStatus` | 否 | `none`、`queued`、`resolved` |
+| `samplingStatus` | 否 | `not-sampled`、`sampled-pending`、`sampled-approved`、`sampled-rejected` |
 | `exclude` | 是 | 是否排除 |
 | `evidenceSummary` | 否 | 角色/用途判断的主要证据摘要 |
 | `notes` | 否 | 审查说明 |
@@ -1097,6 +1356,44 @@ flowchart TD
 | `qaStatus` | 是 | `not-required`、`pending`、`approved`、`rejected` |
 | `qaReason` | 否 | QA 说明 |
 
+### `anomaly-queue.csv`
+
+保存 AI-first 流程中真正需要人类看的异常。它不是 unknown 全量池，而是经过程序和 LLM 收敛后的少量复核队列。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `anomalyId` | 是 | 异常 ID |
+| `anomalyKind` | 是 | `low-confidence-type`、`visual-group-conflict`、`role-conflict`、`matting-gate-violation`、`gallery-consistency-failed`、`background-reference-conflict`、`ai-output-invalid` |
+| `severity` | 是 | `blocker`、`warning`、`info` |
+| `evidencePackIds` | 否 | 相关证据包 |
+| `visualGroupId` | 否 | 相关视觉组 |
+| `candidateRoleNames` | 否 | 冲突角色 |
+| `sourceRelPaths` | 否 | 相关原始图片路径 |
+| `confidence` | 否 | 触发异常的置信度 |
+| `conflictReason` | 是 | 异常原因 |
+| `suggestedAction` | 否 | 建议动作 |
+| `reviewStatus` | 是 | `queued`、`human-confirmed`、`human-corrected`、`rejected` |
+| `resolutionRef` | 否 | 写回的 corrections/decisions 记录 |
+| `notes` | 否 | 说明 |
+
+### `final-sampling-review.csv`
+
+保存最终抽样校验结果。抽样只用于发现系统性错误，不用于替代全量自动分类。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `sampleId` | 是 | 抽样记录 ID |
+| `sampleKind` | 是 | `role-gallery`、`asset-kind`、`visual-duplicate`、`variant-group`、`matting-qa`、`excluded-reference` |
+| `targetKey` | 是 | 角色名、`assetKind`、`visualGroupId` 或 QA 批次 |
+| `sampleSize` | 是 | 样本数量 |
+| `sampleSource` | 是 | `top-frequency`、`random`、`risk-weighted` |
+| `sampleRefs` | 是 | 样本图片、视觉组或 contact sheet |
+| `reviewedBy` | 是 | `human` |
+| `reviewStatus` | 是 | `sampled-approved`、`sampled-rejected`、`needs-more-sampling` |
+| `failureSummary` | 否 | 发现的系统性错误 |
+| `followupAction` | 否 | 退回的规则或 AI 审查步骤 |
+| `notes` | 否 | 说明 |
+
 ### `summary.json`
 
 至少统计：
@@ -1108,14 +1405,19 @@ flowchart TD
 - 未确认说话人数量、别名待审数量、被拒绝别名数量。
 - `inferredDialog` 总数、已确认数、被拒绝数、待审数。
 - BGM 事件数、唯一 BGM 名称数、本地匹配数、unresolved 数。
-- 图片总数、唯一 `sha256` 数、`physicalDuplicate` 组数。
+- 图片总数、证据包数量、唯一 `sha256` 数、`physicalDuplicate` 组数。
+- `image-type-labels` 数量、各 `programTypeHint` 数量、各 `assetKind` 数量。
 - 感知相似候选数、已审查候选数、驳回候选数。
+- `image-visual-groups` 总数、自动组数、AI 确认组数、待人类复核组数。
 - `visualDuplicate` 组数、被复用图片数、canonical 数。
 - `variantGroup` 组数、差分图片数。
-- 各 `assetKind` 数量。
+- `role-classification-candidates` 数量、AI 自动确认数量、低置信数量、角色冲突数量。
 - `manga-avatar`、`manga-panel` 中 `needsMatting=true` 的数量，必须为 0。
 - `mattingAllowed=true`、`needsMatting=true`、QA 通过、QA 拒绝数量。
 - `reference-only`、`background`、`excluded`、`unknown` 数量。
+- `ai-review-runs` 成功、部分成功、失败、429 重试数量。
+- 异常队列数量、已解决数量、仍待人类终验数量。
+- 抽样包数量、抽样通过数量、抽样拒绝数量。
 - `needs-human-review` 和 `conflict` 数量。
 
 ### `scene-events.csv`
@@ -1193,43 +1495,55 @@ flowchart TD
 ```mermaid
 flowchart TD
   A["输入体检"] --> B["楼层/事件解析"]
-  B --> C["场景标志提取"]
-  B --> D["说话人/别名审查"]
-  B --> E["骰子链/BGM 清单"]
-  B --> F["消息-图片绑定"]
-  F --> G["图片证据层"]
-  G --> H["图片用途/视觉关系/抠图门禁"]
-  H --> I["人工/LLM 审查"]
-  I --> J["写回 corrections"]
-  J --> K["重新生成 clean 和导入包"]
-  K --> L["dry-run 验收"]
+  B --> C["场景标志 / 说话人 / 骰子 / BGM"]
+  B --> D["消息-图片绑定"]
+  C --> E["content-events + scene-events + manifests"]
+  D --> F["image-evidence-packs"]
+  F --> G["程序特征: sha256 / aHash / dHash / RMSE / pHash待补齐"]
+  F --> H["LLM 漫画/非漫画/背景/参考初分"]
+  G --> I["sha256 自动聚合 + 感知候选"]
+  H --> I
+  I --> J["LLM 视觉聚合确认"]
+  J --> K["image-visual-groups + 聚合证据包"]
+  K --> L["抠图门禁 + 初步清洗"]
+  K --> M["按角色自动分类"]
+  L --> N["LLM 一致性校验"]
+  M --> N
+  N --> O["异常队列 + 抽样包"]
+  O --> P["人类最终少量校验"]
+  P --> Q["写回 corrections / decisions"]
+  Q --> R["重新生成 clean 和导入包"]
+  R --> S["dry-run 验收"]
 ```
 
 执行规则：
 
 - 先跑输入体检，再讨论图片和导入；源目录不可靠时不继续。
-- 原文事件、图片证据、视觉关系、抠图决策分别输出，不互相覆盖。
-- 人工/LLM 审查只写回 CSV/JSON，不手改 clean 目录作为事实。
+- 原文事件、图片证据包、类型标签、视觉组、角色候选、抠图决策分别输出，不互相覆盖。
+- 先生成证据包，再做 LLM 判断；不能把孤立图片直接送去分类。
+- 先聚合图片，再按角色分类；不能逐图分类后再合并。
+- LLM 审查只写回 CSV/JSON，并在 `ai-review-runs.json` 留痕。
+- 人类只处理异常队列和抽样包，不承担逐图分类。
+- 人工修正只写回 CSV/JSON，不手改 clean 目录作为事实。
 - 每轮规则变更后重新生成 summary，并比较关键数量变化。
 - dry-run 通过前不做 live import；live import 后仍要保留本轮清洗报告。
 
-## 八、人工审查视图
+## 八、AI 结果复核与人类终验视图
 
-建议审查页面至少分成这些 tab：
+建议复核页面至少分成这些 tab：
 
 ```mermaid
 flowchart LR
   A["总览"] --> B["原文事件"]
-  A --> C["场景标志"]
-  A --> D["说话人/别名"]
-  A --> E["消息图片绑定"]
-  A --> F["BGM"]
-  A --> G["角色头像"]
-  A --> H["漫画/参考图"]
-  A --> I["视觉相似候选"]
-  A --> J["抠图候选"]
-  A --> K["背景候选"]
-  A --> L["异常队列"]
+  A --> C["证据包"]
+  A --> D["类型标签"]
+  A --> E["视觉聚合组"]
+  A --> F["角色分类候选"]
+  A --> G["抠图 QA"]
+  A --> H["背景/BGM"]
+  A --> I["异常队列"]
+  A --> J["抽样终验"]
+  A --> K["AI 运行记录"]
 ```
 
 ### 总览
@@ -1244,11 +1558,17 @@ flowchart LR
 - 未确认说话人和待审别名数量。
 - BGM unresolved 数量。
 - 图片总数。
+- 证据包数量。
 - 各 `assetKind` 数量。
 - `physicalDuplicate`、`visualDuplicate`、`variantGroup` 数量。
 - 感知相似候选数量、已审查数量、驳回数量。
+- 视觉组数量、AI 确认数量、待人类复核数量。
+- 角色分类候选数量、自动通过数量、低置信数量、冲突数量。
 - 抠图候选数量。
 - 漫画图错误抠图数量，必须为 0。
+- 异常队列数量。
+- 抽样终验通过/拒绝数量。
+- AI 运行失败和 429 重试数量。
 - 已确认/待审/排除数量。
 
 ### 原文事件审查
@@ -1264,71 +1584,68 @@ flowchart LR
 - 对应 `event-corrections` 状态。
 - 修正入口。
 
-### 说话人/别名审查
+### 证据包复核
 
 显示：
 
-- 原始 `speakerName`。
-- 归一化 `roleName`。
-- 出现次数和首次楼层。
-- 来源：自动规则、manifest、LLM、人工。
-- 是否创建正式角色卡。
-- 一键确认、改名、拒绝、标记非角色。
+- 原图和 `sourceRelPath`。
+- `sha256`、尺寸、文件大小和基础特征。
+- 楼层、来源时间、作者、URL。
+- 图片前后文本窗口。
+- 附近说话人、当前场景标志、关联事件。
+- 程序类型提示。
+- 进入后续 LLM 审查的输入摘要。
 
-### 消息图片绑定审查
-
-显示：
-
-- 事件文本、说话人和楼层。
-- 当前绑定图片。
-- 绑定类型：原文图片段、默认头像 fallback、图片推断对白、GAL 展示图。
-- 图片 `assetKind` 和 `allowedAsAvatar`。
-- 如果是 `inferredDialog`，必须能一键改为旁白或确认对白。
-
-### BGM 审查
+### 类型标签复核
 
 显示：
 
-- 原文 BGM 名称。
-- 出现楼层和事件序号。
-- 本地匹配状态。
-- 缺失 BGM 清单。
-- 是否暂以文本事件保留。
+- 原图、上下文和程序初判。
+- LLM 类型标签、`assetKind`、`renderUse`。
+- `confidence` 和 `evidenceSummary`。
+- 漫画/非漫画边界提示。
+- 一键标记 `manga-avatar`、`manga-panel`、`character-*`、`background`、`reference-only`、`excluded`。
+- `manga-avatar` 和 `manga-panel` 的 `mattingAllowed=false` 校验。
 
-### 图片审查
+### 视觉聚合组复核
 
-每张图显示：
+每个组显示：
 
-- 原图。
-- 若有透明图，显示原图/透明图对比。
-- 上下文文本。
-- 当前 `assetKind`。
-- 当前 `renderUse`。
-- 当前 `mattingAllowed` / `needsMatting`。
-- 视觉重复/差分组。
-- 相似候选来源：`sha256`、`aHash`、`dHash`、`pHash`、RMSE 或 embedding。
-- 一键改为 `manga-avatar`、`manga-panel`、`reference-only`、`excluded`。
-
-### 视觉相似候选审查
-
-每个候选组显示：
-
-- canonical 候选和所有相似图片。
-- `sourceRelPath`、`sha256`、楼层、候选角色。
-- `aHash`、`dHash`、`pHash`、RMSE 或 embedding 命中的信号；未实现的特征必须显示为空或待补齐。
+- 组内所有图片、canonical 候选和来源路径。
+- 组内所有证据包摘要、楼层、说话人和场景。
+- `sha256`、`aHash`、`dHash`、`pHash`、RMSE 或 embedding 命中信号；未实现的特征必须显示为空或待补齐。
 - full/trim 两种视图的缩略图。
-- 原图上下文。
-- 快捷判定：`visualDuplicate`、`variantGroup`、`single`、`reject candidate`。
+- 关系结论：`physicalDuplicate`、`visualDuplicate`、`variantGroup`、`single`。
 - canonical 选择入口和理由。
+- 冲突原因和 LLM 置信度。
 
-审查要求：
+复核要求：
 
 - 默认只把 `sha256` 相同的组视为自动成立。
-- 其他相似组必须人工或 LLM 确认。
+- 其他相似组必须 LLM 或人工确认。
 - 漫画相似组必须能放大看同一格细节。
 - 彩色立绘相似组必须重点看眼睛、嘴型、眉毛、状态和服装差异。
+- `variantGroup` 必须显示“不会减少上传”。
 
-### 抠图审查
+### 角色分类候选复核
+
+每个角色候选显示：
+
+- `visualGroupId` 和组内代表图。
+- 候选角色、候选用途和 `renderUse`。
+- 说话人证据、视觉证据、路径弱证据。
+- 和已确认角色图库的相似/冲突提示。
+- 置信度、冲突原因和 `reviewStatus`.
+- 一键确认、改角色、改用途、标记参考、标记排除、送异常队列。
+
+人类只复核：
+
+- 低于阈值的候选。
+- 同组多角色冲突。
+- 高频角色抽样图板。
+- AI 一致性校验指出的混入图。
+
+### 抠图 QA
 
 只显示：
 
@@ -1343,6 +1660,65 @@ flowchart LR
 - alpha mask。
 - QA 结论。
 - 拒绝原因。
+- 是否来自旧 `__matted.png`，以及是否被作废。
+
+### 背景/BGM 复核
+
+显示：
+
+- 作者场景标志事件和归一化地点。
+- 背景图片候选、证据包和 LLM 置信度。
+- 普通正文地点词是否被误切场。
+- 原文 BGM 名称、出现楼层和事件序号。
+- 本地匹配状态、缺失 BGM 清单、是否暂以文本事件保留。
+
+### 异常队列
+
+只收敛需要人类看的问题：
+
+- 低置信类型标签。
+- 低置信视觉聚合。
+- 同一视觉组多角色冲突。
+- 角色图库一致性校验失败。
+- 漫画图出现 `needsMatting=true` 或旧透明图被消费。
+- 背景/角色/参考边界冲突。
+- AI 输出结构化校验失败。
+
+每条异常必须包含：
+
+- 关联证据包、视觉组、候选角色和 contact sheet。
+- 自动结论、置信度、冲突原因。
+- 建议处理动作。
+- 处理后写回的 corrections/decisions 路径。
+
+### 抽样终验
+
+抽样视图用于最终少量校验，不用于全量人工分类。
+
+至少显示：
+
+- 每个高频角色的代表图板和随机样本。
+- `manga-avatar`、`manga-panel`、`reference-only`、`background` 的分类样本。
+- `visualDuplicate` canonical 复用样本。
+- `variantGroup` 保留差分样本。
+- 抠图 QA 通过样本。
+- 被排除和参考图样本。
+
+抽样结论只能是：
+
+- `sampled-approved`：抽样通过。
+- `sampled-rejected`：样本中发现系统性错误，退回相关规则或 AI 审查步骤。
+- `needs-more-sampling`：当前样本不足以判断。
+
+### AI 运行记录
+
+显示每次 `ai-review-runs.json`：
+
+- 任务类型、模型、prompt 版本。
+- 输入引用和输出引用。
+- 成功、部分成功、失败状态。
+- 429 或输出校验失败摘要。
+- 本轮产出的结论数量和进入异常队列数量。
 
 ## 九、最低验收标准
 
@@ -1351,6 +1727,7 @@ flowchart LR
 - `source-inventory.json` 和 `floor-audit.csv` 已生成。
 - 楼层缺失、重复、乱序、解析失败都有清单。
 - 引用缺失图片都有清单，不能静默跳过。
+- `content-events.json`、`scene-events.csv`、`speaker-aliases.csv`、`message-image-bindings.csv`、`bgm-manifest.csv` 已生成。
 - 所有作者场景标志行都生成 `scene` 事件。
 - 普通正文地点词没有误生成 `scene`。
 - 骰子选项没有被拆散。
@@ -1358,6 +1735,13 @@ flowchart LR
 - 所有 `inferredDialog` 都已审查或仍留在待审队列，不能直接当普通对白导入。
 - 未确认说话人不会自动创建正式角色卡。
 - 每条使用图片的消息都有 `message-image-bindings` 记录。
+- `image-evidence-packs.jsonl` 已生成，且每张原始图片都能回溯 `sourceRelPath`、`sha256`、楼层、上下文和附近说话人。
+- `image-type-labels.csv` 已生成，漫画/非漫画/背景/参考初分都有 `confidence` 和 `evidenceSummary`。
+- `image-feature-index.json` 和 `image-similarity-candidates.csv` 已生成；当前实现未计算的 `pHash` 不能在报告中写成已计算。
+- `image-visual-groups.csv` 已生成；`sha256` 物理重复自动成立，其他视觉合并必须有 LLM 或人工确认。
+- `role-classification-candidates.csv` 已生成；角色分类消费聚合证据包，不允许逐图孤立分类。
+- `ai-review-runs.json` 已记录每轮 LLM 输入、输出、模型、prompt 版本、状态和失败摘要。
+- 人类没有被要求逐图分类，只处理 `anomaly-queue.csv` 和 `final-sampling-review.csv`。
 - `reference-only`、`manga-panel`、`background`、`author-asset`、`excluded` 图片不会被用作角色头像。
 - BGM 事件都有 `bgm-manifest` 记录；缺失音频以 unresolved 形式报告。
 - 每张进入角色资源的图片都有 `assetKind`、`renderUse`、`mattingAllowed`。
@@ -1370,7 +1754,9 @@ flowchart LR
 - `visualDuplicate` 复用关系有 canonical 和移除/复用报告。
 - 所有被使用的透明图都通过 QA。
 - 旧 `__matted.png` 没有作为事实层输入。
-- 当前实现未计算的 `pHash` 不能在报告中写成已计算。
+- `anomaly-queue.csv` 已生成，低置信、冲突、抠图门禁违规、AI 输出结构错误都有可复核记录。
+- `final-sampling-review.csv` 已生成，每个高频角色和关键分类都有最终抽样结论。
+- `summary.json` 已统计证据包、类型标签、视觉组、角色候选、AI 运行、异常队列和抽样终验数量。
 - 所有人工/LLM 修正都写回 CSV/JSON。
 
 ## 十、当前遗漏与不确定项
@@ -1381,7 +1767,7 @@ flowchart LR
 
 - `sha256` 物理去重：已有脚本可计算和硬链接处理，但仍要保留所有来源路径和修正回写。
 - 感知候选：`scripts/gululu-build-clean-human-images.mjs` 当前已有 `aHash`、`dHash`、full/trim 灰度向量和 RMSE，并能输出 `visualDuplicate`、`variantGroup` 相关报告；候选关系仍必须看图确认。
-- 角色视觉复核：已有 role visual audit 相关脚本能生成审查入口，但最终 `visualCharacter` 必须由 LLM/人工确认。
+- 角色视觉复核：已有 role visual audit 相关脚本能生成审查入口，但最终角色归属必须来自聚合证据包后的 LLM/人工确认。
 - 作者场景标志：规则已定义为作者单独标志行，执行时仍要抽样检查，避免正文地点词误切场。
 - 骰子链：基础事件可解析，但同楼多轮、嵌套、重投、大成功/大失败解释仍需抽样审查。
 - 图片推断对白：现有导入脚本已有基于图片共现的推断能力，但最终流程必须把 `inferredDialog` 标出来并复核。
@@ -1391,12 +1777,18 @@ flowchart LR
 
 - `pHash`：当前脚本没有独立 `pHash` 字段；需要补齐 DCT pHash 或在报告中明确写 `pHash=null / not-computed`。
 - `image-feature-index.json`、`image-similarity-candidates.csv`：本文定义了推荐结构，现有脚本输出可能还不是这个精确 schema，需要实现或适配。
+- `image-evidence-packs.jsonl`：需要把原文事件、图片引用、楼层上下文、场景、说话人和图片特征统一打包。
+- `image-type-labels.csv`：自动漫画/非漫画/背景/参考初分还需要稳定特征提取和 LLM 结构化输出。
+- `image-visual-groups.csv`：需要把 `sha256`、感知候选和 LLM 视觉聚合接成先聚合再分类的主流程。
+- `role-classification-candidates.csv`：需要实现按视觉组消费聚合证据包的角色自动分类，而不是逐图分类。
 - LLM 结构化视觉审查：需要把图片、上下文、候选关系、输出 JSON/CSV 串成稳定流水线；不能只依赖临时自然语言判断。
+- `ai-review-runs.json`：需要记录模型、prompt 版本、输入输出引用、429/失败信息，便于重试和复盘。
+- `anomaly-queue.csv` 和 `final-sampling-review.csv`：需要生成异常队列和人类最终少量抽样包，避免把 unknown 全量交给人。
 - 端到端抠图 QA：规则要求 `matting-decisions.csv`、alpha mask、QA contact sheet 和 `qaStatus=approved`，现有自动运行 rembg 与 QA 汇总需要现场确认或补齐。
 - clean 阶段抠图门禁：必须确认脚本按 `mattingAllowed`、`needsMatting`、`qaStatus` 消费透明图，而不是只看 `transparentRelPath` 是否存在。
 - 背景流程：`scene` 时间线和 `background` 图片候选已定义，但背景资源上传、WebGAL 切背景和缺省背景策略还需要单独接线。
 - BGM manifest：文本 BGM 事件可以保留；本地音频匹配、上传、播放绑定和缺失清单还不是完整自动链路。
-- 审查 UI：本文定义了 tab 和字段，现有 `gululu-review-server.mjs` 是否完全覆盖这些视图需要另行核对。
+- 复核 UI：本文定义了证据包、类型标签、视觉组、角色候选、异常队列和抽样终验视图，现有 `gululu-review-server.mjs` 是否完全覆盖需要另行核对。
 - `source-inventory.json`、`floor-audit.csv`、`event-corrections.csv`、`message-image-bindings.csv` 的精确 schema 需要脚本接线。
 
 ### 需要按作品现场确认
@@ -1406,7 +1798,6 @@ flowchart LR
 - 作品级角色别名：opus 88 的别名不能直接迁移到其他作品。
 - 作者场景标志样式：不同作者可能使用 `~地点~`、`——地点——`、`【地点】` 等不同格式，必须抽样确认。
 - `reference-only` 的边界：作者吐槽图、战斗过程图、规则图是否保留为参考，需要按作品审查标准决定。
-- `manga-avatar` 是否只用于聊天头像、是否永不进 WebGAL 舞台，需要你最终确认。
 - 背景候选是否现在进入演出，还是只保留 `scene` 元数据，等待后续 GAL directing。
 - BGM 来源必须由用户提供本地文件或 manifest，不能自动从公开音乐/视频平台抓取。
 
@@ -1414,9 +1805,12 @@ flowchart LR
 
 请重点审查这些规则：
 
-- `manga-avatar` 是否允许作为聊天头像。
-- `manga-avatar` 是否永不进入 WebGAL 舞台。
-- `character-avatar-bust` 在什么条件下可以作为舞台立绘。
+- LLM 自动确认阈值：图片类型、视觉聚合、角色分类分别用多少 `confidence` 才能 `ai-confirmed`。
+- 高频角色抽样量：每个高频角色最终至少抽几张，低频角色是否全量抽样。
+- `manga-avatar` 是否只允许作为聊天头像，并且永不进入 WebGAL 舞台。
+- 低置信视觉组默认处理：保留为 `single`、进入异常队列，还是允许二次 LLM 重试。
+- 非漫画相似图默认处理：彩色头像/立绘相似时是否一律先当 `variantGroup`。
+- `character-avatar-bust` 在什么条件下可以作为舞台立绘并触发抠图。
 - `reference-only` 是否需要单独输出目录。
 - 作者吐槽配图是 `author-asset` 还是 `reference-only`。
 - 背景候选是否现在就纳入，还是只先保留 `scene`。
