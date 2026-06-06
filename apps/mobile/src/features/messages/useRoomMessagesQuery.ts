@@ -10,7 +10,10 @@ import {
   readCachedRoomMessages,
   writeCachedRoomMessages,
 } from "@/features/messages/mobileRoomMessageCache";
-import { shouldResetCachedRoomMessages } from "@/features/messages/roomMessageCacheState";
+import {
+  getFetchedRoomMessagesToPersist,
+  shouldResetCachedRoomMessages,
+} from "@/features/messages/roomMessageCacheState";
 import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessagesQueryData";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
@@ -120,10 +123,11 @@ export function useRoomMessagesQuery(
       };
     }
 
-    if (messages.length > 0) {
-      void writeCachedRoomMessages(roomId, messages);
+    const fetchedMessagesToPersist = getFetchedRoomMessagesToPersist(query.data, query.isSuccess);
+    if (fetchedMessagesToPersist.length > 0) {
+      void writeCachedRoomMessages(roomId, fetchedMessagesToPersist);
     }
-  }, [isAuthenticated, messages, query.data, query.isSuccess, roomId]);
+  }, [isAuthenticated, query.data, query.isSuccess, roomId]);
 
   return {
     ...query,

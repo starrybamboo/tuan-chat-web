@@ -77,10 +77,8 @@ export function updateRoomMessagesQueryData(
     return nextMessages;
   }
   if (isRoomMessagesSyncResult(currentData)) {
-    return {
-      ...currentData,
-      messages: nextMessages,
-    };
+    // Sync results are raw queryFn payloads; manual cache merges are no longer fetch deltas.
+    return nextMessages;
   }
   if (isRecord(currentData) && Array.isArray(currentData.data)) {
     return {
