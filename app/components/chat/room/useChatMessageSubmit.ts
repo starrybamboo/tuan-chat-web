@@ -19,7 +19,6 @@ import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfC
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
 import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
-import { setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDiceFeedback";
 import UTILS from "@/components/common/dicer/utils/utils";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
@@ -470,7 +469,7 @@ export default function useChatMessageSubmit({
 
       if (parsedStateCommand) {
         try {
-          const { changedAbilities = [], changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
+          const { changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
             events: parsedStateCommand.stateEvent.events,
             ruleId,
             loadRoleAbility: loadRoleAbilityByRule,
@@ -481,9 +480,6 @@ export default function useChatMessageSubmit({
           if (queryClient && changedRoleIds.length > 0) {
             await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
           }
-          changedAbilities.forEach(({ ability, roleId }) => {
-            setCachedDicerRoleAbility(ruleId, roleId, ability);
-          });
         }
         catch (error) {
           console.error("写入角色卡失败", error);

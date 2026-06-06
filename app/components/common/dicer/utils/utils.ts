@@ -9,14 +9,6 @@ import { fetchRoleWithCache } from "../../../../../api/hooks/RoleAndAvatarHooks"
 import { tuanchat } from "../../../../../api/instance";
 
 const DEFAULT_DICER_ROLE_ID = 2;
-const SPACE_CACHE_TTL_MS = 10 * 60_000;
-const ROLE_BIND_CACHE_TTL_MS = 10 * 60_000;
-const ROLE_DICE_TYPE_CACHE_TTL_MS = 30 * 60_000;
-
-type ExpiringCacheEntry<T> = {
-  value: T;
-  expireAt: number;
-};
 
 type DicerRoleResolveOptions = {
   // 优先复用上层已有的空间快照，避免重复请求 getSpaceInfo。
@@ -32,20 +24,8 @@ type DicerRoleResolveOptions = {
   queryClient?: QueryClient;
 };
 
-const spaceSnapshotCache = new Map<number, ExpiringCacheEntry<any>>();
-const roleDicerBindCache = new Map<number, ExpiringCacheEntry<number | null>>();
-const roleDiceTypeCache = new Map<number, ExpiringCacheEntry<boolean>>();
-
 export function invalidateDicerRoleResolveCache(spaceId?: number | null): void {
-  const normalizedSpaceId = Number(spaceId);
-  if (!Number.isFinite(normalizedSpaceId) || normalizedSpaceId <= 0) {
-    spaceSnapshotCache.clear();
-    roleDicerBindCache.clear();
-    roleDiceTypeCache.clear();
-    return;
-  }
-
-  spaceSnapshotCache.delete(Math.trunc(normalizedSpaceId));
+  void spaceId;
 }
 
 const UTILS = {
@@ -495,23 +475,6 @@ function normalizeRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
-function readCacheValue<T>(entry: ExpiringCacheEntry<T> | null | undefined): T | undefined {
-  if (!entry) {
-    return undefined;
-  }
-  if (entry.expireAt <= Date.now()) {
-    return undefined;
-  }
-  return entry.value;
-}
-
-function writeCacheValue<T>(value: T, ttlMs: number): ExpiringCacheEntry<T> {
-  return {
-    value,
-    expireAt: Date.now() + ttlMs,
-  };
-}
-
 function toPositiveRoleId(value: unknown): number | null {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) {
@@ -522,21 +485,12 @@ function toPositiveRoleId(value: unknown): number | null {
 
 async function getSpaceSnapshot(spaceId: number, options?: DicerRoleResolveOptions): Promise<any> {
   if (options?.spaceSnapshot && typeof options.spaceSnapshot === "object") {
-    if (Number.isFinite(spaceId) && spaceId > 0) {
-      spaceSnapshotCache.set(Math.trunc(spaceId), writeCacheValue(options.spaceSnapshot, SPACE_CACHE_TTL_MS));
-    }
     return options.spaceSnapshot;
-  }
-  const cached = readCacheValue(spaceSnapshotCache.get(spaceId));
-  if (cached !== undefined) {
-    return cached;
   }
   const spaceInfo = options?.queryClient
     ? await fetchSpaceInfoWithCache(options.queryClient, spaceId)
     : await tuanchat.spaceController.getSpaceInfo(spaceId);
-  const space = spaceInfo.data;
-  spaceSnapshotCache.set(spaceId, writeCacheValue(space, SPACE_CACHE_TTL_MS));
-  return space;
+  return spaceInfo.data;
 }
 
 async function getRoleBoundDicerRoleId(roleId: number, options?: DicerRoleResolveOptions): Promise<number | null> {
@@ -547,39 +501,24 @@ async function getRoleBoundDicerRoleId(roleId: number, options?: DicerRoleResolv
     && roleSnapshot.extra !== undefined
   ) {
     const roleExtra = normalizeRecord(roleSnapshot.extra);
-    const snapshotRoleId = toPositiveRoleId(roleExtra.dicerRoleId);
-    roleDicerBindCache.set(roleId, writeCacheValue(snapshotRoleId, ROLE_BIND_CACHE_TTL_MS));
-    return snapshotRoleId;
-  }
-
-  const cached = readCacheValue(roleDicerBindCache.get(roleId));
-  if (cached !== undefined) {
-    return cached;
+    return toPositiveRoleId(roleExtra.dicerRoleId);
   }
 
   const roleRes = options?.queryClient
     ? await fetchRoleWithCache(options.queryClient, roleId)
     : await tuanchat.roleController.getRole(roleId);
-  const roleDicerRoleId = toPositiveRoleId(roleRes.data?.extra?.dicerRoleId);
-  roleDicerBindCache.set(roleId, writeCacheValue(roleDicerRoleId, ROLE_BIND_CACHE_TTL_MS));
-  return roleDicerRoleId;
+  return toPositiveRoleId(roleRes.data?.extra?.dicerRoleId);
 }
 
 async function isDiceMaidenRole(roleId: number, options?: DicerRoleResolveOptions): Promise<boolean> {
   if (roleId === DEFAULT_DICER_ROLE_ID) {
     return true;
   }
-  const cached = readCacheValue(roleDiceTypeCache.get(roleId));
-  if (cached !== undefined) {
-    return cached;
-  }
   const roleRes = options?.queryClient
     ? await fetchRoleWithCache(options.queryClient, roleId)
     : await tuanchat.roleController.getRole(roleId);
   const roleData = roleRes.data;
-  const isDiceMaiden = Boolean(roleData?.roleName && roleData?.type === 1);
-  roleDiceTypeCache.set(roleId, writeCacheValue(isDiceMaiden, ROLE_DICE_TYPE_CACHE_TTL_MS));
-  return isDiceMaiden;
+  return Boolean(roleData?.roleName && roleData?.type === 1);
 }
 
 async function getDicerRoleId(roomContext: RoomContextType, options?: DicerRoleResolveOptions): Promise<number> {

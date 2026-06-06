@@ -1,5 +1,3 @@
-import { invalidateDicerRoleAbilityCache } from "../../app/components/common/dicer/roleAbilityCache";
-
 type QueryInvalidator = {
   invalidateQueries: (options: { queryKey: readonly unknown[] }) => unknown;
 };
@@ -38,8 +36,6 @@ export function invalidateRoleAbilityCaches(
 ): Promise<unknown[]> {
   const roleId = isPositiveFiniteNumber(target.roleId) ? target.roleId : undefined;
   const ruleId = isPositiveFiniteNumber(target.ruleId) ? target.ruleId : undefined;
-
-  invalidateDicerRoleAbilityCache({ roleId, ruleId });
 
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: roleAbilityListQueryKey(roleId) }),

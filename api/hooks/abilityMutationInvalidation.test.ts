@@ -5,11 +5,6 @@ import {
   roleAbilityByRuleQueryKey,
   roleAbilityListQueryKey,
 } from "./abilityMutationInvalidation";
-import {
-  getCachedDicerRoleAbility,
-  invalidateDicerRoleAbilityCache,
-  setCachedDicerRoleAbility,
-} from "../../app/components/common/dicer/roleAbilityCache";
 
 function createQueryClientMock() {
   return {
@@ -26,18 +21,13 @@ describe("abilityMutationInvalidation", () => {
     expect(roleAbilityByRuleQueryKey()).toEqual(["roleAbilityByRule"]);
   });
 
-  it("按 roleId/ruleId 同时失效 React Query 和骰点能力缓存", async () => {
-    invalidateDicerRoleAbilityCache();
-    setCachedDicerRoleAbility(3, 12, { skill: { 侦查: "80" } });
-    setCachedDicerRoleAbility(3, 13, { skill: { 侦查: "20" } });
+  it("按 roleId/ruleId 同时失效角色能力查询缓存", async () => {
     const queryClient = createQueryClientMock();
 
     await invalidateRoleAbilityCaches(queryClient, { roleId: 12, ruleId: 3 });
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["listRoleAbility", 12] });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roleAbilityByRule", 12, 3] });
-    expect(getCachedDicerRoleAbility(3, 12)).toBeNull();
-    expect(getCachedDicerRoleAbility(3, 13)?.skill).toEqual({ 侦查: "20" });
   });
 
   it("缺少定位信息时执行全量角色能力失效", async () => {

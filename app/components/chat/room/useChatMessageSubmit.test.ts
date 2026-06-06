@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => ({
   toastSuccessMock: vi.fn(),
   isCommandMock: vi.fn(),
   writeRoleVarOpsThroughAbilitiesMock: vi.fn(),
-  setCachedDicerRoleAbilityMock: vi.fn(),
 }));
 
 vi.mock("react", async () => {
@@ -48,10 +47,6 @@ vi.mock("@/components/chat/utils/roomJump", () => ({
 
 vi.mock("@/components/common/dicer/cmdPre", () => ({
   isCommand: mocks.isCommandMock,
-}));
-
-vi.mock("@/components/common/dicer/roleAbilityCache", () => ({
-  setCachedDicerRoleAbility: mocks.setCachedDicerRoleAbilityMock,
 }));
 
 vi.mock("@/components/chat/state/roleVarWriteThrough", () => ({
@@ -113,7 +108,6 @@ describe("useChatMessageSubmit", () => {
     mocks.buildMessageDraftsFromComposerSnapshotMock.mockReset();
     mocks.isCommandMock.mockReset();
     mocks.writeRoleVarOpsThroughAbilitiesMock.mockReset();
-    mocks.setCachedDicerRoleAbilityMock.mockReset();
     mocks.isCommandMock.mockReturnValue(false);
     mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValue({ changedAbilities: [], changedRoleIds: [], roleVarOps: [] });
     mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([]);
@@ -784,11 +778,6 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }), { optimistic: false });
-    expect(mocks.setCachedDicerRoleAbilityMock).toHaveBeenCalledWith(7, 3, {
-      roleId: 3,
-      ruleId: 7,
-      ability: { hp: "8" },
-    });
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
     expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
@@ -911,7 +900,7 @@ describe("useChatMessageSubmit", () => {
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
-  it("空格赋值 。st 手枪 80 会发送骰娘反馈并同步 dicer 能力缓存", async () => {
+  it("空格赋值 。st 手枪 80 会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({
       plainText: "。st 手枪 80",
@@ -1005,11 +994,6 @@ describe("useChatMessageSubmit", () => {
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：手枪 = 80",
     }), { optimistic: false });
-    expect(mocks.setCachedDicerRoleAbilityMock).toHaveBeenCalledWith(7, 3, {
-      roleId: 3,
-      ruleId: 7,
-      skill: { 手枪: "80" },
-    });
   });
 
   it("连写无符号 .st 赋值会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
