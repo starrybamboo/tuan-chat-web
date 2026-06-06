@@ -19,6 +19,7 @@ import {
 } from "./mobileDirectMessageCache";
 import {
   createMobileOptimisticDirectMessage,
+  markMobileOptimisticDirectMessageFailedData,
   removeMobileOptimisticDirectMessageData,
   replaceMobileOptimisticDirectMessageData,
 } from "./mobileDirectMessageOptimistic";
@@ -75,7 +76,7 @@ export function useSendDmMutation(currentUserId?: number | null) {
     onError: (_error, _request, context) => {
       queryClient.setQueryData<MessageDirectResponse[]>(
         getDirectInboxQueryKey(currentUserId),
-        current => removeMobileOptimisticDirectMessageData(current, context?.optimisticMessageId),
+        current => markMobileOptimisticDirectMessageFailedData(current, context?.optimisticMessageId),
       );
     },
     onSuccess: (result, _request, context) => {

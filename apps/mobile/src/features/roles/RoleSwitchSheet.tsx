@@ -342,7 +342,6 @@ export function RoleSwitchSheet({
           numColumns={AVATAR_GRID_COLUMNS}
           scrollEnabled={avatars.length > AVATAR_GRID_COLUMNS * 3}
           nestedScrollEnabled
-          removeClippedSubviews={false}
           style={styles.avatarGrid}
           contentContainerStyle={styles.avatarGridContent}
           columnWrapperStyle={styles.avatarGridRow}
@@ -534,7 +533,6 @@ export function RoleSwitchSheet({
                     renderItem={renderAddableRoleItem}
                     style={styles.roleList}
                     contentContainerStyle={styles.roleListContent}
-                    removeClippedSubviews={false}
                     showsVerticalScrollIndicator={false}
                   />
                 )
@@ -552,7 +550,6 @@ export function RoleSwitchSheet({
               renderItem={renderRoleItem}
               style={styles.roleList}
               contentContainerStyle={styles.roleListContent}
-              removeClippedSubviews={false}
               showsVerticalScrollIndicator={false}
             />
           )}

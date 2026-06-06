@@ -75,3 +75,5 @@ export function useRoomStateRuntime(params: {
     isAbilityLoading: isLoading,
   };
 }
+
+export type RoomStateRuntimeValue = ReturnType<typeof useRoomStateRuntime>;

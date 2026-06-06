@@ -1,10 +1,12 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
+import { useQueryClient } from "@tanstack/react-query";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import type { DmMessageAction } from "@/features/friends/DmMessageActionMenu";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
+import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
 
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,6 +32,10 @@ import { avatarThumbUrl } from "@/lib/media-url";
 
 import { getErrorMessage } from "../chat/mobileChatUtils";
 import { getVisibleDirectMessageTimeline, selectDirectMessagePage } from "./dmChatViewModel";
+import {
+  isMobileFailedDirectMessage,
+  removeMobileLocalDirectMessageData,
+} from "./mobileDirectMessageOptimistic";
 import { useRecallDmMutation, useSendDmMutation, useUpdateDmReadPositionMutation } from "./useSendDmMutation";
 
 const PAGE_SIZE = 30;
@@ -112,6 +118,10 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     marginLeft: 2,
+  },
+  failedAction: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
   },
   replyBar: {
     alignItems: "center",
@@ -334,6 +344,7 @@ type MessageSendStatus = "sent" | "delivered" | "failed";
 
 export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenContactDrawer, safeAreaBottomInset = 0 }: DmChatViewProps) {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
   const readSyncRef = useRef(0);
   const [draft, setDraft] = useState("");
@@ -613,11 +624,49 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     }
   }, [recallMutation]);
 
+  const handleRemoveFailedMessage = useCallback((message: MessageDirectResponse) => {
+    queryClient.setQueryData<MessageDirectResponse[]>(
+      getDirectInboxQueryKey(currentUserId),
+      current => removeMobileLocalDirectMessageData(current, message.messageId),
+    );
+  }, [currentUserId, queryClient]);
+
+  const handleRetryFailedMessage = useCallback(async (message: MessageDirectResponse) => {
+    if (!isMobileFailedDirectMessage(message) || sendInFlightRef.current) {
+      return;
+    }
+
+    handleRemoveFailedMessage(message);
+    sendInFlightRef.current = true;
+    setErrorMessage(null);
+    setIsSending(true);
+    try {
+      await sendMutation.mutateAsync({
+        content: message.content ?? "",
+        extra: message.extra ?? {},
+        messageType: message.messageType ?? 1,
+        receiverId: contactId,
+        ...(typeof message.replyMessageId === "number" && message.replyMessageId > 0
+          ? { replyMessageId: message.replyMessageId }
+          : {}),
+      });
+    }
+    catch (error) {
+      setErrorMessage(getErrorMessage(error, "重试发送私聊消息失败。"));
+    }
+    finally {
+      sendInFlightRef.current = false;
+      setIsSending(false);
+    }
+  }, [contactId, handleRemoveFailedMessage, sendMutation]);
+
   const getMessageStatus = useCallback((message: MessageDirectResponse): MessageSendStatus | null => {
     if (message.senderId !== currentUserId)
       return null;
     if (message.status === 1)
       return null;
+    if (isMobileFailedDirectMessage(message))
+      return "failed";
     const msgId = message.messageId;
     if (typeof msgId === "number" && failedMessageIds.has(msgId))
       return "failed";
@@ -710,7 +759,25 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
                     <View style={styles.statusIcon}>
                       {status === "failed"
                         ? (
-                            <Warning size={12} color={theme.danger} weight="fill" />
+                            <>
+                              <Warning size={12} color={theme.danger} weight="fill" />
+                              <Pressable
+                                accessibilityLabel="重试发送私聊消息"
+                                accessibilityRole="button"
+                                onPress={() => void handleRetryFailedMessage(item)}
+                                style={styles.failedAction}
+                              >
+                                <ThemedText style={{ color: theme.danger, fontSize: 11 }}>重试</ThemedText>
+                              </Pressable>
+                              <Pressable
+                                accessibilityLabel="删除失败私聊消息"
+                                accessibilityRole="button"
+                                onPress={() => handleRemoveFailedMessage(item)}
+                                style={styles.failedAction}
+                              >
+                                <ThemedText themeColor="textSecondary" style={{ fontSize: 11 }}>删除</ThemedText>
+                              </Pressable>
+                            </>
                           )
                         : status === "delivered"
                           ? (
@@ -727,7 +794,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         </View>
       </View>
     );
-  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, invertedMessages, onOpenContactDrawer]);
+  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, handleRemoveFailedMessage, handleRetryFailedMessage, invertedMessages, onOpenContactDrawer]);
 
   const _attachmentKinds = [
     { label: "图片", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE },
@@ -795,6 +862,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
             paginatedCount: paginatedMessages.length,
           });
         }}
+        // 倒置 DM 消息流需要稳定底部锚点，避免裁剪回收导致阅读位置跳动。
         removeClippedSubviews={false}
         scrollEventThrottle={100}
         style={styles.list}

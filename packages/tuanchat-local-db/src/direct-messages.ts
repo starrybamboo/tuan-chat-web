@@ -36,10 +36,14 @@ export type DirectMessageRecord = {
   updated_at: string;
 };
 
+export type DirectMessageReadWindowOptions = {
+  limit?: number | null;
+};
+
 export type DirectMessageRepository = {
   clearUserMessages: (currentUserId: number) => Promise<void>;
-  getMessagesByContact: (currentUserId: number, contactId: number) => Promise<MessageDirectResponse[]>;
-  getMessagesByUser: (currentUserId: number) => Promise<MessageDirectResponse[]>;
+  getMessagesByContact: (currentUserId: number, contactId: number, options?: DirectMessageReadWindowOptions) => Promise<MessageDirectResponse[]>;
+  getMessagesByUser: (currentUserId: number, options?: DirectMessageReadWindowOptions) => Promise<MessageDirectResponse[]>;
   markMessagesRecalled: (currentUserId: number, messageIds: number[]) => Promise<void>;
   upsertMessages: (currentUserId: number, messages: MessageDirectResponse[]) => Promise<void>;
   upsertReadLine: (currentUserId: number, contactId: number, syncId: number) => Promise<void>;
@@ -59,6 +63,10 @@ function normalizeIds(ids: number[]): number[] {
 
 function createPlaceholders(count: number): string {
   return Array.from({ length: count }, () => "?").join(", ");
+}
+
+function normalizeReadLimit(limit: number | null | undefined): number | null {
+  return typeof limit === "number" && Number.isInteger(limit) && limit > 0 ? limit : null;
 }
 
 function getDirectContactId(message: MessageDirectResponse, currentUserId: number): number | null {
@@ -212,34 +220,38 @@ export function createDirectMessageRepository(driver: LocalDbSqliteDriver): Dire
       await driver.run(`DELETE FROM ${DIRECT_MESSAGES_TABLE_NAME} WHERE current_user_id = ?`, [currentUserId]);
     },
 
-    async getMessagesByContact(currentUserId, contactId) {
+    async getMessagesByContact(currentUserId, contactId, options = {}) {
       if (!isPositiveId(currentUserId) || !isPositiveId(contactId)) {
         return [];
       }
 
       await ensureSchema();
+      const limit = normalizeReadLimit(options.limit);
       const rows = await driver.all<Pick<DirectMessageRecord, "payload_json">>(
         `SELECT payload_json
           FROM ${DIRECT_MESSAGES_TABLE_NAME}
           WHERE current_user_id = ? AND contact_id = ?
-          ORDER BY sync_id ASC, message_id ASC`,
-        [currentUserId, contactId],
+          ORDER BY sync_id DESC, message_id DESC
+          ${limit == null ? "" : "LIMIT ?"}`,
+        limit == null ? [currentUserId, contactId] : [currentUserId, contactId, limit],
       );
       return fromDirectMessageRecords(rows);
     },
 
-    async getMessagesByUser(currentUserId) {
+    async getMessagesByUser(currentUserId, options = {}) {
       if (!isPositiveId(currentUserId)) {
         return [];
       }
 
       await ensureSchema();
+      const limit = normalizeReadLimit(options.limit);
       const rows = await driver.all<Pick<DirectMessageRecord, "payload_json">>(
         `SELECT payload_json
           FROM ${DIRECT_MESSAGES_TABLE_NAME}
           WHERE current_user_id = ?
-          ORDER BY sync_id ASC, message_id ASC`,
-        [currentUserId],
+          ORDER BY sync_id DESC, message_id DESC
+          ${limit == null ? "" : "LIMIT ?"}`,
+        limit == null ? [currentUserId] : [currentUserId, limit],
       );
       return fromDirectMessageRecords(rows);
     },

@@ -1494,6 +1494,7 @@ export default function ChatShell() {
                             onStartCombat={() => void sendCombatRoundEvent("start")}
                             roomId={selectedRoomId}
                             roomRoles={roomRoles}
+                            roomStateRuntime={roomStateRuntime}
                             ruleId={selectedRuleId}
                             isSendingCombatRoundEvent={isSendingCombatRoundEvent}
                             spaceId={selectedSpaceId}
