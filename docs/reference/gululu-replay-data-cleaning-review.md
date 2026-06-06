@@ -942,7 +942,8 @@ clean 阶段必须忽略已有 matting result
 - 目录必须由最新 `image-decisions.vision.csv`、`matting-decisions.vision.csv` 和 `matting-results.vision.json` 物化。
 - `mattingAllowed=true && needsMatting=true` 的非漫画舞台素材，必须先运行 `rembg:isnet-anime`，再把透明 PNG 放入最终目录。
 - `manga-avatar`、`manga-panel`、`reference-only`、`excluded`、`unknown` 不允许消费旧透明图，只复制原图。
-- 角色立绘必须作为人工主审查入口放在 `role-sprites/<角色>/`，而不是藏在普通头像目录下。
+- 最终人工审查目录只保留抠图后的角色立绘产物；角色立绘必须作为人工主审查入口放在 `role-sprites/<角色>/`，而不是藏在普通头像目录下。
+- 最终人工审查目录不保留抠图前原图、不混放漫画头像、聊天头像、参考图、背景、排除项；这些只保留在中间目录或 CSV 证据中。
 - `physicalDuplicate`、`visualDuplicate` 默认聚合为一个代表图。
 - `variantGroup` 默认保留差分，不强行压成一张。
 - 最终目录必须包含 `index.csv` 和 `summary.json`，记录每张输出图的来源、聚合来源数、是否使用透明图、角色、分类和置信度。
