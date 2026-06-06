@@ -18,7 +18,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 import { prefetchImages } from "@/lib/mobile-image-cache";
 
-import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-avatar-prefetch";
+import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
@@ -125,17 +125,21 @@ export function ChatMessageList({
     () => visibleMessages.map(item => item.message),
     [visibleMessages],
   );
+  const prefetchCandidateMessages = useMemo(
+    () => selectChatMessagePrefetchWindow(visibleChatMessages),
+    [visibleChatMessages],
+  );
   const invertedData = useMemo(
     () => [...visibleMessages].reverse(),
     [visibleMessages],
   );
   const avatarThumbUrls = useMemo(
-    () => collectChatAvatarThumbUrls(visibleChatMessages, roomRolesById),
-    [roomRolesById, visibleChatMessages],
+    () => collectChatAvatarThumbUrls(prefetchCandidateMessages, roomRolesById),
+    [prefetchCandidateMessages, roomRolesById],
   );
   const messageImageThumbUrls = useMemo(
-    () => collectChatImageThumbUrls(visibleChatMessages),
-    [visibleChatMessages],
+    () => collectChatImageThumbUrls(prefetchCandidateMessages),
+    [prefetchCandidateMessages],
   );
   const prefetchUrls = useMemo(
     () => [...avatarThumbUrls, ...messageImageThumbUrls],
@@ -267,6 +271,7 @@ export function ChatMessageList({
         initialNumToRender={12}
         maxToRenderPerBatch={20}
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        // 倒置消息流依赖 anchored rows 保持阅读位置，Android 裁剪回收会放大跳动风险。
         removeClippedSubviews={false}
         windowSize={15}
       />

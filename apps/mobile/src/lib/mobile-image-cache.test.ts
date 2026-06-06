@@ -383,4 +383,29 @@ describe("prefetchImages", () => {
     expect(isAlreadyCached(url2)).toBe(false);
     expect(isAlreadyCached(url3)).toBe(true);
   });
+
+  it("limits concurrent prefetch downloads", async () => {
+    const urls = [
+      "https://media.tuan.chat/media/v1/files/021/21/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/022/22/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/023/23/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/024/24/image/low.webp",
+    ];
+    let activeDownloads = 0;
+    let maxActiveDownloads = 0;
+
+    fileSystemMock.MockFile.downloadFileAsync.mockImplementation(async (_url: string, destination: InstanceType<typeof fileSystemMock.MockFile>) => {
+      activeDownloads += 1;
+      maxActiveDownloads = Math.max(maxActiveDownloads, activeDownloads);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      fileSystemMock.existingFiles.add(destination.uri);
+      activeDownloads -= 1;
+      return { uri: destination.uri };
+    });
+
+    await prefetchImages(urls, { concurrency: 2 });
+
+    expect(maxActiveDownloads).toBeLessThanOrEqual(2);
+    expect(fileSystemMock.MockFile.downloadFileAsync).toHaveBeenCalledTimes(4);
+  });
 });

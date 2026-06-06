@@ -9,6 +9,7 @@ import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/N
 import {
   getNotificationsQueryKey,
   getNotificationsUnreadCountQueryKey,
+  markAllNotificationsReadInCaches,
   markAllNotificationsReadInPageData,
   markNotificationsReadInCaches,
   markNotificationsReadInPageData,
@@ -78,6 +79,25 @@ describe("notification cache helpers", () => {
       notification(1, { category: "A", isRead: true }),
       notification(2, { category: "B" }),
     ]);
+  });
+
+  it("批量全部已读会同步页面缓存和未读数缓存", () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20 }), pageData([
+      notification(1),
+      notification(2),
+    ]));
+    queryClient.setQueryData(getNotificationsQueryKey({ pageSize: 20, unreadOnly: true } as any), pageData([
+      notification(1),
+      notification(2),
+    ]));
+    queryClient.setQueryData(getNotificationsUnreadCountQueryKey(), unreadCountData(2));
+
+    markAllNotificationsReadInCaches(queryClient, {});
+
+    expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20 }))?.pages[0].data?.list.map(item => item.isRead)).toEqual([true, true]);
+    expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20, unreadOnly: true } as any))?.pages[0].data?.list).toEqual([]);
+    expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(0);
   });
 
   it("推送缓存遇到已存在通知时不重复增加未读数", () => {

@@ -143,6 +143,20 @@ describe("tuanchat local db direct messages", () => {
     expect((await repository.getMessagesByUser(8)).map(item => [item.messageId, item.receiverId])).toEqual([[1, 8]]);
   });
 
+  it("repository 支持按最近消息窗口读取私聊缓存", async () => {
+    const repository = createDirectMessageRepository(await createMemoryDriver());
+
+    await repository.upsertMessages(7, [
+      createDirectMessage(1, { syncId: 1 }),
+      createDirectMessage(2, { syncId: 2 }),
+      createDirectMessage(3, { syncId: 3 }),
+      createDirectMessage(4, { receiverId: 99, senderId: 7, syncId: 4 }),
+    ]);
+
+    expect((await repository.getMessagesByContact(7, 42, { limit: 2 })).map(item => item.messageId)).toEqual([2, 3]);
+    expect((await repository.getMessagesByUser(7, { limit: 2 })).map(item => item.messageId)).toEqual([3, 4]);
+  });
+
   it("repository 会持久化撤回状态和本地已读线", async () => {
     const repository = createDirectMessageRepository(await createMemoryDriver());
 
