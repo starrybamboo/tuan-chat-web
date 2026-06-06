@@ -30,6 +30,7 @@ function parseArgs(argv) {
     outDir: path.resolve(args.get("out-dir") ?? path.join(root, "image-role-review-clean-vision-full")),
     reviewDir: path.resolve(args.get("review-dir") ?? path.join(root, "cleaning-review-ai-first-v1")),
     root,
+    spritesOnly: args.has("sprites-only"),
   };
 }
 
@@ -130,11 +131,11 @@ function sourceStem(sourceRelPath) {
 function outputBucket(row, matting) {
   const assetKind = row.assetKind || "unknown";
   const role = sanitizeSegment(row.character || row.candidateRoleName || "unknown-role", "unknown-role");
+  if (assetKind === "character-sprite" && matting) return ["role-sprites", role];
   if (assetKind === "excluded") return ["excluded"];
   if (assetKind === "unknown") return ["unknown"];
   if (assetKind === "background") return ["background", sanitizeSegment(row.locationName, "unknown-location")];
   if (boolValue(row.needsMatting) && !matting) return ["needs-matting", role];
-  if (assetKind === "character-sprite") return ["role-sprites", role];
   if (assetKind === "reference-only" || assetKind === "manga-panel") {
     return ["reference", assetKind, role];
   }
@@ -224,6 +225,9 @@ async function materializeRows(rows, options, mattingMaps) {
 
   for (const [index, row] of rows.entries()) {
     const matting = mattingForRow(row, mattingMaps);
+    if (options.spritesOnly && !(row.assetKind === "character-sprite" && matting)) {
+      continue;
+    }
     const bucket = outputBucket(row, matting);
     const outputRelPath = normalizeRel(path.join(...bucket, outputFileName(index, row, matting)));
     const outputAbsPath = path.join(options.outDir, outputRelPath.replaceAll("/", path.sep));
@@ -314,6 +318,7 @@ async function writeOutputs(result, options) {
     outputRoot: options.outDir,
     sourceRows: result.indexRows.length + result.missingRows.length,
     aggregate: options.aggregate,
+    spritesOnly: options.spritesOnly,
     summaryByAssetKind: Object.fromEntries([...result.countsByAssetKind.entries()].sort()),
     summaryByBucket: Object.fromEntries([...result.countsByBucket.entries()].sort()),
     summaryByMattingStatus: Object.fromEntries([...result.countsByMattingStatus.entries()].sort()),
@@ -326,8 +331,8 @@ async function writeOutputs(result, options) {
       "",
       "这个目录由 `image-decisions.vision.csv` 物化而来，原始 `images/` 不会被修改。",
       "",
-      "- `by-character/`: 角色头像、漫画头像、已可直接复制的角色素材。",
       "- `role-sprites/`: 最终人工主审查入口，放已聚合且已抠图的角色立绘。",
+      "- `by-character/`: 中间/全量物化模式下的角色头像、漫画头像、可直接复制素材。",
       "- `needs-matting/`: 视觉门禁允许抠图，但本次只复制原图等待抠图/QA。",
       "- `reference/`: 漫画分镜和参考图，不进角色演出。",
       "- `background/`: 背景图候选。",
@@ -336,6 +341,7 @@ async function writeOutputs(result, options) {
       "- `reports/missing.csv`: 复制失败或缺失源文件。",
       "",
       "注意：本目录不会消费旧 `__matted` 透明图。漫画图只复制原图，`mattingAllowed=false`。",
+      "如果使用 `--sprites-only` 生成最终审查目录，则目录只包含抠图后的 `role-sprites/` 和索引文件。",
       "",
     ].join("\n"),
     "utf8",
