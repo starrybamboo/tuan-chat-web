@@ -134,6 +134,7 @@ function outputBucket(row, matting) {
   if (assetKind === "unknown") return ["unknown"];
   if (assetKind === "background") return ["background", sanitizeSegment(row.locationName, "unknown-location")];
   if (boolValue(row.needsMatting) && !matting) return ["needs-matting", role];
+  if (assetKind === "character-sprite") return ["role-sprites", role];
   if (assetKind === "reference-only" || assetKind === "manga-panel") {
     return ["reference", assetKind, role];
   }
@@ -326,6 +327,7 @@ async function writeOutputs(result, options) {
       "这个目录由 `image-decisions.vision.csv` 物化而来，原始 `images/` 不会被修改。",
       "",
       "- `by-character/`: 角色头像、漫画头像、已可直接复制的角色素材。",
+      "- `role-sprites/`: 最终人工主审查入口，放已聚合且已抠图的角色立绘。",
       "- `needs-matting/`: 视觉门禁允许抠图，但本次只复制原图等待抠图/QA。",
       "- `reference/`: 漫画分镜和参考图，不进角色演出。",
       "- `background/`: 背景图候选。",
