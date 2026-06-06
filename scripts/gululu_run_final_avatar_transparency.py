@@ -12,15 +12,16 @@ from rembg import new_session, remove
 
 
 DEFAULT_ROOT = Path(r"D:\gululu-cache\output\opus-88-owner-only-refetch-v3")
-AVATAR_KINDS = {"character-avatar-bust", "character-avatar-chat", "manga-avatar"}
+DEFAULT_AVATAR_KINDS = {"character-avatar-bust", "character-avatar-chat"}
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Make final Gululu avatar assets transparent in place.")
+    parser = argparse.ArgumentParser(description="Make final non-manga Gululu avatar assets transparent in place.")
     parser.add_argument("--root", default=str(DEFAULT_ROOT))
     parser.add_argument("--final-dir", default="")
     parser.add_argument("--model", default="isnet-anime")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--include-manga-avatar", action="store_true")
     parser.add_argument("--limit", type=int, default=0)
     return parser.parse_args()
 
@@ -130,7 +131,10 @@ def main():
             for row in rows:
                 row[field] = row.get(field, "")
 
-    avatar_rows = [row for row in rows if row.get("assetKind") in AVATAR_KINDS]
+    avatar_kinds = set(DEFAULT_AVATAR_KINDS)
+    if args.include_manga_avatar:
+        avatar_kinds.add("manga-avatar")
+    avatar_rows = [row for row in rows if row.get("assetKind") in avatar_kinds]
     if args.limit > 0:
         avatar_rows = avatar_rows[: args.limit]
 
@@ -148,7 +152,9 @@ def main():
         "summary": {
             "cached": sum(1 for row in results if row["status"] == "cached"),
             "errors": sum(1 for row in results if row["status"] == "error"),
+            "includeMangaAvatar": args.include_manga_avatar,
             "processed": sum(1 for row in results if row["status"] == "processed"),
+            "skippedMangaAvatar": 0 if args.include_manga_avatar else sum(1 for row in rows if row.get("assetKind") == "manga-avatar"),
             "total": len(results),
         },
     }
