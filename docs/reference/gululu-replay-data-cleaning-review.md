@@ -71,8 +71,14 @@ flowchart TD
 ```text
 sourceRoot/
   cleaning-review/
+    source-inventory.json
+    floor-audit.csv
     content-events.json
     scene-events.csv
+    speaker-aliases.csv
+    message-image-bindings.csv
+    bgm-manifest.csv
+    event-corrections.csv
     image-decisions.csv
     image-decisions.json
     image-relations.csv
@@ -126,6 +132,93 @@ sourceRoot/
 
 ## 一、原文清洗
 
+### 输入体检
+
+在拆事件前，必须先确认源目录本身可用。输入体检只产出审计结果，不改原文。
+
+```mermaid
+flowchart TD
+  A["sourceRoot"] --> B{"meta.json 存在?"}
+  A --> C{"parts/*.md 存在?"}
+  A --> D{"images/** 存在?"}
+  C --> E["按文件名/楼层自然排序"]
+  E --> F["解析楼层标题和时间"]
+  F --> G["检查缺失/重复/乱序"]
+  F --> H["扫描图片引用"]
+  H --> I{"引用图片是否存在?"}
+  I --> J["source-inventory.json"]
+  G --> K["floor-audit.csv"]
+```
+
+体检项目：
+
+| 项目 | 规则 |
+| --- | --- |
+| `sourceRoot` | 必须是当前作品目录，不能把其他 opus 的审查结果混进来 |
+| `meta.json` | 记录 opus id、标题、作者、来源；缺失时仍可解析，但 summary 必须标 warning |
+| `parts/*.md` | 必须按楼层范围自然排序后拼接；不能靠文件系统返回顺序 |
+| 编码 | 文本文件按 UTF-8 读写；发现乱码先停下来检查编码 |
+| 换行 | 解析前统一 CRLF/LF，但 `sourceText` 保留原始内容 |
+| 楼层标题 | 识别 `## 第N楼` 和 `> 时间: ...`；不匹配的块进入异常队列 |
+| 楼层范围 | 检查缺失、重复、乱序、超出目标范围 |
+| 图片引用 | 扫描 Markdown 图片语法，规范化 `../images/`、反斜杠和重复路径 |
+| 图片文件 | 引用不存在时进入 `missing-image`，不能静默忽略 |
+| 空楼层 | 保留楼层元数据，事件数为 0；是否进入导入由审查决定 |
+
+`source-inventory.json` 建议记录：
+
+```json
+{
+  "sourceRoot": "D:/gululu-cache/output/opus-88-owner-only-refetch-v3",
+  "metaPath": "meta.json",
+  "partsCount": 12,
+  "imageFileCount": 3456,
+  "referencedImageCount": 3200,
+  "missingReferencedImages": [],
+  "encodingWarnings": [],
+  "generatedAt": "2026-06-06T00:00:00+08:00"
+}
+```
+
+`floor-audit.csv` 至少包含：
+
+| 字段 | 说明 |
+| --- | --- |
+| `floor` | 楼层号 |
+| `partFile` | 来源 Markdown 文件 |
+| `sourceTime` | 原帖时间 |
+| `bodyLineCount` | 楼层正文行数 |
+| `imageRefCount` | 图片引用数量 |
+| `eventCount` | 清洗后事件数量 |
+| `status` | `ok`、`missing`、`duplicate`、`parse-error`、`empty` |
+| `notes` | 异常说明 |
+
+### 原文证据层
+
+原文清洗要保留事件和来源之间的映射。事件可改分类，但不能丢来源。
+
+每条事件至少保留：
+
+| 字段 | 说明 |
+| --- | --- |
+| `eventIndex` | 清洗后的稳定事件序号 |
+| `floor` | 来源楼层 |
+| `sourceTime` | 来源时间 |
+| `sourceLineStart` / `sourceLineEnd` | 在楼层正文中的行号，能定位原文 |
+| `sourceText` | 原始文本块 |
+| `kind` | `scene`、`dialog`、`inferredDialog`、`narration`、`dice`、`bgm`、`nonPerformance` |
+| `performanceUse` | `perform`、`metadata`、`reference`、`exclude` |
+| `imagePath` | 当前事件绑定的原始图片路径 |
+| `sceneId` | 当前作者场景标志产生的场景 ID |
+| `reviewStatus` | `auto`、`needs-human-review`、`ai-confirmed`、`manual-confirmed` |
+
+硬约束：
+
+- 楼层号、发布时间、作者和来源 URL 不作为演出消息，只保存在 source 元数据里。
+- 事件序号必须在重生成时稳定；同样输入和同样 corrections 应生成同样 `eventIndex`。
+- `event-corrections.csv` 必须按 `eventIndex`、`floor+sourceTextHash` 或等价稳定键回写。
+- 被排除的作者说明也要保留为 `nonPerformance` 或审计记录，不能直接从事实层删除。
+
 ### 原文事件类型
 
 ```mermaid
@@ -152,6 +245,98 @@ flowchart LR
 | `dice` | 历史骰子和选项 | 是 | 不重新投骰 |
 | `bgm` | `BGM：xxx` | 是，或保留事件 | 无音频时保留缺失项 |
 | `nonPerformance` | 作者公告、格式说明、无关吐槽 | 否 | 保留来源，不进入演出 |
+
+### 楼层拆分与事件顺序
+
+楼层只是来源容器，不能被压平成一条消息。
+
+规则：
+
+- 一个楼层可以拆成多条 `dialog`、`narration`、`dice`、`bgm`、`scene`。
+- 事件顺序按原文出现顺序排列；图片 Markdown 本身不是消息，但会影响后续文本的 `imagePath`。
+- 空行可以触发旁白段落 flush，但不能打散骰子选项表。
+- 同楼层连续骰子、骰子说明、选项表需要作为一个 `diceTurn` 审查。
+- 同一楼层中途出现新的图片，后续文本绑定到新图片；前一张图片不应跨图片段继续生效。
+- 没有图片的对白可以使用该角色默认头像作为导入 fallback，但 `content-events.json` 仍应标明原文事件没有图片。
+
+### 说话人与角色别名
+
+说话人解析只负责把文本标签转成候选角色，不负责最终角色事实。
+
+```mermaid
+flowchart TD
+  A["原始 speaker"] --> B["trim / 去引号"]
+  B --> C{"是否规则字段或非角色名?"}
+  C -->|是| N["narration / dice description"]
+  C -->|否| D{"是否命中作品别名表?"}
+  D -->|是| R["roleName"]
+  D -->|否| U["unknown speaker"]
+  U --> Q["needs-human-review"]
+```
+
+规则：
+
+- `speakerName` 保留原帖显示名，例如 `师匠`、`神子`、`烈`。
+- `roleName` 是导入角色卡使用的归一化名，例如 `八意永琳`、`丰聪耳神子`、`烈海王`。
+- 别名表是作品级事实，不是全局事实；opus 88 的别名不能直接迁移到其他作品。
+- 规则字段、技能名、状态名、数值字段不能误当角色说话人。
+- `角色：“文本”`、`角色：文本` 可以作为明确对白；宽松引号格式必须进入抽样复核。
+- 未知说话人不应自动创建正式角色卡，除非后续人工或 LLM 确认。
+
+`speaker-aliases.csv` 建议记录：
+
+| 字段 | 说明 |
+| --- | --- |
+| `speakerName` | 原帖说话人 |
+| `roleName` | 归一化角色名 |
+| `aliasSource` | `auto-rule`、`manifest`、`llm`、`human` |
+| `count` | 出现次数 |
+| `firstFloor` | 首次出现楼层 |
+| `status` | `confirmed`、`needs-human-review`、`rejected` |
+| `notes` | 说明 |
+
+### 图片与消息绑定
+
+图片绑定分成“原文共现”和“导入头像 fallback”两层，不能混淆。
+
+```mermaid
+flowchart TD
+  A["Markdown 图片"] --> B["当前图片段 imagePath"]
+  B --> C["后续文本事件"]
+  C --> D{"明确 speaker?"}
+  D -->|是| E["dialog + imagePath"]
+  D -->|否| F{"允许图片推断对白?"}
+  F -->|是| G["inferredDialog + needs review"]
+  F -->|否| H["narration"]
+  E --> I["message-image-bindings"]
+  G --> I
+```
+
+绑定规则：
+
+- Markdown 图片自身不生成消息，除非后续 GAL directing 明确要求 `image.show`。
+- 图片出现后，只影响同一图片段内后续文本。
+- 明确说话人的对白可以记录 `imagePath`，但图片仍需通过图片审查才能成为头像资源。
+- 没有明确说话人的文本，只有在图片有稳定角色证据时才可成为 `inferredDialog`。
+- `inferredDialog` 默认 `reviewStatus=needs-human-review`，不能直接视为正式对白。
+- 规则说明、作者吐槽、骰子选项旁的图片不能因为共现就绑定成角色头像。
+- 如果图片被判为 `reference-only`、`manga-panel`、`background`、`author-asset` 或 `excluded`，对应对白不能使用它作为角色头像。
+
+`message-image-bindings.csv` 建议记录：
+
+| 字段 | 说明 |
+| --- | --- |
+| `eventIndex` | 事件序号 |
+| `floor` | 楼层 |
+| `sourceRelPath` | 原始图片路径 |
+| `bindingKind` | `explicit-segment`、`default-avatar-fallback`、`inferred-from-image`、`directing-image-show` |
+| `speakerName` | 原始说话人 |
+| `roleName` | 归一化角色 |
+| `imageDecisionStatus` | 图片审查状态 |
+| `assetKind` | 图片用途 |
+| `allowedAsAvatar` | 是否允许作为头像 |
+| `reviewStatus` | `auto`、`needs-human-review`、`confirmed`、`rejected` |
+| `notes` | 说明 |
 
 ### 场景标志规则
 
@@ -245,6 +430,32 @@ diceTurn.sourceText
 - 嵌套骰要保留多段 `replies`。
 - 大成功/大失败、重投、继续投不能压成单一结果。
 - 选项中的地点名不产生 `scene`。
+
+### BGM 清洗
+
+BGM 是 replay 时间线事件，但音频资源必须单独匹配。
+
+规则：
+
+- `BGM：xxx`、`BGM: xxx` 生成 `bgm` 事件。
+- BGM 行不作为旁白，也不作为角色对白。
+- 没有本地音频 manifest 时，BGM 事件仍保留，并记录为 unresolved media。
+- BGM 名称要保留原文，同时可另存归一化名用于匹配本地文件。
+- 不自动从视频网站、音乐平台或游戏 OST 来源下载音频。
+- 如果同名 BGM 多次出现，只生成一个资源匹配项，但每个时间线事件都要保留。
+
+`bgm-manifest.csv` 建议记录：
+
+| 字段 | 说明 |
+| --- | --- |
+| `eventIndex` | BGM 事件序号 |
+| `floor` | 楼层 |
+| `originalName` | 原文 BGM 名 |
+| `normalizedName` | 归一化匹配名 |
+| `matchStatus` | `unresolved`、`matched-local-file`、`ignored` |
+| `localFilePath` | 用户提供的本地音频路径 |
+| `mediaId` | 上传或复用后的资源 ID |
+| `notes` | 缺失或版权说明 |
 
 ### 作者说明与规则说明
 
@@ -700,6 +911,73 @@ flowchart TD
 
 ## 六、审查表字段
 
+### `event-corrections.csv`
+
+保存对原文事件分类、演出用途和内容修正的人工/LLM 回写。它是原文清洗的 correction 层，不直接改 `parts/*.md`。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `eventKey` | 是 | 稳定事件键，优先 `eventIndex`，必要时用 `floor+sourceTextHash` |
+| `floor` | 是 | 楼层 |
+| `sourceTextHash` | 是 | 原始文本块 hash，用于重生成后定位 |
+| `originalKind` | 是 | 程序初判类型 |
+| `correctedKind` | 否 | 修正后的 `scene`、`dialog`、`inferredDialog`、`narration`、`dice`、`bgm`、`nonPerformance` |
+| `performanceUse` | 否 | `perform`、`metadata`、`reference`、`exclude` |
+| `speakerName` | 否 | 修正后的原始说话人 |
+| `roleName` | 否 | 修正后的归一化角色名 |
+| `imagePath` | 否 | 修正后的绑定图片 |
+| `sceneId` | 否 | 修正后的场景 |
+| `reviewedBy` | 是 | `llm`、`human` |
+| `status` | 是 | `confirmed`、`rejected`、`needs-human-review` |
+| `notes` | 否 | 说明 |
+
+### `speaker-aliases.csv`
+
+保存作品级说话人归一化结果。导入角色卡只能消费这里或等价 manifest 中已确认的别名，不能直接使用全局硬编码别名作为最终事实。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `speakerName` | 是 | 原帖显示名 |
+| `roleName` | 是 | 归一化角色名 |
+| `aliasSource` | 是 | `auto-rule`、`manifest`、`llm`、`human` |
+| `count` | 否 | 出现次数 |
+| `firstFloor` | 否 | 首次出现楼层 |
+| `status` | 是 | `confirmed`、`needs-human-review`、`rejected` |
+| `notes` | 否 | 说明 |
+
+### `message-image-bindings.csv`
+
+保存事件和图片之间的关系。它回答“这条事件原文附近是哪张图”，不等于“这张图可以导入为头像”。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `eventIndex` | 是 | 事件序号 |
+| `floor` | 是 | 楼层 |
+| `sourceRelPath` | 否 | 原始图片路径 |
+| `bindingKind` | 是 | `explicit-segment`、`default-avatar-fallback`、`inferred-from-image`、`directing-image-show` |
+| `speakerName` | 否 | 原始说话人 |
+| `roleName` | 否 | 归一化角色 |
+| `imageDecisionStatus` | 否 | 图片审查状态 |
+| `assetKind` | 否 | 图片用途分类 |
+| `allowedAsAvatar` | 是 | 是否允许作为头像资源 |
+| `reviewStatus` | 是 | `auto`、`needs-human-review`、`confirmed`、`rejected` |
+| `notes` | 否 | 说明 |
+
+### `bgm-manifest.csv`
+
+保存 BGM 时间线事件和本地音频资源匹配结果。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `eventIndex` | 是 | BGM 事件序号 |
+| `floor` | 是 | 楼层 |
+| `originalName` | 是 | 原文 BGM 名 |
+| `normalizedName` | 是 | 归一化匹配名 |
+| `matchStatus` | 是 | `unresolved`、`matched-local-file`、`ignored` |
+| `localFilePath` | 否 | 用户提供的本地音频路径 |
+| `mediaId` | 否 | 上传或复用后的资源 ID |
+| `notes` | 否 | 缺失、版权或匹配说明 |
+
 ### `image-decisions.csv`
 
 | 字段 | 必填 | 说明 |
@@ -823,6 +1101,13 @@ flowchart TD
 
 至少统计：
 
+- `sourceRoot`、目标楼层范围、实际解析楼层数。
+- `parts/*.md` 数量、楼层缺失/重复/乱序/解析失败数量。
+- 图片引用数、引用缺失图片数、未被正文引用但存在的图片数。
+- `dialog`、`inferredDialog`、`narration`、`dice`、`bgm`、`scene`、`nonPerformance` 数量。
+- 未确认说话人数量、别名待审数量、被拒绝别名数量。
+- `inferredDialog` 总数、已确认数、被拒绝数、待审数。
+- BGM 事件数、唯一 BGM 名称数、本地匹配数、unresolved 数。
 - 图片总数、唯一 `sha256` 数、`physicalDuplicate` 组数。
 - 感知相似候选数、已审查候选数、驳回候选数。
 - `visualDuplicate` 组数、被复用图片数、canonical 数。
@@ -854,17 +1139,81 @@ flowchart TD
   "eventIndex": 1201,
   "floor": 84,
   "kind": "dialog",
+  "performanceUse": "perform",
   "content": "……",
   "speakerName": "神子",
   "roleName": "丰聪耳神子",
+  "inferred": false,
   "imagePath": "gululu/example.png",
+  "imageBindingKind": "explicit-segment",
   "sceneId": "scene-shinreibyou-001",
   "sourceTime": "2022-01-22 20:40",
-  "sourceLine": "神子：……"
+  "sourceLineStart": 12,
+  "sourceLineEnd": 12,
+  "sourceText": "神子：……",
+  "sourceTextHash": "sha256-of-source-text",
+  "reviewStatus": "auto"
 }
 ```
 
-## 七、人工审查视图
+`dice` 事件额外保留：
+
+```json
+{
+  "eventIndex": 1202,
+  "kind": "dice",
+  "diceTurn": {
+    "command": "那么烈啊，你要去往何处呢【1d13：】",
+    "options": ["1 博丽神社", "2 红魔馆"],
+    "replies": ["那么烈啊，你要去往何处呢【1d13：9】"],
+    "sourceText": "那么烈啊，你要去往何处呢【1d13：】\n1 博丽神社\n2 红魔馆\n..."
+  },
+  "performanceUse": "perform",
+  "reviewStatus": "needs-human-review"
+}
+```
+
+`bgm` 事件额外保留：
+
+```json
+{
+  "eventIndex": 1203,
+  "kind": "bgm",
+  "bgmName": "远野幻想物语",
+  "bgmMatchStatus": "unresolved",
+  "performanceUse": "perform",
+  "sourceText": "BGM：远野幻想物语"
+}
+```
+
+## 七、执行顺序
+
+建议每次按同一顺序重生成，避免先看派生产物造成误判。
+
+```mermaid
+flowchart TD
+  A["输入体检"] --> B["楼层/事件解析"]
+  B --> C["场景标志提取"]
+  B --> D["说话人/别名审查"]
+  B --> E["骰子链/BGM 清单"]
+  B --> F["消息-图片绑定"]
+  F --> G["图片证据层"]
+  G --> H["图片用途/视觉关系/抠图门禁"]
+  H --> I["人工/LLM 审查"]
+  I --> J["写回 corrections"]
+  J --> K["重新生成 clean 和导入包"]
+  K --> L["dry-run 验收"]
+```
+
+执行规则：
+
+- 先跑输入体检，再讨论图片和导入；源目录不可靠时不继续。
+- 原文事件、图片证据、视觉关系、抠图决策分别输出，不互相覆盖。
+- 人工/LLM 审查只写回 CSV/JSON，不手改 clean 目录作为事实。
+- 每轮规则变更后重新生成 summary，并比较关键数量变化。
+- dry-run 通过前不做 live import；live import 后仍要保留本轮清洗报告。
+
+## 八、人工审查视图
 
 建议审查页面至少分成这些 tab：
 
@@ -872,12 +1221,15 @@ flowchart TD
 flowchart LR
   A["总览"] --> B["原文事件"]
   A --> C["场景标志"]
-  A --> D["角色头像"]
-  A --> E["漫画/参考图"]
-  A --> F["视觉相似候选"]
-  A --> G["抠图候选"]
-  A --> H["背景候选"]
-  A --> I["异常队列"]
+  A --> D["说话人/别名"]
+  A --> E["消息图片绑定"]
+  A --> F["BGM"]
+  A --> G["角色头像"]
+  A --> H["漫画/参考图"]
+  A --> I["视觉相似候选"]
+  A --> J["抠图候选"]
+  A --> K["背景候选"]
+  A --> L["异常队列"]
 ```
 
 ### 总览
@@ -887,7 +1239,10 @@ flowchart LR
 - 楼层范围。
 - 事件数量。
 - `scene` 数量。
-- `dialog` / `dice` / `bgm` / `nonPerformance` 数量。
+- `dialog` / `inferredDialog` / `dice` / `bgm` / `nonPerformance` 数量。
+- 楼层缺失、重复、解析失败数量。
+- 未确认说话人和待审别名数量。
+- BGM unresolved 数量。
 - 图片总数。
 - 各 `assetKind` 数量。
 - `physicalDuplicate`、`visualDuplicate`、`variantGroup` 数量。
@@ -905,7 +1260,40 @@ flowchart LR
 - 当前 `sceneLabel`。
 - 当前图片。
 - 是否进入演出。
+- `inferredDialog` 标记和审查状态。
+- 对应 `event-corrections` 状态。
 - 修正入口。
+
+### 说话人/别名审查
+
+显示：
+
+- 原始 `speakerName`。
+- 归一化 `roleName`。
+- 出现次数和首次楼层。
+- 来源：自动规则、manifest、LLM、人工。
+- 是否创建正式角色卡。
+- 一键确认、改名、拒绝、标记非角色。
+
+### 消息图片绑定审查
+
+显示：
+
+- 事件文本、说话人和楼层。
+- 当前绑定图片。
+- 绑定类型：原文图片段、默认头像 fallback、图片推断对白、GAL 展示图。
+- 图片 `assetKind` 和 `allowedAsAvatar`。
+- 如果是 `inferredDialog`，必须能一键改为旁白或确认对白。
+
+### BGM 审查
+
+显示：
+
+- 原文 BGM 名称。
+- 出现楼层和事件序号。
+- 本地匹配状态。
+- 缺失 BGM 清单。
+- 是否暂以文本事件保留。
 
 ### 图片审查
 
@@ -956,14 +1344,22 @@ flowchart LR
 - QA 结论。
 - 拒绝原因。
 
-## 八、最低验收标准
+## 九、最低验收标准
 
 数据清洗完成后，至少满足：
 
+- `source-inventory.json` 和 `floor-audit.csv` 已生成。
+- 楼层缺失、重复、乱序、解析失败都有清单。
+- 引用缺失图片都有清单，不能静默跳过。
 - 所有作者场景标志行都生成 `scene` 事件。
 - 普通正文地点词没有误生成 `scene`。
 - 骰子选项没有被拆散。
 - 作者说明、规则说明、剧情正文有明确分类。
+- 所有 `inferredDialog` 都已审查或仍留在待审队列，不能直接当普通对白导入。
+- 未确认说话人不会自动创建正式角色卡。
+- 每条使用图片的消息都有 `message-image-bindings` 记录。
+- `reference-only`、`manga-panel`、`background`、`author-asset`、`excluded` 图片不会被用作角色头像。
+- BGM 事件都有 `bgm-manifest` 记录；缺失音频以 unresolved 形式报告。
 - 每张进入角色资源的图片都有 `assetKind`、`renderUse`、`mattingAllowed`。
 - 漫画图没有 `__matted` 输出。
 - `manga-avatar`、`manga-panel`、`reference-only`、`author-asset`、`excluded` 的 `mattingAllowed` 必须为 false。
@@ -977,7 +1373,7 @@ flowchart LR
 - 当前实现未计算的 `pHash` 不能在报告中写成已计算。
 - 所有人工/LLM 修正都写回 CSV/JSON。
 
-## 九、当前遗漏与不确定项
+## 十、当前遗漏与不确定项
 
 这些内容已经在规则里定义，但需要在执行时确认脚本是否已完全实现。不能因为文档写了，就假设现有脚本已经自动做到。
 
@@ -988,6 +1384,8 @@ flowchart LR
 - 角色视觉复核：已有 role visual audit 相关脚本能生成审查入口，但最终 `visualCharacter` 必须由 LLM/人工确认。
 - 作者场景标志：规则已定义为作者单独标志行，执行时仍要抽样检查，避免正文地点词误切场。
 - 骰子链：基础事件可解析，但同楼多轮、嵌套、重投、大成功/大失败解释仍需抽样审查。
+- 图片推断对白：现有导入脚本已有基于图片共现的推断能力，但最终流程必须把 `inferredDialog` 标出来并复核。
+- BGM 事件：现有 live import 会保留 BGM 并记录 unresolved media，但本地文件匹配仍需单独 manifest。
 
 ### 待补齐或待接线
 
@@ -999,6 +1397,7 @@ flowchart LR
 - 背景流程：`scene` 时间线和 `background` 图片候选已定义，但背景资源上传、WebGAL 切背景和缺省背景策略还需要单独接线。
 - BGM manifest：文本 BGM 事件可以保留；本地音频匹配、上传、播放绑定和缺失清单还不是完整自动链路。
 - 审查 UI：本文定义了 tab 和字段，现有 `gululu-review-server.mjs` 是否完全覆盖这些视图需要另行核对。
+- `source-inventory.json`、`floor-audit.csv`、`event-corrections.csv`、`message-image-bindings.csv` 的精确 schema 需要脚本接线。
 
 ### 需要按作品现场确认
 
@@ -1011,7 +1410,7 @@ flowchart LR
 - 背景候选是否现在进入演出，还是只保留 `scene` 元数据，等待后续 GAL directing。
 - BGM 来源必须由用户提供本地文件或 manifest，不能自动从公开音乐/视频平台抓取。
 
-## 十、待你确认的问题
+## 十一、待你确认的问题
 
 请重点审查这些规则：
 
