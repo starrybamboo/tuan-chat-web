@@ -927,6 +927,26 @@ clean 阶段必须忽略已有 matting result
 - 如果旧透明图仍可能有用，也必须重新经过 `mattingAllowed=true`、`needsMatting=true`、`qaStatus=approved` 三道门禁。
 - 验收时应专门统计 `manga-avatar` 和 `manga-panel` 的 `__matted` 数量，必须为 0。
 
+### 最终人工审查目录
+
+以后人工最终审查不看中间 CSV、HTML 或未处理原图目录作为主入口，而看“已处理、已抠图、已聚合”的最终图片目录。
+
+推荐目录名：
+
+```text
+<sourceRoot>/image-role-review-clean-vision-final/
+```
+
+生成规则：
+
+- 目录必须由最新 `image-decisions.vision.csv`、`matting-decisions.vision.csv` 和 `matting-results.vision.json` 物化。
+- `mattingAllowed=true && needsMatting=true` 的非漫画舞台素材，必须先运行 `rembg:isnet-anime`，再把透明 PNG 放入最终目录。
+- `manga-avatar`、`manga-panel`、`reference-only`、`excluded`、`unknown` 不允许消费旧透明图，只复制原图。
+- `physicalDuplicate`、`visualDuplicate` 默认聚合为一个代表图。
+- `variantGroup` 默认保留差分，不强行压成一张。
+- 最终目录必须包含 `index.csv` 和 `summary.json`，记录每张输出图的来源、聚合来源数、是否使用透明图、角色、分类和置信度。
+- 如果该目录不存在，或里面仍是未抠图的 `needs-matting` 队列，就不能认为图片清洗流程已经跑完。
+
 ## 四、视觉重复与差分
 
 ```mermaid
