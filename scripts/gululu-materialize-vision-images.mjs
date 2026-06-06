@@ -22,7 +22,11 @@ function parseArgs(argv) {
   }
   const root = path.resolve(args.get("root") ?? DEFAULT_ROOT);
   return {
+    aggregate: args.has("aggregate"),
     force: args.has("force"),
+    mattingResults:
+      args.get("matting-results") ??
+      path.join(root, "cleaning-review-ai-first-v1", "matting-results.vision.json"),
     outDir: path.resolve(args.get("out-dir") ?? path.join(root, "image-role-review-clean-vision-full")),
     reviewDir: path.resolve(args.get("review-dir") ?? path.join(root, "cleaning-review-ai-first-v1")),
     root,
@@ -94,6 +98,11 @@ async function pathExists(file) {
   }
 }
 
+async function readJsonIfExists(file, fallback) {
+  if (!(await pathExists(file))) return fallback;
+  return JSON.parse(await fs.readFile(file, "utf8"));
+}
+
 function normalizeRel(value) {
   return String(value ?? "").replaceAll("\\", "/");
 }
@@ -118,13 +127,13 @@ function sourceStem(sourceRelPath) {
   return sanitizeSegment(path.parse(normalizeRel(sourceRelPath)).name || "image", "image").slice(0, 70);
 }
 
-function outputBucket(row) {
+function outputBucket(row, matting) {
   const assetKind = row.assetKind || "unknown";
   const role = sanitizeSegment(row.character || row.candidateRoleName || "unknown-role", "unknown-role");
   if (assetKind === "excluded") return ["excluded"];
   if (assetKind === "unknown") return ["unknown"];
   if (assetKind === "background") return ["background", sanitizeSegment(row.locationName, "unknown-location")];
-  if (boolValue(row.needsMatting)) return ["needs-matting", role];
+  if (boolValue(row.needsMatting) && !matting) return ["needs-matting", role];
   if (assetKind === "reference-only" || assetKind === "manga-panel") {
     return ["reference", assetKind, role];
   }
@@ -133,8 +142,8 @@ function outputBucket(row) {
   return ["other", assetKind];
 }
 
-function outputFileName(index, row) {
-  const extension = path.extname(row.sourceRelPath || "").toLowerCase() || ".png";
+function outputFileName(index, row, matting) {
+  const extension = matting ? ".png" : path.extname(row.sourceRelPath || "").toLowerCase() || ".png";
   const sha = String(row.sha256 || "nohash").slice(0, 12);
   return `${String(index + 1).padStart(5, "0")}__${sourceStem(row.sourceRelPath)}__${sha}${extension}`;
 }
@@ -160,7 +169,52 @@ function increment(map, key, count = 1) {
   map.set(key, (map.get(key) ?? 0) + count);
 }
 
-async function materializeRows(rows, options) {
+function splitPipe(value) {
+  return String(value ?? "").split("|").map((item) => item.trim()).filter(Boolean);
+}
+
+function aggregateRows(rows) {
+  const groups = new Map();
+  for (const row of rows) {
+    const relation = row.visualRelationType || "single";
+    const key = ["physicalDuplicate", "visualDuplicate"].includes(relation)
+      ? `group:${row.visualGroupId || row.sha256 || row.sourceRelPath}`
+      : relation === "variantGroup"
+        ? `variant:${row.visualGroupId || "missing"}:${row.sha256 || row.sourceRelPath}`
+        : `source:${row.sourceRelPath}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+  return [...groups.values()].map((groupRows) => {
+    const canonicalSha = groupRows.find((row) => row.canonicalSha256)?.canonicalSha256;
+    const chosen =
+      groupRows.find((row) => row.sha256 && row.sha256 === canonicalSha) ??
+      [...groupRows].sort((left, right) => left.sourceRelPath.localeCompare(right.sourceRelPath))[0];
+    return {
+      ...chosen,
+      aggregatedSourceCount: groupRows.length,
+      aggregatedSourceRelPaths: groupRows.map((row) => row.sourceRelPath).join("|"),
+    };
+  });
+}
+
+function buildMattingMaps(mattingResults) {
+  const bySource = new Map();
+  const byHash = new Map();
+  for (const row of mattingResults) {
+    if (!["processed", "cached"].includes(row.status)) continue;
+    if (row.sourceRelPath) bySource.set(normalizeRel(row.sourceRelPath), row);
+    if (row.sha256 && !byHash.has(row.sha256)) byHash.set(row.sha256, row);
+  }
+  return { byHash, bySource };
+}
+
+function mattingForRow(row, mattingMaps) {
+  if (!boolValue(row.needsMatting)) return null;
+  return mattingMaps.bySource.get(normalizeRel(row.sourceRelPath)) ?? mattingMaps.byHash.get(row.sha256) ?? null;
+}
+
+async function materializeRows(rows, options, mattingMaps) {
   const indexRows = [];
   const missingRows = [];
   const countsByAssetKind = new Map();
@@ -168,10 +222,13 @@ async function materializeRows(rows, options) {
   const countsByMattingStatus = new Map();
 
   for (const [index, row] of rows.entries()) {
-    const bucket = outputBucket(row);
-    const outputRelPath = normalizeRel(path.join(...bucket, outputFileName(index, row)));
+    const matting = mattingForRow(row, mattingMaps);
+    const bucket = outputBucket(row, matting);
+    const outputRelPath = normalizeRel(path.join(...bucket, outputFileName(index, row, matting)));
     const outputAbsPath = path.join(options.outDir, outputRelPath.replaceAll("/", path.sep));
-    const inputAbsPath = sourceAbsPath(options.root, row.sourceRelPath);
+    const inputAbsPath = matting
+      ? path.join(options.reviewDir, normalizeRel(matting.transparentRelPath).replaceAll("/", path.sep))
+      : sourceAbsPath(options.root, row.sourceRelPath);
     increment(countsByAssetKind, row.assetKind || "unknown");
     increment(countsByBucket, bucket.join("/"));
     increment(countsByMattingStatus, row.mattingStatus || "unknown");
@@ -192,8 +249,12 @@ async function materializeRows(rows, options) {
         confidence: row.confidence,
         mattingAllowed: row.mattingAllowed,
         needsMatting: row.needsMatting,
-        mattingStatus: row.mattingStatus,
-        materializedAs: boolValue(row.needsMatting) ? "source-copy-needs-matting" : "source-copy",
+        mattingStatus: matting?.status ?? row.mattingStatus,
+        aggregatedSourceCount: row.aggregatedSourceCount ?? 1,
+        aggregatedSourceRelPaths: row.aggregatedSourceRelPaths || row.sourceRelPath,
+        materializedAs: matting ? "matted-transparent" : boolValue(row.needsMatting) ? "source-copy-needs-matting" : "source-copy",
+        transparentRelPath: matting?.transparentRelPath ?? "",
+        alphaMaskRelPath: matting?.alphaMaskRelPath ?? "",
         evidenceSummary: row.evidenceSummary,
         notes: row.notes,
       });
@@ -231,7 +292,11 @@ async function writeOutputs(result, options) {
     "mattingAllowed",
     "needsMatting",
     "mattingStatus",
+    "aggregatedSourceCount",
+    "aggregatedSourceRelPaths",
     "materializedAs",
+    "transparentRelPath",
+    "alphaMaskRelPath",
     "evidenceSummary",
     "notes",
   ];
@@ -247,6 +312,7 @@ async function writeOutputs(result, options) {
     missingImages: result.missingRows.length,
     outputRoot: options.outDir,
     sourceRows: result.indexRows.length + result.missingRows.length,
+    aggregate: options.aggregate,
     summaryByAssetKind: Object.fromEntries([...result.countsByAssetKind.entries()].sort()),
     summaryByBucket: Object.fromEntries([...result.countsByBucket.entries()].sort()),
     summaryByMattingStatus: Object.fromEntries([...result.countsByMattingStatus.entries()].sort()),
@@ -267,7 +333,7 @@ async function writeOutputs(result, options) {
       "- `index.csv`: 每张复制图片对应的来源路径和视觉决策。",
       "- `reports/missing.csv`: 复制失败或缺失源文件。",
       "",
-      "注意：本目录没有消费旧 `__matted` 透明图。漫画图只复制原图，`mattingAllowed=false`。",
+      "注意：本目录不会消费旧 `__matted` 透明图。漫画图只复制原图，`mattingAllowed=false`。",
       "",
     ].join("\n"),
     "utf8",
@@ -278,8 +344,11 @@ async function writeOutputs(result, options) {
 async function main() {
   const options = parseArgs(process.argv);
   await resetOutDir(options.outDir, options.root, options.force);
-  const rows = await readCsv(path.join(options.reviewDir, "image-decisions.vision.csv"));
-  const result = await materializeRows(rows, options);
+  const rawRows = await readCsv(path.join(options.reviewDir, "image-decisions.vision.csv"));
+  const rows = options.aggregate ? aggregateRows(rawRows) : rawRows;
+  const mattingResultsJson = await readJsonIfExists(options.mattingResults, { results: [] });
+  const mattingMaps = buildMattingMaps(mattingResultsJson.results ?? []);
+  const result = await materializeRows(rows, options, mattingMaps);
   const summary = await writeOutputs(result, options);
   console.log(JSON.stringify(summary, null, 2));
 }
