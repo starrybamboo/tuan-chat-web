@@ -17,6 +17,7 @@
 相关文档的职责边界：
 
 - `docs/reference/gululu-replay-from-zero-workflow.md`：从原帖/导出目录到团剧 replay 房间的完整流程。
+- `docs/reference/gululu-replay-data-cleaning-review.md`：原文与图片数据清洗规则审查稿，用于重新定义分类、场景标志和抠图门禁。
 - `docs/reference/webgal-realtime-render-rules.md`：WebGAL 实时渲染规则，主要用于导入后验证舞台表现。
 - `docs/reference/webgal-tuanchat-translation-map.md`：团剧消息、annotation 与 WebGAL 命令的映射说明。
 - `docs/reference/webgal-tuanchat-index.md`：团剧共创与 WebGAL/Terre 联动入口索引，不替代本文流程。
