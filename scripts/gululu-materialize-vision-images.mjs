@@ -401,7 +401,7 @@ async function writeOutputs(result, options) {
       "这个目录由 `image-decisions.vision.csv` 物化而来，原始 `images/` 不会被修改。",
       "",
       "- `role-sprites/`: 放已聚合且已抠图的角色立绘。",
-      "- `avatars/`: 放已聚合的头像、漫画头像、聊天头像；最终审查目录必须再运行头像透明化处理，只保留透明 PNG。",
+      "- `avatars/`: 放已聚合的头像、漫画头像、聊天头像；`character-avatar-*` 最终应透明化，`manga-avatar` 保留原图。",
       "- `by-character/`: 中间/全量物化模式下的旧兼容角色资源入口。",
       "- `needs-matting/`: 视觉门禁允许抠图，但本次只复制原图等待抠图/QA。",
       "- `reference/`: 漫画分镜和参考图，不进角色演出。",

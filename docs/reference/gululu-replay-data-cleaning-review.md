@@ -783,7 +783,7 @@ flowchart TD
 | `character-sprite` | 可上 WebGAL 舞台的角色立绘 | 是 | 按门禁处理，通常需要 | 全身/半身白底角色图 |
 | `character-avatar-bust` | 半身/胸像角色头像，可能可上舞台 | 视 `renderUse` | 可抠 | 动漫胸像、角色半身图 |
 | `character-avatar-chat` | 聊天小头像 | 是，仅聊天头像 | 默认不抠 | 小裁切头像、头像框 |
-| `manga-avatar` | 黑白灰/低彩度漫画头像裁切，可代表角色 | 可作聊天头像 | 不进舞台抠图；最终头像透明化处理 | 黑白漫画角色头部 |
+| `manga-avatar` | 黑白灰/低彩度漫画头像裁切，可代表角色 | 可作聊天头像 | 永不抠图/透明化，保留原图 | 黑白漫画角色头部 |
 | `manga-panel` | 漫画分镜/大幅画面 | 默认不进演出 | 永不抠图 | 战斗分镜、倒地图 |
 | `background` | 明确背景候选 | 可进背景流程 | 不走角色抠图 | 神社、庭院、门口背景 |
 | `reference-only` | 参考图，不进演出 | 否 | 永不抠图 | 规则图、剧情参考、多人图 |
@@ -823,7 +823,7 @@ flowchart TD
 
 ## 三、抠图门禁
 
-本节的 `mattingAllowed` / `needsMatting` 指“角色立绘或可上舞台胸像”的舞台抠图门禁。最终审查目录里的 `avatars/` 还需要单独做头像透明化处理，不能因为 `mattingAllowed=false` 就把白底头像放进最终目录。
+本节的 `mattingAllowed` / `needsMatting` 指“角色立绘或可上舞台胸像”的舞台抠图门禁。最终审查目录里的 `character-avatar-bust` / `character-avatar-chat` 还需要单独做头像透明化处理；`manga-avatar` 永远保留原图。
 
 ### 决策字段
 
@@ -883,7 +883,7 @@ flowchart TD
 
 硬约束：
 
-- 漫画头像即使是角色头像，也不进入舞台抠图门禁；进入最终 `avatars/` 前仍要做透明背景处理。
+- 漫画头像即使是角色头像，也不进入舞台抠图门禁，进入最终 `avatars/` 时也保留原图。
 - 大幅漫画分镜不抠图。
 - 聊天小头像默认不进入舞台抠图门禁；进入最终 `avatars/` 前仍要做透明背景处理。
 - 只有进入舞台的角色立绘/胸像才考虑抠图。
@@ -942,9 +942,9 @@ clean 阶段必须忽略已有 matting result
 
 - 目录必须由最新 `image-decisions.vision.csv`、`matting-decisions.vision.csv` 和 `matting-results.vision.json` 物化。
 - `mattingAllowed=true && needsMatting=true` 的非漫画舞台素材，必须先运行 `rembg:isnet-anime`，再把透明 PNG 放入最终目录。
-- `manga-avatar`、`manga-panel`、`reference-only`、`excluded`、`unknown` 不允许消费旧 `__matted` 立绘透明图；其中进入 `avatars/` 的头像必须再经过头像透明化后处理。
+- `manga-avatar`、`manga-panel`、`reference-only`、`excluded`、`unknown` 不允许消费旧 `__matted` 立绘透明图；`manga-avatar` 也不参加头像透明化后处理。
 - 最终人工审查目录只保留处理后的角色资源：角色立绘放在 `role-sprites/<角色>/`，头像、漫画头像、聊天头像放在 `avatars/<角色>/<assetKind>/`。
-- 需要抠图的角色立绘不保留抠图前原图，只保留透明产物；头像不保留白底/原始背景图，只保留聚合后的透明 PNG 资源。
+- 需要抠图的角色立绘不保留抠图前原图，只保留透明产物；`character-avatar-*` 不保留白底/原始背景图，只保留聚合后的透明 PNG；`manga-avatar` 保留原图。
 - 最终人工审查目录不混放参考图、背景、排除项；这些只保留在中间目录或 CSV 证据中。
 - `physicalDuplicate`、`visualDuplicate` 默认聚合为一个代表图。
 - `variantGroup` 默认保留差分，不强行压成一张。
