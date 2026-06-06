@@ -86,6 +86,7 @@ describe("role avatar cache helpers", () => {
         },
       ],
     });
+    expect(queryClient.getQueryData(["roleAvatar", 45])).toBeUndefined();
   });
 
   it("deleteRoleAvatarWithSuccessGuard 在业务失败时会抛错", async () => {

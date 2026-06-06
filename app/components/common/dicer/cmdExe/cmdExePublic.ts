@@ -47,6 +47,7 @@ export async function executeStShowCommand(
     ability: curAbility,
     roleName: role.roleName || "当前角色",
     requestedKeys: showProps,
+    ...(cpi.queryClient ? { queryClient: cpi.queryClient } : {}),
   });
   return true;
 }
