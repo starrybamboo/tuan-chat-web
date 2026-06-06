@@ -91,6 +91,7 @@ interface MessageEditorProps {
   onRequestImportTextPaste?: (text: string, insertAsPlainText: () => void) => void;
   onRemoteMessagesSaved?: (messages: Message[]) => void | Promise<void>;
   readOnly?: boolean;
+  remotePatchSourceSurface?: MessageEditorRemotePatchSourceSurface;
   spaceId?: number;
   tcHeader?: {
     enabled?: boolean;
@@ -105,6 +106,7 @@ interface MessageEditorProps {
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type MessageEditorRemotePatchSourceSurface = "doc_view" | "message_editor";
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
 
 interface MessageEditorHistoryFocus {
@@ -179,6 +181,13 @@ const MESSAGE_EDITOR_SPEAKER_HANDLE_CLASS = [
 
 export function isMessageEditorImportablePasteText(text: string): boolean {
   return parseImportedChatText(text).messages.length > 0;
+}
+
+export function getMessageEditorPatchMutationMeta(sourceSurface: MessageEditorRemotePatchSourceSurface = "message_editor") {
+  return {
+    operationCause: "normal",
+    sourceSurface,
+  };
 }
 
 function hasMeaningfulMessageEditorContent(messages: MessageEditorMessage[]): boolean {
@@ -634,6 +643,7 @@ export default function MessageEditor({
   onRequestImportTextPaste,
   onRemoteMessagesSaved,
   readOnly = false,
+  remotePatchSourceSurface = "message_editor",
   spaceId,
   tcHeader,
   title,
@@ -1093,6 +1103,7 @@ export default function MessageEditor({
               return Promise.resolve();
             }
             return patchRemoteRoomMessageStream({
+              mutationMeta: getMessageEditorPatchMutationMeta(remotePatchSourceSurface),
               operations,
               roomId: resolvedDocRoomId,
             }).then(async (changedMessages) => {
@@ -1135,7 +1146,7 @@ export default function MessageEditor({
     return () => {
       window.clearTimeout(timer);
     };
-  }, [isActiveRemoteSaveGeneration, isRoomDocument, messages, readOnly, ready, reconcileRemotePatchMessages, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
+  }, [isActiveRemoteSaveGeneration, isRoomDocument, messages, readOnly, ready, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
 
   useEffect(() => {
     return () => {
@@ -1169,6 +1180,7 @@ export default function MessageEditor({
           return;
         }
         const persistRemote = patchRemoteRoomMessageStream({
+          mutationMeta: getMessageEditorPatchMutationMeta(remotePatchSourceSurface),
           operations,
           roomId: resolvedDocRoomId,
         }).then((changedMessages) => {
@@ -1196,7 +1208,7 @@ export default function MessageEditor({
         console.error("[MessageEditor] flush snapshot failed", error);
       });
     };
-  }, [isActiveRemoteSaveGeneration, isRoomDocument, readOnly, reconcileRemotePatchMessages, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
+  }, [isActiveRemoteSaveGeneration, isRoomDocument, readOnly, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {

@@ -1,6 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
 import type { StateEventExtra } from "@/types/stateEvent";
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
@@ -47,6 +46,7 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeAssetUploadContext } from "./realtimeRendererAssetUploads";
 import type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
+import type { RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
 import type {
   RoomFigureRenderState,
   RoomRenderStateSnapshot,
@@ -54,6 +54,7 @@ import type {
 } from "./realtimeRendererStateSnapshots";
 import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 
+import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
   collectMessageAssetWarmupPlan,
@@ -62,7 +63,6 @@ import {
 } from "./realtimeRenderAssetWarmup";
 import { debugRealtimeRender } from "./realtimeRenderDebug";
 import {
-  buildRoleAvatarCacheKey,
   deleteAvatarScopedCacheEntries,
   getAndUploadMiniAvatarAsset,
   getAndUploadSpriteAsset,
@@ -110,6 +110,7 @@ import {
   upsertGameConfigEntry,
 } from "./realtimeRendererGameConfig";
 import { createSquarePngBlobFromUrl, uploadBlobToDirectory } from "./realtimeRendererImageAssets";
+import { compileRealtimeRenderMessageLines } from "./realtimeRendererMessageCompiler";
 import {
   applyRoomRenderStateSnapshot,
   buildMessageStateKey,
@@ -126,13 +127,6 @@ import {
   buildTuanChatWebgalInitVarLines,
 } from "./realtimeRendererTuanChatVars";
 import {
-  buildRoomSceneCompilation,
-  buildWebgalSceneName,
-  resolveProjectableMediaUrl,
-  resolvePublishedGameName,
-} from "./spaceWebgalCompiler";
-import { compileRealtimeRenderMessageLines, type RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
-import {
   parseWorkflowRoomMap,
 } from "./realtimeRendererWorkflow";
 import {
@@ -140,6 +134,12 @@ import {
   buildWorkflowTransitionLineWithEnd,
   getWorkflowEndSceneName,
 } from "./realtimeRendererWorkflowScenes";
+import {
+  buildRoomSceneCompilation,
+  buildWebgalSceneName,
+  resolveProjectableMediaUrl,
+  resolvePublishedGameName,
+} from "./spaceWebgalCompiler";
 
 export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
 

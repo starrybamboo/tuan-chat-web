@@ -1,20 +1,20 @@
-import type { ChatMessageResponse, Room } from "../../api";
-
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { avatarUrl, mediaFileUrl } from "@/utils/mediaUrl";
 
+import type { ChatMessageResponse, Room } from "../../api";
+
+import { renderWebgalPublishPackage } from "./publishRenderer";
+import { getPublishTemplatePreset } from "./publishTemplatePresets";
+import { createSquarePngBlobFromUrl } from "./realtimeRendererImageAssets";
+
 vi.mock("./realtimeRendererImageAssets", () => ({
   createSquarePngBlobFromUrl: vi.fn(async (_url: string, size: number) => {
-    return new Blob([Uint8Array.of(size & 0xff, (size >> 8) & 0xff)], { type: "image/png" });
+    return new Blob([Uint8Array.of(size & 0xFF, (size >> 8) & 0xFF)], { type: "image/png" });
   }),
 }));
-
-import { getPublishTemplatePreset } from "./publishTemplatePresets";
-import { renderWebgalPublishPackage } from "./publishRenderer";
-import { createSquarePngBlobFromUrl } from "./realtimeRendererImageAssets";
 
 type RenderedPackage = Awaited<ReturnType<typeof renderWebgalPublishPackage>>;
 
@@ -357,9 +357,9 @@ describe("renderWebgalPublishPackage", () => {
     const pkg = await renderWebgalPublishPackage({
       rooms: [room(10, "起点"), room(20, "分支")],
       workflowRoomMap: {
-        start: ["10"],
+        "start": ["10"],
         "10": ["20 tuanchat.role.100.hp > 0"],
-        endNodes: ["end:1"],
+        "endNodes": ["end:1"],
         "endNode:1": ["20"],
       },
       messagesByRoomId: {

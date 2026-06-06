@@ -1,6 +1,7 @@
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 import type {
+  AuthoredRoomMessage,
   AuthoringAvatar,
   AuthoringBatch,
   AuthoringBatchStats,
@@ -11,7 +12,6 @@ import type {
   AuthoringResourceRef,
   AuthoringRole,
   AuthoringUnresolvedMedia,
-  AuthoredRoomMessage,
   RecordUnresolvedMediaRequest,
   StartAuthoringBatchRequest,
   UpsertAvatarRequest,

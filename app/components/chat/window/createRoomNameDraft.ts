@@ -1,9 +1,9 @@
 export type CreateRoomNameDraft = string | null;
 
-interface CreateRoomNameInputState {
+type CreateRoomNameInputState = {
   canSubmitRoomName: boolean;
   roomName: string;
-}
+};
 
 export function resolveCreateRoomNameInputState(
   defaultRoomName: string,

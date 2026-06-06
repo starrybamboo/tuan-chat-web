@@ -1,17 +1,23 @@
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { RoomMessageMutationMeta } from "@tuanchat/openapi-client/models/RoomMessageMutationMeta";
 import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
 
 import type { GalPatchMutationPlan } from "./galPatchMutationAdapter";
 
 export type GalPatchMutationExecutorDeps = {
-  patchMessages: (operations: RoomMessageStreamPatchOperation[]) => Promise<Message[]>;
+  patchMessages: (operations: RoomMessageStreamPatchOperation[], mutationMeta?: RoomMessageMutationMeta) => Promise<Message[]>;
 };
 
 export type GalPatchMutationApplyResult = {
   inserted: number;
   updated: number;
   deleted: number;
+};
+
+export const GAL_PATCH_MUTATION_META: RoomMessageMutationMeta = {
+  operationCause: "normal",
+  sourceSurface: "ai",
 };
 
 function toPatchMessageItem(message: ChatMessageRequest | Message): NonNullable<RoomMessageStreamPatchOperation["message"]> {
@@ -62,7 +68,7 @@ export async function executeGalPatchMutationPlan(
   ];
 
   if (operations.length > 0) {
-    const patchedMessages = await deps.patchMessages(operations);
+    const patchedMessages = await deps.patchMessages(operations, GAL_PATCH_MUTATION_META);
     if (patchedMessages.length !== operations.length) {
       throw new Error("批量变更消息数量与 proposal 不一致");
     }

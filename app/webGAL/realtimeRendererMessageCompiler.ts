@@ -1,14 +1,15 @@
-import type { ChatMessageResponse } from "../../api";
 import type { FigurePositionKey } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
+import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import {
   getEffectDurationMs,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
+import type { ChatMessageResponse } from "../../api";
+
 import { TextEnhanceSyntax } from "./realtimeRendererTextEnhance";
-import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import { splitDiceContentToSteps } from "./realtimeRendererWorkflow";
 
 export type RealtimeRenderMessageCompilerInput = {

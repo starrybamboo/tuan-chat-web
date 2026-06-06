@@ -12,7 +12,7 @@ vi.mock("../../../../../api/hooks/chatQueryHooks", () => ({
 
 vi.mock("../../../../../api/hooks/RoleAndAvatarHooks", () => ({
   fetchRoleWithCache: vi.fn(async (_queryClient: unknown, roleId: number) => ({
-    data: { roleId, roleName: `骰娘${roleId}`, type: 1 },
+    data: { roleId, roleName: `骰娘${roleId}`, type: 1, userId: 1 },
   })),
 }));
 
@@ -20,7 +20,7 @@ vi.mock("../../../../../api/instance", () => ({
   tuanchat: {
     roleController: {
       getRole: vi.fn(async (roleId: number) => ({
-        data: { roleId, roleName: `骰娘${roleId}`, type: 1 },
+        data: { roleId, roleName: `骰娘${roleId}`, type: 1, userId: 1 },
       })),
     },
     spaceController: {
@@ -38,7 +38,7 @@ describe("dicer role resolve cache", () => {
     vi.clearAllMocks();
     vi.mocked(fetchRoleWithCache).mockImplementation(async (_queryClient: unknown, roleId: number) => ({
       success: true,
-      data: { roleId, roleName: `骰娘${roleId}`, type: 1 },
+      data: { roleId, roleName: `骰娘${roleId}`, type: 1, userId: 1 },
     }));
   });
 
@@ -85,8 +85,8 @@ describe("dicer role resolve cache", () => {
     fetchRoleWithCacheMock.mockImplementation(async (_queryClient: unknown, roleId: number) => ({
       success: true,
       data: roleId === 8
-        ? { roleId: 8, roleName: "调查员", type: 0, extra: { dicerRoleId: 10 } }
-        : { roleId, roleName: `骰娘${roleId}`, type: 1 },
+        ? { roleId: 8, roleName: "调查员", type: 0, userId: 1, extra: { dicerRoleId: "10" } }
+        : { roleId, roleName: `骰娘${roleId}`, type: 1, userId: 1 },
     }));
 
     const resolved = await UTILS.getDicerRoleId(roomContext, {

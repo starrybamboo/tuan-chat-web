@@ -6,8 +6,8 @@ import type { ChatMessageResponse, Message } from "../../../../api";
 
 import {
   buildClueDragPayload,
-  getClueAttachmentKind,
   getAutoJoinPublicClueSpaceId,
+  getClueAttachmentKind,
   getReorderedCluePosition,
   hasRenderableClueImage,
 } from "./clueFolderSidebar";

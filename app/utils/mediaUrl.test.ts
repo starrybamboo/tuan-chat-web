@@ -1,4 +1,4 @@
-﻿import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   avatarThumbUrl,
@@ -92,4 +92,3 @@ describe("mediaUrl", () => {
     expect(avatarThumbUrl(45)).toBe("https://media.tuan.chat/media/v1/files/045/45/image/low.webp");
   });
 });
-

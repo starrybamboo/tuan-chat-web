@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { transcodeAudioFileToOpusOrThrow } from "./audioTranscodeUtils";
 import { uploadGeneratedMediaFiles, uploadMediaFile } from "./mediaUpload";
@@ -220,4 +220,3 @@ describe("uploadUtils media service adapter", () => {
     }
   });
 });
-

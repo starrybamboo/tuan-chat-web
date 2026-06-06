@@ -5,7 +5,9 @@ import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { AlertButton } from "react-native";
 import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
+import type { ChatComposerShortcutAction } from "./ChatComposer";
 import type { MessageAction } from "./MessageActionMenu";
+import type { RightDrawerTabKey } from "./RightDrawerPanel";
 import type { DrawerMode } from "@/features/drawer/LeftDrawer";
 import type { MemberPreviewItem } from "@/features/members/memberUtils";
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
@@ -30,6 +32,7 @@ import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query
 import { selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
 import { getUserActiveSpacesQueryKey, getUserRoomsQueryKey, upsertUserActiveSpaceQueryData, upsertUserRoomQueryData } from "@tuanchat/query/spaces";
 import { router, useLocalSearchParams } from "expo-router";
+import { LightbulbIcon, MapPinLineIcon, SwordIcon } from "phosphor-react-native";
 import {
   startTransition,
   useCallback,
@@ -41,15 +44,16 @@ import {
 import {
   Alert,
   BackHandler,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -101,7 +105,7 @@ import { useUserActiveSpacesQuery } from "@/features/spaces/use-user-active-spac
 import { useWorkspaceSession } from "@/features/workspace/workspace-session";
 import { useTheme } from "@/hooks/use-theme";
 import { useGestureDrawer } from "@/hooks/useGestureDrawer";
-import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
+import { DRAWER_ACTIVE_OFFSET_X, DRAWER_FAIL_OFFSET_Y, shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 
@@ -127,6 +131,7 @@ import {
 } from "./mobileRouteSelection";
 import { MobileStShowCardSheet } from "./MobileStShowCardSheet";
 import { RightDrawerPanel } from "./RightDrawerPanel";
+import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 function readSingleSearchParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
@@ -175,10 +180,17 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  drawerGestureEdge: {
+  rightDrawerGestureEdge: {
     bottom: 0,
     position: "absolute",
     right: 0,
+    top: 0,
+    width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
+  },
+  leftDrawerGestureEdge: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
     top: 0,
     width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
   },
@@ -194,8 +206,21 @@ const styles = StyleSheet.create({
   },
 });
 
+const RIGHT_DRAWER_SHORTCUTS = [
+  { Icon: LightbulbIcon, label: "线索", tab: "clues" },
+  { Icon: SwordIcon, label: "战斗", tab: "combat" },
+  { Icon: MapPinLineIcon, label: "地图", tab: "map" },
+] satisfies ReadonlyArray<{
+  Icon: ChatComposerShortcutAction["Icon"];
+  label: string;
+  tab: RightDrawerTabKey;
+}>;
+
+const DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT = 156;
+
 export default function ChatShell() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const currentUserId = session?.userId ?? null;
@@ -203,6 +228,7 @@ export default function ChatShell() {
   const searchParams = useLocalSearchParams();
   const {
     panGesture,
+    open,
     close,
     closeImmediately,
     centerStyle,
@@ -262,6 +288,7 @@ export default function ChatShell() {
   const [selectedAvatarFileId, setSelectedAvatarFileId] = useState<number | undefined>(undefined);
   const [roleSwitchVisible, setRoleSwitchVisible] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("rooms");
+  const [rightDrawerTab, setRightDrawerTab] = useState<RightDrawerTabKey>("clues");
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
   const [activeDmTab, setActiveDmTab] = useState(DEFAULT_DM_TAB);
   const [dmBackTarget, setDmBackTarget] = useState(DEFAULT_DM_BACK_TARGET);
@@ -313,6 +340,7 @@ export default function ChatShell() {
       hasHostPrivileges: isSpaceOwner,
     });
   }, [currentUserId, isSpaceOwner, roomMessagesQuery.messages]);
+  const roomMessageModels = useMemo(() => roomMessages.map(item => item.message), [roomMessages]);
   const [searchPageVisible, setSearchPageVisible] = useState(false);
   const dmConversations = useMemo(() => dmInboxQuery.data ?? [], [dmInboxQuery.data]);
   const currentDmConversation = useMemo(() => {
@@ -391,6 +419,12 @@ export default function ChatShell() {
 
   const effectiveCurrentRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? 0;
   const noRole = effectiveCurrentRoleId <= 0 && !isSpaceOwner;
+  const roomStateRuntime = useRoomStateRuntime({
+    currentRoleId: effectiveCurrentRoleId > 0 ? effectiveCurrentRoleId : null,
+    messages: roomMessageModels,
+    roomRoles,
+    ruleId: selectedRuleId,
+  });
 
   const handleExecuteCommandFromRequest = useCallback(async (command: string, replyMessageId: number) => {
     const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
@@ -408,7 +442,7 @@ export default function ChatShell() {
 
     await executeMobileDicerCommand({
       command,
-      messages: roomMessages.map(item => item.message),
+      messages: roomMessageModels,
       queryClient,
       onShowRoleAbilityCard: setStShowCardModel,
       replyMessageId,
@@ -423,7 +457,7 @@ export default function ChatShell() {
       sendRoomMessageMutation,
       space: selectedSpace,
     });
-  }, [currentRole, draftCustomRoleName, draftRoleId, isSpaceOwner, isSpectator, queryClient, roomMessages, roomRoles, selectableRoomRoles, selectedAvatarId, selectedRoomId, selectedRuleId, selectedSpace, sendRoomMessageMutation]);
+  }, [currentRole, draftCustomRoleName, draftRoleId, isSpaceOwner, isSpectator, queryClient, roomMessageModels, roomRoles, selectableRoomRoles, selectedAvatarId, selectedRoomId, selectedRuleId, selectedSpace, sendRoomMessageMutation]);
 
   const commandRequests = useMobileCommandRequests({
     roomId: selectedRoomId ?? 0,
@@ -552,6 +586,45 @@ export default function ChatShell() {
     setDrawerMode("dm");
   }, [dmBackTarget]);
   const isRoutePage = !selectedRoomId && !currentContactId;
+  const handleLeftEdgeSwipe = useCallback(() => {
+    if (searchPageVisible) {
+      setSearchPageVisible(false);
+      return;
+    }
+    if (currentContactId) {
+      handleBackFromDmChat();
+      return;
+    }
+    if (!isRoutePage) {
+      handleBackToRoutePage();
+    }
+  }, [currentContactId, handleBackFromDmChat, handleBackToRoutePage, isRoutePage, searchPageVisible]);
+
+  const leftEdgeBackGesture = useMemo(() => Gesture.Pan()
+    .activeOffsetX(DRAWER_ACTIVE_OFFSET_X)
+    .failOffsetY(DRAWER_FAIL_OFFSET_Y)
+    .onEnd((event) => {
+      if (event.translationX >= DRAWER_EDGE_SWIPE_ZONE_WIDTH || event.velocityX >= 500) {
+        runOnJS(handleLeftEdgeSwipe)();
+      }
+    }), [handleLeftEdgeSwipe]);
+
+  const handleOpenRightDrawerTab = useCallback((tab: RightDrawerTabKey) => {
+    Keyboard.dismiss();
+    setRightDrawerTab(tab);
+    open();
+  }, [open]);
+
+  const rightDrawerShortcutActions = useMemo<readonly ChatComposerShortcutAction[]>(() => RIGHT_DRAWER_SHORTCUTS.map(item => ({
+    Icon: item.Icon,
+    accessibilityLabel: `打开${item.label}`,
+    onPress: () => handleOpenRightDrawerTab(item.tab),
+  })), [handleOpenRightDrawerTab]);
+
+  const handleOpenDmContactDrawer = useCallback(() => {
+    Keyboard.dismiss();
+    open();
+  }, [open]);
 
   const handleSystemBack = useCallback(() => {
     const action = resolveChatShellBackNavigationAction({
@@ -738,7 +811,7 @@ export default function ChatShell() {
           if (isCommand(resolvedDraftMessage)) {
             await executeMobileDicerCommand({
               command: resolvedDraftMessage,
-              messages: roomMessages.map(item => item.message),
+              messages: roomMessageModels,
               queryClient,
               onShowRoleAbilityCard: setStShowCardModel,
               replyMessageId: submittedMessageAnchorId ?? undefined,
@@ -1167,7 +1240,7 @@ export default function ChatShell() {
     handleSelectMessageAnchor,
   ]);
 
-  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "padding", ios: "padding" });
+  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: undefined, ios: "padding" });
 
   return (
     <ThemedView style={styles.shell}>
@@ -1235,6 +1308,8 @@ export default function ChatShell() {
                               currentUserId={currentUserId}
                               messages={currentDmConversation?.messages ?? []}
                               onBack={handleBackFromDmChat}
+                              onOpenContactDrawer={handleOpenDmContactDrawer}
+                              safeAreaBottomInset={insets.bottom}
                             />
                           )
                         : (
@@ -1275,6 +1350,7 @@ export default function ChatShell() {
                                 noRole={noRole}
                                 isCommandRequestConsumed={commandRequests.isConsumed}
                                 onExecuteCommandRequest={commandRequests.handleExecute}
+                                stateEventSummariesByMessageId={roomStateRuntime.messageSummariesByMessageId}
                               />
                               {multiSelectMode
                                 ? (
@@ -1366,12 +1442,21 @@ export default function ChatShell() {
                                       onSend={() => void handleSendMessage()}
                                       roomName={selectedRoom?.name}
                                       ruleId={selectedRuleId}
+                                      safeAreaBottomInset={insets.bottom}
+                                      shortcutActions={rightDrawerShortcutActions}
                                     />
                                   )}
                             </>
                           )}
+                    {!isRoutePage
+                      ? (
+                          <GestureDetector gesture={leftEdgeBackGesture}>
+                            <View style={[styles.leftDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
+                          </GestureDetector>
+                        )
+                      : null}
                     <GestureDetector gesture={panGesture}>
-                      <View style={styles.drawerGestureEdge} />
+                      <View style={[styles.rightDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
                     </GestureDetector>
                     <Animated.View
                       pointerEvents={isOverlayInteractive ? "auto" : "none"}
@@ -1394,13 +1479,15 @@ export default function ChatShell() {
                         )
                       : (
                           <RightDrawerPanel
+                            activeTab={rightDrawerTab}
                             clueRooms={clueRooms}
                             currentUserId={currentUserId}
                             currentRoleId={draftRoleId ?? currentRole?.roleId ?? null}
                             isKP={isSpaceOwner}
                             isStateCommandMode={messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT}
-                            messages={roomMessages.map(item => item.message)}
+                            messages={roomMessageModels}
                             onAdvanceTurn={() => void handleAdvanceTurn()}
+                            onChangeActiveTab={setRightDrawerTab}
                             onClose={close}
                             onEnterStateCommandMode={handleEnterStateMode}
                             onEndCombat={() => void sendCombatRoundEvent("end")}
@@ -1487,7 +1574,7 @@ export default function ChatShell() {
       <MapSheet
         currentRoleId={selectedRoleId ?? null}
         isKP={isSpaceOwner}
-        messages={roomMessages.map(item => item.message)}
+        messages={roomMessageModels}
         onClose={() => setMapSheetVisible(false)}
         roomId={selectedRoomId}
         roomRoles={roomRoles}

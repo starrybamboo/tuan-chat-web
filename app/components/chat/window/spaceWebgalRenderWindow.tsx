@@ -1,14 +1,15 @@
 import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../../../api";
 
 import type { BatchProgress, CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
+import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 import { useQueryClient } from "@tanstack/react-query";
-import { fetchRoleAvatarsWithCache } from "api/hooks/RoleAndAvatarHooks";
 import {
   fetchRoomNpcRoleWithCache,
   fetchRoomRoleWithCache,
   useGetSpaceInfoQuery,
   useGetUserRoomsQuery,
 } from "api/hooks/chatQueryHooks";
+import { fetchRoleAvatarsWithCache } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -20,11 +21,10 @@ import {
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import { getWebgalPublishJob, startWebgalPublish } from "@/webGAL/publishClient";
-import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 import { renderWebgalPublishPackage } from "@/webGAL/publishRenderer";
 import { buildSpaceWebgalInputSnapshot } from "@/webGAL/spaceWebgalSnapshot";
+import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 import { tuanchat } from "../../../../api/instance";
 import { SpaceWebgalRenderWindowHeader } from "./spaceWebgalRenderWindowHeader";

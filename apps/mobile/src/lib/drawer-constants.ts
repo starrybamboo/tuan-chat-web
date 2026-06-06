@@ -1,1 +1,1 @@
-export const DRAWER_EDGE_SWIPE_ZONE_WIDTH = 24;
+export const DRAWER_EDGE_SWIPE_ZONE_WIDTH = 48;

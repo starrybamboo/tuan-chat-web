@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   avatarOriginalUrl,
@@ -234,4 +234,3 @@ describe("image 便捷函数", () => {
     expect(imageOriginalUrl(45)).toBe("https://media.tuan.chat/media/v1/files/045/45/original");
   });
 });
-

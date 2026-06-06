@@ -1,18 +1,20 @@
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import process, { env } from "node:process";
+import { fileURLToPath } from "node:url";
+
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
-
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
-import { ensureRoomInSidebarTree, type GululuLiveImportPlan } from "./gululu-authoring-live-import";
+import type { GululuLiveImportPlan } from "./gululu-authoring-live-import";
+
+import { ensureRoomInSidebarTree } from "./gululu-authoring-live-import";
 
 type ApiResult<T> = {
   data?: T;
@@ -36,7 +38,7 @@ type SourceMessagePlan = {
 
 type SourceLiveResult = {
   plan?: {
-    avatars?: Array<{ fileName?: string; imagePath?: string; key?: string }>;
+    avatars?: Array<{ fileName?: string; height?: number; imagePath?: string; key?: string; width?: number }>;
     messages?: SourceMessagePlan[];
     source?: Record<string, unknown>;
     stats?: Record<string, number>;
@@ -55,6 +57,8 @@ type ImageShowDirective = boolean | {
   avatarKey?: string;
   clearBefore?: boolean;
   fileName?: string;
+  height?: number;
+  width?: number;
 };
 
 export type GululuGalDirectionEntry = {
@@ -157,6 +161,10 @@ export type GululuGalDirectedImportArgs = {
 type GululuGalDirectedClient = {
   chatController: {
     patchRoomMessages: (requestBody: {
+      mutationMeta?: {
+        operationCause?: string;
+        sourceSurface?: string;
+      };
       operations: RoomMessageStreamPatchOperation[];
       roomId: number;
     }) => Promise<ApiResult<Message[]>>;
@@ -345,7 +353,7 @@ function mergeSoloActiveWebgal(
   webgal: Record<string, unknown> | undefined,
   canShowFigure: boolean,
 ) {
-  const next = { ...(webgal ?? {}) };
+  const next = { ...webgal };
   if (canShowFigure) {
     next.stage = {
       position: "center",
@@ -387,6 +395,11 @@ function getImageShowClearBefore(entry: GululuGalDirectionEntry) {
 
 function getImageShowFileName(entry: GululuGalDirectionEntry) {
   return typeof entry.imageShow === "object" && entry.imageShow.fileName ? entry.imageShow.fileName : undefined;
+}
+
+function getImageShowDimension(entry: GululuGalDirectionEntry, field: "height" | "width") {
+  const value = typeof entry.imageShow === "object" ? entry.imageShow[field] : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 function getSceneEndEventIndex(scene: GululuGalStageScene, sortedScenes: GululuGalStageScene[], index: number) {
@@ -469,9 +482,9 @@ function applyStagePlanEntry(params: {
 
   next.annotations = annotations;
   next.webgal = {
-    ...(next.webgal ?? {}),
+    ...next.webgal,
     stage: {
-      ...(getRecordField(next.webgal, "stage") ?? {}),
+      ...getRecordField(next.webgal, "stage"),
       sceneId: scene.sceneId,
       ...(position ? { position, reason: "stage-plan" } : {}),
     },
@@ -568,8 +581,10 @@ function buildSourceMetadata(source: SourceMessagePlan["source"]) {
 
 type AvatarAssetMapValue = {
   fileName?: string;
+  height?: number;
   imagePath?: string;
   mediaFileId?: number;
+  width?: number;
 };
 
 function buildAvatarAssetMap(liveResult: SourceLiveResult) {
@@ -580,7 +595,9 @@ function buildAvatarAssetMap(liveResult: SourceLiveResult) {
     }
     assets.set(avatar.key, {
       fileName: avatar.fileName,
+      ...(avatar.height ? { height: avatar.height } : {}),
       imagePath: avatar.imagePath,
+      ...(avatar.width ? { width: avatar.width } : {}),
       ...assets.get(avatar.key),
     });
   }
@@ -609,7 +626,7 @@ function mergeWebgal(
   webgal: Record<string, unknown> | undefined,
 ) {
   return {
-    ...(webgal ?? {}),
+    ...webgal,
     source: buildSourceMetadata(source),
   };
 }
@@ -624,6 +641,14 @@ function getStringField(value: Record<string, unknown> | undefined, field: strin
   return typeof next === "string" && next.trim() ? next.trim() : undefined;
 }
 
+type DiceReplyRecord = Record<string, unknown> & { content: string };
+
+type DiceTextPlan = {
+  commandContent?: string;
+  replies?: DiceReplyRecord[];
+  replyContent?: string;
+};
+
 function getDirectedDiceText(webgal: Record<string, unknown> | undefined) {
   const diceRender = getRecordField(webgal, "diceRender");
   return {
@@ -632,29 +657,42 @@ function getDirectedDiceText(webgal: Record<string, unknown> | undefined) {
   };
 }
 
-function getExistingDiceText(request: ChatMessageRequest) {
+function getExistingDiceText(request: ChatMessageRequest): DiceTextPlan {
   const existing = request.extra ?? {};
   const diceTurn = getRecordField(existing as Record<string, unknown>, "diceTurn");
   const replies = diceTurn?.replies;
-  const firstReply = Array.isArray(replies)
-    ? replies.find(item => item && typeof item === "object" && !Array.isArray(item)) as Record<string, unknown> | undefined
-    : undefined;
+  const normalizedReplies = Array.isArray(replies)
+    ? replies.flatMap(item => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          return [];
+        }
+        const content = getStringField(item as Record<string, unknown>, "content");
+        return content ? [{ ...(item as Record<string, unknown>), content }] : [];
+      })
+    : [];
+  const fallbackReplyContent = getStringField(getRecordField(existing as Record<string, unknown>, "diceResult"), "result")
+    ?? request.content?.trim();
+  const replyContent = normalizedReplies.length > 0
+    ? normalizedReplies.map(reply => reply.content).join("\n")
+    : fallbackReplyContent;
   return {
     commandContent: getStringField(diceTurn, "command"),
-    replyContent: getStringField(firstReply, "content")
-      ?? getStringField(getRecordField(existing as Record<string, unknown>, "diceResult"), "result")
-      ?? request.content?.trim(),
+    replies: normalizedReplies,
+    replyContent,
   };
 }
 
 function preserveExistingDiceSplit(
   request: ChatMessageRequest,
-  diceText: { commandContent?: string; replyContent?: string },
+  diceText: DiceTextPlan,
 ) {
+  const existing = getExistingDiceText(request);
+  if (existing.commandContent && existing.replyContent && existing.replies && existing.replies.length > 1) {
+    return existing;
+  }
   if (!diceText.commandContent || !diceText.replyContent || diceText.commandContent !== diceText.replyContent) {
     return diceText;
   }
-  const existing = getExistingDiceText(request);
   if (!existing.commandContent || !existing.replyContent || existing.commandContent === existing.replyContent) {
     return diceText;
   }
@@ -664,14 +702,14 @@ function preserveExistingDiceSplit(
 
 function mergeDiceRenderText(
   webgal: Record<string, unknown> | undefined,
-  diceText: { commandContent?: string; replyContent?: string },
+  diceText: DiceTextPlan,
 ) {
   const diceRender = getRecordField(webgal, "diceRender");
   if (!diceRender || (!diceText.commandContent && !diceText.replyContent)) {
     return webgal;
   }
   return {
-    ...(webgal ?? {}),
+    ...webgal,
     diceRender: {
       ...diceRender,
       ...(diceText.commandContent ? { commandContent: diceText.commandContent } : {}),
@@ -680,9 +718,32 @@ function mergeDiceRenderText(
   };
 }
 
+function buildDiceReply(
+  request: ChatMessageRequest,
+  reply: DiceReplyRecord | string,
+): DiceReplyRecord {
+  const source = typeof reply === "string" ? { content: reply } : reply;
+  return {
+    ...source,
+    customRoleName: typeof source.customRoleName === "string" && source.customRoleName.trim()
+      ? source.customRoleName
+      : request.customRoleName || "骰娘",
+    ...(typeof source.roleId === "number" && source.roleId > 0
+      ? { roleId: source.roleId }
+      : typeof request.roleId === "number" && request.roleId > 0
+        ? { roleId: request.roleId }
+        : {}),
+    ...(typeof source.avatarId === "number" && source.avatarId > 0
+      ? { avatarId: source.avatarId }
+      : typeof request.avatarId === "number" && request.avatarId > 0
+        ? { avatarId: request.avatarId }
+        : {}),
+  };
+}
+
 function buildDiceExtra(
   request: ChatMessageRequest,
-  diceText: { commandContent?: string; replyContent?: string } = {},
+  diceText: DiceTextPlan = {},
 ) {
   const existing = request.extra ?? {};
   if (existing.diceTurn && !diceText.commandContent && !diceText.replyContent) {
@@ -694,17 +755,15 @@ function buildDiceExtra(
   }
   const existingCommand = getStringField(getRecordField(existing as Record<string, unknown>, "diceTurn"), "command");
   const command = diceText.commandContent || existingCommand;
+  const replies = diceText.replies && diceText.replies.length > 0
+    ? diceText.replies.map(reply => buildDiceReply(request, reply))
+    : [buildDiceReply(request, result)];
   return {
     ...existing,
     diceResult: { result },
     diceTurn: {
       ...(command ? { command } : {}),
-      replies: [{
-        content: result,
-        customRoleName: request.customRoleName || "骰娘",
-        ...(typeof request.roleId === "number" && request.roleId > 0 ? { roleId: request.roleId } : {}),
-        ...(typeof request.avatarId === "number" && request.avatarId > 0 ? { avatarId: request.avatarId } : {}),
-      }],
+      replies,
     },
   };
 }
@@ -798,6 +857,11 @@ function materializeImageShowRequest(params: {
     annotations.unshift("image.clear");
   }
   const fileName = getImageShowFileName(params.direction) ?? asset?.fileName ?? fileNameFromImagePath(asset?.imagePath);
+  const width = getImageShowDimension(params.direction, "width") ?? asset?.width;
+  const height = getImageShowDimension(params.direction, "height") ?? asset?.height;
+  if (!width || !height) {
+    throw new Error(`展示图缺少宽高：${avatarKey}`);
+  }
   return {
     annotations,
     avatarId: -1,
@@ -806,10 +870,12 @@ function materializeImageShowRequest(params: {
       imageMessage: {
         background: false,
         ...(fileName ? { fileName } : {}),
+        height,
         source: {
           fileId: mediaFileId,
           kind: "internal",
         },
+        width,
       },
     },
     messageType: MESSAGE_TYPE.IMG,
@@ -1006,6 +1072,10 @@ async function patchMessagesInChunks(
     const chunk = messages.slice(start, start + chunkSize);
     const result = assertApiSuccess(
       await client.chatController.patchRoomMessages({
+        mutationMeta: {
+          operationCause: "normal",
+          sourceSurface: "import",
+        },
         operations: chunk.map(message => toInsertOperation(message.request)),
         roomId,
       }),
@@ -1070,7 +1140,7 @@ async function readJsonFile<T>(filePath: string) {
 function createClient(args: GululuGalDirectedImportArgs): GululuGalDirectedClient {
   return new TuanChat({
     BASE: args.baseUrl ?? "http://127.0.0.1:8081",
-    TOKEN: args.authToken || process.env.TUANCHAT_AUTH_TOKEN,
+    TOKEN: args.authToken || env.TUANCHAT_AUTH_TOKEN,
   }) as unknown as GululuGalDirectedClient;
 }
 
@@ -1118,12 +1188,12 @@ const entryPath = fileURLToPath(import.meta.url);
 if (process.argv[1] && path.resolve(process.argv[1]) === entryPath) {
   runGululuGalDirectedImport(process.argv.slice(2))
     .then(({ outputPath, plan, result }) => {
-      console.log(JSON.stringify({
+      process.stdout.write(`${JSON.stringify({
         applied: Boolean(result),
         outputPath,
         stats: plan.stats,
         target: plan.target,
-      }, null, 2));
+      }, null, 2)}\n`);
     })
     .catch((error) => {
       console.error(error);

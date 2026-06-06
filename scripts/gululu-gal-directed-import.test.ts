@@ -1,13 +1,15 @@
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it, vi } from "vitest";
 
+import type { GululuGalDirectingPlan } from "./gululu-gal-directed-import";
+
 import {
+  applyGululuGalDirectedImportPlan,
   applySoloActiveStagePolicy,
   applyStagePlan,
-  applyGululuGalDirectedImportPlan,
   buildGululuGalDirectedImportPlan,
+
   parseGululuGalDirectedImportArgs,
-  type GululuGalDirectingPlan,
 } from "./gululu-gal-directed-import";
 
 function createLiveResult() {
@@ -16,8 +18,10 @@ function createLiveResult() {
       avatars: [
         {
           fileName: "retsu.png",
+          height: 720,
           imagePath: "gululu/retsu.png",
           key: "role:烈海王:image:gululu/retsu.png",
+          width: 1280,
         },
       ],
       messages: [
@@ -281,6 +285,70 @@ describe("gululu-gal-directed-import", () => {
     });
   });
 
+  it("保留嵌套骰链的完整选项和多段回复", () => {
+    const liveResult = createLiveResult();
+    const command = [
+      "【1d10：】",
+      "1 师匠，请指导我",
+      "9 与铃仙交流",
+      "10 大成功/大失败【1d2：】",
+    ].join("\n");
+    liveResult.plan.messages[2]!.request = {
+      avatarId: -1,
+      content: command,
+      customRoleName: "骰娘",
+      extra: {
+        diceResult: { result: "【1d10：10】\n10 大成功/大失败【1d2：2】\n【1d10：9】" },
+        diceTurn: {
+          command,
+          replies: [
+            { content: "【1d10：10】", customRoleName: "骰娘" },
+            { content: "10 大成功/大失败【1d2：2】", customRoleName: "骰娘" },
+            { content: "【1d10：9】", customRoleName: "骰娘" },
+          ],
+        },
+      },
+      messageType: MESSAGE_TYPE.DICE,
+      roleId: -1,
+      roomId: 12970,
+    };
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries[2]!.webgal = {
+      diceRender: {
+        commandContent: "【1d10：】\n1 师匠，请指导我\n9 与铃仙交流",
+        mode: "anko",
+        replyContent: "【1d10：9】",
+        showFigure: false,
+        twoStep: true,
+      },
+    };
+
+    const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages[2]!.request).toMatchObject({
+      content: command,
+      extra: {
+        diceResult: { result: "【1d10：10】\n10 大成功/大失败【1d2：2】\n【1d10：9】" },
+        diceTurn: {
+          command,
+          replies: [
+            { content: "【1d10：10】", customRoleName: "骰娘" },
+            { content: "10 大成功/大失败【1d2：2】", customRoleName: "骰娘" },
+            { content: "【1d10：9】", customRoleName: "骰娘" },
+          ],
+        },
+      },
+      webgal: {
+        diceRender: {
+          commandContent: command,
+          replyContent: "【1d10：10】\n10 大成功/大失败【1d2：2】\n【1d10：9】",
+        },
+      },
+    });
+  });
+
   it("solo-active 策略会清理旧立绘并把当前说话人居中", () => {
     const plan = buildGululuGalDirectedImportPlan(createLiveResult(), createDirectingPlan(), {
       stagePolicy: "solo-active",
@@ -399,10 +467,12 @@ describe("gululu-gal-directed-import", () => {
       extra: {
         imageMessage: {
           fileName: "retsu.png",
+          height: 720,
           source: {
             fileId: 4001,
             kind: "internal",
           },
+          width: 1280,
         },
       },
       messageType: MESSAGE_TYPE.IMG,
@@ -497,6 +567,10 @@ describe("gululu-gal-directed-import", () => {
       webgal: {
         directorNote: "开场说明由烈海王居中发言",
       },
+    });
+    expect(client.chatController.patchRoomMessages.mock.calls[0]![0].mutationMeta).toEqual({
+      operationCause: "normal",
+      sourceSurface: "import",
     });
     expect(client.chatController.patchRoomMessages.mock.calls[0]![0].operations[1].message).toMatchObject({
       messageType: MESSAGE_TYPE.DICE,

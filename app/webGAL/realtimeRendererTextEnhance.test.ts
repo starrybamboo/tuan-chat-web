@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { TextEnhanceSyntax } from "./realtimeRendererTextEnhance";
 
-describe("TextEnhanceSyntax", () => {
+describe("textEnhanceSyntax", () => {
   it("保留 WebGAL 文本增强块，并把 CSS 冒号转换为引擎兼容写法", () => {
     expect(TextEnhanceSyntax.processContent("状态：[不支持](style=color:#ff0000\\;)")).toBe(
       "状态：[不支持](style=color~#ff0000\\;)",

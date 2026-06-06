@@ -19,7 +19,7 @@ describe("useGestureDrawer", () => {
   });
 
   it("右抽屉只从右边缘热区起手", () => {
-    expect(DRAWER_EDGE_SWIPE_ZONE_WIDTH).toBe(24);
+    expect(DRAWER_EDGE_SWIPE_ZONE_WIDTH).toBe(48);
   });
 
   it("只允许右侧抽屉手势范围", () => {

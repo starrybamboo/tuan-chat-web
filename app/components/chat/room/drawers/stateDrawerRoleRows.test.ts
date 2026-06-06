@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildCommandStateEventExtra, buildRoleStateEventScope, STATE_EVENT_VAR_OP, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
 import {
+  buildCustomCombatStateKey,
   buildNextCopiedInitiativeRoleName,
   buildRoleAbilityFieldDeletePatch,
-  buildCustomCombatStateKey,
   collectCombatInitiativeRecords,
   collectRecordedRoleValueIds,
   compareCombatRoleRowsByInitiative,

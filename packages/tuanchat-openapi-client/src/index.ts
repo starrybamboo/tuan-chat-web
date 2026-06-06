@@ -216,6 +216,7 @@ export type { RoomListResponse } from './models/RoomListResponse';
 export type { RoomMember } from './models/RoomMember';
 export type { RoomMemberAddRequest } from './models/RoomMemberAddRequest';
 export type { RoomMemberDeleteRequest } from './models/RoomMemberDeleteRequest';
+export type { RoomMessageMutationMeta } from './models/RoomMessageMutationMeta';
 export type { RoomMessageStreamItem } from './models/RoomMessageStreamItem';
 export type { RoomMessageStreamPatchOperation } from './models/RoomMessageStreamPatchOperation';
 export type { RoomMessageStreamPatchRequest } from './models/RoomMessageStreamPatchRequest';

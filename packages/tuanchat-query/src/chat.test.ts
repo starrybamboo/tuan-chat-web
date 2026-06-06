@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
@@ -7,6 +7,7 @@ import {
   markRoomMessageDeletedData,
   markRoomMessagesDeleted,
   mergeRoomMessages,
+  patchInsertMessages,
   selectVisibleMainRoomMessages,
   upsertRoomMessagesListData,
 } from "./chat";
@@ -153,5 +154,64 @@ describe("chat room message helpers", () => {
     expect(getRoomMessageSyncGapStart(current, createChatMessageResponse(4, 40, { syncId: 4 }))).toBe(3);
     expect(getRoomMessageSyncGapStart(current, createChatMessageResponse(3, 30, { syncId: 3 }))).toBeNull();
     expect(getRoomMessageSyncGapStart(current, createChatMessageResponse(2, 40, { syncId: 4 }))).toBeNull();
+  });
+
+  it("批量插入消息时可透传 mutationMeta", async () => {
+    const patchRoomMessages = vi.fn(async () => ({ data: [], success: true }));
+
+    await patchInsertMessages({
+      chatController: {
+        patchRoomMessages,
+      },
+    } as any, [{
+      content: "导入消息",
+      messageType: 1,
+      roomId: 9,
+    }], {
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "import",
+      },
+    });
+
+    expect(patchRoomMessages).toHaveBeenCalledWith({
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "import",
+      },
+      operations: [{
+        message: {
+          content: "导入消息",
+          messageType: 1,
+        },
+        op: "insert",
+      }],
+      roomId: 9,
+    });
+  });
+
+  it("批量插入消息未传 mutationMeta 时保持旧请求形状", async () => {
+    const patchRoomMessages = vi.fn(async () => ({ data: [], success: true }));
+
+    await patchInsertMessages({
+      chatController: {
+        patchRoomMessages,
+      },
+    } as any, [{
+      content: "普通消息",
+      messageType: 1,
+      roomId: 9,
+    }]);
+
+    expect(patchRoomMessages).toHaveBeenCalledWith({
+      operations: [{
+        message: {
+          content: "普通消息",
+          messageType: 1,
+        },
+        op: "insert",
+      }],
+      roomId: 9,
+    });
   });
 });

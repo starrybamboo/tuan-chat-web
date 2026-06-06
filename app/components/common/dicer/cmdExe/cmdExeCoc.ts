@@ -67,17 +67,31 @@ const COC_RULE_DESCRIPTIONS: Record<CocRuleType, string> = {
   5: " 出1-2且≤成功率/5为大成功，不满50出96-100大失败，满50出99-100大失败",
 };
 
+const MAX_COC_REPEAT_CHECKS = 20;
+
+type CocRepeatArgs = {
+  repeat: number;
+  args: string[];
+  error?: string;
+};
+
 const cmdRc = new CommandExecutor(
   "rc",
   ["ra"],
   "进行技能检定",
-  [".rc 侦查 50", ".rc 侦查 +10", ".rc p 手枪", ".rc 力量", ".rc 敏捷-10"],
-  "rc [奖励/惩罚骰]? [技能名] [技能值]?",
+  [".rc 侦查 50", ".rc 侦查 +10", ".rc p 手枪", ".rc 力量", ".rc 敏捷-10", ".rc 3#手枪"],
+  "rc [次数#]? [奖励/惩罚骰]? [技能名] [技能值]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
     const isForceToasted = UTILS.doesHaveArg(args, "h");
+    const repeatArgs = parseCocRepeatPrefix(args);
+    if (repeatArgs.error) {
+      cpi.replyMessage(repeatArgs.error);
+      return false;
+    }
+    args = repeatArgs.args;
 
     // 解析参数
     const signedNumbers: string[] = [];
@@ -156,14 +170,14 @@ const cmdRc = new CommandExecutor(
       value = 0;
     }
 
-    const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], value, cpi);
-    if (bp > 0) {
-      result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
-    }
-    if (bp < 0) {
-      result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
-    }
+    const result = buildCocCheckReply({
+      bp,
+      cpi,
+      name,
+      repeat: repeatArgs.repeat,
+      roleName: mentioned[0]?.roleName,
+      value,
+    });
     if (isForceToasted) {
       cpi.setCopywritingKey(null);
       cpi.replyMessage(result, { visibility: "kp_and_sender" });
@@ -179,12 +193,18 @@ const cmdRcb = new CommandExecutor(
   "rcb",
   ["rab"],
   "进行带奖励骰的技能检定",
-  [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3"],
-  "rcb [技能名/技能值] [奖励骰数量]?", // 调整格式说明
+  [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3", ".rcb 3#手枪"],
+  "rcb [次数#]? [技能名/技能值] [奖励骰数量]?", // 调整格式说明
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
     const isForceToasted = UTILS.doesHaveArg(args, "h");
+    const repeatArgs = parseCocRepeatPrefix(args);
+    if (repeatArgs.error) {
+      cpi.replyMessage(repeatArgs.error);
+      return false;
+    }
+    args = repeatArgs.args;
 
     const signedNumbers: string[] = [];
     const names: string[] = [];
@@ -277,9 +297,14 @@ const cmdRcb = new CommandExecutor(
 
     // 奖励骰逻辑
     const bp = bonusCount;
-    const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], skillValue, cpi);
-    result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
+    const result = buildCocCheckReply({
+      bp,
+      cpi,
+      name,
+      repeat: repeatArgs.repeat,
+      roleName: mentioned[0]?.roleName,
+      value: skillValue,
+    });
 
     if (isForceToasted) {
       cpi.setCopywritingKey(null);
@@ -296,12 +321,18 @@ const cmdRcp = new CommandExecutor(
   "rcp",
   ["rap"],
   "进行带惩罚骰的技能检定",
-  [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3"],
-  "rcp [技能名/技能值] [惩罚骰数量]?",
+  [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3", ".rcp 3#手枪"],
+  "rcp [次数#]? [技能名/技能值] [惩罚骰数量]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     args = args.map(arg => arg.toLowerCase());
     const isForceToasted = UTILS.doesHaveArg(args, "h");
+    const repeatArgs = parseCocRepeatPrefix(args);
+    if (repeatArgs.error) {
+      cpi.replyMessage(repeatArgs.error);
+      return false;
+    }
+    args = repeatArgs.args;
 
     const signedNumbers: string[] = [];
     const names: string[] = [];
@@ -382,9 +413,14 @@ const cmdRcp = new CommandExecutor(
     skillValue = Math.max(0, skillValue);
 
     const bp = -penaltyCount;
-    const roll: number[] = rollDiceWithBP(bp);
-    let result: string = buildCheckResult(name, roll[0], skillValue, cpi);
-    result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
+    const result = buildCocCheckReply({
+      bp,
+      cpi,
+      name,
+      repeat: repeatArgs.repeat,
+      roleName: mentioned[0]?.roleName,
+      value: skillValue,
+    });
 
     if (isForceToasted) {
       cpi.setCopywritingKey(null);
@@ -1033,6 +1069,78 @@ function isCriticalFailure(roll: number, value: number, rule: CocRuleType): bool
     default:
       return false;
   }
+}
+
+function parseCocRepeatPrefix(args: string[]): CocRepeatArgs {
+  const firstArg = args[0]?.trim();
+  if (!firstArg) {
+    return { repeat: 1, args };
+  }
+
+  const match = firstArg.match(/^(\d+)[#＃](.*)$/u);
+  if (!match) {
+    return { repeat: 1, args };
+  }
+
+  const repeat = Number.parseInt(match[1], 10);
+  if (!Number.isSafeInteger(repeat) || repeat < 1) {
+    return { repeat: 1, args, error: "错误：检定次数必须至少为1" };
+  }
+  if (repeat > MAX_COC_REPEAT_CHECKS) {
+    return { repeat: 1, args, error: `错误：一次最多支持${MAX_COC_REPEAT_CHECKS}次检定` };
+  }
+
+  const suffix = match[2].trim();
+  return {
+    repeat,
+    args: suffix ? [suffix, ...args.slice(1)] : args.slice(1),
+  };
+}
+
+function buildCocCheckReply(options: {
+  bp: number;
+  cpi: CPI;
+  name: string;
+  repeat: number;
+  roleName?: string;
+  value: number;
+}): string {
+  const { bp, cpi, name, repeat, roleName, value } = options;
+  if (repeat <= 1) {
+    return buildSingleCocCheckLine({ bp, cpi, includeAttrPrefix: true, name, value });
+  }
+
+  const lines = Array.from({ length: repeat }, () => {
+    return buildSingleCocCheckLine({ bp, cpi, includeAttrPrefix: false, name, value });
+  });
+  return `对<${roleName || "当前角色"}>的"${name}"进行了${repeat}次检定，结果为:\n${lines.join("\n")}`;
+}
+
+function buildSingleCocCheckLine(options: {
+  bp: number;
+  cpi: CPI;
+  includeAttrPrefix: boolean;
+  name: string;
+  value: number;
+}): string {
+  const { bp, cpi, includeAttrPrefix, name, value } = options;
+  const roll: number[] = rollDiceWithBP(bp);
+  let result: string = buildCheckResult(name, roll[0], value, cpi);
+  if (!includeAttrPrefix) {
+    result = trimCheckAttrPrefix(result, name);
+  }
+  if (bp > 0) {
+    result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
+  }
+  if (bp < 0) {
+    result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
+  }
+  return result;
+}
+
+function trimCheckAttrPrefix(result: string, name: string): string {
+  const prefix = `${name}检定：`;
+  return result.startsWith(prefix) ? result.slice(prefix.length) : result;
 }
 
 // ----------------------------------------------------------------------------

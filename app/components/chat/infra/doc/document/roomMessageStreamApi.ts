@@ -7,6 +7,7 @@ import { tuanchat } from "api/instance";
 import type {
   ChatMessageResponse,
   Message,
+  RoomMessageMutationMeta,
   RoomMessageStreamItem,
 } from "../../../../../../api";
 
@@ -99,6 +100,7 @@ function readRoomMessageStreamMessages(
 }
 
 export async function patchRemoteRoomMessageStream(params: {
+  mutationMeta?: RoomMessageMutationMeta;
   operations: RoomMessageStreamPatchOperation[];
   roomId: number;
 }): Promise<Message[]> {
@@ -122,6 +124,7 @@ export async function patchRemoteRoomMessageStream(params: {
   const result = await tuanchat.chatController.patchRoomMessages({
     roomId: params.roomId,
     operations,
+    ...(params.mutationMeta ? { mutationMeta: params.mutationMeta } : {}),
   });
   return readRoomMessageStreamMessages(unwrapApiResult(result, "批量变更房间消息列表失败"));
 }

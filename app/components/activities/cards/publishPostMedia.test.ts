@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   buildMomentFeedRequestFromPostMedia,
@@ -64,4 +64,3 @@ describe("publishPostMedia", () => {
     })).toBe("https://media.tuan.chat/media/v1/files/003/3003/image/medium.webp");
   });
 });
-

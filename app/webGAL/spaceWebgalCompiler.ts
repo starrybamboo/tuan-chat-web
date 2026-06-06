@@ -1,6 +1,3 @@
-import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
-import type { RealtimeGameConfig } from "./realtimeRendererConfig";
-
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import {
   ANNOTATION_IDS,
@@ -17,7 +14,13 @@ import {
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
+import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
+import type { RealtimeGameConfig } from "./realtimeRendererConfig";
+import type { WorkflowGraph } from "./realtimeRendererWorkflow";
+import type { SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
+
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "../types/webgalChoose";
+import { getPublishTemplatePreset } from "./publishTemplatePresets";
 import {
   buildFigureArgs,
   buildImageFigureTransformString,
@@ -28,16 +31,13 @@ import {
   resolveFigureSlot,
 } from "./realtimeRendererFigureLayout";
 import { parseGameConfig, sanitizeGameConfigValue, serializeGameConfig, upsertGameConfigEntry } from "./realtimeRendererGameConfig";
-import { getPublishTemplatePreset } from "./publishTemplatePresets";
 import { TextEnhanceSyntax } from "./realtimeRendererTextEnhance";
 import { parseWorkflowRoomMap } from "./realtimeRendererWorkflow";
-import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 import {
   buildStartSceneContent as buildWorkflowStartSceneContent,
   buildWorkflowTransitionLineWithEnd,
   getWorkflowEndSceneName,
 } from "./realtimeRendererWorkflowScenes";
-import type { SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
 
 export type WebgalPublishFile = {
   path: string;
@@ -288,7 +288,7 @@ export function buildIndexHtml(spaceName?: string, sharedEngineUrl?: string, inc
     "      gameDir: \"./game/\"",
     "    };",
     "  </script>",
-    `  <script type=\"module\" src=\"${engineUrl}\"></script>`,
+    `  <script type="module" src="${engineUrl}"></script>`,
     "</head>",
     "<body></body>",
     "</html>",
@@ -754,4 +754,4 @@ export function buildStaticWebgalPackage(input: {
   };
 }
 
-export { buildWorkflowStartSceneContent as buildStartSceneContent, getWorkflowEndSceneName, buildWorkflowTransitionLineWithEnd };
+export { buildWorkflowStartSceneContent as buildStartSceneContent, buildWorkflowTransitionLineWithEnd, getWorkflowEndSceneName };

@@ -27,15 +27,17 @@ describe("agent authoring primitives", () => {
       targetRoomId: 1,
     })).toThrow(AuthoringPrimitiveError);
 
+    let caughtError: unknown;
     try {
       authoring.startBatch({ source: { kind: "" }, targetRoomId: 1 });
     }
     catch (error) {
-      expect(error).toMatchObject({
-        code: "INVALID_REQUEST",
-        details: { fieldName: "source.kind" },
-      });
+      caughtError = error;
     }
+    expect(caughtError).toMatchObject({
+      code: "INVALID_REQUEST",
+      details: { fieldName: "source.kind" },
+    });
   });
 
   it("creates batches and rejects duplicate committed input unless forced", () => {

@@ -10,12 +10,12 @@ function createContext(request: Request) {
   };
 }
 
-describe("Cloudflare Pages middleware", () => {
+describe("cloudflare Pages middleware", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("WebGAL 资源代理在生产环境直接读取团剧媒体，不转发到后端 API", async () => {
+  it("webGAL 资源代理在生产环境直接读取团剧媒体，不转发到后端 API", async () => {
     const fetchMock = vi.fn(async () => new Response("avatar", {
       headers: {
         "cache-control": "public, max-age=31536000",
@@ -27,10 +27,10 @@ describe("Cloudflare Pages middleware", () => {
     const sourceUrl = "https://media.tuan.chat/media/v1/files/542/30542/original";
     const request = new Request(`https://www.tuan.chat/webgal-asset-proxy?url=${encodeURIComponent(sourceUrl)}`, {
       headers: {
-        accept: "image/webp",
-        authorization: "Bearer local-token",
-        cookie: "satoken=session-token",
-        referer: "https://www.tuan.chat/rooms/1",
+        "accept": "image/webp",
+        "authorization": "Bearer local-token",
+        "cookie": "satoken=session-token",
+        "referer": "https://www.tuan.chat/rooms/1",
         "user-agent": "vitest",
       },
     });
@@ -50,7 +50,7 @@ describe("Cloudflare Pages middleware", () => {
     expect(headers.get("referer")).toBe("https://www.tuan.chat/rooms/1");
   });
 
-  it("WebGAL 资源代理拒绝非团剧媒体域名，避免开放代理", async () => {
+  it("webGAL 资源代理拒绝非团剧媒体域名，避免开放代理", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const request = new Request("https://www.tuan.chat/webgal-asset-proxy?url=https%3A%2F%2Fevil.example%2Fa.png");
@@ -62,7 +62,7 @@ describe("Cloudflare Pages middleware", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("WebGAL 派生媒体读取失败时会回退到 origin.tuan.chat 同路径源站", async () => {
+  it("webGAL 派生媒体读取失败时会回退到 origin.tuan.chat 同路径源站", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response("unauthorized", { status: 401, statusText: "Unauthorized" }))
       .mockResolvedValueOnce(new Response("avatar-original", {

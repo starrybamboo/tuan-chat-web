@@ -1,9 +1,11 @@
-import type { ChatMessageResponse, Room, UserRole } from "../../api";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageResponse, Room, UserRole } from "../../api";
+
+import { RealtimeRenderer } from "./realtimeRenderer";
 
 const manageGameControllerEditTextFile = vi.fn(async () => ({}));
 const { fetchRoleAvatarWithCache } = vi.hoisted(() => ({
@@ -31,8 +33,6 @@ vi.mock("./fileOperator", async (importOriginal) => {
     uploadFile: vi.fn(async (_url: string, _path: string, fileName?: string) => fileName ?? "uploaded.webp"),
   };
 });
-
-import { RealtimeRenderer } from "./realtimeRenderer";
 
 function room(roomId: number, name: string): Room {
   return {
@@ -72,7 +72,7 @@ function message(overrides: Partial<ChatMessageResponse["message"]>): ChatMessag
   };
 }
 
-describe("RealtimeRenderer shared compiler full render", () => {
+describe("realtimeRenderer shared compiler full render", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

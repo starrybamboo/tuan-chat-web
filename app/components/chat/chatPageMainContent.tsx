@@ -304,6 +304,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
                     onRequestImportTextPaste={props.onRequestImportTextPaste}
                     onRemoteMessagesSaved={handleRemoteMessagesSaved}
                     readOnly={props.readOnly}
+                    remotePatchSourceSurface="doc_view"
                     spaceId={resolvedSpaceId ?? -1}
                     tcHeader={{
                       enabled: true,

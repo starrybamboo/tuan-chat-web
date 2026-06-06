@@ -15,7 +15,7 @@ describe("resolveRealtimeDiceRenderMode", () => {
     })).toBe("trpg");
   });
 
-  it("TRPG 骰点结果会覆盖 dialog/narration，回到特殊骰子演出", () => {
+  it("tRPG 骰点结果会覆盖 dialog/narration，回到特殊骰子演出", () => {
     expect(resolveRealtimeDiceRenderMode({
       combatRoundActive: true,
       content: "射击检定：D100=2/90 极难成功",
@@ -95,7 +95,7 @@ describe("resolveRealtimeDiceRenderMode", () => {
     })).toBe("narration");
   });
 
-  it("TRPG 骰子实时脚本使用 trpgDice 覆盖卡片，不生成 pixiPerform 或普通 dice", () => {
+  it("tRPG 骰子实时脚本使用 trpgDice 覆盖卡片，不生成 pixiPerform 或普通 dice", () => {
     const lines = buildTrpgDicePerformLines("射击检定：D100=2/90 极难成功", {
       url: "./game/se/dice.wav",
       volume: 60,
@@ -109,7 +109,7 @@ describe("resolveRealtimeDiceRenderMode", () => {
     expect(lines.some(line => line.startsWith("pixiPerform:"))).toBe(false);
   });
 
-  it("TRPG 骰子默认不生成 miniAvatar", () => {
+  it("tRPG 骰子默认不生成 miniAvatar", () => {
     expect(resolveRealtimeDiceMiniAvatarDefault({
       mode: "trpg",
       roleId: 1,

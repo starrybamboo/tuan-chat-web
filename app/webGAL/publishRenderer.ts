@@ -1,11 +1,11 @@
-import type { RealtimeGameConfig } from "./realtimeRendererConfig";
-import type { SpaceWebgalInput, SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
-
 import { avatarOriginalUrl, avatarUrl } from "@/utils/mediaUrl";
+
+import type { RealtimeGameConfig } from "./realtimeRendererConfig";
+import type { WebgalPublishFile, WebgalPublishPackage } from "./spaceWebgalCompiler";
+import type { SpaceWebgalInput, SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
 
 import { createSquarePngBlobFromUrl } from "./realtimeRendererImageAssets";
 import { buildStaticWebgalPackage } from "./spaceWebgalCompiler";
-import type { WebgalPublishFile, WebgalPublishPackage } from "./spaceWebgalCompiler";
 import { buildSpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
 
 export type { WebgalPublishFile, WebgalPublishPackage } from "./spaceWebgalCompiler";

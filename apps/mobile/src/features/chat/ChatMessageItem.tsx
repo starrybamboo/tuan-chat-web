@@ -1,3 +1,4 @@
+import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoomRolesById } from "./chat-avatar-utils";
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
@@ -178,6 +179,7 @@ interface ChatMessageItemProps {
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
+  stateEventSummary?: StateEventMessageSummary;
 }
 
 export const ChatMessageItem = memo(({
@@ -196,6 +198,7 @@ export const ChatMessageItem = memo(({
   replyAuthorName,
   replyPreviewText,
   roomRolesById,
+  stateEventSummary,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const isOOC = isOutOfCharacterMessage(message);
@@ -445,7 +448,7 @@ export const ChatMessageItem = memo(({
               )
             : null}
           {message.messageType === MESSAGE_TYPE.STATE_EVENT
-            ? <StateEventCard message={message} roomRolesById={roomRolesById} />
+            ? <StateEventCard message={message} roomRolesById={roomRolesById} summary={stateEventSummary} />
             : null}
           {message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE
             ? <WebgalChooseCard content={message.content} extra={message.extra} />

@@ -4,7 +4,6 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { createInMemoryAuthoringPrimitives } from "../app/agentAuthoring";
-
 import { applyGululuReplayImportToAuthoring } from "./gululu-replay-import.mjs";
 
 type DryRunArgs = {
@@ -107,7 +106,7 @@ const entryPath = fileURLToPath(import.meta.url);
 if (process.argv[1] && path.resolve(process.argv[1]) === entryPath) {
   runGululuAuthoringDryRun(process.argv.slice(2))
     .then(({ outputPath, summary }) => {
-      console.log(JSON.stringify({
+      process.stdout.write(`${JSON.stringify({
         outputPath,
         readiness: summary.readiness,
         resources: {
@@ -117,7 +116,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === entryPath) {
           unresolvedMedia: summary.resources.unresolvedMedia.length,
         },
         stats: summary.stats,
-      }, null, 2));
+      }, null, 2)}\n`);
     })
     .catch((error) => {
       console.error(error);

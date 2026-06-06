@@ -254,7 +254,9 @@ export function ResizableImg({
 
     // 容器尺寸在弹窗动画/动态视口里可能延后稳定，算出 contain 位置后再显示图片。
     fitImageToViewport();
-    resizeObserver?.observe(container);
+    if (container) {
+      resizeObserver?.observe(container);
+    }
     window.addEventListener("resize", fitImageToViewport);
     window.visualViewport?.addEventListener("resize", fitImageToViewport);
 

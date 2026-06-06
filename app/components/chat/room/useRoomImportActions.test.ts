@@ -120,6 +120,12 @@ describe("useRoomImportActions", () => {
       "第二条",
       "第三条",
     ]);
+    expect(sendMessageBatch.mock.calls[0]?.[1]).toEqual({
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "import",
+      },
+    });
     expect(onProgress).toHaveBeenCalledTimes(1);
     expect(onProgress).toHaveBeenCalledWith(3, 3);
     expect(roomUiStoreApi.getState().replyMessage?.messageId).toBe(200);
@@ -159,7 +165,12 @@ describe("useRoomImportActions", () => {
         customRoleName: "海豹一号机",
         extra: { diceResult: { result: "由于a 灵感，<木落>掷出了 D20=5" } },
       }),
-    ]);
+    ], {
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "import",
+      },
+    });
   });
 
   it("导入骰子指令和骰娘回复合并项时由发起人发送 diceTurn", async () => {
@@ -213,7 +224,12 @@ describe("useRoomImportActions", () => {
           },
         },
       }),
-    ]);
+    ], {
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "import",
+      },
+    });
   });
 
   it("房间导入 CQ 视频时通过批量请求发送外链视频消息", async () => {
@@ -262,7 +278,12 @@ describe("useRoomImportActions", () => {
           },
         },
       }),
-    ]);
+    ], {
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "import",
+      },
+    });
   });
 
   it("发送共享文档卡片时保留源文档所属空间和 roomId", async () => {

@@ -5,7 +5,7 @@ import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/m
 
 import type { GalPatchMutationPlan } from "./galPatchMutationAdapter";
 
-import { executeGalPatchMutationPlan } from "./galPatchMutationExecutor";
+import { GAL_PATCH_MUTATION_META, executeGalPatchMutationPlan } from "./galPatchMutationExecutor";
 
 function createMessage(overrides: Partial<Message>): Message {
   return {
@@ -74,6 +74,7 @@ describe("executeGalPatchMutationPlan", () => {
     });
     expect(order).toEqual(["update,delete,insert"]);
     expect(patchMessages).toHaveBeenCalledOnce();
+    expect(patchMessages.mock.calls[0]?.[1]).toEqual(GAL_PATCH_MUTATION_META);
   });
 
   it("patch 失败时传播错误且不报告应用成功", async () => {
@@ -179,7 +180,7 @@ describe("executeGalPatchMutationPlan", () => {
           webgal: { command: "bg", args: ["park"] },
         }),
       }),
-    ]);
+    ], GAL_PATCH_MUTATION_META);
   });
 
   it("patch 消息时保留回复字段", async () => {
@@ -225,6 +226,6 @@ describe("executeGalPatchMutationPlan", () => {
           replayMessageId: 21,
         }),
       }),
-    ]);
+    ], GAL_PATCH_MUTATION_META);
   });
 });

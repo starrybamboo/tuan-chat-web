@@ -1,45 +1,46 @@
-import type { SortDirection } from "./initiativeListTypes";
-import type { ChatMessageResponse } from "../../../../../api";
 import type { StateEventAtom } from "@/types/stateEvent";
 
 import { getNormalizedStateEventExtra, STATE_EVENT_SCOPE_KIND } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-export interface CombatRoleRowSortInput {
+import type { ChatMessageResponse } from "../../../../../api";
+import type { SortDirection } from "./initiativeListTypes";
+
+export type CombatRoleRowSortInput = {
   initiative: number | null;
   isCurrent: boolean;
   roleName: string;
-}
+};
 
-export interface CombatInitiativeRecord {
+export type CombatInitiativeRecord = {
   hp: number | null;
   initiative: number;
   maxHp: number | null;
   recordId: string;
   roleId: number;
   sourceMessageId: number;
-}
+};
 
-export interface RoleAbilityFieldDeletePatch {
+export type RoleAbilityFieldDeletePatch = {
   abilityFields?: Record<string, string>;
   basicFields?: Record<string, string>;
   skillFields?: Record<string, string>;
-}
+};
 
-export interface CustomCombatKvInput {
+export type CustomCombatKvInput = {
   key: string;
   value: number;
-}
+};
 
-export interface CustomCombatKvParseResult {
+export type CustomCombatKvParseResult = {
   entries: CustomCombatKvInput[];
   error?: string;
-}
+};
 
-export interface CustomCombatStateKeyParts {
+export type CustomCombatStateKeyParts = {
   fieldKey: string;
   name: string;
-}
+};
 
 type RoleAbilityValueSections = {
   ability?: Record<string, string>;
@@ -110,12 +111,13 @@ export function parseCustomCombatKvText(text: string): CustomCombatKvParseResult
   const entries: CustomCombatKvInput[] = [];
   const seenKeys = new Set<string>();
   for (const chunk of chunks) {
-    const match = chunk.match(/^(.+?)\s*[:：]\s*(-?\d+(?:\.\d+)?)$/);
-    if (!match) {
+    const separatorIndex = chunk.search(/[:：]/);
+    if (separatorIndex <= 0) {
       return { entries: [], error: `无法识别属性：${chunk}` };
     }
-    const key = match[1].trim();
-    const value = Number(match[2]);
+    const key = chunk.slice(0, separatorIndex).trim();
+    const rawValue = chunk.slice(separatorIndex + 1).trim();
+    const value = Number(rawValue);
     if (!key || !Number.isFinite(value)) {
       return { entries: [], error: `无法识别属性：${chunk}` };
     }
@@ -238,12 +240,12 @@ export function collectCombatInitiativeRecords(messages: ChatMessageResponse[] |
       .filter(event => isRoleVarOp(event, "initiative"))
       .forEach((event, index) => {
         latestRecordByRoleId.set(event.scope.roleId, {
-        hp: findRoleVarValue(events, event.scope.roleId, ["hp"]),
-        initiative: event.value,
-        maxHp: findRoleVarValue(events, event.scope.roleId, ["maxhp", "hpmax"]),
-        recordId: `${message.messageId}:${event.scope.roleId}:${index}`,
-        roleId: event.scope.roleId,
-        sourceMessageId: message.messageId,
+          hp: findRoleVarValue(events, event.scope.roleId, ["hp"]),
+          initiative: event.value,
+          maxHp: findRoleVarValue(events, event.scope.roleId, ["maxhp", "hpmax"]),
+          recordId: `${message.messageId}:${event.scope.roleId}:${index}`,
+          roleId: event.scope.roleId,
+          sourceMessageId: message.messageId,
         });
       });
   });

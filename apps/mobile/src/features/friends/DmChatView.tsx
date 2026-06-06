@@ -213,6 +213,8 @@ interface DmChatViewProps {
   currentUserId: number | null;
   messages: MessageDirectResponse[];
   onBack: () => void;
+  onOpenContactDrawer: () => void;
+  safeAreaBottomInset?: number;
 }
 
 function formatMessageTimeLabel(createTime?: string | null) {
@@ -330,7 +332,7 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
 
 type MessageSendStatus = "sent" | "delivered" | "failed";
 
-export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack }: DmChatViewProps) {
+export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenContactDrawer, safeAreaBottomInset = 0 }: DmChatViewProps) {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
   const readSyncRef = useRef(0);
@@ -647,17 +649,24 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         <View style={[styles.row, isMine ? styles.rowMine : styles.rowTheirs]}>
           {!isMine
             ? (
-                contactAvatarUrl
-                  ? (
-                      <CachedImage uri={contactAvatarUrl} style={styles.messageAvatar} />
-                    )
-                  : (
-                      <View style={[styles.messageAvatarFallback, { backgroundColor: theme.accent }]}>
-                        <ThemedText style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
-                          {(contactName ?? "").slice(0, 1) || "U"}
-                        </ThemedText>
-                      </View>
-                    )
+                <Pressable
+                  accessibilityLabel="查看联系人资料"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={onOpenContactDrawer}
+                >
+                  {contactAvatarUrl
+                    ? (
+                        <CachedImage uri={contactAvatarUrl} style={styles.messageAvatar} />
+                      )
+                    : (
+                        <View style={[styles.messageAvatarFallback, { backgroundColor: theme.accent }]}>
+                          <ThemedText style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+                            {(contactName ?? "").slice(0, 1) || "U"}
+                          </ThemedText>
+                        </View>
+                      )}
+                </Pressable>
               )
             : null}
           <View style={styles.bubbleWrapper}>
@@ -718,7 +727,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         </View>
       </View>
     );
-  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, invertedMessages]);
+  }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, invertedMessages, onOpenContactDrawer]);
 
   const _attachmentKinds = [
     { label: "图片", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE },
@@ -733,17 +742,24 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         <Pressable onPress={onBack} accessibilityLabel="返回" accessibilityRole="button">
           <CaretLeft size={20} color={theme.text} weight="bold" />
         </Pressable>
-        {contactAvatarUrl
-          ? (
-              <CachedImage uri={contactAvatarUrl} style={styles.headerAvatar} />
-            )
-          : (
-              <View style={[styles.headerAvatarFallback, { backgroundColor: theme.accent }]}>
-                <ThemedText style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
-                  {(contactName ?? "").slice(0, 1) || "U"}
-                </ThemedText>
-              </View>
-            )}
+        <Pressable
+          accessibilityLabel="查看联系人资料"
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onOpenContactDrawer}
+        >
+          {contactAvatarUrl
+            ? (
+                <CachedImage uri={contactAvatarUrl} style={styles.headerAvatar} />
+              )
+            : (
+                <View style={[styles.headerAvatarFallback, { backgroundColor: theme.accent }]}>
+                  <ThemedText style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>
+                    {(contactName ?? "").slice(0, 1) || "U"}
+                  </ThemedText>
+                </View>
+              )}
+        </Pressable>
         <View style={styles.headerMeta}>
           <ThemedText type="heading" numberOfLines={1}>{contactName}</ThemedText>
         </View>
@@ -799,7 +815,17 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
           )
         : null}
 
-      <View style={[styles.composerContainer, { borderTopColor: theme.border, borderTopWidth: StyleSheet.hairlineWidth, backgroundColor: theme.surface }]}>
+      <View
+        style={[
+          styles.composerContainer,
+          {
+            backgroundColor: theme.surface,
+            borderTopColor: theme.border,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            paddingBottom: Spacing.md + safeAreaBottomInset,
+          },
+        ]}
+      >
         {replyMessage
           ? (
               <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>

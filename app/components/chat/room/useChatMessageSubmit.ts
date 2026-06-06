@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
+import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
@@ -17,6 +18,9 @@ import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
+import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
+import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDiceFeedback";
+import UTILS from "@/components/common/dicer/utils/utils";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
@@ -143,6 +147,29 @@ function applyRequestContext(
     request.customRoleName = context.customRoleName;
   }
   return request;
+}
+
+async function resolveStateFeedbackDicerRoleId(params: {
+  curRoleId: number;
+  queryClient?: QueryClient;
+  spaceId: number;
+}): Promise<number | undefined> {
+  if (!params.queryClient || !(params.spaceId > 0)) {
+    return undefined;
+  }
+  const roomContext: RoomContextType = {
+    roomMembers: [],
+    roomRolesThatUserOwn: [],
+    spaceId: params.spaceId,
+    curRoleId: params.curRoleId,
+  };
+  try {
+    return await UTILS.getDicerRoleId(roomContext, { queryClient: params.queryClient });
+  }
+  catch (error) {
+    console.error("解析状态反馈骰娘失败", error);
+    return undefined;
+  }
 }
 
 function buildPendingAttachmentRequests(params: {
@@ -473,6 +500,42 @@ export default function useChatMessageSubmit({
         }
         if (draftCustomRoleName) {
           stateEventMsg.customRoleName = draftCustomRoleName;
+        }
+
+        const stateDiceReply = buildRoleScopedStateDiceReply(parsedStateCommand.stateEvent.events);
+        if (stateDiceReply) {
+          const dicerRoleId = await resolveStateFeedbackDicerRoleId({
+            curRoleId: senderRoleId,
+            queryClient,
+            spaceId,
+          });
+          const diceFeedbackMsg: ChatMessageRequest = {
+            content: commandInputText,
+            messageType: MessageType.DICE,
+            roomId,
+            roleId: senderRoleId,
+            avatarId: resolvedAvatarId,
+            extra: buildDiceTurnMessageExtra(commandInputText, [{
+              content: stateDiceReply,
+              customRoleName: dicerRoleId ? undefined : "骰娘",
+              roleId: dicerRoleId,
+              visibility: "public",
+            }]),
+          };
+          if (typeof finalReplyId === "number") {
+            diceFeedbackMsg.replayMessageId = finalReplyId;
+          }
+          if (!isSpectator && mergedComposerAnnotations.length > 0) {
+            diceFeedbackMsg.annotations = mergedComposerAnnotations;
+          }
+          if (draftCustomRoleName) {
+            diceFeedbackMsg.customRoleName = draftCustomRoleName;
+          }
+          const createdDiceFeedbackMessage = await sendMessageWithInsert(diceFeedbackMsg);
+          if (!createdDiceFeedbackMessage) {
+            return;
+          }
+          hasCommittedOutboundMessage = true;
         }
 
         const createdStateEventMessage = await sendMessageWithInsert(stateEventMsg);

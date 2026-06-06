@@ -127,7 +127,7 @@ export function buildSpaceWebgalInputSnapshot(input: SpaceWebgalInput): SpaceWeb
     messagesByRoomId: normalizeMessagesByRoomId(roomIds, input.messagesByRoomId),
     roles: normalizeRoles(input.roles),
     avatars: normalizeAvatars(input.avatars),
-    hydratedGameConfig: { ...(input.gameConfig ?? {}) },
+    hydratedGameConfig: { ...input.gameConfig },
     rawGameConfig: input.rawGameConfig,
     sharedEngineUrl: input.sharedEngineUrl,
     coverAvatarSource: normalizeCoverAvatarSource(input),

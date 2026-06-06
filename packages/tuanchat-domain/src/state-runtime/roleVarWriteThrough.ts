@@ -218,7 +218,7 @@ export async function writeRoleVarOpsThroughAbilities({
 }: WriteRoleVarOpsParams): Promise<{ changedRoleIds: number[]; roleVarOps: RoleVarOpWithSnapshot[] }> {
   const roleVarOps = collectRoleVarOps(events);
   if (roleVarOps.length === 0) {
-    return { changedRoleIds: [], roleVarOps };
+    return { changedRoleIds: [], roleVarOps: [] };
   }
   if (!Number.isFinite(ruleId) || ruleId <= 0) {
     throw new Error("当前空间没有有效规则，无法写入角色卡");
