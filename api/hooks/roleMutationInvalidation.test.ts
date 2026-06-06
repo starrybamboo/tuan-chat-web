@@ -15,7 +15,7 @@ describe("invalidateRoleCreateQueries", () => {
     invalidateRoleCreateQueries(queryClient, undefined);
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByType"] });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roleInfiniteByType"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByTypes"] });
   });
 
   it("创建空间角色后会失效空间角色相关缓存", () => {

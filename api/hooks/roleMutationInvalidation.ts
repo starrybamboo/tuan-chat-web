@@ -3,8 +3,6 @@ type QueryInvalidator = {
 };
 
 export function invalidateUserRoleListQueries(queryClient: QueryInvalidator) {
-  queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-  queryClient.invalidateQueries({ queryKey: ["roleInfiniteByType"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
   queryClient.invalidateQueries({ queryKey: ["getRole"] });

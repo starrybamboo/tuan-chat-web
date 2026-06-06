@@ -1,5 +1,5 @@
 import type { UserRole } from "../../../api";
-import { useGetInfiniteUserRolesQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
@@ -111,11 +111,11 @@ export default function DiceMaidenLinkModal({
   const userId = useGlobalUserId() ?? -1;
 
   // 获取用户的所有角色
-  const { data: userRolesQuery, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetInfiniteUserRolesQuery(userId);
+  const { data: userRolesQuery } = useGetUserRolesQuery(userId);
 
   // 提取所有骰娘角色
   const diceMaidenRoles = useMemo(() => {
-    const allRoles = userRolesQuery?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+    const allRoles = userRolesQuery?.data ?? [];
     return allRoles.filter(role => role.type === 1);
   }, [userRolesQuery]);
 
@@ -238,22 +238,6 @@ export default function DiceMaidenLinkModal({
                             />
                           ))}
 
-                          {hasNextPage && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost w-full"
-                              onClick={() => fetchNextPage()}
-                              disabled={isFetchingNextPage}
-                            >
-                              {isFetchingNextPage
-                                ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  )
-                                : (
-                                    "加载更多"
-                                  )}
-                            </button>
-                          )}
                         </>
                       )}
                 </div>

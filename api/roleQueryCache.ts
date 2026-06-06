@@ -118,26 +118,11 @@ export function seedUserRoleQueryCache(
   });
 }
 
-export function seedUserRoleListQueryCache(
-  queryClient: QueryClient,
-  roles?: Array<UserRoleWithAvatarUrls | null | undefined>,
-): void {
-  if (!Array.isArray(roles) || roles.length === 0) {
-    return;
-  }
-
-  roles.forEach((role) => {
-    seedUserRoleQueryCache(queryClient, role ?? null);
-  });
-}
-
 function isUserRoleListQueryKey(queryKey: readonly unknown[]): boolean {
   const scope = queryKey[0];
   return scope === "getUserRoles"
     || scope === "getUserRolesByType"
-    || scope === "getUserRolesByTypes"
-    || scope === "roleInfinite"
-    || scope === "roleInfiniteByType";
+    || scope === "getUserRolesByTypes";
 }
 
 function isRoomRoleListQueryKey(queryKey: readonly unknown[]): boolean {
@@ -159,16 +144,12 @@ function shouldContainRole(queryKey: readonly unknown[], role: UserRoleWithAvata
     return false;
   }
 
-  if (scope === "getUserRolesByType" || scope === "roleInfiniteByType") {
+  if (scope === "getUserRolesByType") {
     return queryKey[2] === roleType;
   }
 
   if (scope === "getUserRolesByTypes") {
     return queryKey.slice(2).includes(roleType);
-  }
-
-  if (scope === "roleInfinite") {
-    return roleType === 0 || roleType === 1;
   }
 
   return scope === "getUserRoles";
@@ -191,11 +172,17 @@ function sortUserRoles(roles: UserRoleWithAvatarUrls[]): UserRoleWithAvatarUrls[
   });
 }
 
+function omitDerivedAvatarUrls<T extends UserRoleWithAvatarUrls>(role: T): UserRoleWithAvatarUrls {
+  const { avatarUrl: _avatarUrl, avatarThumbUrl: _avatarThumbUrl, ...rest } = role;
+  return rest;
+}
+
 function upsertUserRoleList(list: UserRoleWithAvatarUrls[], role: UserRoleWithAvatarUrls): UserRoleWithAvatarUrls[] {
   if (!hasRoleId(role)) {
     return list;
   }
 
+  const roleForList = omitDerivedAvatarUrls(role);
   let found = false;
   const next = list.map((item) => {
     if (item.roleId !== role.roleId) {
@@ -204,15 +191,13 @@ function upsertUserRoleList(list: UserRoleWithAvatarUrls[], role: UserRoleWithAv
 
     found = true;
     return {
-      ...item,
-      ...role,
-      avatarUrl: role.avatarUrl ?? item.avatarUrl,
-      avatarThumbUrl: role.avatarThumbUrl ?? item.avatarThumbUrl,
+      ...omitDerivedAvatarUrls(item),
+      ...roleForList,
     };
   });
 
   if (!found) {
-    next.push(role);
+    next.push(roleForList);
   }
 
   return sortUserRoles(next);
@@ -330,7 +315,6 @@ export function patchUserRoleAvatarFieldsInListQueryCache(
     return;
   }
 
-  const roleAvatarUrls = resolveRoleAvatarUrls(role);
   queryClient
     .getQueryCache()
     .findAll({
@@ -345,12 +329,10 @@ export function patchUserRoleAvatarFieldsInListQueryCache(
           }
 
           return {
-            ...item,
+            ...omitDerivedAvatarUrls(item),
             avatarId: role.avatarId ?? item.avatarId,
             avatarFileId: role.avatarFileId ?? item.avatarFileId,
             avatarMediaType: role.avatarMediaType ?? item.avatarMediaType,
-            avatarUrl: roleAvatarUrls.avatarUrl || item.avatarUrl,
-            avatarThumbUrl: roleAvatarUrls.avatarThumbUrl || item.avatarThumbUrl || roleAvatarUrls.avatarUrl,
           };
         }),
       ));
@@ -365,7 +347,6 @@ export function patchRoomRoleAvatarFieldsInListQueryCache(
     return;
   }
 
-  const roleAvatarUrls = resolveRoleAvatarUrls(role);
   queryClient
     .getQueryCache()
     .findAll({
@@ -380,12 +361,10 @@ export function patchRoomRoleAvatarFieldsInListQueryCache(
           }
 
           return {
-            ...item,
+            ...omitDerivedAvatarUrls(item),
             avatarId: role.avatarId ?? item.avatarId,
             avatarFileId: role.avatarFileId ?? item.avatarFileId,
             avatarMediaType: role.avatarMediaType ?? item.avatarMediaType,
-            avatarUrl: roleAvatarUrls.avatarUrl || item.avatarUrl,
-            avatarThumbUrl: roleAvatarUrls.avatarThumbUrl || item.avatarThumbUrl || roleAvatarUrls.avatarUrl,
           };
         }),
       ));
@@ -402,8 +381,6 @@ export async function optimisticRemoveUserRolesFromListQueryCache(
   }
 
   await Promise.all([
-    queryClient.cancelQueries({ queryKey: ["roleInfinite"] }),
-    queryClient.cancelQueries({ queryKey: ["roleInfiniteByType"] }),
     queryClient.cancelQueries({ queryKey: ["getUserRolesByType"] }),
     queryClient.cancelQueries({ queryKey: ["getUserRolesByTypes"] }),
     queryClient.cancelQueries({ queryKey: ["getUserRoles"] }),

@@ -42,7 +42,6 @@ import {
     useGetUserRoomsQuery as useSharedGetUserRoomsQuery,
     useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
 } from "@tuanchat/query/spaces";
-import { seedUserRoleListQueryCache } from "../roleQueryCache";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
 export const SPACE_INFO_STALE_TIME_MS = 300_000;
@@ -133,11 +132,7 @@ export function fetchUserRoomsWithCache(queryClient: QueryClient, spaceId: numbe
 export function fetchRoomRoleWithCache(queryClient: QueryClient, roomId: number) {
     return queryClient.fetchQuery({
         queryKey: roomRoleQueryKey(roomId),
-        queryFn: async () => {
-            const res = await tuanchat.roomRoleController.roomRole(roomId);
-            seedUserRoleListQueryCache(queryClient, res.data);
-            return res;
-        },
+        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: ROOM_ROLE_STALE_TIME_MS,
     });
 }
@@ -145,11 +140,7 @@ export function fetchRoomRoleWithCache(queryClient: QueryClient, roomId: number)
 export function fetchRoomNpcRoleWithCache(queryClient: QueryClient, roomId: number) {
     return queryClient.fetchQuery({
         queryKey: roomNpcRoleQueryKey(roomId),
-        queryFn: async () => {
-            const res = await tuanchat.roomRoleController.roomNpcRole(roomId);
-            seedUserRoleListQueryCache(queryClient, res.data);
-            return res;
-        },
+        queryFn: () => tuanchat.roomRoleController.roomNpcRole(roomId),
         staleTime: ROOM_ROLE_STALE_TIME_MS,
     });
 }
@@ -157,11 +148,7 @@ export function fetchRoomNpcRoleWithCache(queryClient: QueryClient, roomId: numb
 export function fetchSpaceRepositoryRoleWithCache(queryClient: QueryClient, spaceId: number) {
     return queryClient.fetchQuery({
         queryKey: spaceRepositoryRoleQueryKey(spaceId),
-        queryFn: async () => {
-            const res = await tuanchat.spaceRepositoryController.spaceRole(spaceId);
-            seedUserRoleListQueryCache(queryClient, res.data);
-            return res;
-        },
+        queryFn: () => tuanchat.spaceRepositoryController.spaceRole(spaceId),
         staleTime: SPACE_ROLE_STALE_TIME_MS,
     });
 }
@@ -538,14 +525,9 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
  * 获取空间中的role
  */
 export function useGetSpaceRolesQuery(spaceId: number) {
-    const queryClient = useQueryClient();
     return useQuery({
         queryKey: spaceRoleQueryKey(spaceId),
-        queryFn: async () => {
-            const res = await tuanchat.spaceRepositoryController.spaceRole(spaceId);
-            seedUserRoleListQueryCache(queryClient, res.data);
-            return res;
-        },
+        queryFn: () => tuanchat.spaceRepositoryController.spaceRole(spaceId),
         staleTime: SPACE_ROLE_STALE_TIME_MS
     });
 }
@@ -971,14 +953,9 @@ export function useGetUserRoomsQuery(spaceId: number) {
  * @param roomId 群组ID
  */
 export function useGetRoomRoleQuery(roomId: number) {
-    const queryClient = useQueryClient();
     return useQuery({
         queryKey: roomRoleQueryKey(roomId),
-        queryFn: async () => {
-            const res = await tuanchat.roomRoleController.roomRole(roomId);
-            seedUserRoleListQueryCache(queryClient, res.data);
-            return res;
-        },
+        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: 10000,
         enabled: roomId > 0,
     });
@@ -1004,14 +981,9 @@ export function useGetRoomRolesQueries(roomIds: number[]) {
  * @param roomId 群组ID
  */
 export function useGetRoomNpcRoleQuery(roomId: number) {
-    const queryClient = useQueryClient();
     return useQuery({
         queryKey: roomNpcRoleQueryKey(roomId),
-        queryFn: async () => {
-            const res = await tuanchat.roomRoleController.roomNpcRole(roomId);
-            seedUserRoleListQueryCache(queryClient, res.data);
-            return res;
-        },
+        queryFn: () => tuanchat.roomRoleController.roomNpcRole(roomId),
         staleTime: 10000,
         enabled: roomId > 0,
     });
