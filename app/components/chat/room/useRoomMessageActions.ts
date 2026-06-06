@@ -4,8 +4,7 @@ import { toast } from "react-hot-toast";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 
 import { buildCommittedResponseFromOptimistic, commitBatchOptimisticMessages } from "@/components/chat/room/roomMessageBatchCommit";
-import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
-import { createOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
+import { createOptimisticRoomMessage, getNextAppendPosition } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageRequest, ChatMessageResponse, RoomMessageMutationMeta } from "../../../../api";
 

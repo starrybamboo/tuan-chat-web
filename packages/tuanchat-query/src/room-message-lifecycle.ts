@@ -373,6 +373,101 @@ export function reconcileOptimisticRoomMessagesInList(
   );
 }
 
+function parseTimeToMs(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  const parsed = new Date(value).getTime();
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+  const fallbackParsed = value.includes("-")
+    ? new Date(value.replace(/-/g, "/")).getTime()
+    : Number.NaN;
+  return Number.isNaN(fallbackParsed) ? undefined : fallbackParsed;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function getFiniteMessageId(message: ChatMessageResponse | undefined): number | null {
+  const messageId = message?.message?.messageId;
+  return isFiniteNumber(messageId) ? messageId : null;
+}
+
+export function mergeRoomMessageSnapshotForLocalState(
+  existing: ChatMessageResponse,
+  incoming: ChatMessageResponse,
+): ChatMessageResponse {
+  const existingMessage = existing.message;
+  const incomingMessage = incoming.message;
+  if (existingMessage.status === 1 && incomingMessage.status !== 1) {
+    return existing;
+  }
+
+  const mergedMessage = {
+    ...existingMessage,
+    ...incomingMessage,
+  } as Message & RoomMessageSyncLike;
+
+  if (parseTimeToMs(incomingMessage.createTime) === undefined && parseTimeToMs(existingMessage.createTime) !== undefined) {
+    mergedMessage.createTime = existingMessage.createTime;
+  }
+  if (parseTimeToMs(incomingMessage.updateTime) === undefined && parseTimeToMs(existingMessage.updateTime) !== undefined) {
+    mergedMessage.updateTime = existingMessage.updateTime;
+  }
+  if (!isFiniteNumber(incomingMessage.position) && isFiniteNumber(existingMessage.position)) {
+    mergedMessage.position = existingMessage.position;
+  }
+  if (!isFiniteNumber(incomingMessage.syncId) && isFiniteNumber(existingMessage.syncId)) {
+    mergedMessage.syncId = existingMessage.syncId;
+  }
+  if (incomingMessage.extra == null && existingMessage.extra != null) {
+    mergedMessage.extra = existingMessage.extra;
+  }
+  if (!Array.isArray(incomingMessage.annotations) && Array.isArray(existingMessage.annotations)) {
+    mergedMessage.annotations = existingMessage.annotations;
+  }
+  if (isOptimisticRoomMessage(incomingMessage)) {
+    mergedMessage.tcLocalSyncState = "optimistic";
+  }
+  else {
+    delete mergedMessage.tcLocalSyncState;
+  }
+
+  return {
+    ...existing,
+    ...incoming,
+    message: mergedMessage,
+  };
+}
+
+export function mergeRoomMessagesForLocalState(
+  currentMessages: ChatMessageResponse[] | undefined,
+  incomingMessages: ChatMessageResponse[],
+): ChatMessageResponse[] {
+  const current = currentMessages ?? [];
+  const existingById = new Map<number, ChatMessageResponse>();
+  current.forEach((message) => {
+    const messageId = getFiniteMessageId(message);
+    if (messageId !== null) {
+      existingById.set(messageId, message);
+    }
+  });
+
+  const preparedIncoming = incomingMessages.map((incoming) => {
+    const incomingId = getFiniteMessageId(incoming);
+    const existing = incomingId === null ? undefined : existingById.get(incomingId);
+    return existing ? mergeRoomMessageSnapshotForLocalState(existing, incoming) : incoming;
+  });
+
+  return reconcileOptimisticRoomMessagesInList(current, preparedIncoming);
+}
+
 export function collectPersistedOptimisticDuplicateIds(messages: ChatMessageResponse[]): number[] {
   const positiveLooseKeys = new Set<string>();
   const positiveMediaLooseKeys = new Set<string>();

@@ -15,7 +15,7 @@ import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessag
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
-import { mergeRoomMessages } from "@tuanchat/query/room-message";
+import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 
 type CachedRoomMessagesState = {
   messages: ChatMessageResponse[];
@@ -61,7 +61,7 @@ export function useRoomMessagesQuery(
   }, [cachedMessagesState, hasValidRoomId, isAuthenticated, roomId]);
 
   const messages = useMemo(() => {
-    return mergeRoomMessages(cachedMessages, networkMessages);
+    return mergeRoomMessagesForLocalState(cachedMessages, networkMessages);
   }, [cachedMessages, networkMessages]);
 
   useEffect(() => {

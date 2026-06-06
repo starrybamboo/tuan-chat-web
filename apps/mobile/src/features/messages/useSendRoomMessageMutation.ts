@@ -14,27 +14,34 @@ import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMes
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 
-import { mobileApiClient } from "@/lib/api";
+import { mobileApiClient } from "../../lib/api";
 import {
   getAllRoomMessagesQueryKey,
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
 import {
   roleAbilityByRuleQueryKey,
-  roleAbilityListQueryKey,
 } from "@tuanchat/query/role-abilities";
 import {
   commitOptimisticRoomMessageInList,
   createOptimisticRoomMessage,
   getNextAppendPosition,
+  mergeRoomMessagesForLocalState,
   removeRoomMessageFromList,
   removeRoomMessagesFromList,
 } from "@tuanchat/query/room-message-lifecycle";
 
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 
+import {
+  mergeStateEventRoleVarSnapshots,
+  refreshChangedRoleAbilityCaches,
+  setChangedRoleAbilityCaches,
+} from "./sendRoomMessageMutationHelpers";
 import { writeCachedRoomMessages } from "./mobileRoomMessageCache";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
+
+export { mergeStateEventRoleVarSnapshots, setChangedRoleAbilityCaches } from "./sendRoomMessageMutationHelpers";
 
 type SendMessageContext = {
   annotations?: string[];
@@ -105,11 +112,7 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
       currentUserId,
       position,
     });
-    updateQueryCache(current => [...(current ?? []), optimistic].sort((a, b) => {
-      const pa = a.message?.position ?? 0;
-      const pb = b.message?.position ?? 0;
-      return pa - pb || (a.message?.messageId ?? 0) - (b.message?.messageId ?? 0);
-    }));
+    updateQueryCache(current => mergeRoomMessagesForLocalState(current, [optimistic]));
     persistOptimisticToCache([optimistic]);
     return optimistic;
   };
@@ -125,11 +128,7 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
         position,
       });
     });
-    updateQueryCache(current => [...(current ?? []), ...optimistics].sort((a, b) => {
-      const pa = a.message?.position ?? 0;
-      const pb = b.message?.position ?? 0;
-      return pa - pb || (a.message?.messageId ?? 0) - (b.message?.messageId ?? 0);
-    }));
+    updateQueryCache(current => mergeRoomMessagesForLocalState(current, optimistics));
     persistOptimisticToCache(optimistics);
     return optimistics;
   };
@@ -166,13 +165,6 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
     }
     const response = await mobileApiClient.abilityController.getRoleAbilityByRule(ruleId, roleId);
     return response.data ?? null;
-  };
-
-  const invalidateRoleAbilityCaches = async (roleId: number, ruleId: number) => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: roleAbilityByRuleQueryKey(roleId, ruleId) }),
-      queryClient.invalidateQueries({ queryKey: roleAbilityListQueryKey(roleId) }),
-    ]);
   };
 
   const sendRequest = async (request: ChatMessageRequest) => {
@@ -334,7 +326,7 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
     }
 
     const ruleId = input.ruleId ?? -1;
-    const { changedRoleIds } = await writeRoleVarOpsThroughAbilities({
+    const { changedAbilities = [], roleVarOps } = await writeRoleVarOpsThroughAbilities({
       events: parsed.stateEvent.events,
       ruleId,
       loadRoleAbility: loadRoleAbilityByRule,
@@ -347,12 +339,13 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
         return assertOpenApiResultSuccess(result, "更新角色能力失败。");
       },
     });
-    await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(roleId, ruleId)));
+    await refreshChangedRoleAbilityCaches(queryClient, changedAbilities);
+    const stateEvent = mergeStateEventRoleVarSnapshots(parsed.stateEvent, roleVarOps);
 
     return sendDraftMessage({
       content: parsed.content,
       extra: {
-        stateEvent: parsed.stateEvent,
+        stateEvent,
       },
       messageType: MESSAGE_TYPE.STATE_EVENT,
     }, input);

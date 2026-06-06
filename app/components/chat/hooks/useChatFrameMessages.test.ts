@@ -43,4 +43,13 @@ describe("detectMissingMessageSyncRange", () => {
       gapIncomingSyncId: 103,
     });
   });
+
+  it("收到已知 messageId 的更新时不按较大 syncId 误补洞", () => {
+    expect(detectMissingMessageSyncRange({
+      historyMessages: [message(1, 100)],
+      previousReceivedMessages: [],
+      appendedMessages: [message(1, 103)],
+      latestHistorySyncId: 100,
+    })).toBeNull();
+  });
 });

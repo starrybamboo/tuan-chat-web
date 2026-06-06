@@ -13,6 +13,17 @@ type RoleVarOpWithSnapshot = RoleVarOp & {
   beforeValue: number;
 };
 type RoleAbilitySections = Pick<RoleAbility, NumericAbilitySection>;
+type ChangedRoleAbilitySnapshot = {
+  ability: RoleAbility;
+  roleId: number;
+  ruleId: number;
+};
+
+export type WriteRoleVarOpsResult = {
+  changedAbilities: ChangedRoleAbilitySnapshot[];
+  changedRoleIds: number[];
+  roleVarOps: RoleVarOpWithSnapshot[];
+};
 
 export type RoleVarWriteThroughDeps = {
   loadRoleAbility: (roleId: number, ruleId: number) => Promise<RoleAbility | null | undefined>;
@@ -215,10 +226,10 @@ export async function writeRoleVarOpsThroughAbilities({
   loadRoleAbility,
   createRoleAbility,
   updateRoleAbility,
-}: WriteRoleVarOpsParams): Promise<{ changedRoleIds: number[]; roleVarOps: RoleVarOpWithSnapshot[] }> {
+}: WriteRoleVarOpsParams): Promise<WriteRoleVarOpsResult> {
   const roleVarOps = collectRoleVarOps(events);
   if (roleVarOps.length === 0) {
-    return { changedRoleIds: [], roleVarOps: [] };
+    return { changedAbilities: [], changedRoleIds: [], roleVarOps: [] };
   }
   if (!Number.isFinite(ruleId) || ruleId <= 0) {
     throw new Error("当前空间没有有效规则，无法写入角色卡");
@@ -232,6 +243,7 @@ export async function writeRoleVarOpsThroughAbilities({
   });
 
   const changedRoleIds: number[] = [];
+  const changedAbilities: ChangedRoleAbilitySnapshot[] = [];
   const roleVarOpsWithSnapshots: RoleVarOpWithSnapshot[] = [];
   for (const [roleId, ops] of opsByRoleId) {
     const beforeAbility = await loadRoleAbility(roleId, ruleId);
@@ -248,8 +260,13 @@ export async function writeRoleVarOpsThroughAbilities({
     });
     if (changed) {
       changedRoleIds.push(roleId);
+      changedAbilities.push({
+        ability: cloneRoleAbilityForWriteThrough(afterAbility),
+        roleId,
+        ruleId,
+      });
     }
   }
 
-  return { changedRoleIds, roleVarOps: roleVarOpsWithSnapshots };
+  return { changedAbilities, changedRoleIds, roleVarOps: roleVarOpsWithSnapshots };
 }

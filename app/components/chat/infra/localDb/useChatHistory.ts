@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
-import { normalizeMessageExtraForMatch } from "@/types/messageDraft";
-import { getRoomMessageLocalRenderKey, isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
+import {
+  collectPersistedOptimisticDuplicateIds,
+  commitOptimisticRoomMessageInList,
+  mergeRoomMessagesForLocalState,
+} from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
-import { MessageType } from "../../../../../api/wsModels";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
@@ -15,11 +16,9 @@ import {
   getMessagesByRoomId as dbGetMessagesByRoomId,
   markMessagesDeletedByIds as dbMarkMessagesDeletedByIds,
 } from "./chatHistoryDb";
-import { collectPersistedOptimisticDuplicateIds } from "./chatHistoryOptimistic";
 import { logMessageOrderChange } from "./messageOrderDebug";
 
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
-const OPTIMISTIC_MESSAGE_MAX_AGE_MS = 10 * 60 * 1000;
 const MESSAGE_ID_ALIAS_MAX_AGE_MS = 10 * 60 * 1000;
 
 export type UseChatHistoryReturn = {
@@ -35,277 +34,6 @@ export type UseChatHistoryReturn = {
   getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   clearHistory: () => Promise<void>;
 };
-
-function parseTimeToMs(time: unknown): number | undefined {
-  if (time == null) {
-    return undefined;
-  }
-  if (typeof time === "number") {
-    return Number.isFinite(time) ? time : undefined;
-  }
-  if (typeof time !== "string") {
-    return undefined;
-  }
-  const raw = time.trim();
-  if (!raw) {
-    return undefined;
-  }
-  const normalized = raw.includes("-") ? raw.replace(/-/g, "/") : raw;
-  const parsed = new Date(normalized).getTime();
-  return Number.isNaN(parsed) ? undefined : parsed;
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function stableSerialize(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "null";
-  }
-  if (typeof value === "string") {
-    return JSON.stringify(value);
-  }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(item => stableSerialize(item)).join(",")}]`;
-  }
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    const keys = Object.keys(record).sort();
-    return `{${keys.map(key => `${JSON.stringify(key)}:${stableSerialize(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(String(value));
-}
-
-function serializeMatchPosition(position: unknown): string {
-  if (!isFiniteNumber(position)) {
-    return "";
-  }
-  return position.toFixed(6);
-}
-
-function normalizeOptionalRefId(value: unknown): string {
-  if (!isFiniteNumber(value) || value <= 0) {
-    return "";
-  }
-  return String(value);
-}
-
-function normalizeNumericForMatch(value: unknown): string {
-  if (!isFiniteNumber(value)) {
-    return "";
-  }
-  if (value <= 0) {
-    return "0";
-  }
-  return String(value);
-}
-
-function isMediaMessageType(messageType: unknown): boolean {
-  return messageType === MessageType.IMG
-    || messageType === MessageType.SOUND
-    || messageType === MessageType.VIDEO
-    || messageType === MessageType.FILE;
-}
-
-function buildOptimisticMatchKey(
-  message: ChatMessageResponse["message"],
-  options?: {
-    includePosition?: boolean;
-    ignoreContent?: boolean;
-    ignoreAnnotations?: boolean;
-    ignoreReplyMessageId?: boolean;
-    ignoreExtra?: boolean;
-  },
-): string {
-  const includePosition = Boolean(options?.includePosition);
-  const ignoreContent = Boolean(options?.ignoreContent);
-  const ignoreAnnotations = Boolean(options?.ignoreAnnotations);
-  const ignoreReplyMessageId = Boolean(options?.ignoreReplyMessageId);
-  const ignoreExtra = Boolean(options?.ignoreExtra);
-  const annotations = !ignoreAnnotations && Array.isArray(message.annotations)
-    ? [...message.annotations].map(item => String(item)).sort().join("\u0001")
-    : "";
-  const baseParts = [
-    normalizeNumericForMatch(message.roomId),
-    normalizeNumericForMatch(message.userId),
-    normalizeNumericForMatch(message.roleId),
-    normalizeNumericForMatch(message.messageType),
-    ignoreReplyMessageId ? "" : normalizeOptionalRefId(message.replyMessageId),
-    String(message.customRoleName ?? "").trim(),
-    ignoreContent ? "" : String(message.content ?? ""),
-    annotations,
-    stableSerialize(message.webgal),
-    ignoreExtra ? "" : stableSerialize(normalizeMessageExtraForMatch(message.messageType, message.extra)),
-  ];
-  if (includePosition) {
-    baseParts.push(serializeMatchPosition(message.position));
-  }
-  return baseParts.join("|");
-}
-
-function pushBucketValue(bucket: Map<string, number[]>, key: string, messageId: number): void {
-  const list = bucket.get(key);
-  if (list) {
-    list.push(messageId);
-    return;
-  }
-  bucket.set(key, [messageId]);
-}
-
-function buildOptimisticBuckets(messages: ChatMessageResponse[]): {
-  exact: Map<string, number[]>;
-  loose: Map<string, number[]>;
-  mediaPosition: Map<string, number[]>;
-  mediaLoose: Map<string, number[]>;
-  diceLoose: Map<string, number[]>;
-} {
-  const exact = new Map<string, number[]>();
-  const loose = new Map<string, number[]>();
-  const mediaPosition = new Map<string, number[]>();
-  const mediaLoose = new Map<string, number[]>();
-  const diceLoose = new Map<string, number[]>();
-  const now = Date.now();
-
-  for (const item of messages) {
-    const message = item.message;
-    if (!message || message.status === 1 || !isOptimisticRoomMessage(message)) {
-      continue;
-    }
-    const createTimeMs = parseTimeToMs(message.createTime);
-    if (createTimeMs !== undefined && now - createTimeMs > OPTIMISTIC_MESSAGE_MAX_AGE_MS) {
-      continue;
-    }
-    pushBucketValue(exact, buildOptimisticMatchKey(message, { includePosition: true }), message.messageId);
-    pushBucketValue(loose, buildOptimisticMatchKey(message, { includePosition: false }), message.messageId);
-    if (isMediaMessageType(message.messageType)) {
-      pushBucketValue(
-        mediaPosition,
-        buildOptimisticMatchKey(message, {
-          includePosition: true,
-          ignoreContent: true,
-          ignoreAnnotations: true,
-          ignoreExtra: true,
-        }),
-        message.messageId,
-      );
-      pushBucketValue(
-        mediaLoose,
-        buildOptimisticMatchKey(message, {
-          includePosition: false,
-          ignoreContent: true,
-          ignoreAnnotations: true,
-          ignoreExtra: true,
-        }),
-        message.messageId,
-      );
-    }
-    if (message.messageType === MessageType.DICE) {
-      pushBucketValue(
-        diceLoose,
-        buildOptimisticMatchKey(message, {
-          includePosition: false,
-          ignoreReplyMessageId: true,
-          ignoreExtra: true,
-        }),
-        message.messageId,
-      );
-    }
-  }
-
-  return { exact, loose, mediaPosition, mediaLoose, diceLoose };
-}
-
-function consumeOptimisticCandidate(
-  messageMap: Map<number, ChatMessageResponse>,
-  bucket: Map<string, number[]>,
-  key: string,
-): number | undefined {
-  const list = bucket.get(key);
-  if (!list || list.length === 0) {
-    return undefined;
-  }
-  while (list.length > 0) {
-    const optimisticId = list.shift();
-    if (optimisticId === undefined) {
-      break;
-    }
-    if (optimisticId < 0 && messageMap.has(optimisticId)) {
-      return optimisticId;
-    }
-  }
-  return undefined;
-}
-
-function mergeMessageForLocalState(
-  existing: ChatMessageResponse,
-  incoming: ChatMessageResponse,
-): ChatMessageResponse {
-  const existingMessage = existing.message;
-  const incomingMessage = incoming.message;
-  const mergedMessage = {
-    ...existingMessage,
-    ...incomingMessage,
-  } as ChatMessageResponse["message"] & { tcLocalSyncState?: string };
-
-  const incomingCreateTimeMs = parseTimeToMs(incomingMessage.createTime);
-  const existingCreateTimeMs = parseTimeToMs(existingMessage.createTime);
-  if (incomingCreateTimeMs === undefined && existingCreateTimeMs !== undefined) {
-    mergedMessage.createTime = existingMessage.createTime;
-  }
-
-  const incomingUpdateTimeMs = parseTimeToMs(incomingMessage.updateTime);
-  const existingUpdateTimeMs = parseTimeToMs(existingMessage.updateTime);
-  if (incomingUpdateTimeMs === undefined && existingUpdateTimeMs !== undefined) {
-    mergedMessage.updateTime = existingMessage.updateTime;
-  }
-
-  if (!isFiniteNumber(incomingMessage.position) && isFiniteNumber(existingMessage.position)) {
-    mergedMessage.position = existingMessage.position;
-  }
-  if (!isFiniteNumber(incomingMessage.syncId) && isFiniteNumber(existingMessage.syncId)) {
-    mergedMessage.syncId = existingMessage.syncId;
-  }
-  if (incomingMessage.extra == null && existingMessage.extra != null) {
-    mergedMessage.extra = existingMessage.extra;
-  }
-  if (!Array.isArray(incomingMessage.annotations) && Array.isArray(existingMessage.annotations)) {
-    mergedMessage.annotations = existingMessage.annotations;
-  }
-  if (isOptimisticRoomMessage(incomingMessage)) {
-    mergedMessage.tcLocalSyncState = "optimistic";
-  }
-  else {
-    delete mergedMessage.tcLocalSyncState;
-  }
-
-  return {
-    ...existing,
-    ...incoming,
-    message: mergedMessage,
-  };
-}
-
-export function inheritOptimisticRenderKeyForLocalState(
-  optimisticMessage: ChatMessageResponse | undefined,
-  incomingMessage: ChatMessageResponse,
-): ChatMessageResponse {
-  const localRenderKey = getRoomMessageLocalRenderKey(optimisticMessage?.message);
-  if (!localRenderKey) {
-    return incomingMessage;
-  }
-
-  return {
-    ...incomingMessage,
-    message: {
-      ...incomingMessage.message,
-      tcLocalRenderKey: localRenderKey,
-    } as ChatMessageResponse["message"],
-  };
-}
 
 /**
  * 用于管理特定房间聊天记录的React Hook
@@ -331,6 +59,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   useEffect(() => {
     roomIdRef.current = roomId;
   }, [roomId]);
+
+  const messagesRawRef = useRef<ChatMessageResponse[]>([]);
+  useEffect(() => {
+    messagesRawRef.current = messagesRaw;
+  }, [messagesRaw]);
 
   const cleanupMessageIdAlias = useCallback(() => {
     const now = Date.now();
@@ -404,78 +137,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       const roomScopedMessages = newMessages.filter(msg => msg.message.roomId === currentRoomId);
       if (roomScopedMessages.length > 0 && roomScopedMessages[0].message.roomId === currentRoomId) {
         setMessages((prevMessages) => {
-          const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
-          const optimisticBuckets = buildOptimisticBuckets(prevMessages);
-          let hasChanges = false;
-
-          roomScopedMessages.forEach((msg) => {
-            let incomingMessage = msg;
-            const incomingMessageId = msg.message.messageId;
-            const existingMsg = messageMap.get(incomingMessageId);
-            if (!existingMsg && incomingMessageId > 0) {
-              const exactKey = buildOptimisticMatchKey(msg.message, { includePosition: true });
-              const looseKey = buildOptimisticMatchKey(msg.message, { includePosition: false });
-              const mediaLooseKey = isMediaMessageType(msg.message.messageType)
-                ? buildOptimisticMatchKey(msg.message, {
-                    includePosition: false,
-                    ignoreContent: true,
-                    ignoreAnnotations: true,
-                    ignoreExtra: true,
-                  })
-                : "";
-              const mediaPositionKey = isMediaMessageType(msg.message.messageType)
-                ? buildOptimisticMatchKey(msg.message, {
-                    includePosition: true,
-                    ignoreContent: true,
-                    ignoreAnnotations: true,
-                    ignoreExtra: true,
-                  })
-                : "";
-              const diceLooseKey = msg.message.messageType === MessageType.DICE
-                ? buildOptimisticMatchKey(msg.message, {
-                    includePosition: false,
-                    ignoreReplyMessageId: true,
-                    ignoreExtra: true,
-                  })
-                : "";
-              const matchedOptimisticId = consumeOptimisticCandidate(messageMap, optimisticBuckets.exact, exactKey)
-                ?? consumeOptimisticCandidate(messageMap, optimisticBuckets.loose, looseKey)
-                ?? (mediaPositionKey
-                  ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaPosition, mediaPositionKey)
-                  : undefined)
-                ?? (diceLooseKey
-                  ? consumeOptimisticCandidate(messageMap, optimisticBuckets.diceLoose, diceLooseKey)
-                  : undefined)
-                ?? (mediaLooseKey
-                  ? consumeOptimisticCandidate(messageMap, optimisticBuckets.mediaLoose, mediaLooseKey)
-                  : undefined);
-              if (matchedOptimisticId !== undefined && matchedOptimisticId !== incomingMessageId) {
-                const matchedOptimisticMessage = messageMap.get(matchedOptimisticId);
-                incomingMessage = inheritOptimisticRenderKeyForLocalState(matchedOptimisticMessage, msg);
-                if (messageMap.delete(matchedOptimisticId)) {
-                  hasChanges = true;
-                }
-              }
-            }
-            const latestExisting = messageMap.get(incomingMessageId);
-            const mergedMessage = latestExisting
-              ? mergeMessageForLocalState(latestExisting, incomingMessage)
-              : incomingMessage;
-            // 只有在消息真正变化时才更新
-            if (!latestExisting || JSON.stringify(latestExisting) !== JSON.stringify(mergedMessage)) {
-              messageMap.set(incomingMessageId, mergedMessage);
-              hasChanges = true;
-            }
-          });
-
-          // 如果没有变化，返回原数组以避免不必要的重渲染
-          if (!hasChanges) {
+          const nextMessages = mergeRoomMessagesForLocalState(prevMessages, roomScopedMessages);
+          if (JSON.stringify(prevMessages) === JSON.stringify(nextMessages)) {
             return prevMessages;
           }
 
-          const updatedMessages = Array.from(messageMap.values());
-          // 按 position 排序确保顺序
-          const nextMessages = updatedMessages.sort(compareChatMessageResponsesByOrder);
           logMessageOrderChange({
             source: "addOrUpdateMessages",
             roomId: currentRoomId,
@@ -490,6 +156,12 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       // 异步将消息批量存入数据库
       try {
         await dbAddOrUpdateMessages(newMessages);
+        const duplicateIds = collectPersistedOptimisticDuplicateIds(
+          mergeRoomMessagesForLocalState(messagesRawRef.current, newMessages),
+        );
+        if (duplicateIds.length > 0) {
+          await dbDeleteMessagesByIds(duplicateIds);
+        }
       }
       catch (err) {
         setError(err as Error);
@@ -560,30 +232,18 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     let mergedForDb = message;
 
     setMessages((prevMessages) => {
-      const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
-      const removed = messageMap.delete(fromMessageId);
-      let hasChanges = removed;
+      const baselineMessages = shouldRenderNextMessage && fromMessageId !== nextMessage.messageId
+        ? commitOptimisticRoomMessageInList(prevMessages, fromMessageId, nextMessage)
+        : prevMessages.filter(item => item.message.messageId !== fromMessageId || shouldRenderNextMessage);
+      const nextMessages = shouldRenderNextMessage
+        ? mergeRoomMessagesForLocalState(baselineMessages, [message])
+        : baselineMessages;
+      mergedForDb = nextMessages.find(item => item.message.messageId === nextMessage.messageId) ?? message;
 
-      if (shouldRenderNextMessage) {
-        const existing = messageMap.get(nextMessage.messageId);
-        const merged = existing
-          ? mergeMessageForLocalState(existing, message)
-          : message;
-        mergedForDb = merged;
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(merged)) {
-          messageMap.set(nextMessage.messageId, merged);
-          hasChanges = true;
-        }
-      }
-      else {
-        mergedForDb = message;
-      }
-
-      if (!hasChanges) {
+      if (JSON.stringify(prevMessages) === JSON.stringify(nextMessages)) {
         return prevMessages;
       }
 
-      const nextMessages = Array.from(messageMap.values()).sort(compareChatMessageResponsesByOrder);
       logMessageOrderChange({
         source: "replaceMessageById",
         roomId: currentRoomId,
@@ -649,7 +309,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         return [];
       }
 
-      return [...messages, ...newMessages].sort(compareChatMessageResponsesByOrder);
+      return mergeRoomMessagesForLocalState(messages, newMessages);
     }
     finally {
       if (currentFetchingRoomId.current === roomId) {
@@ -694,8 +354,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         const localHistory = await stripPersistedOptimisticDuplicates(persistedLocalHistory);
         if (isCancelled)
           return;
-        // 按 position 排序后设置消息
-        const sortedLocalHistory = localHistory.sort(compareChatMessageResponsesByOrder);
+        // 读取本地快照后仍经过共享合并，避免旧缓存复活 tombstone 或保留重复乐观消息。
+        const sortedLocalHistory = mergeRoomMessagesForLocalState(localHistory, []);
         setMessages(sortedLocalHistory);
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
@@ -730,12 +390,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       isCancelled = true;
     };
   }, [roomId, fetchNewestMessages, stripPersistedOptimisticDuplicates]);
-
-  // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
-  const messagesRawRef = useRef<ChatMessageResponse[]>([]);
-  useEffect(() => {
-    messagesRawRef.current = messagesRaw;
-  }, [messagesRaw]);
 
   const refreshNewestMessages = useCallback(() => {
     const maxSyncId = messagesRawRef.current.length > 0

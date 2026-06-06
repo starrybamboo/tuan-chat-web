@@ -4,7 +4,7 @@ import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import {
   getRoomMessageSyncGapStart,
 } from "@tuanchat/query/room-message";
-import { reconcileOptimisticRoomMessagesInList } from "@tuanchat/query/room-message-lifecycle";
+import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 
 import type {
   RoomMessagesQueryData,
@@ -100,7 +100,7 @@ export function upsertRoomMessagesToQueryAndDisk(
   const queryKey = getAllRoomMessagesQueryKey(roomId);
   deps.queryClient.setQueryData(queryKey, currentData => updateRoomMessagesQueryData(
     currentData,
-    currentMessages => reconcileOptimisticRoomMessagesInList(currentMessages, incomingMessages),
+    currentMessages => mergeRoomMessagesForLocalState(currentMessages, incomingMessages),
   ));
   persistRoomMessages(roomId, incomingMessages, deps.writeCachedRoomMessages);
 }
