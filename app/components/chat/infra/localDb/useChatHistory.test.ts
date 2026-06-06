@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
-import { inheritOptimisticRenderKeyForLocalState } from "./useChatHistory";
+import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 
 function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
   return {
@@ -36,10 +36,32 @@ describe("useChatHistory 乐观消息渲染 key", () => {
       syncId: 501,
     });
 
-    const result = inheritOptimisticRenderKeyForLocalState(optimistic, incoming);
+    const result = mergeRoomMessagesForLocalState([optimistic], [incoming]);
 
-    expect(result.message.messageId).toBe(101);
-    expect((result.message as any).tcLocalRenderKey).toBe("room-message:optimistic:-1:2026-05-29T00:00:00.000Z");
+    expect(result).toHaveLength(1);
+    expect(result[0].message.messageId).toBe(101);
+    expect((result[0].message as any).tcLocalRenderKey).toBe("room-message:optimistic:-1:2026-05-29T00:00:00.000Z");
     expect((incoming.message as any).tcLocalRenderKey).toBeUndefined();
+  });
+
+  it("本地 tombstone 不会被旧的未删除快照复活", () => {
+    const deleted = createMessageResponse({
+      content: "已删除",
+      messageId: 101,
+      status: 1,
+      syncId: 10,
+    });
+    const stale = createMessageResponse({
+      content: "旧快照",
+      messageId: 101,
+      status: 0,
+      syncId: 9,
+    });
+
+    const result = mergeRoomMessagesForLocalState([deleted], [stale]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].message.status).toBe(1);
+    expect(result[0].message.content).toBe("已删除");
   });
 });

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
+import { getRoomMessageSyncGapStart, mergeRoomMessages } from "@tuanchat/query/room-message";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -39,48 +40,27 @@ export function detectMissingMessageSyncRange({
     return null;
   }
 
-  let maxHistorySyncId = Number.isFinite(latestHistorySyncId) ? latestHistorySyncId : -1;
-  const knownMessageIds = new Set<number>();
-
-  for (const msg of historyMessages) {
-    const syncId = msg.message.syncId ?? -1;
-    if (syncId > maxHistorySyncId)
-      maxHistorySyncId = syncId;
-    knownMessageIds.add(msg.message.messageId);
-  }
-
-  let maxProcessedSyncId = -1;
-  for (const msg of previousReceivedMessages) {
-    const syncId = msg.message.syncId ?? -1;
-    if (syncId > maxProcessedSyncId)
-      maxProcessedSyncId = syncId;
-    knownMessageIds.add(msg.message.messageId);
-  }
-
-  let maxKnownSyncId = Math.max(maxHistorySyncId, maxProcessedSyncId);
+  const baselineMessages = Number.isFinite(latestHistorySyncId) && latestHistorySyncId >= 0
+    ? [{
+        message: {
+          ...historyMessages[0].message,
+          messageId: Number.MIN_SAFE_INTEGER,
+          syncId: latestHistorySyncId,
+        },
+      } satisfies ChatMessageResponse]
+    : [];
+  let knownMessages = mergeRoomMessages(historyMessages, previousReceivedMessages, baselineMessages);
 
   for (const msg of appendedMessages) {
     const syncId = msg.message.syncId ?? -1;
-    const messageId = msg.message.messageId;
-
-    if (knownMessageIds.has(messageId)) {
-      if (syncId > maxKnownSyncId) {
-        maxKnownSyncId = syncId;
-      }
-      continue;
-    }
-
-    if (syncId > maxKnownSyncId + 1) {
+    const missingStartSyncId = getRoomMessageSyncGapStart(knownMessages, msg);
+    if (missingStartSyncId !== null) {
       return {
-        missingStartSyncId: maxKnownSyncId + 1,
+        missingStartSyncId,
         gapIncomingSyncId: syncId,
       };
     }
-
-    if (syncId > maxKnownSyncId) {
-      maxKnownSyncId = syncId;
-    }
-    knownMessageIds.add(messageId);
+    knownMessages = mergeRoomMessages(knownMessages, [msg]);
   }
 
   return null;

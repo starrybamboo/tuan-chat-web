@@ -51,6 +51,20 @@ describe("roleVarWriteThrough", () => {
     });
 
     expect(result).toEqual({
+      changedAbilities: [{
+        ability: {
+          abilityId: 1,
+          roleId: 3,
+          ruleId: 7,
+          act: {},
+          basic: {},
+          ability: { hp: "8" },
+          skill: {},
+          extra: {},
+        },
+        roleId: 3,
+        ruleId: 7,
+      }],
       changedRoleIds: [3],
       roleVarOps: [
         {
@@ -160,7 +174,7 @@ describe("roleVarWriteThrough", () => {
       ...deps,
     });
 
-    expect(result).toEqual({ changedRoleIds: [], roleVarOps: [] });
+    expect(result).toEqual({ changedAbilities: [], changedRoleIds: [], roleVarOps: [] });
     expect(deps.loadRoleAbility).not.toHaveBeenCalled();
     expect(deps.createRoleAbility).not.toHaveBeenCalled();
     expect(deps.updateRoleAbility).not.toHaveBeenCalled();

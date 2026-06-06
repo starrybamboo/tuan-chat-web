@@ -11,6 +11,8 @@ import {
   createOptimisticRoomMessage,
   getNextAppendPosition,
   getRoomMessageLocalRenderKey,
+  mergeRoomMessageSnapshotForLocalState,
+  mergeRoomMessagesForLocalState,
   reconcileOptimisticRoomMessagesInList,
   removeRoomMessageFromList,
   removeRoomMessagesFromList,
@@ -319,6 +321,71 @@ describe("reconcileOptimisticRoomMessagesInList", () => {
 
     expect(result.map(item => item.message.messageId)).toEqual([1, -1, 50]);
     expect(getRoomMessageLocalRenderKey(result[2].message)).toBe(secondRenderKey);
+  });
+});
+
+describe("mergeRoomMessagesForLocalState", () => {
+  it("同 ID 增量缺少服务端字段时保留本地已有快照字段", () => {
+    const existing = msg(10, 10, {
+      annotations: ["a"],
+      createTime: "2026-05-29T00:00:00.000Z",
+      extra: { imageMessage: { source: { fileId: 1, kind: "internal" } } } as any,
+      syncId: 20,
+      updateTime: "2026-05-29T00:00:01.000Z",
+    });
+    const incoming = msg(10, 10, {
+      annotations: undefined,
+      content: "updated",
+      createTime: undefined,
+      extra: undefined,
+      position: undefined,
+      syncId: undefined,
+      updateTime: undefined,
+    } as Partial<Message>);
+
+    const result = mergeRoomMessageSnapshotForLocalState(existing, incoming);
+
+    expect(result.message.content).toBe("updated");
+    expect(result.message.createTime).toBe("2026-05-29T00:00:00.000Z");
+    expect(result.message.updateTime).toBe("2026-05-29T00:00:01.000Z");
+    expect(result.message.syncId).toBe(20);
+    expect(result.message.position).toBe(10);
+    expect(result.message.annotations).toEqual(["a"]);
+    expect(result.message.extra).toEqual(existing.message.extra);
+  });
+
+  it("本地 tombstone 不会被后续旧快照复活", () => {
+    const deleted = msg(10, 10, { content: "deleted", status: 1, syncId: 10 });
+    const stale = msg(10, 10, { content: "stale", status: 0, syncId: 9 });
+
+    expect(mergeRoomMessagesForLocalState([deleted], [stale])).toEqual([deleted]);
+  });
+
+  it("WebSocket 真消息替换匹配乐观消息并保留本地 render key", () => {
+    const optimistic = createOptimisticRoomMessage({
+      content: "hello",
+      extra: {},
+      messageType: 1,
+      roomId: 10,
+      roleId: 3,
+    }, {
+      currentUserId: 5,
+      optimisticId: -1,
+      position: 2,
+    });
+    const optimisticRenderKey = getRoomMessageLocalRenderKey(optimistic.message);
+    const incoming = msg(50, 2, {
+      content: "hello",
+      roleId: 3,
+      roomId: 10,
+      syncId: 50,
+      userId: 5,
+    });
+
+    const result = mergeRoomMessagesForLocalState([msg(1, 1), optimistic], [incoming]);
+
+    expect(result.map(item => item.message.messageId)).toEqual([1, 50]);
+    expect(getRoomMessageLocalRenderKey(result[1].message)).toBe(optimisticRenderKey);
   });
 });
 

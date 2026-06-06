@@ -15,6 +15,7 @@ import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } fr
 import { NEXT_TURN_CONTENT } from "@/components/chat/state/stateCommandParser";
 import { getFallbackRoleAbilityValue } from "@/components/chat/state/stateRuntime";
 import { useStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
+import { setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
@@ -596,7 +597,7 @@ export default function StateDrawer() {
 
     try {
       const ruleId = spaceContext.ruleId ?? -1;
-      const { changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
+      const { changedAbilities = [], changedRoleIds, roleVarOps } = await writeRoleVarOpsThroughAbilities({
         events,
         ruleId,
         loadRoleAbility: loadRoleAbilityByRule,
@@ -605,6 +606,9 @@ export default function StateDrawer() {
       });
       const eventsForMessage = mergeRoleVarOpSnapshotsIntoEvents(events, roleVarOps);
       await Promise.all(changedRoleIds.map(roleId => invalidateRoleAbilityCaches(queryClient, { roleId, ruleId })));
+      changedAbilities.forEach(({ ability, roleId }) => {
+        setCachedDicerRoleAbility(ruleId, roleId, ability);
+      });
       const createdMessage = await roomContext.sendMessageWithInsert({
         roomId: roomContext.roomId,
         roleId: roomContext.curRoleId ?? -1,

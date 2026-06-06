@@ -275,6 +275,24 @@ describe("mobileDiceCommandExecutor", () => {
     })]);
   });
 
+  it("执行 .st 写角色卡失败时不发送 STATE_EVENT", async () => {
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      data: {
+        abilityId: 7,
+        roleId: actorRole.roleId,
+        ruleId: 1,
+        skill: { 力量: "50" },
+      } satisfies RoleAbility,
+    });
+    mobileApiClientMock.abilityController.updateRoleAbilityByRule.mockRejectedValue(new Error("写入失败"));
+    const params = createParams({ command: ".st 力量+10" });
+
+    await expect(executeMobileDicerCommand(params)).rejects.toThrow("写入失败");
+
+    expect(params.sendRoomMessageMutation.sendRequest).not.toHaveBeenCalled();
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+  });
+
   it("执行 .st show 有 UI 回调时不发送消息并打开属性卡模型", async () => {
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
       data: {

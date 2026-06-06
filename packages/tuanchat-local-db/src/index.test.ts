@@ -125,6 +125,24 @@ describe("tuanchat local db room message helpers", () => {
     ]);
   });
 
+  it("存储前会清理已被正式消息替换的乐观消息", () => {
+    const messages = normalizeRoomMessagesForStorage([
+      createMessage(100, {
+        content: "hello",
+        roleId: 3,
+        userId: 7,
+      }),
+      createMessage(-1, {
+        content: "hello",
+        roleId: 3,
+        tcLocalSyncState: "optimistic",
+        userId: 7,
+      } as Partial<ChatMessageResponse["message"]>),
+    ]);
+
+    expect(messages.map(item => item.message.messageId)).toEqual([100]);
+  });
+
   it("批量读取记录时会忽略坏 JSON", () => {
     const messages = fromRoomMessageRecords([
       { payload_json: JSON.stringify(createMessage(2)) },
@@ -133,6 +151,15 @@ describe("tuanchat local db room message helpers", () => {
     ]);
 
     expect(messages.map(item => item.message.messageId)).toEqual([1, 2]);
+  });
+
+  it("批量读取记录时会清理持久化乐观重复消息", () => {
+    const messages = fromRoomMessageRecords([
+      { payload_json: JSON.stringify(createMessage(100, { content: "hello", roleId: 3, userId: 7 })) },
+      { payload_json: JSON.stringify(createMessage(-1, { content: "hello", roleId: 3, tcLocalSyncState: "optimistic", userId: 7 } as Partial<ChatMessageResponse["message"]>)) },
+    ]);
+
+    expect(messages.map(item => item.message.messageId)).toEqual([100]);
   });
 
   it("repository 统一执行 SQLite 消息读写和 tombstone 删除", async () => {

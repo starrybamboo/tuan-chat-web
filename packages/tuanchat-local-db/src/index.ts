@@ -1,6 +1,7 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { markRoomMessagesDeleted, mergeRoomMessages } from "@tuanchat/query/room-message";
+import { collectPersistedOptimisticDuplicateIds } from "@tuanchat/query/room-message-lifecycle";
 
 export * from "./direct-messages";
 
@@ -197,7 +198,7 @@ function requireRoomId(message: ChatMessageResponse): number | null {
 }
 
 export function normalizeRoomMessagesForStorage(messages: ChatMessageResponse[]): ChatMessageResponse[] {
-  return mergeRoomMessages(messages).filter((message) => {
+  return removePersistedOptimisticDuplicates(mergeRoomMessages(messages)).filter((message) => {
     return requireMessageId(message) !== null && requireRoomId(message) !== null;
   });
 }
@@ -231,9 +232,17 @@ export function fromRoomMessageRecord(record: Pick<RoomMessageRecord, "payload_j
 }
 
 export function fromRoomMessageRecords(records: Array<Pick<RoomMessageRecord, "payload_json">>): ChatMessageResponse[] {
-  return mergeRoomMessages(records
+  return removePersistedOptimisticDuplicates(mergeRoomMessages(records
     .map(record => fromRoomMessageRecord(record))
-    .filter((message): message is ChatMessageResponse => message !== null));
+    .filter((message): message is ChatMessageResponse => message !== null)));
+}
+
+function removePersistedOptimisticDuplicates(messages: ChatMessageResponse[]): ChatMessageResponse[] {
+  const duplicateIds = new Set(collectPersistedOptimisticDuplicateIds(messages));
+  if (duplicateIds.size === 0) {
+    return messages;
+  }
+  return messages.filter(message => !duplicateIds.has(message.message.messageId));
 }
 
 function isPositiveRoomId(roomId: number): boolean {

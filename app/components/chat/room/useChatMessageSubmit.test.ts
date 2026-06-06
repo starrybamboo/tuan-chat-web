@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   toastSuccessMock: vi.fn(),
   isCommandMock: vi.fn(),
   writeRoleVarOpsThroughAbilitiesMock: vi.fn(),
+  setCachedDicerRoleAbilityMock: vi.fn(),
 }));
 
 vi.mock("react", async () => {
@@ -47,6 +48,10 @@ vi.mock("@/components/chat/utils/roomJump", () => ({
 
 vi.mock("@/components/common/dicer/cmdPre", () => ({
   isCommand: mocks.isCommandMock,
+}));
+
+vi.mock("@/components/common/dicer/roleAbilityCache", () => ({
+  setCachedDicerRoleAbility: mocks.setCachedDicerRoleAbilityMock,
 }));
 
 vi.mock("@/components/chat/state/roleVarWriteThrough", () => ({
@@ -105,8 +110,12 @@ function createDeferred<T>() {
 describe("useChatMessageSubmit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockReset();
+    mocks.isCommandMock.mockReset();
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockReset();
+    mocks.setCachedDicerRoleAbilityMock.mockReset();
     mocks.isCommandMock.mockReturnValue(false);
-    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValue({ changedRoleIds: [], roleVarOps: [] });
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValue({ changedAbilities: [], changedRoleIds: [], roleVarOps: [] });
     mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue([]);
     useChatInputUiStore.getState().reset();
     useChatComposerStore.getState().reset();
@@ -670,6 +679,30 @@ describe("useChatMessageSubmit", () => {
       content: request.content,
       extra: request.extra,
     }));
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedAbilities: [{
+        ability: {
+          roleId: 3,
+          ruleId: 7,
+          ability: { hp: "8" },
+        },
+        roleId: 3,
+        ruleId: 7,
+      }],
+      changedRoleIds: [3],
+      roleVarOps: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "hp",
+        op: "sub",
+        value: 2,
+        beforeValue: 10,
+        afterValue: 8,
+      }],
+    });
 
     const { handleMessageSubmit } = useChatMessageSubmit({
       roomId: 1,
@@ -751,6 +784,11 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
+    expect(mocks.setCachedDicerRoleAbilityMock).toHaveBeenCalledWith(7, 3, {
+      roleId: 3,
+      ruleId: 7,
+      ability: { hp: "8" },
+    });
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
     expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
@@ -793,6 +831,15 @@ describe("useChatMessageSubmit", () => {
       roomUiStoreApi,
     });
     mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedAbilities: [{
+        ability: {
+          roleId: 3,
+          ruleId: 7,
+          ability: { hp: "14" },
+        },
+        roleId: 3,
+        ruleId: 7,
+      }],
       changedRoleIds: [3],
       roleVarOps: [{
         type: "varOp",
@@ -864,6 +911,107 @@ describe("useChatMessageSubmit", () => {
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
+  it("空格赋值 。st 手枪 80 会发送骰娘反馈并同步 dicer 能力缓存", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: "。st 手枪 80",
+      textWithoutMentions: "。st 手枪 80",
+      mentionedRoles: [],
+    });
+
+    const roomUiStoreApi = createRoomUiStore();
+    const commandExecutor = vi.fn();
+    const sendMessageWithInsert = vi.fn(async request => ({
+      ...createMessage(28),
+      messageType: request.messageType,
+      content: request.content,
+      extra: request.extra,
+    }));
+    mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedAbilities: [{
+        ability: {
+          roleId: 3,
+          ruleId: 7,
+          skill: { 手枪: "80" },
+        },
+        roleId: 3,
+        ruleId: 7,
+      }],
+      changedRoleIds: [3],
+      roleVarOps: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "手枪",
+        op: "set",
+        value: 80,
+        beforeValue: 0,
+        afterValue: 80,
+      }],
+    });
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      ruleId: 7,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor,
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText: vi.fn(),
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(commandExecutor).not.toHaveBeenCalled();
+    expect(mocks.writeRoleVarOpsThroughAbilitiesMock).toHaveBeenCalledWith(expect.objectContaining({
+      events: [{
+        type: "varOp",
+        scope: {
+          kind: "role",
+          roleId: 3,
+        },
+        key: "手枪",
+        op: "set",
+        value: 80,
+      }],
+    }));
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      messageType: MessageType.DICE,
+      content: "。st 手枪 80",
+      extra: expect.objectContaining({
+        diceTurn: {
+          command: "。st 手枪 80",
+          replies: [{
+            content: "状态已更新：角色 #3 · 手枪 0 -> 80",
+            customRoleName: "骰娘",
+          }],
+        },
+      }),
+    }));
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      messageType: MessageType.STATE_EVENT,
+      content: "状态更新：手枪 = 80",
+    }));
+    expect(mocks.setCachedDicerRoleAbilityMock).toHaveBeenCalledWith(7, 3, {
+      roleId: 3,
+      ruleId: 7,
+      skill: { 手枪: "80" },
+    });
+  });
+
   it("连写无符号 .st 赋值会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({
@@ -881,6 +1029,15 @@ describe("useChatMessageSubmit", () => {
       extra: request.extra,
     }));
     mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+      changedAbilities: [{
+        ability: {
+          roleId: 3,
+          ruleId: 7,
+          ability: { hp: "20" },
+        },
+        roleId: 3,
+        ruleId: 7,
+      }],
       changedRoleIds: [3],
       roleVarOps: [{
         type: "varOp",
