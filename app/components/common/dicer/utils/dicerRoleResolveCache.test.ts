@@ -134,7 +134,7 @@ describe("dicer role resolve cache", () => {
     expect(cachedResolved).toBe(11);
   });
 
-  it("传入的空间快照会写入输入层缓存供后续计算复用", async () => {
+  it("传入的空间快照不会写入额外缓存，后续按 Query helper 读取空间", async () => {
     const roomContext = {
       spaceId: 42,
       curRoleId: 0,
@@ -142,16 +142,21 @@ describe("dicer role resolve cache", () => {
       roomRolesThatUserOwn: [],
     } satisfies RoomContextType;
     const fetchSpaceInfoWithCacheMock = vi.mocked(fetchSpaceInfoWithCache);
+    fetchSpaceInfoWithCacheMock.mockResolvedValueOnce({
+      success: true,
+      data: { extra: { dicerRoleId: 12 } },
+    } as any);
+    const queryClient = {} as any;
 
     const firstResolved = await UTILS.getDicerRoleId(roomContext, {
       spaceSnapshot: { extra: { dicerRoleId: 11 } },
     });
     const secondResolved = await UTILS.getDicerRoleId(roomContext, {
-      queryClient: {} as any,
+      queryClient,
     });
 
     expect(firstResolved).toBe(11);
-    expect(secondResolved).toBe(11);
-    expect(fetchSpaceInfoWithCacheMock).not.toHaveBeenCalled();
+    expect(secondResolved).toBe(12);
+    expect(fetchSpaceInfoWithCacheMock).toHaveBeenCalledWith(queryClient, 42);
   });
 });

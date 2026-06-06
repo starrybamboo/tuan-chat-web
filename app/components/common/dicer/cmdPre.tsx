@@ -13,7 +13,6 @@ import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
 import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
-import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import {
   buildRoleAbilityStateEventsFromDiff,
   buildRuntimeStateValues,
@@ -24,7 +23,7 @@ import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDi
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { invalidateRoleAbilityCaches } from "../../../../api/hooks/abilityMutationInvalidation";
+import { invalidateRoleAbilityCaches, roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
 import {
   fetchRoleAbilityByRuleWithCache,
   setRoleAbilityWithSuccessGuard,
@@ -49,16 +48,6 @@ interface QueuedDicerMessage {
 const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
 let stableDiceMessageSeed = 0;
 const DICER_DEBUG_PREFIX = "[TC_DICER_FLOW]";
-const DICER_AVATAR_CACHE_TTL_MS = 15 * 60_000;
-const DICER_COPYWRITING_CACHE_TTL_MS = 15 * 60_000;
-
-interface ExpiringCacheEntry<T> {
-  value: T;
-  expireAt: number;
-}
-
-const dicerAvatarCache = new Map<number, ExpiringCacheEntry<RoleAvatar[]>>();
-const dicerCopywritingCache = new Map<string, ExpiringCacheEntry<Record<string, string[]>>>();
 
 function createStableDiceMessageKey(roomId: number, optimisticMessageId: number): string {
   stableDiceMessageSeed += 1;
@@ -74,48 +63,18 @@ function logDicerFlow(step: string, payload: Record<string, unknown>): void {
   console.warn(DICER_DEBUG_PREFIX, step, payload);
 }
 
-function readCacheValue<T>(entry: ExpiringCacheEntry<T> | undefined): T | undefined {
-  if (!entry) {
-    return undefined;
-  }
-  if (entry.expireAt <= Date.now()) {
-    return undefined;
-  }
-  return entry.value;
-}
-
-function writeCacheValue<T>(value: T, ttlMs: number): ExpiringCacheEntry<T> {
-  return {
-    value,
-    expireAt: Date.now() + ttlMs,
-  };
-}
-
 async function getOrFetchRoleAbility(queryClient: QueryClient, ruleId: number, roleId: number): Promise<RoleAbility> {
-  const cached = getCachedDicerRoleAbility(ruleId, roleId);
-  if (cached) {
-    return cached;
-  }
-  const ability = (await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId) || {}) as RoleAbility;
-  setCachedDicerRoleAbility(ruleId, roleId, {
+  const cached = queryClient.getQueryData<RoleAbility | null>(roleAbilityByRuleQueryKey(roleId, ruleId));
+  const ability = (cached ?? await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId) ?? {}) as RoleAbility;
+  return cloneRoleAbility({
     ...ability,
     roleId: ability.roleId ?? roleId,
     ruleId: ability.ruleId ?? ruleId,
   });
-  return getCachedDicerRoleAbility(ruleId, roleId) ?? {
-    ...ability,
-    roleId: ability.roleId ?? roleId,
-    ruleId: ability.ruleId ?? ruleId,
-  };
 }
 
-async function getCachedDicerAvatars(queryClient: QueryClient, dicerRoleId: number): Promise<RoleAvatar[]> {
-  const cached = readCacheValue(dicerAvatarCache.get(dicerRoleId));
-  if (cached) {
-    return cached;
-  }
+async function getDicerAvatars(queryClient: QueryClient, dicerRoleId: number): Promise<RoleAvatar[]> {
   const avatars = (await fetchRoleAvatarsWithCache(queryClient, dicerRoleId))?.data ?? [];
-  dicerAvatarCache.set(dicerRoleId, writeCacheValue(avatars, DICER_AVATAR_CACHE_TTL_MS));
   return avatars;
 }
 
@@ -138,12 +97,7 @@ function normalizeCopywritingMap(raw: unknown): Record<string, string[]> {
   return normalized;
 }
 
-async function getCachedDicerCopywritingMap(queryClient: QueryClient, ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
-  const cacheKey = `${ruleId}:${dicerRoleId}`;
-  const cached = readCacheValue(dicerCopywritingCache.get(cacheKey));
-  if (cached) {
-    return cached;
-  }
+async function getDicerCopywritingMap(queryClient: QueryClient, ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
   const ability = await fetchRoleAbilityByRuleWithCache(queryClient, dicerRoleId, ruleId);
   const rawCopywriting = (ability as any)?.extra?.copywriting;
   let parsedRaw: unknown = rawCopywriting;
@@ -155,9 +109,7 @@ async function getCachedDicerCopywritingMap(queryClient: QueryClient, ruleId: nu
       parsedRaw = {};
     }
   }
-  const normalized = normalizeCopywritingMap(parsedRaw);
-  dicerCopywritingCache.set(cacheKey, writeCacheValue(normalized, DICER_COPYWRITING_CACHE_TTL_MS));
-  return normalized;
+  return normalizeCopywritingMap(parsedRaw);
 }
 
 export { isCommand } from "@tuanchat/domain/command-request";
@@ -232,8 +184,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           return;
         }
         await Promise.all([
-          getCachedDicerAvatars(queryClient, dicerRoleId),
-          getCachedDicerCopywritingMap(queryClient, normalizedRuleId, dicerRoleId),
+          getDicerAvatars(queryClient, dicerRoleId),
+          getDicerCopywritingMap(queryClient, normalizedRuleId, dicerRoleId),
         ]);
       }
       catch (error) {
@@ -705,13 +657,13 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       if (dicerMessageQueue.length > 0) {
         // 先准备最终骰娘文案，再创建乐观消息，避免“先发结果、后补风味文案”的二次跳变。
         const dicerRoleId = await dicerRoleIdPromise;
-        const avatarsPromise = getCachedDicerAvatars(queryClient, dicerRoleId)
+        const avatarsPromise = getDicerAvatars(queryClient, dicerRoleId)
           .catch((error) => {
             console.error("获取骰娘头像失败:", error);
             return [] as RoleAvatar[];
           });
         const copywritingMapPromise = copywritingKey
-          ? getCachedDicerCopywritingMap(queryClient, ruleId, dicerRoleId)
+          ? getDicerCopywritingMap(queryClient, ruleId, dicerRoleId)
               .catch((error) => {
                 console.error("获取骰娘文案失败:", error);
                 return {} as Record<string, string[]>;
