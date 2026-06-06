@@ -231,7 +231,7 @@ async function materializeRows(rows, options, mattingMaps) {
       : sourceAbsPath(options.root, row.sourceRelPath);
     increment(countsByAssetKind, row.assetKind || "unknown");
     increment(countsByBucket, bucket.join("/"));
-    increment(countsByMattingStatus, row.mattingStatus || "unknown");
+    increment(countsByMattingStatus, matting?.status ?? row.mattingStatus ?? "unknown");
     try {
       await fs.mkdir(path.dirname(outputAbsPath), { recursive: true });
       await fs.copyFile(inputAbsPath, outputAbsPath);
