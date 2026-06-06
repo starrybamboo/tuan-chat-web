@@ -57,7 +57,7 @@ type UseChatMessageSubmitParams = {
   discardLocalOptimisticMessages?: (messages: ChatMessageResponse[]) => Promise<void>;
   insertLocalOptimisticMessages?: (messages: ChatMessageRequest[]) => ChatMessageResponse[];
   sendMessageBatchWithLocalOptimistic?: (messages: ChatMessageRequest[], optimisticMessages: ChatMessageResponse[]) => Promise<ChatMessageResponse["message"][]>;
-  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
+  sendMessageWithInsert: (message: ChatMessageRequest, options?: { optimistic?: boolean }) => Promise<ChatMessageResponse["message"] | null>;
   sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   commandExecutor: CommandExecutor;
@@ -535,14 +535,14 @@ export default function useChatMessageSubmit({
           if (draftCustomRoleName) {
             diceFeedbackMsg.customRoleName = draftCustomRoleName;
           }
-          const createdDiceFeedbackMessage = await sendMessageWithInsert(diceFeedbackMsg);
+          const createdDiceFeedbackMessage = await sendMessageWithInsert(diceFeedbackMsg, { optimistic: false });
           if (!createdDiceFeedbackMessage) {
             return;
           }
           hasCommittedOutboundMessage = true;
         }
 
-        const createdStateEventMessage = await sendMessageWithInsert(stateEventMsg);
+        const createdStateEventMessage = await sendMessageWithInsert(stateEventMsg, { optimistic: false });
         if (!createdStateEventMessage) {
           return;
         }
