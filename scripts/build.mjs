@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import process from "node:process";
 
 const passthroughArgs = process.argv.slice(2);
 const hasExplicitMode = passthroughArgs.some((arg, index) => {

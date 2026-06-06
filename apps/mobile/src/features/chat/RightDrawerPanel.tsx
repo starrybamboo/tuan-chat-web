@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -13,7 +12,7 @@ import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
 
-type TabKey = "map" | "combat" | "clues";
+export type RightDrawerTabKey = "map" | "combat" | "clues";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -29,7 +28,8 @@ const styles = StyleSheet.create({
   },
 });
 
-type RightDrawerPanelProps = {
+interface RightDrawerPanelProps {
+  activeTab: RightDrawerTabKey;
   clueRooms: Room[];
   currentUserId: number | null;
   currentRoleId: number | null;
@@ -39,6 +39,7 @@ type RightDrawerPanelProps = {
   messages: Message[];
   onAdvanceTurn: () => void;
   onClose: () => void;
+  onChangeActiveTab: (tab: RightDrawerTabKey) => void;
   onEndCombat: () => void;
   onEnterStateCommandMode: () => void;
   onStartCombat: () => void;
@@ -46,9 +47,10 @@ type RightDrawerPanelProps = {
   roomRoles: UserRole[];
   ruleId: number | null | undefined;
   spaceId: number | null;
-};
+}
 
 export function RightDrawerPanel({
+  activeTab,
   clueRooms,
   currentUserId,
   currentRoleId,
@@ -57,6 +59,7 @@ export function RightDrawerPanel({
   isStateCommandMode,
   messages,
   onAdvanceTurn,
+  onChangeActiveTab,
   onClose: _onClose,
   onEndCombat,
   onEnterStateCommandMode,
@@ -67,7 +70,6 @@ export function RightDrawerPanel({
   spaceId,
 }: RightDrawerPanelProps) {
   const theme = useTheme();
-  const [activeTab, setActiveTab] = useState<TabKey>("clues");
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
@@ -110,7 +112,7 @@ export function RightDrawerPanel({
       </View>
 
       <View style={[styles.tabBar, { borderTopColor: theme.border }]}>
-        <Pressable style={styles.tab} onPress={() => setActiveTab("clues")}>
+        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("clues")}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "clues" ? "accent" : "textSecondary"}
@@ -118,7 +120,7 @@ export function RightDrawerPanel({
             线索
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tab} onPress={() => setActiveTab("combat")}>
+        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("combat")}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "combat" ? "accent" : "textSecondary"}
@@ -126,7 +128,7 @@ export function RightDrawerPanel({
             战斗
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tab} onPress={() => setActiveTab("map")}>
+        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("map")}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "map" ? "accent" : "textSecondary"}

@@ -6,6 +6,7 @@ import {
   buildRoomMessagePatchOperations,
   extractMessageEditorSlashQuery,
   getMessageEditorFrameClassName,
+  getMessageEditorPatchMutationMeta,
   getMessageEditorScrollViewportClassName,
   getMessageEditorSlashMenuLayerClassName,
   getMessageEditorTextBlockShellClassName,
@@ -70,6 +71,20 @@ describe("messageEditor document click guard", () => {
       hasFollowingTextBlock: false,
       isDragging: false,
     })).not.toContain("mb-2");
+  });
+
+  it("默认把远端 patch 保存标记为 message editor 来源", () => {
+    expect(getMessageEditorPatchMutationMeta()).toEqual({
+      operationCause: "normal",
+      sourceSurface: "message_editor",
+    });
+  });
+
+  it("doc view 远端 patch 保存会标记为 doc_view 来源", () => {
+    expect(getMessageEditorPatchMutationMeta("doc_view")).toEqual({
+      operationCause: "normal",
+      sourceSurface: "doc_view",
+    });
   });
 
   it("resolves pointer auto-scroll near the document viewport edges", () => {

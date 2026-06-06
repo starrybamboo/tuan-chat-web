@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { RoleAvatar } from "api";
 
@@ -96,4 +96,3 @@ describe("roleListData", () => {
     expect(seedRoleAvatarQueryCaches).not.toHaveBeenCalled();
   });
 });
-

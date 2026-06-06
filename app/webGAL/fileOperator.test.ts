@@ -68,7 +68,7 @@ describe("fileOperator.uploadFile", () => {
     assetsControllerUploadMock.mockResolvedValue(undefined);
   });
 
-  it("WebGAL render 上传远程资源时由团剧网页端拉取 Blob，不调用 Terre 后端直拉", async () => {
+  it("webGAL render 上传远程资源时由团剧网页端拉取 Blob，不调用 Terre 后端直拉", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(new Blob(["avatar"], {
       type: "image/webp",
     }), {

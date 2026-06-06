@@ -48,9 +48,9 @@ type LocalImageMessagePayload = NonNullable<ReturnType<typeof getImageMessageExt
   localFile?: File;
 };
 
-type LocalMediaMessagePayload = {
+interface LocalMediaMessagePayload {
   localFile?: File;
-};
+}
 
 function getLocalPreviewFile(payload: LocalMediaMessagePayload | undefined): File | undefined {
   if (typeof File === "undefined") {

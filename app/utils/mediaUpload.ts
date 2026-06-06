@@ -260,7 +260,7 @@ async function extractImageMetadata(file: File) {
   };
 }
 
-async function generateImageUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
+async function generateImageUploadFiles(file: File): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
 
   const imageMetadataPromise = extractImageMetadata(normalizedFile);
@@ -408,7 +408,7 @@ export async function generateMediaUploadFiles(file: File, scene?: number): Prom
   const normalizedFile = await normalizeFileMimeType(file);
   const mediaType = inferMediaType(normalizedFile);
   if (mediaType === "image") {
-    return await generateImageUploadFiles(normalizedFile, scene);
+    return await generateImageUploadFiles(normalizedFile);
   }
   if (mediaType === "audio") {
     return await generateAudioUploadFiles(normalizedFile, scene);

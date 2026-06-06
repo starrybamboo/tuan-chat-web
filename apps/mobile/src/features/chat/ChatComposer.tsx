@@ -1,12 +1,14 @@
-import { ImageSquare, PaperPlaneTilt, Smiley, X, XCircle } from "phosphor-react-native";
-import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
-
-import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
-import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 import type { CommandInfo } from "@tuanchat/domain/command-request";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { IconProps } from "phosphor-react-native";
+import type { ComponentType } from "react";
+import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
+import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
+
+import { ImageSquare, PaperPlaneTilt, Smiley, X, XCircle } from "phosphor-react-native";
+import { useMemo, useState } from "react";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -173,7 +175,7 @@ function getMentionQuery(text: string): string | null {
   return query;
 }
 
-type ChatComposerProps = {
+interface ChatComposerProps {
   anchorMessage: Message | null;
   availableRoles?: UserRole[];
   canUseAttachments: boolean;
@@ -197,7 +199,15 @@ type ChatComposerProps = {
   onSend: () => void;
   roomName?: string | null;
   ruleId?: number | null;
-};
+  safeAreaBottomInset?: number;
+  shortcutActions?: readonly ChatComposerShortcutAction[];
+}
+
+export interface ChatComposerShortcutAction {
+  Icon: ComponentType<IconProps>;
+  accessibilityLabel: string;
+  onPress: () => void;
+}
 
 export function ChatComposer({
   anchorMessage,
@@ -223,6 +233,8 @@ export function ChatComposer({
   onSend,
   roomName,
   ruleId,
+  safeAreaBottomInset = 0,
+  shortcutActions,
 }: ChatComposerProps) {
   const theme = useTheme();
   const [inputHeight, setInputHeight] = useState(COMPOSER_MIN_HEIGHT);
@@ -310,7 +322,7 @@ export function ChatComposer({
           )
         : null}
 
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingBottom: Spacing.md + safeAreaBottomInset }]}>
         {anchorMessage
           ? (
               <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
@@ -400,6 +412,21 @@ export function ChatComposer({
                 </Pressable>
               )
             : null}
+
+          {shortcutActions?.map((action) => {
+            return (
+              <Pressable
+                key={action.accessibilityLabel}
+                accessibilityLabel={action.accessibilityLabel}
+                accessibilityRole="button"
+                disabled={isSubmitting}
+                onPress={action.onPress}
+                style={styles.toolButton}
+              >
+                <action.Icon color={theme.textSecondary} size={20} />
+              </Pressable>
+            );
+          })}
 
           {messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT
             ? (

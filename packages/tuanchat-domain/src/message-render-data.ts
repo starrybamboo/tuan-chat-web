@@ -35,13 +35,26 @@ function toRecord(value: unknown): Record<string, unknown> | null {
 
 function inferDiceCommandExpression(expression: string, resultPart: string) {
   const trimmedExpression = expression.trim();
-  if (!trimmedExpression || /[+\-*/／/]/.test(trimmedExpression)) {
+  if (!trimmedExpression || /[+\-*/／]/.test(trimmedExpression)) {
     return trimmedExpression;
   }
   const calculation = resultPart.trim().split("=")[0]?.trim() ?? "";
-  const modifierMatch = calculation.match(/^[+-]?\d+(?:\.\d+)?((?:\s*[+\-*/／/]\s*[+-]?\d+(?:\.\d+)?)+)$/);
+  const modifierMatch = calculation.match(/^[+-]?\d+(?:\.\d+)?((?:\s*[+\-*/／]\s*[+-]?\d+(?:\.\d+)?)+)$/);
   const modifiers = modifierMatch?.[1]?.replace(/\s+/g, "");
   return modifiers ? `${trimmedExpression}${modifiers}` : trimmedExpression;
+}
+
+function replaceHistoricalDiceBody(token: string, body: string, wrap: (expression: string) => string) {
+  const separatorIndex = body.search(/[:：]/);
+  if (separatorIndex <= 0) {
+    return token;
+  }
+  const expression = body.slice(0, separatorIndex);
+  if (!/\d*d\d+|1d/i.test(expression)) {
+    return token;
+  }
+  const resultPart = body.slice(separatorIndex + 1);
+  return wrap(inferDiceCommandExpression(expression, resultPart));
 }
 
 function inferDiceCommandFromHistoricalResult(content: string) {
@@ -50,12 +63,8 @@ function inferDiceCommandFromHistoricalResult(content: string) {
     return "";
   }
   const command = original
-    .replace(/【([^】]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^】]*?)[:：]([^】]*)】/gi, (_token, expression: string, resultPart: string) => {
-      return `【${inferDiceCommandExpression(expression, resultPart)}：】`;
-    })
-    .replace(/\[([^\]]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^\]]*?)[:：]([^\]]*)\]/gi, (_token, expression: string, resultPart: string) => {
-      return `[${inferDiceCommandExpression(expression, resultPart)}:]`;
-    })
+    .replace(/【([^】]*)】/g, (token, body: string) => replaceHistoricalDiceBody(token, body, expression => `【${expression}：】`))
+    .replace(/\[([^\]]*)\]/g, (token, body: string) => replaceHistoricalDiceBody(token, body, expression => `[${expression}:]`))
     .trim();
   return command !== original ? command : "";
 }

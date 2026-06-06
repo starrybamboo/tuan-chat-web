@@ -1,11 +1,11 @@
+import blackTextboxScss from "./templates/black/Stage/TextBox/textbox.scss?raw";
+import blackTemplateJson from "./templates/black/template.json?raw";
+import blackTitleScss from "./templates/black/UI/Title/title.scss?raw";
 // WebGAL 模板文件已 vendored 到仓库内，避免 CI 依赖外部 WebGAL_Terre 工作区。
 import defaultChooseScss from "./templates/default/Stage/Choose/choose.scss?raw";
 import defaultTextboxScss from "./templates/default/Stage/TextBox/textbox.scss?raw";
-import defaultTitleScss from "./templates/default/UI/Title/title.scss?raw";
 import defaultTemplateJson from "./templates/default/template.json?raw";
-import blackTextboxScss from "./templates/black/Stage/TextBox/textbox.scss?raw";
-import blackTitleScss from "./templates/black/UI/Title/title.scss?raw";
-import blackTemplateJson from "./templates/black/template.json?raw";
+import defaultTitleScss from "./templates/default/UI/Title/title.scss?raw";
 
 export type PublishTemplatePreset = {
   chooseScss: string;

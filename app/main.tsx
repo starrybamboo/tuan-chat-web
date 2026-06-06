@@ -1,10 +1,10 @@
-import "./utils/windowTimerBinding";
-
 import { RouterProvider } from "@tanstack/react-router";
+
 import { startTransition, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { getRouter } from "./router";
 import { installBrowserShortcutGuard } from "./utils/browserShortcutGuard";
+import "./utils/windowTimerBinding";
 
 declare global {
   interface Window {

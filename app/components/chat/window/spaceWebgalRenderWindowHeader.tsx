@@ -1,6 +1,6 @@
 import type { BatchProgress } from "./spaceWebgalRenderWindowParts";
-import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
 import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
+import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
 
 import { buildStatusMeta } from "./spaceWebgalRenderWindowParts";
 

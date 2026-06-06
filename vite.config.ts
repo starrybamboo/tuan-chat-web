@@ -185,8 +185,8 @@ function webgalAssetProxyPlugin(): Plugin {
 
   async function fetchWebgalAssetViaTuanChat(targetUrl: URL, acceptHeader: string | string[] | undefined, userAgentHeader: string | string[] | undefined) {
     const requestHeaders = {
-      accept: firstHeaderValue(acceptHeader, "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"),
-      referer: "https://tuan.chat/",
+      "accept": firstHeaderValue(acceptHeader, "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"),
+      "referer": "https://tuan.chat/",
       "user-agent": firstHeaderValue(userAgentHeader, "Mozilla/5.0"),
     };
     const firstResponse = await undiciFetch(targetUrl.toString(), {

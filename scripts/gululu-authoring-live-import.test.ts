@@ -1,8 +1,7 @@
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -193,19 +192,80 @@ describe("gululu-authoring-live-import", () => {
     expect(plan.warnings).toEqual(["BGM 暂以文本事件保留：远野幻想物语"]);
   });
 
-  it("会为导入立绘计算不遮挡对话框的默认 transform", () => {
-    const landscape = buildGululuImportedSpriteTransform({ height: 250, width: 500 });
-    expect(landscape).toMatchObject({
+  it("会把嵌套骰链写成同一条 diceTurn 的多条回复", () => {
+    const plan = buildGululuLiveImportPlan({
+      messages: [{
+        content: "【1d10：9】",
+        diceReplies: [
+          "【1d10：10】",
+          "10 大成功/大失败【1d2：2】",
+          "【1d10：9】",
+        ],
+        floor: 53,
+        kind: "dice",
+        options: [
+          "1 师匠，请指导我",
+          "9 与铃仙交流",
+          "10 大成功/大失败【1d2：】",
+        ],
+        rollText: "【1d10：】",
+      }],
+      roles: [],
+      source: {
+        floorCount: 1,
+        fromFloor: 53,
+        title: "烈海王似乎打算在幻想乡挑战强者们的样子",
+        toFloor: 53,
+      },
+    }, {
+      skipAvatarUpload: true,
+      targetRoomId: 62,
+      targetSpaceId: 8801,
+    });
+
+    expect(plan.messages).toHaveLength(1);
+    expect(plan.messages[0]!.request).toMatchObject({
+      content: "【1d10：】\n1 师匠，请指导我\n9 与铃仙交流\n10 大成功/大失败【1d2：】",
+      extra: {
+        diceResult: { result: "【1d10：10】\n10 大成功/大失败【1d2：2】\n【1d10：9】" },
+        diceTurn: {
+          command: "【1d10：】\n1 师匠，请指导我\n9 与铃仙交流\n10 大成功/大失败【1d2：】",
+          replies: [
+            { content: "【1d10：10】", customRoleName: "骰娘" },
+            { content: "10 大成功/大失败【1d2：2】", customRoleName: "骰娘" },
+            { content: "【1d10：9】", customRoleName: "骰娘" },
+          ],
+        },
+      },
+      messageType: MESSAGE_TYPE.DICE,
+    });
+  });
+
+  it("会按全身、头像和宽漫画头像计算不同默认 transform", () => {
+    const fullBody = buildGululuImportedSpriteTransform({
+      hasAlpha: true,
+      height: 725,
+      visibleBounds: { height: 706, width: 556, x: 12, y: 10 },
+      width: 580,
+    });
+    const headBust = buildGululuImportedSpriteTransform({
+      hasAlpha: true,
+      height: 370,
+      visibleBounds: { height: 370, width: 377, x: 17, y: 0 },
+      width: 395,
+    });
+    const mangaAvatar = buildGululuImportedSpriteTransform({ hasAlpha: false, height: 253, width: 580 });
+
+    expect(fullBody).toMatchObject({
       alpha: 1,
       positionX: 0,
       rotation: 0,
     });
-    expect(landscape.scale).toBeLessThanOrEqual(0.35);
-    expect(landscape.positionY).toBeLessThan(0);
-
-    const portrait = buildGululuImportedSpriteTransform({ height: 900, width: 500 });
-    expect(portrait.scale).toBeLessThanOrEqual(0.46);
-    expect(portrait.positionY).toBeLessThan(landscape.positionY);
+    expect(fullBody.scale).toBeGreaterThan(headBust.scale);
+    expect(fullBody.positionY).toBeLessThan(headBust.positionY);
+    expect(headBust.positionY).toBeGreaterThan(-100);
+    expect(mangaAvatar.scale).toBeLessThanOrEqual(0.42);
+    expect(mangaAvatar.positionY).toBeGreaterThan(0);
   });
 
   it("dry-run 只写计划文件，不调用 live client", async () => {

@@ -179,7 +179,7 @@ export function FriendRequestButton({
               value={verifyMsg}
               onChange={event => setVerifyMsg(event.target.value)}
               disabled={sendFriendRequestMutation.isPending}
-              autoFocus
+
             />
             <div className="mt-4 flex justify-end gap-2">
               <button

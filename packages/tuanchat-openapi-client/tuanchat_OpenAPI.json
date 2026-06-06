@@ -11175,8 +11175,13 @@
           },
           "targetType": {
             "type": "integer",
-            "description": "目标角色类型，当前仅支持 1（骰娘）",
+            "description": "目标角色类型，支持 1（骰娘）或 2（NPC）",
             "format": "int32"
+          },
+          "spaceId": {
+            "type": "integer",
+            "description": "目标空间ID；复制为 NPC 时必填",
+            "format": "int64"
           }
         },
         "description": "复制角色请求体"
@@ -13821,6 +13826,9 @@
             "items": {
               "$ref": "#/components/schemas/RoomMessageStreamPatchOperation"
             }
+          },
+          "mutationMeta": {
+            "$ref": "#/components/schemas/RoomMessageMutationMeta"
           }
         },
         "description": "房间消息批量变更请求"
@@ -15448,6 +15456,22 @@
             "format": "int64"
           }
         }
+      },
+      "RoomMessageMutationMeta": {
+        "type": "object",
+        "properties": {
+          "sourceSurface": {
+            "type": "string",
+            "description": "来源入口：chat_input/message_editor/doc_view/import/ai",
+            "maxLength": 32
+          },
+          "operationCause": {
+            "type": "string",
+            "description": "操作原因：normal/undo/redo",
+            "maxLength": 32
+          }
+        },
+        "description": "房间消息变更来源元数据"
       }
     },
     "securitySchemes": {

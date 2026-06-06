@@ -78,6 +78,59 @@ describe("roomMessageStreamApi", () => {
     expect(messages).toEqual([changed]);
   });
 
+  it("显式传入 mutationMeta 时会透传到统一 patch 请求", async () => {
+    patchRoomMessagesMock.mockResolvedValueOnce({
+      data: [createMessage({ content: "saved", messageId: 2, syncId: 101 })],
+      success: true,
+    });
+
+    await patchRemoteRoomMessageStream({
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "doc_view",
+      },
+      operations: [
+        {
+          message: {
+            content: "saved",
+            messageType: 1,
+          },
+          op: "insert",
+        },
+      ],
+      roomId: 10,
+    });
+
+    expect(patchRoomMessagesMock).toHaveBeenCalledWith(expect.objectContaining({
+      mutationMeta: {
+        operationCause: "normal",
+        sourceSurface: "doc_view",
+      },
+    }));
+  });
+
+  it("未传 mutationMeta 时保持旧请求形状", async () => {
+    patchRoomMessagesMock.mockResolvedValueOnce({
+      data: [createMessage({ content: "saved", messageId: 2, syncId: 101 })],
+      success: true,
+    });
+
+    await patchRemoteRoomMessageStream({
+      operations: [
+        {
+          message: {
+            content: "saved",
+            messageType: 1,
+          },
+          op: "insert",
+        },
+      ],
+      roomId: 10,
+    });
+
+    expect((patchRoomMessagesMock.mock.calls[0]?.[0] as any).mutationMeta).toBeUndefined();
+  });
+
   it("没有有效内容操作时不请求远端", async () => {
     const messages = await patchRemoteRoomMessageStream({
       operations: [

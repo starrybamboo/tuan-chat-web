@@ -7,13 +7,17 @@ import { buildCommittedResponseFromOptimistic, commitBatchOptimisticMessages } f
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { createOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
-import type { ChatMessageRequest, ChatMessageResponse } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, RoomMessageMutationMeta } from "../../../../api";
+
+type SendMessageBatchOptions = {
+  mutationMeta?: RoomMessageMutationMeta;
+};
 
 type UseRoomMessageActionsParams = {
   currentUserId: number;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
   sendMessage: (message: ChatMessageRequest) => Promise<{ success: boolean; data?: ChatMessageResponse["message"] }>;
-  insertMessages?: (messages: ChatMessageRequest[]) => Promise<{ success?: boolean; data?: ChatMessageResponse["message"][] }>;
+  insertMessages?: (messages: ChatMessageRequest[], options?: SendMessageBatchOptions) => Promise<{ success?: boolean; data?: ChatMessageResponse["message"][] }>;
   addOrUpdateMessage?: (message: ChatMessageResponse) => Promise<void> | void;
   addOrUpdateMessages?: (messages: ChatMessageResponse[]) => Promise<void> | void;
   removeMessageById?: (messageId: number) => Promise<void>;
@@ -24,9 +28,9 @@ type UseRoomMessageActionsParams = {
 type UseRoomMessageActionsResult = {
   discardLocalOptimisticMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   insertLocalOptimisticMessages: (messages: ChatMessageRequest[]) => ChatMessageResponse[];
-  sendMessageBatchWithLocalOptimistic: (messages: ChatMessageRequest[], optimisticMessages: ChatMessageResponse[]) => Promise<ChatMessageResponse["message"][]>;
+  sendMessageBatchWithLocalOptimistic: (messages: ChatMessageRequest[], optimisticMessages: ChatMessageResponse[], options?: SendMessageBatchOptions) => Promise<ChatMessageResponse["message"][]>;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
-  sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
+  sendMessageBatch: (messages: ChatMessageRequest[], options?: SendMessageBatchOptions) => Promise<ChatMessageResponse["message"][]>;
 };
 
 export default function useRoomMessageActions({
@@ -205,6 +209,7 @@ export default function useRoomMessageActions({
   const sendBatchWithOptimistic = useCallback(async (
     requests: ChatMessageRequest[],
     errorLogLabel: string,
+    options?: SendMessageBatchOptions,
   ): Promise<ChatMessageResponse["message"][]> => {
     if (requests.length === 0) {
       return [];
@@ -233,7 +238,7 @@ export default function useRoomMessageActions({
     }
 
     try {
-      const result = await insertMessages(requests);
+      const result = await insertMessages(requests, options);
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
         await revertOptimisticMessages(optimisticMessages);
@@ -274,6 +279,7 @@ export default function useRoomMessageActions({
   const sendMessageBatchWithLocalOptimistic = useCallback(async (
     requests: ChatMessageRequest[],
     optimisticMessages: ChatMessageResponse[],
+    options?: SendMessageBatchOptions,
   ): Promise<ChatMessageResponse["message"][]> => {
     if (requests.length === 0) {
       await revertOptimisticMessages(optimisticMessages);
@@ -281,7 +287,7 @@ export default function useRoomMessageActions({
     }
 
     if (optimisticMessages.length === 0) {
-      return await sendBatchWithOptimistic(requests, "批量发送消息失败");
+      return await sendBatchWithOptimistic(requests, "批量发送消息失败", options);
     }
 
     if (requests.length === 1) {
@@ -323,7 +329,7 @@ export default function useRoomMessageActions({
     });
 
     try {
-      const result = await insertMessages(requestsWithStablePositions);
+      const result = await insertMessages(requestsWithStablePositions, options);
       const createdMessages = Array.isArray(result?.data) ? result.data : [];
       if (!result?.success || createdMessages.length !== requests.length) {
         await revertOptimisticMessages(optimisticMessages);
@@ -387,8 +393,8 @@ export default function useRoomMessageActions({
     return await sendWithOptimistic(message, "发送消息失败");
   }, [mainHistoryMessages, roomUiStoreApi, sendWithOptimistic]);
 
-  const sendMessageBatch = useCallback(async (messages: ChatMessageRequest[]) => {
-    return await sendBatchWithOptimistic(messages, "批量发送消息失败");
+  const sendMessageBatch = useCallback(async (messages: ChatMessageRequest[], options?: SendMessageBatchOptions) => {
+    return await sendBatchWithOptimistic(messages, "批量发送消息失败", options);
   }, [sendBatchWithOptimistic]);
 
   return {

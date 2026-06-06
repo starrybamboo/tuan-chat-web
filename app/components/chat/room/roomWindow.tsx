@@ -17,6 +17,10 @@ import { buildGalPatchMutationPlan, executeGalPatchMutationPlan, galPatchProposa
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
+import {
+  buildMessageHistoryPatchRequest,
+  getMessageHistoryPatchFallbackMessage,
+} from "@/components/chat/room/messageHistoryMutation";
 import { handleRoomMessageHistoryShortcutEvent } from "@/components/chat/room/messageHistoryShortcuts";
 import RoomDocRefDropLayer from "@/components/chat/room/roomDocRefDropLayer";
 import RoomSideDrawerGuards from "@/components/chat/room/roomSideDrawerGuards";
@@ -49,12 +53,10 @@ import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
 
 import {
-  useDeleteMessageMutation,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
   usePatchMessagesMutation,
   useSendMessageMutation,
-  useUpdateMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { fetchRoleAvatarWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
@@ -125,11 +127,9 @@ function RoomWindow({
   const webSocketUtils = useGlobalWebSocket();
 
   const sendMessageMutation = useSendMessageMutation(roomId);
-  const deleteMessageMutation = useDeleteMessageMutation();
-  const updateMessageMutation = useUpdateMessageMutation();
   const patchMessagesMutation = usePatchMessagesMutation(roomId);
-  const insertMessagesWithPatch = useCallback((messages: ChatMessageRequest[]) => {
-    return patchInsertMessages(tuanchat, messages);
+  const insertMessagesWithPatch = useCallback((messages: ChatMessageRequest[], options?: Parameters<typeof patchInsertMessages>[2]) => {
+    return patchInsertMessages(tuanchat, messages, options);
   }, []);
 
   const {
@@ -548,6 +548,15 @@ function RoomWindow({
     chatHistory?.addOrUpdateMessage({ message: nextMessage } as ChatMessageResponse);
   }, [chatHistory]);
 
+  const applyMessageHistoryPatch = useCallback(async (action: Parameters<typeof buildMessageHistoryPatchRequest>[0], operationCause: "redo" | "undo") => {
+    const request = buildMessageHistoryPatchRequest(action, operationCause);
+    const response = await patchMessagesMutation.mutateAsync(request);
+    const currentMessage = action.type === "send"
+      ? historyMessages?.find(m => m.message.messageId === action.after.messageId)?.message
+      : historyMessages?.find(m => m.message.messageId === action.before.messageId)?.message;
+    return response?.data?.[0] ?? getMessageHistoryPatchFallbackMessage(action, operationCause, currentMessage);
+  }, [historyMessages, patchMessagesMutation]);
+
   const handleUndoLastMessageAction = useCallback(async () => {
     if (undoInProgressRef.current || redoInProgressRef.current) {
       return;
@@ -565,29 +574,23 @@ function RoomWindow({
 
     try {
       if (action.type === "send") {
-        const messageId = action.after.messageId;
-        const response = await deleteMessageMutation.mutateAsync(messageId);
-        const localTarget = historyMessages?.find(m => m.message.messageId === messageId)?.message;
-        const fallbackDeleted = {
-          ...(localTarget ?? action.after),
-          status: 1,
-        };
-        syncMessageAfterHistoryApply(response?.data ?? fallbackDeleted);
+        const message = await applyMessageHistoryPatch(action, "undo");
+        syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageRedo(action);
         toast.success("已撤销发送");
         return;
       }
 
       if (action.type === "delete") {
-        const response = await updateMessageMutation.mutateAsync(action.before);
-        syncMessageAfterHistoryApply(response?.data ?? action.before);
+        const message = await applyMessageHistoryPatch(action, "undo");
+        syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageRedo(action);
         toast.success("已撤销删除");
         return;
       }
 
-      const response = await updateMessageMutation.mutateAsync(action.before);
-      syncMessageAfterHistoryApply(response?.data ?? action.before);
+      const message = await applyMessageHistoryPatch(action, "undo");
+      syncMessageAfterHistoryApply(message);
       roomUiStore.getState().restoreMessageRedo(action);
       toast.success("已撤销修改");
     }
@@ -601,7 +604,7 @@ function RoomWindow({
       setIsApplyingMessageHistory(false);
       undoInProgressRef.current = false;
     }
-  }, [deleteMessageMutation, historyMessages, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
+  }, [applyMessageHistoryPatch, roomUiStore, syncMessageAfterHistoryApply]);
 
   const handleRedoLastMessageAction = useCallback(async () => {
     if (undoInProgressRef.current || redoInProgressRef.current) {
@@ -620,32 +623,23 @@ function RoomWindow({
 
     try {
       if (action.type === "send") {
-        const response = await updateMessageMutation.mutateAsync({
-          ...action.after,
-          status: 0,
-        });
-        syncMessageAfterHistoryApply(response?.data ?? { ...action.after, status: 0 });
+        const message = await applyMessageHistoryPatch(action, "redo");
+        syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageUndo(action);
         toast.success("已重做发送");
         return;
       }
 
       if (action.type === "delete") {
-        const messageId = action.before.messageId;
-        const response = await deleteMessageMutation.mutateAsync(messageId);
-        const localTarget = historyMessages?.find(m => m.message.messageId === messageId)?.message;
-        const fallbackDeleted = {
-          ...(localTarget ?? action.before),
-          status: 1,
-        };
-        syncMessageAfterHistoryApply(response?.data ?? fallbackDeleted);
+        const message = await applyMessageHistoryPatch(action, "redo");
+        syncMessageAfterHistoryApply(message);
         roomUiStore.getState().restoreMessageUndo(action);
         toast.success("已重做删除");
         return;
       }
 
-      const response = await updateMessageMutation.mutateAsync(action.after);
-      syncMessageAfterHistoryApply(response?.data ?? action.after);
+      const message = await applyMessageHistoryPatch(action, "redo");
+      syncMessageAfterHistoryApply(message);
       roomUiStore.getState().restoreMessageUndo(action);
       toast.success("已重做修改");
     }
@@ -659,7 +653,7 @@ function RoomWindow({
       setIsApplyingMessageHistory(false);
       redoInProgressRef.current = false;
     }
-  }, [deleteMessageMutation, historyMessages, roomUiStore, syncMessageAfterHistoryApply, updateMessageMutation]);
+  }, [applyMessageHistoryPatch, roomUiStore, syncMessageAfterHistoryApply]);
 
   useEffect(() => {
     const handleGlobalUndoKeyDown = (event: KeyboardEvent) => {
@@ -1034,8 +1028,8 @@ function RoomWindow({
     const toastId = toast.loading("正在应用 proposal...");
     try {
       const result = await executeGalPatchMutationPlan(plan, {
-        patchMessages: async (operations) => {
-          const response = await patchMessagesMutation.mutateAsync({ operations });
+        patchMessages: async (operations, mutationMeta) => {
+          const response = await patchMessagesMutation.mutateAsync({ operations, mutationMeta });
           return response?.data ?? [];
         },
       });

@@ -9,11 +9,11 @@ interface StateMessageCardProps {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
 }
 
-const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] leading-5 shadow-sm backdrop-blur-md transition-colors duration-150";
-const STATE_MESSAGE_IDLE_CLASS = "border-base-content/12 bg-base-100/90 text-base-content hover:border-primary/28 hover:bg-base-100/95";
-const STATE_MESSAGE_TEXT_CLASS = "min-w-0 break-words text-center font-medium text-current";
-const STATE_MESSAGE_ACTION_CLASS = "shrink-0 text-[11px] font-medium text-current opacity-60 transition-opacity hover:opacity-90";
-const STATE_MESSAGE_DETAIL_CLASS = "mt-1 w-full max-w-[32rem] space-y-2 rounded-md border border-base-content/10 bg-base-100/90 px-2.5 py-2 text-xs shadow-sm backdrop-blur-md";
+const STATE_MESSAGE_CARD_CLASS = "inline-flex min-w-0 max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-[11px] leading-4 transition-colors duration-150";
+const STATE_MESSAGE_IDLE_CLASS = "text-base-content/45 hover:text-base-content/70";
+const STATE_MESSAGE_TEXT_CLASS = "min-w-0 break-words text-center text-current";
+const STATE_MESSAGE_ACTION_CLASS = "shrink-0 text-[11px] text-current opacity-45 transition-opacity hover:opacity-75";
+const STATE_MESSAGE_DETAIL_CLASS = "mt-1 w-full max-w-[32rem] space-y-2 rounded-md border border-base-content/8 bg-base-100/75 px-2.5 py-2 text-xs text-base-content/65 shadow-sm backdrop-blur-sm";
 
 export function buildStateRoleLabelReplacements(
   events: NonNullable<ReturnType<typeof getNormalizedStateEventExtra>>["events"],

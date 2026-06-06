@@ -1,16 +1,6 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { ArrowSquareOut, FileText, ListChecks, MapPinLine, X } from "phosphor-react-native";
-import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
-
+import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
-
-import { BottomSheetModal } from "@/components/BottomSheetModal";
-import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
-import { ThemedText } from "@/components/themed-text";
-import { Radius, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
+import type { RoomRolesById } from "./chat-avatar-utils";
 import {
   getClueCardRenderData,
   getDocCardRenderData,
@@ -18,15 +8,26 @@ import {
   getRoomJumpRenderData,
   getWebgalChooseRenderData,
 } from "@tuanchat/domain/message-render-data";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import {
   collectStateEventScopeLabels,
-  formatStateEventAtomDetail,
   formatStateEventPreviewText,
+  formatStateRoleLabel,
   formatStateScopeLabel,
   getNormalizedStateEventExtra,
 } from "@tuanchat/domain/state-event";
 
-import type { RoomRolesById } from "./chat-avatar-utils";
+import { ArrowSquareOut, FileText, ListChecks, MapPinLine, X } from "phosphor-react-native";
+
+import { useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
+import { BottomSheetModal } from "@/components/BottomSheetModal";
+import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing } from "@/constants/theme";
+
+import { useTheme } from "@/hooks/use-theme";
 
 import { getMessagePreview } from "./mobileChatUtils";
 
@@ -111,23 +112,19 @@ const styles = StyleSheet.create({
   stateCard: {
     alignSelf: "center",
     borderRadius: Radius.sm,
+    borderWidth: 1,
     gap: Spacing.sm,
     marginTop: Spacing.xs,
     maxWidth: 320,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
-  stateDetail: {
-    borderTopWidth: 1,
-    gap: Spacing.xs,
-    paddingTop: Spacing.sm,
-  },
 });
 
-type MessageCardProps = {
+interface MessageCardProps {
   content?: string | null;
   extra: unknown;
-};
+}
 
 export function IntroTextCard({ content }: Pick<MessageCardProps, "content">) {
   return (
@@ -161,22 +158,26 @@ export function ForwardMessageCard({ extra }: Pick<MessageCardProps, "extra">) {
             {getMessagePreview(item.message)}
           </ThemedText>
         ))}
-        {renderData.remainingCount > 0 ? (
-          <ThemedText type="caption" themeColor="textSecondary">
-            还有
-            {" "}
-            {renderData.remainingCount}
-            {" 条消息"}
-          </ThemedText>
-        ) : null}
-        {renderData.hiddenDeletedCount > 0 ? (
-          <ThemedText type="caption" themeColor="textSecondary">
-            已隐藏
-            {" "}
-            {renderData.hiddenDeletedCount}
-            {" 条已删除消息"}
-          </ThemedText>
-        ) : null}
+        {renderData.remainingCount > 0
+          ? (
+              <ThemedText type="caption" themeColor="textSecondary">
+                还有
+                {" "}
+                {renderData.remainingCount}
+                {" 条消息"}
+              </ThemedText>
+            )
+          : null}
+        {renderData.hiddenDeletedCount > 0
+          ? (
+              <ThemedText type="caption" themeColor="textSecondary">
+                已隐藏
+                {" "}
+                {renderData.hiddenDeletedCount}
+                {" 条已删除消息"}
+              </ThemedText>
+            )
+          : null}
         <Pressable
           accessibilityLabel="查看转发详情"
           accessibilityRole="button"
@@ -219,30 +220,68 @@ export function ForwardMessageCard({ extra }: Pick<MessageCardProps, "extra">) {
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
-          {detailData.previewMessages.length === 0 ? (
-            <View style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText themeColor="textSecondary">没有可显示的转发消息。</ThemedText>
-            </View>
-          ) : detailData.previewMessages.map((item, index) => (
-            <View
-              key={`${item.message.messageId ?? index}:forward-detail`}
-              style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}
-            >
-              <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
-                {item.message.customRoleName?.trim() || `消息 ${index + 1}`}
-              </ThemedText>
-              <ThemedText style={{ fontSize: 14, lineHeight: 20 }}>{getMessagePreview(item.message)}</ThemedText>
-            </View>
-          ))}
+          {detailData.previewMessages.length === 0
+            ? (
+                <View style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}>
+                  <ThemedText themeColor="textSecondary">没有可显示的转发消息。</ThemedText>
+                </View>
+              )
+            : detailData.previewMessages.map((item, index) => (
+                <View
+                  key={`${item.message.messageId ?? index}:forward-detail`}
+                  style={[styles.forwardedMessageRow, { backgroundColor: theme.backgroundElement }]}
+                >
+                  <ThemedText type="caption" themeColor="textSecondary" numberOfLines={1}>
+                    {item.message.customRoleName?.trim() || `消息 ${index + 1}`}
+                  </ThemedText>
+                  <ThemedText style={{ fontSize: 14, lineHeight: 20 }}>{getMessagePreview(item.message)}</ThemedText>
+                </View>
+              ))}
         </ScrollView>
       </BottomSheetModal>
     </>
   );
 }
 
-export function StateEventCard({ message, roomRolesById }: { message: Message; roomRolesById: RoomRolesById }) {
+type NormalizedStateEvent = NonNullable<ReturnType<typeof getNormalizedStateEventExtra>>;
+
+function buildStateRoleLabelReplacements(
+  events: NormalizedStateEvent["events"],
+  roleNameById: Record<number, string>,
+): Array<{ rawLabel: string; displayLabel: string }> {
+  const seen = new Set<string>();
+  const replacements = events.flatMap((event) => {
+    if (event.type === "mapTokenUpsert" || event.type === "mapTokenRemove") {
+      const rawLabel = `地图角色 #${event.roleId}`;
+      if (seen.has(rawLabel))
+        return [];
+      seen.add(rawLabel);
+      const displayLabel = formatStateRoleLabel(event.roleId, { roleNameById });
+      return rawLabel === displayLabel ? [] : [{ rawLabel, displayLabel }];
+    }
+
+    if (event.type === "nextTurn" || !("scope" in event))
+      return [];
+    const rawLabel = formatStateScopeLabel(event.scope);
+    if (seen.has(rawLabel))
+      return [];
+    seen.add(rawLabel);
+    const displayLabel = formatStateScopeLabel(event.scope, { roleNameById });
+    return rawLabel === displayLabel ? [] : [{ rawLabel, displayLabel }];
+  });
+  return replacements.sort((left, right) => right.rawLabel.length - left.rawLabel.length);
+}
+
+export function StateEventCard({
+  message,
+  roomRolesById,
+  summary,
+}: {
+  message: Message;
+  roomRolesById: RoomRolesById;
+  summary?: StateEventMessageSummary;
+}) {
   const theme = useTheme();
-  const [expanded, setExpanded] = useState(false);
   const roleNameById = useMemo(() => {
     const next: Record<number, string> = {};
     roomRolesById.forEach((role, roleId) => {
@@ -257,66 +296,32 @@ export function StateEventCard({ message, roomRolesById }: { message: Message; r
     () => stateEvent ? collectStateEventScopeLabels(stateEvent.events, { roleNameById }) : [],
     [roleNameById, stateEvent],
   );
-  const scopeLabelReplacements = useMemo(() => {
+  const roleLabelReplacements = useMemo(() => {
     if (!stateEvent)
       return [];
 
-    const seen = new Set<string>();
-    return stateEvent.events.flatMap((event) => {
-      if (event.type === "nextTurn" || !("scope" in event))
-        return [];
-      const rawLabel = formatStateScopeLabel(event.scope);
-      if (seen.has(rawLabel))
-        return [];
-      seen.add(rawLabel);
-      const displayLabel = formatStateScopeLabel(event.scope, { roleNameById });
-      return rawLabel === displayLabel ? [] : [{ rawLabel, displayLabel }];
-    });
+    return buildStateRoleLabelReplacements(stateEvent.events, roleNameById);
   }, [roleNameById, stateEvent]);
-  const detailLines = useMemo(() => {
-    const baseLines = stateEvent
-      ? stateEvent.events.map(event => formatStateEventAtomDetail(event, { roleNameById }))
-      : ["消息缺少可解析的 stateEvent 结构。"];
-    return baseLines.map(line => scopeLabelReplacements.reduce(
-      (nextLine, pair) => nextLine.replaceAll(pair.rawLabel, pair.displayLabel),
-      line,
-    ));
-  }, [roleNameById, scopeLabelReplacements, stateEvent]);
-  const primaryText = formatStateEventPreviewText(message.extra, message.content).replace(/^\[状态\]\s*/, "");
-  const compactPrimaryText = primaryText.replace(/\s*->\s*/g, "→");
-  const compactText = scopeLabels.length > 0
+  const primaryText = summary?.primaryText
+    ?? formatStateEventPreviewText(message.extra, message.content).replace(/^\[状态\]\s*/, "");
+  const displayPrimaryText = roleLabelReplacements.reduce(
+    (nextText, pair) => nextText.replaceAll(pair.rawLabel, pair.displayLabel),
+    primaryText,
+  );
+  const compactPrimaryText = displayPrimaryText.replace(/\s*->\s*/g, "→");
+  const isCombatInitiativeBatchSummary = primaryText.startsWith("全员先攻 ");
+  const compactText = !isCombatInitiativeBatchSummary && scopeLabels.length > 0
     ? `${scopeLabels.join(" / ")} · ${compactPrimaryText}`
     : compactPrimaryText;
-  const sourceLabel = stateEvent
-    ? `${stateEvent.source.kind}${stateEvent.source.commandName ? ` / ${stateEvent.source.commandName}` : ""} / ${stateEvent.source.parserVersion}`
-    : "未知来源";
 
   return (
-    <Pressable onPress={() => setExpanded(value => !value)} style={[styles.stateCard, { backgroundColor: theme.backgroundElement }]}>
+    <View style={[styles.stateCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: Spacing.sm }}>
-        <ThemedText style={{ color: theme.textSecondary, flex: 1, fontSize: 12, textAlign: "center" }}>
+        <ThemedText style={{ color: theme.textSecondary, flex: 1, fontSize: 12, fontWeight: "500", lineHeight: 18, textAlign: "center" }}>
           {compactText}
         </ThemedText>
-        <ThemedText style={{ color: theme.accent, fontSize: 11, fontWeight: "600" }}>
-          {expanded ? "收起" : "详情"}
-        </ThemedText>
       </View>
-      {expanded ? (
-        <View style={[styles.stateDetail, { borderTopColor: theme.border }]}>
-          <ThemedText type="caption" themeColor="textSecondary">原始命令</ThemedText>
-          <ThemedText style={{ fontFamily: "monospace", fontSize: 12 }}>{message.content || "[空命令]"}</ThemedText>
-          <ThemedText type="caption" themeColor="textSecondary">
-            来源：
-            {sourceLabel}
-          </ThemedText>
-          {detailLines.map((line, index) => (
-            <ThemedText key={`${message.messageId}:state-detail:${index}`} style={{ color: theme.textSecondary, fontSize: 12 }}>
-              {line}
-            </ThemedText>
-          ))}
-        </View>
-      ) : null}
-    </Pressable>
+    </View>
   );
 }
 

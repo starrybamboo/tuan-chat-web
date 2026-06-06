@@ -24,7 +24,7 @@ import { readMessageEditorSnapshotExcerpt } from "@/components/messageEditor/mod
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-import type { ChatMessageRequest, ChatMessageResponse, RoleAvatar } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, RoleAvatar, RoomMessageMutationMeta } from "../../../../api";
 
 import { fetchRoleAvatarsWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MessageType } from "../../../../api/wsModels";
@@ -39,7 +39,7 @@ type UseRoomImportActionsParams = {
   setIsSubmitting: (value: boolean) => void;
   roomContext: RoomContextType;
   sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
-  sendMessageBatch: (messages: ChatMessageRequest[]) => Promise<ChatMessageResponse["message"][]>;
+  sendMessageBatch: (messages: ChatMessageRequest[], options?: { mutationMeta?: RoomMessageMutationMeta }) => Promise<ChatMessageResponse["message"][]>;
   ensureRuntimeAvatarIdForRole: (roleId: number) => Promise<number>;
   queryClient?: QueryClient;
   roomUiStoreApi: RoomUiStoreApi;
@@ -165,7 +165,12 @@ export default function useRoomImportActions({
         resolveAvatarId: roleId => resolvedAvatarIdByRole.get(roleId) ?? -1,
       });
 
-      const createdMessages = await sendMessageBatch(requests);
+      const createdMessages = await sendMessageBatch(requests, {
+        mutationMeta: {
+          operationCause: "normal",
+          sourceSurface: "import",
+        },
+      });
       if (createdMessages.length !== requests.length) {
         throw new Error("导入消息失败");
       }

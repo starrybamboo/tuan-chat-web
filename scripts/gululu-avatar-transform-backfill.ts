@@ -1,14 +1,18 @@
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import process from "node:process";
+import process, { env } from "node:process";
 import { fileURLToPath } from "node:url";
+
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 
 import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
-import { buildGululuImportedSpriteTransform } from "./gululu-authoring-live-import";
+import {
+  buildGululuImportedSpriteTransform,
+  readGululuImportedSpriteImageMetadata,
+  type GululuImportedSpriteImageMetadata,
+} from "./gululu-authoring-live-import";
 
 type ApiResult<T> = {
   data?: T;
@@ -35,10 +39,7 @@ type SourceLiveResult = {
   };
 };
 
-type ImageMetadata = {
-  height?: number;
-  width?: number;
-};
+type ImageMetadata = GululuImportedSpriteImageMetadata;
 
 type BackfillPlanEntry = {
   avatarId: number;
@@ -163,12 +164,7 @@ function resolveAvatarFilePath(
 }
 
 async function readLocalImageMetadata(filePath: string): Promise<ImageMetadata> {
-  const sharpModule = await import("sharp");
-  const metadata = await sharpModule.default(filePath).rotate().metadata();
-  return {
-    height: metadata.height,
-    width: metadata.width,
-  };
+  return readGululuImportedSpriteImageMetadata(filePath);
 }
 
 export async function buildGululuAvatarTransformBackfillPlan(
@@ -267,7 +263,7 @@ async function readJsonFile<T>(filePath: string) {
 function createClient(args: GululuAvatarTransformBackfillArgs): GululuAvatarTransformBackfillClient {
   return new TuanChat({
     BASE: args.baseUrl ?? "http://127.0.0.1:8081",
-    TOKEN: args.authToken || process.env.TUANCHAT_AUTH_TOKEN,
+    TOKEN: args.authToken || env.TUANCHAT_AUTH_TOKEN,
   }) as unknown as GululuAvatarTransformBackfillClient;
 }
 
@@ -298,11 +294,11 @@ const entryPath = fileURLToPath(import.meta.url);
 if (process.argv[1] && path.resolve(process.argv[1]) === entryPath) {
   runGululuAvatarTransformBackfill(process.argv.slice(2))
     .then(({ outputPath, plan, result }) => {
-      console.log(JSON.stringify({
+      process.stdout.write(`${JSON.stringify({
         applied: Boolean(result),
         outputPath,
         stats: plan.stats,
-      }, null, 2));
+      }, null, 2)}\n`);
     })
     .catch((error) => {
       console.error(error);

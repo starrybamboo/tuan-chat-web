@@ -181,28 +181,28 @@ export type InspectWebgalReadinessResponse = {
   report: WebgalReadinessReport;
 };
 
-export type AgentAuthoringCommand =
-  | { request: StartAuthoringBatchRequest; type: "batch.start" }
-  | { batchId: string; type: "batch.cleanup" }
-  | { batchId: string; type: "batch.commit" }
-  | { batchId: string; type: "batch.inspect" }
-  | { batchId: string; type: "webgal.inspectReadiness" }
-  | { request: RecordUnresolvedMediaRequest; type: "media.unresolved" }
-  | { request: UpsertAvatarRequest; type: "avatar.upsert" }
-  | { request: UpsertMediaRequest; type: "media.upsert" }
-  | { request: UpsertRoleRequest; type: "role.upsert" }
-  | { request: WriteMessagesRequest; type: "message.batchWrite" };
+export type AgentAuthoringCommand
+  = | { request: StartAuthoringBatchRequest; type: "batch.start" }
+    | { batchId: string; type: "batch.cleanup" }
+    | { batchId: string; type: "batch.commit" }
+    | { batchId: string; type: "batch.inspect" }
+    | { batchId: string; type: "webgal.inspectReadiness" }
+    | { request: RecordUnresolvedMediaRequest; type: "media.unresolved" }
+    | { request: UpsertAvatarRequest; type: "avatar.upsert" }
+    | { request: UpsertMediaRequest; type: "media.upsert" }
+    | { request: UpsertRoleRequest; type: "role.upsert" }
+    | { request: WriteMessagesRequest; type: "message.batchWrite" };
 
-export type AgentAuthoringCommandResult =
-  | CleanupAuthoringBatchResponse
-  | InspectAuthoringBatchResponse
-  | InspectWebgalReadinessResponse
-  | RecordUnresolvedMediaResponse
-  | StartAuthoringBatchResponse
-  | UpsertAvatarResponse
-  | UpsertMediaResponse
-  | UpsertRoleResponse
-  | WriteMessagesResponse;
+export type AgentAuthoringCommandResult
+  = | CleanupAuthoringBatchResponse
+    | InspectAuthoringBatchResponse
+    | InspectWebgalReadinessResponse
+    | RecordUnresolvedMediaResponse
+    | StartAuthoringBatchResponse
+    | UpsertAvatarResponse
+    | UpsertMediaResponse
+    | UpsertRoleResponse
+    | WriteMessagesResponse;
 
 export type StartAuthoringBatchRequest = {
   agentId?: string;
@@ -251,12 +251,12 @@ export type WriteMessagesRequest = {
   messages: AuthoringMessageWrite[];
 };
 
-export type AuthoringErrorCode =
-  | "BATCH_NOT_FOUND"
-  | "DUPLICATE_BATCH"
-  | "INVALID_BATCH_STATUS"
-  | "INVALID_REQUEST"
-  | "RESOURCE_NOT_FOUND";
+export type AuthoringErrorCode
+  = | "BATCH_NOT_FOUND"
+    | "DUPLICATE_BATCH"
+    | "INVALID_BATCH_STATUS"
+    | "INVALID_REQUEST"
+    | "RESOURCE_NOT_FOUND";
 
 export class AuthoringPrimitiveError extends Error {
   readonly code: AuthoringErrorCode;

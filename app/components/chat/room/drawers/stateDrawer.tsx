@@ -329,7 +329,7 @@ function EditableStatPill({
     return (
       <input
         type="number"
-        autoFocus
+
         className="input input-xs h-6 min-h-6 w-20 rounded-full border-base-300 bg-base-100 px-2 text-right text-[11px] tabular-nums"
         value={editingValue}
         onChange={event => setEditingValue(event.target.value)}

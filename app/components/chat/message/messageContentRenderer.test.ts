@@ -1,4 +1,4 @@
-﻿import { createElement } from "react";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -245,4 +245,3 @@ describe("messageContentRenderer 聊天室媒体质量", () => {
     expect(`${audioHtml}${videoHtml}`).not.toContain("/media/v1/files/");
   });
 });
-

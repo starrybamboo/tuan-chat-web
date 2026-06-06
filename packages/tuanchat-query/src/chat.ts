@@ -12,6 +12,7 @@ export * from "./room-message";
 
 type ChatClient = Pick<TuanChat, "chatController">;
 export type PatchMessagesRequest = Omit<RoomMessageStreamPatchRequest, "roomId">;
+export type PatchMessagesOptions = Pick<RoomMessageStreamPatchRequest, "mutationMeta">;
 
 export function getAllRoomMessagesQueryKey(roomId: number) {
   return ["getHistoryMessages", roomId, 0] as const;
@@ -42,7 +43,11 @@ export function toRoomMessageInsertOperation(request: ChatMessageRequest): RoomM
   };
 }
 
-export async function patchInsertMessages(client: ChatClient, requests: ChatMessageRequest[]): Promise<ApiResultListMessage> {
+export async function patchInsertMessages(
+  client: ChatClient,
+  requests: ChatMessageRequest[],
+  options: PatchMessagesOptions = {},
+): Promise<ApiResultListMessage> {
   if (requests.length === 0) {
     return { success: true, data: [] };
   }
@@ -59,6 +64,7 @@ export async function patchInsertMessages(client: ChatClient, requests: ChatMess
     const result = await client.chatController.patchRoomMessages({
       roomId,
       operations: roomRequests.map(toRoomMessageInsertOperation),
+      ...(options.mutationMeta ? { mutationMeta: options.mutationMeta } : {}),
     });
     assertOpenApiResultSuccess(result, "批量发送消息失败");
     createdMessages.push(...(result.data ?? []));

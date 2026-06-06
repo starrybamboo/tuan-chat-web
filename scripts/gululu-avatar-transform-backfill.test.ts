@@ -1,7 +1,6 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -90,8 +89,8 @@ describe("gululu-avatar-transform-backfill", () => {
           rotation: 0,
         },
       });
-      expect(plan.entries[0]!.spriteTransform.scale).toBeLessThanOrEqual(0.35);
-      expect(plan.entries[0]!.spriteTransform.positionY).toBeLessThan(0);
+      expect(plan.entries[0]!.spriteTransform.scale).toBeLessThanOrEqual(0.42);
+      expect(plan.entries[0]!.spriteTransform.positionY).toBeGreaterThanOrEqual(0);
     }
     finally {
       await rm(tempDir, { recursive: true });

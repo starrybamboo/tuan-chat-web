@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { MessageExtra, RoleAvatar, Room, UserRole } from "../../api";
-
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { mediaFileUrl } from "@/utils/mediaUrl";
+
+import type { MessageExtra, RoleAvatar, Room, UserRole } from "../../api";
 
 import { renderWebgalPublishPackage } from "./publishRenderer";
 import {

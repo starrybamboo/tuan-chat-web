@@ -46,6 +46,10 @@ export function useGestureDrawer() {
     translateX.set(withSpring(0, SPRING_CONFIG));
   }, [translateX]);
 
+  const open = useCallback(() => {
+    translateX.set(withSpring(-RIGHT_DRAWER_WIDTH, SPRING_CONFIG));
+  }, [translateX]);
+
   const closeImmediately = useCallback(() => {
     cancelAnimation(translateX);
     translateX.set(0);
@@ -66,6 +70,7 @@ export function useGestureDrawer() {
   return {
     panGesture,
     translateX,
+    open,
     close,
     closeImmediately,
     centerStyle,

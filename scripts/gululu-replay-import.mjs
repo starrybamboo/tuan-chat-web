@@ -199,6 +199,11 @@ function isNumberedOptionLine(line) {
   return /^\s*(?:\d+|[一二三四五六七八九十]+)[\s.、]/.test(line);
 }
 
+function parseNumberedOptionIndex(line) {
+  const matched = String(line ?? "").trim().match(/^(\d+)[\s.、]/);
+  return matched ? Number(matched[1]) : undefined;
+}
+
 function isNumberedOptionBlock(content) {
   const lines = normalizeLineBreaks(content).split("\n").map(line => line.trim()).filter(Boolean);
   return lines.length > 0 && lines.every(isNumberedOptionLine);
@@ -206,11 +211,11 @@ function isNumberedOptionBlock(content) {
 
 function inferDiceCommandExpression(expression, resultPart) {
   const trimmedExpression = String(expression ?? "").trim();
-  if (!trimmedExpression || /[+\-*/／/]/.test(trimmedExpression)) {
+  if (!trimmedExpression || /[+\-*/／]/.test(trimmedExpression)) {
     return trimmedExpression;
   }
   const calculation = String(resultPart ?? "").trim().split("=")[0]?.trim() ?? "";
-  const modifierMatch = calculation.match(/^[+-]?\d+(?<modifiers>(?:\s*[+\-*/／/]\s*[+-]?\d+(?:\.\d+)?)+)$/);
+  const modifierMatch = calculation.match(/^[+-]?\d+(?<modifiers>(?:\s*[+\-*/／]\s*[+-]?\d+(?:\.\d+)?)+)$/);
   const modifiers = modifierMatch?.groups?.modifiers?.replace(/\s+/g, "");
   return modifiers ? `${trimmedExpression}${modifiers}` : trimmedExpression;
 }
@@ -223,6 +228,55 @@ function stripDiceResultForCommand(content) {
     .replace(/\[([^\]]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^\]]*?)[:：]([^\]]*)\]/gi, (_token, expression, resultPart) => {
       return `[${inferDiceCommandExpression(expression, resultPart)}:]`;
     });
+}
+
+function extractFirstDiceResultNumber(content) {
+  const matched = String(content ?? "").match(/(?:【|\[)[^\]】]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^\]】]*?[:：=]\s*([+-]?\d+)/i);
+  if (!matched?.[1]) {
+    return undefined;
+  }
+  const parsed = Number(matched[1]);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function replaceFirstDiceCommandWithResult(command, result) {
+  const value = String(result);
+  const source = String(command ?? "");
+  const withChineseBrackets = source.replace(
+    /【([^】]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^】]*?)[:：]\s*】/i,
+    (_token, expression) => `【${expression}：${value}】`,
+  );
+  if (withChineseBrackets !== source) {
+    return withChineseBrackets;
+  }
+  return source.replace(
+    /\[([^\]]*?(?:\d*d\d+|\d+d\d+|1d|d\d+)[^\]]*?):\s*\]/i,
+    (_token, expression) => `[${expression}:${value}]`,
+  );
+}
+
+function buildSelectedOptionDiceReply(message, optionIndex) {
+  const command = stripDiceResultForCommand(message.content).trim();
+  const selected = replaceFirstDiceCommandWithResult(command, optionIndex).trim();
+  return selected && selected !== command ? selected : "";
+}
+
+function buildDiceReplyTexts(message) {
+  const explicitReplies = Array.isArray(message.diceReplies)
+    ? message.diceReplies.map(reply => String(reply ?? "").trim()).filter(Boolean)
+    : [];
+  if (explicitReplies.length > 0) {
+    return explicitReplies;
+  }
+  const content = message.content?.trim() ?? "";
+  return content ? [content] : [];
+}
+
+function appendUniqueText(items, text) {
+  const trimmed = String(text ?? "").trim();
+  if (trimmed && !items.includes(trimmed)) {
+    items.push(trimmed);
+  }
 }
 
 function buildDiceRollText(content, diceDescription) {
@@ -450,10 +504,42 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
   return messages;
 }
 
-function mergeDiceOptionMessages(messages) {
+export function mergeDiceOptionMessages(messages) {
   const merged = [];
   for (const message of messages) {
     const previous = merged.at(-1);
+    if (
+      previous?.kind === "dice"
+      && message.kind === "dice"
+      && previous.floor === message.floor
+      && isNumberedOptionLine(message.content)
+    ) {
+      const optionLine = message.content.trim();
+      const optionCommand = stripDiceResultForCommand(optionLine).trim();
+      previous.options = [
+        ...(previous.options ?? []),
+        optionCommand,
+      ];
+      previous.rollText ??= stripDiceResultForCommand(previous.content);
+
+      const optionIndex = parseNumberedOptionIndex(optionLine);
+      const previousResult = previous.content?.trim() ?? "";
+      const previousResultNumber = extractFirstDiceResultNumber(previousResult);
+      const replies = [];
+      if (optionIndex != null && previousResultNumber !== optionIndex) {
+        appendUniqueText(replies, buildSelectedOptionDiceReply(previous, optionIndex));
+      }
+      else {
+        appendUniqueText(replies, previousResult);
+      }
+      appendUniqueText(replies, optionLine);
+      if (optionIndex != null && previousResultNumber !== optionIndex) {
+        appendUniqueText(replies, previousResult);
+      }
+      previous.diceReplies = replies;
+      previous.imagePath ??= message.imagePath;
+      continue;
+    }
     if (
       previous?.kind === "dice"
       && message.kind === "narration"
@@ -478,11 +564,12 @@ function buildDiceDisplayContent(message) {
   const description = message.diceDescription?.trim();
   const options = (message.options ?? []).map(option => option.trim()).filter(Boolean);
   const command = message.rollText?.trim() || (description && description !== content ? description : "");
+  const replies = buildDiceReplyTexts(message);
   if (command) {
-    return [command, ...options, content].filter(Boolean).join("\n").trim();
+    return [command, ...options, ...replies].filter(Boolean).join("\n").trim();
   }
   if (options.length > 0) {
-    return [content || description || "", ...options].filter(Boolean).join("\n").trim();
+    return [content || description || "", ...options, ...replies].filter(Boolean).join("\n").trim();
   }
   if (description && description !== content) {
     return `${description}\n${content}`.trim();
@@ -708,7 +795,7 @@ function createGululuAuthoringAdapter(authoring, importPackage, options = {}) {
     return roleDraft?.defaultAvatarPath ?? roleDraft?.avatarImages?.[0]?.imagePath;
   };
 
-  const hasAvatarEvidence = (roleName) => Boolean(defaultAvatarPathFor(roleName));
+  const hasAvatarEvidence = roleName => Boolean(defaultAvatarPathFor(roleName));
 
   const ensureRole = (roleName) => {
     const normalizedName = normalizeRoleName(roleName);
@@ -798,13 +885,14 @@ function createGululuAuthoringAdapter(authoring, importPackage, options = {}) {
     }
 
     if (message.kind === "dice") {
-      const hasRollResult = hasDiceRoll(message.content);
+      const diceReplies = buildDiceReplyTexts(message);
+      const diceResult = diceReplies.filter(reply => hasDiceRoll(reply)).join("\n");
       authoredMessages.push({
         content: buildDiceDisplayContent(message),
         dice: {
           description: message.diceDescription,
           options: message.options,
-          result: hasRollResult ? message.content : undefined,
+          result: diceResult || undefined,
           rollText: message.rollText,
         },
         kind: "dice",

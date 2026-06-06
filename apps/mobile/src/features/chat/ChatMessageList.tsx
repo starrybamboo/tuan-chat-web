@@ -1,3 +1,4 @@
+import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
@@ -80,6 +81,7 @@ interface ChatMessageListProps {
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
+  stateEventSummariesByMessageId?: Record<number, StateEventMessageSummary>;
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -105,6 +107,7 @@ export function ChatMessageList({
   onToggleMultiSelect,
   roomRoles,
   selectedAnchorId,
+  stateEventSummariesByMessageId,
 }: ChatMessageListProps) {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<ChatMessageListItem>>(null);
@@ -187,6 +190,9 @@ export function ChatMessageList({
     const replyMsg = replyId ? messageMap.get(replyId) : undefined;
     const replyPreviewText = getReplyPreviewText(messageMap, replyId);
     const replyAuthorName = replyMsg ? getReplyAuthorName(replyMsg, roomRolesById) : null;
+    const stateEventSummary = typeof item.message.messageId === "number"
+      ? stateEventSummariesByMessageId?.[item.message.messageId]
+      : undefined;
 
     return (
       <ChatMessageItem
@@ -205,9 +211,10 @@ export function ChatMessageList({
         replyAuthorName={replyAuthorName}
         replyPreviewText={replyPreviewText}
         roomRolesById={roomRolesById}
+        stateEventSummary={stateEventSummary}
       />
     );
-  }, [currentRoleId, invertedData, isCommandRequestConsumed, isSpaceOwner, messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roomRolesById, selectedAnchorId]);
+  }, [currentRoleId, invertedData, isCommandRequestConsumed, isSpaceOwner, messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roomRolesById, selectedAnchorId, stateEventSummariesByMessageId]);
 
   const keyExtractor = useCallback((item: ChatMessageListItem, index: number) => getMessageListItemKey(item.message, index), []);
 

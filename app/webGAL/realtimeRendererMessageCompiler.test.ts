@@ -1,12 +1,13 @@
-import type { ChatMessageResponse } from "../../api";
-
 import { describe, expect, it } from "vitest";
 
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
+import type { ChatMessageResponse } from "../../api";
+import type { RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
+
 import {
   compileRealtimeRenderMessageLines,
-  type RealtimeRenderMessageCompilerInput,
+
 } from "./realtimeRendererMessageCompiler";
 
 function createMessage(overrides: Partial<ChatMessageResponse["message"]> = {}): ChatMessageResponse["message"] {

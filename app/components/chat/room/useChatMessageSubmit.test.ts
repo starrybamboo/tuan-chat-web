@@ -650,7 +650,7 @@ describe("useChatMessageSubmit", () => {
     }));
   });
 
-  it("简单 .st 会优先编译成 STATE_EVENT(varOp)，不再走旧 cmdPre", async () => {
+  it("简单 .st 会先发送骰娘反馈，再记录 STATE_EVENT(varOp)", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({
       plainText: ".st hp -2",
@@ -708,8 +708,25 @@ describe("useChatMessageSubmit", () => {
         value: 2,
       }],
     }));
-    expect(sendMessageWithInsert.mock.calls[0]?.[0]).not.toHaveProperty("replayMessageId");
-    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      messageType: MessageType.DICE,
+      content: ".st hp -2",
+      replayMessageId: 99,
+      extra: expect.objectContaining({
+        diceResult: {
+          result: "状态已更新：角色 #3 · HP 10 -> 8",
+        },
+        diceTurn: {
+          command: ".st hp -2",
+          replies: [{
+            content: "状态已更新：角色 #3 · HP 10 -> 8",
+            customRoleName: "骰娘",
+          }],
+        },
+      }),
+    }));
+    expect(sendMessageWithInsert.mock.calls[1]?.[0]).not.toHaveProperty("replayMessageId");
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：HP -2",
       extra: {
@@ -734,11 +751,11 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
-    expect(String(sendMessageWithInsert.mock.calls[0]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
+    expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
     expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
 
-  it("连写带符号 .st 会优先编译成 STATE_EVENT(varOp)", async () => {
+  it("连写带符号 .st 会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({
       plainText: ".st hp+6",
@@ -806,7 +823,20 @@ describe("useChatMessageSubmit", () => {
         value: 6,
       }],
     }));
-    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      messageType: MessageType.DICE,
+      content: ".st hp+6",
+      extra: expect.objectContaining({
+        diceTurn: {
+          command: ".st hp+6",
+          replies: [{
+            content: "状态已更新：角色 #3 · HP 8 -> 14",
+            customRoleName: "骰娘",
+          }],
+        },
+      }),
+    }));
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：HP +6",
       extra: {
@@ -831,10 +861,10 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
-    expect(String(sendMessageWithInsert.mock.calls[0]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
+    expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
-  it("连写无符号 .st 赋值会优先编译成 STATE_EVENT(varOp)，不再走旧骰娘", async () => {
+  it("连写无符号 .st 赋值会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({
       plainText: ".st hp20",
@@ -902,7 +932,20 @@ describe("useChatMessageSubmit", () => {
         value: 20,
       }],
     }));
-    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      messageType: MessageType.DICE,
+      content: ".st hp20",
+      extra: expect.objectContaining({
+        diceTurn: {
+          command: ".st hp20",
+          replies: [{
+            content: "状态已更新：角色 #3 · HP 30 -> 20",
+            customRoleName: "骰娘",
+          }],
+        },
+      }),
+    }));
+    expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：HP = 20",
       extra: {
@@ -927,7 +970,7 @@ describe("useChatMessageSubmit", () => {
         },
       },
     }));
-    expect(String(sendMessageWithInsert.mock.calls[0]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
+    expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
   it("简单 .st 写角色卡失败时不发送 STATE_EVENT 记录", async () => {

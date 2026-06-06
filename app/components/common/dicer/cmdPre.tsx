@@ -12,6 +12,7 @@ import { persistRoleAbilitySnapshot } from "@/components/chat/state/roleVarWrite
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
 import executorPublic from "@/components/common/dicer/cmdExe/cmdExePublic";
 import { buildDicerReplyContent, selectWeightedCopywritingSuffix } from "@/components/common/dicer/dicerReplyPreparation";
+import { buildDiceTurnMessageExtra } from "@/components/common/dicer/diceTurnMessageExtra";
 import { getCachedDicerRoleAbility, setCachedDicerRoleAbility } from "@/components/common/dicer/roleAbilityCache";
 import {
   buildRoleAbilityStateEventsFromDiff,
@@ -19,8 +20,8 @@ import {
   cloneRoleAbility,
   mergeRuntimeRoleValuesIntoAbility,
 } from "@/components/common/dicer/runtimeAbilityBridge";
+import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDiceFeedback";
 import UTILS from "@/components/common/dicer/utils/utils";
-import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { invalidateRoleAbilityCaches } from "../../../../api/hooks/abilityMutationInvalidation";
@@ -45,14 +46,6 @@ interface QueuedDicerMessage {
   visibility: DicerMessageVisibility;
 }
 
-interface DiceTurnReplyPayload {
-  avatarId?: number;
-  content: string;
-  customRoleName?: string;
-  roleId?: number;
-  visibility: DicerMessageVisibility;
-}
-
 const STABLE_MESSAGE_KEY_FIELD = "__tcStableKey";
 let stableDiceMessageSeed = 0;
 const DICER_DEBUG_PREFIX = "[TC_DICER_FLOW]";
@@ -70,21 +63,6 @@ const dicerCopywritingCache = new Map<string, ExpiringCacheEntry<Record<string, 
 function createStableDiceMessageKey(roomId: number, optimisticMessageId: number): string {
   stableDiceMessageSeed += 1;
   return `dicev2:${roomId}:${Date.now()}:${Math.abs(optimisticMessageId)}:${stableDiceMessageSeed}`;
-}
-
-function buildDiceTurnMessageExtra(command: string, replies: DiceTurnReplyPayload[]) {
-  return buildMessageExtraForRequest(MESSAGE_TYPE.DICE, {
-    diceTurn: {
-      command,
-      replies: replies.map(reply => ({
-        content: reply.content,
-        ...(reply.visibility === "kp_and_sender" ? { hidden: true } : {}),
-        ...(typeof reply.roleId === "number" && reply.roleId > 0 ? { roleId: reply.roleId } : {}),
-        ...(typeof reply.avatarId === "number" && reply.avatarId > 0 ? { avatarId: reply.avatarId } : {}),
-        ...(reply.customRoleName ? { customRoleName: reply.customRoleName } : {}),
-      })),
-    },
-  });
 }
 
 function buildStateEventMessageContent(events: StateEventAtom[]): string {
@@ -693,6 +671,16 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         }
       }
 
+      if (dicerMessageQueue.length === 0) {
+        const stateDiceReply = buildRoleScopedStateDiceReply(stateEventAtoms);
+        if (stateDiceReply) {
+          dicerMessageQueue.push({
+            content: stateDiceReply,
+            visibility: "public",
+          });
+        }
+      }
+
       let stateEventMessageCommitted = false;
       const sendGeneratedStateEvent = async (options?: {
         position?: number;
@@ -766,7 +754,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           ?? (fallbackDefaultLabelAvatar?.avatarId)
           ?? (avatars[0]?.avatarId ?? 0);
 
-        const dicerReplies = dicerMessageQueue.map((queuedMessage): DiceTurnReplyPayload => ({
+        const dicerReplies = dicerMessageQueue.map(queuedMessage => ({
           content: buildDicerReplyContent(queuedMessage.content, copywritingSuffix),
           visibility: queuedMessage.visibility,
           roleId: dicerRoleId,

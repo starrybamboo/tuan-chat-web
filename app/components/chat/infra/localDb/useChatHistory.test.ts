@@ -24,7 +24,7 @@ function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]
 }
 
 describe("useChatHistory 乐观消息渲染 key", () => {
-  it("WebSocket 真消息替换乐观消息时继承本地渲染 key", () => {
+  it("webSocket 真消息替换乐观消息时继承本地渲染 key", () => {
     const optimistic = createMessageResponse({
       messageId: -1,
       syncId: -1,

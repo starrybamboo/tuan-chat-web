@@ -63,3 +63,4 @@ export type Room = {
      */
     effectiveCommitId?: number;
 };
+

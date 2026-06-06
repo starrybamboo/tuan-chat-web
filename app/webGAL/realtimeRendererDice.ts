@@ -13,10 +13,10 @@ export const TRPG_DICE_COMMAND = "trpgDice";
 
 const DICE_COMMAND_PATTERN = /^\.|(?:^|\s)\d*\s*d\s*(?:100|%)(?:\s|$)/i;
 
-export interface RealtimeDiceSoundLine {
+export type RealtimeDiceSoundLine = {
   url: string;
   volume?: number;
-}
+};
 
 function getDiceTurnContentFromMessage(msg: ChatMessageResponse["message"]): string | undefined {
   if (!msg.extra?.diceTurn) {

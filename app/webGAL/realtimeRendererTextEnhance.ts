@@ -178,7 +178,7 @@ function decodeBasicHtmlEntities(value: string): string {
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, "\"")
-    .replace(/&#39;/gi, "'")
+    .replace(/&#39;/g, "'")
     .replace(/&amp;/gi, "&");
 }
 

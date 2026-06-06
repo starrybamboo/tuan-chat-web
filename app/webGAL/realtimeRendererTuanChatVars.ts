@@ -9,11 +9,6 @@ export const TUANCHAT_MAP_GRID_COLS_VAR = "tuanchat.map.gridCols";
 export const TUANCHAT_MAP_GRID_COLOR_VAR = "tuanchat.map.gridColor";
 export const TUANCHAT_ROLE_AVATAR_URL_KEY = "avatarUrl";
 
-function toFiniteNumber(value: unknown): number | null {
-  const numberValue = typeof value === "number" ? value : Number(String(value ?? "").trim());
-  return Number.isFinite(numberValue) ? numberValue : null;
-}
-
 function isSafeVarSegment(value: string): boolean {
   return value.length > 0 && !/[=;\r\n]/.test(value);
 }
@@ -55,7 +50,7 @@ function buildBackgroundAssetSetVarLine(key: string, value: string): string | nu
   if (trimmed === "") {
     return buildSetVarLine(key, "");
   }
-  if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
+  if (!/^[\w.-]+$/.test(trimmed)) {
     return null;
   }
   return buildSetVarLine(key, trimmed);

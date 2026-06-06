@@ -3,31 +3,31 @@ import { fetchWithUnifiedAuth } from "../../api/unifiedAuthFetch";
 
 export type WebgalPublishStatus = "pending" | "running" | "success" | "failed";
 
-export interface WebgalPublishJobStatus {
+export type WebgalPublishJobStatus = {
   jobId: string;
   status: WebgalPublishStatus;
   deploymentUrl?: string;
   branchUrl?: string;
   errorMessage?: string;
-}
+};
 
-export interface WebgalPublishPackagePayloadFile {
+export type WebgalPublishPackagePayloadFile = {
   path: string;
   content: string;
   contentType?: string;
   contentEncoding?: "utf8" | "base64";
-}
+};
 
-export interface WebgalPublishPackagePayload {
+export type WebgalPublishPackagePayload = {
   entrypoint: string;
   files: WebgalPublishPackagePayloadFile[];
-}
+};
 
-export interface StartWebgalPublishRequest {
+export type StartWebgalPublishRequest = {
   spaceId: number;
   commitId?: number;
   packageData?: WebgalPublishPackagePayload;
-}
+};
 
 type ApiResult<T> = {
   success?: boolean;

@@ -1,11 +1,11 @@
 export type CombatRoundPrimaryAction = "end" | "start";
 
-export interface CombatRoundControlState {
+export type CombatRoundControlState = {
   canAdvanceTurn: boolean;
   canEndCombat: boolean;
   canStartCombat: boolean;
   primaryAction: CombatRoundPrimaryAction;
-}
+};
 
 export function getCombatRoundControlState(combatRoundActive: boolean): CombatRoundControlState {
   return {
