@@ -757,7 +757,7 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       }),
-    }));
+    }), { optimistic: false });
     expect(sendMessageWithInsert.mock.calls[1]?.[0]).not.toHaveProperty("replayMessageId");
     expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
@@ -783,7 +783,7 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       },
-    }));
+    }), { optimistic: false });
     expect(mocks.setCachedDicerRoleAbilityMock).toHaveBeenCalledWith(7, 3, {
       roleId: 3,
       ruleId: 7,
@@ -882,7 +882,7 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       }),
-    }));
+    }), { optimistic: false });
     expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：HP +6",
@@ -907,7 +907,7 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       },
-    }));
+    }), { optimistic: false });
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
@@ -1000,11 +1000,11 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       }),
-    }));
+    }), { optimistic: false });
     expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：手枪 = 80",
-    }));
+    }), { optimistic: false });
     expect(mocks.setCachedDicerRoleAbilityMock).toHaveBeenCalledWith(7, 3, {
       roleId: 3,
       ruleId: 7,
@@ -1101,7 +1101,7 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       }),
-    }));
+    }), { optimistic: false });
     expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
       messageType: MessageType.STATE_EVENT,
       content: "状态更新：HP = 20",
@@ -1126,7 +1126,7 @@ describe("useChatMessageSubmit", () => {
           }],
         },
       },
-    }));
+    }), { optimistic: false });
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
@@ -1222,7 +1222,7 @@ describe("useChatMessageSubmit", () => {
           events: [{ type: "nextTurn" }],
         },
       },
-    }));
+    }), { optimistic: false });
     expect(mocks.toastSuccessMock).toHaveBeenCalledWith("状态已更新", { id: "state-event-sent" });
   });
 

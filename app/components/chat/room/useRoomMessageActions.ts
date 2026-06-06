@@ -12,6 +12,10 @@ type SendMessageBatchOptions = {
   mutationMeta?: RoomMessageMutationMeta;
 };
 
+type SendMessageOptions = {
+  optimistic?: boolean;
+};
+
 type UseRoomMessageActionsParams = {
   currentUserId: number;
   mainHistoryMessages: ChatMessageResponse[] | undefined;
@@ -28,7 +32,7 @@ type UseRoomMessageActionsResult = {
   discardLocalOptimisticMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   insertLocalOptimisticMessages: (messages: ChatMessageRequest[]) => ChatMessageResponse[];
   sendMessageBatchWithLocalOptimistic: (messages: ChatMessageRequest[], optimisticMessages: ChatMessageResponse[], options?: SendMessageBatchOptions) => Promise<ChatMessageResponse["message"][]>;
-  sendMessageWithInsert: (message: ChatMessageRequest) => Promise<ChatMessageResponse["message"] | null>;
+  sendMessageWithInsert: (message: ChatMessageRequest, options?: SendMessageOptions) => Promise<ChatMessageResponse["message"] | null>;
   sendMessageBatch: (messages: ChatMessageRequest[], options?: SendMessageBatchOptions) => Promise<ChatMessageResponse["message"][]>;
 };
 
@@ -167,6 +171,28 @@ export default function useRoomMessageActions({
     roomUiStoreApi,
     sendMessage,
   ]);
+
+  const sendWithoutOptimistic = useCallback(async (request: ChatMessageRequest, errorLogLabel: string) => {
+    try {
+      const result = await sendMessage(request);
+      if (!result.success || !result.data) {
+        toast.error("发送消息失败");
+        return null;
+      }
+
+      const createdResponse = { message: result.data };
+      if (addOrUpdateMessage) {
+        await addOrUpdateMessage(createdResponse);
+      }
+      roomUiStoreApi.getState().pushMessageUndo({ type: "send", after: result.data });
+      return result.data;
+    }
+    catch (error) {
+      console.error(errorLogLabel, error);
+      toast.error("发送消息失败");
+      return null;
+    }
+  }, [addOrUpdateMessage, roomUiStoreApi, sendMessage]);
 
   const sendWithExistingOptimistic = useCallback(async (
     request: ChatMessageRequest,
@@ -367,13 +393,14 @@ export default function useRoomMessageActions({
     sendWithOptimistic,
   ]);
 
-  const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest) => {
+  const sendMessageWithInsert = useCallback(async (message: ChatMessageRequest, options?: SendMessageOptions) => {
+    const sendOne = options?.optimistic === false ? sendWithoutOptimistic : sendWithOptimistic;
     const insertAfterMessageId = roomUiStoreApi.getState().insertAfterMessageId;
 
     if (insertAfterMessageId && mainHistoryMessages?.length) {
       const targetIndex = mainHistoryMessages.findIndex(m => m.message.messageId === insertAfterMessageId);
       if (targetIndex === -1) {
-        return await sendWithOptimistic(message, "插入消息失败（fallback 路径）");
+        return await sendOne(message, "插入消息失败（fallback 路径）");
       }
 
       const targetMessage = mainHistoryMessages[targetIndex];
@@ -383,14 +410,14 @@ export default function useRoomMessageActions({
       // 插入消息：先计算新 position，随发送请求一次性写入
       const newPosition = (targetPosition + nextPosition) / 2;
 
-      return await sendWithOptimistic({
+      return await sendOne({
         ...message,
         position: newPosition,
       }, "插入消息失败");
     }
 
-    return await sendWithOptimistic(message, "发送消息失败");
-  }, [mainHistoryMessages, roomUiStoreApi, sendWithOptimistic]);
+    return await sendOne(message, "发送消息失败");
+  }, [mainHistoryMessages, roomUiStoreApi, sendWithOptimistic, sendWithoutOptimistic]);
 
   const sendMessageBatch = useCallback(async (messages: ChatMessageRequest[], options?: SendMessageBatchOptions) => {
     return await sendBatchWithOptimistic(messages, "批量发送消息失败", options);
