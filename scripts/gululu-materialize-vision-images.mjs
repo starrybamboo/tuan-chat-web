@@ -21,15 +21,17 @@ function parseArgs(argv) {
     index += 1;
   }
   const root = path.resolve(args.get("root") ?? DEFAULT_ROOT);
+  const reviewDir = path.resolve(args.get("review-dir") ?? path.join(root, "cleaning-review-ai-first-v1"));
   return {
     aggregate: args.has("aggregate"),
     characterAssetsOnly: args.has("character-assets-only"),
+    featureIndex: args.get("feature-index") ?? path.join(reviewDir, "image-feature-index.json"),
     force: args.has("force"),
     mattingResults:
       args.get("matting-results") ??
       path.join(root, "cleaning-review-ai-first-v1", "matting-results.vision.json"),
     outDir: path.resolve(args.get("out-dir") ?? path.join(root, "image-role-review-clean-vision-full")),
-    reviewDir: path.resolve(args.get("review-dir") ?? path.join(root, "cleaning-review-ai-first-v1")),
+    reviewDir,
     root,
     spritesOnly: args.has("sprites-only"),
   };
@@ -113,6 +115,11 @@ function boolValue(value) {
   return /^(?:1|true|yes|y|是)$/i.test(String(value ?? ""));
 }
 
+function numberValue(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function sanitizeSegment(value, fallback = "unknown") {
   const cleaned = String(value || fallback)
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
@@ -127,6 +134,47 @@ function sourceAbsPath(root, sourceRelPath) {
 
 function sourceStem(sourceRelPath) {
   return sanitizeSegment(path.parse(normalizeRel(sourceRelPath)).name || "image", "image").slice(0, 70);
+}
+
+function buildFeatureMaps(features) {
+  const bySource = new Map();
+  const byHash = new Map();
+  for (const feature of features) {
+    if (feature.sourceRelPath) bySource.set(normalizeRel(feature.sourceRelPath), feature);
+    if (feature.sha256 && !byHash.has(feature.sha256)) byHash.set(feature.sha256, feature);
+  }
+  return { byHash, bySource };
+}
+
+function featureForRow(row, featureMaps) {
+  return featureMaps.bySource.get(normalizeRel(row.sourceRelPath)) ?? featureMaps.byHash.get(row.sha256) ?? null;
+}
+
+function isLowColorMangaCandidate(feature) {
+  if (!feature || feature.featureError) return false;
+  return numberValue(feature.meanChroma) <= 0.035 && numberValue(feature.colorfulRatio) <= 0.04;
+}
+
+function appendNote(notes, addition) {
+  const existing = String(notes ?? "").trim();
+  return existing ? `${existing}；${addition}` : addition;
+}
+
+function normalizeFinalRow(row, feature) {
+  if (row.assetKind !== "manga-avatar" || !feature || isLowColorMangaCandidate(feature)) return row;
+  const reason =
+    `规则修正: 原 assetKind=manga-avatar，但未通过黑白灰漫画硬门禁` +
+    `(colorfulRatio=${feature.colorfulRatio}, meanChroma=${feature.meanChroma})，按 character-avatar-bust 物化`;
+  return {
+    ...row,
+    assetKind: "character-avatar-bust",
+    mattingAllowed: "false",
+    mattingStatus: "not-needed",
+    needsMatting: "false",
+    normalizedFromAssetKind: row.assetKind,
+    normalizationReason: reason,
+    notes: appendNote(row.notes, reason),
+  };
 }
 
 function outputBucket(row, matting) {
@@ -220,14 +268,16 @@ function mattingForRow(row, mattingMaps) {
   return mattingMaps.bySource.get(normalizeRel(row.sourceRelPath)) ?? mattingMaps.byHash.get(row.sha256) ?? null;
 }
 
-async function materializeRows(rows, options, mattingMaps) {
+async function materializeRows(rows, options, mattingMaps, featureMaps) {
   const indexRows = [];
   const missingRows = [];
   const countsByAssetKind = new Map();
   const countsByBucket = new Map();
   const countsByMattingStatus = new Map();
+  const countsByNormalization = new Map();
 
-  for (const [index, row] of rows.entries()) {
+  for (const [index, rawRow] of rows.entries()) {
+    const row = normalizeFinalRow(rawRow, featureForRow(rawRow, featureMaps));
     const matting = mattingForRow(row, mattingMaps);
     if (options.spritesOnly && !(row.assetKind === "character-sprite" && matting)) {
       continue;
@@ -244,6 +294,9 @@ async function materializeRows(rows, options, mattingMaps) {
       ? path.join(options.reviewDir, normalizeRel(matting.transparentRelPath).replaceAll("/", path.sep))
       : sourceAbsPath(options.root, row.sourceRelPath);
     increment(countsByAssetKind, row.assetKind || "unknown");
+    if (row.normalizedFromAssetKind) {
+      increment(countsByNormalization, `${row.normalizedFromAssetKind}->${row.assetKind}`);
+    }
     increment(countsByBucket, bucket.join("/"));
     increment(countsByMattingStatus, matting?.status ?? row.mattingStatus ?? "unknown");
     try {
@@ -264,6 +317,8 @@ async function materializeRows(rows, options, mattingMaps) {
         mattingAllowed: row.mattingAllowed,
         needsMatting: row.needsMatting,
         mattingStatus: matting?.status ?? row.mattingStatus,
+        normalizedFromAssetKind: row.normalizedFromAssetKind ?? "",
+        normalizationReason: row.normalizationReason ?? "",
         aggregatedSourceCount: row.aggregatedSourceCount ?? 1,
         aggregatedSourceRelPaths: row.aggregatedSourceRelPaths || row.sourceRelPath,
         materializedAs: matting ? "matted-transparent" : boolValue(row.needsMatting) ? "source-copy-needs-matting" : "source-copy",
@@ -285,6 +340,7 @@ async function materializeRows(rows, options, mattingMaps) {
     countsByAssetKind,
     countsByBucket,
     countsByMattingStatus,
+    countsByNormalization,
     indexRows,
     missingRows,
   };
@@ -306,6 +362,8 @@ async function writeOutputs(result, options) {
     "mattingAllowed",
     "needsMatting",
     "mattingStatus",
+    "normalizedFromAssetKind",
+    "normalizationReason",
     "aggregatedSourceCount",
     "aggregatedSourceRelPaths",
     "materializedAs",
@@ -332,6 +390,7 @@ async function writeOutputs(result, options) {
     summaryByAssetKind: Object.fromEntries([...result.countsByAssetKind.entries()].sort()),
     summaryByBucket: Object.fromEntries([...result.countsByBucket.entries()].sort()),
     summaryByMattingStatus: Object.fromEntries([...result.countsByMattingStatus.entries()].sort()),
+    summaryByNormalization: Object.fromEntries([...result.countsByNormalization.entries()].sort()),
   };
   await fs.writeFile(path.join(options.outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
   await fs.writeFile(
@@ -342,7 +401,7 @@ async function writeOutputs(result, options) {
       "这个目录由 `image-decisions.vision.csv` 物化而来，原始 `images/` 不会被修改。",
       "",
       "- `role-sprites/`: 放已聚合且已抠图的角色立绘。",
-      "- `avatars/`: 放已聚合的头像、漫画头像、聊天头像。头像不抠图，复制的是最终可用头像资源。",
+      "- `avatars/`: 放已聚合的头像、漫画头像、聊天头像；最终审查目录必须再运行头像透明化处理，只保留透明 PNG。",
       "- `by-character/`: 中间/全量物化模式下的旧兼容角色资源入口。",
       "- `needs-matting/`: 视觉门禁允许抠图，但本次只复制原图等待抠图/QA。",
       "- `reference/`: 漫画分镜和参考图，不进角色演出。",
@@ -351,7 +410,7 @@ async function writeOutputs(result, options) {
       "- `index.csv`: 每张复制图片对应的来源路径和视觉决策。",
       "- `reports/missing.csv`: 复制失败或缺失源文件。",
       "",
-      "注意：本目录不会消费旧 `__matted` 透明图。漫画图只复制原图，`mattingAllowed=false`。",
+      "注意：本目录不会消费旧 `__matted` 透明图。`manga-avatar` 只允许黑白/低彩度漫画头像；明显彩色角色头像会在最终物化时修正为 `character-avatar-bust`。",
       "如果使用 `--character-assets-only` 生成最终审查目录，则目录只包含 `role-sprites/`、`avatars/` 和索引文件。",
       "如果使用 `--sprites-only` 生成最终审查目录，则目录只包含抠图后的 `role-sprites/` 和索引文件。",
       "",
@@ -368,7 +427,9 @@ async function main() {
   const rows = options.aggregate ? aggregateRows(rawRows) : rawRows;
   const mattingResultsJson = await readJsonIfExists(options.mattingResults, { results: [] });
   const mattingMaps = buildMattingMaps(mattingResultsJson.results ?? []);
-  const result = await materializeRows(rows, options, mattingMaps);
+  const features = await readJsonIfExists(options.featureIndex, []);
+  const featureMaps = buildFeatureMaps(features);
+  const result = await materializeRows(rows, options, mattingMaps, featureMaps);
   const summary = await writeOutputs(result, options);
   console.log(JSON.stringify(summary, null, 2));
 }
