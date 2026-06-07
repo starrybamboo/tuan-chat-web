@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+
+import { describe, expect, it } from "vitest";
 
 import { buildAvatarGridItems } from "./avatarGridItems";
 

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { describe, expect, it } from "vitest";
 
 import type { DmConversation } from "./useDmInboxQuery";
 

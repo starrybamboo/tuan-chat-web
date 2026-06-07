@@ -1,11 +1,11 @@
-import { Platform } from "react-native";
-
 import type {
   MobileCacheScopeOptions,
   QuerySnapshotEntry,
   QuerySnapshotReadOptions,
   QuerySnapshotWriteInput,
 } from "@tuanchat/local-db";
+
+import { Platform } from "react-native";
 
 import { getMobileQuerySnapshotRepository } from "./mobile-local-db";
 

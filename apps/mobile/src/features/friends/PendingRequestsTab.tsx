@@ -1,7 +1,7 @@
+import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
+
 import { useCallback } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
-
-import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";

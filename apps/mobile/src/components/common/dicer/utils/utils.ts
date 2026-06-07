@@ -38,7 +38,7 @@ const UTILS = {
     }
 
     role[type] = {
-      ...(role[type] ?? {}),
+      ...role[type],
       [key]: nextValue,
     };
   },
@@ -110,7 +110,7 @@ function setRoleAbilityValueAuto(role: RoleAbility, key: string, value: string, 
   }
 
   role[defaultType] = {
-    ...(role[defaultType] ?? {}),
+    ...role[defaultType],
     [key]: value,
   };
 }

@@ -1,8 +1,7 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 

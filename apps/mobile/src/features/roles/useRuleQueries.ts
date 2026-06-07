@@ -1,5 +1,12 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 
+import {
+  getRuleDetailQueryKey,
+  getRulePageQueryKey,
+  useRuleDetailQuery as useSharedRuleDetailQuery,
+  useRulePageQuery as useSharedRulePageQuery,
+} from "@tuanchat/query/rules";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -7,12 +14,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getRuleDetailQueryKey,
-  getRulePageQueryKey,
-  useRuleDetailQuery as useSharedRuleDetailQuery,
-  useRulePageQuery as useSharedRulePageQuery,
-} from "@tuanchat/query/rules";
 
 const RULE_PAGE_SNAPSHOT_TTL_MS = 10 * 60_000;
 const RULE_DETAIL_SNAPSHOT_TTL_MS = 30 * 60_000;

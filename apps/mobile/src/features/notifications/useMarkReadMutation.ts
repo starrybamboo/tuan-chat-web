@@ -1,8 +1,9 @@
-import { mobileApiClient } from "@/lib/api";
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationsReadMutation,
 } from "@tuanchat/query/notifications";
+
+import { mobileApiClient } from "@/lib/api";
 
 export function useMarkAllReadMutation() {
   const mutation = useMarkAllNotificationsReadMutation(mobileApiClient);

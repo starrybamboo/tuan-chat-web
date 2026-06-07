@@ -1,9 +1,9 @@
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+
 import { Prohibit, Trash } from "phosphor-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-
-import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";

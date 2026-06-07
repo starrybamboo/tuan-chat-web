@@ -42,7 +42,10 @@ export default antfu(
       "perfectionist/sort-imports": [
         "error",
         {
-          tsconfigRootDir: ".",
+          tsconfig: {
+            rootDir: ".",
+            filename: "tsconfig.json",
+          },
         },
       ],
       "unicorn/filename-case": [
@@ -66,6 +69,12 @@ export default antfu(
       "react-hooks/static-components": "warn",
       "react-hooks-extra/no-unnecessary-use-prefix": "off",
       "react-hooks-extra/no-direct-set-state-in-use-effect": "off",
+      "react/exhaustive-deps": "off",
+      "react/naming-convention-ref-name": "off",
+      "react/no-unnecessary-use-prefix": "off",
+      "react/set-state-in-effect": "off",
+      "react/unsupported-syntax": "off",
+      "react/use-state": "off",
       "react-refresh/only-export-components": "off",
       "react/no-array-index-key": "off",
       "react/no-unstable-default-props": "off",
@@ -76,8 +85,6 @@ export default antfu(
       "style/max-statements-per-line": "off",
       "style/multiline-ternary": "off",
       "no-alert": "off",
-      "react-web-api/no-leaked-event-listener": "off",
-      "react-web-api/no-leaked-timeout": "off",
     },
   },
 );

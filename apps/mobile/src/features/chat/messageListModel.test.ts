@@ -1,7 +1,7 @@
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { describe, expect, it } from "vitest";
-
-import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import type { ChatMessageListItem } from "./messageListModel";
 

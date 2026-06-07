@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
+
+import { describe, expect, it } from "vitest";
 
 import {
   createMobileOptimisticDirectMessage,

@@ -1,10 +1,10 @@
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
 import { router } from "expo-router";
 import { Check, CheckCircle, DiceSix, MagnifyingGlass, Trash, UserCircle, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";

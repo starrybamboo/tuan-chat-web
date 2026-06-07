@@ -1,5 +1,4 @@
 import type { UploadedImageMessageDraftAsset } from "@tuanchat/domain/message-draft";
-
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
 const FALLBACK_STICKER_SIZE = 256;
