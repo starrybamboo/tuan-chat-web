@@ -16,6 +16,18 @@
     {
       "name": "better-tailwindcss",
       "specifier": "eslint-plugin-better-tailwindcss"
+    },
+    {
+      "name": "react-dom",
+      "specifier": "eslint-plugin-react-dom"
+    },
+    {
+      "name": "eslint-comments",
+      "specifier": "@eslint-community/eslint-plugin-eslint-comments"
+    },
+    {
+      "name": "react-refresh",
+      "specifier": "eslint-plugin-react-refresh"
     }
   ],
   "plugins": [
@@ -42,6 +54,19 @@
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "off",
     "no-eval": "off",
+    "eslint-comments/no-unlimited-disable": "error",
+    "react-refresh/only-export-components": [
+      "error",
+      {
+        "allowConstantExport": true,
+        "allowExportNames": [
+          "Route",
+          "meta",
+          "links",
+          "clientLoader"
+        ]
+      }
+    ],
     "better-tailwindcss/no-duplicate-classes": "warn",
     "better-tailwindcss/no-unnecessary-whitespace": "warn"
   },
@@ -86,7 +111,7 @@
         "tanstack-query/exhaustive-deps": "error",
         "typescript/no-redeclare": "off",
         "typescript/consistent-type-definitions": [
-          "warn",
+          "error",
           "type"
         ],
         "no-console": "warn",
@@ -130,6 +155,25 @@
     },
     {
       "files": [
+        "**/webGALPreview.tsx",
+        "**/markDownViewer.tsx"
+      ],
+      "rules": {
+        "react-dom/no-unsafe-iframe-sandbox": "off"
+      }
+    },
+    {
+      "files": [
+        "api/**/*.js",
+        "api/**/*.ts",
+        "services/**/*.ts"
+      ],
+      "rules": {
+        "eslint-comments/no-unlimited-disable": "off"
+      }
+    },
+    {
+      "files": [
         "*.config.ts"
       ],
       "rules": {
@@ -152,6 +196,7 @@
     ".github/**",
     "**/*.md",
     "android/**",
+    "app/routeTree.gen.ts",
     ".pnpm-patch-work/**",
     ".codex-tmp/**",
     "patches/**",
