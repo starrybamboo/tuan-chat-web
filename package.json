@@ -5,7 +5,6 @@
   "private": true,
   "packageManager": "pnpm@9.6.0",
   "author": "Tuan Chat",
-  "main": "electron/main.js",
   "scripts": {
     "build": "node ./scripts/build.mjs",
     "web:build": "pnpm --filter @tuanchat/web run build",
@@ -33,9 +32,10 @@
     "typecheck:tsgo": "pnpm --filter @tuanchat/web run typecheck:tsgo",
     "typecheck:web": "pnpm --filter @tuanchat/web run typecheck",
     "typecheck:repo": "tsc -p tsconfig.typecheck.json",
-    "lint": "pnpm lint:repo && pnpm lint:web",
-    "lint:all": "pnpm lint:repo && pnpm lint:web && pnpm lint:mobile",
+    "lint": "pnpm lint:repo && pnpm lint:web && pnpm lint:desktop",
+    "lint:all": "pnpm lint:repo && pnpm lint:web && pnpm lint:desktop && pnpm lint:mobile",
     "lint:fix": "pnpm lint:web:fix",
+    "lint:desktop": "pnpm --filter @tuanchat/desktop run lint",
     "lint:mobile": "pnpm mobile:lint",
     "lint:repo": "oxlint . --config .oxlintrc.json --no-error-on-unmatched-pattern",
     "lint:ox": "pnpm lint:repo",
@@ -55,64 +55,29 @@
     "backfill:space-avatar": "node ./scripts/backfill-space-avatar-compression.mjs",
     "prepare": "husky",
     "openapi": "openapi --input ./packages/tuanchat-openapi-client/tuanchat_OpenAPI.json --output ./packages/tuanchat-openapi-client/src --client fetch --name TuanChat && node ./scripts/patch-openapi-api-result-guard.mjs",
-    "electron:dev": "node ./scripts/electron-dev.mjs",
-    "electron:dev:only": "electron .",
-    "electron:prepare:resources": "node ./scripts/prepare-electron-extra-resources.mjs",
-    "electron:build": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json",
-    "electron:build:win:zip": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --win zip",
-    "electron:build:win:nsis": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --win nsis",
-    "electron:build:mac:zip": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac zip",
-    "electron:build:mac:dmg": "pnpm -s electron:prepare:resources && pnpm -s build && pnpm exec electron-builder build --config electron-builder.json --mac dmg"
-  },
-  "build": {
-    "appId": "com.tuanchat.tuanchat",
-    "productName": "团剧共创",
-    "copyright": "Copyright © 2024 ${author}",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "win": {
-      "target": [
-        "nsis",
-        "zip"
-      ],
-      "icon": "electron/icons/icon.ico"
-    },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "icon": "electron/icons/icon.icns"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "electron/icons"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
-  },
-  "dependencies": {
-    "electron-updater": "^6.7.3",
-    "fflate": "0.8.2"
+    "desktop:dev": "pnpm --filter @tuanchat/desktop run dev",
+    "desktop:dev:only": "pnpm --filter @tuanchat/desktop run dev:only",
+    "desktop:prepare:resources": "pnpm --filter @tuanchat/desktop run prepare:resources",
+    "desktop:build": "pnpm --filter @tuanchat/desktop run build",
+    "desktop:build:win:zip": "pnpm --filter @tuanchat/desktop run build:win:zip",
+    "desktop:build:win:nsis": "pnpm --filter @tuanchat/desktop run build:win:nsis",
+    "desktop:build:mac:zip": "pnpm --filter @tuanchat/desktop run build:mac:zip",
+    "desktop:build:mac:dmg": "pnpm --filter @tuanchat/desktop run build:mac:dmg",
+    "release:electron": "node ./scripts/release-electron.mjs",
+    "electron:dev": "pnpm desktop:dev",
+    "electron:dev:only": "pnpm desktop:dev:only",
+    "electron:prepare:resources": "pnpm desktop:prepare:resources",
+    "electron:build": "pnpm desktop:build",
+    "electron:build:win:zip": "pnpm desktop:build:win:zip",
+    "electron:build:win:nsis": "pnpm desktop:build:win:nsis",
+    "electron:build:mac:zip": "pnpm desktop:build:mac:zip",
+    "electron:build:mac:dmg": "pnpm desktop:build:mac:dmg"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "@tuanchat/domain": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*",
     "@types/node": "^20",
-    "detect-port": "^2.1.0",
-    "electron": "^35.0.3",
-    "electron-builder": "^26.0.12",
-    "electron-reload": "2.0.0-alpha.1",
     "eslint": "^9.39.2",
     "eslint-plugin-perfectionist": "^4.15.1",
     "eslint-plugin-react-hooks": "^7.0.0",
@@ -135,7 +100,8 @@
   "lint-staged": {
     "apps/web/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config apps/web/.oxlintrc.json --no-error-on-unmatched-pattern",
     "apps/mobile/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config apps/mobile/.oxlintrc.json --no-error-on-unmatched-pattern",
-    "{electron,scripts,packages}/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config .oxlintrc.json --no-error-on-unmatched-pattern",
+    "apps/desktop/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config apps/desktop/.oxlintrc.json --no-error-on-unmatched-pattern",
+    "{scripts,packages}/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config .oxlintrc.json --no-error-on-unmatched-pattern",
     "*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config .oxlintrc.json --no-error-on-unmatched-pattern",
     "*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,html,yml,yaml,ps1,sql}": "node ./scripts/check-encoding.mjs"
   }

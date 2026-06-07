@@ -31,7 +31,7 @@
     "./command-request": "./src/command-request.ts",
     "./command-catalog": "./src/command-catalog.ts",
     "./dicer": "./src/dicer/index.ts",
-    "./dicer/*": "./src/dicer/*"
+    "./dicer/*": "./src/dicer/*.ts"
   },
   "dependencies": {
     "@tuanchat/openapi-client": "workspace:*"

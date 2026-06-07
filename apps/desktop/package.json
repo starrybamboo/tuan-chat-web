@@ -1,0 +1,30 @@
+{
+  "name": "@tuanchat/desktop",
+  "version": "1.0.4",
+  "private": true,
+  "type": "module",
+  "main": "./electron/main.js",
+  "scripts": {
+    "dev": "node ./scripts/dev.mjs",
+    "dev:only": "electron .",
+    "prepare:resources": "node ./scripts/prepare-electron-extra-resources.mjs",
+    "sync:web-build": "node ./scripts/sync-web-build.mjs",
+    "build:app": "pnpm -s prepare:resources && pnpm --filter @tuanchat/web run build && pnpm -s sync:web-build",
+    "build": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json",
+    "build:win:zip": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --win zip",
+    "build:win:nsis": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --win nsis",
+    "build:mac:zip": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --mac zip",
+    "build:mac:dmg": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --mac dmg",
+    "lint": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern"
+  },
+  "dependencies": {
+    "electron-updater": "^6.7.3",
+    "fflate": "0.8.2"
+  },
+  "devDependencies": {
+    "detect-port": "^2.1.0",
+    "electron": "^35.0.3",
+    "electron-builder": "^26.0.12",
+    "electron-reload": "2.0.0-alpha.1"
+  }
+}

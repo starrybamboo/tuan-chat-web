@@ -9,7 +9,8 @@ import detectPort from "detect-port";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
-const webRoot = resolve(projectRoot, "apps", "web");
+const workspaceRoot = resolve(projectRoot, "..", "..");
+const webRoot = resolve(workspaceRoot, "apps", "web");
 const require = createRequire(import.meta.url);
 
 process.chdir(projectRoot);
@@ -59,10 +60,10 @@ async function waitForElectronPing(baseUrl, { totalTimeoutMs = 30_000, perReques
   return false;
 }
 
-function resolveBin(name) {
+function resolveBin(name, baseDir = projectRoot) {
   const bin = process.platform === "win32"
-    ? join(projectRoot, "node_modules", ".bin", `${name}.cmd`)
-    : join(projectRoot, "node_modules", ".bin", name);
+    ? join(baseDir, "node_modules", ".bin", `${name}.cmd`)
+    : join(baseDir, "node_modules", ".bin", name);
 
   if (existsSync(bin))
     return bin;
@@ -211,8 +212,8 @@ function readArgValue(args, key) {
 const args = process.argv.slice(2);
 
 // 保持与 `scripts/dev.mjs` 一致：避免遗留 optimize deps 导致加载到旧 React。
-const legacyCacheDir = join(projectRoot, "node_modules", ".vite");
-const isolatedCacheDir = join(projectRoot, "node_modules", ".vite-tuan-chat-web");
+const legacyCacheDir = join(workspaceRoot, "node_modules", ".vite");
+const isolatedCacheDir = join(workspaceRoot, "node_modules", ".vite-tuan-chat-web");
 removeDirIfExists(legacyCacheDir);
 if (args.includes("--force"))
   removeDirIfExists(isolatedCacheDir);
@@ -231,7 +232,7 @@ const port = hasPortArg && Number.isFinite(requestedPort) && requestedPort > 0
 
 const devServerUrl = `http://localhost:${port}`;
 
-const viteBin = resolveBin("vite");
+const viteBin = resolveBin("vite", webRoot);
 const electronExecutable = resolveElectronExecutable();
 
 const devArgs = [];

@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
+const workspaceRoot = resolve(projectRoot, "..", "..");
 
 const DEFAULT_WEBGAL_TERRE_RELEASE_DIR = resolve(
-  projectRoot,
-  "..",
+  workspaceRoot,
   "..",
   "A_webgal",
   "WebGAL_Terre",
