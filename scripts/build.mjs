@@ -2,27 +2,13 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 
 const passthroughArgs = process.argv.slice(2);
-const hasExplicitMode = passthroughArgs.some((arg, index) => {
-  return arg === "--mode" || arg.startsWith("--mode=") || passthroughArgs[index - 1] === "--mode";
-});
+const args = ["--filter", "@tuanchat/web", "run", "build"];
 
-function resolveCloudflarePagesMode() {
-  if (process.env.CF_PAGES !== "1") {
-    return "";
-  }
-
-  return process.env.CF_PAGES_BRANCH === "dev" ? "test" : "production";
+if (passthroughArgs.length > 0) {
+  args.push("--", ...passthroughArgs);
 }
 
-const autoMode = hasExplicitMode ? "" : resolveCloudflarePagesMode();
-const args = ["vite", "build", ...passthroughArgs];
-
-if (autoMode) {
-  args.push("--mode", autoMode);
-  console.log(`[build] Cloudflare Pages branch ${process.env.CF_PAGES_BRANCH ?? "(unknown)"} -> mode ${autoMode}`);
-}
-
-const child = spawn("pnpm", ["exec", ...args], {
+const child = spawn("pnpm", args, {
   env: process.env,
   shell: process.platform === "win32",
   stdio: "inherit",

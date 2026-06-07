@@ -5,7 +5,7 @@ import fg from "fast-glob";
 import sharp from "sharp";
 
 const root = process.cwd();
-const stylesDir = path.resolve(root, "app/assets/ai-image/styles");
+const stylesDir = path.resolve(root, "apps/web/app/assets/ai-image/styles");
 const maxWidth = Number(process.env.AI_STYLE_MAX_WIDTH ?? "256");
 const quality = Number(process.env.AI_STYLE_QUALITY ?? "75");
 

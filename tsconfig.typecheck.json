@@ -2,33 +2,17 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "incremental": true,
-    "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo",
-    "paths": {
-      "*": ["./*"],
-      "@/*": ["./app/*"],
-      "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
-      "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
-      "@tuanchat/galgame-ai-contract": ["./packages/galgame-ai-contract/src/index.ts"],
-      "@tuanchat/galgame-ai-contract/*": ["./packages/galgame-ai-contract/src/*"],
-      "@tuanchat/local-db": ["./packages/tuanchat-local-db/src/index.ts"],
-      "@tuanchat/local-db/*": ["./packages/tuanchat-local-db/src/*"],
-      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
-      "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
-      "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
-      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
-    }
+    "tsBuildInfoFile": "node_modules/.cache/tsc/typecheck.tsbuildinfo"
   },
-  "include": [
-    "app/**/*",
-    "vitest.config.ts",
-    "vitest.e2e.config.ts",
-    "vite.config.ts",
-    "electron/**/*"
-  ],
   "exclude": [
     "node_modules",
     "dist",
     "build",
-    "doc-test2"
+    "doc-test2",
+    "packages/**/__tests__/**",
+    "packages/**/*.spec.ts",
+    "packages/**/*.spec.tsx",
+    "packages/**/*.test.ts",
+    "packages/**/*.test.tsx"
   ]
 }

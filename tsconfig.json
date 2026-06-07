@@ -1,38 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "jsx": "react-jsx",
-    "lib": ["DOM", "DOM.Iterable", "ES2022", "ESNext"],
-    "useDefineForClassFields": true,
-    "module": "ES2022",
-    "moduleResolution": "bundler",
-    "paths": {
-      "*": ["./*"],
-      "@/*": ["./app/*"],
-      "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
-      "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
-      "@tuanchat/galgame-ai-contract": ["./packages/galgame-ai-contract/src/index.ts"],
-      "@tuanchat/galgame-ai-contract/*": ["./packages/galgame-ai-contract/src/*"],
-      "@tuanchat/local-db": ["./packages/tuanchat-local-db/src/index.ts"],
-      "@tuanchat/local-db/*": ["./packages/tuanchat-local-db/src/*"],
-      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
-      "@tuanchat/openapi-client/*": ["./packages/tuanchat-openapi-client/src/*"],
-      "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
-      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
-    },
-    "resolveJsonModule": true,
-    "types": ["node", "vite/client", "vitest/globals"],
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "skipLibCheck": true
-  },
+  "extends": "./tsconfig.package.json",
   "include": [
-    "**/*",
-    "**/.server/**/*",
-    "**/.client/**/*"
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

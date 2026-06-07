@@ -1,13 +1,14 @@
 import { spawnSync } from "node:child_process";
 import dns from "node:dns";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const SWAGGER_UI_INIT_URL = "https://api.novelai.net/docs/swagger-ui-init.js";
 
-const openapiOutputFileUrl = new URL("../api/novelai_OpenAPI.json", import.meta.url);
-const clientOutputDirUrl = new URL("../api/novelai/", import.meta.url);
+const openapiOutputFileUrl = new URL("../apps/web/api/novelai_OpenAPI.json", import.meta.url);
+const clientOutputDirUrl = new URL("../apps/web/api/novelai/", import.meta.url);
+const clientIndexFileUrl = new URL("../apps/web/api/novelai/index.ts", import.meta.url);
 
 dns.setDefaultResultOrder("ipv4first");
 
@@ -145,7 +146,7 @@ async function exportOpenApiJson() {
 
   const swaggerDoc = extractSwaggerDocFromSwaggerUiInit(jsText);
 
-  await mkdir(new URL("../api/", import.meta.url), { recursive: true });
+  await mkdir(new URL("../apps/web/api/", import.meta.url), { recursive: true });
   await writeFile(openapiOutputFileUrl, `${JSON.stringify(swaggerDoc, null, 2)}\n`, "utf8");
 
   const title = swaggerDoc?.info?.title ?? "(unknown)";
@@ -180,6 +181,21 @@ function generateClient() {
   console.log(`[novelai-openapi] 客户端输出: ${fileURLToPath(clientOutputDirUrl)}`);
 }
 
+async function patchGeneratedClientIndex() {
+  const source = await readFile(clientIndexFileUrl, "utf8");
+  const patchedSource = source.replace(
+    "export type { ApiError } from './models/ApiError';",
+    "export type { ApiError as ApiModelError } from './models/ApiError';",
+  );
+
+  if (patchedSource === source) {
+    return;
+  }
+
+  await writeFile(clientIndexFileUrl, patchedSource, "utf8");
+  console.log(`[novelai-openapi] 已修正重复导出的 ApiError: ${fileURLToPath(clientIndexFileUrl)}`);
+}
+
 async function main() {
   const command = process.argv[2];
 
@@ -191,6 +207,7 @@ async function main() {
   if (command === "generate") {
     await exportOpenApiJson();
     generateClient();
+    await patchGeneratedClientIndex();
     return;
   }
 

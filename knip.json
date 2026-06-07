@@ -1,14 +1,14 @@
 {
   "entry": [
-    "app/routes/__root.tsx",
-    "app/main.tsx",
-    "app/router.tsx",
-    "app/routeTree.gen.ts",
-    "app/routes/**/*.{ts,tsx}",
-    "app/**/*.test.{ts,tsx}",
-    "app/**/*.e2e.test.{ts,tsx}",
-    "app/**/*.e2e.harness.{ts,tsx}",
-    "api/**/*.test.{ts,tsx}",
+    "apps/web/app/routes/__root.tsx",
+    "apps/web/app/main.tsx",
+    "apps/web/app/router.tsx",
+    "apps/web/app/routeTree.gen.ts",
+    "apps/web/app/routes/**/*.{ts,tsx}",
+    "apps/web/app/**/*.test.{ts,tsx}",
+    "apps/web/app/**/*.e2e.test.{ts,tsx}",
+    "apps/web/app/**/*.e2e.harness.{ts,tsx}",
+    "apps/web/api/**/*.test.{ts,tsx}",
     "packages/**/*.test.{ts,tsx}",
     "apps/mobile/src/app/**/*.{ts,tsx}",
     "apps/mobile/src/**/*.test.{ts,tsx}",
@@ -20,11 +20,12 @@
     "packages/*/src/index.ts",
     "packages/**/*.test.{ts,tsx}",
     "scripts/**/*.mjs",
-    "vite.config.ts"
+    "apps/web/vite.config.ts"
   ],
   "project": [
-    "app/**/*.{ts,tsx}",
-    "api/**/*.{ts,tsx}",
+    "apps/web/app/**/*.{ts,tsx}",
+    "apps/web/api/**/*.{ts,tsx}",
+    "apps/web/functions/**/*.{ts,tsx}",
     "apps/mobile/src/**/*.{ts,tsx}",
     "apps/mobile/scripts/**/*.js",
     "electron/**/*.{js,ts}",
@@ -42,10 +43,10 @@
     "scripts/__pycache__/**",
     "apps/mobile/.expo-export-web/**",
     "apps/mobile/.tmp/**",
-    "app/routeTree.gen.ts",
-    "api/core/request.ts",
-    "api/novelai/core/request.ts",
-    "api/hooks/RoleAndAvatarHooks.tsx"
+    "apps/web/app/routeTree.gen.ts",
+    "apps/web/api/core/request.ts",
+    "apps/web/api/novelai/core/request.ts",
+    "apps/web/api/hooks/RoleAndAvatarHooks.tsx"
   ],
   "ignoreDependencies": [
     "@ffmpeg/core",
