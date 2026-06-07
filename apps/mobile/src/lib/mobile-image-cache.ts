@@ -1,7 +1,6 @@
+import { extractMediaFileIdFromUrl, imageOriginalUrlFromUrl } from "@tuanchat/domain/media-url";
 import { Directory, File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
-
-import { extractMediaFileIdFromUrl, imageOriginalUrlFromUrl } from "@tuanchat/domain/media-url";
 
 const CACHE_DIR_NAME = "mobile-image-cache";
 const DERIVATIVE_STATUS_FILE_NAME = "derived-status-v1.json";

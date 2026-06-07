@@ -194,19 +194,41 @@ function ensureTools() {
   }
 }
 
-function updatePackageVersion(nextVersion) {
-  const packagePath = resolve(projectRoot, "package.json");
-  const raw = readFileSync(packagePath, "utf8");
-  const pkg = JSON.parse(raw);
-  const currentVersion = String(pkg.version || "").trim();
+function readPackageJson(packagePath) {
+  return JSON.parse(readFileSync(packagePath, "utf8"));
+}
 
-  if (!currentVersion) {
-    fail("package.json 缺少 version 字段。");
+function readPackageVersion(packagePath, label) {
+  const pkg = readPackageJson(packagePath);
+  const version = String(pkg.version || "").trim();
+  if (!version) {
+    fail(`${label} 缺少 version 字段。`);
   }
+  return version;
+}
 
+function writePackageVersion(packagePath, nextVersion) {
+  const pkg = readPackageJson(packagePath);
   pkg.version = nextVersion;
   writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
-  return currentVersion;
+}
+
+function updateElectronReleaseVersions(nextVersion) {
+  const rootPackagePath = resolve(projectRoot, "package.json");
+  const desktopPackagePath = resolve(projectRoot, "apps", "desktop", "package.json");
+  const rootVersion = readPackageVersion(rootPackagePath, "根 package.json");
+  const desktopVersion = readPackageVersion(desktopPackagePath, "apps/desktop/package.json");
+
+  if (rootVersion !== desktopVersion) {
+    fail(`根包与桌面端版本不一致：root=${rootVersion}, desktop=${desktopVersion}`);
+  }
+
+  writePackageVersion(rootPackagePath, nextVersion);
+  writePackageVersion(desktopPackagePath, nextVersion);
+  return {
+    currentVersion: rootVersion,
+    packagePaths: [rootPackagePath, desktopPackagePath],
+  };
 }
 
 function runLocalBuild(localBuild) {
@@ -247,9 +269,8 @@ function main() {
   run("git", ["fetch", remote, "main"]);
   run("git", ["pull", "--rebase", remote, "main"]);
 
-  const packagePath = resolve(projectRoot, "package.json");
-  const currentPkg = JSON.parse(readFileSync(packagePath, "utf8"));
-  const currentVersion = String(currentPkg.version || "").trim();
+  const rootPackagePath = resolve(projectRoot, "package.json");
+  const currentVersion = readPackageVersion(rootPackagePath, "根 package.json");
 
   let nextVersion = "";
   if (options.version) {
@@ -267,12 +288,12 @@ function main() {
   }
 
   console.log(`[release:electron] 版本更新：${currentVersion} -> ${nextVersion}`);
-  updatePackageVersion(nextVersion);
+  const updatedVersions = updateElectronReleaseVersions(nextVersion);
 
   console.log(`[release:electron] 本地打包模式：${options.localBuild}`);
   runLocalBuild(options.localBuild);
 
-  run("git", ["add", "package.json"]);
+  run("git", ["add", ...updatedVersions.packagePaths]);
   const commitMessage = options.message.trim() || `chore(release): v${nextVersion}`;
   // 仓库对 main 的本地提交有 husky 限制；自动发布流程在这里显式跳过。
   run("git", ["commit", "-m", commitMessage], {

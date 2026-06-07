@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
+import { useDirectInboxMessagesQuery } from "@tuanchat/query/direct-message";
+import { useEffect, useMemo, useState } from "react";
 
 import { hasPersistableDirectInboxMessages } from "@/features/friends/dmInboxCacheState";
 import { mobileApiClient } from "@/lib/api";
-import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
-import { useDirectInboxMessagesQuery } from "@tuanchat/query/direct-message";
 
 import {
   clearCachedDirectMessages,

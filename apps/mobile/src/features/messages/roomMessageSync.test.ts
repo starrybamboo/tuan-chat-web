@@ -1,5 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
@@ -7,6 +5,7 @@ import {
   createOptimisticRoomMessage,
   getRoomMessageLocalRenderKey,
 } from "@tuanchat/query/room-message-lifecycle";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 

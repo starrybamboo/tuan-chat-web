@@ -1,3 +1,4 @@
+import { useGetUserProfileQuery } from "@tuanchat/query/users";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
@@ -8,7 +9,6 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
-import { useGetUserProfileQuery } from "@tuanchat/query/users";
 
 const AVATAR_SIZE = 64;
 

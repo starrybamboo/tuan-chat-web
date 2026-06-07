@@ -5,4 +5,4 @@ if [ "$branch" = "refs/heads/main" ]; then
   exit 1
 fi
 
-git add app/assets/ai-image/styles
+git add apps/web/app/assets/ai-image/styles

@@ -4,7 +4,7 @@
   "editor.formatOnSave": false,
   // Auto fix
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit",
+    "source.fixAll.oxc": "explicit",
     "source.organizeImports": "never"
   },
   // Silent the stylistic rules in you IDE, but still auto fix them
@@ -84,5 +84,6 @@
     "pcss",
     "postcss"
   ],
-  "typescript.autoClosingTags": false
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
+  "js/ts.autoClosingTags.enabled": false
 }

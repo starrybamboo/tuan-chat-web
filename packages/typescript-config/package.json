@@ -1,0 +1,11 @@
+{
+  "name": "@tuanchat/typescript-config",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./app.json": "./app.json",
+    "./base.json": "./base.json",
+    "./expo.json": "./expo.json",
+    "./library.json": "./library.json"
+  }
+}

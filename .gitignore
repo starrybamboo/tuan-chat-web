@@ -19,10 +19,12 @@ __pycache__/
 .DS_Store
 /node_modules/
 /builder/
+/release/
 
 # React Router
 /.react-router/
 /build/
+/apps/desktop/build/
 
 # Package managers
 package-lock.json

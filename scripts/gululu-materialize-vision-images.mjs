@@ -122,7 +122,7 @@ function numberValue(value, fallback = 0) {
 
 function sanitizeSegment(value, fallback = "unknown") {
   const cleaned = String(value || fallback)
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/[\p{Cc}<>:"/\\|?*]/gu, "_")
     .replace(/\s+/g, " ")
     .trim();
   return (cleaned || fallback).slice(0, 90);
@@ -221,10 +221,6 @@ async function resetOutDir(outDir, root, force) {
 
 function increment(map, key, count = 1) {
   map.set(key, (map.get(key) ?? 0) + count);
-}
-
-function splitPipe(value) {
-  return String(value ?? "").split("|").map((item) => item.trim()).filter(Boolean);
 }
 
 function aggregateRows(rows) {

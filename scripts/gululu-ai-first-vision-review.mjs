@@ -135,11 +135,6 @@ function boolValue(value) {
   return /^(?:1|true|yes|y|是)$/i.test(String(value ?? ""));
 }
 
-function numberValue(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 function clampConfidence(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 0;

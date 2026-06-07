@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { describe, expect, it } from "vitest";
 
 import { resolveRoomMessageSnapshots } from "./roomMessageMutationSnapshots";
 

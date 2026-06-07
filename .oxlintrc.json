@@ -1,44 +1,21 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "typescript",
-    "unicorn",
-    "react",
-    "vitest",
-    "node",
-    "import",
-    "jsx-a11y"
+  "extends": [
+    "./packages/oxlint-config/oxlint-base.json"
   ],
   "rules": {
-    "jsx-a11y/click-events-have-key-events": "off",
-    "jsx-a11y/no-static-element-interactions": "off",
-    "jsx-a11y/label-has-associated-control": "off",
-    "jsx-a11y/no-noninteractive-tabindex": "off",
-    "jsx-a11y/media-has-caption": "off",
-    "jsx-a11y/prefer-tag-over-role": "off",
-    "jsx-a11y/role-supports-aria-props": "off",
-    "jsx-a11y/iframe-has-title": "off",
-    "jsx-a11y/anchor-is-valid": "off",
-    "jsx-a11y/alt-text": "off",
-    "vitest/require-mock-type-parameters": "off",
-    "react-hooks/exhaustive-deps": "off",
-    "no-eval": "off"
+    "eslint-comments/no-unlimited-disable": "error",
+    "node/no-process-env": "off",
+    "no-control-regex": "off"
   },
   "ignorePatterns": [
-    "public/**",
-    "api/**",
-    "packages/tuanchat-openapi-client/**",
-    ".github/**",
-    "**/*.md",
-    "android/**",
-    ".pnpm-patch-work/**",
-    ".codex-tmp/**",
-    "patches/**",
+    "apps/desktop/**",
     "apps/mobile/**",
-    "build/**",
-    "dist/**",
-    "release/**",
-    "coverage/**",
-    "node_modules/.cache/**"
+    "apps/web/**",
+    "android/**",
+    ".github/**",
+    "packages/tuanchat-openapi-client/**",
+    "patches/**",
+    "**/*.md"
   ]
 }

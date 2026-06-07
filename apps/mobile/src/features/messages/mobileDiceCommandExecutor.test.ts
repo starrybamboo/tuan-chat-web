@@ -1,12 +1,11 @@
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { Mock } from "vitest";
 
 import { QueryClient } from "@tanstack/react-query";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
-import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { executeMobileDicerCommand } from "./mobileDiceCommandExecutor";
 

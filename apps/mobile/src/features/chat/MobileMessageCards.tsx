@@ -1,6 +1,6 @@
 import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { RoomRolesById } from "./chat-avatar-utils";
+
 import {
   getClueCardRenderData,
   getDocCardRenderData,
@@ -16,19 +16,19 @@ import {
   formatStateScopeLabel,
   getNormalizedStateEventExtra,
 } from "@tuanchat/domain/state-event";
-
 import { ArrowSquareOut, FileText, ListChecks, MapPinLine, X } from "phosphor-react-native";
-
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
+
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
-
 import { useTheme } from "@/hooks/use-theme";
+
+import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { getMessagePreview } from "./mobileChatUtils";
 
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
   },
 });
 
-interface MessageCardProps {
+type MessageCardProps = {
   content?: string | null;
   extra: unknown;
-}
+};
 
 export function IntroTextCard({ content }: Pick<MessageCardProps, "content">) {
   return (

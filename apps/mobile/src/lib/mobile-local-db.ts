@@ -1,5 +1,3 @@
-import * as SQLite from "expo-sqlite";
-
 import type {
   DirectMessageRepository,
   LocalDbSqliteDriver,
@@ -14,6 +12,7 @@ import {
   createQuerySnapshotRepository,
   createRoomMessageRepository,
 } from "@tuanchat/local-db";
+import * as SQLite from "expo-sqlite";
 
 export const MOBILE_LOCAL_DB_NAME = "tuanchat-local.db";
 

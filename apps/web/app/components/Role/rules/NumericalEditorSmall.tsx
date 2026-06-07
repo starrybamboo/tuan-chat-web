@@ -1,0 +1,251 @@
+import {
+  useUpdateKeyFieldByRoleIdMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
+} from "api/hooks/abilityQueryHooks";
+import { useEffect, useReducer, useState } from "react";
+import toast from "react-hot-toast";
+import AddFieldForm from "../Editors/AddFieldForm";
+import EditableField from "../Editors/EditableField";
+import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
+
+type NumericalData = Record<string, string>;
+type FieldType = "basic" | "ability" | "skill";
+
+interface NumericalEditorSmallProps {
+  data: NumericalData;
+  onChange: (data: NumericalData) => void;
+  roleId: number;
+  ruleId: number;
+  title?: string;
+  fieldType: FieldType;
+}
+
+type DataAction
+  = | { type: "SYNC_PROPS"; payload: NumericalData }
+    | { type: "UPDATE_FIELD"; payload: { key: string; value: string } }
+    | { type: "ADD_FIELD"; payload: { key: string; value: string } }
+    | { type: "DELETE_FIELD"; payload: string }
+    | { type: "RENAME_FIELD"; payload: { oldKey: string; newKey: string } };
+
+function dataReducer(state: NumericalData, action: DataAction): NumericalData {
+  switch (action.type) {
+    case "SYNC_PROPS":
+      return action.payload;
+    case "UPDATE_FIELD":
+      return {
+        ...state,
+        [action.payload.key]: action.payload.value,
+      };
+    case "ADD_FIELD":
+      return {
+        ...state,
+        [action.payload.key]: action.payload.value,
+      };
+    case "DELETE_FIELD": {
+      const newState = { ...state };
+      delete newState[action.payload];
+      return newState;
+    }
+    case "RENAME_FIELD": {
+      const { oldKey, newKey } = action.payload;
+      const value = state[oldKey];
+      const newState = { ...state };
+      delete newState[oldKey];
+      newState[newKey] = value;
+      return newState;
+    }
+    default:
+      return state;
+  }
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "请稍后重试";
+}
+
+export default function NumericalEditorSmall({
+  data,
+  onChange,
+  roleId,
+  ruleId,
+  fieldType,
+}: NumericalEditorSmallProps) {
+  const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
+  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+
+  const [localData, dispatch] = useReducer(dataReducer, data);
+
+  useEffect(() => {
+    dispatch({ type: "SYNC_PROPS", payload: data });
+  }, [data]);
+
+  const rollbackAfterError = (error: unknown) => {
+    dispatch({ type: "SYNC_PROPS", payload: data });
+    onChange(data);
+    toast.error(`能力更新失败：${getErrorMessage(error)}`);
+  };
+
+  const handleFieldUpdate = (fieldKey: string, newValue: string) => {
+    dispatch({
+      type: "UPDATE_FIELD",
+      payload: { key: fieldKey, value: newValue },
+    });
+  };
+
+  const handleFieldCommit = (fieldKey: string, newValue: string) => {
+    const updatedData = {
+      ...localData,
+      [fieldKey]: newValue,
+    };
+
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+      [fieldKey]: newValue,
+    }), {
+      onSuccess: () => {
+        onChange(updatedData);
+        setEditingKey(null);
+      },
+      onError: rollbackAfterError,
+    });
+  };
+
+  const handleAddField = (newFieldKey: string, newFieldValue: string) => {
+    const updatedData = {
+      ...localData,
+      [newFieldKey]: newFieldValue,
+    };
+
+    dispatch({
+      type: "ADD_FIELD",
+      payload: { key: newFieldKey, value: newFieldValue },
+    });
+
+    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+      [newFieldKey]: newFieldValue,
+    }), {
+      onSuccess: () => {
+        onChange(updatedData);
+      },
+      onError: rollbackAfterError,
+    });
+  };
+
+  const handleDeleteField = (fieldKey: string) => {
+    const updatedData = { ...localData };
+    delete updatedData[fieldKey];
+
+    dispatch({ type: "DELETE_FIELD", payload: fieldKey });
+
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+      [fieldKey]: null,
+    }), {
+      onSuccess: () => {
+        onChange(updatedData);
+        setEditingKey(prevKey => (prevKey === fieldKey ? null : prevKey));
+      },
+      onError: rollbackAfterError,
+    });
+  };
+
+  const handleRenameField = (oldKey: string, newKey: string) => {
+    if (!newKey.trim() || newKey === oldKey || newKey in localData) {
+      return;
+    }
+
+    const value = localData[oldKey];
+    const updatedData = { ...localData };
+    delete updatedData[oldKey];
+    updatedData[newKey] = value;
+
+    dispatch({
+      type: "RENAME_FIELD",
+      payload: { oldKey, newKey },
+    });
+
+    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+      [oldKey]: newKey,
+    }), {
+      onSuccess: () => {
+        onChange(updatedData);
+        setEditingKey(newKey);
+      },
+      onError: rollbackAfterError,
+    });
+  };
+
+  const entries = Object.entries(localData);
+  const contentWrapperClass = "pr-1";
+
+  return (
+    <div className="rounded-md border border-base-200 bg-base-100/80 p-3">
+
+      <div className={`
+        ${contentWrapperClass}
+        space-y-2
+      `}>
+        {entries.length > 0
+          ? (
+              <div className="flex flex-wrap gap-1.5">
+                {entries.map(([key, value]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setEditingKey(prevKey => (prevKey === key ? null : key))}
+                    className={`
+                      badge badge-sm
+                      ${
+                      editingKey === key ? "badge-primary" : "badge-outline"
+                    }
+                    `}
+                    title="点击编辑字段"
+                  >
+                    {key}
+                    {" "}
+                    :
+                    {" "}
+                    {String(value)}
+                  </button>
+                ))}
+              </div>
+            )
+          : (
+              <span className="text-[11px] text-base-content/60">暂无字段</span>
+            )}
+
+        {editingKey
+          ? (
+              <div className="border-t-2 pt-4 border-base-content/10">
+                <div className="grid grid-cols-4 gap-2">
+                  <EditableField
+                    key={editingKey}
+                    fieldKey={editingKey}
+                    value={localData[editingKey] ?? ""}
+                    isEditing
+                    onValueChange={handleFieldUpdate}
+                    onValueCommit={handleFieldCommit}
+                    onDelete={handleDeleteField}
+                    onRename={handleRenameField}
+                    size="compact"
+                    className="w-full col-span-4"
+                    editingBackgroundClassName="bg-base-100"
+                  />
+                </div>
+              </div>
+            )
+          : (
+              <AddFieldForm
+                onAddField={handleAddField}
+                existingKeys={Object.keys(localData)}
+                layout="inline"
+                showTitle={false}
+                placeholder={{ key: "字段名", value: "字段值" }}
+              />
+            )}
+      </div>
+    </div>
+  );
+}

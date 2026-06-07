@@ -52,7 +52,7 @@ function toDisplayRel(absPath, root) {
 
 function sanitizeSegment(value) {
   return String(value || "unknown")
-    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/[\p{Cc}<>:"/\\|?*]/gu, "_")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 100);

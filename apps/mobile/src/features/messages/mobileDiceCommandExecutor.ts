@@ -1,8 +1,4 @@
 import type { QueryClient } from "@tanstack/react-query";
-
-import { buildMessageExtraForRequest } from "@tuanchat/domain/message-draft";
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-
 import type { StateEventAtom } from "@tuanchat/domain/state-event";
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
@@ -10,6 +6,8 @@ import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { buildMessageExtraForRequest } from "@tuanchat/domain/message-draft";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import {
   buildCommandStateEventExtra,
   formatStateEventAtomDetail,
@@ -199,14 +197,14 @@ function normalizeRoleAbility(
   ruleId: number,
 ): RoleAbility {
   return {
-    ...(ability ?? {}),
+    ...ability,
     roleId: ability?.roleId ?? roleId,
     ruleId: ability?.ruleId ?? ruleId,
-    act: { ...(ability?.act ?? {}) },
-    basic: { ...(ability?.basic ?? {}) },
-    ability: { ...(ability?.ability ?? {}) },
-    skill: { ...(ability?.skill ?? {}) },
-    extra: { ...(ability?.extra ?? {}) },
+    act: { ...ability?.act },
+    basic: { ...ability?.basic },
+    ability: { ...ability?.ability },
+    skill: { ...ability?.skill },
+    extra: { ...ability?.extra },
   };
 }
 

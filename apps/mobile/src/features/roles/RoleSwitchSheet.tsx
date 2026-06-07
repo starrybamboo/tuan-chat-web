@@ -1,9 +1,9 @@
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
 import { CaretLeft, UserPlus } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
-
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";

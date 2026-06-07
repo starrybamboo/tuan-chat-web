@@ -1,8 +1,8 @@
+import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+
 import { GearSix, List } from "phosphor-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
-
-import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
