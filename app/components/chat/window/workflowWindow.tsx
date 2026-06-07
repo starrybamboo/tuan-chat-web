@@ -484,7 +484,7 @@ export default function WorkflowWindow() {
     <div
       ref={workflowContainerRef}
       className={isFullscreen
-        ? "fixed inset-0 z-[120] h-screen w-screen bg-base-100 p-3"
+        ? "fixed inset-0 z-120 h-screen w-screen bg-base-100 p-3"
         : "relative h-[75vh] w-full min-w-[50vw]"}
     >
       <button
@@ -511,7 +511,7 @@ export default function WorkflowWindow() {
         "
         onClick={toggleFullscreen}
       >
-        <svg viewBox="0 0 20 20" className="h-4 w-4 fill-current" aria-hidden>
+        <svg viewBox="0 0 20 20" className="size-4 fill-current" aria-hidden>
           {isFullscreen
             ? (
                 <path d="M3 3h5v2H5v3H3V3zm9 0h5v5h-2V5h-3V3zM3 12h2v3h3v2H3v-5zm12 0h2v5h-5v-2h3v-3z" />

@@ -117,7 +117,7 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
     <>
       <div className="flex h-full min-h-[440px] flex-col">
         <header className="border-b border-base-300/70 pb-4">
-          <h3 className="text-lg font-semibold leading-7">房间信息</h3>
+          <h3 className="text-lg/7 font-semibold">房间信息</h3>
         </header>
 
         <div className="hidden-scrollbar flex-1 overflow-y-auto py-6">

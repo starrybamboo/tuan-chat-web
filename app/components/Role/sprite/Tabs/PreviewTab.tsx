@@ -282,7 +282,7 @@ export function PreviewTab({
           className="btn btn-sm btn-ghost gap-2 rounded-md"
           onClick={cyclePreviewMode}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
           </svg>
           切换至
@@ -297,9 +297,7 @@ export function PreviewTab({
         {previewMode === "sprite" && (
           spriteUrl
             ? (
-                <div className="
-                  w-full h-full flex items-center justify-center p-4
-                ">
+                <div className="size-full flex items-center justify-center p-4">
                   <MediaImage
                     src={spritePreviewUrl ?? spriteUrl}
                     alt="立绘预览"
@@ -315,7 +313,7 @@ export function PreviewTab({
                   text-base-content/50
                 ">
                   <div className="text-center">
-                    <svg className="w-16 h-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
+                    <svg className="size-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
                       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
                       <path d="M3 16l5-5 4 4 5-5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -328,9 +326,7 @@ export function PreviewTab({
         {previewMode === "avatar" && (
           avatarUrl
             ? (
-                <div className="
-                  w-full h-full flex items-center justify-center p-4
-                ">
+                <div className="size-full flex items-center justify-center p-4">
                   <AvatarPreview
                     currentAvatarUrl={avatarUrl}
                     characterName={characterName}
@@ -347,7 +343,7 @@ export function PreviewTab({
                   text-base-content/50
                 ">
                   <div className="text-center">
-                    <svg className="w-16 h-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
+                    <svg className="size-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                       <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" />
                       <path d="M6 21v-1a6 6 0 0112 0v1" stroke="currentColor" strokeWidth="2" />
@@ -361,9 +357,7 @@ export function PreviewTab({
         {previewMode === "render" && (
           spriteUrl
             ? (
-                <div className="
-                  w-full h-full p-4 flex items-center justify-center
-                ">
+                <div className="size-full p-4 flex items-center justify-center">
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
@@ -380,7 +374,7 @@ export function PreviewTab({
                   text-base-content/50
                 ">
                   <div className="text-center">
-                    <svg className="w-16 h-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
+                    <svg className="size-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
                       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
                       <path d="M3 16l5-5 4 4 5-5 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

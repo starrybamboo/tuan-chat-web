@@ -23,7 +23,7 @@ export default function WorkflowStartNode({ data }: WorkflowStartNodeProps) {
         type="source"
         position={Position.Right}
         isConnectable
-        className="!w-3 !h-3 !bg-error !border-error"
+        className="size-3! bg-error! border-error!"
       />
     </div>
   );

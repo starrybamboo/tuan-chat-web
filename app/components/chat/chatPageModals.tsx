@@ -119,7 +119,7 @@ export default function ChatPageModals({
             lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6
           ">
             <div className="min-w-0">
-              <h2 className="text-2xl font-semibold leading-tight">新建内容</h2>
+              <h2 className="text-2xl/tight font-semibold">新建内容</h2>
             </div>
 
             <div className="mt-6 space-y-2">
@@ -154,7 +154,7 @@ export default function ChatPageModals({
               ? (
                   <div className="flex h-full min-h-[440px] flex-col">
                     <header className="border-b border-base-300/70 pb-4">
-                      <h3 className="text-lg font-semibold leading-7">文档信息</h3>
+                      <h3 className="text-lg/7 font-semibold">文档信息</h3>
                     </header>
 
                     <div className="
@@ -308,7 +308,7 @@ function CreateModeOption({
         `}>
           {label}
         </span>
-        <span className="mt-1 block text-xs leading-5 text-base-content/60">{description}</span>
+        <span className="mt-1 block text-xs/5 text-base-content/60">{description}</span>
       </span>
       <input
         type="radio"

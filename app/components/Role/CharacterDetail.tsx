@@ -562,7 +562,7 @@ function CharacterDetailInner({
                 "
               >
                 <span className="flex items-center gap-1">
-                  <SlidersIcon className="w-4 h-4" />
+                  <SlidersIcon className="size-4" />
                   配置
                 </span>
               </button>
@@ -670,7 +670,7 @@ function CharacterDetailInner({
                   className="btn btn-sm btn-circle btn-ghost"
                   onClick={() => setIsRuleModalOpen(false)}
                 >
-                  <CloseIcon className="w-4 h-4" />
+                  <CloseIcon className="size-4" />
                 </button>
               </div>
               <RulesSection

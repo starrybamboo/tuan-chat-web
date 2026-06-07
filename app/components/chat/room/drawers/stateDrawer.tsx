@@ -266,8 +266,8 @@ function formatInitiativeText(initiative: number | null): string {
 function EmptyStateSection({ text }: { text: string }) {
   return (
     <div className="
-      rounded-xl border border-dashed border-base-300/70 bg-base-100/55 px-3
-      py-3 text-xs text-base-content/55
+      rounded-xl border border-dashed border-base-300/70 bg-base-100/55 p-3
+      text-xs text-base-content/55
     ">
       {text}
     </div>
@@ -1142,8 +1142,7 @@ export default function StateDrawer() {
     <div className="h-full overflow-auto bg-base-200/45 px-2.5 py-3">
       <div className="space-y-2.5">
         <section className="
-          rounded-2xl border border-base-300/75 bg-base-100/80 px-3 py-3
-          shadow-sm
+          rounded-2xl border border-base-300/75 bg-base-100/80 p-3 shadow-sm
         ">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-end gap-2">
@@ -1357,7 +1356,7 @@ export default function StateDrawer() {
         <div className="w-80 max-w-[calc(100vw-2rem)] space-y-4 p-4">
           <div>
             <h3 className="text-base font-semibold">复制角色并导入？</h3>
-            <p className="mt-2 text-sm leading-6 text-base-content/70">
+            <p className="mt-2 text-sm/6 text-base-content/70">
               {duplicateImportRole?.roleName ?? "这个角色"}
               已经在先攻表中。确认后会复制成新的 NPC，加入当前房间和空间，再导入先攻。
             </p>

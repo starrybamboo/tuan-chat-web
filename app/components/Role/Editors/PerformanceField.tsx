@@ -123,10 +123,10 @@ export default function PerformanceField({
       </div>
 
       <label className={`
-        textarea w-full flex items-center gap-2 rounded-md transition
+        textarea size-full flex items-center gap-2 rounded-md transition
         focus-within:ring-2 focus-within:ring-primary/20
         focus-within:border-primary focus-within:outline-none
-        bg-base-100 p-0 h-full
+        bg-base-100 p-0
         ${
         isCompact ? "textarea-sm" : ""
       }

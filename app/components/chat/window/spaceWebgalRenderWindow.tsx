@@ -798,7 +798,7 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
   }, [realtimePreviewUrl, spaceId]);
 
   return (
-    <div className="h-full w-full overflow-y-auto">
+    <div className="size-full overflow-y-auto">
       <div className="w-full min-w-0 p-4 space-y-4">
         <SpaceWebgalRenderWindowHeader
           realtimeStatus={realtimeStatus}

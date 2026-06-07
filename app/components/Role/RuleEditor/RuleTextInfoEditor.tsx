@@ -144,7 +144,7 @@ export default function RuleTextInfoEditor({
             aria-hidden={isEditing}
           >
             <span className="flex items-center gap-1">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <svg className="size-4" viewBox="0 0 24 24" fill="none">
                 <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
                 <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
               </svg>
@@ -164,8 +164,8 @@ export default function RuleTextInfoEditor({
                 </div>
                 <div className="
                   rounded-md border border-base-content/15 bg-base-200 px-4 py-3
-                  text-sm text-base-content/70 leading-relaxed
-                  whitespace-pre-wrap wrap-break-words min-h-12
+                  text-sm/relaxed text-base-content/70 whitespace-pre-wrap
+                  wrap-break-words min-h-12
                 ">
                   {ruleName || <span className="text-base-content/40">未命名规则</span>}
                 </div>
@@ -177,8 +177,8 @@ export default function RuleTextInfoEditor({
                 </div>
                 <div className="
                   rounded-md border border-base-content/15 bg-base-200 px-4 py-3
-                  text-sm text-base-content/70 leading-relaxed
-                  whitespace-pre-wrap wrap-break-words min-h-45
+                  text-sm/relaxed text-base-content/70 whitespace-pre-wrap
+                  wrap-break-words min-h-45
                 ">
                   {ruleDescription || <span className="text-base-content/40">暂无描述</span>}
                 </div>
@@ -288,7 +288,7 @@ export default function RuleTextInfoEditor({
             onClick={handleApply}
           >
             <span className="flex items-center gap-1">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <svg className="size-4" viewBox="0 0 24 24" fill="none">
                 <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
               应用

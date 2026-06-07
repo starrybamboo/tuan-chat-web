@@ -119,7 +119,7 @@ export default function RulesSection({
             : (
                 <svg
                   className="
-                    absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4
+                    absolute left-2.5 top-1/2 transform -translate-y-1/2 size-4
                     text-gray-400
                   "
                   fill="none"

@@ -210,7 +210,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <div className="w-full min-w-0 h-full min-h-0 overflow-hidden">
+    <div className="size-full min-w-0 min-h-0 overflow-hidden">
       {!space
         ? (
             <div className="flex items-center justify-center opacity-70">加载中...</div>

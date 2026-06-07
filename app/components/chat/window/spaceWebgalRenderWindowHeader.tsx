@@ -70,7 +70,7 @@ export function SpaceWebgalRenderWindowHeader({
           <button
             type="button"
             className="
-              h-8 w-8 rounded-md flex items-center justify-center
+              size-8 rounded-md flex items-center justify-center
               text-base-content/60
               hover:text-base-content hover:bg-base-200
               transition-colors
@@ -82,7 +82,7 @@ export function SpaceWebgalRenderWindowHeader({
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className={`
-                h-4 w-4 transition-transform duration-200
+                size-4 transition-transform duration-200
                 ${renderPortExpanded ? `rotate-180` : ""}
               `}
               fill="none"

@@ -132,7 +132,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
   return (
     <>
       {categoryEditor && renderOverlay(
-        <div className="modal modal-open z-[9999]">
+        <div className="modal modal-open z-9999">
           <div className="modal-box">
             <h3 className="font-bold text-lg">
               {categoryEditor.mode === "add" ? "新增分类" : "重命名分类"}
@@ -161,7 +161,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
       )}
 
       {deleteConfirmCategoryId && renderOverlay(
-        <div className="modal modal-open z-[9999]">
+        <div className="modal modal-open z-9999">
           <div className="modal-box">
             <h3 className="font-bold text-lg">删除分类</h3>
             <div className="py-4 text-sm opacity-80">
@@ -183,7 +183,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
       )}
 
       {contextMenu && renderOverlay(
-        <div className="fixed inset-0 z-[9999]">
+        <div className="fixed inset-0 z-9999">
           <button
             type="button"
             className="absolute inset-0"
@@ -287,7 +287,7 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
       )}
 
       {deleteConfirmDoc && renderOverlay(
-        <div className="modal modal-open z-[9999]">
+        <div className="modal modal-open z-9999">
           <div className="modal-box">
             <h3 className="font-bold text-lg">确认删除文档？</h3>
             <p className="py-4">

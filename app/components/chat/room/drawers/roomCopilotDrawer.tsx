@@ -580,7 +580,7 @@ function RoomCopilotDrawerImpl({
       </div>
 
       <div ref={scrollRef} className="
-        flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 py-4
+        flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4
       ">
         {messages.map(message => (
           <CopilotMessageBubble key={message.id} message={message} />
@@ -598,7 +598,7 @@ function RoomCopilotDrawerImpl({
           <textarea
             className="
               textarea textarea-bordered min-h-12 max-h-32 flex-1 resize-none
-              text-sm leading-6
+              text-sm/6
             "
             value={draftInput}
             placeholder={isConversationLoaded ? "直接说你想怎么改，例如：把最后两句写得更克制，再补一段雨夜环境。" : "正在载入这间房的 Copilot 对话..."}
@@ -648,7 +648,7 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
     `}>
       <div
         className={`
-          max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 shadow-sm
+          max-w-[86%] rounded-lg px-3 py-2 text-sm/6 shadow-sm
           ${
           isUser
             ? "bg-primary text-primary-content"
@@ -656,7 +656,7 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
         }
         `}
       >
-        <div className="whitespace-pre-wrap break-words">{message.content}</div>
+        <div className="whitespace-pre-wrap wrap-break-word">{message.content}</div>
 
         {message.contextRefs && message.contextRefs.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -695,7 +695,7 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
                 text-warning-content
               ">
                 <WarningCircle className="mt-0.5 size-4 shrink-0" />
-                <span className="min-w-0 break-words">{item.message}</span>
+                <span className="min-w-0 wrap-break-word">{item.message}</span>
               </div>
             ))}
           </div>
@@ -720,7 +720,7 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
             mt-2 flex gap-1.5 rounded bg-error/10 px-2 py-1.5 text-xs text-error
           ">
             <WarningCircle className="mt-0.5 size-4 shrink-0" />
-            <span className="min-w-0 break-words">{message.error}</span>
+            <span className="min-w-0 wrap-break-word">{message.error}</span>
           </div>
         )}
       </div>

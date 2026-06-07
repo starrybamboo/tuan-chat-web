@@ -35,8 +35,8 @@ export function RoleListItem({
       " onClick={onSelect}>
         <div className="avatar shrink-0">
           <div className="
-            w-12 h-12
-            md:w-14 md:h-14
+            size-12
+            md:size-14
             rounded-full
           ">
             <MediaImage src={avatarSrc} alt={role.name || "default avatar"} loading="lazy" fallbackSrc={role.avatar || ROLE_DEFAULT_AVATAR_URL} />
@@ -54,7 +54,7 @@ export function RoleListItem({
         {isSelectionMode
           ? (
               <div className={`
-                flex items-center justify-center w-4 h-4 rounded-full border-2
+                flex items-center justify-center size-4 rounded-full border-2
                 transition-all duration-200
                 ${isSelected ? `bg-info border-info` : `
                   border-base-content/30

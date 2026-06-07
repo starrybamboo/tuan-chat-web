@@ -72,7 +72,7 @@ export function MessagePreviewContent({
             height={height}
           />
           {caption && (
-            <span className="min-w-0 break-words">
+            <span className="min-w-0 wrap-break-word">
               {caption}
             </span>
           )}

@@ -922,7 +922,7 @@ export function SpriteCropper({
         sm:flex-row sm:items-center sm:justify-between
       ">
         <h3 className="
-          text-base font-bold leading-tight
+          text-base/tight font-bold
           sm:text-lg
         ">
           {operationMode === "single" ? "单体模式" : `批量模式 (已选 ${selectedIndices.size} 个)`}
@@ -942,7 +942,7 @@ export function SpriteCropper({
               }}
               title={!canUseOriginForCurrent ? "当前头像没有可用的裁剪原图" : "切换裁剪源"}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
               </svg>
               切换至
@@ -969,13 +969,12 @@ export function SpriteCropper({
         ">
           {/* 左侧：原始图片裁剪区域 - 移动端隐藏，通过弹窗显示 */}
           <div className="
-            w-full
+            size-full
             md:basis-1/3
             p-2 flex-col items-center order-2
             md:order-1
             hidden
             md:flex md:flex-none
-            h-full
           ">
             {currentUrl && (
               <div className="relative w-full">
@@ -995,9 +994,7 @@ export function SpriteCropper({
                       disabled={!hasPrevSelected || isProcessing}
                       title="上一个选中头像"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="
-                        h-4 w-4
-                      " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
@@ -1015,9 +1012,7 @@ export function SpriteCropper({
                       disabled={!hasNextSelected || isProcessing}
                       title="下一个选中头像"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="
-                        h-4 w-4
-                      " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
@@ -1049,11 +1044,10 @@ export function SpriteCropper({
           {/* 右侧：裁剪预览和控制 - 移动端放上面 */}
           {completedCrop && (
             <div className="
-              w-full
+              size-full
               md:basis-2/3
               p-2 flex flex-col order-1
               md:order-2 md:flex-none
-              h-full
             ">
               {/* 预览内容区域 */}
               <div
@@ -1367,7 +1361,7 @@ export function SpriteCropper({
                         title="上一个选中头像"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="
-                          h-4 w-4
+                          size-4
                         " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -1387,7 +1381,7 @@ export function SpriteCropper({
                         title="下一个选中头像"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="
-                          h-4 w-4
+                          size-4
                         " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>

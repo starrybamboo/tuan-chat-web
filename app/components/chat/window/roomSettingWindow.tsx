@@ -110,7 +110,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   return (
     <RoomContext value={roomContext}>
       <div className="
-        flex flex-col h-full w-full min-w-[40vw] bg-base-100 rounded-lg
+        flex flex-col size-full min-w-[40vw] bg-base-100 rounded-lg
         overflow-hidden
       ">
         <div className="

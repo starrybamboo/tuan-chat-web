@@ -87,7 +87,7 @@ export default function RoomSidebarCategoryBody({
       className={`
         rounded-lg border
         ${canEdit ? "border-base-300" : `border-transparent`}
-        px-1 py-1 relative
+        p-1 relative
       `}
       onDragOver={(e) => {
         if (!canEdit)

@@ -61,7 +61,7 @@ export default function WorkflowSceneDescriptionEditor({
         <img
           src={roomAvatar || "/favicon.ico"}
           alt={roomName}
-          className="h-10 w-10 rounded-md border border-base-300 object-cover"
+          className="size-10 rounded-md border border-base-300 object-cover"
           onError={(event) => {
             (event.currentTarget as HTMLImageElement).src = "/favicon.ico";
           }}

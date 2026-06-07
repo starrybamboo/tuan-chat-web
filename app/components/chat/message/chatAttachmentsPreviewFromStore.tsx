@@ -158,8 +158,8 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
                   </svg>
                 </div>
                 <div className="
-                  absolute bottom-0 left-0 right-0 bg-black/50 text-white
-                  text-[10px] px-1 truncate rounded-b
+                  absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px]
+                  px-1 truncate rounded-b
                 ">
                   {isVideo ? "视频" : "文件"}
                 </div>
@@ -169,7 +169,7 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
           {audioFile && (
             <motion.div className="relative group shrink-0" key="audio" layout {...attachmentItemMotionProps}>
               <div className="
-                h-12 w-12 rounded bg-base-200 flex items-center justify-center
+                size-12 rounded bg-base-200 flex items-center justify-center
                 border border-base-300
               " title={audioFile.name}>
                 <MusicNote className="size-6 opacity-70" />
@@ -188,8 +188,8 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
                 </svg>
               </div>
               <div className="
-                absolute bottom-0 left-0 right-0 bg-black/50 text-white
-                text-[10px] px-1 truncate rounded-b
+                absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px]
+                px-1 truncate rounded-b
               ">
                 语音
               </div>

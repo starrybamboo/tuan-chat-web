@@ -113,7 +113,7 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
     <span className={`
       text-xs
       sm:text-sm
-      line-clamp-3 opacity-60 break-words min-w-0
+      line-clamp-3 opacity-60 wrap-break-word min-w-0
       ${isOutOfCharacterText ? `italic` : ""}
       ${className}
     `}>

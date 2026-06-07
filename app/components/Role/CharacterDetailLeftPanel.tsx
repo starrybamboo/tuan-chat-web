@@ -77,7 +77,7 @@ export default function CharacterDetailLeftPanel({
             {isQueryLoading
               ? (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton w-24 h-24 rounded-full"></div>
+                    <div className="skeleton size-24 rounded-full"></div>
                     <div className="skeleton h-4 w-20"></div>
                   </div>
                 )
@@ -125,10 +125,10 @@ export default function CharacterDetailLeftPanel({
             className="mb-4"
             icon={(
               <div className="
-                flex h-8 w-8 items-center justify-center rounded-full
+                flex size-8 items-center justify-center rounded-full
                 bg-primary/10
               ">
-                <GearOutline className="h-4 w-4 text-primary" />
+                <GearOutline className="size-4 text-primary" />
               </div>
             )}
           />
@@ -142,10 +142,10 @@ export default function CharacterDetailLeftPanel({
             className="mb-4"
             icon={(
               <div className="
-                flex h-8 w-8 items-center justify-center rounded-full
+                flex size-8 items-center justify-center rounded-full
                 bg-secondary/10
               ">
-                <MicrophoneIcon className="h-4 w-4 text-secondary" />
+                <MicrophoneIcon className="size-4 text-secondary" />
               </div>
             )}
             extraContent={(
@@ -169,10 +169,10 @@ export default function CharacterDetailLeftPanel({
               className="mb-4"
               icon={(
                 <div className="
-                  flex h-8 w-8 items-center justify-center rounded-full
+                  flex size-8 items-center justify-center rounded-full
                   bg-accent/10
                 ">
-                  <DiceFiveIcon className="h-4 w-4 text-accent" />
+                  <DiceFiveIcon className="size-4 text-accent" />
                 </div>
               )}
             />

@@ -141,7 +141,7 @@ export default function StickerWindow({ onChoose }:
                   <MediaImage
                     src={mediaFileUrl(sticker.fileId, sticker.mediaType, "medium")}
                     alt={sticker.name}
-                    className="w-full h-full object-contain"
+                    className="size-full object-contain"
                     loading="lazy"
                   />
                   {/* 删除按钮 */}

@@ -464,7 +464,7 @@ function ClueFolderSection({
             {isDropTarget && (
               <span
                 className={`
-                  pointer-events-none absolute left-1 right-1 z-10 h-[2px]
+                  pointer-events-none absolute inset-x-1 z-10 h-[2px]
                   rounded-full bg-info
                   ${
                   reorderState?.placement === "before" ? "-top-px" : `
@@ -476,8 +476,8 @@ function ClueFolderSection({
               />
             )}
             <span className="
-              block min-w-0 overflow-hidden text-ellipsis break-words leading-5
-              line-clamp-2
+              block min-w-0 overflow-hidden text-ellipsis wrap-break-word
+              leading-5 line-clamp-2
             ">
               <MessagePreviewContent message={message} withMediaPreview />
             </span>
@@ -976,7 +976,7 @@ export default function ClueFolderSidebar({
       </div>
 
       {portalTarget && editorState && createPortal(
-        <div className="modal modal-open z-[10000]">
+        <div className="modal modal-open z-10000">
           <div
             className="modal-box max-w-2xl"
             onDragOver={handleAttachmentDragOver}
@@ -1105,7 +1105,7 @@ export default function ClueFolderSidebar({
             <textarea
               className="
                 textarea textarea-bordered min-h-72 max-h-[60vh] w-full resize-y
-                text-sm leading-6
+                text-sm/6
               "
               value={draftContent}
               placeholder="写下这条线索..."

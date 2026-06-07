@@ -130,7 +130,7 @@ export function SectionCollapseToggle({
     <button
       type="button"
       className="
-        h-8 w-8 rounded-md flex items-center justify-center text-base-content/60
+        size-8 rounded-md flex items-center justify-center text-base-content/60
         hover:text-base-content hover:bg-base-200
         transition-colors
       "
@@ -141,7 +141,7 @@ export function SectionCollapseToggle({
       <svg
         xmlns="http://www.w3.org/2000/svg"
         className={`
-          h-4 w-4 transition-transform duration-200
+          size-4 transition-transform duration-200
           ${expanded ? `-rotate-90` : ""}
         `}
         fill="none"
@@ -165,7 +165,7 @@ export function ConfigHelpButton({ label, description }: { label: string; descri
       <button
         type="button"
         className="
-          inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full
+          inline-flex size-5 shrink-0 items-center justify-center rounded-full
           text-base-content/50 transition-colors
           hover:bg-info/15 hover:text-info
           focus-visible:outline-none focus-visible:ring-1
@@ -184,7 +184,7 @@ export function ConfigHelpButton({ label, description }: { label: string; descri
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="h-3.5 w-3.5"
+          className="size-3.5"
           aria-hidden="true"
         >
           <circle cx="12" cy="12" r="9"></circle>

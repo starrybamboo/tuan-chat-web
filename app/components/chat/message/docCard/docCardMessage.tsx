@@ -101,13 +101,11 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               {displayCoverUrl
                 ? (
                     <MediaImage src={displayCoverUrl} alt={title} draggable={false} className="
-                      h-full w-full object-cover
+                      size-full object-cover
                     " />
                   )
                 : (
-                    <div className="
-                      flex h-full w-full items-center justify-center
-                    ">
+                    <div className="flex size-full items-center justify-center">
                       <FileTextIcon className="size-6 opacity-60" />
                     </div>
                   )}
@@ -121,12 +119,12 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               {excerpt
                 ? (
                     <div className="
-                      line-clamp-3 text-sm leading-relaxed text-base-content/70
+                      line-clamp-3 text-sm/relaxed text-base-content/70
                     ">{excerpt}</div>
                   )
                 : (
                     <div className="
-                      line-clamp-2 text-sm leading-relaxed text-base-content/50
+                      line-clamp-2 text-sm/relaxed text-base-content/50
                     ">
                       {isDisabled ? (disabledReason || "") : "暂无摘要"}
                     </div>
@@ -149,7 +147,7 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden">
               {isOpen && !isDisabled && (
-                <div className="h-full w-full overflow-hidden bg-base-100">
+                <div className="size-full overflow-hidden bg-base-100">
                   <ChatPageDocContent
                     docId={previewDocId}
                     readOnly

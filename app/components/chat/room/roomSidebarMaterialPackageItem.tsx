@@ -83,8 +83,8 @@ function MaterialTreeNodeRow({
     <div className="space-y-1">
       <div
         className={`
-          group flex min-w-0 items-start gap-1.5 rounded-md px-1.5 py-1.5
-          text-sm transition
+          group flex min-w-0 items-start gap-1.5 rounded-md p-1.5 text-sm
+          transition
           ${isActiveNode ? `bg-primary/10 text-primary` : `
             text-base-content/72
             hover:bg-base-200 hover:text-base-content
@@ -343,7 +343,7 @@ export default function RoomSidebarMaterialPackageItem({
           type="button"
           className={`
             group relative flex min-w-0 flex-1 cursor-pointer select-none
-            items-center gap-1.5 rounded-lg px-1 py-1 pr-2 text-left text-sm
+            items-center gap-1.5 rounded-lg p-1 pr-2 text-left text-sm
             font-medium transition
             ${isPackageSelected ? `bg-primary/10 text-primary` : isActivePackage ? `
               bg-base-300/45 text-base-content
@@ -364,7 +364,7 @@ export default function RoomSidebarMaterialPackageItem({
                     src={coverUrl}
                     alt={packageName}
                     draggable={false}
-                    className="h-full w-full object-cover"
+                    className="size-full object-cover"
                   />
                 )
               : (

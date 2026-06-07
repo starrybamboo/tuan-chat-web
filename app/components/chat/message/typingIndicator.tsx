@@ -27,24 +27,24 @@ export default function TypingIndicator({
         inline-flex items-center gap-1
       `}>
         <motion.span className={compact ? `
-          h-1 w-1 rounded-full
+          size-1 rounded-full
           ${dotClassName}
         ` : `
-          h-1.5 w-1.5 rounded-full
+          size-1.5 rounded-full
           ${dotClassName}
         `} {...typingDotMotionProps(0)} />
         <motion.span className={compact ? `
-          h-1 w-1 rounded-full
+          size-1 rounded-full
           ${dotClassName}
         ` : `
-          h-1.5 w-1.5 rounded-full
+          size-1.5 rounded-full
           ${dotClassName}
         `} {...typingDotMotionProps(1)} />
         <motion.span className={compact ? `
-          h-1 w-1 rounded-full
+          size-1 rounded-full
           ${dotClassName}
         ` : `
-          h-1.5 w-1.5 rounded-full
+          size-1.5 rounded-full
           ${dotClassName}
         `} {...typingDotMotionProps(2)} />
       </span>

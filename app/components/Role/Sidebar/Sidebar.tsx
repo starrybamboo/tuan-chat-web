@@ -245,7 +245,7 @@ export function Sidebar({
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="size-4"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -266,7 +266,7 @@ export function Sidebar({
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="size-4"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -290,7 +290,7 @@ export function Sidebar({
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="size-4"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -331,7 +331,7 @@ export function Sidebar({
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`
-                      w-4 h-4 transition-transform
+                      size-4 transition-transform
                       ${isRuleCollapsed ? "" : `rotate-90`}
                     `}
                     viewBox="0 0 24 24"
@@ -368,8 +368,8 @@ export function Sidebar({
                     >
                       <div className="avatar shrink-0 px-1">
                         <div className="
-                          w-12 h-12
-                          md:w-14 md:h-14
+                          size-12
+                          md:size-14
                           rounded-full border-2 border-dashed border-info/40
                           group-hover:border-info/60
                           bg-info/5 text-info/60
@@ -379,8 +379,7 @@ export function Sidebar({
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="
-                              w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2
-                              -translate-y-1/2
+                              size-7 absolute left-1/2 top-1/2 -translate-1/2
                             "
                             viewBox="0 0 24 24"
                             fill="none"
@@ -449,16 +448,16 @@ export function Sidebar({
                             >
                               <div className="avatar shrink-0">
                                 <div className="
-                                  w-12 h-12
-                                  md:w-14 md:h-14
+                                  size-12
+                                  md:size-14
                                   rounded-full border-2 border-base-content/10
                                   bg-base-100 text-base-content/70 relative
                                 ">
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     className="
-                                      w-6 h-6 absolute left-1/2 top-1/2
-                                      -translate-x-1/2 -translate-y-1/2
+                                      size-6 absolute left-1/2 top-1/2
+                                      -translate-1/2
                                     "
                                     viewBox="0 0 24 24"
                                     fill="none"
@@ -532,7 +531,7 @@ export function Sidebar({
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`
-                      w-4 h-4 transition-transform
+                      size-4 transition-transform
                       ${isDiceCollapsed ? "" : `rotate-90`}
                     `}
                     viewBox="0 0 24 24"
@@ -570,8 +569,8 @@ export function Sidebar({
                     >
                       <div className="avatar shrink-0 px-1">
                         <div className="
-                          w-12 h-12
-                          md:w-14 md:h-14
+                          size-12
+                          md:size-14
                           rounded-full border-2 border-dashed border-success/40
                           group-hover:border-success/60
                           bg-success/5 text-success/60
@@ -581,8 +580,7 @@ export function Sidebar({
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="
-                              w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2
-                              -translate-y-1/2
+                              size-7 absolute left-1/2 top-1/2 -translate-1/2
                             "
                             viewBox="0 0 24 24"
                             fill="none"
@@ -657,7 +655,7 @@ export function Sidebar({
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`
-                      w-4 h-4 transition-transform
+                      size-4 transition-transform
                       ${isNormalCollapsed ? "" : `rotate-90`}
                     `}
                     viewBox="0 0 24 24"
@@ -694,8 +692,8 @@ export function Sidebar({
                     >
                       <div className="avatar shrink-0 px-1">
                         <div className="
-                          w-12 h-12
-                          md:w-14 md:h-14
+                          size-12
+                          md:size-14
                           rounded-full border-2 border-dashed border-primary/40
                           group-hover:border-primary/60
                           bg-primary/5 text-primary/60
@@ -705,8 +703,7 @@ export function Sidebar({
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="
-                              w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2
-                              -translate-y-1/2
+                              size-7 absolute left-1/2 top-1/2 -translate-1/2
                             "
                             viewBox="0 0 24 24"
                             fill="none"

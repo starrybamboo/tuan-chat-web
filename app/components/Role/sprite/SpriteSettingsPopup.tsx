@@ -466,7 +466,7 @@ export function SpriteSettingsPopup({
     <>
       {/* 头像列表标题栏 */}
       <div className="shrink-0 border-b border-base-300 bg-base-200/50">
-        <div className="flex justify-between items-center px-3 py-3">
+        <div className="flex justify-between items-center p-3">
           <h3 className="text-lg font-semibold">头像列表</h3>
           <div className="flex gap-2">
             {isMultiSelectMode && (
@@ -489,7 +489,7 @@ export function SpriteSettingsPopup({
                         : "全选"
                   }
                 >
-                  <ChecksIcon className="h-5 w-5" aria-hidden="true" />
+                  <ChecksIcon className="size-5" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
@@ -501,7 +501,7 @@ export function SpriteSettingsPopup({
                   disabled={selectedIndices.size === 0}
                   title="删除所选头像"
                 >
-                  <TrashIcon className="h-5 w-5" aria-hidden="true" />
+                  <TrashIcon className="size-5" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
@@ -512,7 +512,7 @@ export function SpriteSettingsPopup({
                   }}
                   title="退出选择模式"
                 >
-                  <XIcon className="h-5 w-5" aria-hidden="true" />
+                  <XIcon className="size-5" aria-hidden="true" />
                 </button>
               </>
             )}
@@ -530,7 +530,7 @@ export function SpriteSettingsPopup({
                 title="进入选择模式"
                 disabled={isMultiSelectDisabled}
               >
-                <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+                <CheckCircleIcon className="size-5" aria-hidden="true" />
               </button>
             )}
             <div className="dropdown dropdown-end">
@@ -544,7 +544,7 @@ export function SpriteSettingsPopup({
                 title={categoryFilter ? `当前分类：${categoryFilter}` : "分类筛选"}
                 aria-label="头像分类筛选"
               >
-                <FunnelIcon className="h-5 w-5" aria-hidden="true" />
+                <FunnelIcon className="size-5" aria-hidden="true" />
               </button>
               <ul className="
                 dropdown-content menu bg-base-100 rounded-box shadow-xl border
@@ -605,7 +605,7 @@ export function SpriteSettingsPopup({
             handleInternalIndexChange(originalIndex);
           }}
           mode="manage"
-          className="h-full w-full min-w-0"
+          className="size-full min-w-0"
           gridCols="grid-cols-4 md:grid-cols-3"
           role={role}
           onAvatarChange={handleAvatarChange}
@@ -656,8 +656,8 @@ export function SpriteSettingsPopup({
           `}
         >
           <EyeIcon className="
-            h-4 w-4
-            sm:h-5 sm:w-5
+            size-4
+            sm:size-5
             shrink-0
           " aria-hidden="true" />
           <span>渲染预览</span>
@@ -683,8 +683,8 @@ export function SpriteSettingsPopup({
           `}
         >
           <CropIcon className="
-            h-4 w-4
-            sm:h-5 sm:w-5
+            size-4
+            sm:size-5
             shrink-0
           " aria-hidden="true" />
           <span>立绘校正</span>
@@ -710,8 +710,8 @@ export function SpriteSettingsPopup({
           `}
         >
           <UserFocusIcon className="
-            h-4 w-4
-            sm:h-5 sm:w-5
+            size-4
+            sm:size-5
             shrink-0
           " aria-hidden="true" />
           <span>头像校正</span>
@@ -737,8 +737,8 @@ export function SpriteSettingsPopup({
           `}
         >
           <GearIcon className="
-            h-4 w-4
-            sm:h-5 sm:w-5
+            size-4
+            sm:size-5
             shrink-0
           " aria-hidden="true" />
           <span>头像设置</span>
@@ -764,8 +764,8 @@ export function SpriteSettingsPopup({
           `}
         >
           <TrashIcon className="
-            h-4 w-4
-            sm:h-5 sm:w-5
+            size-4
+            sm:size-5
             shrink-0
           " aria-hidden="true" />
           <span>回收站</span>
@@ -802,12 +802,12 @@ export function SpriteSettingsPopup({
             {uploadNotification.type === "success"
               ? (
                   <CheckCircleIcon
-                    className="shrink-0 h-6 w-6"
+                    className="shrink-0 size-6"
                     aria-hidden="true"
                   />
                 )
               : (
-                  <XCircleIcon className="shrink-0 h-6 w-6" aria-hidden="true" />
+                  <XCircleIcon className="shrink-0 size-6" aria-hidden="true" />
                 )}
             <span>{uploadNotification.message}</span>
           </div>
@@ -815,7 +815,7 @@ export function SpriteSettingsPopup({
       )}
 
       <div className="
-        flex h-full w-full min-h-0 min-w-0 flex-col overflow-x-hidden
+        flex size-full min-h-0 min-w-0 flex-col overflow-x-hidden
         md:h-[80vh] md:w-[86vw] md:max-w-6xl md:flex-row
       ">
         {/* 左侧头像列表 - 桌面端固定显示 */}
@@ -844,11 +844,11 @@ export function SpriteSettingsPopup({
                   "
                 >
                   <span className="flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" aria-hidden="true" />
+                    <ImageIcon className="size-5" aria-hidden="true" />
                     <span>头像与工具</span>
                   </span>
                   <span className="
-                    text-sm text-base-content/70 truncate max-w-[7rem]
+                    text-sm text-base-content/70 truncate max-w-28
                   ">
                     {activeTabLabel}
                   </span>
@@ -859,7 +859,7 @@ export function SpriteSettingsPopup({
                   className="btn btn-ghost btn-square btn-sm shrink-0"
                   aria-label="关闭头像弹窗"
                 >
-                  <XIcon className="h-5 w-5" aria-hidden="true" />
+                  <XIcon className="size-5" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -912,7 +912,7 @@ export function SpriteSettingsPopup({
                         flex flex-col items-center justify-center h-full
                         text-base-content/70
                       ">
-                        <ImageIcon className="w-12 h-12 mb-2" weight="duotone" aria-hidden="true" />
+                        <ImageIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
                         <p>当前没有可用的立绘进行校正</p>
                       </div>
                     )}
@@ -941,7 +941,7 @@ export function SpriteSettingsPopup({
                         flex flex-col items-center justify-center h-full
                         text-base-content/70
                       ">
-                        <UserCircleIcon className="w-12 h-12 mb-2" weight="duotone" aria-hidden="true" />
+                        <UserCircleIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
                         <p>当前没有可用的立绘进行头像裁剪</p>
                       </div>
                     )}
@@ -1025,7 +1025,7 @@ export function SpriteSettingsPopup({
                                   ">
                                     <div className="flex gap-3 items-start">
                                       <div className="
-                                        w-16 h-16 rounded-md overflow-hidden
+                                        size-16 rounded-md overflow-hidden
                                         bg-base-200 flex items-center
                                         justify-center shrink-0
                                       ">
@@ -1035,7 +1035,7 @@ export function SpriteSettingsPopup({
                                                 src={displayUrl}
                                                 alt={name}
                                                 className="
-                                                  w-full h-full object-cover
+                                                  size-full object-cover
                                                 "
                                                 loading="lazy"
                                                 decoding="async"
@@ -1091,12 +1091,12 @@ export function SpriteSettingsPopup({
         >
           <Drawer.Portal>
             <Drawer.Overlay className="
-              fixed inset-0 z-[1200] bg-black/40
+              fixed inset-0 z-1200 bg-black/40
               md:hidden
               pointer-events-auto
             " />
             <Drawer.Content className="
-              fixed inset-x-0 bottom-0 z-[1201] h-[75vh] rounded-t-2xl border
+              fixed inset-x-0 bottom-0 z-1201 h-[75vh] rounded-t-2xl border
               border-base-300 bg-base-100
               md:hidden
               flex flex-col pointer-events-auto
@@ -1115,7 +1115,7 @@ export function SpriteSettingsPopup({
                   onClick={() => setIsMobileControlDrawerOpen(false)}
                   aria-label="关闭头像与工具抽屉"
                 >
-                  <XIcon className="h-5 w-5" aria-hidden="true" />
+                  <XIcon className="size-5" aria-hidden="true" />
                 </button>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
@@ -1146,7 +1146,7 @@ export function SpriteSettingsPopup({
             </p>
             {selectedIndices.size >= spritesAvatars.length && (
               <div className="alert alert-warning mb-4">
-                <WarningCircleIcon className="shrink-0 h-6 w-6" aria-hidden="true" />
+                <WarningCircleIcon className="shrink-0 size-6" aria-hidden="true" />
                 <span>无法删除所有头像，至少需要保留一个</span>
               </div>
             )}

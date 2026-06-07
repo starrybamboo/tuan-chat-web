@@ -107,7 +107,7 @@ export default function RoleBasicInfoEditor({
               type="button"
               onClick={startEditing}
               className={`
-                relative inline-block max-w-full rounded-md px-1 py-1
+                relative inline-block max-w-full rounded-md p-1
                 transition-colors
                 hover:text-primary
                 ${textAlignClassName}
@@ -146,9 +146,8 @@ export default function RoleBasicInfoEditor({
                 onChange={event => setDescriptionDraft(event.target.value)}
                 placeholder="角色描述"
                 className={`
-                  min-h-32 h-full w-full resize-none rounded-md border
-                  border-base-content/15 bg-base-100 px-2 py-2 text-sm
-                  transition
+                  min-h-32 size-full resize-none rounded-md border
+                  border-base-content/15 bg-base-100 p-2 text-sm transition
                   focus:border-primary focus:outline-none focus:ring-2
                   focus:ring-primary/20
                   ${textAlignClassName}

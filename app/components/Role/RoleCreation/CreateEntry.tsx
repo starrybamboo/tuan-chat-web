@@ -62,16 +62,16 @@ function CreateEntryCard({
     >
       <div
         className={`
-          mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full
+          mx-auto mb-4 flex size-16 items-center justify-center rounded-full
           border-2 border-dashed
           ${accentClassNames[accent]}
         `}
       >
-        <Icon className="h-8 w-8" weight="bold" />
+        <Icon className="size-8" weight="bold" />
       </div>
       <div className="flex flex-1 flex-col">
         <h3 className="mb-2 text-lg font-semibold text-base-content">{title}</h3>
-        <p className="text-sm leading-relaxed text-base-content/70">{description}</p>
+        <p className="text-sm/relaxed text-base-content/70">{description}</p>
       </div>
     </button>
   );

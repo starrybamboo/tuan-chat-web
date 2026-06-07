@@ -102,7 +102,7 @@ function RenderPreviewComponent({
         />
         {/* 底部1/3的黑色半透明遮罩 */}
         <div className="
-          absolute bottom-[1%] left-[1%] right-[1%] h-[29%] bg-black/30 rounded
+          absolute bottom-[1%] inset-x-[1%] h-[29%] bg-black/30 rounded
         ">
           <div className="absolute top-0 left-[8%] text-white">
             <p className="text-white leading-snug">

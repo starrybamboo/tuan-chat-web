@@ -61,7 +61,7 @@ function RoleLayout() {
 
   return (
     <div className="
-      relative flex h-full w-full min-w-0 overflow-hidden bg-base-100
+      relative flex size-full min-w-0 overflow-hidden bg-base-100
       md:bg-base-200
     ">
       {/* 桌面端侧边栏 - 可收起 */}
@@ -97,7 +97,7 @@ function RoleLayout() {
               fill="none"
               viewBox="0 0 24 24"
               className="
-                w-3 h-3 stroke-current transition-transform duration-200
+                size-3 stroke-current transition-transform duration-200
               "
             >
               <path

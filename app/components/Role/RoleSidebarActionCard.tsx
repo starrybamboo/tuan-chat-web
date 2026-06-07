@@ -31,7 +31,7 @@ export default function RoleSidebarActionCard({
         <button
           type="button"
           className="
-            flex min-w-0 items-center justify-between gap-3 rounded-xl px-2 py-2
+            flex min-w-0 items-center justify-between gap-3 rounded-xl p-2
             text-left transition-colors
             hover:bg-base-300/80
           "
@@ -44,7 +44,7 @@ export default function RoleSidebarActionCard({
             <div className="min-w-0 space-y-0.5">
               <h3 className="text-sm font-semibold">{title}</h3>
               <p className={`
-                truncate text-xs font-medium leading-5
+                truncate text-xs/5 font-medium
                 ${subtitleClassName}
               `}>
                 {subtitle}
@@ -56,7 +56,7 @@ export default function RoleSidebarActionCard({
             text-base-content/50
           ">
             <span className="text-xs">{actionLabel}</span>
-            <ChevronRightIcon className="h-4 w-4" />
+            <ChevronRightIcon className="size-4" />
           </div>
         </button>
 

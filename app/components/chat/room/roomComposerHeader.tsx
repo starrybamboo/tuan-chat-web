@@ -156,13 +156,13 @@ export default function RoomComposerHeader({
             {isAvatarPopoverOpen && !isSpectator && (
               <div
                 className={isMobile
-                  ? "fixed inset-x-2 top-14 bottom-2 z-[80] flex items-stretch"
+                  ? "fixed inset-x-2 top-14 bottom-2 z-80 flex items-stretch"
                   : "absolute left-0 bottom-full mb-2 z-50 flex items-stretch"}
               >
                 <div
                   className={`
                     ${isMobile
-                    ? "w-full h-full"
+                    ? "size-full"
                     : (isAvatarChooserFullscreen
                         ? `
                           w-[92vw]

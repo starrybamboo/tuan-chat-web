@@ -231,7 +231,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
           lg:min-h-0 lg:border-b-0 lg:border-r lg:p-7
         ">
           <div className="min-w-0">
-            <h2 className="text-2xl font-semibold leading-tight">创建空间</h2>
+            <h2 className="text-2xl/tight font-semibold">创建空间</h2>
           </div>
 
           <div className="mt-7 flex flex-col items-center">
@@ -354,7 +354,7 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
           lg:p-7
         ">
           <div className="border-b border-base-300/60 pb-4">
-            <h3 className="text-xl font-semibold leading-7">初始化</h3>
+            <h3 className="text-xl/7 font-semibold">初始化</h3>
           </div>
 
           <section className="
@@ -590,9 +590,9 @@ export default function CreateSpaceWindow({ onCancel, onSuccess }: CreateSpaceWi
                     `}
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium leading-snug">{option.label}</span>
+                      <span className="block text-sm/snug font-medium">{option.label}</span>
                       <span className="
-                        mt-1 block text-xs leading-5 text-base-content/55
+                        mt-1 block text-xs/5 text-base-content/55
                       ">{option.description}</span>
                     </span>
                     <input
@@ -658,8 +658,8 @@ function SettingsSection({
       <button
         type="button"
         className={`
-          mb-3 flex w-full items-center gap-3 rounded-xl border px-3 py-3
-          text-left transition
+          mb-3 flex w-full items-center gap-3 rounded-xl border p-3 text-left
+          transition
           ${
           isExpanded
             ? "border-primary/40 bg-primary/5"
@@ -679,8 +679,8 @@ function SettingsSection({
           {icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold leading-5">{title}</span>
-          <span className="mt-0.5 block text-xs leading-5 text-base-content/55">{description}</span>
+          <span className="block text-sm/5 font-semibold">{title}</span>
+          <span className="mt-0.5 block text-xs/5 text-base-content/55">{description}</span>
         </span>
         {accessory && <span className="shrink-0">{accessory}</span>}
         <svg

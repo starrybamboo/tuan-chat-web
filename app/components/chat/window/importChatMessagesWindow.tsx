@@ -232,13 +232,13 @@ export default function ImportChatMessagesWindow({
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="
-              flex h-10 w-10 shrink-0 items-center justify-center rounded-md
+              flex size-10 shrink-0 items-center justify-center rounded-md
               bg-primary/10 text-primary
             ">
               <ChatCircleText size={22} weight="duotone" />
             </div>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold leading-6">导入对话</h2>
+              <h2 className="text-lg/6 font-semibold">导入对话</h2>
             </div>
           </div>
           <button
@@ -289,7 +289,7 @@ export default function ImportChatMessagesWindow({
                 type="file"
                 accept=".txt,text/plain"
                 className="
-                  absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0
+                  absolute inset-0 z-10 size-full cursor-pointer opacity-0
                   disabled:cursor-not-allowed
                 "
                 onChange={e => handlePickFile(e.target.files)}
@@ -299,7 +299,7 @@ export default function ImportChatMessagesWindow({
               <div
                 className={`
                   flex min-h-24 items-center justify-center rounded-md border
-                  border-dashed px-4 py-4 text-center transition
+                  border-dashed p-4 text-center transition
                   ${
                   fileName
                     ? "border-success/50 bg-success/10 text-success"
@@ -338,9 +338,9 @@ export default function ImportChatMessagesWindow({
 
             <textarea
               className="
-                h-full min-h-65 w-full flex-1 resize-none rounded-md border
-                border-base-300 bg-base-100 px-3 py-2 font-mono text-xs
-                leading-relaxed transition
+                size-full min-h-65 flex-1 resize-none rounded-md border
+                border-base-300 bg-base-100 px-3 py-2 font-mono text-xs/relaxed
+                transition
                 focus:outline-none focus:ring-2 focus:ring-primary/20
                 focus:border-primary
               "

@@ -193,7 +193,7 @@ export default function RuleNumericalEditor({
             ? (
                 <button type="button" className="btn btn-sm btn-accent" onClick={handleStartEditing}>
                   <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <svg className="size-4" viewBox="0 0 24 24" fill="none">
                       <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
                       <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                     </svg>
@@ -220,7 +220,7 @@ export default function RuleNumericalEditor({
                     }}
                   >
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <svg className="size-4" viewBox="0 0 24 24" fill="none">
                         <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
                       应用

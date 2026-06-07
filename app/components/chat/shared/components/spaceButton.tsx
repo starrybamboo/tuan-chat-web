@@ -28,7 +28,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
     >
       <div
         className={`
-          absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1
+          absolute left-[-6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1
           rounded-full bg-info transition-transform duration-300
           ${
           isActive ? "scale-y-100" : "scale-y-0"

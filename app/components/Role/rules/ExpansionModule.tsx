@@ -514,13 +514,13 @@ export default function ExpansionModule({
                 className={`
                   btn
                   ${isSmall ? "btn-sm" : "btn-md"}
-                  btn-square h-10 w-10 min-h-10
-                  md:h-12 md:w-12 md:min-h-12
+                  btn-square size-10 min-h-10
+                  md:size-12 md:min-h-12
                   rounded-full
                 `}
                 aria-label="打开导入和生成功能"
               >
-                <WrenchIcon className="w-5 h-5" />
+                <WrenchIcon className="size-5" />
               </button>
               <ul tabIndex={0} className="
                 dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box
@@ -738,7 +738,7 @@ export default function ExpansionModule({
                   className="btn btn-sm btn-circle btn-ghost"
                   onClick={onStImportModalClose}
                 >
-                  <CloseIcon className="w-4 h-4" />
+                  <CloseIcon className="size-4" />
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">

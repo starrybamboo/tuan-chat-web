@@ -218,7 +218,7 @@ function SearchBar({ className = "" }: SearchBarProps) {
         {isSearching && debouncedSearchText && (
           <motion.div
             className="
-              absolute top-full left-0 right-0 mt-1 bg-base-100 border
+              absolute top-full inset-x-0 mt-1 bg-base-100 border
               border-base-300 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden
             "
             {...floatingPanelMotionProps}

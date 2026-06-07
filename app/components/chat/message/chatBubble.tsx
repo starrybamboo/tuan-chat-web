@@ -125,7 +125,7 @@ function DiceTurnReplyItem({
         {useChatBubbleStyle
           ? (
               <div className={`
-                whitespace-pre-wrap break-words
+                whitespace-pre-wrap wrap-break-word
                 ${reply.hidden && !canViewHiddenDiceReply ? `
                   italic text-base-content/60
                 ` : ""}
@@ -136,7 +136,7 @@ function DiceTurnReplyItem({
           : (
               <div className={`
                 border-l-2 border-primary/25 pl-2.5 whitespace-pre-wrap
-                break-words
+                wrap-break-word
                 ${reply.hidden && !canViewHiddenDiceReply ? `
                   italic text-base-content/60
                 ` : ""}
@@ -159,7 +159,7 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
       <button
         type="button"
         className="
-          btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0
+          btn btn-ghost btn-xs size-7 min-h-0 rounded-full p-0
           text-base-content/70
           hover:bg-base-300/70 hover:text-base-content
         "
@@ -181,7 +181,7 @@ function ClueCardReadonlyModal({
   onClose: () => void;
 }) {
   return (
-    <div className="modal modal-open z-[9999]">
+    <div className="modal modal-open z-9999">
       <div className="modal-box max-w-2xl">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">查看线索</h3>
@@ -252,7 +252,7 @@ function ClueCardMessage({ message }: { message: Message }) {
         }}
       >
         <span className="badge badge-info badge-xs w-fit">线索</span>
-        <div className="min-w-0 break-words text-sm">
+        <div className="min-w-0 wrap-break-word text-sm">
           <MessagePreviewContent message={snapshotMessage} withMediaPreview />
         </div>
       </button>
@@ -278,7 +278,7 @@ export function ClueCardReadonlyContent({
   } as Message;
 
   return (
-    <div className="min-w-0 break-words text-sm">
+    <div className="min-w-0 wrap-break-word text-sm">
       <MessagePreviewContent message={previewMessage} withMediaPreview />
     </div>
   );
@@ -722,37 +722,37 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     >
       {onToggleSelection && (
         <HoverToolbarActionButton label="多选" onClick={handleToggleSelectionClick}>
-          <ListUnordered className="h-4 w-4" />
+          <ListUnordered className="size-4" />
         </HoverToolbarActionButton>
       )}
       <HoverToolbarActionButton label="回复" onClick={handleReplyClick}>
-        <CommentOutline className="h-4 w-4" />
+        <CommentOutline className="size-4" />
       </HoverToolbarActionButton>
       {canEdit && (
         <HoverToolbarActionButton label="添加标注" onClick={handleOpenAnnotationsClick}>
-          <EmojiIconWhite className="h-4 w-4" />
+          <EmojiIconWhite className="size-4" />
         </HoverToolbarActionButton>
       )}
       {canEdit && (message.messageType === MESSAGE_TYPE.TEXT || message.messageType === MESSAGE_TYPE.INTRO_TEXT) && (
         <HoverToolbarActionButton label={toggleIntroTextLabel} onClick={handleToggleIntroTextClick}>
-          <ScreenIcon className="h-4 w-4 text-black" />
+          <ScreenIcon className="size-4 text-black" />
         </HoverToolbarActionButton>
       )}
       <HoverToolbarActionButton label="插入消息" onClick={handleInsertAfterClick}>
-        <InsertLineBelow className="h-4 w-4" />
+        <InsertLineBelow className="size-4" />
       </HoverToolbarActionButton>
       {canEditContent && (
         <HoverToolbarActionButton label="编辑" onClick={handleEditMessageClick}>
-          <Edit2Outline className="h-4 w-4" />
+          <Edit2Outline className="size-4" />
         </HoverToolbarActionButton>
       )}
       {canEdit && message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE && onEditWebgalChoose && (
         <HoverToolbarActionButton label="编辑选择" onClick={handleEditWebgalChooseClick}>
-          <Edit2Outline className="h-4 w-4" />
+          <Edit2Outline className="size-4" />
         </HoverToolbarActionButton>
       )}
       <HoverToolbarActionButton label="更多" onClick={handleOpenContextMenu}>
-        <MoreMenu className="h-4 w-4" />
+        <MoreMenu className="size-4" />
       </HoverToolbarActionButton>
     </div>
   );
@@ -1031,7 +1031,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
               <span className="badge badge-info badge-xs">检定请求</span>
               {allowAll && <span className="text-[10px] text-base-content/50">全员</span>}
             </div>
-            <div className="mt-1 text-sm font-mono break-words">
+            <div className="mt-1 text-sm font-mono wrap-break-word">
               {commandText || "[空指令]"}
             </div>
             <div className="mt-1 text-[10px] text-base-content/50">
@@ -1048,7 +1048,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
               content={message.content}
               onCommit={handleContentUpdate}
               className={`
-                editable-field whitespace-pre-wrap break-words
+                editable-field whitespace-pre-wrap wrap-break-word
                 ${isOutOfCharacterTextMessage ? `italic text-base-content/60` : ""}
               `}
               editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
@@ -1067,7 +1067,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 content={message.content}
                 onCommit={handleContentUpdate}
                 className="
-                  editable-field whitespace-pre-wrap break-words text-white
+                  editable-field whitespace-pre-wrap wrap-break-word text-white
                 "
                 editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-white"
                 onEditingChange={setIsEditingContent}
@@ -1090,7 +1090,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   content={message.content ?? ""}
                   onCommit={handleContentUpdate}
                   className={`
-                    editable-field whitespace-pre-wrap break-words text-sm
+                    editable-field whitespace-pre-wrap wrap-break-word text-sm
                     text-base-content/80
                     ${message.content ? "" : `sr-only`}
                   `}
@@ -1120,7 +1120,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   <EditableMessageContent
                     content={commandContent}
                     onCommit={handleDiceContentUpdate}
-                    className="editable-field whitespace-pre-wrap break-words"
+                    className="
+                      editable-field whitespace-pre-wrap wrap-break-word
+                    "
                     editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
                     onEditingChange={setIsEditingContent}
                     editInputRef={editInputRef}
@@ -1144,7 +1146,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       ))
                     : (
                         <div className="
-                          whitespace-pre-wrap break-words text-base-content/70
+                          whitespace-pre-wrap wrap-break-word
+                          text-base-content/70
                         ">
                           [骰子结果]
                         </div>
@@ -1161,7 +1164,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 <EditableMessageContent
                   content={result}
                   onCommit={handleDiceContentUpdate}
-                  className="editable-field whitespace-pre-wrap break-words"
+                  className="editable-field whitespace-pre-wrap wrap-break-word"
                   editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full"
                   onEditingChange={setIsEditingContent}
                   editInputRef={editInputRef}
@@ -1251,10 +1254,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                           <div className={`
                             group/narrator
                             ${narratorAvatarFrameClassName}
-                            ${isMobile ? `w-10 h-10` : `w-12 h-12`}
+                            ${isMobile ? `size-10` : `size-12`}
                           `}>
                             <NarratorIcon className={`
-                              w-4 h-4
+                              size-4
                               ${narratorAvatarIconClassName}
                             `} />
                           </div>
@@ -1342,8 +1345,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                         pointer-events-none absolute left-full
                                         -top-2
                                         sm:-top-3
-                                        ml-2 w-16 h-16
-                                        sm:w-20 sm:h-20
+                                        ml-2 size-16
+                                        sm:size-20
                                         object-contain scale-150 origin-left
                                       "
                                     />
@@ -1360,8 +1363,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                           pointer-events-none absolute left-2
                                           -top-2
                                           sm:-top-3
-                                          w-16 h-16
-                                          sm:w-20 sm:h-20
+                                          size-16
+                                          sm:size-20
                                           object-contain scale-150 origin-left
                                         "
                                       />
@@ -1426,8 +1429,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 ">
                   <div
                     className={`
-                      w-9 h-9
-                      sm:w-[5.125rem] sm:h-[5.125rem]
+                      size-9
+                      sm:size-20.5
                       rounded-md overflow-hidden
                       ${
                       isIntroText
@@ -1452,14 +1455,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       : isNarrator
                         ? (
                             <div className="
-                              group/narrator w-full h-full flex items-center
+                              group/narrator size-full flex items-center
                               justify-center bg-base-200/65 text-base-content/70
                               transition-colors duration-150 ease-out
                               motion-reduce:transition-none
                               hover:bg-base-300/70 hover:text-base-content/85
                             ">
                               <NarratorIcon className="
-                                w-5 h-5 transition-transform duration-150
+                                size-5 transition-transform duration-150
                                 ease-out
                                 motion-reduce:transition-none
                                 group-hover/narrator:scale-105
@@ -1531,9 +1534,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   {outOfCharacterBadge}
                                   <div
                                     className={`
-                                      min-w-10 max-w-full text-sm leading-5
+                                      min-w-10 max-w-full text-sm/5
                                       transition-all duration-200
-                                      sm:text-base sm:leading-6
+                                      sm:text-base/6
                                       ${
                                       isOutOfCharacterTextMessage
                                         ? `
@@ -1563,8 +1566,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                         pointer-events-none absolute left-full
                                         -top-2
                                         sm:-top-3
-                                        ml-2 w-16 h-16
-                                        sm:w-20 sm:h-20
+                                        ml-2 size-16
+                                        sm:size-20
                                         object-contain scale-150 origin-left
                                       "
                                     />
@@ -1581,8 +1584,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                           pointer-events-none absolute left-2
                                           -top-2
                                           sm:-top-3
-                                          w-16 h-16
-                                          sm:w-20 sm:h-20
+                                          size-16
+                                          sm:size-20
                                           object-contain scale-150 origin-left
                                         "
                                       />
@@ -1606,10 +1609,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         relative transition-all duration-200 rounded-lg px-1.5
                         py-0.5
                         sm:px-2 sm:py-0.5
-                        cursor-pointer break-words text-base
+                        cursor-pointer wrap-break-word text-base/normal
                         sm:text-sm
                         lg:text-base
-                        leading-normal
                         ${
                         isOutOfCharacterTextMessage
                           ? `

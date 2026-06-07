@@ -100,7 +100,7 @@ export default function ChatStatusBar({
 
   return (
     <div className={`
-      ${compact ? "mb-0 mt-0" : "mb-1 -mt-1"}
+      ${compact ? "my-0" : "mb-1 -mt-1"}
       flex flex-wrap items-center gap-x-3 text-xs text-base-content/80
       ${className ?? ""}
     `}>
@@ -139,7 +139,7 @@ export default function ChatStatusBar({
           <ul
             className="
               dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md
-              border border-base-200 gap-1 text-sm z-[9999] absolute
+              border border-base-200 gap-1 text-sm z-9999 absolute
             "
           >
             {[

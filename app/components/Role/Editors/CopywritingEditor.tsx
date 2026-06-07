@@ -149,7 +149,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
               onClick={addGroup}
               disabled={!groupNameInput.trim() || !!value[groupNameInput.trim()]}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               添加
@@ -192,7 +192,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                   "
                   onClick={() => deleteGroup(name)}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
@@ -200,7 +200,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
             </div>
 
             {/* 组内文案条目 */}
-            <div className="px-3 pb-3 pt-3">
+            <div className="p-3">
               <ul className="list bg-base-100 rounded-lg">
                 {entries.map((text, idx) => {
                   let entryKey = entryKeysRef.current[name]?.[idx];
@@ -244,7 +244,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                           "
                           onClick={() => deleteEntry(name, idx)}
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
@@ -257,7 +257,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                   <div className="
                     text-xs font-mono opacity-50 tabular-nums pt-3
                   ">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
@@ -296,7 +296,7 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                         }
                       }}
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </button>

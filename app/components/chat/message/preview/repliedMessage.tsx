@@ -52,11 +52,11 @@ export default function RepliedMessage({ replyMessage, className }: {
       >
         <XMarkICon className="size-4"></XMarkICon>
       </button>
-      <span className="opacity-60 inline flex-shrink-0">回复</span>
+      <span className="opacity-60 inline shrink-0">回复</span>
       <span className={`
         text-xs
         sm:text-sm
-        line-clamp-3 opacity-60 break-words min-w-0
+        line-clamp-3 opacity-60 wrap-break-word min-w-0
         ${isOutOfCharacterText ? `italic` : ""}
       `}>
         {namePrefix}
