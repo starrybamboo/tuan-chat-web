@@ -8,7 +8,7 @@
       "url": "https://tuan.chat/updates/"
     }
   ],
-  "files": ["./electron", "./build"],
+  "files": ["./electron/**/*", "./build/**/*"],
   "extraResources": [
     {
       "from": "./extraResources/",
@@ -16,7 +16,7 @@
     }
   ],
   "directories": {
-    "output": "./release"
+    "output": "../../release"
   },
   "win": {
     "target": ["nsis", "zip"]

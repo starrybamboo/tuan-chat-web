@@ -164,7 +164,7 @@ function getWebGALBaseDir(app) {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "extraResources");
   }
-  // __dirname = electron/utils，所以回退两级到项目根目录
+  // __dirname = apps/desktop/electron/utils，所以回退两级到 desktop app 根目录。
   return path.join(__dirname, "..", "..", "extraResources");
 }
 

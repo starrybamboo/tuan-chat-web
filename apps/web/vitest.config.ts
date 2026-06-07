@@ -1,25 +1,14 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
+import { getWebAliasEntries } from "./tooling/alias-config";
+
 const workspaceRoot = path.resolve(__dirname, "..", "..");
 
 export default defineConfig({
   root: workspaceRoot,
   resolve: {
-    alias: [
-      {
-        find: /^api$/,
-        replacement: path.resolve(__dirname, "./api/index.ts"),
-      },
-      {
-        find: /^api\/(.*)$/,
-        replacement: path.resolve(__dirname, "./api/$1"),
-      },
-      {
-        find: /^@\//,
-        replacement: `${path.resolve(__dirname, "./app")}/`,
-      },
-    ],
+    alias: getWebAliasEntries(__dirname),
   },
   test: {
     globals: true,

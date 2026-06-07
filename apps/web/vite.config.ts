@@ -13,6 +13,8 @@ import { pipeline } from "node:stream/promises";
 import { fetch as undiciFetch } from "undici";
 import { defineConfig } from "vite";
 
+import { getWebAliasEntries } from "./tooling/alias-config";
+
 function splitVendorChunk(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, "/");
   if (normalizedId.includes("vite/preload-helper")) {
@@ -382,18 +384,7 @@ export default defineConfig(() => {
           find: /^@ffmpeg\/util$/,
           replacement: nm("node_modules/@ffmpeg/util/dist/esm/index.js"),
         },
-        {
-          find: /^@\//,
-          replacement: `${resolve(__dirname, "app")}/`,
-        },
-        {
-          find: /^api$/,
-          replacement: resolve(__dirname, "api/index.ts"),
-        },
-        {
-          find: /^api\/(.*)$/,
-          replacement: resolve(__dirname, "api/$1"),
-        },
+        ...getWebAliasEntries(__dirname),
       ],
     },
 

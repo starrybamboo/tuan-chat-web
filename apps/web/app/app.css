@@ -7,10 +7,6 @@
 @source "../api/**/*.jsx";
 @source "../api/**/*.ts";
 @source "../api/**/*.tsx";
-@source "../electron/**/*.js";
-@source "../electron/**/*.jsx";
-@source "../electron/**/*.ts";
-@source "../electron/**/*.tsx";
 @plugin "../../node_modules/daisyui/index.js" {
   themes: false;
 }

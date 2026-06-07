@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "../../.oxlintrc.base.json"
+  ],
+  "ignorePatterns": [
+    "build/**",
+    "extraResources/**"
+  ],
+  "rules": {
+    "eslint-comments/no-unlimited-disable": "error",
+    "node/no-process-env": "off"
+  }
+}

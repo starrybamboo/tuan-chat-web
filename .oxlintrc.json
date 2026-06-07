@@ -9,6 +9,7 @@
     "no-control-regex": "off"
   },
   "ignorePatterns": [
+    "apps/desktop/**",
     "apps/mobile/**",
     "apps/web/**",
     "android/**",

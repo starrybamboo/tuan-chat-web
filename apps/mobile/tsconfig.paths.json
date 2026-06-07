@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.expo-base.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/assets/*": [
+        "./assets/*"
+      ]
+    }
+  }
+}

@@ -12,33 +12,6 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "paths": {
-      "@tuanchat/galgame-ai-contract": ["./packages/galgame-ai-contract/src/index.ts"],
-      "@tuanchat/galgame-ai-contract/schemas": ["./packages/galgame-ai-contract/src/schemas.ts"],
-      "@tuanchat/galgame-ai-contract/types": ["./packages/galgame-ai-contract/src/types.ts"],
-      "@tuanchat/local-db": ["./packages/tuanchat-local-db/src/index.ts"],
-      "@tuanchat/openapi-client": ["./packages/tuanchat-openapi-client/src/index.ts"],
-      "@tuanchat/openapi-client/TuanChat": ["./packages/tuanchat-openapi-client/src/TuanChat.ts"],
-      "@tuanchat/openapi-client/core/*": ["./packages/tuanchat-openapi-client/src/core/*"],
-      "@tuanchat/openapi-client/models/*": ["./packages/tuanchat-openapi-client/src/models/*"],
-      "@tuanchat/openapi-client/services/*": ["./packages/tuanchat-openapi-client/src/services/*"],
-      "@tuanchat/domain": ["./packages/tuanchat-domain/src/index.ts"],
-      "@tuanchat/domain/ability-extractors": ["./packages/tuanchat-domain/src/ability-extractors/index.ts"],
-      "@tuanchat/domain/annotation-catalog": ["./packages/tuanchat-domain/src/annotation-catalog/index.ts"],
-      "@tuanchat/domain/dicer": ["./packages/tuanchat-domain/src/dicer/index.ts"],
-      "@tuanchat/domain/display-labels": ["./packages/tuanchat-domain/src/display-labels/index.ts"],
-      "@tuanchat/domain/media-url": ["./packages/tuanchat-domain/src/media-url/index.ts"],
-      "@tuanchat/domain/message-draft": ["./packages/tuanchat-domain/src/messageDraft.ts"],
-      "@tuanchat/domain/message-preview": ["./packages/tuanchat-domain/src/messagePreview.ts"],
-      "@tuanchat/domain/message-search": ["./packages/tuanchat-domain/src/messageSearch.ts"],
-      "@tuanchat/domain/message-time": ["./packages/tuanchat-domain/src/messageTime.ts"],
-      "@tuanchat/domain/message-type": ["./packages/tuanchat-domain/src/messageType.ts"],
-      "@tuanchat/domain/state-command": ["./packages/tuanchat-domain/src/stateCommand.ts"],
-      "@tuanchat/domain/state-runtime": ["./packages/tuanchat-domain/src/state-runtime/index.ts"],
-      "@tuanchat/domain/*": ["./packages/tuanchat-domain/src/*"],
-      "@tuanchat/query": ["./packages/tuanchat-query/src/index.ts"],
-      "@tuanchat/query/*": ["./packages/tuanchat-query/src/*"]
-    }
+    "skipLibCheck": true
   }
 }
