@@ -98,7 +98,6 @@
           "error",
           "type"
         ],
-        "no-console": "warn",
         "node/no-process-env": "error",
         "perfectionist/sort-imports": [
           "warn",
@@ -116,22 +115,6 @@
             },
             "ignore": [
               "README.md"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": [
-        "**/*.{jsx,tsx}"
-      ],
-      "rules": {
-        "no-console": [
-          "warn",
-          {
-            "allow": [
-              "warn",
-              "error"
             ]
           }
         ]

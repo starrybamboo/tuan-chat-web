@@ -1,3 +1,5 @@
+import type { Sharp } from "sharp";
+
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -10,7 +12,6 @@ import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMes
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-import type { Sharp } from "sharp";
 
 import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
