@@ -1,3 +1,8 @@
+import {
+  getRoleAvatarListQueryKey,
+  useRoleAvatarsQuery as useSharedRoleAvatarsQuery,
+} from "@tuanchat/query/roles";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,10 +10,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getRoleAvatarListQueryKey,
-  useRoleAvatarsQuery as useSharedRoleAvatarsQuery,
-} from "@tuanchat/query/roles";
 
 const ROLE_AVATARS_SNAPSHOT_TTL_MS = 24 * 60 * 60_000;
 

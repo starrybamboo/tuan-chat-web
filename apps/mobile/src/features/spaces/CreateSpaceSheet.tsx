@@ -1,3 +1,5 @@
+import type { Space } from "@tuanchat/openapi-client/models/Space";
+
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -7,7 +9,6 @@ import {
 } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-import type { Space } from "@tuanchat/openapi-client/models/Space";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";

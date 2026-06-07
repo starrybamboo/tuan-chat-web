@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   clearCachedDirectMessages,

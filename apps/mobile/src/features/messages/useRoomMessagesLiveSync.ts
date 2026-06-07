@@ -1,8 +1,14 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
+import {
+  bumpRoomSessionLatestSyncInCache,
+  markRoomSessionReadInCache,
+} from "@tuanchat/query/message-sessions";
+import { getNotificationsUnreadCountQueryKey, prependNotificationToCaches } from "@tuanchat/query/notifications";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import { writeCachedDirectMessages } from "@/features/friends/mobileDirectMessageCache";
@@ -12,12 +18,6 @@ import {
   upsertLiveRoomMessageWithGapRepair,
 } from "@/features/messages/roomMessageSync";
 import { DEFAULT_TUANCHAT_API_BASE_URL, mobileApiClient } from "@/lib/api";
-import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
-import {
-  bumpRoomSessionLatestSyncInCache,
-  markRoomSessionReadInCache,
-} from "@tuanchat/query/message-sessions";
-import { getNotificationsUnreadCountQueryKey, prependNotificationToCaches } from "@tuanchat/query/notifications";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
 const DIRECT_MESSAGE_PUSH_TYPE = 1;

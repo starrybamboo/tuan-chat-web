@@ -1,9 +1,10 @@
+import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
+
 import * as ImageManipulator from "expo-image-manipulator";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";

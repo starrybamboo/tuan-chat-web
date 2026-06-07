@@ -2,9 +2,7 @@ import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import type { ChatMessageListItem } from "./messageListModel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import {
   ActivityIndicator,
   FlatList,
@@ -12,11 +10,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-
 import { prefetchImages } from "@/lib/mobile-image-cache";
+
+import type { ChatMessageListItem } from "./messageListModel";
 
 import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
@@ -64,7 +64,7 @@ function shouldGroupWithPrevious(current: Message, previous: Message | undefined
   return true;
 }
 
-interface ChatMessageListProps {
+type ChatMessageListProps = {
   currentRoleId?: number;
   error: unknown;
   isCommandRequestConsumed?: (messageId: number) => boolean;
@@ -82,7 +82,7 @@ interface ChatMessageListProps {
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
   stateEventSummariesByMessageId?: Record<number, StateEventMessageSummary>;
-}
+};
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim())

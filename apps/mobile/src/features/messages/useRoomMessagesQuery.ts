@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
+import { useQuery } from "@tanstack/react-query";
+import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
+import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
+import { useEffect, useMemo, useState } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import {
@@ -17,8 +19,6 @@ import {
 import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessagesQueryData";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
-import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
-import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 
 type CachedRoomMessagesState = {
   messages: ChatMessageResponse[];

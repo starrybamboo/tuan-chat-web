@@ -1,8 +1,7 @@
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 import { describe, expect, it } from "vitest";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-
-import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 
 import { buildStickerCreateRequest, createStickerCropFileName, getStickerUploadErrorMessage } from "./expressionStickerUpload";
 

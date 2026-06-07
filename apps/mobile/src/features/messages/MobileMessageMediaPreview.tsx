@@ -1,3 +1,9 @@
+import {
+  getFileMessageExtra,
+  getImageMessageExtra,
+  getSoundMessageExtra,
+  getVideoMessageExtra,
+} from "@tuanchat/domain/message-extra";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -11,12 +17,6 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { mediaFileUrl, normalizeMediaType } from "@/lib/media-url";
 import { resolveCachedMediaFileUri } from "@/lib/mobile-media-file-cache";
-import {
-  getFileMessageExtra,
-  getImageMessageExtra,
-  getSoundMessageExtra,
-  getVideoMessageExtra,
-} from "@tuanchat/domain/message-extra";
 
 import { resolveMessageMediaUrl } from "./messageMediaSource";
 import {

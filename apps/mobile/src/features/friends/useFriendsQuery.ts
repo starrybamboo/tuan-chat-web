@@ -1,3 +1,8 @@
+import {
+  getFriendsQueryKey,
+  useFriendsQuery as useSharedFriendsQuery,
+} from "@tuanchat/query/friends";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,10 +10,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getFriendsQueryKey,
-  useFriendsQuery as useSharedFriendsQuery,
-} from "@tuanchat/query/friends";
 
 const FRIENDS_SNAPSHOT_TTL_MS = 5 * 60_000;
 

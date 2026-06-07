@@ -1,3 +1,8 @@
+import {
+  getRoomMembersQueryKey,
+  useGetRoomMembersQuery as useSharedGetRoomMembersQuery,
+} from "@tuanchat/query/members";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,10 +10,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getRoomMembersQueryKey,
-  useGetRoomMembersQuery as useSharedGetRoomMembersQuery,
-} from "@tuanchat/query/members";
 
 const ROOM_MEMBERS_SNAPSHOT_TTL_MS = 5 * 60_000;
 

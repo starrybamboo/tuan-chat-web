@@ -1,18 +1,20 @@
-import { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
+import { compareStateValueText } from "@tuanchat/domain/state-runtime";
+import { useMemo } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
-import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
-import { compareStateValueText } from "@tuanchat/domain/state-runtime";
 
-import { type RoomStateRuntimeValue, useRoomStateRuntime } from "./useRoomStateRuntime";
+import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
+
+import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 const PRIMARY_STAT_COLORS: Record<string, { bg: string; text: string }> = {
   hp: { bg: "#fecaca", text: "#dc2626" },

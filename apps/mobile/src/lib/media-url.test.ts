@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { avatarThumbUrl, mediaFileUrl } from "./media-url";
 
@@ -19,4 +19,3 @@ describe("mobile media-url", () => {
     expect(avatarThumbUrl(null)).toBeUndefined();
   });
 });
-

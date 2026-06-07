@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
 
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
-import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const platformMock = vi.hoisted(() => ({
   OS: "ios",

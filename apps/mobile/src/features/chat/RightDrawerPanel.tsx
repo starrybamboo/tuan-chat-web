@@ -1,13 +1,14 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+
+import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
 import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface RightDrawerPanelProps {
+type RightDrawerPanelProps = {
   activeTab: RightDrawerTabKey;
   clueRooms: Room[];
   currentUserId: number | null;
@@ -49,7 +50,7 @@ interface RightDrawerPanelProps {
   roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
   spaceId: number | null;
-}
+};
 
 export function RightDrawerPanel({
   activeTab,

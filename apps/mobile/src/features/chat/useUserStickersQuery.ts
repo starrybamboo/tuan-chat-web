@@ -1,3 +1,8 @@
+import {
+  getUserStickersQueryKey,
+  useUserStickersQuery as useSharedUserStickersQuery,
+} from "@tuanchat/query/stickers";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,10 +10,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getUserStickersQueryKey,
-  useUserStickersQuery as useSharedUserStickersQuery,
-} from "@tuanchat/query/stickers";
 
 const USER_STICKERS_SNAPSHOT_TTL_MS = 10 * 60_000;
 

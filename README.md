@@ -149,7 +149,7 @@ Electron 打包前会运行：
 pnpm electron:prepare:resources
 ```
 
-该脚本会把 WebGAL_Terre release 同步到 `extraResources/`。默认解析逻辑在 `scripts/prepare-electron-extra-resources.mjs` 和 `scripts/resolve-webgal-terre-release.ps1`；如果默认位置不可用，可设置 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
+该脚本会把 WebGAL_Terre release 同步到 `apps/desktop/extraResources/`。默认解析逻辑在 `apps/desktop/scripts/prepare-electron-extra-resources.mjs` 和 `scripts/resolve-webgal-terre-release.ps1`；如果默认位置不可用，可设置 `WEBGAL_TERRE_RELEASE_DIR` 指向 release 目录。
 
 Windows 下 electron-builder 首次下载 `nsis` / `winCodeSign` 可能受网络影响。可先构建 zip，再单独构建 nsis；必要时设置 `ELECTRON_BUILDER_CACHE` 或 `ELECTRON_BUILDER_BINARIES_MIRROR`。
 
@@ -177,18 +177,17 @@ Electron 增量更新：
 ## 目录结构
 
 ```plain text
-app/                         Web 端 React 应用
-app/routes/                  TanStack Router 文件路由
-app/components/              页面组件和业务组件
-app/utils/                   Web 端工具函数
-app/webGAL/                  WebGAL 联动与渲染
-api/                         Web 端 API 实例、hooks、WebSocket
+apps/web/app/                Web 端 React 应用
+apps/web/app/routes/         TanStack Router 文件路由
+apps/web/app/components/     页面组件和业务组件
+apps/web/app/utils/          Web 端工具函数
+apps/web/app/webGAL/         WebGAL 联动与渲染
+apps/web/api/                Web 端 API 实例、hooks、WebSocket
+apps/web/functions/          Cloudflare Pages Functions 兜底入口
 apps/mobile/                 Expo 移动端
-electron/                    Electron 主进程和桌面端集成
-functions/                   Cloudflare Pages Functions 兜底入口
+apps/desktop/                Electron 桌面端 workspace app
 packages/                    workspace 共享包
-public/                      静态资源和 Pages routes 配置
-scripts/                     本地开发、生成、导入、打包脚本
+scripts/                     仓库级开发、生成、导入脚本
 ```
 
 ## 开发约定

@@ -221,7 +221,7 @@ export function AbilitySection({ roleId, ruleId, onBeforeActiveSectionChange }: 
               ? rule?.skillDefault
               : undefined;
 
-      const merged = { ...(template as Record<string, string> ?? {}), ...(data ?? {}) };
+      const merged = { ...(template as Record<string, string> | undefined), ...data };
       if (Object.keys(merged).length > 0) {
         result.push({ key, label: SECTION_LABELS[key], fields: merged });
       }

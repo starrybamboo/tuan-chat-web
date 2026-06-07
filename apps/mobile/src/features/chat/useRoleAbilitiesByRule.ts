@@ -1,6 +1,10 @@
-import { useMemo } from "react";
-
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
+
+import {
+  getRoleAbilityByRuleQueryKey,
+  useRoleAbilitiesByRule as useSharedRoleAbilitiesByRule,
+} from "@tuanchat/query/role-abilities";
+import { useMemo } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
@@ -9,10 +13,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getRoleAbilityByRuleQueryKey,
-  useRoleAbilitiesByRule as useSharedRoleAbilitiesByRule,
-} from "@tuanchat/query/role-abilities";
 
 const ROLE_ABILITIES_BY_RULE_SNAPSHOT_TTL_MS = 5 * 60_000;
 

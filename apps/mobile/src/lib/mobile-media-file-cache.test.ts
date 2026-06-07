@@ -1,4 +1,4 @@
-﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   cleanupMobileMediaFileCache,
@@ -281,4 +281,3 @@ describe("mobile media file cache", () => {
     expect(getCachedMediaFileUriSync(VIDEO_URL)).toBe(`content://${encodeURIComponent(VIDEO_FILE_URI)}`);
   });
 });
-

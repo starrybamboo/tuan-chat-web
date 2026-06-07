@@ -1,0 +1,12 @@
+{
+  "extends": "@tuanchat/typescript-config/library.json",
+  "include": [
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
+}

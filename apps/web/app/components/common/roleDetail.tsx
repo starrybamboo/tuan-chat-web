@@ -1,0 +1,249 @@
+import { use, useState } from "react";
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
+import ConfirmModal from "@/components/common/comfirmModel";
+import { MediaImage } from "@/components/common/mediaImage";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
+import { useGlobalUserId } from "@/components/globalContextProvider";
+import ExpansionModule from "@/components/Role/rules/ExpansionModule";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
+import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
+import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
+
+/**
+ * 角色的详情界面
+ * @param roleId
+ * @param allowKickOut 是否允许被踢出，仓库角色是不可以的
+ * @param kickOutByManagerOnly 是否仅房主可踢出
+ */
+export function RoleDetail({
+  roleId,
+  roleTypeHint,
+  roleOwnerUserIdHint,
+  roleStateHint,
+  allowKickOut = true,
+  kickOutByManagerOnly = false,
+  showAbilities = true,
+  onClose,
+}: {
+  roleId: number;
+  roleTypeHint?: number;
+  roleOwnerUserIdHint?: number;
+  roleStateHint?: number;
+  allowKickOut?: boolean;
+  kickOutByManagerOnly?: boolean;
+  showAbilities?: boolean;
+  onClose?: () => void;
+}) {
+  const shouldFetchRole = roleStateHint == null || roleStateHint === 0;
+  const roleQuery = useGetRoleQuery(shouldFetchRole ? roleId : -1);
+  const role = roleQuery.data?.data;
+  const avatarUrl = useResolvedRoleAvatarUrl(role, "");
+  const user = role?.userId ?? -1;
+  const userName = useGetUserInfoQuery(user).data?.data?.username || "未知用户";
+
+  /**
+   * 仅在chat的上下文中起作用
+   */
+  const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
+  const roomId = roomContext?.roomId;
+  const ruleId = spaceContext.ruleId;
+  const hasHostAccess = hasHostPrivileges(roomContext.curMember?.memberType);
+  const deleteRoleMutation = useDeleteRole1Mutation();
+  const userId = useGlobalUserId() ?? -1;
+  const userRole = useGetUserRolesQuery(userId);
+  const [isKickConfirmOpen, setIsKickConfirmOpen] = useState(false);
+
+  const handleRemoveRole = async () => {
+    if (!roomId || roleId <= 0)
+      return;
+    deleteRoleMutation.mutate(
+      { roomId, roleIdList: [roleId] },
+      {
+        onSettled: () => {
+          onClose?.();
+          setIsKickConfirmOpen(false);
+        },
+      },
+    );
+  };
+
+  const canKick = (() => {
+    if (!allowKickOut || !roomId)
+      return false;
+    if (hasHostAccess)
+      return true;
+    if (kickOutByManagerOnly)
+      return false;
+    if (roleTypeHint === 2)
+      return false;
+    if (roleOwnerUserIdHint != null && userId > 0)
+      return roleOwnerUserIdHint === userId;
+    return Boolean(userRole.data?.data?.find(r => r.roleId === roleId));
+  })();
+
+  return (
+    <div className="bg-base-100 flex flex-col gap-4 w-full">
+      <div className="card card-compact shadow-sm border border-base-200">
+        <div className="card-body gap-4">
+          <div className="flex flex-row gap-4 items-start justify-between">
+            <div className="flex flex-row gap-4 items-start">
+              <div className="shrink-0">
+                <div className="avatar">
+                  <div className="
+                    w-20 h-20 rounded-full ring ring-primary
+                    ring-offset-base-100 ring-offset-2 overflow-hidden
+                  ">
+                    {roleQuery.isLoading
+                      ? (
+                          <div className="skeleton w-20 h-20" />
+                        )
+                      : (
+                          <div className="
+                            bg-neutral text-neutral-content flex items-center
+                            justify-center text-3xl
+                          ">
+                            <MediaImage
+                              src={avatarUrl}
+                              alt="avatar"
+                              className="w-20 h-20 object-cover"
+                              fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
+                            />
+                          </div>
+                        )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 基本信息区域 */}
+              <div className="flex-1 min-w-0 space-y-2">
+                {roleQuery.isLoading
+                  ? (
+                      <div className="space-y-2">
+                        <div className="skeleton h-5 w-32" />
+                        <div className="skeleton h-4 w-48" />
+                      </div>
+                    )
+                  : (
+                      <>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h2 className="
+                            card-title text-lg truncate min-w-0 flex-1
+                          ">
+                            {role?.roleName || `角色 ${roleId}`}
+                          </h2>
+                          <span className="
+                            badge badge-outline badge-sm font-mono
+                          ">
+                            ID:
+                            {" "}
+                            {roleId}
+                          </span>
+                        </div>
+
+                        {role?.description && (
+                          <p className="
+                            text-xs text-base-content/70 line-clamp-2
+                          ">
+                            {role.description}
+                          </p>
+                        )}
+
+                        <div className="
+                          flex flex-wrap gap-2 text-[11px] text-base-content/60
+                        ">
+                          {roomId && (
+                            <span className="badge badge-ghost badge-xs">
+                              房间
+                              {" "}
+                              {roomId}
+                            </span>
+                          )}
+                          {ruleId && (
+                            <span className="badge badge-ghost badge-xs">
+                              规则
+                              {" "}
+                              {ruleId}
+                            </span>
+                          )}
+                          {user && (
+                            <span className="badge badge-ghost badge-xs">
+                              所属用户
+                              {" "}
+                              {userName}
+                            </span>
+                          )}
+                          {hasHostAccess && (
+                            <span className="badge badge-primary badge-xs">
+                              你有主持权限
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
+              </div>
+            </div>
+
+            <div className="flex items-start">
+              {allowKickOut
+                ? (
+                    canKick
+                      ? (
+                          <button
+                            type="button"
+                            className="
+                              btn btn-error btn-xs
+                              sm:btn-sm
+                            "
+                            onClick={() => setIsKickConfirmOpen(true)}
+                          >
+                            踢出角色
+                          </button>
+                        )
+                      : null
+                  )
+                : (
+                    <button
+                      type="button"
+                      className="
+                        btn btn-xs
+                        sm:btn-sm
+                      "
+                      disabled
+                      onClick={() => setIsKickConfirmOpen(true)}
+                    >
+                      仓库角色不能被踢出
+                    </button>
+                  )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showAbilities && (
+        <div className="card card-compact border border-base-200 shadow-sm">
+          <div className="card-body gap-3">
+            <div className="mt-1">
+              <ExpansionModule roleId={roleId} ruleId={ruleId ?? undefined} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 踢出角色确认弹窗 */}
+      <ConfirmModal
+        isOpen={isKickConfirmOpen}
+        onClose={() => setIsKickConfirmOpen(false)}
+        title="确认踢出角色"
+        message="确定要将该角色从当前房间移除吗？此操作将解除该角色与房间的关联。"
+        onConfirm={handleRemoveRole}
+        confirmText="确认踢出"
+        cancelText="取消"
+        variant="warning"
+      />
+    </div>
+  );
+}

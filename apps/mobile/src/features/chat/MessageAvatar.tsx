@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -6,7 +7,6 @@ import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { mobileApiClient } from "@/lib/api";
 import { avatarThumbUrl } from "@/lib/media-url";
-import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
