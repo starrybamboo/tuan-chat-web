@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node ./scripts/dev.mjs",
     "dev:only": "electron .",
+    "check:resources": "node ./scripts/prepare-electron-extra-resources.mjs --check",
     "prepare:resources": "node ./scripts/prepare-electron-extra-resources.mjs",
     "sync:web-build": "node ./scripts/sync-web-build.mjs",
     "build:app": "pnpm -s prepare:resources && pnpm --filter @tuanchat/web run build && pnpm -s sync:web-build",
