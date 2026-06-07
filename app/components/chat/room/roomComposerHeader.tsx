@@ -106,7 +106,12 @@ export default function RoomComposerHeader({
           <div ref={avatarPopoverRef} className="relative shrink-0">
             <button
               type="button"
-              className={`flex items-center justify-center leading-none ${isSpectator ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+              className={`
+                flex items-center justify-center leading-none
+                ${isSpectator ? `cursor-not-allowed opacity-70` : `
+                  cursor-pointer
+                `}
+              `}
               aria-haspopup="dialog"
               aria-expanded={isAvatarPopoverOpen}
               onClick={() => {
@@ -124,8 +129,15 @@ export default function RoomComposerHeader({
             >
               {curRoleId <= 0 && curAvatarId <= 0
                 ? (
-                    <div className="size-8 rounded-full bg-base-200/50 flex items-center justify-center shrink-0">
-                      {curRoleId === 0 ? <AddRoleIcon className="size-5 text-base-content/60" /> : <NarratorIcon className="size-5 text-base-content/60" />}
+                    <div className="
+                      size-8 rounded-full bg-base-200/50 flex items-center
+                      justify-center shrink-0
+                    ">
+                      {curRoleId === 0 ? <AddRoleIcon className="
+                        size-5 text-base-content/60
+                      " /> : <NarratorIcon className="
+                        size-5 text-base-content/60
+                      " />}
                     </div>
                   )
                 : (
@@ -148,15 +160,30 @@ export default function RoomComposerHeader({
                   : "absolute left-0 bottom-full mb-2 z-50 flex items-stretch"}
               >
                 <div
-                  className={`${isMobile
+                  className={`
+                    ${isMobile
                     ? "w-full h-full"
                     : (isAvatarChooserFullscreen
-                        ? "w-[92vw] md:w-[92vw] max-w-[92vw]"
-                        : "w-[92vw] md:w-120 min-w-100 max-w-[92vw]")
-                  } rounded-box bg-base-100 border border-base-300 shadow-lg p-2 self-stretch flex flex-col`}
+                        ? `
+                          w-[92vw]
+                          md:w-[92vw]
+                          max-w-[92vw]
+                        `
+                        : `
+                          w-[92vw]
+                          md:w-120
+                          min-w-100 max-w-[92vw]
+                        `)
+                  }
+                    rounded-box bg-base-100 border border-base-300 shadow-lg p-2
+                    self-stretch flex flex-col
+                  `}
                 >
                   {isMobile && (
-                    <div className="flex items-center justify-between px-1 pb-2 border-b border-base-300 mb-2">
+                    <div className="
+                      flex items-center justify-between px-1 pb-2 border-b
+                      border-base-300 mb-2
+                    ">
                       <span className="text-sm font-medium">切换角色与头像</span>
                       <button
                         type="button"
@@ -185,7 +212,12 @@ export default function RoomComposerHeader({
             <div className="min-w-0 flex-1">
               {!isEditingName && (
                 <div
-                  className={`text-sm font-medium truncate ${isSpectator || curRoleId <= 0 ? "text-base-content/50 select-none" : "cursor-text"}`}
+                  className={`
+                    text-sm font-medium truncate
+                    ${isSpectator || curRoleId <= 0 ? `
+                      text-base-content/50 select-none
+                    ` : `cursor-text`}
+                  `}
                   title={isSpectator || curRoleId <= 0 ? undefined : "点击编辑显示名称"}
                   onClick={(event) => {
                     if (isSpectator || curRoleId <= 0) {
@@ -202,7 +234,12 @@ export default function RoomComposerHeader({
               )}
               {isEditingName && (
                 <input
-                  className="input input-xs input-bordered bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info w-full max-w-48"
+                  className="
+                    input input-xs input-bordered bg-base-200 border-base-300
+                    px-2 shadow-sm
+                    focus:outline-none focus:border-info
+                    w-full max-w-48
+                  "
                   value={editingName}
 
                   onClick={(event) => {
@@ -263,13 +300,19 @@ export default function RoomComposerHeader({
             )}
           </div>
           {leftToolbar && (
-            <div className={`flex items-center gap-1 min-w-0 ${isMobile ? "overflow-x-auto pb-0.5" : ""}`}>
+            <div className={`
+              flex items-center gap-1 min-w-0
+              ${isMobile ? `overflow-x-auto pb-0.5` : ""}
+            `}>
               {leftToolbar}
             </div>
           )}
         </div>
         {headerToolbar && (
-          <div className={`flex items-start gap-2 shrink-0 min-w-0 ${isMobile ? "max-w-[50vw]" : ""}`}>
+          <div className={`
+            flex items-start gap-2 shrink-0 min-w-0
+            ${isMobile ? `max-w-[50vw]` : ""}
+          `}>
             {headerToolbar}
           </div>
         )}

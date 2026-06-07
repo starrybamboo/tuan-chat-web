@@ -48,11 +48,14 @@ export function LoginForm({
         <div className="flex gap-2">
           <button
             type="button"
-            className={`btn btn-sm flex-1 ${
+            className={`
+              btn btn-sm flex-1
+              ${
               loginMethod === "username"
                 ? "btn-primary"
                 : "btn-outline"
-            }`}
+            }
+            `}
             onClick={() => {
               setLoginMethod("username");
               setUsername(""); // 切换时清空输入
@@ -62,11 +65,14 @@ export function LoginForm({
           </button>
           <button
             type="button"
-            className={`btn btn-sm flex-1 ${
+            className={`
+              btn btn-sm flex-1
+              ${
               loginMethod === "userId"
                 ? "btn-primary"
                 : "btn-outline"
-            }`}
+            }
+            `}
             onClick={() => {
               setLoginMethod("userId");
               setUsername(""); // 切换时清空输入
@@ -96,7 +102,12 @@ export function LoginForm({
                 ? "请输入用户名"
                 : "请输入用户ID"
             }
-            className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+            className="
+              input input-bordered w-full bg-base-200
+              dark:bg-base-300
+              text-base-content
+              placeholder:text-base-content/60
+            "
             value={username}
             onChange={e => setUsername(e.target.value)}
           />
@@ -116,7 +127,12 @@ export function LoginForm({
             name={passwordInputName}
             autoComplete={passwordAutocomplete}
             placeholder="请输入密码"
-            className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+            className="
+              input input-bordered w-full bg-base-200
+              dark:bg-base-300
+              text-base-content
+              placeholder:text-base-content/60
+            "
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
@@ -133,7 +149,11 @@ export function LoginForm({
         {turnstile}
         <button
           type="submit"
-          className="btn btn-primary hover:brightness-110 transition-all"
+          className="
+            btn btn-primary
+            hover:brightness-110
+            transition-all
+          "
           disabled={isLoading}
         >
           {isLoading

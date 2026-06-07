@@ -179,9 +179,12 @@ export default function RuleNumericalEditor({
   };
 
   return (
-    <div className={`space-y-4 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${
+    <div className={`
+      space-y-4 bg-base-200 rounded-lg p-4 duration-300 transition-opacity
+      ${
       isEditing ? "ring-2 ring-primary" : ""
-    }`}
+    }
+    `}
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="card-title text-lg flex items-center gap-2">{title}</h3>
@@ -228,10 +231,19 @@ export default function RuleNumericalEditor({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="
+        grid grid-cols-2
+        md:grid-cols-3
+        lg:grid-cols-4
+        gap-3
+      ">
         {isEmpty
           ? (
-              <div className="col-span-full flex items-center justify-center text-sm text-base-content/60 py-6 text-center border border-dashed border-base-content/20 rounded-lg bg-base-100/40">
+              <div className="
+                col-span-full flex items-center justify-center text-sm
+                text-base-content/60 py-6 text-center border border-dashed
+                border-base-content/20 rounded-lg bg-base-100/40
+              ">
                 {isEditing ? "暂无字段，使用下方输入框添加" : "暂无字段，点击“编辑”开始添加"}
               </div>
             )
@@ -239,7 +251,10 @@ export default function RuleNumericalEditor({
               const shouldSpanFullRowOnMobile = !isEditing && Array.from(`${key}${String(value ?? "")}`).length >= 6;
 
               return (
-                <div key={key} className={shouldSpanFullRowOnMobile ? "col-span-2 md:col-span-1" : ""}>
+                <div key={key} className={shouldSpanFullRowOnMobile ? `
+                  col-span-2
+                  md:col-span-1
+                ` : ""}>
                   <EditableField
                     value={value}
                     fieldKey={key}

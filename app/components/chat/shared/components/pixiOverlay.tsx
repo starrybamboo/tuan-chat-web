@@ -162,7 +162,9 @@ export default function PixiOverlay({ effectName }: PixiOverlayProps) {
   }, [isInitialized]);
 
   // Keep this behind the actual chat UI; parent container can overlay its content.
-  return <div ref={containerRef} className="absolute inset-0 pointer-events-none z-0 overflow-hidden" />;
+  return <div ref={containerRef} className="
+    absolute inset-0 pointer-events-none z-0 overflow-hidden
+  " />;
 }
 
 function createRainEffect(

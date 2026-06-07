@@ -25,7 +25,10 @@ function formatMessageTimeLabel(createTime?: string | null) {
 function MessageAvatar({ name, fileId }: { name?: string; fileId?: number }) {
   const initial = name?.trim()?.slice(0, 1) || "?";
   return (
-    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-base-300 text-xs font-semibold text-base-content/60">
+    <div className="
+      h-8 w-8 shrink-0 overflow-hidden rounded-full bg-base-300 text-xs
+      font-semibold text-base-content/60
+    ">
       {fileId
         ? (
             <MediaImage
@@ -126,12 +129,20 @@ export default function MessageBubble({ message, isOwn, groupedWithPrevious = fa
           : <MessageAvatar name={message.senderUsername} fileId={message.senderAvatarFileId} />
       )}
 
-      <div className={`relative flex max-w-[min(70%,680px)] min-w-0 flex-col ${isOwn ? "items-end" : "items-start"}`}>
+      <div className={`
+        relative flex max-w-[min(70%,680px)] min-w-0 flex-col
+        ${isOwn ? `items-end` : `items-start`}
+      `}>
         <div className={getMessageBubbleClass()}>
           {renderMessageContent()}
         </div>
         {messageTimeLabel && (
-          <div className="pointer-events-none absolute bottom-full right-0 z-10 mb-1 px-1 text-[11px] leading-none text-base-content/45 opacity-0 translate-y-0.5 transition-all duration-150 group-hover/message:opacity-100 group-hover/message:translate-y-0">
+          <div className="
+            pointer-events-none absolute bottom-full right-0 z-10 mb-1 px-1
+            text-[11px] leading-none text-base-content/45 opacity-0
+            translate-y-0.5 transition-all duration-150
+            group-hover/message:opacity-100 group-hover/message:translate-y-0
+          ">
             {messageTimeLabel}
           </div>
         )}

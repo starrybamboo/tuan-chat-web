@@ -185,9 +185,13 @@ export default function DicerConfigJsonModal({
           <textarea
             value={jsonText}
             onChange={e => handleJsonChange(e.target.value)}
-            className={`textarea textarea-bordered w-full h-96 font-mono text-sm resize-none ${
+            className={`
+              textarea textarea-bordered w-full h-96 font-mono text-sm
+              resize-none
+              ${
               jsonError ? "textarea-error" : ""
-            }`}
+            }
+            `}
             placeholder="输入 JSON 配置"
             spellCheck={false}
           />

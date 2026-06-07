@@ -62,16 +62,25 @@ export default function AnnotationPicker({ initialSelected = DEFAULT_SELECTED, o
   }, [applySelection, selected, selectedSet]);
 
   return (
-    <motion.div className="w-[640px] max-w-[95vw] p-5 flex flex-col max-h-[85vh] overflow-hidden" {...reactionPanelMotionProps}>
+    <motion.div className="
+      w-[640px] max-w-[95vw] p-5 flex flex-col max-h-[85vh] overflow-hidden
+    " {...reactionPanelMotionProps}>
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-bold text-base-content">消息标注</div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 custom-scrollbar">
+      <div className="
+        min-h-0 flex-1 overflow-y-auto pr-2 -mr-2 space-y-5 custom-scrollbar
+      ">
         {categorized.map(({ category, items }) => (
           <div key={category}>
-            <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2.5">{category}</div>
-            <div className="flex flex-wrap gap-1.5 rounded-xl bg-base-200/60 p-2">
+            <div className="
+              text-xs font-semibold text-base-content/50 uppercase
+              tracking-wider mb-2.5
+            ">{category}</div>
+            <div className="
+              flex flex-wrap gap-1.5 rounded-xl bg-base-200/60 p-2
+            ">
               {items.map(item => (
                 <AnnotationChip
                   key={item.id}

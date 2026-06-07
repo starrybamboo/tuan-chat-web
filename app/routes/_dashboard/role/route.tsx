@@ -60,10 +60,16 @@ function RoleLayout() {
   }, []);
 
   return (
-    <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-100 md:bg-base-200">
+    <div className="
+      relative flex h-full w-full min-w-0 overflow-hidden bg-base-100
+      md:bg-base-200
+    ">
       {/* 桌面端侧边栏 - 可收起 */}
       {isDesktop && (
-        <div className={`transition-all duration-300 bg-base-200 border-r border-base-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-80"}`}>
+        <div className={`
+          transition-all duration-300 bg-base-200 border-r border-base-300
+          ${isSidebarCollapsed ? `w-0 overflow-hidden` : `w-80`}
+        `}>
           <Sidebar
             roles={rolesModel.roles}
             selectedRoleId={selectedRoleId}
@@ -74,17 +80,25 @@ function RoleLayout() {
 
       {/* 桌面端切换按钮 - 半圆形状 */}
       {isDesktop && (
-        <div className={`fixed top-24 -translate-y-1/2 z-50 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-80"}`}>
+        <div className={`
+          fixed top-24 -translate-y-1/2 z-50 transition-all duration-300
+          ${isSidebarCollapsed ? `left-0` : `left-80`}
+        `}>
           <button
             type="button"
             onClick={toggleSidebarCollapsed}
-            className="w-6 h-12 cursor-pointer bg-base-300 transition-all duration-200 rounded-r-full flex items-center justify-center group"
+            className="
+              w-6 h-12 cursor-pointer bg-base-300 transition-all duration-200
+              rounded-r-full flex items-center justify-center group
+            "
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              className="w-3 h-3 stroke-current transition-transform duration-200"
+              className="
+                w-3 h-3 stroke-current transition-transform duration-200
+              "
             >
               <path
                 strokeLinecap="round"
@@ -101,12 +115,19 @@ function RoleLayout() {
 
       {/* 移动端悬浮按钮 */}
       {!isDesktop && (
-        <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50">
+        <div className="
+          fixed left-0 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50
+        ">
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
             aria-label="打开角色侧边栏"
-            className="w-7 h-14 cursor-pointer bg-base-200/95 hover:bg-base-300 border border-l-0 border-base-300 rounded-r-full flex items-center justify-center shadow-md transition-all duration-200"
+            className="
+              w-7 h-14 cursor-pointer bg-base-200/95
+              hover:bg-base-300
+              border border-l-0 border-base-300 rounded-r-full flex items-center
+              justify-center shadow-md transition-all duration-200
+            "
           >
             <CaretRightIcon size={16} weight="bold" />
           </button>
@@ -121,8 +142,16 @@ function RoleLayout() {
           direction="left"
         >
           <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-black/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-            <Drawer.Content className="z-100 bg-base-300 flex flex-col fixed h-full w-80 left-0 top-0 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+            <Drawer.Overlay className="
+              fixed inset-0 bg-black/40
+              data-[state=closed]:pointer-events-none
+              data-[state=open]:pointer-events-auto
+            " />
+            <Drawer.Content className="
+              z-100 bg-base-300 flex flex-col fixed h-full w-80 left-0 top-0
+              data-[state=closed]:pointer-events-none
+              data-[state=open]:pointer-events-auto
+            ">
               <Drawer.Title className="sr-only">角色侧边栏</Drawer.Title>
               <Drawer.Description className="sr-only">浏览并管理当前账号下的角色列表。</Drawer.Description>
               <div className="flex-1 overflow-y-auto">
@@ -138,9 +167,18 @@ function RoleLayout() {
       )}
 
       {/* 主内容区域 */}
-      <div className="flex-1 w-full min-w-0 overflow-hidden min-h-0 border-t border-gray-300 dark:border-gray-700">
-        <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
-          <div className="w-full max-w-5xl mx-auto min-h-full md:p-6">
+      <div className="
+        flex-1 w-full min-w-0 overflow-hidden min-h-0 border-t border-gray-300
+        dark:border-gray-700
+      ">
+        <div className="
+          h-full min-h-0 overflow-y-auto overflow-x-hidden
+          [scrollbar-gutter:stable]
+        ">
+          <div className="
+            w-full max-w-5xl mx-auto min-h-full
+            md:p-6
+          ">
             {/* Outlet 是子路由的渲染位置 */}
             {/* 通过 context 将状态传递给子路由 */}
             <Outlet />

@@ -130,13 +130,18 @@ export default function AddMemberWindow({
           />
           <button
             type="button"
-            className={`btn w-full ${copied ? "btn-success" : "btn-primary"}`}
+            className={`
+              btn w-full
+              ${copied ? "btn-success" : "btn-primary"}
+            `}
             onClick={() => {
               void copyToClipboard();
             }}
             disabled={currentInviteLink === "生成中..."}
           >
-            {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
+            {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="
+              size-4
+            " />}
             {copied ? "已复制" : "复制链接"}
           </button>
         </div>
@@ -149,7 +154,9 @@ export default function AddMemberWindow({
         {isEditingInvite
           ? (
               <div className="space-y-3">
-                <label className="block text-xs font-medium text-base-content/60" htmlFor="invite-duration-input">
+                <label className="
+                  block text-xs font-medium text-base-content/60
+                " htmlFor="invite-duration-input">
                   有效期（天）
                 </label>
                 <input
@@ -207,7 +214,10 @@ export default function AddMemberWindow({
             </span>
           </div>
           <div className="relative mb-3">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-base-content/45" />
+            <MagnifyingGlassIcon className="
+              pointer-events-none absolute left-3 top-1/2 size-4
+              -translate-y-1/2 text-base-content/45
+            " />
             <input
               type="text"
               className="input input-bordered w-full bg-base-100 pl-9"
@@ -220,7 +230,10 @@ export default function AddMemberWindow({
             />
           </div>
 
-          <div className="hidden-scrollbar max-h-[320px] overflow-y-auto rounded-lg border border-base-300/70 bg-base-100">
+          <div className="
+            hidden-scrollbar max-h-[320px] overflow-y-auto rounded-lg border
+            border-base-300/70 bg-base-100
+          ">
             {filteredFriends.length > 0
               ? (
                   filteredFriends.map(friend => (
@@ -256,7 +269,10 @@ export default function AddMemberWindow({
                 人
               </span>
             </div>
-            <div className="hidden-scrollbar grid max-h-[260px] gap-2 overflow-y-auto sm:grid-cols-2">
+            <div className="
+              hidden-scrollbar grid max-h-[260px] gap-2 overflow-y-auto
+              sm:grid-cols-2
+            ">
               {spaceMembers.length > 0
                 ? (
                     spaceMembers.map(member => (
@@ -287,8 +303,16 @@ export default function AddMemberWindow({
   }
 
   return (
-    <div className="flex max-h-[min(84vh,780px)] w-[min(1040px,calc(100vw-2rem))] flex-col overflow-hidden bg-base-100 text-base-content lg:grid lg:grid-cols-[330px_minmax(0,1fr)]">
-      <aside className="hidden-scrollbar flex shrink-0 flex-col overflow-y-auto border-b border-base-300/70 bg-base-200/45 p-5 pr-14 lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6">
+    <div className="
+      flex max-h-[min(84vh,780px)] w-[min(1040px,calc(100vw-2rem))] flex-col
+      overflow-hidden bg-base-100 text-base-content
+      lg:grid lg:grid-cols-[330px_minmax(0,1fr)]
+    ">
+      <aside className="
+        hidden-scrollbar flex shrink-0 flex-col overflow-y-auto border-b
+        border-base-300/70 bg-base-200/45 p-5 pr-14
+        lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6
+      ">
         <div className="min-w-0">
           <h2 className="text-2xl font-semibold leading-tight">{title ?? defaultTitle}</h2>
         </div>
@@ -300,7 +324,10 @@ export default function AddMemberWindow({
         </div>
       </aside>
 
-      <main className="hidden-scrollbar min-h-0 flex-1 overflow-y-auto bg-base-100 p-5 pr-14 lg:p-6 lg:pr-14">
+      <main className="
+        hidden-scrollbar min-h-0 flex-1 overflow-y-auto bg-base-100 p-5 pr-14
+        lg:p-6 lg:pr-14
+      ">
         {memberSelection}
       </main>
     </div>
@@ -317,9 +344,14 @@ function PanelSection({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border border-base-300/70 bg-base-100 p-4 shadow-sm">
+    <section className="
+      rounded-lg border border-base-300/70 bg-base-100 p-4 shadow-sm
+    ">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200/55 text-primary">
+        <div className="
+          flex size-10 shrink-0 items-center justify-center rounded-lg border
+          border-base-300 bg-base-200/55 text-primary
+        ">
           {icon}
         </div>
         <div className="min-w-0">
@@ -343,7 +375,12 @@ function MemberRow({
   user: MemberLike;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-base-300/60 px-3 py-2.5 last:border-b-0 hover:bg-base-200/55">
+    <div className="
+      flex items-center justify-between gap-3 border-b border-base-300/60 px-3
+      py-2.5
+      last:border-b-0
+      hover:bg-base-200/55
+    ">
       <MemberIdentity user={user} />
       {isAdded
         ? (
@@ -370,7 +407,10 @@ function MemberCard({
   user: MemberLike;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-base-300/70 bg-base-200/30 px-3 py-3">
+    <div className="
+      flex items-center justify-between gap-3 rounded-lg border
+      border-base-300/70 bg-base-200/30 px-3 py-3
+    ">
       <MemberIdentity user={user} />
       {isAdded
         ? (
@@ -415,7 +455,10 @@ function MemberIdentity({ user }: { user: MemberLike }) {
 
 function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-28 items-center justify-center px-3 py-8 text-center text-sm text-base-content/55">
+    <div className="
+      flex min-h-28 items-center justify-center px-3 py-8 text-center text-sm
+      text-base-content/55
+    ">
       {children}
     </div>
   );

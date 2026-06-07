@@ -233,11 +233,19 @@ export default function SpaceHeaderBar({
 
   return (
     <>
-      <div className="flex items-center justify-between h-10 gap-2 min-w-0 border-b border-gray-300 dark:border-gray-700 rounded-tl-xl px-2">
+      <div className="
+        flex items-center justify-between h-10 gap-2 min-w-0 border-b
+        border-gray-300
+        dark:border-gray-700
+        rounded-tl-xl px-2
+      ">
         <div ref={optionsMenuRef} className="dropdown dropdown-bottom min-w-0">
           <button
             type="button"
-            className="btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg w-full"
+            className="
+              btn btn-ghost btn-sm px-0 min-w-0 gap-2 justify-start rounded-lg
+              w-full
+            "
             aria-label="空间选项"
             aria-expanded={isOptionsMenuOpen}
             aria-haspopup="menu"
@@ -245,7 +253,9 @@ export default function SpaceHeaderBar({
             onClick={() => setIsOptionsMenuOpen(current => !current)}
           >
             <HouseIcon className="size-4 opacity-70 inline-block" weight="fill" />
-            <span className="text-base font-bold truncate leading-none min-w-0 flex-1 text-left">
+            <span className="
+              text-base font-bold truncate leading-none min-w-0 flex-1 text-left
+            ">
               {spaceName}
             </span>
             {archived && (
@@ -257,7 +267,10 @@ export default function SpaceHeaderBar({
             {isOptionsMenuOpen && (
               <motion.ul
                 tabIndex={0}
-                className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-56 p-2"
+                className="
+                  dropdown-content menu bg-base-100 rounded-box shadow-xl border
+                  border-base-300 z-40 w-56 p-2
+                "
                 initial={{ opacity: 0, scale: 0.96, y: -6 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: -6 }}
@@ -409,7 +422,10 @@ export default function SpaceHeaderBar({
             <div className="tooltip tooltip-bottom" data-tip={leftDrawerLabel}>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm btn-square hover:text-info"
+                className="
+                  btn btn-ghost btn-sm btn-square
+                  hover:text-info
+                "
                 onClick={onToggleLeftDrawer}
                 aria-label={leftDrawerLabel}
                 aria-pressed={Boolean(isLeftDrawerOpen)}
@@ -422,7 +438,10 @@ export default function SpaceHeaderBar({
             <div className="tooltip tooltip-bottom" data-tip="邀请成员">
               <button
                 type="button"
-                className="btn btn-ghost btn-sm btn-square hover:text-info"
+                className="
+                  btn btn-ghost btn-sm btn-square
+                  hover:text-info
+                "
                 onClick={onInviteMember}
                 aria-label="邀请成员"
                 title="邀请成员"

@@ -91,11 +91,17 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
           }
         }}
       >
-        <CaretDown className={`size-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        <CaretDown className={`
+          size-4 transition-transform
+          ${isOpen ? `rotate-180` : ""}
+        `} />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-9999 mt-2 w-[min(92vw,28rem)] rounded-md border border-base-300 bg-base-100 p-3 shadow-xl">
+        <div className="
+          absolute left-0 top-full z-9999 mt-2 w-[min(92vw,28rem)] rounded-md
+          border border-base-300 bg-base-100 p-3 shadow-xl
+        ">
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="min-w-0 text-sm font-medium">房间描述</div>
             <button
@@ -108,7 +114,10 @@ export default function RoomDescriptionDropdown({ room }: RoomDescriptionDropdow
             </button>
           </div>
           <textarea
-            className="textarea textarea-bordered min-h-32 w-full resize-y rounded-md text-sm"
+            className="
+              textarea textarea-bordered min-h-32 w-full resize-y rounded-md
+              text-sm
+            "
             value={draft}
             placeholder="填写房间描述..."
             onChange={event => setDraft(event.target.value)}

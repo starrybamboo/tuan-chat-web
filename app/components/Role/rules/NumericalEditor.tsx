@@ -409,15 +409,28 @@ export default function NumericalEditor({
   };
 
   return (
-    <div className="space-y-6 bg-base-200 rounded-lg p-4 [contain:layout_paint] [overflow-anchor:none]">
+    <div className="
+      space-y-6 bg-base-200 rounded-lg p-4 [contain:layout_paint]
+      [overflow-anchor:none]
+    ">
       <div className={headerClassName}>
-        <h3 className={`card-title text-lg items-center gap-2 ${hideTitleOnMobile ? "hidden md:flex" : "flex"}`}>
+        <h3 className={`
+          card-title text-lg items-center gap-2
+          ${hideTitleOnMobile ? `
+            hidden
+            md:flex
+          ` : `flex`}
+        `}>
           {title}
         </h3>
       </div>
 
       <div className="bg-base-200 rounded-lg">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 min-h-32" onKeyDown={handleArrowNavigation} onBlur={handleGridBlur}>
+        <div className="
+          grid grid-cols-2
+          md:grid-cols-4
+          gap-6 min-h-32
+        " onKeyDown={handleArrowNavigation} onBlur={handleGridBlur}>
           {Object.entries(localData).map(([key, value]) => {
             const strVal = String(value ?? "");
 

@@ -202,7 +202,10 @@ export default function RepositoryDetailComponent({
   // 如果正在加载，显示加载状态
   if (!propRepositoryData && isLoadingRepository) {
     return (
-      <div className={`grow flex items-center justify-center ${loadingMinHeightClass}`}>
+      <div className={`
+        grow flex items-center justify-center
+        ${loadingMinHeightClass}
+      `}>
         <div className="text-center">
           <div className="loading loading-spinner loading-lg mb-4"></div>
           <p className="text-lg">加载仓库数据中...</p>
@@ -214,7 +217,10 @@ export default function RepositoryDetailComponent({
   // 如果加载失败，显示错误信息
   if (!propRepositoryData && isRepositoryError) {
     return (
-      <div className={`grow flex items-center justify-center ${loadingMinHeightClass}`}>
+      <div className={`
+        grow flex items-center justify-center
+        ${loadingMinHeightClass}
+      `}>
         <div className="text-center">
           <div className="text-error text-2xl mb-4">❌</div>
           <p className="text-lg text-error mb-4">加载仓库失败</p>
@@ -233,7 +239,10 @@ export default function RepositoryDetailComponent({
   // 如果没有数据，显示空状态
   if (!repositoryData) {
     return (
-      <div className={`grow flex items-center justify-center ${loadingMinHeightClass}`}>
+      <div className={`
+        grow flex items-center justify-center
+        ${loadingMinHeightClass}
+      `}>
         <div className="text-center">
           <p className="text-lg text-base-content/60">未找到仓库数据</p>
         </div>
@@ -370,7 +379,9 @@ export default function RepositoryDetailComponent({
     : primaryAction.kind === "recover"
       ? (
           <>
-            {isRecoveringRepositorySpace && <span className="loading loading-spinner loading-xs"></span>}
+            {isRecoveringRepositorySpace && <span className="
+              loading loading-spinner loading-xs
+            "></span>}
             恢复编辑
           </>
         )
@@ -382,21 +393,42 @@ export default function RepositoryDetailComponent({
         <div className={layoutContainerClassName}>
           <div className={viewLayerHostClassName}>
             <div className={detailLayoutClassName}>
-              <div className="w-full md:w-1/4 flex flex-col gap-4 md:sticky md:top-0 md:self-start">
-                <div className="p-4 flex flex-col gap-4 bg-base-200 rounded-lg border-2 border-base-300">
-                  <div className="w-full flex items-center justify-center relative rounded-md overflow-hidden">
+              <div className="
+                w-full
+                md:w-1/4
+                flex flex-col gap-4
+                md:sticky md:top-0 md:self-start
+              ">
+                <div className="
+                  p-4 flex flex-col gap-4 bg-base-200 rounded-lg border-2
+                  border-base-300
+                ">
+                  <div className="
+                    w-full flex items-center justify-center relative rounded-md
+                    overflow-hidden
+                  ">
                     {displayRepositoryImage
                       ? (
                           <>
                             {imageLoading && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-20">
-                                <div className="loading loading-spinner loading-lg"></div>
+                              <div className="
+                                absolute inset-0 flex items-center
+                                justify-center bg-base-200 z-20
+                              ">
+                                <div className="
+                                  loading loading-spinner loading-lg
+                                "></div>
                               </div>
                             )}
                             {imageError && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-20">
+                              <div className="
+                                absolute inset-0 flex items-center
+                                justify-center bg-base-200 z-20
+                              ">
                                 <div className="text-center">
-                                  <svg className="w-16 h-16 mx-auto mb-2 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="
+                                    w-16 h-16 mx-auto mb-2 text-base-content/30
+                                  " fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                   </svg>
                                   <p className="text-base-content/60 text-sm">图片加载失败</p>
@@ -404,7 +436,13 @@ export default function RepositoryDetailComponent({
                               </div>
                             )}
                             <MediaImage
-                              className={`aspect-square object-cover w-full z-0 ${imageLoading || imageError ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
+                              className={`
+                                aspect-square object-cover w-full z-0
+                                ${imageLoading || imageError ? `opacity-0` : `
+                                  opacity-100
+                                `}
+                                transition-opacity duration-300
+                              `}
                               src={displayRepositoryImage}
                               onLoad={() => setImageLoading(false)}
                               onError={() => {
@@ -416,14 +454,20 @@ export default function RepositoryDetailComponent({
                           </>
                         )
                       : (
-                          <div className="w-full aspect-square bg-base-200 flex items-center justify-center text-base-content/60 text-sm rounded-md">
+                          <div className="
+                            w-full aspect-square bg-base-200 flex items-center
+                            justify-center text-base-content/60 text-sm
+                            rounded-md
+                          ">
                             暂无封面
                           </div>
                         )}
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold leading-snug wrap-break-words">
+                    <h1 className="
+                      text-2xl font-bold leading-snug wrap-break-words
+                    ">
                       {repositoryData.repositoryName}
                     </h1>
                   </div>
@@ -432,27 +476,44 @@ export default function RepositoryDetailComponent({
                 </div>
               </div>
 
-              <div className="hidden md:flex divider divider-horizontal self-stretch m-0" aria-hidden />
+              <div className="
+                hidden
+                md:flex
+                divider divider-horizontal self-stretch m-0
+              " aria-hidden />
 
               <div className="flex-1 min-w-0 min-h-0 overflow-visible">
                 <div className="h-full min-h-0 overflow-hidden rounded-md">
                   {linkedSpaceId
                     ? (
-                        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-base-300 bg-base-100">
+                        <div className="
+                          flex h-full min-h-0 flex-col overflow-hidden
+                          rounded-md border border-base-300 bg-base-100
+                        ">
                           <div className="border-b border-base-300 px-4 py-3">
-                            <div className="truncate text-base font-medium text-base-content">
+                            <div className="
+                              truncate text-base font-medium text-base-content
+                            ">
                               {linkedSpace?.name ?? repositoryData.repositoryName}
                             </div>
                           </div>
-                          <div className="min-h-0 flex-1 overflow-auto px-4 py-4">
-                            <div className="whitespace-pre-wrap text-sm leading-7 text-base-content/80">
+                          <div className="
+                            min-h-0 flex-1 overflow-auto px-4 py-4
+                          ">
+                            <div className="
+                              whitespace-pre-wrap text-sm leading-7
+                              text-base-content/80
+                            ">
                               {(linkedSpace?.description ?? "").trim() || "暂无空间描述"}
                             </div>
                           </div>
                         </div>
                       )
                     : (
-                        <div className="flex flex-col items-center justify-center text-base-content/60 text-sm py-12">
+                        <div className="
+                          flex flex-col items-center justify-center
+                          text-base-content/60 text-sm py-12
+                        ">
                           <div className="mb-3">暂无关联空间资料</div>
                           <button
                             type="button"
@@ -471,8 +532,13 @@ export default function RepositoryDetailComponent({
             {isViewModeOpen && (
               <div className={viewOverlayClassName}>
                 <div className="flex h-full min-h-0 flex-col">
-                  <div className="flex items-center justify-between gap-3 border-b border-info/20 bg-info/10 px-4 py-2">
-                    <div className="flex items-center gap-2 text-sm text-info min-w-0">
+                  <div className="
+                    flex items-center justify-between gap-3 border-b
+                    border-info/20 bg-info/10 px-4 py-2
+                  ">
+                    <div className="
+                      flex items-center gap-2 text-sm text-info min-w-0
+                    ">
                       <span className="badge badge-info badge-outline">查看模式</span>
                       <span className="truncate">正在预览模组内容</span>
                       {linkedSpace?.name && (
@@ -526,7 +592,10 @@ export default function RepositoryDetailComponent({
 
                   <div className="flex-1 min-h-0 bg-base-200/30">
                     {!linkedSpaceId && (
-                      <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
+                      <div className="
+                        flex h-full flex-col items-center justify-center
+                        text-base-content/60 gap-3
+                      ">
                         <div className="text-base">暂无可查看的模组内容</div>
                         <div className="text-sm">{primaryAction.kind === "recover" ? "先恢复编辑后再查看" : "先创建副本后再查看"}</div>
                         <button
@@ -540,13 +609,19 @@ export default function RepositoryDetailComponent({
                       </div>
                     )}
                     {linkedSpaceId && roomsQuery.isLoading && (
-                      <div className="flex h-full items-center justify-center gap-3 text-base-content/60">
+                      <div className="
+                        flex h-full items-center justify-center gap-3
+                        text-base-content/60
+                      ">
                         <div className="loading loading-spinner loading-md"></div>
                         <span className="text-sm">加载房间中...</span>
                       </div>
                     )}
                     {linkedSpaceId && roomsQuery.isError && (
-                      <div className="flex h-full flex-col items-center justify-center gap-3 text-base-content/60">
+                      <div className="
+                        flex h-full flex-col items-center justify-center gap-3
+                        text-base-content/60
+                      ">
                         <div className="text-base">加载房间失败</div>
                         <button
                           type="button"
@@ -558,7 +633,10 @@ export default function RepositoryDetailComponent({
                       </div>
                     )}
                     {linkedSpaceId && !roomsQuery.isLoading && !roomsQuery.isError && !viewRoomId && (
-                      <div className="flex h-full flex-col items-center justify-center text-base-content/60 gap-3">
+                      <div className="
+                        flex h-full flex-col items-center justify-center
+                        text-base-content/60 gap-3
+                      ">
                         <div className="text-base">当前空间暂无可查看的房间</div>
                       </div>
                     )}
@@ -566,8 +644,13 @@ export default function RepositoryDetailComponent({
                       <div className="h-full min-h-0">
                         <Suspense
                           fallback={(
-                            <div className="flex h-full items-center justify-center gap-3 text-base-content/60">
-                              <span className="loading loading-spinner loading-md" />
+                            <div className="
+                              flex h-full items-center justify-center gap-3
+                              text-base-content/60
+                            ">
+                              <span className="
+                                loading loading-spinner loading-md
+                              " />
                               <span className="text-sm">加载房间预览中...</span>
                             </div>
                           )}
@@ -588,7 +671,10 @@ export default function RepositoryDetailComponent({
         </div>
       </div>
       {errorToastMessage && (
-        <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
+        <div className="
+          fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded
+          shadow-lg z-50 fade-in-out
+        ">
           {`❌ ${errorToastMessage}`}
         </div>
       )}

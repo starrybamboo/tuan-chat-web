@@ -136,7 +136,9 @@ export default function MaterialMessageComposer({
   }, [composerAnnotations, setComposerAnnotations]);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-base-300 bg-base-100/80">
+    <div className="
+      overflow-hidden rounded-2xl border border-base-300 bg-base-100/80
+    ">
       <div
         className="relative"
         onDragOver={(event) => {
@@ -172,7 +174,10 @@ export default function MaterialMessageComposer({
         </div>
 
         <div className="flex flex-col gap-2 p-2">
-          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-start">
+          <div className="
+            flex flex-col items-stretch gap-2
+            sm:flex-row sm:items-start
+          ">
             <div className="min-w-0 flex-1">
               <ChatInputArea
                 ref={chatInputRef}
@@ -186,11 +191,17 @@ export default function MaterialMessageComposer({
                 onCompositionEnd={handleCompositionEnd}
                 disabled={false}
                 placeholder={placeholderText}
-                className={`min-h-10 min-w-0 flex-1 overflow-y-auto ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"}`}
+                className={`
+                  min-h-10 min-w-0 flex-1 overflow-y-auto
+                  ${screenSize === "sm" ? `max-h-[30dvh]` : `max-h-[20dvh]`}
+                `}
               />
             </div>
 
-            <div className="flex w-full justify-end sm:block sm:w-auto">
+            <div className="
+              flex w-full justify-end
+              sm:block sm:w-auto
+            ">
               <ChatToolbar
                 roomId={roomId}
                 updateEmojiUrls={updateEmojiUrls}

@@ -490,7 +490,11 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
   return (
     <>
       <div
-        className="flex flex-col gap-2 w-full h-full flex-1 bg-base-200 min-h-0 min-w-0 rounded-tl-xl border-l border-t border-gray-300 dark:border-gray-700"
+        className="
+          flex flex-col gap-2 w-full h-full flex-1 bg-base-200 min-h-0 min-w-0
+          rounded-tl-xl border-l border-t border-gray-300
+          dark:border-gray-700
+        "
       >
         {isPrivateChatMode
           ? (
@@ -523,7 +527,9 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                 >
                   {showSidebarSplitLayout
                     ? (
-                        <div ref={splitContainerRef} className="flex min-h-0 flex-1 flex-col px-1">
+                        <div ref={splitContainerRef} className="
+                          flex min-h-0 flex-1 flex-col px-1
+                        ">
                           <div className="min-h-0 shrink-0 overflow-hidden" style={topPaneStyle}>
                             <SidebarSection
                               title="频道与文档"
@@ -541,7 +547,18 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
 
                           <button
                             type="button"
-                            className={`group mx-2 my-0.5 flex items-center justify-center rounded-md cursor-row-resize touch-none opacity-0 transition-[opacity,background-color] duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:opacity-100 focus-visible:opacity-100 ${isDraggingSplitHandle ? "opacity-100 bg-base-300/80" : "hover:bg-base-300/55"}`}
+                            className={`
+                              group mx-2 my-0.5 flex items-center justify-center
+                              rounded-md cursor-row-resize touch-none opacity-0
+                              transition-[opacity,background-color] duration-150
+                              focus:outline-none
+                              focus-visible:ring-2 focus-visible:ring-primary/40
+                              hover:opacity-100
+                              focus-visible:opacity-100
+                              ${isDraggingSplitHandle ? `
+                                opacity-100 bg-base-300/80
+                              ` : `hover:bg-base-300/55`}
+                            `}
                             style={{ height: ROOM_SIDEBAR_SPLIT_HANDLE_HEIGHT }}
                             aria-label="调整侧边栏分栏高度"
                             title="拖拽调整“频道与文档”和“素材包”的高度分配"
@@ -549,7 +566,13 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                             onKeyDown={handleSplitKeyDown}
                             onDoubleClick={resetSplitRatio}
                           >
-                            <div className={`h-px w-full transition-colors ${isDraggingSplitHandle ? "bg-primary/45" : "bg-base-300/80 group-hover:bg-base-content/28"}`}></div>
+                            <div className={`
+                              h-px w-full transition-colors
+                              ${isDraggingSplitHandle ? `bg-primary/45` : `
+                                bg-base-300/80
+                                group-hover:bg-base-content/28
+                              `}
+                            `}></div>
                           </button>
 
                           {canViewMaterialSection && (
@@ -572,7 +595,10 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
                         </div>
                       )
                     : (
-                        <div className="flex w-full min-h-0 flex-1 flex-col gap-0.5 overflow-hidden px-1">
+                        <div className="
+                          flex w-full min-h-0 flex-1 flex-col gap-0.5
+                          overflow-hidden px-1
+                        ">
                           <SidebarSection
                             title="频道与文档"
                             isExpanded={isRoomDocSectionExpanded}

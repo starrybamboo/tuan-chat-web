@@ -18,19 +18,30 @@ export default function TrendingTopics() {
       {topics.map((topic, index) => (
         <div
           key={topic.id}
-          className="flex items-center justify-between hover:bg-base-200 p-2 rounded-lg cursor-pointer transition-colors group"
+          className="
+            flex items-center justify-between
+            hover:bg-base-200
+            p-2 rounded-lg cursor-pointer transition-colors group
+          "
         >
           <div className="flex items-center space-x-3">
             <span
-              className={`text-sm font-medium w-4 text-center ${
+              className={`
+                text-sm font-medium w-4 text-center
+                ${
                 index < 3 ? "text-primary font-bold" : "text-base-content/60"
-              }`}
+              }
+              `}
             >
               {index + 1}
             </span>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-medium text-base-content group-hover:text-primary transition-colors text-sm">
+                <span className="
+                  font-medium text-base-content
+                  group-hover:text-primary
+                  transition-colors text-sm
+                ">
                   #
                   {topic.name}
                 </span>

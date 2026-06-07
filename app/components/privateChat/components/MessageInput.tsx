@@ -40,7 +40,10 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
   return (
     <>
       {/* 移动端样式 */}
-      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-32">
+      <div className="
+        md:hidden
+        w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-32
+      ">
         {/* 预览要发送的图片和表情 */}
         {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
@@ -71,7 +74,11 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
           <div className="flex-1">
             <input
               type="text"
-              className="w-full h-10 px-3 py-2 rounded-full border border-base-300 focus:outline-none focus:border-info text-sm"
+              className="
+                w-full h-10 px-3 py-2 rounded-full border border-base-300
+                focus:outline-none focus:border-info
+                text-sm
+              "
               placeholder=""
               onChange={(e) => {
                 setMessageInput(e.target.value);
@@ -82,11 +89,19 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
           </div>
           <div className="flex items-center gap-2">
             <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
-              <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
+              <EmojiIcon className="
+                size-6 cursor-pointer
+                hover:text-blue-500
+                transition-colors
+              " />
             </Emoji>
 
             <Image updateImgFiles={updateImgFiles}>
-              <Image2Fill className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
+              <Image2Fill className="
+                size-6 cursor-pointer
+                hover:text-blue-500
+                transition-colors
+              " />
             </Image>
           </div>
           <button
@@ -103,7 +118,11 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
       </div>
 
       {/* 桌面端样式 */}
-      <div className="hidden md:flex w-full flex-col border-t border-base-300 px-6 py-3">
+      <div className="
+        hidden
+        md:flex
+        w-full flex-col border-t border-base-300 px-6 py-3
+      ">
         {/* 预览要发送的图片 */}
         {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="mb-2 flex flex-row gap-x-3 overflow-x-auto">
@@ -129,13 +148,24 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
           </div>
         )}
 
-        <div className="flex min-h-11 w-full items-end gap-2 rounded-xl border border-base-300 bg-base-200/60 px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+        <div className="
+          flex min-h-11 w-full items-end gap-2 rounded-xl border border-base-300
+          bg-base-200/60 px-3 py-2
+          focus-within:border-primary/60 focus-within:ring-2
+          focus-within:ring-primary/20
+        ">
           <div className="flex h-8 shrink-0 items-center gap-1">
             <Emoji updateEmojiUrls={updateEmojiUrls} setEmojiMetaByUrl={setEmojiMetaByUrl}>
-              <EmojiIcon className="size-5 cursor-pointer text-base-content/60 transition-colors hover:text-blue-500" />
+              <EmojiIcon className="
+                size-5 cursor-pointer text-base-content/60 transition-colors
+                hover:text-blue-500
+              " />
             </Emoji>
             <Image updateImgFiles={updateImgFiles}>
-              <Image2Fill className="size-5 cursor-pointer text-base-content/60 transition-colors hover:text-blue-500" />
+              <Image2Fill className="
+                size-5 cursor-pointer text-base-content/60 transition-colors
+                hover:text-blue-500
+              " />
             </Image>
           </div>
 
@@ -143,7 +173,11 @@ export default function MessageInput({ userId, currentContactUserId }: { userId:
           <textarea
             id="private-message-input"
             name="privateMessage"
-            className="max-h-28 min-h-8 flex-1 resize-none bg-transparent px-1 py-1 text-sm leading-6 outline-none placeholder:text-base-content/45"
+            className="
+              max-h-28 min-h-8 flex-1 resize-none bg-transparent px-1 py-1
+              text-sm leading-6 outline-none
+              placeholder:text-base-content/45
+            "
             placeholder="Enter 发送，Shift+Enter 换行"
             onChange={(e) => {
               setMessageInput(e.target.value);
@@ -197,7 +231,9 @@ function Emoji({
     }
   };
   return (
-    <div className="dropdown dropdown-top flex items-center justify-center h-full">
+    <div className="
+      dropdown dropdown-top flex items-center justify-center h-full
+    ">
       {/* dropdown 默认展示 */}
       <button
         type="button"
@@ -208,7 +244,11 @@ function Emoji({
       </button>
       {/* dropdown 表情选择窗口 */}
       <ul
-        className="dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto w-96 transform -translate-x-1/3 md:translate-x-0"
+        className="
+          dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm
+          overflow-y-auto w-96 transform -translate-x-1/3
+          md:translate-x-0
+        "
       >
         <StickerWindow onChoose={onChoose}></StickerWindow>
       </ul>

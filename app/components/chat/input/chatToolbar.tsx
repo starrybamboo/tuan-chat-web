@@ -223,7 +223,10 @@ function ChatToolbar({
         onClick={openMediaPicker}
       >
         <div className={isMobile ? "" : "tooltip tooltip-top"} data-tip={isMobile ? undefined : "发送媒体"}>
-          <FilePlusIcon className="size-6 jump_icon mt-1 md:mt-0" />
+          <FilePlusIcon className="
+            size-6 jump_icon mt-1
+            md:mt-0
+          " />
         </div>
       </button>
       <input
@@ -239,8 +242,13 @@ function ChatToolbar({
   );
 
   return (
-    <div className={`flex ${isInline ? "items-start gap-2 flex-nowrap" : "flex-col w-full"}`}>
-      <div className={`${isInline ? "flex items-start gap-2 flex-nowrap" : "w-full"}`}>
+    <div className={`
+      flex
+      ${isInline ? "items-start gap-2 flex-nowrap" : `flex-col w-full`}
+    `}>
+      <div className={`
+        ${isInline ? "flex items-start gap-2 flex-nowrap" : `w-full`}
+      `}>
         {showStatusBar && roomId != null && statusWebSocketUtils && (
           <ChatStatusBar
             roomId={roomId}
@@ -254,11 +262,20 @@ function ChatToolbar({
         )}
 
         {showMainActions && (
-          <div className={`${isStacked ? "flex items-center justify-between gap-2 w-full bg-base-100 rounded-lg px-2 py-1" : "flex items-center gap-2 flex-wrap"}`}>
+          <div className={`
+            ${isStacked ? `
+              flex items-center justify-between gap-2 w-full bg-base-100
+              rounded-lg px-2 py-1
+            ` : `flex items-center gap-2 flex-wrap`}
+          `}>
             <div className="flex items-center gap-2 flex-wrap">
               <div
                 ref={emojiDropdownRef}
-                className={`dropdown dropdown-top dropdown-start md:dropdown-center ${isEmojiOpen ? "dropdown-open" : ""}`}
+                className={`
+                  dropdown dropdown-top dropdown-start
+                  md:dropdown-center
+                  ${isEmojiOpen ? `dropdown-open` : ""}
+                `}
               >
                 <button
                   type="button"
@@ -277,11 +294,18 @@ function ChatToolbar({
                     className={isMobile ? "" : "tooltip tooltip-top"}
                     data-tip={isMobile ? undefined : "发送表情"}
                   >
-                    <EmojiIconWhite className="size-6 jump_icon mt-1 md:mt-0"></EmojiIconWhite>
+                    <EmojiIconWhite className="
+                      size-6 jump_icon mt-1
+                      md:mt-0
+                    "></EmojiIconWhite>
                   </div>
                 </button>
                 <ul
-                  className="dropdown-content menu bg-base-100 rounded-box z-9999 w-56 md:w-96 p-2 shadow-sm overflow-y-auto mb-6"
+                  className="
+                    dropdown-content menu bg-base-100 rounded-box z-9999 w-56
+                    md:w-96
+                    p-2 shadow-sm overflow-y-auto mb-6
+                  "
                 >
                   <StickerWindow onChoose={async (emoji) => {
                     const emojiUrl = mediaFileUrl(emoji?.fileId, emoji?.mediaType, "medium");
@@ -316,7 +340,11 @@ function ChatToolbar({
                   data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                 >
                   <LinkFilled
-                    className={`size-6 cursor-pointer jump_icon md:mb-1 ${webgalLinkMode ? "text-info" : ""}`}
+                    className={`
+                      size-6 cursor-pointer jump_icon
+                      md:mb-1
+                      ${webgalLinkMode ? `text-info` : ""}
+                    `}
                     onClick={handleToggleWebgalLinkMode}
                   />
                 </div>
@@ -328,7 +356,11 @@ function ChatToolbar({
                   data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗"}
                 >
                   <DiceD6Icon
-                    className={`md:mb-1 size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
+                    className={`
+                      md:mb-1
+                      size-6 cursor-pointer jump_icon
+                      ${runModeEnabled ? `text-info` : ""}
+                    `}
                     onClick={handleToggleRunMode}
                   />
                 </div>
@@ -354,7 +386,10 @@ function ChatToolbar({
                     data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                   >
                     <LinkFilled
-                      className={`size-6 cursor-pointer jump_icon ${webgalLinkMode ? "text-info" : ""}`}
+                      className={`
+                        size-6 cursor-pointer jump_icon
+                        ${webgalLinkMode ? `text-info` : ""}
+                      `}
                       onClick={handleToggleWebgalLinkMode}
                     />
                   </div>
@@ -366,7 +401,10 @@ function ChatToolbar({
                     data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗"}
                   >
                     <DiceD6Icon
-                      className={`size-6 cursor-pointer jump_icon ${runModeEnabled ? "text-info" : ""}`}
+                      className={`
+                        size-6 cursor-pointer jump_icon
+                        ${runModeEnabled ? `text-info` : ""}
+                      `}
                       onClick={handleToggleRunMode}
                     />
                   </div>

@@ -47,8 +47,13 @@ export default function TutorialUpdatePromptModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/35 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5 shadow-xl">
+    <div className="
+      fixed inset-0 z-[10000] flex items-center justify-center bg-black/35 p-4
+    ">
+      <div className="
+        w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5
+        shadow-xl
+      ">
         <div className="text-lg font-semibold">{title}</div>
         <div className="mt-2 text-sm text-base-content/70 leading-relaxed">
           {description}
@@ -59,11 +64,24 @@ export default function TutorialUpdatePromptModal({
             <div className="mt-1">{`最新提交：${latestCommitId ?? "未知"}`}</div>
           </div>
         )}
-        <div className="mt-5 flex flex-col-reverse justify-between gap-4 sm:flex-row sm:items-center">
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-base-content/70 select-none hover:text-base-content/90 transition-colors">
+        <div className="
+          mt-5 flex flex-col-reverse justify-between gap-4
+          sm:flex-row sm:items-center
+        ">
+          <label className="
+            flex cursor-pointer items-center gap-2 text-xs text-base-content/70
+            select-none
+            hover:text-base-content/90
+            transition-colors
+          ">
             <input
               type="checkbox"
-              className="checkbox checkbox-xs rounded-sm border-base-content/30 checked:border-primary [--chkbg:theme(colors.primary)] [--chkfg:theme(colors.primary-content)]"
+              className="
+                checkbox checkbox-xs rounded-sm border-base-content/30
+                checked:border-primary
+                [--chkbg:theme(colors.primary)]
+                [--chkfg:theme(colors.primary-content)]
+              "
               checked={suppress}
               onChange={e => setSuppress(e.target.checked)}
             />

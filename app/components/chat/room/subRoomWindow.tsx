@@ -121,10 +121,21 @@ function SubRoomWindowImpl() {
       handlePosition="left"
       animationDuration={0.16}
     >
-      <div className="h-full flex flex-col min-h-0 bg-base-200 dark:bg-slate-950/25 backdrop-blur-xl border-l border-base-300 shadow-none">
-        <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-50">
+      <div className="
+        h-full flex flex-col min-h-0 bg-base-200
+        dark:bg-slate-950/25
+        backdrop-blur-xl border-l border-base-300 shadow-none
+      ">
+        <div className="
+          border-gray-300
+          dark:border-gray-700
+          border-y flex justify-between items-center overflow-visible relative
+          z-50
+        ">
           <div className="flex justify-between items-center w-full h-10">
-            <div className="flex h-full shrink-0 items-center border-r border-base-300 px-1">
+            <div className="
+              flex h-full shrink-0 items-center border-r border-base-300 px-1
+            ">
               <RunSideDrawerButtons
                 tooltipPlacement="bottom"
               />

@@ -97,7 +97,13 @@ function DiceTurnReplyItem({
     || (reply.roleId ? `角色 #${reply.roleId}` : "骰娘");
 
   return (
-    <div className={`flex min-w-0 items-start gap-2 ${useChatBubbleStyle ? "rounded-xl border border-base-300/65 bg-base-100/70 px-2.5 py-2 shadow-sm" : ""}`}>
+    <div className={`
+      flex min-w-0 items-start gap-2
+      ${useChatBubbleStyle ? `
+        rounded-xl border border-base-300/65 bg-base-100/70 px-2.5 py-2
+        shadow-sm
+      ` : ""}
+    `}>
       <RoleAvatarComponent
         avatarId={reply.avatarId ?? 0}
         roleId={reply.roleId}
@@ -107,18 +113,34 @@ function DiceTurnReplyItem({
         alt={roleName}
       />
       <div className="min-w-0 flex-1">
-        <div className={`flex items-center gap-1.5 text-[11px] ${useChatBubbleStyle ? "mb-1 text-base-content/55" : "mb-0.5 text-base-content/50"}`}>
+        <div className={`
+          flex items-center gap-1.5 text-[11px]
+          ${useChatBubbleStyle ? `mb-1 text-base-content/55` : `
+            mb-0.5 text-base-content/50
+          `}
+        `}>
           <span className="font-medium">{roleName}</span>
           {reply.hidden ? <span className="badge badge-ghost badge-xs">暗骰</span> : null}
         </div>
         {useChatBubbleStyle
           ? (
-              <div className={`whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
+              <div className={`
+                whitespace-pre-wrap break-words
+                ${reply.hidden && !canViewHiddenDiceReply ? `
+                  italic text-base-content/60
+                ` : ""}
+              `}>
                 {reply.content || "[骰子结果]"}
               </div>
             )
           : (
-              <div className={`border-l-2 border-primary/25 pl-2.5 whitespace-pre-wrap break-words ${reply.hidden && !canViewHiddenDiceReply ? "italic text-base-content/60" : ""}`}>
+              <div className={`
+                border-l-2 border-primary/25 pl-2.5 whitespace-pre-wrap
+                break-words
+                ${reply.hidden && !canViewHiddenDiceReply ? `
+                  italic text-base-content/60
+                ` : ""}
+              `}>
                 {reply.content || "[骰子结果]"}
               </div>
             )}
@@ -136,7 +158,11 @@ function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActi
     <div className="tooltip tooltip-bottom flex" data-tip={label}>
       <button
         type="button"
-        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0 text-base-content/70 hover:bg-base-300/70 hover:text-base-content"
+        className="
+          btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0
+          text-base-content/70
+          hover:bg-base-300/70 hover:text-base-content
+        "
         onClick={onClick}
         title={label}
         aria-label={label}
@@ -169,7 +195,10 @@ function ClueCardReadonlyModal({
           </button>
         </div>
 
-        <div className="max-h-[60vh] overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
+        <div className="
+          max-h-[60vh] overflow-auto rounded-lg border border-base-300
+          bg-base-200/40 p-3
+        ">
           <MessageContentRenderer
             message={{
               ...message,
@@ -207,7 +236,14 @@ function ClueCardMessage({ message }: { message: Message }) {
     <>
       <button
         type="button"
-        className="flex w-[min(36rem,100%)] min-w-0 flex-col gap-1 rounded-lg border border-info/25 bg-info/8 px-3 py-2 text-left text-base-content shadow-sm transition hover:border-info/45 hover:bg-info/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-info/60"
+        className="
+          flex w-[min(36rem,100%)] min-w-0 flex-col gap-1 rounded-lg border
+          border-info/25 bg-info/8 px-3 py-2 text-left text-base-content
+          shadow-sm transition
+          hover:border-info/45 hover:bg-info/12
+          focus-visible:outline focus-visible:outline-2
+          focus-visible:outline-offset-2 focus-visible:outline-info/60
+        "
         title="查看线索"
         onClick={(event) => {
           event.preventDefault();
@@ -385,7 +421,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     : getChatMessageMetaRowClass(sideDrawerState !== "none");
   const outOfCharacterBadge = isOutOfCharacterTextMessage
     ? (
-        <span className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium text-base-content/50">
+        <span className="
+          inline-flex shrink-0 items-center whitespace-nowrap rounded-full
+          bg-base-content/8 px-2 py-0.5 text-[10px] leading-none font-medium
+          text-base-content/50
+        ">
           场外
         </span>
       )
@@ -755,7 +795,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
     toastWindow(
       onClose => (
         <RoomContext value={roomContext}>
-          <div className={fullScreen ? "flex h-full min-h-0 flex-col" : "flex flex-col"}>
+          <div className={fullScreen ? "flex h-full min-h-0 flex-col" : `
+            flex flex-col
+          `}>
             <ExpressionChooser
               roleId={message.roleId ?? -1}
               handleExpressionChange={(avatarId) => {
@@ -891,7 +933,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
       ? (
           <button
             type="button"
-            className="mb-1 flex flex-col gap-0.5 rounded-md border border-base-300/60 bg-base-100/70 px-2 py-1 text-left text-xs text-base-content/70 hover:bg-base-200/70"
+            className="
+              mb-1 flex flex-col gap-0.5 rounded-md border border-base-300/60
+              bg-base-100/70 px-2 py-1 text-left text-xs text-base-content/70
+              hover:bg-base-200/70
+            "
             onClick={handleReplyPreviewClick}
           >
             <span className="text-[10px] text-base-content/50">回复</span>
@@ -966,14 +1012,22 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
         return (
           <button
             type="button"
-            className={`w-full rounded-md border border-base-300 bg-base-100/80 px-3 py-2 text-left transition ${
-              disableReason ? "opacity-60 cursor-not-allowed" : "hover:border-info/60 hover:bg-base-200/80"
-            }`}
+            className={`
+              w-full rounded-md border border-base-300 bg-base-100/80 px-3 py-2
+              text-left transition
+              ${
+              disableReason ? "opacity-60 cursor-not-allowed" : `
+                hover:border-info/60 hover:bg-base-200/80
+              `
+            }
+            `}
             onClick={handleCommandRequestClick}
             aria-disabled={Boolean(disableReason)}
             title={hintText}
           >
-            <div className="flex items-center gap-2 text-xs text-base-content/70">
+            <div className="
+              flex items-center gap-2 text-xs text-base-content/70
+            ">
               <span className="badge badge-info badge-xs">检定请求</span>
               {allowAll && <span className="text-[10px] text-base-content/50">全员</span>}
             </div>
@@ -993,7 +1047,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
             <EditableMessageContent
               content={message.content}
               onCommit={handleContentUpdate}
-              className={`editable-field whitespace-pre-wrap break-words ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
+              className={`
+                editable-field whitespace-pre-wrap break-words
+                ${isOutOfCharacterTextMessage ? `italic text-base-content/60` : ""}
+              `}
               editorClassName={`min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full ${isOutOfCharacterTextMessage ? "italic text-base-content/60" : ""}`}
               onEditingChange={setIsEditingContent}
               editInputRef={editInputRef}
@@ -1003,11 +1060,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           );
         case MESSAGE_TYPE.INTRO_TEXT:
           return (
-            <div className="rounded-lg bg-black text-white px-3 py-2 shadow-inner">
+            <div className="
+              rounded-lg bg-black text-white px-3 py-2 shadow-inner
+            ">
               <EditableMessageContent
                 content={message.content}
                 onCommit={handleContentUpdate}
-                className="editable-field whitespace-pre-wrap break-words text-white"
+                className="
+                  editable-field whitespace-pre-wrap break-words text-white
+                "
                 editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-white"
                 onEditingChange={setIsEditingContent}
                 editInputRef={editInputRef}
@@ -1028,7 +1089,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 <EditableMessageContent
                   content={message.content ?? ""}
                   onCommit={handleContentUpdate}
-                  className={`editable-field whitespace-pre-wrap break-words text-sm text-base-content/80 ${message.content ? "" : "sr-only"}`}
+                  className={`
+                    editable-field whitespace-pre-wrap break-words text-sm
+                    text-base-content/80
+                    ${message.content ? "" : `sr-only`}
+                  `}
                   editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-sm text-base-content/80"
                   placeholder="添加图片说明"
                   onEditingChange={setIsEditingContent}
@@ -1049,7 +1114,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
             return (
               <div className="flex min-w-0 flex-col gap-2 text-sm">
                 <div className="rounded-md bg-base-200/55 px-2.5 py-2">
-                  <div className="mb-1 text-[10px] font-medium text-base-content/50">指令</div>
+                  <div className="
+                    mb-1 text-[10px] font-medium text-base-content/50
+                  ">指令</div>
                   <EditableMessageContent
                     content={commandContent}
                     onCommit={handleDiceContentUpdate}
@@ -1061,7 +1128,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                     canEdit={canEdit}
                   />
                 </div>
-                <div className="flex min-w-0 flex-col gap-1.5 border-l-2 border-primary/25 pl-2.5">
+                <div className="
+                  flex min-w-0 flex-col gap-1.5 border-l-2 border-primary/25
+                  pl-2.5
+                ">
                   {diceTurnData.replies.length > 0
                     ? diceTurnData.replies.map((reply, index) => (
                         <DiceTurnReplyItem
@@ -1073,7 +1143,9 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         />
                       ))
                     : (
-                        <div className="whitespace-pre-wrap break-words text-base-content/70">
+                        <div className="
+                          whitespace-pre-wrap break-words text-base-content/70
+                        ">
                           [骰子结果]
                         </div>
                       )}
@@ -1132,7 +1204,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
               className="group relative flex w-full justify-center"
             >
               {messageHoverToolbar}
-              <div className="flex w-full max-w-4xl items-start justify-center gap-1.5 px-1.5 sm:px-3">
+              <div className="
+                flex w-full max-w-4xl items-start justify-center gap-1.5 px-1.5
+                sm:px-3
+              ">
                 <div className="min-w-0 max-w-full shrink">
                   {renderedContent}
                 </div>
@@ -1147,13 +1222,18 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 {messageHoverToolbar}
                 {/* Avatar */}
                 <div
-                  className={`shrink-0 ${
+                  className={`
+                    shrink-0
+                    ${
                     isIntroText
                       ? "invisible cursor-default"
                       : shouldUseUserAvatar
                         ? "cursor-default"
-                        : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? "cursor-pointer" : "cursor-default"))
-                  }`}
+                        : (isAvatarSamplerActive ? "cursor-crosshair" : (canEdit ? `
+                          cursor-pointer
+                        ` : `cursor-default`))
+                  }
+                  `}
                   onClick={isIntroText || shouldUseUserAvatar ? undefined : handleAvatarClick}
                 >
                   {shouldUseUserAvatar
@@ -1168,8 +1248,15 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                       )
                     : isNarrator
                       ? (
-                          <div className={`group/narrator ${narratorAvatarFrameClassName} ${isMobile ? "w-10 h-10" : "w-12 h-12"}`}>
-                            <NarratorIcon className={`w-4 h-4 ${narratorAvatarIconClassName}`} />
+                          <div className={`
+                            group/narrator
+                            ${narratorAvatarFrameClassName}
+                            ${isMobile ? `w-10 h-10` : `w-12 h-12`}
+                          `}>
+                            <NarratorIcon className={`
+                              w-4 h-4
+                              ${narratorAvatarIconClassName}
+                            `} />
                           </div>
                         )
                       : (
@@ -1192,7 +1279,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
-                              className="input input-xs input-bordered w-32 bg-base-200 border-base-300 px-2 shadow-sm focus:outline-none focus:border-info"
+                              className="
+                                input input-xs input-bordered w-32 bg-base-200
+                                border-base-300 px-2 shadow-sm
+                                focus:outline-none focus:border-info
+                              "
                               value={editingRoleName}
                               onChange={e => setEditingRoleName(e.target.value)}
                               onKeyDown={(e) => {
@@ -1204,22 +1295,42 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                               placeholder="输入角色名"
 
                             />
-                            <button type="button" className="btn btn-xs btn-primary" onClick={handleRoleNameSave}>✓</button>
-                            <button type="button" className="btn btn-xs btn-ghost" onClick={() => setIsEditingRoleName(false)}>✕</button>
+                            <button type="button" className="
+                              btn btn-xs btn-primary
+                            " onClick={handleRoleNameSave}>✓</button>
+                            <button type="button" className="
+                              btn btn-xs btn-ghost
+                            " onClick={() => setIsEditingRoleName(false)}>✕</button>
                           </div>
                         )
                       : (
                           !isIntroText && speakerDisplayName
                             ? (
-                                <div className="relative flex min-w-0 max-w-full items-center gap-2">
+                                <div className="
+                                  relative flex min-w-0 max-w-full items-center
+                                  gap-2
+                                ">
                                   {outOfCharacterBadge}
                                   <span
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
-                                    className={`block min-w-10 max-w-full truncate pb-0.5 text-sm transition-all duration-200 sm:pb-1 sm:text-sm ${
+                                    className={`
+                                      block min-w-10 max-w-full truncate pb-0.5
+                                      text-sm transition-all duration-200
+                                      sm:pb-1 sm:text-sm
+                                      ${
                                       isOutOfCharacterTextMessage
-                                        ? "font-medium text-base-content/60 cursor-default"
-                                        : `font-medium text-base-content/85 cursor-pointer hover:text-primary ${canEdit ? "hover:underline" : ""}`
-                                    }`}
+                                        ? `
+                                          font-medium text-base-content/60
+                                          cursor-default
+                                        `
+                                        : `
+                                          font-medium text-base-content/85
+                                          cursor-pointer
+                                          hover:text-primary
+                                          ${canEdit ? `hover:underline` : ""}
+                                        `
+                                    }
+                                    `}
                                   >
                                     {speakerDisplayName}
                                   </span>
@@ -1227,7 +1338,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     <img
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                       alt=""
-                                      className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                      className="
+                                        pointer-events-none absolute left-full
+                                        -top-2
+                                        sm:-top-3
+                                        ml-2 w-16 h-16
+                                        sm:w-20 sm:h-20
+                                        object-contain scale-150 origin-left
+                                      "
                                     />
                                   )}
                                 </div>
@@ -1238,24 +1356,49 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                       <img
                                         src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                         alt=""
-                                        className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                        className="
+                                          pointer-events-none absolute left-2
+                                          -top-2
+                                          sm:-top-3
+                                          w-16 h-16
+                                          sm:w-20 sm:h-20
+                                          object-contain scale-150 origin-left
+                                        "
                                       />
                                     )
                                   : null
                               )
                         )}
-                    <span className="hidden sm:inline text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
+                    <span className="
+                      hidden
+                      sm:inline
+                      text-xs text-base-content/50 ml-auto transition-opacity
+                      duration-200 opacity-0
+                      group-hover:opacity-100
+                      shrink-0
+                    ">
                       {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                       {formattedTime}
                     </span>
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
-                      className={`${CHAT_MESSAGE_BUBBLE_BASE_CLASS} cursor-pointer ${
+                      className={`
+                        ${CHAT_MESSAGE_BUBBLE_BASE_CLASS}
+                        cursor-pointer
+                        ${
                         isOutOfCharacterTextMessage
-                          ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70 shadow-none hover:bg-base-content/6 hover:shadow-none"
-                          : "bg-base-200 hover:shadow-lg hover:bg-base-300"
-                      }`}
+                          ? `
+                            border border-dashed border-base-content/15
+                            bg-base-content/4 text-base-content/70 shadow-none
+                            hover:bg-base-content/6 hover:shadow-none
+                          `
+                          : `
+                            bg-base-200
+                            hover:shadow-lg hover:bg-base-300
+                          `
+                      }
+                      `}
                       onClick={triggerEffectPreview}
                     >
                       {renderedContent}
@@ -1269,19 +1412,31 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
             )
           : (
               <div
-                className="flex w-full py-1.5 sm:py-2 relative"
+                className="
+                  flex w-full py-1.5
+                  sm:py-2
+                  relative
+                "
               >
                 {messageHoverToolbar}
                 {/* 圆角矩形头像 */}
-                <div className="shrink-0 pr-2 sm:pr-3">
+                <div className="
+                  shrink-0 pr-2
+                  sm:pr-3
+                ">
                   <div
-                    className={`w-9 h-9 sm:w-[5.125rem] sm:h-[5.125rem] rounded-md overflow-hidden ${
+                    className={`
+                      w-9 h-9
+                      sm:w-[5.125rem] sm:h-[5.125rem]
+                      rounded-md overflow-hidden
+                      ${
                       isIntroText
                         ? "invisible cursor-default"
                         : shouldUseUserAvatar
                           ? "cursor-default"
                           : (canEdit ? "cursor-pointer" : "cursor-default")
-                    }`}
+                    }
+                    `}
                     onClick={isIntroText || shouldUseUserAvatar ? undefined : handleAvatarClick}
                   >
                     {shouldUseUserAvatar
@@ -1296,8 +1451,19 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                         )
                       : isNarrator
                         ? (
-                            <div className="group/narrator w-full h-full flex items-center justify-center bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85">
-                              <NarratorIcon className="w-5 h-5 transition-transform duration-150 ease-out motion-reduce:transition-none group-hover/narrator:scale-105" />
+                            <div className="
+                              group/narrator w-full h-full flex items-center
+                              justify-center bg-base-200/65 text-base-content/70
+                              transition-colors duration-150 ease-out
+                              motion-reduce:transition-none
+                              hover:bg-base-300/70 hover:text-base-content/85
+                            ">
+                              <NarratorIcon className="
+                                w-5 h-5 transition-transform duration-150
+                                ease-out
+                                motion-reduce:transition-none
+                                group-hover/narrator:scale-105
+                              " />
                             </div>
                           )
                         : (
@@ -1316,15 +1482,26 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   </div>
                 </div>
                 {/* 消息内容 */}
-                <div className="flex-1 min-w-0 pr-2 sm:pr-5">
+                <div className="
+                  flex-1 min-w-0 pr-2
+                  sm:pr-5
+                ">
                   {/* 角色名 */}
-                  <div className="flex items-center w-full gap-2 sm:pr-80 relative">
+                  <div className="
+                    flex items-center w-full gap-2
+                    sm:pr-80
+                    relative
+                  ">
                     {showRoleNameEditor
                       ? (
                           <div className="flex items-center gap-1">
                             <input
                               type="text"
-                              className="input input-sm input-bordered w-40 bg-base-200 border-base-300 px-3 shadow-sm focus:outline-none focus:border-info"
+                              className="
+                                input input-sm input-bordered w-40 bg-base-200
+                                border-base-300 px-3 shadow-sm
+                                focus:outline-none focus:border-info
+                              "
                               value={editingRoleName}
                               onChange={e => setEditingRoleName(e.target.value)}
                               onKeyDown={(e) => {
@@ -1336,21 +1513,42 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                               placeholder="输入角色名"
 
                             />
-                            <button type="button" className="btn btn-sm btn-primary" onClick={handleRoleNameSave}>✓</button>
-                            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setIsEditingRoleName(false)}>✕</button>
+                            <button type="button" className="
+                              btn btn-sm btn-primary
+                            " onClick={handleRoleNameSave}>✓</button>
+                            <button type="button" className="
+                              btn btn-sm btn-ghost
+                            " onClick={() => setIsEditingRoleName(false)}>✕</button>
                           </div>
                         )
                       : (
                           !isIntroText && speakerDisplayName
                             ? (
-                                <div className="relative flex min-w-0 max-w-full items-center gap-2">
+                                <div className="
+                                  relative flex min-w-0 max-w-full items-center
+                                  gap-2
+                                ">
                                   {outOfCharacterBadge}
                                   <div
-                                    className={`min-w-10 max-w-full text-sm leading-5 transition-all duration-200 sm:text-base sm:leading-6 ${
+                                    className={`
+                                      min-w-10 max-w-full text-sm leading-5
+                                      transition-all duration-200
+                                      sm:text-base sm:leading-6
+                                      ${
                                       isOutOfCharacterTextMessage
-                                        ? "font-medium text-base-content/60 cursor-default"
-                                        : `font-semibold cursor-pointer hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`
-                                    }`}
+                                        ? `
+                                          font-medium text-base-content/60
+                                          cursor-default
+                                        `
+                                        : `
+                                          font-semibold cursor-pointer
+                                          hover:text-primary
+                                          ${userId === message.userId ? `
+                                            hover:underline
+                                          ` : ""}
+                                        `
+                                    }
+                                    `}
                                     onClick={isOutOfCharacterTextMessage ? undefined : handleRoleNameClick}
                                   >
                                     <div className="block min-w-0 truncate">
@@ -1361,7 +1559,14 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                     <img
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                       alt=""
-                                      className="pointer-events-none absolute left-full -top-2 sm:-top-3 ml-2 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                      className="
+                                        pointer-events-none absolute left-full
+                                        -top-2
+                                        sm:-top-3
+                                        ml-2 w-16 h-16
+                                        sm:w-20 sm:h-20
+                                        object-contain scale-150 origin-left
+                                      "
                                     />
                                   )}
                                 </div>
@@ -1372,24 +1577,48 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                       <img
                                         src={`${effectIconUrl}?t=${effectPreviewToken}`}
                                         alt=""
-                                        className="pointer-events-none absolute left-2 -top-2 sm:-top-3 w-16 h-16 sm:w-20 sm:h-20 object-contain scale-150 origin-left"
+                                        className="
+                                          pointer-events-none absolute left-2
+                                          -top-2
+                                          sm:-top-3
+                                          w-16 h-16
+                                          sm:w-20 sm:h-20
+                                          object-contain scale-150 origin-left
+                                        "
                                       />
                                     )
                                   : null
                               )
                         )}
-                    <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100 shrink-0">
+                    <div className="
+                      text-xs text-base-content/50 pt-1 ml-auto
+                      transition-opacity duration-200 opacity-0
+                      group-hover:opacity-100
+                      shrink-0
+                    ">
                       {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
                       {formattedTime}
                     </div>
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
-                      className={`relative transition-all duration-200 rounded-lg px-1.5 py-0.5 sm:px-2 sm:py-0.5 cursor-pointer break-words text-base sm:text-sm lg:text-base leading-normal ${
+                      className={`
+                        relative transition-all duration-200 rounded-lg px-1.5
+                        py-0.5
+                        sm:px-2 sm:py-0.5
+                        cursor-pointer break-words text-base
+                        sm:text-sm
+                        lg:text-base
+                        leading-normal
+                        ${
                         isOutOfCharacterTextMessage
-                          ? "border border-dashed border-base-content/15 bg-base-content/4 text-base-content/70"
+                          ? `
+                            border border-dashed border-base-content/15
+                            bg-base-content/4 text-base-content/70
+                          `
                           : "hover:bg-base-200/50"
-                      }`}
+                      }
+                      `}
                       onClick={triggerEffectPreview}
                     >
                       {renderedContent}

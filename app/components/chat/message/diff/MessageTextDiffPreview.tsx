@@ -22,8 +22,14 @@ function renderSegments(segments: MessageTextDiffSegment[], tone: DiffLineTone):
     const className = segment.kind === "equal"
       ? tone === "before" ? "text-base-content/50" : "text-base-content/85"
       : segment.kind === "delete"
-        ? "rounded-sm bg-error/10 px-0.5 text-error/85 line-through decoration-error/70 decoration-1"
-        : "rounded-sm bg-success/15 px-0.5 text-success underline decoration-success/60 decoration-1 underline-offset-2";
+        ? `
+          rounded-sm bg-error/10 px-0.5 text-error/85 line-through
+          decoration-error/70 decoration-1
+        `
+        : `
+          rounded-sm bg-success/15 px-0.5 text-success underline
+          decoration-success/60 decoration-1 underline-offset-2
+        `;
     return (
       <span key={`${segment.kind}:${index}:${segment.text.length}`} className={className}>
         {segment.text}
@@ -50,9 +56,14 @@ export default function MessageTextDiffPreview({
   const isPendingRewrite = isStreaming && !activeDiff.afterText;
 
   return (
-    <div className="rounded-lg border border-base-300/55 bg-base-100/75 p-3 shadow-sm backdrop-blur-md">
+    <div className="
+      rounded-lg border border-base-300/55 bg-base-100/75 p-3 shadow-sm
+      backdrop-blur-md
+    ">
       <div className="space-y-2">
-        <section className="rounded-md border-l-2 border-error/50 bg-error/5 px-3 py-2">
+        <section className="
+          rounded-md border-l-2 border-error/50 bg-error/5 px-3 py-2
+        ">
           <div className="whitespace-pre-wrap break-words text-sm leading-6">
             {isPendingRewrite
               ? (activeDiff.beforeText || <span className="text-base-content/40">暂无内容</span>)
@@ -60,7 +71,9 @@ export default function MessageTextDiffPreview({
           </div>
         </section>
 
-        <section className="rounded-md border-l-2 border-success/60 bg-success/5 px-3 py-2">
+        <section className="
+          rounded-md border-l-2 border-success/60 bg-success/5 px-3 py-2
+        ">
           <div className="whitespace-pre-wrap break-words text-sm leading-6">
             {activeDiff.afterText
               ? renderSegments(activeDiff.afterSegments, "after")

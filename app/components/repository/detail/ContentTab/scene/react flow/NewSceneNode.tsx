@@ -79,10 +79,15 @@ function SceneNode({ data, selected }: SceneNodeProps) {
   return (
     <>
       {/* 场景标题 */}
-      <div ref={titleRef} className={`relative bg-transparent text-center p-2 ${NODE_WIDTH_CLASS}`}>
+      <div ref={titleRef} className={`
+        relative bg-transparent text-center p-2
+        ${NODE_WIDTH_CLASS}
+      `}>
         <div className="flex items-center justify-center text-base-content">
           <span className="text-lg font-black leading-none mr-2">「 </span>
-          <span className="max-w-[9rem] truncate text-base font-bold tracking-wide" title={data.label}>{data.label}</span>
+          <span className="
+            max-w-[9rem] truncate text-base font-bold tracking-wide
+          " title={data.label}>{data.label}</span>
           <span className="text-lg font-black leading-none ml-2"> 」</span>
         </div>
       </div>
@@ -95,14 +100,21 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         onDrop={handleDrop}
       >
         <div
-          className={`relative overflow-hidden rounded-sm bg-base-100 ${
+          className={`
+            relative overflow-hidden rounded-sm bg-base-100
+            ${
             selected
               ? "border-2 border-primary"
               : "border border-base-content"
-          } ${isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""}`}
+          }
+            ${isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""}
+          `}
         >
           {/* 右下偏移的背景层，仅作用于本内容区 */}
-          <div className="absolute inset-0 translate-x-1 translate-y-1 bg-base-300/40 rounded-sm -z-10"></div>
+          <div className="
+            absolute inset-0 translate-x-1 translate-y-1 bg-base-300/40
+            rounded-sm -z-10
+          "></div>
 
           <div className="relative h-20 w-full border-b border-base-300/70">
             <img
@@ -114,13 +126,20 @@ function SceneNode({ data, selected }: SceneNodeProps) {
                 (e.currentTarget as HTMLImageElement).src = "/repositoryDefaultImage.webp";
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent"></div>
+            <div className="
+              absolute inset-0 bg-gradient-to-t from-black/30 via-black/5
+              to-transparent
+            "></div>
           </div>
 
-          <div className="relative h-20 bg-base-100 p-2 text-xs text-base-content/80 leading-5">
+          <div className="
+            relative h-20 bg-base-100 p-2 text-xs text-base-content/80 leading-5
+          ">
             {data.description?.trim()
               ? (
-                  <p className="max-h-full overflow-hidden break-words whitespace-pre-wrap" title={data.description}>
+                  <p className="
+                    max-h-full overflow-hidden break-words whitespace-pre-wrap
+                  " title={data.description}>
                     {data.description}
                   </p>
                 )
@@ -143,7 +162,13 @@ function SceneNode({ data, selected }: SceneNodeProps) {
             ...enlargedHandleStyle,
             top: data.isMobile ? undefined : `calc(50% + ${titleHeight / 2}px)`,
           }}
-          className={`${data.isMobile ? "!absolute !left-1/2" : "!absolute"} !w-[18px] !h-[18px] before:content-[''] before:absolute before:inset-[-5px] before:block before:w-[28px] before:h-[28px] before:rounded-full before:bg-transparent`}
+          className={`
+            ${data.isMobile ? "!absolute !left-1/2" : "!absolute"}
+            !w-[18px] !h-[18px]
+            before:content-[''] before:absolute before:inset-[-5px] before:block
+            before:w-[28px] before:h-[28px] before:rounded-full
+            before:bg-transparent
+          `}
         />
         <Handle
           type="target"
@@ -152,7 +177,13 @@ function SceneNode({ data, selected }: SceneNodeProps) {
             ...enlargedHandleStyle,
             top: data.isMobile ? undefined : `calc(50% + ${titleHeight / 2}px)`,
           }}
-          className={`${data.isMobile ? "!absolute !left-1/2" : "!absolute"} !w-[18px] !h-[18px] before:content-[''] before:absolute before:inset-[-5px] before:block before:w-[28px] before:h-[28px] before:rounded-full before:bg-transparent`}
+          className={`
+            ${data.isMobile ? "!absolute !left-1/2" : "!absolute"}
+            !w-[18px] !h-[18px]
+            before:content-[''] before:absolute before:inset-[-5px] before:block
+            before:w-[28px] before:h-[28px] before:rounded-full
+            before:bg-transparent
+          `}
         />
 
         {/* 节点标签显示在下方 */}

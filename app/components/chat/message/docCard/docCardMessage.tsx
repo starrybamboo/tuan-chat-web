@@ -50,9 +50,14 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
       <div className="flex w-full max-w-3xl gap-3 p-3">
         <button
           type="button"
-          className={`group w-full rounded-xl border border-base-300 bg-base-100 text-left shadow-sm transition-shadow hover:shadow-md ${
+          className={`
+            group w-full rounded-xl border border-base-300 bg-base-100 text-left
+            shadow-sm transition-shadow
+            hover:shadow-md
+            ${
             isDisabled ? "cursor-not-allowed opacity-70" : ""
-          }`}
+          }
+          `}
           onClick={openPreview}
           draggable={!isDisabled}
           onDragStart={(event) => {
@@ -89,13 +94,20 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
           title={isDisabled ? disabledReason : "点击打开预览；支持拖拽复制到侧边栏或再次发送"}
         >
           <div className="flex gap-3 p-3">
-            <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg border border-base-300 bg-base-200">
+            <div className="
+              relative h-20 w-24 shrink-0 overflow-hidden rounded-lg border
+              border-base-300 bg-base-200
+            ">
               {displayCoverUrl
                 ? (
-                    <MediaImage src={displayCoverUrl} alt={title} draggable={false} className="h-full w-full object-cover" />
+                    <MediaImage src={displayCoverUrl} alt={title} draggable={false} className="
+                      h-full w-full object-cover
+                    " />
                   )
                 : (
-                    <div className="flex h-full w-full items-center justify-center">
+                    <div className="
+                      flex h-full w-full items-center justify-center
+                    ">
                       <FileTextIcon className="size-6 opacity-60" />
                     </div>
                   )}
@@ -108,10 +120,14 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
               <div className="line-clamp-2 font-semibold text-base-content/90">{title}</div>
               {excerpt
                 ? (
-                    <div className="line-clamp-3 text-sm leading-relaxed text-base-content/70">{excerpt}</div>
+                    <div className="
+                      line-clamp-3 text-sm leading-relaxed text-base-content/70
+                    ">{excerpt}</div>
                   )
                 : (
-                    <div className="line-clamp-2 text-sm leading-relaxed text-base-content/50">
+                    <div className="
+                      line-clamp-2 text-sm leading-relaxed text-base-content/50
+                    ">
                       {isDisabled ? (disabledReason || "") : "暂无摘要"}
                     </div>
                   )}
@@ -126,7 +142,10 @@ function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageR
         fullScreen={isMobile}
         disableScroll
       >
-        <div className={`${documentModalShellClassName} ${getDocumentModalFrameClassName(isMobile)}`}>
+        <div className={`
+          ${documentModalShellClassName}
+          ${getDocumentModalFrameClassName(isMobile)}
+        `}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden">
               {isOpen && !isDisabled && (

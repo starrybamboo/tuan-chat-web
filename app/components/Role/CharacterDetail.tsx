@@ -416,7 +416,13 @@ function CharacterDetailInner({
                 <div className="skeleton h-10 w-20 rounded-lg"></div>
                 <div className="skeleton h-10 w-20 rounded-lg"></div>
               </div>
-              <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+              <div className="
+                card-sm
+                md:card-xl
+                bg-base-100 shadow-xs
+                md:rounded-xl md:border-2
+                border-base-content/10
+              ">
                 <div className="card-body">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="skeleton h-6 w-32"></div>
@@ -453,20 +459,42 @@ function CharacterDetailInner({
     <div className="w-full min-w-0 overflow-x-hidden p-4">
 
       {/* 顶部头部区域 */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
-        <div className="flex w-full items-start justify-between gap-2 px-6 md:w-auto md:items-center md:justify-start md:gap-4 md:px-0">
+      <div className="
+        flex flex-col gap-2
+        md:flex-row md:items-center md:justify-between md:gap-3
+      ">
+        <div className="
+          flex w-full items-start justify-between gap-2 px-6
+          md:w-auto md:items-center md:justify-start md:gap-4 md:px-0
+        ">
           {layout !== "popup" && (
-            <Link to="/role" type="button" className="hidden md:inline-flex btn btn-lg btn-outline rounded-md btn-ghost">
+            <Link to="/role" type="button" className="
+              hidden
+              md:inline-flex
+              btn btn-lg btn-outline rounded-md btn-ghost
+            ">
               ← 返回
             </Link>
           )}
-          <div className="order-1 hidden min-w-0 md:order-0 md:block md:flex-none">
-            <h1 className="font-semibold text-2xl md:text-3xl md:my-2">
+          <div className="
+            order-1 hidden min-w-0
+            md:order-0 md:block md:flex-none
+          ">
+            <h1 className="
+              font-semibold text-2xl
+              md:text-3xl md:my-2
+            ">
               {displayRole.name || "未命名角色"}
             </h1>
-            <p className="truncate text-base-content/60 md:block">
+            <p className="
+              truncate text-base-content/60
+              md:block
+            ">
               <span className="md:hidden">{currentRuleData?.ruleName || "未选择规则"}</span>
-              <span className="hidden md:inline">
+              <span className="
+                hidden
+                md:inline
+              ">
                 {isDiceMaiden ? "骰娘展示" : "角色展示"}
                 {" "}
                 ·
@@ -474,12 +502,20 @@ function CharacterDetailInner({
               </span>
             </p>
           </div>
-          <div className="order-2 flex shrink-0 items-center gap-1.5 md:order-0 md:gap-2">
+          <div className="
+            order-2 flex shrink-0 items-center gap-1.5
+            md:order-0 md:gap-2
+          ">
             {layout === "popup"
               ? (
                   <button
                     type="button"
-                    className="btn btn-error btn-sm md:btn-lg rounded-md md:mr-4"
+                    className="
+                      btn btn-error btn-sm
+                      md:btn-lg
+                      rounded-md
+                      md:mr-4
+                    "
                     onClick={onKickOut}
                     disabled={!canKickOut}
                   >
@@ -487,11 +523,16 @@ function CharacterDetailInner({
                   </button>
                 )
               : isDiceMaiden && (
-                <div className="tooltip tooltip-bottom md:hidden" data-tip="查看和导出骰娘文案配置的JSON格式">
+                <div className="
+                  tooltip tooltip-bottom
+                  md:hidden
+                " data-tip="查看和导出骰娘文案配置的JSON格式">
                   <button
                     type="button"
                     onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                    className="btn rounded-lg bg-info/70 text-info-content btn-md px-4"
+                    className="
+                      btn rounded-lg bg-info/70 text-info-content btn-md px-4
+                    "
                   >
                     配置
                   </button>
@@ -499,13 +540,26 @@ function CharacterDetailInner({
               )}
           </div>
         </div>
-        <div className={`${layout === "popup" ? "flex" : "hidden md:flex"} w-full items-center justify-center gap-1.5 md:w-auto md:justify-end md:gap-2`}>
+        <div className={`
+          ${layout === "popup" ? "flex" : `
+            hidden
+            md:flex
+          `}
+          w-full items-center justify-center gap-1.5
+          md:w-auto md:justify-end md:gap-2
+        `}>
           {isDiceMaiden && (
-            <div className="tooltip tooltip-bottom hidden md:block" data-tip="查看和导出骰娘文案配置的JSON格式">
+            <div className="
+              tooltip tooltip-bottom hidden
+              md:block
+            " data-tip="查看和导出骰娘文案配置的JSON格式">
               <button
                 type="button"
                 onClick={() => setIsDicerConfigJsonModalOpen(true)}
-                className="btn rounded-lg bg-info/70 text-info-content btn-sm md:btn-lg"
+                className="
+                  btn rounded-lg bg-info/70 text-info-content btn-sm
+                  md:btn-lg
+                "
               >
                 <span className="flex items-center gap-1">
                   <SlidersIcon className="w-4 h-4" />
@@ -517,8 +571,14 @@ function CharacterDetailInner({
         </div>
       </div>
 
-      <div className="md:hidden divider my-0"></div>
-      <div className="max-md:hidden divider"></div>
+      <div className="
+        md:hidden
+        divider my-0
+      "></div>
+      <div className="
+        max-md:hidden
+        divider
+      "></div>
       {layout === "popup"
         ? (
             <div className="space-y-6">
@@ -595,8 +655,13 @@ function CharacterDetailInner({
 
       {/* 规则选择弹窗 */}
       {isRuleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setIsRuleModalOpen(false)}>
-          <div className="bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+        <div className="
+          fixed inset-0 z-50 flex items-center justify-center bg-black/50
+        " onClick={() => setIsRuleModalOpen(false)}>
+          <div className="
+            bg-base-100 rounded-xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh]
+            overflow-auto
+          " onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">选择规则系统</h3>

@@ -63,17 +63,28 @@ export function SpaceWebgalRenderWindowHeader({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`badge ${renderStatusMeta.badgeClass}`}>{renderStatusMeta.label}</div>
+          <div className={`
+            badge
+            ${renderStatusMeta.badgeClass}
+          `}>{renderStatusMeta.label}</div>
           <button
             type="button"
-            className="h-8 w-8 rounded-md flex items-center justify-center text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+            className="
+              h-8 w-8 rounded-md flex items-center justify-center
+              text-base-content/60
+              hover:text-base-content hover:bg-base-200
+              transition-colors
+            "
             title={renderPortExpanded ? "收起渲染端口设置" : "展开渲染端口设置"}
             aria-label={renderPortExpanded ? "收起渲染端口设置" : "展开渲染端口设置"}
             onClick={onToggleRenderPortExpanded}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-4 w-4 transition-transform duration-200 ${renderPortExpanded ? "rotate-180" : ""}`}
+              className={`
+                h-4 w-4 transition-transform duration-200
+                ${renderPortExpanded ? `rotate-180` : ""}
+              `}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -87,7 +98,10 @@ export function SpaceWebgalRenderWindowHeader({
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
-          className={`btn btn-sm ${isRealtimeActive ? "btn-outline" : "btn-primary"}`}
+          className={`
+            btn btn-sm
+            ${isRealtimeActive ? "btn-outline" : `btn-primary`}
+          `}
           disabled={realtimeStatus === "initializing" || isBatchRendering}
           onClick={onToggleRealtimeRender}
         >
@@ -123,7 +137,12 @@ export function SpaceWebgalRenderWindowHeader({
         )}
       </div>
       {publishStatusLabel && (
-        <div className={`mt-3 text-sm ${publishStatus?.status === "failed" ? "text-error" : "text-base-content/80"}`}>
+        <div className={`
+          mt-3 text-sm
+          ${publishStatus?.status === "failed" ? `text-error` : `
+            text-base-content/80
+          `}
+        `}>
           {publishStatusLabel}
           {publishStatus?.status === "failed" && publishStatus.errorMessage ? `：${publishStatus.errorMessage}` : ""}
         </div>

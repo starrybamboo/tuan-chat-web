@@ -89,7 +89,12 @@ const Pagination: React.FC<PaginationProps> = ({
   return (
     <div
       className={
-        `join flex flex-wrap justify-center ${className} gap-1 md:gap-2`
+        `
+          join flex flex-wrap justify-center
+          ${className}
+          gap-1
+          md:gap-2
+        `
       }
       role="navigation"
       aria-label="分页导航"
@@ -112,9 +117,13 @@ const Pagination: React.FC<PaginationProps> = ({
           <button
             key={page}
             type="button"
-            className={`join-item btn btn-square ${
+            className={`
+              join-item btn btn-square
+              ${
               page === currentPage ? "btn-active bg-success" : ""
-            } ${isEllipsis ? "cursor-pointer" : ""}`}
+            }
+              ${isEllipsis ? "cursor-pointer" : ""}
+            `}
             onClick={() => {
               if (typeof page === "number") {
                 handleChange(page);

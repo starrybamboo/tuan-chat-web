@@ -199,26 +199,47 @@ export function ExpressionChooser({
   };
 
   return (
-    <div className={`flex flex-col md:flex-row w-full min-w-0 overflow-hidden ${containerSizeClassName} ${containerLayoutClassName} ${isAvatarFullscreen ? "items-stretch" : ""}`}>
+    <div className={`
+      flex flex-col
+      md:flex-row
+      w-full min-w-0 overflow-hidden
+      ${containerSizeClassName}
+      ${containerLayoutClassName}
+      ${isAvatarFullscreen ? `items-stretch` : ""}
+    `}>
       {/* 左侧：角色列表 */}
-      <div className={`${leftPanelClassName} ${leftPanelOrderClassName}`}>
+      <div className={`
+        ${leftPanelClassName}
+        ${leftPanelOrderClassName}
+      `}>
         {isMobileFullscreen && (
           <button
             type="button"
-            className="w-full flex items-center justify-between gap-2 rounded-lg border border-base-300 px-2 py-2 hover:bg-base-200 transition-colors"
+            className="
+              w-full flex items-center justify-between gap-2 rounded-lg border
+              border-base-300 px-2 py-2
+              hover:bg-base-200
+              transition-colors
+            "
             onClick={() => setIsRoleListExpanded(prev => !prev)}
             aria-expanded={isRoleListExpanded}
           >
             <div className="flex items-center gap-2 min-w-0">
               {isNarratorMode
                 ? (
-                    <div className="size-8 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
+                    <div className="
+                      size-8 rounded-full bg-transparent flex items-center
+                      justify-center flex-shrink-0
+                    ">
                       <NarratorIcon className="size-5 text-base-content/60" />
                     </div>
                   )
                 : isNoRoleMode
                   ? (
-                      <div className="size-8 rounded-full bg-base-200/50 flex items-center justify-center flex-shrink-0">
+                      <div className="
+                        size-8 rounded-full bg-base-200/50 flex items-center
+                        justify-center flex-shrink-0
+                      ">
                         <AddRoleIcon className="size-5 text-base-content/60" />
                       </div>
                     )
@@ -242,18 +263,35 @@ export function ExpressionChooser({
           </button>
         )}
         {(!isMobileFullscreen || isRoleListExpanded) && (
-          <div className={`${roleListClassName} ${isMobileFullscreen ? "mt-2" : ""}`}>
+          <div className={`
+            ${roleListClassName}
+            ${isMobileFullscreen ? "mt-2" : ""}
+          `}>
             {/* 旁白选项（WebGAL 联动模式） */}
             {showNarratorOption && hasHostAccess && (
               <div
                 onClick={handleNarratorSelect}
-                className={`flex items-center gap-3 ${isMobile ? "p-2" : "p-3"} rounded-lg transition-colors ${
-                  hasHostAccess ? "cursor-pointer hover:bg-base-200" : "cursor-not-allowed opacity-60"
-                } ${
-                  isNarratorMode ? "bg-base-200 ring-2 ring-inset ring-secondary/30" : ""
-                }`}
+                className={`
+                  flex items-center gap-3
+                  ${isMobile ? "p-2" : "p-3"}
+                  rounded-lg transition-colors
+                  ${
+                  hasHostAccess ? `
+                    cursor-pointer
+                    hover:bg-base-200
+                  ` : `cursor-not-allowed opacity-60`
+                }
+                  ${
+                  isNarratorMode ? `
+                    bg-base-200 ring-2 ring-inset ring-secondary/30
+                  ` : ""
+                }
+                `}
               >
-                <div className="size-10 rounded-full bg-transparent flex items-center justify-center flex-shrink-0">
+                <div className="
+                  size-10 rounded-full bg-transparent flex items-center
+                  justify-center flex-shrink-0
+                ">
                   <NarratorIcon className="size-6 text-base-content/60" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -274,9 +312,18 @@ export function ExpressionChooser({
                 <div
                   key={role.roleId}
                   onClick={() => handleRoleSelect(role)}
-                  className={`flex items-center gap-3 ${isMobile ? "p-2" : "p-3"} rounded-lg cursor-pointer hover:bg-base-200 transition-colors ${
-                    selectedRoleId === role.roleId ? "bg-base-200 ring-2 ring-inset ring-primary/30" : ""
-                  }`}
+                  className={`
+                    flex items-center gap-3
+                    ${isMobile ? "p-2" : "p-3"}
+                    rounded-lg cursor-pointer
+                    hover:bg-base-200
+                    transition-colors
+                    ${
+                    selectedRoleId === role.roleId ? `
+                      bg-base-200 ring-2 ring-inset ring-primary/30
+                    ` : ""
+                  }
+                  `}
                 >
                   <RoleAvatarByRole
                     role={role}
@@ -309,11 +356,24 @@ export function ExpressionChooser({
             {
               canAddRole && (
                 <div
-                  className={`flex items-center gap-3 ${isMobile ? "p-2.5" : "p-3"} rounded-lg cursor-pointer hover:bg-base-200 transition-colors group border-2 border-dashed border-base-300`}
+                  className={`
+                    flex items-center gap-3
+                    ${isMobile ? "p-2.5" : `p-3`}
+                    rounded-lg cursor-pointer
+                    hover:bg-base-200
+                    transition-colors group border-2 border-dashed
+                    border-base-300
+                  `}
                   onClick={() => setIsRoleAddWindowOpen(true)}
                 >
-                  <AddRingLight className="size-10 group-hover:text-info" />
-                  <div className="text-sm text-base-content/70 group-hover:text-info">添加新角色</div>
+                  <AddRingLight className="
+                    size-10
+                    group-hover:text-info
+                  " />
+                  <div className="
+                    text-sm text-base-content/70
+                    group-hover:text-info
+                  ">添加新角色</div>
                 </div>
               )
             }
@@ -342,14 +402,24 @@ export function ExpressionChooser({
       </ToastWindow>
 
       {/* 右侧：表情列表 */}
-      <div className={`${rightPanelClassName} ${rightPanelOrderClassName}`}>
+      <div className={`
+        ${rightPanelClassName}
+        ${rightPanelOrderClassName}
+      `}>
         {/* 旁白模式也可选择头像（若已配置） */}
         {roleAvatars && roleAvatars.length > 0
           ? (
               <>
-                <div className={`flex items-center gap-2 pb-2 ${toolbarClassName} ${isAvatarFullscreen ? "justify-between" : "justify-end"}`}>
+                <div className={`
+                  flex items-center gap-2 pb-2
+                  ${toolbarClassName}
+                  ${isAvatarFullscreen ? `justify-between` : `justify-end`}
+                `}>
                   {isAvatarFullscreen && (
-                    <div className="flex items-center gap-2 text-sm font-medium text-base-content/70">
+                    <div className="
+                      flex items-center gap-2 text-sm font-medium
+                      text-base-content/70
+                    ">
                       头像列表
                       <span className="text-xs text-base-content/50">{roleAvatars.length}</span>
                     </div>
@@ -357,7 +427,12 @@ export function ExpressionChooser({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className={`btn btn-xs gap-1 ${isAvatarSamplerActive ? "btn-info text-info-content" : "btn-ghost"}`}
+                      className={`
+                        btn btn-xs gap-1
+                        ${isAvatarSamplerActive ? `btn-info text-info-content` : `
+                          btn-ghost
+                        `}
+                      `}
                       onClick={handleSamplerToggle}
                       title={isAvatarSamplerActive ? "退出取样" : "墨水取样：点击消息头像"}
                       aria-label={isAvatarSamplerActive ? "退出取样" : "墨水取样：点击消息头像"}
@@ -377,12 +452,26 @@ export function ExpressionChooser({
                     </button>
                   </div>
                 </div>
-                <div className={`${avatarListClassName} w-full overflow-y-auto overflow-x-hidden ${isAvatarFullscreen ? "pb-4" : ""}`}>
+                <div className={`
+                  ${avatarListClassName}
+                  w-full overflow-y-auto overflow-x-hidden
+                  ${isAvatarFullscreen ? `pb-4` : ""}
+                `}>
                   {avatarCategoryGroups.orderedCategories.map((category) => {
                     const avatars = avatarCategoryGroups.groups.get(category) ?? [];
                     return (
-                      <div key={category} className={isMobileFullscreen ? "mb-1.5 last:mb-0" : "mb-3 last:mb-0"}>
-                        <div className={`flex items-center gap-1.5 text-xs font-semibold text-base-content/70 ${isMobileFullscreen ? "mb-0.5" : "mb-2"}`}>
+                      <div key={category} className={isMobileFullscreen ? `
+                        mb-1.5
+                        last:mb-0
+                      ` : `
+                        mb-3
+                        last:mb-0
+                      `}>
+                        <div className={`
+                          flex items-center gap-1.5 text-xs font-semibold
+                          text-base-content/70
+                          ${isMobileFullscreen ? `mb-0.5` : `mb-2`}
+                        `}>
                           <span>{category}</span>
                           <span className="text-[10px] text-base-content/40">{avatars.length}</span>
                         </div>
@@ -419,18 +508,32 @@ export function ExpressionChooser({
             )
           : isNoRoleMode
             ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
-                  <AddRoleIcon className="size-16 mx-auto mb-3 text-base-content/30" />
+                <div className="
+                  flex flex-col items-center justify-center h-full text-gray-500
+                  py-12
+                ">
+                  <AddRoleIcon className="
+                    size-16 mx-auto mb-3 text-base-content/30
+                  " />
                   <div className="text-sm font-medium mb-1">未选择角色</div>
-                  <div className="text-xs text-base-content/50 max-w-[200px] text-center">请从左侧列表选择你的角色，或添加新角色</div>
+                  <div className="
+                    text-xs text-base-content/50 max-w-[200px] text-center
+                  ">请从左侧列表选择你的角色，或添加新角色</div>
                 </div>
               )
             : isNarratorMode
               ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 py-12">
-                    <NarratorIcon className="size-16 mx-auto mb-3 text-base-content/30" />
+                  <div className="
+                    flex flex-col items-center justify-center h-full
+                    text-gray-500 py-12
+                  ">
+                    <NarratorIcon className="
+                      size-16 mx-auto mb-3 text-base-content/30
+                    " />
                     <div className="text-sm font-medium mb-1">{narratorTitle}</div>
-                    <div className="text-xs text-base-content/50 max-w-[200px] text-center">{narratorDescription}</div>
+                    <div className="
+                      text-xs text-base-content/50 max-w-[200px] text-center
+                    ">{narratorDescription}</div>
                   </div>
                 )
               : (

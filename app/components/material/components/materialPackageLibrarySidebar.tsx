@@ -45,10 +45,20 @@ export default function MaterialPackageLibrarySidebar({
   footerDescription,
 }: MaterialPackageLibrarySidebarProps) {
   return (
-    <div className="flex h-full flex-col bg-base-300/70 px-4 py-5 text-base-content sm:px-5">
-      <div className="mb-6 px-2 sm:mb-8">
-        <div className="text-[11px] uppercase tracking-[0.28em] text-base-content/45">Material</div>
-        <div className="mt-2 text-xl font-semibold tracking-tight text-base-content">素材包</div>
+    <div className="
+      flex h-full flex-col bg-base-300/70 px-4 py-5 text-base-content
+      sm:px-5
+    ">
+      <div className="
+        mb-6 px-2
+        sm:mb-8
+      ">
+        <div className="
+          text-[11px] uppercase tracking-[0.28em] text-base-content/45
+        ">Material</div>
+        <div className="
+          mt-2 text-xl font-semibold tracking-tight text-base-content
+        ">素材包</div>
         <div className="mt-2 text-sm leading-6 text-base-content/60">
           {description}
         </div>
@@ -56,11 +66,17 @@ export default function MaterialPackageLibrarySidebar({
 
       <nav className="space-y-1.5">
         {items.map((item) => {
-          const className = `${itemBaseClass} ${
+          const className = `
+            ${itemBaseClass}
+            ${
             item.active
               ? "bg-base-100 text-base-content shadow-lg"
-              : "text-base-content/62 hover:bg-base-200 hover:text-base-content"
-          }`;
+              : `
+                text-base-content/62
+                hover:bg-base-200 hover:text-base-content
+              `
+          }
+          `;
 
           if (!item.onClick) {
             return (
@@ -88,7 +104,10 @@ export default function MaterialPackageLibrarySidebar({
         })}
       </nav>
 
-      <div className="mt-5 rounded-xl border border-base-300 bg-base-100/65 px-4 py-4 sm:mt-auto">
+      <div className="
+        mt-5 rounded-xl border border-base-300 bg-base-100/65 px-4 py-4
+        sm:mt-auto
+      ">
         <div className="text-sm font-medium text-base-content/90">当前模式</div>
         <div className="mt-2 text-xs leading-5 text-base-content/62">
           {footerDescription}

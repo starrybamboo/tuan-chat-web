@@ -144,15 +144,24 @@ export function ContentCard({
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={handleKeyDown}
     >
-      <div className="overflow-hidden rounded-md border border-gray-300 bg-base-100 dark:border-gray-700">
+      <div className="
+        overflow-hidden rounded-md border border-gray-300 bg-base-100
+        dark:border-gray-700
+      ">
         {/* 图片部分 */}
         {(shouldShowImage || shouldShowPlaceholder) && (
-          <figure className={`relative overflow-hidden bg-base-200 ${aspectClasses[imageAspect]}`}>
+          <figure className={`
+            relative overflow-hidden bg-base-200
+            ${aspectClasses[imageAspect]}
+          `}>
             {shouldShowImage && (
               <MediaImage
                 src={displayImage}
                 alt={imageAlt || title || "Content image"}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                className="
+                  h-full w-full object-cover transition-transform duration-300
+                  group-hover:scale-[1.04]
+                "
                 loading={imageLoading}
                 decoding={imageDecoding}
                 fetchPriority={imageFetchPriority}
@@ -172,19 +181,32 @@ export function ContentCard({
             )}
 
             {(topBadges.length > 0 || hoverHint) && (
-              <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
+              <div className="
+                pointer-events-none absolute inset-x-0 top-0 flex items-start
+                justify-between gap-3 p-3
+              ">
                 <div className="flex flex-wrap gap-2">
                   {topBadges.map(label => (
                     <span
                       key={label}
-                      className="rounded-full border border-base-300 bg-base-100/88 px-2 py-0.5 text-[10px] font-semibold text-base-content shadow-sm backdrop-blur-sm"
+                      className="
+                        rounded-full border border-base-300 bg-base-100/88 px-2
+                        py-0.5 text-[10px] font-semibold text-base-content
+                        shadow-sm backdrop-blur-sm
+                      "
                     >
                       {label}
                     </span>
                   ))}
                 </div>
                 {hoverHint && (
-                  <span className="translate-y-1 rounded-md bg-base-100/88 px-2 py-1 text-[11px] font-semibold text-base-content opacity-0 shadow-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 backdrop-blur-sm">
+                  <span className="
+                    translate-y-1 rounded-md bg-base-100/88 px-2 py-1
+                    text-[11px] font-semibold text-base-content opacity-0
+                    shadow-sm transition-all duration-200
+                    group-hover:translate-y-0 group-hover:opacity-100
+                    backdrop-blur-sm
+                  ">
                     {hoverHint}
                   </span>
                 )}
@@ -193,15 +215,35 @@ export function ContentCard({
 
             {shouldShowHoverMeta && (
               <>
-                <div className="absolute inset-0 bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-40 dark:bg-black dark:group-hover:opacity-20" />
-                <div className="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end items-start">
-                  <div className="space-y-3 text-sm text-black dark:text-white">
+                <div className="
+                  absolute inset-0 bg-white opacity-0 transition-opacity
+                  duration-300
+                  group-hover:opacity-40
+                  dark:bg-black
+                  dark:group-hover:opacity-20
+                " />
+                <div className="
+                  pointer-events-none absolute inset-0 p-4 opacity-0
+                  transition-opacity duration-300
+                  group-hover:opacity-100
+                  flex flex-col justify-end items-start
+                ">
+                  <div className="
+                    space-y-3 text-sm text-black
+                    dark:text-white
+                  ">
                     {hoverMetadata.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {hoverMetadata.map(item => (
                           <span
                             key={item}
-                            className="rounded-full border border-black/12 bg-white/75 px-2.5 py-0.5 text-[11px] font-medium text-black/78 backdrop-blur-sm dark:border-white/12 dark:bg-black/55 dark:text-white/82"
+                            className="
+                              rounded-full border border-black/12 bg-white/75
+                              px-2.5 py-0.5 text-[11px] font-medium
+                              text-black/78 backdrop-blur-sm
+                              dark:border-white/12 dark:bg-black/55
+                              dark:text-white/82
+                            "
                           >
                             {item}
                           </span>
@@ -255,11 +297,16 @@ export function ContentCard({
           </figure>
         )}
 
-        <div className={`bg-base-100 px-3 py-3 ${sizeClasses[size]}`}>
+        <div className={`
+          bg-base-100 px-3 py-3
+          ${sizeClasses[size]}
+        `}>
           {(title || resolvedBadgeLabel || titleSuffix) && (
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                {title && <h2 className="text-base font-bold leading-6 line-clamp-2">{title}</h2>}
+                {title && <h2 className="
+                  text-base font-bold leading-6 line-clamp-2
+                ">{title}</h2>}
                 {subtitle && (
                   <p className="mt-1 text-sm text-base-content/55 line-clamp-2">
                     {subtitle}
@@ -270,7 +317,10 @@ export function ContentCard({
                 <div className="flex shrink-0 items-center gap-2">
                   {titleSuffix}
                   {resolvedBadgeLabel && (
-                    <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-base-content/80">
+                    <span className="
+                      rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px]
+                      font-semibold whitespace-nowrap text-base-content/80
+                    ">
                       {resolvedBadgeLabel}
                     </span>
                   )}
@@ -281,7 +331,9 @@ export function ContentCard({
 
           {content && (
             <div className="prose prose-sm max-w-none">
-              <p className="text-sm leading-relaxed text-base-content/80 line-clamp-4">
+              <p className="
+                text-sm leading-relaxed text-base-content/80 line-clamp-4
+              ">
                 {content}
               </p>
             </div>
@@ -292,7 +344,10 @@ export function ContentCard({
               {metadata.map(item => (
                 <span
                   key={item}
-                  className="rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/65"
+                  className="
+                    rounded-full border border-base-300 bg-base-100 px-2 py-0.5
+                    text-[11px] text-base-content/65
+                  "
                 >
                   {item}
                 </span>
@@ -449,16 +504,32 @@ export default function RepositoryHome() {
 
         {/* 图片卡片区域 */}
         <div id="featured-content">
-          <div className="max-w-6xl mx-auto mb-12 mt-2 md:mt-8">
+          <div className="
+            max-w-6xl mx-auto mb-12 mt-2
+            md:mt-8
+          ">
             <div className="flex items-center mb-6">
-              <h1 className="text-xl md:text-3xl font-bold pl-4 md:pl-8 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 md:before:w-2 before:bg-primary before:rounded-r-md">
+              <h1 className="
+                text-xl
+                md:text-3xl
+                font-bold pl-4
+                md:pl-8
+                relative
+                before:content-[''] before:absolute before:left-0 before:top-0
+                before:bottom-0 before:w-1
+                md:before:w-2
+                before:bg-primary before:rounded-r-md
+              ">
                 仓库列表
               </h1>
               <div className="ml-auto flex items-center gap-2">
                 {/* 移动端筛选图标 */}
                 <button
                   type="button"
-                  className="md:hidden p-2 text-base-content/60 transition-colors"
+                  className="
+                    md:hidden
+                    p-2 text-base-content/60 transition-colors
+                  "
                   onClick={() => setShowMobileFilter(!showMobileFilter)}
                 >
                   <svg className="h-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -478,15 +549,34 @@ export default function RepositoryHome() {
 
             <div className="divider"></div>
             {/* 规则列表展示 */}
-            <div className={`flex flex-col gap-6 max-w-6xl mx-auto ${showMobileFilter ? "block" : "hidden md:flex"}`}>
+            <div className={`
+              flex flex-col gap-6 max-w-6xl mx-auto
+              ${showMobileFilter ? `block` : `
+                hidden
+                md:flex
+              `}
+            `}>
               <div className="flex-1">
-                <h2 className="text-lg md:text-xl font-bold mb-4">全部规则</h2>
+                <h2 className="
+                  text-lg
+                  md:text-xl
+                  font-bold mb-4
+                ">全部规则</h2>
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
                       key={rule.ruleId}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === (rule.ruleId ?? null) ? "bg-accent text-white" : "bg-accent/10"}`}
+                      className={`
+                        px-3 py-1 rounded-full text-xs
+                        md:text-sm
+                        font-semibold border transition-all duration-200
+                        focus:outline-none
+                        cursor-pointer
+                        ${selectedRuleId === (rule.ruleId ?? null) ? `
+                          bg-accent text-white
+                        ` : `bg-accent/10`}
+                      `}
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
                         setCurrentPage(1);
@@ -497,14 +587,25 @@ export default function RepositoryHome() {
                   ))}
                 </div>
               </div>
-              <div className="divider mt-0 mb-8 md:mb-8"></div>
+              <div className="
+                divider mt-0 mb-8
+                md:mb-8
+              "></div>
             </div>
-            <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
+            <div className="
+              max-w-6xl mx-auto grid grid-cols-2
+              md:grid-cols-4
+              gap-10
+            ">
               {(() => {
                 if (repositoryList.isLoading || (currentItems.length !== 0 && !imagesReady)) {
                   return Array.from({ length: 8 }, (_, index) => (
-                    <div key={`loading-skeleton-${index}`} className="animate-pulse">
-                      <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
+                    <div key={`loading-skeleton-${index}`} className="
+                      animate-pulse
+                    ">
+                      <div className="
+                        bg-base-300 aspect-square rounded-none mb-4
+                      "></div>
                       <div className="h-4 bg-base-300 rounded mb-2"></div>
                       <div className="h-3 bg-base-300 rounded mb-1"></div>
                       <div className="h-3 bg-base-300 rounded w-2/3"></div>
@@ -514,7 +615,10 @@ export default function RepositoryHome() {
 
                 if (repositoryList.isError) {
                   return (
-                    <div className="col-span-full flex flex-col items-center justify-center py-12">
+                    <div className="
+                      col-span-full flex flex-col items-center justify-center
+                      py-12
+                    ">
                       <div className="text-error text-lg mb-2">加载失败</div>
                       <div className="text-base-content/60 text-sm mb-4">请稍后再试</div>
                       <button
@@ -530,7 +634,10 @@ export default function RepositoryHome() {
 
                 if (currentItems.length === 0) {
                   return (
-                    <div className="col-span-full flex flex-col items-center justify-center py-12">
+                    <div className="
+                      col-span-full flex flex-col items-center justify-center
+                      py-12
+                    ">
                       <div className="text-base-content/60 text-lg mb-2">暂无仓库数据</div>
                       <div className="text-base-content/40 text-sm">快来创建第一个仓库吧！</div>
                     </div>

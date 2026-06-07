@@ -79,7 +79,9 @@ export default function useChatFrameNarratorToggle({
                 });
                 onClose();
               }}
-              className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              className="
+                menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto
+              "
             />
           </div>
         </RoomContext>

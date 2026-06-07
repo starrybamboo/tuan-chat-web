@@ -8,7 +8,11 @@ export default function RepositoryForm({ register, errors }: {
         <p className="text-xl font-bold mb-5 text-cyan-600">2. 填写仓库信息</p>
         <p className="mb-1 text-cyan-600">作者</p>
         <input
-          className="rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300 dark:border-gray-500 focus:outline-none focus:border-info"
+          className="
+            rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300
+            dark:border-gray-500
+            focus:outline-none focus:border-info
+          "
           type="text"
           placeholder=""
           {...register("authorName", {
@@ -22,7 +26,11 @@ export default function RepositoryForm({ register, errors }: {
       <div className="mb-4">
         <p className="mb-1 text-cyan-600">仓库名</p>
         <input
-          className="rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300 dark:border-gray-500 focus:outline-none focus:border-info"
+          className="
+            rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300
+            dark:border-gray-500
+            focus:outline-none focus:border-info
+          "
           type="text"
           placeholder=""
           {...register("repositoryName", {
@@ -36,7 +44,11 @@ export default function RepositoryForm({ register, errors }: {
       <div className="mb-4">
         <p className="mb-1 text-cyan-600">仓库描述</p>
         <textarea
-          className="rounded-md w-full h-20 px-3 py-2 border-2 border-gray-300 dark:border-gray-500 focus:outline-none focus:border-info"
+          className="
+            rounded-md w-full h-20 px-3 py-2 border-2 border-gray-300
+            dark:border-gray-500
+            focus:outline-none focus:border-info
+          "
           placeholder=""
           {...register("description", {
             required: "仓库描述是必填项",

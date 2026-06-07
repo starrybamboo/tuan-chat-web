@@ -168,7 +168,10 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
 
 function SubWindowLoadingFallback({ text }: { text: string }) {
   return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+    <div className="
+      flex h-full w-full items-center justify-center text-sm
+      text-base-content/60
+    ">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">{text}</span>
     </div>
@@ -417,12 +420,28 @@ export default function ChatPageSubWindow({
   if (!isOpen) {
     return (
       <div
-        className={`absolute right-0 top-1/2 -translate-y-1/2 z-30 pointer-events-none transition-all duration-200 ${isRightEdgeActive ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}`}
+        className={`
+          absolute right-0 top-1/2 -translate-y-1/2 z-30 pointer-events-none
+          transition-all duration-200
+          ${isRightEdgeActive ? `translate-x-0 opacity-100` : `
+            translate-x-full opacity-0
+          `}
+        `}
       >
         <div className="tooltip tooltip-left" data-tip="向左拖拽打开副窗口">
           <button
             type="button"
-            className={`h-24 w-6 rounded-l-xl border-y border-l border-base-300/50 bg-base-100/90 backdrop-blur-sm text-base-content/50 shadow-[-4px_0_12px_rgba(0,0,0,0.05)] hover:w-8 hover:text-primary hover:bg-base-100 active:scale-95 transition-all cursor-col-resize flex items-center justify-center ${isRightEdgeActive ? "pointer-events-auto" : "pointer-events-none"}`}
+            className={`
+              h-24 w-6 rounded-l-xl border-y border-l border-base-300/50
+              bg-base-100/90 backdrop-blur-sm text-base-content/50
+              shadow-[-4px_0_12px_rgba(0,0,0,0.05)]
+              hover:w-8 hover:text-primary hover:bg-base-100
+              active:scale-95
+              transition-all cursor-col-resize flex items-center justify-center
+              ${isRightEdgeActive ? `pointer-events-auto` : `
+                pointer-events-none
+              `}
+            `}
             data-sub-window-drop-zone
             onPointerDown={handleOpenEdgePointerDown}
             onDragOverCapture={handleDragOver}
@@ -453,7 +472,10 @@ export default function ChatPageSubWindow({
       handlePosition="left"
     >
       <div
-        className="h-full flex flex-col min-h-0 bg-base-200 border-l border-base-300 relative"
+        className="
+          h-full flex flex-col min-h-0 bg-base-200 border-l border-base-300
+          relative
+        "
         data-sub-window-drop-zone
         onDragOverCapture={handleDragOver}
         onDropCapture={handleDrop}
@@ -462,14 +484,20 @@ export default function ChatPageSubWindow({
       >
         {isDropReplaceOverlayVisible && (
           <div
-            className="absolute inset-0 z-40 flex items-center justify-center bg-base-200/18 backdrop-blur-[1px]"
+            className="
+              absolute inset-0 z-40 flex items-center justify-center
+              bg-base-200/18 backdrop-blur-[1px]
+            "
             data-sub-window-drop-zone
             onDragOverCapture={handleDragOver}
             onDropCapture={handleDrop}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
           >
-            <div className="rounded-xl border border-primary/30 bg-base-100/92 px-4 py-2 text-sm font-semibold text-base-content shadow">
+            <div className="
+              rounded-xl border border-primary/30 bg-base-100/92 px-4 py-2
+              text-sm font-semibold text-base-content shadow
+            ">
               松开以替换副窗口内容
             </div>
           </div>
@@ -478,7 +506,10 @@ export default function ChatPageSubWindow({
           <div className="absolute left-2 top-2 z-30 tooltip tooltip-right" data-tip="关闭副窗口">
             <button
               type="button"
-              className="btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 bg-base-200/70 backdrop-blur-sm"
+              className="
+                btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 bg-base-200/70
+                backdrop-blur-sm
+              "
               onClick={() => setIsOpen(false)}
               aria-label="关闭副窗口"
               title="关闭副窗口"
@@ -489,7 +520,10 @@ export default function ChatPageSubWindow({
         )}
         <div className="flex-1 min-h-0 overflow-hidden">
           {tab === "empty" && (
-            <div className="h-full w-full flex items-center justify-center text-base-content/70">
+            <div className="
+              h-full w-full flex items-center justify-center
+              text-base-content/70
+            ">
               <div className="max-w-sm text-center px-8">
                 <div className="text-base font-semibold">副窗口为空</div>
                 <div className="mt-2 text-sm text-base-content/60">
@@ -512,7 +546,10 @@ export default function ChatPageSubWindow({
                   </React.Suspense>
                 )
               : (
-                  <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                  <div className="
+                    h-full flex items-center justify-center text-sm
+                    text-base-content/60
+                  ">
                     当前空间没有可用房间
                   </div>
                 )
@@ -521,19 +558,27 @@ export default function ChatPageSubWindow({
           {tab === "doc" && (
             (!isKPInSpace && isKPPermissionPending)
               ? (
-                  <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                  <div className="
+                    h-full flex items-center justify-center text-sm
+                    text-base-content/60
+                  ">
                     正在验证文档权限...
                   </div>
                 )
               : !isKPInSpace
                   ? (
-                      <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                      <div className="
+                        h-full flex items-center justify-center text-sm
+                        text-base-content/60
+                      ">
                         仅 KP 可查看文档
                       </div>
                     )
                   : resolvedDocId
                     ? (
-                        <div className="w-full h-full overflow-hidden bg-base-100">
+                        <div className="
+                          w-full h-full overflow-hidden bg-base-100
+                        ">
                           <ChatPageDocContent
                             canViewDocs={isKPInSpace}
                             docId={resolvedDocId}
@@ -549,7 +594,10 @@ export default function ChatPageSubWindow({
                         </div>
                       )
                     : (
-                        <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+                        <div className="
+                          h-full flex items-center justify-center text-sm
+                          text-base-content/60
+                        ">
                           当前空间没有可用文档
                         </div>
                       )

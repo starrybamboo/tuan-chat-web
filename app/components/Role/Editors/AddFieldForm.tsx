@@ -166,12 +166,21 @@ export default function AddFieldForm({
 
   if (layout === "stacked") {
     return (
-      <div className={`border-2 border-dashed border-base-content/20 rounded-lg p-4 bg-base-50 h-full ${className}`}>
+      <div className={`
+        border-2 border-dashed border-base-content/20 rounded-lg p-4 bg-base-50
+        h-full
+        ${className}
+      `}>
         {showTitle && (
           <span className="text-sm text-base-content/50 mb-3 block">{title}</span>
         )}
         <div className="space-y-3">
-          <label className="input flex items-center w-full gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100">
+          <label className="
+            input flex items-center w-full gap-2 rounded-md transition
+            focus-within:ring-2 focus-within:ring-primary/20
+            focus-within:border-primary focus-within:outline-none
+            bg-base-100
+          ">
             <input
               ref={keyInputRef}
               type="text"
@@ -182,11 +191,20 @@ export default function AddFieldForm({
               }}
               placeholder={placeholder.key || "字段名"}
               data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-              className="grow focus:outline-none border-none outline-none bg-transparent"
+              className="
+                grow
+                focus:outline-none
+                border-none outline-none bg-transparent
+              "
             />
           </label>
           <div className="relative">
-            <label className="textarea flex items-center w-full gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0">
+            <label className="
+              textarea flex items-center w-full gap-2 rounded-md transition
+              focus-within:ring-2 focus-within:ring-primary/20
+              focus-within:border-primary focus-within:outline-none
+              bg-base-100 p-0
+            ">
               <textarea
                 ref={valueTextareaRef}
                 onKeyDown={(e) => {
@@ -195,7 +213,11 @@ export default function AddFieldForm({
                 }}
                 placeholder={placeholder.value || "字段值"}
                 data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-                className="textarea grow focus:outline-none border-none outline-none bg-transparent min-h-32 pr-20 pb-12"
+                className="
+                  textarea grow
+                  focus:outline-none
+                  border-none outline-none bg-transparent min-h-32 pr-20 pb-12
+                "
               />
             </label>
             <div className="tooltip tooltip-top absolute bottom-2 right-2" data-tip={stackedAddTip}>
@@ -215,11 +237,18 @@ export default function AddFieldForm({
   }
 
   return (
-    <div className={`border-t-2 pt-4 border-base-content/10 ${className}`}>
+    <div className={`
+      border-t-2 pt-4 border-base-content/10
+      ${className}
+    `}>
       {showTitle && (
         <span className="text-sm text-base-content/50 mb-2 block">{title}</span>
       )}
-      <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
+      <label className="
+        input flex items-center gap-2 rounded-md transition
+        focus-within:ring-2 focus-within:ring-primary/20
+        focus-within:border-primary focus-within:outline-none
+      ">
         <input
           ref={keyInputRef}
           type="text"
@@ -230,7 +259,11 @@ export default function AddFieldForm({
           }}
           placeholder={placeholder.key || "字段名"}
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-          className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 shrink-0"
+          className="
+            text-sm font-medium bg-transparent border-none
+            focus:outline-none
+            outline-none w-24 shrink-0
+          "
         />
         <div className="w-px h-4 bg-base-content/20"></div>
         <input
@@ -242,7 +275,11 @@ export default function AddFieldForm({
           }}
           placeholder={placeholder.value || "字段值"}
           data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-          className="grow focus:outline-none border-none outline-none"
+          className="
+            grow
+            focus:outline-none
+            border-none outline-none
+          "
         />
         <div className="tooltip tooltip-top" data-tip={inlineAddTip}>
           <button

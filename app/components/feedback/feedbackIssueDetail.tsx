@@ -52,8 +52,15 @@ function FeedbackStatePill({
         : "bg-base-content/55";
 
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${className}`}>
-      <span className={`h-2.5 w-2.5 rounded-full ${dotClassName}`} />
+    <span className={`
+      inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
+      font-medium
+      ${className}
+    `}>
+      <span className={`
+        h-2.5 w-2.5 rounded-full
+        ${dotClassName}
+      `} />
       {label}
     </span>
   );
@@ -61,8 +68,17 @@ function FeedbackStatePill({
 
 function FeedbackArchivePill({ archived }: { archived: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${archived ? "border-base-content/25 bg-base-200 text-base-content/75" : "border-base-content/15 bg-base-100 text-base-content/55"}`}>
-      <span className={`h-2.5 w-2.5 rounded-full ${archived ? "bg-base-content/45" : "bg-base-content/20"}`} />
+    <span className={`
+      inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
+      font-medium
+      ${archived ? `border-base-content/25 bg-base-200 text-base-content/75` : `
+        border-base-content/15 bg-base-100 text-base-content/55
+      `}
+    `}>
+      <span className={`
+        h-2.5 w-2.5 rounded-full
+        ${archived ? `bg-base-content/45` : `bg-base-content/20`}
+      `} />
       {archived ? "已归档" : "未归档"}
     </span>
   );
@@ -98,7 +114,11 @@ function FeedbackStatusButtons({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <div className={`inline-flex flex-wrap items-center gap-1 rounded-2xl border border-base-300 bg-base-100 p-1 shadow-sm ${disabled ? "opacity-65" : ""}`}>
+      <div className={`
+        inline-flex flex-wrap items-center gap-1 rounded-2xl border
+        border-base-300 bg-base-100 p-1 shadow-sm
+        ${disabled ? `opacity-65` : ""}
+      `}>
         {FEEDBACK_ISSUE_STATUS_OPTIONS.map((option) => {
           const active = option.value === status;
           const processingLocked = option.value === FEEDBACK_ISSUE_STATUS_PROCESSING && !canSetProcessingStatus;
@@ -107,7 +127,12 @@ function FeedbackStatusButtons({
             <button
               key={option.value}
               type="button"
-              className={`btn btn-sm h-9 min-h-0 rounded-xl border-none px-5 text-sm font-medium shadow-none transition-all ${getFeedbackStatusButtonClass(option.value, active)} ${processingLocked ? "cursor-not-allowed opacity-50" : ""}`}
+              className={`
+                btn btn-sm h-9 min-h-0 rounded-xl border-none px-5 text-sm
+                font-medium shadow-none transition-all
+                ${getFeedbackStatusButtonClass(option.value, active)}
+                ${processingLocked ? `cursor-not-allowed opacity-50` : ""}
+              `}
               aria-pressed={active}
               disabled={optionDisabled}
               title={processingLocked ? "仅开发人员可设置为处理中" : undefined}
@@ -137,7 +162,14 @@ function FeedbackArchiveToggle({
   return (
     <button
       type="button"
-      className={`btn h-[44px] min-h-0 rounded-2xl border px-6 text-sm font-medium shadow-sm transition-all ${archived ? "btn-neutral border-neutral" : "border-base-300 bg-base-100 text-base-content hover:border-base-300 hover:bg-base-200/50"}`}
+      className={`
+        btn h-[44px] min-h-0 rounded-2xl border px-6 text-sm font-medium
+        shadow-sm transition-all
+        ${archived ? `btn-neutral border-neutral` : `
+          border-base-300 bg-base-100 text-base-content
+          hover:border-base-300 hover:bg-base-200/50
+        `}
+      `}
       disabled={disabled}
       onClick={onToggle}
     >
@@ -164,7 +196,10 @@ function FeedbackDetailAuthor({
   }
 
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-base-300 text-sm font-semibold text-base-content/70">
+    <div className="
+      flex h-10 w-10 items-center justify-center rounded-full bg-base-300
+      text-sm font-semibold text-base-content/70
+    ">
       {authorName.slice(0, 1)}
     </div>
   );
@@ -189,7 +224,10 @@ export default function FeedbackIssueDetail({
 
   if (issueQuery.isLoading) {
     return (
-      <section className="flex min-h-[28rem] items-center justify-center rounded-xl border border-base-300 bg-base-100">
+      <section className="
+        flex min-h-[28rem] items-center justify-center rounded-xl border
+        border-base-300 bg-base-100
+      ">
         <div className="flex flex-col items-center gap-3 text-base-content/60">
           <span className="loading loading-spinner loading-md" />
           正在加载反馈...
@@ -270,13 +308,28 @@ export default function FeedbackIssueDetail({
         )}
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-base-200 bg-base-100 shadow-sm relative">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 to-transparent"></div>
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+      <section className="
+        overflow-hidden rounded-2xl border border-base-200 bg-base-100 shadow-sm
+        relative
+      ">
+        <div className="
+          absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40
+          to-transparent
+        "></div>
+        <div className="
+          p-6
+          sm:p-8
+        ">
+          <div className="
+            flex flex-col gap-8
+            xl:flex-row xl:items-start xl:justify-between
+          ">
             <div className="min-w-0 flex-1 space-y-6">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-md bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/60">
+                <div className="
+                  inline-flex items-center gap-2 rounded-md bg-base-200/50
+                  px-2.5 py-1 text-xs font-medium text-base-content/60
+                ">
                   <span className="uppercase tracking-wider">反馈详情</span>
                   <span className="w-1 h-1 rounded-full bg-base-300"></span>
                   <span className="font-mono">
@@ -284,7 +337,11 @@ export default function FeedbackIssueDetail({
                     {issue.feedbackIssueId}
                   </span>
                 </div>
-                <h1 className="break-words text-2xl sm:text-3xl font-bold leading-snug text-base-content">
+                <h1 className="
+                  break-words text-2xl
+                  sm:text-3xl
+                  font-bold leading-snug text-base-content
+                ">
                   {issue.title}
                 </h1>
               </div>
@@ -296,7 +353,12 @@ export default function FeedbackIssueDetail({
                     <Link
                       to="/profile/$userId"
                       params={{ userId: String(issue.author?.userId ?? 0) }}
-                      className="font-medium text-base-content hover:text-primary transition-colors hover:underline hover:underline-offset-2"
+                      className="
+                        font-medium text-base-content
+                        hover:text-primary
+                        transition-colors
+                        hover:underline hover:underline-offset-2
+                      "
                     >
                       {authorName}
                     </Link>
@@ -306,13 +368,19 @@ export default function FeedbackIssueDetail({
                   </div>
                 </div>
 
-                <div className="h-8 w-px bg-base-200 hidden sm:block"></div>
+                <div className="
+                  h-8 w-px bg-base-200 hidden
+                  sm:block
+                "></div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <FeedbackStatePill status={issue.status} />
                   <br className="hidden" />
                   <FeedbackArchivePill archived={issue.archived} />
-                  <span className="inline-flex items-center rounded-md bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/70">
+                  <span className="
+                    inline-flex items-center rounded-md bg-base-200/50 px-2.5
+                    py-1 text-xs font-medium text-base-content/70
+                  ">
                     {getFeedbackIssueTypeLabel(issue.issueType)}
                   </span>
                 </div>
@@ -321,7 +389,13 @@ export default function FeedbackIssueDetail({
 
             {issue.canManage
               ? (
-                  <div className="w-full shrink-0 xl:w-[26rem] flex flex-col gap-4 rounded-2xl bg-base-200/30 p-5 sm:p-6 border border-base-200/50">
+                  <div className="
+                    w-full shrink-0
+                    xl:w-[26rem]
+                    flex flex-col gap-4 rounded-2xl bg-base-200/30 p-5
+                    sm:p-6
+                    border border-base-200/50
+                  ">
                     <div className="text-sm font-semibold text-base-content/80">
                       反馈处理
                     </div>
@@ -337,7 +411,10 @@ export default function FeedbackIssueDetail({
                       <div className="h-px w-full bg-base-300/40"></div>
 
                       <div className="flex items-center gap-4 justify-between">
-                        <div className="text-xs text-base-content/50 leading-relaxed max-w-[14rem]">
+                        <div className="
+                          text-xs text-base-content/50 leading-relaxed
+                          max-w-[14rem]
+                        ">
                           {issue.archived ? "该反馈已归档，可点击恢复到未归档状态。" : "归档会收起该反馈；未完成时自动转为拒绝。"}
                         </div>
                         <div className="shrink-0">
@@ -356,9 +433,15 @@ export default function FeedbackIssueDetail({
         </div>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="
+        grid gap-6
+        xl:grid-cols-[minmax(0,1fr)_320px]
+      ">
         <div className="space-y-6">
-          <article className="overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
+          <article className="
+            overflow-hidden rounded-xl border border-base-300 bg-base-100
+            shadow-sm
+          ">
             <div className="border-b border-base-300 bg-base-200/25 px-5 py-4">
               <div className="text-base font-medium text-base-content">反馈正文</div>
               <div className="mt-1 text-sm text-base-content/55">
@@ -381,8 +464,14 @@ export default function FeedbackIssueDetail({
         </div>
 
         <aside className="space-y-6">
-          <section className="overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
-            <div className="border-b border-base-300 px-5 py-4 text-base font-medium text-base-content">
+          <section className="
+            overflow-hidden rounded-xl border border-base-300 bg-base-100
+            shadow-sm
+          ">
+            <div className="
+              border-b border-base-300 px-5 py-4 text-base font-medium
+              text-base-content
+            ">
               详细信息
             </div>
             <dl className="divide-y divide-base-300 text-[14px]">

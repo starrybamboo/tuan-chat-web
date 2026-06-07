@@ -38,14 +38,20 @@ export default function Author({ userId }: { userId?: number }) {
   }, []);
 
   return (
-    <div className="flex w-full min-w-0 items-center gap-3 rounded-xl bg-base-200 p-4">
+    <div className="
+      flex w-full min-w-0 items-center gap-3 rounded-xl bg-base-200 p-4
+    ">
       {userInfoLoading
         ? (
             <div className="skeleton h-14 w-14 shrink-0 rounded-full"></div>
           )
         : (
             <MediaImage
-              className="h-14 w-14 shrink-0 rounded-full object-cover transition-opacity hover:opacity-80 cursor-pointer"
+              className="
+                h-14 w-14 shrink-0 rounded-full object-cover transition-opacity
+                hover:opacity-80
+                cursor-pointer
+              "
               src={data.avatar}
               onClick={handleAvatarClick}
               alt="用户头像"
@@ -63,7 +69,9 @@ export default function Author({ userId }: { userId?: number }) {
           : (
               <>
                 <h3 className="text-lg font-semibold truncate whitespace-nowrap">{data.name}</h3>
-                <p className="text-sm text-base-content/80 line-clamp-2 break-words">{data.description}</p>
+                <p className="
+                  text-sm text-base-content/80 line-clamp-2 break-words
+                ">{data.description}</p>
               </>
             )}
       </div>

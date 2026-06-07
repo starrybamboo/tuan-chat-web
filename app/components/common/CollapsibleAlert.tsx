@@ -37,9 +37,19 @@ export function CollapsibleAlert({
 
   return (
     <div
-      className={`cursor-pointer select-none transition-all duration-200 rounded-lg overflow-hidden ${
-        isExpanded ? `alert ${bgClass}` : `h-2 ${bgCollapsedClass}`
-      }`}
+      className={`
+        cursor-pointer select-none transition-all duration-200 rounded-lg
+        overflow-hidden
+        ${
+        isExpanded ? `
+          alert
+          ${bgClass}
+        ` : `
+          h-2
+          ${bgCollapsedClass}
+        `
+      }
+      `}
       onClick={() => setIsExpanded(!isExpanded)}
       title={isExpanded ? "点击收起" : "点击展开提示信息"}
     >

@@ -89,22 +89,39 @@ export default function RulesSection({
   // 提取搜索与分页控件（两种模式共用）
   const searchControls = (
     (didLoadOnce) && (
-      <div className="flex items-center gap-2 w-full md:w-auto">
-        <div className="relative flex-1 md:flex-none">
+      <div className="
+        flex items-center gap-2 w-full
+        md:w-auto
+      ">
+        <div className="
+          relative flex-1
+          md:flex-none
+        ">
           <input
             type="text"
             placeholder="搜索规则..."
             value={keyword}
             onChange={e => handleSearchInput(e.target.value)}
-            className={`input input-bordered input-sm w-full md:w-64 pl-8 pr-4 ${large ? "md:input-md" : ""}`}
+            className={`
+              input input-bordered input-sm w-full
+              md:w-64
+              pl-8 pr-4
+              ${large ? `md:input-md` : ""}
+            `}
           />
           {isSearching
             ? (
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 loading loading-spinner loading-xs text-gray-400" />
+                <span className="
+                  absolute left-2.5 top-1/2 -translate-y-1/2 loading
+                  loading-spinner loading-xs text-gray-400
+                " />
               )
             : (
                 <svg
-                  className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                  className="
+                    absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4
+                    text-gray-400
+                  "
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -123,18 +140,27 @@ export default function RulesSection({
             type="button"
             onClick={() => setPageNum(Math.max(pageNum - 1, 1))}
             disabled={pageNum === 1}
-            className="join-item btn btn-ghost btn-sm disabled:opacity-50"
+            className="
+              join-item btn btn-ghost btn-sm
+              disabled:opacity-50
+            "
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-          <div className="join-item btn btn-ghost btn-sm font-normal pointer-events-none text-xs">{pageNum}</div>
+          <div className="
+            join-item btn btn-ghost btn-sm font-normal pointer-events-none
+            text-xs
+          ">{pageNum}</div>
           <button
             type="button"
             onClick={() => setPageNum(pageNum + 1)}
             disabled={isLastPage ?? (rulesCount < pageSize)}
-            className="join-item btn btn-ghost btn-sm disabled:opacity-50"
+            className="
+              join-item btn btn-ghost btn-sm
+              disabled:opacity-50
+            "
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M9 6l6 6-6 6" />
@@ -156,7 +182,9 @@ export default function RulesSection({
   if (large) {
     return (
       <div className="space-y-6">
-        <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+        <div className="
+          card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
+        ">
           <div className="card-body">
             <div className="flex justify-between">
               <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
@@ -173,7 +201,9 @@ export default function RulesSection({
               {searchBar}
               <Suspense
                 fallback={(
-                  <div className="flex items-center gap-2 text-sm text-base-content/60 py-2">
+                  <div className="
+                    flex items-center gap-2 text-sm text-base-content/60 py-2
+                  ">
                     <span className="loading loading-spinner loading-sm" />
                     正在加载规则列表…
                   </div>
@@ -206,14 +236,24 @@ export default function RulesSection({
   return (
     <div className="space-y-3">
       {controlsInHeader && title && (
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+        <div className="
+          flex flex-col
+          md:flex-row md:items-start md:justify-between
+          gap-3
+        ">
           <div>
-            <div className="font-semibold text-base md:text-lg">{title}</div>
+            <div className="
+              font-semibold text-base
+              md:text-lg
+            ">{title}</div>
             {description && (
               <div className="text-sm text-base-content/60">{description}</div>
             )}
           </div>
-          <div className="w-full md:w-auto md:ml-auto">
+          <div className="
+            w-full
+            md:w-auto md:ml-auto
+          ">
             {searchControls}
           </div>
         </div>
@@ -221,7 +261,9 @@ export default function RulesSection({
       {!controlsInHeader && searchBar}
       <Suspense
         fallback={(
-          <div className="flex items-center gap-2 text-sm text-base-content/60 py-2">
+          <div className="
+            flex items-center gap-2 text-sm text-base-content/60 py-2
+          ">
             <span className="loading loading-spinner loading-sm" />
             正在加载规则列表…
           </div>
@@ -284,18 +326,36 @@ function RulesList({
   if (large) {
     return (
       <>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="
+          grid gap-4 grid-cols-1
+          sm:grid-cols-2
+          xl:grid-cols-4
+        ">
           {rules.map(rule => (
             <div
               key={rule.ruleId}
-              className={`card cursor-pointer transition-all bg-base-100 shadow-xs rounded-2xl border border-base-content/10 ${currentRuleId === rule.ruleId
+              className={`
+                card cursor-pointer transition-all bg-base-100 shadow-xs
+                rounded-2xl border border-base-content/10
+                ${currentRuleId === rule.ruleId
                 ? "border-primary"
-                : "border-base-300 hover:border-base-400 hover:bg-base-200/60"
-              }`}
+                : `
+                  border-base-300
+                  hover:border-base-400 hover:bg-base-200/60
+                `
+              }
+              `}
               onClick={() => onRuleChange(rule.ruleId || 0)}
             >
-              <div className="card-body p-5 md:p-6 min-h-32">
-                <div className="flex h-full items-center justify-between gap-4 md:gap-6">
+              <div className="
+                card-body p-5
+                md:p-6
+                min-h-32
+              ">
+                <div className="
+                  flex h-full items-center justify-between gap-4
+                  md:gap-6
+                ">
                   <div>
                     {showRuleId && (
                       <p className="text-sm text-base-content/70 line-clamp-2">{`#${rule.ruleId}`}</p>
@@ -304,7 +364,10 @@ function RulesList({
                     <p className="text-sm text-base-content/70 line-clamp-2">{rule.ruleDescription}</p>
                   </div>
                   {currentRuleId === rule.ruleId && (
-                    <div className="badge badge-ghost badge-sm md:badge-md">已选择</div>
+                    <div className="
+                      badge badge-ghost badge-sm
+                      md:badge-md
+                    ">已选择</div>
                   )}
                 </div>
               </div>
@@ -322,28 +385,53 @@ function RulesList({
     <>
       <div
         className={gridMode === "four"
-          ? "grid grid-cols-2 md:grid-cols-4 gap-2"
+          ? `
+            grid grid-cols-2
+            md:grid-cols-4
+            gap-2
+          `
           : "grid grid-cols-2 gap-2 max-h-96 overflow-y-auto"}
       >
         {rules.map(rule => (
           <div
             key={rule.ruleId}
             className={dense
-              ? `p-2 md:p-2.5 rounded-md bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border ${currentRuleId === rule.ruleId
+              ? `
+                p-2
+                md:p-2.5
+                rounded-md bg-base-100
+                hover:bg-base-200
+                transition-colors cursor-pointer border
+                ${currentRuleId === rule.ruleId
                 ? "border-primary"
                 : "border-base-content/10"
-              }`
-              : `p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
+              }
+              `
+              : `
+                p-3 rounded-lg bg-base-100
+                hover:bg-base-200
+                transition-colors cursor-pointer border-2
+                ${currentRuleId === rule.ruleId
                 ? "border-primary"
                 : "border-transparent"
-              }`}
+              }
+              `}
             onClick={() => onRuleChange(rule.ruleId || 0)}
           >
             {showRuleId && (
-              <p className={`text-base-content/60 line-clamp-1 ${dense ? "text-[11px]" : "text-xs"}`}>{`#${rule.ruleId}`}</p>
+              <p className={`
+                text-base-content/60 line-clamp-1
+                ${dense ? `text-[11px]` : `text-xs`}
+              `}>{`#${rule.ruleId}`}</p>
             )}
-            <h3 className={`font-medium mb-1 line-clamp-1 ${dense ? "text-xs" : "text-sm"}`}>{rule.ruleName}</h3>
-            <p className={`text-base-content/60 line-clamp-2 ${dense ? "text-[11px]" : "text-xs"}`}>{rule.ruleDescription}</p>
+            <h3 className={`
+              font-medium mb-1 line-clamp-1
+              ${dense ? "text-xs" : `text-sm`}
+            `}>{rule.ruleName}</h3>
+            <p className={`
+              text-base-content/60 line-clamp-2
+              ${dense ? `text-[11px]` : `text-xs`}
+            `}>{rule.ruleDescription}</p>
           </div>
         ))}
         {/* 添加占位项以保持项目宫格的固定高度 */}
@@ -351,12 +439,25 @@ function RulesList({
           <div
             key={placeholderId}
             className={dense
-              ? "p-2 md:p-2.5 rounded-md bg-transparent border border-dashed border-base-content/10 opacity-30"
-              : "p-3 rounded-lg bg-transparent border-2 border-dashed border-base-content/10 opacity-30"}
+              ? `
+                p-2
+                md:p-2.5
+                rounded-md bg-transparent border border-dashed
+                border-base-content/10 opacity-30
+              `
+              : `
+                p-3 rounded-lg bg-transparent border-2 border-dashed
+                border-base-content/10 opacity-30
+              `}
           >
-            <div className="flex items-center justify-center text-base-content/40">
+            <div className="
+              flex items-center justify-center text-base-content/40
+            ">
               <div className="text-center">
-                <h3 className={`font-medium mb-1 ${dense ? "text-xs" : "text-sm"}`}>...</h3>
+                <h3 className={`
+                  font-medium mb-1
+                  ${dense ? "text-xs" : "text-sm"}
+                `}>...</h3>
                 <div className={dense ? "text-[11px]" : "text-xs"}>暂无更多</div>
               </div>
             </div>

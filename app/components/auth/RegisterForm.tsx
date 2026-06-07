@@ -63,7 +63,12 @@ export function RegisterForm({
           type="text"
           autoComplete="off"
           placeholder="请输入用户名"
-          className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+          className="
+            input input-bordered w-full bg-base-200
+            dark:bg-base-300
+            text-base-content
+            placeholder:text-base-content/60
+          "
           value={username}
           onChange={e => setUsername(e.target.value)}
           required
@@ -80,7 +85,12 @@ export function RegisterForm({
           type="email"
           autoComplete="email"
           placeholder="请输入邮箱地址"
-          className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+          className="
+            input input-bordered w-full bg-base-200
+            dark:bg-base-300
+            text-base-content
+            placeholder:text-base-content/60
+          "
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
@@ -99,7 +109,12 @@ export function RegisterForm({
           autoCapitalize="none"
           spellCheck={false}
           placeholder="请输入邀请码"
-          className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+          className="
+            input input-bordered w-full bg-base-200
+            dark:bg-base-300
+            text-base-content
+            placeholder:text-base-content/60
+          "
           value={inviteCode}
           onChange={e => setInviteCode(e.target.value)}
           maxLength={32}
@@ -117,7 +132,12 @@ export function RegisterForm({
             type="text"
             autoComplete="one-time-code"
             placeholder="请输入验证码"
-            className="input input-bordered flex-1 bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+            className="
+              input input-bordered flex-1 bg-base-200
+              dark:bg-base-300
+              text-base-content
+              placeholder:text-base-content/60
+            "
             value={verificationCode}
             onChange={e => setVerificationCode(e.target.value)}
             required
@@ -151,7 +171,12 @@ export function RegisterForm({
           type="password"
           autoComplete="new-password"
           placeholder="请输入密码"
-          className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+          className="
+            input input-bordered w-full bg-base-200
+            dark:bg-base-300
+            text-base-content
+            placeholder:text-base-content/60
+          "
           value={password}
           onChange={e => setPassword(e.target.value)}
           required
@@ -168,7 +193,12 @@ export function RegisterForm({
           type="password"
           autoComplete="new-password"
           placeholder="请再次输入密码"
-          className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+          className="
+            input input-bordered w-full bg-base-200
+            dark:bg-base-300
+            text-base-content
+            placeholder:text-base-content/60
+          "
           value={confirmPassword}
           onChange={e => setConfirmPassword(e.target.value)}
           required
@@ -179,7 +209,11 @@ export function RegisterForm({
         {turnstile}
         <button
           type="submit"
-          className="btn btn-primary hover:brightness-110 transition-all"
+          className="
+            btn btn-primary
+            hover:brightness-110
+            transition-all
+          "
           disabled={isLoading}
         >
           {isLoading

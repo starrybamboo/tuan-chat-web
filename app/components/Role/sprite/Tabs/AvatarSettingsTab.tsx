@@ -130,50 +130,80 @@ export function AvatarSettingsTab({
   return (
     <div className="h-full flex flex-col">
       {/* 标题 */}
-      <div className="mb-2 shrink-0 min-h-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="
+        mb-2 shrink-0 min-h-8 flex flex-col gap-2
+        sm:flex-row sm:items-center sm:justify-between
+      ">
         <h3 className="text-lg font-semibold">头像设置</h3>
       </div>
 
       {/* 内容区域 */}
-      <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
+      <div className="
+        flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden
+      ">
         <div className="absolute inset-0 overflow-auto p-4">
           {currentAvatar
             ? (
                 <div className="flex flex-col gap-4">
                   {/* 头像展示 + 标题表单 */}
-                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="
+                    flex flex-col
+                    sm:flex-row
+                    gap-4 items-start
+                  ">
                     <div className="shrink-0">
                       {avatarDisplayUrl
                         ? (
                             <MediaImage
                               src={avatarDisplayUrl}
                               alt="头像预览"
-                              className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg object-contain bg-base-200"
+                              className="
+                                w-28 h-28
+                                sm:w-32 sm:h-32
+                                rounded-lg object-contain bg-base-200
+                              "
                               loading="lazy"
                               decoding="async"
                             />
                           )
                         : (
-                            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-lg bg-base-200 flex items-center justify-center text-base-content/50">
+                            <div className="
+                              w-28 h-28
+                              sm:w-32 sm:h-32
+                              rounded-lg bg-base-200 flex items-center
+                              justify-center text-base-content/50
+                            ">
                               暂无图片
                             </div>
                           )}
                     </div>
 
-                    <div className="flex flex-col gap-4 w-full sm:max-w-sm min-w-0 min-h-32">
+                    <div className="
+                      flex flex-col gap-4 w-full
+                      sm:max-w-sm
+                      min-w-0 min-h-32
+                    ">
                       <div className="flex flex-col gap-2">
                         <label className="font-semibold shrink-0" htmlFor="avatar-title">
                           头像标题
                         </label>
                         <input
                           id="avatar-title"
-                          className="input input-md input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          className="
+                            input input-md input-bordered bg-base-200 rounded-md
+                            w-full transition
+                            focus:outline-none focus:ring-2
+                            focus:ring-primary/20 focus:border-primary
+                          "
                           value={editingName}
                           onChange={e => setEditingName(e.target.value)}
                           placeholder="请输入头像标题"
                         />
                       </div>
-                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                      <div className="
+                        flex flex-col items-start gap-2
+                        sm:flex-row sm:items-center sm:justify-between sm:gap-3
+                      ">
                         <span className="font-semibold shrink-0">头像分类</span>
                         <DoubleClickEditableText
                           value={editingCategory}
@@ -189,7 +219,9 @@ export function AvatarSettingsTab({
                           }}
                         />
                       </div>
-                      <div className="text-xs font-mono text-base-content/70 mt-auto">
+                      <div className="
+                        text-xs font-mono text-base-content/70 mt-auto
+                      ">
                         头像ID：
                         <span className="text-xs font-mono">{currentAvatar.avatarId ?? "-"}</span>
                       </div>
@@ -216,7 +248,10 @@ export function AvatarSettingsTab({
                 </div>
               )
             : (
-                <div className="flex flex-col items-center justify-center h-full text-base-content/50">
+                <div className="
+                  flex flex-col items-center justify-center h-full
+                  text-base-content/50
+                ">
                   <UserCircle className="w-16 h-16 mb-2 opacity-50" weight="duotone" aria-hidden="true" />
                   <p>请从左侧选择一个头像</p>
                 </div>
@@ -225,10 +260,16 @@ export function AvatarSettingsTab({
       </div>
 
       {/* 应用按钮 */}
-      <div className="mt-4 flex flex-col gap-2 shrink-0 sm:flex-row sm:justify-end">
+      <div className="
+        mt-4 flex flex-col gap-2 shrink-0
+        sm:flex-row sm:justify-end
+      ">
         <button
           type="button"
-          className="btn btn-primary rounded-md w-full sm:w-auto"
+          className="
+            btn btn-primary rounded-md w-full
+            sm:w-auto
+          "
           onClick={handleApplyMood}
           disabled={!currentAvatar || isSaving}
         >

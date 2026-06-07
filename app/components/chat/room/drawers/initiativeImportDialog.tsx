@@ -57,7 +57,10 @@ export function InitiativeImportDialog({
           {onRollAllInitiative && importableRoles.length > 0 && (
             <button
               type="button"
-              className="btn btn-secondary btn-sm h-8 min-h-8 shrink-0 rounded-lg px-3 text-xs"
+              className="
+                btn btn-secondary btn-sm h-8 min-h-8 shrink-0 rounded-lg px-3
+                text-xs
+              "
               disabled={isRollingAllInitiative}
               onClick={() => {
                 void handleRollAllInitiative();
@@ -83,7 +86,10 @@ export function InitiativeImportDialog({
             return (
               <div
                 key={role.roleId}
-                className="flex items-center justify-between gap-2 rounded-md px-3 py-2 bg-base-100 border border-base-200"
+                className="
+                  flex items-center justify-between gap-2 rounded-md px-3 py-2
+                  bg-base-100 border border-base-200
+                "
               >
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">

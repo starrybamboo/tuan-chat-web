@@ -146,7 +146,10 @@ export function FriendRequestButton({
   const dialog = isDialogOpen && portalTarget
     ? createPortal(
         <div
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/35 p-4"
+          className="
+            fixed inset-0 z-[1000] flex items-center justify-center bg-black/35
+            p-4
+          "
           role="dialog"
           aria-modal="true"
           aria-labelledby={`${dialogId}-title`}
@@ -162,7 +165,10 @@ export function FriendRequestButton({
           }}
         >
           <form
-            className="w-full max-w-sm rounded-lg border border-base-300 bg-base-100 p-4 shadow-xl"
+            className="
+              w-full max-w-sm rounded-lg border border-base-300 bg-base-100 p-4
+              shadow-xl
+            "
             onSubmit={(event) => {
               event.preventDefault();
               void handleSendFriendRequest();
@@ -170,12 +176,17 @@ export function FriendRequestButton({
           >
             <h3 id={`${dialogId}-title`} className="text-base font-semibold">发送好友申请</h3>
             <p className="mt-1 text-sm text-base-content/60">{dialogSubtitle}</p>
-            <label htmlFor={`${dialogId}-verify`} className="mt-4 block text-sm font-medium">
+            <label htmlFor={`${dialogId}-verify`} className="
+              mt-4 block text-sm font-medium
+            ">
               验证信息
             </label>
             <textarea
               id={`${dialogId}-verify`}
-              className="textarea textarea-bordered mt-2 min-h-24 w-full resize-none text-sm"
+              className="
+                textarea textarea-bordered mt-2 min-h-24 w-full resize-none
+                text-sm
+              "
               value={verifyMsg}
               onChange={event => setVerifyMsg(event.target.value)}
               disabled={sendFriendRequestMutation.isPending}
@@ -211,11 +222,16 @@ export function FriendRequestButton({
           <button
             ref={first ? firstItemRef : undefined}
             type="button"
-            className={`${className ?? "justify-start w-full text-left"} whitespace-nowrap`}
+            className={`
+              ${className ?? "justify-start w-full text-left"}
+              whitespace-nowrap
+            `}
             disabled={disabled}
             onClick={openDialog}
           >
-            {showIcon && !isRelationshipStatus && <UserPlusIcon className="size-4 shrink-0" weight="regular" />}
+            {showIcon && !isRelationshipStatus && <UserPlusIcon className="
+              size-4 shrink-0
+            " weight="regular" />}
             <span className="whitespace-nowrap">{label}</span>
           </button>
         </li>
@@ -228,12 +244,20 @@ export function FriendRequestButton({
     <>
       <button
         type="button"
-        className={`${className ?? "btn btn-sm flex h-8 items-center gap-2 border border-gray-300 px-3 hover:text-primary"} whitespace-nowrap`}
+        className={`
+          ${className ?? `
+            btn btn-sm flex h-8 items-center gap-2 border border-gray-300 px-3
+            hover:text-primary
+          `}
+          whitespace-nowrap
+        `}
         disabled={disabled}
         onClick={openDialog}
         aria-label={label}
       >
-        {showIcon && !isRelationshipStatus && <UserPlusIcon className="size-4 shrink-0" weight="regular" />}
+        {showIcon && !isRelationshipStatus && <UserPlusIcon className="
+          size-4 shrink-0
+        " weight="regular" />}
         <span className="whitespace-nowrap text-sm">{label}</span>
       </button>
       {dialog}

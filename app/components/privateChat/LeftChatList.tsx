@@ -56,7 +56,11 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   return (
     <div
-      className="flex h-full w-full min-w-0 flex-col rounded-tl-xl border-l border-t border-gray-300 bg-base-200 dark:border-gray-700"
+      className="
+        flex h-full w-full min-w-0 flex-col rounded-tl-xl border-l border-t
+        border-gray-300 bg-base-200
+        dark:border-gray-700
+      "
       onContextMenu={(e) => {
         e.stopPropagation();
       }}

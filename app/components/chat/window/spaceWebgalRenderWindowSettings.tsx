@@ -11,7 +11,9 @@ const LazyWorkflowWindow = lazy(() => import("@/components/chat/window/workflowW
 
 function WorkflowLazyFallback() {
   return (
-    <div className="flex h-40 items-center justify-center text-sm text-base-content/60">
+    <div className="
+      flex h-40 items-center justify-center text-sm text-base-content/60
+    ">
       <span className="loading loading-spinner loading-sm" />
       <span className="ml-2">正在加载流程图...</span>
     </div>
@@ -138,7 +140,10 @@ export function SpaceWebgalRenderWindowSettings({
           type="button"
           role="tab"
           aria-selected={settingsTab === "render"}
-          className={`tab ${settingsTab === "render" ? "tab-active" : ""}`}
+          className={`
+            tab
+            ${settingsTab === "render" ? "tab-active" : ""}
+          `}
           onClick={() => onSettingsTabChange("render")}
         >
           渲染设置
@@ -147,7 +152,10 @@ export function SpaceWebgalRenderWindowSettings({
           type="button"
           role="tab"
           aria-selected={settingsTab === "roomContent"}
-          className={`tab ${settingsTab === "roomContent" ? "tab-active" : ""}`}
+          className={`
+            tab
+            ${settingsTab === "roomContent" ? "tab-active" : ""}
+          `}
           onClick={() => onSettingsTabChange("roomContent")}
         >
           房间内容
@@ -176,7 +184,10 @@ export function SpaceWebgalRenderWindowSettings({
                 </button>
               </div>
 
-              <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.workflowLayer ? "p-4" : "px-4 py-2"}`}>
+              <div className={`
+                rounded-lg border border-base-300 bg-base-100
+                ${sectionExpandedMap.workflowLayer ? `p-4` : `px-4 py-2`}
+              `}>
                 <div className={`flex items-center justify-between gap-2${sectionExpandedMap.workflowLayer ? " mb-3" : ""}`.trim()}>
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="text-sm font-semibold shrink-0">流程图</div>
@@ -189,7 +200,9 @@ export function SpaceWebgalRenderWindowSettings({
                   />
                 </div>
                 {sectionExpandedMap.workflowLayer && (
-                  <div className="rounded-md border border-base-300 px-2 py-2 overflow-x-auto">
+                  <div className="
+                    rounded-md border border-base-300 px-2 py-2 overflow-x-auto
+                  ">
                     <Suspense fallback={<WorkflowLazyFallback />}>
                       <LazyWorkflowWindow />
                     </Suspense>
@@ -197,7 +210,10 @@ export function SpaceWebgalRenderWindowSettings({
                 )}
               </div>
 
-              <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.renderLayer ? "p-4" : "px-4 py-2"}`}>
+              <div className={`
+                rounded-lg border border-base-300 bg-base-100
+                ${sectionExpandedMap.renderLayer ? `p-4` : `px-4 py-2`}
+              `}>
                 <div className={`flex items-center justify-between gap-2${sectionExpandedMap.renderLayer ? " mb-3" : ""}`.trim()}>
                   <div className="text-sm font-semibold">渲染表现层</div>
                   <SectionCollapseToggle
@@ -207,8 +223,14 @@ export function SpaceWebgalRenderWindowSettings({
                   />
                 </div>
                 {sectionExpandedMap.renderLayer && (
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+                  <div className="
+                    grid gap-2
+                    md:grid-cols-2
+                  ">
+                    <label className="
+                      flex items-center justify-between gap-2 rounded-md border
+                      border-base-300 px-3 py-2
+                    ">
                       <span className="text-sm">自动填充立绘</span>
                       <input
                         type="checkbox"
@@ -217,7 +239,10 @@ export function SpaceWebgalRenderWindowSettings({
                         onChange={event => setAutoFigureEnabled(event.target.checked)}
                       />
                     </label>
-                    <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+                    <label className="
+                      flex items-center justify-between gap-2 rounded-md border
+                      border-base-300 px-3 py-2
+                    ">
                       <span className="text-sm">小头像</span>
                       <input
                         type="checkbox"
@@ -230,11 +255,17 @@ export function SpaceWebgalRenderWindowSettings({
                 )}
               </div>
 
-              <div className={`rounded-lg border border-base-300 bg-base-100 ${isTtsConfigVisible ? "p-4" : "px-4 py-2"}`}>
+              <div className={`
+                rounded-lg border border-base-300 bg-base-100
+                ${isTtsConfigVisible ? `p-4` : `px-4 py-2`}
+              `}>
                 <div className={`flex flex-wrap items-center justify-between gap-2${isTtsConfigVisible ? " mb-3" : ""}`.trim()}>
                   <div className="text-sm font-semibold">TTS 配音层</div>
                   <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1 text-xs">
+                    <label className="
+                      flex items-center gap-2 rounded-md border border-base-300
+                      px-2 py-1 text-xs
+                    ">
                       <span>AI 配音</span>
                       <input
                         type="checkbox"

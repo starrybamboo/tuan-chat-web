@@ -17,7 +17,9 @@ function RoomSidebarCategoryHeaderHarness() {
       <div data-testid="toggle-count">{toggleCount}</div>
       <div data-testid="add-count">{addCount}</div>
 
-      <div data-testid="header-shell" className="max-w-sm rounded-xl border border-base-300 p-2">
+      <div data-testid="header-shell" className="
+        max-w-sm rounded-xl border border-base-300 p-2
+      ">
         <RoomSidebarCategoryHeader
           categoryId="category-1"
           categoryName="频道"

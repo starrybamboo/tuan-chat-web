@@ -147,7 +147,10 @@ export default function SettingsPage() {
         <div className="px-6 py-5">
           <h2 className="text-lg font-medium">消息通知</h2>
           <label
-            className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3"
+            className="
+              mt-4 flex cursor-pointer items-center justify-between gap-4
+              rounded-xl border border-base-300 px-4 py-3
+            "
             aria-label="其他群聊新消息弹窗"
           >
             <div className="min-w-0">
@@ -164,7 +167,10 @@ export default function SettingsPage() {
           </label>
 
           <label
-            className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3"
+            className="
+              mt-3 flex cursor-pointer items-center justify-between gap-4
+              rounded-xl border border-base-300 px-4 py-3
+            "
             aria-label="反馈站内提醒"
           >
             <div className="min-w-0">
@@ -181,7 +187,10 @@ export default function SettingsPage() {
           </label>
 
           <label
-            className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-base-300 px-4 py-3"
+            className="
+              mt-3 flex cursor-pointer items-center justify-between gap-4
+              rounded-xl border border-base-300 px-4 py-3
+            "
             aria-label="反馈桌面通知"
           >
             <div className="min-w-0">

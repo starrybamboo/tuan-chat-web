@@ -49,7 +49,13 @@ export default function MessageAnnotationsBar({
     return null;
 
   return (
-    <div className={`flex items-center ${compact ? "flex-nowrap gap-0.5 overflow-x-auto pb-0.5" : "flex-wrap gap-0.5"} ${className ?? "mt-2"}`}>
+    <div className={`
+      flex items-center
+      ${compact ? `flex-nowrap gap-0.5 overflow-x-auto pb-0.5` : `
+        flex-wrap gap-0.5
+      `}
+      ${className ?? `mt-2`}
+    `}>
       {renderedItems.map(({ id, annotation }) => {
         return (
           <span
@@ -71,7 +77,17 @@ export default function MessageAnnotationsBar({
         <span className="inline-flex">
           <button
             type="button"
-            className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-[11px] transition-all select-none shadow-none supports-[backdrop-filter]:backdrop-blur-md border-base-content/12 bg-base-content/4 text-base-content/60 hover:border-primary/38 hover:bg-base-content/7 hover:text-primary ${alwaysShowAddButton ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+            className={`
+              inline-flex h-6 w-6 items-center justify-center rounded-md border
+              text-[11px] transition-all select-none shadow-none
+              supports-[backdrop-filter]:backdrop-blur-md
+              border-base-content/12 bg-base-content/4 text-base-content/60
+              hover:border-primary/38 hover:bg-base-content/7 hover:text-primary
+              ${alwaysShowAddButton ? `opacity-100` : `
+                opacity-0
+                group-hover:opacity-100
+              `}
+            `}
             onClick={onOpenPicker}
             title="添加标注"
           >

@@ -101,13 +101,22 @@ export default function NewFriendsPanel() {
 
         <div className="mt-3">
           <label htmlFor="new-friend-search" className="sr-only">输入用户ID或用户名</label>
-          <div className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-base-200 px-3 py-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="
+            flex items-center gap-2 rounded-lg border border-gray-300
+            dark:border-gray-700
+            bg-base-200 px-3 py-2
+            focus-within:border-primary/60 focus-within:ring-2
+            focus-within:ring-primary/20
+          ">
             <input
               id="new-friend-search"
               type="text"
               name="newFriendSearch"
               autoComplete="off"
-              className="bg-transparent border-none outline-none flex-1 text-sm placeholder:text-base-content/60"
+              className="
+                bg-transparent border-none outline-none flex-1 text-sm
+                placeholder:text-base-content/60
+              "
               placeholder="输入用户ID或用户名"
               value={inputKeyword}
               onChange={(e) => {
@@ -139,7 +148,11 @@ export default function NewFriendsPanel() {
 
         {notice && (
           <div className="mt-2">
-            <div className={`alert ${noticeType === "success" ? "alert-success" : "alert-warning"} py-2`}>
+            <div className={`
+              alert
+              ${noticeType === "success" ? "alert-success" : `alert-warning`}
+              py-2
+            `}>
               <span className="text-sm">{notice}</span>
             </div>
           </div>
@@ -149,9 +162,15 @@ export default function NewFriendsPanel() {
           <motion.div className="mt-3" {...privateChatPanelMotionProps}>
             {searchUserInfo
               ? (
-                  <div className="flex items-center justify-between rounded-md bg-base-200/40 p-3">
+                  <div className="
+                    flex items-center justify-between rounded-md bg-base-200/40
+                    p-3
+                  ">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="avatar w-9 h-9 shrink-0 overflow-hidden rounded-full bg-base-300">
+                      <div className="
+                        avatar w-9 h-9 shrink-0 overflow-hidden rounded-full
+                        bg-base-300
+                      ">
                         <MediaImage
                           className="h-full w-full rounded-full object-cover"
                           src={imageLowUrl(searchUserInfo?.avatarFileId)}
@@ -165,12 +184,16 @@ export default function NewFriendsPanel() {
                         <div className="font-medium truncate text-sm">{searchUserInfo?.username}</div>
                         <div className="text-xs opacity-70">{searchUserInfo?.userId}</div>
                       </div>
-                      {friendCheck?.statusDesc && <span className="badge badge-ghost badge-sm">{friendCheck.statusDesc}</span>}
+                      {friendCheck?.statusDesc && <span className="
+                        badge badge-ghost badge-sm
+                      ">{friendCheck.statusDesc}</span>}
                     </div>
 
                     {!friendCheck?.isFriend && friendCheck?.status !== 3 && (
                       <div className="flex items-center gap-2">
-                        <label htmlFor={`friend-verify-${searchUserInfo.userId}`} className="sr-only">验证信息</label>
+                        <label htmlFor={`friend-verify-${searchUserInfo.userId}`} className="
+                          sr-only
+                        ">验证信息</label>
                         <input
                           id={`friend-verify-${searchUserInfo.userId}`}
                           type="text"
@@ -213,11 +236,16 @@ export default function NewFriendsPanel() {
                         </button>
                       </div>
                     )}
-                    {friendCheck?.status === 3 && <span className="text-xs opacity-60">已拉黑，无法申请</span>}
+                    {friendCheck?.status === 3 && <span className="
+                      text-xs opacity-60
+                    ">已拉黑，无法申请</span>}
                   </div>
                 )
               : (
-                  <div className="flex flex-col items-center justify-center h-16 gap-1 text-base-content/50">
+                  <div className="
+                    flex flex-col items-center justify-center h-16 gap-1
+                    text-base-content/50
+                  ">
                     <span className="text-sm">未找到用户</span>
                     <span className="text-xs">请检查ID或用户名是否正确</span>
                   </div>
@@ -227,7 +255,11 @@ export default function NewFriendsPanel() {
       </div>
 
       {/* 待处理好友请求 */}
-      <div className="px-4 pt-4 pb-2 border-t border-gray-300 dark:border-gray-700 mt-2">
+      <div className="
+        px-4 pt-4 pb-2 border-t border-gray-300
+        dark:border-gray-700
+        mt-2
+      ">
         <div className="text-sm font-semibold mb-2">
           待处理请求 -
           {" "}
@@ -236,7 +268,10 @@ export default function NewFriendsPanel() {
 
         {pendingReceivedRequests.length === 0
           ? (
-              <div className="flex flex-col items-center justify-center h-24 gap-1.5 text-base-content/50">
+              <div className="
+                flex flex-col items-center justify-center h-24 gap-1.5
+                text-base-content/50
+              ">
                 <span className="text-sm">暂无待处理好友申请</span>
                 <span className="text-xs">收到新的好友请求时将在此显示</span>
               </div>
@@ -248,11 +283,17 @@ export default function NewFriendsPanel() {
                   return (
                     <motion.div
                       key={req.id}
-                      className="flex items-center justify-between p-3 rounded-md bg-base-200/40"
+                      className="
+                        flex items-center justify-between p-3 rounded-md
+                        bg-base-200/40
+                      "
                       {...privateChatListItemMotionProps(index)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="avatar w-9 h-9 shrink-0 overflow-hidden rounded-full bg-base-300">
+                        <div className="
+                          avatar w-9 h-9 shrink-0 overflow-hidden rounded-full
+                          bg-base-300
+                        ">
                           <MediaImage
                             className="h-full w-full rounded-full object-cover"
                             src={imageLowUrl(user?.avatarFileId)}

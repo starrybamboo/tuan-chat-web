@@ -28,17 +28,25 @@ export default function MessageWindow({
       {currentContactUserId
       // 1. 与当前联系人的聊天页面
         ? (
-            <div key={currentContactUserId} className="private-direct-message-list-entry flex flex-col gap-1 px-1 py-2">
+            <div key={currentContactUserId} className="
+              private-direct-message-list-entry flex flex-col gap-1 px-1 py-2
+            ">
               {/* 消息列表项 */}
               {timelineEntries.map((entry, index) => {
                 if (entry.type === "date-divider") {
                   return (
                     <div
                       key={`date-divider-${index}-${entry.label}`}
-                      className="flex items-center gap-3 py-3 text-xs text-base-content/45"
+                      className="
+                        flex items-center gap-3 py-3 text-xs
+                        text-base-content/45
+                      "
                     >
                       <div className="h-px flex-1 bg-base-content/10" />
-                      <span className="shrink-0 rounded-full bg-base-200 px-3 py-1 font-medium tracking-wide">
+                      <span className="
+                        shrink-0 rounded-full bg-base-200 px-3 py-1 font-medium
+                        tracking-wide
+                      ">
                         {entry.label}
                       </span>
                       <div className="h-px flex-1 bg-base-content/10" />

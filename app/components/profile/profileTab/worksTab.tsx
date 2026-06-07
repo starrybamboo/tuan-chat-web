@@ -89,11 +89,14 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const renderTabButton = (tab: TabType, label: string) => (
     <button
       onClick={() => setActiveTab(tab)}
-      className={`px-4 py-2 rounded-lg cursor-pointer ${
+      className={`
+        px-4 py-2 rounded-lg cursor-pointer
+        ${
         activeTab === tab
           ? "bg-success/50 text-base font-medium"
           : "hover:bg-success/30"
-      }`}
+      }
+      `}
       type="button"
     >
       {label}
@@ -103,16 +106,28 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* 顶部导航 - 移动端 */}
-      <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
+      <div className="
+        md:hidden
+        overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200
+      ">
         <nav className="flex space-x-2">
           {renderTabButton("repositories", "仓库")}
           {renderTabButton("roles", "角色")}
         </nav>
       </div>
 
-      <div className="flex flex-col md:flex-row flex-1 md:pl-10">
+      <div className="
+        flex flex-col
+        md:flex-row
+        flex-1
+        md:pl-10
+      ">
         {/* 左侧导航 - PC端（垂直） */}
-        <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
+        <div className="
+          hidden
+          md:flex md:flex-col
+          w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10
+        ">
           <nav className="space-y-2 flex flex-col">
             {renderTabButton("repositories", "仓库")}
             {renderTabButton("roles", "角色")}
@@ -120,7 +135,10 @@ const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         </div>
 
         {/* 主要内容区域 */}
-        <div className="flex-1 p-4 md:p-8">
+        <div className="
+          flex-1 p-4
+          md:p-8
+        ">
           <div className="flex justify-between items-center mb-6">
             {renderTitle()}
           </div>

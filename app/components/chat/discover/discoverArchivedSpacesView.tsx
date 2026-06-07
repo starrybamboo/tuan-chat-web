@@ -295,14 +295,28 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
   const shouldHideRepositoryHeader = Boolean(activeRepositoryId && isRepositoryViewModeOpen);
 
   return (
-    <div className="flex flex-col w-full h-full min-h-0 min-w-0 bg-base-300/40 text-base-content">
+    <div className="
+      flex flex-col w-full h-full min-h-0 min-w-0 bg-base-300/40
+      text-base-content
+    ">
       {!shouldHideRepositoryHeader && (
-        <div className="sticky top-0 z-20 border-y border-gray-300 bg-base-200/95 backdrop-blur dark:border-gray-700">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-0">
+        <div className="
+          sticky top-0 z-20 border-y border-gray-300 bg-base-200/95
+          backdrop-blur
+          dark:border-gray-700
+        ">
+          <div className="
+            mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3
+            sm:h-12 sm:flex-row sm:items-center sm:justify-between sm:gap-4
+            sm:px-6 sm:py-0
+          ">
             {activeRepositoryId
               ? (
                   <>
-                    <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+                    <div className="
+                      flex min-w-0 items-center gap-3
+                      sm:flex-1
+                    ">
                       <button
                         type="button"
                         className="btn btn-sm btn-ghost btn-square"
@@ -312,7 +326,10 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       >
                         <ArrowLeftIcon className="size-5" weight="bold" />
                       </button>
-                      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-base-content">
+                      <div className="
+                        min-w-0 flex-1 truncate text-sm font-semibold
+                        text-base-content
+                      ">
                         {pageTitle}
                       </div>
                     </div>
@@ -327,17 +344,45 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                 )
               : (
                   <>
-                    <div className="flex min-w-0 items-center gap-3 sm:flex-1">
-                      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-base-content">{pageTitle}</div>
-                      <span className="hidden shrink-0 whitespace-nowrap rounded-full border border-base-300 bg-base-100 px-2 py-0.5 text-[11px] text-base-content/68 xl:inline-flex">
+                    <div className="
+                      flex min-w-0 items-center gap-3
+                      sm:flex-1
+                    ">
+                      <div className="
+                        min-w-0 flex-1 truncate text-sm font-semibold
+                        text-base-content
+                      ">{pageTitle}</div>
+                      <span className="
+                        hidden shrink-0 whitespace-nowrap rounded-full border
+                        border-base-300 bg-base-100 px-2 py-0.5 text-[11px]
+                        text-base-content/68
+                        xl:inline-flex
+                      ">
                         {topBarInfo}
                       </span>
                     </div>
-                    <div className="relative w-full sm:w-[16rem] lg:w-[20rem] xl:w-88">
-                      <label className="flex h-9 items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
-                        <MagnifyingGlassIcon className="size-4 shrink-0 text-base-content/38" />
+                    <div className="
+                      relative w-full
+                      sm:w-[16rem]
+                      lg:w-[20rem]
+                      xl:w-88
+                    ">
+                      <label className="
+                        flex h-9 items-center gap-2 rounded-md border
+                        border-base-300 bg-base-100 px-3 transition
+                        focus-within:border-primary focus-within:ring-2
+                        focus-within:ring-primary/20
+                      ">
+                        <MagnifyingGlassIcon className="
+                          size-4 shrink-0 text-base-content/38
+                        " />
                         <input
-                          className="w-full bg-transparent text-sm text-base-content placeholder:text-base-content/35 transition focus:outline-none"
+                          className="
+                            w-full bg-transparent text-sm text-base-content
+                            placeholder:text-base-content/35
+                            transition
+                            focus:outline-none
+                          "
                           value={keyword}
                           onChange={e => setKeyword(e.target.value)}
                           placeholder={mode === "my" ? "搜索我的归档仓库" : "搜索仓库"}
@@ -351,10 +396,16 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
         </div>
       )}
 
-      <div className={activeRepositoryId || shouldHideRepositoryHeader ? "flex-1 min-h-0 overflow-hidden" : "flex-1 min-h-0 overflow-y-auto"}>
+      <div className={activeRepositoryId || shouldHideRepositoryHeader ? `
+        flex-1 min-h-0 overflow-hidden
+      ` : `flex-1 min-h-0 overflow-y-auto`}>
         <div className={activeRepositoryId
           ? "w-full h-full"
-          : "mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 md:px-8 md:py-6"}
+          : `
+            mx-auto w-full max-w-6xl px-4 py-5
+            sm:px-6
+            md:px-8 md:py-6
+          `}
         >
           {activeRepositoryId
             ? (
@@ -368,17 +419,35 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
               )
             : (
                 <div className="space-y-8">
-                  <div className="relative rounded-xl overflow-hidden border border-base-300 bg-info/10">
+                  <div className="
+                    relative rounded-xl overflow-hidden border border-base-300
+                    bg-info/10
+                  ">
                     <CompassIcon
                       aria-hidden="true"
                       weight="duotone"
-                      className="pointer-events-none absolute -right-24 -top-24 hidden h-88 w-88 text-primary/15 sm:block"
+                      className="
+                        pointer-events-none absolute -right-24 -top-24 hidden
+                        h-88 w-88 text-primary/15
+                        sm:block
+                      "
                     />
-                    <div className="relative z-10 px-5 py-6 sm:px-8 sm:py-10">
-                      <div className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                    <div className="
+                      relative z-10 px-5 py-6
+                      sm:px-8 sm:py-10
+                    ">
+                      <div className="
+                        text-2xl
+                        sm:text-4xl
+                        font-extrabold tracking-tight
+                      ">
                         {mode === "my" ? "这里是你的归档仓库" : "探索可发现的仓库"}
                       </div>
-                      <div className="mt-2 text-sm sm:text-base text-base-content/70 max-w-2xl">
+                      <div className="
+                        mt-2 text-sm
+                        sm:text-base
+                        text-base-content/70 max-w-2xl
+                      ">
                         {mode === "my"
                           ? "这里汇总你归档过的空间对应仓库，方便按仓库回看。"
                           : "浏览根仓库，进入详情后可查看 fork 列表或进一步操作。"}
@@ -394,13 +463,17 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   {isLoading && (
                     <div className={cardGridClassName}>
                       {[0, 1, 2, 3, 4, 5].map(n => (
-                        <div key={n} className="h-56 rounded-xl bg-base-300/50 animate-pulse" />
+                        <div key={n} className="
+                          h-56 rounded-xl bg-base-300/50 animate-pulse
+                        " />
                       ))}
                     </div>
                   )}
 
                   {isError && (
-                    <div className="rounded-xl border border-base-300 bg-base-100 p-4">
+                    <div className="
+                      rounded-xl border border-base-300 bg-base-100 p-4
+                    ">
                       <div className="text-sm font-semibold">
                         {mode === "my" ? "暂时无法加载我的归档仓库" : "暂时无法加载仓库广场"}
                       </div>
@@ -416,9 +489,15 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                   )}
 
                   {!isLoading && !isError && totalCount === 0 && (
-                    <div className="rounded-[26px] border border-dashed border-base-300 bg-base-100/55 px-5 py-12 text-center sm:px-6 sm:py-14">
+                    <div className="
+                      rounded-[26px] border border-dashed border-base-300
+                      bg-base-100/55 px-5 py-12 text-center
+                      sm:px-6 sm:py-14
+                    ">
                       <div className="text-lg font-semibold text-base-content">{emptyTitle}</div>
-                      <div className="mt-3 text-sm leading-7 text-base-content/58">{emptyDescription}</div>
+                      <div className="
+                        mt-3 text-sm leading-7 text-base-content/58
+                      ">{emptyDescription}</div>
                     </div>
                   )}
 
@@ -446,7 +525,11 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             hoverHint="点击查看仓库"
                             imageAspect="square"
                             placeholder={(
-                              <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-[#243b55] via-[#141e30] to-[#0b0f17] text-white/75">
+                              <div className="
+                                flex h-full w-full items-center justify-center
+                                bg-linear-to-br from-[#243b55] via-[#141e30]
+                                to-[#0b0f17] text-white/75
+                              ">
                                 <PackageIcon className="size-12" weight="duotone" />
                               </div>
                             )}
@@ -484,14 +567,23 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             hoverHint="点击查看仓库"
                             imageAspect="square"
                             placeholder={(
-                              <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-[#2a2d3e] via-[#1f2937] to-[#111827] text-white/75">
+                              <div className="
+                                flex h-full w-full items-center justify-center
+                                bg-linear-to-br from-[#2a2d3e] via-[#1f2937]
+                                to-[#111827] text-white/75
+                              ">
                                 <PackageIcon className="size-12" weight="duotone" />
                               </div>
                             )}
                             titleSuffix={(
                               <button
                                 type="button"
-                                className="rounded-md border border-base-300 bg-base-100 px-2.5 py-1 text-xs font-medium text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                                className="
+                                  rounded-md border border-base-300 bg-base-100
+                                  px-2.5 py-1 text-xs font-medium
+                                  text-base-content transition
+                                  hover:border-primary/30 hover:bg-base-100/90
+                                "
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   toggleExpandedRepo(repositoryId);
@@ -502,7 +594,9 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             )}
                             bottomSlot={shouldShowArchivedList && isExpanded
                               ? (
-                                  <div className="space-y-2 border-t border-base-300 pt-3">
+                                  <div className="
+                                    space-y-2 border-t border-base-300 pt-3
+                                  ">
                                     {group.spaces.map((space) => {
                                       const spaceId = space?.spaceId ?? -1;
                                       const targetSpaceId = isValidId(space?.spaceId) ? space.spaceId : null;
@@ -510,18 +604,33 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                                       const timestamp = space?.updateTime ?? space?.createTime;
 
                                       return (
-                                        <div key={spaceId} className="flex items-center justify-between gap-3">
+                                        <div key={spaceId} className="
+                                          flex items-center justify-between
+                                          gap-3
+                                        ">
                                           <div className="min-w-0">
-                                            <div className="truncate text-sm font-semibold text-base-content">{spaceName}</div>
+                                            <div className="
+                                              truncate text-sm font-semibold
+                                              text-base-content
+                                            ">{spaceName}</div>
                                             {timestamp && (
-                                              <div className="text-xs text-base-content/50">
+                                              <div className="
+                                                text-xs text-base-content/50
+                                              ">
                                                 {`归档时间：${new Date(timestamp).toLocaleString("zh-CN")}`}
                                               </div>
                                             )}
                                           </div>
                                           <button
                                             type="button"
-                                            className="rounded-md border border-base-300 bg-base-100 px-2.5 py-1 text-xs font-medium text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                                            className="
+                                              rounded-md border border-base-300
+                                              bg-base-100 px-2.5 py-1 text-xs
+                                              font-medium text-base-content
+                                              transition
+                                              hover:border-primary/30
+                                              hover:bg-base-100/90
+                                            "
                                             onClick={(event) => {
                                               event.stopPropagation();
                                               if (!targetSpaceId)

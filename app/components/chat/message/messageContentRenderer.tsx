@@ -158,7 +158,9 @@ export default function MessageContentRenderer({
                 <span className="text-xs text-base-content/60">[图片]</span>
               )}
           {message.content && (
-            <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+            <div className="
+              whitespace-pre-wrap break-words text-sm text-base-content/80
+            ">
               {message.content}
             </div>
           )}
@@ -171,9 +173,17 @@ export default function MessageContentRenderer({
       const fileName = fileMessage?.fileName || message.content || "文件";
       const sizeLabel = formatFileSize(fileMessage?.size);
       const contentNode = (
-        <div className="flex min-w-0 w-full items-center gap-2 rounded-md bg-base-200/45 px-2 py-1.5 transition group-hover/file:bg-base-300/70">
+        <div className="
+          flex min-w-0 w-full items-center gap-2 rounded-md bg-base-200/45 px-2
+          py-1.5 transition
+          group-hover/file:bg-base-300/70
+        ">
           <FileArrowUpIcon className="size-5 shrink-0 text-base-content/75" />
-          <span className="min-w-0 truncate text-sm text-base-content decoration-error/60 decoration-dotted underline-offset-3 group-hover/file:underline">
+          <span className="
+            min-w-0 truncate text-sm text-base-content decoration-error/60
+            decoration-dotted underline-offset-3
+            group-hover/file:underline
+          ">
             {fileName}
           </span>
           {sizeLabel && <span className="shrink-0 text-sm text-base-content/50">{sizeLabel}</span>}
@@ -186,7 +196,9 @@ export default function MessageContentRenderer({
               href={fileUrl}
               target="_blank"
               rel="noreferrer"
-              className="group/file flex min-w-0 w-full items-center no-underline"
+              className="
+                group/file flex min-w-0 w-full items-center no-underline
+              "
               onClick={event => event.stopPropagation()}
             >
               {contentNode}
@@ -200,23 +212,40 @@ export default function MessageContentRenderer({
         <div className="flex min-w-0 w-full max-w-[420px] flex-col gap-2">
           {videoUrl
             ? (
-                <div className="relative overflow-hidden rounded-2xl border border-base-300/70 bg-base-200/40 shadow-sm">
+                <div className="
+                  relative overflow-hidden rounded-2xl border border-base-300/70
+                  bg-base-200/40 shadow-sm
+                ">
                   <CachedVideoMessage
                     cacheKey={`${resolvedCacheKeyBase}:video`}
                     url={videoUrl}
-                    className="block max-h-[360px] w-full bg-black object-contain"
+                    className="
+                      block max-h-[360px] w-full bg-black object-contain
+                    "
                   />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 via-black/20 to-transparent" />
-                  <span className="pointer-events-none badge badge-neutral badge-xs absolute left-2 top-2 opacity-90">视频</span>
+                  <div className="
+                    pointer-events-none absolute inset-x-0 bottom-0 h-16
+                    bg-gradient-to-t from-black/55 via-black/20 to-transparent
+                  " />
+                  <span className="
+                    pointer-events-none badge badge-neutral badge-xs absolute
+                    left-2 top-2 opacity-90
+                  ">视频</span>
                 </div>
               )
             : (
-                <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 px-3 py-6 text-center text-xs text-base-content/60">
+                <div className="
+                  rounded-2xl border border-dashed border-base-300
+                  bg-base-200/30 px-3 py-6 text-center text-xs
+                  text-base-content/60
+                ">
                   [视频资源不可用]
                 </div>
               )}
           {message.content && (
-            <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+            <div className="
+              whitespace-pre-wrap break-words text-sm text-base-content/80
+            ">
               {message.content}
             </div>
           )}
@@ -259,7 +288,9 @@ export default function MessageContentRenderer({
                 <span className="text-xs text-base-content/60">[语音]</span>
               )}
           {message.content && (
-            <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+            <div className="
+              whitespace-pre-wrap break-words text-sm text-base-content/80
+            ">
               {message.content}
             </div>
           )}
@@ -288,13 +319,17 @@ export default function MessageContentRenderer({
       return <StateMessageCard message={message} />;
     case MESSAGE_TYPE.SYSTEM:
       return (
-        <div className="whitespace-pre-wrap break-words text-sm text-base-content/60">
+        <div className="
+          whitespace-pre-wrap break-words text-sm text-base-content/60
+        ">
           {message.content || "[系统消息]"}
         </div>
       );
     default:
       return (
-        <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+        <div className="
+          whitespace-pre-wrap break-words text-sm text-base-content/80
+        ">
           {message.content || "[未知消息]"}
         </div>
       );

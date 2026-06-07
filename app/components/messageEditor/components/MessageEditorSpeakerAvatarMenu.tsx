@@ -64,10 +64,16 @@ export function MessageEditorSpeakerAvatarMenu({
   return (
     <motion.div
       data-me-speaker-avatar-menu="true"
-      className="w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-2xl"
+      className="
+        w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-lg border
+        border-base-300 bg-base-100 shadow-2xl
+      "
       {...floatingPanelMotionProps}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-base-300 bg-base-200 px-3 py-2 text-[11px] text-base-content/55">
+      <div className="
+        flex items-center justify-between gap-3 border-b border-base-300
+        bg-base-200 px-3 py-2 text-[11px] text-base-content/55
+      ">
         <span className="min-w-0 truncate">
           {roleLabel}
           {" "}
@@ -92,7 +98,9 @@ export function MessageEditorSpeakerAvatarMenu({
           )
         : items.length === 0
           ? (
-              <div className="bg-base-100 px-3 py-3 text-sm text-base-content/45">
+              <div className="
+                bg-base-100 px-3 py-3 text-sm text-base-content/45
+              ">
                 没有可选头像
               </div>
             )
@@ -111,7 +119,10 @@ export function MessageEditorSpeakerAvatarMenu({
                       const active = currentBaseIndex === selectedIndex;
                       return (
                         <div key={category} className="space-y-1">
-                          <div className="flex items-center gap-1 px-3 pt-1 text-[11px] font-medium text-base-content/45">
+                          <div className="
+                            flex items-center gap-1 px-3 pt-1 text-[11px]
+                            font-medium text-base-content/45
+                          ">
                             <span className="truncate">{category}</span>
                             <span className="shrink-0">{categoryItems.length}</span>
                           </div>
@@ -130,17 +141,28 @@ export function MessageEditorSpeakerAvatarMenu({
                             onMouseDown={event => event.preventDefault()}
                             onClick={() => onSelect(item)}
                           >
-                            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-base-200/70 text-base-content/45">
+                            <span className="
+                              flex size-6 shrink-0 items-center justify-center
+                              rounded-full bg-base-200/70 text-base-content/45
+                            ">
                               <X className="size-3.5" weight="bold" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-medium">{item.avatarTitle}</span>
-                              <span className="mt-0.5 block truncate text-xs text-base-content/45">
+                              <span className="
+                                block truncate text-sm font-medium
+                              ">{item.avatarTitle}</span>
+                              <span className="
+                                mt-0.5 block truncate text-xs
+                                text-base-content/45
+                              ">
                                 取消头像
                               </span>
                             </span>
                             {item.selected && (
-                              <span className="shrink-0 rounded-md bg-base-200 px-1.5 py-0.5 text-[11px] text-base-content/55">
+                              <span className="
+                                shrink-0 rounded-md bg-base-200 px-1.5 py-0.5
+                                text-[11px] text-base-content/55
+                              ">
                                 当前
                               </span>
                             )}
@@ -150,11 +172,17 @@ export function MessageEditorSpeakerAvatarMenu({
                     }
                     return (
                       <div key={category} className="space-y-1">
-                        <div className="flex items-center gap-1 px-3 pt-1 text-[11px] font-medium text-base-content/45">
+                        <div className="
+                          flex items-center gap-1 px-3 pt-1 text-[11px]
+                          font-medium text-base-content/45
+                        ">
                           <span className="truncate">{category}</span>
                           <span className="shrink-0">{categoryItems.length}</span>
                         </div>
-                        <div className="grid grid-cols-4 gap-1 px-2 pb-1.5 sm:grid-cols-5">
+                        <div className="
+                          grid grid-cols-4 gap-1 px-2 pb-1.5
+                          sm:grid-cols-5
+                        ">
                           {categoryItems.map((item, index) => {
                             if (item.kind === "clear") {
                               return null;
@@ -188,11 +216,17 @@ export function MessageEditorSpeakerAvatarMenu({
                                   stopToastWindow={true}
                                   hoverToScale={false}
                                 />
-                                <span className="min-w-0 truncate text-[11px] font-medium leading-4">
+                                <span className="
+                                  min-w-0 truncate text-[11px] font-medium
+                                  leading-4
+                                ">
                                   {item.avatarTitle}
                                 </span>
                                 {item.selected && (
-                                  <span className="rounded-md bg-base-200 px-1 py-0.5 text-[10px] text-base-content/55">
+                                  <span className="
+                                    rounded-md bg-base-200 px-1 py-0.5
+                                    text-[10px] text-base-content/55
+                                  ">
                                     当前
                                   </span>
                                 )}

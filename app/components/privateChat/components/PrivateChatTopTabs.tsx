@@ -19,11 +19,16 @@ export default function PrivateChatTopTabs() {
   const tabs: { id: PrivateChatTab; label: string; badge?: boolean; icon: React.ReactNode }[] = [
     { id: "chat", label: "私聊", icon: <ChatCircleIcon className="size-4" weight="fill" /> },
     { id: "friends", label: "好友", icon: <UserListIcon className="size-4" weight="fill" /> },
-    { id: "new-friends", label: "新朋友", badge: hasPendingRequests, icon: <UserCirclePlusIcon className="size-4" weight="fill" /> },
+    { id: "new-friends", label: "新朋友", badge: hasPendingRequests, icon: <UserCirclePlusIcon className="
+      size-4
+    " weight="fill" /> },
   ];
 
   return (
-    <nav className="flex shrink-0 flex-col gap-1 border-b border-gray-300 px-2 py-2 dark:border-gray-700" aria-label="私信导航">
+    <nav className="
+      flex shrink-0 flex-col gap-1 border-b border-gray-300 px-2 py-2
+      dark:border-gray-700
+    " aria-label="私信导航">
       {tabs.map((tab) => {
         const isActive = privateChatTab === tab.id;
         return (
@@ -42,7 +47,10 @@ export default function PrivateChatTopTabs() {
             {isActive && (
               <motion.span
                 layoutId="private-chat-active-tab"
-                className="absolute inset-0 rounded-md bg-base-300/70 dark:bg-base-300/50"
+                className="
+                  absolute inset-0 rounded-md bg-base-300/70
+                  dark:bg-base-300/50
+                "
                 transition={privateChatTabIndicatorMotionProps}
               />
             )}

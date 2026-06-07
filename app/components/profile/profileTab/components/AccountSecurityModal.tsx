@@ -268,11 +268,23 @@ export function AccountSecurityModal({
   const newEmailCodeInputId = "account-security-new-email-code";
 
   return (
-    <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box relative bg-base-100 dark:bg-base-300 max-w-xl">
+    <div className={`
+      modal
+      ${isOpen ? "modal-open" : ""}
+    `}>
+      <div className="
+        modal-box relative bg-base-100
+        dark:bg-base-300
+        max-w-xl
+      ">
         <button
           type="button"
-          className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100"
+          className="
+            btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
+            hover:bg-base-300
+            dark:bg-base-200
+            dark:hover:bg-base-100
+          "
           onClick={onClose}
         >
           ✕
@@ -283,14 +295,20 @@ export function AccountSecurityModal({
         <div className="tabs tabs-boxed mb-4">
           <button
             type="button"
-            className={`tab ${activeTab === "password" ? "tab-active" : ""}`}
+            className={`
+              tab
+              ${activeTab === "password" ? "tab-active" : ""}
+            `}
             onClick={() => setActiveTab("password")}
           >
             修改密码
           </button>
           <button
             type="button"
-            className={`tab ${activeTab === "email" ? "tab-active" : ""}`}
+            className={`
+              tab
+              ${activeTab === "email" ? "tab-active" : ""}
+            `}
             onClick={() => setActiveTab("email")}
           >
             绑定/换绑邮箱
@@ -581,7 +599,10 @@ export function AccountSecurityModal({
 
       <button
         type="button"
-        className="modal-backdrop bg-black/50 dark:bg-black/70"
+        className="
+          modal-backdrop bg-black/50
+          dark:bg-black/70
+        "
         onClick={onClose}
         aria-label="关闭账号安全弹窗"
       />

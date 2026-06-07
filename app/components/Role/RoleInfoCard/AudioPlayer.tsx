@@ -38,12 +38,23 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
   }
 
   return (
-    <div className={isCompact ? "mt-2 pt-2" : "mt-3 pt-3 border-t border-base-content/10"}>
+    <div className={isCompact ? "mt-2 pt-2" : `
+      mt-3 pt-3 border-t border-base-content/10
+    `}>
       <div className={isCompact ? "space-y-2" : "space-y-3"}>
-        <div className={`flex items-center gap-2 ${isCompact ? "" : "gap-3"}`}>
-          <div className={`flex-1 bg-base-200 rounded-lg ${isCompact ? "p-2" : "p-3"}`}>
+        <div className={`
+          flex items-center gap-2
+          ${isCompact ? "" : "gap-3"}
+        `}>
+          <div className={`
+            flex-1 bg-base-200 rounded-lg
+            ${isCompact ? "p-2" : `p-3`}
+          `}>
             <H5AudioPlayer
-              className={`tc-audio-player ${sizeClass}`}
+              className={`
+                tc-audio-player
+                ${sizeClass}
+              `}
               src={audioSrc}
               autoPlayAfterSrcChange={false}
               showJumpControls={false}
@@ -60,7 +71,12 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
 
           <button
             type="button"
-            className={`btn ${isCompact ? "btn-xs" : "btn-sm"} btn-ghost btn-circle text-error hover:bg-error/10`}
+            className={`
+              btn
+              ${isCompact ? "btn-xs" : "btn-sm"}
+              btn-ghost btn-circle text-error
+              hover:bg-error/10
+            `}
             onClick={handleDeleteAudio}
             title="删除音频"
           >

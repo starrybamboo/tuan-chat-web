@@ -122,15 +122,24 @@ function ForwardWindow({
   const canForward = selectedTargetCount > 0 && !isForwarding;
 
   return (
-    <div className="flex max-h-[min(88vh,780px)] w-[min(94vw,980px)] flex-col overflow-hidden p-0">
+    <div className="
+      flex max-h-[min(88vh,780px)] w-[min(94vw,980px)] flex-col overflow-hidden
+      p-0
+    ">
       <div className="flex items-center justify-between gap-3">
-        <div className="px-6 pt-6 md:px-7 md:pt-7">
+        <div className="
+          px-6 pt-6
+          md:px-7 md:pt-7
+        ">
           <h2 className="text-lg font-semibold">转发消息</h2>
           <p className="text-sm text-base-content/60 mt-1">
             选择目标房间后统一发送
           </p>
         </div>
-        <div className="px-6 pt-6 md:px-7 md:pt-7">
+        <div className="
+          px-6 pt-6
+          md:px-7 md:pt-7
+        ">
           <div className="badge badge-info badge-lg">
             {selectedMessages.length}
             {" "}
@@ -139,16 +148,31 @@ function ForwardWindow({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-5 md:px-7">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="inline-flex w-fit rounded-lg border border-base-300 bg-base-200/50 p-1">
+      <div className="
+        min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-5
+        md:px-7
+      ">
+        <div className="
+          flex flex-col gap-3
+          md:flex-row md:items-center md:justify-between
+        ">
+          <div className="
+            inline-flex w-fit rounded-lg border border-base-300 bg-base-200/50
+            p-1
+          ">
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              className={`
+                rounded-md px-3 py-1.5 text-sm font-medium transition
+                ${
                 forwardMode === "merged"
                   ? "bg-info text-info-content shadow-sm"
-                  : "text-base-content/70 hover:bg-base-100/70"
-              }`}
+                  : `
+                    text-base-content/70
+                    hover:bg-base-100/70
+                  `
+              }
+              `}
               onClick={() => setForwardMode("merged")}
               aria-pressed={forwardMode === "merged"}
             >
@@ -156,18 +180,27 @@ function ForwardWindow({
             </button>
             <button
               type="button"
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              className={`
+                rounded-md px-3 py-1.5 text-sm font-medium transition
+                ${
                 forwardMode === "separate"
                   ? "bg-info text-info-content shadow-sm"
-                  : "text-base-content/70 hover:bg-base-100/70"
-              }`}
+                  : `
+                    text-base-content/70
+                    hover:bg-base-100/70
+                  `
+              }
+              `}
               onClick={() => setForwardMode("separate")}
               aria-pressed={forwardMode === "separate"}
             >
               逐条转发
             </button>
           </div>
-          <div className="text-xs text-base-content/55 md:text-right">
+          <div className="
+            text-xs text-base-content/55
+            md:text-right
+          ">
             <div>
               {forwardMode === "merged"
                 ? "合并为 1 条转发消息"
@@ -177,7 +210,10 @@ function ForwardWindow({
           </div>
         </div>
 
-        <div className="mt-4 grid min-h-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+        <div className="
+          mt-4 grid min-h-0 gap-4
+          md:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]
+        ">
           <section className="min-h-0 rounded-lg border border-base-300">
             <div className="border-b border-base-300 p-3">
               <div className="flex items-center justify-between gap-3">
@@ -198,7 +234,9 @@ function ForwardWindow({
                   全选
                 </button>
               </div>
-              <label aria-label="搜索目标房间" className="input input-bordered input-sm mt-3 w-full">
+              <label aria-label="搜索目标房间" className="
+                input input-bordered input-sm mt-3 w-full
+              ">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -224,12 +262,18 @@ function ForwardWindow({
 
             <div className="max-h-80 min-h-60 overflow-auto p-2">
               {effectiveSpaceId <= 0 && (
-                <div className="rounded-lg border border-dashed border-base-300 px-4 py-8 text-sm text-base-content/60 text-center">
+                <div className="
+                  rounded-lg border border-dashed border-base-300 px-4 py-8
+                  text-sm text-base-content/60 text-center
+                ">
                   当前空间无效，无法转发
                 </div>
               )}
               {effectiveSpaceId > 0 && filteredRooms.length === 0 && (
-                <div className="rounded-lg border border-dashed border-base-300 px-4 py-8 text-sm text-base-content/60 text-center">
+                <div className="
+                  rounded-lg border border-dashed border-base-300 px-4 py-8
+                  text-sm text-base-content/60 text-center
+                ">
                   {currentRooms.length === 0
                     ? "当前空间下暂无房间"
                     : "没有匹配的房间"}
@@ -246,22 +290,31 @@ function ForwardWindow({
                     <button
                       key={roomId}
                       type="button"
-                      className={`w-full rounded-md px-2.5 py-2 flex items-center justify-between gap-3 text-left transition disabled:opacity-60 ${
+                      className={`
+                        w-full rounded-md px-2.5 py-2 flex items-center
+                        justify-between gap-3 text-left transition
+                        disabled:opacity-60
+                        ${
                         isSelected
                           ? "bg-info/10"
                           : "hover:bg-base-200/70"
-                      }`}
+                      }
+                      `}
                       onClick={() => toggleRoomSelection(roomId)}
                       disabled={roomId <= 0 || isForwarding}
                       aria-pressed={isSelected}
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span
-                          className={`flex size-5 shrink-0 items-center justify-center rounded border text-[11px] ${
+                          className={`
+                            flex size-5 shrink-0 items-center justify-center
+                            rounded border text-[11px]
+                            ${
                             isSelected
                               ? "border-info bg-info text-info-content"
                               : "border-base-content/25 text-transparent"
-                          }`}
+                          }
+                          `}
                           aria-hidden="true"
                         >
                           <Check size={13} weight="bold" />
@@ -287,8 +340,13 @@ function ForwardWindow({
             </div>
           </section>
 
-          <section className="min-h-0 rounded-lg border border-base-300 bg-base-200/25">
-            <div className="flex items-center justify-between gap-3 border-b border-base-300 p-3">
+          <section className="
+            min-h-0 rounded-lg border border-base-300 bg-base-200/25
+          ">
+            <div className="
+              flex items-center justify-between gap-3 border-b border-base-300
+              p-3
+            ">
               <div>
                 <div className="text-sm font-medium">已选目标</div>
                 <div className="mt-0.5 text-xs text-base-content/50">
@@ -310,7 +368,11 @@ function ForwardWindow({
             <div className="max-h-80 min-h-60 overflow-auto p-2">
               {selectedRooms.length === 0
                 ? (
-                    <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-base-300 px-4 text-center text-sm text-base-content/55">
+                    <div className="
+                      flex h-44 items-center justify-center rounded-lg border
+                      border-dashed border-base-300 px-4 text-center text-sm
+                      text-base-content/55
+                    ">
                       从左侧选择要转发到的房间
                     </div>
                   )
@@ -324,7 +386,10 @@ function ForwardWindow({
                         return (
                           <div
                             key={roomId}
-                            className="flex items-center justify-between gap-2 rounded-md bg-base-100 px-2.5 py-2"
+                            className="
+                              flex items-center justify-between gap-2 rounded-md
+                              bg-base-100 px-2.5 py-2
+                            "
                           >
                             <div className="flex min-w-0 items-center gap-2.5">
                               <div className="avatar">
@@ -336,11 +401,15 @@ function ForwardWindow({
                                   />
                                 </div>
                               </div>
-                              <div className="min-w-0 truncate text-sm font-medium">{displayName}</div>
+                              <div className="
+                                min-w-0 truncate text-sm font-medium
+                              ">{displayName}</div>
                             </div>
                             <button
                               type="button"
-                              className="btn btn-ghost btn-xs btn-square shrink-0"
+                              className="
+                                btn btn-ghost btn-xs btn-square shrink-0
+                              "
                               onClick={() => toggleRoomSelection(roomId)}
                               disabled={isForwarding}
                               aria-label={`移除 ${displayName}`}
@@ -357,8 +426,15 @@ function ForwardWindow({
         </div>
       </div>
 
-      <div className="border-t border-base-300 bg-base-100/95 px-6 py-4 supports-[backdrop-filter]:backdrop-blur-md md:px-7">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="
+        border-t border-base-300 bg-base-100/95 px-6 py-4
+        supports-[backdrop-filter]:backdrop-blur-md
+        md:px-7
+      ">
+        <div className="
+          flex flex-col gap-3
+          md:flex-row md:items-center md:justify-between
+        ">
           <div className="min-w-0 text-sm">
             <div className="font-medium">
               {selectedTargetCount > 0
@@ -389,7 +465,9 @@ function ForwardWindow({
               onClick={handleForwardSelectedRooms}
               disabled={!canForward}
             >
-              {isForwarding && <span className="loading loading-spinner loading-xs"></span>}
+              {isForwarding && <span className="
+                loading loading-spinner loading-xs
+              "></span>}
               {selectedTargetCount > 0
                 ? `发送到 ${selectedTargetCount} 个房间`
                 : "发送"}

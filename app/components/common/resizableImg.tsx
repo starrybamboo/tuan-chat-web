@@ -306,7 +306,9 @@ export function ResizableImg({
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden rounded-md touch-none select-none"
+      className="
+        relative h-full w-full overflow-hidden rounded-md touch-none select-none
+      "
       ref={containerRef}
       style={{ cursor: isInteracting ? "grabbing" : "grab" }}
     >

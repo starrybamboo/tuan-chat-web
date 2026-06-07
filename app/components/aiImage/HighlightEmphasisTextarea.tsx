@@ -327,10 +327,15 @@ export function HighlightEmphasisTextarea({
     <div className={surfaceClassName}>
       {highlightEnabled
         ? (
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div aria-hidden="true" className="
+              pointer-events-none absolute inset-0 overflow-hidden
+            ">
               <div
                 ref={overlayContentRef}
-                className={`${contentClassName} min-h-full whitespace-pre-wrap break-words`}
+                className={`
+                  ${contentClassName}
+                  min-h-full whitespace-pre-wrap break-words
+                `}
               >
                 {segments.length
                   ? segments.map((segment, index) => (
@@ -338,7 +343,10 @@ export function HighlightEmphasisTextarea({
                         {segment.text}
                       </span>
                     ))
-                  : <span className="text-base-content/28 dark:text-base-content/28">{placeholder ?? ""}</span>}
+                  : <span className="
+                    text-base-content/28
+                    dark:text-base-content/28
+                  ">{placeholder ?? ""}</span>}
                 {stringValue.endsWith("\n") ? "\n " : null}
               </div>
             </div>
@@ -353,11 +361,21 @@ export function HighlightEmphasisTextarea({
         spellCheck={spellCheck}
         value={stringValue}
         placeholder={highlightEnabled ? "" : placeholder}
-        className={`${contentClassName} whitespace-pre-wrap break-words relative z-10 block w-full resize-none overflow-hidden bg-transparent focus:outline-none ${
+        className={`
+          ${contentClassName}
+          whitespace-pre-wrap break-words relative z-10 block w-full resize-none
+          overflow-hidden bg-transparent
+          focus:outline-none
+          ${
           highlightEnabled
-            ? "text-transparent caret-base-content selection:bg-primary/20 placeholder:text-transparent"
+            ? `
+              text-transparent caret-base-content
+              selection:bg-primary/20
+              placeholder:text-transparent
+            `
             : "text-base-content"
-        }`}
+        }
+        `}
         onChange={onChange}
         onScroll={onScroll}
       />

@@ -271,14 +271,23 @@ export default function PerformanceEditor({
   return (
     <div className="space-y-6 bg-base-200 rounded-lg p-4">
       <div className={headerClassName}>
-        <h3 className={`card-title text-lg items-center gap-2 ml-1 ${hideTitleOnMobile ? "hidden md:flex" : "flex"}`}>
+        <h3 className={`
+          card-title text-lg items-center gap-2 ml-1
+          ${hideTitleOnMobile ? `
+            hidden
+            md:flex
+          ` : `flex`}
+        `}>
           基本信息
         </h3>
       </div>
 
       {/* 表演字段区域 - 响应式布局 */}
       <div
-        className="grid gap-4 grid-cols-2 md:grid-cols-4"
+        className="
+          grid gap-4 grid-cols-2
+          md:grid-cols-4
+        "
         onBlur={handleGridBlur}
         onKeyDown={handleArrowNavigation}
         style={{

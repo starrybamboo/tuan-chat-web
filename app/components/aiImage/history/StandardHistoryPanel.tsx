@@ -51,7 +51,11 @@ export function StandardHistoryPanel({
   onCollapse,
 }: StandardHistoryPanelProps) {
   return (
-    <div className="h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l border-[#D6DCE3] bg-[#F3F5F7] p-3 dark:border-[#2A3138] dark:bg-[#161A1F]">
+    <div className="
+      h-full min-h-0 w-[160px] shrink-0 overflow-hidden border-l
+      border-[#D6DCE3] bg-[#F3F5F7] p-3
+      dark:border-[#2A3138] dark:bg-[#161A1F]
+    ">
       <div className="flex h-full flex-col">
         <div className="mb-3 flex items-center gap-2 px-1">
           <div className="flex items-center gap-1">
@@ -60,7 +64,11 @@ export function StandardHistoryPanel({
           </div>
           <button
             type="button"
-            className="btn btn-ghost btn-square btn-xs ml-auto shrink-0 text-base-content/60 hover:text-base-content"
+            className="
+              btn btn-ghost btn-square btn-xs ml-auto shrink-0
+              text-base-content/60
+              hover:text-base-content
+            "
             aria-label="收起历史记录侧边栏"
             title="收起历史记录侧边栏"
             onClick={onCollapse}
@@ -69,7 +77,11 @@ export function StandardHistoryPanel({
           </button>
         </div>
         <div className="ai-image-fade-scrollbar flex-1 overflow-auto pr-1">
-          <div className="grid grid-cols-1 justify-items-center gap-2 border-t border-[#D6DCE3] py-3 dark:border-[#2A3138]">
+          <div className="
+            grid grid-cols-1 justify-items-center gap-2 border-t
+            border-[#D6DCE3] py-3
+            dark:border-[#2A3138]
+          ">
             {currentResultCards.map(({ item, index, row }) => (
               <HistoryImageTile
                 key={`${item.batchId}-${item.batchIndex}`}
@@ -117,7 +129,11 @@ export function StandardHistoryPanel({
               />
             ))}
             {!currentResultCards.length && !archivedHistoryRows.length
-              ? <div className="col-span-1 w-full rounded-xl border border-dashed border-base-300 bg-base-100 px-3 py-5 text-center text-sm text-base-content/55">暂无绘图记录</div>
+              ? <div className="
+                col-span-1 w-full rounded-xl border border-dashed
+                border-base-300 bg-base-100 px-3 py-5 text-center text-sm
+                text-base-content/55
+              ">暂无绘图记录</div>
               : null}
           </div>
         </div>

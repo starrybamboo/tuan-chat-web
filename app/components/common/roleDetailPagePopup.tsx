@@ -166,7 +166,10 @@ export function RoleDetailPagePopup({
               {canKick && (
                 <button
                   type="button"
-                  className="btn btn-error btn-xs sm:btn-sm"
+                  className="
+                    btn btn-error btn-xs
+                    sm:btn-sm
+                  "
                   onClick={() => setIsKickConfirmOpen(true)}
                 >
                   踢出角色

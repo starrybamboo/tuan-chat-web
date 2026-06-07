@@ -96,11 +96,22 @@ function ActivitiesPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="
+        max-w-7xl mx-auto px-3
+        sm:px-4
+        py-4
+        sm:py-6
+      ">
         {/* 布局 */}
-        <div className="block lg:grid lg:grid-cols-12 lg:gap-6">
+        <div className="
+          block
+          lg:grid lg:grid-cols-12 lg:gap-6
+        ">
           {/* 移动端顶部侧边栏 */}
-          <div className="lg:hidden mb-4">
+          <div className="
+            lg:hidden
+            mb-4
+          ">
             <div className="grid grid-cols-1 gap-3">
               <ActivityNotice />
               <TrendingTopics />
@@ -109,35 +120,65 @@ function ActivitiesPage() {
 
           {/* 主内容区 */}
           <div className="lg:col-span-9">
-            <h1 className="text-xl sm:text-2xl font-bold mb-4 text-base-content px-1">
+            <h1 className="
+              text-xl
+              sm:text-2xl
+              font-bold mb-4 text-base-content px-1
+            ">
               动态
             </h1>
 
             {/* 发布动态框 */}
-            <div className="mb-4 sm:mb-6">
+            <div className="
+              mb-4
+              sm:mb-6
+            ">
               <PublishPostCard loginUserId={loginUserId} />
             </div>
 
             {/* 导航标签 */}
-            <div className="mb-4 sm:mb-6">
-              <div className="flex space-x-4 sm:space-x-6 text-sm bg-base-100 rounded-t-lg px-3 sm:px-4 pt-3">
+            <div className="
+              mb-4
+              sm:mb-6
+            ">
+              <div className="
+                flex space-x-4
+                sm:space-x-6
+                text-sm bg-base-100 rounded-t-lg px-3
+                sm:px-4
+                pt-3
+              ">
                 <button
-                  className={`font-medium border-b-2 pb-2 transition-colors ${
+                  className={`
+                    font-medium border-b-2 pb-2 transition-colors
+                    ${
                     activeTab === "all"
                       ? "text-primary border-primary"
-                      : "text-base-content/70 hover:text-primary border-transparent"
-                  }`}
+                      : `
+                        text-base-content/70
+                        hover:text-primary
+                        border-transparent
+                      `
+                  }
+                  `}
                   onClick={() => setActiveTab("all")}
                   type="button"
                 >
                   全部
                 </button>
                 <button
-                  className={`font-medium border-b-2 pb-2 transition-colors ${
+                  className={`
+                    font-medium border-b-2 pb-2 transition-colors
+                    ${
                     activeTab === "repository"
                       ? "text-primary border-primary"
-                      : "text-base-content/70 hover:text-primary border-transparent"
-                  }`}
+                      : `
+                        text-base-content/70
+                        hover:text-primary
+                        border-transparent
+                      `
+                  }
+                  `}
                   onClick={() => setActiveTab("repository")}
                   type="button"
                 >
@@ -147,15 +188,22 @@ function ActivitiesPage() {
             </div>
 
             {/* 动态列表 */}
-            <div className="space-y-3 sm:space-y-4">
+            <div className="
+              space-y-3
+              sm:space-y-4
+            ">
               {isLoading && (
                 <div className="flex justify-center py-8">
-                  <div className="loading loading-spinner loading-lg text-primary"></div>
+                  <div className="
+                    loading loading-spinner loading-lg text-primary
+                  "></div>
                 </div>
               )}
 
               {isError && (
-                <div className="bg-error/10 border border-error/20 rounded-lg p-4 text-center">
+                <div className="
+                  bg-error/10 border border-error/20 rounded-lg p-4 text-center
+                ">
                   <p className="text-error font-medium">加载失败</p>
                   <p className="text-error/80 text-sm mt-1">
                     {error?.message || "请检查网络连接后重试"}
@@ -225,14 +273,19 @@ function ActivitiesPage() {
               {/* 显示正在加载下一页的 spinner */}
               {isFetchingNextPage && (
                 <div className="flex justify-center py-4">
-                  <div className="loading loading-spinner loading-md text-primary"></div>
+                  <div className="
+                    loading loading-spinner loading-md text-primary
+                  "></div>
                 </div>
               )}
             </div>
           </div>
 
           {/* 桌面端右侧边栏 */}
-          <div className="hidden lg:block lg:col-span-3">
+          <div className="
+            hidden
+            lg:block lg:col-span-3
+          ">
             <div className="sticky top-6 space-y-6">
               <ActivityNotice />
               <TrendingTopics />

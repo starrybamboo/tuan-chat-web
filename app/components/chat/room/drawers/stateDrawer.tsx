@@ -265,7 +265,10 @@ function formatInitiativeText(initiative: number | null): string {
 
 function EmptyStateSection({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-base-300/70 bg-base-100/55 px-3 py-3 text-xs text-base-content/55">
+    <div className="
+      rounded-xl border border-dashed border-base-300/70 bg-base-100/55 px-3
+      py-3 text-xs text-base-content/55
+    ">
       {text}
     </div>
   );
@@ -279,7 +282,11 @@ function StatPill({
   className?: string;
 }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium leading-none ${className ?? "border-base-300/70 bg-base-100/75 text-base-content/70"}`}>
+    <span className={`
+      inline-flex items-center rounded-full border px-2 py-1 text-[11px]
+      font-medium leading-none
+      ${className ?? `border-base-300/70 bg-base-100/75 text-base-content/70`}
+    `}>
       {text}
     </span>
   );
@@ -330,7 +337,10 @@ function EditableStatPill({
       <input
         type="number"
 
-        className="input input-xs h-6 min-h-6 w-20 rounded-full border-base-300 bg-base-100 px-2 text-right text-[11px] tabular-nums"
+        className="
+          input input-xs h-6 min-h-6 w-20 rounded-full border-base-300
+          bg-base-100 px-2 text-right text-[11px] tabular-nums
+        "
         value={editingValue}
         onChange={event => setEditingValue(event.target.value)}
         onBlur={() => {
@@ -361,7 +371,12 @@ function EditableStatPill({
   return (
     <button
       type="button"
-      className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium leading-none transition hover:border-primary/40 hover:bg-primary/8 ${className ?? "border-base-300/70 bg-base-100/75 text-base-content/70"}`}
+      className={`
+        inline-flex items-center rounded-full border px-2 py-1 text-[11px]
+        font-medium leading-none transition
+        hover:border-primary/40 hover:bg-primary/8
+        ${className ?? `border-base-300/70 bg-base-100/75 text-base-content/70`}
+      `}
       title="点击编辑"
       onClick={() => startEditing(editKey, String(initialValue))}
     >
@@ -400,11 +415,14 @@ function CompactRoleRow({
   };
 
   return (
-    <div className={`rounded-2xl border px-3 py-2.5 ${
+    <div className={`
+      rounded-2xl border px-3 py-2.5
+      ${
       row.isCurrent
         ? "border-primary/35 bg-primary/5"
         : "border-base-300/75 bg-base-100/70"
-    }`}
+    }
+    `}
     >
       <div className="flex items-start gap-2.5">
         <RoleAvatarComponent
@@ -422,7 +440,10 @@ function CompactRoleRow({
               {row.roleName}
             </span>
             {row.isCurrent && (
-              <span className="rounded-full bg-primary/14 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              <span className="
+                rounded-full bg-primary/14 px-2 py-0.5 text-[10px] font-semibold
+                text-primary
+              ">
                 当前
               </span>
             )}
@@ -482,7 +503,11 @@ function CompactRoleRow({
           <div className="ml-auto flex shrink-0 items-start justify-end pl-2">
             <button
               type="button"
-              className="btn btn-ghost btn-xs h-6 min-h-6 rounded-md px-2 text-[11px] text-error hover:bg-error/10"
+              className="
+                btn btn-ghost btn-xs h-6 min-h-6 rounded-md px-2 text-[11px]
+                text-error
+                hover:bg-error/10
+              "
               title="删除这条先攻记录"
               onClick={() => onDelete?.(row)}
             >
@@ -1116,12 +1141,25 @@ export default function StateDrawer() {
   return (
     <div className="h-full overflow-auto bg-base-200/45 px-2.5 py-3">
       <div className="space-y-2.5">
-        <section className="rounded-2xl border border-base-300/75 bg-base-100/80 px-3 py-3 shadow-sm">
+        <section className="
+          rounded-2xl border border-base-300/75 bg-base-100/80 px-3 py-3
+          shadow-sm
+        ">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-end gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-base-content/42">回合</span>
-              <span className="text-2xl font-semibold leading-none text-base-content">{displayedRound}</span>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${runtime.combatRoundActive ? "bg-primary/14 text-primary" : "bg-base-200 text-base-content/45"}`}>
+              <span className="
+                text-[11px] font-semibold uppercase tracking-[0.16em]
+                text-base-content/42
+              ">回合</span>
+              <span className="
+                text-2xl font-semibold leading-none text-base-content
+              ">{displayedRound}</span>
+              <span className={`
+                rounded-full px-2 py-0.5 text-[10px] font-semibold
+                ${runtime.combatRoundActive ? `bg-primary/14 text-primary` : `
+                  bg-base-200 text-base-content/45
+                `}
+              `}>
                 {runtime.combatRoundActive ? "战斗轮进行中" : "未进入战斗轮"}
               </span>
             </div>
@@ -1129,7 +1167,10 @@ export default function StateDrawer() {
               {importableRoles.length > 0 && (
                 <button
                   type="button"
-                  className="btn btn-outline btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]"
+                  className="
+                    btn btn-outline btn-xs h-8 min-h-8 rounded-lg px-3
+                    text-[11px]
+                  "
                   onClick={() => setIsImportPopupOpen(true)}
                 >
                   导入先攻
@@ -1138,7 +1179,10 @@ export default function StateDrawer() {
               {spaceOwner && primaryAction === "start" && (
                 <button
                   type="button"
-                  className="btn btn-outline btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]"
+                  className="
+                    btn btn-outline btn-primary btn-xs h-8 min-h-8 rounded-lg
+                    px-3 text-[11px]
+                  "
                   onClick={() => {
                     void handleStartCombat();
                   }}
@@ -1151,7 +1195,10 @@ export default function StateDrawer() {
               {spaceOwner && primaryAction === "end" && (
                 <button
                   type="button"
-                  className="btn btn-outline btn-error btn-xs h-8 min-h-8 gap-1 rounded-lg px-3 text-[11px]"
+                  className="
+                    btn btn-outline btn-error btn-xs h-8 min-h-8 gap-1
+                    rounded-lg px-3 text-[11px]
+                  "
                   onClick={() => {
                     void handleEndCombat();
                   }}
@@ -1164,7 +1211,10 @@ export default function StateDrawer() {
               )}
               <button
                 type="button"
-                className="btn btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px] font-semibold"
+                className="
+                  btn btn-primary btn-xs h-8 min-h-8 rounded-lg px-3 text-[11px]
+                  font-semibold
+                "
                 onClick={() => {
                   void handleAdvanceTurn();
                 }}
@@ -1220,7 +1270,10 @@ export default function StateDrawer() {
                 )}
 
                 {rolesWithoutContent.length > 0 && (
-                  <div className="rounded-xl border border-base-300/70 bg-base-100/70 px-3 py-2 text-xs text-base-content/52">
+                  <div className="
+                    rounded-xl border border-base-300/70 bg-base-100/70 px-3
+                    py-2 text-xs text-base-content/52
+                  ">
                     无房间态：
                     {" "}
                     {rolesWithoutContent.map(row => row.roleName).join("、")}
@@ -1236,10 +1289,15 @@ export default function StateDrawer() {
               {looseParticipants.map(participant => (
                 <div
                   key={participant.participantId}
-                  className="rounded-2xl border border-base-300/75 bg-base-100/70 px-3 py-2.5"
+                  className="
+                    rounded-2xl border border-base-300/75 bg-base-100/70 px-3
+                    py-2.5
+                  "
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-base-content">
+                    <span className="
+                      truncate text-sm font-medium text-base-content
+                    ">
                       {participant.name || participant.participantId}
                     </span>
                     <StatPill text={formatInitiativeText(participant.initiative)} />
@@ -1262,7 +1320,10 @@ export default function StateDrawer() {
             {runtime.unresolvedStates.map((item, index) => (
               <div
                 key={`${item.messageId}:${item.statusId}:${index}`}
-                className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-content"
+                className="
+                  rounded-xl border border-warning/30 bg-warning/10 px-3 py-2
+                  text-xs text-warning-content
+                "
               >
                 <div className="font-medium">{item.statusId}</div>
                 <div className="mt-1 opacity-80">

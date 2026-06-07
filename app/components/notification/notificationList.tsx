@@ -21,7 +21,9 @@ export default function NotificationList({
 }: NotificationListProps) {
   if (loading && items.length === 0) {
     return (
-      <div className="flex min-h-40 items-center justify-center text-sm opacity-70">
+      <div className="
+        flex min-h-40 items-center justify-center text-sm opacity-70
+      ">
         正在加载通知...
       </div>
     );
@@ -29,7 +31,11 @@ export default function NotificationList({
 
   if (items.length === 0) {
     return (
-      <div className="flex min-h-40 items-center justify-center rounded-2xl border border-dashed border-base-300 bg-base-100 px-4 text-center text-sm opacity-70">
+      <div className="
+        flex min-h-40 items-center justify-center rounded-2xl border
+        border-dashed border-base-300 bg-base-100 px-4 text-center text-sm
+        opacity-70
+      ">
         {emptyText}
       </div>
     );
@@ -41,14 +47,22 @@ export default function NotificationList({
         <motion.button
           key={item.notificationId}
           type="button"
-          className="w-full rounded-2xl border border-base-300 bg-base-100 px-4 py-3 text-left transition hover:border-primary/35 hover:bg-base-200 disabled:cursor-wait disabled:opacity-70"
+          className="
+            w-full rounded-2xl border border-base-300 bg-base-100 px-4 py-3
+            text-left transition
+            hover:border-primary/35 hover:bg-base-200
+            disabled:cursor-wait disabled:opacity-70
+          "
           disabled={busyNotificationId === item.notificationId}
           onClick={() => void onItemClick(item)}
           {...listItemMotionProps(index, { direction: "left", distance: 20, duration: 0.25, staggerDelay: 0.04 })}
         >
           <div className="flex items-start gap-3">
             <span
-              className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${item.isRead ? "bg-base-300" : "bg-primary"}`}
+              className={`
+                mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full
+                ${item.isRead ? `bg-base-300` : `bg-primary`}
+              `}
               aria-hidden="true"
             />
             <div className="min-w-0 flex-1">

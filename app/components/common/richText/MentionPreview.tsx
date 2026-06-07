@@ -231,7 +231,10 @@ function MentionPreview(props: MentionPreviewProps) {
   }, [description, tips, entitiesMap, id]);
   return (
     <div
-      className="mention-preview shadow-lg rounded-md overflow-hidden border border-base-300 bg-base-100 text-sm"
+      className="
+        mention-preview shadow-lg rounded-md overflow-hidden border
+        border-base-300 bg-base-100 text-sm
+      "
       style={{
         position: "fixed",
         width: `${WRAP_WIDTH_VW}vw`,
@@ -285,24 +288,34 @@ function MentionPreview(props: MentionPreviewProps) {
         }, 300);
       }}
     >
-      <div className="px-3 py-2 font-semibold border-b border-base-300 flex items-center gap-2 text-primary">
+      <div className="
+        px-3 py-2 font-semibold border-b border-base-300 flex items-center gap-2
+        text-primary
+      ">
         <span className="text-xs uppercase tracking-wide opacity-70">{category}</span>
         <span className="truncate" title={name}>{name}</span>
       </div>
       <div
-        className="flex-1 p-3 overflow-auto leading-relaxed text-xs markdown-preview-body mention-markdown"
+        className="
+          flex-1 p-3 overflow-auto leading-relaxed text-xs markdown-preview-body
+          mention-markdown
+        "
         style={{ wordBreak: "break-word" }}
       >
         {renderedHtml
           && (
             <div className="mt-2 pt-2 border-t border-base-200">
-              <div className="text-[15px] uppercase opacity-40 mb-1 text-center font-bold">pl可见</div>
+              <div className="
+                text-[15px] uppercase opacity-40 mb-1 text-center font-bold
+              ">pl可见</div>
               <div className="preview-html" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
             </div>
           )}
         {renderedTipsHtml && (
           <div className="mt-2 pt-2 border-t border-base-200">
-            <div className="text-[15px] uppercase opacity-40 mb-1 text-center font-bold">kp可见</div>
+            <div className="
+              text-[15px] uppercase opacity-40 mb-1 text-center font-bold
+            ">kp可见</div>
             <div className="preview-html" dangerouslySetInnerHTML={{ __html: renderedTipsHtml }} />
           </div>
         )}

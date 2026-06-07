@@ -262,7 +262,10 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
   return (
     <Mounter targetId="modal-root">
       <div
-        className="absolute z-50 max-h-[40vh] overflow-y-auto overflow-x-hidden min-w-[220px]"
+        className="
+          absolute z-50 max-h-[40vh] overflow-y-auto overflow-x-hidden
+          min-w-[220px]
+        "
         style={{
           top: dialogPosition.y - 8,
           left: dialogPosition.x,
@@ -270,7 +273,11 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
         }}
         onMouseDown={e => e.preventDefault()}
       >
-        <ul ref={listRef} className="menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1 menu-sm sm:menu-md">
+        <ul ref={listRef} className="
+          menu bg-base-100 shadow-xl rounded-box border border-base-200 p-1
+          menu-sm
+          sm:menu-md
+        ">
           {filteredRoles.map((role, index) => {
             const roleNote = role.extra?.mentionNote;
             const isAtAll = role.roleId === -9999;
@@ -283,15 +290,26 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                     type="button"
                     data-at-mention-index={index}
                     aria-selected={isSelected}
-                    className={`flex-col items-center justify-center py-2 bg-base-200/50 border border-base-300/50 ${isSelected ? "active !bg-primary !border-primary !text-primary-content" : ""}`}
+                    className={`
+                      flex-col items-center justify-center py-2 bg-base-200/50
+                      border border-base-300/50
+                      ${isSelected ? `
+                        active !bg-primary !border-primary !text-primary-content
+                      ` : ""}
+                    `}
                     onClick={() => handleSelectRole(role)}
                   >
                     <span className="font-bold">{role.roleName}</span>
                     {roleNote && (
                       <span
-                        className={`text-xs ${
-                          isSelected ? "text-primary-content/80" : "text-base-content/60"
-                        }`}
+                        className={`
+                          text-xs
+                          ${
+                          isSelected ? "text-primary-content/80" : `
+                            text-base-content/60
+                          `
+                        }
+                        `}
                       >
                         {roleNote}
                       </span>
@@ -307,7 +325,10 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                   type="button"
                   data-at-mention-index={index}
                   aria-selected={isSelected}
-                  className={`gap-3 py-2 ${isSelected ? "active !bg-primary !text-primary-content" : ""}`}
+                  className={`
+                    gap-3 py-2
+                    ${isSelected ? `active !bg-primary !text-primary-content` : ""}
+                  `}
                   onClick={() => handleSelectRole(role)}
                 >
                   <RoleAvatarByRole
@@ -316,13 +337,20 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
                     isRounded={true}
                     stopToastWindow={true}
                   />
-                  <div className="flex flex-col gap-0.5 items-start flex-1 min-w-0">
+                  <div className="
+                    flex flex-col gap-0.5 items-start flex-1 min-w-0
+                  ">
                     <span className="font-medium truncate w-full">{role.roleName}</span>
                     {roleNote && (
                       <span
-                        className={`text-xs truncate w-full ${
-                          isSelected ? "text-primary-content/90" : "text-base-content"
-                        }`}
+                        className={`
+                          text-xs truncate w-full
+                          ${
+                          isSelected ? "text-primary-content/90" : `
+                            text-base-content
+                          `
+                        }
+                        `}
                       >
                         {roleNote}
                       </span>

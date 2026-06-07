@@ -50,7 +50,9 @@ export default function ClueDrawer() {
     <div className="flex h-full min-h-0 flex-col bg-base-200">
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
         {roomsQuery.isLoading && (
-          <div className="flex items-center gap-2 px-3 py-2 text-sm text-base-content/55">
+          <div className="
+            flex items-center gap-2 px-3 py-2 text-sm text-base-content/55
+          ">
             <span className="loading loading-spinner loading-sm"></span>
             <span>正在加载线索...</span>
           </div>

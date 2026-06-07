@@ -95,7 +95,9 @@ export default function RoomUserList({ type}: { type: string }) {
 
   return (
     <div className="h-full min-h-0 p-2 flex flex-col items-stretch">
-      <div className="flex flex-row justify-between items-center gap-2 w-full mt-2">
+      <div className="
+        flex flex-row justify-between items-center gap-2 w-full mt-2
+      ">
         <div className="flex items-center gap-2">
           {isRole
             ? (
@@ -158,15 +160,22 @@ export default function RoomUserList({ type}: { type: string }) {
       <div className="divider w-full" />
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full flex flex-col items-stretch gap-2"
+        className="
+          flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full flex flex-col
+          items-stretch gap-2
+        "
       >
         {isRole
           ? (
               <>
-                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"} sourceRoomId={roomId} />
+                <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? `
+                  w-full
+                ` : `w-full max-w-md`} sourceRoomId={roomId} />
                 <RoleList
                   roles={npcRoles}
-                  className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"}
+                  className={getScreenSize() === "sm" ? "w-full" : `
+                    w-full max-w-md
+                  `}
                   isNpcRole={true}
                   allowKickOut={true}
                   kickOutByManagerOnly={true}
@@ -177,7 +186,9 @@ export default function RoomUserList({ type}: { type: string }) {
           : (
               <MemberLists
                 members={visibleMembers}
-                className={getScreenSize() === "sm" ? "w-full" : "w-full max-w-md"}
+                className={getScreenSize() === "sm" ? "w-full" : `
+                  w-full max-w-md
+                `}
                 isSpace={false}
                 roomMemberUserIds={roomMemberUserIds}
               />
@@ -213,7 +224,9 @@ export default function RoomUserList({ type}: { type: string }) {
 
 function RoomUserListToastFallback() {
   return (
-    <div className="flex min-h-40 w-full items-center justify-center text-base-content/60">
+    <div className="
+      flex min-h-40 w-full items-center justify-center text-base-content/60
+    ">
       <span className="loading loading-spinner loading-md"></span>
     </div>
   );

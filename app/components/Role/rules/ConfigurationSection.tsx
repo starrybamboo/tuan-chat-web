@@ -161,7 +161,11 @@ export function ConfigurationSection({
   return (
     <Section
       title={title}
-      className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+      className="
+        rounded-2xl
+        md:border-2 md:border-base-content/10
+        bg-base-100
+      "
       collapsible={false}
     >
       <div className="space-y-6">
@@ -187,7 +191,9 @@ export function ConfigurationSection({
                       <span>{modifiedAbilityVisual.hpKey || "HP"}</span>
                       <span>{modifiedAbilityVisual.hpValue}</span>
                     </div>
-                    <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                    <div className="
+                      h-3 w-full bg-base-300 rounded-full overflow-hidden
+                    ">
                       <div
                         className="h-full bg-error"
                         style={{
@@ -203,7 +209,9 @@ export function ConfigurationSection({
                       <span>{modifiedAbilityVisual.mpKey || "MP"}</span>
                       <span>{modifiedAbilityVisual.mpValue}</span>
                     </div>
-                    <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                    <div className="
+                      h-3 w-full bg-base-300 rounded-full overflow-hidden
+                    ">
                       <div
                         className="h-full bg-primary"
                         style={{
@@ -219,7 +227,9 @@ export function ConfigurationSection({
                       <span>{modifiedAbilityVisual.sanKey || "SAN"}</span>
                       <span>{modifiedAbilityVisual.sanValue}</span>
                     </div>
-                    <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                    <div className="
+                      h-3 w-full bg-base-300 rounded-full overflow-hidden
+                    ">
                       <div
                         className="h-full bg-purple-500"
                         style={{
@@ -272,14 +282,22 @@ export function ConfigurationSection({
                 || templateAbilityVisual.mpValue != null
                 || templateAbilityVisual.sanValue != null) && (
                 <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
-                  <h5 className={`font-semibold text-sm ${hideExternalTitlesOnMobile ? "hidden md:block" : ""}`}>模板能力可视化</h5>
+                  <h5 className={`
+                    font-semibold text-sm
+                    ${hideExternalTitlesOnMobile ? `
+                      hidden
+                      md:block
+                    ` : ""}
+                  `}>模板能力可视化</h5>
                   {templateAbilityVisual.hpValue != null && (
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span>{templateAbilityVisual.hpKey || "HP"}</span>
                         <span>{templateAbilityVisual.hpValue}</span>
                       </div>
-                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                      <div className="
+                        h-3 w-full bg-base-300 rounded-full overflow-hidden
+                      ">
                         <div
                           className="h-full bg-error"
                           style={{
@@ -295,7 +313,9 @@ export function ConfigurationSection({
                         <span>{templateAbilityVisual.mpKey || "MP"}</span>
                         <span>{templateAbilityVisual.mpValue}</span>
                       </div>
-                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                      <div className="
+                        h-3 w-full bg-base-300 rounded-full overflow-hidden
+                      ">
                         <div
                           className="h-full bg-primary"
                           style={{
@@ -311,7 +331,9 @@ export function ConfigurationSection({
                         <span>{templateAbilityVisual.sanKey || "SAN"}</span>
                         <span>{templateAbilityVisual.sanValue}</span>
                       </div>
-                      <div className="h-3 w-full bg-base-300 rounded-full overflow-hidden">
+                      <div className="
+                        h-3 w-full bg-base-300 rounded-full overflow-hidden
+                      ">
                         <div
                           className="h-full bg-purple-500"
                           style={{

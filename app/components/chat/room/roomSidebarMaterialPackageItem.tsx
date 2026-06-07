@@ -82,12 +82,26 @@ function MaterialTreeNodeRow({
   return (
     <div className="space-y-1">
       <div
-        className={`group flex min-w-0 items-start gap-1.5 rounded-md px-1.5 py-1.5 text-sm transition ${isActiveNode ? "bg-primary/10 text-primary" : "text-base-content/72 hover:bg-base-200 hover:text-base-content"}`}
+        className={`
+          group flex min-w-0 items-start gap-1.5 rounded-md px-1.5 py-1.5
+          text-sm transition
+          ${isActiveNode ? `bg-primary/10 text-primary` : `
+            text-base-content/72
+            hover:bg-base-200 hover:text-base-content
+          `}
+        `}
         style={rowStyle}
       >
         <button
           type="button"
-          className={`mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-sm ${canExpand ? "text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88" : "pointer-events-none opacity-0"}`}
+          className={`
+            mt-0.5 inline-flex size-4 shrink-0 items-center justify-center
+            rounded-sm
+            ${canExpand ? `
+              text-base-content/60 transition
+              hover:bg-base-100/70 hover:text-base-content/88
+            ` : `pointer-events-none opacity-0`}
+          `}
           tabIndex={canExpand ? 0 : -1}
           onClick={(event) => {
             event.stopPropagation();
@@ -98,12 +112,18 @@ function MaterialTreeNodeRow({
           aria-label={canExpand ? (isExpanded ? "收起文件夹" : "展开文件夹") : undefined}
         >
           {canExpand && (
-            <CaretRightIcon className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} weight="bold" />
+            <CaretRightIcon className={`
+              size-3 transition-transform
+              ${isExpanded ? `rotate-90` : ""}
+            `} weight="bold" />
           )}
         </button>
         <button
           type="button"
-          className={`flex min-w-0 flex-1 items-start gap-1.5 text-left ${rowCursorClassName}`}
+          className={`
+            flex min-w-0 flex-1 items-start gap-1.5 text-left
+            ${rowCursorClassName}
+          `}
           role={isInteractive ? "button" : undefined}
           tabIndex={isInteractive ? 0 : -1}
           onClick={() => {
@@ -170,23 +190,39 @@ function MaterialTreeNodeRow({
           <div className="min-w-0 flex-1">
             <div className="truncate text-left">{node.label}</div>
             {node.meta && (
-              <div className={`truncate text-[11px] ${isActiveNode ? "text-primary/75" : "text-base-content/45"}`}>
+              <div className={`
+                truncate text-[11px]
+                ${isActiveNode ? `text-primary/75` : `text-base-content/45`}
+              `}>
                 {node.meta}
               </div>
             )}
           </div>
           {isMaterialGroup && (
-            <span className={`mt-0.5 shrink-0 text-[11px] ${isActiveNode ? "text-primary/75" : "text-base-content/45"}`}>
+            <span className={`
+              mt-0.5 shrink-0 text-[11px]
+              ${isActiveNode ? `text-primary/75` : `text-base-content/45`}
+            `}>
               {`${node.messageCount} 条`}
             </span>
           )}
         </button>
         {showNodeCreateActions && (
-          <div className={`ml-1 flex shrink-0 items-center gap-1 transition ${isActionPinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          <div className={`
+            ml-1 flex shrink-0 items-center gap-1 transition
+            ${isActionPinned ? `opacity-100` : `
+              opacity-0
+              group-hover:opacity-100
+            `}
+          `}>
             {onCreateFolderAtNode && (
               <button
                 type="button"
-                className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
+                className="
+                  inline-flex size-5 items-center justify-center rounded-sm
+                  text-base-content/60 transition
+                  hover:bg-base-100/70 hover:text-base-content/88
+                "
                 title="在此文件夹下新建文件夹"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -199,7 +235,11 @@ function MaterialTreeNodeRow({
             {onCreateMaterialAtNode && (
               <button
                 type="button"
-                className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
+                className="
+                  inline-flex size-5 items-center justify-center rounded-sm
+                  text-base-content/60 transition
+                  hover:bg-base-100/70 hover:text-base-content/88
+                "
                 title="在此文件夹下新建素材"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -285,19 +325,39 @@ export default function RoomSidebarMaterialPackageItem({
       <div className="group flex w-full min-w-0 items-center gap-1">
         <button
           type="button"
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 transition hover:bg-base-300 hover:text-base-content"
+          className="
+            inline-flex size-7 shrink-0 items-center justify-center rounded-md
+            text-base-content/62 transition
+            hover:bg-base-300 hover:text-base-content
+          "
           onClick={() => onToggleExpanded(packageRootKey)}
           aria-label={isExpanded ? "收起素材包结构" : "展开素材包结构"}
           aria-pressed={isExpanded}
         >
-          <CaretRightIcon className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} weight="bold" />
+          <CaretRightIcon className={`
+            size-3 transition-transform
+            ${isExpanded ? `rotate-90` : ""}
+          `} weight="bold" />
         </button>
         <button
           type="button"
-          className={`group relative flex min-w-0 flex-1 cursor-pointer select-none items-center gap-1.5 rounded-lg px-1 py-1 pr-2 text-left text-sm font-medium transition ${isPackageSelected ? "bg-primary/10 text-primary" : isActivePackage ? "bg-base-300/45 text-base-content" : "text-base-content/78 hover:bg-base-300 hover:text-base-content"}`}
+          className={`
+            group relative flex min-w-0 flex-1 cursor-pointer select-none
+            items-center gap-1.5 rounded-lg px-1 py-1 pr-2 text-left text-sm
+            font-medium transition
+            ${isPackageSelected ? `bg-primary/10 text-primary` : isActivePackage ? `
+              bg-base-300/45 text-base-content
+            ` : `
+              text-base-content/78
+              hover:bg-base-300 hover:text-base-content
+            `}
+          `}
           onClick={onOpenPackageDetail}
         >
-          <div className="flex size-8 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
+          <div className="
+            flex size-8 items-center justify-center overflow-hidden rounded-md
+            border border-base-300/60 bg-base-100
+          ">
             {coverUrl
               ? (
                   <MediaImage
@@ -318,7 +378,11 @@ export default function RoomSidebarMaterialPackageItem({
             {onCreateFolderAtRoot && (
               <button
                 type="button"
-                className="inline-flex size-6 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-300 hover:text-base-content"
+                className="
+                  inline-flex size-6 items-center justify-center rounded-md
+                  text-base-content/60 transition
+                  hover:bg-base-300 hover:text-base-content
+                "
                 title="在素材包根目录下新建文件夹"
                 onClick={(event) => {
                   event.stopPropagation();
@@ -331,7 +395,11 @@ export default function RoomSidebarMaterialPackageItem({
             {onCreateMaterialAtRoot && (
               <button
                 type="button"
-                className="inline-flex size-6 items-center justify-center rounded-md text-base-content/60 transition hover:bg-base-300 hover:text-base-content"
+                className="
+                  inline-flex size-6 items-center justify-center rounded-md
+                  text-base-content/60 transition
+                  hover:bg-base-300 hover:text-base-content
+                "
                 title="在素材包根目录下新建素材"
                 onClick={(event) => {
                   event.stopPropagation();

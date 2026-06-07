@@ -464,7 +464,11 @@ function RoomComposerPanelImpl({
           onCompositionEnd={onCompositionEnd}
           disabled={inputDisabled}
           placeholder={placeholderText}
-          className={`min-h-10 ${screenSize === "sm" ? "max-h-[30dvh]" : "max-h-[20dvh]"} overflow-y-auto min-w-0 flex-1`}
+          className={`
+            min-h-10
+            ${screenSize === "sm" ? "max-h-[30dvh]" : `max-h-[20dvh]`}
+            overflow-y-auto min-w-0 flex-1
+          `}
         />
       </div>
     </div>
@@ -472,11 +476,17 @@ function RoomComposerPanelImpl({
 
   return (
     <div ref={composerRootRef} className="bg-transparent z-20" data-chat-composer-root="true">
-      <div className={`relative flex-1 flex flex-col min-w-0 gap-2 ${screenSize === "sm" ? "p-1.5" : "p-2"}`}>
+      <div className={`
+        relative flex-1 flex flex-col min-w-0 gap-2
+        ${screenSize === "sm" ? `p-1.5` : `p-2`}
+      `}>
         <CommandPanelFromStore
           handleSelectCommand={handleSelectCommand}
           ruleId={ruleId}
-          className="absolute bottom-full w-full bg-base-200 rounded-md overflow-hidden z-10"
+          className="
+            absolute bottom-full w-full bg-base-200 rounded-md overflow-hidden
+            z-10
+          "
         />
 
         <div
@@ -504,14 +514,20 @@ function RoomComposerPanelImpl({
             <div className="p-2 pb-1">
               <RepliedMessage
                 replyMessage={replyMessage}
-                className="flex flex-row gap-2 items-center bg-base-200 rounded-md shadow-sm text-sm p-1"
+                className="
+                  flex flex-row gap-2 items-center bg-base-200 rounded-md
+                  shadow-sm text-sm p-1
+                "
               />
             </div>
           )}
 
           {insertAfterMessageId && (
             <div className="p-2 pb-1">
-              <div className="flex flex-row gap-2 items-center bg-info/20 border border-info/40 rounded-md shadow-sm text-sm p-2 justify-between">
+              <div className="
+                flex flex-row gap-2 items-center bg-info/20 border
+                border-info/40 rounded-md shadow-sm text-sm p-2 justify-between
+              ">
                 <span className="text-base-content/90 font-medium">插入消息中</span>
                 <button
                   type="button"
@@ -526,7 +542,9 @@ function RoomComposerPanelImpl({
 
           <div className="flex flex-wrap items-end gap-2">
             <div className="flex-1 min-w-0">
-              <div className="flex flex-col border border-base-300 rounded-xl bg-base-100/80">
+              <div className="
+                flex flex-col border border-base-300 rounded-xl bg-base-100/80
+              ">
                 <RoomComposerHeader
                   roomId={roomId}
                   userId={userId}
@@ -544,10 +562,23 @@ function RoomComposerPanelImpl({
                   leftToolbar={composerAnnotationsBar}
                   headerToolbar={headerToolbar}
                 />
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-start p-2">
+                <div className="
+                  flex flex-col
+                  sm:flex-row
+                  items-stretch
+                  sm:items-start
+                  p-2
+                ">
                   {inputArea}
 
-                  <div className="w-full sm:w-auto flex justify-end sm:block mt-1 sm:mt-2">
+                  <div className="
+                    w-full
+                    sm:w-auto
+                    flex justify-end
+                    sm:block
+                    mt-1
+                    sm:mt-2
+                  ">
                     <ChatToolbarFromStore
                       {...toolbarCommonProps}
                       showWebgalLinkToggle={true}

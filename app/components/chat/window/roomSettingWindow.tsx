@@ -109,8 +109,13 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
   return (
     <RoomContext value={roomContext}>
-      <div className="flex flex-col h-full w-full min-w-[40vw] bg-base-100 rounded-lg overflow-hidden">
-        <div className="flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100">
+      <div className="
+        flex flex-col h-full w-full min-w-[40vw] bg-base-100 rounded-lg
+        overflow-hidden
+      ">
+        <div className="
+          flex items-center gap-2 px-2 py-1 border-b border-base-300 bg-base-100
+        ">
           <button
             type="button"
             className="btn btn-ghost btn-sm btn-square"
@@ -127,14 +132,18 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
 
         {!room
           ? (
-              <div className="flex-1 flex items-center justify-center opacity-70">加载中...</div>
+              <div className="
+                flex-1 flex items-center justify-center opacity-70
+              ">加载中...</div>
             )
           : (
               <div className="flex-1 min-h-0 overflow-hidden">
                 {defaultTab === "member" && (
                   <div className="h-full overflow-y-auto">
                     <div className="space-y-2 p-4">
-                      <div className="flex flex-row justify-center items-center gap-2 px-4">
+                      <div className="
+                        flex flex-row justify-center items-center gap-2 px-4
+                      ">
                         <p>
                           房间成员 -
                           {visibleMembers.length}
@@ -155,7 +164,9 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                 {defaultTab === "role" && (
                   <div className="h-full overflow-y-auto">
                     <div className="space-y-2 p-4">
-                      <div className="flex flex-row justify-center items-center gap-2 px-4">
+                      <div className="
+                        flex flex-row justify-center items-center gap-2 px-4
+                      ">
                         <p>
                           房间角色 -
                           {roomRoles.length}

@@ -19,7 +19,9 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
 
   const renderedPreviewMessages = useMemo(() => {
     return previewMessages.map(item => (
-      <div key={`${item.message.messageId}`} className="text-xs text-base-content/70 truncate">
+      <div key={`${item.message.messageId}`} className="
+        text-xs text-base-content/70 truncate
+      ">
         <PreviewMessage message={item.message} className="block" />
       </div>
     ));

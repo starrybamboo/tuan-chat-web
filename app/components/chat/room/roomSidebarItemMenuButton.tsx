@@ -20,7 +20,17 @@ export default function RoomSidebarItemMenuButton({
   return (
     <button
       type="button"
-      className={`pointer-events-none hidden size-7 items-center justify-center rounded-md border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0 shadow-sm transition duration-150 hover:border-primary/40 hover:text-base-content md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 ${positionClassName}`}
+      className={`
+        pointer-events-none hidden size-7 items-center justify-center rounded-md
+        border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0
+        shadow-sm transition duration-150
+        hover:border-primary/40 hover:text-base-content
+        md:flex
+        md:group-hover:pointer-events-auto md:group-hover:opacity-100
+        md:group-focus-within:pointer-events-auto
+        md:group-focus-within:opacity-100
+        ${positionClassName}
+      `}
       aria-label={ariaLabel}
       title={ariaLabel}
       onMouseDown={(event) => {

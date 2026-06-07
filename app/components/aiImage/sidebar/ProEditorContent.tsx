@@ -194,14 +194,30 @@ export const ProEditorContent = memo(({
           <div className={segmentedControlClassName}>
             <button
               type="button"
-              className={`${segmentedButtonBaseClassName} ${proPromptTab === "prompt" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+              className={`
+                ${segmentedButtonBaseClassName}
+                ${proPromptTab === "prompt" ? `
+                  bg-base-100 text-base-content shadow-sm
+                ` : `
+                  bg-transparent text-base-content/60
+                  hover:bg-base-100 hover:text-base-content
+                `}
+              `}
               onClick={() => setProPromptTab("prompt")}
             >
               Base Prompt
             </button>
             <button
               type="button"
-              className={`${segmentedButtonBaseClassName} ${proPromptTab === "negative" ? "bg-base-100 text-base-content shadow-sm" : "bg-transparent text-base-content/60 hover:bg-base-100 hover:text-base-content"}`}
+              className={`
+                ${segmentedButtonBaseClassName}
+                ${proPromptTab === "negative" ? `
+                  bg-base-100 text-base-content shadow-sm
+                ` : `
+                  bg-transparent text-base-content/60
+                  hover:bg-base-100 hover:text-base-content
+                `}
+              `}
               onClick={() => setProPromptTab("negative")}
             >
               Undesired Content
@@ -211,33 +227,65 @@ export const ProEditorContent = memo(({
             <button
               ref={proPromptSettingsButtonRef}
               type="button"
-              className={`inline-flex size-9 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+              className={`
+                inline-flex size-9 items-center justify-center rounded-md border
+                transition
+                focus:outline-none focus:ring-2 focus:ring-primary/20
+                ${
                 isProPromptSettingsOpen
-                  ? "border-primary/40 bg-[#F3F5F7] text-base-content shadow-sm dark:bg-[#161A1F]"
-                  : "border-[#D6DCE3] bg-[#F3F5F7] text-base-content/70 hover:border-primary/40 hover:text-base-content dark:border-[#2A3138] dark:bg-[#161A1F] dark:text-base-content/70 dark:hover:text-base-content"
-              }`}
+                  ? `
+                    border-primary/40 bg-[#F3F5F7] text-base-content shadow-sm
+                    dark:bg-[#161A1F]
+                  `
+                  : `
+                    border-[#D6DCE3] bg-[#F3F5F7] text-base-content/70
+                    hover:border-primary/40 hover:text-base-content
+                    dark:border-[#2A3138] dark:bg-[#161A1F]
+                    dark:text-base-content/70
+                    dark:hover:text-base-content
+                  `
+              }
+              `}
               aria-label="打开输入设置"
               aria-expanded={isProPromptSettingsOpen}
               aria-controls="ai-image-pro-prompt-settings"
               onClick={() => setIsProPromptSettingsOpen((prev: boolean) => !prev)}
             >
-              <GearSixIcon className={`size-4 transition-transform duration-200 ${isProPromptSettingsOpen ? "rotate-90" : ""}`} weight="fill" />
+              <GearSixIcon className={`
+                size-4 transition-transform duration-200
+                ${isProPromptSettingsOpen ? `rotate-90` : ""}
+              `} weight="fill" />
             </button>
 
             <div
               id="ai-image-pro-prompt-settings"
-              className={`fixed z-40 w-80 origin-top-left rounded-2xl border border-[#D6DCE3] bg-[#F3F5F7] p-4 shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all duration-200 ease-out dark:border-[#2A3138] dark:bg-[#161A1F] dark:shadow-[0_24px_48px_rgba(0,0,0,0.42)] ${
+              className={`
+                fixed z-40 w-80 origin-top-left rounded-2xl border
+                border-[#D6DCE3] bg-[#F3F5F7] p-4
+                shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition-all
+                duration-200 ease-out
+                dark:border-[#2A3138] dark:bg-[#161A1F]
+                dark:shadow-[0_24px_48px_rgba(0,0,0,0.42)]
+                ${
                 isProPromptSettingsOpen
                   ? "pointer-events-auto translate-x-0 scale-100 opacity-100"
                   : "pointer-events-none -translate-x-2 scale-[0.98] opacity-0"
-              }`}
+              }
+              `}
               style={{
                 top: `${proPromptSettingsPosition.top}px`,
                 left: `${proPromptSettingsPosition.left}px`,
               }}
             >
-              <div className="mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3 dark:border-[#2A3138]">
-                <div className="rounded-md bg-base-100 px-2 py-1 text-xs font-medium text-base-content shadow-sm dark:bg-[#1B2026]">
+              <div className="
+                mb-4 flex items-center gap-2 border-b border-[#D6DCE3] pb-3
+                dark:border-[#2A3138]
+              ">
+                <div className="
+                  rounded-md bg-base-100 px-2 py-1 text-xs font-medium
+                  text-base-content shadow-sm
+                  dark:bg-[#1B2026]
+                ">
                   Settings
                 </div>
               </div>
@@ -266,7 +314,11 @@ export const ProEditorContent = memo(({
                 <div className="space-y-2">
                   <div className="text-sm font-semibold text-base-content">Undesired Content Preset</div>
                   <select
-                    className={`${subtleSelectClassName} w-full !rounded-none bg-base-100 dark:bg-[#1B2026]`}
+                    className={`
+                      ${subtleSelectClassName}
+                      w-full !rounded-none bg-base-100
+                      dark:bg-[#1B2026]
+                    `}
                     value={ucPreset}
                     onChange={e => setUcPreset(clampIntRange(Number(e.target.value), 0, 2, 0))}
                   >
@@ -334,7 +386,10 @@ export const ProEditorContent = memo(({
         </div>
         {!sourceImageDataUrl
           ? (
-              <div className="-mx-3 -mb-3 mt-3 flex items-center justify-between border-t border-base-300 bg-base-100 px-4 py-3">
+              <div className="
+                -mx-3 -mb-3 mt-3 flex items-center justify-between border-t
+                border-base-300 bg-base-100 px-4 py-3
+              ">
                 <div className="text-[15px] text-base-content/58">
                   Add a Base Img (Optional)
                 </div>
@@ -355,24 +410,51 @@ export const ProEditorContent = memo(({
           : null}
         {mode === "img2img" && sourceImageDataUrl
           ? (
-              <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-primary/15 bg-linear-to-br from-primary/10 via-base-100 to-base-100 dark:border-base-300 dark:from-base-100 dark:via-base-100 dark:to-base-100">
+              <div className="
+                -mx-3 -mb-3 mt-3 overflow-hidden border-t border-primary/15
+                bg-linear-to-br from-primary/10 via-base-100 to-base-100
+                dark:border-base-300 dark:from-base-100 dark:via-base-100
+                dark:to-base-100
+              ">
                 <div className={baseImagePanelClassName}>
                   <img
                     src={sourceImageDataUrl}
                     alt="Base Img"
-                    className="absolute inset-0 h-full w-full object-cover opacity-46 saturate-[1.1] contrast-110 brightness-[1.03] dark:opacity-30 dark:saturate-100 dark:contrast-100 dark:brightness-100"
+                    className="
+                      absolute inset-0 h-full w-full object-cover opacity-46
+                      saturate-[1.1] contrast-110 brightness-[1.03]
+                      dark:opacity-30 dark:saturate-100 dark:contrast-100
+                      dark:brightness-100
+                    "
                   />
-                  <div className="absolute inset-0 bg-linear-to-b from-primary/12 via-base-100/72 to-base-100/92 dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84" />
+                  <div className="
+                    absolute inset-0 bg-linear-to-b from-primary/12
+                    via-base-100/72 to-base-100/92
+                    dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84
+                  " />
                   <div className={baseImageHeaderClassName}>
                     <div className="min-w-0">
-                      <div className="text-[15px] font-semibold leading-6 text-base-content">Image2Image</div>
-                      <div className="mt-1 text-[13px] leading-5 text-base-content/58">Transform your image.</div>
+                      <div className="
+                        text-[15px] font-semibold leading-6 text-base-content
+                      ">Image2Image</div>
+                      <div className="
+                        mt-1 text-[13px] leading-5 text-base-content/58
+                      ">Transform your image.</div>
                     </div>
                     <div className={baseImageControlGroupClassName}>
-                      <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100/86 backdrop-blur-sm">
+                      <div className="
+                        flex overflow-hidden rounded-md border border-base-300
+                        bg-base-100/86 backdrop-blur-sm
+                      ">
                         <button
                           type="button"
-                          className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200/85 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="
+                            inline-flex size-11 items-center justify-center
+                            text-base-content/70 transition
+                            hover:bg-base-200/85 hover:text-base-content
+                            focus:outline-none focus:ring-2
+                            focus:ring-primary/20
+                          "
                           aria-label="更换 Base Img"
                           title="更换 Base Img"
                           onClick={handleOpenSourceImagePicker}
@@ -382,7 +464,13 @@ export const ProEditorContent = memo(({
                         <span className="h-11 w-px bg-base-300" aria-hidden="true" />
                         <button
                           type="button"
-                          className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200/85 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="
+                            inline-flex size-11 items-center justify-center
+                            text-base-content/70 transition
+                            hover:bg-base-200/85 hover:text-base-content
+                            focus:outline-none focus:ring-2
+                            focus:ring-primary/20
+                          "
                           aria-label="移除 Base Img"
                           title="移除 Base Img"
                           onClick={handleClearSourceImage}
@@ -397,7 +485,10 @@ export const ProEditorContent = memo(({
                         title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
                         onClick={() => setIsBaseImageToolsOpen((prev: boolean) => !prev)}
                       >
-                        <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown className={`
+                          size-5 shrink-0 transition-transform
+                          ${isBaseImageToolsOpen ? `rotate-180` : ""}
+                        `} />
                       </button>
                     </div>
                   </div>
@@ -405,7 +496,10 @@ export const ProEditorContent = memo(({
                     ? (
                         <div className="relative z-10 mt-4 space-y-4">
                           <label className="block">
-                            <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
+                            <div className="
+                              flex items-center justify-between text-[13px]
+                              font-semibold leading-5 text-base-content
+                            ">
                               <span>Strength</span>
                               <span>{formatSliderValue(strength)}</span>
                             </div>
@@ -421,7 +515,10 @@ export const ProEditorContent = memo(({
                           </label>
 
                           <label className="block">
-                            <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
+                            <div className="
+                              flex items-center justify-between text-[13px]
+                              font-semibold leading-5 text-base-content
+                            ">
                               <span>Noise</span>
                               <span>{formatSliderValue(noise)}</span>
                             </div>
@@ -463,7 +560,10 @@ export const ProEditorContent = memo(({
           <div ref={characterAddMenuRef} className="relative shrink-0">
             <button
               type="button"
-              className={`${characterAddTriggerClassName} ${isCharacterAddMenuOpen ? "invisible pointer-events-none" : ""}`}
+              className={`
+                ${characterAddTriggerClassName}
+                ${isCharacterAddMenuOpen ? `invisible pointer-events-none` : ""}
+              `}
               aria-haspopup="menu"
               aria-expanded={isCharacterAddMenuOpen}
               onClick={() => setIsCharacterAddMenuOpen((prev: boolean) => !prev)}
@@ -484,7 +584,9 @@ export const ProEditorContent = memo(({
                         handleAddV4Char({ defaultPrompt: "girl,", gender: "female" });
                       }}
                     >
-                      <GenderFemaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
+                      <GenderFemaleIcon className="
+                        size-3.5 shrink-0 text-white/90
+                      " weight="regular" />
                       <span>Female</span>
                     </button>
                     <button
@@ -496,7 +598,9 @@ export const ProEditorContent = memo(({
                         handleAddV4Char({ defaultPrompt: "boy,", gender: "male" });
                       }}
                     >
-                      <GenderMaleIcon className="size-3.5 shrink-0 text-white/90" weight="regular" />
+                      <GenderMaleIcon className="
+                        size-3.5 shrink-0 text-white/90
+                      " weight="regular" />
                       <span>Male</span>
                     </button>
                     <button
@@ -537,11 +641,17 @@ export const ProEditorContent = memo(({
                       const selectedPositionCode = isCharacterPositionPickerOpen ? characterPositionPickerState.code : currentPositionCode;
                       return (
                         <div key={row.id} className={characterCardClassName}>
-                          <div className={isCharacterPositionPickerOpen ? "invisible pointer-events-none select-none" : ""}>
+                          <div className={isCharacterPositionPickerOpen ? `
+                            invisible pointer-events-none select-none
+                          ` : ""}>
                             <div className="mb-3 flex items-center gap-2">
-                              <div className="flex min-w-0 items-center gap-1.5 text-white/92">
+                              <div className="
+                                flex min-w-0 items-center gap-1.5 text-white/92
+                              ">
                                 <RowGenderIcon className={characterCardTitleIconClassName} weight="regular" />
-                                <div className="truncate text-[14px] font-medium leading-6">{`Character ${idx + 1}`}</div>
+                                <div className="
+                                  truncate text-[14px] font-medium leading-6
+                                ">{`Character ${idx + 1}`}</div>
                               </div>
                               <div className="ml-auto flex items-center gap-0.5">
                                 <button
@@ -579,14 +689,30 @@ export const ProEditorContent = memo(({
                               <div className={segmentedControlClassName}>
                                 <button
                                   type="button"
-                                  className={`${segmentedButtonBaseClassName} ${activeTab === "prompt" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
+                                  className={`
+                                    ${segmentedButtonBaseClassName}
+                                    ${activeTab === "prompt" ? `
+                                      bg-white/10 text-white shadow-none
+                                    ` : `
+                                      bg-transparent text-white/55
+                                      hover:bg-white/6 hover:text-white
+                                    `}
+                                  `}
                                   onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "prompt" }))}
                                 >
                                   Prompt
                                 </button>
                                 <button
                                   type="button"
-                                  className={`${segmentedButtonBaseClassName} ${activeTab === "negative" ? "bg-white/10 text-white shadow-none" : "bg-transparent text-white/55 hover:bg-white/6 hover:text-white"}`}
+                                  className={`
+                                    ${segmentedButtonBaseClassName}
+                                    ${activeTab === "negative" ? `
+                                      bg-white/10 text-white shadow-none
+                                    ` : `
+                                      bg-transparent text-white/55
+                                      hover:bg-white/6 hover:text-white
+                                    `}
+                                  `}
                                   onClick={() => setCharPromptTabs(prev => ({ ...prev, [row.id]: "negative" }))}
                                 >
                                   Undesired Content
@@ -641,7 +767,14 @@ export const ProEditorContent = memo(({
                               {showCharacterPositionsGlobalSection
                                 ? (
                                     <div className="relative space-y-3">
-                                      <div className={`flex flex-wrap items-center gap-2 text-[12px] font-medium leading-5 text-white/90 ${isCharacterPositionAiChoiceEnabled || isCharacterPositionPickerOpen ? "invisible" : ""}`}>
+                                      <div className={`
+                                        flex flex-wrap items-center gap-2
+                                        text-[12px] font-medium leading-5
+                                        text-white/90
+                                        ${isCharacterPositionAiChoiceEnabled || isCharacterPositionPickerOpen ? `
+                                          invisible
+                                        ` : ""}
+                                      `}>
                                         <span className="text-white/72">Position</span>
                                         {isCharacterPositionAiChoiceEnabled
                                           ? <span className="text-white/92">AI's Choice</span>
@@ -649,12 +782,25 @@ export const ProEditorContent = memo(({
                                               <>
                                                 <button
                                                   type="button"
-                                                  className="inline-flex h-8 items-center rounded-md bg-white/10 px-3 text-[12px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                                  className="
+                                                    inline-flex h-8 items-center
+                                                    rounded-md bg-white/10 px-3
+                                                    text-[12px] font-semibold
+                                                    text-white transition
+                                                    hover:bg-white/14
+                                                    focus:outline-none
+                                                    focus:ring-2
+                                                    focus:ring-white/15
+                                                  "
                                                   onClick={() => handleOpenCharacterPositionPicker(row.id, currentPositionCode)}
                                                 >
                                                   Adjust
                                                 </button>
-                                                <span className="text-[20px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                                <span className="
+                                                  text-[20px] font-semibold
+                                                  leading-none tracking-[0.08em]
+                                                  text-white/96
+                                                ">{selectedPositionCode}</span>
                                               </>
                                             )}
                                       </div>
@@ -666,12 +812,25 @@ export const ProEditorContent = memo(({
 
                           {showCharacterPositionsGlobalSection && !isCharacterPositionAiChoiceEnabled && isCharacterPositionPickerOpen
                             ? (
-                                <div className="absolute inset-0 z-20 flex flex-col rounded-2xl border border-[#2A3138] bg-[#161A1F] p-2.5 shadow-2xl">
-                                  <div className="flex items-center gap-1.5 text-[11px] font-medium leading-5 text-white/90">
+                                <div className="
+                                  absolute inset-0 z-20 flex flex-col
+                                  rounded-2xl border border-[#2A3138]
+                                  bg-[#161A1F] p-2.5 shadow-2xl
+                                ">
+                                  <div className="
+                                    flex items-center gap-1.5 text-[11px]
+                                    font-medium leading-5 text-white/90
+                                  ">
                                     <span className="text-white/72">Position</span>
-                                    <span className="text-[16px] font-semibold leading-none tracking-[0.08em] text-white/96">{selectedPositionCode}</span>
+                                    <span className="
+                                      text-[16px] font-semibold leading-none
+                                      tracking-[0.08em] text-white/96
+                                    ">{selectedPositionCode}</span>
                                   </div>
-                                  <div className="mt-2 grid grid-cols-5 gap-1 rounded-md border border-[#2A3138] bg-[#161A1F] p-1">
+                                  <div className="
+                                    mt-2 grid grid-cols-5 gap-1 rounded-md
+                                    border border-[#2A3138] bg-[#161A1F] p-1
+                                  ">
                                     {V4_CHAR_GRID_CELLS.map((cell) => {
                                       const occupant = characterPositionAssignments.get(cell.code);
                                       const occupiedByOther = Boolean(occupant && occupant.characterId !== row.id);
@@ -680,13 +839,32 @@ export const ProEditorContent = memo(({
                                         <button
                                           key={cell.code}
                                           type="button"
-                                          className={`flex h-8 items-center justify-center rounded-md border text-[16px] font-semibold leading-none transition focus:outline-none ${
+                                          className={`
+                                            flex h-8 items-center justify-center
+                                            rounded-md border text-[16px]
+                                            font-semibold leading-none
+                                            transition
+                                            focus:outline-none
+                                            ${
                                             occupiedByOther
-                                              ? "cursor-not-allowed border-white/8 bg-transparent text-white/42"
+                                              ? `
+                                                cursor-not-allowed
+                                                border-white/8 bg-transparent
+                                                text-white/42
+                                              `
                                               : isSelected
-                                                ? "border-white/60 bg-white/18 text-white"
-                                                : "border-white/8 bg-transparent text-white/72 hover:border-white/20 hover:bg-white/6"
-                                          }`}
+                                                ? `
+                                                  border-white/60 bg-white/18
+                                                  text-white
+                                                `
+                                                : `
+                                                  border-white/8 bg-transparent
+                                                  text-white/72
+                                                  hover:border-white/20
+                                                  hover:bg-white/6
+                                                `
+                                          }
+                                          `}
                                           disabled={occupiedByOther}
                                           aria-label={`选择位置 ${cell.code}`}
                                           title={cell.code}
@@ -700,7 +878,14 @@ export const ProEditorContent = memo(({
                                   <div className="mt-2 flex justify-center">
                                     <button
                                       type="button"
-                                      className="inline-flex h-9 items-center rounded-md bg-white/10 px-4 text-[14px] font-semibold text-white transition hover:bg-white/14 focus:outline-none focus:ring-2 focus:ring-white/15"
+                                      className="
+                                        inline-flex h-9 items-center rounded-md
+                                        bg-white/10 px-4 text-[14px]
+                                        font-semibold text-white transition
+                                        hover:bg-white/14
+                                        focus:outline-none focus:ring-2
+                                        focus:ring-white/15
+                                      "
                                       onClick={() => handleSaveCharacterPosition(row.id)}
                                     >
                                       Done
@@ -715,16 +900,28 @@ export const ProEditorContent = memo(({
                     {showCharacterPositionsGlobalSection
                       ? (
                           <div className={characterPositionsSectionClassName}>
-                            <div className="min-w-0 text-[15px] font-medium leading-6 text-white/92">
+                            <div className="
+                              min-w-0 text-[15px] font-medium leading-6
+                              text-white/92
+                            ">
                               Character Positions (Global)
                             </div>
                             <button
                               type="button"
-                              className={`${characterPositionsToggleBaseClassName} ${
+                              className={`
+                                ${characterPositionsToggleBaseClassName}
+                                ${
                                 isCharacterPositionAiChoiceEnabled
-                                  ? "border-[#F2E8A5] bg-[#F2E8A5] text-[#201C0F] hover:bg-[#E7DB87]"
-                                  : "border-[#2F3841] bg-[#1B2026] text-white/74 hover:border-primary/40 hover:text-white"
-                              }`}
+                                  ? `
+                                    border-[#F2E8A5] bg-[#F2E8A5] text-[#201C0F]
+                                    hover:bg-[#E7DB87]
+                                  `
+                                  : `
+                                    border-[#2F3841] bg-[#1B2026] text-white/74
+                                    hover:border-primary/40 hover:text-white
+                                  `
+                              }
+                              `}
                               aria-pressed={isCharacterPositionAiChoiceEnabled}
                               onClick={handleToggleCharacterPositionAiChoice}
                             >
@@ -740,20 +937,32 @@ export const ProEditorContent = memo(({
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="rounded-md border border-base-300 bg-base-100 shadow-none">
+        <div className="
+          rounded-md border border-base-300 bg-base-100 shadow-none
+        ">
           <div className="flex items-center justify-between gap-4 px-4 py-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center text-base-content/90" aria-hidden="true">
+              <div className="
+                flex size-8 shrink-0 items-center justify-center
+                text-base-content/90
+              " aria-hidden="true">
                 <ReferenceActionIcon className="size-6 shrink-0" src={vibeTransferIconSrc} />
               </div>
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold leading-6 text-base-content">Vibe Transfer</div>
-                <div className="mt-0.5 text-[13px] leading-5 text-base-content/58">{vibeTransferDescription}</div>
+                <div className="
+                  text-[15px] font-semibold leading-6 text-base-content
+                ">Vibe Transfer</div>
+                <div className="
+                  mt-0.5 text-[13px] leading-5 text-base-content/58
+                ">{vibeTransferDescription}</div>
               </div>
             </div>
             <button
               type="button"
-              className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
+              className={`
+                ${featureUploadActionClassName}
+                cursor-not-allowed opacity-45
+              `}
               aria-label="上传 Vibe Transfer 参考图"
               title="上传 Vibe Transfer 参考图"
               disabled
@@ -763,20 +972,32 @@ export const ProEditorContent = memo(({
           </div>
         </div>
 
-        <div className="rounded-md border border-base-300 bg-base-100 shadow-none">
+        <div className="
+          rounded-md border border-base-300 bg-base-100 shadow-none
+        ">
           <div className="flex items-center justify-between gap-4 px-4 py-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center text-base-content/90" aria-hidden="true">
+              <div className="
+                flex size-8 shrink-0 items-center justify-center
+                text-base-content/90
+              " aria-hidden="true">
                 <ReferenceActionIcon className="size-6 shrink-0" src={preciseReferenceIconSrc} />
               </div>
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold leading-6 text-base-content">Precise Reference</div>
-                <div className="mt-0.5 text-[13px] leading-5 text-base-content/58">{preciseReferenceDescription}</div>
+                <div className="
+                  text-[15px] font-semibold leading-6 text-base-content
+                ">Precise Reference</div>
+                <div className="
+                  mt-0.5 text-[13px] leading-5 text-base-content/58
+                ">{preciseReferenceDescription}</div>
               </div>
             </div>
             <button
               type="button"
-              className={`${featureUploadActionClassName} cursor-not-allowed opacity-45`}
+              className={`
+                ${featureUploadActionClassName}
+                cursor-not-allowed opacity-45
+              `}
               aria-label="上传 Precise Reference 参考图"
               title="上传 Precise Reference 参考图"
               disabled

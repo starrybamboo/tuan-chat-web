@@ -8,7 +8,10 @@ interface ExportChatWindowProps {
 
 export default function ExportChatWindow({ selectedMessages, onClose }: ExportChatWindowProps) {
   return (
-    <div className="flex flex-col gap-2 p-0 w-[520px] max-w-[90vw] max-h-[80vh] overflow-y-auto">
+    <div className="
+      flex flex-col gap-2 p-0 w-[520px] max-w-[90vw] max-h-[80vh]
+      overflow-y-auto
+    ">
       <ExportChatDrawer messages={selectedMessages} onClose={onClose} />
     </div>
   );

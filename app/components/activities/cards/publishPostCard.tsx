@@ -203,13 +203,22 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const canPublish = content.trim() && currentLength <= maxLength && !isPublishing;
 
   return (
-    <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 sm:mb-6">
+    <div className="
+      bg-base-100 rounded-xl shadow-sm border border-base-300 p-4
+      sm:p-6
+      mb-4
+      sm:mb-6
+    ">
       <div className="flex items-start space-x-4">
         <div className="pointer-events-none relative flex-shrink-0">
           <MediaImage
             src={imageLowUrl(user?.avatarFileId) || undefined}
             alt={user?.username}
-            className="mask mask-circle w-12 h-12 sm:w-14 sm:h-14 object-cover"
+            className="
+              mask mask-circle w-12 h-12
+              sm:w-14 sm:h-14
+              object-cover
+            "
             fallbackSrc="/favicon.ico"
           />
         </div>
@@ -220,14 +229,22 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder="有什么新鲜事想告诉大家？"
-              className="w-full p-3 border border-base-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
+              className="
+                w-full p-3 border border-base-300 rounded-lg resize-none
+                focus:outline-none focus:ring-2 focus:ring-primary
+                focus:border-primary
+                transition-all duration-200
+              "
               rows={rows}
               disabled={isPublishing}
             />
 
             {/* 发布中的加载状态 */}
             {isPublishing && (
-              <div className="absolute inset-0 bg-base-100/80 rounded-lg flex items-center justify-center">
+              <div className="
+                absolute inset-0 bg-base-100/80 rounded-lg flex items-center
+                justify-center
+              ">
                 <div className="loading loading-spinner loading-sm text-primary"></div>
               </div>
             )}
@@ -241,7 +258,12 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                   <div key={img.id} className="relative flex-shrink-0">
                     <button
                       type="button"
-                      className="block w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border border-base-300 bg-base-200/30"
+                      className="
+                        block w-16 h-16
+                        sm:w-20 sm:h-20
+                        rounded-md overflow-hidden border border-base-300
+                        bg-base-200/30
+                      "
                     >
                       <MediaImage
                         src={getPublishPostImagePreviewUrl(img)}
@@ -253,13 +275,19 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
                     {/* 上传状态或错误提示 */}
                     {img.uploading && (
-                      <div className="absolute left-1 bottom-1 bg-base-100/80 rounded px-1 py-0.5 text-xs flex items-center">
+                      <div className="
+                        absolute left-1 bottom-1 bg-base-100/80 rounded px-1
+                        py-0.5 text-xs flex items-center
+                      ">
                         <div className="loading loading-spinner loading-xs mr-1" />
                         <span className="text-xs">上传中</span>
                       </div>
                     )}
                     {img.error && (
-                      <div className="absolute left-1 bottom-1 bg-error/95 text-error-content rounded px-1 py-0.5 text-xs">
+                      <div className="
+                        absolute left-1 bottom-1 bg-error/95 text-error-content
+                        rounded px-1 py-0.5 text-xs
+                      ">
                         失败
                       </div>
                     )}
@@ -267,7 +295,12 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                     <button
                       type="button"
                       onClick={() => handleDeleteImage(img.id)}
-                      className="absolute top-1 right-1 bg-base-100/80 hover:bg-error hover:text-error-content rounded-full w-6 h-6 flex items-center justify-center text-sm duration-300"
+                      className="
+                        absolute top-1 right-1 bg-base-100/80
+                        hover:bg-error hover:text-error-content
+                        rounded-full w-6 h-6 flex items-center justify-center
+                        text-sm duration-300
+                      "
                       aria-label="删除图片"
                     >
                       <XMarkICon />
@@ -297,7 +330,14 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center space-x-3">
               <button
-                className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50 cursor-pointer"
+                className="
+                  text-base-content/60
+                  hover:text-primary
+                  transition-colors p-1 rounded-full
+                  hover:bg-base-200
+                  disabled:opacity-50
+                  cursor-pointer
+                "
                 type="button"
                 title="添加表情"
                 disabled={isPublishing}
@@ -309,7 +349,13 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
               {/* 图片上传：使用你提供的 ImgUploader */}
               <ImgUploader setImg={handleLocalFileSelected}>
                 <div
-                  className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 cursor-pointer"
+                  className="
+                    text-base-content/60
+                    hover:text-primary
+                    transition-colors p-1 rounded-full
+                    hover:bg-base-200
+                    cursor-pointer
+                  "
                   title="上传图片"
                 >
                   <Image2Fill />
@@ -320,13 +366,16 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
             {/* 右边：字数统计和发布按钮 */}
             <div className="flex items-center space-x-3">
               {/* 字数统计 */}
-              <span className={`text-xs transition-colors ${
+              <span className={`
+                text-xs transition-colors
+                ${
                 currentLength > maxLength * 0.8
                   ? currentLength > maxLength
                     ? "text-error"
                     : "text-warning"
                   : "text-base-content/60"
-              }`}
+              }
+              `}
               >
                 {currentLength}
                 /
@@ -335,11 +384,22 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
               {/* 发布按钮 */}
               <button
-                className={`px-4 sm:px-6 py-2 rounded-full font-medium transition-all duration-200 flex items-center space-x-2 ${
+                className={`
+                  px-4
+                  sm:px-6
+                  py-2 rounded-full font-medium transition-all duration-200 flex
+                  items-center space-x-2
+                  ${
                   canPublish
-                    ? "bg-primary text-primary-content hover:bg-primary/90 cursor-pointer shadow-sm hover:shadow"
+                    ? `
+                      bg-primary text-primary-content
+                      hover:bg-primary/90
+                      cursor-pointer shadow-sm
+                      hover:shadow
+                    `
                     : "bg-base-300 text-base-content/40"
-                }`}
+                }
+                `}
                 disabled={!canPublish}
                 onClick={handlePublish}
                 type="button"
@@ -354,7 +414,9 @@ const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
           {/* 表情包弹窗 */}
           {showStickerWindow && (
-            <div className="mt-2 border border-base-300 rounded-lg bg-base-100 shadow-lg p-2">
+            <div className="
+              mt-2 border border-base-300 rounded-lg bg-base-100 shadow-lg p-2
+            ">
               <StickerWindow onChoose={handleEmojiChoose} />
             </div>
           )}

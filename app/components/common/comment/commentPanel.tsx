@@ -101,12 +101,20 @@ export default function CommentPanel({
   }, [normalizedTreeOptions, targetInfo]);
   return (
     <CommentContext value={commentContext}>
-      <div className={`space-y-4 ${className ?? ""}`}>
+      <div className={`
+        space-y-4
+        ${className ?? ""}
+      `}>
         <div className="space-y-3">
           {isInitialLoading
             ? (
-                <div className="rounded-xl border border-base-300 bg-base-100/80 px-4 py-6">
-                  <div className="flex items-center justify-center gap-3 text-sm text-base-content/60">
+                <div className="
+                  rounded-xl border border-base-300 bg-base-100/80 px-4 py-6
+                ">
+                  <div className="
+                    flex items-center justify-center gap-3 text-sm
+                    text-base-content/60
+                  ">
                     <span className="loading loading-spinner loading-sm" />
                     正在加载评论...
                   </div>
@@ -115,7 +123,11 @@ export default function CommentPanel({
             : renderedComments.length > 0
               ? renderedComments
               : (
-                  <div className="rounded-xl border border-dashed border-base-300 bg-base-200/20 px-4 py-6 text-center text-sm text-base-content/55">
+                  <div className="
+                    rounded-xl border border-dashed border-base-300
+                    bg-base-200/20 px-4 py-6 text-center text-sm
+                    text-base-content/55
+                  ">
                     还没有讨论，来发第一条评论吧。
                   </div>
                 )}
@@ -125,7 +137,10 @@ export default function CommentPanel({
         {composerStyle === "split"
           ? (
               <div className="border-t border-base-300/80 pt-4">
-                <div className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
+                <div className="
+                  mb-3 text-xs font-medium uppercase tracking-[0.18em]
+                  text-base-content/45
+                ">
                   参与讨论
                 </div>
                 <div className="flex items-start gap-3">
@@ -146,8 +161,13 @@ export default function CommentPanel({
               </div>
             )
           : (
-              <div className="rounded-xl border border-base-300 bg-base-100/95 p-3 shadow-sm">
-                <div className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-base-content/45">
+              <div className="
+                rounded-xl border border-base-300 bg-base-100/95 p-3 shadow-sm
+              ">
+                <div className="
+                  mb-3 text-xs font-medium uppercase tracking-[0.18em]
+                  text-base-content/45
+                ">
                   参与讨论
                 </div>
                 <div className="flex items-start gap-3">

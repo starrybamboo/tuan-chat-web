@@ -192,9 +192,12 @@ export default function RulePerformanceEditor({
   };
 
   return (
-    <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-opacity duration-300 ${
+    <div className={`
+      space-y-6 bg-base-200 rounded-lg p-4 transition-opacity duration-300
+      ${
       isEditing ? "ring-2 ring-primary" : ""
-    }`}
+    }
+    `}
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="card-title text-lg flex items-center gap-2">{title}</h3>
@@ -243,7 +246,10 @@ export default function RulePerformanceEditor({
 
       {/* 表演字段区域 - 响应式布局 */}
       <div
-        className="grid gap-4 grid-cols-2 md:grid-cols-4"
+        className="
+          grid gap-4 grid-cols-2
+          md:grid-cols-4
+        "
         style={{
           gridAutoFlow: "dense",
           gridAutoRows: "minmax(80px, auto)",
@@ -251,7 +257,11 @@ export default function RulePerformanceEditor({
       >
         {isEmpty
           ? (
-              <div className="col-span-full flex items-center justify-center text-sm text-base-content/60 py-6 text-center border border-dashed border-base-content/20 rounded-lg bg-base-100/40">
+              <div className="
+                col-span-full flex items-center justify-center text-sm
+                text-base-content/60 py-6 text-center border border-dashed
+                border-base-content/20 rounded-lg bg-base-100/40
+              ">
                 {isEditing ? "暂无字段，使用下方输入框添加" : "暂无字段，点击“编辑”开始添加"}
               </div>
             )
@@ -283,9 +293,13 @@ export default function RulePerformanceEditor({
                     : (
                         <div className="card bg-base-100 shadow-sm p-2 h-full">
                           <div className="divider">{key}</div>
-                          <div className="text-base-content mt-0.5 flex justify-center p-2">
+                          <div className="
+                            text-base-content mt-0.5 flex justify-center p-2
+                          ">
                             <div className="text-left break-all">
-                              {localData[key] || <span className="text-base-content/50">未设置</span>}
+                              {localData[key] || <span className="
+                                text-base-content/50
+                              ">未设置</span>}
                             </div>
                           </div>
                         </div>

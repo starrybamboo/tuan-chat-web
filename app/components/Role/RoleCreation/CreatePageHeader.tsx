@@ -27,15 +27,25 @@ export default function CreatePageHeader({
   toolButtons,
 }: CreatePageHeaderProps) {
   return (
-    <div className="hidden md:flex items-center justify-between gap-3 mb-8">
+    <div className="
+      hidden
+      md:flex
+      items-center justify-between gap-3 mb-8
+    ">
       <div className="flex items-center gap-4">
         {onBack && (
-          <button type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4" onClick={onBack}>
+          <button type="button" className="
+            btn btn-lg btn-outline rounded-md btn-ghost mr-4
+          " onClick={onBack}>
             ← 返回
           </button>
         )}
         <div>
-          <h1 className="font-semibold text-2xl md:text-3xl my-2">{title}</h1>
+          <h1 className="
+            font-semibold text-2xl
+            md:text-3xl
+            my-2
+          ">{title}</h1>
           <p className="text-base-content/60">
             {description}
             {children}
@@ -50,18 +60,26 @@ export default function CreatePageHeader({
             <button
               key={button.id}
               type="button"
-              className={`btn btn-sm md:btn-lg rounded-lg ${
+              className={`
+                btn btn-sm
+                md:btn-lg
+                rounded-lg
+                ${
                 button.variant === "primary"
                   ? "btn-primary"
                   : "bg-info/70 text-info-content"
-              }`}
+              }
+              `}
               onClick={button.onClick}
               disabled={button.disabled}
               title={button.label}
             >
               <span className="flex items-center gap-1">
                 {button.icon}
-                <span className="hidden md:inline">{button.label}</span>
+                <span className="
+                  hidden
+                  md:inline
+                ">{button.label}</span>
               </span>
             </button>
           ))}

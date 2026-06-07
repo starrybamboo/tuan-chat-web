@@ -271,14 +271,21 @@ export function FloatingSelectionToolbar({
   return createPortal(
     <div
       ref={toolbarRef}
-      className={`fixed z-40 ${className}`}
+      className={`
+        fixed z-40
+        ${className}
+      `}
       style={{
         left: position.x,
         top: position.y - 8,
         transform: "translate(-50%, -100%)",
       }}
     >
-      <div className={`flex items-center gap-0.5 rounded-full border border-base-300 bg-base-100/95 px-1.5 py-1 text-xs shadow-lg backdrop-blur ${shellClassName}`}>
+      <div className={`
+        flex items-center gap-0.5 rounded-full border border-base-300
+        bg-base-100/95 px-1.5 py-1 text-xs shadow-lg backdrop-blur
+        ${shellClassName}
+      `}>
         {children}
       </div>
     </div>,

@@ -31,7 +31,13 @@ const RolesList: React.FC<UserRolesListProps> = ({
   if (isLoading) {
     return (
       <>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="
+          grid grid-cols-2
+          md:grid-cols-3
+          lg:grid-cols-4
+          xl:grid-cols-5
+          gap-4
+        ">
           {Array.from({ length: 10 }, (_, i) => `skeleton-${i}`).map(key => (
             <div
               key={key}
@@ -63,10 +69,16 @@ const RolesList: React.FC<UserRolesListProps> = ({
         <div className="text-center py-10 rounded-lg">
           {currentUserId === userId
             ? (
-                <div className="w-full flex flex-col items-center justify-center gap-4">
+                <div className="
+                  w-full flex flex-col items-center justify-center gap-4
+                ">
                   <Link
                     to="/role"
-                    className="btn btn-circle btn-lg bg-primary/10 text-primary hover:bg-primary/20 border-none"
+                    className="
+                      btn btn-circle btn-lg bg-primary/10 text-primary
+                      hover:bg-primary/20
+                      border-none
+                    "
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -79,14 +91,18 @@ const RolesList: React.FC<UserRolesListProps> = ({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                   </Link>
-                  <div className="text-base-content/70 text-sm leading-relaxed max-w-xs">
+                  <div className="
+                    text-base-content/70 text-sm leading-relaxed max-w-xs
+                  ">
                     <p>还没有角色呢…</p>
                     <p>可以从一个小小的名字开始喵~</p>
                   </div>
                 </div>
               )
             : (
-                <div className="text-base-content/70 text-sm max-w-sm mx-auto leading-relaxed">
+                <div className="
+                  text-base-content/70 text-sm max-w-sm mx-auto leading-relaxed
+                ">
                   <p>这里还没有他的角色...</p>
                   <p>仿佛藏着一段被尘封的往事...</p>
                 </div>
@@ -98,7 +114,13 @@ const RolesList: React.FC<UserRolesListProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="
+        grid grid-cols-2
+        md:grid-cols-3
+        lg:grid-cols-4
+        xl:grid-cols-5
+        gap-4
+      ">
         {/* 每一个角色放在小卡片中渲染 */}
         {roles.map(role => (
           <UserRoleCard key={role.roleId} role={role} />

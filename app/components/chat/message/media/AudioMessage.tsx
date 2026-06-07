@@ -893,12 +893,20 @@ export default function AudioMessage({
   if (layout === "document") {
     return (
       <div
-        className={`tc-audio-message flex w-full items-center gap-3 rounded-md bg-base-200/80 px-3 py-2.5 shadow-sm ${className}`}
+        className={`
+          tc-audio-message flex w-full items-center gap-3 rounded-md
+          bg-base-200/80 px-3 py-2.5 shadow-sm
+          ${className}
+        `}
         title={title}
       >
         <button
           type="button"
-          className="flex size-9 shrink-0 items-center justify-center rounded-md bg-base-100/85 text-base-content transition hover:bg-base-100 hover:text-base-content/90"
+          className="
+            flex size-9 shrink-0 items-center justify-center rounded-md
+            bg-base-100/85 text-base-content transition
+            hover:bg-base-100 hover:text-base-content/90
+          "
           onClick={handleTogglePlay}
           aria-label={isPlaying ? "暂停" : "播放"}
         >
@@ -907,7 +915,10 @@ export default function AudioMessage({
             : <PlayIcon className="size-4 translate-x-0.5" weight="fill" />}
         </button>
 
-        <div className="min-w-[88px] shrink-0 text-sm font-medium tabular-nums text-base-content/85">
+        <div className="
+          min-w-[88px] shrink-0 text-sm font-medium tabular-nums
+          text-base-content/85
+        ">
           {playbackTimeText}
         </div>
 
@@ -918,7 +929,11 @@ export default function AudioMessage({
         {onDelete && (
           <button
             type="button"
-            className="flex size-9 shrink-0 items-center justify-center rounded-md text-base-content/55 transition hover:bg-error/10 hover:text-error"
+            className="
+              flex size-9 shrink-0 items-center justify-center rounded-md
+              text-base-content/55 transition
+              hover:bg-error/10 hover:text-error
+            "
             onMouseDown={event => event.preventDefault()}
             onClick={onDelete}
             aria-label={deleteLabel}
@@ -933,13 +948,21 @@ export default function AudioMessage({
 
   return (
     <div
-      className={`tc-audio-message min-w-[220px] max-w-[420px] rounded-md bg-base-200 p-2.5 ${className}`}
+      className={`
+        tc-audio-message min-w-[220px] max-w-[420px] rounded-md bg-base-200
+        p-2.5
+        ${className}
+      `}
       title={title}
     >
       <div className="flex items-center gap-3">
         <button
           type="button"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-base-content transition hover:bg-base-300/70"
+          className="
+            flex size-8 shrink-0 items-center justify-center rounded-md
+            text-base-content transition
+            hover:bg-base-300/70
+          "
           onClick={handleTogglePlay}
           aria-label={isPlaying ? "暂停" : "播放"}
         >
@@ -948,7 +971,9 @@ export default function AudioMessage({
             : <PlayIcon className="size-4 translate-x-0.5" weight="fill" />}
         </button>
 
-        <div className="min-w-[2.25rem] shrink-0 text-xs tabular-nums text-slate-500">
+        <div className="
+          min-w-[2.25rem] shrink-0 text-xs tabular-nums text-slate-500
+        ">
           {compactTimeText}
         </div>
 

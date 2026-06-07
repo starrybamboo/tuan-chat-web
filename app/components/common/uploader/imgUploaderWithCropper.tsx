@@ -356,7 +356,9 @@ export function ImgUploaderWithCopper({
       </button>
       <ToastWindow isOpen={isOpen} onClose={handleClose}>
         <h2 className="text-2xl mt-4 font-bold">上传图像</h2>
-        <div className={isMobile ? "flex flex-col items-center gap-4 max-h-[90vh] p-4" : "flex flex-row items-center justify-center gap-8 overflow-auto p-6"}>
+        <div className={isMobile ? `
+          flex flex-col items-center gap-4 max-h-[90vh] p-4
+        ` : `flex flex-row items-center justify-center gap-8 overflow-auto p-6`}>
           {!!imgSrc && (
             <div className="flex shrink-0">
               <ReactCrop
@@ -382,10 +384,15 @@ export function ImgUploaderWithCopper({
               </ReactCrop>
             </div>
           )}
-          <div className={isMobile ? "divider" : "divider lg:divider-horizontal"}></div>
+          <div className={isMobile ? "divider" : `
+            divider
+            lg:divider-horizontal
+          `}></div>
           {!!completedCrop && (
             <div className="flex flex-col gap-3 items-center">
-              <div className={isMobile ? "w-64 h-64 shrink-0" : "w-80 h-80 shrink-0"}>
+              <div className={isMobile ? "w-64 h-64 shrink-0" : `
+                w-80 h-80 shrink-0
+              `}>
                 <canvas
                   ref={previewCanvasRef}
                   style={{
@@ -404,7 +411,9 @@ export function ImgUploaderWithCopper({
                 isSubmitting
                   ? (
                       <button
-                        className={isMobile ? "btn loading btn-sm" : "btn loading"}
+                        className={isMobile ? "btn loading btn-sm" : `
+                          btn loading
+                        `}
                         disabled={true}
                         type="button"
                         aria-label="上传中"
@@ -413,16 +422,22 @@ export function ImgUploaderWithCopper({
                       </button>
                     )
                   : (
-                      <div className={isMobile ? "flex flex-col gap-2 w-full" : "flex flex-row justify-center gap-4"}>
+                      <div className={isMobile ? "flex flex-col gap-2 w-full" : `
+                        flex flex-row justify-center gap-4
+                      `}>
                         <button
-                          className={isMobile ? "btn btn-info btn-md w-full text-md" : "btn w-max btn-info"}
+                          className={isMobile ? `
+                            btn btn-info btn-md w-full text-md
+                          ` : `btn w-max btn-info`}
                           onClick={handleSubmit}
                           type="button"
                         >
                           完成
                         </button>
                         <button
-                          className={isMobile ? "btn btn-outline btn-info btn-md w-full text-md" : "btn w-max btn-info"}
+                          className={isMobile ? `
+                            btn btn-outline btn-info btn-md w-full text-md
+                          ` : `btn w-max btn-info`}
                           onClick={handleDownload}
                           type="button"
                         >
@@ -436,7 +451,10 @@ export function ImgUploaderWithCopper({
           {/* 如果还没有完成的裁切，也展示状态（避免用户看不到任何反馈，之前遇到过这个问题，但是没复现，打个补丁兜底吧） */}
           {!completedCrop && imgSrc && (
             <div className="flex flex-col items-center gap-2">
-              <div className="w-64 h-64 flex items-center justify-center text-sm text-gray-400 border border-dashed rounded">
+              <div className="
+                w-64 h-64 flex items-center justify-center text-sm text-gray-400
+                border border-dashed rounded
+              ">
                 {statusMessage || "请调整裁剪框以生成预览"}
               </div>
             </div>

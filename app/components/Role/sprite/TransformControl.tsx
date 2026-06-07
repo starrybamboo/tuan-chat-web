@@ -83,7 +83,10 @@ export function TransformControl({
   };
 
   return (
-    <div className={`w-full p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+    <div className={`
+      w-full p-4 bg-base-200 rounded-lg space-y-3
+      ${disabled ? `opacity-50 pointer-events-none` : ""}
+    `}>
       <div className="flex items-center justify-between gap-3">
         <label htmlFor={anchorSelectorId} className="text-xs w-16 shrink-0">中心点:</label>
         <div id={anchorSelectorId} className="join flex-1">
@@ -91,7 +94,10 @@ export function TransformControl({
             <button
               key={position}
               type="button"
-              className={`join-item btn btn-xs flex-1 ${anchorPosition === position ? "btn-info" : "btn-outline"}`}
+              className={`
+                join-item btn btn-xs flex-1
+                ${anchorPosition === position ? `btn-info` : `btn-outline`}
+              `}
               onClick={() => setAnchorPosition(position)}
               disabled={disabled}
             >

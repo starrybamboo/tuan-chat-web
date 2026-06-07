@@ -211,20 +211,44 @@ export default function EditableField({
 
   if (!isEditing) {
     return (
-      <div className={`flex items-center justify-between rounded-lg border bg-base-100/50 border-base-content/10 ${
-        isCompact ? "px-2 py-1" : "p-2 md:p-3"
-      }`}
+      <div className={`
+        flex items-center justify-between rounded-lg border bg-base-100/50
+        border-base-content/10
+        ${
+        isCompact ? "px-2 py-1" : `
+          p-2
+          md:p-3
+        `
+      }
+      `}
       >
         <span
           ref={keyScrollRef}
-          className={`font-medium overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden shrink-0 text-left md:mr-4 ${isCompact ? "text-xs" : "text-sm md:text-base"}`}
+          className={`
+            font-medium overflow-x-auto whitespace-nowrap
+            [&::-webkit-scrollbar]:hidden
+            shrink-0 text-left
+            md:mr-4
+            ${isCompact ? `text-xs` : `
+              text-sm
+              md:text-base
+            `}
+          `}
           style={{ scrollbarWidth: "none" }}
         >
           {fieldKey}
         </span>
         <span
           ref={scrollRef}
-          className={`badge badge-ghost shrink overflow-x-auto whitespace-nowrap min-w-0 justify-start [&::-webkit-scrollbar]:hidden ${isCompact ? "badge-xs" : "text-sm md:text-base"}`}
+          className={`
+            badge badge-ghost shrink overflow-x-auto whitespace-nowrap min-w-0
+            justify-start
+            [&::-webkit-scrollbar]:hidden
+            ${isCompact ? `badge-xs` : `
+              text-sm
+              md:text-base
+            `}
+          `}
           style={{ scrollbarWidth: "none" }}
         >
           {String(value)}
@@ -234,11 +258,17 @@ export default function EditableField({
   }
 
   return (
-    <div className={`form-control ${className}`}>
+    <div className={`
+      form-control
+      ${className}
+    `}>
       <label className={`
-        relative flex items-center gap-2 rounded-lg transition-all duration-200 border
-        focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20
-        border-base-content/20 ${editingBackgroundClassName}
+        relative flex items-center gap-2 rounded-lg transition-all duration-200
+        border
+        focus-within:border-primary focus-within:ring-1
+        focus-within:ring-primary/20
+        border-base-content/20
+        ${editingBackgroundClassName}
         ${isCompact ? "py-1 px-2" : "py-2 px-3"}
         max-md:flex-col max-md:items-stretch max-md:h-auto max-md:gap-0
         w-full
@@ -246,7 +276,10 @@ export default function EditableField({
       `}
       >
         {/* 字段名编辑 */}
-        <div className="flex items-center md:contents">
+        <div className="
+          flex items-center
+          md:contents
+        ">
           {editingFieldKey === fieldKey
             ? (
                 <input
@@ -269,9 +302,18 @@ export default function EditableField({
                   }}
                   data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
                   className={`
-                    bg-transparent border-none focus:outline-none outline-none font-medium
-                    ${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}
-                    w-full md:w-auto md:max-w-[6em] md:shrink-0
+                    bg-transparent border-none
+                    focus:outline-none
+                    outline-none font-medium
+                    ${isCompact ? `
+                      text-[10px]
+                      md:text-xs
+                    ` : `
+                      text-xs
+                      md:text-sm
+                    `}
+                    w-full
+                    md:w-auto md:max-w-[6em] md:shrink-0
                     max-md:text-base-content/70
                   `}
 
@@ -281,9 +323,19 @@ export default function EditableField({
                 <span
                   ref={keyScrollRef}
                   className={`
-                    cursor-pointer hover:text-primary font-medium whitespace-nowrap overflow-x-auto
-                    ${isCompact ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}
-                    w-full md:w-auto md:shrink-0 text-left
+                    cursor-pointer
+                    hover:text-primary
+                    font-medium whitespace-nowrap overflow-x-auto
+                    ${isCompact ? `
+                      text-[10px]
+                      md:text-xs
+                    ` : `
+                      text-xs
+                      md:text-sm
+                    `}
+                    w-full
+                    md:w-auto md:shrink-0
+                    text-left
                     max-md:text-base-content/70 max-md:pr-6
                   `}
                   onClick={() => {
@@ -297,7 +349,11 @@ export default function EditableField({
               )}
         </div>
 
-        <div className="hidden md:block w-px h-4 bg-base-content/20 mx-2"></div>
+        <div className="
+          hidden
+          md:block
+          w-px h-4 bg-base-content/20 mx-2
+        "></div>
 
         {/* 字段值编辑 */}
         <input
@@ -317,7 +373,8 @@ export default function EditableField({
             onValueCommit?.(fieldKey, (e.target as HTMLInputElement).value);
           }}
           className={`
-            bg-transparent border-none outline-none focus:outline-none
+            bg-transparent border-none outline-none
+            focus:outline-none
             grow min-w-0
             ${isCompact ? "text-xs" : "text-sm"}
             max-md:w-full max-md:font-semibold max-md:text-base-content
@@ -332,14 +389,18 @@ export default function EditableField({
             type="button"
             onClick={() => onDelete(fieldKey)}
             className={`
-              btn btn-ghost btn-circle
-              text-base-content/40 hover:text-error hover:bg-error/10
+              btn btn-ghost btn-circle text-base-content/40
+              hover:text-error hover:bg-error/10
               md:static md:btn-xs
-              max-md:absolute max-md:top-1 max-md:right-1 max-md:w-6 max-md:h-6 max-md:min-h-0
+              max-md:absolute max-md:top-1 max-md:right-1 max-md:w-6 max-md:h-6
+              max-md:min-h-0
             `}
             title="删除字段"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="
+              h-3 w-3
+              md:h-3.5 md:w-3.5
+            " viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </button>

@@ -29,7 +29,9 @@ function MaterialRoute() {
 
   return (
     <div className="h-full overflow-hidden bg-base-200">
-      <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-base-content/60">正在加载素材库...</div>}>
+      <Suspense fallback={<div className="
+        flex h-full items-center justify-center text-sm text-base-content/60
+      ">正在加载素材库...</div>}>
         <LazyMaterialLibraryPage initialTab={initialTab} />
       </Suspense>
     </div>

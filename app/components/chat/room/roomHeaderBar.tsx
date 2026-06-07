@@ -148,11 +148,19 @@ function RoomHeaderBarImpl({
       <div
         className="relative z-50"
       >
-        <div className="border-gray-300 dark:border-gray-700 border-y flex justify-between items-center overflow-visible relative z-50">
+        <div className="
+          border-gray-300
+          dark:border-gray-700
+          border-y flex justify-between items-center overflow-visible relative
+          z-50
+        ">
           <div
-            className="flex justify-between items-center w-full px-2 h-10
-        bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
-        border border-white/40 dark:border-white/10"
+            className="
+              flex justify-between items-center w-full px-2 h-10 bg-white/40
+              dark:bg-slate-950/25
+              backdrop-blur-xl border border-white/40
+              dark:border-white/10
+            "
           >
             <div className="flex flex-1 items-center gap-2 min-w-0">
               {onCloseSubWindow && (
@@ -179,15 +187,32 @@ function RoomHeaderBarImpl({
                 </button>
               </div>
               <div className="flex min-w-0 shrink-0 items-center gap-1">
-                <span className="text-center font-semibold line-clamp-1 truncate max-w-[50vw] sm:max-w-none min-w-0 text-sm sm:text-base">
-                  <span className="hidden sm:inline">「 </span>
+                <span className="
+                  text-center font-semibold line-clamp-1 truncate max-w-[50vw]
+                  sm:max-w-none
+                  min-w-0 text-sm
+                  sm:text-base
+                ">
+                  <span className="
+                    hidden
+                    sm:inline
+                  ">「 </span>
                   {roomName}
-                  <span className="hidden sm:inline"> 」</span>
+                  <span className="
+                    hidden
+                    sm:inline
+                  "> 」</span>
                 </span>
                 <RoomDescriptionDropdown room={room} />
               </div>
               <span
-                className={`hidden min-w-0 flex-1 truncate text-xs sm:block ${hasRoomDescription ? "text-base-content/45" : "text-base-content/25"}`}
+                className={`
+                  hidden min-w-0 flex-1 truncate text-xs
+                  sm:block
+                  ${hasRoomDescription ? `text-base-content/45` : `
+                    text-base-content/25
+                  `}
+                `}
                 title={roomDescriptionPreview}
               >
                 {roomDescriptionPreview}
@@ -212,7 +237,10 @@ function RoomHeaderBarImpl({
               )}
               {isMobile
                 ? (
-                    <div ref={mobileToolsMenuRef} className={`dropdown dropdown-end ${isMobileToolsMenuOpen ? "dropdown-open" : ""}`}>
+                    <div ref={mobileToolsMenuRef} className={`
+                      dropdown dropdown-end
+                      ${isMobileToolsMenuOpen ? `dropdown-open` : ""}
+                    `}>
                       <button
                         type="button"
                         className="btn btn-ghost btn-square btn-xs"
@@ -230,7 +258,10 @@ function RoomHeaderBarImpl({
                       >
                         <DotsThreeVerticalIcon className="size-4" />
                       </button>
-                      <ul className="dropdown-content z-9999 menu p-2 shadow bg-base-100 rounded-box w-56 gap-1">
+                      <ul className="
+                        dropdown-content z-9999 menu p-2 shadow bg-base-100
+                        rounded-box w-56 gap-1
+                      ">
                         <li>
                           <button
                             type="button"
@@ -274,7 +305,11 @@ function RoomHeaderBarImpl({
                     <>
                       <button
                         type="button"
-                        className="tooltip tooltip-bottom hover:text-info relative z-50"
+                        className="
+                          tooltip tooltip-bottom
+                          hover:text-info
+                          relative z-50
+                        "
                         data-tip={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         aria-label={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
                         title={contentMode === "doc" ? "返回房间视图" : "进入文档视图"}
@@ -300,7 +335,9 @@ function RoomHeaderBarImpl({
                           toggleUseChatBubbleStyle();
                         }}
                       >
-                        <Bubble2 className={useChatBubbleStyle ? "size-6 drop-shadow-[0_0_6px_currentColor]" : "size-6"} />
+                        <Bubble2 className={useChatBubbleStyle ? `
+                          size-6 drop-shadow-[0_0_6px_currentColor]
+                        ` : `size-6`} />
                       </button>
                       <ToolbarDivider />
                       <SearchBar className="w-64" />

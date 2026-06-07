@@ -291,11 +291,15 @@ export function PreviewTab({
       </div>
 
       {/* 预览内容区域 */}
-      <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
+      <div className="
+        flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden
+      ">
         {previewMode === "sprite" && (
           spriteUrl
             ? (
-                <div className="w-full h-full flex items-center justify-center p-4">
+                <div className="
+                  w-full h-full flex items-center justify-center p-4
+                ">
                   <MediaImage
                     src={spritePreviewUrl ?? spriteUrl}
                     alt="立绘预览"
@@ -306,7 +310,10 @@ export function PreviewTab({
                 </div>
               )
             : (
-                <div className="absolute inset-0 flex items-center justify-center text-base-content/50">
+                <div className="
+                  absolute inset-0 flex items-center justify-center
+                  text-base-content/50
+                ">
                   <div className="text-center">
                     <svg className="w-16 h-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
                       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -321,7 +328,9 @@ export function PreviewTab({
         {previewMode === "avatar" && (
           avatarUrl
             ? (
-                <div className="w-full h-full flex items-center justify-center p-4">
+                <div className="
+                  w-full h-full flex items-center justify-center p-4
+                ">
                   <AvatarPreview
                     currentAvatarUrl={avatarUrl}
                     characterName={characterName}
@@ -333,7 +342,10 @@ export function PreviewTab({
                 </div>
               )
             : (
-                <div className="absolute inset-0 flex items-center justify-center text-base-content/50">
+                <div className="
+                  absolute inset-0 flex items-center justify-center
+                  text-base-content/50
+                ">
                   <div className="text-center">
                     <svg className="w-16 h-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
@@ -349,7 +361,9 @@ export function PreviewTab({
         {previewMode === "render" && (
           spriteUrl
             ? (
-                <div className="w-full h-full p-4 flex items-center justify-center">
+                <div className="
+                  w-full h-full p-4 flex items-center justify-center
+                ">
                   <div className="w-full max-w-4xl">
                     <RenderPreview
                       previewCanvasRef={previewCanvasRef}
@@ -361,7 +375,10 @@ export function PreviewTab({
                 </div>
               )
             : (
-                <div className="absolute inset-0 flex items-center justify-center text-base-content/50">
+                <div className="
+                  absolute inset-0 flex items-center justify-center
+                  text-base-content/50
+                ">
                   <div className="text-center">
                     <svg className="w-16 h-16 mx-auto mb-2 opacity-50" viewBox="0 0 24 24" fill="none">
                       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />

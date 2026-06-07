@@ -112,7 +112,10 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
 
   return (
     <div className="inline-flex max-w-full flex-col items-center gap-1">
-      <div className={`${STATE_MESSAGE_CARD_CLASS} ${STATE_MESSAGE_IDLE_CLASS}`}>
+      <div className={`
+        ${STATE_MESSAGE_CARD_CLASS}
+        ${STATE_MESSAGE_IDLE_CLASS}
+      `}>
         <span className={STATE_MESSAGE_TEXT_CLASS}>
           {compactText}
         </span>
@@ -131,28 +134,42 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
       {expanded && (
         <div className={STATE_MESSAGE_DETAIL_CLASS}>
           <div>
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-base-content/50">
+            <div className="
+              mb-1 text-[11px] font-semibold uppercase tracking-wide
+              text-base-content/50
+            ">
               记录文本
             </div>
-            <div className="break-words rounded-md bg-base-200/35 px-2 py-1.5 font-mono text-[12px] text-base-content/76">
+            <div className="
+              break-words rounded-md bg-base-200/35 px-2 py-1.5 font-mono
+              text-[12px] text-base-content/76
+            ">
               {message.content || "[空记录]"}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-base-content/60">
+          <div className="
+            flex flex-wrap items-center gap-2 text-base-content/60
+          ">
             <span className="uppercase tracking-wide text-base-content/42">来源</span>
             <span className="break-all">{sourceLabel}</span>
           </div>
 
           <div className="space-y-1">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-base-content/50">
+            <div className="
+              text-[11px] font-semibold uppercase tracking-wide
+              text-base-content/50
+            ">
               结构化详情
             </div>
             <div className="space-y-1">
               {detailLines.map((line, index) => (
                 <div
                   key={`${message.messageId}:detail:${index}`}
-                  className="break-words rounded-md bg-base-200/30 px-2 py-1.5 text-base-content/70"
+                  className="
+                    break-words rounded-md bg-base-200/30 px-2 py-1.5
+                    text-base-content/70
+                  "
                 >
                   {line}
                 </div>

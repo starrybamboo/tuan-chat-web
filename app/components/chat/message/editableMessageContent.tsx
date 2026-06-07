@@ -119,7 +119,10 @@ function EditableMessageContent({
       : (canEdit ? "cursor-text" : "cursor-default");
     return (
       <div
-        className={`${className ?? ""} ${cursorClass}`}
+        className={`
+          ${className ?? ""}
+          ${cursorClass}
+        `}
         onDoubleClick={startEditing}
       >
         <TextEnhanceRenderer content={content} />

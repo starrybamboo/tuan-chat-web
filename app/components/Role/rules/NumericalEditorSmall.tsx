@@ -183,7 +183,10 @@ export default function NumericalEditorSmall({
   return (
     <div className="rounded-md border border-base-200 bg-base-100/80 p-3">
 
-      <div className={`${contentWrapperClass} space-y-2`}>
+      <div className={`
+        ${contentWrapperClass}
+        space-y-2
+      `}>
         {entries.length > 0
           ? (
               <div className="flex flex-wrap gap-1.5">
@@ -192,9 +195,12 @@ export default function NumericalEditorSmall({
                     key={key}
                     type="button"
                     onClick={() => setEditingKey(prevKey => (prevKey === key ? null : key))}
-                    className={`badge badge-sm ${
+                    className={`
+                      badge badge-sm
+                      ${
                       editingKey === key ? "badge-primary" : "badge-outline"
-                    }`}
+                    }
+                    `}
                     title="点击编辑字段"
                   >
                     {key}

@@ -109,7 +109,10 @@ export default function RoleCreationFlow({
         ]}
       />
 
-      <div className="md:hidden mb-4 space-y-2">
+      <div className="
+        md:hidden
+        mb-4 space-y-2
+      ">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -121,7 +124,12 @@ export default function RoleCreationFlow({
           </div>
           <button
             type="button"
-            className={`btn btn-sm md:btn-lg rounded-lg btn-primary ${isSaving ? "scale-95" : ""}`}
+            className={`
+              btn btn-sm
+              md:btn-lg
+              rounded-lg btn-primary
+              ${isSaving ? `scale-95` : ""}
+            `}
             onClick={handleComplete}
             disabled={!canCreate || isSaving}
           >
@@ -145,9 +153,18 @@ export default function RoleCreationFlow({
         />
 
         {!hideRuleSelection && (
-          <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
-            <div className="card-body p-4 md:p-5 space-y-3">
-              <Suspense fallback={<div className="skeleton h-24 w-full rounded-lg" />}>
+          <div className="
+            card bg-base-100 shadow-xs rounded-2xl border-2
+            border-base-content/10
+          ">
+            <div className="
+              card-body p-4
+              md:p-5
+              space-y-3
+            ">
+              <Suspense fallback={<div className="
+                skeleton h-24 w-full rounded-lg
+              " />}>
                 <LazyRulesSection
                   large={false}
                   currentRuleId={characterData.ruleId}

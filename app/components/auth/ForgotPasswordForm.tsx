@@ -23,7 +23,12 @@ export function ForgotPasswordForm({
           <input
             type="email"
             placeholder="请输入已绑定邮箱"
-            className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
+            className="
+              input input-bordered w-full bg-base-200
+              dark:bg-base-300
+              text-base-content
+              placeholder:text-base-content/60
+            "
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
@@ -39,7 +44,11 @@ export function ForgotPasswordForm({
         {turnstile}
         <button
           type="submit"
-          className="btn btn-primary hover:brightness-110 transition-all"
+          className="
+            btn btn-primary
+            hover:brightness-110
+            transition-all
+          "
           disabled={isLoading}
         >
           {isLoading

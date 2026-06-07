@@ -62,7 +62,10 @@ export default function RuleCloneModal({
     return null;
 
   return (
-    <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
+    <dialog className={`
+      modal
+      ${isOpen ? "modal-open" : ""}
+    `}>
       <div className="modal-box max-w-lg">
         <form method="dialog">
           <button

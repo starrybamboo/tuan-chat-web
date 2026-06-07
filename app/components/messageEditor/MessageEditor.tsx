@@ -2583,7 +2583,10 @@ export default function MessageEditor({
     if (readOnly) {
       return (
         <div
-          className={`${className} cursor-default`}
+          className={`
+            ${className}
+            cursor-default
+          `}
           style={style}
         >
           <MessageEditorSpeakerHeader message={message} />
@@ -2960,7 +2963,10 @@ export default function MessageEditor({
   }
 
   return (
-    <div className={`${frameClassName} overflow-hidden border border-base-300 bg-base-100`}>
+    <div className={`
+      ${frameClassName}
+      overflow-hidden border border-base-300 bg-base-100
+    `}>
       <div className="flex h-full min-h-0 flex-col">
         <div
           ref={editorRootRef}
@@ -2992,32 +2998,50 @@ export default function MessageEditor({
         >
           {resolvedCoverUrl
             ? (
-                <div className="h-40 w-full shrink-0 overflow-hidden border-b border-base-300 bg-base-200">
+                <div className="
+                  h-40 w-full shrink-0 overflow-hidden border-b border-base-300
+                  bg-base-200
+                ">
                   <img className="h-full w-full object-cover" src={resolvedCoverUrl} alt={resolvedTitle} />
                 </div>
               )
             : null}
 
           <div className="border-b border-base-300 py-4">
-            <div className={`${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS} ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS} flex items-center justify-between gap-4`}>
+            <div className={`
+              ${MESSAGE_EDITOR_CONTENT_WIDTH_CLASS}
+              ${MESSAGE_EDITOR_TEXT_BLOCK_PADDING_CLASS}
+              flex items-center justify-between gap-4
+            `}>
               <div className="min-w-0">
-                <div className="truncate text-lg font-semibold text-base-content md:text-xl">{resolvedTitle}</div>
+                <div className="
+                  truncate text-lg font-semibold text-base-content
+                  md:text-xl
+                ">{resolvedTitle}</div>
                 {resolvedDocId
                   ? (
-                      <div className="truncate font-mono text-xs text-base-content/45">
+                      <div className="
+                        truncate font-mono text-xs text-base-content/45
+                      ">
                         {resolvedDocId}
                       </div>
                     )
                   : null}
               </div>
-              <div className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/55">
+              <div className="
+                rounded-md border border-base-300 px-2 py-1 text-xs
+                text-base-content/55
+              ">
                 {statusLabel}
               </div>
             </div>
           </div>
 
           {!ready && (
-            <div className="flex min-h-[40vh] items-center justify-center text-sm text-base-content/45">
+            <div className="
+              flex min-h-[40vh] items-center justify-center text-sm
+              text-base-content/45
+            ">
               载入中
             </div>
           )}
@@ -3059,10 +3083,16 @@ export default function MessageEditor({
                         })}
                       >
                         {showDropBefore && (
-                          <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
+                          <div className="
+                            pointer-events-none absolute inset-x-10 top-0 h-0.5
+                            rounded-full bg-primary
+                          " />
                         )}
                         {showDropAfter && (
-                          <div className="pointer-events-none absolute inset-x-10 bottom-0 h-0.5 rounded-full bg-primary" />
+                          <div className="
+                            pointer-events-none absolute inset-x-10 bottom-0
+                            h-0.5 rounded-full bg-primary
+                          " />
                         )}
                         {renderBlockSpeakerHandle(blockId, message, "top-0")}
                         <MessageEditorTextBlock
@@ -3156,15 +3186,27 @@ export default function MessageEditor({
                       ].join(" ")}
                     >
                       {showDropBefore && (
-                        <div className="pointer-events-none absolute inset-x-10 top-0 h-0.5 rounded-full bg-primary" />
+                        <div className="
+                          pointer-events-none absolute inset-x-10 top-0 h-0.5
+                          rounded-full bg-primary
+                        " />
                       )}
                       {showDropAfter && (
-                        <div className="pointer-events-none absolute inset-x-10 bottom-0 h-0.5 rounded-full bg-primary" />
+                        <div className="
+                          pointer-events-none absolute inset-x-10 bottom-0 h-0.5
+                          rounded-full bg-primary
+                        " />
                       )}
                       {renderBlockSpeakerHandle(blockId, message, "top-1")}
                       <div
                         data-me-block-id={blockId}
-                        className="select-none [&_[contenteditable='true']]:select-text [&_input]:select-text [&_select]:select-text [&_textarea]:select-text"
+                        className="
+                          select-none
+                          [&_[contenteditable='true']]:select-text
+                          [&_input]:select-text
+                          [&_select]:select-text
+                          [&_textarea]:select-text
+                        "
                         onMouseDown={event => handleAtomicBlockMouseDown(blockId, event)}
                       >
                         <MessageEditorAtomicBlock

@@ -33,16 +33,26 @@ export default function RoomButton({
   return (
     <div
       key={room.roomId}
-      className={`group relative w-full min-w-0 ${isActive ? "text-base-content" : ""}`}
+      className={`
+        group relative w-full min-w-0
+        ${isActive ? "text-base-content" : ""}
+      `}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
       <button
         type="button"
-        className={`flex w-full min-w-0 items-center justify-start gap-2 rounded-lg p-1 pr-10 text-left text-sm font-bold select-none transition-colors ${
-          isActive ? "bg-primary/20 text-base-content ring-1 ring-primary/40 dark:bg-primary/30 dark:ring-primary/60" : "hover:bg-base-300"
-        }`}
+        className={`
+          flex w-full min-w-0 items-center justify-start gap-2 rounded-lg p-1
+          pr-10 text-left text-sm font-bold select-none transition-colors
+          ${
+          isActive ? `
+            bg-primary/20 text-base-content ring-1 ring-primary/40
+            dark:bg-primary/30 dark:ring-primary/60
+          ` : `hover:bg-base-300`
+        }
+        `}
         aria-pressed={isActive}
         onClick={onclick}
       >
@@ -71,7 +81,9 @@ export default function RoomButton({
       {children
         ? (
             <div
-              className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center"
+              className="
+                absolute right-1 top-1/2 -translate-y-1/2 flex items-center
+              "
             >
               {children}
             </div>

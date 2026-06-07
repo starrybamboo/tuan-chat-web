@@ -48,7 +48,12 @@ export function StandardPreviewWorkspace({
                 <button
                   key={`${item.batchId}-${item.batchIndex}`}
                   type="button"
-                  className={`overflow-hidden rounded-box border bg-base-100 ${!selectedHistoryPreviewKey && selectedResultIndex === index ? "border-primary" : "border-base-300"}`}
+                  className={`
+                    overflow-hidden rounded-box border bg-base-100
+                    ${!selectedHistoryPreviewKey && selectedResultIndex === index ? `
+                      border-primary
+                    ` : `border-base-300`}
+                  `}
                   onClick={() => onSelectCurrentResult(index)}
                 >
                   <img src={item.dataUrl} alt={`result-${index + 1}`} className={previewThumbnailImageClassName} />
@@ -58,7 +63,10 @@ export function StandardPreviewWorkspace({
           )
         : null}
 
-      <div className="flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden rounded-none border-y border-base-300 bg-base-100">
+      <div className="
+        flex min-h-[520px] flex-1 self-stretch flex-col overflow-hidden
+        rounded-none border-y border-base-300 bg-base-100
+      ">
         {selectedPreviewResult
           ? (
               <div className="flex justify-center px-3 py-2.5">
@@ -107,14 +115,23 @@ export function StandardPreviewWorkspace({
               </div>
             )
           : null}
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3">
+        <div className="
+          relative flex min-h-0 flex-1 items-center justify-center
+          overflow-hidden p-3
+        ">
           {isGeneratingImage
             ? (
-                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px animate-pulse bg-primary/65" />
+                <div className="
+                  pointer-events-none absolute inset-x-0 top-0 z-10 h-px
+                  animate-pulse bg-primary/65
+                " />
               )
             : null}
           <div
-            className="relative z-[1] flex max-h-full max-w-full items-center justify-center"
+            className="
+              relative z-[1] flex max-h-full max-w-full items-center
+              justify-center
+            "
             style={selectedPreviewResult
               ? {
                   width: `${selectedPreviewResult.width}px`,
@@ -151,7 +168,11 @@ export function StandardPreviewWorkspace({
                     <ExpandCornersIcon className="size-[18px]" />
                   </button>
                 </div>
-                <div className={`${previewToolbarSectionClassName} justify-start sm:ml-auto sm:justify-end`}>
+                <div className={`
+                  ${previewToolbarSectionClassName}
+                  justify-start
+                  sm:ml-auto sm:justify-end
+                `}>
                   <button
                     type="button"
                     className={previewToolbarIconButtonClassName}

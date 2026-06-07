@@ -60,8 +60,18 @@ export default function CharacterDetailLeftPanel({
   onAudioDelete,
 }: CharacterDetailLeftPanelProps) {
   return (
-    <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-      <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-xl md:border-2 md:border-base-content/10">
+    <div className="
+      lg:col-span-1
+      self-start
+      lg:sticky lg:top-4
+      space-y-6
+    ">
+      <div className="
+        card-sm
+        md:card-xl
+        bg-base-100 shadow-xs rounded-xl
+        md:border-2 md:border-base-content/10
+      ">
         <div className="card-body flex flex-col p-4">
           <div className="flex flex-1 items-center justify-center">
             {isQueryLoading
@@ -114,7 +124,10 @@ export default function CharacterDetailLeftPanel({
             onClick={onOpenRuleModal}
             className="mb-4"
             icon={(
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+              <div className="
+                flex h-8 w-8 items-center justify-center rounded-full
+                bg-primary/10
+              ">
                 <GearOutline className="h-4 w-4 text-primary" />
               </div>
             )}
@@ -128,7 +141,10 @@ export default function CharacterDetailLeftPanel({
             onClick={onOpenAudioModal}
             className="mb-4"
             icon={(
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10">
+              <div className="
+                flex h-8 w-8 items-center justify-center rounded-full
+                bg-secondary/10
+              ">
                 <MicrophoneIcon className="h-4 w-4 text-secondary" />
               </div>
             )}
@@ -152,7 +168,10 @@ export default function CharacterDetailLeftPanel({
               onClick={onOpenDiceMaidenLinkModal}
               className="mb-4"
               icon={(
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10">
+                <div className="
+                  flex h-8 w-8 items-center justify-center rounded-full
+                  bg-accent/10
+                ">
                   <DiceFiveIcon className="h-4 w-4 text-accent" />
                 </div>
               )}

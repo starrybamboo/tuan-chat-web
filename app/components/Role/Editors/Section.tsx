@@ -24,7 +24,10 @@ export default function Section({
 
   if (!collapsible) {
     return (
-      <div className={`border border-base-300 rounded-xl py-4 ${className}`}>
+      <div className={`
+        border border-base-300 rounded-xl py-4
+        ${className}
+      `}>
         {title && (
           <div className={titleClassName}>
             {icon}
@@ -39,10 +42,20 @@ export default function Section({
   }
 
   return (
-    <div className={`collapse collapse-arrow border border-base-300 ${className}`}>
+    <div className={`
+      collapse collapse-arrow border border-base-300
+      ${className}
+    `}>
 
       <input type="checkbox" defaultChecked={defaultOpen} />
-      <div className={`collapse-title px-4 py-3 text-lg font-semibold ${hideTitleOnMobile ? "hidden md:flex" : "flex"} items-center gap-2`}>
+      <div className={`
+        collapse-title px-4 py-3 text-lg font-semibold
+        ${hideTitleOnMobile ? `
+          hidden
+          md:flex
+        ` : `flex`}
+        items-center gap-2
+      `}>
         {icon}
         {title}
       </div>

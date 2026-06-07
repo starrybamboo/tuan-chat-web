@@ -29,12 +29,23 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const followData = useFollowData(userId);
 
   return (
-    <div className="flex min-h-full flex-col p-2 pl-3 transition-all duration-300 md:flex-row md:pl-4 lg:pl-6">
-      <div className="flex w-full flex-col p-2 md:w-[30%] md:shrink-0 lg:w-[27%]">
+    <div className="
+      flex min-h-full flex-col p-2 pl-3 transition-all duration-300
+      md:flex-row md:pl-4
+      lg:pl-6
+    ">
+      <div className="
+        flex w-full flex-col p-2
+        md:w-[30%] md:shrink-0
+        lg:w-[27%]
+      ">
         {/* 移动端布局 */}
         <div className="md:hidden">
           {/* 小屏幕布局 - 顶部栏样式 */}
-          <div className="flex flex-row items-center justify-between p-4 bg-base-100 rounded-2xl">
+          <div className="
+            flex flex-row items-center justify-between p-4 bg-base-100
+            rounded-2xl
+          ">
             {/* 头像和用户名 */}
             <div className="flex gap-4">
               <UserAvatar
@@ -91,7 +102,11 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         </div>
 
         {/* 桌面端布局 */}
-        <div className="hidden md:flex flex-col items-start rounded-2xl p-2">
+        <div className="
+          hidden
+          md:flex
+          flex-col items-start rounded-2xl p-2
+        ">
           <div className="border border-base-300 rounded-lg w-full p-4">
             <UserProfile
               user={user}

@@ -54,7 +54,11 @@ export default function CharacterAvatar({
   return (
     <div className="flex justify-center">
       <div
-        className={`avatar flex items-center justify-center ${avatarSizeClassName} ${editable ? "cursor-pointer group" : "cursor-default"}`}
+        className={`
+          avatar flex items-center justify-center
+          ${avatarSizeClassName}
+          ${editable ? `cursor-pointer group` : `cursor-default`}
+        `}
         onClick={() => {
           if (!editable) {
             return;
@@ -62,15 +66,27 @@ export default function CharacterAvatar({
           setChangeAvatarConfirmOpen(true);
         }}
       >
-        <div className="relative w-full overflow-hidden rounded-xl ring ring-primary ring-offset-2 ring-offset-base-100">
-          <div className={`absolute inset-0 transition-all flex items-center justify-center z-1 ${
-            editable ? "bg-black/0 group-hover:bg-black/10" : "bg-black/5"
-          }`}
+        <div className="
+          relative w-full overflow-hidden rounded-xl ring ring-primary
+          ring-offset-2 ring-offset-base-100
+        ">
+          <div className={`
+            absolute inset-0 transition-all flex items-center justify-center z-1
+            ${
+            editable ? `
+              bg-black/0
+              group-hover:bg-black/10
+            ` : "bg-black/5"
+          }
+          `}
           />
           <MediaImage
             src={selectedAvatarUrl || ROLE_DEFAULT_AVATAR_URL}
             alt="Character Avatar"
-            className={`h-full w-full object-contain transition-transform duration-300 ${editable ? "group-hover:scale-105" : ""}`}
+            className={`
+              h-full w-full object-contain transition-transform duration-300
+              ${editable ? `group-hover:scale-105` : ""}
+            `}
             fallbackSrc={ROLE_DEFAULT_AVATAR_URL}
           />
         </div>

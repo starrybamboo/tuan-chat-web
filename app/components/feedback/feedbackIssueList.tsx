@@ -34,7 +34,10 @@ function FeedbackStateDot({
           : "border-base-content/45 bg-base-content/45";
 
   return (
-    <span className={`mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full border ${colorClass}`}>
+    <span className={`
+      mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full border
+      ${colorClass}
+    `}>
       <span className="h-1.5 w-1.5 rounded-full bg-base-100" />
     </span>
   );
@@ -55,7 +58,10 @@ function FeedbackAuthorAvatar({ issue }: { issue: FeedbackIssueListItem }) {
   }
 
   return (
-    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-base-300 text-[10px] font-semibold text-base-content/70">
+    <div className="
+      flex h-6 w-6 items-center justify-center rounded-full bg-base-300
+      text-[10px] font-semibold text-base-content/70
+    ">
       {authorName.slice(0, 1)}
     </div>
   );
@@ -102,9 +108,14 @@ export default function FeedbackIssueList({
   }));
 
   return (
-    <section className="overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
+    <section className="
+      overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm
+    ">
       <div className="border-b border-base-300 px-4 py-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="
+          flex flex-col gap-3
+          lg:flex-row lg:items-center lg:justify-between
+        ">
           <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
             {statusCounts.map((option) => {
               const dotClassName = option.value === FEEDBACK_ISSUE_STATUS_COMPLETED
@@ -116,10 +127,18 @@ export default function FeedbackIssueList({
                     : "bg-base-content/45";
 
               return (
-                <div key={option.value} className="flex items-center gap-2 text-base-content/75">
-                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotClassName}`} />
+                <div key={option.value} className="
+                  flex items-center gap-2 text-base-content/75
+                ">
+                  <span className={`
+                    inline-block h-2.5 w-2.5 rounded-full
+                    ${dotClassName}
+                  `} />
                   {option.label}
-                  <span className="rounded-full bg-base-200 px-2 py-0.5 text-xs text-base-content/70">
+                  <span className="
+                    rounded-full bg-base-200 px-2 py-0.5 text-xs
+                    text-base-content/70
+                  ">
                     {option.count}
                   </span>
                 </div>
@@ -129,7 +148,10 @@ export default function FeedbackIssueList({
 
           <button
             type="button"
-            className={`btn btn-ghost btn-sm ${isFetching ? "loading" : ""}`}
+            className={`
+              btn btn-ghost btn-sm
+              ${isFetching ? "loading" : ""}
+            `}
             onClick={onRefresh}
           >
             刷新
@@ -138,7 +160,10 @@ export default function FeedbackIssueList({
       </div>
 
       <div className="border-b border-base-300 bg-base-200/25 px-4 py-3">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_170px_auto]">
+        <div className="
+          grid gap-3
+          xl:grid-cols-[minmax(0,1fr)_180px_180px_170px_auto]
+        ">
           <input
             type="search"
             id="feedback-search"
@@ -200,7 +225,10 @@ export default function FeedbackIssueList({
             <option value="all">全部</option>
           </select>
 
-          <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm cursor-pointer">
+          <label className="
+            flex items-center gap-2 rounded-md border border-base-300
+            bg-base-100 px-3 py-2 text-sm cursor-pointer
+          ">
             <input
               type="checkbox"
               id="feedback-mine-only"
@@ -217,7 +245,10 @@ export default function FeedbackIssueList({
 
       {isLoading
         ? (
-            <div className="flex flex-col items-center justify-center gap-3 px-5 py-16 text-base-content/60">
+            <div className="
+              flex flex-col items-center justify-center gap-3 px-5 py-16
+              text-base-content/60
+            ">
               <span className="loading loading-spinner loading-md" />
               加载中...
             </div>
@@ -238,7 +269,11 @@ export default function FeedbackIssueList({
                     type="button"
                     key={issue.feedbackIssueId}
                     aria-label={`打开反馈 ${issue.title}`}
-                    className="group w-full px-4 py-4 text-left transition hover:bg-base-200/50 focus:bg-base-200/50 focus:outline-none"
+                    className="
+                      group w-full px-4 py-4 text-left transition
+                      hover:bg-base-200/50
+                      focus:bg-base-200/50 focus:outline-none
+                    "
                     onClick={() => onSelectIssue(issue.feedbackIssueId)}
                     {...listItemMotionProps(index, { direction: "left", distance: 10, duration: 0.25, staggerDelay: 0.03, maxDelay: 0.3 })}
                     whileHover={{ scale: 1.005 }}
@@ -248,17 +283,31 @@ export default function FeedbackIssueList({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <div className="text-[16px] font-semibold text-base-content transition-colors group-hover:text-primary">
+                          <div className="
+                            text-[16px] font-semibold text-base-content
+                            transition-colors
+                            group-hover:text-primary
+                          ">
                             {issue.title}
                           </div>
-                          <span className="rounded-full border border-base-content/10 bg-base-200 px-2 py-0.5 text-xs text-base-content/75">
+                          <span className="
+                            rounded-full border border-base-content/10
+                            bg-base-200 px-2 py-0.5 text-xs text-base-content/75
+                          ">
                             {getFeedbackIssueTypeLabel(issue.issueType)}
                           </span>
-                          <span className="rounded-full border border-base-content/10 bg-base-200 px-2 py-0.5 text-xs text-base-content/65">
+                          <span className="
+                            rounded-full border border-base-content/10
+                            bg-base-200 px-2 py-0.5 text-xs text-base-content/65
+                          ">
                             {getFeedbackIssueStatusLabel(issue.status)}
                           </span>
                           {issue.archived && (
-                            <span className="rounded-full border border-base-content/10 bg-base-200 px-2 py-0.5 text-xs text-base-content/65">
+                            <span className="
+                              rounded-full border border-base-content/10
+                              bg-base-200 px-2 py-0.5 text-xs
+                              text-base-content/65
+                            ">
                               已归档
                             </span>
                           )}
@@ -286,13 +335,18 @@ export default function FeedbackIssueList({
                         </div>
 
                         {issue.contentPreview && (
-                          <div className="mt-2 line-clamp-1 text-sm text-base-content/65">
+                          <div className="
+                            mt-2 line-clamp-1 text-sm text-base-content/65
+                          ">
                             {issue.contentPreview}
                           </div>
                         )}
                       </div>
 
-                      <div className="hidden shrink-0 items-start gap-3 sm:flex">
+                      <div className="
+                        hidden shrink-0 items-start gap-3
+                        sm:flex
+                      ">
                         <div className="mt-1 text-xs text-base-content/55">
                           {issue.commentCount > 0 ? `${issue.commentCount} 条评论` : ""}
                         </div>

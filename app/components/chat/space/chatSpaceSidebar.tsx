@@ -106,12 +106,22 @@ export default function ChatSpaceSidebar({
 
   return (
     <div
-      className={`flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible ${
-        showCollapsedToggle ? "border-r border-gray-300 dark:border-gray-700" : ""
-      }`}
+      className={`
+        flex flex-col px-1 bg-base-200 h-full overflow-y-auto overflow-x-visible
+        ${
+        showCollapsedToggle ? `
+          border-r border-gray-300
+          dark:border-gray-700
+        ` : ""
+      }
+      `}
     >
       {showCollapsedToggle && (
-        <div className="rounded w-10 relative z-20 hover:z-50 mx-2 mt-1 mb-1">
+        <div className="
+          rounded w-10 relative z-20
+          hover:z-50
+          mx-2 mt-1 mb-1
+        ">
           <PortalTooltip label="展开侧边栏" placement="right">
             <motion.button
               className="w-10 btn btn-square z-9999"
@@ -127,10 +137,18 @@ export default function ChatSpaceSidebar({
       )}
       <div className="flex flex-col gap-1">
         {/* 私信入口 */}
-        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+        <div className="
+          rounded w-10 relative z-20
+          hover:z-50
+          mx-2
+        ">
           <div
-            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
-            }`}
+            className={`
+              absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1
+              rounded-full bg-info transition-transform duration-300
+              ${isPrivateChatMode ? `scale-y-100` : `scale-y-0`
+            }
+            `}
           />
           <PortalTooltip label="私信" placement="right">
             <motion.button
@@ -155,16 +173,27 @@ export default function ChatSpaceSidebar({
         </div>
 
         {/* 发现入口 */}
-        <div className="rounded w-10 relative z-20 hover:z-50 mx-2">
+        <div className="
+          rounded w-10 relative z-20
+          hover:z-50
+          mx-2
+        ">
           <div
-            className={`absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
+            className={`
+              absolute -left-1.5 z-10 top-1/2 -translate-y-1/2 h-8 w-1
+              rounded-full bg-info transition-transform duration-300
+              ${
               isDiscoverMode ? "scale-y-100" : "scale-y-0"
-            }`}
+            }
+            `}
           />
           <PortalTooltip label="发现" placement="right">
             <MotionLink
               to="/chat/discover/material"
-              className={`w-10 btn btn-square ${isDiscoverMode ? "text-info" : ""}`}
+              className={`
+                w-10 btn btn-square
+                ${isDiscoverMode ? "text-info" : ""}
+              `}
               aria-label="发现"
               aria-current={isDiscoverMode ? "page" : undefined}
               {...interactiveButtonMotionProps}
@@ -178,14 +207,19 @@ export default function ChatSpaceSidebar({
       {/* 分隔线 */}
       <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-      <div className="hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2">
+      <div className="
+        hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2
+      ">
         {/* 全部空间列表 */}
         {renderSpaces.map(space => (
           <div
             key={space.spaceId}
             data-space-id={space.spaceId}
             draggable={Boolean(onReorderSpaceIds)}
-            className={onReorderSpaceIds ? "cursor-grab active:cursor-grabbing" : undefined}
+            className={onReorderSpaceIds ? `
+              cursor-grab
+              active:cursor-grabbing
+            ` : undefined}
             onDragStart={(e) => {
               if (!onReorderSpaceIds)
                 return;
@@ -281,7 +315,10 @@ export default function ChatSpaceSidebar({
       </div>
       <PortalTooltip label="创建" placement="right">
         <motion.button
-          className="btn btn-square btn-dash btn-info w-10 mx-2 relative z-20 hover:z-50"
+          className="
+            btn btn-square btn-dash btn-info w-10 mx-2 relative z-20
+            hover:z-50
+          "
           type="button"
           aria-label="创建空间"
           onClick={onCreateSpace}

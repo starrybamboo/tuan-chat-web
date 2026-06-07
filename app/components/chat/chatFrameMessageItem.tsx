@@ -144,7 +144,11 @@ export default function ChatFrameMessageItem({
       {showDragHandle && (
         <button
           type="button"
-          className={`${MESSAGE_DRAG_HANDLE_CLASS} ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"} ${isDragging ? "!opacity-100" : ""}`}
+          className={`
+            ${MESSAGE_DRAG_HANDLE_CLASS}
+            ${useChatBubbleStyle ? `top-[12px]` : `top-[30px]`}
+            ${isDragging ? `!opacity-100` : ""}
+          `}
           draggable={movable}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
@@ -168,7 +172,10 @@ export default function ChatFrameMessageItem({
       />
       {!disableInsertAction && (
         <div
-          className={`relative h-4 -mt-2 select-none ${isSelecting ? "pointer-events-none" : "group/insert"}`}
+          className={`
+            relative h-4 -mt-2 select-none
+            ${isSelecting ? `pointer-events-none` : `group/insert`}
+          `}
           data-message-insert-action="true"
           aria-hidden={isSelecting}
         >
@@ -182,21 +189,41 @@ export default function ChatFrameMessageItem({
             />
           )}
           <div
-            className={`pointer-events-none absolute left-6 right-0 top-1/2 -translate-y-1/2 h-[2px] transition-colors duration-200 ${
+            className={`
+              pointer-events-none absolute left-6 right-0 top-1/2
+              -translate-y-1/2 h-[2px] transition-colors duration-200
+              ${
               isSelecting || isOptimisticMessage
                 ? "bg-transparent"
                 : isInsertTarget
                   ? "bg-primary"
-                  : "bg-transparent group-hover/insert:bg-primary/50"
-            }`}
+                  : `
+                    bg-transparent
+                    group-hover/insert:bg-primary/50
+                  `
+            }
+            `}
           />
           {!isSelecting && !isOptimisticMessage && (
             <span
-              className={`pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2 h-6 w-6 rounded border bg-base-100 flex items-center justify-center transition-all duration-200 ${
+              className={`
+                pointer-events-none absolute left-0 top-1/2 z-10
+                -translate-y-1/2 h-6 w-6 rounded border bg-base-100 flex
+                items-center justify-center transition-all duration-200
+                ${
                 isInsertTarget
-                  ? "border-primary text-primary shadow-sm opacity-100 scale-100"
-                  : "border-base-content/20 text-base-content/40 shadow-none opacity-0 scale-90 group-hover/insert:opacity-100 group-hover/insert:scale-100 group-hover/insert:border-primary/50 group-hover/insert:text-primary"
-              }`}
+                  ? `
+                    border-primary text-primary shadow-sm opacity-100 scale-100
+                  `
+                  : `
+                    border-base-content/20 text-base-content/40 shadow-none
+                    opacity-0 scale-90
+                    group-hover/insert:opacity-100 group-hover/insert:scale-100
+                    group-hover/insert:border-primary/50
+                    group-hover/insert:text-primary
+                  `
+              }
+              `}
               aria-hidden="true"
             >
               <PlusOutline className="h-4 w-4" />

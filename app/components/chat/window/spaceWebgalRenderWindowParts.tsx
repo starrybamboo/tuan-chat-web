@@ -129,14 +129,21 @@ export function SectionCollapseToggle({
   return (
     <button
       type="button"
-      className="h-8 w-8 rounded-md flex items-center justify-center text-base-content/60 hover:text-base-content hover:bg-base-200 transition-colors"
+      className="
+        h-8 w-8 rounded-md flex items-center justify-center text-base-content/60
+        hover:text-base-content hover:bg-base-200
+        transition-colors
+      "
       title={expanded ? `收起${label}` : `展开${label}`}
       aria-label={expanded ? `收起${label}` : `展开${label}`}
       onClick={onClick}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        className={`h-4 w-4 transition-transform duration-200 ${expanded ? "-rotate-90" : ""}`}
+        className={`
+          h-4 w-4 transition-transform duration-200
+          ${expanded ? `-rotate-90` : ""}
+        `}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -157,7 +164,13 @@ export function ConfigHelpButton({ label, description }: { label: string; descri
     <span className="tooltip tooltip-top z-20" data-tip={description}>
       <button
         type="button"
-        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-base-content/50 transition-colors hover:bg-info/15 hover:text-info focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-info/60"
+        className="
+          inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full
+          text-base-content/50 transition-colors
+          hover:bg-info/15 hover:text-info
+          focus-visible:outline-none focus-visible:ring-1
+          focus-visible:ring-info/60
+        "
         title={description}
         aria-label={`${label}说明：${description}`}
         onClick={stopLabelToggle}

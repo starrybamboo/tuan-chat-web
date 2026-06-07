@@ -19,13 +19,21 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
 
   return (
     <div
-      className="group relative z-20 hover:z-50 w-10 my-1 rounded"
+      className="
+        group relative z-20
+        hover:z-50
+        w-10 my-1 rounded
+      "
       key={space.spaceId}
     >
       <div
-        className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
+        className={`
+          absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1
+          rounded-full bg-info transition-transform duration-300
+          ${
           isActive ? "scale-y-100" : "scale-y-0"
-        }`}
+        }
+        `}
       >
       </div>
       <PortalTooltip label={displayName} placement="right">

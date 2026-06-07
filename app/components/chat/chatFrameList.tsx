@@ -96,32 +96,57 @@ const SelectionToolbar = memo(({
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
+        <div className="
+          pointer-events-none absolute inset-x-0 bottom-4 z-50 flex flex-col
+          items-center gap-2 px-4
+        ">
           <motion.div
-            className="max-w-[calc(100%-2rem)] rounded-md border border-primary/20 bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
+            className="
+              max-w-[calc(100%-2rem)] rounded-md border border-primary/20
+              bg-base-100/92 px-3 py-1.5 text-sm text-base-content shadow-2xl
+              shadow-primary/10 backdrop-blur-xl
+            "
             {...floatingListItemMotionProps(0)}
           >
             按住 Ctrl 开启多选：Shift 连选，Ctrl + Shift 连选并保留已有选择。
           </motion.div>
           <motion.div
-            className="pointer-events-auto flex max-w-[calc(100%-2rem)] items-center gap-2 overflow-hidden rounded-md border border-primary/20 bg-base-100/92 px-2 py-2 text-sm text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl"
+            className="
+              pointer-events-auto flex max-w-[calc(100%-2rem)] items-center
+              gap-2 overflow-hidden rounded-md border border-primary/20
+              bg-base-100/92 px-2 py-2 text-sm text-base-content shadow-2xl
+              shadow-primary/10 backdrop-blur-xl
+            "
             {...floatingPanelMotionProps}
           >
             <motion.div
-              className="flex shrink-0 items-center gap-2 border-r border-base-content/10 px-2 pr-3"
+              className="
+                flex shrink-0 items-center gap-2 border-r border-base-content/10
+                px-2 pr-3
+              "
               {...floatingListItemMotionProps(0)}
             >
-              <span className="size-2 rounded-full bg-primary shadow-[0_0_18px_hsl(var(--p)/0.75)]" />
+              <span className="
+                size-2 rounded-full bg-primary
+                shadow-[0_0_18px_hsl(var(--p)/0.75)]
+              " />
               <span className="whitespace-nowrap font-medium">{`已选择 ${selectedCount} 条`}</span>
             </motion.div>
-            <div className="flex min-w-0 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="
+              flex min-w-0 items-center gap-1 overflow-x-auto px-1
+              [scrollbar-width:none]
+              [&::-webkit-scrollbar]:hidden
+            ">
               {actions.map((action, index) => {
                 const Icon = action.icon;
                 return (
                   <motion.button
                     key={action.key}
                     type="button"
-                    className={`btn btn-sm h-8 min-h-0 shrink-0 gap-1.5 rounded-md px-2.5 ${action.className}`}
+                    className={`
+                      btn btn-sm h-8 min-h-0 shrink-0 gap-1.5 rounded-md px-2.5
+                      ${action.className}
+                    `}
                     onClick={action.onClick}
                     disabled={action.disabled}
                     title={action.label}
@@ -136,7 +161,10 @@ const SelectionToolbar = memo(({
             </div>
             <motion.button
               type="button"
-              className="btn btn-ghost btn-sm btn-circle h-8 min-h-0 w-8 shrink-0 rounded-md"
+              className="
+                btn btn-ghost btn-sm btn-circle h-8 min-h-0 w-8 shrink-0
+                rounded-md
+              "
               onClick={onCancel}
               title="取消"
               aria-label="取消多选"
@@ -184,15 +212,21 @@ const MessageFilterControl = memo(({
     : { opacity: 1, scale: [1, 0.94, 1], y: 0 };
 
   return (
-    <div className="pointer-events-none absolute right-4 top-3 z-30 flex justify-end">
+    <div className="
+      pointer-events-none absolute right-4 top-3 z-30 flex justify-end
+    ">
       <motion.button
         key={isActive ? "filter-active" : "filter-inactive"}
         type="button"
-        className={`btn btn-ghost btn-sm btn-circle pointer-events-auto relative h-9 min-h-0 w-9 rounded-md border shadow-lg backdrop-blur-xl ${
+        className={`
+          btn btn-ghost btn-sm btn-circle pointer-events-auto relative h-9
+          min-h-0 w-9 rounded-md border shadow-lg backdrop-blur-xl
+          ${
           isActive
             ? "border-primary/30 bg-primary/10 text-primary"
             : "border-base-content/10 bg-base-100/78 text-base-content/70"
-        }`}
+        }
+        `}
         initial={{ opacity: 0, scale: 0.92, y: -4 }}
         animate={buttonAnimate}
         transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -206,7 +240,10 @@ const MessageFilterControl = memo(({
         <AnimatePresence>
           {isActive && (
             <motion.span
-              className="pointer-events-none absolute inset-0 rounded-md border border-primary/35"
+              className="
+                pointer-events-none absolute inset-0 rounded-md border
+                border-primary/35
+              "
               initial={{ opacity: 0, scale: 0.72 }}
               animate={{ opacity: [0.45, 0], scale: [0.9, 1.42] }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -218,7 +255,10 @@ const MessageFilterControl = memo(({
           {isActive && (
             <motion.span
               key="active-dot"
-              className="pointer-events-none absolute right-1 top-1 size-1.5 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--p)/0.85)]"
+              className="
+                pointer-events-none absolute right-1 top-1 size-1.5 rounded-full
+                bg-primary shadow-[0_0_10px_hsl(var(--p)/0.85)]
+              "
               initial={{ opacity: 0, scale: 0.3 }}
               animate={{ opacity: 1, scale: [0.3, 1.45, 1] }}
               exit={{ opacity: 0, scale: 0.4 }}
@@ -267,7 +307,10 @@ const UnreadIndicator = memo(({
       {show && (
         <motion.button
           type="button"
-          className="absolute bottom-4 right-4 z-50 cursor-pointer rounded-full bg-base-100/75 backdrop-blur-md px-3 py-1.5 text-xs shadow-sm"
+          className="
+            absolute bottom-4 right-4 z-50 cursor-pointer rounded-full
+            bg-base-100/75 backdrop-blur-md px-3 py-1.5 text-xs shadow-sm
+          "
           onClick={onScrollToBottom}
           {...scrollToBottomButtonMotionProps}
         >
@@ -326,8 +369,15 @@ const GalPatchProposalToolbar = memo(({
   const detailText = total > 0 ? details : "没有可应用的变更";
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-3">
-      <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-3 rounded-lg border border-base-300/70 bg-base-100/90 px-3 py-2 text-sm text-base-content shadow-lg backdrop-blur-md">
+    <div className="
+      pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center
+      px-3
+    ">
+      <div className="
+        pointer-events-auto flex max-w-full flex-wrap items-center gap-3
+        rounded-lg border border-base-300/70 bg-base-100/90 px-3 py-2 text-sm
+        text-base-content shadow-lg backdrop-blur-md
+      ">
         <div className="min-w-0">
           <div className="font-medium leading-5">改动预览</div>
           <div className="truncate text-xs text-base-content/60">
@@ -374,7 +424,9 @@ const GalPatchProposalToolbar = memo(({
             onClick={onApply}
             disabled={isApplying || total === 0}
           >
-            {isApplying ? <span className="loading loading-spinner loading-xs" /> : <Check className="size-4" />}
+            {isApplying ? <span className="loading loading-spinner loading-xs" /> : <Check className="
+              size-4
+            " />}
             {hasLineSelection && selectedMessageCount !== totalMessageCount ? "应用已选" : "应用"}
           </button>
         </div>
@@ -638,14 +690,26 @@ export default function ChatFrameList({
             {filterTransitionState && (
               <motion.div
                 key={filterTransitionState.key}
-                className="pointer-events-none absolute inset-x-0 top-0 z-20 h-full overflow-hidden"
+                className="
+                  pointer-events-none absolute inset-x-0 top-0 z-20 h-full
+                  overflow-hidden
+                "
               >
                 <motion.div
-                  className={`h-full w-2/3 blur-2xl ${
+                  className={`
+                    h-full w-2/3 blur-2xl
+                    ${
                     filterTransitionState.tone === "active"
-                      ? "bg-gradient-to-r from-transparent via-primary/18 to-transparent"
-                      : "bg-gradient-to-r from-transparent via-base-content/12 to-transparent"
-                  }`}
+                      ? `
+                        bg-gradient-to-r from-transparent via-primary/18
+                        to-transparent
+                      `
+                      : `
+                        bg-gradient-to-r from-transparent via-base-content/12
+                        to-transparent
+                      `
+                  }
+                  `}
                   onAnimationComplete={() => setFilterTransitionState(null)}
                   {...messageFilterToggleSweepMotionProps}
                 />

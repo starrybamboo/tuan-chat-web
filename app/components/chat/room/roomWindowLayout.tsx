@@ -106,22 +106,34 @@ export default function RoomWindowLayout({
   }, [canViewDocContent]);
 
   return (
-    <div className="flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-100">
+    <div className="
+      flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-100
+    ">
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500 z-0"
+        className="
+          absolute inset-0 bg-cover bg-center bg-no-repeat transition-all
+          duration-500 z-0
+        "
         style={{
           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
           opacity: backgroundUrl ? 1 : 0,
         }}
       />
       <div
-        className="absolute inset-0 bg-white/30 dark:bg-slate-950/40 backdrop-blur-xs transition-opacity duration-500 z-0"
+        className="
+          absolute inset-0 bg-white/30
+          dark:bg-slate-950/40
+          backdrop-blur-xs transition-opacity duration-500 z-0
+        "
         style={{
           opacity: backgroundUrl ? 1 : 0,
         }}
       />
       <div
-        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
+        className="
+          pointer-events-none absolute inset-0 z-0 transition-opacity
+          duration-500
+        "
         style={{
           opacity: combatVisualActive ? 1 : 0,
           backgroundColor: "rgba(24, 14, 10, 0.16)",
@@ -154,7 +166,9 @@ export default function RoomWindowLayout({
             onClearAndReloadAllMessages={onClearAndReloadAllMessages}
             isReloadingAllMessages={isReloadingAllMessages}
           />
-          <div className="flex-1 w-full bg-transparent relative min-h-0 overflow-hidden">
+          <div className="
+            flex-1 w-full bg-transparent relative min-h-0 overflow-hidden
+          ">
             {contentMode === "doc"
               ? (
                   <motion.div
@@ -164,7 +178,10 @@ export default function RoomWindowLayout({
                     initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
                     animate={prefersReducedMotion ? { opacity: 1 } : "center"}
                     transition={prefersReducedMotion ? { duration: 0.08 } : roomContentEnterTransition}
-                    className="absolute inset-0 flex min-w-0 min-h-0 overflow-hidden bg-base-100"
+                    className="
+                      absolute inset-0 flex min-w-0 min-h-0 overflow-hidden
+                      bg-base-100
+                    "
                   >
                     <ChatPageDocContent
                       spaceId={spaceId}
@@ -189,7 +206,9 @@ export default function RoomWindowLayout({
                     initial={prefersReducedMotion ? { opacity: 0 } : "enter"}
                     animate={prefersReducedMotion ? { opacity: 1 } : "center"}
                     transition={prefersReducedMotion ? { duration: 0.08 } : roomContentEnterTransition}
-                    className="absolute inset-0 flex min-w-0 min-h-0 bg-transparent"
+                    className="
+                      absolute inset-0 flex min-w-0 min-h-0 bg-transparent
+                    "
                   >
                     <div className="flex-1 min-w-0 flex flex-col min-h-0" data-tc-doc-ref-drop-zone>
                       <div

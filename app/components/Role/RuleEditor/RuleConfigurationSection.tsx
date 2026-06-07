@@ -26,7 +26,11 @@ export function RuleConfigurationSection({
   const { Icon } = getRoleConfigTabItem(configKey);
   return (
     <Section
-      className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+      className="
+        rounded-2xl
+        md:border-2 md:border-base-content/10
+        bg-base-100
+      "
       collapsible={false}
     >
       <div className="space-y-6">

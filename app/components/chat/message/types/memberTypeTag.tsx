@@ -22,7 +22,10 @@ export function MemberTypeTag({ memberType }: {
     return <div>未知类型</div>;
 
   return (
-    <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${typeConfig[validType].color}`}>
+    <span className={`
+      text-xs px-2 py-1 rounded-full whitespace-nowrap
+      ${typeConfig[validType].color}
+    `}>
       {typeConfig[validType].text}
     </span>
 

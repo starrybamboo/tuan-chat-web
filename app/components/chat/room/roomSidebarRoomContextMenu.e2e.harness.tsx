@@ -28,7 +28,9 @@ function SidebarRoomContextMenuHarness() {
       <div data-testid="selected-room-id">{selectedRoomId ?? "null"}</div>
       <div data-testid="context-room-id">{contextMenu?.roomId ?? "null"}</div>
 
-      <div data-testid="section-shell" className="max-w-sm rounded-xl border border-base-300 p-2">
+      <div data-testid="section-shell" className="
+        max-w-sm rounded-xl border border-base-300 p-2
+      ">
         <SidebarSection
           title="频道与文档"
           isExpanded
@@ -37,8 +39,12 @@ function SidebarRoomContextMenuHarness() {
           contentClassName="mt-0.5 min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
           fillContent
         >
-          <div data-testid="extra-wrapper" className="rounded-lg border border-base-300 p-2">
-            <div data-testid="extra-wrapper-inner" className="space-y-1 rounded-md bg-base-200/40 p-1">
+          <div data-testid="extra-wrapper" className="
+            rounded-lg border border-base-300 p-2
+          ">
+            <div data-testid="extra-wrapper-inner" className="
+              space-y-1 rounded-md bg-base-200/40 p-1
+            ">
               <RoomSidebarRoomItem
                 room={room}
                 roomId={ROOM_ID}
@@ -68,7 +74,10 @@ function SidebarRoomContextMenuHarness() {
       {contextMenu && (
         <div
           data-testid="room-context-menu"
-          className="fixed left-4 top-4 rounded-md border border-base-300 bg-base-100 p-2 shadow-lg"
+          className="
+            fixed left-4 top-4 rounded-md border border-base-300 bg-base-100 p-2
+            shadow-lg
+          "
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <ul className="menu w-48 p-0">

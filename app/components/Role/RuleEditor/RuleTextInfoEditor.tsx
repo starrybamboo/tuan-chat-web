@@ -119,12 +119,25 @@ export default function RuleTextInfoEditor({
 
   return (
     <div className="space-y-3">
-      <div className={`${shouldShowHeader ? "flex" : "hidden md:flex"} items-center justify-between gap-3`}>
-        <h2 className="card-title hidden md:flex items-center gap-2 mb-2">规则信息</h2>
+      <div className={`
+        ${shouldShowHeader ? "flex" : `
+          hidden
+          md:flex
+        `}
+        items-center justify-between gap-3
+      `}>
+        <h2 className="
+          card-title hidden
+          md:flex
+          items-center gap-2 mb-2
+        ">规则信息</h2>
         {shouldShowHeader && (
           <button
             type="button"
-            className={`btn btn-sm btn-accent ${isEditing ? "invisible pointer-events-none" : ""}`}
+            className={`
+              btn btn-sm btn-accent
+              ${isEditing ? `invisible pointer-events-none` : ""}
+            `}
             onClick={handleStartEditing}
             disabled={isEditing}
             tabIndex={isEditing ? -1 : 0}
@@ -149,7 +162,11 @@ export default function RuleTextInfoEditor({
                 <div className="flex gap-2 mb-2 items-center font-semibold">
                   <span>规则名称</span>
                 </div>
-                <div className="rounded-md border border-base-content/15 bg-base-200 px-4 py-3 text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap wrap-break-words min-h-12">
+                <div className="
+                  rounded-md border border-base-content/15 bg-base-200 px-4 py-3
+                  text-sm text-base-content/70 leading-relaxed
+                  whitespace-pre-wrap wrap-break-words min-h-12
+                ">
                   {ruleName || <span className="text-base-content/40">未命名规则</span>}
                 </div>
               </div>
@@ -158,7 +175,11 @@ export default function RuleTextInfoEditor({
                 <div className="flex gap-2 mb-2 items-center font-semibold">
                   <span>规则描述</span>
                 </div>
-                <div className="rounded-md border border-base-content/15 bg-base-200 px-4 py-3 text-sm text-base-content/70 leading-relaxed whitespace-pre-wrap wrap-break-words min-h-45">
+                <div className="
+                  rounded-md border border-base-content/15 bg-base-200 px-4 py-3
+                  text-sm text-base-content/70 leading-relaxed
+                  whitespace-pre-wrap wrap-break-words min-h-45
+                ">
                   {ruleDescription || <span className="text-base-content/40">暂无描述</span>}
                 </div>
               </div>
@@ -168,26 +189,41 @@ export default function RuleTextInfoEditor({
           // 编辑态：表单控件
             <div className="space-y-4">
               <div className="form-control flex-1 min-w-0">
-                <div className="flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold">
+                <div className="
+                  flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold
+                ">
                   <span>规则名称</span>
-                  <span className={`label-text-alt font-normal ${nameCounterClass}`}>
+                  <span className={`
+                    label-text-alt font-normal
+                    ${nameCounterClass}
+                  `}>
                     {nameLength}
                     /
                     {RULE_NAME_MAX_LENGTH}
                   </span>
                   {hasRuleNameError && (
-                    <span className="label-text-alt text-xs font-normal text-error">
+                    <span className="
+                      label-text-alt text-xs font-normal text-error
+                    ">
                       {ruleNameError}
                     </span>
                   )}
                 </div>
                 <input
                   type="text"
-                  className={`input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 ${
+                  className={`
+                    input input-bordered bg-base-200 rounded-md w-full
+                    transition
+                    focus:outline-none focus:ring-2
+                    ${
                     hasRuleNameError
-                      ? "input-error border-error focus:ring-error/20 focus:border-error"
+                      ? `
+                        input-error border-error
+                        focus:ring-error/20 focus:border-error
+                      `
                       : "focus:ring-primary/20 focus:border-primary"
-                  }`}
+                  }
+                  `}
                   placeholder="输入规则名称"
                   value={localName}
                   maxLength={RULE_NAME_MAX_LENGTH}
@@ -202,16 +238,26 @@ export default function RuleTextInfoEditor({
               </div>
 
               <div className="form-control">
-                <div className="flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold">
+                <div className="
+                  flex flex-wrap gap-x-2 gap-y-1 mb-2 items-center font-semibold
+                ">
                   <span>规则描述</span>
-                  <span className={`label-text-alt font-normal ${descriptionCounterClass}`}>
+                  <span className={`
+                    label-text-alt font-normal
+                    ${descriptionCounterClass}
+                  `}>
                     {descriptionLength}
                     /
                     {RULE_DESCRIPTION_MAX_LENGTH}
                   </span>
                 </div>
                 <textarea
-                  className="textarea textarea-bordered bg-base-200 rounded-md min-h-50 resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="
+                    textarea textarea-bordered bg-base-200 rounded-md min-h-50
+                    resize-y w-full transition
+                    focus:outline-none focus:ring-2 focus:ring-primary/20
+                    focus:border-primary
+                  "
                   placeholder="描述规则定位、核心机制和适用场景"
                   value={localDescription}
                   maxLength={RULE_DESCRIPTION_MAX_LENGTH}

@@ -55,8 +55,14 @@ export default function NotificationPage() {
   if (!userId) {
     return (
       <div className="min-h-full bg-base-200">
-        <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4 py-10">
-          <div className="rounded-3xl border border-base-300 bg-base-100 px-6 py-8 text-center shadow-sm">
+        <div className="
+          mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4
+          py-10
+        ">
+          <div className="
+            rounded-3xl border border-base-300 bg-base-100 px-6 py-8 text-center
+            shadow-sm
+          ">
             <div className="text-xl font-semibold">通知中心</div>
             <div className="mt-2 text-sm opacity-70">请先登录后查看你的反馈通知。</div>
           </div>
@@ -67,25 +73,43 @@ export default function NotificationPage() {
 
   return (
     <div className="min-h-full bg-base-200">
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="rounded-[28px] border border-base-300 bg-base-100 shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-base-300 px-6 py-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="
+        mx-auto max-w-4xl px-4 py-6
+        sm:px-6
+        lg:px-8
+      ">
+        <div className="
+          rounded-[28px] border border-base-300 bg-base-100 shadow-sm
+        ">
+          <div className="
+            flex flex-col gap-4 border-b border-base-300 px-6 py-5
+            sm:flex-row sm:items-end sm:justify-between
+          ">
             <div>
-              <div className="text-xs font-medium uppercase tracking-[0.24em] text-base-content/45">Notification Center</div>
+              <div className="
+                text-xs font-medium uppercase tracking-[0.24em]
+                text-base-content/45
+              ">Notification Center</div>
               <h1 className="mt-2 text-3xl font-semibold">通知中心</h1>
               <p className="mt-2 text-sm opacity-70">反馈的创建、状态变更、评论和回复会持久化记录在这里。</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                className={`btn btn-sm ${!unreadOnly ? "btn-primary" : "btn-ghost"}`}
+                className={`
+                  btn btn-sm
+                  ${!unreadOnly ? "btn-primary" : `btn-ghost`}
+                `}
                 onClick={() => setUnreadOnly(false)}
               >
                 全部
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${unreadOnly ? "btn-primary" : "btn-ghost"}`}
+                className={`
+                  btn btn-sm
+                  ${unreadOnly ? "btn-primary" : `btn-ghost`}
+                `}
                 onClick={() => setUnreadOnly(true)}
               >
                 未读
@@ -102,7 +126,9 @@ export default function NotificationPage() {
           </div>
 
           <div className="px-6 py-5">
-            <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载通知...</div>}>
+            <Suspense fallback={<div className="
+              flex min-h-40 items-center justify-center text-sm opacity-70
+            ">正在加载通知...</div>}>
               <LazyNotificationList
                 items={notifications}
                 emptyText={unreadOnly ? "当前没有未读通知。" : "还没有通知。"}

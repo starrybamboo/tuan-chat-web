@@ -131,7 +131,10 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
             return (
               <motion.div className="relative group shrink-0 max-w-48" key={fileKey} layout {...attachmentItemMotionProps}>
                 <div
-                  className="h-12 rounded bg-base-200 border border-base-300 px-2 pr-6 min-w-28 max-w-48 flex items-center gap-1.5"
+                  className="
+                    h-12 rounded bg-base-200 border border-base-300 px-2 pr-6
+                    min-w-28 max-w-48 flex items-center gap-1.5
+                  "
                   title={file.name}
                 >
                   {isVideo
@@ -140,14 +143,24 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
                   <span className="text-xs truncate">{file.name}</span>
                 </div>
                 <div
-                  className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
+                  className="
+                    absolute -top-1 -right-1 bg-base-100 rounded-full shadow
+                    cursor-pointer
+                    hover:bg-error hover:text-white
+                    transition-colors z-10
+                  "
                   onClick={() => updateFileAttachments(draft => void draft.splice(index, 1))}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="
+                    size-4 p-0.5
+                  " viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
+                <div className="
+                  absolute bottom-0 left-0 right-0 bg-black/50 text-white
+                  text-[10px] px-1 truncate rounded-b
+                ">
                   {isVideo ? "视频" : "文件"}
                 </div>
               </motion.div>
@@ -155,18 +168,29 @@ export default function ChatAttachmentsPreviewFromStore({ roomId }: ChatAttachme
           })}
           {audioFile && (
             <motion.div className="relative group shrink-0" key="audio" layout {...attachmentItemMotionProps}>
-              <div className="h-12 w-12 rounded bg-base-200 flex items-center justify-center border border-base-300" title={audioFile.name}>
+              <div className="
+                h-12 w-12 rounded bg-base-200 flex items-center justify-center
+                border border-base-300
+              " title={audioFile.name}>
                 <MusicNote className="size-6 opacity-70" />
               </div>
               <div
-                className="absolute -top-1 -right-1 bg-base-100 rounded-full shadow cursor-pointer hover:bg-error hover:text-white transition-colors z-10"
+                className="
+                  absolute -top-1 -right-1 bg-base-100 rounded-full shadow
+                  cursor-pointer
+                  hover:bg-error hover:text-white
+                  transition-colors z-10
+                "
                 onClick={() => setAudioFile(null)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="size-4 p-0.5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 truncate rounded-b">
+              <div className="
+                absolute bottom-0 left-0 right-0 bg-black/50 text-white
+                text-[10px] px-1 truncate rounded-b
+              ">
                 语音
               </div>
             </motion.div>

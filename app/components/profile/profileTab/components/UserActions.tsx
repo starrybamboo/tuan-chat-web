@@ -62,7 +62,11 @@ export const UserActions: React.FC<UserActionsProps> = ({
     if (!isEditingProfile) {
       return (
         <button
-          className="btn flex w-full mt-4 border border-gray-300 hover:text-primary transition-colors h-10 cursor-pointer"
+          className="
+            btn flex w-full mt-4 border border-gray-300
+            hover:text-primary
+            transition-colors h-10 cursor-pointer
+          "
           type="button"
           onClick={startEditingProfile}
           aria-label="编辑个人资料"
@@ -94,7 +98,11 @@ export const UserActions: React.FC<UserActionsProps> = ({
         <FriendRequestButton
           targetUserId={user?.userId}
           targetUsername={user?.username}
-          className="mt-4 flex h-8 min-h-8 btn btn-sm btn-ghost gap-1.5 rounded-md border border-base-300 bg-base-100 px-3 hover:border-info/40 hover:text-info"
+          className="
+            mt-4 flex h-8 min-h-8 btn btn-sm btn-ghost gap-1.5 rounded-md border
+            border-base-300 bg-base-100 px-3
+            hover:border-info/40 hover:text-info
+          "
         />
         <button
           type="button"
@@ -129,11 +137,19 @@ export const UserActions: React.FC<UserActionsProps> = ({
       <FriendRequestButton
         targetUserId={user?.userId}
         targetUsername={user?.username}
-        className="btn mt-4 flex h-8 min-h-8 w-full gap-1.5 rounded-md border border-base-300 bg-base-100/70 px-3 text-sm transition-colors hover:border-info/40 hover:bg-base-200 hover:text-info"
+        className="
+          btn mt-4 flex h-8 min-h-8 w-full gap-1.5 rounded-md border
+          border-base-300 bg-base-100/70 px-3 text-sm transition-colors
+          hover:border-info/40 hover:bg-base-200 hover:text-info
+        "
       />
       <button
         type="button"
-        className="btn mt-4 flex h-8 min-h-8 w-full gap-1.5 rounded-md border border-base-300 bg-base-100/70 px-3 text-sm transition-colors hover:border-info/40 hover:bg-base-200 hover:text-info"
+        className="
+          btn mt-4 flex h-8 min-h-8 w-full gap-1.5 rounded-md border
+          border-base-300 bg-base-100/70 px-3 text-sm transition-colors
+          hover:border-info/40 hover:bg-base-200 hover:text-info
+        "
         onClick={() => router.history.push(`/chat/private/${userId}`)}
       >
         <svg

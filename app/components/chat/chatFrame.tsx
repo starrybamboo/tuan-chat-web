@@ -862,14 +862,23 @@ const GalPatchLineDecision = memo(({
   }, [onReject]);
 
   return (
-    <div className="inline-flex items-center rounded-md border border-base-300/70 bg-base-100/80 p-0.5 text-xs shadow-sm">
+    <div className="
+      inline-flex items-center rounded-md border border-base-300/70
+      bg-base-100/80 p-0.5 text-xs shadow-sm
+    ">
       <button
         type="button"
-        className={`btn btn-xs h-6 min-h-0 gap-1 rounded-[5px] px-2 ${
+        className={`
+          btn btn-xs h-6 min-h-0 gap-1 rounded-[5px] px-2
+          ${
           accepted
             ? "btn-success text-success-content"
-            : "btn-ghost text-base-content/65 hover:bg-success/10 hover:text-success"
-        }`}
+            : `
+              btn-ghost text-base-content/65
+              hover:bg-success/10 hover:text-success
+            `
+        }
+        `}
         onClick={handleAccept}
         title="接受此行"
         aria-label="接受此行"
@@ -880,11 +889,20 @@ const GalPatchLineDecision = memo(({
       </button>
       <button
         type="button"
-        className={`btn btn-xs h-6 min-h-0 gap-1 rounded-[5px] px-2 ${
+        className={`
+          btn btn-xs h-6 min-h-0 gap-1 rounded-[5px] px-2
+          ${
           accepted
-            ? "btn-ghost text-base-content/65 hover:bg-error/10 hover:text-error"
-            : "border-error/35 bg-error/10 text-error hover:bg-error/15"
-        }`}
+            ? `
+              btn-ghost text-base-content/65
+              hover:bg-error/10 hover:text-error
+            `
+            : `
+              border-error/35 bg-error/10 text-error
+              hover:bg-error/15
+            `
+        }
+        `}
         onClick={handleReject}
         title="不接受此行"
         aria-label="不接受此行"

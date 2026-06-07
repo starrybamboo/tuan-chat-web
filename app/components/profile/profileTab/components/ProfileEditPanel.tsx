@@ -36,7 +36,10 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
   const descriptionInputId = "profile-edit-description";
 
   return (
-    <div className="md:hidden p-4 bg-base-100 rounded-2xl mt-2 space-y-4">
+    <div className="
+      md:hidden
+      p-4 bg-base-100 rounded-2xl mt-2 space-y-4
+    ">
       <h3 className="text-lg font-semibold">编辑个人资料</h3>
 
       {/* 用户名编辑 */}
@@ -49,15 +52,21 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
           type="text"
           value={editingUsername}
           onChange={e => setEditingUsername(e.target.value)}
-          className={`input input-bordered w-full ${
+          className={`
+            input input-bordered w-full
+            ${
             editingUsername.length > 30 ? "input-error" : ""
-          }`}
+          }
+          `}
           maxLength={30}
           placeholder="请输入用户名"
         />
-        <div className={`text-xs mt-1 ${
+        <div className={`
+          text-xs mt-1
+          ${
           editingUsername.length > 30 ? "text-error" : "text-neutral-500"
-        }`}
+        }
+        `}
         >
           {editingUsername.length}
           /30
@@ -73,16 +82,22 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
           id={descriptionInputId}
           value={editingDescription}
           onChange={e => setEditingDescription(e.target.value)}
-          className={`textarea textarea-bordered w-full ${
+          className={`
+            textarea textarea-bordered w-full
+            ${
             editingDescription.length > 253 ? "textarea-error" : ""
-          }`}
+          }
+          `}
           rows={4}
           maxLength={253}
           placeholder="请输入个人描述..."
         />
-        <div className={`text-xs mt-1 ${
+        <div className={`
+          text-xs mt-1
+          ${
           editingDescription.length > 253 ? "text-error" : "text-neutral-500"
-        }`}
+        }
+        `}
         >
           {editingDescription.length}
           /253

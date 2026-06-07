@@ -121,7 +121,11 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
           referrerPolicy="no-referrer"
           width={intrinsicSize.width}
           height={intrinsicSize.height}
-          className={`block w-auto max-w-full cursor-zoom-in object-contain hover:scale-101 ${className ?? ""}`}
+          className={`
+            block w-auto max-w-full cursor-zoom-in object-contain
+            hover:scale-101
+            ${className ?? ""}
+          `}
           alt="img"
           onLoad={handleLoad}
         />
@@ -130,7 +134,10 @@ function BetterImg({ src, className, onClose, size, transparent = true, zoomQual
       {onClose && (
         <button
           type="button"
-          className="btn btn-xs btn-circle right-0 top-0 absolute opacity-100 duration-200 origin-top-right"
+          className="
+            btn btn-xs btn-circle right-0 top-0 absolute opacity-100
+            duration-200 origin-top-right
+          "
           onClick={onClose}
         >
           <span className="text-xs">✕</span>
