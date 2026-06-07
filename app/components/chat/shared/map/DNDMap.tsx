@@ -110,9 +110,13 @@ const RoleToken = React.memo(({
   const sizeStyle = { width: `${size}px`, height: `${size}px` };
   return (
     <div
-      className={`group relative rounded-full border border-base-300 bg-base-100 shadow-sm ${
+      className={`
+        group relative rounded-full border border-base-300 bg-base-100 shadow-sm
+        ${
         isSelected ? "ring-2 ring-primary" : ""
-      } cursor-pointer select-none touch-none`}
+      }
+        cursor-pointer select-none touch-none
+      `}
       style={sizeStyle}
       draggable={false}
       onClick={onClick}
@@ -132,9 +136,17 @@ const RoleToken = React.memo(({
         />
       </div>
       {status && (
-        <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 hidden min-w-36 max-w-56 -translate-x-1/2 rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-left text-[11px] text-base-content shadow-lg group-hover:block">
+        <div className="
+          pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 hidden
+          min-w-36 max-w-56 -translate-x-1/2 rounded-md border border-base-300
+          bg-base-100 px-2 py-1.5 text-left text-[11px] text-base-content
+          shadow-lg
+          group-hover:block
+        ">
           <div className="truncate font-semibold">{role.roleName}</div>
-          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-base-content/70">
+          <div className="
+            mt-1 flex flex-wrap gap-x-2 gap-y-1 text-base-content/70
+          ">
             {status.initiative != null && (
               <span>
                 先攻
@@ -155,7 +167,9 @@ const RoleToken = React.memo(({
               ? status.activeStates.map((state, index) => (
                   <span
                     key={`${state}:${index}`}
-                    className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary"
+                    className="
+                      rounded-full bg-primary/10 px-1.5 py-0.5 text-primary
+                    "
                   >
                     {state}
                   </span>
@@ -325,15 +339,26 @@ function MapStateStrip({
   }
 
   return (
-    <section className="flex min-w-0 flex-wrap gap-2 overflow-x-hidden rounded-md border border-base-300 bg-base-100 p-2">
+    <section className="
+      flex min-w-0 flex-wrap gap-2 overflow-x-hidden rounded-md border
+      border-base-300 bg-base-100 p-2
+    ">
       {rows.map(({ activeStates, hp, id, initiative, maxHp, name }) => (
         <div
           key={id}
-          className="flex min-w-0 flex-[1_1_12rem] flex-col gap-1 rounded-md border border-base-300/70 bg-base-200/60 px-2 py-1.5"
+          className="
+            flex min-w-0 flex-[1_1_12rem] flex-col gap-1 rounded-md border
+            border-base-300/70 bg-base-200/60 px-2 py-1.5
+          "
         >
           <div className="flex min-w-0 items-center gap-2">
-            <span className="min-w-0 truncate text-xs font-semibold text-base-content">{name}</span>
-            <div className="flex min-w-0 shrink items-center gap-1 text-[11px] text-base-content/65">
+            <span className="
+              min-w-0 truncate text-xs font-semibold text-base-content
+            ">{name}</span>
+            <div className="
+              flex min-w-0 shrink items-center gap-1 text-[11px]
+              text-base-content/65
+            ">
               {initiative != null && (
                 <span className="shrink-0">
                   先攻
@@ -355,7 +380,9 @@ function MapStateStrip({
               {activeStates.map(state => (
                 <span
                   key={state.instanceId}
-                  className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary"
+                  className="
+                    rounded-full bg-primary/10 px-1.5 py-0.5 text-primary
+                  "
                 >
                   {state.statusName}
                   {formatStatusTurnText(state.remainingTurns)}
@@ -387,13 +414,23 @@ function ClearMapConfirmDialog({
 
   return createPortal(
     <div className="modal modal-open z-[9999]" role="dialog" aria-modal="true" aria-labelledby="clear-map-title">
-      <div className="modal-box max-w-md rounded-lg border border-base-300 bg-base-100 p-0 shadow-2xl">
-        <div className="flex items-start gap-3 border-b border-base-300 px-5 py-4">
-          <div className="grid size-10 shrink-0 place-items-center rounded-md bg-error/12 text-error">
+      <div className="
+        modal-box max-w-md rounded-lg border border-base-300 bg-base-100 p-0
+        shadow-2xl
+      ">
+        <div className="
+          flex items-start gap-3 border-b border-base-300 px-5 py-4
+        ">
+          <div className="
+            grid size-10 shrink-0 place-items-center rounded-md bg-error/12
+            text-error
+          ">
             <WarningCircleIcon className="size-6" weight="fill" aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 id="clear-map-title" className="text-base font-semibold text-base-content">
+            <h3 id="clear-map-title" className="
+              text-base font-semibold text-base-content
+            ">
               清空地图
             </h3>
             <p className="mt-1 text-sm leading-6 text-base-content/68">
@@ -410,7 +447,9 @@ function ClearMapConfirmDialog({
           </button>
         </div>
 
-        <div className="bg-base-200/35 px-5 py-3 text-xs leading-5 text-base-content/60">
+        <div className="
+          bg-base-200/35 px-5 py-3 text-xs leading-5 text-base-content/60
+        ">
           如果只是想移动某个角色，可以选中角色后放回角色池，不需要清空整张地图。
         </div>
 
@@ -900,7 +939,9 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
   if (mapQuery.isLoading && !effectiveMapConfig) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-base-200">
+      <div className="
+        w-full h-full flex items-center justify-center bg-base-200
+      ">
         <span className="loading loading-spinner loading-md" />
       </div>
     );
@@ -908,7 +949,9 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
   if (!mapImageUrl) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-base-200">
+      <div className="
+        w-full h-full flex items-center justify-center bg-base-200
+      ">
         <div className="text-center space-y-2">
           <p className="text-sm">请上传地图</p>
           <ImgUploader setImg={file => handleUploadMap(file)}>
@@ -928,7 +971,10 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       />
       {draggingPoolRole && draggingToken?.isDragging && (
         <div
-          className="pointer-events-none fixed z-[10000] -translate-x-1/2 -translate-y-1/2 opacity-85 drop-shadow-xl"
+          className="
+            pointer-events-none fixed z-[10000] -translate-x-1/2
+            -translate-y-1/2 opacity-85 drop-shadow-xl
+          "
           style={{
             left: `${draggingToken.currentClientX}px`,
             top: `${draggingToken.currentClientY}px`,
@@ -955,7 +1001,10 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
         {rect.width > 0 && rect.height > 0 && (
           <div
             ref={overlayRef}
-            className={`absolute transition-colors ${selectedRoleId ? "rounded-sm ring-2 ring-primary/30 ring-inset" : ""}`}
+            className={`
+              absolute transition-colors
+              ${selectedRoleId ? `rounded-sm ring-2 ring-primary/30 ring-inset` : ""}
+            `}
             style={{
               left: `${rect.left}px`,
               top: `${rect.top}px`,
@@ -965,9 +1014,14 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
             onClick={handleMapOverlayClick}
           >
             <div
-              className={`absolute inset-0 transition-colors ${
-                selectedRoleId ? "cursor-crosshair bg-primary/5" : "cursor-default"
-              }`}
+              className={`
+                absolute inset-0 transition-colors
+                ${
+                selectedRoleId ? "cursor-crosshair bg-primary/5" : `
+                  cursor-default
+                `
+              }
+              `}
               style={gridOverlayStyle}
             />
             {tokens.map((token) => {
@@ -982,7 +1036,10 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
               return (
                 <div
                   key={token.roleId}
-                  className={`absolute z-10 touch-none ${tokenDrag?.isDragging ? "z-20 cursor-grabbing" : ""}`}
+                  className={`
+                    absolute z-10 touch-none
+                    ${tokenDrag?.isDragging ? `z-20 cursor-grabbing` : ""}
+                  `}
                   style={{
                     ...tokenStyle,
                     transform: tokenDrag
@@ -1020,14 +1077,21 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       </div>
 
       <div
-        className={`min-h-0 overflow-x-hidden overflow-y-auto flex flex-col gap-2 border-t border-base-300 bg-base-100 p-2 ${
+        className={`
+          min-h-0 overflow-x-hidden overflow-y-auto flex flex-col gap-2 border-t
+          border-base-300 bg-base-100 p-2
+          ${
           variant === "frame" ? "min-h-[180px]" : "max-h-[45%]"
-        }`}
+        }
+        `}
       >
         <div className="flex w-full flex-wrap items-center gap-2">
           <h2 className="font-semibold shrink-0">地图编辑</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 rounded-md border border-base-300 bg-base-200 px-2 py-1">
+            <div className="
+              flex items-center gap-1 rounded-md border border-base-300
+              bg-base-200 px-2 py-1
+            ">
               <input
                 type="text"
                 inputMode="numeric"
@@ -1042,7 +1106,10 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   }
                   handleGridChange(clampGridDimension(next), gridCols);
                 }}
-                className="w-10 bg-transparent text-center text-sm outline-none [appearance:textfield]"
+                className="
+                  w-10 bg-transparent text-center text-sm outline-none
+                  [appearance:textfield]
+                "
               />
               <span className="px-1 text-xs text-base-content/40">×</span>
               <input
@@ -1059,10 +1126,16 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   }
                   handleGridChange(gridRows, clampGridDimension(next));
                 }}
-                className="w-10 bg-transparent text-center text-sm outline-none [appearance:textfield]"
+                className="
+                  w-10 bg-transparent text-center text-sm outline-none
+                  [appearance:textfield]
+                "
               />
             </div>
-            <div className="flex items-center gap-1.5 rounded-md border border-base-300 bg-base-200 px-2 py-1">
+            <div className="
+              flex items-center gap-1.5 rounded-md border border-base-300
+              bg-base-200 px-2 py-1
+            ">
               {GRID_COLOR_OPTIONS.map((option) => {
                 const isSelected = gridColor.toLowerCase() === option.value;
                 return (
@@ -1071,9 +1144,16 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                     type="button"
                     aria-label={option.label}
                     aria-pressed={isSelected}
-                    className={`size-3 rounded-full border ${option.className} ${
-                      isSelected ? "ring-2 ring-primary/60 ring-offset-2 ring-offset-base-100" : ""
-                    }`}
+                    className={`
+                      size-3 rounded-full border
+                      ${option.className}
+                      ${
+                      isSelected ? `
+                        ring-2 ring-primary/60 ring-offset-2
+                        ring-offset-base-100
+                      ` : ""
+                    }
+                    `}
                     onClick={() => handleGridColorChange(option.value)}
                   />
                 );
@@ -1087,11 +1167,18 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
         <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-x-hidden">
           <div
-            className={`flex w-full flex-col gap-1 rounded-md border border-base-300 bg-base-100 p-0.5 transition-colors ${
+            className={`
+              flex w-full flex-col gap-1 rounded-md border border-base-300
+              bg-base-100 p-0.5 transition-colors
+              ${
               selectedRoleId && tokenByRoleId.has(selectedRoleId)
-                ? "cursor-pointer border-primary/40 bg-primary/5 hover:bg-primary/10"
+                ? `
+                  cursor-pointer border-primary/40 bg-primary/5
+                  hover:bg-primary/10
+                `
                 : "hover:bg-base-200/30"
-            }`}
+            }
+            `}
             style={{ minHeight: `${rolePoolTokenSize + 6}px` }}
             onClick={handleRolePoolClick}
           >

@@ -396,7 +396,10 @@ export function MessageEditorTextBlock({
                     >
                       <ChatInputArea
                         ref={effectiveTextInputRef}
-                        className={`!overflow-visible !p-0 ${contentClassName}`}
+                        className={`
+                          !overflow-visible !p-0
+                          ${contentClassName}
+                        `}
                         inputScope="message-edit"
                         placeholder={placeholder}
                         disabled={false}
@@ -458,7 +461,9 @@ export function MessageEditorTextBlock({
                     </ul>
                   )}
                   {previewKind === "numberedList" && (
-                    <ol start={preview.orderedNumber ?? 1} className="m-0 list-decimal pl-6">
+                    <ol start={preview.orderedNumber ?? 1} className="
+                      m-0 list-decimal pl-6
+                    ">
                       <li>{previewNode}</li>
                     </ol>
                   )}

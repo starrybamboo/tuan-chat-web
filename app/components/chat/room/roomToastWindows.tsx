@@ -57,7 +57,9 @@ export default function RoomToastWindows({
 
 function RoomToastWindowFallback() {
   return (
-    <div className="flex min-h-40 w-full items-center justify-center text-base-content/60">
+    <div className="
+      flex min-h-40 w-full items-center justify-center text-base-content/60
+    ">
       <span className="loading loading-spinner loading-md"></span>
     </div>
   );

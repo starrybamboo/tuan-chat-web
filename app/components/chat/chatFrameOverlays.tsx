@@ -98,7 +98,10 @@ export default function ChatFrameOverlays({
       <AnimatePresence>
         {isMessageFilterWindowOpen && (
           <motion.div
-            className="pointer-events-auto absolute inset-0 z-[60] flex items-end justify-center px-4 pb-18"
+            className="
+              pointer-events-auto absolute inset-0 z-[60] flex items-end
+              justify-center px-4 pb-18
+            "
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

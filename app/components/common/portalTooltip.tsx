@@ -122,7 +122,10 @@ export default function PortalTooltip({
         <div
           ref={tooltipRef}
           role="tooltip"
-          className={className ?? "portal-tooltip pointer-events-none z-[9999] rounded bg-black px-2 py-1 text-xs text-white shadow-md"}
+          className={className ?? `
+            portal-tooltip pointer-events-none z-[9999] rounded bg-black px-2
+            py-1 text-xs text-white shadow-md
+          `}
           style={{
             position: "fixed",
             left: pos?.left ?? 0,

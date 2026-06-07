@@ -108,8 +108,16 @@ export default function ChatPageModals({
         disableScroll={true}
         panelClassName="!max-w-none !p-0 overflow-hidden rounded-lg border border-base-300/70 shadow-2xl"
       >
-        <div className="flex max-h-[min(84vh,780px)] w-[min(980px,calc(100vw-2rem))] flex-col overflow-hidden bg-base-100 text-base-content lg:grid lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="flex shrink-0 flex-col border-b border-base-300/70 bg-base-200/40 p-5 pr-14 lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6">
+        <div className="
+          flex max-h-[min(84vh,780px)] w-[min(980px,calc(100vw-2rem))] flex-col
+          overflow-hidden bg-base-100 text-base-content
+          lg:grid lg:grid-cols-[320px_minmax(0,1fr)]
+        ">
+          <aside className="
+            flex shrink-0 flex-col border-b border-base-300/70 bg-base-200/40
+            p-5 pr-14
+            lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6
+          ">
             <div className="min-w-0">
               <h2 className="text-2xl font-semibold leading-tight">新建内容</h2>
             </div>
@@ -137,7 +145,11 @@ export default function ChatPageModals({
             </div>
           </aside>
 
-          <main className="hidden-scrollbar min-h-0 flex-1 overflow-y-auto bg-base-100 p-5 pr-14 lg:p-6 lg:pr-14">
+          <main className="
+            hidden-scrollbar min-h-0 flex-1 overflow-y-auto bg-base-100 p-5
+            pr-14
+            lg:p-6 lg:pr-14
+          ">
             {createInCategoryMode === "doc"
               ? (
                   <div className="flex h-full min-h-[440px] flex-col">
@@ -145,13 +157,19 @@ export default function ChatPageModals({
                       <h3 className="text-lg font-semibold leading-7">文档信息</h3>
                     </header>
 
-                    <div className="hidden-scrollbar flex-1 overflow-y-auto py-6">
-                      <label className="mb-2 block text-sm font-medium text-base-content/75" htmlFor="create-doc-title-input">
+                    <div className="
+                      hidden-scrollbar flex-1 overflow-y-auto py-6
+                    ">
+                      <label className="
+                        mb-2 block text-sm font-medium text-base-content/75
+                      " htmlFor="create-doc-title-input">
                         文档标题
                       </label>
                       <input
                         id="create-doc-title-input"
-                        className="input input-bordered w-full bg-base-100 text-base"
+                        className="
+                          input input-bordered w-full bg-base-100 text-base
+                        "
                         defaultValue={createDocTitle}
                         ref={docTitleInputRef}
                         onChange={(e) => {
@@ -161,7 +179,9 @@ export default function ChatPageModals({
                       />
                     </div>
 
-                    <footer className="flex justify-end gap-2 border-t border-base-300/60 pt-4">
+                    <footer className="
+                      flex justify-end gap-2 border-t border-base-300/60 pt-4
+                    ">
                       <button
                         type="button"
                         className="btn btn-ghost min-w-24"
@@ -249,25 +269,43 @@ function CreateModeOption({
 }) {
   return (
     <label
-      className={`group relative flex items-start gap-3 rounded-xl border p-3.5 transition-all duration-200 ${
+      className={`
+        group relative flex items-start gap-3 rounded-xl border p-3.5
+        transition-all duration-200
+        ${
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-      } ${
+      }
+        ${
         active
           ? "border-primary/60 bg-primary/10 shadow-sm shadow-primary/10"
-          : "border-base-300/70 bg-base-100/60 hover:border-primary/30 hover:bg-base-100"
-      }`}
+          : `
+            border-base-300/70 bg-base-100/60
+            hover:border-primary/30 hover:bg-base-100
+          `
+      }
+      `}
     >
       <span
-        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg transition ${
+        className={`
+          mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg
+          transition
+          ${
           active
             ? "bg-primary/15 text-primary"
-            : "bg-base-200/70 text-base-content/70 group-hover:bg-base-200"
-        }`}
+            : `
+              bg-base-200/70 text-base-content/70
+              group-hover:bg-base-200
+            `
+        }
+        `}
       >
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className={`block text-sm font-semibold ${active ? "text-primary" : "text-base-content"}`}>
+        <span className={`
+          block text-sm font-semibold
+          ${active ? "text-primary" : `text-base-content`}
+        `}>
           {label}
         </span>
         <span className="mt-1 block text-xs leading-5 text-base-content/60">{description}</span>
@@ -282,11 +320,17 @@ function CreateModeOption({
         aria-label={label}
       />
       <span
-        className={`mt-1 size-4 shrink-0 rounded-full border-2 transition ${
+        className={`
+          mt-1 size-4 shrink-0 rounded-full border-2 transition
+          ${
           active
-            ? "border-primary bg-primary shadow-[inset_0_0_0_3px_var(--fallback-b1,oklch(var(--b1)))]"
+            ? `
+              border-primary bg-primary
+              shadow-[inset_0_0_0_3px_var(--fallback-b1,oklch(var(--b1)))]
+            `
             : "border-base-300"
-        }`}
+        }
+        `}
         aria-hidden="true"
       />
     </label>

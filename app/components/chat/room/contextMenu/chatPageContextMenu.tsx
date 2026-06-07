@@ -163,7 +163,10 @@ export default function ChatPageContextMenu({
               <li className="relative group text-error">
                 <button
                   type="button"
-                  className={`${menuButtonClassName} text-error`}
+                  className={`
+                    ${menuButtonClassName}
+                    text-error
+                  `}
                   onClick={() => {
                     setDissolveTargetRoomId(contextMenu.roomId);
                     setIsDissolveConfirmOpen(true);

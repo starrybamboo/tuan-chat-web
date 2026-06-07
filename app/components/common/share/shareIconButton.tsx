@@ -40,10 +40,18 @@ export default function ShareIconButton({
 
     const instance = toastWindow(
       () => (
-        <div className="overflow-y-auto space-y-4 h-[15vh] w-[50vw] sm:h-[15vh] sm:w-[55vh] md:h-[15vh] md:w-[40vh] lg:h-[30vh] lg:w-[50vh] max-w-full flex flex-col items-center justify-center">
+        <div className="
+          overflow-y-auto space-y-4 h-[15vh] w-[50vw]
+          sm:h-[15vh] sm:w-[55vh]
+          md:h-[15vh] md:w-[40vh]
+          lg:h-[30vh] lg:w-[50vh]
+          max-w-full flex flex-col items-center justify-center
+        ">
           <h2 className="text-xl font-bold">分享方式</h2>
           <div className="flex gap-4 mt-4">
-            <SavePictureButton targetRef={targetRef} qrLink={qrLink} className="flex-1 min-w-0" />
+            <SavePictureButton targetRef={targetRef} qrLink={qrLink} className="
+              flex-1 min-w-0
+            " />
             <CopyLinkButton title={title} className="flex-1 min-w-0" />
           </div>
         </div>
@@ -65,7 +73,10 @@ export default function ShareIconButton({
     <div>
       <button
         type="button"
-        className={`flex items-center justify-center join-item btn-sm btn-ghost ${className ?? ""}`}
+        className={`
+          flex items-center justify-center join-item btn-sm btn-ghost
+          ${className ?? ""}
+        `}
         onClick={openShareWindow}
         aria-expanded={showShare}
         aria-controls={`share-pop-${searchKey}`}

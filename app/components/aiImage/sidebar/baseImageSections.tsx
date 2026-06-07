@@ -72,7 +72,12 @@ export function renderSimpleInfillSectionContent({
             <div className="flex items-start gap-2">
               <button
                 type="button"
-                className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="
+                  mt-[1px] inline-flex size-9 items-center justify-center
+                  rounded-md text-base-content/70 transition
+                  hover:bg-base-200 hover:text-base-content
+                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                "
                 aria-label="返回"
                 title="返回"
                 onClick={onReturnFromInfillSettings}
@@ -80,13 +85,17 @@ export function renderSimpleInfillSectionContent({
                 <CaretLeftIcon className="size-5" weight="bold" />
               </button>
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold leading-6 text-base-content">Inpaint</div>
+                <div className="
+                  text-[15px] font-semibold leading-6 text-base-content
+                ">Inpaint</div>
                 <div className="mt-1 text-[13px] leading-5 text-base-content/58">Change part of an image.</div>
               </div>
             </div>
           </div>
           <div className={baseImageControlGroupClassName}>
-            <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100">
+            <div className="
+              flex overflow-hidden rounded-md border border-base-300 bg-base-100
+            ">
               <button
                 type="button"
                 className={infillActionButtonClassName}
@@ -117,7 +126,10 @@ export function renderSimpleInfillSectionContent({
               disabled={isBusy}
               onClick={onToggleBaseImageTools}
             >
-              <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`
+                size-5 shrink-0 transition-transform
+                ${isBaseImageToolsOpen ? `rotate-180` : ""}
+              `} />
             </button>
           </div>
         </div>
@@ -126,19 +138,29 @@ export function renderSimpleInfillSectionContent({
           ? (
               <div className="mt-4 space-y-4">
                 <div>
-                  <div className="text-[13px] font-semibold leading-5 text-base-content">Mask</div>
-                  <div className="mt-2 overflow-hidden rounded-md border border-base-300 bg-base-200">
+                  <div className="
+                    text-[13px] font-semibold leading-5 text-base-content
+                  ">Mask</div>
+                  <div className="
+                    mt-2 overflow-hidden rounded-md border border-base-300
+                    bg-base-200
+                  ">
                     <div className="relative h-[220px] w-full">
                       <img
                         src={sourceImageDataUrl}
                         alt="Inpaint Mask"
-                        className="absolute inset-0 h-full w-full object-contain"
+                        className="
+                          absolute inset-0 h-full w-full object-contain
+                        "
                         draggable={false}
                       />
                       <img
                         src={infillMaskDataUrl}
                         alt="Mask Overlay"
-                        className="absolute inset-0 h-full w-full object-contain opacity-55 mix-blend-screen"
+                        className="
+                          absolute inset-0 h-full w-full object-contain
+                          opacity-55 mix-blend-screen
+                        "
                         draggable={false}
                       />
                     </div>
@@ -146,7 +168,10 @@ export function renderSimpleInfillSectionContent({
                 </div>
 
                 <label className="block w-full">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
+                  <div className="
+                    flex items-center justify-between text-[13px] font-semibold
+                    leading-5 text-base-content
+                  ">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
@@ -162,7 +187,9 @@ export function renderSimpleInfillSectionContent({
                 </label>
 
                 <label className="block w-full">
-                  <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
+                  <div className="
+                    mb-2 text-[13px] font-semibold leading-5 text-base-content
+                  ">Append Tags</div>
                   <textarea
                     className={infillAppendInputClassName}
                     rows={1}
@@ -207,14 +234,21 @@ export function renderProInfillSectionContent({
   const infillActionButtonClassName = "inline-flex size-11 items-center justify-center bg-base-200 text-base-content/70 transition hover:bg-base-300 hover:text-base-content focus:outline-none focus-visible:bg-base-300 focus-visible:text-base-content disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
-    <div className="-mx-3 -mb-3 mt-3 overflow-hidden border-t border-base-300 bg-base-100">
+    <div className="
+      -mx-3 -mb-3 mt-3 overflow-hidden border-t border-base-300 bg-base-100
+    ">
       <div className="px-4 py-4">
         <div className={baseImageHeaderClassName}>
           <div className="min-w-0">
             <div className="flex items-start gap-2">
               <button
                 type="button"
-                className="mt-[1px] inline-flex size-9 items-center justify-center rounded-md text-base-content/70 transition hover:bg-base-200 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="
+                  mt-[1px] inline-flex size-9 items-center justify-center
+                  rounded-md text-base-content/70 transition
+                  hover:bg-base-200 hover:text-base-content
+                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                "
                 aria-label="返回"
                 title="返回"
                 onClick={onReturnFromInfillSettings}
@@ -222,13 +256,17 @@ export function renderProInfillSectionContent({
                 <CaretLeftIcon className="size-5" weight="bold" />
               </button>
               <div className="min-w-0">
-                <div className="text-[15px] font-semibold leading-6 text-base-content">Inpaint</div>
+                <div className="
+                  text-[15px] font-semibold leading-6 text-base-content
+                ">Inpaint</div>
                 <div className="mt-1 text-[13px] leading-5 text-base-content/58">Change part of an image.</div>
               </div>
             </div>
           </div>
           <div className={baseImageControlGroupClassName}>
-            <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100">
+            <div className="
+              flex overflow-hidden rounded-md border border-base-300 bg-base-100
+            ">
               <button
                 type="button"
                 className={infillActionButtonClassName}
@@ -259,7 +297,10 @@ export function renderProInfillSectionContent({
               disabled={isBusy}
               onClick={onToggleBaseImageTools}
             >
-              <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`
+                size-5 shrink-0 transition-transform
+                ${isBaseImageToolsOpen ? `rotate-180` : ""}
+              `} />
             </button>
           </div>
         </div>
@@ -268,19 +309,29 @@ export function renderProInfillSectionContent({
           ? (
               <div className="mt-4 space-y-4">
                 <div>
-                  <div className="text-[13px] font-semibold leading-5 text-base-content">Mask</div>
-                  <div className="mt-2 overflow-hidden rounded-md border border-base-300 bg-base-200">
+                  <div className="
+                    text-[13px] font-semibold leading-5 text-base-content
+                  ">Mask</div>
+                  <div className="
+                    mt-2 overflow-hidden rounded-md border border-base-300
+                    bg-base-200
+                  ">
                     <div className="relative h-[220px] w-full">
                       <img
                         src={sourceImageDataUrl}
                         alt="Inpaint Mask"
-                        className="absolute inset-0 h-full w-full object-contain"
+                        className="
+                          absolute inset-0 h-full w-full object-contain
+                        "
                         draggable={false}
                       />
                       <img
                         src={infillMaskDataUrl}
                         alt="Mask Overlay"
-                        className="absolute inset-0 h-full w-full object-contain opacity-55 mix-blend-screen"
+                        className="
+                          absolute inset-0 h-full w-full object-contain
+                          opacity-55 mix-blend-screen
+                        "
                         draggable={false}
                       />
                     </div>
@@ -288,7 +339,10 @@ export function renderProInfillSectionContent({
                 </div>
 
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
+                  <div className="
+                    flex items-center justify-between text-[13px] font-semibold
+                    leading-5 text-base-content
+                  ">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
@@ -304,7 +358,9 @@ export function renderProInfillSectionContent({
                 </label>
 
                 <label className="block">
-                  <div className="mb-2 text-[13px] font-semibold leading-5 text-base-content">Append Tags</div>
+                  <div className="
+                    mb-2 text-[13px] font-semibold leading-5 text-base-content
+                  ">Append Tags</div>
                   <textarea
                     className={infillAppendInputClassName}
                     rows={1}
@@ -430,19 +486,38 @@ export function renderSimpleBaseImageSectionContent({
         <img
           src={sourceImageDataUrl}
           alt="Base Img"
-          className="absolute inset-0 h-full w-full object-cover opacity-46 saturate-[1.1] contrast-110 brightness-[1.03] dark:opacity-30 dark:saturate-100 dark:contrast-100 dark:brightness-100"
+          className="
+            absolute inset-0 h-full w-full object-cover opacity-46
+            saturate-[1.1] contrast-110 brightness-[1.03]
+            dark:opacity-30 dark:saturate-100 dark:contrast-100
+            dark:brightness-100
+          "
         />
-        <div className="absolute inset-0 bg-linear-to-b from-primary/12 via-base-100/72 to-base-100/92 dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84" />
+        <div className="
+          absolute inset-0 bg-linear-to-b from-primary/12 via-base-100/72
+          to-base-100/92
+          dark:from-black/42 dark:via-base-100/58 dark:to-base-100/84
+        " />
         <div className={baseImageHeaderClassName}>
           <div className="min-w-0">
-            <div className="text-[15px] font-semibold leading-6 text-base-content">Image2Image</div>
+            <div className="
+              text-[15px] font-semibold leading-6 text-base-content
+            ">Image2Image</div>
             <div className="mt-1 text-[13px] leading-5 text-base-content/58">Transform your image.</div>
           </div>
           <div className={baseImageControlGroupClassName}>
-            <div className="flex overflow-hidden rounded-md border border-base-300 bg-base-100/86 backdrop-blur-sm">
+            <div className="
+              flex overflow-hidden rounded-md border border-base-300
+              bg-base-100/86 backdrop-blur-sm
+            ">
               <button
                 type="button"
-                className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200/85 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="
+                  inline-flex size-11 items-center justify-center
+                  text-base-content/70 transition
+                  hover:bg-base-200/85 hover:text-base-content
+                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                "
                 aria-label="更换 Base Img"
                 title="更换 Base Img"
                 onClick={onOpenSourceImagePicker}
@@ -452,7 +527,12 @@ export function renderSimpleBaseImageSectionContent({
               <span className="h-11 w-px bg-base-300" aria-hidden="true" />
               <button
                 type="button"
-                className="inline-flex size-11 items-center justify-center text-base-content/70 transition hover:bg-base-200/85 hover:text-base-content focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="
+                  inline-flex size-11 items-center justify-center
+                  text-base-content/70 transition
+                  hover:bg-base-200/85 hover:text-base-content
+                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                "
                 aria-label="移除 Base Img"
                 title="移除 Base Img"
                 onClick={onClearSourceImage}
@@ -467,7 +547,10 @@ export function renderSimpleBaseImageSectionContent({
               title={isBaseImageToolsOpen ? "收起 Base Img 工具" : "展开 Base Img 工具"}
               onClick={onToggleBaseImageTools}
             >
-              <ChevronDown className={`size-5 shrink-0 transition-transform ${isBaseImageToolsOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`
+                size-5 shrink-0 transition-transform
+                ${isBaseImageToolsOpen ? `rotate-180` : ""}
+              `} />
             </button>
           </div>
         </div>
@@ -475,7 +558,10 @@ export function renderSimpleBaseImageSectionContent({
           ? (
               <div className="relative z-10 mt-4 space-y-4">
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
+                  <div className="
+                    flex items-center justify-between text-[13px] font-semibold
+                    leading-5 text-base-content
+                  ">
                     <span>Strength</span>
                     <span>{formatSliderValue(strength)}</span>
                   </div>
@@ -491,7 +577,10 @@ export function renderSimpleBaseImageSectionContent({
                 </label>
 
                 <label className="block">
-                  <div className="flex items-center justify-between text-[13px] font-semibold leading-5 text-base-content">
+                  <div className="
+                    flex items-center justify-between text-[13px] font-semibold
+                    leading-5 text-base-content
+                  ">
                     <span>Noise</span>
                     <span>{formatSliderValue(noise)}</span>
                   </div>

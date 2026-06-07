@@ -61,7 +61,10 @@ function FeedbackTimelineActionButton({
   return (
     <button
       type="button"
-      className={`btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors ${toneClass}`}
+      className={`
+        btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors
+        ${toneClass}
+      `}
       onClick={onClick}
     >
       {icon}
@@ -98,7 +101,9 @@ function TimelineItem({
   return (
     <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-4">
       <div className="relative flex justify-center">
-        <div className="relative z-10 rounded-full bg-base-100 ring-4 ring-base-100">
+        <div className="
+          relative z-10 rounded-full bg-base-100 ring-4 ring-base-100
+        ">
           <UserAvatarByUser
             user={avatarUser}
             width={10}
@@ -129,7 +134,10 @@ function TimelineReplyReference({
   const parentAuthorName = parentUserInfo?.username || "上一条评论";
 
   return (
-    <div className="inline-flex max-w-full items-center gap-2 rounded-full bg-base-200/70 px-3 py-1 text-xs text-base-content/60">
+    <div className="
+      inline-flex max-w-full items-center gap-2 rounded-full bg-base-200/70 px-3
+      py-1 text-xs text-base-content/60
+    ">
       <ReplyIcon className="h-3.5 w-3.5 shrink-0" />
       <span className="shrink-0 font-medium text-base-content/75">
         回复
@@ -156,7 +164,9 @@ function TimelineCommentCard({
   const commentContext = use(CommentContext);
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+    <article className="
+      overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm
+    ">
       <div className="border-b border-base-300 bg-base-200/20 px-5 py-3">
         <CommentPreview commentVO={comment} />
       </div>
@@ -168,7 +178,16 @@ function TimelineCommentCard({
         <MediaContentView
           content={comment.content}
           emptyText="原评论内容为空"
-          className="[&_p]:my-0 [&_p+_p]:mt-3 [&_img]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:my-2 [&_blockquote]:my-2 text-sm leading-7 text-base-content/90"
+          className="
+            [&_p]:my-0
+            [&_p+_p]:mt-3
+            [&_img]:my-2
+            [&_ul]:my-2
+            [&_ol]:my-2
+            [&_pre]:my-2
+            [&_blockquote]:my-2
+            text-sm leading-7 text-base-content/90
+          "
         />
 
         <div className="flex flex-wrap items-center gap-1">
@@ -216,7 +235,9 @@ function TimelineComposerCard({
   onSubmitFinish: () => void;
 }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+    <article className="
+      overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm
+    ">
       <div className="border-b border-base-300 bg-base-200/20 px-5 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm font-medium text-base-content">
@@ -225,7 +246,10 @@ function TimelineComposerCard({
           {replyTarget && (
             <button
               type="button"
-              className="btn btn-ghost btn-xs rounded-full px-3 text-base-content/55 hover:bg-base-200 hover:text-base-content"
+              className="
+                btn btn-ghost btn-xs rounded-full px-3 text-base-content/55
+                hover:bg-base-200 hover:text-base-content
+              "
               onClick={onCancelReply}
             >
               取消回复
@@ -272,7 +296,9 @@ export default function FeedbackIssueTimeline({
 
   return (
     <CommentContext value={commentContextValue}>
-      <section className="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+      <section className="
+        overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm
+      ">
         <div className="border-b border-base-300 px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-base font-medium text-base-content">
@@ -284,7 +310,9 @@ export default function FeedbackIssueTimeline({
                 )
               </span>
             </div>
-            <div className="text-xs uppercase tracking-[0.18em] text-base-content/40">
+            <div className="
+              text-xs uppercase tracking-[0.18em] text-base-content/40
+            ">
               Timeline
             </div>
           </div>
@@ -293,8 +321,13 @@ export default function FeedbackIssueTimeline({
         <div className="space-y-6 px-5 py-5">
           {isInitialLoading
             ? (
-                <div className="rounded-xl border border-base-300 bg-base-100/80 px-4 py-6">
-                  <div className="flex items-center justify-center gap-3 text-sm text-base-content/60">
+                <div className="
+                  rounded-xl border border-base-300 bg-base-100/80 px-4 py-6
+                ">
+                  <div className="
+                    flex items-center justify-center gap-3 text-sm
+                    text-base-content/60
+                  ">
                     <span className="loading loading-spinner loading-sm" />
                     正在加载评论...
                   </div>
@@ -317,7 +350,11 @@ export default function FeedbackIssueTimeline({
                   </TimelineItem>
                 ))
               : (
-                  <div className="rounded-xl border border-dashed border-base-300 bg-base-200/20 px-4 py-6 text-center text-sm text-base-content/55">
+                  <div className="
+                    rounded-xl border border-dashed border-base-300
+                    bg-base-200/20 px-4 py-6 text-center text-sm
+                    text-base-content/55
+                  ">
                     还没有讨论，来发第一条评论吧。
                   </div>
                 )}

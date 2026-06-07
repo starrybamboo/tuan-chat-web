@@ -179,7 +179,10 @@ export function SpriteListGrid({
   if (avatars.length === 0) {
     return (
       <div
-        className={`flex min-w-0 flex-col ${className}`}
+        className={`
+          flex min-w-0 flex-col
+          ${className}
+        `}
         onDragOver={(event) => {
           if (!showUpload) {
             return;
@@ -212,7 +215,10 @@ export function SpriteListGrid({
           setDroppedBatchId(Date.now());
         }}
       >
-        <div className={`flex flex-col items-center justify-center flex-1 text-base-content/70 ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}>
+        <div className={`
+          flex flex-col items-center justify-center flex-1 text-base-content/70
+          ${isDragActive ? `ring-2 ring-primary/40 rounded-lg` : ""}
+        `}>
           <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
             <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -243,10 +249,19 @@ export function SpriteListGrid({
               >
                 <button
                   type="button"
-                  className="w-full h-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group overflow-hidden"
+                  className="
+                    w-full h-full flex items-center justify-center gap-2
+                    rounded-lg border-2 border-dashed border-gray-300
+                    hover:border-primary hover:bg-base-200
+                    transition-all cursor-pointer relative group overflow-hidden
+                  "
                   title="上传新头像"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="
+                    w-full h-full text-gray-400 transition-transform
+                    duration-300
+                    group-hover:scale-105
+                  " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
@@ -261,7 +276,10 @@ export function SpriteListGrid({
   return (
     <>
       <div
-        className={`flex flex-col ${className}`}
+        className={`
+          flex flex-col
+          ${className}
+        `}
         onDragOver={(event) => {
           if (!showUpload) {
             return;
@@ -296,7 +314,12 @@ export function SpriteListGrid({
       >
 
         <div
-          className={`grid w-full min-w-0 ${gridCols} gap-2 overflow-y-auto overflow-x-hidden content-start ${isDragActive ? "ring-2 ring-primary/40 rounded-lg" : ""}`}
+          className={`
+            grid w-full min-w-0
+            ${gridCols}
+            gap-2 overflow-y-auto overflow-x-hidden content-start
+            ${isDragActive ? `ring-2 ring-primary/40 rounded-lg` : ""}
+          `}
           style={gridTemplateColumns ? { gridTemplateColumns } : undefined}
         >
           {avatars.map((avatar, index) => {
@@ -323,11 +346,19 @@ export function SpriteListGrid({
                         onSelect(index);
                       }
                     }}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 w-full cursor-pointer ${
+                    className={`
+                      relative aspect-square rounded-lg overflow-hidden border-2
+                      transition-[border-color,box-shadow] duration-200 w-full
+                      cursor-pointer
+                      ${
                       isSelected
                         ? "border-primary shadow-lg ring-2 ring-primary/30"
-                        : "border-base-300 hover:border-primary/50 hover:shadow-md"
-                    }`}
+                        : `
+                          border-base-300
+                          hover:border-primary/50 hover:shadow-md
+                        `
+                    }
+                    `}
                     title={isMultiSelectMode ? `选择头像 ${index + 1}` : `切换到立绘 ${index + 1}`}
                   >
                     {displayAvatarUrl
@@ -335,26 +366,38 @@ export function SpriteListGrid({
                           <MediaImage
                             src={displayAvatarUrl}
                             alt={`头像 ${index + 1}`}
-                            className="w-full h-full object-cover pointer-events-none"
+                            className="
+                              w-full h-full object-cover pointer-events-none
+                            "
                             loading="lazy"
                             style={{ aspectRatio: "1 / 1" }}
                           />
                         )
                       : (
-                          <div className="w-full h-full bg-base-200 flex items-center justify-center text-base-content/50">
+                          <div className="
+                            w-full h-full bg-base-200 flex items-center
+                            justify-center text-base-content/50
+                          ">
                             {index + 1}
                           </div>
                         )}
 
                     {/* Multi-select mode: show circular checkbox */}
                     {isMultiSelectMode && (
-                      <div className="absolute top-2 left-2 z-10 pointer-events-none">
+                      <div className="
+                        absolute top-2 left-2 z-10 pointer-events-none
+                      ">
                         <div
-                          className={`flex items-center justify-center w-5 h-5 rounded-full border-2 transition-all duration-200 bg-base-100 shadow-md ${
+                          className={`
+                            flex items-center justify-center w-5 h-5
+                            rounded-full border-2 transition-all duration-200
+                            bg-base-100 shadow-md
+                            ${
                             selectedIndices.has(index)
                               ? "bg-info border-info"
                               : "border-base-content/30"
-                          }`}
+                          }
+                          `}
                         >
                           {selectedIndices.has(index) && (
                             <svg
@@ -376,7 +419,10 @@ export function SpriteListGrid({
 
                     {/* Single-select mode: show checkmark for selected */}
                     {!isMultiSelectMode && index === selectedIndex && (
-                      <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                      <div className="
+                        absolute inset-0 bg-primary/10 flex items-center
+                        justify-center
+                      ">
                         <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none">
                           <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -385,18 +431,27 @@ export function SpriteListGrid({
 
                     {/* Multi-select mode: show overlay for selected items */}
                     {isMultiSelectMode && selectedIndices.has(index) && (
-                      <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
+                      <div className="
+                        absolute inset-0 bg-primary/20 pointer-events-none
+                      " />
                     )}
 
                     {/* Applied avatar indicator */}
                     {isAppliedAvatar && (
-                      <div className="absolute bottom-0 left-1 z-10 flex items-center gap-1.5">
+                      <div className="
+                        absolute bottom-0 left-1 z-10 flex items-center gap-1.5
+                      ">
                         <span
                           className="h-3 w-3 rounded-full bg-success shadow-sm"
                           title="这是当前应用的头像"
                         >
                         </span>
-                        <span className="rounded-full bg-success/90 p-1 text-[10px] text-success-content opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        <span className="
+                          rounded-full bg-success/90 p-1 text-[10px]
+                          text-success-content opacity-0 transition-opacity
+                          duration-200
+                          group-hover:opacity-100
+                        ">
                           当前应用
                         </span>
                       </div>
@@ -411,7 +466,14 @@ export function SpriteListGrid({
                         e.stopPropagation();
                         handleDeleteRequest(index);
                       }}
-                      className="absolute top-1 right-1 p-1.5 bg-error/90 hover:bg-error text-error-content rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-10 cursor-pointer"
+                      className="
+                        absolute top-1 right-1 p-1.5 bg-error/90
+                        hover:bg-error
+                        text-error-content rounded-full opacity-100
+                        md:opacity-0
+                        md:group-hover:opacity-100
+                        transition-opacity duration-200 z-10 cursor-pointer
+                      "
                       title="删除头像"
                     >
                       <BaselineDeleteOutline className="w-4 h-4" />
@@ -461,10 +523,18 @@ export function SpriteListGrid({
             >
               <button
                 type="button"
-                className="w-full h-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group overflow-hidden"
+                className="
+                  w-full h-full flex items-center justify-center gap-2
+                  rounded-lg border-2 border-dashed border-gray-300
+                  hover:border-primary hover:bg-base-200
+                  transition-all cursor-pointer relative group overflow-hidden
+                "
                 title="上传新头像"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="
+                  w-full h-full text-gray-400 transition-transform duration-300
+                  group-hover:scale-105
+                " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
                 </svg>
               </button>

@@ -23,11 +23,18 @@ export default function RoleSidebarActionCard({
   className = "",
 }: RoleSidebarActionCardProps) {
   return (
-    <div className={`card w-full rounded-xl bg-base-100 transition-all duration-200 ${className}`}>
+    <div className={`
+      card w-full rounded-xl bg-base-100 transition-all duration-200
+      ${className}
+    `}>
       <div className="card-body gap-3 p-4">
         <button
           type="button"
-          className="flex min-w-0 items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-base-300/80"
+          className="
+            flex min-w-0 items-center justify-between gap-3 rounded-xl px-2 py-2
+            text-left transition-colors
+            hover:bg-base-300/80
+          "
           onClick={onClick}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -36,12 +43,18 @@ export default function RoleSidebarActionCard({
             </div>
             <div className="min-w-0 space-y-0.5">
               <h3 className="text-sm font-semibold">{title}</h3>
-              <p className={`truncate text-xs font-medium leading-5 ${subtitleClassName}`}>
+              <p className={`
+                truncate text-xs font-medium leading-5
+                ${subtitleClassName}
+              `}>
                 {subtitle}
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pl-3 text-base-content/50">
+          <div className="
+            flex shrink-0 items-center gap-1 whitespace-nowrap pl-3
+            text-base-content/50
+          ">
             <span className="text-xs">{actionLabel}</span>
             <ChevronRightIcon className="h-4 w-4" />
           </div>

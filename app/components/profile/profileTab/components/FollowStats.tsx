@@ -22,9 +22,14 @@ export const FollowStats: React.FC<FollowStatsProps> = ({
   return (
     <div className={containerClass}>
       <div
-        className={`flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer ${
+        className={`
+          flex flex-row gap-2 items-center
+          hover:text-info
+          transition-colors cursor-pointer
+          ${
           variant === "mobile" ? "btn-active" : ""
-        }`}
+        }
+        `}
         onClick={onFollowingClick}
       >
         <div className="stat-value text-sm">{followingCount}</div>
@@ -32,7 +37,11 @@ export const FollowStats: React.FC<FollowStatsProps> = ({
       </div>
       <span className="border-l"></span>
       <div
-        className="flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer"
+        className="
+          flex flex-row gap-2 items-center
+          hover:text-info
+          transition-colors cursor-pointer
+        "
         onClick={onFollowersClick}
       >
         <div className="stat-value text-sm">{followersCount}</div>

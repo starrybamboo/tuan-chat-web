@@ -18,7 +18,9 @@ function HighlightText({ text, keyword }: { text: string; keyword: string }) {
       {parts.map(part =>
         part.toLowerCase() === keyword.toLowerCase()
           ? (
-              <span key={part} className="bg-info/70 text-info-content rounded px-1">
+              <span key={part} className="
+                bg-info/70 text-info-content rounded px-1
+              ">
                 {part}
               </span>
             )
@@ -58,7 +60,12 @@ export default function SearchedMessage({
     ? (outOfCharacterUserQuery.data?.data?.username?.trim() || `用户${message.message.userId}`)
     : displayRoleName;
   return (
-    <div className={`flex flex-col hover:bg-base-300 transition-colors ${className}`} onClick={onClick}>
+    <div className={`
+      flex flex-col
+      hover:bg-base-300
+      transition-colors
+      ${className}
+    `} onClick={onClick}>
       <div className="flex items-center gap-2">
         {isOutOfCharacterText
           ? (
@@ -88,7 +95,11 @@ export default function SearchedMessage({
         <div className="font-medium text-sm">
           <div className="flex items-center gap-2">
             {isOutOfCharacterText && (
-              <span className="inline-flex items-center rounded-full border border-warning/45 bg-warning/18 px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] text-warning">
+              <span className="
+                inline-flex items-center rounded-full border border-warning/45
+                bg-warning/18 px-2 py-0.5 text-[10px] font-semibold
+                tracking-[0.08em] text-warning
+              ">
                 场外
               </span>
             )}
@@ -103,7 +114,10 @@ export default function SearchedMessage({
         </div>
       </div>
 
-      <div className={`mt-2 text-sm pl-10 ${isOutOfCharacterText ? "italic text-base-content/75" : ""}`}>
+      <div className={`
+        mt-2 text-sm pl-10
+        ${isOutOfCharacterText ? `italic text-base-content/75` : ""}
+      `}>
         <HighlightText
           text={message.message.content}
           keyword={keyword}

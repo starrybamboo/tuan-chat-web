@@ -93,7 +93,10 @@ export function SpaceWebgalGameConfigSection({
   const hasStartupLogo = Boolean(startupLogoPreviewSrc);
 
   return (
-    <div className={`rounded-lg border border-base-300 bg-base-100 ${expanded ? "p-4" : "px-4 py-2"}`}>
+    <div className={`
+      rounded-lg border border-base-300 bg-base-100
+      ${expanded ? `p-4` : `px-4 py-2`}
+    `}>
       <div className={`flex items-center justify-between gap-2${expanded ? " mb-3" : ""}`.trim()}>
         <div className="text-sm font-semibold">WebGAL 游戏层（config.txt）</div>
         <SectionCollapseToggle
@@ -104,8 +107,14 @@ export function SpaceWebgalGameConfigSection({
       </div>
       {expanded && (
         <div className="space-y-3">
-          <div className="grid gap-2 md:grid-cols-2">
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+          <div className="
+            grid gap-2
+            md:grid-cols-2
+          ">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="未设置标题背景图时使用群聊头像"
                 description="如果你没有上传标题背景图，就自动用群聊头像当首页背景。"
@@ -117,7 +126,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ coverFromRoomAvatarEnabled: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="未设置启动图时使用群聊头像"
                 description="如果你没有上传启动图，就自动用群聊头像当启动图。"
@@ -129,7 +141,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ startupLogoFromRoomAvatarEnabled: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="游戏图标使用群聊头像"
                 description="让游戏图标和群聊头像保持一致。"
@@ -141,7 +156,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ gameIconFromRoomAvatarEnabled: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="游戏名使用空间名+ID"
                 description="自动用“空间名 + 编号”当游戏名，避免重名。"
@@ -153,7 +171,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ gameNameFromRoomNameEnabled: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="启用紧急回避"
                 description="需要快速遮住画面时可以一键隐藏当前内容。"
@@ -165,7 +186,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ showPanicEnabled: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="启用鉴赏模式"
                 description="开启后可在菜单里查看已看过的内容，方便回顾。"
@@ -177,7 +201,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ enableAppreciation: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="允许打开完整设置"
                 description="允许玩家在 WebGAL 里打开完整设置页；关闭后会隐藏设置入口。"
@@ -189,7 +216,10 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ allowOpenFullSettings: event.target.checked })}
               />
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="角色发言聚焦"
                 description="命中发言目标时，其他立绘会自动压暗；当前角色保持原亮度。这是开发期配置，不会在游戏内提供给玩家切换。"
@@ -201,14 +231,21 @@ export function SpaceWebgalGameConfigSection({
                 onChange={event => setGameConfig({ speakerFocusEnabled: event.target.checked })}
               />
             </label>
-            <div className={`rounded-md border border-base-300 md:col-span-2 ${typingSoundDetailExpanded ? "p-3" : "px-3 py-2"}`}>
+            <div className={`
+              rounded-md border border-base-300
+              md:col-span-2
+              ${typingSoundDetailExpanded ? `p-3` : `px-3 py-2`}
+            `}>
               <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`.trim()}>
                 <ConfigItemLabel
                   label="启用打字音"
                   description="文字一个个出现时会播放轻微按键音，展开后可以细调频率和音效。"
                 />
                 <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1 text-xs">
+                  <label className="
+                    flex items-center gap-2 rounded-md border border-base-300
+                    px-2 py-1 text-xs
+                  ">
                     <span>打字音</span>
                     <input
                       type="checkbox"
@@ -226,7 +263,10 @@ export function SpaceWebgalGameConfigSection({
               </div>
               {typingSoundDetailExpanded && (
                 <div className="rounded-md border border-base-300 px-3 py-2">
-                  <div className="grid gap-2 md:grid-cols-2">
+                  <div className="
+                    grid gap-2
+                    md:grid-cols-2
+                  ">
                     <div>
                       <div className="mb-1 text-xs text-base-content/70">每隔多少个字播放一次</div>
                       <div className="flex gap-2">
@@ -324,7 +364,10 @@ export function SpaceWebgalGameConfigSection({
                 </div>
               )}
             </div>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="默认语言"
                 description="玩家第一次打开游戏时默认显示的语言。"
@@ -339,7 +382,10 @@ export function SpaceWebgalGameConfigSection({
                 ))}
               </select>
             </label>
-            <label className="flex items-center justify-between gap-2 rounded-md border border-base-300 px-3 py-2">
+            <label className="
+              flex items-center justify-between gap-2 rounded-md border
+              border-base-300 px-3 py-2
+            ">
               <ConfigItemLabel
                 label="WebGAL模板"
                 description="none 为内置默认模板；black 会覆盖为 WebGAL Black。"
@@ -356,7 +402,10 @@ export function SpaceWebgalGameConfigSection({
             </label>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="
+            grid gap-2
+            md:grid-cols-2
+          ">
             <div className="rounded-md border border-base-300 px-3 py-2">
               <div className="mb-2 flex items-center gap-1 text-sm">
                 <span>游戏简介（Description）</span>
@@ -413,7 +462,10 @@ export function SpaceWebgalGameConfigSection({
               </div>
             </div>
 
-            <div className="rounded-md border border-base-300 px-3 py-2 md:col-span-2">
+            <div className="
+              rounded-md border border-base-300 px-3 py-2
+              md:col-span-2
+            ">
               <div className="mb-2 flex items-center gap-1 text-sm">
                 <span>标题背景图（Title_img）</span>
                 <ConfigHelpButton
@@ -443,7 +495,10 @@ export function SpaceWebgalGameConfigSection({
                 </span>
               </div>
               {hasTitleImage && (
-                <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
+                <div className="
+                  mt-2 h-20 w-36 overflow-hidden rounded-md border
+                  border-base-300
+                ">
                   <MediaImage
                     src={titleImagePreviewSrc}
                     alt="标题背景图预览"
@@ -461,7 +516,10 @@ export function SpaceWebgalGameConfigSection({
               />
             </div>
 
-            <div className="rounded-md border border-base-300 px-3 py-2 md:col-span-2">
+            <div className="
+              rounded-md border border-base-300 px-3 py-2
+              md:col-span-2
+            ">
               <div className="mb-2 flex items-center gap-1 text-sm">
                 <span>启动图（Game_Logo）</span>
                 <ConfigHelpButton
@@ -491,7 +549,10 @@ export function SpaceWebgalGameConfigSection({
                 </span>
               </div>
               {hasStartupLogo && (
-                <div className="mt-2 h-20 w-36 overflow-hidden rounded-md border border-base-300">
+                <div className="
+                  mt-2 h-20 w-36 overflow-hidden rounded-md border
+                  border-base-300
+                ">
                   <MediaImage
                     src={startupLogoPreviewSrc}
                     alt="启动图预览"

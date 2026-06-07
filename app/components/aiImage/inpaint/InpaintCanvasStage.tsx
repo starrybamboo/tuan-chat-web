@@ -100,7 +100,10 @@ export function InpaintCanvasStage({
             <img
               src={source.dataUrl}
               alt="inpaint-source"
-              className="block h-full w-full select-none object-contain shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+              className="
+                block h-full w-full select-none object-contain
+                shadow-[0_20px_60px_rgba(0,0,0,0.45)]
+              "
               draggable={false}
             />
             <canvas
@@ -116,7 +119,10 @@ export function InpaintCanvasStage({
             {brushCursorPoint
               ? (
                   <div
-                    className="pointer-events-none absolute z-10 drop-shadow-[0_0_2px_rgba(5,6,12,0.35)]"
+                    className="
+                      pointer-events-none absolute z-10
+                      drop-shadow-[0_0_2px_rgba(5,6,12,0.35)]
+                    "
                     style={{
                       left: `${activeBrushCursorOverlay?.rect.left ?? brushCursorPoint.x}px`,
                       top: `${activeBrushCursorOverlay?.rect.top ?? brushCursorPoint.y}px`,
@@ -162,7 +168,10 @@ export function InpaintCanvasStage({
                             />
                           ))}
                       <span
-                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        className="
+                          absolute left-1/2 top-1/2 -translate-x-1/2
+                          -translate-y-1/2
+                        "
                         style={{
                           width: `${brushCursorCrossCanvasSize}px`,
                           height: `${brushCursorStrokeWidth}px`,
@@ -170,7 +179,10 @@ export function InpaintCanvasStage({
                         }}
                       />
                       <span
-                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        className="
+                          absolute left-1/2 top-1/2 -translate-x-1/2
+                          -translate-y-1/2
+                        "
                         style={{
                           width: `${brushCursorStrokeWidth}px`,
                           height: `${brushCursorCrossCanvasSize}px`,

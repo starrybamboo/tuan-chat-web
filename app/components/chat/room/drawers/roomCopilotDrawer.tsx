@@ -560,13 +560,18 @@ function RoomCopilotDrawerImpl({
 
   return (
     <div
-      className={`relative flex h-full min-h-0 flex-col bg-base-100 ${dropHint ? "ring-2 ring-primary/60 ring-inset" : ""}`}
+      className={`
+        relative flex h-full min-h-0 flex-col bg-base-100
+        ${dropHint ? `ring-2 ring-primary/60 ring-inset` : ""}
+      `}
       data-tc-copilot-context-drop-zone
       onDragOver={handleCopilotDragOver}
       onDragLeave={handleCopilotDragLeave}
       onDrop={handleCopilotDrop}
     >
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-base-300 px-4">
+      <div className="
+        flex h-12 shrink-0 items-center gap-2 border-b border-base-300 px-4
+      ">
         <Robot className="size-5 text-primary" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">AI 对话</div>
@@ -574,7 +579,9 @@ function RoomCopilotDrawerImpl({
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 py-4">
+      <div ref={scrollRef} className="
+        flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 py-4
+      ">
         {messages.map(message => (
           <CopilotMessageBubble key={message.id} message={message} />
         ))}
@@ -589,7 +596,10 @@ function RoomCopilotDrawerImpl({
         )}
         <div className="flex items-end gap-2">
           <textarea
-            className="textarea textarea-bordered min-h-12 max-h-32 flex-1 resize-none text-sm leading-6"
+            className="
+              textarea textarea-bordered min-h-12 max-h-32 flex-1 resize-none
+              text-sm leading-6
+            "
             value={draftInput}
             placeholder={isConversationLoaded ? "直接说你想怎么改，例如：把最后两句写得更克制，再补一段雨夜环境。" : "正在载入这间房的 Copilot 对话..."}
             disabled={!isConversationLoaded}
@@ -604,13 +614,19 @@ function RoomCopilotDrawerImpl({
             title="发送给 AI"
             onClick={() => void handleSend()}
           >
-            {isGenerating ? <CircleNotch className="size-5 animate-spin" /> : <PaperPlaneTilt className="size-5" />}
+            {isGenerating ? <CircleNotch className="size-5 animate-spin" /> : <PaperPlaneTilt className="
+              size-5
+            " />}
           </button>
         </div>
         <div className="mt-1 text-[11px] text-base-content/45">Enter 发送，Shift+Enter 换行</div>
       </div>
       {dropHint && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-24 rounded border border-primary/40 bg-primary/10 px-3 py-2 text-center text-xs font-medium text-primary">
+        <div className="
+          pointer-events-none absolute inset-x-3 bottom-24 rounded border
+          border-primary/40 bg-primary/10 px-3 py-2 text-center text-xs
+          font-medium text-primary
+        ">
           {dropHint}
         </div>
       )}
@@ -626,13 +642,19 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
   const summaryItems = React.useMemo(() => formatSummary(message.proposal ?? null), [message.proposal]);
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`
+      flex
+      ${isUser ? "justify-end" : "justify-start"}
+    `}>
       <div
-        className={`max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 shadow-sm ${
+        className={`
+          max-w-[86%] rounded-lg px-3 py-2 text-sm leading-6 shadow-sm
+          ${
           isUser
             ? "bg-primary text-primary-content"
             : "border border-base-300 bg-base-200/70 text-base-content"
-        }`}
+        }
+        `}
       >
         <div className="whitespace-pre-wrap break-words">{message.content}</div>
 
@@ -654,7 +676,10 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
         {summaryItems && (
           <div className="mt-3 grid grid-cols-4 gap-1.5">
             {summaryItems.map(item => (
-              <div key={item.label} className="rounded border border-base-content/10 bg-base-100/70 px-2 py-1.5 text-center text-base-content">
+              <div key={item.label} className="
+                rounded border border-base-content/10 bg-base-100/70 px-2 py-1.5
+                text-center text-base-content
+              ">
                 <div className="text-sm font-semibold leading-none">{item.value}</div>
                 <div className="mt-1 text-[11px] text-base-content/55">{item.label}</div>
               </div>
@@ -665,7 +690,10 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
         {message.proposal && message.proposal.validationErrors.length > 0 && (
           <div className="mt-3 space-y-1.5">
             {message.proposal.validationErrors.map((item, index) => (
-              <div key={`${item.code}-${index}`} className="flex gap-1.5 rounded bg-warning/10 px-2 py-1.5 text-xs text-warning-content">
+              <div key={`${item.code}-${index}`} className="
+                flex gap-1.5 rounded bg-warning/10 px-2 py-1.5 text-xs
+                text-warning-content
+              ">
                 <WarningCircle className="mt-0.5 size-4 shrink-0" />
                 <span className="min-w-0 break-words">{item.message}</span>
               </div>
@@ -688,7 +716,9 @@ function CopilotMessageBubble({ message }: { message: CopilotChatMessage }) {
         )}
 
         {message.error && (
-          <div className="mt-2 flex gap-1.5 rounded bg-error/10 px-2 py-1.5 text-xs text-error">
+          <div className="
+            mt-2 flex gap-1.5 rounded bg-error/10 px-2 py-1.5 text-xs text-error
+          ">
             <WarningCircle className="mt-0.5 size-4 shrink-0" />
             <span className="min-w-0 break-words">{message.error}</span>
           </div>
@@ -731,7 +761,11 @@ function CopilotContextRefPill({
   const prefix = getContextRefPrefix(refItem);
   return (
     <span
-      className={`inline-flex max-w-full items-center gap-1 rounded border border-base-300 bg-base-200/80 px-2 py-1 text-[11px] leading-none text-base-content ${compact ? "opacity-80" : ""}`}
+      className={`
+        inline-flex max-w-full items-center gap-1 rounded border border-base-300
+        bg-base-200/80 px-2 py-1 text-[11px] leading-none text-base-content
+        ${compact ? `opacity-80` : ""}
+      `}
       title={`${prefix}${refItem.label}`}
     >
       {icon}
@@ -741,7 +775,11 @@ function CopilotContextRefPill({
       {onRemove && (
         <button
           type="button"
-          className="ml-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded hover:bg-base-300"
+          className="
+            ml-0.5 inline-flex size-4 shrink-0 items-center justify-center
+            rounded
+            hover:bg-base-300
+          "
           aria-label="移除上下文"
           title="移除上下文"
           onClick={onRemove}

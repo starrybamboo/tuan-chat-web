@@ -109,7 +109,10 @@ export default RoomSideDrawers;
 
 function RoomSideDrawerFallback({ text }: { text: string }) {
   return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+    <div className="
+      flex h-full w-full items-center justify-center text-sm
+      text-base-content/60
+    ">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">{text}</span>
     </div>

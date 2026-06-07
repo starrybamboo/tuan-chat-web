@@ -146,8 +146,14 @@ export default function WebGALPreview({
 
   if (!previewState.showPreviewFrame) {
     return (
-      <div className={`flex flex-col h-full ${className ?? ""}`}>
-        <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
+      <div className={`
+        flex flex-col h-full
+        ${className ?? ""}
+      `}>
+        <div className="
+          flex items-center justify-between p-2 border-b border-base-300
+          bg-base-200
+        ">
           <span className="font-medium text-sm">WebGAL 预览</span>
           <div className="flex items-center gap-2">
             <label
@@ -186,7 +192,9 @@ export default function WebGALPreview({
             )}
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center text-base-content/50 text-sm">
+        <div className="
+          flex-1 flex items-center justify-center text-base-content/50 text-sm
+        ">
           <div className="text-center">
             <p>{previewState.fallbackTitle}</p>
             <p className="text-xs mt-1">{previewState.fallbackHint}</p>
@@ -197,8 +205,14 @@ export default function WebGALPreview({
   }
 
   return (
-    <div className={`flex flex-col h-full ${className ?? ""}`}>
-      <div className="flex items-center justify-between p-2 border-b border-base-300 bg-base-200">
+    <div className={`
+      flex flex-col h-full
+      ${className ?? ""}
+    `}>
+      <div className="
+        flex items-center justify-between p-2 border-b border-base-300
+        bg-base-200
+      ">
         <span className="font-medium text-sm">WebGAL 预览</span>
         <div className="flex items-center gap-2">
           <label
@@ -252,7 +266,10 @@ export default function WebGALPreview({
       </div>
       <div className="flex-1 relative bg-black">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className={`${isResizing ? "pointer-events-none" : ""} flex items-center justify-center w-full h-full`}>
+          <div className={`
+            ${isResizing ? "pointer-events-none" : ""}
+            flex items-center justify-center w-full h-full
+          `}>
             <iframe
               ref={iframeRef}
               src={previewUrl ?? undefined}

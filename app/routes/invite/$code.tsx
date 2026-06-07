@@ -106,7 +106,9 @@ function InvitePage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-base-100 rounded-lg shadow p-6 text-center">
+      <div className="
+        max-w-lg w-full bg-base-100 rounded-lg shadow p-6 text-center
+      ">
         {isProcessing && !error && (
           <>
             <div className="mb-4">

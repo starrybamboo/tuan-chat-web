@@ -77,7 +77,10 @@ export default function RoleChooser({
     ? displayRoles.find(role => role.roleId === manageRoleId)
     : undefined;
   return (
-    <div className={`${className} max-h-[30vh]`}>
+    <div className={`
+      ${className}
+      max-h-[30vh]
+    `}>
       {
         roomContext.roomRolesThatUserOwn.length === 0 && (
           <div className="">无可用角色</div>
@@ -137,7 +140,10 @@ export default function RoleChooser({
         canAddRole && (
           <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
             <div className="w-full">
-              <AddRingLight className="size-10 group-hover:text-info"></AddRingLight>
+              <AddRingLight className="
+                size-10
+                group-hover:text-info
+              "></AddRingLight>
               <div>
                 添加角色
               </div>

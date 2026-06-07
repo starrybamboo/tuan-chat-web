@@ -85,13 +85,24 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
 
   return (
     <div className="min-h-screen bg-base-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="
+        max-w-7xl mx-auto px-4
+        sm:px-6
+        lg:px-8
+        py-6
+      ">
+        <div className="
+          grid grid-cols-1
+          lg:grid-cols-4
+          gap-6
+        ">
           {/* 左侧用户信息栏 */}
           <div className="lg:col-span-1">
             <div className="sticky top-6 space-y-4">
               {/* 用户基本信息卡片 */}
-              <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
+              <div className="
+                bg-base-100 rounded-xl shadow-sm border border-base-300 p-6
+              ">
                 {userInfoLoading
                   ? (
                       <div className="space-y-4">
@@ -107,7 +118,10 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                         <MediaImage
                           src={imageLowUrl(userData?.avatarFileId) || "favicon.ico"}
                           alt="用户头像"
-                          className="w-20 h-20 rounded-full object-cover border-2 border-base-300"
+                          className="
+                            w-20 h-20 rounded-full object-cover border-2
+                            border-base-300
+                          "
                           fallbackSrc="/favicon.ico"
                         />
                         <div className="text-center">
@@ -118,7 +132,9 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
               </div>
 
               {/* 统计信息卡片（改为优先使用后端统计数据） */}
-              <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
+              <div className="
+                bg-base-100 rounded-xl shadow-sm border border-base-300 p-6
+              ">
                 <h4 className="font-semibold mb-4">动态统计</h4>
 
                 {/* 接口加载时显示 skeleton */}
@@ -178,7 +194,10 @@ const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
               // 初次加载骨架屏
                     <div className="space-y-4">
                       {Array.from({ length: RENDER_MIN }, (_, i) => `skeleton-${i}`).map(key => (
-                        <div key={key} className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
+                        <div key={key} className="
+                          bg-base-100 rounded-xl shadow-sm border
+                          border-base-300 p-6
+                        ">
                           <div className="flex items-center space-x-3 mb-4">
                             <div className="skeleton w-12 h-12 rounded-full"></div>
                             <div className="flex-1 space-y-2">

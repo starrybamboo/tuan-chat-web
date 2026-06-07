@@ -942,7 +942,9 @@ export function InpaintDialog({
     return null;
 
   return (
-    <div className="absolute inset-0 z-50 overflow-hidden bg-base-200 text-base-content">
+    <div className="
+      absolute inset-0 z-50 overflow-hidden bg-base-200 text-base-content
+    ">
       <InpaintToolPanel
         sharedPanelClassName={sharedPanelClassName}
         brushSize={brushSize}

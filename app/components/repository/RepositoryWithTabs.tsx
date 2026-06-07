@@ -7,12 +7,26 @@ export default function RepositoryWithTabs() {
   ];
 
   return (
-    <div className="flex flex-row flex-1 min-h-0 min-w-0 h-full bg-base-200 overflow-x-hidden">
-      <div className="flex flex-row flex-1 min-h-0 min-w-0 bg-base-200 rounded-tl-xl h-full">
+    <div className="
+      flex flex-row flex-1 min-h-0 min-w-0 h-full bg-base-200 overflow-x-hidden
+    ">
+      <div className="
+        flex flex-row flex-1 min-h-0 min-w-0 bg-base-200 rounded-tl-xl h-full
+      ">
         {/* 左侧竖向标签栏 */}
-        <aside className="w-56 md:w-64 shrink-0 bg-base-200 border-l border-t border-gray-300 dark:border-gray-700 rounded-tl-xl">
+        <aside className="
+          w-56
+          md:w-64
+          shrink-0 bg-base-200 border-l border-t border-gray-300
+          dark:border-gray-700
+          rounded-tl-xl
+        ">
           <div className="sticky top-0">
-            <div className="flex items-center h-10 px-2 border-b border-gray-300 dark:border-gray-700 text-base font-bold">
+            <div className="
+              flex items-center h-10 px-2 border-b border-gray-300
+              dark:border-gray-700
+              text-base font-bold
+            ">
               <CompassIcon className="size-4 mr-2" weight="fill" />
               发现
             </div>
@@ -21,7 +35,10 @@ export default function RepositoryWithTabs() {
                 <button
                   key={tab.key}
                   type="button"
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-base-300/60 text-base-content"
+                  className="
+                    w-full text-left px-3 py-2 rounded-lg text-sm font-medium
+                    transition-colors bg-base-300/60 text-base-content
+                  "
                 >
                   <span className="flex items-center gap-2">
                     <tab.icon className="w-6 h-6 shrink-0" aria-hidden="true" />
@@ -34,7 +51,11 @@ export default function RepositoryWithTabs() {
         </aside>
         {/* 右侧内容区域 - 统一样式包装 */}
         <div className="flex-1 min-w-0 bg-base-100">
-          <div className="px-4 md:px-8 py-6">
+          <div className="
+            px-4
+            md:px-8
+            py-6
+          ">
             <RepositoryHome />
           </div>
         </div>

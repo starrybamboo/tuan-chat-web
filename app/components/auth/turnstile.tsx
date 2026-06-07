@@ -127,5 +127,9 @@ export function TurnstileWidget({ token, onTokenChange, resetKey }: TurnstileWid
     return null;
   }
 
-  return <div ref={containerRef} className="mt-4 flex min-h-[72px] items-center justify-center overflow-hidden rounded-md border border-base-300 bg-base-200/60 px-2 py-2 dark:border-base-200 dark:bg-base-300/60" />;
+  return <div ref={containerRef} className="
+    mt-4 flex min-h-[72px] items-center justify-center overflow-hidden
+    rounded-md border border-base-300 bg-base-200/60 px-2 py-2
+    dark:border-base-200 dark:bg-base-300/60
+  " />;
 }

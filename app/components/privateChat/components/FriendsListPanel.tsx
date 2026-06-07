@@ -39,7 +39,15 @@ export default function FriendsListPanel() {
     <div className="flex flex-col h-full w-full">
       <div className="px-3 pt-3 pb-2">
         <label htmlFor="private-friend-search" className="sr-only">搜索好友</label>
-        <div className="border border-gray-200 dark:border-gray-700/80 flex h-8 items-center bg-base-200/60 dark:bg-base-200/40 rounded-md overflow-hidden focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+        <div className="
+          border border-gray-200
+          dark:border-gray-700/80
+          flex h-8 items-center bg-base-200/60
+          dark:bg-base-200/40
+          rounded-md overflow-hidden
+          focus-within:border-primary/60 focus-within:ring-2
+          focus-within:ring-primary/20
+        ">
           <div className="flex h-full items-center flex-1 px-2.5">
             <input
               id="private-friend-search"
@@ -48,7 +56,10 @@ export default function FriendsListPanel() {
               name="privateFriendSearch"
               autoComplete="off"
               placeholder="搜索好友…"
-              className="bg-transparent border-none outline-none flex-1 text-sm placeholder:text-base-content/50"
+              className="
+                bg-transparent border-none outline-none flex-1 text-sm
+                placeholder:text-base-content/50
+              "
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
               onKeyDown={(e) => {
@@ -60,7 +71,11 @@ export default function FriendsListPanel() {
               <button
                 type="button"
                 onClick={() => setKeyword("")}
-                className="flex items-center justify-center text-base-content/50 hover:text-base-content transition-colors ml-1"
+                className="
+                  flex items-center justify-center text-base-content/50
+                  hover:text-base-content
+                  transition-colors ml-1
+                "
                 aria-label="清空"
               >
                 <XMarkICon className="size-3.5" />
@@ -69,7 +84,12 @@ export default function FriendsListPanel() {
           </div>
           <button
             type="button"
-            className="h-full px-2.5 flex items-center justify-center text-base-content/50 hover:text-info hover:bg-base-300/60 transition-colors"
+            className="
+              h-full px-2.5 flex items-center justify-center
+              text-base-content/50
+              hover:text-info hover:bg-base-300/60
+              transition-colors
+            "
             disabled={!keyword.trim()}
             aria-label="搜索"
             onClick={() => searchInputRef.current?.focus()}
@@ -79,7 +99,10 @@ export default function FriendsListPanel() {
         </div>
       </div>
 
-      <div className="px-3 pb-1.5 text-xs font-medium text-base-content/50 uppercase tracking-wide">
+      <div className="
+        px-3 pb-1.5 text-xs font-medium text-base-content/50 uppercase
+        tracking-wide
+      ">
         好友 —
         {" "}
         {friendUserInfos.length}
@@ -95,7 +118,10 @@ export default function FriendsListPanel() {
             )
           : filteredFriends.length === 0
             ? (
-                <div className="flex flex-col items-center justify-center h-32 gap-2 text-base-content/50">
+                <div className="
+                  flex flex-col items-center justify-center h-32 gap-2
+                  text-base-content/50
+                ">
                   <span className="text-sm">{keyword ? "未找到匹配好友" : "暂无好友"}</span>
                   {!keyword && (
                     <span className="text-xs">添加好友后将在此显示</span>
@@ -111,10 +137,19 @@ export default function FriendsListPanel() {
                     >
                       <button
                         type="button"
-                        className="w-full text-left flex items-center gap-3 hover:bg-base-200/60 dark:hover:bg-base-300/20 rounded-lg px-2 py-1.5 cursor-pointer transition-colors duration-150"
+                        className="
+                          w-full text-left flex items-center gap-3
+                          hover:bg-base-200/60
+                          dark:hover:bg-base-300/20
+                          rounded-lg px-2 py-1.5 cursor-pointer
+                          transition-colors duration-150
+                        "
                         onClick={() => friend?.userId && handleClickFriend(friend.userId)}
                       >
-                        <div className="avatar w-9 h-9 flex-shrink-0 overflow-hidden rounded-full bg-base-300">
+                        <div className="
+                          avatar w-9 h-9 flex-shrink-0 overflow-hidden
+                          rounded-full bg-base-300
+                        ">
                           <MediaImage
                             className="h-full w-full rounded-full object-cover"
                             src={imageLowUrl(friend?.avatarFileId)}

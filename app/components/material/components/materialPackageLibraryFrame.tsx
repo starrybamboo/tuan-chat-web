@@ -52,19 +52,33 @@ export default function MaterialPackageLibraryFrame({
   }
 
   return (
-    <div className="relative flex h-full w-full min-w-0 overflow-hidden bg-base-200 text-base-content">
+    <div className="
+      relative flex h-full w-full min-w-0 overflow-hidden bg-base-200
+      text-base-content
+    ">
       {isDesktop && (
-        <div className={`border-r border-base-300 bg-base-300/60 transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden" : "w-[280px]"}`}>
+        <div className={`
+          border-r border-base-300 bg-base-300/60 transition-all duration-300
+          ${isSidebarCollapsed ? `w-0 overflow-hidden` : `w-[280px]`}
+        `}>
           {sidebarNode}
         </div>
       )}
 
       {isDesktop && (
-        <div className={`fixed top-1/2 z-50 -translate-y-1/2 transition-all duration-300 ${isSidebarCollapsed ? "left-0" : "left-[280px]"}`}>
+        <div className={`
+          fixed top-1/2 z-50 -translate-y-1/2 transition-all duration-300
+          ${isSidebarCollapsed ? `left-0` : `left-[280px]`}
+        `}>
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(prev => !prev)}
-            className="flex h-12 w-6 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100 text-base-content/55 transition hover:bg-base-200 hover:text-base-content"
+            className="
+              flex h-12 w-6 items-center justify-center rounded-r-full border
+              border-base-300 border-l-0 bg-base-100 text-base-content/55
+              transition
+              hover:bg-base-200 hover:text-base-content
+            "
             aria-label={isSidebarCollapsed ? `展开${drawerTitle}` : `收起${drawerTitle}`}
           >
             {isSidebarCollapsed
@@ -75,12 +89,19 @@ export default function MaterialPackageLibraryFrame({
       )}
 
       {!isDesktop && (
-        <div className="fixed left-0 top-[calc(env(safe-area-inset-top)+4.75rem)] z-50">
+        <div className="
+          fixed left-0 top-[calc(env(safe-area-inset-top)+4.75rem)] z-50
+        ">
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
             aria-label={openSidebarLabel}
-            className="flex h-12 w-8 items-center justify-center rounded-r-full border border-base-300 border-l-0 bg-base-100/95 text-base-content/72 shadow-md backdrop-blur transition hover:bg-base-200 hover:text-base-content"
+            className="
+              flex h-12 w-8 items-center justify-center rounded-r-full border
+              border-base-300 border-l-0 bg-base-100/95 text-base-content/72
+              shadow-md backdrop-blur transition
+              hover:bg-base-200 hover:text-base-content
+            "
           >
             <CaretRightIcon size={16} weight="bold" />
           </button>
@@ -94,8 +115,18 @@ export default function MaterialPackageLibraryFrame({
           direction="left"
         >
           <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 bg-base-content/40 data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto" />
-            <Drawer.Content className="fixed left-0 top-0 z-[100] flex h-full w-[min(85vw,320px)] flex-col bg-base-300/95 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur data-[state=closed]:pointer-events-none data-[state=open]:pointer-events-auto">
+            <Drawer.Overlay className="
+              fixed inset-0 bg-base-content/40
+              data-[state=closed]:pointer-events-none
+              data-[state=open]:pointer-events-auto
+            " />
+            <Drawer.Content className="
+              fixed left-0 top-0 z-[100] flex h-full w-[min(85vw,320px)]
+              flex-col bg-base-300/95 pt-[env(safe-area-inset-top)]
+              pb-[env(safe-area-inset-bottom)] shadow-2xl backdrop-blur
+              data-[state=closed]:pointer-events-none
+              data-[state=open]:pointer-events-auto
+            ">
               <Drawer.Title className="sr-only">{drawerTitle}</Drawer.Title>
               <Drawer.Description className="sr-only">{drawerDescription}</Drawer.Description>
               <div className="h-full overflow-y-auto">

@@ -61,7 +61,11 @@ function CreateEntryCard({
       onClick={onClick}
     >
       <div
-        className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed ${accentClassNames[accent]}`}
+        className={`
+          mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full
+          border-2 border-dashed
+          ${accentClassNames[accent]}
+        `}
       >
         <Icon className="h-8 w-8" weight="bold" />
       </div>
@@ -84,13 +88,20 @@ export default function CreateEntry({
   return (
     <div
       key={animationTrigger || 0} // 使用key来强制重新渲染，触发CSS动画
-      className="animate-scale-in flex flex-col items-center justify-center h-full min-h-[calc(100vh-6rem)] p-6"
+      className="
+        animate-scale-in flex flex-col items-center justify-center h-full
+        min-h-[calc(100vh-6rem)] p-6
+      "
     >
       <div>
         <h1 className="text-3xl font-bold text-base-content mb-2">创建新角色</h1>
         <p className="text-sm text-base-content/70 mb-8">选择一种角色类型开始创建</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-auto max-w-3xl">
+        <div className="
+          grid grid-cols-1
+          md:grid-cols-3
+          gap-6 mx-auto max-w-3xl
+        ">
           {entryCards.map(card => (
             <CreateEntryCard
               key={card.to}

@@ -40,12 +40,23 @@ export function ToastWindowFrame({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className={`modal modal-open ${rootClassName}`}>
+        <div className={`
+          modal modal-open
+          ${rootClassName}
+        `}>
           <motion.div
-            className={`relative flex flex-col
-               ${transparent ? "bg-transparent w-full h-screen" : "bg-base-100 dark:bg-base-300"}
-               ${fullScreen ? "w-full h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}
-               ${panelClassName}`}
+            className={`
+              relative flex flex-col
+              ${transparent ? "bg-transparent w-full h-screen" : `
+                bg-base-100
+                dark:bg-base-300
+              `}
+              ${fullScreen ? "w-full h-screen" : `
+                modal-box w-auto max-w-[100vw]
+                lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]
+              `}
+              ${panelClassName}
+            `}
             style={{
               height: fullScreenHeight,
               maxHeight: modalMaxHeight,
@@ -58,7 +69,13 @@ export function ToastWindowFrame({
             {showCloseButton && (
               <button
                 type="button"
-                className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100 z-20"
+                className="
+                  btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
+                  hover:bg-base-300
+                  dark:bg-base-200
+                  dark:hover:bg-base-100
+                  z-20
+                "
                 onClick={onClose}
                 aria-label="关闭弹窗"
               >
@@ -77,13 +94,28 @@ export function ToastWindowFrame({
                 </svg>
               </button>
             )}
-            <div className={`${disableScroll ? "overflow-hidden" : (hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto")} w-full h-full min-h-0 ${bodyClassName}`}>
+            <div className={`
+              ${disableScroll ? "overflow-hidden" : (hiddenScrollbar ? `
+                hidden-scrollbar
+              ` : `overflow-auto`)}
+              w-full h-full min-h-0
+              ${bodyClassName}
+            `}>
               {children}
             </div>
           </motion.div>
           <button
             type="button"
-            className={`modal-backdrop ${transparent ? "bg-black/20 dark:bg-black/30" : "bg-black/50 dark:bg-black/70"}`}
+            className={`
+              modal-backdrop
+              ${transparent ? `
+                bg-black/20
+                dark:bg-black/30
+              ` : `
+                bg-black/50
+                dark:bg-black/70
+              `}
+            `}
             onClick={(fullScreen && !transparent) ? () => {} : onClose}
             aria-label="关闭弹窗"
           />

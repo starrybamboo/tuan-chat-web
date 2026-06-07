@@ -115,16 +115,28 @@ export default function RoleAvatarComponent({
         {stopToastWindow
           ? (
               <div
-                className={`${avatarShellHoverClassName} ${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
+                className={`
+                  ${avatarShellHoverClassName}
+                  ${sizeMap[width]}
+                  ${isRounded ? `rounded-full` : `rounded`}
+                  ${hasAvatar ? "" : `bg-base-300`}
+                  text-center flex items-center justify-center overflow-hidden
+                `}
               >
                 {!hasAvatar
-                  ? <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
+                  ? <span className={`
+                    ${sizeMap[width]}
+                    text-sm
+                  `}>{alt}</span>
                   : (
                       <ImgWithHoverToScale
                         enableScale={hoverToScale}
                         src={displayAvatarUrl}
                         alt={alt}
-                        className={`w-full h-full object-cover ${avatarImageHoverClassName}`}
+                        className={`
+                          w-full h-full object-cover
+                          ${avatarImageHoverClassName}
+                        `}
                       />
                     )}
               </div>
@@ -132,17 +144,29 @@ export default function RoleAvatarComponent({
           : (
               <button
                 type="button"
-                className={`${avatarShellHoverClassName} ${sizeMap[width]} ${isRounded ? "rounded-full" : "rounded"} ${hasAvatar ? "" : "bg-base-300"} text-center flex items-center justify-center overflow-hidden`}
+                className={`
+                  ${avatarShellHoverClassName}
+                  ${sizeMap[width]}
+                  ${isRounded ? `rounded-full` : `rounded`}
+                  ${hasAvatar ? "" : `bg-base-300`}
+                  text-center flex items-center justify-center overflow-hidden
+                `}
                 onClick={() => setIsOpen(true)}
               >
                 {!hasAvatar
-                  ? <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
+                  ? <span className={`
+                    ${sizeMap[width]}
+                    text-sm
+                  `}>{alt}</span>
                   : (
                       <ImgWithHoverToScale
                         enableScale={hoverToScale}
                         src={displayAvatarUrl}
                         alt={alt}
-                        className={`w-full h-full object-cover ${avatarImageHoverClassName}`}
+                        className={`
+                          w-full h-full object-cover
+                          ${avatarImageHoverClassName}
+                        `}
                       />
                     )}
               </button>

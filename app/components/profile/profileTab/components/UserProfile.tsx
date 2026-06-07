@@ -78,9 +78,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             if (e.key === "Escape")
                               cancelEditingProfile();
                           }}
-                          className={`input input-sm input-bordered flex-1 text-lg font-bold ${
+                          className={`
+                            input input-sm input-bordered flex-1 text-lg
+                            font-bold
+                            ${
                             editingUsername.length > 30 ? "input-error" : ""
-                          }`}
+                          }
+                          `}
                           maxLength={30}
                           placeholder="请输入用户名"
                         />
@@ -123,11 +127,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                           if (e.key === "Escape")
                             cancelEditingProfile();
                         }}
-                        className={`input input-sm input-bordered flex-1 ${
+                        className={`
+                          input input-sm input-bordered flex-1
+                          ${
                           isMobile ? "text-lg" : "text-lg"
-                        } font-bold ${
+                        }
+                          font-bold
+                          ${
                           editingUsername.length > 30 ? "input-error" : ""
-                        }`}
+                        }
+                        `}
                         maxLength={30}
 
                         placeholder="请输入用户名"
@@ -135,13 +144,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
                   )
                 : (
-                    <h2 className={`font-bold truncate ${isMobile ? "text-lg" : "text-2xl"}`}>
+                    <h2 className={`
+                      font-bold truncate
+                      ${isMobile ? "text-lg" : `text-2xl`}
+                    `}>
                       {user?.username
                         ? (
                             <>
                               {user.username}
                               {" "}
-                              <span className={`text-sm text-gray-400 ${isMobile ? "inline" : "block"}`}>
+                              <span className={`
+                                text-sm text-gray-400
+                                ${isMobile ? `inline` : `block`}
+                              `}>
                                 UID:
                                 {" "}
                                 {userId}
@@ -170,17 +185,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     if (e.key === "Enter" && e.ctrlKey)
                       saveProfile();
                   }}
-                  className={`textarea textarea-bordered w-full text-sm resize-none ${
+                  className={`
+                    textarea textarea-bordered w-full text-sm resize-none
+                    ${
                     editingDescription.length > 253 ? "textarea-error" : ""
-                  }`}
+                  }
+                  `}
                   rows={4}
                   placeholder="请输入个人描述..."
                 />
                 {!isMobile && (
                   <div className="flex justify-between items-center">
-                    <div className={`text-xs ${
-                      editingDescription.length > 253 ? "text-error" : "text-neutral-500"
-                    }`}
+                    <div className={`
+                      text-xs
+                      ${
+                      editingDescription.length > 253 ? "text-error" : `
+                        text-neutral-500
+                      `
+                    }
+                    `}
                     >
                       {editingDescription.length}
                       /253
@@ -214,11 +237,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           : (
               <div>
                 <div
-                  className={`wrap-break-word transition-all duration-300 ease-in-out ${
+                  className={`
+                    wrap-break-word transition-all duration-300 ease-in-out
+                    ${
                     isMobile
-                      ? `text-sm ${isExpanded ? "" : "line-clamp-2"}`
-                      : `text-sm overflow-hidden ${isExpanded ? "max-h-96" : "max-h-12"}`
-                  }`}
+                      ? `
+                        text-sm
+                        ${isExpanded ? "" : "line-clamp-2"}
+                      `
+                      : `
+                        text-sm overflow-hidden
+                        ${isExpanded ? "max-h-96" : `max-h-12`}
+                      `
+                  }
+                  `}
                   style={
                     isMobile
                       ? {}
@@ -236,17 +268,27 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 {user?.description && user.description.length > 80 && (
                   <button
                     onClick={() => setIsExpanded(prev => !prev)}
-                    className={`text-blue-400 text-xs hover:underline transition-colors duration-200 ${
-                      isMobile ? "mt-1" : "cursor-pointer mt-2 flex items-center gap-1"
-                    }`}
+                    className={`
+                      text-blue-400 text-xs
+                      hover:underline
+                      transition-colors duration-200
+                      ${
+                      isMobile ? "mt-1" : `
+                        cursor-pointer mt-2 flex items-center gap-1
+                      `
+                    }
+                    `}
                     type="button"
                   >
                     <span>{isExpanded ? "收起" : "展开"}</span>
                     {!isMobile && (
                       <svg
-                        className={`w-3 h-3 transition-transform duration-300 ${
+                        className={`
+                          w-3 h-3 transition-transform duration-300
+                          ${
                           isExpanded ? "rotate-180" : ""
-                        }`}
+                        }
+                        `}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"

@@ -5,11 +5,18 @@ export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawe
   const { handleOpenPrivate } = useChatPageLayoutContext();
 
   return (
-    <div className="border-gray-300 dark:border-gray-700 border-b flex justify-between items-center overflow-visible relative z-10">
+    <div className="
+      border-gray-300
+      dark:border-gray-700
+      border-b flex justify-between items-center overflow-visible relative z-10
+    ">
       <div
-        className="flex justify-between items-center w-full px-2 h-10
-        bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl
-        border border-white/40 dark:border-white/10"
+        className="
+          flex justify-between items-center w-full px-2 h-10 bg-white/40
+          dark:bg-slate-950/25
+          backdrop-blur-xl border border-white/40
+          dark:border-white/10
+        "
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="sm:hidden">
@@ -22,7 +29,9 @@ export default function TopInfo({ currentContactUserInfo }: { setIsOpenLeftDrawe
               <ChevronRight className="size-6" />
             </button>
           </div>
-          <span className="text-base font-bold truncate leading-none min-w-0 text-left ml-1">
+          <span className="
+            text-base font-bold truncate leading-none min-w-0 text-left ml-1
+          ">
             {currentContactUserInfo ? `「 ${currentContactUserInfo.username} 」` : "好友列表"}
           </span>
         </div>

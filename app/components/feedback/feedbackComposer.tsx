@@ -66,15 +66,23 @@ export default function FeedbackComposer({
   };
 
   return (
-    <section className="overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
-      <div className="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between">
+    <section className="
+      overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm
+    ">
+      <div className="
+        flex flex-col gap-3 px-4 py-4
+        md:flex-row md:items-center md:justify-between
+      ">
         <div className="space-y-1">
           <div className="text-sm font-semibold text-base-content">新建反馈</div>
         </div>
 
         <button
           type="button"
-          className={`btn btn-sm ${isExpanded ? "btn-ghost" : "btn-primary"}`}
+          className={`
+            btn btn-sm
+            ${isExpanded ? "btn-ghost" : "btn-primary"}
+          `}
           onClick={() => setIsExpanded(current => !current)}
         >
           {isExpanded ? "收起" : "展开"}
@@ -113,11 +121,17 @@ export default function FeedbackComposer({
                     key={option.value}
                     type="button"
                     aria-pressed={issueType === option.value}
-                    className={`rounded-md border px-3 py-2 text-sm transition ${
+                    className={`
+                      rounded-md border px-3 py-2 text-sm transition
+                      ${
                       issueType === option.value
                         ? "border-info bg-info/10 text-info"
-                        : "border-base-300 bg-base-100 hover:bg-base-200/60"
-                    }`}
+                        : `
+                          border-base-300 bg-base-100
+                          hover:bg-base-200/60
+                        `
+                    }
+                    `}
                     onClick={() => setIssueType(option.value)}
                   >
                     {option.label}

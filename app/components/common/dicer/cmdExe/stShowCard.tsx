@@ -406,10 +406,19 @@ function StShowCardPanel({
       </div>
       {entries.length > 0
         ? (
-            <div className="rounded-xl border border-base-300/70 bg-base-100 px-4 py-3 shadow-sm">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="
+              rounded-xl border border-base-300/70 bg-base-100 px-4 py-3
+              shadow-sm
+            ">
+              <div className="
+                grid grid-cols-1 gap-x-6 gap-y-1.5
+                sm:grid-cols-2
+                lg:grid-cols-4
+              ">
                 {entries.map(entry => (
-                  <div key={entry.key} className="break-all text-sm leading-6 text-base-content/90">
+                  <div key={entry.key} className="
+                    break-all text-sm leading-6 text-base-content/90
+                  ">
                     <span className="font-medium text-base-content">{entry.label}</span>
                     ：
                     {entry.value}
@@ -419,7 +428,10 @@ function StShowCardPanel({
             </div>
           )
         : (
-            <div className="rounded-xl border border-dashed border-base-300/80 bg-base-100/70 px-4 py-4 text-sm text-base-content/60">
+            <div className="
+              rounded-xl border border-dashed border-base-300/80 bg-base-100/70
+              px-4 py-4 text-sm text-base-content/60
+            ">
               {emptyText}
             </div>
           )}

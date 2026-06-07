@@ -240,7 +240,10 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center p-6 rounded-lg border border-base-300 bg-base-200">
+      <div className="
+        flex flex-col items-center p-6 rounded-lg border border-base-300
+        bg-base-200
+      ">
         <div className="text-center text-base-content/70">加载中...</div>
       </div>
     );
@@ -249,7 +252,10 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
   // 真正的错误状态（排除用户未设置的情况）
   if (hasError && !userInfo) {
     return (
-      <div className="flex flex-col items-center p-6 rounded-lg border border-base-300 bg-base-200">
+      <div className="
+        flex flex-col items-center p-6 rounded-lg border border-base-300
+        bg-base-200
+      ">
         <div className="text-center text-error">加载失败，请稍后重试</div>
       </div>
     );
@@ -260,9 +266,15 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
     // 只有登录用户本人才显示设置引导，其他人显示“未设置”状态
     if (isOwner) {
       return (
-        <div className="flex flex-col items-center p-4 rounded-lg border border-base-300 bg-base-200">
+        <div className="
+          flex flex-col items-center p-4 rounded-lg border border-base-300
+          bg-base-200
+        ">
           <div className="text-center mb-2">
-            <div className="w-16 h-16 mx-auto mb-4 bg-primary/15 rounded-full flex items-center justify-center">
+            <div className="
+              w-16 h-16 mx-auto mb-4 bg-primary/15 rounded-full flex
+              items-center justify-center
+            ">
               <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
@@ -273,7 +285,9 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
             </p>
           </div>
 
-          <div className="bg-base-100 rounded-lg p-4 mb-4 border border-base-300">
+          <div className="
+            bg-base-100 rounded-lg p-4 mb-4 border border-base-300
+          ">
             <h3 className="font-semibold text-base-content mb-2">GNS 理论简介</h3>
             <div className="space-y-2 text-sm text-base-content/75">
               <div className="flex items-center gap-2">
@@ -326,9 +340,15 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
     else {
       // 查看其他用户的未设置状态
       return (
-        <div className="flex flex-col items-center p-6 rounded-lg border border-base-300 bg-base-200">
+        <div className="
+          flex flex-col items-center p-6 rounded-lg border border-base-300
+          bg-base-200
+        ">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-3 bg-base-300 rounded-full flex items-center justify-center">
+            <div className="
+              w-12 h-12 mx-auto mb-3 bg-base-300 rounded-full flex items-center
+              justify-center
+            ">
               <svg className="w-6 h-6 text-base-content/45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -352,7 +372,10 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
           <button
             type="button"
             onClick={handleOpenEditor}
-            className="btn btn-primary btn-sm disabled:opacity-50"
+            className="
+              btn btn-primary btn-sm
+              disabled:opacity-50
+            "
             disabled={updateUserInfoMutation.isPending}
           >
             编辑
@@ -361,7 +384,9 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
       </div>
 
       <div className="relative">
-        <svg width="300" height="260" viewBox="0 0 300 260" className="overflow-visible">
+        <svg width="300" height="260" viewBox="0 0 300 260" className="
+          overflow-visible
+        ">
           {/* 背景网格线（5个档位的同心三角形） */}
           {[1, 2, 3, 4, 5].map((level) => {
             const scale = level / 5;
@@ -380,7 +405,9 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
                 points={trianglePoints}
                 fill="none"
                 stroke="currentColor"
-                className={level === 5 ? "text-base-content/45" : "text-base-content/20"}
+                className={level === 5 ? "text-base-content/45" : `
+                  text-base-content/20
+                `}
                 strokeWidth={level === 5 ? "2" : "1"}
               />
             );
@@ -444,7 +471,10 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
                   y={pos.y}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className={`text-sm font-bold ${isHighlighted ? "text-primary" : "text-base-content/70"}`}
+                  className={`
+                    text-sm font-bold
+                    ${isHighlighted ? "text-primary" : `text-base-content/70`}
+                  `}
                   fill="currentColor"
                 >
                   {categoryNames[category]}
@@ -454,7 +484,10 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
                   y={pos.y + 16}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className={`text-xs ${isHighlighted ? "text-primary" : "text-base-content/60"}`}
+                  className={`
+                    text-xs
+                    ${isHighlighted ? "text-primary" : `text-base-content/60`}
+                  `}
                   fill="currentColor"
                 >
                   {rating}

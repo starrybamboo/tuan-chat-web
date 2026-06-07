@@ -81,7 +81,10 @@ export default function RoleBasicInfoEditor({
   };
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={`
+      space-y-3
+      ${className}
+    `}>
       {showName && (
         <DoubleClickEditableText
           value={localRole.name ?? ""}
@@ -103,7 +106,20 @@ export default function RoleBasicInfoEditor({
             <button
               type="button"
               onClick={startEditing}
-              className={`relative inline-block max-w-full rounded-md px-1 py-1 transition-colors hover:text-primary ${textAlignClassName} ${nameClassName} ${nameDisplayClassName} after:absolute after:bottom-0 after:h-0.5 after:w-0 after:rounded-full after:bg-primary after:transition-all after:duration-200 hover:after:w-full ${align === "center" ? "mx-auto" : ""} ${nameUnderlineClassName}`}
+              className={`
+                relative inline-block max-w-full rounded-md px-1 py-1
+                transition-colors
+                hover:text-primary
+                ${textAlignClassName}
+                ${nameClassName}
+                ${nameDisplayClassName}
+                after:absolute after:bottom-0 after:h-0.5 after:w-0
+                after:rounded-full after:bg-primary after:transition-all
+                after:duration-200
+                hover:after:w-full
+                ${align === "center" ? `mx-auto` : ""}
+                ${nameUnderlineClassName}
+              `}
             >
               {displayValue || "未命名角色"}
             </button>
@@ -113,7 +129,10 @@ export default function RoleBasicInfoEditor({
 
       {supportingText
         ? (
-            <p className={`text-sm text-base-content/60 ${textAlignClassName}`}>
+            <p className={`
+              text-sm text-base-content/60
+              ${textAlignClassName}
+            `}>
               {supportingText}
             </p>
           )
@@ -126,11 +145,22 @@ export default function RoleBasicInfoEditor({
                 value={descriptionDraft}
                 onChange={event => setDescriptionDraft(event.target.value)}
                 placeholder="角色描述"
-                className={`min-h-32 h-full w-full resize-none rounded-md border border-base-content/15 bg-base-100 px-2 py-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${textAlignClassName} ${descriptionTextareaClassName}`}
+                className={`
+                  min-h-32 h-full w-full resize-none rounded-md border
+                  border-base-content/15 bg-base-100 px-2 py-2 text-sm
+                  transition
+                  focus:border-primary focus:outline-none focus:ring-2
+                  focus:ring-primary/20
+                  ${textAlignClassName}
+                  ${descriptionTextareaClassName}
+                `}
                 maxLength={maxDescriptionLength}
               />
               <div className="mt-2 flex items-center justify-between gap-3">
-                <span className={`text-sm ${descriptionCounterClassName}`}>
+                <span className={`
+                  text-sm
+                  ${descriptionCounterClassName}
+                `}>
                   {descriptionLength}
                   /
                   {maxDescriptionLength}
@@ -138,14 +168,22 @@ export default function RoleBasicInfoEditor({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="rounded-md px-3 py-1.5 text-sm text-base-content/70 transition hover:bg-base-200"
+                    className="
+                      rounded-md px-3 py-1.5 text-sm text-base-content/70
+                      transition
+                      hover:bg-base-200
+                    "
                     onClick={handleDescriptionCancel}
                   >
                     取消
                   </button>
                   <button
                     type="button"
-                    className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-content transition hover:opacity-90"
+                    className="
+                      rounded-md bg-primary px-3 py-1.5 text-sm
+                      text-primary-content transition
+                      hover:opacity-90
+                    "
                     onClick={handleDescriptionSave}
                   >
                     保存
@@ -158,7 +196,13 @@ export default function RoleBasicInfoEditor({
             <button
               type="button"
               onClick={handleDescriptionStartEditing}
-              className={`flex w-full items-start rounded-md px-2 transition hover:bg-base-200/80 ${descriptionAlignClassName} ${textAlignClassName} ${descriptionButtonClassName}`}
+              className={`
+                flex w-full items-start rounded-md px-2 transition
+                hover:bg-base-200/80
+                ${descriptionAlignClassName}
+                ${textAlignClassName}
+                ${descriptionButtonClassName}
+              `}
             >
               <span className={descriptionDisplayClassName}>
                 {localRole.description || "暂无描述"}

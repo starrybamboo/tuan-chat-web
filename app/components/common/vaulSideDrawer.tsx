@@ -111,7 +111,10 @@ export function VaulSideDrawer({
 
   if (shouldOverlayOnMobile) {
     return (
-      <div className={`absolute inset-0 z-40 pointer-events-none ${className}`}>
+      <div className={`
+        absolute inset-0 z-40 pointer-events-none
+        ${className}
+      `}>
         <div
           className="h-full min-h-0 w-full flex pointer-events-auto"
           style={{
@@ -120,16 +123,32 @@ export function VaulSideDrawer({
           }}
         >
           <div
-            className={`bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full w-full grow flex flex-col rounded-none shadow-xl overflow-hidden relative ${panelClassName}`}
+            className={`
+              bg-white/40
+              dark:bg-slate-950/25
+              backdrop-blur-xl border border-white/40
+              dark:border-white/10
+              h-full w-full grow flex flex-col rounded-none shadow-xl
+              overflow-hidden relative
+              ${panelClassName}
+            `}
           >
             {canResize && (
               <div
-                className={`absolute top-0 h-full w-3 cursor-col-resize z-50 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/15 transition-colors`}
+                className={`
+                  absolute top-0 h-full w-3 cursor-col-resize z-50
+                  ${handlePosition === "left" ? `left-0` : `right-0`}
+                  hover:bg-info/15
+                  transition-colors
+                `}
                 onPointerDown={handlePointerDown}
                 style={{ touchAction: "none" }}
                 title="拖拽调整宽度"
               >
-                <div className={`absolute top-0 h-full w-px bg-base-300 ${handlePosition === "left" ? "left-0" : "right-0"}`} />
+                <div className={`
+                  absolute top-0 h-full w-px bg-base-300
+                  ${handlePosition === "left" ? `left-0` : `right-0`}
+                `} />
               </div>
             )}
             <div className="flex-1 min-w-0 h-full flex flex-col">
@@ -143,23 +162,42 @@ export function VaulSideDrawer({
 
   return (
     <div
-      className={`relative z-40 h-full min-h-0 shrink-0 flex pointer-events-auto ${className}`}
+      className={`
+        relative z-40 h-full min-h-0 shrink-0 flex pointer-events-auto
+        ${className}
+      `}
       style={{
         width: widthStyle,
         maxWidth: mobileMaxWidth,
       }}
     >
       <div
-        className={`bg-white/40 dark:bg-slate-950/25 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full w-full grow flex flex-col rounded-none shadow-xl overflow-hidden relative ${panelClassName}`}
+        className={`
+          bg-white/40
+          dark:bg-slate-950/25
+          backdrop-blur-xl border border-white/40
+          dark:border-white/10
+          h-full w-full grow flex flex-col rounded-none shadow-xl
+          overflow-hidden relative
+          ${panelClassName}
+        `}
       >
         {canResize && (
           <div
-            className={`absolute top-0 h-full w-3 cursor-col-resize z-50 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/15 transition-colors`}
+            className={`
+              absolute top-0 h-full w-3 cursor-col-resize z-50
+              ${handlePosition === "left" ? `left-0` : `right-0`}
+              hover:bg-info/15
+              transition-colors
+            `}
             onPointerDown={handlePointerDown}
             style={{ touchAction: "none" }}
             title="拖拽调整宽度"
           >
-            <div className={`absolute top-0 h-full w-px bg-base-300 ${handlePosition === "left" ? "left-0" : "right-0"}`} />
+            <div className={`
+              absolute top-0 h-full w-px bg-base-300
+              ${handlePosition === "left" ? `left-0` : `right-0`}
+            `} />
           </div>
         )}
         <div className="flex-1 min-w-0 h-full flex flex-col">

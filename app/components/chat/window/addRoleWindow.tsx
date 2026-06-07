@@ -134,14 +134,20 @@ export function AddRoleWindow({
       <div role="tablist" className="tabs tabs-boxed mb-4 mx-auto w-fit">
         <button
           type="button"
-          className={`tab ${activeTab === "my" ? "tab-active" : ""}`}
+          className={`
+            tab
+            ${activeTab === "my" ? "tab-active" : ""}
+          `}
           onClick={() => setActiveTab("my")}
         >
           我的角色
         </button>
         <button
           type="button"
-          className={`tab ${activeTab === "space" ? "tab-active" : ""}`}
+          className={`
+            tab
+            ${activeTab === "space" ? "tab-active" : ""}
+          `}
           onClick={() => setActiveTab("space")}
         >
           空间角色
@@ -162,7 +168,9 @@ export function AddRoleWindow({
           />
         </div>
         {activeTab === "space" && (
-          <div className="mb-4 rounded-lg border border-base-300 p-3 bg-base-200/30">
+          <div className="
+            mb-4 rounded-lg border border-base-300 p-3 bg-base-200/30
+          ">
             <div className="text-sm font-semibold text-base-content/80 mb-2">开发调试：按ID强制添加</div>
             <div className="flex items-center gap-2">
               <input
@@ -207,10 +215,16 @@ export function AddRoleWindow({
                 }
                 {hasSearch && filteredAvailableRoles.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-sm font-semibold text-base-content/70 mb-2">搜索结果</div>
+                    <div className="
+                      text-sm font-semibold text-base-content/70 mb-2
+                    ">搜索结果</div>
                     <div className="flex flex-wrap gap-3 justify-center">
                       {filteredAvailableRoles.map(role => (
-                        <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
+                        <div className="
+                          card shadow
+                          hover:shadow-lg
+                          transition-shadow cursor-pointer
+                        " key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
                             <button type="button" onClick={() => handleAddRole(role.roleId)}>
                               <RoleAvatarByRole
@@ -233,7 +247,11 @@ export function AddRoleWindow({
                 )}
                 <div className="flex flex-wrap gap-3 justify-center">
                   {availableRoles.map(role => (
-                    <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+                    <div className="
+                      card shadow
+                      hover:shadow-lg
+                      transition-shadow cursor-pointer
+                    " key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
                         <button type="button" onClick={() => handleAddRole(role.roleId)}>
                           <RoleAvatarByRole
@@ -250,7 +268,11 @@ export function AddRoleWindow({
                   ))}
                   <button
                     type="button"
-                    className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
+                    className="
+                      card shadow
+                      hover:shadow-lg
+                      transition-shadow cursor-pointer
+                    "
                     onClick={() => setIsCreatingRole(true)}
                   >
                     <div className="flex flex-col items-center p-3">
@@ -270,10 +292,16 @@ export function AddRoleWindow({
                 )}
                 {hasSearch && filteredAvailableSpaceRoles.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-sm font-semibold text-base-content/70 mb-2">搜索结果</div>
+                    <div className="
+                      text-sm font-semibold text-base-content/70 mb-2
+                    ">搜索结果</div>
                     <div className="flex flex-wrap gap-3 justify-center">
                       {filteredAvailableSpaceRoles.map(role => (
-                        <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={`search-${role.roleId}`}>
+                        <div className="
+                          card shadow
+                          hover:shadow-lg
+                          transition-shadow cursor-pointer
+                        " key={`search-${role.roleId}`}>
                           <div className="flex flex-col items-center p-3">
                             <button type="button" onClick={() => handleImportSpaceRole(role.roleId)}>
                               <RoleAvatarByRole
@@ -296,7 +324,11 @@ export function AddRoleWindow({
                 )}
                 <div className="flex flex-wrap gap-3 justify-center">
                   {availableSpaceRoles.map(role => (
-                    <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+                    <div className="
+                      card shadow
+                      hover:shadow-lg
+                      transition-shadow cursor-pointer
+                    " key={role.roleId}>
                       <div className="flex flex-col items-center p-3">
                         <button type="button" onClick={() => handleImportSpaceRole(role.roleId)}>
                           <RoleAvatarByRole
@@ -313,7 +345,11 @@ export function AddRoleWindow({
                   ))}
                   <button
                     type="button"
-                    className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
+                    className="
+                      card shadow
+                      hover:shadow-lg
+                      transition-shadow cursor-pointer
+                    "
                     onClick={() => setIsCreatingNpc(true)}
                   >
                     <div className="flex flex-col items-center p-3">

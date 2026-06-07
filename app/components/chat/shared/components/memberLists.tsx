@@ -130,7 +130,13 @@ function MemberActionMenuItem({
       <button
         ref={first ? firstItemRef : undefined}
         type="button"
-        className={`justify-start w-full text-left ${danger ? "text-error hover:text-error" : ""}`}
+        className={`
+          justify-start w-full text-left
+          ${danger ? `
+            text-error
+            hover:text-error
+          ` : ""}
+        `}
         onClick={() => {
           onClick();
           onAfterClick();
@@ -171,7 +177,10 @@ function RoomMemberActionButton({
   return (
     <button
       type="button"
-      className={`btn btn-xs btn-ghost px-2 ${action.danger ? "text-error" : "text-primary"}`}
+      className={`
+        btn btn-xs btn-ghost px-2
+        ${action.danger ? "text-error" : `text-primary`}
+      `}
       onClick={action.kind === "invite" ? onInvite : onRemove}
       aria-label={action.label}
     >
@@ -294,7 +303,13 @@ function SpaceMemberActionMenu({
       {open && (
         <ul
           id={`member-menu-${member.userId}`}
-          className={`menu menu-xs dropdown-content absolute right-0 z-20 max-h-60 w-48 overflow-auto rounded-box bg-base-200 p-2 shadow animate-fadeIn ${placeUp ? "bottom-full mb-1 origin-bottom" : "top-full mt-1 origin-top"}`}
+          className={`
+            menu menu-xs dropdown-content absolute right-0 z-20 max-h-60 w-48
+            overflow-auto rounded-box bg-base-200 p-2 shadow animate-fadeIn
+            ${placeUp ? `bottom-full mb-1 origin-bottom` : `
+              top-full mt-1 origin-top
+            `}
+          `}
           aria-label="成员操作菜单"
         >
           {menuLabels.includes("退出空间") && (
@@ -520,7 +535,10 @@ export default function MemberLists({
           const spaceMemberTypeActions = isSpace ? getSpaceMemberTypeActions(member.memberType) : [];
 
           return (
-            <div className={`rounded-lg bg-base-200 p-3 ${className ?? ""}`} key={member.userId}>
+            <div className={`
+              rounded-lg bg-base-200 p-3
+              ${className ?? ""}
+            `} key={member.userId}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-row items-center gap-3">
                   <UserAvatarByUser user={member} width={10} isRounded={true} withName={true} />

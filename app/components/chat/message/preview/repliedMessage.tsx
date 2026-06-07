@@ -44,13 +44,21 @@ export default function RepliedMessage({ replyMessage, className }: {
         }}
         aria-label="取消回复"
         title="取消回复"
-        className="size-4 opacity-70 transition-opacity hover:bg-base-300"
+        className="
+          size-4 opacity-70 transition-opacity
+          hover:bg-base-300
+        "
         type="button"
       >
         <XMarkICon className="size-4"></XMarkICon>
       </button>
       <span className="opacity-60 inline flex-shrink-0">回复</span>
-      <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${isOutOfCharacterText ? "italic" : ""}`}>
+      <span className={`
+        text-xs
+        sm:text-sm
+        line-clamp-3 opacity-60 break-words min-w-0
+        ${isOutOfCharacterText ? `italic` : ""}
+      `}>
         {namePrefix}
         <MessagePreviewContent message={replyMessage} withMediaPreview />
       </span>

@@ -90,7 +90,9 @@ export default function SpaceMaterialSubWindow({
 
   if (packagesQuery.isLoading && !selectedPackage) {
     return (
-      <div className="h-full flex items-center justify-center text-sm text-base-content/60">
+      <div className="
+        h-full flex items-center justify-center text-sm text-base-content/60
+      ">
         正在加载素材包...
       </div>
     );
@@ -98,7 +100,9 @@ export default function SpaceMaterialSubWindow({
 
   if (!selectedPackage) {
     return (
-      <div className="h-full flex items-center justify-center text-base-content/70">
+      <div className="
+        h-full flex items-center justify-center text-base-content/70
+      ">
         <div className="max-w-sm text-center px-8">
           <div className="text-base font-semibold">未找到可编辑素材</div>
           <div className="mt-2 text-sm text-base-content/60">

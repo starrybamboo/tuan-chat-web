@@ -100,7 +100,11 @@ export default function RoomSidebarDocItem({
 
   return (
     <div
-      className={`group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start items-center gap-2 w-full min-w-0 select-none ${isActive ? "bg-info-content/10" : "hover:bg-base-300"}`}
+      className={`
+        group relative font-bold text-sm rounded-lg p-1 pr-10 flex justify-start
+        items-center gap-2 w-full min-w-0 select-none
+        ${isActive ? `bg-info-content/10` : `hover:bg-base-300`}
+      `}
       role="button"
       tabIndex={0}
       aria-pressed={isActive}
@@ -180,7 +184,10 @@ export default function RoomSidebarDocItem({
         setDropTarget(null);
       }}
     >
-      <div className="mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex items-center justify-center relative overflow-hidden">
+      <div className="
+        mask mask-squircle size-8 bg-base-100 border border-base-300/60 flex
+        items-center justify-center relative overflow-hidden
+      ">
         {displayCoverUrl
           ? (
               <>
@@ -190,7 +197,10 @@ export default function RoomSidebarDocItem({
                   draggable={false}
                   className="w-full h-full object-cover"
                 />
-                <span className="absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80 flex items-center justify-center border border-base-300/60">
+                <span className="
+                  absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80
+                  flex items-center justify-center border border-base-300/60
+                ">
                   <FileTextIcon className="size-3 opacity-70" />
                 </span>
               </>

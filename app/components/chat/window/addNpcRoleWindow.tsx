@@ -50,7 +50,11 @@ export function AddNpcRoleWindow({
         )}
         <div className="flex flex-wrap gap-3 justify-center">
           {availableSpaceRoles.map(role => (
-            <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+            <div className="
+              card shadow
+              hover:shadow-lg
+              transition-shadow cursor-pointer
+            " key={role.roleId}>
               <div className="flex flex-col items-center p-3">
                 <button type="button" onClick={() => handleAddRole(role.roleId)}>
                   <RoleAvatarByRole
@@ -67,7 +71,11 @@ export function AddNpcRoleWindow({
           ))}
           <button
             type="button"
-            className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
+            className="
+              card shadow
+              hover:shadow-lg
+              transition-shadow cursor-pointer
+            "
             onClick={() => setIsCreatingNpc(true)}
           >
             <div className="flex flex-col items-center p-3">

@@ -45,12 +45,21 @@ export default function PerformanceField({
 
   return (
     <div className="form-control w-full">
-      <div className={`flex items-center gap-2 ${isCompact ? "mb-1" : "mb-2"}`}>
+      <div className={`
+        flex items-center gap-2
+        ${isCompact ? "mb-1" : "mb-2"}
+      `}>
         {editingFieldKey === fieldKey
           ? (
-              <label className={`input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 flex-1 ${
+              <label className={`
+                input flex items-center gap-2 rounded-md transition
+                focus-within:ring-2 focus-within:ring-primary/20
+                focus-within:border-primary focus-within:outline-none
+                bg-base-100 flex-1
+                ${
                 isCompact ? "input-xs" : "input-sm"
-              }`}
+              }
+              `}
               >
                 <input
                   type="text"
@@ -71,16 +80,26 @@ export default function PerformanceField({
                     }
                   }}
                   data-arrow-nav-control={enableArrowNavigation ? "true" : undefined}
-                  className={`grow focus:outline-none border-none outline-none bg-transparent font-semibold ${isCompact ? "text-xs" : "text-base"}`}
+                  className={`
+                    grow
+                    focus:outline-none
+                    border-none outline-none bg-transparent font-semibold
+                    ${isCompact ? `text-xs` : `text-base`}
+                  `}
 
                 />
               </label>
             )
           : (
               <span
-                className={`ml-1 font-semibold label-text cursor-pointer hover:text-primary flex-1 ${
+                className={`
+                  ml-1 font-semibold label-text cursor-pointer
+                  hover:text-primary
+                  flex-1
+                  ${
                   isCompact ? "text-xs" : "text-base"
-                }`}
+                }
+                `}
                 onClick={() => {
                   setEditingFieldKey(fieldKey);
                   setTempFieldKey(fieldKey);
@@ -93,21 +112,35 @@ export default function PerformanceField({
         <button
           type="button"
           onClick={() => onDelete(fieldKey)}
-          className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+          className="
+            btn btn-ghost btn-xs text-error
+            hover:bg-error/10
+          "
           title="删除字段"
         >
           ✕
         </button>
       </div>
 
-      <label className={`textarea w-full flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none bg-base-100 p-0 h-full ${
+      <label className={`
+        textarea w-full flex items-center gap-2 rounded-md transition
+        focus-within:ring-2 focus-within:ring-primary/20
+        focus-within:border-primary focus-within:outline-none
+        bg-base-100 p-0 h-full
+        ${
         isCompact ? "textarea-sm" : ""
-      }`}
+      }
+      `}
       >
         <textarea
-          className={`textarea grow focus:outline-none border-none outline-none bg-transparent h-full resize-none ${
+          className={`
+            textarea grow
+            focus:outline-none
+            border-none outline-none bg-transparent h-full resize-none
+            ${
             isCompact ? "text-xs" : ""
-          }`}
+          }
+          `}
           style={{ minHeight: `${minHeight}rem` }}
           placeholder={placeholder}
           value={value === "0" ? "" : String(value ?? "")}

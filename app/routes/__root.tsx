@@ -332,7 +332,10 @@ function App() {
             <h3 className="text-lg font-bold">Bug 反馈与诊断提示</h3>
             <div className="mt-4 space-y-3 leading-7">
               {isAnalyticsBlockedByAdBlocker && (
-                <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm leading-7 text-base-content">
+                <div className="
+                  rounded-xl border border-warning/30 bg-warning/10 px-4 py-3
+                  text-sm leading-7 text-base-content
+                ">
                   <p className="font-semibold text-warning">检测到浏览器可能拦截了诊断脚本</p>
                   <p className="mt-2">
                     当前站点使用 Cloudflare 的 JS beacon 收集性能和错误现场，用于性能优化和 Bug 分析。
@@ -422,7 +425,9 @@ function ErrorBoundary({ error }: { error: Error }) {
   }
 
   return (
-    <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
+    <main className="
+      min-h-screen bg-base-200 flex items-center justify-center p-4
+    ">
       <div className="card w-full max-w-lg bg-base-100 shadow-xl">
         <div className="card-body items-center text-center">
           {/* Alert Icon */}
@@ -446,12 +451,17 @@ function ErrorBoundary({ error }: { error: Error }) {
           {/* Collapsible Stack Trace for Dev Mode */}
           {stack && (
             <div className="text-left w-full mt-4">
-              <div className="collapse collapse-arrow border border-base-300 bg-base-200">
+              <div className="
+                collapse collapse-arrow border border-base-300 bg-base-200
+              ">
                 <div className="collapse-title font-medium">
                   Stack Trace (Development Only)
                 </div>
                 <div className="collapse-content">
-                  <pre className="w-full p-2 overflow-x-auto bg-neutral text-neutral-content rounded-box text-sm">
+                  <pre className="
+                    w-full p-2 overflow-x-auto bg-neutral text-neutral-content
+                    rounded-box text-sm
+                  ">
                     <code>{stack}</code>
                   </pre>
                 </div>
@@ -488,9 +498,16 @@ function NotFoundFallback() {
   }, [navigate]);
 
   return (
-    <main className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-      <section className="w-full max-w-lg rounded-lg bg-base-100 p-8 text-center shadow-xl">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-warning/15 text-warning">
+    <main className="
+      min-h-screen bg-base-200 flex items-center justify-center p-4
+    ">
+      <section className="
+        w-full max-w-lg rounded-lg bg-base-100 p-8 text-center shadow-xl
+      ">
+        <div className="
+          mx-auto flex size-16 items-center justify-center rounded-full
+          bg-warning/15 text-warning
+        ">
           <span className="text-3xl font-bold">404</span>
         </div>
         <h1 className="mt-6 text-3xl font-bold">页面不存在</h1>

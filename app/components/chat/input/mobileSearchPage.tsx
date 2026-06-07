@@ -149,7 +149,10 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
     <div className="fixed inset-0 z-[10000] bg-base-100 flex flex-col">
       {/* 顶部搜索栏 */}
       <div
-        className="sticky top-0 z-10 border-b border-base-300 bg-base-100/95 backdrop-blur"
+        className="
+          sticky top-0 z-10 border-b border-base-300 bg-base-100/95
+          backdrop-blur
+        "
         style={{ paddingTop: "max(8px, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-2 px-3 pb-2">
@@ -162,13 +165,19 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
             <BaselineArrowBackIosNew className="size-5" />
           </button>
 
-          <div className="flex h-10 items-center flex-1 bg-base-200 rounded-xl px-3 border border-base-300">
+          <div className="
+            flex h-10 items-center flex-1 bg-base-200 rounded-xl px-3 border
+            border-base-300
+          ">
             <SearchFilled className="size-4 text-base-content/60 mr-2 shrink-0" />
             <input
               ref={inputRef}
               type="text"
               placeholder="搜索聊天记录..."
-              className="bg-transparent border-none outline-none flex-1 min-w-0 text-sm placeholder:text-base-content/60"
+              className="
+                bg-transparent border-none outline-none flex-1 min-w-0 text-sm
+                placeholder:text-base-content/60
+              "
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
             />
@@ -220,14 +229,24 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
                                   roomContext.scrollToGivenMessage(message.message.messageId);
                                 onClose();
                               }}
-                              className="px-4 py-4 hover:bg-base-200 active:bg-base-300 cursor-pointer transition-colors"
+                              className="
+                                px-4 py-4
+                                hover:bg-base-200
+                                active:bg-base-300
+                                cursor-pointer transition-colors
+                              "
                             />
                           ))}
                         </div>
                       )
                     : (
-                        <div className="flex flex-col items-center justify-center h-full text-base-content/50 px-4">
-                          <SearchFilled className="size-16 mb-4 text-base-content/30" />
+                        <div className="
+                          flex flex-col items-center justify-center h-full
+                          text-base-content/50 px-4
+                        ">
+                          <SearchFilled className="
+                            size-16 mb-4 text-base-content/30
+                          " />
                           <p className="text-lg font-medium mb-2">没有找到匹配的聊天记录</p>
                           <p className="text-sm text-center">
                             尝试使用不同的关键词搜索
@@ -238,7 +257,10 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
               </div>
             )
           : (
-              <div className="flex flex-col items-center justify-center h-full text-base-content/50 px-4">
+              <div className="
+                flex flex-col items-center justify-center h-full
+                text-base-content/50 px-4
+              ">
                 <SearchFilled className="size-16 mb-4 text-base-content/30" />
                 <p className="text-lg font-medium mb-2">搜索消息</p>
                 <p className="text-sm text-center">

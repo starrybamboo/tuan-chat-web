@@ -97,7 +97,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       <div className="relative w-4/5">
         {/* 放大图片容器 */}
         <div
-          className="relative w-full aspect-square bg-base-100 rounded-lg overflow-hidden cursor-pointer"
+          className="
+            relative w-full aspect-square bg-base-100 rounded-lg overflow-hidden
+            cursor-pointer
+          "
           onClick={handleEnlargedClick}
         >
           <MediaImage
@@ -112,7 +115,12 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           />
 
           {hasPrev && (
-            <div className="absolute left-0 top-0 w-[30%] h-full bg-gradient-to-r from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-start pl-4">
+            <div className="
+              absolute left-0 top-0 w-[30%] h-full bg-gradient-to-r
+              from-black/20 to-transparent opacity-0
+              hover:opacity-100
+              transition-opacity flex items-center justify-start pl-4
+            ">
               <div className="bg-black/50 rounded-full p-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <path d="M15 18l-6-6 6-6" />
@@ -122,7 +130,12 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           )}
 
           {hasNext && (
-            <div className="absolute right-0 top-0 w-[30%] h-full bg-gradient-to-l from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-center justify-end pr-4">
+            <div className="
+              absolute right-0 top-0 w-[30%] h-full bg-gradient-to-l
+              from-black/20 to-transparent opacity-0
+              hover:opacity-100
+              transition-opacity flex items-center justify-end pr-4
+            ">
               <div className="bg-black/50 rounded-full p-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                   <path d="M9 18l6-6-6-6" />
@@ -137,7 +150,11 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           <button
             type="button"
             onClick={handleRotateLeft}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+            className="
+              bg-black/50
+              hover:bg-black/70
+              text-white p-2 rounded-full transition-colors
+            "
             title="向左旋转"
           >
             <RotateLeftIcon />
@@ -145,7 +162,11 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           <button
             type="button"
             onClick={handleRotateRight}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+            className="
+              bg-black/50
+              hover:bg-black/70
+              text-white p-2 rounded-full transition-colors
+            "
             title="向右旋转"
           >
             <RotateRightIcon />
@@ -153,7 +174,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
         </div>
 
         {/* 图片信息 */}
-        <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+        <div className="
+          absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full
+          text-sm
+        ">
           {enlargedIndex + 1}
           {" "}
           /
@@ -167,27 +191,39 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   return (
     <div className="w-full">
       <div
-        className={`grid gap-2 ${
+        className={`
+          grid gap-2
+          ${
           images.length === 1
             ? "grid-cols-1 max-w-xs"
             : images.length === 2
               ? "grid-cols-2 max-w-md"
               : "grid-cols-3 max-w-lg"
-        }`}
+        }
+        `}
       >
         {images.slice(0, maxPreview).map((img: string, idx: number) => (
           <div key={img} className="relative">
             <MediaImage
               src={imageMediumUrlFromUrl(img)}
               alt={`图片 ${idx + 1}`}
-              className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              className="
+                w-full aspect-square object-cover rounded-lg cursor-pointer
+                hover:opacity-90
+                transition-opacity
+              "
               onClick={() => handleImageClick(idx)}
             />
 
             {/* 如果是最后一个预览格并且总数超过 maxPreview，显示 +N 覆盖 */}
             {idx === maxPreview - 1 && images.length > maxPreview && (
               <div
-                className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center cursor-pointer hover:bg-black/50 transition-colors"
+                className="
+                  absolute inset-0 bg-black/60 rounded-lg flex items-center
+                  justify-center cursor-pointer
+                  hover:bg-black/50
+                  transition-colors
+                "
                 onClick={() => handleImageClick(idx)}
               >
                 <span className="text-white font-semibold text-lg">
@@ -203,7 +239,11 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
       {/* 如果总数超过 maxPreview，显示查看全部提示 */}
       {images.length > maxPreview && (
         <p
-          className="text-xs text-gray-500 mt-2 cursor-pointer hover:text-blue-500 transition-colors"
+          className="
+            text-xs text-gray-500 mt-2 cursor-pointer
+            hover:text-blue-500
+            transition-colors
+          "
           onClick={() => handleImageClick(0)}
         >
           点击查看全部

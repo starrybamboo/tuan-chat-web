@@ -26,7 +26,10 @@ function RoomWindowLoadingFallback() {
 
 function ChatPageLoadingFallback({ text }: { text: string }) {
   return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+    <div className="
+      flex h-full w-full items-center justify-center text-sm
+      text-base-content/60
+    ">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">{text}</span>
     </div>
@@ -40,14 +43,24 @@ interface ChatPageDocToolbarProps {
 function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
   return (
     <div className="relative z-50">
-      <div className="relative z-50 flex items-center justify-between overflow-visible border-y border-gray-300 dark:border-gray-700">
+      <div className="
+        relative z-50 flex items-center justify-between overflow-visible
+        border-y border-gray-300
+        dark:border-gray-700
+      ">
         <div
-          className="flex h-10 w-full items-center justify-between px-2
-        border border-white/40 bg-white/40 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25"
+          className="
+            flex h-10 w-full items-center justify-between px-2 border
+            border-white/40 bg-white/40 backdrop-blur-xl
+            dark:border-white/10 dark:bg-slate-950/25
+          "
         >
           <button
             type="button"
-            className="btn btn-ghost btn-square btn-sm rounded-md active:scale-95"
+            className="
+              btn btn-ghost btn-square btn-sm rounded-md
+              active:scale-95
+            "
             onClick={() => onBack?.()}
             aria-label="返回房间"
             title="返回房间"
@@ -63,7 +76,9 @@ function ChatPageDocToolbar({ onBack }: ChatPageDocToolbarProps) {
 function PrivateChatEmptyState() {
   const { setPrivateChatTab } = useChatPageLayoutContext();
   return (
-    <div className="flex h-full w-full items-center justify-center px-6 text-base-content/60">
+    <div className="
+      flex h-full w-full items-center justify-center px-6 text-base-content/60
+    ">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
         <svg xmlns="http://www.w3.org/2000/svg" className="size-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -122,7 +137,10 @@ function ChatPageChatContent() {
     })();
 
     return (
-      <div className="h-full w-full overflow-hidden border-t border-gray-300 dark:border-gray-700">
+      <div className="
+        h-full w-full overflow-hidden border-t border-gray-300
+        dark:border-gray-700
+      ">
         <div
           key={privateChatTab}
           className="private-chat-panel-entry h-full w-full"
@@ -136,7 +154,10 @@ function ChatPageChatContent() {
   if (!activeSpaceId) {
     return (
       <div className="flex items-center justify-center w-full h-full font-bold">
-        <span className="text-center lg:hidden">请在左侧选择空间或房间</span>
+        <span className="
+          text-center
+          lg:hidden
+        ">请在左侧选择空间或房间</span>
       </div>
     );
   }
@@ -167,7 +188,10 @@ function ChatPageSpaceDetailContent() {
   if (!activeSpaceId) {
     return (
       <div className="flex items-center justify-center w-full h-full font-bold">
-        <span className="text-center lg:hidden">请在左侧选择空间或房间</span>
+        <span className="
+          text-center
+          lg:hidden
+        ">请在左侧选择空间或房间</span>
       </div>
     );
   }
@@ -284,7 +308,10 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
       <div className="flex items-center justify-center w-full h-full font-bold">
-        <span className="text-center lg:hidden">请在左侧选择空间或房间</span>
+        <span className="
+          text-center
+          lg:hidden
+        ">请在左侧选择空间或房间</span>
       </div>
     );
   }
@@ -294,7 +321,9 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
       <div className="w-full h-full overflow-hidden flex justify-center">
         {canViewDocs
           ? (
-              <div className="flex w-full h-full min-h-0 flex-col overflow-hidden bg-base-100">
+              <div className="
+                flex w-full h-full min-h-0 flex-col overflow-hidden bg-base-100
+              ">
                 {showToolbar && <ChatPageDocToolbar onBack={handleBack} />}
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <MessageEditor
@@ -320,7 +349,9 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
               </div>
             )
           : (
-              <div className="flex items-center justify-center w-full h-full font-bold">
+              <div className="
+                flex items-center justify-center w-full h-full font-bold
+              ">
                 <span className="text-center">仅 KP 可查看文档</span>
               </div>
             )}

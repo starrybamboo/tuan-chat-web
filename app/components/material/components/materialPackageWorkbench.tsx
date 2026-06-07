@@ -127,7 +127,10 @@ function ReadOnlyAssetCard({ message, index }: { message: MessageDraft; index: n
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100/80 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
+        <span className="
+          rounded-full border border-primary/20 bg-primary/10 px-2 py-1
+          text-[11px] font-medium text-primary
+        ">
           {getReadOnlyAssetTypeLabel(message)}
         </span>
         {annotationText && (
@@ -460,11 +463,19 @@ export default function MaterialPackageWorkbench({
       return (
         <div key={nodeKey} className="space-y-1">
           <div
-            className={`flex items-start gap-1.5 rounded-md px-1.5 py-1.5 text-sm transition ${
+            className={`
+              flex items-start gap-1.5 rounded-md px-1.5 py-1.5 text-sm
+              transition
+              ${
               isSelected
                 ? "bg-primary/10 text-primary"
-                : "text-base-content/72 hover:bg-base-200 hover:text-base-content"
-            } ${isDropTarget ? "ring-2 ring-primary/20" : ""}`}
+                : `
+                  text-base-content/72
+                  hover:bg-base-200 hover:text-base-content
+                `
+            }
+              ${isDropTarget ? "ring-2 ring-primary/20" : ""}
+            `}
             style={rowStyle}
             onDragOver={(event) => {
               if (readOnly || !draggedNodeKey || isInvalidDrop) {
@@ -488,19 +499,31 @@ export default function MaterialPackageWorkbench({
           >
             <button
               type="button"
-              className={`mt-0.5 inline-flex size-4 items-center justify-center ${canExpand ? "" : "opacity-0 pointer-events-none"}`}
+              className={`
+                mt-0.5 inline-flex size-4 items-center justify-center
+                ${canExpand ? "" : `opacity-0 pointer-events-none`}
+              `}
               onClick={() => {
                 if (canExpand) {
                   toggleFolder(nodeKey);
                 }
               }}
             >
-              <CaretRightIcon className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} weight="bold" />
+              <CaretRightIcon className={`
+                size-3 transition-transform
+                ${isExpanded ? `rotate-90` : ""}
+              `} weight="bold" />
             </button>
 
             <button
               type="button"
-              className={`flex min-w-0 flex-1 items-start gap-2 text-left ${readOnly ? "" : "cursor-grab active:cursor-grabbing"}`}
+              className={`
+                flex min-w-0 flex-1 items-start gap-2 text-left
+                ${readOnly ? "" : `
+                  cursor-grab
+                  active:cursor-grabbing
+                `}
+              `}
               onClick={() => selectNode(nodeKey)}
               draggable={!readOnly}
               onDragStart={(event) => {
@@ -543,19 +566,36 @@ export default function MaterialPackageWorkbench({
 
   return (
     <div className={showStructureSidebar
-      ? "grid min-w-0 overflow-hidden lg:min-h-[680px] lg:grid-cols-[320px_minmax(0,1fr)]"
-      : "flex min-h-0 min-w-0 overflow-hidden lg:min-h-[680px]"}
+      ? `
+        grid min-w-0 overflow-hidden
+        lg:min-h-[680px] lg:grid-cols-[320px_minmax(0,1fr)]
+      `
+      : `
+        flex min-h-0 min-w-0 overflow-hidden
+        lg:min-h-[680px]
+      `}
     >
       {showStructureSidebar && (
-        <aside className="border-b border-base-300 bg-base-200/45 lg:min-h-0 lg:border-r lg:border-b-0">
+        <aside className="
+          border-b border-base-300 bg-base-200/45
+          lg:min-h-0 lg:border-r lg:border-b-0
+        ">
           <div className="border-b border-base-300 px-3 py-3">
-            <div className="flex items-center justify-between rounded-md bg-base-300/55 px-2 py-1 text-[11px] font-semibold tracking-[0.08em] text-base-content/86">
+            <div className="
+              flex items-center justify-between rounded-md bg-base-300/55 px-2
+              py-1 text-[11px] font-semibold tracking-[0.08em]
+              text-base-content/86
+            ">
               <span className="truncate">素材结构</span>
               {!readOnly && (
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
+                    className="
+                      inline-flex size-5 items-center justify-center rounded-sm
+                      text-base-content/60 transition
+                      hover:bg-base-100/70 hover:text-base-content/88
+                    "
                     title="新增文件夹"
                     onClick={handleAddFolder}
                   >
@@ -563,7 +603,11 @@ export default function MaterialPackageWorkbench({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88"
+                    className="
+                      inline-flex size-5 items-center justify-center rounded-sm
+                      text-base-content/60 transition
+                      hover:bg-base-100/70 hover:text-base-content/88
+                    "
                     title="新增素材"
                     onClick={handleAddMaterial}
                   >
@@ -574,15 +618,27 @@ export default function MaterialPackageWorkbench({
             </div>
           </div>
 
-          <div className="max-h-[40vh] min-h-56 overflow-y-auto px-2 py-2 lg:h-[calc(100%-4.75rem)] lg:max-h-none">
+          <div className="
+            max-h-[40vh] min-h-56 overflow-y-auto px-2 py-2
+            lg:h-[calc(100%-4.75rem)] lg:max-h-none
+          ">
             <div className="space-y-1">
               <button
                 type="button"
-                className={`group relative flex w-full min-w-0 select-none items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium transition ${
+                className={`
+                  group relative flex w-full min-w-0 select-none items-center
+                  gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium
+                  transition
+                  ${
                   selectedNodeKey === ROOT_NODE_KEY
                     ? "bg-primary/10 text-primary"
-                    : "text-base-content/78 hover:bg-base-300 hover:text-base-content"
-                } ${dropTargetKey === ROOT_NODE_KEY ? "ring-2 ring-primary/20" : ""}`}
+                    : `
+                      text-base-content/78
+                      hover:bg-base-300 hover:text-base-content
+                    `
+                }
+                  ${dropTargetKey === ROOT_NODE_KEY ? "ring-2 ring-primary/20" : ""}
+                `}
                 onClick={() => setSelectedNodeKey(ROOT_NODE_KEY)}
                 onDragOver={(event) => {
                   if (readOnly || !draggedNodeKey) {
@@ -623,7 +679,10 @@ export default function MaterialPackageWorkbench({
                   setDropTargetKey("");
                 }}
               >
-                <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-base-300/60 bg-base-100">
+                <div className="
+                  flex size-10 items-center justify-center overflow-hidden
+                  rounded-md border border-base-300/60 bg-base-100
+                ">
                   {displayCoverUrl
                     ? (
                         <MediaImage
@@ -653,21 +712,39 @@ export default function MaterialPackageWorkbench({
         </aside>
       )}
 
-      <section className="min-h-0 flex-1 overflow-y-auto bg-base-100/65 p-4 sm:p-5 lg:p-6">
+      <section className="
+        min-h-0 flex-1 overflow-y-auto bg-base-100/65 p-4
+        sm:p-5
+        lg:p-6
+      ">
         {selectedNodeKey === ROOT_NODE_KEY && (
           <div className="space-y-6">
             <div className="flex flex-wrap gap-2 text-xs text-base-content/60">
-              <span className="rounded-full border border-base-300 bg-base-100/80 px-3 py-1">{`${folderCount} 个文件夹`}</span>
-              <span className="rounded-full border border-base-300 bg-base-100/80 px-3 py-1">{`${materialCount} 个素材`}</span>
-              <span className="rounded-full border border-base-300 bg-base-100/80 px-3 py-1">{`${assetCount} 个素材条目`}</span>
+              <span className="
+                rounded-full border border-base-300 bg-base-100/80 px-3 py-1
+              ">{`${folderCount} 个文件夹`}</span>
+              <span className="
+                rounded-full border border-base-300 bg-base-100/80 px-3 py-1
+              ">{`${materialCount} 个素材`}</span>
+              <span className="
+                rounded-full border border-base-300 bg-base-100/80 px-3 py-1
+              ">{`${assetCount} 个素材条目`}</span>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="
+              grid gap-6
+              xl:grid-cols-[minmax(0,1fr)_320px]
+            ">
               <div className="space-y-5">
                 <label className="block space-y-2">
-                  <span className="flex items-center justify-between text-sm font-medium text-base-content/80">
+                  <span className="
+                    flex items-center justify-between text-sm font-medium
+                    text-base-content/80
+                  ">
                     <span>素材包名称</span>
-                    {!draft.name.trim() && !readOnly && <span className="text-xs text-error/80">必填</span>}
+                    {!draft.name.trim() && !readOnly && <span className="
+                      text-xs text-error/80
+                    ">必填</span>}
                   </span>
                   <input
                     type="text"
@@ -683,7 +760,10 @@ export default function MaterialPackageWorkbench({
                   <span className="text-sm font-medium text-base-content/80">发布描述</span>
                   <textarea
                     placeholder="简单描述一下这个素材包的风格和用途吧（可选），这能帮助其他创作者更好地了解你的素材。"
-                    className={`${textareaClassName} min-h-32 resize-y`}
+                    className={`
+                      ${textareaClassName}
+                      min-h-32 resize-y
+                    `}
                     value={draft.description}
                     onChange={event => onUpdateDraft(current => ({ ...current, description: event.target.value }))}
                     disabled={readOnly}
@@ -691,18 +771,29 @@ export default function MaterialPackageWorkbench({
                 </label>
 
                 {showPublicToggle && (
-                  <div className="flex flex-col gap-3 rounded-2xl border border-base-300 bg-base-200/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="
+                    flex flex-col gap-3 rounded-2xl border border-base-300
+                    bg-base-200/55 px-4 py-3
+                    sm:flex-row sm:items-center sm:justify-between
+                  ">
                     <div>
                       <div className="font-medium text-base-content/90">公开至素材广场</div>
                       <div className="text-sm text-base-content/60">允许其他创作者浏览并下载此素材包。</div>
                     </div>
                     <button
                       type="button"
-                      className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition ${
+                      className={`
+                        relative inline-flex h-8 w-14 shrink-0 items-center
+                        rounded-full border transition
+                        ${
                         draft.isPublic
                           ? "border-primary/40 bg-primary/90"
                           : "border-base-300 bg-base-100"
-                      } ${readOnly ? "cursor-not-allowed opacity-60" : "hover:border-primary/40"}`}
+                      }
+                        ${readOnly ? "cursor-not-allowed opacity-60" : `
+                          hover:border-primary/40
+                        `}
+                      `}
                       aria-pressed={draft.isPublic}
                       onClick={() => {
                         if (!readOnly) {
@@ -712,17 +803,28 @@ export default function MaterialPackageWorkbench({
                       disabled={readOnly}
                     >
                       <span
-                        className={`inline-block size-6 rounded-full bg-white shadow transition-transform ${
-                          draft.isPublic ? "translate-x-[1.45rem]" : "translate-x-1"
-                        }`}
+                        className={`
+                          inline-block size-6 rounded-full bg-white shadow
+                          transition-transform
+                          ${
+                          draft.isPublic ? "translate-x-[1.45rem]" : `
+                            translate-x-1
+                          `
+                        }
+                        `}
                       />
                     </button>
                   </div>
                 )}
 
                 {!readOnly && onDelete && (
-                  <div className="rounded-2xl border border-error/20 bg-error/5 px-4 py-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="
+                    rounded-2xl border border-error/20 bg-error/5 px-4 py-4
+                  ">
+                    <div className="
+                      flex flex-col gap-4
+                      sm:flex-row sm:items-center sm:justify-between
+                    ">
                       <div className="space-y-1">
                         <div className="text-sm font-medium text-error">危险操作</div>
                         <div className="text-sm text-base-content/60">
@@ -731,7 +833,15 @@ export default function MaterialPackageWorkbench({
                       </div>
                       <button
                         type="button"
-                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-error/30 bg-base-100 px-4 py-2.5 text-sm font-medium text-error transition hover:bg-error/10 disabled:opacity-60 sm:w-auto"
+                        className="
+                          inline-flex min-h-10 w-full items-center
+                          justify-center gap-2 rounded-md border border-error/30
+                          bg-base-100 px-4 py-2.5 text-sm font-medium text-error
+                          transition
+                          hover:bg-error/10
+                          disabled:opacity-60
+                          sm:w-auto
+                        "
                         onClick={() => void onDelete()}
                         disabled={deletePending}
                       >
@@ -743,12 +853,24 @@ export default function MaterialPackageWorkbench({
                 )}
               </div>
 
-              <div className="flex flex-col rounded-[26px] border border-base-300 bg-base-200/55 p-4">
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="
+                flex flex-col rounded-[26px] border border-base-300
+                bg-base-200/55 p-4
+              ">
+                <div className="
+                  mb-3 flex flex-col gap-2
+                  sm:flex-row sm:items-center sm:justify-between
+                ">
                   <span className="text-sm font-medium text-base-content/75">封面图片</span>
-                  {!readOnly && <span className="text-[11px] text-base-content/40">推荐尺寸 1:1，支持 JPG/PNG，小于 2MB</span>}
+                  {!readOnly && <span className="
+                    text-[11px] text-base-content/40
+                  ">推荐尺寸 1:1，支持 JPG/PNG，小于 2MB</span>}
                 </div>
-                <div className="flex flex-1 flex-col justify-center overflow-hidden rounded-[22px] border border-base-300 bg-base-950/90 shadow-inner">
+                <div className="
+                  flex flex-1 flex-col justify-center overflow-hidden
+                  rounded-[22px] border border-base-300 bg-base-950/90
+                  shadow-inner
+                ">
                   {displayCoverUrl
                     ? (
                         <MediaImage
@@ -758,7 +880,11 @@ export default function MaterialPackageWorkbench({
                         />
                       )
                     : (
-                        <div className="flex aspect-square w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1),_rgba(2,6,23,1))] text-base-content/40">
+                        <div className="
+                          flex aspect-square w-full items-center justify-center
+                          bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.16),_transparent_32%),linear-gradient(180deg,_rgba(15,23,42,1),_rgba(2,6,23,1))]
+                          text-base-content/40
+                        ">
                           <PackageIcon className="size-16 opacity-50" weight="duotone" />
                         </div>
                       )}
@@ -769,7 +895,13 @@ export default function MaterialPackageWorkbench({
                     <ImgUploader setImg={file => onCoverUpload(file)}>
                       <button
                         type="button"
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm font-medium text-base-content transition hover:border-primary/30 hover:bg-base-100/90"
+                        className="
+                          inline-flex w-full items-center justify-center gap-2
+                          rounded-md border border-base-300 bg-base-100 px-4
+                          py-2.5 text-sm font-medium text-base-content
+                          transition
+                          hover:border-primary/30 hover:bg-base-100/90
+                        "
                         disabled={isCoverUploading}
                       >
                         <ImageIcon className="size-4" />
@@ -806,7 +938,13 @@ export default function MaterialPackageWorkbench({
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90 sm:w-auto"
+                  className="
+                    inline-flex min-h-10 w-full items-center justify-center
+                    gap-2 rounded-md border border-base-300 bg-base-100 px-4
+                    py-2.5 text-sm text-base-content transition
+                    hover:border-primary/30 hover:bg-base-100/90
+                    sm:w-auto
+                  "
                   onClick={handleAddFolder}
                 >
                   <FolderSimpleIcon className="size-4" />
@@ -814,7 +952,13 @@ export default function MaterialPackageWorkbench({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-primary/30 hover:bg-base-100/90 sm:w-auto"
+                  className="
+                    inline-flex min-h-10 w-full items-center justify-center
+                    gap-2 rounded-md border border-base-300 bg-base-100 px-4
+                    py-2.5 text-sm text-base-content transition
+                    hover:border-primary/30 hover:bg-base-100/90
+                    sm:w-auto
+                  "
                   onClick={handleAddMaterial}
                 >
                   <PlusIcon className="size-4" />
@@ -822,7 +966,13 @@ export default function MaterialPackageWorkbench({
                 </button>
                 <button
                   type="button"
-                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-base-300 bg-base-100 px-4 py-2.5 text-sm text-base-content transition hover:border-error/30 hover:bg-error/10 hover:text-error sm:w-auto"
+                  className="
+                    inline-flex min-h-10 w-full items-center justify-center
+                    gap-2 rounded-md border border-base-300 bg-base-100 px-4
+                    py-2.5 text-sm text-base-content transition
+                    hover:border-error/30 hover:bg-error/10 hover:text-error
+                    sm:w-auto
+                  "
                   onClick={handleDeleteSelectedNode}
                 >
                   <TrashIcon className="size-4" />
@@ -856,7 +1006,10 @@ export default function MaterialPackageWorkbench({
               <label className="block space-y-2">
                 <span className="text-sm font-medium text-base-content/80">描述</span>
                 <textarea
-                  className={`${textareaClassName} min-h-28`}
+                  className={`
+                    ${textareaClassName}
+                    min-h-28
+                  `}
                   value={selectedNode.note ?? ""}
                   disabled={readOnly}
                   onChange={(event) => {
@@ -870,7 +1023,10 @@ export default function MaterialPackageWorkbench({
               </label>
 
               <div className="space-y-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="
+                  flex flex-col gap-3
+                  sm:flex-row sm:items-center sm:justify-between
+                ">
                   <div className="text-sm font-medium text-base-content/80">素材条目</div>
                 </div>
 
@@ -895,7 +1051,10 @@ export default function MaterialPackageWorkbench({
                             return (
                               <div
                                 key={getMessageDraftKey(messages, index, selectedNodeKey)}
-                                className={canDrag ? "cursor-grab active:cursor-grabbing" : ""}
+                                className={canDrag ? `
+                                  cursor-grab
+                                  active:cursor-grabbing
+                                ` : ""}
                                 draggable={canDrag}
                                 onDragStart={handleAssetDragStart}
                               >
@@ -910,7 +1069,14 @@ export default function MaterialPackageWorkbench({
                           return (
                             <div
                               key={getMessageDraftKey(messages, index, selectedNodeKey)}
-                              className={`rounded-2xl border border-base-300 bg-base-100/80 px-4 py-3 ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+                              className={`
+                                rounded-2xl border border-base-300
+                                bg-base-100/80 px-4 py-3
+                                ${canDrag ? `
+                                  cursor-grab
+                                  active:cursor-grabbing
+                                ` : ""}
+                              `}
                               draggable={canDrag}
                               onDragStart={handleAssetDragStart}
                             >
@@ -926,7 +1092,11 @@ export default function MaterialPackageWorkbench({
                       </div>
                     )
                   : (
-                      <div className="rounded-2xl border border-dashed border-base-300 bg-base-100/60 px-4 py-6 text-center text-sm text-base-content/58">
+                      <div className="
+                        rounded-2xl border border-dashed border-base-300
+                        bg-base-100/60 px-4 py-6 text-center text-sm
+                        text-base-content/58
+                      ">
                         {readOnly ? "当前素材还是草稿，还没有可查看的素材条目。" : "当前素材还是草稿，可以直接用下面的输入框和工具栏补充内容；右上角的附件入口也会汇入同一个输入框。"}
                       </div>
                     )}
@@ -944,8 +1114,13 @@ export default function MaterialPackageWorkbench({
                 )}
 
                 {!readOnly && (
-                  <div className="rounded-2xl border border-error/20 bg-error/5 px-4 py-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="
+                    rounded-2xl border border-error/20 bg-error/5 px-4 py-4
+                  ">
+                    <div className="
+                      flex flex-col gap-4
+                      sm:flex-row sm:items-center sm:justify-between
+                    ">
                       <div className="space-y-1">
                         <div className="text-sm font-medium text-error">危险操作</div>
                         <div className="text-sm text-base-content/60">
@@ -954,7 +1129,14 @@ export default function MaterialPackageWorkbench({
                       </div>
                       <button
                         type="button"
-                        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-error/30 bg-base-100 px-4 py-2.5 text-sm font-medium text-error transition hover:bg-error/10 sm:w-auto"
+                        className="
+                          inline-flex min-h-10 w-full items-center
+                          justify-center gap-2 rounded-md border border-error/30
+                          bg-base-100 px-4 py-2.5 text-sm font-medium text-error
+                          transition
+                          hover:bg-error/10
+                          sm:w-auto
+                        "
                         onClick={handleDeleteSelectedNode}
                       >
                         <TrashIcon className="size-4" />

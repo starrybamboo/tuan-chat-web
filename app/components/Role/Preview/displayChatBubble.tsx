@@ -215,13 +215,20 @@ export function DisplayChatBubble({
               {/* Avatar */}
               <div className="flex-shrink-0">
                 <div className={containerClass}>
-                  <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="w-full h-full block" />
+                  <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="
+                    w-full h-full block
+                  " />
                 </div>
               </div>
               {/* Content */}
               <div className="flex flex-col items-start">
                 <div className="text-sm text-base-content/85 pb-1">{roleName || "Undefined"}</div>
-                <div className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-white dark:bg-black">
+                <div className="
+                  max-w-xs
+                  sm:max-w-md
+                  break-words rounded-lg px-4 py-2 shadow bg-white
+                  dark:bg-black
+                ">
                   <div className="whitespace-pre-wrap">{content}</div>
                 </div>
               </div>
@@ -232,7 +239,9 @@ export function DisplayChatBubble({
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 mr-3">
                 <div className={containerClass}>
-                  <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="w-full h-full block" />
+                  <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="
+                    w-full h-full block
+                  " />
                 </div>
               </div>
               {/* 消息内容 */}

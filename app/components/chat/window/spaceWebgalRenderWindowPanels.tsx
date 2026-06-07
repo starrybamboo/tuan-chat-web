@@ -97,8 +97,14 @@ export function SpaceWebgalBatchStatusPanel({
   batchProgress,
 }: SpaceWebgalBatchStatusPanelProps) {
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-[min(560px,calc(100vw-2rem))] rounded-lg border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur">
-      <div className="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-3">
+    <div className="
+      fixed bottom-4 right-4 z-50 w-[min(560px,calc(100vw-2rem))] rounded-lg
+      border border-base-300 bg-base-100/95 shadow-2xl backdrop-blur
+    ">
+      <div className="
+        flex items-center justify-between gap-2 border-b border-base-300 px-4
+        py-3
+      ">
         <div className="text-sm font-semibold">房间渲染状态</div>
         <div className="text-xs text-base-content/70">
           {`空间：${spaceName || `#${spaceId}`} | 未删除房间：${renderableRooms.length}`}
@@ -119,14 +125,19 @@ export function SpaceWebgalBatchStatusPanel({
                   const roomStatusMeta = buildRoomStatusMeta(state.status);
                   const roomName = room.name?.trim() || `房间#${room.roomId}`;
                   return (
-                    <div key={room.roomId} className="rounded-md border border-base-300 px-3 py-2">
+                    <div key={room.roomId} className="
+                      rounded-md border border-base-300 px-3 py-2
+                    ">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-sm font-medium truncate">{roomName}</div>
                           <div className="text-xs text-base-content/70">{`Room ID: ${room.roomId}`}</div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`badge badge-sm ${roomStatusMeta.badgeClass}`}>{roomStatusMeta.label}</span>
+                          <span className={`
+                            badge badge-sm
+                            ${roomStatusMeta.badgeClass}
+                          `}>{roomStatusMeta.label}</span>
                           <span className="text-xs text-base-content/70">
                             {state.messageCount}
                             {" "}

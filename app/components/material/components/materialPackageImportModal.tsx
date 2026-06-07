@@ -24,14 +24,20 @@ function PackageSourceCard({
   importing: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm">
+    <div className="
+      rounded-2xl border border-base-300 bg-base-100/80 p-4 shadow-sm
+    ">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex items-center gap-2">
             <div className="font-medium truncate">{getMaterialPackageDisplayName(item.name)}</div>
-            {item.isPublic ? <span className="badge badge-primary badge-outline">公开</span> : <span className="badge badge-outline">私有</span>}
+            {item.isPublic ? <span className="badge badge-primary badge-outline">公开</span> : <span className="
+              badge badge-outline
+            ">私有</span>}
           </div>
-          {item.description && <div className="text-sm opacity-70 whitespace-pre-wrap">{item.description}</div>}
+          {item.description && <div className="
+            text-sm opacity-70 whitespace-pre-wrap
+          ">{item.description}</div>}
           <div className="flex flex-wrap gap-2 text-xs opacity-60">
             <span>{`${item.materialCount ?? 0} 个素材`}</span>
             <span>{`${item.folderCount ?? 0} 个文件夹`}</span>
@@ -92,18 +98,27 @@ export default function MaterialPackageImportModal({
         </div>
 
         <div className="space-y-5 p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="
+            flex flex-col gap-3
+            md:flex-row md:items-center md:justify-between
+          ">
             <div className="tabs tabs-boxed">
               <button
                 type="button"
-                className={`tab ${activeTab === "my" ? "tab-active" : ""}`}
+                className={`
+                  tab
+                  ${activeTab === "my" ? "tab-active" : ""}
+                `}
                 onClick={() => setActiveTab("my")}
               >
                 我的局外素材包
               </button>
               <button
                 type="button"
-                className={`tab ${activeTab === "public" ? "tab-active" : ""}`}
+                className={`
+                  tab
+                  ${activeTab === "public" ? "tab-active" : ""}
+                `}
                 onClick={() => setActiveTab("public")}
               >
                 素材广场
@@ -112,7 +127,10 @@ export default function MaterialPackageImportModal({
 
             <input
               type="text"
-              className="input input-bordered md:w-72"
+              className="
+                input input-bordered
+                md:w-72
+              "
               placeholder="按名称搜索"
               value={keyword}
               onChange={event => setKeyword(event.target.value)}
@@ -120,9 +138,15 @@ export default function MaterialPackageImportModal({
           </div>
 
           <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
-            {loading && <div className="rounded-2xl border border-base-300 px-4 py-8 text-center opacity-70">加载中...</div>}
+            {loading && <div className="
+              rounded-2xl border border-base-300 px-4 py-8 text-center
+              opacity-70
+            ">加载中...</div>}
             {!loading && list.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-base-300 px-4 py-10 text-center opacity-70">
+              <div className="
+                rounded-2xl border border-dashed border-base-300 px-4 py-10
+                text-center opacity-70
+              ">
                 当前没有可导入的素材包。
               </div>
             )}

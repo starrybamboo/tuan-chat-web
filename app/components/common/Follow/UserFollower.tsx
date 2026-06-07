@@ -41,7 +41,12 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
       <h2 className="text-xl font-bold">
         {activeTab === "following" ? "关注列表：" : "粉丝列表："}
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
+      <div className="
+        grid grid-cols-2
+        sm:grid-cols-3
+        md:grid-cols-4
+        gap-4 justify-items-center
+      ">
         {userList.map(user => (
           user.userId && <UserCard key={user.userId} user={user} />
         ))}
@@ -49,7 +54,10 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
       <div className="join mt-4 justify-center">
         <button
           type="button"
-          className={`join-item btn ${pageState.current <= 1 ? "btn-disabled" : ""}`}
+          className={`
+            join-item btn
+            ${pageState.current <= 1 ? "btn-disabled" : ""}
+          `}
           onClick={handlePrevPage}
         >
           «
@@ -66,7 +74,10 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
         </button>
         <button
           type="button"
-          className={`join-item btn ${currentQuery.data?.data?.isLast ? "btn-disabled" : ""}`}
+          className={`
+            join-item btn
+            ${currentQuery.data?.data?.isLast ? `btn-disabled` : ""}
+          `}
           onClick={handleNextPage}
         >
           »

@@ -116,7 +116,9 @@ export default function UserSearch() {
   }
   return (
     <>
-      <div className="w-full px-2 pb-6 flex items-center justify-center relative">
+      <div className="
+        w-full px-2 pb-6 flex items-center justify-center relative
+      ">
         <input
           type="text"
           className="input input-md w-full"
@@ -127,7 +129,11 @@ export default function UserSearch() {
         />
         <button
           type="button"
-          className="absolute right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
+          className="
+            absolute right-4 cursor-pointer w-8 h-8 flex items-center
+            justify-center rounded-box
+            hover:bg-base-300
+          "
           onClick={searchInputKeyword}
           aria-label="搜索用户"
         >
@@ -135,7 +141,11 @@ export default function UserSearch() {
         </button>
         <button
           type="button"
-          className="absolute right-14 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
+          className="
+            absolute right-14 cursor-pointer w-8 h-8 flex items-center
+            justify-center rounded-box
+            hover:bg-base-300
+          "
           onClick={() => {
             setInputKeyword("");
             setSearching(false);
@@ -166,7 +176,10 @@ export default function UserSearch() {
                   return (
                     <div
                       key={req.id}
-                      className="flex items-center justify-between p-2 rounded-md bg-base-100"
+                      className="
+                        flex items-center justify-between p-2 rounded-md
+                        bg-base-100
+                      "
                     >
                       <div className="flex items-center gap-2">
                         <MediaImage
@@ -235,11 +248,17 @@ export default function UserSearch() {
                 ? (
                     <div
                       key={searchUserInfo?.userId}
-                      className="flex items-center justify-between rounded-md border-t-2 border-base-300 p-2 hover:bg-base-300"
+                      className="
+                        flex items-center justify-between rounded-md border-t-2
+                        border-base-300 p-2
+                        hover:bg-base-300
+                      "
                     >
                       <button
                         type="button"
-                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        className="
+                          flex min-w-0 flex-1 items-center gap-2 text-left
+                        "
                         onClick={() => {
                           if (friendCheck?.canSendMessage === false) {
                             setNotice("当前无法发送私聊消息，请先成为好友或解除限制");
@@ -325,7 +344,10 @@ export default function UserSearch() {
 
                         <button
                           type="button"
-                          className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                          className="
+                            w-8 h-8 flex items-center justify-center rounded-box
+                            hover:bg-base-100
+                          "
                           onClick={(e) => {
                             e.stopPropagation();
                             router.history.push(`/profile/${searchUserInfo?.userId}`);
@@ -351,11 +373,17 @@ export default function UserSearch() {
                   return (
                     <div
                       key={friend?.userId || index}
-                      className="flex items-center justify-between rounded-md border-t-2 border-base-300 p-2 hover:bg-base-300"
+                      className="
+                        flex items-center justify-between rounded-md border-t-2
+                        border-base-300 p-2
+                        hover:bg-base-300
+                      "
                     >
                       <button
                         type="button"
-                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        className="
+                          flex min-w-0 flex-1 items-center gap-2 text-left
+                        "
                         onClick={() => router.history.push(`/chat/private/${friend?.userId}`)}
                       >
                         <MediaImage
@@ -371,7 +399,10 @@ export default function UserSearch() {
                       </button>
                       <button
                         type="button"
-                        className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                        className="
+                          w-8 h-8 flex items-center justify-center rounded-box
+                          hover:bg-base-100
+                        "
                         onClick={(e) => {
                           e.stopPropagation();
                           router.history.push(`/profile/${friend?.userId}`);

@@ -493,7 +493,10 @@ export function SpriteSettingsPopup({
                 </button>
                 <button
                   type="button"
-                  className={`btn btn-error btn-square btn-xs ${selectedIndices.size === 0 ? "btn-disabled" : ""}`}
+                  className={`
+                    btn btn-error btn-square btn-xs
+                    ${selectedIndices.size === 0 ? `btn-disabled` : ""}
+                  `}
                   onClick={handleBatchDeleteRequest}
                   disabled={selectedIndices.size === 0}
                   title="删除所选头像"
@@ -516,7 +519,10 @@ export function SpriteSettingsPopup({
             {!isMultiSelectMode && visibleCount > 1 && (
               <button
                 type="button"
-                className={`btn btn-soft bg-base-200 btn-square btn-xs ${isMultiSelectDisabled ? "btn-disabled" : ""}`}
+                className={`
+                  btn btn-soft bg-base-200 btn-square btn-xs
+                  ${isMultiSelectDisabled ? `btn-disabled` : ""}
+                `}
                 onClick={() => {
                   if (!isMultiSelectDisabled)
                     setIsMultiSelectMode(true);
@@ -531,13 +537,19 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 tabIndex={0}
-                className={`btn btn-square btn-xs ${categoryFilter ? "btn-primary" : "btn-soft bg-base-200"}`}
+                className={`
+                  btn btn-square btn-xs
+                  ${categoryFilter ? `btn-primary` : `btn-soft bg-base-200`}
+                `}
                 title={categoryFilter ? `当前分类：${categoryFilter}` : "分类筛选"}
                 aria-label="头像分类筛选"
               >
                 <FunnelIcon className="h-5 w-5" aria-hidden="true" />
               </button>
-              <ul className="dropdown-content menu bg-base-100 rounded-box shadow-xl border border-base-300 z-40 w-44 p-2 mt-1">
+              <ul className="
+                dropdown-content menu bg-base-100 rounded-box shadow-xl border
+                border-base-300 z-40 w-44 p-2 mt-1
+              ">
                 <li>
                   <button
                     type="button"
@@ -551,7 +563,9 @@ export function SpriteSettingsPopup({
                   <li>
                     <button
                       type="button"
-                      className={categoryFilter === DEFAULT_CATEGORY ? "active font-semibold" : ""}
+                      className={categoryFilter === DEFAULT_CATEGORY ? `
+                        active font-semibold
+                      ` : ""}
                       onClick={() => setCategoryFilter(DEFAULT_CATEGORY)}
                     >
                       默认
@@ -562,7 +576,9 @@ export function SpriteSettingsPopup({
                   <li key={category}>
                     <button
                       type="button"
-                      className={categoryFilter === category ? "active font-semibold" : ""}
+                      className={categoryFilter === category ? `
+                        active font-semibold
+                      ` : ""}
                       onClick={() => setCategoryFilter(category)}
                     >
                       {category}
@@ -574,7 +590,10 @@ export function SpriteSettingsPopup({
           </div>
         </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5 md:p-3">
+      <div className="
+        flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5
+        md:p-3
+      ">
         <SpriteListGrid
           avatars={filteredSprites}
           totalAvatarsCount={spritesAvatars.length}
@@ -613,18 +632,34 @@ export function SpriteSettingsPopup({
 
   const tabNavigation = (
     <div className="shrink-0 border-b border-base-300 bg-base-200/50">
-      <nav className="flex flex-wrap gap-1.5 p-2 overflow-x-hidden md:flex-nowrap md:overflow-x-auto">
+      <nav className="
+        flex flex-wrap gap-1.5 p-2 overflow-x-hidden
+        md:flex-nowrap md:overflow-x-auto
+      ">
         {/* 预览 Tab */}
         <button
           type="button"
           onClick={() => handleTabChange("preview")}
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+          className={`
+            flex items-center gap-1.5
+            sm:gap-2
+            px-2.5 py-2
+            sm:px-3
+            rounded-lg text-xs
+            sm:text-sm
+            transition-colors whitespace-nowrap
+            ${
             activeTab === "preview"
               ? "bg-primary text-primary-content"
               : "hover:bg-base-300"
-          }`}
+          }
+          `}
         >
-          <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <EyeIcon className="
+            h-4 w-4
+            sm:h-5 sm:w-5
+            shrink-0
+          " aria-hidden="true" />
           <span>渲染预览</span>
         </button>
 
@@ -632,13 +667,26 @@ export function SpriteSettingsPopup({
         <button
           type="button"
           onClick={() => handleTabChange("cropper")}
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+          className={`
+            flex items-center gap-1.5
+            sm:gap-2
+            px-2.5 py-2
+            sm:px-3
+            rounded-lg text-xs
+            sm:text-sm
+            transition-colors whitespace-nowrap
+            ${
             activeTab === "cropper"
               ? "bg-primary text-primary-content"
               : "hover:bg-base-300"
-          }`}
+          }
+          `}
         >
-          <CropIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <CropIcon className="
+            h-4 w-4
+            sm:h-5 sm:w-5
+            shrink-0
+          " aria-hidden="true" />
           <span>立绘校正</span>
         </button>
 
@@ -646,13 +694,26 @@ export function SpriteSettingsPopup({
         <button
           type="button"
           onClick={() => handleTabChange("avatarCropper")}
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+          className={`
+            flex items-center gap-1.5
+            sm:gap-2
+            px-2.5 py-2
+            sm:px-3
+            rounded-lg text-xs
+            sm:text-sm
+            transition-colors whitespace-nowrap
+            ${
             activeTab === "avatarCropper"
               ? "bg-primary text-primary-content"
               : "hover:bg-base-300"
-          }`}
+          }
+          `}
         >
-          <UserFocusIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <UserFocusIcon className="
+            h-4 w-4
+            sm:h-5 sm:w-5
+            shrink-0
+          " aria-hidden="true" />
           <span>头像校正</span>
         </button>
 
@@ -660,13 +721,26 @@ export function SpriteSettingsPopup({
         <button
           type="button"
           onClick={() => handleTabChange("setting")}
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+          className={`
+            flex items-center gap-1.5
+            sm:gap-2
+            px-2.5 py-2
+            sm:px-3
+            rounded-lg text-xs
+            sm:text-sm
+            transition-colors whitespace-nowrap
+            ${
             activeTab === "setting"
               ? "bg-primary text-primary-content"
               : "hover:bg-base-300"
-          }`}
+          }
+          `}
         >
-          <GearIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <GearIcon className="
+            h-4 w-4
+            sm:h-5 sm:w-5
+            shrink-0
+          " aria-hidden="true" />
           <span>头像设置</span>
         </button>
 
@@ -674,13 +748,26 @@ export function SpriteSettingsPopup({
         <button
           type="button"
           onClick={() => handleTabChange("trash")}
-          className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-3 rounded-lg text-xs sm:text-sm transition-colors whitespace-nowrap ${
+          className={`
+            flex items-center gap-1.5
+            sm:gap-2
+            px-2.5 py-2
+            sm:px-3
+            rounded-lg text-xs
+            sm:text-sm
+            transition-colors whitespace-nowrap
+            ${
             activeTab === "trash"
               ? "bg-primary text-primary-content"
               : "hover:bg-base-300"
-          }`}
+          }
+          `}
         >
-          <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" aria-hidden="true" />
+          <TrashIcon className="
+            h-4 w-4
+            sm:h-5 sm:w-5
+            shrink-0
+          " aria-hidden="true" />
           <span>回收站</span>
           {trashItems.length > 0 && (
             <span className="badge badge-sm bg-base-100 text-base-content">
@@ -705,7 +792,13 @@ export function SpriteSettingsPopup({
       {/* Upload notification toast */}
       {uploadNotification && (
         <div className="toast toast-top toast-center z-50">
-          <div className={`alert ${uploadNotification.type === "success" ? "alert-success" : "alert-error"} shadow-lg flex flex-row items-center gap-2`}>
+          <div className={`
+            alert
+            ${uploadNotification.type === "success" ? `alert-success` : `
+              alert-error
+            `}
+            shadow-lg flex flex-row items-center gap-2
+          `}>
             {uploadNotification.type === "success"
               ? (
                   <CheckCircleIcon
@@ -721,9 +814,17 @@ export function SpriteSettingsPopup({
         </div>
       )}
 
-      <div className="flex h-full w-full min-h-0 min-w-0 flex-col overflow-x-hidden md:h-[80vh] md:w-[86vw] md:max-w-6xl md:flex-row">
+      <div className="
+        flex h-full w-full min-h-0 min-w-0 flex-col overflow-x-hidden
+        md:h-[80vh] md:w-[86vw] md:max-w-6xl md:flex-row
+      ">
         {/* 左侧头像列表 - 桌面端固定显示 */}
-        <div className="hidden md:flex md:w-80 md:shrink-0 md:border-r border-base-300 bg-base-200/30 md:min-h-0 md:overflow-hidden md:flex-col">
+        <div className="
+          hidden
+          md:flex md:w-80 md:shrink-0 md:border-r
+          border-base-300 bg-base-200/30
+          md:min-h-0 md:overflow-hidden md:flex-col
+        ">
           {avatarListPanel}
         </div>
 
@@ -731,18 +832,24 @@ export function SpriteSettingsPopup({
         <div className="flex-1 min-w-0 flex flex-col min-h-0 overflow-x-hidden">
           {/* 移动端折叠控制按钮 */}
           {isMobile && (
-            <div className="shrink-0 border-b border-base-300 bg-base-200/50 p-2.5">
+            <div className="
+              shrink-0 border-b border-base-300 bg-base-200/50 p-2.5
+            ">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsMobileControlDrawerOpen(true)}
-                  className="btn btn-soft bg-base-200 flex-1 justify-between min-w-0"
+                  className="
+                    btn btn-soft bg-base-200 flex-1 justify-between min-w-0
+                  "
                 >
                   <span className="flex items-center gap-2">
                     <ImageIcon className="h-5 w-5" aria-hidden="true" />
                     <span>头像与工具</span>
                   </span>
-                  <span className="text-sm text-base-content/70 truncate max-w-[7rem]">
+                  <span className="
+                    text-sm text-base-content/70 truncate max-w-[7rem]
+                  ">
                     {activeTabLabel}
                   </span>
                 </button>
@@ -759,12 +866,19 @@ export function SpriteSettingsPopup({
           )}
 
           {/* 桌面端 Tab 导航栏 */}
-          <div className="hidden md:block">
+          <div className="
+            hidden
+            md:block
+          ">
             {tabNavigation}
           </div>
 
           {/* Tab 内容区域 */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 min-h-0">
+          <div className="
+            flex-1 overflow-y-auto overflow-x-hidden p-3
+            md:p-4
+            min-h-0
+          ">
             {/* 预览内容 */}
             {activeTab === "preview" && (
               <PreviewTab
@@ -794,7 +908,10 @@ export function SpriteSettingsPopup({
                       />
                     )
                   : (
-                      <div className="flex flex-col items-center justify-center h-full text-base-content/70">
+                      <div className="
+                        flex flex-col items-center justify-center h-full
+                        text-base-content/70
+                      ">
                         <ImageIcon className="w-12 h-12 mb-2" weight="duotone" aria-hidden="true" />
                         <p>当前没有可用的立绘进行校正</p>
                       </div>
@@ -820,7 +937,10 @@ export function SpriteSettingsPopup({
                       />
                     )
                   : (
-                      <div className="flex flex-col items-center justify-center h-full text-base-content/70">
+                      <div className="
+                        flex flex-col items-center justify-center h-full
+                        text-base-content/70
+                      ">
                         <UserCircleIcon className="w-12 h-12 mb-2" weight="duotone" aria-hidden="true" />
                         <p>当前没有可用的立绘进行头像裁剪</p>
                       </div>
@@ -841,11 +961,18 @@ export function SpriteSettingsPopup({
             {/* 回收站内容 */}
             {activeTab === "trash" && (
               <div className="h-full flex flex-col">
-                <div className="flex justify-between items-center mb-2 shrink-0 min-h-8">
+                <div className="
+                  flex justify-between items-center mb-2 shrink-0 min-h-8
+                ">
                   <h3 className="text-lg font-semibold">回收站</h3>
                   <button
                     type="button"
-                    className={`btn btn-ghost btn-sm ${trashItems.length === 0 || isClearingTrash ? "btn-disabled" : ""}`}
+                    className={`
+                      btn btn-ghost btn-sm
+                      ${trashItems.length === 0 || isClearingTrash ? `
+                        btn-disabled
+                      ` : ""}
+                    `}
                     onClick={handleClearTrash}
                     disabled={trashItems.length === 0 || isClearingTrash}
                   >
@@ -853,22 +980,35 @@ export function SpriteSettingsPopup({
                   </button>
                 </div>
 
-                <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
+                <div className="
+                  flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden
+                ">
                   <div className="absolute inset-0 overflow-auto p-4">
                     {trashQuery.isLoading
                       ? (
-                          <div className="flex flex-col items-center justify-center h-full text-base-content/60 text-sm">
+                          <div className="
+                            flex flex-col items-center justify-center h-full
+                            text-base-content/60 text-sm
+                          ">
                             加载中...
                           </div>
                         )
                       : trashItems.length === 0
                         ? (
-                            <div className="flex flex-col items-center justify-center h-full text-base-content/60 text-sm">
+                            <div className="
+                              flex flex-col items-center justify-center h-full
+                              text-base-content/60 text-sm
+                            ">
                               回收站为空
                             </div>
                           )
                         : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="
+                              grid grid-cols-1
+                              sm:grid-cols-2
+                              lg:grid-cols-3
+                              gap-3
+                            ">
                               {trashItems.map((avatar, index) => {
                                 const displayUrl = getEffectiveAvatarUrl(avatar);
                                 const title = typeof avatar.avatarTitle === "string"
@@ -879,27 +1019,40 @@ export function SpriteSettingsPopup({
                                 const isBusy = Boolean(restoringId) || isClearingTrash;
                                 const canRestore = Boolean(avatar.avatarId);
                                 return (
-                                  <div key={avatar.avatarId ?? `trash-${index}`} className="rounded-lg border border-base-300 bg-base-100 p-3 flex flex-col gap-3">
+                                  <div key={avatar.avatarId ?? `trash-${index}`} className="
+                                    rounded-lg border border-base-300
+                                    bg-base-100 p-3 flex flex-col gap-3
+                                  ">
                                     <div className="flex gap-3 items-start">
-                                      <div className="w-16 h-16 rounded-md overflow-hidden bg-base-200 flex items-center justify-center shrink-0">
+                                      <div className="
+                                        w-16 h-16 rounded-md overflow-hidden
+                                        bg-base-200 flex items-center
+                                        justify-center shrink-0
+                                      ">
                                         {displayUrl
                                           ? (
                                               <MediaImage
                                                 src={displayUrl}
                                                 alt={name}
-                                                className="w-full h-full object-cover"
+                                                className="
+                                                  w-full h-full object-cover
+                                                "
                                                 loading="lazy"
                                                 decoding="async"
                                               />
                                             )
                                           : (
-                                              <span className="text-xs text-base-content/50">无预览</span>
+                                              <span className="
+                                                text-xs text-base-content/50
+                                              ">无预览</span>
                                             )}
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium truncate">{name}</div>
                                         {avatar.avatarId && (
-                                          <div className="text-xs text-base-content/40 mt-1">
+                                          <div className="
+                                            text-xs text-base-content/40 mt-1
+                                          ">
                                             头像ID：
                                             {avatar.avatarId}
                                           </div>
@@ -937,9 +1090,20 @@ export function SpriteSettingsPopup({
           direction="bottom"
         >
           <Drawer.Portal>
-            <Drawer.Overlay className="fixed inset-0 z-[1200] bg-black/40 md:hidden pointer-events-auto" />
-            <Drawer.Content className="fixed inset-x-0 bottom-0 z-[1201] h-[75vh] rounded-t-2xl border border-base-300 bg-base-100 md:hidden flex flex-col pointer-events-auto">
-              <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-base-content/30" />
+            <Drawer.Overlay className="
+              fixed inset-0 z-[1200] bg-black/40
+              md:hidden
+              pointer-events-auto
+            " />
+            <Drawer.Content className="
+              fixed inset-x-0 bottom-0 z-[1201] h-[75vh] rounded-t-2xl border
+              border-base-300 bg-base-100
+              md:hidden
+              flex flex-col pointer-events-auto
+            ">
+              <div className="
+                mx-auto mt-2 h-1.5 w-12 rounded-full bg-base-content/30
+              " />
               <div className="flex items-center justify-between px-3 py-2">
                 <Drawer.Title className="text-base font-semibold">头像与工具</Drawer.Title>
                 <Drawer.Description className="sr-only">
@@ -956,7 +1120,10 @@ export function SpriteSettingsPopup({
               </div>
               <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
                 {tabNavigation}
-                <div className="w-full min-h-0 max-h-[46vh] overflow-hidden border-y border-base-300 bg-base-200/30 flex flex-col">
+                <div className="
+                  w-full min-h-0 max-h-[46vh] overflow-hidden border-y
+                  border-base-300 bg-base-200/30 flex flex-col
+                ">
                   {avatarListPanel}
                 </div>
               </div>

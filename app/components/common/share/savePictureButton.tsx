@@ -147,7 +147,10 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
     <button
       type="button"
       onClick={handleShare}
-      className={`btn btn-primary ${className}`}
+      className={`
+        btn btn-primary
+        ${className}
+      `}
     >
       <SharpDownload className="w-5 h-5" />
       保存图片

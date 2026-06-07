@@ -96,7 +96,10 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
         ]}
       />
 
-      <div className="md:hidden mb-4 space-y-2">
+      <div className="
+        md:hidden
+        mb-4 space-y-2
+      ">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -108,7 +111,11 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
           </div>
           <button
             type="button"
-            className="btn btn-sm md:btn-lg rounded-lg btn-primary"
+            className="
+              btn btn-sm
+              md:btn-lg
+              rounded-lg btn-primary
+            "
             onClick={handleCreate}
             disabled={!canCreate}
           >
@@ -122,8 +129,14 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
       </div>
 
       <div className="grid grid-cols-1 gap-5">
-        <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
-          <div className="card-body p-4 md:p-5 space-y-3">
+        <div className="
+          card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
+        ">
+          <div className="
+            card-body p-4
+            md:p-5
+            space-y-3
+          ">
             <h2 className="card-title flex items-center gap-2 mb-2">基础信息设置</h2>
 
             <div className="space-y-4">
@@ -138,7 +151,12 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                 </div>
                 <input
                   type="text"
-                  className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="
+                    input input-bordered bg-base-200 rounded-md w-full
+                    transition
+                    focus:outline-none focus:ring-2 focus:ring-primary/20
+                    focus:border-primary
+                  "
                   placeholder="输入规则名称"
                   value={ruleName}
                   maxLength={RULE_NAME_MAX_LENGTH}
@@ -156,7 +174,12 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
                   </span>
                 </div>
                 <textarea
-                  className="textarea textarea-bordered bg-base-200 rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="
+                    textarea textarea-bordered bg-base-200 rounded-md
+                    min-h-[120px] resize-y w-full transition
+                    focus:outline-none focus:ring-2 focus:ring-primary/20
+                    focus:border-primary
+                  "
                   placeholder="描述规则定位、核心机制和适用场景"
                   value={ruleDescription}
                   maxLength={RULE_DESCRIPTION_MAX_LENGTH}
@@ -167,19 +190,33 @@ export default function RuleEditorEntryPage({ onBack }: RuleEditorEntryPageProps
           </div>
         </div>
 
-        <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
-          <div className="card-body p-4 md:p-5 space-y-3">
-            <div className="flex items-center gap-2 rounded-lg bg-base-200 p-1 w-fit">
+        <div className="
+          card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
+        ">
+          <div className="
+            card-body p-4
+            md:p-5
+            space-y-3
+          ">
+            <div className="
+              flex items-center gap-2 rounded-lg bg-base-200 p-1 w-fit
+            ">
               <button
                 type="button"
-                className={`btn btn-sm rounded-md ${scope === "all" ? "btn-primary" : "btn-ghost"}`}
+                className={`
+                  btn btn-sm rounded-md
+                  ${scope === "all" ? `btn-primary` : `btn-ghost`}
+                `}
                 onClick={() => setScope("all")}
               >
                 全部规则模板
               </button>
               <button
                 type="button"
-                className={`btn btn-sm rounded-md ${scope === "mine" ? "btn-primary" : "btn-ghost"}`}
+                className={`
+                  btn btn-sm rounded-md
+                  ${scope === "mine" ? `btn-primary` : `btn-ghost`}
+                `}
                 onClick={() => setScope("mine")}
               >
                 我的规则模板

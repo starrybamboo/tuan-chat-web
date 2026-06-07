@@ -33,7 +33,12 @@ export function HistoryHint() {
     <div className="flex items-center">
       <button
         type="button"
-        className="flex size-4 cursor-help items-center justify-center rounded-full bg-transparent text-base-content/28 transition hover:text-base-content/55 focus:outline-none"
+        className="
+          flex size-4 cursor-help items-center justify-center rounded-full
+          bg-transparent text-base-content/28 transition
+          hover:text-base-content/55
+          focus:outline-none
+        "
         aria-label={hintText}
         onBlur={() => setTooltipState(prev => ({ ...prev, visible: false }))}
         onFocus={showTooltipAtButton}
@@ -41,14 +46,22 @@ export function HistoryHint() {
         onMouseLeave={() => setTooltipState(prev => ({ ...prev, visible: false }))}
         onMouseMove={showTooltipAtPointer}
       >
-        <span className="flex size-3.5 items-center justify-center rounded-full border border-base-content/16 text-[9px] font-medium leading-none text-current">
+        <span className="
+          flex size-3.5 items-center justify-center rounded-full border
+          border-base-content/16 text-[9px] font-medium leading-none
+          text-current
+        ">
           ?
         </span>
       </button>
       {tooltipState.visible
         ? (
             <div
-              className="pointer-events-none fixed z-30 flex h-[80px] w-[300px] items-center rounded-xl border border-base-300 bg-base-100 px-3 py-2 text-[11px] leading-5 text-base-content/72 shadow-xl"
+              className="
+                pointer-events-none fixed z-30 flex h-[80px] w-[300px]
+                items-center rounded-xl border border-base-300 bg-base-100 px-3
+                py-2 text-[11px] leading-5 text-base-content/72 shadow-xl
+              "
               style={{
                 left: tooltipState.x,
                 top: tooltipState.y,

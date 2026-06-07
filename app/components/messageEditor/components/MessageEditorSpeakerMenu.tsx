@@ -40,7 +40,10 @@ export function MessageEditorSpeakerMenu({
   return (
     <motion.div
       data-me-speaker-menu="true"
-      className="w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-2xl"
+      className="
+        w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border
+        border-base-300 bg-base-100 shadow-2xl
+      "
       {...floatingPanelMotionProps}
     >
       {items.length === 0
@@ -71,17 +74,25 @@ export function MessageEditorSpeakerMenu({
                       onMouseDown={event => event.preventDefault()}
                       onClick={() => onSelect(item)}
                     >
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-base-200/70 text-base-content/45">
+                      <span className="
+                        flex size-6 shrink-0 items-center justify-center
+                        rounded-full bg-base-200/70 text-base-content/45
+                      ">
                         <X className="size-3.5" weight="bold" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{item.label}</span>
-                        <span className="mt-0.5 block truncate text-xs text-base-content/45">
+                        <span className="
+                          mt-0.5 block truncate text-xs text-base-content/45
+                        ">
                           {item.description || "取消角色"}
                         </span>
                       </span>
                       {item.selected && (
-                        <span className="shrink-0 rounded-md bg-base-200 px-1.5 py-0.5 text-[11px] text-base-content/55">
+                        <span className="
+                          shrink-0 rounded-md bg-base-200 px-1.5 py-0.5
+                          text-[11px] text-base-content/55
+                        ">
                           当前
                         </span>
                       )}
@@ -117,13 +128,18 @@ export function MessageEditorSpeakerMenu({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{item.label}</span>
                       {item.description && (
-                        <span className="mt-0.5 block truncate text-xs text-base-content/45">
+                        <span className="
+                          mt-0.5 block truncate text-xs text-base-content/45
+                        ">
                           {item.description}
                         </span>
                       )}
                     </span>
                     {item.selected && (
-                      <span className="shrink-0 rounded-md bg-base-200 px-1.5 py-0.5 text-[11px] text-base-content/55">
+                      <span className="
+                        shrink-0 rounded-md bg-base-200 px-1.5 py-0.5
+                        text-[11px] text-base-content/55
+                      ">
                         当前
                       </span>
                     )}

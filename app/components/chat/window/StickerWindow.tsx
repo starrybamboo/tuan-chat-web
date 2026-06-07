@@ -97,11 +97,21 @@ export default function StickerWindow({ onChoose }:
   return (
     <div className="w-full">
       {/* 显示表情 */}
-      <div className="grid grid-cols-4 md:grid-cols-5 mb-2 max-h-80 p-1 overflow-y-auto overflow-x-hidden">
+      <div className="
+        grid grid-cols-4
+        md:grid-cols-5
+        mb-2 max-h-80 p-1 overflow-y-auto overflow-x-hidden
+      ">
         {/* 添加新表情 */}
         <ImgUploader setImg={(newImg) => { handleAddSticker(newImg); }}>
-          <div className="aspect-square cursor-pointer hover:bg-base-200 rounded-lg p-1 transition-transform">
-            <div className="flex items-center justify-center h-full text-base-content/70">
+          <div className="
+            aspect-square cursor-pointer
+            hover:bg-base-200
+            rounded-lg p-1 transition-transform
+          ">
+            <div className="
+              flex items-center justify-center h-full text-base-content/70
+            ">
               <span className="text-2xl">+</span>
             </div>
           </div>
@@ -109,7 +119,12 @@ export default function StickerWindow({ onChoose }:
 
         {stickerList.length === 0
           ? (
-              <div className="col-span-4 md:col-span-5 text-center text-base-content/70 h-20 flex items-center justify-center">暂无表情包</div>
+              <div className="
+                col-span-4
+                md:col-span-5
+                text-center text-base-content/70 h-20 flex items-center
+                justify-center
+              ">暂无表情包</div>
             )
           : (
               stickerList.map(sticker => (
@@ -117,7 +132,11 @@ export default function StickerWindow({ onChoose }:
                   type="button"
                   key={sticker.stickerId}
                   onClick={() => { onChoose(sticker); }}
-                  className={`aspect-square cursor-pointer rounded-lg p-1 transition-transform relative ${deleteButtonVisible ? "" : "hover:scale-105"}`}
+                  className={`
+                    aspect-square cursor-pointer rounded-lg p-1
+                    transition-transform relative
+                    ${deleteButtonVisible ? "" : `hover:scale-105`}
+                  `}
                 >
                   <MediaImage
                     src={mediaFileUrl(sticker.fileId, sticker.mediaType, "medium")}
@@ -129,7 +148,13 @@ export default function StickerWindow({ onChoose }:
                   {deleteButtonVisible && (
                     <button
                       type="button"
-                      className="cursor-pointer absolute top-0 right-0 rounded-full size-5 flex items-center justify-center bg-gray-300 text-gray-700 hover:bg-gray-400 transition-colors"
+                      className="
+                        cursor-pointer absolute top-0 right-0 rounded-full
+                        size-5 flex items-center justify-center bg-gray-300
+                        text-gray-700
+                        hover:bg-gray-400
+                        transition-colors
+                      "
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(sticker.stickerId || -1);
@@ -144,12 +169,18 @@ export default function StickerWindow({ onChoose }:
         {stickerList.length !== 0 && (
           <button
             type="button"
-            className="aspect-square cursor-pointer hover:bg-base-200 rounded-lg p-1 transition-transform"
+            className="
+              aspect-square cursor-pointer
+              hover:bg-base-200
+              rounded-lg p-1 transition-transform
+            "
             onClick={() => {
               setDeleteButtonVisible(!deleteButtonVisible);
             }}
           >
-            <div className="flex items-center justify-center h-full text-base-content/70">
+            <div className="
+              flex items-center justify-center h-full text-base-content/70
+            ">
               <span className="text-xl">×</span>
             </div>
           </button>

@@ -368,7 +368,9 @@ function ClueFolderSection({
   return (
     <div className="space-y-1">
       {isLoading && (
-        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-base-content/45">
+        <div className="
+          flex items-center gap-2 px-2 py-1.5 text-xs text-base-content/45
+        ">
           <span className="loading loading-spinner loading-xs"></span>
           <span>正在加载线索...</span>
         </div>
@@ -390,7 +392,12 @@ function ClueFolderSection({
           <button
             key={messageId}
             type="button"
-            className={`group relative w-full rounded-md px-2 py-1.5 text-left text-xs text-base-content/80 transition-colors hover:bg-base-300 ${activeMessageId === messageId ? "bg-info/12 ring-1 ring-info/35" : ""}`}
+            className={`
+              group relative w-full rounded-md px-2 py-1.5 text-left text-xs
+              text-base-content/80 transition-colors
+              hover:bg-base-300
+              ${activeMessageId === messageId ? `bg-info/12 ring-1 ring-info/35` : ""}
+            `}
             data-clue-message-id={messageId}
             draggable
             title={message.content || "线索"}
@@ -456,13 +463,22 @@ function ClueFolderSection({
           >
             {isDropTarget && (
               <span
-                className={`pointer-events-none absolute left-1 right-1 z-10 h-[2px] rounded-full bg-info ${
-                  reorderState?.placement === "before" ? "-top-px" : "-bottom-px"
-                }`}
+                className={`
+                  pointer-events-none absolute left-1 right-1 z-10 h-[2px]
+                  rounded-full bg-info
+                  ${
+                  reorderState?.placement === "before" ? "-top-px" : `
+                    -bottom-px
+                  `
+                }
+                `}
                 aria-hidden="true"
               />
             )}
-            <span className="block min-w-0 overflow-hidden text-ellipsis break-words leading-5 line-clamp-2">
+            <span className="
+              block min-w-0 overflow-hidden text-ellipsis break-words leading-5
+              line-clamp-2
+            ">
               <MessagePreviewContent message={message} withMediaPreview />
             </span>
           </button>
@@ -981,7 +997,9 @@ export default function ClueFolderSidebar({
             </div>
 
             {editorState.mode === "create" && (
-              <div className="mb-3 rounded-lg border border-base-300 bg-base-200/40 p-3">
+              <div className="
+                mb-3 rounded-lg border border-base-300 bg-base-200/40 p-3
+              ">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -1005,13 +1023,28 @@ export default function ClueFolderSidebar({
                 />
 
                 {draftAttachment && (
-                  <div className="rounded-md border border-base-300 bg-base-100 p-2">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2 text-xs text-base-content/70">
-                        {draftAttachment.kind === "image" && <ImageIcon className="size-4" />}
-                        {draftAttachment.kind === "audio" && <MusicNotesIcon className="size-4" />}
-                        {draftAttachment.kind === "video" && <FilmSlateIcon className="size-4" />}
-                        {draftAttachment.kind === "file" && <FileTextIcon className="size-4" />}
+                  <div className="
+                    rounded-md border border-base-300 bg-base-100 p-2
+                  ">
+                    <div className="
+                      mb-2 flex items-center justify-between gap-2
+                    ">
+                      <div className="
+                        flex min-w-0 items-center gap-2 text-xs
+                        text-base-content/70
+                      ">
+                        {draftAttachment.kind === "image" && <ImageIcon className="
+                          size-4
+                        " />}
+                        {draftAttachment.kind === "audio" && <MusicNotesIcon className="
+                          size-4
+                        " />}
+                        {draftAttachment.kind === "video" && <FilmSlateIcon className="
+                          size-4
+                        " />}
+                        {draftAttachment.kind === "file" && <FileTextIcon className="
+                          size-4
+                        " />}
                         <span className="truncate" title={draftAttachment.file.name}>
                           {draftAttachment.file.name}
                         </span>
@@ -1029,14 +1062,20 @@ export default function ClueFolderSidebar({
                       <img
                         src={draftAttachment.previewUrl}
                         alt={draftAttachment.file.name}
-                        className="max-h-64 w-auto max-w-full rounded-md object-contain"
+                        className="
+                          max-h-64 w-auto max-w-full rounded-md object-contain
+                        "
                       />
                     )}
                     {draftAttachment.kind === "audio" && (
-                      <audio controls src={draftAttachment.previewUrl} className="w-full" />
+                      <audio controls src={draftAttachment.previewUrl} className="
+                        w-full
+                      " />
                     )}
                     {draftAttachment.kind === "video" && (
-                      <video controls src={draftAttachment.previewUrl} className="max-h-64 w-full rounded-md bg-black" />
+                      <video controls src={draftAttachment.previewUrl} className="
+                        max-h-64 w-full rounded-md bg-black
+                      " />
                     )}
                     {draftAttachment.kind === "file" && (
                       <div className="text-xs text-base-content/55">
@@ -1049,7 +1088,10 @@ export default function ClueFolderSidebar({
             )}
 
             {editorState.mode === "edit" && hasRenderableClueImage(editorState.message) && (
-              <div className="mb-3 max-h-80 overflow-auto rounded-lg border border-base-300 bg-base-200/40 p-3">
+              <div className="
+                mb-3 max-h-80 overflow-auto rounded-lg border border-base-300
+                bg-base-200/40 p-3
+              ">
                 <MessageContentRenderer
                   message={{
                     ...editorState.message,
@@ -1061,7 +1103,10 @@ export default function ClueFolderSidebar({
             )}
 
             <textarea
-              className="textarea textarea-bordered min-h-72 max-h-[60vh] w-full resize-y text-sm leading-6"
+              className="
+                textarea textarea-bordered min-h-72 max-h-[60vh] w-full resize-y
+                text-sm leading-6
+              "
               value={draftContent}
               placeholder="写下这条线索..."
               disabled={isSaving || isDeleting}

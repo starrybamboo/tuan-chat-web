@@ -33,7 +33,13 @@ export default function ChatPageLayout({
 }: ChatPageLayoutProps) {
   return (
     <div
-      className={`flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-hidden ${screenSize === "sm" ? "bg-base-100 pt-[var(--tc-safe-area-top)] pb-[var(--tc-safe-area-bottom)]" : "bg-base-200"}`}
+      className={`
+        flex flex-row flex-1 h-full min-h-0 min-w-0 relative overflow-hidden
+        ${screenSize === "sm" ? `
+          bg-base-100 pt-[var(--tc-safe-area-top)]
+          pb-[var(--tc-safe-area-bottom)]
+        ` : `bg-base-200`}
+      `}
     >
       {shouldShowLeftDrawerToggle && (
         <div
@@ -75,13 +81,21 @@ export default function ChatPageLayout({
                     </div>
                     <div
                       id="chat-sidebar-user-card"
-                      className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                      className="
+                        absolute left-2 right-2 bottom-2 z-20
+                        pointer-events-auto
+                      "
                       style={{ bottom: "max(0.5rem, var(--tc-safe-area-bottom))" }}
                     />
                   </div>
                 </OpenAbleDrawer>
                 <div
-                  className={`h-full min-h-0 min-w-0 transition-opacity ${isOpenLeftDrawer ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+                  className={`
+                    h-full min-h-0 min-w-0 transition-opacity
+                    ${isOpenLeftDrawer ? `opacity-0 pointer-events-none` : `
+                      opacity-100
+                    `}
+                  `}
                   aria-hidden={isOpenLeftDrawer}
                 >
                   {mainContent}
@@ -91,7 +105,10 @@ export default function ChatPageLayout({
           )
         : (
             <>
-              <div className="flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200 rounded-tl-xl">
+              <div className="
+                flex flex-row flex-1 h-full min-w-0 overflow-visible bg-base-200
+                rounded-tl-xl
+              ">
                 <div className="flex flex-col bg-base-200 h-full relative">
                   <div className="flex flex-row flex-1 min-h-0">
                     <div className="bg-base-200 h-full">
@@ -107,14 +124,18 @@ export default function ChatPageLayout({
                       onWidthChange={setChatLeftPanelWidth}
                       handlePosition="right"
                     >
-                      <div className="h-full flex flex-row w-full min-w-0 rounded-tl-xl">
+                      <div className="
+                        h-full flex flex-row w-full min-w-0 rounded-tl-xl
+                      ">
                         {sidePanelContent}
                       </div>
                     </OpenAbleDrawer>
                   </div>
                   <div
                     id="chat-sidebar-user-card"
-                    className="absolute left-2 right-2 bottom-2 z-20 pointer-events-auto"
+                    className="
+                      absolute left-2 right-2 bottom-2 z-20 pointer-events-auto
+                    "
                     style={{ bottom: "max(0.5rem, var(--tc-safe-area-bottom))" }}
                   />
                 </div>

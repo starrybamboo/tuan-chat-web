@@ -26,7 +26,10 @@ export default function RoleList({
       {roles.map(role => (
         <div
           key={role.roleId}
-          className={`flex gap-3 p-3 bg-base-200 rounded-lg items-center ${className}`}
+          className={`
+            flex gap-3 p-3 bg-base-200 rounded-lg items-center
+            ${className}
+          `}
           draggable={role.roleId > 0}
           onDragStart={(event) => {
             if (role.roleId <= 0) {

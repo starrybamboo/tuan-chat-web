@@ -139,8 +139,13 @@ export default function AudioUploadModal({
     return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
-      <div className="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="
+      fixed inset-0 z-50 flex items-center justify-center bg-black/50
+    " onClick={handleClose}>
+      <div className="
+        bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh]
+        overflow-hidden
+      " onClick={e => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">上传音频文件</h3>
@@ -161,7 +166,9 @@ export default function AudioUploadModal({
 
               <div className="text-sm">
                 <div className="flex items-start gap-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="
+                    stroke-current shrink-0 w-6 h-6
+                  ">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                   <div className="font-semibold mb-1">音频文件要求：</div>
@@ -176,11 +183,18 @@ export default function AudioUploadModal({
 
             {/* 文件上传区域 */}
             <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              className={`
+                border-2 border-dashed rounded-lg p-6 text-center
+                transition-colors
+                ${
                 isDragOver
                   ? "border-primary bg-primary/5"
-                  : "border-base-300 hover:border-primary/50"
-              }`}
+                  : `
+                    border-base-300
+                    hover:border-primary/50
+                  `
+              }
+              `}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
@@ -209,7 +223,10 @@ export default function AudioUploadModal({
               {selectedAudioFile
                 ? (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-center w-12 h-12 mx-auto bg-success/10 rounded-full">
+                      <div className="
+                        flex items-center justify-center w-12 h-12 mx-auto
+                        bg-success/10 rounded-full
+                      ">
                         <svg className="w-6 h-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -235,7 +252,10 @@ export default function AudioUploadModal({
                   )
                 : (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-center w-12 h-12 mx-auto bg-secondary/10 rounded-full">
+                      <div className="
+                        flex items-center justify-center w-12 h-12 mx-auto
+                        bg-secondary/10 rounded-full
+                      ">
                         <svg className="w-6 h-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                         </svg>
@@ -272,7 +292,10 @@ export default function AudioUploadModal({
               </button>
               <button
                 type="button"
-                className={`btn btn-primary ${isUploading ? "loading" : ""}`}
+                className={`
+                  btn btn-primary
+                  ${isUploading ? "loading" : ""}
+                `}
                 disabled={!selectedAudioFile || isUploading}
                 onClick={handleAudioUpload}
               >

@@ -293,7 +293,9 @@ export default function ExportImageWindow({
       </div>
 
       {/* 选项区域 */}
-      <div className="flex gap-4 items-center flex-wrap bg-base-200 p-3 rounded-lg">
+      <div className="
+        flex gap-4 items-center flex-wrap bg-base-200 p-3 rounded-lg
+      ">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -322,7 +324,9 @@ export default function ExportImageWindow({
       </div>
 
       {/* 预览区域 */}
-      <div className="overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-base-100">
+      <div className="
+        overflow-auto max-h-[50vh] border border-base-300 rounded-lg bg-base-100
+      ">
         <div ref={contentRef} className="p-4 bg-base-100 text-base-content">
           {hasHeader && (
             <div className="mb-3 pb-3 border-b border-base-300">
@@ -341,7 +345,9 @@ export default function ExportImageWindow({
 
         {/* 预览二维码区域 */}
         {showQRCode && (
-          <div className="flex flex-col items-center py-4 bg-base-100 border-t border-base-300">
+          <div className="
+            flex flex-col items-center py-4 bg-base-100 border-t border-base-300
+          ">
             {qrCodeDataUrl
               ? (
                   <img
@@ -351,7 +357,10 @@ export default function ExportImageWindow({
                   />
                 )
               : (
-                  <div className="w-[120px] h-[120px] bg-base-200 flex items-center justify-center rounded">
+                  <div className="
+                    w-[120px] h-[120px] bg-base-200 flex items-center
+                    justify-center rounded
+                  ">
                     <span className="loading loading-spinner loading-sm"></span>
                   </div>
                 )}

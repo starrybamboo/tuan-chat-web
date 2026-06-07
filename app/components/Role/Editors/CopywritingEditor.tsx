@@ -169,19 +169,27 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
         {groups.map(([name, entries]) => (
           <div key={name} className="bg-base-200 rounded-xl">
             {/* 分组标题 */}
-            <div className="flex items-center gap-2 p-3 border-b border-base-content/10">
+            <div className="
+              flex items-center gap-2 p-3 border-b border-base-content/10
+            ">
               <input
                 type="text"
                 defaultValue={name}
                 onBlur={e => renameGroup(name, e.target.value)}
-                className="input input-sm input-ghost font-semibold text-base flex-1 focus:input-bordered"
+                className="
+                  input input-sm input-ghost font-semibold text-base flex-1
+                  focus:input-bordered
+                "
                 title="点击编辑分组名"
               />
               <span className="badge badge-primary badge-sm">{entries.length}</span>
               <div className="tooltip tooltip-left" data-tip="删除分组">
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10"
+                  className="
+                    btn btn-ghost btn-sm btn-square text-error
+                    hover:bg-error/10
+                  "
                   onClick={() => deleteGroup(name)}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -208,12 +216,18 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                       key={entryKey}
                       className="list-row items-start gap-3 py-2"
                     >
-                      <div className="text-xs font-mono opacity-50 tabular-nums pt-3">
+                      <div className="
+                        text-xs font-mono opacity-50 tabular-nums pt-3
+                      ">
                         {String(idx + 1).padStart(2, "0")}
                       </div>
                       <div className="flex-1">
                         <textarea
-                          className="textarea w-full focus:outline-none border-none outline-none bg-transparent resize-none"
+                          className="
+                            textarea w-full
+                            focus:outline-none
+                            border-none outline-none bg-transparent resize-none
+                          "
                           placeholder={`文案 #${idx + 1}`}
                           value={text}
                           onChange={e => updateEntry(name, idx, e.target.value)}
@@ -223,7 +237,11 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                       <div className="tooltip tooltip-left" data-tip="删除文案">
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm btn-square text-error hover:bg-error/10 mt-2"
+                          className="
+                            btn btn-ghost btn-sm btn-square text-error
+                            hover:bg-error/10
+                            mt-2
+                          "
                           onClick={() => deleteEntry(name, idx)}
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -236,14 +254,20 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                 })}
                 {/* 添加新文案的空行 */}
                 <li className="list-row items-start gap-3 py-2">
-                  <div className="text-xs font-mono opacity-50 tabular-nums pt-3">
+                  <div className="
+                    text-xs font-mono opacity-50 tabular-nums pt-3
+                  ">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
                   <div className="flex-1">
                     <textarea
-                      className="textarea w-full focus:outline-none border-none outline-none bg-transparent resize-none"
+                      className="
+                        textarea w-full
+                        focus:outline-none
+                        border-none outline-none bg-transparent resize-none
+                      "
                       placeholder="输入新文案..."
                       value={newEntryInputs[name] || ""}
                       onChange={e => setNewEntryInputs(prev => ({ ...prev, [name]: e.target.value }))}
@@ -253,7 +277,11 @@ export default function CopywritingEditor({ value, onChange }: CopywritingEditor
                   <div className="tooltip tooltip-left" data-tip="添加文案">
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm btn-square text-primary hover:bg-primary/10 mt-2"
+                      className="
+                        btn btn-ghost btn-sm btn-square text-primary
+                        hover:bg-primary/10
+                        mt-2
+                      "
                       disabled={!newEntryInputs[name]?.trim()}
                       onClick={() => {
                         const text = newEntryInputs[name]?.trim();

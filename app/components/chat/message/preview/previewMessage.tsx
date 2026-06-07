@@ -110,7 +110,13 @@ export function PreviewMessage({ message, className, withMediaPreview }: {
     : "";
 
   return (
-    <span className={`text-xs sm:text-sm line-clamp-3 opacity-60 break-words min-w-0 ${isOutOfCharacterText ? "italic" : ""} ${className}`}>
+    <span className={`
+      text-xs
+      sm:text-sm
+      line-clamp-3 opacity-60 break-words min-w-0
+      ${isOutOfCharacterText ? `italic` : ""}
+      ${className}
+    `}>
       {
         isDeleted || renderState.isPlainTextOnly
           ? renderState.previewText

@@ -91,9 +91,14 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex justify-center p-4">
-      <div className="bg-base-100 rounded-xl shadow-xl border border-base-300 w-full overflow-hidden">
+      <div className="
+        bg-base-100 rounded-xl shadow-xl border border-base-300 w-full
+        overflow-hidden
+      ">
         {/* 头部 - 带关闭按钮 */}
-        <div className="flex items-center justify-between p-4 border-b border-base-300">
+        <div className="
+          flex items-center justify-between p-4 border-b border-base-300
+        ">
           <h2 className="text-lg font-semibold text-base-content">动态详情</h2>
           <button
             onClick={onClose}
@@ -112,17 +117,27 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
           )}
 
           {momentError && (
-            <div className="bg-error/10 border border-error/20 rounded-lg p-6 m-6 text-center">
+            <div className="
+              bg-error/10 border border-error/20 rounded-lg p-6 m-6 text-center
+            ">
               <p className="text-error font-medium">加载失败</p>
               <p className="text-error/80 text-sm mt-1">请检查网络连接后重试</p>
             </div>
           )}
 
           {!momentLoading && !momentError && feed && (
-            <div className={`p-6 relative ${isDeleting ? "opacity-50 pointer-events-none" : ""}`}>
+            <div className={`
+              p-6 relative
+              ${isDeleting ? `opacity-50 pointer-events-none` : ""}
+            `}>
               {isDeleting && (
-                <div className="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center z-10">
-                  <div className="loading loading-spinner loading-lg text-primary" />
+                <div className="
+                  absolute inset-0 bg-base-100/80 rounded-xl flex items-center
+                  justify-center z-10
+                ">
+                  <div className="
+                    loading loading-spinner loading-lg text-primary
+                  " />
                 </div>
               )}
 
@@ -130,11 +145,17 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
               <div className="flex flex-row items-center gap-3 mb-6">
                 {userInfoLoading
                   ? (
-                      <div className="skeleton w-16 h-16 rounded-full flex-shrink-0"></div>
+                      <div className="
+                        skeleton w-16 h-16 rounded-full flex-shrink-0
+                      "></div>
                     )
                   : (
                       <MediaImage
-                        className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                        className="
+                          w-16 h-16 rounded-full object-cover cursor-pointer
+                          hover:opacity-80
+                          transition-opacity flex-shrink-0
+                        "
                         src={data.avatar}
                         onClick={handleAvatarClick}
                         alt="用户头像"
@@ -152,7 +173,9 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                       )
                     : (
                         <>
-                          <h3 className="text-xl font-semibold text-base-content">{data.name}</h3>
+                          <h3 className="
+                            text-xl font-semibold text-base-content
+                          ">{data.name}</h3>
                           <p className="text-sm text-base-content/60 mt-1">{publishTime}</p>
                         </>
                       )}
@@ -160,7 +183,12 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
                 <div className="relative ml-auto">
                   <button
-                    className="text-base-content/40 hover:text-base-content/80 transition-colors p-3 rounded-full hover:bg-base-200"
+                    className="
+                      text-base-content/40
+                      hover:text-base-content/80
+                      transition-colors p-3 rounded-full
+                      hover:bg-base-200
+                    "
                     onClick={() => setShowMenu(!showMenu)}
                     type="button"
                   >
@@ -168,12 +196,20 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   </button>
 
                   {showMenu && (
-                    <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
+                    <div className="
+                      absolute right-0 top-full mt-1 bg-base-100 border
+                      border-base-300 rounded-lg shadow-lg py-1 z-20
+                      min-w-[120px]
+                    ">
                       {loginUserId === userId
                         ? (
                             <button
                               onClick={handleDelete}
-                              className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
+                              className="
+                                w-full px-4 py-2 text-left text-sm text-error
+                                hover:bg-error/10
+                                transition-colors
+                              "
                               type="button"
                             >
                               删除动态
@@ -182,7 +218,12 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                         : (
                             <button
                               onClick={() => setShowMenu(false)}
-                              className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
+                              className="
+                                w-full px-4 py-2 text-left text-sm
+                                text-base-content/60
+                                hover:bg-base-200
+                                transition-colors
+                              "
                               type="button"
                             >
                               举报
@@ -195,13 +236,17 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
               {/* 动态内容区域 */}
               <div className="mb-6">
-                <div className="text-base-content whitespace-pre-wrap text-lg leading-relaxed">
+                <div className="
+                  text-base-content whitespace-pre-wrap text-lg leading-relaxed
+                ">
                   {feed?.content ?? ""}
                 </div>
 
                 {/* 仓库信息 */}
                 {feed?.repositoryVO && (
-                  <div className="mt-4 p-4 bg-base-200 rounded-lg border border-base-300">
+                  <div className="
+                    mt-4 p-4 bg-base-200 rounded-lg border border-base-300
+                  ">
                     <div className="flex items-center gap-3">
                       {repositoryCoverUrl && (
                         <MediaImage
@@ -217,7 +262,9 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                           {feed.repositoryVO.authorName}
                         </p>
                         {feed.repositoryVO.repositoryDescription && (
-                          <p className="text-sm text-base-content/80 mt-1 line-clamp-2">
+                          <p className="
+                            text-sm text-base-content/80 mt-1 line-clamp-2
+                          ">
                             {feed.repositoryVO.repositoryDescription}
                           </p>
                         )}
@@ -230,18 +277,33 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                 {images.length > 0 && (
                   <div className="mt-6">
                     <div
-                      className={`grid gap-4 max-w-lg mx-auto ${
+                      className={`
+                        grid gap-4 max-w-lg mx-auto
+                        ${
                         images.length === 1
                           ? "grid-cols-1 max-w-md"
                           : images.length === 2
-                            ? "grid-cols-1 sm:grid-cols-2"
-                            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                      }`}
+                            ? `
+                              grid-cols-1
+                              sm:grid-cols-2
+                            `
+                            : `
+                              grid-cols-1
+                              sm:grid-cols-2
+                              lg:grid-cols-3
+                            `
+                      }
+                      `}
                     >
                       {images.map((img: string, idx: number) => (
                         <div
                           key={img}
-                          className="aspect-square overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          className="
+                            aspect-square overflow-hidden rounded-lg
+                            cursor-pointer
+                            hover:opacity-90
+                            transition-opacity
+                          "
                         >
                           <MediaImage
                             src={imageMediumUrlFromUrl(img)}
@@ -256,9 +318,14 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
               </div>
 
               {/* 操作栏 */}
-              <div className="flex items-center justify-center space-x-8 py-4 border-t border-base-300 bg-base-50">
+              <div className="
+                flex items-center justify-center space-x-8 py-4 border-t
+                border-base-300 bg-base-50
+              ">
                 <div
-                  className="flex items-center space-x-2 text-base px-4 py-2 rounded-full"
+                  className="
+                    flex items-center space-x-2 text-base px-4 py-2 rounded-full
+                  "
                 >
                   <CommentOutline className="h-6 w-5" />
                   <span className="font-medium">
@@ -268,7 +335,11 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
                 <button
                   onClick={handleShare}
-                  className="flex items-center space-x-2 text-base text-base-content/70 hover:text-success hover:bg-success/10 transition-colors px-4 py-2 rounded-full"
+                  className="
+                    flex items-center space-x-2 text-base text-base-content/70
+                    hover:text-success hover:bg-success/10
+                    transition-colors px-4 py-2 rounded-full
+                  "
                   type="button"
                 >
                   <CommentOutline className="h-6 w-5" />

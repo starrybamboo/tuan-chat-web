@@ -28,7 +28,12 @@ export default function RoomSidebarCategoryContainer({
   return (
     <div
       data-tc-sidebar-category={categoryId}
-      className={`px-1 relative ${isDocCopyDropTarget ? "outline outline-2 outline-primary/50 rounded-lg" : ""}`}
+      className={`
+        px-1 relative
+        ${isDocCopyDropTarget ? `
+          outline outline-2 outline-primary/50 rounded-lg
+        ` : ""}
+      `}
       onDragOver={e => handleDocCopyCategoryDragOver(e, categoryId)}
       onDragLeave={() => handleDocCopyCategoryDragLeave(categoryId)}
       onDrop={e => handleDocCopyCategoryDrop(e, categoryId)}
@@ -38,8 +43,14 @@ export default function RoomSidebarCategoryContainer({
       )}
 
       {isDocCopyDropTarget && (
-        <div className="pointer-events-none absolute inset-0 z-20 rounded-lg border-2 border-primary/60 bg-primary/5 flex items-center justify-center">
-          <div className="px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs font-medium text-primary shadow-sm">
+        <div className="
+          pointer-events-none absolute inset-0 z-20 rounded-lg border-2
+          border-primary/60 bg-primary/5 flex items-center justify-center
+        ">
+          <div className="
+            px-3 py-2 rounded bg-base-100/80 border border-primary/20 text-xs
+            font-medium text-primary shadow-sm
+          ">
             {isSpaceOwner ? "松开复制到侧边栏" : "仅主持可复制到空间侧边栏"}
           </div>
         </div>

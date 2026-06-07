@@ -62,16 +62,26 @@ function AvatarPreviewComponent({
 
   // 渲染图片预览
   const renderImagePreview = () => (
-    <div className={`bg-gray-50 rounded border flex items-center justify-center overflow-hidden ${className}`}>
+    <div className={`
+      bg-gray-50 rounded border flex items-center justify-center overflow-hidden
+      ${className}
+    `}>
       {previewCanvasRef
         ? (
-            <canvas ref={previewCanvasRef} className={`object-contain ${imageClassName} w-full h-full`} />
+            <canvas ref={previewCanvasRef} className={`
+              object-contain
+              ${imageClassName}
+              w-full h-full
+            `} />
           )
         : (
             <MediaImage
               src={displayAvatarUrl}
               alt="预览"
-              className={`object-contain ${imageClassName}`}
+              className={`
+                object-contain
+                ${imageClassName}
+              `}
             />
           )}
     </div>
@@ -79,7 +89,9 @@ function AvatarPreviewComponent({
 
   // 渲染聊天预览
   const renderChatPreview = () => (
-    <div className={`${className}`}>
+    <div className={`
+      ${className}
+    `}>
       {/* 多条chat bubble预览：使用 DisplayChatBubble（从 preview canvas 复制） */}
       {chatMessages.map(message => (
         <DisplayChatBubble
@@ -99,7 +111,11 @@ function AvatarPreviewComponent({
   const renderFullPreview = () => {
     // 渲染气泡样式内容
     const bubbleContent = showBubbleStyle && (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+      <div className="
+        bg-gray-100
+        dark:bg-gray-800
+        rounded-lg p-4 space-y-2
+      ">
         {chatMessages.map(message => (
           <DisplayChatBubble
             key={`bubble-${message}`}
@@ -116,7 +132,11 @@ function AvatarPreviewComponent({
 
     // 渲染传统样式内容
     const traditionalContent = showTraditionalStyle && (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+      <div className="
+        bg-gray-100
+        dark:bg-gray-800
+        rounded-lg p-4 space-y-2
+      ">
         {chatMessages.map(message => (
           <DisplayChatBubble
             key={`traditional-${message}`}
@@ -149,7 +169,11 @@ function AvatarPreviewComponent({
             {showBubbleStyle && showTraditionalStyle && (
               <button
                 type="button"
-                className="btn btn-xs btn-ghost self-end mb-2 sm:btn-sm sm:mb-0 sm:absolute sm:right-2 sm:top-2 z-10"
+                className="
+                  btn btn-xs btn-ghost self-end mb-2
+                  sm:btn-sm sm:mb-0 sm:absolute sm:right-2 sm:top-2
+                  z-10
+                "
                 data-no-crop-modal="true"
                 onClick={(event) => {
                   event.stopPropagation();

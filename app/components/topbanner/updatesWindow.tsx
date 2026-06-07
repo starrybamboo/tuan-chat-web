@@ -38,7 +38,11 @@ export default function UpdatesToastWindow() {
     return null;
   return (
     <ToastWindow isOpen={isOpen} onClose={handleClose}>
-      <div className="p-6 w-[80vw] lg:w-[60vw] overflow-auto flex flex-col">
+      <div className="
+        p-6 w-[80vw]
+        lg:w-[60vw]
+        overflow-auto flex flex-col
+      ">
         <div className="flex justify-between items-center pb-4">
           <span className="text-xl font-bold">
             ?????? (
@@ -50,7 +54,9 @@ export default function UpdatesToastWindow() {
         </div>
 
         <div className="max-h-[60vh] overflow-auto w-full">
-          <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载更新内容...</div>}>
+          <Suspense fallback={<div className="
+            flex min-h-40 items-center justify-center text-sm opacity-70
+          ">正在加载更新内容...</div>}>
             <LazyMarkDownViewer content={currentContent} />
           </Suspense>
         </div>

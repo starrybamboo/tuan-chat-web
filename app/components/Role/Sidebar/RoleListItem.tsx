@@ -23,13 +23,22 @@ export function RoleListItem({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group ${
+      className={`
+        flex items-center gap-3 p-3 rounded-lg cursor-pointer group
+        ${
         isSelected ? "bg-base-100" : "hover:bg-base-100"
-      }`}
+      }
+      `}
     >
-      <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onSelect}>
+      <button type="button" className="
+        flex min-w-0 flex-1 items-center gap-3 text-left
+      " onClick={onSelect}>
         <div className="avatar shrink-0">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full">
+          <div className="
+            w-12 h-12
+            md:w-14 md:h-14
+            rounded-full
+          ">
             <MediaImage src={avatarSrc} alt={role.name || "default avatar"} loading="lazy" fallbackSrc={role.avatar || ROLE_DEFAULT_AVATAR_URL} />
           </div>
         </div>
@@ -44,7 +53,14 @@ export function RoleListItem({
 
         {isSelectionMode
           ? (
-              <div className={`flex items-center justify-center w-4 h-4 rounded-full border-2 transition-all duration-200 ${isSelected ? "bg-info border-info" : "border-base-content/30 hover:border-primary"}`}>
+              <div className={`
+                flex items-center justify-center w-4 h-4 rounded-full border-2
+                transition-all duration-200
+                ${isSelected ? `bg-info border-info` : `
+                  border-base-content/30
+                  hover:border-primary
+                `}
+              `}>
                 {isSelected && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -67,7 +83,13 @@ export function RoleListItem({
       {!isSelectionMode && (
         <button
           type="button"
-          className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
+          className="
+            btn btn-ghost btn-xs text-error
+            hover:bg-error/10
+            md:opacity-0
+            md:group-hover:opacity-100
+            opacity-70 rounded-full p-1
+          "
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();

@@ -73,7 +73,12 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
 
   if (isLoading || repositoryListQuery.isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="
+        grid grid-cols-2
+        md:grid-cols-3
+        lg:grid-cols-4
+        gap-6
+      ">
         {Array.from({ length: 8 }, (_, i) => `skeleton-${i}`).map(key => (
           <div key={key} className="animate-pulse">
             <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
@@ -107,10 +112,18 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
       <div className="text-center py-10 rounded-lg">
         {currentUserId === userId
           ? (
-              <div className="w-full flex flex-col items-center justify-center text-gray-500 gap-2 mt-8">
+              <div className="
+                w-full flex flex-col items-center justify-center text-gray-500
+                gap-2 mt-8
+              ">
                 <Link
                   to="/repository/create"
-                  className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-500 hover:bg-blue-200 transition-colors duration-200"
+                  className="
+                    w-12 h-12 flex items-center justify-center rounded-full
+                    bg-blue-100 text-blue-500
+                    hover:bg-blue-200
+                    transition-colors duration-200
+                  "
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -139,7 +152,12 @@ const UserRepositoriesList: React.FC<UserRepositoriesListProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="
+        grid grid-cols-2
+        md:grid-cols-3
+        lg:grid-cols-4
+        gap-6
+      ">
         {repositoryItems.map(repositoryCard => (
           <ContentCard
             key={repositoryCard.id}

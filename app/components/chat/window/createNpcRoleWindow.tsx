@@ -83,14 +83,20 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
       <div className="tabs tabs-boxed w-full mb-3">
         <button
           type="button"
-          className={`tab flex-1 ${activeTab === "create" ? "tab-active" : ""}`}
+          className={`
+            tab flex-1
+            ${activeTab === "create" ? "tab-active" : ""}
+          `}
           onClick={() => setActiveTab("create")}
         >
           创建NPC
         </button>
         <button
           type="button"
-          className={`tab flex-1 ${activeTab === "import" ? "tab-active" : ""}`}
+          className={`
+            tab flex-1
+            ${activeTab === "import" ? "tab-active" : ""}
+          `}
           onClick={() => setActiveTab("import")}
         >
           从NPC库导入
@@ -98,7 +104,10 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
       </div>
 
       {activeTab === "create" && (
-        <div className="bg-base-100 rounded-box p-2 sm:p-4">
+        <div className="
+          bg-base-100 rounded-box p-2
+          sm:p-4
+        ">
           <RoleCreationFlow
             title="创建NPC"
             description="填写NPC信息，完成创建"
@@ -119,7 +128,11 @@ export default function CreateNpcRoleWindow({ onClose }: { onClose: () => void }
 
           <div className="flex flex-wrap gap-3 justify-center">
             {importableSpaceNpcRoles.map(role => (
-              <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.roleId}>
+              <div className="
+                card shadow
+                hover:shadow-lg
+                transition-shadow cursor-pointer
+              " key={role.roleId}>
                 <div className="flex flex-col items-center p-3">
                   <button
                     type="button"

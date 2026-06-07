@@ -72,11 +72,19 @@ function GNSPreferenceEditor({
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
-      <h2 className="text-lg sm:text-xl font-semibold mb-3 text-center text-base-content">设置你的 GNS 偏好</h2>
+      <h2 className="
+        text-lg
+        sm:text-xl
+        font-semibold mb-3 text-center text-base-content
+      ">设置你的 GNS 偏好</h2>
 
       {/* 排序与说明 */}
       <div className="space-y-3 justify-center">
-        <div className="flex flex-col sm:flex-row items-start gap-3">
+        <div className="
+          flex flex-col
+          sm:flex-row
+          items-start gap-3
+        ">
           <div className="collapse collapse-arrow border-base-300 border">
             <input type="checkbox" />
             <div className="collapse-title font-semibold text-base-content">
@@ -91,7 +99,10 @@ function GNSPreferenceEditor({
             </div>
           </div>
 
-          <div className="min-w-[10rem] p-2 rounded-md border border-base-300 bg-base-200/70 text-center">
+          <div className="
+            min-w-[10rem] p-2 rounded-md border border-base-300 bg-base-200/70
+            text-center
+          ">
             <div className="text-xs text-base-content/60">当前排序</div>
             <div
               className="mt-1 text-sm font-semibold text-primary"
@@ -105,18 +116,27 @@ function GNSPreferenceEditor({
         </div>
 
         {/* 控件区：小屏幕单列，大屏幕两列 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="
+          grid grid-cols-1
+          sm:grid-cols-2
+          gap-4
+        ">
           {categories.map(category => (
             <div
               key={category.key}
-              className="flex flex-col justify-between rounded-lg border border-base-300 bg-base-100 p-3"
+              className="
+                flex flex-col justify-between rounded-lg border border-base-300
+                bg-base-100 p-3
+              "
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-medium text-base-content">{category.name}</h3>
                   <p className="text-xs text-base-content/70 mt-1">{category.desc}</p>
                 </div>
-                <div className="text-xl font-semibold text-primary min-w-[2.2rem] text-right">
+                <div className="
+                  text-xl font-semibold text-primary min-w-[2.2rem] text-right
+                ">
                   {ratings[category.key]}
                 </div>
               </div>
@@ -130,10 +150,16 @@ function GNSPreferenceEditor({
                   step={1}
                   value={ratings[category.key]}
                   onChange={e => handleRatingChange(category.key, e.target.value)}
-                  className="w-full h-2 bg-base-200 rounded-full appearance-none cursor-pointer disabled:opacity-50"
+                  className="
+                    w-full h-2 bg-base-200 rounded-full appearance-none
+                    cursor-pointer
+                    disabled:opacity-50
+                  "
                   disabled={isDisabled}
                 />
-                <div className="mt-2 flex justify-between text-xs text-base-content/80">
+                <div className="
+                  mt-2 flex justify-between text-xs text-base-content/80
+                ">
                   <span>0</span>
                   <span>1</span>
                   <span>2</span>
@@ -147,14 +173,27 @@ function GNSPreferenceEditor({
         </div>
 
         {/* 按钮区：在移动端占满宽度，在大屏居中 */}
-        <div className="mt-4 pt-4 border-t border-base-200 flex flex-col sm:flex-row gap-3 justify-center items-center">
+        <div className="
+          mt-4 pt-4 border-t border-base-200 flex flex-col
+          sm:flex-row
+          gap-3 justify-center items-center
+        ">
           <button
             type="button"
             onClick={handleCancel}
             disabled={isDisabled}
-            className={`w-full sm:w-auto px-5 py-2 rounded-md border hover:bg-base-200 transition disabled:opacity-50 cursor-pointer ${
+            className={`
+              w-full
+              sm:w-auto
+              px-5 py-2 rounded-md border
+              hover:bg-base-200
+              transition
+              disabled:opacity-50
+              cursor-pointer
+              ${
               isDisabled ? "" : "bg-base-100"
-            }`}
+            }
+            `}
           >
             取消
           </button>
@@ -163,9 +202,19 @@ function GNSPreferenceEditor({
             type="button"
             onClick={handleSave}
             disabled={isDisabled || unchanged}
-            className={`w-full sm:w-auto px-6 py-2 rounded-md text-base-100 transition disabled:opacity-50 ${
-              unchanged || isDisabled ? "bg-primary/40" : "bg-primary hover:bg-primary-focus cursor-pointer"
-            }`}
+            className={`
+              w-full
+              sm:w-auto
+              px-6 py-2 rounded-md text-base-100 transition
+              disabled:opacity-50
+              ${
+              unchanged || isDisabled ? "bg-primary/40" : `
+                bg-primary
+                hover:bg-primary-focus
+                cursor-pointer
+              `
+            }
+            `}
           >
             {saving ? "保存中..." : "完成设置"}
           </button>

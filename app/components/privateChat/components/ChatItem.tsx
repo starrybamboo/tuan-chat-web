@@ -153,7 +153,10 @@ export default function ChatItem({
         onTouchCancel={handleTouchCancel}
         onClick={handleClick}
       >
-        <div className="avatar mask mask-squircle w-9 h-9 flex-shrink-0 bg-base-300 text-xs font-semibold text-base-content/60">
+        <div className="
+          avatar mask mask-squircle w-9 h-9 flex-shrink-0 bg-base-300 text-xs
+          font-semibold text-base-content/60
+        ">
           {avatarSrc
             ? (
                 <img
@@ -182,12 +185,18 @@ export default function ChatItem({
           </div>
 
           <div className="flex items-center w-full gap-2">
-            <span className="text-xs text-base-content/50 truncate text-left flex-1 min-w-0">
+            <span className="
+              text-xs text-base-content/50 truncate text-left flex-1 min-w-0
+            ">
               {getMessagePreview(lastMessage)}
             </span>
             {showedUnreadMessageNumber > 0 && (
               <motion.span
-                className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-error text-error-content flex-shrink-0"
+                className="
+                  inline-flex items-center justify-center min-w-[18px] h-[18px]
+                  px-1 text-[10px] font-bold rounded-full bg-error
+                  text-error-content flex-shrink-0
+                "
                 {...unreadBadgeBounceMotionProps}
               >
                 {showedUnreadMessageNumber > 99 ? "99+" : showedUnreadMessageNumber}
@@ -201,7 +210,15 @@ export default function ChatItem({
       {!isSmallScreen && (
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md opacity-0 transition-opacity duration-150 cursor-pointer hover:bg-base-300 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 group-hover:opacity-100 z-10"
+          className="
+            absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md opacity-0
+            transition-opacity duration-150 cursor-pointer
+            hover:bg-base-300
+            focus-visible:opacity-100 focus-visible:outline-none
+            focus-visible:ring-2 focus-visible:ring-primary/50
+            group-hover:opacity-100
+            z-10
+          "
           onClick={handleDeletePC}
           aria-label={`删除与${displayName}的会话`}
         >

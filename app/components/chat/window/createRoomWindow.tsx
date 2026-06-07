@@ -121,7 +121,10 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
         </header>
 
         <div className="hidden-scrollbar flex-1 overflow-y-auto py-6">
-          <div className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
+          <div className="
+            grid gap-6
+            md:grid-cols-[180px_minmax(0,1fr)]
+          ">
             <div>
               <p className="mb-3 text-sm font-medium text-base-content/70">房间头像</p>
               <ImgUploaderWithCopper
@@ -137,15 +140,29 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
                 aspect={1}
                 copperedCompressionPreset="avatarThumb"
               >
-                <div className="group relative size-28 overflow-hidden rounded-lg border border-base-300 bg-base-100 shadow-sm">
+                <div className="
+                  group relative size-28 overflow-hidden rounded-lg border
+                  border-base-300 bg-base-100 shadow-sm
+                ">
                   <MediaImage
                     src={roomAvatar}
                     alt="room avatar"
-                    className="size-full object-cover transition duration-200 group-hover:scale-105 group-hover:brightness-75"
+                    className="
+                      size-full object-cover transition duration-200
+                      group-hover:scale-105 group-hover:brightness-75
+                    "
                     fallbackSrc="/favicon.ico"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-base-100/10 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
-                    <span className={`${roomAvatarTextColor} rounded bg-base-100/70 px-2 py-1 text-xs font-semibold`}>
+                  <div className="
+                    absolute inset-0 flex items-center justify-center
+                    bg-base-100/10 opacity-0 backdrop-blur-[2px] transition
+                    duration-200
+                    group-hover:opacity-100
+                  ">
+                    <span className={`
+                      ${roomAvatarTextColor}
+                      rounded bg-base-100/70 px-2 py-1 text-xs font-semibold
+                    `}>
                       上传头像
                     </span>
                   </div>
@@ -155,7 +172,9 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
 
             <div className="space-y-5">
               <div>
-                <label htmlFor={roomNameInputId} className="mb-2 block text-sm font-medium text-base-content/70">
+                <label htmlFor={roomNameInputId} className="
+                  mb-2 block text-sm font-medium text-base-content/70
+                ">
                   房间名称
                 </label>
                 <input
@@ -172,10 +191,14 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
               </div>
 
               {isKP && (
-                <div className="rounded-lg border border-base-300/70 bg-base-200/30 p-4">
+                <div className="
+                  rounded-lg border border-base-300/70 bg-base-200/30 p-4
+                ">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-sm font-semibold">
+                      <div className="
+                        flex items-center gap-2 text-sm font-semibold
+                      ">
                         <ChatCircleText className="size-4 text-primary" weight="duotone" />
                         初始对话
                       </div>
@@ -214,7 +237,9 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
           </div>
         </div>
 
-        <footer className="flex justify-end gap-2 border-t border-base-300/70 pt-4">
+        <footer className="
+          flex justify-end gap-2 border-t border-base-300/70 pt-4
+        ">
           {onCancel && (
             <button type="button" className="btn btn-ghost min-w-24" onClick={onCancel} disabled={isSubmitting}>
               取消
@@ -228,7 +253,9 @@ export default function CreateRoomWindow({ spaceId, spaceAvatarThumbUrl, isKP = 
               void createRoom();
             }}
           >
-            {isSubmitting && <span className="loading loading-spinner loading-sm" />}
+            {isSubmitting && <span className="
+              loading loading-spinner loading-sm
+            " />}
             <PlusIcon className="size-4" />
             {isSubmitting ? "创建中..." : "创建房间"}
           </button>

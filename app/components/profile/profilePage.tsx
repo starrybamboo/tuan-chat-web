@@ -64,11 +64,18 @@ function ProfilePage() {
       <div
         role="tablist"
         ref={navRef}
-        className="relative flex border-gray-300 border-y bg-base-200 md:pl-10 dark:border-gray-700"
+        className="
+          relative flex border-gray-300 border-y bg-base-200
+          md:pl-10
+          dark:border-gray-700
+        "
       >
         {/* 高亮条 */}
         <div
-          className="absolute bottom-0 h-1.5 bg-primary rounded-t-full transition-all duration-300 ease-out"
+          className="
+            absolute bottom-0 h-1.5 bg-primary rounded-t-full transition-all
+            duration-300 ease-out
+          "
           style={{
             left: `${underline.left}px`,
             width: `${underline.width}px`,
@@ -81,7 +88,10 @@ function ProfilePage() {
             to={tab.to}
             onClick={scrollToTop}
             activeOptions={{ exact: tab.id === "home" }}
-            className="px-4 py-3 font-semibold transition-all duration-300 ease-out cursor-pointer flex items-center gap-2 no-underline"
+            className="
+              px-4 py-3 font-semibold transition-all duration-300 ease-out
+              cursor-pointer flex items-center gap-2 no-underline
+            "
             activeProps={{ className: "text-primary" }}
             inactiveProps={{ className: "text-base-content" }}
           >

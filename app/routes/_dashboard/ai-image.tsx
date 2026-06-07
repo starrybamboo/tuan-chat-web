@@ -116,7 +116,10 @@ function AiImagePage() {
 
   return (
     <div
-      className="ai-image-shell relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-base-100"
+      className="
+        ai-image-shell relative flex h-full min-h-0 w-full min-w-0 flex-col
+        overflow-hidden bg-base-100
+      "
       onDragEnter={handlePageImageDragEnter}
       onDragLeave={handlePageImageDragLeave}
       onDragOver={handlePageImageDragOver}
@@ -174,9 +177,18 @@ function AiImagePage() {
       </style>
       {isPageImageDragOver
         ? (
-            <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-base-100/52 backdrop-blur-[2px]">
-              <div className="flex size-[88px] items-center justify-center rounded-[24px] bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)] backdrop-blur-sm">
-                <UploadSimpleIcon className="size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]" weight="bold" aria-hidden="true" />
+            <div className="
+              pointer-events-none absolute inset-0 z-40 flex items-center
+              justify-center bg-base-100/52 backdrop-blur-[2px]
+            ">
+              <div className="
+                flex size-[88px] items-center justify-center rounded-[24px]
+                bg-[#242636]/78 shadow-[0_16px_34px_rgba(0,0,0,0.24)]
+                backdrop-blur-sm
+              ">
+                <UploadSimpleIcon className="
+                  size-11 text-white/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.28)]
+                " weight="bold" aria-hidden="true" />
               </div>
             </div>
           )
@@ -223,7 +235,9 @@ function AiImagePage() {
         }}
       />
 
-      <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden bg-base-200">
+      <div ref={layoutRef} className="
+        flex min-h-0 flex-1 overflow-hidden bg-base-200
+      ">
         {isSidebarVisible
           ? (
               <>
@@ -234,12 +248,20 @@ function AiImagePage() {
                   <AiImageSidebar sidebarProps={sidebarProps} />
                   <button
                     type="button"
-                    className="group absolute inset-y-0 right-0 z-30 w-3 translate-x-1/2 cursor-col-resize touch-none bg-transparent px-0"
+                    className="
+                      group absolute inset-y-0 right-0 z-30 w-3 translate-x-1/2
+                      cursor-col-resize touch-none bg-transparent px-0
+                    "
                     aria-label="拖拽调整 AI 生图侧边栏宽度"
                     title="拖拽调整 AI 生图侧边栏宽度"
                     onPointerDown={handleSidebarResizeStart}
                   >
-                    <span className="mx-auto my-3 block h-[calc(100%-1.5rem)] w-px rounded-full bg-base-300/70 transition-colors group-hover:bg-primary/45 group-active:bg-primary" />
+                    <span className="
+                      mx-auto my-3 block h-[calc(100%-1.5rem)] w-px rounded-full
+                      bg-base-300/70 transition-colors
+                      group-hover:bg-primary/45
+                      group-active:bg-primary
+                    " />
                   </button>
                 </div>
               </>

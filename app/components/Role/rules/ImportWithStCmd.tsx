@@ -103,7 +103,9 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
       <fieldset className="border border-base-300 rounded-lg p-4">
         <div className="relative w-full">
           <textarea
-            className="bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none"
+            className="
+              bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none
+            "
             placeholder="输入.st指令导入属性（例：.st 力量80 敏捷70 意志50）"
             value={commandInput}
             onChange={e => setCommandInput(e.target.value)}

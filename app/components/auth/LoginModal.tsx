@@ -410,18 +410,32 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   };
 
   return (
-    <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box relative bg-base-100 dark:bg-base-300">
+    <div className={`
+      modal
+      ${isOpen ? "modal-open" : ""}
+    `}>
+      <div className="
+        modal-box relative bg-base-100
+        dark:bg-base-300
+      ">
         <button
           type="button"
-          className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100"
+          className="
+            btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
+            hover:bg-base-300
+            dark:bg-base-200
+            dark:hover:bg-base-100
+          "
           onClick={handleClose}
         >
           ✕
         </button>
 
         <div className="card-body px-0">
-          <h2 className="card-title text-2xl font-bold text-center mb-6 justify-center w-full text-base-content">
+          <h2 className="
+            card-title text-2xl font-bold text-center mb-6 justify-center w-full
+            text-base-content
+          ">
             {isLoggedIn
               ? "您已成功登录"
               : isRegisterMode
@@ -574,7 +588,10 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       <button
         type="button"
         aria-label="关闭登录弹窗"
-        className="modal-backdrop bg-black/50 dark:bg-black/70"
+        className="
+          modal-backdrop bg-black/50
+          dark:bg-black/70
+        "
         onClick={handleClose}
       />
     </div>

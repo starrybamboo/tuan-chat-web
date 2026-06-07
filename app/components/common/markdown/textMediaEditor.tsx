@@ -146,7 +146,9 @@ export default function TextMediaEditor({
       <div className={headerClassName}>
         <div className="text-sm font-medium text-base-content">{title}</div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-base-content/55">
+        <div className="
+          flex flex-wrap items-center gap-2 text-xs text-base-content/55
+        ">
           <ImgUploader setImg={(file) => { void handleImageUpload(file); }}>
             <button type="button" className="btn btn-ghost btn-xs">
               上传图片
@@ -182,11 +184,19 @@ export default function TextMediaEditor({
           onFocus={() => onFocusChange?.(true)}
           onBlur={() => onFocusChange?.(false)}
           placeholder={placeholder}
-          className={`textarea w-full resize-y border-0 bg-transparent p-0 text-sm leading-6 outline-none ${minHeightClassName} ${variant === "card" ? "px-4 py-4" : ""}`}
+          className={`
+            textarea w-full resize-y border-0 bg-transparent p-0 text-sm
+            leading-6 outline-none
+            ${minHeightClassName}
+            ${variant === "card" ? `px-4 py-4` : ""}
+          `}
         />
 
         {uploadingCount > 0 && (
-          <div className={`flex items-center gap-2 text-xs text-base-content/55 ${variant === "card" ? "border-t border-base-300 px-4 py-3" : "pt-2"}`}>
+          <div className={`
+            flex items-center gap-2 text-xs text-base-content/55
+            ${variant === "card" ? `border-t border-base-300 px-4 py-3` : `pt-2`}
+          `}>
             <span className="loading loading-spinner loading-xs" />
             上传中...
           </div>

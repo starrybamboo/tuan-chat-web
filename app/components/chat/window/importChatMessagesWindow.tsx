@@ -222,11 +222,19 @@ export default function ImportChatMessagesWindow({
   };
 
   return (
-    <div className="flex h-[min(82vh,680px)] max-h-[calc(100dvh-2rem)] min-h-0 w-[min(92vw,920px)] flex-col overflow-hidden bg-base-100 text-base-content">
-      <header className="flex-none border-b border-base-300/70 bg-base-100 px-5 py-4">
+    <div className="
+      flex h-[min(82vh,680px)] max-h-[calc(100dvh-2rem)] min-h-0
+      w-[min(92vw,920px)] flex-col overflow-hidden bg-base-100 text-base-content
+    ">
+      <header className="
+        flex-none border-b border-base-300/70 bg-base-100 px-5 py-4
+      ">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <div className="
+              flex h-10 w-10 shrink-0 items-center justify-center rounded-md
+              bg-primary/10 text-primary
+            ">
               <ChatCircleText size={22} weight="duotone" />
             </div>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -245,13 +253,25 @@ export default function ImportChatMessagesWindow({
         </div>
       </header>
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]">
-        <section className="flex min-h-0 flex-col border-b border-base-300/70 bg-base-200/25 lg:border-b-0 lg:border-r">
-          <div className="flex flex-none items-center justify-between gap-3 border-b border-base-300/70 bg-base-100/70 px-5 py-3">
+      <main className="
+        grid min-h-0 flex-1 grid-cols-1 overflow-hidden
+        lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]
+      ">
+        <section className="
+          flex min-h-0 flex-col border-b border-base-300/70 bg-base-200/25
+          lg:border-b-0 lg:border-r
+        ">
+          <div className="
+            flex flex-none items-center justify-between gap-3 border-b
+            border-base-300/70 bg-base-100/70 px-5 py-3
+          ">
             <h3 className="text-sm font-semibold">导入内容</h3>
             <button
               type="button"
-              className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+              className="
+                btn btn-ghost btn-xs text-error
+                hover:bg-error/10
+              "
               onClick={handleClear}
               disabled={isImporting || (!rawText && !fileName)}
               title="清空内容"
@@ -261,35 +281,55 @@ export default function ImportChatMessagesWindow({
             </button>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+          <div className="
+            flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5
+          ">
             <div className="relative group flex-none">
               <input
                 type="file"
                 accept=".txt,text/plain"
-                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                className="
+                  absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0
+                  disabled:cursor-not-allowed
+                "
                 onChange={e => handlePickFile(e.target.files)}
                 disabled={isImporting}
                 title="选择文本文件"
               />
               <div
-                className={`flex min-h-24 items-center justify-center rounded-md border border-dashed px-4 py-4 text-center transition ${
+                className={`
+                  flex min-h-24 items-center justify-center rounded-md border
+                  border-dashed px-4 py-4 text-center transition
+                  ${
                   fileName
                     ? "border-success/50 bg-success/10 text-success"
-                    : "border-base-300 bg-base-100 hover:border-primary/45 hover:bg-primary/5"
-                }`}
+                    : `
+                      border-base-300 bg-base-100
+                      hover:border-primary/45 hover:bg-primary/5
+                    `
+                }
+                `}
               >
                 {fileName
                   ? (
-                      <div className="flex min-w-0 flex-col items-center gap-1.5">
+                      <div className="
+                        flex min-w-0 flex-col items-center gap-1.5
+                      ">
                         <FileText size={26} weight="duotone" />
-                        <span className="max-w-full truncate text-sm font-medium">{fileName}</span>
+                        <span className="
+                          max-w-full truncate text-sm font-medium
+                        ">{fileName}</span>
                         <span className="text-[11px] opacity-70">点击更换</span>
                       </div>
                     )
                   : (
-                      <div className="flex flex-col items-center gap-1.5 text-base-content/55">
+                      <div className="
+                        flex flex-col items-center gap-1.5 text-base-content/55
+                      ">
                         <FileText size={26} weight="light" />
-                        <span className="text-sm font-medium text-base-content/70">拖入或点击选择 .txt 文件</span>
+                        <span className="
+                          text-sm font-medium text-base-content/70
+                        ">拖入或点击选择 .txt 文件</span>
                         <span className="text-[11px]">也可以在下方粘贴文本</span>
                       </div>
                     )}
@@ -297,7 +337,13 @@ export default function ImportChatMessagesWindow({
             </div>
 
             <textarea
-              className="h-full min-h-65 w-full flex-1 resize-none rounded-md border border-base-300 bg-base-100 px-3 py-2 font-mono text-xs leading-relaxed transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="
+                h-full min-h-65 w-full flex-1 resize-none rounded-md border
+                border-base-300 bg-base-100 px-3 py-2 font-mono text-xs
+                leading-relaxed transition
+                focus:outline-none focus:ring-2 focus:ring-primary/20
+                focus:border-primary
+              "
               placeholder={"[KP]：欢迎来到这里\n<张三>：这是哪里？\n\n或\n\n木落(303451945) 2022/03/21 19:06:53\n房前有两棵树"}
               value={rawText}
               onChange={e => setRawText(e.target.value)}
@@ -305,7 +351,10 @@ export default function ImportChatMessagesWindow({
             />
 
             {hasParsedContent && (
-              <div className="flex flex-none flex-wrap items-center gap-2 rounded-md border border-base-300/70 bg-base-100 px-3 py-2 text-xs">
+              <div className="
+                flex flex-none flex-wrap items-center gap-2 rounded-md border
+                border-base-300/70 bg-base-100 px-3 py-2 text-xs
+              ">
                 <div className="badge badge-sm badge-ghost gap-1">
                   <CheckCircle className="text-success" size={12} weight="fill" />
                   {parsed.messages.length}
@@ -333,7 +382,10 @@ export default function ImportChatMessagesWindow({
         </section>
 
         <section className="flex min-h-0 flex-col bg-base-100">
-          <div className="flex flex-none items-center justify-between gap-3 border-b border-base-300/70 px-5 py-3">
+          <div className="
+            flex flex-none items-center justify-between gap-3 border-b
+            border-base-300/70 px-5 py-3
+          ">
             <div className="min-w-0">
               <h3 className="text-sm font-semibold">角色映射</h3>
               {speakers.length > 0 && (
@@ -383,7 +435,10 @@ export default function ImportChatMessagesWindow({
 
             {speakers.length === 0
               ? (
-                  <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center text-base-content/35">
+                  <div className="
+                    flex flex-1 flex-col items-center justify-center gap-2 px-8
+                    text-center text-base-content/35
+                  ">
                     <User size={40} weight="duotone" />
                     <span className="text-sm font-medium text-base-content/45">等待导入文本</span>
                   </div>
@@ -399,24 +454,43 @@ export default function ImportChatMessagesWindow({
                         return (
                           <div
                             key={speaker}
-                            className={`rounded-md border p-3 transition ${
+                            className={`
+                              rounded-md border p-3 transition
+                              ${
                               isMissing
                                 ? "border-error/30 bg-error/5"
-                                : "border-base-300/70 bg-base-200/30 hover:bg-base-200/55"
-                            }`}
+                                : `
+                                  border-base-300/70 bg-base-200/30
+                                  hover:bg-base-200/55
+                                `
+                            }
+                            `}
                           >
-                            <div className="mb-2 flex items-center justify-between gap-3">
-                              <div className="max-w-60 truncate font-mono text-sm font-medium" title={speaker}>
+                            <div className="
+                              mb-2 flex items-center justify-between gap-3
+                            ">
+                              <div className="
+                                max-w-60 truncate font-mono text-sm font-medium
+                              " title={speaker}>
                                 {speaker}
                               </div>
-                              <div className={`badge badge-sm ${isMissing ? "badge-error" : "badge-success badge-outline"}`}>
+                              <div className={`
+                                badge badge-sm
+                                ${isMissing ? `badge-error` : `
+                                  badge-success badge-outline
+                                `}
+                              `}>
                                 {isMissing ? "待匹配" : "已匹配"}
                               </div>
                             </div>
 
                             <div className="grid gap-2">
                               <select
-                                className={`select select-bordered select-sm w-full rounded-md ${isMissing ? "select-error" : ""}`}
+                                className={`
+                                  select select-bordered select-sm w-full
+                                  rounded-md
+                                  ${isMissing ? `select-error` : ""}
+                                `}
                                 value={value == null ? "" : String(value)}
                                 onChange={(e) => {
                                   const v = e.target.value;
@@ -426,10 +500,16 @@ export default function ImportChatMessagesWindow({
                                 title="选择角色"
                               >
                                 <option value="">请选择对应角色</option>
-                                <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">— 特殊角色 —</option>
+                                <option disabled className="
+                                  text-xs font-bold bg-base-200
+                                  text-base-content/50
+                                ">— 特殊角色 —</option>
                                 <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>旁白</option>
                                 <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>骰娘 (系统)</option>
-                                <option disabled className="text-xs font-bold bg-base-200 text-base-content/50">— 房间角色 —</option>
+                                <option disabled className="
+                                  text-xs font-bold bg-base-200
+                                  text-base-content/50
+                                ">— 房间角色 —</option>
                                 {roleOptions.map(o => (
                                   <option key={o.roleId} value={String(o.roleId)}>
                                     {o.label}
@@ -438,12 +518,19 @@ export default function ImportChatMessagesWindow({
                               </select>
 
                               <div className="flex items-center gap-2">
-                                <span className="shrink-0 text-[11px] text-base-content/45">立绘</span>
+                                <span className="
+                                  shrink-0 text-[11px] text-base-content/45
+                                ">立绘</span>
                                 <div className="join min-w-0 flex-1">
                                   {FIGURE_POSITION_ORDER.map(pos => (
                                     <input
                                       key={pos}
-                                      className="join-item btn btn-xs btn-ghost flex-1 px-1 text-[10px] font-normal aria-checked:bg-primary/20 aria-checked:text-primary"
+                                      className="
+                                        join-item btn btn-xs btn-ghost flex-1
+                                        px-1 text-[10px] font-normal
+                                        aria-checked:bg-primary/20
+                                        aria-checked:text-primary
+                                      "
                                       type="radio"
                                       name={`pos-${speaker}`}
                                       aria-label={FIGURE_POSITION_LABELS[pos]}
@@ -454,7 +541,11 @@ export default function ImportChatMessagesWindow({
                                     />
                                   ))}
                                   <input
-                                    className="join-item btn btn-xs btn-ghost px-2 font-mono text-[10px] aria-checked:opacity-50"
+                                    className="
+                                      join-item btn btn-xs btn-ghost px-2
+                                      font-mono text-[10px]
+                                      aria-checked:opacity-50
+                                    "
                                     type="radio"
                                     name={`pos-${speaker}`}
                                     aria-label="无"
@@ -474,7 +565,10 @@ export default function ImportChatMessagesWindow({
                 )}
 
             {speakers.length > 0 && missingSpeakers.length > 0 && (
-              <div className="border-t border-error/10 bg-error/10 px-4 py-2 text-center text-xs text-error">
+              <div className="
+                border-t border-error/10 bg-error/10 px-4 py-2 text-center
+                text-xs text-error
+              ">
                 还有
                 {" "}
                 {missingSpeakers.length}
@@ -486,12 +580,17 @@ export default function ImportChatMessagesWindow({
         </section>
       </main>
 
-      <footer className="flex flex-none items-center justify-between gap-4 border-t border-base-300/70 bg-base-100 px-5 py-4">
+      <footer className="
+        flex flex-none items-center justify-between gap-4 border-t
+        border-base-300/70 bg-base-100 px-5 py-4
+      ">
         <div className="min-w-0 flex-1">
           {isImporting && progress
             ? (
                 <div className="flex max-w-md flex-col gap-1">
-                  <div className="flex justify-between text-xs text-base-content/60">
+                  <div className="
+                    flex justify-between text-xs text-base-content/60
+                  ">
                     <span>导入进度</span>
                     <span>
                       {progress.sent}

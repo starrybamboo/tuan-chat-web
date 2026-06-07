@@ -42,7 +42,9 @@ export const AiImageWorkspace = memo(({
   }, [pinnedPreviewResult]);
 
   return (
-    <div className="relative z-0 flex min-h-0 min-w-0 flex-1 overflow-visible bg-base-200">
+    <div className="
+      relative z-0 flex min-h-0 min-w-0 flex-1 overflow-visible bg-base-200
+    ">
       {isPinnedDrawerOpen && pinnedPreviewResult && !isDirectorToolsOpen
         ? (
             <button
@@ -56,17 +58,31 @@ export const AiImageWorkspace = memo(({
 
       {pinnedPreviewResult && !isDirectorToolsOpen
         ? (
-            <div className="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2">
+            <div className="
+              pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2
+            ">
               <div
-                className="pointer-events-auto flex items-stretch gap-2 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                className="
+                  pointer-events-auto flex items-stretch gap-2
+                  transition-transform duration-300
+                  ease-[cubic-bezier(0.22,1,0.36,1)]
+                "
                 style={{ transform: isPinnedDrawerOpen ? "translateX(0)" : (isPinnedEdgeHovered ? "translateX(calc(-100% + 28px))" : "translateX(calc(-100% + 14px))") }}
                 onMouseEnter={() => setIsPinnedEdgeHovered(true)}
                 onMouseLeave={() => setIsPinnedEdgeHovered(false)}
               >
-                <div className="flex w-11 shrink-0 flex-col items-center justify-start gap-1 rounded-none border border-white/18 bg-base-300/98 px-0 py-2 shadow-xl backdrop-blur">
+                <div className="
+                  flex w-11 shrink-0 flex-col items-center justify-start gap-1
+                  rounded-none border border-white/18 bg-base-300/98 px-0 py-2
+                  shadow-xl backdrop-blur
+                ">
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
+                    className="
+                      inline-flex size-9 items-center justify-center
+                      rounded-none text-base-content/72 transition-colors
+                      hover:bg-base-200/35 hover:text-base-content
+                    "
                     aria-label="Unpin preview"
                     title="Unpin preview"
                     onClick={onClearPinnedPreview}
@@ -75,7 +91,11 @@ export const AiImageWorkspace = memo(({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
+                    className="
+                      inline-flex size-9 items-center justify-center
+                      rounded-none text-base-content/72 transition-colors
+                      hover:bg-base-200/35 hover:text-base-content
+                    "
                     aria-label="Jump to pinned image"
                     title="Jump to pinned image"
                     onClick={() => {
@@ -87,7 +107,11 @@ export const AiImageWorkspace = memo(({
                   </button>
                   <button
                     type="button"
-                    className="inline-flex size-9 items-center justify-center rounded-none text-base-content/72 transition-colors hover:bg-base-200/35 hover:text-base-content"
+                    className="
+                      inline-flex size-9 items-center justify-center
+                      rounded-none text-base-content/72 transition-colors
+                      hover:bg-base-200/35 hover:text-base-content
+                    "
                     aria-label="Apply pinned seed"
                     title="Apply pinned seed"
                     onClick={onApplyPinnedPreviewSeed}
@@ -97,7 +121,10 @@ export const AiImageWorkspace = memo(({
                 </div>
                 <button
                   type="button"
-                  className="relative block shrink-0 overflow-hidden rounded-none bg-transparent shadow-xl"
+                  className="
+                    relative block shrink-0 overflow-hidden rounded-none
+                    bg-transparent shadow-xl
+                  "
                   aria-label={isPinnedDrawerOpen ? "Collapse pinned preview" : "Expand pinned preview"}
                   onClick={() => {
                     if (isPinnedDrawerOpen) {
@@ -109,7 +136,10 @@ export const AiImageWorkspace = memo(({
                 >
                   <img
                     src={pinnedPreviewResult.dataUrl}
-                    className="block max-h-[min(74vh,640px)] w-auto rounded-none object-contain"
+                    className="
+                      block max-h-[min(74vh,640px)] w-auto rounded-none
+                      object-contain
+                    "
                     alt="pinned-preview"
                   />
                 </button>
@@ -125,7 +155,12 @@ export const AiImageWorkspace = memo(({
             <div className="absolute right-2 top-3 z-20">
               <button
                 type="button"
-                className="flex size-10 items-center justify-center bg-transparent text-base-content/62 transition hover:text-base-content/90 focus:outline-none"
+                className="
+                  flex size-10 items-center justify-center bg-transparent
+                  text-base-content/62 transition
+                  hover:text-base-content/90
+                  focus:outline-none
+                "
                 aria-label="Expand history sidebar"
                 title="Expand history sidebar"
                 onClick={() => setIsHistoryCollapsed(false)}
@@ -137,11 +172,15 @@ export const AiImageWorkspace = memo(({
         : null}
 
       <div
-        className={`relative shrink-0 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`
+          relative shrink-0 overflow-hidden transition-all duration-300
+          ease-[cubic-bezier(0.22,1,0.36,1)]
+          ${
           isHistoryCollapsed
             ? "w-0 translate-x-3 opacity-0 pointer-events-none"
             : historyPaneWidthClassName
-        }`}
+        }
+        `}
       >
         <AiImageHistoryPane
           {...historyPaneProps}

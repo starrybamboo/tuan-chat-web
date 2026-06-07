@@ -48,13 +48,25 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <ToastWindow isOpen={isOpen} onClose={onClose}>
-      <div className="rounded-xl shadow-xl p-6 max-w-md mx-4 border border-base-300">
+      <div className="
+        rounded-xl shadow-xl p-6 max-w-md mx-4 border border-base-300
+      ">
         {/* 图标区域 */}
         <div className="flex justify-center mb-4">
-          <div className={`p-3 rounded-full ${variant === "danger" ? "bg-error/20" : variant === "warning" ? "bg-warning/20" : "bg-primary/20"}`}>
+          <div className={`
+            p-3 rounded-full
+            ${variant === "danger" ? `bg-error/20` : variant === "warning" ? `
+              bg-warning/20
+            ` : `bg-primary/20`}
+          `}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-6 w-6 ${variant === "danger" ? "text-error" : variant === "warning" ? "text-warning" : "text-primary"}`}
+              className={`
+                h-6 w-6
+                ${variant === "danger" ? "text-error" : variant === "warning" ? `
+                  text-warning
+                ` : `text-primary`}
+              `}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -77,14 +89,29 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="flex gap-3 justify-center">
           <button
             type="button"
-            className="btn flex-1 px-4 py-2 text-sm font-medium text-slate-900 bg-slate-100/70 border border-slate-300/70 rounded-lg hover:bg-slate-300/70 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400/90"
+            className="
+              btn flex-1 px-4 py-2 text-sm font-medium text-slate-900
+              bg-slate-100/70 border border-slate-300/70 rounded-lg
+              hover:bg-slate-300/70
+              transition-all duration-200
+              focus:outline-none focus:ring-2 focus:ring-offset-2
+              focus:ring-slate-400/90
+            "
             onClick={onClose}
           >
             {cancelText}
           </button>
           <button
             type="button"
-            className={`btn flex-1 px-4 py-2 text-sm font-medium text-white border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.bg} ${colors.hover} ${colors.border} ${colors.focus}`}
+            className={`
+              btn flex-1 px-4 py-2 text-sm font-medium text-white border
+              rounded-lg transition-all duration-200
+              focus:outline-none focus:ring-2 focus:ring-offset-2
+              ${colors.bg}
+              ${colors.hover}
+              ${colors.border}
+              ${colors.focus}
+            `}
             onClick={onConfirm}
           >
             {confirmText}

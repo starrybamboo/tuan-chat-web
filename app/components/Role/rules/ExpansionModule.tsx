@@ -405,8 +405,14 @@ export default function ExpansionModule({
           <Section
             key="act"
             title="表演字段配置"
-            icon={<MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />}
-            className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+            icon={<MaskHappyIcon className="
+              size-5 shrink-0 text-base-content/80
+            " weight="bold" aria-hidden="true" />}
+            className="
+              rounded-2xl
+              md:border-2 md:border-base-content/10
+              bg-base-100
+            "
             collapsible={false}
             hideTitleOnMobile
           >
@@ -429,28 +435,53 @@ export default function ExpansionModule({
 
   const tabButtons = !isDiceMaiden
     ? (
-        <div className={`flex min-w-0 items-center gap-1 md:gap-2 rounded-lg ${isSmall ? "w-full" : ""}`}>
-          <div className={`flex min-w-0 flex-1 flex-nowrap gap-1 md:flex-nowrap md:justify-start md:gap-3 ${isSmall ? "" : ""}`}>
+        <div className={`
+          flex min-w-0 items-center gap-1
+          md:gap-2
+          rounded-lg
+          ${isSmall ? `w-full` : ""}
+        `}>
+          <div className={`
+            flex min-w-0 flex-1 flex-nowrap gap-1
+            md:flex-nowrap md:justify-start md:gap-3
+            ${isSmall ? "" : ""}
+          `}>
             {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
               <button
                 key={key}
                 type="button"
-                className={`btn ${isSmall ? "btn-sm" : "btn-md"} h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap rounded-lg ${isSmall ? "" : desktopConfigButtonClass} ${activeTab === key ? "btn-primary" : "btn-ghost"}`}
+                className={`
+                  btn
+                  ${isSmall ? "btn-sm" : "btn-md"}
+                  h-10 min-h-10 flex-none px-3 text-sm whitespace-nowrap
+                  rounded-lg
+                  ${isSmall ? "" : desktopConfigButtonClass}
+                  ${activeTab === key ? `btn-primary` : `btn-ghost`}
+                `}
                 onClick={() => setActiveTab(key)}
               >
                 <Icon className="size-4 shrink-0" weight="bold" aria-hidden="true" />
                 <span className="md:hidden">{shortLabel}</span>
-                <span className="hidden md:inline">{label}</span>
+                <span className="
+                  hidden
+                  md:inline
+                ">{label}</span>
               </button>
             ))}
           </div>
           {hasDesktopQuickTools && (
-            <div className="hidden shrink-0 items-center gap-2 md:flex">
+            <div className="
+              hidden shrink-0 items-center gap-2
+              md:flex
+            ">
               {onOpenStImportModal && (
                 <button
                   type="button"
                   onClick={onOpenStImportModal}
-                  className={`${desktopQuickToolButtonClass} inline-flex items-center gap-2 bg-info/70 text-info-content`}
+                  className={`
+                    ${desktopQuickToolButtonClass}
+                    inline-flex items-center gap-2 bg-info/70 text-info-content
+                  `}
                 >
                   <DownloadSimpleIcon className="size-4" weight="bold" aria-hidden="true" />
                   ST导入
@@ -460,7 +491,10 @@ export default function ExpansionModule({
                 <button
                   type="button"
                   onClick={onOpenAIGenerateModal}
-                  className={`${desktopQuickToolButtonClass} inline-flex items-center gap-2 bg-info/70 text-info-content`}
+                  className={`
+                    ${desktopQuickToolButtonClass}
+                    inline-flex items-center gap-2 bg-info/70 text-info-content
+                  `}
                 >
                   <SparkleIcon className="size-4" weight="fill" aria-hidden="true" />
                   AI生成
@@ -469,16 +503,29 @@ export default function ExpansionModule({
             </div>
           )}
           {hasQuickTools && (
-            <div className={`dropdown md:hidden ${isSmall ? "" : "dropdown-end"}`}>
+            <div className={`
+              dropdown
+              md:hidden
+              ${isSmall ? "" : "dropdown-end"}
+            `}>
               <button
                 type="button"
                 tabIndex={0}
-                className={`btn ${isSmall ? "btn-sm" : "btn-md"} btn-square h-10 w-10 min-h-10 md:h-12 md:w-12 md:min-h-12 rounded-full`}
+                className={`
+                  btn
+                  ${isSmall ? "btn-sm" : "btn-md"}
+                  btn-square h-10 w-10 min-h-10
+                  md:h-12 md:w-12 md:min-h-12
+                  rounded-full
+                `}
                 aria-label="打开导入和生成功能"
               >
                 <WrenchIcon className="w-5 h-5" />
               </button>
-              <ul tabIndex={0} className="dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box w-32 border border-base-content/10">
+              <ul tabIndex={0} className="
+                dropdown-content z-20 menu p-2 shadow-lg bg-base-100 rounded-box
+                w-32 border border-base-content/10
+              ">
                 {onOpenStImportModal && (
                   <li>
                     <button type="button" onClick={onOpenStImportModal}>
@@ -502,11 +549,16 @@ export default function ExpansionModule({
 
   return (
     <>
-      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className={isSmall ? "space-y-3" : "space-y-4"}>
+      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className={isSmall ? `
+        space-y-3
+      ` : `space-y-4`}>
         {/* 规则未创建状态 */}
         {isRuleNotCreated
           ? (
-              <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+              <div className="
+                card bg-base-100 shadow-xs rounded-2xl border-2
+                border-base-content/10
+              ">
                 <div className="card-body items-center text-center py-16">
                   <div className="text-6xl mb-4">📋</div>
                   <h3 className="text-xl font-semibold mb-2">规则尚未创建</h3>
@@ -533,7 +585,13 @@ export default function ExpansionModule({
                     <div className="skeleton h-10 w-20 rounded-lg"></div>
                     <div className="skeleton h-10 w-20 rounded-lg"></div>
                   </div>
-                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-xl md:border-2 border-base-content/10">
+                  <div className="
+                    card-sm
+                    md:card-xl
+                    bg-base-100 shadow-xs
+                    md:rounded-xl md:border-2
+                    border-base-content/10
+                  ">
                     <div className="card-body">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="skeleton h-6 w-32"></div>
@@ -568,17 +626,33 @@ export default function ExpansionModule({
                                   ? (
                                       <Section
                                         key="copywriting"
-                                        className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+                                        className="
+                                          rounded-2xl
+                                          md:border-2 md:border-base-content/10
+                                          bg-base-100
+                                        "
                                         collapsible={false}
                                       >
-                                        <div className="flex justify-between items-center mb-4">
-                                          <h3 className="card-title ml-1 flex items-center gap-2 text-lg">
-                                            <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+                                        <div className="
+                                          flex justify-between items-center mb-4
+                                        ">
+                                          <h3 className="
+                                            card-title ml-1 flex items-center
+                                            gap-2 text-lg
+                                          ">
+                                            <MaskHappyIcon className="
+                                              size-5 shrink-0
+                                              text-base-content/80
+                                            " weight="bold" aria-hidden="true" />
                                             骰娘文案配置
                                           </h3>
-                                          <div className="flex items-center gap-2">
+                                          <div className="
+                                            flex items-center gap-2
+                                          ">
                                             {copywritingSaveMsg && (
-                                              <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
+                                              <span className="
+                                                text-sm text-base-content/70
+                                              ">{copywritingSaveMsg}</span>
                                             )}
                                           </div>
                                         </div>
@@ -603,17 +677,30 @@ export default function ExpansionModule({
                                 ? (
                                     <Section
                                       key="copywriting"
-                                      className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+                                      className="
+                                        rounded-2xl
+                                        md:border-2 md:border-base-content/10
+                                        bg-base-100
+                                      "
                                       collapsible={false}
                                     >
-                                      <div className="flex justify-between items-center mb-4">
-                                        <h3 className="card-title ml-1 flex items-center gap-2 text-lg">
-                                          <MaskHappyIcon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+                                      <div className="
+                                        flex justify-between items-center mb-4
+                                      ">
+                                        <h3 className="
+                                          card-title ml-1 flex items-center
+                                          gap-2 text-lg
+                                        ">
+                                          <MaskHappyIcon className="
+                                            size-5 shrink-0 text-base-content/80
+                                          " weight="bold" aria-hidden="true" />
                                           骰娘文案配置
                                         </h3>
                                         <div className="flex items-center gap-2">
                                           {copywritingSaveMsg && (
-                                            <span className="text-sm text-base-content/70">{copywritingSaveMsg}</span>
+                                            <span className="
+                                              text-sm text-base-content/70
+                                            ">{copywritingSaveMsg}</span>
                                           )}
                                         </div>
                                       </div>
@@ -636,8 +723,13 @@ export default function ExpansionModule({
 
       {/* ST指令弹窗 */}
       {isStImportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onStImportModalClose}>
-          <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="
+          fixed inset-0 z-50 flex items-center justify-center bg-black/50
+        " onClick={onStImportModalClose}>
+          <div className="
+            bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4
+            max-h-[80vh] overflow-hidden
+          " onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">ST指令</h3>

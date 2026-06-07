@@ -26,7 +26,10 @@ export default function MediaContentView({
   }
 
   return (
-    <Suspense fallback={<div className={`text-sm text-base-content/50 ${className ?? ""}`}>正在加载内容...</div>}>
+    <Suspense fallback={<div className={`
+      text-sm text-base-content/50
+      ${className ?? ""}
+    `}>正在加载内容...</div>}>
       <LazyMarkDownViewer content={normalizedContent} className={className} />
     </Suspense>
   );

@@ -63,7 +63,10 @@ export default function RepositoryCommitChainPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
+    <div className="
+      mx-auto w-full max-w-6xl p-4
+      md:p-6
+    ">
       <div className="mb-4 flex items-center justify-between gap-3">
         <button
           type="button"
@@ -87,7 +90,10 @@ export default function RepositoryCommitChainPage() {
         </button>
       </div>
 
-      <section className="rounded-xl border border-base-300 bg-base-100 p-5 md:p-6">
+      <section className="
+        rounded-xl border border-base-300 bg-base-100 p-5
+        md:p-6
+      ">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Commit 链</h1>
@@ -95,8 +101,12 @@ export default function RepositoryCommitChainPage() {
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="badge badge-outline">{chainSummary}</span>
-            {commitChain?.truncated && <span className="badge badge-warning badge-outline">结果已截断</span>}
-            {commitChain?.broken && <span className="badge badge-error badge-outline">链路存在断点</span>}
+            {commitChain?.truncated && <span className="
+              badge badge-warning badge-outline
+            ">结果已截断</span>}
+            {commitChain?.broken && <span className="
+              badge badge-error badge-outline
+            ">链路存在断点</span>}
           </div>
         </div>
 
@@ -138,22 +148,38 @@ export default function RepositoryCommitChainPage() {
                 : `fallback:${parentCommitId ?? "root"}:${commit.createTime ?? ""}:${commit.updateTime ?? ""}:${commit.commitType ?? ""}`;
               return (
                 <li key={itemKey} className="relative pl-11">
-                  {!isTail && <span className="absolute left-[15px] top-8 h-[calc(100%-8px)] w-px bg-base-300" />}
-                  <span className={`absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full border text-xs ${
-                    isHead ? "border-primary bg-primary/10 text-primary" : "border-base-300 bg-base-200 text-base-content/70"
-                  }`}
+                  {!isTail && <span className="
+                    absolute left-[15px] top-8 h-[calc(100%-8px)] w-px
+                    bg-base-300
+                  " />}
+                  <span className={`
+                    absolute left-0 top-0 flex h-8 w-8 items-center
+                    justify-center rounded-full border text-xs
+                    ${
+                    isHead ? "border-primary bg-primary/10 text-primary" : `
+                      border-base-300 bg-base-200 text-base-content/70
+                    `
+                  }
+                  `}
                   >
                     <GitCommitIcon size={14} />
                   </span>
-                  <div className="rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm">
+                  <div className="
+                    rounded-lg border border-base-300 bg-base-100 p-4 shadow-sm
+                  ">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold">
                         {`#${commitId}`}
                       </span>
-                      {isHead && <span className="badge badge-primary badge-outline">HEAD</span>}
+                      {isHead && <span className="
+                        badge badge-primary badge-outline
+                      ">HEAD</span>}
                       <span className="badge badge-outline">{formatCommitType(commit.commitType)}</span>
                     </div>
-                    <div className="mt-2 grid grid-cols-1 gap-2 text-xs text-base-content/70 md:grid-cols-2">
+                    <div className="
+                      mt-2 grid grid-cols-1 gap-2 text-xs text-base-content/70
+                      md:grid-cols-2
+                    ">
                       <div>{`父提交: ${typeof parentCommitId === "number" ? `#${parentCommitId}` : "无"}`}</div>
                       <div>{`提交者: ${typeof commit.userId === "number" ? commit.userId : "未知"}`}</div>
                       <div>{`创建时间: ${formatDateTime(commit.createTime)}`}</div>

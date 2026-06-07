@@ -8,7 +8,10 @@ import LeftChatList from "@/components/privateChat/LeftChatList";
 const LazyChatRoomListPanel = React.lazy(() => import("@/components/chat/room/chatRoomListPanel"));
 
 function SkeletonLine({ className }: { className: string }) {
-  return <div className={`chat-skeleton-line ${className}`} />;
+  return <div className={`
+    chat-skeleton-line
+    ${className}
+  `} />;
 }
 
 interface ChatPageSidePanelContentProps {
@@ -51,8 +54,13 @@ interface ChatPageSidePanelContentProps {
 
 function SidePanelLoadingFallback() {
   return (
-    <div className="flex h-full w-full min-w-0 flex-col overflow-hidden bg-base-200 text-base-content/15">
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-base-300/70 px-3">
+    <div className="
+      flex h-full w-full min-w-0 flex-col overflow-hidden bg-base-200
+      text-base-content/15
+    ">
+      <div className="
+        flex h-12 shrink-0 items-center gap-2 border-b border-base-300/70 px-3
+      ">
         <SkeletonLine className="h-7 w-7 rounded-md" />
         <div className="min-w-0 flex-1 space-y-1.5">
           <SkeletonLine className="h-3.5 w-8/12" />
@@ -69,9 +77,14 @@ function SidePanelLoadingFallback() {
           </div>
           <div className="space-y-2">
             {["w-10/12", "w-7/12", "w-8/12", "w-6/12"].map((width, index) => (
-              <div key={`side-room-skeleton-${index}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
+              <div key={`side-room-skeleton-${index}`} className="
+                flex items-center gap-2 rounded-lg px-2 py-1.5
+              ">
                 <SkeletonLine className="h-8 w-8 shrink-0 rounded-md" />
-                <SkeletonLine className={`h-4 ${width}`} />
+                <SkeletonLine className={`
+                  h-4
+                  ${width}
+                `} />
               </div>
             ))}
           </div>
@@ -84,9 +97,14 @@ function SidePanelLoadingFallback() {
           </div>
           <div className="space-y-2">
             {["w-9/12", "w-6/12"].map((width, index) => (
-              <div key={`side-material-skeleton-${index}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
+              <div key={`side-material-skeleton-${index}`} className="
+                flex items-center gap-2 rounded-lg px-2 py-1.5
+              ">
                 <SkeletonLine className="h-7 w-7 shrink-0 rounded-md" />
-                <SkeletonLine className={`h-3.5 ${width}`} />
+                <SkeletonLine className={`
+                  h-3.5
+                  ${width}
+                `} />
               </div>
             ))}
           </div>

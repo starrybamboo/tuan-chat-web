@@ -58,8 +58,14 @@ function TopNavMotionLink({
       ref={linkRef}
       to={to}
       className={compact
-        ? "btn btn-ghost btn-square btn-sm hover:bg-base-200"
-        : "btn btn-ghost btn-sm gap-1 px-2 hover:bg-base-200"}
+        ? `
+          btn btn-ghost btn-square btn-sm
+          hover:bg-base-200
+        `
+        : `
+          btn btn-ghost btn-sm gap-1 px-2
+          hover:bg-base-200
+        `}
       aria-label={label}
       initial="rest"
       animate={controls}
@@ -245,10 +251,16 @@ export default function Topbar() {
 
   return (
     <div className="w-full">
-      <div className="relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full overflow-visible py-1">
+      <div className="
+        relative z-50 px-2 bg-base-200 flex justify-between mx-auto w-full
+        overflow-visible py-1
+      ">
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
-          <div className="hidden md:flex">
+          <div className="
+            hidden
+            md:flex
+          ">
             <MotionLink
               to="/chat/discover/material"
               className="flex items-center"
@@ -257,7 +269,9 @@ export default function Topbar() {
               <img
                 src="/favicon.ico"
                 alt="Logo"
-                className="h-6 w-6 mx-3 transition-transform duration-300 ease-out"
+                className="
+                  h-6 w-6 mx-3 transition-transform duration-300 ease-out
+                "
                 onError={(event) => {
                   event.currentTarget.onerror = null;
                   event.currentTarget.src = "/logo.svg";
@@ -266,7 +280,11 @@ export default function Topbar() {
             </MotionLink>
           </div>
 
-          <div className="hidden lg:flex items-center gap-2">
+          <div className="
+            hidden
+            lg:flex
+            items-center gap-2
+          ">
             <div className="flex items-center gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -285,8 +303,14 @@ export default function Topbar() {
 
         {/* 右侧用户区域 */}
         {!isLoading && (
-          <div className="navbar-end gap-1 md:gap-2">
-            <div className="flex items-center gap-2 lg:hidden">
+          <div className="
+            navbar-end gap-1
+            md:gap-2
+          ">
+            <div className="
+              flex items-center gap-2
+              lg:hidden
+            ">
               <div className="flex items-center gap-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
@@ -313,14 +337,22 @@ export default function Topbar() {
                   {...interactiveButtonMotionProps}
                 >
                   <BugBeetleIcon className="size-5" weight="fill" />
-                  <span className="hidden sm:inline text-sm whitespace-nowrap">Bug反馈</span>
+                  <span className="
+                    hidden
+                    sm:inline
+                    text-sm whitespace-nowrap
+                  ">Bug反馈</span>
                 </motion.button>
               </div>
               <div className="tooltip tooltip-bottom" data-tip="QQ：扫码反馈 Bug">
                 <motion.button
                   type="button"
                   aria-label="QQ Bug反馈"
-                  className="btn btn-ghost btn-square btn-sm hover:bg-base-200 transition-colors duration-200"
+                  className="
+                    btn btn-ghost btn-square btn-sm
+                    hover:bg-base-200
+                    transition-colors duration-200
+                  "
                   onClick={() => setIsBugQqOpen(true)}
                   {...interactiveButtonMotionProps}
                 >
@@ -333,12 +365,18 @@ export default function Topbar() {
               ? (
                   <div
                     ref={userDropdownRef}
-                    className={`dropdown dropdown-end ${isUserDropdownOpen ? "dropdown-open" : ""}`}
+                    className={`
+                      dropdown dropdown-end
+                      ${isUserDropdownOpen ? `dropdown-open` : ""}
+                    `}
                   >
                     <motion.button
                       tabIndex={0}
                       type="button"
-                      className="btn btn-ghost btn-circle btn-sm hover:bg-base-200"
+                      className="
+                        btn btn-ghost btn-circle btn-sm
+                        hover:bg-base-200
+                      "
                       onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
                       {...interactiveButtonMotionProps}
                     >
@@ -351,7 +389,10 @@ export default function Topbar() {
                         clickEnterProfilePage={false}
                       />
                     </motion.button>
-                    <div tabIndex={0} className="dropdown-content z-50 card card-compact w-64 p-0 shadow-lg bg-base-100 rounded-lg mt-2">
+                    <div tabIndex={0} className="
+                      dropdown-content z-50 card card-compact w-64 p-0 shadow-lg
+                      bg-base-100 rounded-lg mt-2
+                    ">
                       {/* Header */}
                       <div className="card-body p-4 border-b border-base-300">
                         <div className="flex items-center gap-3">
@@ -378,21 +419,34 @@ export default function Topbar() {
                       {inviteCode
                         ? (
                             <div className="px-2 pt-2">
-                              <div className="rounded-md border border-base-300 bg-base-200/60 p-3">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 text-xs text-base-content/60">
+                              <div className="
+                                rounded-md border border-base-300 bg-base-200/60
+                                p-3
+                              ">
+                                <div className="
+                                  flex items-center justify-between gap-2
+                                ">
+                                  <div className="
+                                    flex items-center gap-2 text-xs
+                                    text-base-content/60
+                                  ">
                                     <IdentificationCardIcon className="size-4" />
                                     <span>邀请码</span>
                                   </div>
                                   <button
                                     type="button"
-                                    className="btn btn-ghost btn-xs h-7 min-h-7 px-2"
+                                    className="
+                                      btn btn-ghost btn-xs h-7 min-h-7 px-2
+                                    "
                                     onClick={handleCopyInviteLink}
                                   >
                                     复制链接
                                   </button>
                                 </div>
-                                <div className="mt-1 font-mono text-lg font-semibold tracking-widest text-base-content">
+                                <div className="
+                                  mt-1 font-mono text-lg font-semibold
+                                  tracking-widest text-base-content
+                                ">
                                   {inviteCode}
                                 </div>
                               </div>
@@ -404,7 +458,10 @@ export default function Topbar() {
                       <div className="p-2 space-y-1">
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+                          className="
+                            btn btn-ghost btn-sm w-full justify-start gap-2
+                            font-normal
+                          "
                           onClick={() => handleUserNavigation(`/profile/${userId}`)}
                         >
                           <UserIcon className="size-4" />
@@ -412,14 +469,20 @@ export default function Topbar() {
                         </button>
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+                          className="
+                            btn btn-ghost btn-sm w-full justify-start gap-2
+                            font-normal
+                          "
                           onClick={() => handleUserNavigation("/settings")}
                         >
                           <GearSixIcon className="size-4" />
                           设置
                         </button>
                         <div
-                          className="btn btn-ghost btn-sm w-full justify-between gap-2 font-normal"
+                          className="
+                            btn btn-ghost btn-sm w-full justify-between gap-2
+                            font-normal
+                          "
                           onClick={e => handleClick(e)}
                           role="button"
                           tabIndex={0}
@@ -435,7 +498,10 @@ export default function Topbar() {
                           <WebgalStarter className="w-full">
                             <button
                               type="button"
-                              className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+                              className="
+                                btn btn-ghost btn-sm w-full justify-start gap-2
+                                font-normal
+                              "
                             >
                               <WebgalIcon className="size-4" />
                               启动 WebGAL
@@ -459,7 +525,9 @@ export default function Topbar() {
                   </div>
                 )
               : (
-                  <Suspense fallback={<button type="button" className="btn btn-primary" disabled>登录/注册</button>}>
+                  <Suspense fallback={<button type="button" className="
+                    btn btn-primary
+                  " disabled>登录/注册</button>}>
                     <LazyLoginButton autoOpen />
                   </Suspense>
                 )}
@@ -483,7 +551,9 @@ export default function Topbar() {
             />
           </div>
 
-          <div className="rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6">
+          <div className="
+            rounded-md border border-error/30 bg-error/10 p-3 text-sm leading-6
+          ">
             <span className="badge badge-error badge-sm mr-2">Bug反馈</span>
             {bugReportExportStatus?.message ?? "已尝试自动下载控制台日志。"}
             <br />

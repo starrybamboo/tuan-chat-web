@@ -28,18 +28,27 @@ function DiceMaidenRoleItem({
 
   return (
     <div
-      className={`card cursor-pointer transition-all duration-200 ${
+      className={`
+        card cursor-pointer transition-all duration-200
+        ${
         isSelected
           ? "bg-primary/20 border-2 border-primary"
-          : "bg-base-200 hover:bg-base-300"
-      }`}
+          : `
+            bg-base-200
+            hover:bg-base-300
+          `
+      }
+      `}
       onClick={onSelect}
     >
       <div className="card-body p-4">
         <div className="flex items-center gap-3">
           {/* 骰娘头像 */}
           <div className="avatar">
-            <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+            <div className="
+              w-12 h-12 rounded-full ring ring-primary ring-offset-base-100
+              ring-offset-2
+            ">
               <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
             </div>
           </div>
@@ -78,7 +87,10 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
       <div className="card-body p-4">
         <div className="flex items-center gap-3">
           <div className="avatar">
-            <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+            <div className="
+              w-12 h-12 rounded-full ring ring-primary ring-offset-base-100
+              ring-offset-2
+            ">
               <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
             </div>
           </div>
@@ -175,7 +187,9 @@ export default function DiceMaidenLinkModal({
     return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="
+      fixed inset-0 z-50 flex items-center justify-center bg-black/50
+    " onClick={onClose}>
       <div
         className="bg-base-100 rounded-xl shadow-2xl w-full mx-4 flex flex-col"
         style={{ maxWidth: "28rem", height: "600px" }}
@@ -200,14 +214,20 @@ export default function DiceMaidenLinkModal({
           <div className="flex gap-2">
             <button
               type="button"
-              className={`btn btn-sm flex-1 ${inputMode === "select" ? "btn-primary" : "btn-ghost"}`}
+              className={`
+                btn btn-sm flex-1
+                ${inputMode === "select" ? `btn-primary` : `btn-ghost`}
+              `}
               onClick={() => setInputMode("select")}
             >
               选择骰娘
             </button>
             <button
               type="button"
-              className={`btn btn-sm flex-1 ${inputMode === "manual" ? "btn-primary" : "btn-ghost"}`}
+              className={`
+                btn btn-sm flex-1
+                ${inputMode === "manual" ? `btn-primary` : `btn-ghost`}
+              `}
               onClick={() => setInputMode("manual")}
             >
               手动输入ID
@@ -247,7 +267,9 @@ export default function DiceMaidenLinkModal({
                             >
                               {isFetchingNextPage
                                 ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
+                                    <span className="
+                                      loading loading-spinner loading-xs
+                                    "></span>
                                   )
                                 : (
                                     "加载更多"
@@ -266,9 +288,12 @@ export default function DiceMaidenLinkModal({
                     </label>
                     <input
                       type="number"
-                      className={`input input-bordered w-full ${
+                      className={`
+                        input input-bordered w-full
+                        ${
                         manualRoleError ? "input-error" : ""
-                      }`}
+                      }
+                      `}
                       placeholder="请输入骰娘角色的ID"
                       value={manualInput}
                       onChange={e => setManualInput(e.target.value)}
@@ -283,7 +308,9 @@ export default function DiceMaidenLinkModal({
                         )
                       : (
                           <label className="label">
-                            <span className="label-text-alt text-base-content/60">
+                            <span className="
+                              label-text-alt text-base-content/60
+                            ">
                               输入骰娘角色的ID号进行绑定
                             </span>
                           </label>

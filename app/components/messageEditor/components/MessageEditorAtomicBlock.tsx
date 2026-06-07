@@ -424,7 +424,16 @@ export function MessageEditorAtomicBlock({
     return (
       <button
         type="button"
-        className="pointer-events-none absolute right-1 top-1/2 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0 shadow-sm transition duration-150 hover:border-error/40 hover:text-error group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100"
+        className="
+          pointer-events-none absolute right-1 top-1/2 z-10 flex size-7
+          -translate-y-1/2 items-center justify-center rounded-md border
+          border-base-300/70 bg-base-100/92 text-base-content/55 opacity-0
+          shadow-sm transition duration-150
+          hover:border-error/40 hover:text-error
+          group-hover/media:pointer-events-auto group-hover/media:opacity-100
+          group-focus-within/media:pointer-events-auto
+          group-focus-within/media:opacity-100
+        "
         onMouseDown={event => event.preventDefault()}
         onClick={deleteBlock}
         aria-label={label}
@@ -440,11 +449,21 @@ export function MessageEditorAtomicBlock({
       return null;
     }
     return (
-      <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100">
+      <div className="
+        pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-2
+        opacity-0 transition-opacity duration-150
+        group-hover/media:pointer-events-auto group-hover/media:opacity-100
+        group-focus-within/media:pointer-events-auto
+        group-focus-within/media:opacity-100
+      ">
         {uploadable && (
           <button
             type="button"
-            className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-primary/40 hover:text-base-content"
+            className="
+              rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
+              text-xs text-base-content/75 shadow-sm transition
+              hover:border-primary/40 hover:text-base-content
+            "
             onMouseDown={event => event.preventDefault()}
             onClick={openFilePicker}
           >
@@ -453,7 +472,11 @@ export function MessageEditorAtomicBlock({
         )}
         <button
           type="button"
-          className="rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1 text-xs text-base-content/75 shadow-sm transition hover:border-error/40 hover:text-error"
+          className="
+            rounded-md border border-base-300/70 bg-base-100/92 px-2 py-1
+            text-xs text-base-content/75 shadow-sm transition
+            hover:border-error/40 hover:text-error
+          "
           onMouseDown={event => event.preventDefault()}
           onClick={deleteBlock}
         >
@@ -470,7 +493,11 @@ export function MessageEditorAtomicBlock({
         {!readOnly && (
           <button
             type="button"
-            className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
+            className="
+              rounded-md border border-base-300 px-2 py-1 text-xs
+              text-base-content/70 transition
+              hover:border-error/40 hover:text-error
+            "
             onMouseDown={event => event.preventDefault()}
             onClick={deleteBlock}
           >
@@ -480,7 +507,12 @@ export function MessageEditorAtomicBlock({
       </div>
       <button
         type="button"
-        className="flex min-h-24 w-full items-center justify-center rounded-xl border border-dashed border-base-300 bg-base-200/25 px-4 py-4 text-sm text-base-content/55 transition hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content"
+        className="
+          flex min-h-24 w-full items-center justify-center rounded-xl border
+          border-dashed border-base-300 bg-base-200/25 px-4 py-4 text-sm
+          text-base-content/55 transition
+          hover:border-primary/45 hover:bg-base-200/40 hover:text-base-content
+        "
         onMouseDown={event => event.preventDefault()}
         onClick={openFilePicker}
       >
@@ -499,7 +531,9 @@ export function MessageEditorAtomicBlock({
           ? (
               <div
                 ref={mediaFrameRef}
-                className="group/media relative overflow-hidden rounded-xl bg-base-100"
+                className="
+                  group/media relative overflow-hidden rounded-xl bg-base-100
+                "
                 style={displayWidth !== null ? { maxWidth: "100%", width: `${displayWidth}px` } : undefined}
               >
                 {renderFloatingUploadActions()}
@@ -507,7 +541,18 @@ export function MessageEditorAtomicBlock({
                 {!readOnly && (
                   <button
                     type="button"
-                    className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border border-base-300/70 bg-base-100/92 opacity-0 shadow-sm transition duration-150 hover:border-primary/40 hover:bg-primary/10 group-hover/media:pointer-events-auto group-hover/media:opacity-100 group-focus-within/media:pointer-events-auto group-focus-within/media:opacity-100"
+                    className="
+                      pointer-events-none absolute right-0 top-1/2 z-10 flex
+                      h-20 w-3 translate-x-1/2 -translate-y-1/2 cursor-ew-resize
+                      items-center justify-center rounded-full border
+                      border-base-300/70 bg-base-100/92 opacity-0 shadow-sm
+                      transition duration-150
+                      hover:border-primary/40 hover:bg-primary/10
+                      group-hover/media:pointer-events-auto
+                      group-hover/media:opacity-100
+                      group-focus-within/media:pointer-events-auto
+                      group-focus-within/media:opacity-100
+                    "
                     onPointerDown={handleResizePointerDown}
                     onPointerMove={handleResizePointerMove}
                     onPointerUp={finishResize}
@@ -526,14 +571,18 @@ export function MessageEditorAtomicBlock({
                         alt={message.content?.trim() || uploadMeta.title}
                         width={typeof mediaDimensions?.width === "number" ? mediaDimensions.width : undefined}
                         height={typeof mediaDimensions?.height === "number" ? mediaDimensions.height : undefined}
-                        className="block h-auto w-full max-w-full object-contain"
+                        className="
+                          block h-auto w-full max-w-full object-contain
+                        "
                       />
                     )
                   : (
                       <CachedVideoMessage
                         cacheKey={`${blockId}:video`}
                         url={uploadedMediaUrl}
-                        className="block h-auto w-full max-w-full bg-black object-contain"
+                        className="
+                          block h-auto w-full max-w-full bg-black object-contain
+                        "
                       />
                     )}
               </div>
@@ -541,7 +590,9 @@ export function MessageEditorAtomicBlock({
           : renderEmptyUploadBlock()}
 
         {message.content && (
-          <div className="whitespace-pre-wrap break-words text-sm text-base-content/80">
+          <div className="
+            whitespace-pre-wrap break-words text-sm text-base-content/80
+          ">
             {message.content}
           </div>
         )}
@@ -584,14 +635,23 @@ export function MessageEditorAtomicBlock({
                 : (
                     <>
                       {!isCenteredUploadBlock && message.messageType !== MESSAGE_TYPE.FILE && (
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <div className="text-xs font-medium text-base-content/55">{uploadMeta.title}</div>
+                        <div className="
+                          mb-2 flex items-center justify-between gap-2
+                        ">
+                          <div className="
+                            text-xs font-medium text-base-content/55
+                          ">{uploadMeta.title}</div>
                           {!readOnly && (
                             <div className="flex items-center gap-2">
                               {uploadable && (
                                 <button
                                   type="button"
-                                  className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-primary/40 hover:text-base-content"
+                                  className="
+                                    rounded-md border border-base-300 px-2 py-1
+                                    text-xs text-base-content/70 transition
+                                    hover:border-primary/40
+                                    hover:text-base-content
+                                  "
                                   onMouseDown={event => event.preventDefault()}
                                   onClick={openFilePicker}
                                 >
@@ -600,7 +660,11 @@ export function MessageEditorAtomicBlock({
                               )}
                               <button
                                 type="button"
-                                className="rounded-md border border-base-300 px-2 py-1 text-xs text-base-content/70 transition hover:border-error/40 hover:text-error"
+                                className="
+                                  rounded-md border border-base-300 px-2 py-1
+                                  text-xs text-base-content/70 transition
+                                  hover:border-error/40 hover:text-error
+                                "
                                 onMouseDown={event => event.preventDefault()}
                                 onClick={deleteBlock}
                               >
@@ -638,7 +702,10 @@ export function MessageEditorAtomicBlock({
           )}
 
       {uploadError && (
-        <div className="mt-3 rounded-md border border-error/20 bg-error/5 px-3 py-2 text-xs text-error">
+        <div className="
+          mt-3 rounded-md border border-error/20 bg-error/5 px-3 py-2 text-xs
+          text-error
+        ">
           {uploadError}
         </div>
       )}

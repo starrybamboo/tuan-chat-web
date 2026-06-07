@@ -46,12 +46,17 @@ export function UserDetail({ userId }: UserDetailProps) {
   };
 
   return (
-    <div className="card relative w-[360px] overflow-hidden rounded-xl border border-base-300/70 bg-base-100/95 shadow-xl backdrop-blur">
+    <div className="
+      card relative w-[360px] overflow-hidden rounded-xl border
+      border-base-300/70 bg-base-100/95 shadow-xl backdrop-blur
+    ">
       <div className="card-body gap-3 p-4">
         {/* 顶部：头像 + 名称/描述 */}
         <div className="flex items-start gap-4">
           <div className="avatar">
-            <div className="rounded-full ring-2 ring-base-100 bg-base-100 w-16 h-16">
+            <div className="
+              rounded-full ring-2 ring-base-100 bg-base-100 w-16 h-16
+            ">
               {userQuery.isLoading
                 ? (
                     <div className="skeleton w-16 h-16" />
@@ -83,7 +88,11 @@ export function UserDetail({ userId }: UserDetailProps) {
                       href={`/profile/${userId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xl font-semibold hover:underline cursor-pointer truncate max-w-xs"
+                      className="
+                        text-xl font-semibold
+                        hover:underline
+                        cursor-pointer truncate max-w-xs
+                      "
                     >
                       {user?.username || "未知用户"}
                     </a>
@@ -132,9 +141,15 @@ export function UserDetail({ userId }: UserDetailProps) {
                 href={`/profile/${userId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex min-w-9 flex-col items-start gap-0.5 whitespace-nowrap"
+                className="
+                  group flex min-w-9 flex-col items-start gap-0.5
+                  whitespace-nowrap
+                "
               >
-                <span className="text-sm font-semibold leading-none text-base-content group-hover:text-info">{followStats.following}</span>
+                <span className="
+                  text-sm font-semibold leading-none text-base-content
+                  group-hover:text-info
+                ">{followStats.following}</span>
                 <span className="text-[11px] leading-none text-base-content/55">关注</span>
               </a>
             </div>
@@ -145,9 +160,15 @@ export function UserDetail({ userId }: UserDetailProps) {
                 href={`/profile/${userId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex min-w-9 flex-col items-start gap-0.5 whitespace-nowrap"
+                className="
+                  group flex min-w-9 flex-col items-start gap-0.5
+                  whitespace-nowrap
+                "
               >
-                <span className="text-sm font-semibold leading-none text-base-content group-hover:text-info">{followStats.followers}</span>
+                <span className="
+                  text-sm font-semibold leading-none text-base-content
+                  group-hover:text-info
+                ">{followStats.followers}</span>
                 <span className="text-[11px] leading-none text-base-content/55">粉丝</span>
               </a>
             </div>
@@ -158,15 +179,27 @@ export function UserDetail({ userId }: UserDetailProps) {
               <FriendRequestButton
                 targetUserId={user.userId}
                 targetUsername={user?.username}
-                className="btn btn-sm flex h-8 min-h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-base-300/80 bg-base-100/70 px-2 text-sm hover:border-info/40 hover:bg-base-200 hover:text-info"
+                className="
+                  btn btn-sm flex h-8 min-h-8 flex-1 items-center justify-center
+                  gap-1.5 rounded-md border border-base-300/80 bg-base-100/70
+                  px-2 text-sm
+                  hover:border-info/40 hover:bg-base-200 hover:text-info
+                "
               />
 
               <button
                 type="button"
-                className="btn btn-sm flex h-8 min-h-8 flex-1 items-center gap-1.5 rounded-md border border-base-300/80 bg-base-100/70 px-3 text-sm hover:border-info/40 hover:bg-base-200 hover:text-info"
+                className="
+                  btn btn-sm flex h-8 min-h-8 flex-1 items-center gap-1.5
+                  rounded-md border border-base-300/80 bg-base-100/70 px-3
+                  text-sm
+                  hover:border-info/40 hover:bg-base-200 hover:text-info
+                "
                 onClick={() => router.history.push(`/chat/private/${userId}`)}
               >
-                <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="
+                  flex-shrink-0
+                ">
                   <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
                     <rect width="20" height="16" x="2" y="4" rx="2"></rect>
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>

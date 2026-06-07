@@ -117,7 +117,9 @@ export default function AIGenerateModal({
         <div className="collapse-content">
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(data).map(([key, value]) => (
-              <div key={key} className="flex justify-between text-xs bg-base-100 rounded px-2 py-1">
+              <div key={key} className="
+                flex justify-between text-xs bg-base-100 rounded px-2 py-1
+              ">
                 <span className="text-base-content/70">{key}</span>
                 <span className="font-medium truncate max-w-[120px]" title={value}>{value}</span>
               </div>
@@ -145,7 +147,11 @@ export default function AIGenerateModal({
         </form>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 dark:from-purple-500 dark:to-pink-500 flex items-center justify-center">
+          <div className="
+            w-12 h-12 rounded-full bg-gradient-to-r from-purple-400 to-pink-400
+            dark:from-purple-500 dark:to-pink-500
+            flex items-center justify-center
+          ">
             <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
@@ -160,7 +166,13 @@ export default function AIGenerateModal({
           {/* 输入区域 */}
           <div className="space-y-2">
             <textarea
-              className="textarea textarea-bordered rounded-md w-full min-h-[100px] bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
+              className="
+                textarea textarea-bordered rounded-md w-full min-h-[100px]
+                bg-base-100
+                focus:outline-none focus:ring-2 focus:ring-primary/20
+                focus:border-primary
+                resize-y
+              "
               placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
@@ -168,7 +180,14 @@ export default function AIGenerateModal({
             />
             <button
               type="button"
-              className="btn btn-primary text-white rounded-md w-full bg-gradient-to-r from-purple-500 to-pink-400 dark:from-purple-600 dark:to-pink-600 border-none hover:from-purple-600 hover:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700"
+              className="
+                btn btn-primary text-white rounded-md w-full bg-gradient-to-r
+                from-purple-500 to-pink-400
+                dark:from-purple-600 dark:to-pink-600
+                border-none
+                hover:from-purple-600 hover:to-pink-600
+                dark:hover:from-purple-700 dark:hover:to-pink-700
+              "
               onClick={handleGenerate}
               disabled={!prompt.trim() || isGenerating || ruleId <= 0}
             >
@@ -225,7 +244,9 @@ export default function AIGenerateModal({
           {/* 提示信息 */}
           {ruleId <= 0 && (
             <div className="alert alert-warning">
-              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <svg xmlns="http://www.w3.org/2000/svg" className="
+                stroke-current shrink-0 h-6 w-6
+              " fill="none" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <span className="text-sm">请先选择规则后再使用AI生成功能</span>

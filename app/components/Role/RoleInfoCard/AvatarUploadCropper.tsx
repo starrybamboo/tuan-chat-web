@@ -482,18 +482,31 @@ export function CharacterCopper({
         <div className="w-[92vw] max-w-4xl min-h-[70vh] mx-auto flex flex-col">
           <div className="flex items-center gap-8">
             <div className="w-full flex items-center">
-              <h1 className="text-xl md:text-2xl font-bold w-64">
+              <h1 className="
+                text-xl
+                md:text-2xl
+                font-bold w-64
+              ">
                 {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
                 ：
               </h1>
               <ul className="w-full steps">
-                <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}></li>
-                <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}></li>
+                <li className={`
+                  step
+                  ${currentStep >= 1 ? "step-primary" : ""}
+                `}></li>
+                <li className={`
+                  step
+                  ${currentStep >= 2 ? "step-primary" : ""}
+                `}></li>
               </ul>
             </div>
             {/* 桌面端按钮组 */}
             {!!completedCrop && (
-              <div className="shrink-0 hidden md:block">
+              <div className="
+                shrink-0 hidden
+                md:block
+              ">
                 {isSubmiting
                   ? (
                       <button className="btn btn-md loading" disabled={true} type="button"></button>
@@ -512,13 +525,23 @@ export function CharacterCopper({
             )}
           </div>
           <div className="divider my-0"></div>
-          <div className="flex flex-1 min-h-0 flex-col md:flex-row gap-8 justify-center">
+          <div className="
+            flex flex-1 min-h-0 flex-col
+            md:flex-row
+            gap-8 justify-center
+          ">
             {/* 原始图片裁剪区域 */}
-            <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
+            <div className="
+              w-full
+              md:w-1/2
+              p-2 gap-4 flex flex-col items-center
+            ">
               {!!imgSrc && (
                 <>
                   <h2 className="text-xl font-bold">裁剪预览</h2>
-                  <div className="w-full rounded-lg flex items-center justify-center">
+                  <div className="
+                    w-full rounded-lg flex items-center justify-center
+                  ">
                     <ReactCrop
                       crop={crop}
                       onChange={onCropChange}
@@ -545,7 +568,11 @@ export function CharacterCopper({
             </div>
             {/* 裁剪预览和操作按钮 */}
             {!!completedCrop && (
-              <div className="w-full md:w-2/3 p-2 gap-4 flex flex-col items-center">
+              <div className="
+                w-full
+                md:w-2/3
+                p-2 gap-4 flex flex-col items-center
+              ">
                 {
                   currentStep !== 1
                     ? (
@@ -559,7 +586,10 @@ export function CharacterCopper({
                     : (
                         <>
                           <h2 className="text-xl font-bold">渲染预览</h2>
-                          <div className="w-full h-full bg-info/30 rounded-lg p-4 flex flex-col gap-4">
+                          <div className="
+                            w-full h-full bg-info/30 rounded-lg p-4 flex
+                            flex-col gap-4
+                          ">
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}
                               transform={transform}
@@ -585,7 +615,10 @@ export function CharacterCopper({
 
           {/* 移动端按钮组 - 底部固定 */}
           {!!completedCrop && (
-            <div className="mt-6 pt-4 border-t border-base-300 md:hidden">
+            <div className="
+              mt-6 pt-4 border-t border-base-300
+              md:hidden
+            ">
               {isSubmiting
                 ? (
                     <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>

@@ -104,10 +104,16 @@ export default function NotificationBell() {
   };
 
   return (
-    <div ref={dropdownRef} className={`dropdown dropdown-end ${isOpen ? "dropdown-open" : ""}`}>
+    <div ref={dropdownRef} className={`
+      dropdown dropdown-end
+      ${isOpen ? `dropdown-open` : ""}
+    `}>
       <motion.button
         type="button"
-        className="btn btn-ghost btn-circle btn-sm hover:bg-base-200"
+        className="
+          btn btn-ghost btn-circle btn-sm
+          hover:bg-base-200
+        "
         aria-label="通知中心"
         onClick={() => setIsOpen(current => !current)}
         {...interactiveButtonMotionProps}
@@ -116,7 +122,9 @@ export default function NotificationBell() {
           <BellIcon className="size-6 opacity-80" />
           {unreadCount > 0
             ? (
-                <span className="badge badge-primary badge-xs indicator-item px-1 text-[10px]">
+                <span className="
+                  badge badge-primary badge-xs indicator-item px-1 text-[10px]
+                ">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )
@@ -126,8 +134,14 @@ export default function NotificationBell() {
 
       {isOpen
         ? (
-            <div className="dropdown-content z-50 mt-2 w-[min(92vw,24rem)] rounded-2xl border border-base-300 bg-base-100 p-0 shadow-xl">
-              <div className="flex items-center justify-between border-b border-base-300 px-4 py-3">
+            <div className="
+              dropdown-content z-50 mt-2 w-[min(92vw,24rem)] rounded-2xl border
+              border-base-300 bg-base-100 p-0 shadow-xl
+            ">
+              <div className="
+                flex items-center justify-between border-b border-base-300 px-4
+                py-3
+              ">
                 <div>
                   <div className="text-sm font-semibold">通知中心</div>
                   <div className="text-xs opacity-60">反馈动态会在这里保留</div>
@@ -143,7 +157,9 @@ export default function NotificationBell() {
               </div>
 
               <div className="max-h-[26rem] overflow-y-auto px-3 py-3">
-                <Suspense fallback={<div className="flex min-h-40 items-center justify-center text-sm opacity-70">正在加载通知...</div>}>
+                <Suspense fallback={<div className="
+                  flex min-h-40 items-center justify-center text-sm opacity-70
+                ">正在加载通知...</div>}>
                   <LazyNotificationList
                     items={notifications}
                     emptyText="还没有通知。"

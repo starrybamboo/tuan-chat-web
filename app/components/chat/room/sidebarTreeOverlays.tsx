@@ -196,7 +196,10 @@ export default function SidebarTreeOverlays(props: SidebarTreeOverlaysProps) {
           />
           <ul
             ref={contextMenuRef}
-            className="relative menu bg-base-100 rounded-box shadow-xl border border-base-300 w-48 p-2"
+            className="
+              relative menu bg-base-100 rounded-box shadow-xl border
+              border-base-300 w-48 p-2
+            "
             onMouseDown={e => e.stopPropagation()}
             onContextMenu={(e) => {
               e.preventDefault();

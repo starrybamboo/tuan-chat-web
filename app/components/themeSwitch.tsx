@@ -46,10 +46,16 @@ export default function ThemeSwitch() {
       />
 
       {/* sun icon */}
-      <SunIcon className={`${prefersIsDarkMode ? "swap-off" : "swap-on"} w-6 h-6`} weight="regular" />
+      <SunIcon className={`
+        ${prefersIsDarkMode ? "swap-off" : "swap-on"}
+        w-6 h-6
+      `} weight="regular" />
 
       {/* moon icon */}
-      <MoonIcon className={`${prefersIsDarkMode ? "swap-on" : "swap-off"} w-6 h-6`} weight="regular" />
+      <MoonIcon className={`
+        ${prefersIsDarkMode ? "swap-on" : "swap-off"}
+        w-6 h-6
+      `} weight="regular" />
     </label>
   );
 }

@@ -13,7 +13,9 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
 
   return (
     <div className="space-y-6">
-      <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+      <div className="
+        card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10
+      ">
         <div className="card-body">
           <h3 className="card-title flex items-center gap-2 mb-4">
             基础信息设置
@@ -47,7 +49,11 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
               </div>
               <input
                 type="text"
-                className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="
+                  input input-bordered bg-base-200 rounded-md w-full transition
+                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                  focus:border-primary
+                "
                 placeholder="输入角色名称"
                 value={characterData.name}
                 maxLength={ROLE_NAME_MAX_LENGTH}
@@ -59,14 +65,22 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
             <div className="form-control">
               <div className="flex gap-2 mb-2 items-center font-semibold">
                 <span>角色简介</span>
-                <span className={`label-text-alt ${descriptionCounterClass}`}>
+                <span className={`
+                  label-text-alt
+                  ${descriptionCounterClass}
+                `}>
                   {descriptionLength}
                   /
                   {ROLE_DESCRIPTION_MAX_LENGTH}
                 </span>
               </div>
               <textarea
-                className="textarea textarea-bordered bg-base-200 rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="
+                  textarea textarea-bordered bg-base-200 rounded-md
+                  min-h-[120px] resize-y w-full transition
+                  focus:outline-none focus:ring-2 focus:ring-primary/20
+                  focus:border-primary
+                "
                 placeholder="描述角色的背景故事、性格特点、说话风格等"
                 value={characterData.description}
                 maxLength={ROLE_DESCRIPTION_MAX_LENGTH}

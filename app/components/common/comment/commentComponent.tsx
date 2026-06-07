@@ -68,7 +68,10 @@ function CommentActionButton({
   return (
     <button
       type="button"
-      className={`btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors ${toneClass}`}
+      className={`
+        btn btn-ghost btn-xs h-8 min-h-8 rounded-full px-3 transition-colors
+        ${toneClass}
+      `}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
@@ -180,7 +183,9 @@ export default function CommentComponent({
 
   if (isFlatMode) {
     return (
-      <article className="rounded-2xl border border-base-300 bg-base-100/95 p-4 shadow-sm">
+      <article className="
+        rounded-2xl border border-base-300 bg-base-100/95 p-4 shadow-sm
+      ">
         <div className="flex items-start gap-3">
           <div className="shrink-0">
             <UserAvatarComponent
@@ -197,7 +202,10 @@ export default function CommentComponent({
 
             {parentComment
               ? (
-                  <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-full bg-base-200/70 px-3 py-1 text-xs text-base-content/60">
+                  <div className="
+                    mt-2 inline-flex max-w-full items-center gap-2 rounded-full
+                    bg-base-200/70 px-3 py-1 text-xs text-base-content/60
+                  ">
                     <ReplyIcon className="h-3.5 w-3.5 shrink-0" />
                     <span className="shrink-0 font-medium text-base-content/75">
                       回复
@@ -215,7 +223,16 @@ export default function CommentComponent({
               <MediaContentView
                 content={commentVO.content}
                 emptyText="原评论内容为空"
-                className="[&_p]:my-0 [&_p+_p]:mt-3 [&_img]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:my-2 [&_blockquote]:my-2 text-[14px] leading-[1.7] text-base-content/90"
+                className="
+                  [&_p]:my-0
+                  [&_p+_p]:mt-3
+                  [&_img]:my-2
+                  [&_ul]:my-2
+                  [&_ol]:my-2
+                  [&_pre]:my-2
+                  [&_blockquote]:my-2
+                  text-[14px] leading-[1.7] text-base-content/90
+                "
               />
             </div>
 
@@ -278,11 +295,19 @@ export default function CommentComponent({
           {/* Flex-1 makes the line stretch to match the parent height */}
           {!isFolded && (hasLoadedChildren || (commentVO.hasMore && remainingChildren > 0)) && level < MAX_LEVEL && (
             <div
-              className="group/threadline mt-1 flex flex-1 w-5 cursor-pointer justify-center pb-1 z-10"
+              className="
+                group/threadline mt-1 flex flex-1 w-5 cursor-pointer
+                justify-center pb-1 z-10
+              "
               onClick={() => setIsFolded(true)}
               title="收起回复"
             >
-              <div className="h-full w-[2px] bg-base-content/15 hover:bg-base-content/30 transition-all duration-200 group-hover/threadline:w-[3px] group-hover/threadline:bg-primary" />
+              <div className="
+                h-full w-[2px] bg-base-content/15
+                hover:bg-base-content/30
+                transition-all duration-200
+                group-hover/threadline:w-[3px] group-hover/threadline:bg-primary
+              " />
             </div>
           )}
         </div>
@@ -290,11 +315,18 @@ export default function CommentComponent({
         {/* Right column for Content + Children */}
         <div className="min-w-0 flex-1 pb-1">
           {/* Main Comment */}
-          <article className="group/comment relative transition-all duration-200 rounded-xl px-2 py-1.5 -ml-2 hover:bg-base-200/40">
+          <article className="
+            group/comment relative transition-all duration-200 rounded-xl px-2
+            py-1.5 -ml-2
+            hover:bg-base-200/40
+          ">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div
-                className={`min-w-0 flex-1 flex flex-wrap items-center gap-2 ${isFolded ? "cursor-pointer" : ""}`}
+                className={`
+                  min-w-0 flex-1 flex flex-wrap items-center gap-2
+                  ${isFolded ? `cursor-pointer` : ""}
+                `}
                 onClick={() => {
                   if (isFolded)
                     setIsFolded(false);
@@ -302,7 +334,12 @@ export default function CommentComponent({
               >
                 <CommentPreview commentVO={commentVO} />
                 {isFolded && (
-                  <span className="flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-[11px] font-medium text-base-content/55 transition-colors hover:bg-base-300 hover:text-base-content/80">
+                  <span className="
+                    flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5
+                    text-[11px] font-medium text-base-content/55
+                    transition-colors
+                    hover:bg-base-300 hover:text-base-content/80
+                  ">
                     <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
@@ -313,12 +350,24 @@ export default function CommentComponent({
 
               <div className="flex shrink-0 items-center justify-end">
                 <button
-                  className={`btn btn-ghost btn-xs h-7 min-h-7 w-7 rounded-full p-0 text-base-content/40 hover:bg-primary/10 hover:text-primary ${isFolded ? "bg-base-200/50" : "opacity-0 group-hover/comment:opacity-100 focus:opacity-100"}`}
+                  className={`
+                    btn btn-ghost btn-xs h-7 min-h-7 w-7 rounded-full p-0
+                    text-base-content/40
+                    hover:bg-primary/10 hover:text-primary
+                    ${isFolded ? `bg-base-200/50` : `
+                      opacity-0
+                      group-hover/comment:opacity-100
+                      focus:opacity-100
+                    `}
+                  `}
                   type="button"
                   onClick={() => setIsFolded(!isFolded)}
                   title={isFolded ? "展开" : "收起"}
                 >
-                  <svg className={`h-4 w-4 transition-transform ${isFolded ? "" : "rotate-180"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className={`
+                    h-4 w-4 transition-transform
+                    ${isFolded ? "" : `rotate-180`}
+                  `} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
@@ -332,7 +381,16 @@ export default function CommentComponent({
                   <MediaContentView
                     content={commentVO.content}
                     emptyText="原评论内容为空"
-                    className="[&_p]:my-0 [&_p+_p]:mt-3 [&_img]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_pre]:my-2 [&_blockquote]:my-2 text-[14px] leading-[1.6] text-base-content/90"
+                    className="
+                      [&_p]:my-0
+                      [&_p+_p]:mt-3
+                      [&_img]:my-2
+                      [&_ul]:my-2
+                      [&_ol]:my-2
+                      [&_pre]:my-2
+                      [&_blockquote]:my-2
+                      text-[14px] leading-[1.6] text-base-content/90
+                    "
                   />
                 </div>
 
@@ -388,7 +446,12 @@ export default function CommentComponent({
                     {canLoadMoreChildren && (
                       <div className="mt-3 ml-1.5">
                         <button
-                          className="text-[13px] font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+                          className="
+                            text-[13px] font-medium text-primary
+                            hover:underline
+                            disabled:cursor-not-allowed disabled:no-underline
+                            disabled:opacity-60
+                          "
                           disabled={isLoadingMoreChildren}
                           onClick={() => {
                             void childCommentQuery.fetchNextPage();
@@ -410,7 +473,13 @@ export default function CommentComponent({
                 ? (
                     <div className="mt-3 ml-1.5">
                       <button
-                        className="btn btn-ghost btn-sm h-8 min-h-8 rounded-full border border-base-300 bg-base-200/35 px-4 text-xs text-base-content/65 hover:border-primary/25 hover:bg-primary/10 hover:text-primary"
+                        className="
+                          btn btn-ghost btn-sm h-8 min-h-8 rounded-full border
+                          border-base-300 bg-base-200/35 px-4 text-xs
+                          text-base-content/65
+                          hover:border-primary/25 hover:bg-primary/10
+                          hover:text-primary
+                        "
                         onClick={() => setIsOpen(true)}
                         type="button"
                       >

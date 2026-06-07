@@ -84,10 +84,20 @@ export default function MessageFilterWindow({
   }, [onClose]);
 
   return (
-    <div className="pointer-events-auto w-[min(92vw,560px)] overflow-hidden rounded-md border border-primary/20 bg-base-100/94 text-base-content shadow-2xl shadow-primary/10 backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-3 border-b border-base-content/10 px-3 py-2">
+    <div className="
+      pointer-events-auto w-[min(92vw,560px)] overflow-hidden rounded-md border
+      border-primary/20 bg-base-100/94 text-base-content shadow-2xl
+      shadow-primary/10 backdrop-blur-xl
+    ">
+      <div className="
+        flex items-center justify-between gap-3 border-b border-base-content/10
+        px-3 py-2
+      ">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <span className="
+            inline-flex size-7 shrink-0 items-center justify-center rounded-md
+            bg-primary/10 text-primary
+          ">
             <Funnel className="size-4" />
           </span>
           <div className="min-w-0">
@@ -108,14 +118,24 @@ export default function MessageFilterWindow({
         <div className="join shrink-0">
           <button
             type="button"
-            className={`join-item btn btn-sm h-8 min-h-0 rounded-md px-3 ${filterAction === "remove" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
+            className={`
+              join-item btn btn-sm h-8 min-h-0 rounded-md px-3
+              ${filterAction === "remove" ? `btn-primary` : `
+                btn-ghost border border-base-content/15
+              `}
+            `}
             onClick={() => setFilterAction("remove")}
           >
             筛选
           </button>
           <button
             type="button"
-            className={`join-item btn btn-sm h-8 min-h-0 rounded-md px-3 ${filterAction === "keep" ? "btn-primary" : "btn-ghost border border-base-content/15"}`}
+            className={`
+              join-item btn btn-sm h-8 min-h-0 rounded-md px-3
+              ${filterAction === "keep" ? `btn-primary` : `
+                btn-ghost border border-base-content/15
+              `}
+            `}
             onClick={() => setFilterAction("keep")}
           >
             反选
@@ -124,12 +144,22 @@ export default function MessageFilterWindow({
       </div>
 
       <div className="space-y-3 px-3 py-3">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className={`flex cursor-pointer select-none items-start gap-2 rounded-md border px-3 py-2 transition ${
+        <div className="
+          grid gap-2
+          sm:grid-cols-2
+        ">
+          <label className={`
+            flex cursor-pointer select-none items-start gap-2 rounded-md border
+            px-3 py-2 transition
+            ${
             filterOutOfCharacterSpeech
               ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-base-content/12 bg-base-200/35 text-base-content/70 hover:border-base-content/25"
-          }`}
+              : `
+                border-base-content/12 bg-base-200/35 text-base-content/70
+                hover:border-base-content/25
+              `
+          }
+          `}
           >
             <input
               type="checkbox"
@@ -145,11 +175,18 @@ export default function MessageFilterWindow({
             </span>
           </label>
 
-          <label className={`flex cursor-pointer select-none items-start gap-2 rounded-md border px-3 py-2 transition ${
+          <label className={`
+            flex cursor-pointer select-none items-start gap-2 rounded-md border
+            px-3 py-2 transition
+            ${
             filterStateMessages
               ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-base-content/12 bg-base-200/35 text-base-content/70 hover:border-base-content/25"
-          }`}
+              : `
+                border-base-content/12 bg-base-200/35 text-base-content/70
+                hover:border-base-content/25
+              `
+          }
+          `}
           >
             <input
               type="checkbox"

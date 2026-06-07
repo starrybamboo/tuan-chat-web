@@ -32,7 +32,11 @@ interface MaterialLibraryPageProps {
 function MaterialEditorLoadingState({ embedded }: { embedded: boolean }) {
   const minHeightClassName = embedded ? "min-h-[20rem]" : "min-h-[24rem]";
   return (
-    <div className={`flex ${minHeightClassName} items-center justify-center text-sm text-base-content/60`}>
+    <div className={`
+      flex
+      ${minHeightClassName}
+      items-center justify-center text-sm text-base-content/60
+    `}>
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">正在加载素材编辑器...</span>
     </div>

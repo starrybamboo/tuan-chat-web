@@ -5,6 +5,10 @@ import { describe, expect, it } from "vitest";
 import MessageAnnotationsBar from "./messageAnnotationsBar";
 
 describe("messageAnnotationsBar", () => {
+  function normalizeMarkup(markup: string) {
+    return markup.replaceAll(/\s+/g, " ");
+  }
+
   it("普通模式下会隐藏仅联动模式可见的立绘位置标注", () => {
     const html = renderToStaticMarkup(createElement(MessageAnnotationsBar, {
       annotations: ["figure.pos.left", "figure.anim.ba-jump"],
@@ -29,10 +33,11 @@ describe("messageAnnotationsBar", () => {
     const html = renderToStaticMarkup(createElement(MessageAnnotationsBar, {
       annotations: ["figure.anim.ba-down"],
     }));
+    const normalizedHtml = normalizeMarkup(html);
 
     expect(html).toContain("title=\"下落\"");
-    expect(html).toContain(" h-6 ");
-    expect(html).toContain(" w-6 ");
+    expect(normalizedHtml).toContain(" h-6 ");
+    expect(normalizedHtml).toContain(" w-6 ");
     expect(html).not.toContain("min-w-[36px]");
   });
 });

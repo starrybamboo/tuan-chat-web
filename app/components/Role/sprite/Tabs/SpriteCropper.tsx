@@ -917,12 +917,21 @@ export function SpriteCropper({
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full">
       {/* 模式显示 */}
-      <div className="mb-2 flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-base font-bold leading-tight sm:text-lg">
+      <div className="
+        mb-2 flex w-full flex-col gap-2
+        sm:flex-row sm:items-center sm:justify-between
+      ">
+        <h3 className="
+          text-base font-bold leading-tight
+          sm:text-lg
+        ">
           {operationMode === "single" ? "单体模式" : `批量模式 (已选 ${selectedIndices.size} 个)`}
           {isAvatarMode ? " - 从立绘裁剪头像" : " - 立绘裁剪"}
         </h3>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <div className="
+          flex flex-wrap items-center gap-2
+          sm:justify-end
+        ">
           {isMutiAvatars && (
             <button
               type="button"
@@ -950,17 +959,35 @@ export function SpriteCropper({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden">
-        <div className="flex flex-col lg:flex-row items-stretch h-full p-2 min-h-0 overflow-auto">
+      <div className="
+        flex-1 min-h-0 relative bg-base-200 rounded-lg overflow-hidden
+      ">
+        <div className="
+          flex flex-col
+          lg:flex-row
+          items-stretch h-full p-2 min-h-0 overflow-auto
+        ">
           {/* 左侧：原始图片裁剪区域 - 移动端隐藏，通过弹窗显示 */}
-          <div className="w-full md:basis-1/3 p-2 flex-col items-center order-2 md:order-1 hidden md:flex md:flex-none h-full">
+          <div className="
+            w-full
+            md:basis-1/3
+            p-2 flex-col items-center order-2
+            md:order-1
+            hidden
+            md:flex md:flex-none
+            h-full
+          ">
             {currentUrl && (
               <div className="relative w-full">
                 {isBatchMode && (
                   <div className="absolute top-2 right-2 z-10 flex gap-2">
                     <button
                       type="button"
-                      className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                      className="
+                        btn btn-xs btn-circle bg-base-100/80
+                        hover:bg-base-100
+                        shadow
+                      "
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelectedSwitch("prev");
@@ -968,13 +995,19 @@ export function SpriteCropper({
                       disabled={!hasPrevSelected || isProcessing}
                       title="上一个选中头像"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="
+                        h-4 w-4
+                      " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
                     <button
                       type="button"
-                      className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                      className="
+                        btn btn-xs btn-circle bg-base-100/80
+                        hover:bg-base-100
+                        shadow
+                      "
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelectedSwitch("next");
@@ -982,7 +1015,9 @@ export function SpriteCropper({
                       disabled={!hasNextSelected || isProcessing}
                       title="下一个选中头像"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="
+                        h-4 w-4
+                      " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
@@ -1013,14 +1048,30 @@ export function SpriteCropper({
 
           {/* 右侧：裁剪预览和控制 - 移动端放上面 */}
           {completedCrop && (
-            <div className="w-full md:basis-2/3 p-2 flex flex-col order-1 md:order-2 md:flex-none h-full">
+            <div className="
+              w-full
+              md:basis-2/3
+              p-2 flex flex-col order-1
+              md:order-2 md:flex-none
+              h-full
+            ">
               {/* 预览内容区域 */}
               <div
-                className="bg-info/30 rounded-lg p-4 flex flex-col relative cursor-pointer md:cursor-default max-h-[70vh]"
+                className="
+                  bg-info/30 rounded-lg p-4 flex flex-col relative
+                  cursor-pointer
+                  md:cursor-default
+                  max-h-[70vh]
+                "
                 onClick={handlePreviewPanelClick}
               >
                 {/* 移动端点击提示 */}
-                <div className="absolute bottom-3 right-3 rounded bg-base-100/70 px-2 py-1 text-[11px] text-base-content/60 backdrop-blur-sm pointer-events-none z-10 md:hidden">
+                <div className="
+                  absolute bottom-3 right-3 rounded bg-base-100/70 px-2 py-1
+                  text-[11px] text-base-content/60 backdrop-blur-sm
+                  pointer-events-none z-10
+                  md:hidden
+                ">
                   点击画布调整裁剪
                 </div>
 
@@ -1069,7 +1120,10 @@ export function SpriteCropper({
       </div>
 
       {/* 操作按钮区 - 固定在右下角 */}
-      <div className="mt-4 flex shrink-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
+      <div className="
+        mt-4 flex shrink-0 flex-col items-start gap-2
+        sm:flex-row sm:items-center
+      ">
         {operationMode === "batch" && (
           <div className="text-xs text-base-content/60 self-center">
             批量模式说明：
@@ -1077,12 +1131,18 @@ export function SpriteCropper({
             只会将当前裁剪框应用到所有立绘，切换后应用裁剪框不会分别生效。
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:justify-end">
+        <div className="
+          flex flex-wrap items-center gap-2
+          sm:ml-auto sm:justify-end
+        ">
           {operationMode === "single"
             ? (
                 <>
                   <button
-                    className={`btn btn-outline rounded-md ${actionButtonSizeClass}`}
+                    className={`
+                      btn btn-outline rounded-md
+                      ${actionButtonSizeClass}
+                    `}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload();
@@ -1101,7 +1161,10 @@ export function SpriteCropper({
                   {!isAvatarMode && (
                     <>
                       <button
-                        className={`btn btn-secondary rounded-md ${actionButtonSizeClass}`}
+                        className={`
+                          btn btn-secondary rounded-md
+                          ${actionButtonSizeClass}
+                        `}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleApplyTransform();
@@ -1111,14 +1174,19 @@ export function SpriteCropper({
                       >
                         {isTransforming
                           ? (
-                              <span className="loading loading-spinner loading-xs"></span>
+                              <span className="
+                                loading loading-spinner loading-xs
+                              "></span>
                             )
                           : (
                               "应用变换"
                             )}
                       </button>
                       <button
-                        className={`btn btn-primary rounded-md ${actionButtonSizeClass}`}
+                        className={`
+                          btn btn-primary rounded-md
+                          ${actionButtonSizeClass}
+                        `}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleApplyCrop(false);
@@ -1128,14 +1196,19 @@ export function SpriteCropper({
                       >
                         {isCropping
                           ? (
-                              <span className="loading loading-spinner loading-xs"></span>
+                              <span className="
+                                loading loading-spinner loading-xs
+                              "></span>
                             )
                           : (
                               "应用裁剪"
                             )}
                       </button>
                       <button
-                        className={`btn btn-info rounded-md ${actionButtonSizeClass}`}
+                        className={`
+                          btn btn-info rounded-md
+                          ${actionButtonSizeClass}
+                        `}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleApplyCrop(true);
@@ -1145,7 +1218,9 @@ export function SpriteCropper({
                       >
                         {isCropping
                           ? (
-                              <span className="loading loading-spinner loading-xs"></span>
+                              <span className="
+                                loading loading-spinner loading-xs
+                              "></span>
                             )
                           : (
                               "一键应用"
@@ -1155,7 +1230,10 @@ export function SpriteCropper({
                   )}
                   {isAvatarMode && (
                     <button
-                      className={`btn btn-primary rounded-md ${actionButtonSizeClass}`}
+                      className={`
+                        btn btn-primary rounded-md
+                        ${actionButtonSizeClass}
+                      `}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleApplyCrop(false);
@@ -1177,7 +1255,10 @@ export function SpriteCropper({
             : (
                 <>
                   <button
-                    className={`btn btn-outline btn-info rounded-md ${actionButtonSizeClass}`}
+                    className={`
+                      btn btn-outline btn-info rounded-md
+                      ${actionButtonSizeClass}
+                    `}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleBatchDownload();
@@ -1196,7 +1277,10 @@ export function SpriteCropper({
                   {!isAvatarMode && (
                     <>
                       <button
-                        className={`btn btn-info rounded-md ${actionButtonSizeClass}`}
+                        className={`
+                          btn btn-info rounded-md
+                          ${actionButtonSizeClass}
+                        `}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleBatchCropAll(true);
@@ -1206,7 +1290,9 @@ export function SpriteCropper({
                       >
                         {isCropping
                           ? (
-                              <span className="loading loading-spinner loading-xs"></span>
+                              <span className="
+                                loading loading-spinner loading-xs
+                              "></span>
                             )
                           : (
                               "一键应用"
@@ -1216,7 +1302,10 @@ export function SpriteCropper({
                   )}
                   {isAvatarMode && (
                     <button
-                      className={`btn btn-info rounded-md ${actionButtonSizeClass}`}
+                      className={`
+                        btn btn-info rounded-md
+                        ${actionButtonSizeClass}
+                      `}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleBatchCropAll(false);
@@ -1240,8 +1329,14 @@ export function SpriteCropper({
 
       {/* 移动端裁剪弹窗 */}
       {isCropModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 md:hidden">
-          <div className="bg-base-100 rounded-lg p-4 m-4 max-h-[90vh] overflow-auto w-full max-w-lg">
+        <div className="
+          fixed inset-0 z-50 flex items-center justify-center bg-black/50
+          md:hidden
+        ">
+          <div className="
+            bg-base-100 rounded-lg p-4 m-4 max-h-[90vh] overflow-auto w-full
+            max-w-lg
+          ">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">调整裁剪区域</h3>
               <button
@@ -1259,7 +1354,11 @@ export function SpriteCropper({
                     <div className="absolute top-2 right-2 z-10 flex gap-2">
                       <button
                         type="button"
-                        className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                        className="
+                          btn btn-xs btn-circle bg-base-100/80
+                          hover:bg-base-100
+                          shadow
+                        "
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectedSwitch("prev");
@@ -1267,13 +1366,19 @@ export function SpriteCropper({
                         disabled={!hasPrevSelected || isProcessing}
                         title="上一个选中头像"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="
+                          h-4 w-4
+                        " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>
                       <button
                         type="button"
-                        className="btn btn-xs btn-circle bg-base-100/80 hover:bg-base-100 shadow"
+                        className="
+                          btn btn-xs btn-circle bg-base-100/80
+                          hover:bg-base-100
+                          shadow
+                        "
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectedSwitch("next");
@@ -1281,7 +1386,9 @@ export function SpriteCropper({
                         disabled={!hasNextSelected || isProcessing}
                         title="下一个选中头像"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="
+                          h-4 w-4
+                        " viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </button>

@@ -489,7 +489,12 @@ export default function WorkflowWindow() {
     >
       <button
         type="button"
-        className="absolute right-28 top-4 z-20 inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100/90 px-3 py-1.5 text-xs font-medium text-base-content shadow-sm backdrop-blur transition hover:bg-base-100"
+        className="
+          absolute right-28 top-4 z-20 inline-flex items-center gap-2 rounded-md
+          border border-base-300 bg-base-100/90 px-3 py-1.5 text-xs font-medium
+          text-base-content shadow-sm backdrop-blur transition
+          hover:bg-base-100
+        "
         onClick={() => {
           void addEndNode();
         }}
@@ -498,7 +503,12 @@ export default function WorkflowWindow() {
       </button>
       <button
         type="button"
-        className="absolute right-4 top-4 z-20 inline-flex items-center gap-2 rounded-md border border-base-300 bg-base-100/90 px-3 py-1.5 text-xs font-medium text-base-content shadow-sm backdrop-blur transition hover:bg-base-100"
+        className="
+          absolute right-4 top-4 z-20 inline-flex items-center gap-2 rounded-md
+          border border-base-300 bg-base-100/90 px-3 py-1.5 text-xs font-medium
+          text-base-content shadow-sm backdrop-blur transition
+          hover:bg-base-100
+        "
         onClick={toggleFullscreen}
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4 fill-current" aria-hidden>

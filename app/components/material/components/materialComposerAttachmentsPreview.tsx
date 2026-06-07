@@ -129,7 +129,10 @@ export default function MaterialComposerAttachmentsPreview({ roomId }: MaterialC
           return (
             <div className="relative max-w-48 flex-shrink-0 group" key={fileKey}>
               <div
-                className="flex h-12 min-w-28 max-w-48 items-center gap-1.5 rounded border border-base-300 bg-base-200 px-2 pr-6"
+                className="
+                  flex h-12 min-w-28 max-w-48 items-center gap-1.5 rounded
+                  border border-base-300 bg-base-200 px-2 pr-6
+                "
                 title={file.name}
               >
                 {isVideo
@@ -138,13 +141,20 @@ export default function MaterialComposerAttachmentsPreview({ roomId }: MaterialC
                 <span className="truncate text-xs">{file.name}</span>
               </div>
               <div
-                className="absolute bottom-0 left-0 right-0 rounded-b bg-black/50 px-1 text-[10px] text-white"
+                className="
+                  absolute bottom-0 left-0 right-0 rounded-b bg-black/50 px-1
+                  text-[10px] text-white
+                "
               >
                 {isVideo ? "视频" : "文件"}
               </div>
               <button
                 type="button"
-                className="absolute -right-1 -top-1 z-10 rounded-full bg-base-100 shadow transition-colors hover:bg-error hover:text-white"
+                className="
+                  absolute -right-1 -top-1 z-10 rounded-full bg-base-100 shadow
+                  transition-colors
+                  hover:bg-error hover:text-white
+                "
                 onClick={() => updateFileAttachments(draft => void draft.splice(index, 1))}
                 aria-label={`移除${file.name}`}
               >
@@ -157,12 +167,19 @@ export default function MaterialComposerAttachmentsPreview({ roomId }: MaterialC
         })}
         {audioFile && (
           <div className="relative flex-shrink-0 group">
-            <div className="flex h-12 w-12 items-center justify-center rounded border border-base-300 bg-base-200" title={audioFile.name}>
+            <div className="
+              flex h-12 w-12 items-center justify-center rounded border
+              border-base-300 bg-base-200
+            " title={audioFile.name}>
               <MusicNote className="size-6 opacity-70" />
             </div>
             <button
               type="button"
-              className="absolute -right-1 -top-1 z-10 rounded-full bg-base-100 shadow transition-colors hover:bg-error hover:text-white"
+              className="
+                absolute -right-1 -top-1 z-10 rounded-full bg-base-100 shadow
+                transition-colors
+                hover:bg-error hover:text-white
+              "
               onClick={() => setAudioFile(null)}
               aria-label={`移除${audioFile.name}`}
             >
@@ -170,7 +187,10 @@ export default function MaterialComposerAttachmentsPreview({ roomId }: MaterialC
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
-            <div className="absolute bottom-0 left-0 right-0 rounded-b bg-black/50 px-1 text-[10px] text-white">
+            <div className="
+              absolute bottom-0 left-0 right-0 rounded-b bg-black/50 px-1
+              text-[10px] text-white
+            ">
               语音
             </div>
           </div>

@@ -65,7 +65,11 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
 
   return (
     <div className="min-h-full bg-base-200">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="
+        mx-auto max-w-6xl px-4 py-6
+        sm:px-6
+        lg:px-8
+      ">
         {selectedIssueId
           ? (
               <FeedbackIssueDetailView
@@ -78,7 +82,10 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
               <div className="space-y-4">
                 <section className="space-y-1">
                   <div className="space-y-1">
-                    <div className="text-xs font-medium uppercase tracking-[0.22em] text-base-content/45">
+                    <div className="
+                      text-xs font-medium uppercase tracking-[0.22em]
+                      text-base-content/45
+                    ">
                       用户反馈
                     </div>
                     <h1 className="text-3xl font-semibold text-base-content">反馈</h1>

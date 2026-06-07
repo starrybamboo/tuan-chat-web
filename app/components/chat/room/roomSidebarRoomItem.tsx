@@ -100,7 +100,10 @@ export default function RoomSidebarRoomItem({
 
   return (
     <div
-      className={`flex items-center gap-1 group w-full ${canEdit ? "" : ""}`}
+      className={`
+        flex items-center gap-1 group w-full
+        ${canEdit ? "" : ""}
+      `}
       data-room-id={roomId}
       onContextMenu={(e) => {
         e.preventDefault();

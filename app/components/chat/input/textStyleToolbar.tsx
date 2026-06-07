@@ -153,7 +153,11 @@ function SplitButton({
     <div className="relative flex items-center">
       <button
         type="button"
-        className="flex h-8 items-center gap-1.5 rounded-l-md px-2 text-sm text-base-content/80 transition hover:bg-base-200 hover:text-base-content"
+        className="
+          flex h-8 items-center gap-1.5 rounded-l-md px-2 text-sm
+          text-base-content/80 transition
+          hover:bg-base-200 hover:text-base-content
+        "
         onMouseDown={(event) => {
           preventSelectionLoss(event);
           onApply();
@@ -165,7 +169,11 @@ function SplitButton({
       </button>
       <button
         type="button"
-        className="flex h-8 w-6 items-center justify-center rounded-r-md border-l border-base-300/70 text-base-content/60 transition hover:bg-base-200 hover:text-base-content"
+        className="
+          flex h-8 w-6 items-center justify-center rounded-r-md border-l
+          border-base-300/70 text-base-content/60 transition
+          hover:bg-base-200 hover:text-base-content
+        "
         onMouseDown={(event) => {
           preventSelectionLoss(event);
           onToggleMenu();
@@ -183,7 +191,10 @@ function SplitButton({
 function DropdownPanel({ children }: { children: ReactNode }) {
   return (
     <div
-      className="absolute left-0 top-10 z-41 min-w-48 rounded-md border border-base-300 bg-base-100 p-2.5 text-sm shadow-xl"
+      className="
+        absolute left-0 top-10 z-41 min-w-48 rounded-md border border-base-300
+        bg-base-100 p-2.5 text-sm shadow-xl
+      "
       onMouseDown={event => event.stopPropagation()}
       role="presentation"
     >
@@ -226,10 +237,15 @@ function SwatchMenu({
           />
         ))}
       </div>
-      <div className="mt-2 flex items-center gap-2 border-t border-base-300 pt-2">
+      <div className="
+        mt-2 flex items-center gap-2 border-t border-base-300 pt-2
+      ">
         <input
           type="color"
-          className="h-8 w-10 cursor-pointer rounded border border-base-300 bg-transparent"
+          className="
+            h-8 w-10 cursor-pointer rounded border border-base-300
+            bg-transparent
+          "
           value={selectedColor}
           onChange={(event) => {
             onPickColor(event.target.value);
@@ -239,7 +255,10 @@ function SwatchMenu({
         />
         <button
           type="button"
-          className="h-8 rounded-md border border-base-300 px-2.5 text-sm transition hover:bg-base-200"
+          className="
+            h-8 rounded-md border border-base-300 px-2.5 text-sm transition
+            hover:bg-base-200
+          "
           onMouseDown={(event) => {
             preventSelectionLoss(event);
             onApplyColor(selectedColor);
@@ -305,7 +324,11 @@ function HeadingMenu({
           <button
             key={option.level}
             type="button"
-            className="flex h-8 items-center gap-2.5 rounded-md px-2.5 text-left transition hover:bg-base-200"
+            className="
+              flex h-8 items-center gap-2.5 rounded-md px-2.5 text-left
+              transition
+              hover:bg-base-200
+            "
             onMouseDown={(event) => {
               preventSelectionLoss(event);
               onApplyHeading(option.level);
@@ -483,10 +506,16 @@ function AdvancedStyleDialog({
       </div>
 
       <div className="flex justify-end gap-2">
-        <button type="button" className="rounded-md px-3 py-1.5 text-sm hover:bg-base-200" onClick={onClose}>取消</button>
+        <button type="button" className="
+          rounded-md px-3 py-1.5 text-sm
+          hover:bg-base-200
+        " onClick={onClose}>取消</button>
         <button
           type="button"
-          className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-content disabled:opacity-50"
+          className="
+            rounded-md bg-primary px-3 py-1.5 text-sm text-primary-content
+            disabled:opacity-50
+          "
           disabled={!normalizeTextInput(text)}
           onClick={() => {
             const normalizedText = normalizeTextInput(text);
@@ -737,7 +766,9 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
         )}
       >
         <HighlighterIcon size={18} weight="fill" />
-        <span className="ml-1.5 size-3.5 rounded-full border border-base-content/20" style={{ backgroundColor: selectedBackgroundColor }} />
+        <span className="
+          ml-1.5 size-3.5 rounded-full border border-base-content/20
+        " style={{ backgroundColor: selectedBackgroundColor }} />
       </SplitButton>
 
       <SplitButton

@@ -161,7 +161,9 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
 
   if (isLoading && tagsData !== undefined) {
     return (
-      <div className="w-full mx-auto bg-base-200 rounded-xl opacity-90 shadow-lg p-6">
+      <div className="
+        w-full mx-auto bg-base-200 rounded-xl opacity-90 shadow-lg p-6
+      ">
         <div className="flex justify-center items-center py-8">
           <span className="loading loading-spinner loading-md text-base-content"></span>
           <span className="ml-2 text-base-content">加载标签中...</span>
@@ -173,7 +175,10 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
   return (
     <div className="w-full mx-auto rounded-xl opacity-90 p-2">
       {/* 标签展示区域 */}
-      <div className={`flex flex-wrap ${tagStyles.gap}`}>
+      <div className={`
+        flex flex-wrap
+        ${tagStyles.gap}
+      `}>
         {tags && tags.length > 0 && (
           tags.map(tag => (
             <div
@@ -181,7 +186,13 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
               className="group relative inline-flex items-center"
             >
               <span
-                className={`${tagStyles.tag} rounded-full font-medium transition-all hover:shadow-md cursor-default ring-1 ${getColorClass(tag.color || "blue")}`}
+                className={`
+                  ${tagStyles.tag}
+                  rounded-full font-medium transition-all
+                  hover:shadow-md
+                  cursor-default ring-1
+                  ${getColorClass(tag.color || "blue")}
+                `}
               >
                 {tag.content}
               </span>
@@ -189,11 +200,18 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
                 <button
                   type="button"
                   onClick={() => deleteTag(tag.tagId ?? -1)}
-                  className={`absolute ${tagStyles.deleteButton} bg-red-500 text-white rounded-full
-                             flex items-center justify-center hover:bg-red-600
-                             shadow-sm border border-white/20 duration-300
-                             opacity-0 md:group-hover:opacity-50 md:hover:opacity-100
-                             touch:opacity-70 active:opacity-100`}
+                  className={`
+                    absolute
+                    ${tagStyles.deleteButton}
+                    bg-red-500 text-white rounded-full flex items-center
+                    justify-center
+                    hover:bg-red-600
+                    shadow-sm border border-white/20 duration-300 opacity-0
+                    md:group-hover:opacity-50
+                    md:hover:opacity-100
+                    touch:opacity-70
+                    active:opacity-100
+                  `}
                   disabled={deleteTagMutation.isPending}
                   title="删除标签"
                 >
@@ -208,7 +226,10 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
         {isEditable && (
           isAddingTag
             ? (
-                <div className="flex flex-col gap-2 p-3 bg-base-100 rounded-lg border border-base-300 shadow-sm">
+                <div className="
+                  flex flex-col gap-2 p-3 bg-base-100 rounded-lg border
+                  border-base-300 shadow-sm
+                ">
                   {/* 输入框和按钮行 */}
                   <div className="flex items-center gap-2">
                     <input
@@ -252,11 +273,20 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
                           type="button"
                           key={color.id}
                           onClick={() => setSelectedColor(color.id)}
-                          className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 active:scale-95 ${
+                          className={`
+                            w-6 h-6 rounded-full border-2 transition-all
+                            hover:scale-110
+                            active:scale-95
+                            ${
                             selectedColor === color.id
                               ? "border-base-content shadow-md scale-110"
-                              : "border-base-300 hover:border-base-content active:border-base-content"
-                          }`}
+                              : `
+                                border-base-300
+                                hover:border-base-content
+                                active:border-base-content
+                              `
+                          }
+                          `}
                           style={{ backgroundColor: color.hex }}
                           title={color.name}
                         />
@@ -267,7 +297,13 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
                       <div className="mt-1">
                         <span className="text-xs text-base-content/70">预览: </span>
                         <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default ring-1 ${getColorClass(selectedColor)}`}
+                          className={`
+                            px-3 py-1 rounded-full text-sm font-medium
+                            transition-all
+                            hover:shadow-md
+                            cursor-default ring-1
+                            ${getColorClass(selectedColor)}
+                          `}
                         >
                           {newTagContent.trim()}
                         </span>
@@ -280,9 +316,13 @@ function TagManagement({ userId, size = "default", canEdit }: TagManagementProps
                 <button
                   type="button"
                   onClick={startAddingTag}
-                  className="px-3 py-1 rounded-full text-sm border-2 border-dashed border-base-300
-                           text-base-content/60 hover:border-primary hover:text-primary active:border-primary active:text-primary
-                           transition-colors cursor-pointer flex items-center gap-1"
+                  className="
+                    px-3 py-1 rounded-full text-sm border-2 border-dashed
+                    border-base-300 text-base-content/60
+                    hover:border-primary hover:text-primary
+                    active:border-primary active:text-primary
+                    transition-colors cursor-pointer flex items-center gap-1
+                  "
                 >
                   <PlusOutline className="w-4 h-4" />
                   <span>添加标签</span>

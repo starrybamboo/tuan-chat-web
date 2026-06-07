@@ -51,9 +51,13 @@ export function PreviewImageDialog({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-base-200/75 backdrop-blur-[2px] transition-opacity duration-200 ease-out ${
+      className={`
+        fixed inset-0 z-50 flex items-center justify-center bg-base-200/75
+        backdrop-blur-[2px] transition-opacity duration-200 ease-out
+        ${
         isVisible ? "opacity-100" : "pointer-events-none opacity-0"
-      }`}
+      }
+      `}
       onClick={(event) => {
         if (event.target === event.currentTarget)
           onClose();
@@ -63,14 +67,22 @@ export function PreviewImageDialog({
       aria-label="预览图片"
     >
       <div
-        className={`transform-gpu transition-all duration-200 ease-out ${
-          isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0"
-        }`}
+        className={`
+          transform-gpu transition-all duration-200 ease-out
+          ${
+          isVisible ? "translate-y-0 scale-100 opacity-100" : `
+            translate-y-2 scale-[0.985] opacity-0
+          `
+        }
+        `}
       >
         <img
           src={selectedPreviewResult.dataUrl}
           alt="preview-expanded"
-          className="max-h-[92vh] max-w-[94vw] rounded-2xl object-contain shadow-[0_30px_90px_rgba(0,0,0,0.35)]"
+          className="
+            max-h-[92vh] max-w-[94vw] rounded-2xl object-contain
+            shadow-[0_30px_90px_rgba(0,0,0,0.35)]
+          "
         />
       </div>
     </div>

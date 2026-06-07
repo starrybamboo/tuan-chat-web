@@ -246,7 +246,11 @@ export default function UserAvatarComponent({
       onMouseLeave={handleMouseLeave}
     >
       <div className="avatar group/avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} overflow-hidden`}>
+        <div className={`
+          ${sizeMap[width]}
+          rounded${isRounded ? "-full" : ""}
+          overflow-hidden
+        `}>
           <MediaImage
             src={resolvedAvatar}
             alt="Avatar"
@@ -257,7 +261,11 @@ export default function UserAvatarComponent({
       </div>
       {withName && (
         <div
-          className={`text-sm whitespace-nowrap min-w-0 ${resolvedUsername.length > 8 ? "truncate max-w-[10em]" : ""} ${clickEnterProfilePage ? "hover:underline" : ""}`}
+          className={`
+            text-sm whitespace-nowrap min-w-0
+            ${resolvedUsername.length > 8 ? `truncate max-w-[10em]` : ""}
+            ${clickEnterProfilePage ? `hover:underline` : ""}
+          `}
         >
           {resolvedUsername}
         </div>
@@ -271,7 +279,11 @@ export default function UserAvatarComponent({
             top: pos.top,
             zIndex: 9999,
           }}
-          className={`group/avatar-card transition transform origin-${pos.placement === "right" ? "left" : "right"} animate-in fade-in zoom-in duration-150`}
+          className={`
+            group/avatar-card transition transform
+            origin-${pos.placement === "right" ? `left` : `right`}
+            animate-in fade-in zoom-in duration-150
+          `}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >

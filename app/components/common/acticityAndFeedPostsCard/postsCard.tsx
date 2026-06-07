@@ -188,12 +188,22 @@ const PostsCard: React.FC<PostsCardProps> = ({
     <>
       <article
         ref={postRef}
-        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative ${
+        className={`
+          bg-base-100 rounded-xl shadow-sm border border-base-300 p-4
+          sm:p-6
+          mb-4
+          hover:shadow-md
+          transition-all relative
+          ${
           isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"
-        }`}
+        }
+        `}
       >
         {isDeleting && (
-          <div className="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center z-10">
+          <div className="
+            absolute inset-0 bg-base-100/80 rounded-xl flex items-center
+            justify-center z-10
+          ">
             <div className="loading loading-spinner loading-lg text-primary" />
           </div>
         )}
@@ -219,7 +229,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 : (
                     <>
                       <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
-                      <div className="flex items-center gap-2 text-xs text-base-content/80">
+                      <div className="
+                        flex items-center gap-2 text-xs text-base-content/80
+                      ">
                         <p>{publishTime}</p>
                         <p>{contentType}</p>
                       </div>
@@ -230,7 +242,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
             {/* 更多操作菜单 */}
             <div className="relative ml-auto">
               <button
-                className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-2xl hover:bg-base-200"
+                className="
+                  text-base-content/40
+                  hover:text-base-content/80
+                  transition-colors p-2 rounded-2xl
+                  hover:bg-base-200
+                "
                 onClick={() => setShowMenu(!showMenu)}
                 type="button"
               >
@@ -238,12 +255,19 @@ const PostsCard: React.FC<PostsCardProps> = ({
               </button>
 
               {showMenu && (
-                <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
+                <div className="
+                  absolute right-0 top-full mt-1 bg-base-100 border
+                  border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]
+                ">
                   {!isFeed && loginUserId === userId
                     ? (
                         <button
                           onClick={handleDelete}
-                          className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
+                          className="
+                            w-full px-4 py-2 text-left text-sm text-error
+                            hover:bg-error/10
+                            transition-colors
+                          "
                           type="button"
                         >
                           删除
@@ -253,7 +277,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
                         ? (
                             <button
                               onClick={() => setShowMenu(false)}
-                              className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
+                              className="
+                                w-full px-4 py-2 text-left text-sm
+                                text-base-content/60
+                                hover:bg-base-200
+                                transition-colors
+                              "
                               type="button"
                             >
                               举报
@@ -261,7 +290,11 @@ const PostsCard: React.FC<PostsCardProps> = ({
                           )
                         : (
                             <DislikeIconButton
-                              className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
+                              className="
+                                w-full justify-start px-3 py-2
+                                hover:bg-base-200
+                                transition-colors
+                              "
                               onDislike={handleDislikeClick}
                             />
                           )}
@@ -284,14 +317,23 @@ const PostsCard: React.FC<PostsCardProps> = ({
               {/* 内容或描述 */}
               {!isFeed
                 ? (
-                    <div className="text-base-content whitespace-pre-wrap hover:text-primary transition-colors rounded-lg p-2 -m-2">
+                    <div className="
+                      text-base-content whitespace-pre-wrap
+                      hover:text-primary
+                      transition-colors rounded-lg p-2 -m-2
+                    ">
                       <div className="line-clamp-4 transition-all duration-200">
                         {content}
                       </div>
                     </div>
                   )
                 : (
-                    <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed group-hover:text-primary transition-colors">
+                    <p className="
+                      text-sm text-base-content/85 whitespace-pre-line
+                      leading-relaxed
+                      group-hover:text-primary
+                      transition-colors
+                    ">
                       {description}
                     </p>
                   )}
@@ -307,16 +349,30 @@ const PostsCard: React.FC<PostsCardProps> = ({
         </div>
 
         {/* 操作栏 */}
-        <div className="flex items-center space-x-4 sm:space-x-6 pt-3 border-t border-base-300">
+        <div className="
+          flex items-center space-x-4
+          sm:space-x-6
+          pt-3 border-t border-base-300
+        ">
           <div
             onClick={handleComment}
-            className="flex items-center space-x-1 text-sm hover:text-primary cursor-pointer hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
+            className="
+              flex items-center space-x-1 text-sm
+              hover:text-primary
+              cursor-pointer
+              hover:bg-primary/10
+              transition-colors px-2 py-1 rounded-full
+            "
           >
             <CommentOutline className="h-6 w-5" data-html-image-exclude="true" />
             <span className="font-medium">{stats?.commentCount || 0}</span>
           </div>
 
-          <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full data-html-image-exclude">
+          <div className="
+            flex items-center space-x-1 text-sm cursor-pointer
+            hover:bg-blue-500/10
+            transition-colors px-2 py-1 rounded-full data-html-image-exclude
+          ">
             <ShareIconButton
               targetRef={postRef as React.RefObject<HTMLDivElement>}
               qrLink={targetType === "3" ? `https://tuan.chat/repository/detail/${actualId}` : "https://tuan.chat/chat"}

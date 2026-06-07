@@ -27,7 +27,9 @@ const LazySpaceMaterialLibraryPage = lazy(() => import("@/components/material/pa
 
 function SpaceDetailLazyFallback({ text }: { text: string }) {
   return (
-    <div className="flex h-full items-center justify-center text-sm text-base-content/60">
+    <div className="
+      flex h-full items-center justify-center text-sm text-base-content/60
+    ">
       <span className="loading loading-spinner loading-sm" />
       <span className="ml-2">{text}</span>
     </div>
@@ -124,7 +126,11 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
   };
   return (
     <div className="h-full w-full overflow-hidden">
-      <div className="flex items-center gap-2 h-10 px-2 border-y border-gray-300 dark:border-gray-700 bg-base-100">
+      <div className="
+        flex items-center gap-2 h-10 px-2 border-y border-gray-300
+        dark:border-gray-700
+        bg-base-100
+      ">
         <button
           type="button"
           className="btn btn-ghost btn-sm btn-square"
@@ -139,7 +145,10 @@ export default function SpaceDetailPanel({ activeTab, onClose }: { activeTab: Sp
 
       </div>
       {resolvedTab == null && (
-        <div className="flex h-full items-center justify-center p-6 text-sm text-base-content/60">
+        <div className="
+          flex h-full items-center justify-center p-6 text-sm
+          text-base-content/60
+        ">
           当前身份无权查看该空间面板
         </div>
       )}

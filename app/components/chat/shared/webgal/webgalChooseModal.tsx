@@ -45,7 +45,9 @@ export default function WebgalChooseModal({
           )}
           <div className="space-y-2">
             {options.map((option, index) => (
-              <div key={option.id} className="rounded-md border border-base-300/70 p-3 space-y-2">
+              <div key={option.id} className="
+                rounded-md border border-base-300/70 p-3 space-y-2
+              ">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium">
                     选项
@@ -68,7 +70,10 @@ export default function WebgalChooseModal({
                     onChange={e => onChangeOption(index, "text", e.target.value)}
                   />
                   <textarea
-                    className={`${webgalChooseInputClass} min-h-24 font-mono`}
+                    className={`
+                      ${webgalChooseInputClass}
+                      min-h-24 font-mono
+                    `}
                     placeholder="自定义代码（可选）"
                     value={option.code}
                     onChange={e => onChangeOption(index, "code", e.target.value)}

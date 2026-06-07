@@ -218,7 +218,10 @@ export function OpenAbleDrawer({
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
-            className={`absolute inset-0 z-40 w-full pointer-events-auto ${className ?? ""}`}
+            className={`
+              absolute inset-0 z-40 w-full pointer-events-auto
+              ${className ?? ""}
+            `}
             initial={{ opacity: 0, x: handlePosition === "right" ? -18 : 18 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: handlePosition === "right" ? -18 : 18 }}
@@ -237,7 +240,10 @@ export function OpenAbleDrawer({
       {isOpen && (
         <motion.div
           ref={containerRef}
-          className={`relative min-w-0 z-40 pointer-events-auto overflow-hidden ${className ?? ""}`}
+          className={`
+            relative min-w-0 z-40 pointer-events-auto overflow-hidden
+            ${className ?? ""}
+          `}
           initial={{ width: 0, opacity: 0 }}
           animate={{ width: Math.max(0, renderedWidth), opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
@@ -249,13 +255,21 @@ export function OpenAbleDrawer({
         >
           {/* 拖拽手柄（默认在左侧） - 加宽并提升 z-index，同时使用 pointer 事件以避免被子元素捕获 */}
           <div
-            className={`absolute top-0 h-full w-4 cursor-col-resize z-2000 ${handlePosition === "left" ? "left-0" : "right-0"} hover:bg-info/20 transition-colors pointer-events-auto`}
+            className={`
+              absolute top-0 h-full w-4 cursor-col-resize z-2000
+              ${handlePosition === "left" ? `left-0` : `right-0`}
+              hover:bg-info/20
+              transition-colors pointer-events-auto
+            `}
             onPointerDown={handlePointerDown}
             style={{ touchAction: "none" }}
             title="拖拽调整宽度"
           >
             <div
-              className={`absolute top-0 h-full w-0.5 bg-base-content/18 ${handlePosition === "left" ? "left-0" : "right-0"}`}
+              className={`
+                absolute top-0 h-full w-0.5 bg-base-content/18
+                ${handlePosition === "left" ? `left-0` : `right-0`}
+              `}
             />
           </div>
           <div className="h-full min-w-0" style={{ width: Math.max(0, renderedWidth) }}>

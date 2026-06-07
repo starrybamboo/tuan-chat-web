@@ -283,7 +283,10 @@ function SpaceTrpgSettingWindow() {
                 <div className="dropdown w-full">
                   <label
                     tabIndex={canEdit ? 0 : -1}
-                    className={`btn btn-outline w-full justify-start ${canEdit ? "" : "cursor-not-allowed opacity-70"}`}
+                    className={`
+                      btn btn-outline w-full justify-start
+                      ${canEdit ? "" : `cursor-not-allowed opacity-70`}
+                    `}
                     aria-disabled={!canEdit}
                     onClick={(event) => {
                       if (!canEdit) {
@@ -293,12 +296,17 @@ function SpaceTrpgSettingWindow() {
                     }}
                   >
                     {rules.find(rule => rule.ruleId === ruleId)?.ruleName ?? "未找到规则"}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="
+                      h-4 w-4 ml-auto
+                    " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </label>
                   {canEdit && (
-                    <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
+                    <ul tabIndex={0} className="
+                      dropdown-content menu p-2 shadow bg-base-100 rounded-box
+                      w-full
+                    ">
                       {rules.map(rule => (
                         <li key={rule.ruleId}>
                           <button
@@ -325,7 +333,13 @@ function SpaceTrpgSettingWindow() {
                   <span className="label-text">空间骰娘</span>
                 </label>
                 <div
-                  className={`card bg-base-200 transition-all duration-200 ${canEdit ? "cursor-pointer hover:bg-base-300" : "cursor-not-allowed opacity-70"}`}
+                  className={`
+                    card bg-base-200 transition-all duration-200
+                    ${canEdit ? `
+                      cursor-pointer
+                      hover:bg-base-300
+                    ` : `cursor-not-allowed opacity-70`}
+                  `}
                   onClick={() => {
                     if (canEdit) {
                       setIsDiceMaidenLinkModalOpen(true);
@@ -339,13 +353,19 @@ function SpaceTrpgSettingWindow() {
                         {currentDicerId && !dicerRoleError
                           ? (
                               <div className="avatar">
-                                <div className="w-10 h-10 rounded-full ring ring-accent ring-offset-base-100 ring-offset-2">
+                                <div className="
+                                  w-10 h-10 rounded-full ring ring-accent
+                                  ring-offset-base-100 ring-offset-2
+                                ">
                                   <MediaImage src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
                                 </div>
                               </div>
                             )
                           : (
-                              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                              <div className="
+                                w-10 h-10 rounded-full bg-accent/10 flex
+                                items-center justify-center
+                              ">
                                 <svg className="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
                                   <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
                                   <circle cx="7" cy="7" r="1.5" fill="currentColor" />
@@ -358,14 +378,19 @@ function SpaceTrpgSettingWindow() {
                             )}
                         <div>
                           <h3 className="font-semibold text-sm">空间骰娘</h3>
-                          <p className={`font-medium text-sm ${dicerRoleError ? "text-error" : "text-accent"}`}>
+                          <p className={`
+                            font-medium text-sm
+                            ${dicerRoleError ? `text-error` : `text-accent`}
+                          `}>
                             {currentDicerId
                               ? dicerRoleError || linkedDicerData?.data?.roleName || `ID: ${currentDicerId}`
                               : "选择使用的骰娘角色"}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-base-content/50">
+                      <div className="
+                        flex items-center gap-1 text-base-content/50
+                      ">
                         <span className="text-xs">{currentDicerId ? "更改" : "设置"}</span>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -377,7 +402,11 @@ function SpaceTrpgSettingWindow() {
               </div>
 
               <div className="mb-4">
-                <label className={`flex items-center justify-between gap-4 rounded-lg bg-base-200 p-4 ${canEdit ? "" : "opacity-70"}`}>
+                <label className={`
+                  flex items-center justify-between gap-4 rounded-lg bg-base-200
+                  p-4
+                  ${canEdit ? "" : `opacity-70`}
+                `}>
                   <div className="min-w-0">
                     <span className="block font-semibold text-sm">允许角色绑定骰娘优先</span>
                     <span className="block text-xs text-base-content/60">

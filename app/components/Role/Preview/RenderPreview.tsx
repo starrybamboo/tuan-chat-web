@@ -85,7 +85,9 @@ function RenderPreviewComponent({
 
   return (
     <>
-      <div ref={containerRef} className="relative aspect-video overflow-hidden bg-black">
+      <div ref={containerRef} className="
+        relative aspect-video overflow-hidden bg-black
+      ">
         {/* 裁剪后的图像 - 左侧显示 */}
         <canvas
           ref={previewCanvasRef}
@@ -99,10 +101,15 @@ function RenderPreviewComponent({
           }}
         />
         {/* 底部1/3的黑色半透明遮罩 */}
-        <div className="absolute bottom-[1%] left-[1%] right-[1%] h-[29%] bg-black/30 rounded">
+        <div className="
+          absolute bottom-[1%] left-[1%] right-[1%] h-[29%] bg-black/30 rounded
+        ">
           <div className="absolute top-0 left-[8%] text-white">
             <p className="text-white leading-snug">
-              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-linear-to-b from-white to-cyan-100" style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
+              <span className="
+                block font-medium mt-[3%] text-transparent bg-clip-text
+                bg-linear-to-b from-white to-cyan-100
+              " style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
               <span className="block mt-[1%]" style={{ fontSize: `${55 * scaleX}px` }}>{dialogContent}</span>
             </p>
           </div>

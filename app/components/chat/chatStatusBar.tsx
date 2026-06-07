@@ -94,16 +94,26 @@ export default function ChatStatusBar({
   };
 
   // 当前 RoomMember 类型不含 userName，暂以 #uid 占位；后续可通过 members 扩展或单独的用户缓存获取
-  const resolveUserNameNode = (uid: number) => <UserIdToName userId={uid} className="inline" />;
+  const resolveUserNameNode = (uid: number) => <UserIdToName userId={uid} className="
+    inline
+  " />;
 
   return (
-    <div className={`${compact ? "mb-0 mt-0" : "mb-1 -mt-1"} flex flex-wrap items-center gap-x-3 text-xs text-base-content/80 ${className ?? ""}`}>
+    <div className={`
+      ${compact ? "mb-0 mt-0" : "mb-1 -mt-1"}
+      flex flex-wrap items-center gap-x-3 text-xs text-base-content/80
+      ${className ?? ""}
+    `}>
       {showSelector && (
         <div className="dropdown dropdown-top pointer-events-auto">
           <button
             type="button"
             aria-label="切换聊天状态"
-            className="min-w-0 cursor-pointer list-none flex items-center text-xs select-none gap-1 hover:text-info"
+            className="
+              min-w-0 cursor-pointer list-none flex items-center text-xs
+              select-none gap-1
+              hover:text-info
+            "
             title="切换聊天状态"
           >
             {currentChatStatus === "input"
@@ -113,17 +123,24 @@ export default function ChatStatusBar({
                 : (
                     <span
                       className={
-                        currentChatStatus === "leave" ? "text-error" : "opacity-70"
+                        currentChatStatus === "leave" ? "text-error" : `
+                          opacity-70
+                        `
                       }
                     >
                       {currentChatStatus === "idle" && "空闲"}
                       {currentChatStatus === "leave" && "暂离"}
                     </span>
                   )}
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="
+              size-3 opacity-60
+            " viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
           </button>
           <ul
-            className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm z-[9999] absolute"
+            className="
+              dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md
+              border border-base-200 gap-1 text-sm z-[9999] absolute
+            "
           >
             {[
               { value: "idle", label: "空闲", desc: "清除正在输入" },
@@ -134,7 +151,10 @@ export default function ChatStatusBar({
               <li key={item.value}>
                 <button
                   type="button"
-                  className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
+                  className={`
+                    flex flex-col gap-0.5 py-1
+                    ${currentChatStatus === item.value ? `active bg-base-200` : ""}
+                  `}
                   onClick={(e) => {
                     e.stopPropagation();
                     onChangeChatStatus(item.value as any);
@@ -160,7 +180,9 @@ export default function ChatStatusBar({
         const tooltipLines = g.users.map(u => `#${u}`).join("\n");
         const isSingle = nameNodes.length === 1;
         return (
-          <span key={g.type} className={colorMap[g.type] || "text-base-content/70"}>
+          <span key={g.type} className={colorMap[g.type] || `
+            text-base-content/70
+          `}>
             <span className="tooltip tooltip-top whitespace-pre-line" data-tip={tooltipLines}>
               {isSingle
                 ? (
@@ -175,7 +197,9 @@ export default function ChatStatusBar({
                       {nameNodes.map((n, idx) => (
                         <React.Fragment key={g.users[idx]}>
                           {n}
-                          {idx < nameNodes.length - 1 && <span className="opacity-60 mx-0.5">、</span>}
+                          {idx < nameNodes.length - 1 && <span className="
+                            opacity-60 mx-0.5
+                          ">、</span>}
                         </React.Fragment>
                       ))}
                       <span className="ml-1">
@@ -184,7 +208,9 @@ export default function ChatStatusBar({
                     </>
                   )}
             </span>
-            {showGroupDivider && groupIndex < grouped.length - 1 && <span className="opacity-50 mx-2">/</span>}
+            {showGroupDivider && groupIndex < grouped.length - 1 && <span className="
+              opacity-50 mx-2
+            ">/</span>}
           </span>
         );
       })}

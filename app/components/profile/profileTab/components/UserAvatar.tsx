@@ -65,7 +65,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     const bgColor = bgColors[colorIndex];
 
     return (
-      <div className={`${bgColor} flex items-center justify-center text-white font-bold ${getInnerAvatarSizeClass(size)}`}>
+      <div className={`
+        ${bgColor}
+        flex items-center justify-center text-white font-bold
+        ${getInnerAvatarSizeClass(size)}
+      `}>
         {initials}
       </div>
     );
@@ -94,13 +98,20 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           <MediaImage
             src={avatarSrc}
             alt={user?.username}
-            className={`object-cover transition-all duration-300 ${
+            className={`
+              object-cover transition-all duration-300
+              ${
               canEdit ? "group-hover:brightness-75" : ""
-            } ${getInnerAvatarSizeClass(size)}`}
+            }
+              ${getInnerAvatarSizeClass(size)}
+            `}
             onError={handleImageError}
           />
           {imageLoading && (
-            <div className={`absolute inset-0 skeleton ${getInnerAvatarSizeClass(size)}`} />
+            <div className={`
+              absolute inset-0 skeleton
+              ${getInnerAvatarSizeClass(size)}
+            `} />
           )}
         </div>
       );
@@ -113,7 +124,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     <div className="relative group w-full h-full">
       {renderAvatarImage()}
       {canEdit && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-sm rounded-full">
+        <div className="
+          absolute inset-0 flex items-center justify-center opacity-0
+          group-hover:opacity-100
+          transition-all duration-300 bg-black/20 backdrop-blur-sm rounded-full
+        ">
           <span className="text-white font-medium text-xs px-2 py-1">
             {size === "sm" ? "更换" : "更换头像"}
           </span>
@@ -142,7 +157,9 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
               </ImgUploaderWithCopper>
             )
           : (
-              <div className={isOwner ? "w-full h-full relative" : "pointer-events-none w-full h-full relative"}>
+              <div className={isOwner ? "w-full h-full relative" : `
+                pointer-events-none w-full h-full relative
+              `}>
                 {renderAvatarImage()}
               </div>
             )}
@@ -150,13 +167,16 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           status={user?.activeStatus}
           size={size}
           editable={true}
-          className={`absolute border-white ${
+          className={`
+            absolute border-white
+            ${
             size === "sm"
               ? "border-2 bottom-1 right-1"
               : size === "md"
                 ? "border-[3px] bottom-2 right-2"
                 : "border-4 bottom-4 right-4"
-          }`}
+          }
+          `}
         />
       </div>
     </div>

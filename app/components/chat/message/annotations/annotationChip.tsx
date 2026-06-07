@@ -72,7 +72,15 @@ export default function AnnotationChip({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center h-6 rounded-md border transition-all select-none ${surfaceClass} ${sizeClass} ${interactiveClass} ${toneClass} ${activeClass}`}
+      className={`
+        inline-flex items-center justify-center h-6 rounded-md border
+        transition-all select-none
+        ${surfaceClass}
+        ${sizeClass}
+        ${interactiveClass}
+        ${toneClass}
+        ${activeClass}
+      `}
       onClick={onClick}
       title={annotation.label}
     >
@@ -82,11 +90,15 @@ export default function AnnotationChip({
           )
         : hasImage
           ? (
-              <img src={annotation.iconUrl} alt="" className={isEffect ? "w-5 h-5 object-contain" : "w-4 h-4 object-contain"} />
+              <img src={annotation.iconUrl} alt="" className={isEffect ? `
+                w-5 h-5 object-contain
+              ` : `w-4 h-4 object-contain`} />
             )
           : hasLabel
             ? (
-                <span className="text-[11px] font-semibold leading-none whitespace-nowrap">{annotation.label}</span>
+                <span className="
+                  text-[11px] font-semibold leading-none whitespace-nowrap
+                ">{annotation.label}</span>
               )
             : (
                 <span className="sr-only">{annotation.label}</span>

@@ -51,7 +51,12 @@ export default function RoomSidebarCategoryHeader({
 
   return (
     <div
-      className="group flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium opacity-80 select-none hover:bg-base-300/40 focus-within:bg-base-300/40"
+      className="
+        group flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium
+        opacity-80 select-none
+        hover:bg-base-300/40
+        focus-within:bg-base-300/40
+      "
       draggable={canEdit}
       onClick={(e) => {
         const target = e.target as HTMLElement | null;
@@ -132,7 +137,10 @@ export default function RoomSidebarCategoryHeader({
         }}
         title={toggleTitle}
       >
-        <ChevronDown className={`size-4 opacity-80 ${isCollapsed ? "-rotate-90" : ""}`} />
+        <ChevronDown className={`
+          size-4 opacity-80
+          ${isCollapsed ? "-rotate-90" : ""}
+        `} />
       </button>
 
       <span className="flex-1 truncate cursor-pointer">{categoryName}</span>

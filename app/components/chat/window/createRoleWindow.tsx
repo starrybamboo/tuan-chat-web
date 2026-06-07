@@ -52,7 +52,10 @@ export default function CreateRoleWindow({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="justify-center w-full">
-      <div className="bg-base-100 rounded-box p-2 sm:p-4">
+      <div className="
+        bg-base-100 rounded-box p-2
+        sm:p-4
+      ">
         <RoleCreationFlow
           title="创建角色"
           description="填写角色信息，完成创建并加入当前房间"

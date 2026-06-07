@@ -25,6 +25,10 @@ vi.mock("@/components/common/mediaImage", () => ({
 }));
 
 describe("messageEditorAtomicBlock", () => {
+  function normalizeMarkup(markup: string) {
+    return markup.replaceAll(/\s+/g, " ");
+  }
+
   function renderBlock(message = createMessageEditorBlockDraft("image")) {
     return renderToStaticMarkup(createElement(MessageEditorAtomicBlock, {
       active: false,
@@ -67,6 +71,7 @@ describe("messageEditorAtomicBlock", () => {
     });
 
     const html = renderBlock(imageMessage);
+    const normalizedHtml = normalizeMarkup(html);
 
     expect(html).toContain("更换图片");
     expect(html).toContain("删除");
@@ -75,7 +80,7 @@ describe("messageEditorAtomicBlock", () => {
     expect(html).toContain("pointer-events-none");
     expect(html).toContain("group-hover/media:pointer-events-auto");
     expect(html).toContain("https://media.tuan.chat/media/v1/files/045/45/image/medium.webp");
-    expect(html).toContain("class=\"block h-auto w-full max-w-full object-contain\"");
+    expect(normalizedHtml).toContain("class=\" block h-auto w-full max-w-full object-contain \"");
   });
 
   it("renders a full-width uploaded video with replace, delete, and resize actions", () => {
@@ -89,12 +94,13 @@ describe("messageEditorAtomicBlock", () => {
     });
 
     const html = renderBlock(videoMessage);
+    const normalizedHtml = normalizeMarkup(html);
 
     expect(html).toContain("更换视频");
     expect(html).toContain("删除");
     expect(html).toContain("拖拽缩放视频");
     expect(html).toContain("https://media.tuan.chat/media/v1/files/047/47/video/low.webm");
-    expect(html).toContain("class=\"block h-auto w-full max-w-full bg-black object-contain\"");
+    expect(normalizedHtml).toContain("class=\" block h-auto w-full max-w-full bg-black object-contain \"");
   });
 
   it("restores the persisted resized width for image and video blocks", () => {

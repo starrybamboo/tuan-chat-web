@@ -53,7 +53,10 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
   const canSubmit = name.trim().length > 0 && description.trim().length > 0 && !isDescriptionTooLong && !isSaving;
 
   return (
-    <div className={`transition-opacity duration-300 ease-in-out ${isSaving ? "opacity-50" : ""}`}>
+    <div className={`
+      transition-opacity duration-300 ease-in-out
+      ${isSaving ? `opacity-50` : ""}
+    `}>
       {/* 头部区域 */}
       <div className="max-w-4xl mx-auto p-6">
         <CreatePageHeader
@@ -72,7 +75,10 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
           ]}
         />
 
-        <div className="md:hidden mb-4 space-y-2">
+        <div className="
+          md:hidden
+          mb-4 space-y-2
+        ">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {onBack && (
@@ -90,7 +96,12 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
               type="button"
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className={`btn btn-sm md:btn-lg rounded-lg btn-primary ${isSaving ? "scale-95" : ""}`}
+              className={`
+                btn btn-sm
+                md:btn-lg
+                rounded-lg btn-primary
+                ${isSaving ? `scale-95` : ""}
+              `}
             >
               {isSaving
                 ? <span className="loading loading-spinner loading-xs"></span>
@@ -107,7 +118,10 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
 
         {/* 表单区域 */}
         <div className="space-y-6">
-          <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+          <div className="
+            card bg-base-100 shadow-xs rounded-2xl border-2
+            border-base-content/10
+          ">
             <div className="card-body">
               <h2 className="card-title flex items-center gap-2 mb-4">基础信息设置</h2>
 
@@ -124,7 +138,12 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                   </div>
                   <input
                     type="text"
-                    className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="
+                      input input-bordered bg-base-200 rounded-md w-full
+                      transition
+                      focus:outline-none focus:ring-2 focus:ring-primary/20
+                      focus:border-primary
+                    "
                     placeholder="输入骰娘名称"
                     value={name}
                     onChange={e => setName(e.target.value)}
@@ -136,14 +155,24 @@ export default function CreateDicerRole({ onBack, onComplete }: CreateDicerRoleP
                 <div>
                   <div className="flex gap-2 mb-2 items-center font-semibold">
                     <span>骰娘简介</span>
-                    <span className={`label-text-alt ${isDescriptionTooLong ? "text-error" : "text-base-content/60"}`}>
+                    <span className={`
+                      label-text-alt
+                      ${isDescriptionTooLong ? `text-error` : `
+                        text-base-content/60
+                      `}
+                    `}>
                       {description.length}
                       /
                       {ROLE_DESCRIPTION_MAX_LENGTH}
                     </span>
                   </div>
                   <textarea
-                    className="textarea textarea-bordered bg-base-200 rounded-md min-h-30 resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="
+                      textarea textarea-bordered bg-base-200 rounded-md min-h-30
+                      resize-y w-full transition
+                      focus:outline-none focus:ring-2 focus:ring-primary/20
+                      focus:border-primary
+                    "
                     placeholder="描述这个骰娘的背景故事、性格特点、说话风格等"
                     value={description}
                     onChange={e => setDescription(e.target.value)}

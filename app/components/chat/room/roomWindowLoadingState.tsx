@@ -1,13 +1,21 @@
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 
 function SkeletonLine({ className }: { className: string }) {
-  return <div className={`chat-skeleton-line ${className}`} />;
+  return <div className={`
+    chat-skeleton-line
+    ${className}
+  `} />;
 }
 
 export default function RoomWindowLoadingState() {
   return (
-    <div className="flex h-full w-full min-h-0 flex-col bg-base-100 text-base-content/15">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-base-300/70 px-3">
+    <div className="
+      flex h-full w-full min-h-0 flex-col bg-base-100 text-base-content/15
+    ">
+      <div className="
+        flex h-12 shrink-0 items-center justify-between border-b
+        border-base-300/70 px-3
+      ">
         <div className="flex min-w-0 items-center gap-2">
           <SkeletonLine className="h-8 w-8 rounded-md" />
           <div className="space-y-1.5">
@@ -15,7 +23,10 @@ export default function RoomWindowLoadingState() {
             <SkeletonLine className="h-2.5 w-16" />
           </div>
         </div>
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="
+          hidden items-center gap-2
+          sm:flex
+        ">
           <SkeletonLine className="h-7 w-16 rounded-md" />
           <SkeletonLine className="h-7 w-7 rounded-md" />
           <SkeletonLine className="h-7 w-7 rounded-md" />
@@ -26,7 +37,9 @@ export default function RoomWindowLoadingState() {
         <ChatFrameLoadingState />
       </div>
 
-      <div className="shrink-0 border-t border-base-300/70 bg-base-100 px-3 py-3">
+      <div className="
+        shrink-0 border-t border-base-300/70 bg-base-100 px-3 py-3
+      ">
         <div className="mb-2 flex items-center gap-2">
           <SkeletonLine className="h-7 w-24 rounded-md" />
           <SkeletonLine className="h-7 w-20 rounded-md" />

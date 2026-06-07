@@ -70,7 +70,9 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
   switch (type) {
     case "video":
       return (
-        <div className="my-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200/20">
+        <div className="
+          my-4 overflow-hidden rounded-2xl border border-base-300 bg-base-200/20
+        ">
           <div className="aspect-video overflow-hidden bg-base-200">
             <video
               src={resolveMediaContentSource(src, "video", "medium") || src}
@@ -150,7 +152,12 @@ export function MarkDownViewer({
   const navigate = useNavigate();
 
   return (
-    <div className={`prose max-w-none ${MARKDOWN_STYLES} overflow-hidden ${className ?? ""}`}>
+    <div className={`
+      prose max-w-none
+      ${MARKDOWN_STYLES}
+      overflow-hidden
+      ${className ?? ""}
+    `}>
       <ReactMarkdown
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}

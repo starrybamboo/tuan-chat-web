@@ -67,18 +67,28 @@ export default function RuleExpansionModule({
   return (
     <div className="space-y-4">
       {/* 顶部 Tab 按钮条，依据角色类型条件渲染 */}
-      <div className="flex gap-1 md:gap-2 rounded-lg">
+      <div className="
+        flex gap-1
+        md:gap-2
+        rounded-lg
+      ">
         <>
           {ROLE_CONFIG_TAB_ITEMS.map(({ key, label, shortLabel, Icon }) => (
             <button
               key={key}
               type="button"
-              className={`btn btn-md inline-flex items-center gap-1.5 rounded-lg ${activeTab === key ? "btn-primary" : "btn-ghost"}`}
+              className={`
+                btn btn-md inline-flex items-center gap-1.5 rounded-lg
+                ${activeTab === key ? `btn-primary` : `btn-ghost`}
+              `}
               onClick={() => setActiveTab(key)}
             >
               <Icon className="size-4 shrink-0" weight="bold" aria-hidden="true" />
               <span className="md:hidden">{shortLabel}</span>
-              <span className="hidden md:inline">{label}</span>
+              <span className="
+                hidden
+                md:inline
+              ">{label}</span>
             </button>
           ))}
         </>
@@ -125,7 +135,11 @@ export default function RuleExpansionModule({
 
       <div className={activeTab === "act" ? "block" : "hidden"} aria-hidden={activeTab !== "act"}>
         <Section
-          className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100"
+          className="
+            rounded-2xl
+            md:border-2 md:border-base-content/10
+            bg-base-100
+          "
           collapsible={false}
         >
           <div className="space-y-6">

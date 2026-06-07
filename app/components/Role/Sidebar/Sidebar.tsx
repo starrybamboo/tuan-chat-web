@@ -201,7 +201,14 @@ export function Sidebar({
   return (
     <>
 
-      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col border-t border-gray-300 dark:border-gray-700">
+      <div className="
+        menu p-4 w-72
+        lg:w-80
+        h-full bg-base-200
+        md:bg-base-300/40
+        flex flex-col border-t border-gray-300
+        dark:border-gray-700
+      ">
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 sticky top-0 bg-transparent z-50 py-2">
           <div className="input">
@@ -229,7 +236,10 @@ export function Sidebar({
                 <>
                   <button
                     type="button"
-                    className={`btn btn-error btn-square ${selectedRoles.size === 0 ? "btn-disabled" : ""}`}
+                    className={`
+                      btn btn-error btn-square
+                      ${selectedRoles.size === 0 ? `btn-disabled` : ""}
+                    `}
                     onClick={handleBatchDelete}
                     title="删除所选角色"
                   >
@@ -311,12 +321,19 @@ export function Sidebar({
               <div className="mb-2">
                 <button
                   type="button"
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                  className="
+                    flex items-center gap-2 w-full p-2 rounded-lg
+                    hover:bg-base-100
+                    transition-colors
+                  "
                   onClick={() => toggleSidebarGroup("rule")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`w-4 h-4 transition-transform ${isRuleCollapsed ? "" : "rotate-90"}`}
+                    className={`
+                      w-4 h-4 transition-transform
+                      ${isRuleCollapsed ? "" : `rotate-90`}
+                    `}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -337,7 +354,12 @@ export function Sidebar({
                   <div className="ml-2">
                     <button
                       type="button"
-                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      className="
+                        flex items-center gap-3 p-3 rounded-lg cursor-pointer
+                        group
+                        hover:bg-base-100
+                        transition-all duration-150
+                      "
                       onClick={() => {
                         router.history.push("/role?type=rule&mode=entry");
                         onNavigate?.();
@@ -345,10 +367,21 @@ export function Sidebar({
                       title="新建规则模板"
                     >
                       <div className="avatar shrink-0 px-1">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-info/40 group-hover:border-info/60 bg-info/5 text-info/60 group-hover:text-info/80 transition-colors duration-150 relative">
+                        <div className="
+                          w-12 h-12
+                          md:w-14 md:h-14
+                          rounded-full border-2 border-dashed border-info/40
+                          group-hover:border-info/60
+                          bg-info/5 text-info/60
+                          group-hover:text-info/80
+                          transition-colors duration-150 relative
+                        ">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            className="
+                              w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2
+                              -translate-y-1/2
+                            "
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -364,7 +397,9 @@ export function Sidebar({
                       </div>
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="font-medium truncate">新建规则</h3>
-                        <p className="text-xs text-base-content/70 mt-1 truncate">创建自定义规则模板</p>
+                        <p className="
+                          text-xs text-base-content/70 mt-1 truncate
+                        ">创建自定义规则模板</p>
                       </div>
                     </button>
 
@@ -386,28 +421,45 @@ export function Sidebar({
                       return (
                         <div
                           key={`my-${currentRuleId}`}
-                          className={`block rounded-lg px-1 ${
+                          className={`
+                            block rounded-lg px-1
+                            ${
                             isRuleActive ? "bg-primary/10 text-primary" : ""
-                          }`}
+                          }
+                          `}
                         >
                           <div
-                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group transition-all duration-150 ${
+                            className={`
+                              flex items-center gap-3 p-3 rounded-lg
+                              cursor-pointer group transition-all duration-150
+                              ${
                               isRuleActive ? "bg-base-100" : "hover:bg-base-100"
-                            }`}
+                            }
+                            `}
                           >
                             <button
                               type="button"
-                              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                              className="
+                                flex min-w-0 flex-1 items-center gap-3 text-left
+                              "
                               onClick={() => {
                                 router.history.push(`/role?type=rule&mode=edit&ruleId=${currentRuleId}`);
                                 onNavigate?.();
                               }}
                             >
                               <div className="avatar shrink-0">
-                                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-base-content/10 bg-base-100 text-base-content/70 relative">
+                                <div className="
+                                  w-12 h-12
+                                  md:w-14 md:h-14
+                                  rounded-full border-2 border-base-content/10
+                                  bg-base-100 text-base-content/70 relative
+                                ">
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className="w-6 h-6 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                                    className="
+                                      w-6 h-6 absolute left-1/2 top-1/2
+                                      -translate-x-1/2 -translate-y-1/2
+                                    "
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -424,7 +476,9 @@ export function Sidebar({
                               </div>
                               <div className="flex-1 min-w-0 overflow-hidden">
                                 <h3 className="font-medium truncate">{rule.ruleName || "未命名规则"}</h3>
-                                <p className="text-xs text-base-content/70 mt-1 truncate">
+                                <p className="
+                                  text-xs text-base-content/70 mt-1 truncate
+                                ">
                                   #
                                   {currentRuleId}
                                   {" · "}
@@ -434,7 +488,13 @@ export function Sidebar({
                             </button>
                             <button
                               type="button"
-                              className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
+                              className="
+                                btn btn-ghost btn-xs text-error
+                                hover:bg-error/10
+                                md:opacity-0
+                                md:group-hover:opacity-100
+                                opacity-70 rounded-full p-1
+                              "
                               disabled={deletingRuleId === currentRuleId}
                               onClick={(e) => {
                                 e.preventDefault();
@@ -462,12 +522,19 @@ export function Sidebar({
               <div className="mb-2">
                 <button
                   type="button"
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                  className="
+                    flex items-center gap-2 w-full p-2 rounded-lg
+                    hover:bg-base-100
+                    transition-colors
+                  "
                   onClick={() => toggleSidebarGroup("dice")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`w-4 h-4 transition-transform ${isDiceCollapsed ? "" : "rotate-90"}`}
+                    className={`
+                      w-4 h-4 transition-transform
+                      ${isDiceCollapsed ? "" : `rotate-90`}
+                    `}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -489,7 +556,12 @@ export function Sidebar({
                     {/* 创建骰娘入口 */}
                     <button
                       type="button"
-                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      className="
+                        flex items-center gap-3 p-3 rounded-lg cursor-pointer
+                        group
+                        hover:bg-base-100
+                        transition-all duration-150
+                      "
                       onClick={() => {
                         router.history.push("/role?type=dice");
                         onNavigate?.();
@@ -497,10 +569,21 @@ export function Sidebar({
                       title="创建骰娘角色"
                     >
                       <div className="avatar shrink-0 px-1">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-success/40 group-hover:border-success/60 bg-success/5 text-success/60 group-hover:text-success/80 transition-colors duration-150 relative">
+                        <div className="
+                          w-12 h-12
+                          md:w-14 md:h-14
+                          rounded-full border-2 border-dashed border-success/40
+                          group-hover:border-success/60
+                          bg-success/5 text-success/60
+                          group-hover:text-success/80
+                          transition-colors duration-150 relative
+                        ">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            className="
+                              w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2
+                              -translate-y-1/2
+                            "
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -518,7 +601,9 @@ export function Sidebar({
                       </div>
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="font-medium truncate">创建骰娘</h3>
-                        <p className="text-xs text-base-content/70 mt-1 truncate">创建跑团骰娘</p>
+                        <p className="
+                          text-xs text-base-content/70 mt-1 truncate
+                        ">创建跑团骰娘</p>
                       </div>
                     </button>
                     {/* 骰娘角色列表 */}
@@ -527,9 +612,14 @@ export function Sidebar({
                       return (
                         <div
                           key={role.id}
-                          className={`rounded-lg px-1 ${
-                            (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
-                          }`}
+                          className={`
+                            rounded-lg px-1
+                            ${
+                            (selectedRoleId === role.id && !isSelectionMode) ? `
+                              bg-primary/10 text-primary
+                            ` : ""
+                          }
+                          `}
                         >
                           <RoleListItem
                             role={role}
@@ -557,12 +647,19 @@ export function Sidebar({
               <div className="mb-2">
                 <button
                   type="button"
-                  className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-base-100 transition-colors"
+                  className="
+                    flex items-center gap-2 w-full p-2 rounded-lg
+                    hover:bg-base-100
+                    transition-colors
+                  "
                   onClick={() => toggleSidebarGroup("normal")}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`w-4 h-4 transition-transform ${isNormalCollapsed ? "" : "rotate-90"}`}
+                    className={`
+                      w-4 h-4 transition-transform
+                      ${isNormalCollapsed ? "" : `rotate-90`}
+                    `}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -583,7 +680,12 @@ export function Sidebar({
                   <div className="ml-2">
                     <button
                       type="button"
-                      className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+                      className="
+                        flex items-center gap-3 p-3 rounded-lg cursor-pointer
+                        group
+                        hover:bg-base-100
+                        transition-all duration-150
+                      "
                       onClick={() => {
                         router.history.push("/role?type=normal");
                         onNavigate?.();
@@ -591,10 +693,21 @@ export function Sidebar({
                       title="创建普通角色"
                     >
                       <div className="avatar shrink-0 px-1">
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 group-hover:border-primary/60 bg-primary/5 text-primary/60 group-hover:text-primary/80 transition-colors duration-150 relative">
+                        <div className="
+                          w-12 h-12
+                          md:w-14 md:h-14
+                          rounded-full border-2 border-dashed border-primary/40
+                          group-hover:border-primary/60
+                          bg-primary/5 text-primary/60
+                          group-hover:text-primary/80
+                          transition-colors duration-150 relative
+                        ">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                            className="
+                              w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2
+                              -translate-y-1/2
+                            "
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -609,7 +722,9 @@ export function Sidebar({
                       </div>
                       <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="font-medium truncate">创建普通角色</h3>
-                        <p className="text-xs text-base-content/70 mt-1 truncate">创建普通游戏角色</p>
+                        <p className="
+                          text-xs text-base-content/70 mt-1 truncate
+                        ">创建普通游戏角色</p>
                       </div>
                     </button>
 
@@ -618,9 +733,14 @@ export function Sidebar({
                       return (
                         <div
                           key={role.id}
-                          className={`rounded-lg px-1 ${
-                            (selectedRoleId === role.id && !isSelectionMode) ? "bg-primary/10 text-primary" : ""
-                          }`}
+                          className={`
+                            rounded-lg px-1
+                            ${
+                            (selectedRoleId === role.id && !isSelectionMode) ? `
+                              bg-primary/10 text-primary
+                            ` : ""
+                          }
+                          `}
                         >
                           <RoleListItem
                             role={role}

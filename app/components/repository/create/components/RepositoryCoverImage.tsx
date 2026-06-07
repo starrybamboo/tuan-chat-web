@@ -20,7 +20,10 @@ export default function RepositoryCoverImage({
 
   return (
     <div className="mb-5">
-      <p className="text-xl font-bold mb-5 text-indigo-600 dark:text-green-600">3. 添加仓库封面</p>
+      <p className="
+        text-xl font-bold mb-5 text-indigo-600
+        dark:text-green-600
+      ">3. 添加仓库封面</p>
       <div
         className="flex items-center justify-center relative"
       >
@@ -46,7 +49,13 @@ export default function RepositoryCoverImage({
                   onChange(coverFileId);
                 }}
               >
-                <div className="h-96 w-full bg-base-300 rounded-lg border-2 border-dashed border-base-content/30 hover:border-primary hover:bg-base-200 transition-colors cursor-pointer flex flex-col items-center justify-center group">
+                <div className="
+                  h-96 w-full bg-base-300 rounded-lg border-2 border-dashed
+                  border-base-content/30
+                  hover:border-primary hover:bg-base-200
+                  transition-colors cursor-pointer flex flex-col items-center
+                  justify-center group
+                ">
                   {repositoryAvatarUrl
                     ? (
                         <div className="relative w-full h-full">
@@ -55,7 +64,12 @@ export default function RepositoryCoverImage({
                             alt="仓库头像"
                             className="w-full h-full object-cover rounded-lg"
                           />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <div className="
+                            absolute inset-0 bg-black/40 opacity-0
+                            group-hover:opacity-100
+                            transition-opacity rounded-lg flex items-center
+                            justify-center
+                          ">
                             <svg
                               className="w-6 h-6 text-white"
                               fill="none"
@@ -81,7 +95,11 @@ export default function RepositoryCoverImage({
                     : (
                         <>
                           <svg
-                            className="w-8 h-8 text-base-content/50 group-hover:text-primary mb-2"
+                            className="
+                              w-8 h-8 text-base-content/50
+                              group-hover:text-primary
+                              mb-2
+                            "
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -99,7 +117,11 @@ export default function RepositoryCoverImage({
                               d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                             />
                           </svg>
-                          <span className="text-xs text-base-content/60 group-hover:text-primary text-center">
+                          <span className="
+                            text-xs text-base-content/60
+                            group-hover:text-primary
+                            text-center
+                          ">
                             点击上传
                             <br />
                             仓库封面

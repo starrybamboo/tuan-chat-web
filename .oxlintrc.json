@@ -51,8 +51,14 @@
     "react-hooks/exhaustive-deps": "off",
     "no-eval": "off",
     "eslint-comments/no-unlimited-disable": "error",
+    "better-tailwindcss/enforce-consistent-line-wrapping": "warn",
     "better-tailwindcss/no-duplicate-classes": "warn",
-    "better-tailwindcss/no-unnecessary-whitespace": "warn"
+    "better-tailwindcss/no-unnecessary-whitespace": [
+      "warn",
+      {
+        "allowMultiline": true
+      }
+    ]
   },
   "settings": {
     "better-tailwindcss": {

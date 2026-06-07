@@ -224,8 +224,16 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       <label className="label mb-2">
                         <span className="label-text">克隆来源</span>
                       </label>
-                      <div className="flex items-center justify-between gap-3 rounded border border-neutral-200 dark:border-neutral-700 px-3 py-2">
-                        <div className="text-sm text-neutral-600 dark:text-neutral-300">
+                      <div className="
+                        flex items-center justify-between gap-3 rounded border
+                        border-neutral-200
+                        dark:border-neutral-700
+                        px-3 py-2
+                      ">
+                        <div className="
+                          text-sm text-neutral-600
+                          dark:text-neutral-300
+                        ">
                           {cloneSourceSpace?.name
                             ? (
                                 <>
@@ -286,7 +294,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       <span className="label-text">空间描述</span>
                     </div>
                     <textarea
-                      className="textarea textarea-bordered min-h-40 w-full resize-y"
+                      className="
+                        textarea textarea-bordered min-h-40 w-full resize-y
+                      "
                       value={formData.description}
                       onChange={(event) => {
                         setFormData(prev => ({ ...prev, description: event.target.value }));

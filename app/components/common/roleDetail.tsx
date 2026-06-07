@@ -93,13 +93,19 @@ export function RoleDetail({
             <div className="flex flex-row gap-4 items-start">
               <div className="shrink-0">
                 <div className="avatar">
-                  <div className="w-20 h-20 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
+                  <div className="
+                    w-20 h-20 rounded-full ring ring-primary
+                    ring-offset-base-100 ring-offset-2 overflow-hidden
+                  ">
                     {roleQuery.isLoading
                       ? (
                           <div className="skeleton w-20 h-20" />
                         )
                       : (
-                          <div className="bg-neutral text-neutral-content flex items-center justify-center text-3xl">
+                          <div className="
+                            bg-neutral text-neutral-content flex items-center
+                            justify-center text-3xl
+                          ">
                             <MediaImage
                               src={avatarUrl}
                               alt="avatar"
@@ -124,10 +130,14 @@ export function RoleDetail({
                   : (
                       <>
                         <div className="flex items-center gap-2 min-w-0">
-                          <h2 className="card-title text-lg truncate min-w-0 flex-1">
+                          <h2 className="
+                            card-title text-lg truncate min-w-0 flex-1
+                          ">
                             {role?.roleName || `角色 ${roleId}`}
                           </h2>
-                          <span className="badge badge-outline badge-sm font-mono">
+                          <span className="
+                            badge badge-outline badge-sm font-mono
+                          ">
                             ID:
                             {" "}
                             {roleId}
@@ -135,12 +145,16 @@ export function RoleDetail({
                         </div>
 
                         {role?.description && (
-                          <p className="text-xs text-base-content/70 line-clamp-2">
+                          <p className="
+                            text-xs text-base-content/70 line-clamp-2
+                          ">
                             {role.description}
                           </p>
                         )}
 
-                        <div className="flex flex-wrap gap-2 text-[11px] text-base-content/60">
+                        <div className="
+                          flex flex-wrap gap-2 text-[11px] text-base-content/60
+                        ">
                           {roomId && (
                             <span className="badge badge-ghost badge-xs">
                               房间
@@ -180,7 +194,10 @@ export function RoleDetail({
                       ? (
                           <button
                             type="button"
-                            className="btn btn-error btn-xs sm:btn-sm"
+                            className="
+                              btn btn-error btn-xs
+                              sm:btn-sm
+                            "
                             onClick={() => setIsKickConfirmOpen(true)}
                           >
                             踢出角色
@@ -191,7 +208,10 @@ export function RoleDetail({
                 : (
                     <button
                       type="button"
-                      className="btn btn-xs sm:btn-sm"
+                      className="
+                        btn btn-xs
+                        sm:btn-sm
+                      "
                       disabled
                       onClick={() => setIsKickConfirmOpen(true)}
                     >

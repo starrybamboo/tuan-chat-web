@@ -30,7 +30,9 @@ function WebgalPreviewDrawerImpl() {
       handlePosition="left"
       animationDuration={0.16}
     >
-      <div className="h-full min-h-0 border-l border-base-300 bg-base-100 shadow-none">
+      <div className="
+        h-full min-h-0 border-l border-base-300 bg-base-100 shadow-none
+      ">
         <WebGALPreview
           previewUrl={previewUrl}
           onClose={close}

@@ -79,7 +79,13 @@ export default function RunSideDrawerButtons({
   );
 
   return (
-    <div className={`flex ${orientation === "column" ? "flex-col divide-y" : "divide-x"} divide-base-300/70 overflow-hidden rounded-md border border-base-300/80 bg-base-200/35 ${className}`}>
+    <div className={`
+      flex
+      ${orientation === "column" ? "flex-col divide-y" : `divide-x`}
+      divide-base-300/70 overflow-hidden rounded-md border border-base-300/80
+      bg-base-200/35
+      ${className}
+    `}>
       {renderButton({
         icon: <FolderIcon className="size-4 jump_icon" />,
         isActive: isClueDrawerOpen,

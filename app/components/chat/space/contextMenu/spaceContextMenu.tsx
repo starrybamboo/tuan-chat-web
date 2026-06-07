@@ -90,7 +90,9 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
     <>
       {contextMenu && (
         <div
-          className="fixed bg-base-100 shadow-lg rounded-md z-40 border border-base-300"
+          className="
+            fixed bg-base-100 shadow-lg rounded-md z-40 border border-base-300
+          "
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={e => e.stopPropagation()}
         >
@@ -99,7 +101,12 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
               ? (
                   <>
                     <li
-                      className={`relative group ${archiveActionPending ? "opacity-60 pointer-events-none" : ""}`}
+                      className={`
+                        relative group
+                        ${archiveActionPending ? `
+                          opacity-60 pointer-events-none
+                        ` : ""}
+                      `}
                       onClick={() => {
                         handleArchiveAction(contextMenu.spaceId);
                       }}

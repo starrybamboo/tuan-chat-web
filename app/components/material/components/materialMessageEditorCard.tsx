@@ -238,7 +238,11 @@ export default function MaterialMessageEditorCard({
     <div className={hoverToolbarClassName}>
       <button
         type="button"
-        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0 text-base-content/70 hover:bg-base-300/70 hover:text-base-content"
+        className="
+          btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0
+          text-base-content/70
+          hover:bg-base-300/70 hover:text-base-content
+        "
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -252,7 +256,11 @@ export default function MaterialMessageEditorCard({
       {canEditContent && (
         <button
           type="button"
-          className="btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0 text-base-content/70 hover:bg-base-300/70 hover:text-base-content"
+          className="
+            btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0
+            text-base-content/70
+            hover:bg-base-300/70 hover:text-base-content
+          "
           onClick={handleEditMessageClick}
           title="编辑"
           aria-label="编辑"
@@ -262,7 +270,11 @@ export default function MaterialMessageEditorCard({
       )}
       <button
         type="button"
-        className="btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0 text-base-content/70 hover:bg-error/10 hover:text-error"
+        className="
+          btn btn-ghost btn-xs h-7 w-7 min-h-0 rounded-full p-0
+          text-base-content/70
+          hover:bg-error/10 hover:text-error
+        "
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -308,11 +320,27 @@ export default function MaterialMessageEditorCard({
             </div>
           )
         : (
-            <div className="flex w-full py-1.5 sm:py-2 relative">
+            <div className="
+              flex w-full py-1.5
+              sm:py-2
+              relative
+            ">
               {messageHoverToolbar}
 
-              <div className="flex-1 min-w-0 p-0.5 sm:p-1 pr-2 sm:pr-5">
-                <div className="relative transition-all duration-200 rounded-lg p-1.5 sm:p-2 break-words text-base sm:text-sm lg:text-base hover:bg-base-200/50">
+              <div className="
+                flex-1 min-w-0 p-0.5
+                sm:p-1
+                pr-2
+                sm:pr-5
+              ">
+                <div className="
+                  relative transition-all duration-200 rounded-lg p-1.5
+                  sm:p-2
+                  break-words text-base
+                  sm:text-sm
+                  lg:text-base
+                  hover:bg-base-200/50
+                ">
                   {renderedContent}
                 </div>
 
