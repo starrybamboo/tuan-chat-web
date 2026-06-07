@@ -1,5 +1,19 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    {
+      "name": "tanstack-query",
+      "specifier": "@tanstack/eslint-plugin-query"
+    },
+    {
+      "name": "react-hooks-js",
+      "specifier": "eslint-plugin-react-hooks"
+    },
+    {
+      "name": "perfectionist",
+      "specifier": "eslint-plugin-perfectionist"
+    }
+  ],
   "plugins": [
     "typescript",
     "unicorn",
@@ -24,6 +38,90 @@
     "react-hooks/exhaustive-deps": "off",
     "no-eval": "off"
   },
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "typescript/no-use-before-define": "off",
+        "react-hooks-js/immutability": "off",
+        "react-hooks-js/preserve-manual-memoization": "off",
+        "react-hooks-js/purity": "off",
+        "react-hooks-js/refs": "off",
+        "react-hooks-js/set-state-in-effect": "off",
+        "react-hooks-js/static-components": "off",
+        "react/no-array-index-key": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.js",
+        "**/*.ts"
+      ],
+      "rules": {
+        "tanstack-query/exhaustive-deps": "error",
+        "typescript/no-redeclare": "off",
+        "typescript/consistent-type-definitions": [
+          "warn",
+          "type"
+        ],
+        "no-console": "warn",
+        "node/no-process-env": "error",
+        "perfectionist/sort-imports": [
+          "warn",
+          {
+            "tsconfigRootDir": "."
+          }
+        ],
+        "unicorn/filename-case": [
+          "error",
+          {
+            "cases": {
+              "camelCase": true,
+              "kebabCase": true,
+              "pascalCase": true
+            },
+            "ignore": [
+              "README.md"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/*.{jsx,tsx}"
+      ],
+      "rules": {
+        "no-console": [
+          "warn",
+          {
+            "allow": [
+              "warn",
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "*.config.ts"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      "files": [
+        "electron/**/*.js"
+      ],
+      "rules": {
+        "no-control-regex": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "public/**",
     "api/**",
