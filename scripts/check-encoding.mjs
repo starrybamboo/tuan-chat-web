@@ -4,11 +4,15 @@ import process from "node:process";
 import fg from "fast-glob";
 
 const TEXT_FILE_GLOBS = [
-  "app/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,html,yml,yaml,ps1,sql}",
-  "api/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md}",
+  "apps/web/app/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,html,yml,yaml,ps1,sql}",
+  "apps/web/api/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md}",
+  "apps/web/functions/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md}",
   "scripts/**/*.{ts,tsx,js,jsx,mjs,cjs,ps1}",
   "electron/**/*.{ts,tsx,js,jsx,mjs,cjs,json,md}",
-  "vite.config.{ts,js,mjs,cjs}",
+  "apps/web/vite.config.{ts,js,mjs,cjs}",
+  "apps/web/vitest.config.{ts,js,mjs,cjs}",
+  "apps/web/vitest.e2e.config.{ts,js,mjs,cjs}",
+  "apps/web/tailwind.config.{ts,js,mjs,cjs}",
   "eslint.config.{js,mjs,cjs}",
   "package.json",
   "README.md",

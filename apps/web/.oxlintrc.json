@@ -1,0 +1,134 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "../../.oxlintrc.base.json"
+  ],
+  "jsPlugins": [
+    {
+      "name": "tanstack-query",
+      "specifier": "@tanstack/eslint-plugin-query"
+    },
+    {
+      "name": "better-tailwindcss",
+      "specifier": "eslint-plugin-better-tailwindcss"
+    },
+    {
+      "name": "react-dom",
+      "specifier": "eslint-plugin-react-dom"
+    }
+  ],
+  "plugins": [
+    "jsx-a11y"
+  ],
+  "rules": {
+    "jsx-a11y/click-events-have-key-events": "off",
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/label-has-associated-control": "off",
+    "jsx-a11y/no-noninteractive-tabindex": "off",
+    "jsx-a11y/media-has-caption": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/role-supports-aria-props": "off",
+    "jsx-a11y/iframe-has-title": "off",
+    "jsx-a11y/anchor-is-valid": "off",
+    "jsx-a11y/alt-text": "off",
+    "vitest/require-mock-type-parameters": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "off",
+    "no-eval": "off",
+    "eslint-comments/no-unlimited-disable": "error",
+    "better-tailwindcss/enforce-canonical-classes": "off",
+    "better-tailwindcss/enforce-consistent-line-wrapping": "off",
+    "better-tailwindcss/no-duplicate-classes": "warn",
+    "better-tailwindcss/no-unnecessary-whitespace": "off"
+  },
+  "settings": {
+    "better-tailwindcss": {
+      "cwd": ".",
+      "entryPoint": "./app/app.css"
+    }
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error"
+      }
+    },
+    {
+      "files": [
+        "**/*.js",
+        "**/*.ts"
+      ],
+      "rules": {
+        "tanstack-query/exhaustive-deps": "error",
+        "typescript/consistent-type-definitions": [
+          "error",
+          "type"
+        ],
+        "node/no-process-env": "error"
+      }
+    },
+    {
+      "files": [
+        "**/webGALPreview.tsx",
+        "**/markDownViewer.tsx"
+      ],
+      "rules": {
+        "react-dom/no-unsafe-iframe-sandbox": "off"
+      }
+    },
+    {
+      "files": [
+        "api/**/*.js",
+        "api/**/*.ts",
+        "services/**/*.ts",
+        "app/electron.d.ts"
+      ],
+      "rules": {
+        "eslint-comments/no-unlimited-disable": "off"
+      }
+    },
+    {
+      "files": [
+        "*.config.ts"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      "files": [
+        "app/routes/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
+      "files": [
+        "app/components/Role/RoleCreation/steps/AIGenerateModal.tsx",
+        "app/components/chat/shared/map/DNDMap.tsx",
+        "app/components/chat/shared/webgal/webGALPreview.tsx",
+        "app/components/profile/cards/GNSSpiderChart.tsx",
+        "app/components/profile/toastWindows/GNSEditorToastWindow.tsx"
+      ],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "api/**",
+    "public/**",
+    "app/routeTree.gen.ts"
+  ]
+}

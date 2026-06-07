@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "../../node_modules/.cache/tsc/web-typecheck.tsbuildinfo"
+  },
+  "include": [
+    "app/**/*",
+    "api/**/*",
+    "functions/**/*",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vitest.e2e.config.ts"
+  ]
+}

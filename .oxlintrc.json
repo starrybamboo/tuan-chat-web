@@ -1,180 +1,20 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "jsPlugins": [
-    {
-      "name": "tanstack-query",
-      "specifier": "@tanstack/eslint-plugin-query"
-    },
-    {
-      "name": "react-hooks-js",
-      "specifier": "eslint-plugin-react-hooks"
-    },
-    {
-      "name": "perfectionist",
-      "specifier": "eslint-plugin-perfectionist"
-    },
-    {
-      "name": "better-tailwindcss",
-      "specifier": "eslint-plugin-better-tailwindcss"
-    },
-    {
-      "name": "react-dom",
-      "specifier": "eslint-plugin-react-dom"
-    },
-    {
-      "name": "eslint-comments",
-      "specifier": "@eslint-community/eslint-plugin-eslint-comments"
-    }
-  ],
-  "plugins": [
-    "typescript",
-    "unicorn",
-    "react",
-    "vitest",
-    "node",
-    "import",
-    "jsx-a11y"
+  "extends": [
+    "./.oxlintrc.base.json"
   ],
   "rules": {
-    "jsx-a11y/click-events-have-key-events": "off",
-    "jsx-a11y/no-static-element-interactions": "off",
-    "jsx-a11y/label-has-associated-control": "off",
-    "jsx-a11y/no-noninteractive-tabindex": "off",
-    "jsx-a11y/media-has-caption": "off",
-    "jsx-a11y/prefer-tag-over-role": "off",
-    "jsx-a11y/role-supports-aria-props": "off",
-    "jsx-a11y/iframe-has-title": "off",
-    "jsx-a11y/anchor-is-valid": "off",
-    "jsx-a11y/alt-text": "off",
-    "vitest/require-mock-type-parameters": "off",
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "off",
-    "no-eval": "off",
     "eslint-comments/no-unlimited-disable": "error",
-    "better-tailwindcss/enforce-canonical-classes": "off",
-    "better-tailwindcss/enforce-consistent-line-wrapping": "off",
-    "better-tailwindcss/no-duplicate-classes": "warn",
-    "better-tailwindcss/no-unnecessary-whitespace": "off"
+    "node/no-process-env": "off",
+    "no-control-regex": "off"
   },
-  "settings": {
-    "better-tailwindcss": {
-      "cwd": ".",
-      "entryPoint": "./app/app.css"
-    }
-  },
-  "overrides": [
-    {
-      "files": [
-        "**/*.{js,jsx,ts,tsx}"
-      ],
-      "rules": {
-        "react-hooks-js/component-hook-factories": "error",
-        "react-hooks-js/config": "error",
-        "react-hooks-js/error-boundaries": "error",
-        "react-hooks-js/gating": "error",
-        "react-hooks-js/globals": "error",
-        "react-hooks-js/incompatible-library": "warn",
-        "typescript/no-use-before-define": "off",
-        "react-hooks-js/immutability": "off",
-        "react-hooks-js/preserve-manual-memoization": "off",
-        "react-hooks-js/purity": "off",
-        "react-hooks-js/refs": "off",
-        "react-hooks-js/set-state-in-effect": "off",
-        "react-hooks-js/set-state-in-render": "error",
-        "react-hooks-js/static-components": "off",
-        "react-hooks-js/unsupported-syntax": "warn",
-        "react-hooks-js/use-memo": "error",
-        "react-hooks-js/void-use-memo": "error",
-        "react/no-array-index-key": "off"
-      }
-    },
-    {
-      "files": [
-        "**/*.js",
-        "**/*.ts"
-      ],
-      "rules": {
-        "tanstack-query/exhaustive-deps": "error",
-        "typescript/no-redeclare": "off",
-        "typescript/consistent-type-definitions": [
-          "error",
-          "type"
-        ],
-        "node/no-process-env": "error",
-        "perfectionist/sort-imports": [
-          "warn",
-          {
-            "tsconfigRootDir": "."
-          }
-        ],
-        "unicorn/filename-case": [
-          "error",
-          {
-            "cases": {
-              "camelCase": true,
-              "kebabCase": true,
-              "pascalCase": true
-            },
-            "ignore": [
-              "README.md"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "files": [
-        "**/webGALPreview.tsx",
-        "**/markDownViewer.tsx"
-      ],
-      "rules": {
-        "react-dom/no-unsafe-iframe-sandbox": "off"
-      }
-    },
-    {
-      "files": [
-        "api/**/*.js",
-        "api/**/*.ts",
-        "services/**/*.ts",
-        "app/electron.d.ts"
-      ],
-      "rules": {
-        "eslint-comments/no-unlimited-disable": "off"
-      }
-    },
-    {
-      "files": [
-        "*.config.ts"
-      ],
-      "rules": {
-        "unicorn/filename-case": "off"
-      }
-    },
-    {
-      "files": [
-        "electron/**/*.js"
-      ],
-      "rules": {
-        "no-control-regex": "off"
-      }
-    }
-  ],
   "ignorePatterns": [
-    "public/**",
-    "api/**",
-    "packages/tuanchat-openapi-client/**",
-    ".github/**",
-    "**/*.md",
-    "android/**",
-    "app/routeTree.gen.ts",
-    ".pnpm-patch-work/**",
-    ".codex-tmp/**",
-    "patches/**",
     "apps/mobile/**",
-    "build/**",
-    "dist/**",
-    "release/**",
-    "coverage/**",
-    "node_modules/.cache/**"
+    "apps/web/**",
+    "android/**",
+    ".github/**",
+    "packages/tuanchat-openapi-client/**",
+    "patches/**",
+    "**/*.md"
   ]
 }

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
 const specPaths = [
-  resolve(repoRoot, "api/tuanchat_OpenAPI.json"),
+  resolve(repoRoot, "apps/web/api/tuanchat_OpenAPI.json"),
   resolve(repoRoot, "packages/tuanchat-openapi-client/tuanchat_OpenAPI.json"),
 ];
 const generationSpecPath = specPaths[1];

@@ -9,6 +9,7 @@ import detectPort from "detect-port";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
+const webRoot = resolve(projectRoot, "apps", "web");
 const require = createRequire(import.meta.url);
 
 process.chdir(projectRoot);
@@ -260,7 +261,7 @@ console.log(`[electron:dev] starting dev server at ${devServerUrl}`);
 const devChild = spawn(viteBin, devArgs, {
   stdio: "inherit",
   shell: process.platform === "win32" || viteBin === "vite",
-  cwd: projectRoot,
+  cwd: webRoot,
   env: devEnv,
 });
 
