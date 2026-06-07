@@ -1,10 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
-
-import { mergeRoleVarOpSnapshotsIntoEvents } from "@tuanchat/domain/state-runtime";
-
 import type { StateEventExtra } from "@tuanchat/domain/state-event";
 import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
 
+import { mergeRoleVarOpSnapshotsIntoEvents } from "@tuanchat/domain/state-runtime";
 import {
   roleAbilityByRuleQueryKey,
   roleAbilityListQueryKey,

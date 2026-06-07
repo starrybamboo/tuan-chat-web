@@ -3,12 +3,13 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { IconProps } from "phosphor-react-native";
 import type { ComponentType } from "react";
-import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
-import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
 import { ImageSquare, PaperPlaneTilt, Smiley, X, XCircle } from "phosphor-react-native";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+
+import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
+import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -175,7 +176,7 @@ function getMentionQuery(text: string): string | null {
   return query;
 }
 
-interface ChatComposerProps {
+type ChatComposerProps = {
   anchorMessage: Message | null;
   availableRoles?: UserRole[];
   canUseAttachments: boolean;
@@ -201,13 +202,13 @@ interface ChatComposerProps {
   ruleId?: number | null;
   safeAreaBottomInset?: number;
   shortcutActions?: readonly ChatComposerShortcutAction[];
-}
+};
 
-export interface ChatComposerShortcutAction {
+export type ChatComposerShortcutAction = {
   Icon: ComponentType<IconProps>;
   accessibilityLabel: string;
   onPress: () => void;
-}
+};
 
 export function ChatComposer({
   anchorMessage,

@@ -1,19 +1,19 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
-import type { DmMessageAction } from "@/features/friends/DmMessageActionMenu";
-import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
 import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
-
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
-
 import { Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
+
+import type { DmMessageAction } from "@/features/friends/DmMessageActionMenu";
+import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
+
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface DmChatViewProps {
+type DmChatViewProps = {
   contactId: number;
   contactName: string;
   contactAvatarFileId?: number;
@@ -225,7 +225,7 @@ interface DmChatViewProps {
   onBack: () => void;
   onOpenContactDrawer: () => void;
   safeAreaBottomInset?: number;
-}
+};
 
 function formatMessageTimeLabel(createTime?: string | null) {
   if (!createTime)

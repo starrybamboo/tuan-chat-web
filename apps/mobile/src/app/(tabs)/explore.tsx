@@ -1,3 +1,4 @@
+import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -23,8 +24,8 @@ import { useCurrentUserQuery } from "@/features/auth/use-current-user-query";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { resolveMobileNotificationRoute } from "@/features/notifications/mobile-notification-routing";
-import { NotificationPreferencesCard } from "@/features/notifications/NotificationPreferencesCard";
 import { useMobileNotificationSession } from "@/features/notifications/mobileNotificationSessionContext";
+import { NotificationPreferencesCard } from "@/features/notifications/NotificationPreferencesCard";
 import { useMarkAllReadMutation, useMarkSingleReadMutation } from "@/features/notifications/useMarkReadMutation";
 import { useNotificationPreferences } from "@/features/notifications/useNotificationPreferences";
 import { useNotificationsQuery } from "@/features/notifications/useNotificationsQuery";
@@ -34,7 +35,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { setStringAsync } from "@/lib/clipboard";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
-import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 
 const AVATAR_SIZE = 120;
 const NOTIFICATION_DOT_SIZE = 8;
@@ -185,7 +185,7 @@ export default function ProfileScreen() {
 
   const showInviteShareFeedback = (message: string) => {
     setInviteShareFeedback(message);
-    setTimeout(() => setInviteShareFeedback(""), 1800);
+    setTimeout(setInviteShareFeedback, 1800, "");
   };
 
   const handleShareInviteLink = async () => {

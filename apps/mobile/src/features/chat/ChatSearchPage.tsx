@@ -1,12 +1,10 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { RoomRolesById } from "./chat-avatar-utils";
+
 import { getMessageAuthorLabel } from "@tuanchat/domain/display-labels";
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { buildMessageSearchText } from "@tuanchat/domain/message-search";
 import { ArrowLeft, MagnifyingGlass, X } from "phosphor-react-native";
-
 import { useCallback, useMemo, useState } from "react";
-
 import {
   FlatList,
   Pressable,
@@ -15,30 +13,32 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
-
 import { useTheme } from "@/hooks/use-theme";
+
+import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import { MessageAvatar } from "./MessageAvatar";
 import { formatMessageDateTime } from "./mobileChatUtils";
 
-interface MessageItem {
+type MessageItem = {
   message: Message;
-}
+};
 
 function getSearchAuthorLabel(message: Message, roomRolesById?: RoomRolesById): string {
   const fallbackLabel = isNarratorMessage(message) ? undefined : getMessageAuthorLabel(message);
   return getMobileMessageAuthorLabel(message, roomRolesById, { unknownRoleLabel: fallbackLabel });
 }
 
-interface ChatSearchPageProps {
+type ChatSearchPageProps = {
   messages: MessageItem[];
   onClose: () => void;
   onScrollToMessage: (messageId: number) => void;
   roomRolesById?: RoomRolesById;
-}
+};
 
 export function ChatSearchPage({ messages, onClose, onScrollToMessage, roomRolesById }: ChatSearchPageProps) {
   const theme = useTheme();

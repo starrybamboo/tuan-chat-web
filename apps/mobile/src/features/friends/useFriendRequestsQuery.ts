@@ -1,3 +1,9 @@
+import {
+  getFriendRequestsQueryKey,
+  getPendingReceivedFriendRequests,
+  useFriendRequestsQuery as useSharedFriendRequestsQuery,
+} from "@tuanchat/query/friends";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,11 +11,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getFriendRequestsQueryKey,
-  getPendingReceivedFriendRequests,
-  useFriendRequestsQuery as useSharedFriendRequestsQuery,
-} from "@tuanchat/query/friends";
 
 const FRIEND_REQUESTS_SNAPSHOT_TTL_MS = 2 * 60_000;
 

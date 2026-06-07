@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-
 import type { QuerySnapshotEntry } from "@tuanchat/local-db";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   readMobileQuerySnapshot,

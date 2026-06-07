@@ -13,6 +13,7 @@
       ],
       "rules": {
         "typescript/no-require-imports": "off",
+        "vitest/require-mock-type-parameters": "off",
         "no-console": [
           "warn",
           {

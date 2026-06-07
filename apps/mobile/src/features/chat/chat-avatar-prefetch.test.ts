@@ -1,8 +1,8 @@
-﻿import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { describe, expect, it } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { describe, expect, it } from "vitest";
 
 import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";

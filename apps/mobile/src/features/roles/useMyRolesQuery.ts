@@ -1,5 +1,10 @@
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import {
+  getUserRolesByTypesQueryKey,
+  useUserRolesByTypesQuery,
+} from "@tuanchat/query/room-roles";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -7,10 +12,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getUserRolesByTypesQueryKey,
-  useUserRolesByTypesQuery,
-} from "@tuanchat/query/room-roles";
 
 const MY_ROLES_SNAPSHOT_TTL_MS = 10 * 60_000;
 const MY_ROLE_TYPES = [0, 1] as const;

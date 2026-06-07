@@ -1,3 +1,8 @@
+import {
+  getSpaceMembersQueryKey,
+  useGetSpaceMembersQuery as useSharedGetSpaceMembersQuery,
+} from "@tuanchat/query/members";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,10 +10,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getSpaceMembersQueryKey,
-  useGetSpaceMembersQuery as useSharedGetSpaceMembersQuery,
-} from "@tuanchat/query/members";
 
 const SPACE_MEMBERS_SNAPSHOT_TTL_MS = 5 * 60_000;
 

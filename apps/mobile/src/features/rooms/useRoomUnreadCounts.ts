@@ -1,4 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  getMaxRoomMessageSyncId,
+  getRoomUnreadCountsFromSessions,
+  getUserMessageSessionsQueryKey,
+  markRoomSessionReadInCache,
+  useUpdateRoomReadPositionMutation,
+  useUserMessageSessionsQuery,
+} from "@tuanchat/query";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
@@ -9,14 +17,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getMaxRoomMessageSyncId,
-  getRoomUnreadCountsFromSessions,
-  getUserMessageSessionsQueryKey,
-  markRoomSessionReadInCache,
-  useUpdateRoomReadPositionMutation,
-  useUserMessageSessionsQuery,
-} from "@tuanchat/query";
 
 const MESSAGE_SESSIONS_SNAPSHOT_TTL_MS = 2 * 60_000;
 

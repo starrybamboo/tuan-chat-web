@@ -4,15 +4,13 @@ import type {
   UploadedSoundMessageDraftAsset,
   UploadedVideoMessageDraftAsset,
 } from "@tuanchat/domain/message-draft";
-
-import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
-import { Platform } from "react-native";
-
 import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
 import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+import { EncodingType, FileSystemUploadType, getInfoAsync, readAsStringAsync, uploadAsync } from "expo-file-system/legacy";
+import { Platform } from "react-native";
 
 import type { MobileMediaType as MediaType } from "../../lib/media-url";
 import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";

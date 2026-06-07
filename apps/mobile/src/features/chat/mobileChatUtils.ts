@@ -1,7 +1,8 @@
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
-import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import {
   formatMobileMessageAttachmentSize,

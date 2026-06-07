@@ -1,17 +1,8 @@
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { AlertButton } from "react-native";
-import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
-import type { ChatComposerShortcutAction } from "./ChatComposer";
-import type { MessageAction } from "./MessageActionMenu";
-import type { RightDrawerTabKey } from "./RightDrawerPanel";
-import type { DrawerMode } from "@/features/drawer/LeftDrawer";
-import type { MemberPreviewItem } from "@/features/members/memberUtils";
-import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
-import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
@@ -26,7 +17,6 @@ import {
   START_COMBAT_CONTENT,
 } from "@tuanchat/domain/state-command";
 import { toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
-
 import { useCopyMessageToClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
@@ -54,6 +44,12 @@ import {
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+import type { DrawerMode } from "@/features/drawer/LeftDrawer";
+import type { MemberPreviewItem } from "@/features/members/memberUtils";
+import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
+import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
+
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -108,9 +104,13 @@ import { useGestureDrawer } from "@/hooks/useGestureDrawer";
 import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
-
 import { confirmAction } from "@/lib/confirm";
 import { DRAWER_EDGE_SWIPE_ZONE_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+
+import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
+import type { ChatComposerShortcutAction } from "./ChatComposer";
+import type { MessageAction } from "./MessageActionMenu";
+import type { RightDrawerTabKey } from "./RightDrawerPanel";
 
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatComposer } from "./ChatComposer";
@@ -152,11 +152,11 @@ function parsePositiveIntegerSearchParam(value: string | string[] | undefined): 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-interface ProfileSheetState {
+type ProfileSheetState = {
   avatarFileId?: number | null;
   userId: number | null;
   username: string | null;
-}
+};
 
 /* PLACEHOLDER_STYLES */
 const styles = StyleSheet.create({
@@ -680,7 +680,6 @@ export default function ChatShell() {
     if (Platform.OS !== "android") {
       return undefined;
     }
-    // eslint-disable-next-line react-web-api/no-leaked-event-listener -- React Native BackHandler returns a NativeEventSubscription removed below.
     const subscription = BackHandler.addEventListener("hardwareBackPress", handleSystemBack);
     return () => subscription.remove();
   }, [handleSystemBack]);
