@@ -24,7 +24,6 @@
     "mobile:ios": "pnpm --filter @tuanchat/mobile ios",
     "mobile:web": "pnpm --filter @tuanchat/mobile web",
     "mobile:lint": "pnpm --filter @tuanchat/mobile lint",
-    "mobile:lint:eslint": "pnpm --filter @tuanchat/mobile lint:eslint",
     "mobile:typecheck": "pnpm --filter @tuanchat/mobile typecheck",
     "typecheck": "pnpm typecheck:web",
     "typecheck:all": "pnpm typecheck:web && pnpm typecheck:mobile",
