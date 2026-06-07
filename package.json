@@ -146,7 +146,6 @@
     "eslint-plugin-perfectionist": "^4.15.1",
     "eslint-plugin-react-dom": "^5.8.13",
     "eslint-plugin-react-hooks": "^7.0.0",
-    "eslint-plugin-react-refresh": "^0.5.2",
     "fast-glob": "^3.3.3",
     "html-to-image": "^1.11.13",
     "husky": "^9.1.7",
