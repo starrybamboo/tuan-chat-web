@@ -174,7 +174,6 @@ export function AllFriendsTab({ friends, isPending, onDeleteFriend, onBlockFrien
               {searchText ? "未找到匹配的好友" : "暂无好友"}
             </ThemedText>
           )}
-      removeClippedSubviews={false}
     />
   );
 }

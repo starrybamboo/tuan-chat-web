@@ -15,6 +15,8 @@ import { normalizeNotificationTargetPath } from "./mobileNotificationTypes";
 const MOBILE_NOTIFICATION_CHANNEL_ID = "tuanchat-mobile-chat";
 const DEDUPE_WINDOW_MS = 15_000;
 
+type NotificationPermissionResponse = Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>;
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
@@ -24,31 +26,70 @@ Notifications.setNotificationHandler({
   }),
 });
 
+export type MobileNotificationPermissionStatus = "checking" | "denied" | "granted" | "unavailable" | "unknown";
+
 export type MobileNotificationSessionContextValue = {
   acknowledgeTargetPath: (targetPath: string | null) => void;
+  notificationPermissionStatus: MobileNotificationPermissionStatus;
   pendingTargetPath: string | null;
   presentNotification: (payload: NativeAppNotificationPayload) => Promise<void>;
+  refreshNotificationPermissionStatus: () => Promise<MobileNotificationPermissionStatus>;
 };
 
-async function ensureNotificationPermissionAsync() {
+function resolveNotificationPermissionStatus(permission: NotificationPermissionResponse): MobileNotificationPermissionStatus {
+  if (
+    permission.granted
+    || permission.status === Notifications.PermissionStatus.GRANTED
+    || permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
+  ) {
+    return "granted";
+  }
+
+  if (permission.status === Notifications.PermissionStatus.DENIED) {
+    return "denied";
+  }
+
+  return "unknown";
+}
+
+async function readNotificationPermissionStatusAsync(): Promise<MobileNotificationPermissionStatus> {
   if (Platform.OS === "web") {
-    return false;
+    return "unavailable";
   }
 
-  const currentPermission = await Notifications.getPermissionsAsync();
-  if (currentPermission.granted || currentPermission.status === Notifications.PermissionStatus.GRANTED) {
-    return true;
+  try {
+    const currentPermission = await Notifications.getPermissionsAsync();
+    return resolveNotificationPermissionStatus(currentPermission);
+  }
+  catch {
+    return "unavailable";
+  }
+}
+
+async function ensureNotificationPermissionAsync(): Promise<MobileNotificationPermissionStatus> {
+  if (Platform.OS === "web") {
+    return "unavailable";
   }
 
-  const requestedPermission = await Notifications.requestPermissionsAsync({
-    ios: {
-      allowAlert: true,
-      allowBadge: true,
-      allowSound: true,
-    },
-  });
+  const currentStatus = await readNotificationPermissionStatusAsync();
+  if (currentStatus === "granted") {
+    return currentStatus;
+  }
 
-  return requestedPermission.granted || requestedPermission.status === Notifications.PermissionStatus.GRANTED;
+  try {
+    const requestedPermission = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+      },
+    });
+
+    return resolveNotificationPermissionStatus(requestedPermission);
+  }
+  catch {
+    return "unavailable";
+  }
 }
 
 function resolveTargetPathFromResponse(response: Notifications.NotificationResponse | null) {
@@ -59,6 +100,9 @@ function resolveTargetPathFromResponse(response: Notifications.NotificationRespo
 export function MobileNotificationSessionProvider({ children }: PropsWithChildren) {
   const { isAuthenticated } = useAuthSession();
   const [pendingTargetPath, setPendingTargetPath] = useState<string | null>(null);
+  const [notificationPermissionStatus, setNotificationPermissionStatus] = useState<MobileNotificationPermissionStatus>(
+    () => Platform.OS === "web" ? "unavailable" : "checking",
+  );
   const permissionGrantedRef = useRef(false);
   const recentNotificationTagsRef = useRef<Map<string, number>>(new Map());
   const handledResponseIdentifierRef = useRef<string | null>(null);
@@ -88,8 +132,9 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
       return;
     }
 
-    void ensureNotificationPermissionAsync().then((granted) => {
-      permissionGrantedRef.current = granted;
+    void ensureNotificationPermissionAsync().then((status) => {
+      permissionGrantedRef.current = status === "granted";
+      setNotificationPermissionStatus(status);
     });
   }, [isAuthenticated]);
 
@@ -153,9 +198,10 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
       return;
     }
 
-    const granted = permissionGrantedRef.current || await ensureNotificationPermissionAsync();
-    permissionGrantedRef.current = granted;
-    if (!granted) {
+    const permissionStatus = permissionGrantedRef.current ? "granted" : await ensureNotificationPermissionAsync();
+    permissionGrantedRef.current = permissionStatus === "granted";
+    setNotificationPermissionStatus(permissionStatus);
+    if (permissionStatus !== "granted") {
       return;
     }
 
@@ -177,6 +223,13 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
     });
   }, []);
 
+  const refreshNotificationPermissionStatus = useCallback(async () => {
+    const status = await readNotificationPermissionStatusAsync();
+    permissionGrantedRef.current = status === "granted";
+    setNotificationPermissionStatus(status);
+    return status;
+  }, []);
+
   const acknowledgeTargetPath = useCallback((targetPath: string | null) => {
     const normalized = normalizeNotificationTargetPath(targetPath);
     setPendingTargetPath((currentValue) => {
@@ -189,9 +242,11 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
 
   const value = useMemo<MobileNotificationSessionContextValue>(() => ({
     acknowledgeTargetPath,
+    notificationPermissionStatus,
     pendingTargetPath,
     presentNotification,
-  }), [acknowledgeTargetPath, pendingTargetPath, presentNotification]);
+    refreshNotificationPermissionStatus,
+  }), [acknowledgeTargetPath, notificationPermissionStatus, pendingTargetPath, presentNotification, refreshNotificationPermissionStatus]);
 
   return (
     <MobileNotificationSessionContext value={value}>

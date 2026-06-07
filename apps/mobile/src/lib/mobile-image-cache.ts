@@ -7,6 +7,11 @@ const CACHE_DIR_NAME = "mobile-image-cache";
 const DERIVATIVE_STATUS_FILE_NAME = "derived-status-v1.json";
 const WEB_CACHE_NAME = "tuanchat-mobile-image-cache-v1";
 const FAILURE_BACKOFF_MS = 30_000;
+const DEFAULT_PREFETCH_CONCURRENCY = 4;
+
+export type PrefetchImagesOptions = {
+  concurrency?: number;
+};
 
 type MediaImageDerivativeStatus = "available" | "missing";
 
@@ -428,11 +433,37 @@ export async function prefetchImage(url: string): Promise<boolean> {
   return (await resolveNativeCachedImageUri(url)) != null;
 }
 
-export async function prefetchImages(urls: readonly string[]): Promise<void> {
-  const pending = urls.filter(url => !isAlreadyCached(url) && !isBackedOff(url));
+function normalizeConcurrency(value: number | null | undefined): number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : DEFAULT_PREFETCH_CONCURRENCY;
+}
+
+export async function prefetchImages(urls: readonly string[], options: PrefetchImagesOptions = {}): Promise<void> {
+  const seenKeys = new Set<string>();
+  const pending = urls.filter((url) => {
+    const key = normalizeCacheKey(url);
+    if (seenKeys.has(key) || isAlreadyCached(url) || isBackedOff(url)) {
+      return false;
+    }
+    seenKeys.add(key);
+    return true;
+  });
   if (pending.length === 0)
     return;
-  await Promise.all(pending.map(prefetchImage));
+  const concurrency = normalizeConcurrency(options.concurrency);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < pending.length) {
+      const url = pending[nextIndex++];
+      await prefetchImage(url);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, pending.length) }, () => worker()),
+  );
 }
 
 export function resetCache(options: { clearPersistent?: boolean } = {}): void {

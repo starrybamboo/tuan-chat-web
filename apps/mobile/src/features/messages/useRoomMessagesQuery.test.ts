@@ -4,7 +4,10 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 
 import type { RoomMessagesSyncResult } from "./roomMessageSync";
 
-import { shouldResetCachedRoomMessages } from "./roomMessageCacheState";
+import {
+  getFetchedRoomMessagesToPersist,
+  shouldResetCachedRoomMessages,
+} from "./roomMessageCacheState";
 
 function createRoomMessage(messageId: number): ChatMessageResponse {
   return {
@@ -53,5 +56,22 @@ describe("useRoomMessagesQuery helpers", () => {
 
     expect(shouldResetCachedRoomMessages(emptyFullResult, false)).toBe(false);
     expect(shouldResetCachedRoomMessages(nonEmptyResult, true)).toBe(false);
+  });
+
+  it("仅持久化成功 fetch sync result 中的原始消息", () => {
+    const fetchedMessages = [createRoomMessage(1), createRoomMessage(2)];
+    const result: RoomMessagesSyncResult = {
+      messages: fetchedMessages,
+      mode: "delta",
+    };
+
+    expect(getFetchedRoomMessagesToPersist(result, true)).toEqual(fetchedMessages);
+    expect(getFetchedRoomMessagesToPersist(result, false)).toEqual([]);
+  });
+
+  it("query cache 合并后的数组形态不会再次触发完整历史落盘", () => {
+    const mergedMessages = [createRoomMessage(1), createRoomMessage(2), createRoomMessage(3)];
+
+    expect(getFetchedRoomMessagesToPersist(mergedMessages, true)).toEqual([]);
   });
 });

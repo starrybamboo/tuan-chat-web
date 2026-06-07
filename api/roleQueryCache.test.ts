@@ -43,37 +43,19 @@ describe("roleQueryCache", () => {
       makeRole({ roleId: 7, roleName: "delete me" }),
       makeRole({ roleId: 6, roleName: "keep me" }),
     ];
-    const infiniteData = {
-      pageParams: [{ pageNo: 1, pageSize: 15 }],
-      pages: [
-        {
-          success: true,
-          data: {
-            pageNo: 1,
-            pageSize: 15,
-            totalRecords: 2,
-            isLast: true,
-            list: roles,
-          },
-        },
-      ],
-    };
 
     queryClient.setQueryData(["getUserRolesByType", 1, 0], roles);
-    queryClient.setQueryData(["roleInfiniteByType", 1, 0], infiniteData);
 
     const snapshots = await optimisticRemoveUserRolesFromListQueryCache(queryClient, [7]);
 
     expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([6]);
-    expect(queryClient.getQueryData<any>(["roleInfiniteByType", 1, 0])?.pages[0].data.list.map((role: UserRole) => role.roleId)).toEqual([6]);
 
     rollbackUserRoleListQueryCache(queryClient, snapshots);
 
     expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([7, 6]);
-    expect(queryClient.getQueryData<any>(["roleInfiniteByType", 1, 0])?.pages[0].data.list.map((role: UserRole) => role.roleId)).toEqual([7, 6]);
   });
 
-  it("会把头像字段补写到匹配的角色列表缓存中", () => {
+  it("会把头像 fileId 字段补写到匹配的角色列表缓存中", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["getUserRolesByType", 1, 0], [
       makeRole({ roleId: 7, avatarId: 55, avatarFileId: 1001 }),
@@ -91,13 +73,12 @@ describe("roleQueryCache", () => {
         roleId: 7,
         avatarId: 55,
         avatarFileId: 2002,
-        avatarUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
-        avatarThumbUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/low.webp",
+        avatarMediaType: "image",
       }),
     ]);
   });
 
-  it("头像字段补丁优先使用 fileId，不被旧 avatarUrl 覆盖", () => {
+  it("头像字段补丁会移除列表里的派生 URL 字段", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["getUserRolesByType", 1, 0], [
       {
@@ -116,17 +97,17 @@ describe("roleQueryCache", () => {
       avatarThumbUrl: "https://legacy.example/next-avatar-low.webp",
     });
 
-    expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])).toEqual([
-      expect.objectContaining({
-        roleId: 7,
-        avatarFileId: 2002,
-        avatarUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
-        avatarThumbUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/low.webp",
-      }),
-    ]);
+    const patched = queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.[0] as any;
+    expect(patched).toEqual(expect.objectContaining({
+      roleId: 7,
+      avatarFileId: 2002,
+      avatarMediaType: "image",
+    }));
+    expect(patched.avatarUrl).toBeUndefined();
+    expect(patched.avatarThumbUrl).toBeUndefined();
   });
 
-  it("会把头像字段补写到房间角色缓存中", () => {
+  it("会把头像 fileId 字段补写到房间角色缓存中", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["roomRole", 9], {
       success: true,
@@ -147,8 +128,7 @@ describe("roleQueryCache", () => {
         expect.objectContaining({
           roleId: 7,
           avatarFileId: 3003,
-          avatarUrl: "https://media.tuan.chat/media/v1/files/003/3003/image/medium.webp",
-          avatarThumbUrl: "https://media.tuan.chat/media/v1/files/003/3003/image/low.webp",
+          avatarMediaType: "image",
         }),
       ],
     });
@@ -169,4 +149,3 @@ describe("roleQueryCache", () => {
     expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([8]);
   });
 });
-

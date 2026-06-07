@@ -550,6 +550,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         getSpaceInfo,
         getSpaceData,
         setSpaceData,
+        queryClient,
       };
 
       // 执行命令，如果规则执行器存在则先尝试规则执行器，失败则回退到公共执行器

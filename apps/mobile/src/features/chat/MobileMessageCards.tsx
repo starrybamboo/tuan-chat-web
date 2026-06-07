@@ -26,6 +26,7 @@ import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
+import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
 
 import { useTheme } from "@/hooks/use-theme";
 
@@ -50,6 +51,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
+  },
+  clueDetailPreview: {
+    borderRadius: Radius.sm,
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   forwardedMessageRow: {
     borderRadius: Radius.sm,
@@ -372,23 +379,78 @@ export function DocCard({ content, extra }: MessageCardProps) {
 
 export function ClueCard({ content, extra }: MessageCardProps) {
   const theme = useTheme();
+  const [detailVisible, setDetailVisible] = useState(false);
   const data = useMemo(() => getClueCardRenderData(extra, content ?? ""), [content, extra]);
+  const snapshotMessage = useMemo(() => ({
+    ...data.snapshot,
+    status: 0,
+  } as Message), [data.snapshot]);
   const previewText = useMemo(
-    () => getMessagePreview({ ...data.snapshot, status: 0 } as Message),
-    [data.snapshot],
+    () => getMessagePreview(snapshotMessage),
+    [snapshotMessage],
   );
 
   return (
-    <View style={[styles.simpleCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={[styles.cardHeader, { borderBottomColor: theme.border }]}>
-        <View style={styles.cardTitleRow}>
-          <ThemedText style={{ color: theme.accent, fontSize: 15, fontWeight: "700" }}>?</ThemedText>
-          <ThemedText type="smallBold" numberOfLines={1}>线索</ThemedText>
+    <>
+      <Pressable
+        accessibilityLabel="查看线索"
+        accessibilityRole="button"
+        onPress={() => {
+          setDetailVisible(true);
+        }}
+        style={({ pressed }) => [
+          styles.simpleCard,
+          {
+            backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement,
+            borderColor: pressed ? theme.accent : theme.border,
+          },
+        ]}
+      >
+        <View style={[styles.cardHeader, { borderBottomColor: theme.border }]}>
+          <View style={styles.cardTitleRow}>
+            <ThemedText style={{ color: theme.accent, fontSize: 15, fontWeight: "700" }}>?</ThemedText>
+            <ThemedText type="smallBold" numberOfLines={1}>线索</ThemedText>
+          </View>
         </View>
-      </View>
-      <ThemedText style={{ fontSize: 12, lineHeight: 18 }} numberOfLines={4}>{previewText || "线索"}</ThemedText>
-      <ThemedText type="caption" themeColor="textSecondary">消息快照</ThemedText>
-    </View>
+        <ThemedText style={{ fontSize: 12, lineHeight: 18 }} numberOfLines={4}>{previewText || "线索"}</ThemedText>
+        <ThemedText type="caption" themeColor="accent">查看详情</ThemedText>
+      </Pressable>
+      <BottomSheetModal
+        backgroundColor={theme.surface}
+        handleColor={theme.border}
+        maxHeight="86%"
+        onClose={() => setDetailVisible(false)}
+        visible={detailVisible}
+      >
+        <View style={styles.sheetHeader}>
+          <View style={styles.sheetHeaderText}>
+            <ThemedText type="heading">查看线索</ThemedText>
+            <ThemedText type="caption" themeColor="textSecondary">消息快照</ThemedText>
+          </View>
+          <Pressable
+            accessibilityLabel="关闭线索详情"
+            accessibilityRole="button"
+            onPress={() => setDetailVisible(false)}
+            style={({ pressed }) => [
+              styles.sheetCloseButton,
+              { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
+            ]}
+          >
+            <X color={theme.textSecondary} size={18} />
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+          <View style={[styles.clueDetailPreview, { backgroundColor: theme.backgroundElement }]}>
+            <TextEnhanceRenderer content={previewText || "线索"} style={{ color: theme.text, fontSize: 14, lineHeight: 22 }} />
+            <MobileMessageMediaPreview
+              content={snapshotMessage.content}
+              extra={snapshotMessage.extra}
+              messageType={snapshotMessage.messageType}
+            />
+          </View>
+        </ScrollView>
+      </BottomSheetModal>
+    </>
   );
 }
 

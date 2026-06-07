@@ -51,7 +51,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -105,7 +105,7 @@ import { useUserActiveSpacesQuery } from "@/features/spaces/use-user-active-spac
 import { useWorkspaceSession } from "@/features/workspace/workspace-session";
 import { useTheme } from "@/hooks/use-theme";
 import { useGestureDrawer } from "@/hooks/useGestureDrawer";
-import { DRAWER_ACTIVE_OFFSET_X, DRAWER_FAIL_OFFSET_Y, shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
+import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 
@@ -184,13 +184,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     position: "absolute",
     right: 0,
-    top: 0,
-    width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
-  },
-  leftDrawerGestureEdge: {
-    bottom: 0,
-    left: 0,
-    position: "absolute",
     top: 0,
     width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
   },
@@ -586,29 +579,6 @@ export default function ChatShell() {
     setDrawerMode("dm");
   }, [dmBackTarget]);
   const isRoutePage = !selectedRoomId && !currentContactId;
-  const handleLeftEdgeSwipe = useCallback(() => {
-    if (searchPageVisible) {
-      setSearchPageVisible(false);
-      return;
-    }
-    if (currentContactId) {
-      handleBackFromDmChat();
-      return;
-    }
-    if (!isRoutePage) {
-      handleBackToRoutePage();
-    }
-  }, [currentContactId, handleBackFromDmChat, handleBackToRoutePage, isRoutePage, searchPageVisible]);
-
-  const leftEdgeBackGesture = useMemo(() => Gesture.Pan()
-    .activeOffsetX(DRAWER_ACTIVE_OFFSET_X)
-    .failOffsetY(DRAWER_FAIL_OFFSET_Y)
-    .onEnd((event) => {
-      if (event.translationX >= DRAWER_EDGE_SWIPE_ZONE_WIDTH || event.velocityX >= 500) {
-        runOnJS(handleLeftEdgeSwipe)();
-      }
-    }), [handleLeftEdgeSwipe]);
-
   const handleOpenRightDrawerTab = useCallback((tab: RightDrawerTabKey) => {
     Keyboard.dismiss();
     setRightDrawerTab(tab);
@@ -1240,7 +1210,7 @@ export default function ChatShell() {
     handleSelectMessageAnchor,
   ]);
 
-  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: undefined, ios: "padding" });
+  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "height", ios: "padding" });
 
   return (
     <ThemedView style={styles.shell}>
@@ -1448,13 +1418,6 @@ export default function ChatShell() {
                                   )}
                             </>
                           )}
-                    {!isRoutePage
-                      ? (
-                          <GestureDetector gesture={leftEdgeBackGesture}>
-                            <View style={[styles.leftDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
-                          </GestureDetector>
-                        )
-                      : null}
                     <GestureDetector gesture={panGesture}>
                       <View style={[styles.rightDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
                     </GestureDetector>
@@ -1494,6 +1457,7 @@ export default function ChatShell() {
                             onStartCombat={() => void sendCombatRoundEvent("start")}
                             roomId={selectedRoomId}
                             roomRoles={roomRoles}
+                            roomStateRuntime={roomStateRuntime}
                             ruleId={selectedRuleId}
                             isSendingCombatRoundEvent={isSendingCombatRoundEvent}
                             spaceId={selectedSpaceId}

@@ -28,7 +28,7 @@ import { buildMobileMapStatusRows, buildMobileMapTokenStatusByRoleId, formatMobi
 import { MapToken } from "./MapToken";
 import { getRoomDndMapImageUrl, useRoomDndMapMutations, useRoomDndMapQuery } from "./roomDndMap";
 import { useContainedImageRect, useImageSize } from "./useContainedImageRect";
-import { useRoomStateRuntime } from "./useRoomStateRuntime";
+import { type RoomStateRuntimeValue, useRoomStateRuntime } from "./useRoomStateRuntime";
 
 const EMPTY_MAP_TOKENS: RoomDndMapToken[] = [];
 
@@ -137,7 +137,12 @@ type MapPanelProps = {
   messages: Message[];
   roomId: number | null;
   roomRoles: UserRole[];
+  roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
+};
+
+type MapPanelContentProps = Omit<MapPanelProps, "messages" | "roomStateRuntime" | "ruleId"> & {
+  runtime: RoomStateRuntimeValue;
 };
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -270,7 +275,24 @@ function MapStatusBar({
   );
 }
 
-export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, ruleId }: MapPanelProps) {
+export function MapPanel(props: MapPanelProps) {
+  if (props.roomStateRuntime) {
+    return <MapPanelContent {...props} runtime={props.roomStateRuntime} />;
+  }
+  return <MapPanelWithRuntime {...props} />;
+}
+
+function MapPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props }: MapPanelProps) {
+  const runtime = useRoomStateRuntime({
+    currentRoleId: props.currentRoleId,
+    messages: props.messages,
+    roomRoles: props.roomRoles,
+    ruleId: props.ruleId,
+  });
+  return <MapPanelContent {...props} runtime={runtime} />;
+}
+
+function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: MapPanelContentProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -280,12 +302,6 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
     upsertMapMutation,
   } = useRoomDndMapMutations(roomId);
   const sendRoomMessageMutation = useSendRoomMessageMutation(roomId);
-  const runtime = useRoomStateRuntime({
-    currentRoleId,
-    messages,
-    roomRoles,
-    ruleId,
-  });
 
   const map = roomDndMapQuery.data;
   const mapImageUrl = getRoomDndMapImageUrl(map);
