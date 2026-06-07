@@ -24,10 +24,6 @@
     {
       "name": "eslint-comments",
       "specifier": "@eslint-community/eslint-plugin-eslint-comments"
-    },
-    {
-      "name": "react-refresh",
-      "specifier": "eslint-plugin-react-refresh"
     }
   ],
   "plugins": [
@@ -55,18 +51,6 @@
     "react-hooks/exhaustive-deps": "off",
     "no-eval": "off",
     "eslint-comments/no-unlimited-disable": "error",
-    "react-refresh/only-export-components": [
-      "error",
-      {
-        "allowConstantExport": true,
-        "allowExportNames": [
-          "Route",
-          "meta",
-          "links",
-          "clientLoader"
-        ]
-      }
-    ],
     "better-tailwindcss/no-duplicate-classes": "warn",
     "better-tailwindcss/no-unnecessary-whitespace": "warn"
   },
@@ -166,7 +150,8 @@
       "files": [
         "api/**/*.js",
         "api/**/*.ts",
-        "services/**/*.ts"
+        "services/**/*.ts",
+        "app/electron.d.ts"
       ],
       "rules": {
         "eslint-comments/no-unlimited-disable": "off"
