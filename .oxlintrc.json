@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "extends": [
-    "./.oxlintrc.base.json"
+    "./packages/oxlint-config/oxlint-base.json"
   ],
   "rules": {
     "eslint-comments/no-unlimited-disable": "error",

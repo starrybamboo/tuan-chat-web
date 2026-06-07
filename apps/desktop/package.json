@@ -22,6 +22,7 @@
     "fflate": "0.8.2"
   },
   "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*",
     "detect-port": "^2.1.0",
     "electron": "^35.0.3",
     "electron-builder": "^26.0.12",

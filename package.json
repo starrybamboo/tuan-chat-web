@@ -75,17 +75,11 @@
     "electron:build:mac:dmg": "pnpm desktop:build:mac:dmg"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "9.0.0",
-    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
-    "@eslint-react/eslint-plugin": "5.8.12",
     "@tuanchat/domain": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*",
+    "@tuanchat/typescript-config": "workspace:*",
     "@types/node": "^20",
     "eslint": "^9.39.2",
-    "eslint-plugin-jsx-a11y": "6.10.2",
-    "eslint-plugin-perfectionist": "^4.15.1",
-    "eslint-plugin-react-hooks": "^7.0.0",
-    "eslint-plugin-react-refresh": "0.5.0",
     "fast-glob": "^3.3.3",
     "husky": "^9.1.7",
     "knip": "5.82.1",
