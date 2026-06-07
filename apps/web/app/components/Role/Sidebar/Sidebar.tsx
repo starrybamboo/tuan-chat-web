@@ -355,7 +355,7 @@ export function Sidebar({
                     <button
                       type="button"
                       className="
-                        flex items-center gap-3 p-3 rounded-lg cursor-pointer
+                        flex w-full items-center gap-3 rounded-lg p-3 text-left cursor-pointer
                         group
                         hover:bg-base-100
                         transition-all duration-150
@@ -556,7 +556,7 @@ export function Sidebar({
                     <button
                       type="button"
                       className="
-                        flex items-center gap-3 p-3 rounded-lg cursor-pointer
+                        flex w-full items-center gap-3 rounded-lg p-3 text-left cursor-pointer
                         group
                         hover:bg-base-100
                         transition-all duration-150
@@ -679,7 +679,7 @@ export function Sidebar({
                     <button
                       type="button"
                       className="
-                        flex items-center gap-3 p-3 rounded-lg cursor-pointer
+                        flex w-full items-center gap-3 rounded-lg p-3 text-left cursor-pointer
                         group
                         hover:bg-base-100
                         transition-all duration-150
