@@ -30,7 +30,7 @@ export default function WebgalChooseMessage({ payload }: { payload: WebgalChoose
           return (
             <div key={optionKey} className="flex items-start gap-2">
               <span className="
-                flex h-5 w-5 items-center justify-center rounded-full border
+                flex size-5 items-center justify-center rounded-full border
                 border-base-content/30 bg-base-100 text-[11px] font-semibold
                 text-base-content/70
               ">
@@ -38,7 +38,7 @@ export default function WebgalChooseMessage({ payload }: { payload: WebgalChoose
               </span>
               <div className="min-w-0">
                 <div className="
-                  text-sm font-medium text-base-content/90 break-words
+                  text-sm font-medium text-base-content/90 wrap-break-word
                 ">{option.text}</div>
               </div>
             </div>

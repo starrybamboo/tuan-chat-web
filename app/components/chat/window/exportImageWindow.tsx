@@ -353,13 +353,13 @@ export default function ExportImageWindow({
                   <img
                     src={qrCodeDataUrl}
                     alt="二维码"
-                    className="w-[120px] h-[120px]"
+                    className="size-[120px]"
                   />
                 )
               : (
                   <div className="
-                    w-[120px] h-[120px] bg-base-200 flex items-center
-                    justify-center rounded
+                    size-[120px] bg-base-200 flex items-center justify-center
+                    rounded
                   ">
                     <span className="loading loading-spinner loading-sm"></span>
                   </div>
@@ -393,7 +393,7 @@ export default function ExportImageWindow({
               )
             : (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   导出图片

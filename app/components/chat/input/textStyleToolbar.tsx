@@ -462,7 +462,7 @@ function AdvancedStyleDialog({
         />
       </label>
 
-      <details className="rounded-md border border-base-300 px-2 py-2">
+      <details className="rounded-md border border-base-300 p-2">
         <summary className="cursor-pointer text-sm text-base-content/75">自定义 CSS</summary>
         <div className="mt-2 flex flex-col gap-2">
           <label className="flex flex-col gap-1">
@@ -488,7 +488,7 @@ function AdvancedStyleDialog({
         </div>
       </details>
 
-      <div className="rounded-md bg-base-200 px-2 py-2 text-sm">
+      <div className="rounded-md bg-base-200 p-2 text-sm">
         {text
           ? (
               ruby

@@ -94,6 +94,26 @@
     },
     {
       "files": [
+        "app/components/chat/**/*.{js,jsx,ts,tsx}",
+        "app/components/Role/**/*.{js,jsx,ts,tsx}",
+        "app/routes/_dashboard/chat/**/*.{js,jsx,ts,tsx}",
+        "app/routes/_dashboard/role/**/*.{js,jsx,ts,tsx}",
+        "app/routes/room-map/**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "better-tailwindcss/enforce-canonical-classes": "warn"
+      }
+    },
+    {
+      "files": [
+        "app/components/chat/shared/map/DNDMap.tsx"
+      ],
+      "rules": {
+        "better-tailwindcss/enforce-canonical-classes": "off"
+      }
+    },
+    {
+      "files": [
         "**/*.js",
         "**/*.ts"
       ],

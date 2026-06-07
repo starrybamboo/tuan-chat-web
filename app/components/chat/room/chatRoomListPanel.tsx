@@ -491,7 +491,7 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     <>
       <div
         className="
-          flex flex-col gap-2 w-full h-full flex-1 bg-base-200 min-h-0 min-w-0
+          flex flex-col gap-2 size-full flex-1 bg-base-200 min-h-0 min-w-0
           rounded-tl-xl border-l border-t border-gray-300
           dark:border-gray-700
         "

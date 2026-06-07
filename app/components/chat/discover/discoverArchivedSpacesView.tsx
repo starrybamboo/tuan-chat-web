@@ -296,8 +296,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
 
   return (
     <div className="
-      flex flex-col w-full h-full min-h-0 min-w-0 bg-base-300/40
-      text-base-content
+      flex flex-col size-full min-h-0 min-w-0 bg-base-300/40 text-base-content
     ">
       {!shouldHideRepositoryHeader && (
         <div className="
@@ -400,7 +399,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
         flex-1 min-h-0 overflow-hidden
       ` : `flex-1 min-h-0 overflow-y-auto`}>
         <div className={activeRepositoryId
-          ? "w-full h-full"
+          ? "size-full"
           : `
             mx-auto w-full max-w-6xl px-4 py-5
             sm:px-6
@@ -428,7 +427,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       weight="duotone"
                       className="
                         pointer-events-none absolute -right-24 -top-24 hidden
-                        h-88 w-88 text-primary/15
+                        size-88 text-primary/15
                         sm:block
                       "
                     />
@@ -495,9 +494,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                       sm:px-6 sm:py-14
                     ">
                       <div className="text-lg font-semibold text-base-content">{emptyTitle}</div>
-                      <div className="
-                        mt-3 text-sm leading-7 text-base-content/58
-                      ">{emptyDescription}</div>
+                      <div className="mt-3 text-sm/7 text-base-content/58">{emptyDescription}</div>
                     </div>
                   )}
 
@@ -526,7 +523,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             imageAspect="square"
                             placeholder={(
                               <div className="
-                                flex h-full w-full items-center justify-center
+                                flex size-full items-center justify-center
                                 bg-linear-to-br from-[#243b55] via-[#141e30]
                                 to-[#0b0f17] text-white/75
                               ">
@@ -568,7 +565,7 @@ export default function DiscoverArchivedSpacesView({ mode }: DiscoverArchivedSpa
                             imageAspect="square"
                             placeholder={(
                               <div className="
-                                flex h-full w-full items-center justify-center
+                                flex size-full items-center justify-center
                                 bg-linear-to-br from-[#2a2d3e] via-[#1f2937]
                                 to-[#111827] text-white/75
                               ">

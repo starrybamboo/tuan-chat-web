@@ -878,11 +878,11 @@ export default function ChatPage() {
     onClose: closeSpaceContextMenu,
   };
   const mainContent = (
-    <div className="relative w-full h-full min-h-0 min-w-0">
+    <div className="relative size-full min-h-0 min-w-0">
       {!isDocRoute && <Outlet />}
       {docRouteForRender && (
         // 仅在文档路由下渲染文档编辑器；离开文档页后及时卸载，避免后台继续同步已关闭/已删除文档。
-        <div className={isDocRoute ? "w-full h-full" : "hidden"} aria-hidden={!isDocRoute}>
+        <div className={isDocRoute ? "size-full" : "hidden"} aria-hidden={!isDocRoute}>
           <ChatPageDocContent
             spaceId={docRouteForRender.spaceId}
             docId={docRouteForRender.docId}

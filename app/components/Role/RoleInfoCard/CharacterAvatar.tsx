@@ -84,7 +84,7 @@ export default function CharacterAvatar({
             src={selectedAvatarUrl || ROLE_DEFAULT_AVATAR_URL}
             alt="Character Avatar"
             className={`
-              h-full w-full object-contain transition-transform duration-300
+              size-full object-contain transition-transform duration-300
               ${editable ? `group-hover:scale-105` : ""}
             `}
             fallbackSrc={ROLE_DEFAULT_AVATAR_URL}

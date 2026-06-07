@@ -502,7 +502,7 @@ export function SpaceWebgalGameConfigSection({
                   <MediaImage
                     src={titleImagePreviewSrc}
                     alt="标题背景图预览"
-                    className="h-full w-full object-cover"
+                    className="size-full object-cover"
                     loading="lazy"
                   />
                 </div>
@@ -556,7 +556,7 @@ export function SpaceWebgalGameConfigSection({
                   <MediaImage
                     src={startupLogoPreviewSrc}
                     alt="启动图预览"
-                    className="h-full w-full object-cover"
+                    className="size-full object-cover"
                     loading="lazy"
                   />
                 </div>

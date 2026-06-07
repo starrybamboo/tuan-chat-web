@@ -86,13 +86,13 @@ export default function AnnotationChip({
     >
       {Icon
         ? (
-            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+            <Icon className="size-3.5" aria-hidden="true" />
           )
         : hasImage
           ? (
               <img src={annotation.iconUrl} alt="" className={isEffect ? `
-                w-5 h-5 object-contain
-              ` : `w-4 h-4 object-contain`} />
+                size-5 object-contain
+              ` : `size-4 object-contain`} />
             )
           : hasLabel
             ? (

@@ -120,7 +120,7 @@ export default function ChatSpaceSidebar({
         <div className="
           rounded w-10 relative z-20
           hover:z-50
-          mx-2 mt-1 mb-1
+          mx-2 my-1
         ">
           <PortalTooltip label="展开侧边栏" placement="right">
             <motion.button
@@ -207,9 +207,7 @@ export default function ChatSpaceSidebar({
       {/* 分隔线 */}
       <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-      <div className="
-        hidden-scrollbar overflow-x-visible flex flex-col py-2 px-2
-      ">
+      <div className="hidden-scrollbar overflow-x-visible flex flex-col p-2">
         {/* 全部空间列表 */}
         {renderSpaces.map(space => (
           <div

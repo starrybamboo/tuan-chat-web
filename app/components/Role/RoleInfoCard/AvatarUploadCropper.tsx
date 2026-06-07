@@ -587,8 +587,8 @@ export function CharacterCopper({
                         <>
                           <h2 className="text-xl font-bold">渲染预览</h2>
                           <div className="
-                            w-full h-full bg-info/30 rounded-lg p-4 flex
-                            flex-col gap-4
+                            size-full bg-info/30 rounded-lg p-4 flex flex-col
+                            gap-4
                           ">
                             <RenderPreview
                               previewCanvasRef={previewCanvasRef}

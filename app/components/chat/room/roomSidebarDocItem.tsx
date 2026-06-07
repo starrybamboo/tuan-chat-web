@@ -195,7 +195,7 @@ export default function RoomSidebarDocItem({
                   src={displayCoverUrl}
                   alt={title || "doc"}
                   draggable={false}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                 />
                 <span className="
                   absolute bottom-0.5 right-0.5 size-4 rounded bg-base-100/80

@@ -22,14 +22,14 @@ export default function WaitingIndicator({
         shrink-0 items-center justify-center
       `}>
         <svg aria-hidden="true" className="
-          absolute inset-0 h-full w-full text-warning/30
+          absolute inset-0 size-full text-warning/30
         " viewBox="0 0 16 16">
           <circle cx="8" cy="8" fill="none" r="6.25" stroke="currentColor" strokeWidth="1.5" />
         </svg>
         <motion.svg
           aria-hidden="true"
           animate={{ rotate: 360 }}
-          className="absolute inset-0 h-full w-full text-warning"
+          className="absolute inset-0 size-full text-warning"
           transition={{ duration: 1.25, ease: "linear", repeat: Infinity }}
           viewBox="0 0 16 16"
         >

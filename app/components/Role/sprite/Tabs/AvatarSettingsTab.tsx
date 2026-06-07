@@ -158,8 +158,8 @@ export function AvatarSettingsTab({
                               src={avatarDisplayUrl}
                               alt="头像预览"
                               className="
-                                w-28 h-28
-                                sm:w-32 sm:h-32
+                                size-28
+                                sm:size-32
                                 rounded-lg object-contain bg-base-200
                               "
                               loading="lazy"
@@ -168,8 +168,8 @@ export function AvatarSettingsTab({
                           )
                         : (
                             <div className="
-                              w-28 h-28
-                              sm:w-32 sm:h-32
+                              size-28
+                              sm:size-32
                               rounded-lg bg-base-200 flex items-center
                               justify-center text-base-content/50
                             ">
@@ -252,7 +252,7 @@ export function AvatarSettingsTab({
                   flex flex-col items-center justify-center h-full
                   text-base-content/50
                 ">
-                  <UserCircle className="w-16 h-16 mb-2 opacity-50" weight="duotone" aria-hidden="true" />
+                  <UserCircle className="size-16 mb-2 opacity-50" weight="duotone" aria-hidden="true" />
                   <p>请从左侧选择一个头像</p>
                 </div>
               )}

@@ -26,7 +26,7 @@ export default function WorkflowEndNode({ data }: WorkflowEndNodeProps) {
       <button
         type="button"
         className="
-          absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center
+          absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center
           rounded-full border border-error bg-base-100 text-[11px] font-bold
           text-error shadow-sm transition-colors
           hover:bg-error hover:text-error-content
@@ -50,7 +50,7 @@ export default function WorkflowEndNode({ data }: WorkflowEndNodeProps) {
         type="target"
         position={Position.Left}
         isConnectable
-        className="!w-3 !h-3 !bg-success !border-success"
+        className="size-3! bg-success! border-success!"
       />
     </div>
   );

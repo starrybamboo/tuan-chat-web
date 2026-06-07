@@ -78,7 +78,7 @@ export default function ChatPageContextMenu({
       {contextMenu && (
         <div
           ref={menuRef}
-          className="fixed bg-base-100 shadow-lg rounded-md z-[9999]"
+          className="fixed bg-base-100 shadow-lg rounded-md z-9999"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <ul className="menu p-2 w-50">

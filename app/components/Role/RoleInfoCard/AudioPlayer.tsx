@@ -80,7 +80,7 @@ export default function AudioPlayer({ role, size = "default", onRoleUpdate, onDe
             onClick={handleDeleteAudio}
             title="删除音频"
           >
-            <svg className={isCompact ? "w-3.5 h-3.5" : "w-4 h-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={isCompact ? "size-3.5" : "size-4"} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

@@ -101,7 +101,7 @@ export default function MessageFilterWindow({
             <Funnel className="size-4" />
           </span>
           <div className="min-w-0">
-            <div className="text-sm font-semibold leading-5">消息筛选</div>
+            <div className="text-sm/5 font-semibold">消息筛选</div>
             <div className="truncate text-xs text-base-content/55">
               显示
               {" "}
@@ -143,7 +143,7 @@ export default function MessageFilterWindow({
         </div>
       </div>
 
-      <div className="space-y-3 px-3 py-3">
+      <div className="space-y-3 p-3">
         <div className="
           grid gap-2
           sm:grid-cols-2
@@ -168,8 +168,8 @@ export default function MessageFilterWindow({
               onChange={event => setFilterOutOfCharacterSpeech(event.target.checked)}
             />
             <span className="min-w-0">
-              <span className="block text-sm font-medium leading-5">隐藏场外发言</span>
-              <span className="block text-xs leading-4 text-base-content/55">
+              <span className="block text-sm/5 font-medium">隐藏场外发言</span>
+              <span className="block text-xs/4 text-base-content/55">
                 筛选时隐藏括号中的对白外发言
               </span>
             </span>
@@ -195,8 +195,8 @@ export default function MessageFilterWindow({
               onChange={event => setFilterStateMessages(event.target.checked)}
             />
             <span className="min-w-0">
-              <span className="block text-sm font-medium leading-5">隐藏状态消息</span>
-              <span className="block text-xs leading-4 text-base-content/55">
+              <span className="block text-sm/5 font-medium">隐藏状态消息</span>
+              <span className="block text-xs/4 text-base-content/55">
                 筛选时隐藏状态事件消息
               </span>
             </span>

@@ -99,7 +99,7 @@ export default function ChatFrameOverlays({
         {isMessageFilterWindowOpen && (
           <motion.div
             className="
-              pointer-events-auto absolute inset-0 z-[60] flex items-end
+              pointer-events-auto absolute inset-0 z-60 flex items-end
               justify-center px-4 pb-18
             "
             initial={{ opacity: 0 }}

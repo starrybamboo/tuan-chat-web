@@ -147,7 +147,7 @@ export default function ChatFrameMessageItem({
           className={`
             ${MESSAGE_DRAG_HANDLE_CLASS}
             ${useChatBubbleStyle ? `top-[12px]` : `top-[30px]`}
-            ${isDragging ? `!opacity-100` : ""}
+            ${isDragging ? `opacity-100!` : ""}
           `}
           draggable={movable}
           onDragStart={onDragStart}
@@ -208,7 +208,7 @@ export default function ChatFrameMessageItem({
             <span
               className={`
                 pointer-events-none absolute left-0 top-1/2 z-10
-                -translate-y-1/2 h-6 w-6 rounded border bg-base-100 flex
+                -translate-y-1/2 size-6 rounded border bg-base-100 flex
                 items-center justify-center transition-all duration-200
                 ${
                 isInsertTarget
@@ -226,7 +226,7 @@ export default function ChatFrameMessageItem({
               `}
               aria-hidden="true"
             >
-              <PlusOutline className="h-4 w-4" />
+              <PlusOutline className="size-4" />
             </span>
           )}
         </div>

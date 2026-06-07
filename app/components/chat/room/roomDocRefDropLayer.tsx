@@ -185,7 +185,7 @@ export default function RoomDocRefDropLayer({
 
   return (
     <div
-      className="relative h-full min-h-0 w-full"
+      className="relative size-full min-h-0"
       onDragOverCapture={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

@@ -971,9 +971,7 @@ export default function AudioMessage({
             : <PlayIcon className="size-4 translate-x-0.5" weight="fill" />}
         </button>
 
-        <div className="
-          min-w-[2.25rem] shrink-0 text-xs tabular-nums text-slate-500
-        ">
+        <div className="min-w-9 shrink-0 text-xs tabular-nums text-slate-500">
           {compactTimeText}
         </div>
 

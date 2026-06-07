@@ -553,7 +553,7 @@ export default function RuleEditor({
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 1024 1024"
-                  className="w-4 h-4"
+                  className="size-4"
                 >
                   <path
                     fill="currentColor"
@@ -590,20 +590,20 @@ export default function RuleEditor({
                         {mode === "create"
                           ? (
                               <>
-                                <SaveIcon className="w-4 h-4" />
+                                <SaveIcon className="size-4" />
                                 创建
                               </>
                             )
                           : isEditing
                             ? (
                                 <>
-                                  <SaveIcon className="w-4 h-4" />
+                                  <SaveIcon className="size-4" />
                                   保存
                                 </>
                               )
                             : (
                                 <>
-                                  <EditIcon className="w-4 h-4" />
+                                  <EditIcon className="size-4" />
                                   编辑
                                 </>
                               )}
@@ -614,7 +614,7 @@ export default function RuleEditor({
             {primaryActionDisabledReason && primaryActionDisabled && (
               <div className="
                 absolute right-0 top-full mt-1 max-w-[calc(100vw-3rem)]
-                text-right text-xs leading-tight text-error whitespace-nowrap
+                text-right text-xs/tight text-error whitespace-nowrap
               ">
                 {primaryActionDisabledReason}
               </div>
@@ -713,8 +713,8 @@ export default function RuleEditor({
                       {primaryActionDisabledReason && primaryActionDisabled && (
                         <div className="
                           absolute right-0 top-full mt-1
-                          max-w-[calc(100vw-3rem)] text-right text-xs
-                          leading-tight text-error whitespace-nowrap
+                          max-w-[calc(100vw-3rem)] text-right text-xs/tight
+                          text-error whitespace-nowrap
                         ">
                           {primaryActionDisabledReason}
                         </div>

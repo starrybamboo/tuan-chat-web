@@ -217,7 +217,7 @@ export function ExpressionChooser({
             type="button"
             className="
               w-full flex items-center justify-between gap-2 rounded-lg border
-              border-base-300 px-2 py-2
+              border-base-300 p-2
               hover:bg-base-200
               transition-colors
             "
@@ -229,7 +229,7 @@ export function ExpressionChooser({
                 ? (
                     <div className="
                       size-8 rounded-full bg-transparent flex items-center
-                      justify-center flex-shrink-0
+                      justify-center shrink-0
                     ">
                       <NarratorIcon className="size-5 text-base-content/60" />
                     </div>
@@ -238,7 +238,7 @@ export function ExpressionChooser({
                   ? (
                       <div className="
                         size-8 rounded-full bg-base-200/50 flex items-center
-                        justify-center flex-shrink-0
+                        justify-center shrink-0
                       ">
                         <AddRoleIcon className="size-5 text-base-content/60" />
                       </div>
@@ -290,7 +290,7 @@ export function ExpressionChooser({
               >
                 <div className="
                   size-10 rounded-full bg-transparent flex items-center
-                  justify-center flex-shrink-0
+                  justify-center shrink-0
                 ">
                   <NarratorIcon className="size-6 text-base-content/60" />
                 </div>

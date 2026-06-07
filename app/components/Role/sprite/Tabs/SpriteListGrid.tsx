@@ -219,13 +219,13 @@ export function SpriteListGrid({
           flex flex-col items-center justify-center flex-1 text-base-content/70
           ${isDragActive ? `ring-2 ring-primary/40 rounded-lg` : ""}
         `}>
-          <svg className="w-12 h-12 mb-2" viewBox="0 0 24 24" fill="none">
+          <svg className="size-12 mb-2" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
             <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
           <p className="mb-3">暂无立绘</p>
           {showUpload && (
-            <div className="w-24 h-24">
+            <div className="size-24">
               <CharacterCopper
                 setDownloadUrl={() => { }}
                 setCopperedDownloadUrl={() => { }}
@@ -250,16 +250,15 @@ export function SpriteListGrid({
                 <button
                   type="button"
                   className="
-                    w-full h-full flex items-center justify-center gap-2
-                    rounded-lg border-2 border-dashed border-gray-300
+                    size-full flex items-center justify-center gap-2 rounded-lg
+                    border-2 border-dashed border-gray-300
                     hover:border-primary hover:bg-base-200
                     transition-all cursor-pointer relative group overflow-hidden
                   "
                   title="上传新头像"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="
-                    w-full h-full text-gray-400 transition-transform
-                    duration-300
+                    size-full text-gray-400 transition-transform duration-300
                     group-hover:scale-105
                   " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />
@@ -367,7 +366,7 @@ export function SpriteListGrid({
                             src={displayAvatarUrl}
                             alt={`头像 ${index + 1}`}
                             className="
-                              w-full h-full object-cover pointer-events-none
+                              size-full object-cover pointer-events-none
                             "
                             loading="lazy"
                             style={{ aspectRatio: "1 / 1" }}
@@ -375,7 +374,7 @@ export function SpriteListGrid({
                         )
                       : (
                           <div className="
-                            w-full h-full bg-base-200 flex items-center
+                            size-full bg-base-200 flex items-center
                             justify-center text-base-content/50
                           ">
                             {index + 1}
@@ -389,9 +388,9 @@ export function SpriteListGrid({
                       ">
                         <div
                           className={`
-                            flex items-center justify-center w-5 h-5
-                            rounded-full border-2 transition-all duration-200
-                            bg-base-100 shadow-md
+                            flex items-center justify-center size-5 rounded-full
+                            border-2 transition-all duration-200 bg-base-100
+                            shadow-md
                             ${
                             selectedIndices.has(index)
                               ? "bg-info border-info"
@@ -423,7 +422,7 @@ export function SpriteListGrid({
                         absolute inset-0 bg-primary/10 flex items-center
                         justify-center
                       ">
-                        <svg className="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none">
+                        <svg className="size-6 text-primary" viewBox="0 0 24 24" fill="none">
                           <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </div>
@@ -442,7 +441,7 @@ export function SpriteListGrid({
                         absolute bottom-0 left-1 z-10 flex items-center gap-1.5
                       ">
                         <span
-                          className="h-3 w-3 rounded-full bg-success shadow-sm"
+                          className="size-3 rounded-full bg-success shadow-sm"
                           title="这是当前应用的头像"
                         >
                         </span>
@@ -476,7 +475,7 @@ export function SpriteListGrid({
                       "
                       title="删除头像"
                     >
-                      <BaselineDeleteOutline className="w-4 h-4" />
+                      <BaselineDeleteOutline className="size-4" />
                     </button>
                   )}
                 </div>
@@ -524,15 +523,15 @@ export function SpriteListGrid({
               <button
                 type="button"
                 className="
-                  w-full h-full flex items-center justify-center gap-2
-                  rounded-lg border-2 border-dashed border-gray-300
+                  size-full flex items-center justify-center gap-2 rounded-lg
+                  border-2 border-dashed border-gray-300
                   hover:border-primary hover:bg-base-200
                   transition-all cursor-pointer relative group overflow-hidden
                 "
                 title="上传新头像"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="
-                  w-full h-full text-gray-400 transition-transform duration-300
+                  size-full text-gray-400 transition-transform duration-300
                   group-hover:scale-105
                 " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M12 4v16m8-8H4" />

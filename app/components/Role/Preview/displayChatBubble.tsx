@@ -213,10 +213,10 @@ export function DisplayChatBubble({
         ? (
             <div className="flex w-full items-start gap-1 pb-2">
               {/* Avatar */}
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <div className={containerClass}>
                   <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="
-                    w-full h-full block
+                    size-full block
                   " />
                 </div>
               </div>
@@ -226,7 +226,7 @@ export function DisplayChatBubble({
                 <div className="
                   max-w-xs
                   sm:max-w-md
-                  break-words rounded-lg px-4 py-2 shadow bg-white
+                  wrap-break-word rounded-lg px-4 py-2 shadow bg-white
                   dark:bg-black
                 ">
                   <div className="whitespace-pre-wrap">{content}</div>
@@ -237,10 +237,10 @@ export function DisplayChatBubble({
         : (
             <div className="flex w-full pb-4">
               {/* 圆角矩形头像 */}
-              <div className="flex-shrink-0 mr-3">
+              <div className="shrink-0 mr-3">
                 <div className={containerClass}>
                   <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="
-                    w-full h-full block
+                    size-full block
                   " />
                 </div>
               </div>

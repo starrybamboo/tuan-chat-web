@@ -31,9 +31,9 @@ function TraditionalSkeletonMessage({ width, lines = 2 }: { width: string; lines
         sm:pr-3
       ">
         <div className="
-          chat-skeleton-line h-10 w-10 rounded-md
-          sm:h-16 sm:w-16
-          md:h-20 md:w-20
+          chat-skeleton-line size-10 rounded-md
+          sm:size-16
+          md:size-20
         " />
       </div>
       <div className="
@@ -73,8 +73,8 @@ function BubbleSkeletonMessage({ width, lines = 2 }: { width: string; lines?: 1 
       sm:px-5
     ">
       <div className="
-        chat-skeleton-line h-10 w-10 shrink-0 rounded-full
-        sm:h-12 sm:w-12
+        chat-skeleton-line size-10 shrink-0 rounded-full
+        sm:size-12
       " />
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="
@@ -106,7 +106,7 @@ export default function ChatFrameLoadingState() {
   return (
     <motion.div
       className="
-        w-full h-full flex flex-col justify-end bg-base-200 text-base-content/15
+        size-full flex flex-col justify-end bg-base-200 text-base-content/15
         overflow-hidden
       "
       {...skeletonFadeMotionProps}

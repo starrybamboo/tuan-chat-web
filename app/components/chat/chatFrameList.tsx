@@ -114,7 +114,7 @@ const SelectionToolbar = memo(({
             className="
               pointer-events-auto flex max-w-[calc(100%-2rem)] items-center
               gap-2 overflow-hidden rounded-md border border-primary/20
-              bg-base-100/92 px-2 py-2 text-sm text-base-content shadow-2xl
+              bg-base-100/92 p-2 text-sm text-base-content shadow-2xl
               shadow-primary/10 backdrop-blur-xl
             "
             {...floatingPanelMotionProps}
@@ -162,7 +162,7 @@ const SelectionToolbar = memo(({
             <motion.button
               type="button"
               className="
-                btn btn-ghost btn-sm btn-circle h-8 min-h-0 w-8 shrink-0
+                btn btn-ghost btn-sm btn-circle size-8 min-h-0 shrink-0
                 rounded-md
               "
               onClick={onCancel}
@@ -219,8 +219,8 @@ const MessageFilterControl = memo(({
         key={isActive ? "filter-active" : "filter-inactive"}
         type="button"
         className={`
-          btn btn-ghost btn-sm btn-circle pointer-events-auto relative h-9
-          min-h-0 w-9 rounded-md border shadow-lg backdrop-blur-xl
+          btn btn-ghost btn-sm btn-circle pointer-events-auto relative size-9
+          min-h-0 rounded-md border shadow-lg backdrop-blur-xl
           ${
           isActive
             ? "border-primary/30 bg-primary/10 text-primary"
@@ -701,11 +701,11 @@ export default function ChatFrameList({
                     ${
                     filterTransitionState.tone === "active"
                       ? `
-                        bg-gradient-to-r from-transparent via-primary/18
+                        bg-linear-to-r from-transparent via-primary/18
                         to-transparent
                       `
                       : `
-                        bg-gradient-to-r from-transparent via-base-content/12
+                        bg-linear-to-r from-transparent via-base-content/12
                         to-transparent
                       `
                   }

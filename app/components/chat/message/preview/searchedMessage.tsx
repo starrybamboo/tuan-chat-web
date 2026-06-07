@@ -126,7 +126,7 @@ export default function SearchedMessage({
 
       {message.message.replyMessageId && (
         <div className="pl-10 flex flex-row gap-2 py-1">
-          <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
+          <span className="opacity-60 inline shrink-0 text-sm">| 回复</span>
           <PreviewMessage
             message={message.message.replyMessageId}
           >

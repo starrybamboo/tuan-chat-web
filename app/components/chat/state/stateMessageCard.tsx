@@ -141,7 +141,7 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
               记录文本
             </div>
             <div className="
-              break-words rounded-md bg-base-200/35 px-2 py-1.5 font-mono
+              wrap-break-word rounded-md bg-base-200/35 px-2 py-1.5 font-mono
               text-[12px] text-base-content/76
             ">
               {message.content || "[空记录]"}
@@ -167,7 +167,7 @@ export default function StateMessageCard({ message }: StateMessageCardProps) {
                 <div
                   key={`${message.messageId}:detail:${index}`}
                   className="
-                    break-words rounded-md bg-base-200/30 px-2 py-1.5
+                    wrap-break-word rounded-md bg-base-200/30 px-2 py-1.5
                     text-base-content/70
                   "
                 >

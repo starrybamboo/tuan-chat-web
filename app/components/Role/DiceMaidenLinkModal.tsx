@@ -46,7 +46,7 @@ function DiceMaidenRoleItem({
           {/* 骰娘头像 */}
           <div className="avatar">
             <div className="
-              w-12 h-12 rounded-full ring ring-primary ring-offset-base-100
+              size-12 rounded-full ring ring-primary ring-offset-base-100
               ring-offset-2
             ">
               <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
@@ -61,7 +61,7 @@ function DiceMaidenRoleItem({
             </p>
           </div>
           {isSelected && (
-            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="size-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           )}
@@ -88,7 +88,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
         <div className="flex items-center gap-3">
           <div className="avatar">
             <div className="
-              w-12 h-12 rounded-full ring ring-primary ring-offset-base-100
+              size-12 rounded-full ring ring-primary ring-offset-base-100
               ring-offset-2
             ">
               <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
@@ -102,7 +102,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
               {role.roleId}
             </p>
           </div>
-          <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="size-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         </div>
@@ -196,7 +196,7 @@ export default function DiceMaidenLinkModal({
         onClick={e => e.stopPropagation()}
       >
         {/* 头部 - 固定 */}
-        <div className="p-6 pb-4 flex-shrink-0">
+        <div className="p-6 pb-4 shrink-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold">关联骰娘角色</h3>
             <button
@@ -204,7 +204,7 @@ export default function DiceMaidenLinkModal({
               className="btn btn-sm btn-circle btn-ghost"
               onClick={onClose}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -333,7 +333,7 @@ export default function DiceMaidenLinkModal({
         </div>
 
         {/* 底部按钮 - 固定 */}
-        <div className="p-6 pt-4 flex-shrink-0 border-t border-base-300">
+        <div className="p-6 pt-4 shrink-0 border-t border-base-300">
           <div className="flex gap-2">
             {currentDicerRoleId && (
               <button

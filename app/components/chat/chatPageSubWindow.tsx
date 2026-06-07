@@ -169,8 +169,7 @@ function hasDroppedTargetHint(dataTransfer: DataTransfer | null | undefined): bo
 function SubWindowLoadingFallback({ text }: { text: string }) {
   return (
     <div className="
-      flex h-full w-full items-center justify-center text-sm
-      text-base-content/60
+      flex size-full items-center justify-center text-sm text-base-content/60
     ">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">{text}</span>
@@ -507,7 +506,7 @@ export default function ChatPageSubWindow({
             <button
               type="button"
               className="
-                btn btn-ghost btn-square btn-xs min-h-0 h-7 w-7 bg-base-200/70
+                btn btn-ghost btn-square btn-xs min-h-0 size-7 bg-base-200/70
                 backdrop-blur-sm
               "
               onClick={() => setIsOpen(false)}
@@ -521,8 +520,7 @@ export default function ChatPageSubWindow({
         <div className="flex-1 min-h-0 overflow-hidden">
           {tab === "empty" && (
             <div className="
-              h-full w-full flex items-center justify-center
-              text-base-content/70
+              size-full flex items-center justify-center text-base-content/70
             ">
               <div className="max-w-sm text-center px-8">
                 <div className="text-base font-semibold">副窗口为空</div>
@@ -576,9 +574,7 @@ export default function ChatPageSubWindow({
                     )
                   : resolvedDocId
                     ? (
-                        <div className="
-                          w-full h-full overflow-hidden bg-base-100
-                        ">
+                        <div className="size-full overflow-hidden bg-base-100">
                           <ChatPageDocContent
                             canViewDocs={isKPInSpace}
                             docId={resolvedDocId}

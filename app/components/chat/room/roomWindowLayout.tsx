@@ -107,7 +107,7 @@ export default function RoomWindowLayout({
 
   return (
     <div className="
-      flex flex-col h-full w-full shadow-sm min-h-0 relative bg-base-100
+      flex flex-col size-full shadow-sm min-h-0 relative bg-base-100
     ">
       <div
         className="

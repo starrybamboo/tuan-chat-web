@@ -297,7 +297,7 @@ function SpaceTrpgSettingWindow() {
                   >
                     {rules.find(rule => rule.ruleId === ruleId)?.ruleName ?? "未找到规则"}
                     <svg xmlns="http://www.w3.org/2000/svg" className="
-                      h-4 w-4 ml-auto
+                      size-4 ml-auto
                     " fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                     </svg>
@@ -354,7 +354,7 @@ function SpaceTrpgSettingWindow() {
                           ? (
                               <div className="avatar">
                                 <div className="
-                                  w-10 h-10 rounded-full ring ring-accent
+                                  size-10 rounded-full ring ring-accent
                                   ring-offset-base-100 ring-offset-2
                                 ">
                                   <MediaImage src={dicerAvatarUrl} alt={linkedDicerData?.data?.roleName || "骰娘"} />
@@ -363,10 +363,10 @@ function SpaceTrpgSettingWindow() {
                             )
                           : (
                               <div className="
-                                w-10 h-10 rounded-full bg-accent/10 flex
+                                size-10 rounded-full bg-accent/10 flex
                                 items-center justify-center
                               ">
-                                <svg className="w-5 h-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                                <svg className="size-5 text-accent" viewBox="0 0 24 24" fill="currentColor">
                                   <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
                                   <circle cx="7" cy="7" r="1.5" fill="currentColor" />
                                   <circle cx="12" cy="12" r="1.5" fill="currentColor" />
@@ -392,7 +392,7 @@ function SpaceTrpgSettingWindow() {
                         flex items-center gap-1 text-base-content/50
                       ">
                         <span className="text-xs">{currentDicerId ? "更改" : "设置"}</span>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>

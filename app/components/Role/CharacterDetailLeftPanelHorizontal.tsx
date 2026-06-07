@@ -70,7 +70,7 @@ export default function CharacterDetailLeftPanelHorizontal({
         <div className="min-w-0 space-y-0.5">
           <div className="truncate text-sm font-semibold">{title}</div>
           <div className={`
-            truncate text-xs font-medium leading-5
+            truncate text-xs/5 font-medium
             ${subtitleClassName}
           `}>
             {subtitle}
@@ -80,7 +80,7 @@ export default function CharacterDetailLeftPanelHorizontal({
       <div className="
         flex shrink-0 items-center whitespace-nowrap pl-2 text-base-content/50
       ">
-        <ChevronRightIcon className="h-4 w-4" />
+        <ChevronRightIcon className="size-4" />
       </div>
     </button>
   );
@@ -103,9 +103,9 @@ export default function CharacterDetailLeftPanelHorizontal({
       onClick: onOpenRuleModal,
       icon: (
         <div className="
-          flex h-8 w-8 items-center justify-center rounded-full bg-primary/10
+          flex size-8 items-center justify-center rounded-full bg-primary/10
         ">
-          <GearOutline className="h-4 w-4 text-primary" />
+          <GearOutline className="size-4 text-primary" />
         </div>
       ),
     },
@@ -121,9 +121,9 @@ export default function CharacterDetailLeftPanelHorizontal({
           onClick: onOpenDiceMaidenLinkModal,
           icon: (
             <div className="
-              flex h-8 w-8 items-center justify-center rounded-full bg-accent/10
+              flex size-8 items-center justify-center rounded-full bg-accent/10
             ">
-              <DiceFiveIcon className="h-4 w-4 text-accent" />
+              <DiceFiveIcon className="size-4 text-accent" />
             </div>
           ),
         }]
@@ -137,9 +137,9 @@ export default function CharacterDetailLeftPanelHorizontal({
       onClick: onOpenAudioModal,
       icon: (
         <div className="
-          flex h-8 w-8 items-center justify-center rounded-full bg-secondary/10
+          flex size-8 items-center justify-center rounded-full bg-secondary/10
         ">
-          <MicrophoneIcon className="h-4 w-4 text-secondary" />
+          <MicrophoneIcon className="size-4 text-secondary" />
         </div>
       ),
     },
@@ -180,8 +180,8 @@ export default function CharacterDetailLeftPanelHorizontal({
                 ? (
                     <div className="flex flex-col items-center gap-3">
                       <div className="
-                        skeleton w-28 h-28
-                        sm:w-32 sm:h-32
+                        skeleton size-28
+                        sm:size-32
                         rounded-xl
                       "></div>
                     </div>
@@ -216,18 +216,16 @@ export default function CharacterDetailLeftPanelHorizontal({
             >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="
-                  w-7 h-7 rounded-full bg-primary/10 flex items-center
+                  size-7 rounded-full bg-primary/10 flex items-center
                   justify-center
                 ">
-                  <GearOutline className="w-4 h-4 text-primary" />
+                  <GearOutline className="size-4 text-primary" />
                 </span>
                 <span className="
                   min-w-0 truncate whitespace-nowrap font-semibold text-sm
                 ">当前规则</span>
               </span>
-              <ChevronRightIcon className="
-                w-4 h-4 shrink-0 text-base-content/50
-              " />
+              <ChevronRightIcon className="size-4 shrink-0 text-base-content/50" />
             </button>
 
             {!isDiceMaiden && (
@@ -244,17 +242,17 @@ export default function CharacterDetailLeftPanelHorizontal({
               >
                 <span className="inline-flex min-w-0 items-center gap-2">
                   <span className="
-                    w-7 h-7 rounded-full bg-accent/10 flex items-center
+                    size-7 rounded-full bg-accent/10 flex items-center
                     justify-center
                   ">
-                    <DiceFiveIcon className="w-4 h-4 text-accent" />
+                    <DiceFiveIcon className="size-4 text-accent" />
                   </span>
                   <span className="
                     min-w-0 truncate whitespace-nowrap font-semibold text-sm
                   ">关联骰娘</span>
                 </span>
                 <ChevronRightIcon className="
-                  w-4 h-4 shrink-0 text-base-content/50
+                  size-4 shrink-0 text-base-content/50
                 " />
               </button>
             )}
@@ -273,18 +271,16 @@ export default function CharacterDetailLeftPanelHorizontal({
             >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="
-                  w-7 h-7 rounded-full bg-secondary/10 flex items-center
+                  size-7 rounded-full bg-secondary/10 flex items-center
                   justify-center
                 ">
-                  <MicrophoneIcon className="w-4 h-4 text-secondary" />
+                  <MicrophoneIcon className="size-4 text-secondary" />
                 </span>
                 <span className="
                   min-w-0 truncate whitespace-nowrap font-semibold text-sm
                 ">上传音频</span>
               </span>
-              <ChevronRightIcon className="
-                w-4 h-4 shrink-0 text-base-content/50
-              " />
+              <ChevronRightIcon className="size-4 shrink-0 text-base-content/50" />
             </button>
           </div>
 

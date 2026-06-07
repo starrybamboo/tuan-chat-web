@@ -116,7 +116,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
             onClick={handleImport}
             disabled={!commandInput.trim()}
           >
-            <EditIcon className="w-4 h-4" />
+            <EditIcon className="size-4" />
             导入属性
           </button>
         </div>
@@ -129,7 +129,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
             className="btn btn-ghost btn-sm"
             onClick={handleExport}
           >
-            <CopyIcon className="w-4 h-4" />
+            <CopyIcon className="size-4" />
             导出ST指令
           </button>
         </div>

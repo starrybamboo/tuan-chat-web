@@ -159,12 +159,12 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
           ${
           canDirectJump
             ? `
-              border-info/20 bg-gradient-to-r from-base-200/80 to-base-100/80
+              border-info/20 bg-linear-to-r from-base-200/80 to-base-100/80
               hover:border-info/40 hover:shadow-md hover:-translate-y-0.5
             `
             : isResolutionMissing
               ? `
-                border-warning/30 bg-gradient-to-r from-warning/5 to-base-100/80
+                border-warning/30 bg-linear-to-r from-warning/5 to-base-100/80
                 hover:border-warning/50
               `
               : `
@@ -195,7 +195,7 @@ function RoomJumpMessageImpl({ messageResponse }: { messageResponse: ChatMessage
               src={displayAvatar}
               alt={displayRoomName}
               draggable={false}
-              className="h-full w-full object-cover"
+              className="size-full object-cover"
               fallbackSrc="/favicon.ico"
             />
           </div>

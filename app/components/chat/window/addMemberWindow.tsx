@@ -206,7 +206,7 @@ export default function AddMemberWindow({
       <div className="hidden-scrollbar flex-1 space-y-5 overflow-y-auto py-5">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="text-sm font-semibold leading-6">好友邀请</h4>
+            <h4 className="text-sm/6 font-semibold">好友邀请</h4>
             <span className="text-xs text-base-content/45">
               {filteredFriends.length}
               {" "}
@@ -261,7 +261,7 @@ export default function AddMemberWindow({
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <UsersIcon className="size-4 text-primary" weight="regular" />
-                <h4 className="text-sm font-semibold leading-6">从空间添加</h4>
+                <h4 className="text-sm/6 font-semibold">从空间添加</h4>
               </div>
               <span className="text-xs text-base-content/45">
                 {spaceMembers.length}
@@ -314,7 +314,7 @@ export default function AddMemberWindow({
         lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6
       ">
         <div className="min-w-0">
-          <h2 className="text-2xl font-semibold leading-tight">{title ?? defaultTitle}</h2>
+          <h2 className="text-2xl/tight font-semibold">{title ?? defaultTitle}</h2>
         </div>
 
         {headerExtra && <div className="mt-4">{headerExtra}</div>}
@@ -409,7 +409,7 @@ function MemberCard({
   return (
     <div className="
       flex items-center justify-between gap-3 rounded-lg border
-      border-base-300/70 bg-base-200/30 px-3 py-3
+      border-base-300/70 bg-base-200/30 p-3
     ">
       <MemberIdentity user={user} />
       {isAdded

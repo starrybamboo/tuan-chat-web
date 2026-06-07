@@ -410,7 +410,7 @@ export default function NumericalEditor({
 
   return (
     <div className="
-      space-y-6 bg-base-200 rounded-lg p-4 [contain:layout_paint]
+      space-y-6 bg-base-200 rounded-lg p-4 contain-[layout_paint]
       [overflow-anchor:none]
     ">
       <div className={headerClassName}>

@@ -71,7 +71,7 @@ function RoleDetailPage() {
               <div className="card-body p-4">
                 <div className="flex justify-center mt-6 mb-2">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="skeleton w-24 h-24 rounded-full"></div>
+                    <div className="skeleton size-24 rounded-full"></div>
                     <div className="skeleton h-4 w-20"></div>
                   </div>
                 </div>

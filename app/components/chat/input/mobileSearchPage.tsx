@@ -146,7 +146,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
   }
 
   const mobileSearchContent = (
-    <div className="fixed inset-0 z-[10000] bg-base-100 flex flex-col">
+    <div className="fixed inset-0 z-10000 bg-base-100 flex flex-col">
       {/* 顶部搜索栏 */}
       <div
         className="
@@ -230,7 +230,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
                                 onClose();
                               }}
                               className="
-                                px-4 py-4
+                                p-4
                                 hover:bg-base-200
                                 active:bg-base-300
                                 cursor-pointer transition-colors

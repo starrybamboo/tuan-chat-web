@@ -48,14 +48,14 @@ export default function TutorialUpdatePromptModal({
 
   return createPortal(
     <div className="
-      fixed inset-0 z-[10000] flex items-center justify-center bg-black/35 p-4
+      fixed inset-0 z-10000 flex items-center justify-center bg-black/35 p-4
     ">
       <div className="
         w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-5
         shadow-xl
       ">
         <div className="text-lg font-semibold">{title}</div>
-        <div className="mt-2 text-sm text-base-content/70 leading-relaxed">
+        <div className="mt-2 text-sm/relaxed text-base-content/70">
           {description}
         </div>
         {!isMissingMode && (
@@ -79,8 +79,8 @@ export default function TutorialUpdatePromptModal({
               className="
                 checkbox checkbox-xs rounded-sm border-base-content/30
                 checked:border-primary
-                [--chkbg:theme(colors.primary)]
-                [--chkfg:theme(colors.primary-content)]
+                [--chkbg:var(--color-primary)]
+                [--chkfg:var(--color-primary-content)]
               "
               checked={suppress}
               onChange={e => setSuppress(e.target.checked)}

@@ -27,8 +27,7 @@ function RoomWindowLoadingFallback() {
 function ChatPageLoadingFallback({ text }: { text: string }) {
   return (
     <div className="
-      flex h-full w-full items-center justify-center text-sm
-      text-base-content/60
+      flex size-full items-center justify-center text-sm text-base-content/60
     ">
       <span className="loading loading-spinner loading-md"></span>
       <span className="ml-2">{text}</span>
@@ -77,14 +76,14 @@ function PrivateChatEmptyState() {
   const { setPrivateChatTab } = useChatPageLayoutContext();
   return (
     <div className="
-      flex h-full w-full items-center justify-center px-6 text-base-content/60
+      flex size-full items-center justify-center px-6 text-base-content/60
     ">
       <div className="flex max-w-sm flex-col items-center gap-3 text-center">
         <svg xmlns="http://www.w3.org/2000/svg" className="size-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
         <h2 className="text-sm font-semibold text-base-content/80">选择一个对话开始聊天</h2>
-        <p className="text-xs leading-5 opacity-70">从左侧会话继续聊天，或从好友列表发起新的私聊。</p>
+        <p className="text-xs/5 opacity-70">从左侧会话继续聊天，或从好友列表发起新的私聊。</p>
         <button
           type="button"
           className="btn btn-primary btn-sm mt-1"
@@ -138,12 +137,12 @@ function ChatPageChatContent() {
 
     return (
       <div className="
-        h-full w-full overflow-hidden border-t border-gray-300
+        size-full overflow-hidden border-t border-gray-300
         dark:border-gray-700
       ">
         <div
           key={privateChatTab}
-          className="private-chat-panel-entry h-full w-full"
+          className="private-chat-panel-entry size-full"
         >
           {privateChatContent}
         </div>
@@ -153,7 +152,7 @@ function ChatPageChatContent() {
 
   if (!activeSpaceId) {
     return (
-      <div className="flex items-center justify-center w-full h-full font-bold">
+      <div className="flex items-center justify-center size-full font-bold">
         <span className="
           text-center
           lg:hidden
@@ -164,7 +163,7 @@ function ChatPageChatContent() {
 
   if (activeRoomId == null) {
     return (
-      <div className="flex items-center justify-center w-full h-full font-bold">
+      <div className="flex items-center justify-center size-full font-bold">
         <span className="text-center">请先选择房间</span>
       </div>
     );
@@ -187,7 +186,7 @@ function ChatPageSpaceDetailContent() {
 
   if (!activeSpaceId) {
     return (
-      <div className="flex items-center justify-center w-full h-full font-bold">
+      <div className="flex items-center justify-center size-full font-bold">
         <span className="
           text-center
           lg:hidden
@@ -197,8 +196,8 @@ function ChatPageSpaceDetailContent() {
   }
 
   return (
-    <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-      <div className="w-full h-full overflow-auto flex justify-center">
+    <div className="flex size-full justify-center min-h-0 min-w-0">
+      <div className="size-full overflow-auto flex justify-center">
         <React.Suspense fallback={<ChatPageLoadingFallback text="正在加载空间详情..." />}>
           <LazySpaceDetailPanel activeTab={spaceDetailTab} onClose={closeSpaceDetailPanel} />
         </React.Suspense>
@@ -215,8 +214,8 @@ export function ChatPageRoomSettingContent() {
   }
 
   return (
-    <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-      <div className="w-full h-full overflow-auto flex justify-center">
+    <div className="flex size-full justify-center min-h-0 min-w-0">
+      <div className="size-full overflow-auto flex justify-center">
         <React.Suspense fallback={<ChatPageLoadingFallback text="正在加载房间设置..." />}>
           <LazyRoomSettingWindow
             roomId={roomSettingState.roomId}
@@ -307,7 +306,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
 
   if (!resolvedSpaceId || !resolvedDocId) {
     return (
-      <div className="flex items-center justify-center w-full h-full font-bold">
+      <div className="flex items-center justify-center size-full font-bold">
         <span className="
           text-center
           lg:hidden
@@ -317,17 +316,17 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
   }
 
   return (
-    <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-      <div className="w-full h-full overflow-hidden flex justify-center">
+    <div className="flex size-full justify-center min-h-0 min-w-0">
+      <div className="size-full overflow-hidden flex justify-center">
         {canViewDocs
           ? (
               <div className="
-                flex w-full h-full min-h-0 flex-col overflow-hidden bg-base-100
+                flex size-full min-h-0 flex-col overflow-hidden bg-base-100
               ">
                 {showToolbar && <ChatPageDocToolbar onBack={handleBack} />}
                 <div className="min-h-0 flex-1 overflow-hidden">
                   <MessageEditor
-                    className="h-full min-h-0 rounded-none !border-t-0"
+                    className="h-full min-h-0 rounded-none border-t-0!"
                     docId={resolvedDocId}
                     initialMessages={roomDocMessages}
                     onRequestImportTextPaste={props.onRequestImportTextPaste}
@@ -350,7 +349,7 @@ export function ChatPageDocContent(props: ChatPageDocContentProps = {}) {
             )
           : (
               <div className="
-                flex items-center justify-center w-full h-full font-bold
+                flex items-center justify-center size-full font-bold
               ">
                 <span className="text-center">仅 KP 可查看文档</span>
               </div>

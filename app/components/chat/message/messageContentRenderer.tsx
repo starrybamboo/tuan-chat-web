@@ -125,14 +125,14 @@ export default function MessageContentRenderer({
   switch (message.messageType) {
     case MESSAGE_TYPE.TEXT:
       return (
-        <div className="whitespace-pre-wrap break-words">
+        <div className="whitespace-pre-wrap wrap-break-word">
           {message.content || "[空消息]"}
         </div>
       );
     case MESSAGE_TYPE.INTRO_TEXT:
       return (
         <div className="rounded-lg bg-black px-3 py-2 text-white shadow-inner">
-          <div className="whitespace-pre-wrap break-words text-white">
+          <div className="whitespace-pre-wrap wrap-break-word text-white">
             {message.content || "[黑屏文字]"}
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function MessageContentRenderer({
               )}
           {message.content && (
             <div className="
-              whitespace-pre-wrap break-words text-sm text-base-content/80
+              whitespace-pre-wrap wrap-break-word text-sm text-base-content/80
             ">
               {message.content}
             </div>
@@ -225,7 +225,7 @@ export default function MessageContentRenderer({
                   />
                   <div className="
                     pointer-events-none absolute inset-x-0 bottom-0 h-16
-                    bg-gradient-to-t from-black/55 via-black/20 to-transparent
+                    bg-linear-to-t from-black/55 via-black/20 to-transparent
                   " />
                   <span className="
                     pointer-events-none badge badge-neutral badge-xs absolute
@@ -244,7 +244,7 @@ export default function MessageContentRenderer({
               )}
           {message.content && (
             <div className="
-              whitespace-pre-wrap break-words text-sm text-base-content/80
+              whitespace-pre-wrap wrap-break-word text-sm text-base-content/80
             ">
               {message.content}
             </div>
@@ -257,7 +257,7 @@ export default function MessageContentRenderer({
       const result = diceResult?.result || message.content || "";
       return (
         <div className="text-sm">
-          <div className="whitespace-pre-wrap break-words">
+          <div className="whitespace-pre-wrap wrap-break-word">
             {result || "[骰子结果]"}
           </div>
         </div>
@@ -289,7 +289,7 @@ export default function MessageContentRenderer({
               )}
           {message.content && (
             <div className="
-              whitespace-pre-wrap break-words text-sm text-base-content/80
+              whitespace-pre-wrap wrap-break-word text-sm text-base-content/80
             ">
               {message.content}
             </div>
@@ -320,7 +320,7 @@ export default function MessageContentRenderer({
     case MESSAGE_TYPE.SYSTEM:
       return (
         <div className="
-          whitespace-pre-wrap break-words text-sm text-base-content/60
+          whitespace-pre-wrap wrap-break-word text-sm text-base-content/60
         ">
           {message.content || "[系统消息]"}
         </div>
@@ -328,7 +328,7 @@ export default function MessageContentRenderer({
     default:
       return (
         <div className="
-          whitespace-pre-wrap break-words text-sm text-base-content/80
+          whitespace-pre-wrap wrap-break-word text-sm text-base-content/80
         ">
           {message.content || "[未知消息]"}
         </div>

@@ -201,7 +201,7 @@ export function SpaceWebgalRenderWindowSettings({
                 </div>
                 {sectionExpandedMap.workflowLayer && (
                   <div className="
-                    rounded-md border border-base-300 px-2 py-2 overflow-x-auto
+                    rounded-md border border-base-300 p-2 overflow-x-auto
                   ">
                     <Suspense fallback={<WorkflowLazyFallback />}>
                       <LazyWorkflowWindow />

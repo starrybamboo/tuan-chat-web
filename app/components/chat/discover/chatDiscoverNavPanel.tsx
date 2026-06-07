@@ -18,7 +18,7 @@ export default function ChatDiscoverNavPanel({ onCloseLeftDrawer, onToggleLeftDr
 
   return (
     <div className="
-      flex flex-col w-full h-full flex-1 min-h-0 min-w-0 rounded-tl-xl border-l
+      flex flex-col size-full flex-1 min-h-0 min-w-0 rounded-tl-xl border-l
       border-t border-gray-300
       dark:border-gray-700
       bg-base-200 text-base-content

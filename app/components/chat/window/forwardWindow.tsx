@@ -428,7 +428,7 @@ function ForwardWindow({
 
       <div className="
         border-t border-base-300 bg-base-100/95 px-6 py-4
-        supports-[backdrop-filter]:backdrop-blur-md
+        supports-backdrop-filter:backdrop-blur-md
         md:px-7
       ">
         <div className="

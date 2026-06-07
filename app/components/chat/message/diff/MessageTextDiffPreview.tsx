@@ -64,7 +64,7 @@ export default function MessageTextDiffPreview({
         <section className="
           rounded-md border-l-2 border-error/50 bg-error/5 px-3 py-2
         ">
-          <div className="whitespace-pre-wrap break-words text-sm leading-6">
+          <div className="whitespace-pre-wrap wrap-break-word text-sm/6">
             {isPendingRewrite
               ? (activeDiff.beforeText || <span className="text-base-content/40">暂无内容</span>)
               : renderSegments(activeDiff.beforeSegments, "before")}
@@ -74,7 +74,7 @@ export default function MessageTextDiffPreview({
         <section className="
           rounded-md border-l-2 border-success/60 bg-success/5 px-3 py-2
         ">
-          <div className="whitespace-pre-wrap break-words text-sm leading-6">
+          <div className="whitespace-pre-wrap wrap-break-word text-sm/6">
             {activeDiff.afterText
               ? renderSegments(activeDiff.afterSegments, "after")
               : <span className="text-base-content/40">{emptyAfterText}</span>}

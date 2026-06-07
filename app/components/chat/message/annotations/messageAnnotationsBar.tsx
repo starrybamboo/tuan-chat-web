@@ -78,9 +78,9 @@ export default function MessageAnnotationsBar({
           <button
             type="button"
             className={`
-              inline-flex h-6 w-6 items-center justify-center rounded-md border
+              inline-flex size-6 items-center justify-center rounded-md border
               text-[11px] transition-all select-none shadow-none
-              supports-[backdrop-filter]:backdrop-blur-md
+              supports-backdrop-filter:backdrop-blur-md
               border-base-content/12 bg-base-content/4 text-base-content/60
               hover:border-primary/38 hover:bg-base-content/7 hover:text-primary
               ${alwaysShowAddButton ? `opacity-100` : `
