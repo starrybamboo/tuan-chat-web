@@ -1,6 +1,7 @@
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -45,6 +46,7 @@ interface RightDrawerPanelProps {
   onStartCombat: () => void;
   roomId: number | null;
   roomRoles: UserRole[];
+  roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
   spaceId: number | null;
 }
@@ -66,6 +68,7 @@ export function RightDrawerPanel({
   onStartCombat,
   roomId,
   roomRoles,
+  roomStateRuntime,
   ruleId,
   spaceId,
 }: RightDrawerPanelProps) {
@@ -81,6 +84,7 @@ export function RightDrawerPanel({
             messages={messages}
             roomId={roomId}
             roomRoles={roomRoles}
+            roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
           />
         )}
@@ -96,6 +100,7 @@ export function RightDrawerPanel({
             onEnterStateCommandMode={onEnterStateCommandMode}
             onStartCombat={onStartCombat}
             roomRoles={roomRoles}
+            roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
           />
         )}

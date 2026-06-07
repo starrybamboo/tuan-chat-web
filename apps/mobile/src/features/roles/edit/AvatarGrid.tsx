@@ -561,7 +561,6 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
         numColumns={GRID_COLUMNS}
         scrollEnabled={avatars.length > GRID_COLUMNS * 3}
         nestedScrollEnabled
-        removeClippedSubviews={false}
         style={styles.gridList}
         contentContainerStyle={[styles.gridContent, manageMode && styles.gridContentManage]}
         columnWrapperStyle={styles.gridRow}

@@ -332,7 +332,6 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
               />
             </Pressable>
           )}
-          removeClippedSubviews={false}
         />
         {actionError && !editingMessage
           ? <ThemedText style={styles.stateText} themeColor="textSecondary">{actionError}</ThemedText>

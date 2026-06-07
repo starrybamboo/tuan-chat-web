@@ -167,7 +167,6 @@ export function PendingRequestsTab({
         keyExtractor={item => `embedded-request:${item.id ?? item.fromId ?? "unknown"}`}
         renderItem={renderRequest}
         ListEmptyComponent={emptyContent}
-        removeClippedSubviews={false}
         scrollEnabled={false}
       />
     );
@@ -180,7 +179,6 @@ export function PendingRequestsTab({
       keyExtractor={item => `request:${item.id ?? item.fromId ?? "unknown"}`}
       renderItem={renderRequest}
       ListEmptyComponent={emptyContent}
-      removeClippedSubviews={false}
     />
   );
 }

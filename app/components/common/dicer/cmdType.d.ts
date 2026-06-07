@@ -106,6 +106,11 @@ interface CPI { // eslint-disable-line ts/consistent-type-definitions
   setSpaceData: (key: string, value: string | null) => void;
 
   /**
+   * 当前指令执行上下文的 React Query 客户端，用于复用统一接口缓存。
+   */
+  queryClient?: import("@tanstack/react-query").QueryClient;
+
+  /**
    * 展示角色属性卡。Web 端默认打开弹窗；移动端可降级为文本回复。
    */
   showRoleAbilityCard?: (props: {

@@ -9,7 +9,7 @@
 /* eslint-disable */
 import type { QueryClient } from '@tanstack/react-query';
 
-import { useQuery, useMutation, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
 import { tuanchat } from '../instance';
 
 
@@ -41,7 +41,6 @@ import {
   patchUserRoleAvatarFieldsInListQueryCache,
   rollbackUserRoleListQueryCache,
   isUserRoleDetailCacheComplete,
-  seedUserRoleListQueryCache,
   seedUserRoleQueryCache,
 } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
@@ -152,7 +151,6 @@ export function fetchRoleAvatarsWithCache(queryClient: QueryClient, roleId: numb
 
 export function seedRoleAvatarQueryCaches(queryClient: QueryClient, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
-  const resolvedRoleId = avatar.roleId ?? roleId;
   if (!avatarId) {
     return;
   }
@@ -189,31 +187,16 @@ export function seedRoleAvatarQueryCaches(queryClient: QueryClient, avatar: Role
     });
   }
 
-  if (resolvedRoleId) {
-    const avatarUrl = getRoleAvatarUrl(avatar) || ROLE_DEFAULT_AVATAR_URL;
-    const avatarThumbUrl = getRoleAvatarThumbUrl(avatar) || avatarUrl;
-    queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
-      avatar: avatarUrl,
-      avatarThumb: avatarThumbUrl,
-      avatarId,
-    });
-  }
-
   setRoleAvatarDetailCache(queryClient, avatar);
 }
 
 function upsertRoleAvatarQueryCaches(queryClient: QueryClient, avatar: RoleAvatar, roleId?: number): void {
   const avatarId = avatar.avatarId;
-  const resolvedRoleId = avatar.roleId ?? roleId;
   if (!avatarId) {
     return;
   }
 
   seedRoleAvatarQueryCaches(queryClient, avatar, roleId);
-
-  if (resolvedRoleId) {
-    queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
-  }
 
   queryClient.invalidateQueries({ queryKey: ["getRoleAvatar", avatarId] });
   queryClient.invalidateQueries({ queryKey: ["avatar", avatarId] });
@@ -270,7 +253,6 @@ function invalidateRoleAppearanceCaches(queryClient: QueryClient, roleId?: numbe
     queryClient.invalidateQueries({ queryKey: roleAvatarsQueryKey(roleId) });
     queryClient.invalidateQueries({ queryKey: ["getDeletedRoleAvatars", roleId] });
     queryClient.invalidateQueries({ queryKey: roleQueryKey(roleId) });
-    queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
   }
 
   if (isPositiveId(avatarId)) {
@@ -475,13 +457,10 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
           "getUserRolesByType",
           "getUserRolesByTypes",
           "getUserRoles",
-          "roleInfinite",
-          "roleInfiniteByType",
         ].includes(String(query.queryKey[0])),
       });
       const snapshotQueryKeys = [
         roleQueryKey(resolvedRoleId),
-        ["roleAvatar", resolvedRoleId] as const,
         ...roleListQueries.map(query => query.queryKey),
       ];
       const snapshots = snapshotQueryKeys.map(queryKey => ({
@@ -491,12 +470,9 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
 
       await Promise.all([
         queryClient.cancelQueries({ queryKey: roleQueryKey(resolvedRoleId) }),
-        queryClient.cancelQueries({ queryKey: ["roleAvatar", resolvedRoleId] }),
         queryClient.cancelQueries({ queryKey: ["getUserRolesByType"] }),
         queryClient.cancelQueries({ queryKey: ["getUserRolesByTypes"] }),
         queryClient.cancelQueries({ queryKey: ["getUserRoles"] }),
-        queryClient.cancelQueries({ queryKey: ["roleInfinite"] }),
-        queryClient.cancelQueries({ queryKey: ["roleInfiniteByType"] }),
       ]);
 
       queryClient.setQueryData(
@@ -515,14 +491,6 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
         { queryKey: ["getUserRoles"] },
         (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
       );
-      if (variables?.avatar) {
-        queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
-          avatar: variables.avatar,
-          avatarThumb: variables.avatarThumb || variables.avatar,
-          avatarId: variables.avatarId,
-        });
-      }
-
       return { snapshots };
     },
     onSuccess: (result, variables, context) => {
@@ -533,9 +501,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
         const resolvedRoleId = variables?.roleId ?? variables?.id;
         if (resolvedRoleId) {
           queryClient.invalidateQueries({ queryKey: roleQueryKey(resolvedRoleId) });
-          queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
         }
-        queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
         return;
       }
       const resolvedRoleId = variables?.roleId ?? variables?.id;
@@ -558,17 +524,8 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
           (old: any) => patchUserRoleQueryCache(old, variables, resolvedRoleId),
         );
       }
-      if (resolvedRoleId && variables?.avatar) {
-        queryClient.setQueryData(["roleAvatar", resolvedRoleId], {
-          avatar: variables.avatar,
-          avatarThumb: variables.avatarThumb || variables.avatar,
-          avatarId: variables.avatarId,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       if (resolvedRoleId) {
         queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", resolvedRoleId] });
-        queryClient.invalidateQueries({ queryKey: ["roleAvatar", resolvedRoleId] });
       }
       queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
@@ -643,7 +600,6 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
         }
         queryClient.removeQueries({ queryKey: roleQueryKey(roleId) });
         queryClient.removeQueries({ queryKey: roleAvatarsQueryKey(roleId) });
-        queryClient.removeQueries({ queryKey: ["roleAvatar", roleId] });
         void invalidateRoleAbilityCaches(queryClient, { roleId });
       });
       onSuccess?.();
@@ -1362,7 +1318,7 @@ export function useRoleAvatarQuery(avatarId: number) {
 export function useRoleAvatars(roleId: number) {
   const queryClient = useQueryClient();
   const roleAvatarQuery = useQuery({
-    queryKey: ["roleAvatar", roleId],
+    queryKey: roleAvatarsQueryKey(roleId),
     queryFn: async () => {
       try {
         const res = await fetchRoleAvatarsWithCache(queryClient, roleId);
@@ -1695,10 +1651,8 @@ async function fetchUserRolesByTypes(userId: number, types: number[]): Promise<U
   });
 }
 
-async function loadUserRolesByTypes(queryClient: QueryClient, userId: number, types: number[]): Promise<UserRole[]> {
-  const data = await fetchUserRolesByTypes(userId, types);
-  seedUserRoleListQueryCache(queryClient, data);
-  return data;
+async function loadUserRolesByTypes(userId: number, types: number[]): Promise<UserRole[]> {
+  return fetchUserRolesByTypes(userId, types);
 }
 
 /**
@@ -1706,10 +1660,9 @@ async function loadUserRolesByTypes(queryClient: QueryClient, userId: number, ty
  * @param userId 用户ID
  */
 export function useGetUserRolesQuery(userId: number) {
-  const queryClient = useQueryClient();
   return useQuery({
     queryKey: userRolesByTypesQueryKey(userId, [0, 1]),
-    queryFn: () => loadUserRolesByTypes(queryClient, userId, [0, 1]),
+    queryFn: () => loadUserRolesByTypes(userId, [0, 1]),
     select: data => ({
       success: true,
       data,
@@ -1733,72 +1686,10 @@ async function fetchUserRolesByType(userId: number, type: number): Promise<UserR
  * @param type  0=角色,1=骰娘,2=NPC
  */
 export function useGetUserRolesByTypeQuery(userId: number, type: number) {
-  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["getUserRolesByType", userId, type],
-    queryFn: async () => {
-      const data = await fetchUserRolesByType(userId, type);
-      seedUserRoleListQueryCache(queryClient, data);
-      return data;
-    },
+    queryFn: () => fetchUserRolesByType(userId, type),
     staleTime: 600000,
-    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
-  });
-}
-
-type RoleInfinitePageParam = {
-  pageNo?: number;
-  pageSize?: number;
-};
-
-/**
- * 按类型进行 Infinite Query 加载
- *
- * 注意：后端并无 type+pageNo 真分页接口，所以这里对单类型的数据做前端切片分页，
- * 但至少不会出现“骰娘被普通角色挤到后面页”的混合分页问题。
- */
-export function useGetInfiniteUserRolesByTypeQuery(userId: number, type: number) {
-  const PAGE_SIZE = 15;
-  const queryClient = useQueryClient();
-  return useInfiniteQuery({
-    queryKey: ["roleInfiniteByType", userId, type],
-    queryFn: async ({ pageParam }: { pageParam: RoleInfinitePageParam }) => {
-      const pageNo = pageParam.pageNo ?? 1;
-      const pageSize = pageParam.pageSize ?? PAGE_SIZE;
-
-      const allRoles = await queryClient.fetchQuery({
-        queryKey: ["getUserRolesByType", userId, type],
-        queryFn: () => fetchUserRolesByType(userId, type),
-        staleTime: 600000,
-      });
-
-      const start = (pageNo - 1) * pageSize;
-      const list = allRoles.slice(start, start + pageSize);
-      const totalRecords = allRoles.length;
-      const isLast = start + pageSize >= totalRecords;
-
-      return {
-        success: true,
-        data: {
-          pageNo,
-          pageSize,
-          totalRecords,
-          isLast,
-          list,
-        },
-      };
-    },
-    initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.data?.pageNo === undefined || lastPage.data?.isLast) {
-        return undefined;
-      }
-      return {
-        pageNo: lastPage.data.pageNo + 1,
-        pageSize: PAGE_SIZE,
-      };
-    },
-    staleTime: 1000 * 60 * 10,
     enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
   });
 }
@@ -1808,56 +1699,6 @@ export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
     queryKey: ['getUserRolesPage', params],
     queryFn: () => tuanchat.roleController.getRolesByPage(params),
     staleTime: 600000
-  });
-}
-
-export function useGetInfiniteUserRolesQuery(userId: number) {
-  const PAGE_SIZE = 15;
-  const queryClient = useQueryClient();
-  return useInfiniteQuery({
-    queryKey: ["roleInfinite", userId],
-    queryFn: async ({ pageParam }: { pageParam: RolePageQueryRequest }) => {
-      const pageNo = pageParam.pageNo ?? 1;
-      const pageSize = pageParam.pageSize ?? PAGE_SIZE;
-
-      const allRoles = await queryClient.fetchQuery({
-        queryKey: userRolesByTypesQueryKey(userId, [0, 1]),
-        queryFn: () => loadUserRolesByTypes(queryClient, userId, [0, 1]),
-        staleTime: USER_ROLES_STALE_TIME_MS, // 10分钟缓存
-      });
-
-      const start = (pageNo - 1) * pageSize;
-      const list = allRoles.slice(start, start + pageSize);
-      const totalRecords = allRoles.length;
-      const isLast = start + pageSize >= totalRecords;
-
-      return {
-        success: true,
-        data: {
-          pageNo,
-          pageSize,
-          totalRecords,
-          isLast,
-          list,
-        },
-      };
-    },
-    initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE, userId: userId ?? -1 },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.data?.pageNo === undefined || lastPage.data?.isLast) {
-        return undefined;
-      }
-      else {
-        const param: RolePageQueryRequest = {
-          pageNo: lastPage.data.pageNo + 1,
-          pageSize: PAGE_SIZE,
-          userId: userId ?? -1,
-        };
-        return param;
-      }
-    },
-    staleTime: 1000 * 60 * 10,
-    enabled: typeof userId === "number" && !Number.isNaN(userId) && userId > 0,
   });
 }
 

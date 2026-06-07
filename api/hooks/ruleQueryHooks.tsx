@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+
 import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type {RuleCloneRequest} from "@tuanchat/openapi-client/models/RuleCloneRequest";
@@ -8,6 +10,20 @@ import type {Rule} from "@tuanchat/openapi-client/models/Rule";
 import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
 
 import {tuanchat} from "../instance";
+
+export const RULE_DETAIL_STALE_TIME_MS = 300000;
+
+export function ruleDetailQueryKey(ruleId: number): readonly ["getRuleDetail", number] {
+    return ["getRuleDetail", ruleId];
+}
+
+export function fetchRuleDetailWithCache(queryClient: QueryClient, ruleId: number) {
+    return queryClient.fetchQuery({
+        queryKey: ruleDetailQueryKey(ruleId),
+        queryFn: () => tuanchat.ruleController.getRuleDetail(ruleId),
+        staleTime: RULE_DETAIL_STALE_TIME_MS,
+    });
+}
 
 /**
  * 更新规则
@@ -94,18 +110,18 @@ export function useCloneRuleMutation() {
  */
 export function useGetRuleDetailQuery(ruleId: number) {
     return useQuery({
-        queryKey: ['getRuleDetail', ruleId],
+        queryKey: ruleDetailQueryKey(ruleId),
         queryFn: () => tuanchat.ruleController.getRuleDetail(ruleId),
-        staleTime: 300000, // 5分钟缓存
+        staleTime: RULE_DETAIL_STALE_TIME_MS, // 5分钟缓存
         enabled: ruleId > 0 // 只有ruleId有效时才启用查询
     });
 }
 export function useGetRuleDetailQueries(ruleIds: number[]) {
     return useQueries({
         queries: ruleIds.map(ruleId => ({
-            queryKey: ['getRuleDetail', ruleId],
+            queryKey: ruleDetailQueryKey(ruleId),
             queryFn: () => tuanchat.ruleController.getRuleDetail(ruleId),
-            staleTime: 300000,
+            staleTime: RULE_DETAIL_STALE_TIME_MS,
             enabled: ruleId > 0
         }))
     });

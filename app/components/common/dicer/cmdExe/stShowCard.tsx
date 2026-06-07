@@ -1,8 +1,10 @@
 import type { RoleAbility } from "../../../../../api";
+import type { QueryClient } from "@tanstack/react-query";
 
 import UTILS from "@/components/common/dicer/utils/utils";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { formatStateKeyLabel } from "@/types/stateEvent";
+import { fetchRuleDetailWithCache } from "../../../../../api/hooks/ruleQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
 
 interface RuleTemplateLike {
@@ -44,9 +46,9 @@ interface OpenStShowCardWindowParams {
   roleName?: string;
   requestedKeys?: string[];
   keyAliasMap?: Record<string, string>;
+  queryClient?: QueryClient;
 }
 
-const RULE_TEMPLATE_CACHE_TTL_MS = 5 * 60_000;
 const PRIMARY_VALUE_PAIRS = [
   { currentKey: "hp", maxKey: "hpm", label: "HP" },
   { currentKey: "mp", maxKey: "mpm", label: "MP" },
@@ -58,8 +60,6 @@ const SPECIAL_DISPLAY_LABELS: Record<string, string> = {
   mov: "MOV",
   build: "BUILD",
 };
-
-const ruleTemplateCache = new Map<number, { expireAt: number; value: RuleTemplateLike | null }>();
 
 function normalizeKeyToken(key: string): string {
   return key.trim().toLowerCase();
@@ -353,18 +353,15 @@ export function buildStShowCardModel({
   };
 }
 
-async function getRuleTemplate(ruleId: number): Promise<RuleTemplateLike | null> {
+async function getRuleTemplate(ruleId: number, queryClient?: QueryClient): Promise<RuleTemplateLike | null> {
   if (!(ruleId > 0)) {
     return null;
   }
 
-  const cached = ruleTemplateCache.get(ruleId);
-  if (cached && cached.expireAt > Date.now()) {
-    return cached.value;
-  }
-
   try {
-    const response = await tuanchat.ruleController.getRuleDetail(ruleId);
+    const response = queryClient
+      ? await fetchRuleDetailWithCache(queryClient, ruleId)
+      : await tuanchat.ruleController.getRuleDetail(ruleId);
     const value = response.success && response.data
       ? {
           basicDefault: response.data.basicDefault ?? {},
@@ -372,10 +369,6 @@ async function getRuleTemplate(ruleId: number): Promise<RuleTemplateLike | null>
           skillDefault: response.data.skillDefault ?? {},
         }
       : null;
-    ruleTemplateCache.set(ruleId, {
-      expireAt: Date.now() + RULE_TEMPLATE_CACHE_TTL_MS,
-      value,
-    });
     return value;
   }
   catch (error) {
@@ -453,8 +446,9 @@ export async function openStShowCardWindow({
   roleName,
   requestedKeys = [],
   keyAliasMap,
+  queryClient,
 }: OpenStShowCardWindowParams): Promise<void> {
-  const template = await getRuleTemplate(Number(ability.ruleId ?? 0));
+  const template = await getRuleTemplate(Number(ability.ruleId ?? 0), queryClient);
   const model = buildStShowCardModel({
     ability,
     template,

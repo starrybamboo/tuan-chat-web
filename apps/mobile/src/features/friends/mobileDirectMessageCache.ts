@@ -3,6 +3,9 @@ import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/Mess
 import { getMobileDirectMessageRepository } from "../../lib/mobile-local-db";
 import { filterPersistableDirectMessages } from "./mobileDirectMessageOptimistic";
 
+const DIRECT_INBOX_CACHE_WINDOW_SIZE = 240;
+const DIRECT_CONVERSATION_CACHE_WINDOW_SIZE = 120;
+
 function isPositiveId(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
@@ -15,7 +18,7 @@ export async function readCachedDirectInboxMessages(
   }
 
   const repository = await getMobileDirectMessageRepository();
-  return repository.getMessagesByUser(currentUserId);
+  return repository.getMessagesByUser(currentUserId, { limit: DIRECT_INBOX_CACHE_WINDOW_SIZE });
 }
 
 export async function readCachedDirectConversationMessages(
@@ -27,7 +30,7 @@ export async function readCachedDirectConversationMessages(
   }
 
   const repository = await getMobileDirectMessageRepository();
-  return repository.getMessagesByContact(currentUserId, contactId);
+  return repository.getMessagesByContact(currentUserId, contactId, { limit: DIRECT_CONVERSATION_CACHE_WINDOW_SIZE });
 }
 
 export async function writeCachedDirectMessages(

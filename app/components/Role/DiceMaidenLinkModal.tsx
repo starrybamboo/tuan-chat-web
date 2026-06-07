@@ -1,5 +1,5 @@
 import type { UserRole } from "../../../api";
-import { useGetInfiniteUserRolesQuery, useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
@@ -28,27 +28,18 @@ function DiceMaidenRoleItem({
 
   return (
     <div
-      className={`
-        card cursor-pointer transition-all duration-200
-        ${
+      className={`card cursor-pointer transition-all duration-200 ${
         isSelected
           ? "bg-primary/20 border-2 border-primary"
-          : `
-            bg-base-200
-            hover:bg-base-300
-          `
-      }
-      `}
+          : "bg-base-200 hover:bg-base-300"
+      }`}
       onClick={onSelect}
     >
       <div className="card-body p-4">
         <div className="flex items-center gap-3">
           {/* 骰娘头像 */}
           <div className="avatar">
-            <div className="
-              size-12 rounded-full ring ring-primary ring-offset-base-100
-              ring-offset-2
-            ">
+            <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
               <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
             </div>
           </div>
@@ -61,7 +52,7 @@ function DiceMaidenRoleItem({
             </p>
           </div>
           {isSelected && (
-            <svg className="size-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           )}
@@ -87,10 +78,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
       <div className="card-body p-4">
         <div className="flex items-center gap-3">
           <div className="avatar">
-            <div className="
-              size-12 rounded-full ring ring-primary ring-offset-base-100
-              ring-offset-2
-            ">
+            <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
               <MediaImage src={avatarUrl} alt={role.roleName || "骰娘"} fallbackSrc="/favicon.ico" />
             </div>
           </div>
@@ -102,7 +90,7 @@ function ManualRolePreview({ roleId }: { roleId: number }) {
               {role.roleId}
             </p>
           </div>
-          <svg className="size-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
         </div>
@@ -123,11 +111,11 @@ export default function DiceMaidenLinkModal({
   const userId = useGlobalUserId() ?? -1;
 
   // 获取用户的所有角色
-  const { data: userRolesQuery, fetchNextPage, hasNextPage, isFetchingNextPage } = useGetInfiniteUserRolesQuery(userId);
+  const { data: userRolesQuery } = useGetUserRolesQuery(userId);
 
   // 提取所有骰娘角色
   const diceMaidenRoles = useMemo(() => {
-    const allRoles = userRolesQuery?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+    const allRoles = userRolesQuery?.data ?? [];
     return allRoles.filter(role => role.type === 1);
   }, [userRolesQuery]);
 
@@ -187,16 +175,14 @@ export default function DiceMaidenLinkModal({
     return null;
 
   return (
-    <div className="
-      fixed inset-0 z-50 flex items-center justify-center bg-black/50
-    " onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
         className="bg-base-100 rounded-xl shadow-2xl w-full mx-4 flex flex-col"
         style={{ maxWidth: "28rem", height: "600px" }}
         onClick={e => e.stopPropagation()}
       >
         {/* 头部 - 固定 */}
-        <div className="p-6 pb-4 shrink-0">
+        <div className="p-6 pb-4 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-semibold">关联骰娘角色</h3>
             <button
@@ -204,7 +190,7 @@ export default function DiceMaidenLinkModal({
               className="btn btn-sm btn-circle btn-ghost"
               onClick={onClose}
             >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -214,20 +200,14 @@ export default function DiceMaidenLinkModal({
           <div className="flex gap-2">
             <button
               type="button"
-              className={`
-                btn btn-sm flex-1
-                ${inputMode === "select" ? `btn-primary` : `btn-ghost`}
-              `}
+              className={`btn btn-sm flex-1 ${inputMode === "select" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setInputMode("select")}
             >
               选择骰娘
             </button>
             <button
               type="button"
-              className={`
-                btn btn-sm flex-1
-                ${inputMode === "manual" ? `btn-primary` : `btn-ghost`}
-              `}
+              className={`btn btn-sm flex-1 ${inputMode === "manual" ? "btn-primary" : "btn-ghost"}`}
               onClick={() => setInputMode("manual")}
             >
               手动输入ID
@@ -258,24 +238,6 @@ export default function DiceMaidenLinkModal({
                             />
                           ))}
 
-                          {hasNextPage && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost w-full"
-                              onClick={() => fetchNextPage()}
-                              disabled={isFetchingNextPage}
-                            >
-                              {isFetchingNextPage
-                                ? (
-                                    <span className="
-                                      loading loading-spinner loading-xs
-                                    "></span>
-                                  )
-                                : (
-                                    "加载更多"
-                                  )}
-                            </button>
-                          )}
                         </>
                       )}
                 </div>
@@ -288,12 +250,9 @@ export default function DiceMaidenLinkModal({
                     </label>
                     <input
                       type="number"
-                      className={`
-                        input input-bordered w-full
-                        ${
+                      className={`input input-bordered w-full ${
                         manualRoleError ? "input-error" : ""
-                      }
-                      `}
+                      }`}
                       placeholder="请输入骰娘角色的ID"
                       value={manualInput}
                       onChange={e => setManualInput(e.target.value)}
@@ -308,9 +267,7 @@ export default function DiceMaidenLinkModal({
                         )
                       : (
                           <label className="label">
-                            <span className="
-                              label-text-alt text-base-content/60
-                            ">
+                            <span className="label-text-alt text-base-content/60">
                               输入骰娘角色的ID号进行绑定
                             </span>
                           </label>
@@ -333,7 +290,7 @@ export default function DiceMaidenLinkModal({
         </div>
 
         {/* 底部按钮 - 固定 */}
-        <div className="p-6 pt-4 shrink-0 border-t border-base-300">
+        <div className="p-6 pt-4 flex-shrink-0 border-t border-base-300">
           <div className="flex gap-2">
             {currentDicerRoleId && (
               <button

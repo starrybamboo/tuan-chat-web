@@ -817,6 +817,7 @@ export function LeftDrawer({
                       updateSpaceDragPosition(dragDyRef.current, nextOffset);
                     }
                   }}
+                  // Space rail 支持拖拽排序，裁剪回收会干扰拖拽中的目标测算。
                   removeClippedSubviews={false}
                   scrollEventThrottle={16}
                   scrollEnabled={draggingSpaceId == null}
@@ -843,7 +844,6 @@ export function LeftDrawer({
             contentContainerStyle={styles.roomListContent}
             keyExtractor={item => item.key}
             renderItem={renderRoomListItem}
-            removeClippedSubviews={false}
           />
         </View>
       ) : (
