@@ -12,6 +12,10 @@
     {
       "name": "perfectionist",
       "specifier": "eslint-plugin-perfectionist"
+    },
+    {
+      "name": "better-tailwindcss",
+      "specifier": "eslint-plugin-better-tailwindcss"
     }
   ],
   "plugins": [
@@ -35,8 +39,17 @@
     "jsx-a11y/anchor-is-valid": "off",
     "jsx-a11y/alt-text": "off",
     "vitest/require-mock-type-parameters": "off",
+    "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "off",
-    "no-eval": "off"
+    "no-eval": "off",
+    "better-tailwindcss/no-duplicate-classes": "warn",
+    "better-tailwindcss/no-unnecessary-whitespace": "warn"
+  },
+  "settings": {
+    "better-tailwindcss": {
+      "cwd": ".",
+      "entryPoint": "./app/app.css"
+    }
   },
   "overrides": [
     {
@@ -44,13 +57,23 @@
         "**/*.{js,jsx,ts,tsx}"
       ],
       "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
         "typescript/no-use-before-define": "off",
         "react-hooks-js/immutability": "off",
         "react-hooks-js/preserve-manual-memoization": "off",
         "react-hooks-js/purity": "off",
         "react-hooks-js/refs": "off",
         "react-hooks-js/set-state-in-effect": "off",
+        "react-hooks-js/set-state-in-render": "error",
         "react-hooks-js/static-components": "off",
+        "react-hooks-js/unsupported-syntax": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error",
         "react/no-array-index-key": "off"
       }
     },
