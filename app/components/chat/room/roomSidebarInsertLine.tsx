@@ -5,7 +5,10 @@ interface RoomSidebarInsertLineProps {
 export default function RoomSidebarInsertLine({ className }: RoomSidebarInsertLineProps) {
   return (
     <div
-      className={`pointer-events-none absolute left-3 right-3 h-0.5 bg-primary/60 rounded${className ? ` ${className}` : ""}`}
+      className={[
+        "pointer-events-none absolute left-3 right-3 h-0.5 rounded bg-primary/60",
+        className,
+      ].filter(Boolean).join(" ")}
     />
   );
 }

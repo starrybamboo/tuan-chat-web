@@ -37,7 +37,11 @@ export function RoleTypeBadge({
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-md border px-1.5 py-0.5 text-[11px] leading-none font-medium ${meta.className}${className ? ` ${className}` : ""}`}
+      className={[
+        "inline-flex shrink-0 items-center rounded-md border px-1.5 py-0.5 text-[11px] leading-none font-medium",
+        meta.className,
+        className,
+      ].filter(Boolean).join(" ")}
     >
       {meta.label}
     </span>

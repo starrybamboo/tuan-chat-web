@@ -21,7 +21,7 @@ export default function CopyLinkButton({ title, className }: CopyLinkButtonProps
   return (
     <button
       onClick={handleCopy}
-      className={`btn btn-primary ${className} `}
+      className={`btn btn-primary ${className}`.trim()}
       type="button"
     >
       <Link className="w-5 h-5" />

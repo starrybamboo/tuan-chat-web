@@ -94,7 +94,7 @@ export function SpaceWebgalGameConfigSection({
 
   return (
     <div className={`rounded-lg border border-base-300 bg-base-100 ${expanded ? "p-4" : "px-4 py-2"}`}>
-      <div className={`flex items-center justify-between gap-2${expanded ? " mb-3" : ""}`}>
+      <div className={`flex items-center justify-between gap-2${expanded ? " mb-3" : ""}`.trim()}>
         <div className="text-sm font-semibold">WebGAL 游戏层（config.txt）</div>
         <SectionCollapseToggle
           expanded={expanded}
@@ -202,7 +202,7 @@ export function SpaceWebgalGameConfigSection({
               />
             </label>
             <div className={`rounded-md border border-base-300 md:col-span-2 ${typingSoundDetailExpanded ? "p-3" : "px-3 py-2"}`}>
-              <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`}>
+              <div className={`flex flex-wrap items-center justify-between gap-2${typingSoundDetailExpanded ? " mb-3" : ""}`.trim()}>
                 <ConfigItemLabel
                   label="启用打字音"
                   description="文字一个个出现时会播放轻微按键音，展开后可以细调频率和音效。"

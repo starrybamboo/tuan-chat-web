@@ -289,7 +289,7 @@ function RulesList({
             <div
               key={rule.ruleId}
               className={`card cursor-pointer transition-all bg-base-100 shadow-xs rounded-2xl border border-base-content/10 ${currentRuleId === rule.ruleId
-                ? "border-primary bg-base-100"
+                ? "border-primary"
                 : "border-base-300 hover:border-base-400 hover:bg-base-200/60"
               }`}
               onClick={() => onRuleChange(rule.ruleId || 0)}
@@ -330,11 +330,11 @@ function RulesList({
             key={rule.ruleId}
             className={dense
               ? `p-2 md:p-2.5 rounded-md bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border ${currentRuleId === rule.ruleId
-                ? "border-primary bg-base-100"
+                ? "border-primary"
                 : "border-base-content/10"
               }`
               : `p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
-                ? "border-primary bg-base-100"
+                ? "border-primary"
                 : "border-transparent"
               }`}
             onClick={() => onRuleChange(rule.ruleId || 0)}
