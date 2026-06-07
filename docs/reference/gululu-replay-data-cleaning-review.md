@@ -101,6 +101,18 @@ sourceRoot/
       role-visual-audit/
       duplicate-contact-sheets/
       visual-duplicates-removed.csv
+
+  image-role-review-clean-vision-final/
+    role-sprites/<角色>/
+    avatars/<角色>/<assetKind>/
+    named-avatars/<角色>/<assetKind>/
+      <semantic_key>__v001.png
+      avatar-manifest.json
+      avatar-manifest.csv
+      README.md
+      _interchangeable/<semantic_key>/
+    index.csv
+    summary.json
 ```
 
 ## 责任边界
@@ -621,7 +633,7 @@ flowchart TD
 - 对当前安科文清洗数据，黑白灰/低彩度可作为 `manga-like` 的程序判定入口；典型阈值为 `meanChroma <= 0.035 && colorfulRatio <= 0.04`。
 - 高彩度彩色图不能进入 `manga-avatar`。如果视觉缓存误判，最终物化阶段必须按程序特征修正为 `character-avatar-bust` 或 `character-avatar-chat`。
 - LLM 只在 `manga-like` 候选内区分 `manga-avatar`、`manga-panel`、`reference-only`，不要把“动漫/漫画画风”的彩色头像当作漫画媒介。
-- `manga-avatar` 可以作为聊天头像候选，但不进入角色立绘抠图门禁；最终头像目录仍需要透明背景处理。
+- `manga-avatar` 可以作为聊天头像候选，但不进入角色立绘抠图门禁；最终头像目录保留原图，不做透明背景处理。
 - `manga-panel` 默认 `reference-only`，不进入角色头像和舞台立绘。
 
 ### 先聚合再分类
@@ -885,7 +897,7 @@ flowchart TD
 
 - 漫画头像即使是角色头像，也不进入舞台抠图门禁，进入最终 `avatars/` 时也保留原图。
 - 大幅漫画分镜不抠图。
-- 聊天小头像默认不进入舞台抠图门禁；进入最终 `avatars/` 前仍要做透明背景处理。
+- 非漫画聊天小头像默认不进入舞台抠图门禁；进入最终 `avatars/` 前仍要做透明背景处理。`manga-avatar` 不适用本条。
 - 只有进入舞台的角色立绘/胸像才考虑抠图。
 - 已有 `matting-results.json` 不能被 clean 脚本无条件消费，必须先通过 `mattingAllowed=true`。
 - QA 未通过的透明图不能进入正式导入。
@@ -943,13 +955,110 @@ clean 阶段必须忽略已有 matting result
 - 目录必须由最新 `image-decisions.vision.csv`、`matting-decisions.vision.csv` 和 `matting-results.vision.json` 物化。
 - `mattingAllowed=true && needsMatting=true` 的非漫画舞台素材，必须先运行 `rembg:isnet-anime`，再把透明 PNG 放入最终目录。
 - `manga-avatar`、`manga-panel`、`reference-only`、`excluded`、`unknown` 不允许消费旧 `__matted` 立绘透明图；`manga-avatar` 也不参加头像透明化后处理。
-- 最终人工审查目录只保留处理后的角色资源：角色立绘放在 `role-sprites/<角色>/`，头像、漫画头像、聊天头像放在 `avatars/<角色>/<assetKind>/`。
+- 最终人工审查目录只保留处理后的角色资源：角色立绘放在 `role-sprites/<角色>/`，底层头像物化文件放在 `avatars/<角色>/<assetKind>/`，人工审查和演出编排入口放在 `named-avatars/<角色>/<assetKind>/`。
 - 需要抠图的角色立绘不保留抠图前原图，只保留透明产物；`character-avatar-*` 不保留白底/原始背景图，只保留聚合后的透明 PNG；`manga-avatar` 保留原图。
 - 最终人工审查目录不混放参考图、背景、排除项；这些只保留在中间目录或 CSV 证据中。
 - `physicalDuplicate`、`visualDuplicate` 默认聚合为一个代表图。
 - `variantGroup` 默认保留差分，不强行压成一张。
 - 最终目录必须包含 `index.csv` 和 `summary.json`，记录每张输出图的来源、聚合来源数、是否使用透明图、角色、分类和置信度。
+- 最终头像还必须生成语义命名入口 `named-avatars/<角色>/<assetKind>/`。如果只产出 hash/楼层编号命名的 PNG，而没有语义 PNG、`avatar-manifest.json` 和 `_interchangeable/`，不能认为头像清洗已经完成。
 - 如果该目录不存在，或里面仍是未抠图的 `needs-matting` 队列，就不能认为图片清洗流程已经跑完。
+
+### 语义命名头像目录
+
+语义命名目录是以后人工审查和演出脚本使用的主入口。底层 `avatars/<角色>/<assetKind>/` 可以保留稳定的物化文件，但交付给用户审查和导入编排时，应使用：
+
+```text
+<sourceRoot>/image-role-review-clean-vision-final/named-avatars/<角色>/<assetKind>/
+  calm_front_closed_neutral__v001.png
+  happy_blush_front_closed_open_smile__v001.png
+  avatar-manifest.json
+  avatar-manifest.csv
+  README.md
+  _interchangeable/
+    calm_front_closed_neutral__v001/
+      ALT__*.png
+```
+
+命名规则：
+
+- 文件名必须使用小写 ASCII 受控词，采用 `snake_case`，用 `__vNNN` 做稳定版本号；不再把 hash、楼层号、下载序号作为主文件名。
+- 推荐结构为 `<emotion>_<pose>_<eyes>_<gaze>_<mouth>[_modifier]__vNNN.png`，可按实际状态省略或增加受控词，但不能写成自然语言长句。
+- 角色名不写进文件名，角色由上层目录和 manifest 记录；这样同一角色换名或导入不同作品时不会重命名整批文件。
+- 同一个语义键仍有不可合并差异时，用 `__v002`、`__v003` 保留冗余；不要为了命名好看而吞掉差分。
+- `character-avatar-bust` / `character-avatar-chat` 的语义 PNG 必须是最终可用的透明背景产物；不能把抠图前白底图放进语义命名目录。
+- `manga-avatar` 也可以语义命名，但只重命名原图或无损派生产物，永不抠图/透明化。
+- 原 hash 文件名、楼层、`sourceRelPath`、`sha256`、成员列表、可替代关系必须写进 `avatar-manifest.json`；演出脚本读取 manifest，不直接猜文件名含义。
+
+`avatar-manifest.json` 至少包含：
+
+| 字段 | 说明 |
+| --- | --- |
+| `role` | 角色名 |
+| `assetKind` | `character-avatar-bust`、`character-avatar-chat`、`manga-avatar` 等 |
+| `file` / `usageKey` | 语义 PNG 文件名和不带扩展名的稳定引用键 |
+| `displayName` | 中文审查名，用于 UI 显示 |
+| `emotion` / `affect` | 情绪和表情状态 |
+| `pose` / `eyes` / `gaze` / `mouth` | 姿态、眼型、视线、嘴型 |
+| `blush` / `shadow` / `tears` / `wound` / `sweat` | 不能被折叠掉的关键状态 |
+| `representativeOriginalFile` | 代表图的原始文件名 |
+| `representativeSourceRelPath` | 代表图来源路径，能回溯到证据包 |
+| `memberCount` | 同语义组成员数量 |
+| `members` | 所有被折叠为可替代项的原图、来源、hash、状态签名 |
+| `interchangeableGroupId` | 可替代组 ID；没有可替代项时可为空 |
+
+`_interchangeable/<usageKey>/` 必须保留被隐藏的可替代成员，用于审查“是否折叠过头”。这里的图片不进入主列表，但不能丢失；用户发现某个 ALT 有脸红、阴影、嘴型或情绪差异时，必须把它拆回主目录并生成新的语义文件名。
+
+### 主审查式手工安全折叠
+
+八意永琳、风见幽香、博丽灵梦已经确认采用同一种最终头像审查模式。以后全角色推广必须固定使用这个模式，不能再把全量自动折叠脚本的输出当成最终结果。
+
+核心原则：
+
+- `named-avatars/<角色>/<assetKind>/` 是用户最终审查和演出编排的唯一主入口；主目录只放可直接用于演出的代表 PNG。
+- 脚本和 LLM 只能准备候选、图板、初始标签、相似关系和 manifest 草稿；最终是否折叠必须按图板逐组做主审查式确认。
+- 未经用户认可的全量自动折叠产物必须删除或隔离，不能和已通过审查的角色混放在同一个 `named-avatars` 目录里。
+- 推广到所有角色前，必须先选一个试点角色完整跑通并交给用户审查；试点通过后，才能按同一模式批量处理下一批角色。
+- 审查目标是“主目录不像资源 dump，且不漏状态差分”。允许保留冗余主图，不允许把状态差分藏进 `_interchangeable`。
+
+执行步骤：
+
+1. 从 `avatars/<角色>/<assetKind>/` 的最终透明 PNG 出发，不从旧 `named-avatars` 或旧全量报告反推事实。
+2. 为每个角色和 `assetKind` 生成全量源图板，编号必须稳定，例如 `I001`、`I002`；图板放入 `reports/named-avatar-manual-fix/<角色>/<assetKind>/`。
+3. 先按图板制定分组草案，再物化输出；不能先批量复制进主目录后再口头解释。
+4. 每个分组只选一个代表图进入主目录，代表图优先选择裁切完整、分辨率高、透明边正确、关键状态最清楚的 PNG。
+5. 同组其他成员全部进入 `_interchangeable/<usageKey>/`，文件名前缀使用 `KEEP__编号__原文件名.png` 和 `ALT__编号__原文件名.png`。
+6. 每个 `_interchangeable/<usageKey>/` 必须写 `group.json`，记录代表图、成员、状态签名、折叠理由和来源。
+7. 主目录必须写 `avatar-manifest.json`、`avatar-manifest.csv` 和 `README.md`；manifest 是演出脚本读取的权威事实层。
+8. 生成最终主图预览 `final-main-*-sheet.png` 和全成员证据图板 `final-groups-*-sheet.png`，交给用户审查。
+9. 用户指出某组折叠过头时，立即把相关 ALT 拆回主目录或重分组；不能用模型标签为错误分组辩护。
+10. 用户指出两个主图其实相同时，优先检查是否存在汗、泪、脸红、阴影、伤、嘴型、眼型差异；若没有稳定可见差异，合并成一个主图。
+
+折叠边界：
+
+- 可以折叠：同一表情的裁切、画布、缩放、透明边、压缩、抗锯齿、清晰度、轻微线条差异。
+- 可以折叠：同一演出语义下的轻微口型误标或模型标签差异，例如同一张半睁笑被标成“得意笑/微笑”。
+- 必须保留为主图：汗、泪、脸红、阴影眼、受伤、流血、惊恐、怒吼、明显嘴型变化、睁闭眼变化、视线方向变化、情绪意义变化。
+- 如果缩小预览看不清差异，必须生成局部放大对照图；放大后仍不稳定的差异不应强行作为单独主图。
+- 对脸红和汗滴尤其保守：脸红不能和非脸红合并；脸红之间也默认保留为主图，除非人工明确确认强度、位置、眼型、嘴型、情绪和演出用途完全可替代。汗滴不能和无汗合并；汗滴之间看不清时生成更小的局部图板，不要在大图板里硬判。
+- 代表图必须选组内画质最好的：优先完整裁切、高分辨率、线条清晰、压缩噪声少、透明边正确、关键状态最清楚的 PNG；不能只选最早出现的文件。
+
+验收口径：
+
+- 通过角色应能在 `named-avatars/<角色>/<assetKind>/` 中直接看到少量、语义清晰、可演出的头像集合。
+- `_interchangeable` 不是垃圾桶，而是审查证据层；里面任何一张都必须能解释为什么和 KEEP 可替代。
+- 已通过的角色目录不得被后续全量脚本覆盖。需要重跑时，先备份或隔离，再按同一模式重新生成。
+
+常用受控词建议：
+
+| 维度 | 示例 |
+| --- | --- |
+| `emotion/affect` | `neutral`、`calm`、`happy`、`sad`、`angry`、`surprised`、`frightened`、`embarrassed`、`alert`、`sleepy`、`sly` |
+| `pose` | `front`、`tilted`、`profile`、`three_quarter` |
+| `eyes` | `open`、`closed`、`half_lidded`、`wide`、`shadowed` |
+| `gaze` | `front`、`side`、`down`、`up` |
+| `mouth` | `closed`、`smile`、`open`、`small_o`、`grimace`、`pout` |
+| `modifier` | `blush`、`shadow`、`tear`、`sweat`、`wounded`、`battle` |
 
 ## 四、视觉重复与差分
 
@@ -999,6 +1108,8 @@ flowchart TD
 - 彩色立绘的表情差分、姿势差分、服装差分。
 - 同一漫画角色但不是同一格的不同截图。
 - 同一角色在不同剧情状态下的图，例如战斗前、受伤后、特殊变身。
+
+头像“可互相替代”折叠也不能越过这些状态差分。它的原则是“允许冗余，不允许漏”：自动流程只能高精度隐藏，不能为了减少数量而吞掉状态差分。判断核心是语义状态一致，而不是像素完全一致。脸红、黑影/阴影眼、受伤、惊恐、流泪、明显嘴型变化都必须单独保留；只允许在同一语义状态内折叠轻微线条、裁切、画布大小、压缩、抗锯齿或透明边差异。裁切/画布/是否露出上半身只有在丢失表情或状态信息时才拆分；如果表情语义一致，应折叠到同一候选组。脸红本身不是可合并标签，脸红强度、眼型、嘴型和情绪都一致时才允许进入同一候选组。同构图、同姿态、同角度也不是可合并依据，必须同时匹配眼神方向、嘴型和情绪。视觉模型只输出候选和差异说明；只要程序差分、状态签名、视觉复核任一环节发现语义差异或不确定，就必须保留。
 
 漫画图特殊规则：
 
@@ -1435,6 +1546,7 @@ flowchart TD
 - `image-visual-groups` 总数、自动组数、AI 确认组数、待人类复核组数。
 - `visualDuplicate` 组数、被复用图片数、canonical 数。
 - `variantGroup` 组数、差分图片数。
+- `named-avatars` 角色数、各 `assetKind` 语义 PNG 数、`avatar-manifest` 数、`_interchangeable` 组数和被隐藏成员数。
 - `role-classification-candidates` 数量、AI 自动确认数量、低置信数量、角色冲突数量。
 - `manga-avatar`、`manga-panel` 中 `needsMatting=true` 的数量，必须为 0。
 - `mattingAllowed=true`、`needsMatting=true`、QA 通过、QA 拒绝数量。
@@ -1777,6 +1889,9 @@ flowchart LR
 - `variantGroup` 没有被合并上传。
 - `visualDuplicate` 复用关系有 canonical 和移除/复用报告。
 - 所有被使用的透明图都通过 QA。
+- 最终头像已生成 `named-avatars/<角色>/<assetKind>/`；主目录 PNG 使用语义命名，不再只有 hash、楼层号或下载序号。
+- 每个 `named-avatars/<角色>/<assetKind>/` 都包含 `avatar-manifest.json` 和 `avatar-manifest.csv`，manifest 能回溯原始文件、`sourceRelPath`、`sha256`、成员列表和可替代关系。
+- 被头像折叠隐藏的同语义候选保存在 `_interchangeable/<usageKey>/`，没有丢失；如果存在脸红、黑影、受伤、流泪、明显嘴型或情绪差异，必须拆回主目录。
 - 旧 `__matted.png` 没有作为事实层输入。
 - `anomaly-queue.csv` 已生成，低置信、冲突、抠图门禁违规、AI 输出结构错误都有可复核记录。
 - `final-sampling-review.csv` 已生成，每个高频角色和关键分类都有最终抽样结论。
@@ -1810,6 +1925,7 @@ flowchart LR
 - `anomaly-queue.csv` 和 `final-sampling-review.csv`：需要生成异常队列和人类最终少量抽样包，避免把 unknown 全量交给人。
 - 端到端抠图 QA：规则要求 `matting-decisions.csv`、alpha mask、QA contact sheet 和 `qaStatus=approved`，现有自动运行 rembg 与 QA 汇总需要现场确认或补齐。
 - clean 阶段抠图门禁：必须确认脚本按 `mattingAllowed`、`needsMatting`、`qaStatus` 消费透明图，而不是只看 `transparentRelPath` 是否存在。
+- 语义命名头像产物：八意永琳样例已验证 `named-avatars/<角色>/<assetKind>/` 结构，但全角色自动生成、manifest 溯源字段补全、演出脚本按 `usageKey` 消费还需要接线。
 - 背景流程：`scene` 时间线和 `background` 图片候选已定义，但背景资源上传、WebGAL 切背景和缺省背景策略还需要单独接线。
 - BGM manifest：文本 BGM 事件可以保留；本地音频匹配、上传、播放绑定和缺失清单还不是完整自动链路。
 - 复核 UI：本文定义了证据包、类型标签、视觉组、角色候选、异常队列和抽样终验视图，现有 `gululu-review-server.mjs` 是否完全覆盖需要另行核对。
