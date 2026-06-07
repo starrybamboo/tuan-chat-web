@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, "..");
 const workspaceRoot = resolve(projectRoot, "..", "..");
+const isCheckOnly = process.argv.includes("--check");
 
 const DEFAULT_WEBGAL_TERRE_RELEASE_DIR = resolve(
   workspaceRoot,
@@ -22,14 +23,20 @@ const sourceReleaseDir = isAbsolute(sourceReleaseDirRaw)
   : resolve(projectRoot, sourceReleaseDirRaw);
 
 const targetDir = resolve(projectRoot, "extraResources");
-const requiredExeName = "WebGAL_Terre.exe";
+const webgalExeCandidates = ["WebGAL_Terre.exe", "WebGAL_Teree.exe"];
 const runtimeIgnoredDirs = [
   "public/games",
   "Exported_Games",
 ];
 
-function hasWebGALTerreExe(dir) {
-  return existsSync(resolve(dir, requiredExeName));
+function getExistingWebGALExecutable(dir) {
+  for (const exeName of webgalExeCandidates) {
+    const absolutePath = resolve(dir, exeName);
+    if (existsSync(absolutePath))
+      return { absolutePath, exeName };
+  }
+
+  return null;
 }
 
 function ensureDir(dir) {
@@ -66,6 +73,10 @@ function pruneRuntimeUserContent(dir) {
   }
 }
 
+function formatExecutableCandidates() {
+  return webgalExeCandidates.join(" / ");
+}
+
 function syncWebGALTerreRelease() {
   ensureDir(targetDir);
 
@@ -80,10 +91,10 @@ function syncWebGALTerreRelease() {
   }
 
   const sourceExists = existsSync(sourceReleaseDir);
-  const sourceHasExe = sourceExists && hasWebGALTerreExe(sourceReleaseDir);
+  const sourceExecutable = sourceExists ? getExistingWebGALExecutable(sourceReleaseDir) : null;
 
-  if (!sourceHasExe) {
-    if (hasWebGALTerreExe(targetDir)) {
+  if (!sourceExecutable) {
+    if (getExistingWebGALExecutable(targetDir)) {
       pruneRuntimeUserContent(targetDir);
       console.warn(`[electron:prepare:resources] 未找到可用的 WebGAL_Terre release，沿用现有 extraResources：
   source: ${sourceReleaseDir}
@@ -91,24 +102,33 @@ function syncWebGALTerreRelease() {
       return;
     }
 
-    throw new Error(`[electron:prepare:resources] 未找到 WebGAL_Terre 发行目录或缺少 ${requiredExeName}。
+    throw new Error(`[electron:prepare:resources] 未找到 WebGAL_Terre 发行目录或缺少可执行文件（${formatExecutableCandidates()}）。
 请先构建 WebGAL_Terre 到默认路径：
   ${DEFAULT_WEBGAL_TERRE_RELEASE_DIR}
 或设置环境变量 WEBGAL_TERRE_RELEASE_DIR 指向正确目录。`);
+  }
+
+  if (isCheckOnly) {
+    console.log(`[electron:check:resources] 已找到 WebGAL_Terre 资源：
+  source: ${sourceReleaseDir}
+  executable: ${sourceExecutable.exeName}`);
+    return;
   }
 
   clearTargetDir(targetDir);
   copyReleaseContents(sourceReleaseDir, targetDir);
   pruneRuntimeUserContent(targetDir);
 
-  if (!hasWebGALTerreExe(targetDir)) {
-    throw new Error(`[electron:prepare:resources] 同步完成但目标目录缺少 ${requiredExeName}：
+  const targetExecutable = getExistingWebGALExecutable(targetDir);
+  if (!targetExecutable) {
+    throw new Error(`[electron:prepare:resources] 同步完成但目标目录缺少可执行文件（${formatExecutableCandidates()}）：
   ${targetDir}`);
   }
 
   console.log(`[electron:prepare:resources] 已同步 WebGAL_Terre 资源：
   source: ${sourceReleaseDir}
-  target: ${targetDir}`);
+  target: ${targetDir}
+  executable: ${targetExecutable.exeName}`);
 }
 
 syncWebGALTerreRelease();

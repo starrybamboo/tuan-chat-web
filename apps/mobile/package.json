@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start --port 8082",
     "dev": "expo start --port 8082",
+    "build:web": "expo export --platform web --output-dir .expo-export-web",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
