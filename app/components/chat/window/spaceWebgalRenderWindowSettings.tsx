@@ -177,7 +177,7 @@ export function SpaceWebgalRenderWindowSettings({
               </div>
 
               <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.workflowLayer ? "p-4" : "px-4 py-2"}`}>
-                <div className={`flex items-center justify-between gap-2${sectionExpandedMap.workflowLayer ? " mb-3" : ""}`}>
+                <div className={`flex items-center justify-between gap-2${sectionExpandedMap.workflowLayer ? " mb-3" : ""}`.trim()}>
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="text-sm font-semibold shrink-0">流程图</div>
                     <span className="text-xs text-base-content/60 truncate">（修改流程图请打开全屏修改）</span>
@@ -198,7 +198,7 @@ export function SpaceWebgalRenderWindowSettings({
               </div>
 
               <div className={`rounded-lg border border-base-300 bg-base-100 ${sectionExpandedMap.renderLayer ? "p-4" : "px-4 py-2"}`}>
-                <div className={`flex items-center justify-between gap-2${sectionExpandedMap.renderLayer ? " mb-3" : ""}`}>
+                <div className={`flex items-center justify-between gap-2${sectionExpandedMap.renderLayer ? " mb-3" : ""}`.trim()}>
                   <div className="text-sm font-semibold">渲染表现层</div>
                   <SectionCollapseToggle
                     expanded={sectionExpandedMap.renderLayer}
@@ -231,7 +231,7 @@ export function SpaceWebgalRenderWindowSettings({
               </div>
 
               <div className={`rounded-lg border border-base-300 bg-base-100 ${isTtsConfigVisible ? "p-4" : "px-4 py-2"}`}>
-                <div className={`flex flex-wrap items-center justify-between gap-2${isTtsConfigVisible ? " mb-3" : ""}`}>
+                <div className={`flex flex-wrap items-center justify-between gap-2${isTtsConfigVisible ? " mb-3" : ""}`.trim()}>
                   <div className="text-sm font-semibold">TTS 配音层</div>
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-2 rounded-md border border-base-300 px-2 py-1 text-xs">

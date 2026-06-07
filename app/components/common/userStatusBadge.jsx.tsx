@@ -44,14 +44,14 @@ const UserStatusDot: React.FC<UserStatusDotProps> = ({
 
   return (
     <div
-      className={`
-        rounded-full 
-        ring-1 ring-white/50
-        ${sizeMap[size]} 
-        ${statusColorMap[finalStatus]}
-        ${editable ? "cursor-pointer" : ""}
-        ${className}
-      `}
+      className={[
+        "rounded-full",
+        "ring-1 ring-white/50",
+        sizeMap[size],
+        statusColorMap[finalStatus],
+        editable ? "cursor-pointer" : "",
+        className,
+      ].filter(Boolean).join(" ")}
       title={`当前状态: ${finalStatus}`}
     />
   );

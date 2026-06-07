@@ -165,7 +165,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
           onClose={() => setIsPopupOpen(false)}
           fullScreen={data.isMobile}
         >
-          <div className="w-[50vw] ">
+          <div className="w-[50vw]">
             { data.children || (
               <ItemDetail
                 itemName={data.label}

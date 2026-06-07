@@ -139,7 +139,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           {/* GNS雷达图 */}
           {!userQuery.isLoading && (
             <div className="mt-6 border border-base-300 rounded-lg w-full p-4">
-              <div className=" w-full">
+              <div className="w-full">
                 <GNSSpiderChart userId={userId} />
               </div>
             </div>

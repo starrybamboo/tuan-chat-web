@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { ChatMessageResponse } from "../../../../../api";
-
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
+
+import type { ChatMessageResponse } from "../../../../../api";
 
 function createMessageResponse(overrides: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
   return {

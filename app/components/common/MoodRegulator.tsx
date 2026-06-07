@@ -163,7 +163,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
 
   return (
     <div className={className}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4  bg-base-100 p-4 rounded-md">
+      <div className="grid grid-cols-1 rounded-md bg-base-100 p-4 md:grid-cols-2 gap-4">
         {labelKeys.map((k) => {
           const v = effective[k] ?? 0;
           return (

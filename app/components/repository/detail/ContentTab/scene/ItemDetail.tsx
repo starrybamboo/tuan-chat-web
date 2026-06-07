@@ -54,7 +54,7 @@ function ItemDetail({ itemName, itemList }: ItemDetailProps) {
     <div className="h-full w-full flex gap-2">
       <div className="flex flex-col gap-4 p-2 md:p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
         <div className="hidden md:block">
-          <h1 className="text-2xl md:text-3xl font-bold ">{normalizedItemInfo?.name || "未命名"}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">{normalizedItemInfo?.name || "未命名"}</h1>
         </div>
         {normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
@@ -75,8 +75,8 @@ function ItemDetail({ itemName, itemList }: ItemDetailProps) {
         {/* 物品描述（统一为SceneDetail样式） */}
         {normalizedItemInfo?.description && (
           <div className="w-full">
-            <h4 className="font-semibold text-base md:text-lg  mb-2">描述</h4>
-            <div className="bg-info/10  p-3 rounded-lg text-sm md:text-base">
+            <h4 className="font-semibold text-base md:text-lg mb-2">描述</h4>
+            <div className="bg-info/10 p-3 rounded-lg text-sm md:text-base">
               <MarkdownMentionViewer markdown={normalizedItemInfo.description} />
             </div>
           </div>
@@ -85,7 +85,7 @@ function ItemDetail({ itemName, itemList }: ItemDetailProps) {
         {permission === "kp" && normalizedItemInfo?.tip && (
           <div className="w-full">
             <h4 className="font-semibold text-base md:text-lg mb-2 text-orange-600">KP提示</h4>
-            <div className=" bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">
+            <div className="bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">
               <MarkdownMentionViewer markdown={normalizedItemInfo.tip} />
             </div>
           </div>

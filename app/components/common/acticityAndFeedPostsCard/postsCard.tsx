@@ -188,8 +188,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
     <>
       <article
         ref={postRef}
-        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative 
-         ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
+        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative ${
+          isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"
+        }`}
       >
         {isDeleting && (
           <div className="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center z-10">

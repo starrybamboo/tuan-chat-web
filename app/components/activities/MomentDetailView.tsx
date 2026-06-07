@@ -232,7 +232,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                     <div
                       className={`grid gap-4 max-w-lg mx-auto ${
                         images.length === 1
-                          ? "grid-cols-1 max-w-md mx-auto"
+                          ? "grid-cols-1 max-w-md"
                           : images.length === 2
                             ? "grid-cols-1 sm:grid-cols-2"
                             : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"

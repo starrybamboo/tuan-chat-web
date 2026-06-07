@@ -128,7 +128,8 @@ describe("roomMessageStreamApi", () => {
       roomId: 10,
     });
 
-    expect((patchRoomMessagesMock.mock.calls[0]?.[0] as any).mutationMeta).toBeUndefined();
+    const [firstCall] = patchRoomMessagesMock.mock.calls;
+    expect((firstCall?.[0] as any)?.mutationMeta).toBeUndefined();
   });
 
   it("没有有效内容操作时不请求远端", async () => {

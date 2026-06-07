@@ -192,7 +192,7 @@ export function ChatPageRoomSettingContent() {
 
   return (
     <div className="flex w-full h-full justify-center min-h-0 min-w-0">
-      <div className="w-full h-full overflow-auto flex justify-center ">
+      <div className="w-full h-full overflow-auto flex justify-center">
         <React.Suspense fallback={<ChatPageLoadingFallback text="正在加载房间设置..." />}>
           <LazyRoomSettingWindow
             roomId={roomSettingState.roomId}

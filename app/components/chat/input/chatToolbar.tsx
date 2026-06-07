@@ -338,7 +338,7 @@ function ChatToolbar({
               {showSendButton && !isStacked && (
                 <div className="tooltip tooltip-top" data-tip="发送">
                   <SendIcon
-                    className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+                    className={`size-6 font-light hover:text-info md:mb-1 ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
                     onClick={handleMessageSubmit}
                   >
                   </SendIcon>
@@ -375,13 +375,12 @@ function ChatToolbar({
                 {showSendButton && (
                   <div className="tooltip tooltip-top" data-tip="发送">
                     <SendIcon
-                      className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
+                      className={`size-6 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20" : ""}`.trim()}
                       onClick={handleMessageSubmit}
                     >
                     </SendIcon>
                   </div>
                 )}
-
               </div>
             )}
           </div>

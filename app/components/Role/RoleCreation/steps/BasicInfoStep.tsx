@@ -12,7 +12,7 @@ export default function BasicInfoStep({ characterData, onCharacterDataChange }: 
   const descriptionCounterClass = isDescriptionTooLong ? "text-error" : "text-base-content/60";
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-6">
       <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
         <div className="card-body">
           <h3 className="card-title flex items-center gap-2 mb-4">

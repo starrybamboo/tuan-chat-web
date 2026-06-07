@@ -25,7 +25,7 @@ export default function RepositoryCreateMain() {
           {/* 规则选择 */}
           <RuleSelector value={ruleId} onChange={setValue} />
           {/* <RulesSection currentRuleId={ruleId} onRuleChange={(id) => setValue("ruleId", id)} large={false} /> */}
-          <section className="flex-2/3 px-5 md:border-l md:border-base-300 ">
+          <section className="flex-2/3 px-5 md:border-l md:border-base-300">
             { /* 仓库信息 */ }
             <RepositoryForm register={register} errors={errors} />
             {/* 仓库封面 */}

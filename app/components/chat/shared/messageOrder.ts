@@ -1,7 +1,7 @@
-import type { ChatMessageResponse, Message } from "../../../../api";
-
 import { compareMessagesByOrder as compareSharedMessagesByOrder } from "@tuanchat/query/room-message";
 import { getNextAppendPosition as getSharedNextAppendPosition } from "@tuanchat/query/room-message-lifecycle";
+
+import type { ChatMessageResponse, Message } from "../../../../api";
 
 export function compareChatMessageResponsesByOrder(left: ChatMessageResponse, right: ChatMessageResponse): number {
   return compareSharedMessagesByOrder(left.message, right.message);

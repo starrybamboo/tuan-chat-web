@@ -1,6 +1,5 @@
-import type { PatchMessagesRequest } from "@tuanchat/query/chat";
-
 import type { MessageUndoAction } from "@/components/chat/stores/roomUiStore";
+import type { PatchMessagesRequest } from "@tuanchat/query/chat";
 
 import type { Message, RoomMessageStreamItem, RoomMessageStreamPatchOperation } from "../../../../api";
 
