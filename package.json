@@ -29,11 +29,9 @@
     "typecheck:tsc": "tsc -p tsconfig.typecheck.json",
     "typecheck:tsgo": "tsgo -p tsconfig.typecheck.json",
     "typecheck:web": "pnpm typecheck",
-    "lint": "pnpm lint:ox && pnpm lint:eslint",
+    "lint": "pnpm lint:ox",
     "lint:all": "pnpm lint:web && pnpm lint:mobile",
-    "lint:fix": "pnpm lint:ox:fix && pnpm lint:eslint:fix",
-    "lint:eslint": "eslint . --cache --cache-location node_modules/.cache/eslint/.eslintcache",
-    "lint:eslint:fix": "eslint . --fix --cache --cache-location node_modules/.cache/eslint/.eslintcache",
+    "lint:fix": "pnpm lint:ox:fix",
     "lint:mobile": "pnpm mobile:lint",
     "lint:ox": "oxlint . --config .oxlintrc.json --no-error-on-unmatched-pattern",
     "lint:ox:fix": "oxlint . --config .oxlintrc.json --fix --fix-suggestions --no-error-on-unmatched-pattern",
@@ -190,7 +188,8 @@
     }
   },
   "lint-staged": {
-    "*": "eslint",
+    "*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config .oxlintrc.json --no-error-on-unmatched-pattern",
+    "apps/mobile/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config apps/mobile/.oxlintrc.json --no-error-on-unmatched-pattern",
     "*.{ts,tsx,js,jsx,mjs,cjs,json,md,css,html,yml,yaml,ps1,sql}": "node ./scripts/check-encoding.mjs"
   }
 }
