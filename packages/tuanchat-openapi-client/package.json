@@ -8,5 +8,8 @@
     "./core/*": "./src/core/*.ts",
     "./models/*": "./src/models/*.ts",
     "./services/*": "./src/services/*.ts"
+  },
+  "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*"
   }
 }

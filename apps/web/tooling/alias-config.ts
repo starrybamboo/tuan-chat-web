@@ -1,14 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const WEB_TS_PATHS_CONFIG = "tsconfig.paths.json";
+const WEB_TS_CONFIG = "tsconfig.json";
 
 function escapeForRegExp(input: string) {
   return input.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function readWebTsPaths(projectRoot: string) {
-  const configPath = path.resolve(projectRoot, WEB_TS_PATHS_CONFIG);
+  const configPath = path.resolve(projectRoot, WEB_TS_CONFIG);
   const rawConfig = JSON.parse(fs.readFileSync(configPath, "utf8")) as {
     compilerOptions?: {
       paths?: Record<string, string[]>;

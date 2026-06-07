@@ -66,6 +66,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*",
     "@babel/core": "7.29.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "@rolldown/plugin-babel": "^0.2.3",
@@ -83,9 +84,7 @@
     "daisyui": "^5.5.19",
     "esbuild": "^0.27.2",
     "eslint-plugin-better-tailwindcss": "^4.5.0",
-    "eslint-plugin-perfectionist": "^4.15.1",
     "eslint-plugin-react-dom": "^5.8.13",
-    "eslint-plugin-react-hooks": "^7.0.0",
     "oxlint": "1.63.0",
     "playwright": "^1.58.2",
     "tailwindcss": "^4.2.4",

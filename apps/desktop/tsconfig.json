@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.package.json",
+  "extends": "@tuanchat/typescript-config/library.json",
   "compilerOptions": {
     "allowJs": true,
     "checkJs": false

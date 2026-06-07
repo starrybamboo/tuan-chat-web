@@ -35,5 +35,8 @@
   },
   "dependencies": {
     "@tuanchat/openapi-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*"
   }
 }
