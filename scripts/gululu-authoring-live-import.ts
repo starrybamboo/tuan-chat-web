@@ -1,19 +1,17 @@
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { Sharp } from "sharp";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process, { env } from "node:process";
 import { fileURLToPath } from "node:url";
-
-import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-
-import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type SpriteTransform = NonNullable<RoleAvatar["spriteTransform"]>;
 
@@ -129,6 +127,7 @@ export type GululuLiveImportArgs = {
   namedAvatarRoot?: string;
   opusId?: number;
   out?: string;
+  roomName?: string;
   skipNamedAvatars?: boolean;
   skipAvatarUpload?: boolean;
   sourceKey?: string;
@@ -191,7 +190,8 @@ export type GululuLiveImportPlan = {
     warnings: number;
   };
   target: {
-    roomId: number;
+    roomId?: number;
+    roomName?: string;
     spaceId?: number;
   };
   warnings: string[];
@@ -214,6 +214,13 @@ export type GululuLiveImportClient = {
   };
   roomController?: {
     getUserRooms: (spaceId: number) => Promise<ApiResult<RoomListResponse>>;
+  };
+  spaceController?: {
+    createRoom: (requestBody: { roomName?: string; spaceId: number; userIdList?: number[] }) => Promise<ApiResult<{
+      name?: string;
+      roomId?: number;
+      spaceId?: number;
+    }>>;
   };
   spaceSidebarTreeController?: {
     getSidebarTree: (spaceId: number) => Promise<ApiResult<SidebarTreeResponse>>;
@@ -253,6 +260,12 @@ export type GululuLiveImportApplyResult = {
     spriteTransform?: SpriteTransform;
   }>;
   messages: Array<{ messageId?: number; sourceEventIndex: number }>;
+  room?: {
+    action: "created" | "reused";
+    name?: string;
+    roomId: number;
+    spaceId?: number;
+  };
   roles: Array<{ action: "created" | "reused"; key: string; roleId: number }>;
   sidebarTree?: {
     action: "added" | "already-present" | "skipped";
@@ -523,6 +536,10 @@ export function parseLiveImportArgs(argv: string[]): GululuLiveImportArgs {
     }
     else if (arg === "--out") {
       args.out = readValue(argv, index, arg);
+      index++;
+    }
+    else if (arg === "--room-name") {
+      args.roomName = readValue(argv, index, arg);
       index++;
     }
     else if (arg === "--source-root") {
@@ -1000,13 +1017,18 @@ export function buildGululuLiveImportPlan(
   importPackage: GululuReplayImportPackage,
   options: GululuLiveImportArgs,
 ): GululuLiveImportPlan {
-  if (!Number.isInteger(options.targetRoomId) || !options.targetRoomId || options.targetRoomId <= 0) {
+  if (options.targetRoomId != null && (!Number.isInteger(options.targetRoomId) || options.targetRoomId <= 0)) {
     throw new Error("targetRoomId must be a positive integer");
+  }
+  if (!options.targetRoomId && !options.roomName?.trim()) {
+    throw new Error("targetRoomId or roomName is required");
   }
   if (!Number.isInteger(options.targetSpaceId) || !options.targetSpaceId || options.targetSpaceId <= 0) {
     throw new Error("targetSpaceId must be a positive integer");
   }
 
+  // roomName-only plans are retargeted after the real room is created during apply.
+  const planRoomId = options.targetRoomId ?? -1;
   const source = buildSource(importPackage, options);
   const warnings: string[] = [];
   const messages = importPackage.messages ?? [];
@@ -1064,7 +1086,7 @@ export function buildGululuLiveImportPlan(
         plannedMessages.push({
           kind: "narration",
           request: createNarrationRequest(
-            options.targetRoomId!,
+            planRoomId,
             safeMessageContent(`${message.speakerName ?? roleName}：${contentOrEmpty(message)}`, warnings, `第 ${eventIndex} 条对白`),
           ),
           source: sourceInfo,
@@ -1082,7 +1104,7 @@ export function buildGululuLiveImportPlan(
             : undefined,
           extra: {},
           messageType: MESSAGE_TYPE.TEXT,
-          roomId: options.targetRoomId!,
+          roomId: planRoomId,
         },
         roleKey: nextRoleKey,
         source: sourceInfo,
@@ -1101,7 +1123,7 @@ export function buildGululuLiveImportPlan(
             extra: buildDiceExtra(message, options),
             messageType: MESSAGE_TYPE.DICE,
             roleId: options.dicerRoleId ?? -1,
-            roomId: options.targetRoomId!,
+            roomId: planRoomId,
           }
         : {
             avatarId: -1,
@@ -1110,7 +1132,7 @@ export function buildGululuLiveImportPlan(
             extra: {},
             messageType: MESSAGE_TYPE.TEXT,
             roleId: -1,
-            roomId: options.targetRoomId!,
+            roomId: planRoomId,
           };
       plannedMessages.push({
         kind: "dice",
@@ -1130,7 +1152,7 @@ export function buildGululuLiveImportPlan(
           extra: {},
           messageType: MESSAGE_TYPE.TEXT,
           roleId: -1,
-          roomId: options.targetRoomId!,
+          roomId: planRoomId,
         },
         source: sourceInfo,
       });
@@ -1141,7 +1163,7 @@ export function buildGululuLiveImportPlan(
     plannedMessages.push({
       kind: "narration",
       request: createNarrationRequest(
-        options.targetRoomId!,
+        planRoomId,
         safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条旁白`),
       ),
       source: sourceInfo,
@@ -1160,7 +1182,8 @@ export function buildGululuLiveImportPlan(
       warnings: warnings.length,
     },
     target: {
-      roomId: options.targetRoomId,
+      ...(options.targetRoomId ? { roomId: options.targetRoomId } : {}),
+      ...(options.roomName?.trim() ? { roomName: options.roomName.trim() } : {}),
       spaceId: options.targetSpaceId,
     },
     warnings,
@@ -1191,6 +1214,54 @@ function materializeMessageRequest(
     ...message.request,
     ...(message.roleKey ? { roleId: roleIds.get(message.roleKey) ?? -1 } : {}),
     ...(message.avatarKey ? { avatarId: avatarIds.get(message.avatarKey) ?? -1 } : {}),
+  };
+}
+
+function retargetPlanRoom(plan: GululuLiveImportPlan, roomId: number) {
+  plan.target.roomId = roomId;
+  for (const message of plan.messages) {
+    message.request.roomId = roomId;
+  }
+}
+
+async function ensureTargetRoom(
+  plan: GululuLiveImportPlan,
+  client: GululuLiveImportClient,
+): Promise<NonNullable<GululuLiveImportApplyResult["room"]>> {
+  const existingRoomId = normalizeRoomId(plan.target.roomId);
+  if (existingRoomId) {
+    retargetPlanRoom(plan, existingRoomId);
+    return {
+      action: "reused",
+      roomId: existingRoomId,
+      spaceId: plan.target.spaceId,
+    };
+  }
+
+  const spaceId = plan.target.spaceId;
+  if (!spaceId) {
+    throw new Error("创建导入房间需要 targetSpaceId");
+  }
+  if (!client.spaceController) {
+    throw new Error("当前 client 缺少 spaceController，无法创建房间");
+  }
+  const room = assertApiData(
+    await client.spaceController.createRoom({
+      roomName: plan.target.roomName ?? "咕噜噜 replay 导入",
+      spaceId,
+    }),
+    "创建导入房间失败",
+  );
+  const roomId = normalizeRoomId(room.roomId);
+  if (!roomId) {
+    throw new Error("创建导入房间响应缺少 roomId");
+  }
+  retargetPlanRoom(plan, roomId);
+  return {
+    action: "created",
+    name: room.name,
+    roomId,
+    spaceId: room.spaceId ?? spaceId,
   };
 }
 
@@ -1291,7 +1362,10 @@ export async function ensureRoomInSidebarTree(
   client: GululuLiveImportClient,
 ): Promise<NonNullable<GululuLiveImportApplyResult["sidebarTree"]>> {
   const spaceId = plan.target.spaceId;
-  const roomId = plan.target.roomId;
+  const roomId = normalizeRoomId(plan.target.roomId);
+  if (!roomId) {
+    return { action: "skipped", reason: "missing-room-id", roomId: -1, spaceId };
+  }
   if (!spaceId) {
     return { action: "skipped", reason: "missing-space-id", roomId };
   }
@@ -1342,7 +1416,8 @@ export async function applyGululuLiveImportPlan(
   client: GululuLiveImportClient,
   deps: ApplyLiveImportDeps = {},
 ): Promise<GululuLiveImportApplyResult> {
-  const existingRoles = await loadExistingNpcRoles(client, plan.target.roomId);
+  const room = await ensureTargetRoom(plan, client);
+  const existingRoles = await loadExistingNpcRoles(client, room.roomId);
   const existingRoleByName = new Map(existingRoles
     .filter(role => role.roleName && role.roleId > 0)
     .map(role => [role.roleName!, role]));
@@ -1371,7 +1446,7 @@ export async function applyGululuLiveImportPlan(
     assertApiSuccess(
       await client.roomRoleController.addRole({
         roleIdList: createdRoleIds,
-        roomId: plan.target.roomId,
+        roomId: room.roomId,
         type: NPC_ROLE_TYPE,
       }),
       "拉入 NPC 角色失败",
@@ -1436,6 +1511,7 @@ export async function applyGululuLiveImportPlan(
   return {
     avatars: avatarResults,
     messages: messageResults,
+    room,
     roles: roleResults,
     sidebarTree,
   };
