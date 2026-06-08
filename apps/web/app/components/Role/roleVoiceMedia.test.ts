@@ -4,7 +4,6 @@ import {
   buildRoleVoiceClearPatch,
   buildRoleVoiceUploadPatch,
   hasRoleVoiceMedia,
-  normalizeLegacyVoiceUrl,
   resolveRoleVoiceUrl,
 } from "./roleVoiceMedia";
 
@@ -14,36 +13,26 @@ vi.mock("@/utils/mediaUrl", () => ({
 }));
 
 describe("roleVoiceMedia", () => {
-  it("语音槽位优先使用 voiceFileId，不让旧 voiceUrl 覆盖正式媒体", () => {
+  it("语音槽位使用 voiceFileId 生成正式媒体地址", () => {
     expect(resolveRoleVoiceUrl({
       voiceFileId: 42,
-      voiceUrl: "https://legacy.example/ref.wav",
     })).toBe("media:audio:original:42");
   });
 
-  it("只在缺少 voiceFileId 时读取同槽位 legacy voiceUrl", () => {
-    expect(resolveRoleVoiceUrl({
-      voiceUrl: " https://legacy.example/ref.wav ",
-    })).toBe("https://legacy.example/ref.wav");
-    expect(hasRoleVoiceMedia({ voiceUrl: "   " })).toBe(false);
+  it("缺少 voiceFileId 时视为没有语音媒体", () => {
+    expect(resolveRoleVoiceUrl({})).toBe("");
+    expect(hasRoleVoiceMedia({})).toBe(false);
   });
 
-  it("上传 patch 只写 voiceFileId，并显式清空 legacy URL", () => {
+  it("上传 patch 只写 voiceFileId", () => {
     expect(buildRoleVoiceUploadPatch({ voiceFileId: 88, mediaType: "audio" })).toEqual({
       voiceFileId: 88,
-      voiceUrl: null,
     });
   });
 
-  it("清理 patch 同时清空 voiceFileId 和 legacy URL", () => {
+  it("清理 patch 只清空 voiceFileId", () => {
     expect(buildRoleVoiceClearPatch()).toEqual({
       voiceFileId: null,
-      voiceUrl: null,
     });
-  });
-
-  it("legacy voiceUrl 只做 trim", () => {
-    expect(normalizeLegacyVoiceUrl(" https://legacy.example/ref.wav ")).toBe("https://legacy.example/ref.wav");
-    expect(normalizeLegacyVoiceUrl(null)).toBe("");
   });
 });

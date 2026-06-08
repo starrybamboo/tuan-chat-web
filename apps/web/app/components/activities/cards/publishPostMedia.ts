@@ -61,8 +61,7 @@ export function buildMomentFeedRequestFromPostMedia(
   content: string,
   images: readonly PublishPostImageAsset[],
 ): BuildMomentFeedRequestResult {
-  const imageUrls: string[] = [];
-  const originalImageUrls: string[] = [];
+  const imageFileIds: number[] = [];
   const invalidImageIds: string[] = [];
 
   for (const image of images) {
@@ -71,26 +70,14 @@ export function buildMomentFeedRequestFromPostMedia(
       continue;
     }
 
-    const mediaType = resolveImageMediaType(image.mediaType);
-    const imageUrl = mediaFileUrl(image.fileId, mediaType, "medium");
-    const originalImageUrl = mediaFileUrl(image.fileId, mediaType, "original");
-    if (!imageUrl || !originalImageUrl) {
-      invalidImageIds.push(image.id);
-      continue;
-    }
-
-    imageUrls.push(imageUrl);
-    originalImageUrls.push(originalImageUrl);
+    imageFileIds.push(image.fileId);
   }
 
   const request: MomentFeedRequest = {
     content: content.trim(),
   };
-  if (imageUrls.length > 0) {
-    request.imageUrls = imageUrls;
-  }
-  if (originalImageUrls.length > 0) {
-    request.originalImageUrls = originalImageUrls;
+  if (imageFileIds.length > 0) {
+    request.imageFileIds = imageFileIds;
   }
 
   return { request, invalidImageIds };

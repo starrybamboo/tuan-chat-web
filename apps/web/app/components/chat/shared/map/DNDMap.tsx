@@ -1,13 +1,11 @@
-import type { UserRole } from "../../../../../api";
-import type { RoomDndMapToken } from "./roomDndMapApi";
-import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
-import type { StateEventAtom } from "@/types/stateEvent";
-
 import { TrashIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
+
+import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
+import type { StateEventAtom } from "@/types/stateEvent";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
@@ -22,9 +20,12 @@ import {
 } from "@/types/stateEvent";
 import { useIsMobile } from "@/utils/getScreenSize";
 import { uploadMediaFile } from "@/utils/mediaUpload";
+
+import type { UserRole } from "../../../../../api";
+import type { RoomDndMapToken } from "./roomDndMapApi";
+
 import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import { MessageType } from "../../../../../api/wsModels";
-
 import {
   fetchRoomDndMap,
   getRoomDndMapImageUrl,
@@ -54,27 +55,26 @@ const DEFAULT_GRID_COLOR = "#808080";
 const CHATROOM_UPLOAD_SCENE = 1;
 const MAP_TOKEN_DRAG_THRESHOLD_PX = 4;
 
-interface DNDMapProps {
+type DNDMapProps = {
   roomId?: number;
   variant?: "embedded" | "frame";
 }
 
-interface RoleTokenStatus {
+type RoleTokenStatus = {
   activeStates: string[];
   hp: number | null;
   initiative: number | null;
   maxHp: number | null;
 }
 
-interface EffectiveMapConfig {
+type EffectiveMapConfig = {
   mapFileId?: number;
-  imageUrl?: string;
   gridRows: number;
   gridCols: number;
   gridColor: string;
 }
 
-interface DraggingMapTokenState {
+type DraggingMapTokenState = {
   source: "map" | "pool";
   pointerId: number;
   roleId: number;
@@ -525,7 +525,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const gridRows = effectiveMapConfig?.gridRows ?? DEFAULT_GRID_ROWS;
   const gridCols = effectiveMapConfig?.gridCols ?? DEFAULT_GRID_COLS;
   const gridColor = effectiveMapConfig?.gridColor ?? DEFAULT_GRID_COLOR;
-  const mapImageUrl = effectiveMapConfig?.imageUrl || getRoomDndMapImageUrl(effectiveMapConfig);
+  const mapImageUrl = getRoomDndMapImageUrl(effectiveMapConfig);
 
   const sharedMapTokens = useMemo(() => {
     if (!stateRuntime?.hasMapState) {
@@ -617,7 +617,6 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       return;
     }
     const migrationEvents = buildMapStateEventsFromSnapshot(map, {
-      imageUrl: getRoomDndMapImageUrl(map),
       includeTokens: !stateRuntime.hasMapState,
     });
     if (migrationEvents.length === 0) {
@@ -653,7 +652,6 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
 
   const buildMapConfigUpsertEvent = useCallback((patch: {
     mapFileId?: number;
-    imageUrl?: string;
     gridRows?: number;
     gridCols?: number;
     gridColor?: string;
@@ -664,17 +662,15 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       toast.error("请先上传地图");
       return null;
     }
-    const imageUrl = patch.imageUrl || effectiveMapConfig?.imageUrl || getRoomDndMapImageUrl({ mapFileId });
     return {
       type: "mapConfigUpsert",
       mapFileId,
-      imageUrl,
       gridRows: patch.gridRows ?? gridRows,
       gridCols: patch.gridCols ?? gridCols,
       gridColor: patch.gridColor ?? gridColor,
       ...(patch.clearTokens ? { clearTokens: true } : {}),
     };
-  }, [effectiveMapConfig?.imageUrl, effectiveMapConfig?.mapFileId, gridColor, gridCols, gridRows]);
+  }, [effectiveMapConfig?.mapFileId, gridColor, gridCols, gridRows]);
 
   const handleUploadMap = async (file: File) => {
     if (!roomId || roomId <= 0) {
@@ -688,7 +684,6 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       }
       const event = buildMapConfigUpsertEvent({
         mapFileId: uploadedImage.fileId,
-        imageUrl: getRoomDndMapImageUrl({ mapFileId: uploadedImage.fileId }),
         gridRows,
         gridCols,
         gridColor,

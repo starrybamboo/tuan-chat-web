@@ -131,6 +131,45 @@ describe("mediaPersistentImageCache", () => {
     });
   });
 
+  it("全局探测加载成功时保持 unknown，避免把重定向到 original 的响应误记为 available", async () => {
+    const imageInstances: Array<{
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      src: string;
+    }> = [];
+
+    class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      private _src = "";
+
+      constructor() {
+        imageInstances.push(this);
+      }
+
+      set src(value: string) {
+        this._src = value;
+        queueMicrotask(() => {
+          this.onload?.();
+        });
+      }
+
+      get src() {
+        return this._src;
+      }
+    }
+
+    vi.stubGlobal("Image", MockImage as never);
+
+    startPersistentMediaImageDerivativeProbe(imageUrl);
+
+    expect(imageInstances).toHaveLength(1);
+    await vi.waitFor(() => {
+      expect(fakeStorage.getItem(STORAGE_KEY)).toBeNull();
+    });
+    expect(resolvePersistentMediaImageSrcSync(imageUrl)).toBe(imageUrl);
+  });
+
   it("重置测试缓存时会清理内存和 localStorage", () => {
     rememberPersistentMediaImageDerivedMissing(imageUrl);
 

@@ -219,7 +219,6 @@ describe("battleOverlaySnapshot", () => {
         hasMapConfigState: true,
         mapConfig: {
           mapFileId: 201,
-          imageUrl: "https://example.test/map-201.png",
           gridRows: 10,
           gridCols: 12,
           gridColor: "#22c55e",
@@ -232,11 +231,11 @@ describe("battleOverlaySnapshot", () => {
     });
 
     expect(snapshot.map).toMatchObject({
-      imageUrl: "https://example.test/map-201.png",
       gridRows: 10,
       gridCols: 12,
       gridColor: "#22c55e",
     });
+    expect(snapshot.map?.imageUrl).toContain("201");
 
     const clearedSnapshot = buildBattleOverlaySnapshot({
       roomId: 12,

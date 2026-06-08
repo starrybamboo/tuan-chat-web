@@ -96,7 +96,6 @@ export type CombatMapToken = {
 
 export type CombatMapConfig = {
   mapFileId: number;
-  imageUrl?: string;
   gridRows: number;
   gridCols: number;
   gridColor: string;

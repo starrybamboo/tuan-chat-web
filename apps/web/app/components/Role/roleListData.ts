@@ -4,7 +4,6 @@ import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
 import type { Role } from "./types";
 
-import { normalizeLegacyVoiceUrl } from "./roleVoiceMedia";
 import { resolveRoleAvatarMedia } from "./sprite/roleAvatarMedia";
 
 export type RoleListAvatarFields = UserRole & {
@@ -59,7 +58,6 @@ export function mapUserRoleToRole(role: RoleListAvatarFields): Role {
     avatar: avatarUrl,
     avatarThumb: avatarThumbUrl,
     avatarId: role.avatarId || 0,
-    voiceUrl: role.voiceFileId ? undefined : normalizeLegacyVoiceUrl(role.voiceUrl) || undefined,
     voiceFileId: role.voiceFileId,
     type: role.type ?? (role.diceMaiden ? 1 : 0),
     extra: role.extra || {},

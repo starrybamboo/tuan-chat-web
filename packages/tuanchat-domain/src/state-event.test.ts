@@ -61,7 +61,6 @@ describe("state-event atoms", () => {
       {
         type: "mapConfigUpsert",
         mapFileId: 200,
-        imageUrl: "https://example.test/map.png",
         gridRows: 8,
         gridCols: 9,
         gridColor: "#64748b",
@@ -180,13 +179,10 @@ describe("state-event atoms", () => {
         { roleId: "4", rowIndex: "99", colIndex: "2" },
         { roleId: "bad", rowIndex: "1", colIndex: "2" },
       ],
-    }, {
-      imageUrl: " https://example.test/map.png ",
     })).toEqual([
       {
         type: "mapConfigUpsert",
         mapFileId: 200,
-        imageUrl: "https://example.test/map.png",
         gridRows: 8,
         gridCols: 9,
         gridColor: "#64748b",

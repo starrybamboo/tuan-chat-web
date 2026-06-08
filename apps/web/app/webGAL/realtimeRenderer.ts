@@ -377,19 +377,19 @@ export class RealtimeRenderer {
     this.mapTokenRoleIdsMap.set(roomId, new Set(roleIds));
   }
 
-  private async resolveStateEventMapImages(stateEvent: StateEventExtra): Promise<StateEventExtra> {
-    const events = await Promise.all(stateEvent.events.map(async (event) => {
+  private async resolveStateEventMapBackgrounds(stateEvent: StateEventExtra): Promise<Record<number, string>> {
+    const entries = await Promise.all(stateEvent.events.map(async (event): Promise<[number, string] | null> => {
       if (event.type !== "mapConfigUpsert") {
-        return event;
+        return null;
       }
-      const sourceUrl = event.imageUrl || mediaFileUrl(event.mapFileId, "image", "medium");
+      const sourceUrl = mediaFileUrl(event.mapFileId, "image", "medium");
       if (!sourceUrl) {
-        return event;
+        return null;
       }
       const localImageName = await uploadMapImageAsset(this.getAssetUploadContext(), sourceUrl, event.mapFileId);
-      return localImageName ? { ...event, imageUrl: localImageName } : event;
+      return localImageName ? [event.mapFileId, localImageName] : null;
     }));
-    return { ...stateEvent, events };
+    return Object.fromEntries(entries.filter((entry): entry is [number, string] => Boolean(entry)));
   }
 
   private async appendStateEventVarLines(
@@ -397,9 +397,10 @@ export class RealtimeRenderer {
     stateEvent: StateEventExtra,
     syncToFile: boolean,
   ): Promise<void> {
-    const stateEventWithLocalMapImages = await this.resolveStateEventMapImages(stateEvent);
+    const mapBackgroundsByFileId = await this.resolveStateEventMapBackgrounds(stateEvent);
     const result = buildTuanChatStateEventVarLines({
-      stateEvent: stateEventWithLocalMapImages,
+      stateEvent,
+      mapBackgroundsByFileId,
       mapTokenRoleIds: this.getMapTokenRoleIds(roomId),
     });
     this.setMapTokenRoleIds(roomId, result.mapTokenRoleIds);
@@ -1643,7 +1644,7 @@ export class RealtimeRenderer {
   }
 
   /**
-   * 从角色的 voiceUrl 获取参考音频文件
+   * 参考音频只来自运行时显式设置的 File。
    */
   public async fetchVoiceFilesFromRoles(): Promise<void> {
   }

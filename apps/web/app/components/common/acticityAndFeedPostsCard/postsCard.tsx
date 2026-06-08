@@ -1,5 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import React, { useCallback, useRef, useState } from "react";
+
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
@@ -10,11 +11,12 @@ import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl } from "@/utils/mediaUrl";
+
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
-interface PostsCardProps {
+type PostsCardProps = {
   res?: any;
   stats?: any;
   onDislike?: () => void;
@@ -123,7 +125,11 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
   // 统一的内容处理
   const images = [
-    ...(Array.isArray(res?.imageUrls) ? res.imageUrls : []),
+    ...(Array.isArray(res?.imageFileIds)
+      ? res.imageFileIds
+          .map((fileId: number) => imageMediumUrl(fileId))
+          .filter(Boolean)
+      : []),
     ...(res?.coverImage ? [res.coverImage] : []),
   ];
   const publishTime = res?.createTime ?? "";

@@ -7,7 +7,7 @@ import {
 } from "./publishPostMedia";
 
 describe("publishPostMedia", () => {
-  it("提交动态时只从 fileId 派生 MomentFeedRequest 图片 URL", () => {
+  it("提交动态时只把 fileId 写入 MomentFeedRequest", () => {
     const result = buildMomentFeedRequestFromPostMedia("  新动态  ", [
       {
         id: "local-1",
@@ -21,8 +21,7 @@ describe("publishPostMedia", () => {
     expect(result.invalidImageIds).toEqual([]);
     expect(result.request).toEqual({
       content: "新动态",
-      imageUrls: ["https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp"],
-      originalImageUrls: ["https://media.tuan.chat/media/v1/files/001/1001/original"],
+      imageFileIds: [1001],
     });
   });
 
