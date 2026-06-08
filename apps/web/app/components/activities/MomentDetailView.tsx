@@ -1,14 +1,16 @@
 import React, { useCallback, useState } from "react";
+
 import CommentPanel from "@/components/common/comment/commentPanel";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
-import { imageLowUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl } from "@/utils/mediaUrl";
+
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
-interface MomentDetailViewProps {
+type MomentDetailViewProps = {
   feedId: number;
   loginUserId: number;
   onClose?: () => void;
@@ -82,7 +84,11 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
     }
   }, [userId]);
 
-  const images = Array.isArray(feed?.imageUrls) ? feed.imageUrls : [];
+  const images = Array.isArray(feed?.imageFileIds)
+    ? feed.imageFileIds
+        .map((fileId: number) => imageMediumUrl(fileId))
+        .filter(Boolean)
+    : [];
   const publishTime = feed?.createTime ?? "";
   const repositoryCoverUrl = imageMediumUrl(feed?.repositoryVO?.coverFileId);
 
@@ -306,7 +312,7 @@ const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                           "
                         >
                           <MediaImage
-                            src={imageMediumUrlFromUrl(img)}
+                            src={img}
                             alt={`图片 ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />

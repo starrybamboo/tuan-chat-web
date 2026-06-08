@@ -71,7 +71,6 @@ type BuildBattleOverlaySnapshotParams = {
 };
 
 type ResolvedMapConfig = {
-  imageUrl?: string;
   mapFileId?: number;
   gridRows: number;
   gridCols: number;
@@ -232,7 +231,7 @@ export function buildBattleOverlaySnapshot({
     .sort((left, right) => getRoleSortValue(right) - getRoleSortValue(left) || left.name.localeCompare(right.name, "zh-CN"));
 
   const mapConfig = resolveMapConfig(runtime, map);
-  const mapImageUrl = mapConfig?.imageUrl || getRoomDndMapImageUrl(mapConfig);
+  const mapImageUrl = getRoomDndMapImageUrl(mapConfig);
   const mapSnapshot: BattleOverlayMapSnapshot | null = mapConfig || tokens.length > 0
     ? {
         imageUrl: mapImageUrl,

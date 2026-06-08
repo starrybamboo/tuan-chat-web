@@ -1,7 +1,11 @@
-// import type { Transform } from "./sprite/TransformControl";
-import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { CloseIcon, SlidersIcon } from "@/icons";
 import {
   useAbilityByRuleAndRole,
   useGenerateRoleByRuleMutation,
@@ -9,11 +13,10 @@ import {
 } from "api/hooks/abilityQueryHooks";
 import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateAvatarNameMutation, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, SlidersIcon } from "@/icons";
-import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+
+// import type { Transform } from "./sprite/TransformControl";
+import type { Role } from "./types";
+
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import AIGenerateModal from "./RoleCreation/steps/AIGenerateModal";
@@ -25,7 +28,7 @@ import RulesSection from "./rules/RulesSection";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "./sprite/utils";
 // import Section from "./Section";
 
-interface CharacterDetailProps {
+type CharacterDetailProps = {
   role: Role;
   onSave: (updatedRole: Role) => void;
   selectedRuleId: number;
@@ -78,7 +81,6 @@ function CharacterDetailInner({
       description: queriedRole.description ?? role.description,
       avatarId: queriedRole.avatarId ?? role.avatarId,
       type: queriedRole.type ?? role.type,
-      voiceUrl: Object.prototype.hasOwnProperty.call(queriedRole, "voiceUrl") ? queriedRole.voiceUrl : role.voiceUrl,
       voiceFileId: Object.prototype.hasOwnProperty.call(queriedRole, "voiceFileId") ? queriedRole.voiceFileId : role.voiceFileId,
       extra: queriedRole.extra ?? role.extra,
     };
@@ -305,7 +307,7 @@ function CharacterDetailInner({
 
   // 处理音频上传成功
   const handleAudioUploadSuccess = (audio: { voiceFileId: number; mediaType?: string | null }) => {
-    // 新上传只持久化 fileId，并让后端清理旧 voiceUrl。
+    // 新上传只持久化 fileId。
     const updatedRole = {
       ...displayRole,
       ...buildRoleVoiceUploadPatch(audio),

@@ -30,7 +30,6 @@ import {
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/Role/types';
-import { normalizeLegacyVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
@@ -280,7 +279,6 @@ function patchUserRoleRecord(role: UserRole, next: any, resolvedRoleId: number):
     roleName: next?.name ?? role.roleName,
     description: next?.description ?? role.description,
     avatarId: typeof next?.avatarId === "number" ? next.avatarId : role.avatarId,
-    voiceUrl: hasNextField("voiceUrl") ? next.voiceUrl : role.voiceUrl,
     voiceFileId: hasNextField("voiceFileId") ? next.voiceFileId : (role as any).voiceFileId,
     extra: next?.extra ?? role.extra,
     type: typeof next?.type === "number" ? next.type : role.type,
@@ -320,7 +318,6 @@ function patchGetRoleQueryCache(old: any, next: any, resolvedRoleId: number) {
       roleName: next?.name ?? old.data.roleName,
       description: next?.description ?? old.data.description,
       avatarId: typeof next?.avatarId === "number" ? next.avatarId : old.data.avatarId,
-      voiceUrl: Object.prototype.hasOwnProperty.call(next ?? {}, "voiceUrl") ? next.voiceUrl : old.data.voiceUrl,
       voiceFileId: Object.prototype.hasOwnProperty.call(next ?? {}, "voiceFileId") ? next.voiceFileId : old.data.voiceFileId,
       extra: next?.extra ?? old.data.extra,
       type: typeof next?.type === "number" ? next.type : old.data.type,
@@ -428,15 +425,11 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
     mutationKey: ["UpdateRole"],
     mutationFn: async (data: any) => {
       if (data.id !== 0) {
-        const voiceUrlUpdate = Object.prototype.hasOwnProperty.call(data ?? {}, "voiceUrl") && data.voiceUrl === null
-          ? { voiceUrl: null }
-          : {};
         const updateRes = await tuanchat.roleController.updateRole({
           roleId: data.id,
           roleName: data.name,
           description: data.description,
           avatarId: data.avatarId,
-          ...voiceUrlUpdate,
           voiceFileId: data.voiceFileId,
           extra: data.extra,
         });
@@ -679,7 +672,6 @@ export function useCopyRoleMutation() {
         avatarThumb,
         avatarId: copiedAvatarId,
         type: copiedRole.type,
-        voiceUrl: normalizeLegacyVoiceUrl(copiedRole.voiceUrl) || undefined,
         voiceFileId: (copiedRole as any).voiceFileId || sourceRole.voiceFileId,
         extra: copiedRole.extra ?? sourceRole.extra,
       };

@@ -7920,13 +7920,9 @@
             "description": "角色头像",
             "format": "int64"
           },
-          "voiceUrl": {
-            "type": "string",
-            "nullable": true
-          },
           "voiceFileId": {
             "type": "integer",
-            "description": "角色语音媒体文件 ID；替代 voiceUrl",
+            "description": "角色语音媒体文件 ID",
             "format": "int64",
             "nullable": true
           },
@@ -9014,12 +9010,6 @@
             "type": "integer",
             "description": "战斗地图图片文件 ID，仅 mapConfigUpsert 使用",
             "format": "int64"
-          },
-          "imageUrl": {
-            "maxLength": 2048,
-            "minLength": 0,
-            "type": "string",
-            "description": "战斗地图图片访问地址，仅 mapConfigUpsert 使用"
           },
           "gridRows": {
             "minimum": 1,
@@ -11108,12 +11098,9 @@
             "description": "角色类型,0:角色,1:骰娘,2:NPC",
             "format": "int32"
           },
-          "voiceUrl": {
-            "type": "string"
-          },
           "voiceFileId": {
             "type": "integer",
-            "description": "角色语音媒体文件 ID；替代 voiceUrl",
+            "description": "角色语音媒体文件 ID",
             "format": "int64"
           },
           "extra": {
@@ -13006,20 +12993,13 @@
             "type": "string",
             "description": "动态文字内容"
           },
-          "imageUrls": {
+          "imageFileIds": {
             "type": "array",
-            "description": "上传图片url",
+            "description": "上传图片媒体文件 ID",
             "items": {
-              "type": "string",
-              "description": "上传图片url"
-            }
-          },
-          "originalImageUrls": {
-            "type": "array",
-            "description": "上传原图url",
-            "items": {
-              "type": "string",
-              "description": "上传原图url"
+              "type": "integer",
+              "description": "上传图片媒体文件 ID",
+              "format": "int64"
             }
           },
           "repositoryId": {

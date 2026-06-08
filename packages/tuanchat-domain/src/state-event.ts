@@ -107,7 +107,6 @@ export type StateEventMapTokenRemove = {
 export type StateEventMapConfigUpsert = {
   type: "mapConfigUpsert";
   mapFileId: number;
-  imageUrl?: string;
   gridRows: number;
   gridCols: number;
   gridColor: string;
@@ -308,7 +307,6 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
 
   if (type === "mapConfigUpsert") {
     const mapFileId = toPositiveInteger(atom.mapFileId);
-    const imageUrl = toTrimmedString(atom.imageUrl);
     const gridRows = toPositiveInteger(atom.gridRows);
     const gridCols = toPositiveInteger(atom.gridCols);
     const gridColor = toTrimmedString(atom.gridColor);
@@ -319,7 +317,6 @@ function normalizeStateEventAtom(rawAtom: unknown): StateEventAtom | undefined {
     return {
       type: "mapConfigUpsert",
       mapFileId,
-      ...(imageUrl ? { imageUrl } : {}),
       gridRows,
       gridCols,
       gridColor,
@@ -458,7 +455,6 @@ export function buildMapStateEventsFromSnapshot(
   map: LegacyMapConfigSnapshot | null | undefined,
   options: {
     clearTokens?: boolean;
-    imageUrl?: string;
     includeTokens?: boolean;
   } = {},
 ): StateEventAtom[] {
@@ -469,13 +465,11 @@ export function buildMapStateEventsFromSnapshot(
   const gridRows = toPositiveInteger(map?.gridRows) ?? 10;
   const gridCols = toPositiveInteger(map?.gridCols) ?? 10;
   const gridColor = toTrimmedString(map?.gridColor) ?? "#808080";
-  const imageUrl = toTrimmedString(options.imageUrl);
   const includeTokens = options.includeTokens ?? true;
   const clearTokens = options.clearTokens ?? includeTokens;
   const events: StateEventAtom[] = [{
     type: "mapConfigUpsert",
     mapFileId,
-    ...(imageUrl ? { imageUrl } : {}),
     gridRows,
     gridCols,
     gridColor,

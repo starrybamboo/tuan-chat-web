@@ -797,7 +797,6 @@ export function buildCombatStateRuntime(params: BuildCombatStateRuntimeParams): 
         hasMapConfigState = true;
         mapConfig = {
           mapFileId: atom.mapFileId,
-          ...(atom.imageUrl ? { imageUrl: atom.imageUrl } : {}),
           gridRows: atom.gridRows,
           gridCols: atom.gridCols,
           gridColor: atom.gridColor,

@@ -144,6 +144,7 @@ export function applyTuanChatStateEventToMapTokenRoleIds(
 
 export function buildTuanChatStateEventVarLines(params: {
   stateEvent: StateEventExtra | undefined;
+  mapBackgroundsByFileId?: Record<number, string | null | undefined>;
   mapTokenRoleIds?: Iterable<number>;
 }): { lines: string[]; mapTokenRoleIds: number[] } {
   const stateEvent = params.stateEvent;
@@ -181,10 +182,10 @@ export function buildTuanChatStateEventVarLines(params: {
     }
 
     if (event.type === "mapConfigUpsert") {
-      const imageUrl = String(event.imageUrl ?? "").trim();
+      const mapBackground = String(params.mapBackgroundsByFileId?.[event.mapFileId] ?? "").trim();
       pushLine(lines, buildBackgroundAssetSetVarLine(
         TUANCHAT_MAP_BACKGROUND_VAR,
-        imageUrl,
+        mapBackground,
       ));
       pushLine(lines, buildSetVarLine(TUANCHAT_MAP_GRID_ROWS_VAR, event.gridRows));
       pushLine(lines, buildSetVarLine(TUANCHAT_MAP_GRID_COLS_VAR, event.gridCols));

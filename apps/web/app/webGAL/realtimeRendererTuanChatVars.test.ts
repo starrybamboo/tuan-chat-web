@@ -29,6 +29,9 @@ describe("realtimeRendererTuanChatVars", () => {
 
   it("把状态事件翻译为原生 WebGAL setVar 语句", () => {
     const result = buildTuanChatStateEventVarLines({
+      mapBackgroundsByFileId: {
+        12: "map_12.png",
+      },
       mapTokenRoleIds: [8],
       stateEvent: {
         source: {
@@ -40,7 +43,7 @@ describe("realtimeRendererTuanChatVars", () => {
           { type: "combatRoundStart" },
           { type: "varOp", scope: { kind: "role", roleId: 3 }, key: "hp", op: "sub", value: 5 },
           { type: "nextTurn" },
-          { type: "mapConfigUpsert", mapFileId: 12, imageUrl: "map_12.png", gridRows: 10, gridCols: 12, gridColor: "#fff" },
+          { type: "mapConfigUpsert", mapFileId: 12, gridRows: 10, gridCols: 12, gridColor: "#fff" },
           { type: "mapTokenUpsert", roleId: 3, rowIndex: 1, colIndex: 2 },
         ],
       },
@@ -82,10 +85,13 @@ describe("realtimeRendererTuanChatVars", () => {
     })).not.toContain("setVar:tuanchat.role.3.avatarUrl=\"javascript:alert(1)\";");
 
     expect(buildTuanChatStateEventVarLines({
+      mapBackgroundsByFileId: {
+        12: "map_12.png",
+      },
       stateEvent: {
         source: { kind: "ui", parserVersion: "state-event-v1" },
         events: [
-          { type: "mapConfigUpsert", mapFileId: 12, imageUrl: "map_12.png", gridRows: 10, gridCols: 10, gridColor: "#fff" },
+          { type: "mapConfigUpsert", mapFileId: 12, gridRows: 10, gridCols: 10, gridColor: "#fff" },
         ],
       },
     }).lines).toContain("setVar:tuanchat.map.background=\"map_12.png\";");
@@ -94,7 +100,7 @@ describe("realtimeRendererTuanChatVars", () => {
       stateEvent: {
         source: { kind: "ui", parserVersion: "state-event-v1" },
         events: [
-          { type: "mapConfigUpsert", mapFileId: 12, imageUrl: "https://example.test/map.png", gridRows: 10, gridCols: 10, gridColor: "#fff" },
+          { type: "mapConfigUpsert", mapFileId: 12, gridRows: 10, gridCols: 10, gridColor: "#fff" },
         ],
       },
     }).lines).not.toContain("setVar:tuanchat.map.background=\"https://example.test/map.png\";");

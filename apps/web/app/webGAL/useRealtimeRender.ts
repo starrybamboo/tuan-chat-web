@@ -396,9 +396,9 @@ function useRealtimeRender({
         debugRealtimeRender(`[useRealtimeRender] 设置了 ${currentVoiceFiles.size} 个角色的参考音频`);
       }
 
-      // 如果启用了 TTS 但没有提供参考音频，尝试从角色的 voiceUrl 获取
+      // 如果启用了 TTS 但没有提供参考音频，保持无参考音频渲染。
       if (currentTTSConfig?.enabled && (!currentVoiceFiles || currentVoiceFiles.size === 0)) {
-        debugRealtimeRender("[useRealtimeRender] 正在从角色 voiceUrl 获取参考音频...");
+        debugRealtimeRender("[useRealtimeRender] 没有可用的角色参考音频");
         await renderer.fetchVoiceFilesFromRoles();
       }
 

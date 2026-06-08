@@ -1,14 +1,13 @@
-import type { UserRole } from "../../../../../api";
-import type { Initiative } from "./initiativeListTypes";
+import { Broom } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
+import React from "react";
+import { toast } from "react-hot-toast";
+
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { Role } from "@/components/Role/types";
 import type { StateEventAtom } from "@/types/stateEvent";
 
-import { Broom } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import React from "react";
-import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
@@ -27,6 +26,10 @@ import {
   STATE_EVENT_VAR_OP,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
+
+import type { UserRole } from "../../../../../api";
+import type { Initiative } from "./initiativeListTypes";
+
 import { invalidateRoleAbilityCaches } from "../../../../../api/hooks/abilityMutationInvalidation";
 import {
   loadRoleAbilityByRule,
@@ -49,6 +52,7 @@ import {
   buildImportRoleInitiativeEvents,
 } from "./initiativeListEvents";
 import {
+  buildCombatRecordValueRow,
   buildNextCopiedInitiativeRoleName,
   buildRoleAbilityFieldDeletePatch,
   collectCombatInitiativeRecords,
@@ -61,25 +65,25 @@ import {
   shouldCommitCombatRoleValueEdit,
 } from "./stateDrawerRoleRows";
 
-interface StateValueRow {
+type StateValueRow = {
   key: string;
   baseValue: number;
   displayValue: number;
 }
 
-interface PrimaryStatConfig {
+type PrimaryStatConfig = {
   label: string;
   keys: string[];
   className: string;
 }
 
-interface PrimaryStatViewModel {
+type PrimaryStatViewModel = {
   config: PrimaryStatConfig;
   row: StateValueRow;
   maxRow?: StateValueRow;
 }
 
-interface RoleStateRowViewModel {
+type RoleStateRowViewModel = {
   canDelete?: boolean;
   roleId: number;
   rowId: string;
@@ -94,13 +98,13 @@ interface RoleStateRowViewModel {
   sourceMessageId?: number;
 }
 
-interface RoleValueEditState {
+type RoleValueEditState = {
   key: string;
   roleId: number;
   valueKey: string;
 }
 
-interface DuplicateInitiativeImportState {
+type DuplicateInitiativeImportState = {
   roleId: number;
   roleName: string;
 }
@@ -135,7 +139,6 @@ function toCopyableRole(role: UserRole): Role {
     description: role.description ?? "",
     avatarId: role.avatarId ?? -1,
     type: role.type,
-    voiceUrl: role.voiceUrl,
     voiceFileId: role.voiceFileId,
     extra: role.extra,
   };
@@ -1006,13 +1009,35 @@ export default function StateDrawer() {
       const activeStates = runtime.activeStates.filter(
         state => state.scope.kind === "role" && state.scope.roleId === record.roleId,
       );
-      const rows: StateValueRow[] = [];
-      if (typeof record.hp === "number") {
-        rows.push({ key: "hp", baseValue: record.hp, displayValue: record.hp });
-      }
-      if (typeof record.maxHp === "number") {
-        rows.push({ key: "maxHp", baseValue: record.maxHp, displayValue: record.maxHp });
-      }
+      const baseValues = runtime.baseDisplayValues.rolesByRoleId[record.roleId];
+      const derivedValues = runtime.derivedDisplayValues.rolesByRoleId[record.roleId];
+      const fallbackAbility = runtime.fallbackRoleAbilitiesByRoleId[record.roleId];
+      const initiativeRow = buildCombatRecordValueRow({
+        baseValues,
+        derivedValues,
+        fallbackAbility,
+        key: "initiative",
+        recordValue: record.initiative,
+        valueKeys: ["initiative", "init", "先攻", "先攻值"],
+      });
+      const rows: StateValueRow[] = [
+        buildCombatRecordValueRow({
+          baseValues,
+          derivedValues,
+          fallbackAbility,
+          key: "hp",
+          recordValue: record.hp,
+          valueKeys: ["hp"],
+        }),
+        buildCombatRecordValueRow({
+          baseValues,
+          derivedValues,
+          fallbackAbility,
+          key: "maxHp",
+          recordValue: record.maxHp,
+          valueKeys: ["maxHp", "maxhp", "hpMax", "hpmax"],
+        }),
+      ].filter((row): row is StateValueRow => Boolean(row));
       const { primaryStats, secondaryRows } = splitRoleRows(rows);
       return {
         canDelete: true,
@@ -1021,7 +1046,7 @@ export default function StateDrawer() {
         roleName: role?.roleName?.trim() || `角色 #${record.roleId}`,
         avatarId: role?.avatarId ?? -1,
         isCurrent: record.roleId === runtime.currentRoleId,
-        initiative: record.initiative,
+        initiative: initiativeRow?.displayValue ?? record.initiative,
         primaryStats,
         secondaryRows,
         activeStates,

@@ -5,7 +5,7 @@ import type { IconProps } from "phosphor-react-native";
 import type { ComponentType } from "react";
 
 import { ImageSquare, PaperPlaneTilt, Smiley, X, XCircle } from "phosphor-react-native";
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
 });
 
 const AVATAR_COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#3b82f6"];
+const mentionRoleKeyExtractor = (item: UserRole) => String(item.roleId);
 
 function getMentionRoleColor(roleId: number) {
   return AVATAR_COLORS[roleId % AVATAR_COLORS.length];
@@ -210,7 +211,7 @@ export type ChatComposerShortcutAction = {
   onPress: () => void;
 };
 
-export function ChatComposer({
+function ChatComposerInner({
   anchorMessage,
   availableRoles,
   canUseAttachments,
@@ -260,26 +261,54 @@ export function ChatComposer({
     );
   }, [mentionQuery, availableRoles]);
 
-  const handleSelectMention = (role: UserRole) => {
+  const handleSelectMention = useCallback((role: UserRole) => {
     const lastAtIndex = draftMessage.lastIndexOf("@");
     const before = draftMessage.slice(0, lastAtIndex);
     const roleName = role.roleName ?? `角色#${role.roleId}`;
     onChangeDraftMessage(`${before}@${roleName} `);
-  };
+  }, [draftMessage, onChangeDraftMessage]);
 
-  const handleSelectCommand = (cmd: CommandInfo) => {
+  const handleSelectCommand = useCallback((cmd: CommandInfo) => {
     setInputHeight(COMPOSER_MIN_HEIGHT);
     onChangeDraftMessage(`.${cmd.name} `);
-  };
+  }, [onChangeDraftMessage]);
 
-  const handleChangeMessageText = (nextText: string) => {
+  const handleChangeMessageText = useCallback((nextText: string) => {
     if (nextText.length < draftMessage.length) {
       setInputHeight(COMPOSER_MIN_HEIGHT);
     }
     onChangeDraftMessage(nextText);
-  };
+  }, [draftMessage.length, onChangeDraftMessage]);
 
   const resolvedInputHeight = draftMessage.length === 0 ? COMPOSER_MIN_HEIGHT : inputHeight;
+  const renderMentionRole = useCallback(({ item }: { item: UserRole }) => (
+    <Pressable
+      onPress={() => handleSelectMention(item)}
+      style={({ pressed }) => [styles.mentionItem, pressed && { backgroundColor: theme.backgroundElement }]}
+    >
+      {item.avatarFileId
+        ? (
+            <CachedImage uri={avatarThumbUrl(item.avatarFileId)} style={styles.mentionAvatar} />
+          )
+        : (
+            <View style={[styles.mentionAvatar, { backgroundColor: getMentionRoleColor(item.roleId) }]}>
+              <ThemedText style={styles.mentionAvatarText}>
+                {(item.roleName ?? "").slice(0, 1) || "R"}
+              </ThemedText>
+            </View>
+          )}
+      <ThemedText type="small">{item.roleName ?? `角色 #${item.roleId}`}</ThemedText>
+    </Pressable>
+  ), [handleSelectMention, theme.backgroundElement]);
+
+  const handleContentSizeChange = useCallback((event: { nativeEvent: { contentSize: { height: number } } }) => {
+    const nextHeight = Math.min(Math.max(event.nativeEvent.contentSize.height, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT);
+    setInputHeight(prev => (prev === nextHeight ? prev : nextHeight));
+  }, []);
+
+  const handlePickImageAttachment = useCallback(() => {
+    onPickAttachment(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE);
+  }, [onPickAttachment]);
 
   return (
     <View style={styles.composerWrapper}>
@@ -287,28 +316,10 @@ export function ChatComposer({
         ? (
             <FlatList
               data={filteredMentionRoles}
-              keyExtractor={item => String(item.roleId)}
+              keyExtractor={mentionRoleKeyExtractor}
               keyboardShouldPersistTaps="handled"
               style={[styles.mentionList, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => handleSelectMention(item)}
-                  style={({ pressed }) => [styles.mentionItem, pressed && { backgroundColor: theme.backgroundElement }]}
-                >
-                  {item.avatarFileId
-                    ? (
-                        <CachedImage uri={avatarThumbUrl(item.avatarFileId)} style={styles.mentionAvatar} />
-                      )
-                    : (
-                        <View style={[styles.mentionAvatar, { backgroundColor: getMentionRoleColor(item.roleId) }]}>
-                          <ThemedText style={styles.mentionAvatarText}>
-                            {(item.roleName ?? "").slice(0, 1) || "R"}
-                          </ThemedText>
-                        </View>
-                      )}
-                  <ThemedText type="small">{item.roleName ?? `角色 #${item.roleId}`}</ThemedText>
-                </Pressable>
-              )}
+              renderItem={renderMentionRole}
             />
           )
         : null}
@@ -362,10 +373,7 @@ export function ChatComposer({
             editable={!isSubmitting}
             multiline
             onChangeText={handleChangeMessageText}
-            onContentSizeChange={(e) => {
-              const h = e.nativeEvent.contentSize.height;
-              setInputHeight(Math.min(Math.max(h, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT));
-            }}
+            onContentSizeChange={handleContentSizeChange}
             placeholder={inputPlaceholder}
             placeholderTextColor={theme.textSecondary}
             scrollEnabled={resolvedInputHeight >= COMPOSER_MAX_HEIGHT}
@@ -398,7 +406,7 @@ export function ChatComposer({
             ? (
                 <Pressable
                   disabled={isSubmitting}
-                  onPress={() => onPickAttachment(MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE)}
+                  onPress={handlePickImageAttachment}
                   style={styles.toolButton}
                 >
                   <ImageSquare size={20} color={theme.textSecondary} />
@@ -478,3 +486,5 @@ export function ChatComposer({
     </View>
   );
 }
+
+export const ChatComposer = memo(ChatComposerInner);

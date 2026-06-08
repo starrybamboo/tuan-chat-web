@@ -6,6 +6,9 @@ import { describe, expect, it } from "vitest";
 type PathItem = Record<string, unknown>;
 
 type OpenApiSpec = {
+  components?: {
+    schemas?: Record<string, { properties?: Record<string, unknown> } | undefined>;
+  };
   paths?: Record<string, PathItem | undefined>;
 };
 
@@ -96,6 +99,72 @@ describe("chat OpenAPI contract", () => {
 
       const duplicatePaths = [...rawPathsByNormalizedPath.values()].filter(rawPaths => rawPaths.length > 1);
       expect(duplicatePaths).toEqual([]);
+    });
+
+    it(`${label} keeps room membership identity out of RoomMember`, () => {
+      const schemas = readSpec(relativePath).components?.schemas ?? {};
+      const roomMemberProperties = schemas.RoomMember?.properties ?? {};
+
+      expect(roomMemberProperties.roomId).toBeDefined();
+      expect(roomMemberProperties.userId).toBeDefined();
+      expect(roomMemberProperties.memberType).toBeUndefined();
+    });
+
+    it(`${label} keeps legacy role voice URL out of role schemas`, () => {
+      const schemas = readSpec(relativePath).components?.schemas ?? {};
+      const userRoleProperties = schemas.UserRole?.properties ?? {};
+      const roleUpdateProperties = schemas.RoleUpdateRequest?.properties ?? {};
+
+      expect(userRoleProperties.voiceFileId).toBeDefined();
+      expect(userRoleProperties.voiceUrl).toBeUndefined();
+      expect(roleUpdateProperties.voiceFileId).toBeDefined();
+      expect(roleUpdateProperties.voiceUrl).toBeUndefined();
+    });
+
+    it(`${label} keeps legacy avatar URLs out of fileId-backed avatar schemas`, () => {
+      const schemas = readSpec(relativePath).components?.schemas ?? {};
+      const schemaNames = [
+        "UserInfoResponse",
+        "UserPrivateInfoResponse",
+        "UserProfileInfoResponse",
+        "Room",
+        "Space",
+        "RoomMember",
+        "SpaceMember",
+        "UserRole",
+      ];
+      const legacyAvatarFields = [
+        "avatar",
+        "originalAvatar",
+        "avatarUrl",
+        "avatarThumbUrl",
+      ];
+
+      for (const schemaName of schemaNames) {
+        const properties = schemas[schemaName]?.properties ?? {};
+
+        expect(properties.avatarFileId, schemaName).toBeDefined();
+        for (const legacyField of legacyAvatarFields) {
+          expect(properties[legacyField], `${schemaName}.${legacyField}`).toBeUndefined();
+        }
+      }
+    });
+
+    it(`${label} keeps moment feed image URLs out of create request schema`, () => {
+      const schemas = readSpec(relativePath).components?.schemas ?? {};
+      const momentFeedProperties = schemas.MomentFeedRequest?.properties ?? {};
+
+      expect(momentFeedProperties.imageFileIds).toBeDefined();
+      expect(momentFeedProperties.imageUrls).toBeUndefined();
+      expect(momentFeedProperties.originalImageUrls).toBeUndefined();
+    });
+
+    it(`${label} keeps derived map image URLs out of state event schema`, () => {
+      const schemas = readSpec(relativePath).components?.schemas ?? {};
+      const stateEventAtomProperties = schemas.StateEventAtom?.properties ?? {};
+
+      expect(stateEventAtomProperties.mapFileId).toBeDefined();
+      expect(stateEventAtomProperties.imageUrl).toBeUndefined();
     });
   }
 });
