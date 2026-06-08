@@ -2,27 +2,25 @@
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": [
     "./.oxlintrc.json",
-    "../../packages/oxlint-config/oxlint-sort-imports.json"
+    "../../packages/oxlint-config/oxlint-react-hooks.json"
   ],
-  "jsPlugins": [
+  "overrides": [
     {
-      "name": "better-tailwindcss",
-      "specifier": "eslint-plugin-better-tailwindcss"
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error"
+      }
     }
   ],
-  "rules": {
-    "better-tailwindcss/enforce-canonical-classes": "off",
-    "better-tailwindcss/enforce-consistent-line-wrapping": "off",
-    "better-tailwindcss/no-duplicate-classes": "warn",
-    "better-tailwindcss/no-unnecessary-whitespace": "off"
-  },
-  "settings": {
-    "better-tailwindcss": {
-      "cwd": ".",
-      "entryPoint": "./app/app.css"
-    }
-  },
-  "overrides": [],
   "ignorePatterns": [
     "api/**",
     "public/**",
