@@ -1,16 +1,19 @@
-import type { RoleAvatar } from "api";
-import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import { UserCircle } from "@phosphor-icons/react";
-import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
+import type { RoleAvatar } from "api";
+
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import MoodRegulator from "@/components/common/MoodRegulator";
+import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+
 import { getEffectiveAvatarUrl } from "../utils";
 
-interface AvatarSettingsTabProps {
+type AvatarSettingsTabProps = {
   /** 有立绘的头像列表 */
   spritesAvatars: RoleAvatar[];
   /** 完整的角色头像列表（包含情感数据） */

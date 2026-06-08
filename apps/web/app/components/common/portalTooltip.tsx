@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
 import "./portalTooltip.css";
 
 type TooltipPlacement = "right" | "left" | "top" | "bottom";
 
-interface PortalTooltipProps {
+type PortalTooltipProps = {
   label?: string;
   placement?: TooltipPlacement;
   gap?: number;

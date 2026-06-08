@@ -1,10 +1,12 @@
 import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageResponse } from "../../../api";
-import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
+
 import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
+
+import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
+
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { describeMessageDisplayFilterStatus } from "@/components/chat/utils/messageDisplayFilter";
 import {
@@ -13,6 +15,9 @@ import {
   unreadBadgeBounceMotionProps,
 } from "@/components/common/motion/chatMessageMotion";
 import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+
+import type { ChatMessageResponse } from "../../../api";
+
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function Header() {
@@ -23,7 +28,7 @@ function Header() {
   );
 }
 
-interface SelectionToolbarProps {
+type SelectionToolbarProps = {
   selectedCount: number;
   totalCount: number;
   isVisible: boolean;
@@ -179,7 +184,7 @@ const SelectionToolbar = memo(({
   );
 });
 
-interface MessageFilterControlProps {
+type MessageFilterControlProps = {
   isActive: boolean;
   filterConfig: MessageDisplayFilterConfig | null;
   visibleCount: number;
@@ -285,7 +290,7 @@ type MessageFilterTransitionState = {
 
 const CHAT_COMPOSER_ROOT_SELECTOR = "[data-chat-composer-root=\"true\"]";
 
-interface UnreadIndicatorProps {
+type UnreadIndicatorProps = {
   enabled: boolean;
   unreadMessageNumber: number;
   historyLength: number;
@@ -328,7 +333,7 @@ const UnreadIndicator = memo(({
   );
 });
 
-interface GalPatchProposalToolbarProps {
+type GalPatchProposalToolbarProps = {
   added: number;
   deleted: number;
   modified: number;
@@ -435,7 +440,7 @@ const GalPatchProposalToolbar = memo(({
   );
 });
 
-interface DragHandlers {
+type DragHandlers = {
   handleDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: React.DragEvent<HTMLDivElement>) => void;
 }
@@ -459,7 +464,7 @@ function useChatFrameListDragHandlers(roomId: number): DragHandlers {
   return { handleDragOver, handleDrop };
 }
 
-interface ChatFrameListProps {
+type ChatFrameListProps = {
   historyMessages: ChatMessageResponse[];
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   scrollerRef: React.MutableRefObject<HTMLElement | null>;

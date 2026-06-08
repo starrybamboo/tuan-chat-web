@@ -1,7 +1,7 @@
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
-
-import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { roleAvatarsQueryKey } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { MessageType } from "../../../../api/wsModels";

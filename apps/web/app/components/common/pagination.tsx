@@ -1,11 +1,12 @@
 import React, { useMemo } from "react";
+
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { BaselineArrowBackIosNew, ChevronRight } from "@/icons";
 
 /**
  * 分页组件 Props
  */
-interface PaginationProps {
+type PaginationProps = {
   totalPages: number;
   currentPage: number;
   onPageChange: (page: number) => void;

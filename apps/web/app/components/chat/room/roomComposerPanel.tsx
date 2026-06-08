@@ -1,8 +1,8 @@
-import type { UserRole } from "../../../../api";
+import React from "react";
+
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
-import React from "react";
 import AtMentionController from "@/components/atMentionController";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/localDb/composerAnnotationsDb";
@@ -24,9 +24,12 @@ import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
+
+import type { UserRole } from "../../../../api";
+
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
-interface RoomComposerPanelProps {
+type RoomComposerPanelProps = {
   roomId: number;
   userId: number;
   webSocketUtils: any;

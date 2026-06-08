@@ -1,7 +1,8 @@
 import React from "react";
+
 import MessageEditor from "@/components/messageEditor/MessageEditor";
 
-interface UserReadMeProps {
+type UserReadMeProps = {
   userId: number;
   loginUserId: number;
 }

@@ -1,10 +1,12 @@
-import type { ChatMessageResponse } from "../../../../../api";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageResponse } from "../../../../../api";
+
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserInfoQuery } from "../../../../../api/hooks/UserHooks";
 

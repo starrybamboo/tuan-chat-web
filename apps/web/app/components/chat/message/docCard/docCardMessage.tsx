@@ -1,5 +1,3 @@
-import type { ChatMessageResponse } from "../../../../../api";
-
 import { FileTextIcon } from "@phosphor-icons/react";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -11,6 +9,9 @@ import { setDocRefDragData } from "@/components/chat/utils/docRef";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useIsMobile } from "@/utils/getScreenSize";
+
+import type { ChatMessageResponse } from "../../../../../api";
+
 import { extractDocCardReferencePayload, resolveDocCardDisplayCoverUrl } from "./docCardMedia";
 
 function DocCardMessageImpl({ messageResponse }: { messageResponse: ChatMessageResponse }) {

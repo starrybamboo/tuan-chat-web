@@ -1,7 +1,9 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+
 import { Broom, DotsThreeVerticalIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
+
 import SearchBar from "@/components/chat/input/inlineSearch";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import RoomDescriptionDropdown from "@/components/chat/room/roomDescriptionDropdown";
@@ -22,7 +24,7 @@ function ToolbarDivider() {
 
 export type RoomContentMode = "room" | "doc";
 
-interface RoomHeaderBarProps {
+type RoomHeaderBarProps = {
   roomName?: string;
   room?: Room | null;
   contentMode: RoomContentMode;

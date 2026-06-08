@@ -1,4 +1,5 @@
 import { use, useState } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { RoleDetail } from "@/components/common/roleDetail";
@@ -7,6 +8,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+
 import {
   useGetRoleAvatarQuery,
   useGetRoleAvatarsQuery,

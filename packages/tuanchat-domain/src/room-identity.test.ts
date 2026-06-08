@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { describe, expect, it } from "vitest";
 
 import {
   pickDefaultAvatarId,

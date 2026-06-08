@@ -1,5 +1,6 @@
-import type { Role } from "@/components/Role/types";
 import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
+
+import type { Role } from "@/components/Role/types";
 
 import CreateDiceMaiden from "@/components/Role/RoleCreation/CreateDicerRole";
 import CreateEntry from "@/components/Role/RoleCreation/CreateEntry";

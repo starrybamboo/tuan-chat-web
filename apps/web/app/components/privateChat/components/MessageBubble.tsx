@@ -1,11 +1,12 @@
-import type { MessageDirectResponse } from "../../../../api";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import BetterImg from "@/components/common/betterImg";
 import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { avatarThumbUrl } from "@/utils/mediaUrl";
 
-interface MessageBubbleProps {
+import type { MessageDirectResponse } from "../../../../api";
+
+type MessageBubbleProps = {
   message: MessageDirectResponse; // 消息内容
   isOwn: boolean; // 是否是自己的消息
   groupedWithPrevious?: boolean;

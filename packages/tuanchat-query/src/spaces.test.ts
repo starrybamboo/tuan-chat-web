@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-
 import type { ApiResultListSpace } from "@tuanchat/openapi-client/models/ApiResultListSpace";
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
+
+import { describe, expect, it } from "vitest";
 
 import { upsertUserActiveSpacesData, upsertUserRoomData } from "./spaces";
 

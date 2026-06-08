@@ -1,13 +1,13 @@
-import type { Transform } from "../sprite/TransformControl";
-import type { PreviewAnchorPosition } from "./previewAnchor";
-
 import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 React Hooks
-import { getAnchorOffsetXRef, REFERENCE_HEIGHT, REFERENCE_WIDTH } from "./previewAnchor";
+
+import type { Transform } from "../sprite/TransformControl";
+
+import { getAnchorOffsetXRef, REFERENCE_HEIGHT, REFERENCE_WIDTH, type PreviewAnchorPosition } from "./previewAnchor";
 
 /**
  * 渲染预览组件的属性接口
  */
-interface RenderPreviewProps {
+type RenderPreviewProps = {
   // 预览Canvas引用
   previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // Transform״̬

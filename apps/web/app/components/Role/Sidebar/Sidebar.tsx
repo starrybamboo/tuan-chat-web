@@ -1,17 +1,21 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
-import type { Role } from "../types";
+
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getRoleRule } from "@/utils/roleRuleStorage";
+import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
+
+import type { Role } from "../types";
+
 import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
 import { RoleListItem } from "./RoleListItem";
 
-interface SidebarProps {
+type SidebarProps = {
   roles: Role[];
   selectedRoleId: number | null;
   onNavigate?: () => void;

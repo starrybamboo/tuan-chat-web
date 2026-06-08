@@ -5,6 +5,7 @@ import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { motion, useAnimationControls } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
+
 import WebgalStarter from "@/components/chat/shared/webgal/webgalStarter";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
@@ -17,6 +18,7 @@ import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import { isDevOrTestEnvironment } from "@/utils/runtimeEnvironment";
+
 import { useGetMyUserInfoQuery } from "../../../api/hooks/UserHooks";
 import ThemeSwitch from "../themeSwitch";
 

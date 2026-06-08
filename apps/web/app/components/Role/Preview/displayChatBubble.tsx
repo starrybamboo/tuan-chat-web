@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 /**
  * 展示用聊天气泡组件的属性接口
  */
-interface DisplayChatBubbleProps {
+type DisplayChatBubbleProps = {
   /** 角色名称 */
   roleName: string;
   /** Դ avatar canvas 引用（优先） */

@@ -5,7 +5,7 @@ type CancelReason = "escape" | "invalid" | "programmatic";
 type InvalidReason = "parse" | "validate";
 type InvalidBehavior = "keepEditing" | "revert";
 
-export interface DoubleClickEditableTextProps<T = string> {
+export type DoubleClickEditableTextProps<T = string> = {
   value: T;
   onCommit: (nextValue: T, meta: { previousValue: T; rawValue: string; reason: CommitReason }) => void;
   onCancel?: (meta: { previousValue: T; rawValue: string; reason: CancelReason }) => void;

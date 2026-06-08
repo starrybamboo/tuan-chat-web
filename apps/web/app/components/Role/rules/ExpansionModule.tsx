@@ -1,11 +1,14 @@
-import type { RoleConfigTabKey } from "./configTabMeta";
 import { DownloadSimpleIcon, MaskHappyIcon, SparkleIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
+import { CloseIcon, WrenchIcon } from "@/icons";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, WrenchIcon } from "@/icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
+
+import type { RoleConfigTabKey } from "./configTabMeta";
+
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
 import { ROLE_CONFIG_TAB_ITEMS } from "./configTabMeta";
@@ -16,7 +19,7 @@ import PerformanceEditorSmall from "./PerformanceEditorSmall";
 
 const COPYWRITING_AUTOSAVE_DELAY_MS = 800;
 
-interface ExpansionModuleProps {
+type ExpansionModuleProps = {
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件

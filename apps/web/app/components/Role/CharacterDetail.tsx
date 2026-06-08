@@ -1,7 +1,11 @@
-// import type { Transform } from "./sprite/TransformControl";
-import type { Role } from "./types";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { CloseIcon, SlidersIcon } from "@/icons";
 import {
   useAbilityByRuleAndRole,
   useGenerateRoleByRuleMutation,
@@ -9,11 +13,10 @@ import {
 } from "api/hooks/abilityQueryHooks";
 import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateAvatarNameMutation, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, SlidersIcon } from "@/icons";
-import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
-import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+
+// import type { Transform } from "./sprite/TransformControl";
+import type { Role } from "./types";
+
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
 import AIGenerateModal from "./RoleCreation/steps/AIGenerateModal";
@@ -25,7 +28,7 @@ import RulesSection from "./rules/RulesSection";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl } from "./sprite/utils";
 // import Section from "./Section";
 
-interface CharacterDetailProps {
+type CharacterDetailProps = {
   role: Role;
   onSave: (updatedRole: Role) => void;
   selectedRuleId: number;

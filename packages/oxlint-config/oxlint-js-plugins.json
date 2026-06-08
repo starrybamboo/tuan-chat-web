@@ -1,0 +1,39 @@
+{
+  "jsPlugins": [
+    {
+      "name": "react-hooks-js",
+      "specifier": "eslint-plugin-react-hooks"
+    },
+    {
+      "name": "perfectionist",
+      "specifier": "eslint-plugin-perfectionist"
+    },
+    {
+      "name": "eslint-comments",
+      "specifier": "@eslint-community/eslint-plugin-eslint-comments"
+    }
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "perfectionist/sort-imports": [
+          "warn",
+          {
+            "tsconfigRootDir": "."
+          }
+        ],
+        "react-hooks-js/immutability": "off",
+        "react-hooks-js/preserve-manual-memoization": "off",
+        "react-hooks-js/purity": "off",
+        "react-hooks-js/refs": "off",
+        "react-hooks-js/set-state-in-effect": "off",
+        "react-hooks-js/set-state-in-render": "error",
+        "react-hooks-js/static-components": "off",
+        "react-hooks-js/unsupported-syntax": "warn"
+      }
+    }
+  ]
+}

@@ -1,5 +1,7 @@
-import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute } from "@tanstack/react-router";
+
+import type { RouteMetaArgs } from "@/routes/routeTypes";
+
 import SettingsPage from "@/components/settings/settingsPage";
 import { createSeoMeta } from "@/utils/seo";
 

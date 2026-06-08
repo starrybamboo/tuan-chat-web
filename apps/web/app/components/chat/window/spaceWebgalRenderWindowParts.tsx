@@ -1,17 +1,18 @@
 import type { SyntheticEvent } from "react";
-import type { ChatMessageResponse, Room } from "../../../../api";
 
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 
+import type { ChatMessageResponse, Room } from "../../../../api";
+
 export type RenderableRoom = Room & { roomId: number };
 
-export interface RoomRenderState {
+export type RoomRenderState = {
   status: "idle" | "rendering" | "success" | "error";
   messageCount: number;
   errorMessage?: string;
 }
 
-export interface BatchProgress {
+export type BatchProgress = {
   current: number;
   total: number;
   roomName?: string;

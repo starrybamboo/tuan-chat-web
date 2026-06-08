@@ -1,12 +1,14 @@
-import type { Role } from "../types";
 import { Plus } from "@phosphor-icons/react";
 import { useState } from "react";
 import toast from "react-hot-toast";
+
+import type { Role } from "../types";
+
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE, ROLE_NAME_MAX_LENGTH } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
 import { useCreateRoleWithAbilityMutation } from "./hooks/useCreateRoleWithAbilityMutation";
 
-interface CreateDicerRoleProps {
+type CreateDicerRoleProps = {
   onBack?: () => void;
   onComplete?: (role: Role, ruleId?: number) => void;
 }

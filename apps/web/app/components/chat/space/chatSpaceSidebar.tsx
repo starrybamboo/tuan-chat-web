@@ -1,16 +1,17 @@
-import type { Space } from "../../../../api";
-
 import { ChatCircleIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
+
 import SpaceButton from "@/components/chat/shared/components/spaceButton";
 import { shouldSelectSpaceFromSidebar, shouldShowSpaceAsActive } from "@/components/chat/space/chatSpaceSidebarNavigation";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
 import { AddIcon, CompassIcon, SidebarSimpleIcon } from "@/icons";
 
-interface ChatSpaceSidebarProps {
+import type { Space } from "../../../../api";
+
+type ChatSpaceSidebarProps = {
   isPrivateChatMode: boolean;
   isDiscoverMode?: boolean;
   spaces: Space[];

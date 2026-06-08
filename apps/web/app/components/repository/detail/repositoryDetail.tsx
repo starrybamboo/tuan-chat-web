@@ -1,14 +1,17 @@
-import type { RepositoryData } from "./constants";
-import type { RepositorySpaceCandidate } from "./repositoryDetail.helpers";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+
+import { MediaImage } from "@/components/common/mediaImage";
+import { imageMediumUrl } from "@/utils/mediaUrl";
 import { fetchUserRoomsWithCache, useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { MediaImage } from "@/components/common/mediaImage";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+
+import type { RepositoryData } from "./constants";
+import type { RepositorySpaceCandidate } from "./repositoryDetail.helpers";
+
 import Author from "./author";
 import {
   findRecoverableRepositorySpace,
@@ -24,7 +27,7 @@ import "@/components/common/message/messageAnimations.css";
 
 const LazyRoomWindow = lazy(() => import("@/components/chat/room/roomWindow"));
 
-interface RepositoryDetailComponentProps {
+type RepositoryDetailComponentProps = {
   repositoryData?: RepositoryData;
   repositoryId?: number;
   onOpenRepository?: (repositoryId: number) => void;

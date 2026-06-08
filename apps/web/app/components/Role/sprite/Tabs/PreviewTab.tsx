@@ -1,15 +1,19 @@
-import type { RoleAvatar } from "api";
-import type { Transform } from "../TransformControl";
-import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { RoleAvatar } from "api";
+
 import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
+import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+
+import type { Transform } from "../TransformControl";
+
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl, parseTransformFromAvatar, toSpriteTransformPayload } from "../utils";
 
-interface RenderTransform {
+type RenderTransform = {
   scale: number;
   positionX: number;
   positionY: number;
@@ -17,7 +21,7 @@ interface RenderTransform {
   rotation: number;
 }
 
-interface ReplaceAvatarPayload {
+type ReplaceAvatarPayload = {
   avatarFileId?: number;
   spriteFileId?: number;
   originFileId?: number;
@@ -32,7 +36,7 @@ const DEFAULT_TRANSFORM: RenderTransform = {
   rotation: 0,
 };
 
-interface PreviewTabProps {
+type PreviewTabProps = {
   /** 当前选中的头像数据 */
   currentAvatar: RoleAvatar | null;
   /** 角色名称 */

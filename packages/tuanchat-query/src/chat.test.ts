@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
+import { describe, expect, it, vi } from "vitest";
 
 import {
   getRoomMessageSyncGapStart,

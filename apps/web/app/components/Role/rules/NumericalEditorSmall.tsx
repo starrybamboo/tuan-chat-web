@@ -1,9 +1,11 @@
+import { useEffect, useReducer, useState } from "react";
+import toast from "react-hot-toast";
+
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useReducer, useState } from "react";
-import toast from "react-hot-toast";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
@@ -11,7 +13,7 @@ import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload }
 type NumericalData = Record<string, string>;
 type FieldType = "basic" | "ability" | "skill";
 
-interface NumericalEditorSmallProps {
+type NumericalEditorSmallProps = {
   data: NumericalData;
   onChange: (data: NumericalData) => void;
   roleId: number;

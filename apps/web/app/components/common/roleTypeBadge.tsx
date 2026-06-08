@@ -1,6 +1,6 @@
 import type { UserRole } from "../../../api";
 
-interface RoleTypeMeta {
+type RoleTypeMeta = {
   label: string;
   className: string;
 }

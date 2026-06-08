@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
+
+import { describe, expect, it } from "vitest";
 
 import {
   buildClueFolderExtraValue,

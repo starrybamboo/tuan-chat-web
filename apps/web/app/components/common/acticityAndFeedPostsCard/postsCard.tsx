@@ -1,5 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import React, { useCallback, useRef, useState } from "react";
+
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
@@ -11,10 +12,11 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
+
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
-interface PostsCardProps {
+type PostsCardProps = {
   res?: any;
   stats?: any;
   onDislike?: () => void;

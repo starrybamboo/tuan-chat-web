@@ -1,14 +1,16 @@
 import React, { useCallback, useState } from "react";
+
 import CommentPanel from "@/components/common/comment/commentPanel";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
 import { imageLowUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
-interface MomentDetailViewProps {
+type MomentDetailViewProps = {
   feedId: number;
   loginUserId: number;
   onClose?: () => void;

@@ -1,8 +1,8 @@
-import type { MessageTextDiff, MessageTextDiffSegment } from "@/components/chat/message/diff/messageTextDiff";
-
 import { useDeferredValue } from "react";
 
-interface MessageTextDiffPreviewProps {
+import type { MessageTextDiff, MessageTextDiffSegment } from "@/components/chat/message/diff/messageTextDiff";
+
+type MessageTextDiffPreviewProps = {
   diff: MessageTextDiff | null;
   isStreaming?: boolean;
   emptyAfterText?: string;

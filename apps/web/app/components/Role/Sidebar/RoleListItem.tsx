@@ -1,9 +1,10 @@
-import type { Role } from "../types";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
+import type { Role } from "../types";
+
 // 1. 从 Props 接口中移除 onSelect
-interface RoleListItemProps {
+type RoleListItemProps = {
   role: Role;
   isSelected: boolean;
   onSelect: () => void;

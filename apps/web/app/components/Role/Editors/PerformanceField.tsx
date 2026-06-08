@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-interface PerformanceFieldProps {
+type PerformanceFieldProps = {
   fieldKey: string;
   value: string;
   onValueChange: (key: string, value: string) => void;

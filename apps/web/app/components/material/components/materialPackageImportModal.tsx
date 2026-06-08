@@ -1,11 +1,13 @@
 import type { MaterialPackageResponse } from "@tuanchat/openapi-client/models/MaterialPackageResponse";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
+
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import { useImportSpaceMaterialPackageMutation, useMyMaterialPackagesQuery, usePublicMaterialPackagesQuery } from "../../../../api/hooks/materialPackageQueryHooks";
 import { buildMaterialPackageImportSuccessMessage, getMaterialPackageDisplayName } from "./materialPackageImportFeedback";
 
-interface MaterialPackageImportModalProps {
+type MaterialPackageImportModalProps = {
   isOpen: boolean;
   spaceId: number;
   onClose: () => void;

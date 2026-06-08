@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from "react";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
 import { imageMediumUrlFromUrl, imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 
-interface ImagePreviewProps {
+type ImagePreviewProps = {
   images: string[];
   maxPreview?: number;
 }

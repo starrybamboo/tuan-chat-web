@@ -1,9 +1,10 @@
-import type { GeneratedImageItem } from "@/components/aiImage/types";
 import { useEffect, useState } from "react";
+
+import type { GeneratedImageItem } from "@/components/aiImage/types";
 
 const PREVIEW_IMAGE_DIALOG_TRANSITION_MS = 180;
 
-interface PreviewImageDialogProps {
+type PreviewImageDialogProps = {
   isOpen: boolean;
   selectedPreviewResult: GeneratedImageItem | null;
   onClose: () => void;

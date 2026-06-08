@@ -1,5 +1,4 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
@@ -8,8 +7,9 @@ import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
-import { mergeAnnotationCatalog } from "@/components/chat/message/annotations/annotationCatalog";
 import { getUserRoomsQueryKey } from "@tuanchat/query/spaces";
+
+import { mergeAnnotationCatalog } from "@/components/chat/message/annotations/annotationCatalog";
 
 import type { GalAuthoringContext, GalMessageView, GalReference, GalReferenceRoomContext } from "./authoringTypes";
 import type { GalPatchProposalStore } from "./localProposalStore";

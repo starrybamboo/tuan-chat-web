@@ -1,12 +1,12 @@
-import type { RoleAvatar } from "api";
 import type { PixelCrop } from "react-image-crop";
-import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
-import type { Transform } from "../TransformControl";
-import type { ImageLoadContext } from "@/utils/imgCropper";
-import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
+
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
+
+import type { ImageLoadContext } from "@/utils/imgCropper";
+import type { RoleAvatar } from "api";
+
 import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
@@ -15,6 +15,11 @@ import {
   createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
+import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/hooks/RoleAndAvatarHooks";
+
+import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
+import type { Transform } from "../TransformControl";
+
 import { AvatarPreview } from "../../Preview/AvatarPreview";
 import { RenderPreview } from "../../Preview/RenderPreview";
 import { TransformControl } from "../TransformControl";
@@ -25,7 +30,7 @@ import "react-image-crop/dist/ReactCrop.css";
 /**
  * 立绘裁剪组件的属性接口
  */
-interface SpriteCropperProps {
+type SpriteCropperProps = {
   // 要裁剪的立绘URL（单体模式）
   spriteUrl?: string;
   // 角色头像列表（批量模式）

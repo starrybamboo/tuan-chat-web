@@ -1,8 +1,10 @@
-import type { Tag } from "../../../api";
-
 import { useCallback, useEffect, useState } from "react";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CheckIcon, PlusOutline, XMarkICon } from "@/icons";
+
+import type { Tag } from "../../../api";
+
 import { useAddTagMutation, useDeleteTagMutation, useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
 // 颜色选项配置 - 按照指定顺序排列
@@ -29,7 +31,7 @@ const COLOR_CLASS_MAP: Record<string, string> = {
   teal: "bg-teal-100 text-teal-800 ring-teal-300",
 };
 
-interface TagManagementProps {
+type TagManagementProps = {
   userId?: number;
   size?: "default" | "compact"; // 展示的类型，compact会表现的更加紧凑一些
   canEdit?: boolean; // 是否允许删除和增加？

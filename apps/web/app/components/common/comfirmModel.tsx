@@ -1,7 +1,8 @@
 import React from "react";
+
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
-interface ConfirmModalProps {
+type ConfirmModalProps = {
   isOpen: boolean;
   onClose: () => void;
   title: string;

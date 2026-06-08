@@ -1,12 +1,13 @@
 import { RouterProvider } from "@tanstack/react-router";
-
 import { startTransition, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
 import { getRouter } from "./router";
 import { installBrowserShortcutGuard } from "./utils/browserShortcutGuard";
 import "./utils/windowTimerBinding";
 
 declare global {
+  // oxlint-disable-next-line typescript/consistent-type-definitions -- Window 扩展需要 interface 声明合并
   interface Window {
     __tcBrowserShortcutGuardCleanup?: () => void;
   }

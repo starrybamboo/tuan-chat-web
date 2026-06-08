@@ -1,14 +1,16 @@
 import { FilmSlateIcon } from "@phosphor-icons/react";
 import React from "react";
+
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { setRoomMediaAnnotationPreference } from "@/components/chat/utils/mediaAnnotationPreference";
 import BetterImg from "@/components/common/betterImg";
 import { ArticleIcon, MusicNote } from "@/icons";
 import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
+
 import { useMaterialComposerContext } from "./materialComposerContext";
 
-interface MaterialComposerAttachmentsPreviewProps {
+type MaterialComposerAttachmentsPreviewProps = {
   roomId: number;
 }
 

@@ -1,0 +1,85 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "./.oxlintrc.json",
+    "../../packages/oxlint-config/oxlint-js-plugins.json"
+  ],
+  "jsPlugins": [
+    {
+      "name": "tanstack-query",
+      "specifier": "@tanstack/eslint-plugin-query"
+    },
+    {
+      "name": "better-tailwindcss",
+      "specifier": "eslint-plugin-better-tailwindcss"
+    },
+    {
+      "name": "react-dom",
+      "specifier": "eslint-plugin-react-dom"
+    }
+  ],
+  "rules": {
+    "eslint-comments/no-unlimited-disable": "error",
+    "better-tailwindcss/enforce-canonical-classes": "off",
+    "better-tailwindcss/enforce-consistent-line-wrapping": "off",
+    "better-tailwindcss/no-duplicate-classes": "warn",
+    "better-tailwindcss/no-unnecessary-whitespace": "off"
+  },
+  "settings": {
+    "better-tailwindcss": {
+      "cwd": ".",
+      "entryPoint": "./app/app.css"
+    }
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error"
+      }
+    },
+    {
+      "files": [
+        "**/*.js",
+        "**/*.ts"
+      ],
+      "rules": {
+        "tanstack-query/exhaustive-deps": "error"
+      }
+    },
+    {
+      "files": [
+        "**/webGALPreview.tsx",
+        "**/markDownViewer.tsx"
+      ],
+      "rules": {
+        "react-dom/no-unsafe-iframe-sandbox": "off"
+      }
+    },
+    {
+      "files": [
+        "api/**/*.js",
+        "api/**/*.ts",
+        "services/**/*.ts",
+        "app/electron.d.ts"
+      ],
+      "rules": {
+        "eslint-comments/no-unlimited-disable": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "api/**",
+    "public/**",
+    "app/routeTree.gen.ts"
+  ]
+}

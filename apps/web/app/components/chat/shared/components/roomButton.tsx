@@ -1,8 +1,11 @@
-import type { Room } from "../../../../../api";
 import React from "react";
+
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+
+import type { Room } from "../../../../../api";
+
 import { resolveEntityImageUrl } from "./entityImageUrl";
 
 export default function RoomButton({

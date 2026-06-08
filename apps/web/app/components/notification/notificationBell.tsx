@@ -1,10 +1,11 @@
-import type { UserNotificationItem } from "@/components/notification/notificationTypes";
-
 import { BellIcon } from "@phosphor-icons/react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { UserNotificationItem } from "@/components/notification/notificationTypes";
+
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import {
   useMarkAllNotificationsReadMutation,

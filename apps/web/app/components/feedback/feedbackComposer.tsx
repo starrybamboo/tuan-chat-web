@@ -1,8 +1,10 @@
 import type { FormEvent } from "react";
-import type { FeedbackIssueContent, FeedbackIssueDetail, FeedbackIssueType } from "@/components/feedback/feedbackTypes";
-import { useState } from "react";
 
+import { useState } from "react";
 import toast from "react-hot-toast";
+
+import type { FeedbackIssueContent, FeedbackIssueDetail, FeedbackIssueType } from "@/components/feedback/feedbackTypes";
+
 import {
   hasMeaningfulMediaContent,
   normalizeMediaContent,

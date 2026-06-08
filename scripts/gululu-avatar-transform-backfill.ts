@@ -1,12 +1,11 @@
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+
+import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process, { env } from "node:process";
 import { fileURLToPath } from "node:url";
-
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-
-import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import {
   buildGululuImportedSpriteTransform,

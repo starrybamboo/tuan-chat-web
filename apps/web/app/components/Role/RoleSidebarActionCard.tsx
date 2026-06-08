@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+
 import { ChevronRightIcon } from "@/icons";
 
-interface RoleSidebarActionCardProps {
+type RoleSidebarActionCardProps = {
   title: string;
   subtitle: string;
   subtitleClassName?: string;

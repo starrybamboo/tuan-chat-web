@@ -1,14 +1,16 @@
-import type { ChatMessageResponse } from "../../../../api";
+import { Funnel } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState } from "react";
+
 import type {
   MessageDisplayFilterAction,
   MessageDisplayFilterConfig,
 } from "@/components/chat/utils/messageDisplayFilter";
 
-import { Funnel } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
 import { createMessageDisplayFilterMatcher } from "@/components/chat/utils/messageDisplayFilter";
 
-interface MessageFilterWindowProps {
+import type { ChatMessageResponse } from "../../../../api";
+
+type MessageFilterWindowProps = {
   sourceMessages: ChatMessageResponse[];
   currentFilter: MessageDisplayFilterConfig | null;
   onChangeFilter: (filter: MessageDisplayFilterConfig | null) => void;

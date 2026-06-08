@@ -1,6 +1,6 @@
 import React from "react";
 
-interface ProfileEditingState {
+type ProfileEditingState = {
   isEditingProfile: boolean;
   editingUsername: string;
   editingDescription: string;
@@ -11,7 +11,7 @@ interface ProfileEditingState {
   isSaving: boolean;
 }
 
-interface ProfileEditPanelProps {
+type ProfileEditPanelProps = {
   isVisible: boolean;
   profileEditing: ProfileEditingState;
 }

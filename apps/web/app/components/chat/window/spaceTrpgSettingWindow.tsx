@@ -1,3 +1,11 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { MediaImage } from "@/components/common/mediaImage";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
+import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 // 跑团设置页面：集中管理空间规则与空间骰娘，成员可见，空间拥有者可编辑。
 import {
   useGetSpaceInfoQuery,
@@ -6,13 +14,6 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
-import { MediaImage } from "@/components/common/mediaImage";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
-import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 
 function SpaceTrpgSettingWindow() {
   const spaceContext = React.use(SpaceContext);

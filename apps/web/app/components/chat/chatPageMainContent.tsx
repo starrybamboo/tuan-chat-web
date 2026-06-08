@@ -1,18 +1,20 @@
-import type { ChatMessageResponse, Message } from "../../../api";
-import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useLocation } from "@tanstack/react-router";
 import React from "react";
+
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
+
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import RoomWindowLoadingState from "@/components/chat/room/roomWindowLoadingState";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import MessageEditor from "@/components/messageEditor/MessageEditor";
-
 import FriendsListPanel from "@/components/privateChat/components/FriendsListPanel";
 import NewFriendsPanel from "@/components/privateChat/components/NewFriendsPanel";
 import RightChatView from "@/components/privateChat/RightChatView";
+
+import type { ChatMessageResponse, Message } from "../../../api";
 
 // 私聊首页只需要私聊组件，群聊/文档工作台进入对应分支后再加载。
 const LazyRoomWindow = React.lazy(() => import("@/components/chat/room/roomWindow"));
@@ -35,7 +37,7 @@ function ChatPageLoadingFallback({ text }: { text: string }) {
   );
 }
 
-interface ChatPageDocToolbarProps {
+type ChatPageDocToolbarProps = {
   onBack?: () => void;
 }
 
@@ -228,7 +230,7 @@ export function ChatPageRoomSettingContent() {
   );
 }
 
-interface ChatPageDocContentProps {
+type ChatPageDocContentProps = {
   spaceId?: number | null;
   docId?: string | null;
   canViewDocs?: boolean;

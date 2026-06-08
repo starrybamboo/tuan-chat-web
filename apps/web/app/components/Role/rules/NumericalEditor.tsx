@@ -1,10 +1,13 @@
 import type { FocusEvent, KeyboardEvent } from "react";
+
+import { useEffect, useReducer, useRef } from "react";
+import toast from "react-hot-toast";
+
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useReducer, useRef } from "react";
-import toast from "react-hot-toast";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
@@ -25,7 +28,7 @@ const NUMERIC_FIELD_SPAN_THRESHOLDS = {
   lgFull: 40,
 };
 
-interface NumericalEditorProps {
+type NumericalEditorProps = {
   data: NumericalData;
   onChange: (data: NumericalData) => void;
   roleId: number;

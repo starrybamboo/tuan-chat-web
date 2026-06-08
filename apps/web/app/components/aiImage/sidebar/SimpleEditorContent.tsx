@@ -1,5 +1,5 @@
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
-import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
+
 import {
   ArrowCounterClockwise,
   CheckCircleIcon,
@@ -7,9 +7,12 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import { memo } from "react";
+
+import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
+
 import { HighlightEmphasisTextarea } from "@/components/aiImage/HighlightEmphasisTextarea";
 
-export interface SimpleEditorContentLocalProps {
+export type SimpleEditorContentLocalProps = {
   isSimpleTagsEditor: boolean;
   isSimplePreviewingConverted: boolean;
   isSimpleTextEditor: boolean;
@@ -26,7 +29,7 @@ export interface SimpleEditorContentLocalProps {
   handleToggleLineCommentForSimpleTags: (event: ReactKeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
-interface SimpleEditorContentProps {
+type SimpleEditorContentProps = {
   sidebarProps: AiImagePageController["sidebarProps"];
   local: SimpleEditorContentLocalProps;
 }

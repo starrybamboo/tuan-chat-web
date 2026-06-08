@@ -1,6 +1,7 @@
 import { AddressBookIcon, UsersIcon } from "@phosphor-icons/react";
 import { lazy, Suspense, use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
@@ -9,6 +10,7 @@ import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getScreenSize } from "@/utils/getScreenSize";
+
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
 import RoleList from "../../shared/components/roleLists";
 

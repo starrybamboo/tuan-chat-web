@@ -1,7 +1,9 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+
 import { useRouter } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateMaterialPackageMutation,
@@ -23,7 +25,7 @@ const LazyMaterialPackageEditorInlinePage = lazy(() => import("../components/mat
 
 type GlobalTab = "public" | "mine";
 
-interface MaterialLibraryPageProps {
+type MaterialLibraryPageProps = {
   initialTab?: GlobalTab;
   mode?: GlobalTab;
   embedded?: boolean;

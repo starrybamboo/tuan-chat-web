@@ -1,8 +1,9 @@
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
+
 import type { WebgalDiceRenderMode, WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
-import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import type { ChatMessageResponse } from "../../api";
 

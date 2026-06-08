@@ -1,14 +1,13 @@
-import type { UserRole } from "../../../../../api";
-import type { Initiative } from "./initiativeListTypes";
+import { Broom } from "@phosphor-icons/react";
+import { useQueryClient } from "@tanstack/react-query";
+import React from "react";
+import { toast } from "react-hot-toast";
+
 import type { ActiveStateInstance } from "@/components/chat/state/stateRuntime";
 import type { StateRuntimeContextValue } from "@/components/chat/state/stateRuntimeContext";
 import type { Role } from "@/components/Role/types";
 import type { StateEventAtom } from "@/types/stateEvent";
 
-import { Broom } from "@phosphor-icons/react";
-import { useQueryClient } from "@tanstack/react-query";
-import React from "react";
-import { toast } from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { mergeRoleVarOpSnapshotsIntoEvents, writeRoleVarOpsThroughAbilities } from "@/components/chat/state/roleVarWriteThrough";
@@ -27,6 +26,10 @@ import {
   STATE_EVENT_VAR_OP,
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
+
+import type { UserRole } from "../../../../../api";
+import type { Initiative } from "./initiativeListTypes";
+
 import { invalidateRoleAbilityCaches } from "../../../../../api/hooks/abilityMutationInvalidation";
 import {
   loadRoleAbilityByRule,
@@ -61,25 +64,25 @@ import {
   shouldCommitCombatRoleValueEdit,
 } from "./stateDrawerRoleRows";
 
-interface StateValueRow {
+type StateValueRow = {
   key: string;
   baseValue: number;
   displayValue: number;
 }
 
-interface PrimaryStatConfig {
+type PrimaryStatConfig = {
   label: string;
   keys: string[];
   className: string;
 }
 
-interface PrimaryStatViewModel {
+type PrimaryStatViewModel = {
   config: PrimaryStatConfig;
   row: StateValueRow;
   maxRow?: StateValueRow;
 }
 
-interface RoleStateRowViewModel {
+type RoleStateRowViewModel = {
   canDelete?: boolean;
   roleId: number;
   rowId: string;
@@ -94,13 +97,13 @@ interface RoleStateRowViewModel {
   sourceMessageId?: number;
 }
 
-interface RoleValueEditState {
+type RoleValueEditState = {
   key: string;
   roleId: number;
   valueKey: string;
 }
 
-interface DuplicateInitiativeImportState {
+type DuplicateInitiativeImportState = {
   roleId: number;
   roleName: string;
 }

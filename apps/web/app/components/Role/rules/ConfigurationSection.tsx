@@ -1,11 +1,14 @@
-import type { RoleConfigTabKey } from "./configTabMeta";
 import { useMemo } from "react";
+
 import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
+
+import type { RoleConfigTabKey } from "./configTabMeta";
+
 import Section from "../Editors/Section";
 import { getRoleConfigTabItem } from "./configTabMeta";
 import NumericalEditor from "./NumericalEditor";
 
-interface ConfigurationSectionProps {
+type ConfigurationSectionProps = {
   title?: string;
   roleId: number;
   ruleId: number;

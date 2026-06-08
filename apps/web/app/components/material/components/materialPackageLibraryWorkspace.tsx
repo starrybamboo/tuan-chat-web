@@ -1,4 +1,3 @@
-import type { MaterialPackageLibraryCardModel, MaterialPackageLibraryPlaceholderIcon } from "./materialPackageLibraryModels";
 import {
   HouseIcon,
   MagnifyingGlassIcon,
@@ -7,9 +6,12 @@ import {
   SparkleIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useRef } from "react";
+
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 
-interface MaterialPackageLibraryAction {
+import type { MaterialPackageLibraryCardModel, MaterialPackageLibraryPlaceholderIcon } from "./materialPackageLibraryModels";
+
+type MaterialPackageLibraryAction = {
   key: string;
   label: string;
   icon: "package" | "plus";
@@ -17,7 +19,7 @@ interface MaterialPackageLibraryAction {
   onClick: () => void;
 }
 
-interface MaterialPackageLibraryShortcut {
+type MaterialPackageLibraryShortcut = {
   key: string;
   title: string;
   description: string;
@@ -26,7 +28,7 @@ interface MaterialPackageLibraryShortcut {
   onClick: () => void;
 }
 
-interface MaterialPackageLibraryWorkspaceProps {
+type MaterialPackageLibraryWorkspaceProps = {
   upperLabel: string;
   title: string;
   description: string;

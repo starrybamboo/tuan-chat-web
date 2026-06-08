@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import type { FriendListRequest } from "@tuanchat/openapi-client/models/FriendListRequest";
 import type { FriendReqHandleRequest } from "@tuanchat/openapi-client/models/FriendReqHandleRequest";
 import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 type FriendClient = Pick<TuanChat, "friendController">;
 

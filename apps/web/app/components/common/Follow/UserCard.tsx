@@ -1,10 +1,13 @@
-import type { FollowResponse } from "../../../../api";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
+
+import type { FollowResponse } from "../../../../api";
+
 import { FollowButton } from "./FollowButton";
 
-interface UserCardProps {
+type UserCardProps = {
   user: FollowResponse;
 }
 

@@ -2,6 +2,7 @@ import type {
   FocusEvent,
   MouseEvent,
 } from "react";
+
 import { useState } from "react";
 
 export function HistoryHint() {

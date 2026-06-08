@@ -1,9 +1,9 @@
+import { getRoomMessageSyncGapStart, mergeRoomMessages } from "@tuanchat/query/room-message";
 import { useEffect, useMemo, useRef } from "react";
 
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
-import { getRoomMessageSyncGapStart, mergeRoomMessages } from "@tuanchat/query/room-message";
 
 import type { ChatMessageResponse } from "../../../../api";
 

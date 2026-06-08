@@ -1,4 +1,5 @@
 import type { RoleConfigTabKey } from "../rules/configTabMeta";
+
 import Section from "../Editors/Section";
 import { getRoleConfigTabItem } from "../rules/configTabMeta";
 import RuleNumericalEditor from "./RuleNumericalEditor";

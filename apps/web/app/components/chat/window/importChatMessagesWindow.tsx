@@ -1,7 +1,3 @@
-import type { UserRole } from "../../../../api";
-import type { ImportedDiceTurn } from "@/components/chat/utils/importChatText";
-import type { FigurePosition } from "@/types/voiceRenderTypes";
-
 import {
   Broom,
   ChatCircleText,
@@ -15,10 +11,16 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { ImportedDiceTurn } from "@/components/chat/utils/importChatText";
+import type { FigurePosition } from "@/types/voiceRenderTypes";
+
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
 import { FIGURE_POSITION_LABELS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
-export interface ResolvedImportChatMessage {
+import type { UserRole } from "../../../../api";
+
+export type ResolvedImportChatMessage = {
   lineNumber: number;
   speakerName: string;
   roleId: number;
@@ -27,7 +29,7 @@ export interface ResolvedImportChatMessage {
   diceTurn?: ImportedDiceTurn;
 }
 
-interface ImportChatMessagesWindowProps {
+type ImportChatMessagesWindowProps = {
   availableRoles: UserRole[];
   initialRawText?: string;
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;

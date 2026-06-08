@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-interface AddFieldFormProps {
+type AddFieldFormProps = {
   onAddField: (key: string, value: string) => void;
   existingKeys: string[];
   placeholder?: {

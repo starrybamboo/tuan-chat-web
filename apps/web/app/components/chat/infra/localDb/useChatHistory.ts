@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import {
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
   mergeRoomMessagesForLocalState,
 } from "@tuanchat/query/room-message-lifecycle";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../../api";
 

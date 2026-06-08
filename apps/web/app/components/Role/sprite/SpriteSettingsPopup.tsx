@@ -1,6 +1,3 @@
-import type { RoleAvatar } from "api";
-import type { UploadContext } from "../RoleInfoCard/AvatarUploadCropper";
-import type { Role } from "../types";
 import {
   CheckCircleIcon,
   ChecksIcon,
@@ -17,14 +14,21 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Drawer } from "vaul";
+
+import type { RoleAvatar } from "api";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+
+import type { UploadContext } from "../RoleInfoCard/AvatarUploadCropper";
+import type { Role } from "../types";
+
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { PreviewTab } from "./Tabs/PreviewTab";
@@ -34,7 +38,7 @@ import { getEffectiveAvatarUrl, getEffectiveSpriteUrl, getSpriteCropSourceUrl } 
 
 export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "trash";
 
-interface SpriteSettingsPopupProps {
+type SpriteSettingsPopupProps = {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: SettingsTab;

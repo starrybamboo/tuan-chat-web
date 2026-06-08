@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
+
 import "@/components/common/scrollbar.css";
 
-export interface ToastWindowFrameProps {
+export type ToastWindowFrameProps = {
   isOpen: boolean;
   children: React.ReactNode;
   onClose: () => void;

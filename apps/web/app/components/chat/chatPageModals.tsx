@@ -11,7 +11,7 @@ import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
-interface ChatPageModalsProps {
+type ChatPageModalsProps = {
   isSpaceHandleOpen: boolean;
   setIsSpaceHandleOpen: (isOpen: boolean) => void;
 

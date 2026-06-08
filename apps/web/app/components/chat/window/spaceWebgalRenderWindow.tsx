@@ -1,17 +1,9 @@
-import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../../../api";
-
-import type { BatchProgress, CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
-import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  fetchRoomNpcRoleWithCache,
-  fetchRoomRoleWithCache,
-  useGetSpaceInfoQuery,
-  useGetUserRoomsQuery,
-} from "api/hooks/chatQueryHooks";
-import { fetchRoleAvatarsWithCache } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
+
 import {
   DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
   MAX_ROOM_CONTENT_ALERT_THRESHOLD,
@@ -26,6 +18,17 @@ import { renderWebgalPublishPackage } from "@/webGAL/publishRenderer";
 import { buildSpaceWebgalInputSnapshot } from "@/webGAL/spaceWebgalSnapshot";
 import { getTerreBaseUrl, getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
+import {
+  fetchRoomNpcRoleWithCache,
+  fetchRoomRoleWithCache,
+  useGetSpaceInfoQuery,
+  useGetUserRoomsQuery,
+} from "api/hooks/chatQueryHooks";
+import { fetchRoleAvatarsWithCache } from "api/hooks/RoleAndAvatarHooks";
+
+import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../../../api";
+import type { BatchProgress, CollapsibleSectionKey, RenderableRoom, RoomRenderState, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
+
 import { tuanchat } from "../../../../api/instance";
 import { SpaceWebgalRenderWindowHeader } from "./spaceWebgalRenderWindowHeader";
 import { SpaceWebgalBatchStatusPanel } from "./spaceWebgalRenderWindowPanels";
@@ -39,7 +42,7 @@ import {
 } from "./spaceWebgalRenderWindowParts";
 import { SpaceWebgalRenderWindowSettings } from "./spaceWebgalRenderWindowSettings";
 
-interface SpaceWebgalRenderWindowProps {
+type SpaceWebgalRenderWindowProps = {
   spaceId: number;
 }
 

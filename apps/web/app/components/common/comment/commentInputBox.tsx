@@ -1,4 +1,5 @@
 import { use, useState } from "react";
+
 import { CommentContext } from "@/components/common/comment/commentContext";
 import {
   hasMeaningfulMediaContent,
@@ -6,6 +7,7 @@ import {
 } from "@/components/common/content/mediaContent";
 import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
 import { CloseIcon, SendIcon } from "@/icons";
+
 import { useAddCommentMutation } from "../../../../api/hooks/commentQueryHooks";
 
 export default function CommentInputBox({

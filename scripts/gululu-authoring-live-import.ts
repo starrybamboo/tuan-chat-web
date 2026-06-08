@@ -1,19 +1,17 @@
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { Sharp } from "sharp";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process, { env } from "node:process";
 import { fileURLToPath } from "node:url";
-
-import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
-
-import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type SpriteTransform = NonNullable<RoleAvatar["spriteTransform"]>;
 

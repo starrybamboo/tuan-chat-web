@@ -1,7 +1,8 @@
-import type { Role } from "@/components/Role/types";
-
 import { use, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { Role } from "@/components/Role/types";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
@@ -10,6 +11,7 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 import CharacterDetail from "@/components/Role/CharacterDetail";
 import { resolveRoleRuleSelection, shouldPersistRoleRuleSelection } from "@/utils/roleRuleSelection";
 import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
+
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 

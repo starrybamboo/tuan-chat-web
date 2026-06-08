@@ -1,4 +1,5 @@
 import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import {
   ANNOTATION_IDS,
@@ -13,7 +14,6 @@ import {
   getRoomJumpExtra,
   getVideoMessageExtra,
 } from "@/types/messageExtra";
-import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import type { ChatMessageResponse, Message } from "../../api";
 

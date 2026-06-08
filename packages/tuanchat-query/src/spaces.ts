@@ -1,12 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
-
-import { useQuery } from "@tanstack/react-query";
-
 import type { ApiResultListSpace } from "@tuanchat/openapi-client/models/ApiResultListSpace";
 import type { ApiResultRoomListResponse } from "@tuanchat/openapi-client/models/ApiResultRoomListResponse";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+import { useQuery } from "@tanstack/react-query";
 
 export type ResourceQueryOptions = {
   enabled?: boolean;

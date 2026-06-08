@@ -2,7 +2,7 @@ import type { MouseEvent } from "react";
 
 import { DotsThreeVerticalIcon } from "@phosphor-icons/react";
 
-interface RoomSidebarItemMenuButtonProps {
+type RoomSidebarItemMenuButtonProps = {
   ariaLabel: string;
   floating?: boolean;
   onClick: (event: MouseEvent<HTMLButtonElement>) => void;

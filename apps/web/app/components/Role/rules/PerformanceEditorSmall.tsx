@@ -1,16 +1,19 @@
 import type { FocusEvent, KeyboardEvent } from "react";
+
+import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { getGridSpan } from "@/utils/gridSpan";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { getGridSpan } from "@/utils/gridSpan";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
-interface PerformanceEditorSmallProps {
+type PerformanceEditorSmallProps = {
   fields: Record<string, string>;
   onChange: (fields: Record<string, string>) => void;
   abilityData: Record<string, string>;

@@ -2,13 +2,13 @@ import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMes
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { tuanchat } from "api/instance";
-
 import { useCallback, useMemo } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import DNDMap from "@/components/chat/shared/map/DNDMap";
 import { StateRuntimeProvider } from "@/components/chat/state/stateRuntimeContext";
+import { tuanchat } from "api/instance";
 
 export const Route = createFileRoute("/room-map/$spaceId/$roomId")({
   component: RoomMapFrameRoute,

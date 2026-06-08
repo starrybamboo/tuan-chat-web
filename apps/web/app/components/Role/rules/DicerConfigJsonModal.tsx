@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
-interface DicerConfigJsonModalProps {
+type DicerConfigJsonModalProps = {
   isOpen: boolean;
   onClose: () => void;
   copywritingTemplates: Record<string, string[]> | undefined;

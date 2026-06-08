@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+
 import type { RoleAvatarSource } from "./roleAccess.shared";
 
 import { getRoleAvatarComponentProps } from "./roleAccess.shared";

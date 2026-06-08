@@ -1,17 +1,20 @@
-import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
-import type { Transform } from "../sprite/TransformControl";
-// 导入必要的类型和组件
-import type { CropMode } from "@/utils/imgCropper/useCropPreview";
-
 import React, { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
+
+// 导入必要的类型和组件
+import type { CropMode } from "@/utils/imgCropper/useCropPreview";
+
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { avatarUrl as buildAvatarUrl, imageMediumUrl } from "@/utils/mediaUrl";
+
+import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
+import type { Transform } from "../sprite/TransformControl";
+
 import { AvatarPreview } from "../Preview/AvatarPreview";
 import { RenderPreview } from "../Preview/RenderPreview";
 import { TransformControl } from "../sprite/TransformControl";
@@ -31,20 +34,20 @@ function createDefaultTransform(): Transform {
 /**
  * 图片上传器组件的属性接口
  */
-export interface UploadContext {
+export type UploadContext = {
   batch?: boolean;
   index?: number;
   total?: number;
 }
 
-interface PreparedBatchAvatarUpload {
+type PreparedBatchAvatarUpload = {
   avatarFileId: number;
   spriteFileId: number;
   originFileId?: number;
   transform: Transform;
 }
 
-interface ImgUploaderWithCopperProps {
+type ImgUploaderWithCopperProps = {
   // 设置原始图片下载链接的回调函数
   setDownloadUrl?: (newUrl: string) => void | undefined;
   // 设置裁剪后图片下载链接的回调函数

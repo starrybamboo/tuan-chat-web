@@ -1,16 +1,20 @@
-import type { RoleAvatar } from "api";
-import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
-import type { Role } from "../../types";
-import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useId, useState } from "react";
+
+import type { RoleAvatar } from "api";
+
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { BaselineDeleteOutline } from "@/icons";
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
+
+import type { UploadContext } from "../../RoleInfoCard/AvatarUploadCropper";
+import type { Role } from "../../types";
+
 import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
 import { useAvatarDeletion } from "../hooks/useAvatarDeletion";
 import { getEffectiveAvatarUrl } from "../utils";
 
-interface SpriteListGridProps {
+type SpriteListGridProps = {
   /** 头像/立绘列表 */
   avatars: RoleAvatar[];
   /** 头像总数（用于判断是否允许删除全部） */

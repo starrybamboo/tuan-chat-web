@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
-import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
-import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "@/icons";
+
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+import { ChevronRightIcon, DiceFiveIcon, GearOutline, MicrophoneIcon } from "@/icons";
+
+import type { CharacterDetailLeftPanelProps } from "./CharacterDetailLeftPanel";
+
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import { hasRoleVoiceMedia } from "./roleVoiceMedia";

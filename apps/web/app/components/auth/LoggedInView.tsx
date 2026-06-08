@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-interface LoggedInViewProps {
+type LoggedInViewProps = {
   handleLogout: () => void;
 }
 

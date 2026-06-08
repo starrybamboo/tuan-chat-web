@@ -1,13 +1,15 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
-import type { RoomMap } from "@/components/chat/window/workflowGraphUtils";
+
 import {
   Background,
   Controls,
   ReactFlow,
 } from "@xyflow/react";
-import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateRoomMutation, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+import type { RoomMap } from "@/components/chat/window/workflowGraphUtils";
+
 import { useWorkflowFullscreen } from "@/components/chat/window/useWorkflowFullscreen";
 import { useWorkflowGraphInteractions } from "@/components/chat/window/useWorkflowGraphInteractions";
 import { buildWorkflowRoomEdge } from "@/components/chat/window/workflowEdgeUtils";
@@ -32,6 +34,8 @@ import WorkflowSceneDescriptionEditor from "@/components/chat/window/workflowSce
 import WorkflowStartNode from "@/components/chat/window/workflowStartNode";
 import SceneNode from "@/components/repository/detail/ContentTab/scene/react flow/NewSceneNode";
 import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateRoomMutation, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
+
 import { SpaceContext } from "../core/spaceContext";
 import { useEntityHeaderOverrideStore } from "../stores/entityHeaderOverrideStore";
 import "@xyflow/react/dist/style.css";

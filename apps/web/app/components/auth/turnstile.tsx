@@ -5,7 +5,7 @@ const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api
 
 let turnstileScriptPromise: Promise<void> | null = null;
 
-interface TurnstileWidgetHandle {
+type TurnstileWidgetHandle = {
   render: (
     container: HTMLElement,
     options: {
@@ -21,6 +21,7 @@ interface TurnstileWidgetHandle {
 }
 
 declare global {
+  // oxlint-disable-next-line typescript/consistent-type-definitions -- Window 扩展需要 interface 声明合并
   interface Window {
     turnstile?: TurnstileWidgetHandle;
   }
@@ -68,7 +69,7 @@ function loadTurnstileScript() {
   return turnstileScriptPromise;
 }
 
-interface TurnstileWidgetProps {
+type TurnstileWidgetProps = {
   token: string;
   onTokenChange: (token: string) => void;
   resetKey: number;

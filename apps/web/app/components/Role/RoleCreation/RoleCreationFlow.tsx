@@ -1,9 +1,10 @@
-import type { Role } from "../types";
-import type { CharacterData } from "./types";
-
 import { Plus } from "@phosphor-icons/react";
 import { lazy, Suspense, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { Role } from "../types";
+import type { CharacterData } from "./types";
+
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_DESCRIPTION_TOO_LONG_MESSAGE } from "./constants";
 import CreatePageHeader from "./CreatePageHeader";
 import { useCreateRoleWithAbilityMutation } from "./hooks/useCreateRoleWithAbilityMutation";
@@ -13,7 +14,7 @@ import { useCharacterData } from "./utils/useCharacterData";
 
 const LazyRulesSection = lazy(() => import("../rules/RulesSection"));
 
-interface RoleCreationFlowProps {
+type RoleCreationFlowProps = {
   onBack?: () => void;
   onComplete?: (role: Role, ruleId?: number) => void;
   title?: string;

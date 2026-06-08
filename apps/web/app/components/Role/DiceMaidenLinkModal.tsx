@@ -1,11 +1,13 @@
-import type { UserRole } from "../../../api";
-import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useMemo, useState } from "react";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { useGetRoleQuery, useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 
-interface DiceMaidenLinkModalProps {
+import type { UserRole } from "../../../api";
+
+type DiceMaidenLinkModalProps = {
   isOpen: boolean;
   onClose: () => void;
   currentDicerRoleId?: number;

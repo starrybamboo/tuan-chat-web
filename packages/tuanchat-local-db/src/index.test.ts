@@ -1,10 +1,9 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Database, SqlValue } from "sql.js";
 
 import path from "node:path";
 import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
-
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import {
   createDocSnapshotRepository,

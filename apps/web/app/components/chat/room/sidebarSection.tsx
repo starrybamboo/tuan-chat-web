@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 
 import { FolderPlusIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
+
 import { ChevronDown } from "@/icons";
 
-interface SidebarSectionProps {
+type SidebarSectionProps = {
   title: string;
   isExpanded: boolean;
   onToggleExpanded: () => void;

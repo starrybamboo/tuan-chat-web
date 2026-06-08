@@ -1,10 +1,12 @@
 import type { MouseEvent } from "react";
-import type { ChatMessageResponse, Message } from "../../../../api";
+
 import React, { useCallback } from "react";
 
 import ChatFrameMessageItem from "@/components/chat/chatFrameMessageItem";
 
-interface UseChatFrameMessageRendererParams {
+import type { ChatMessageResponse, Message } from "../../../../api";
+
+type UseChatFrameMessageRendererParams = {
   selectedMessageIds: Set<number>;
   isDragging: boolean;
   isSelecting: boolean;

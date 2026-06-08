@@ -1,12 +1,14 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
-import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
+
 import { motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
+
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
 import { SearchFilled, XMarkICon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
+import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 
 export default function FriendsListPanel() {
   const { setActiveRoomId, setPrivateChatTab } = useChatPageLayoutContext();
