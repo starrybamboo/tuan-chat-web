@@ -1,7 +1,18 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": [
-    "../../packages/oxlint-config/oxlint-core.json"
+    "../../packages/oxlint-config/oxlint-core.json",
+    "../../packages/oxlint-config/oxlint-js-plugins.json"
+  ],
+  "jsPlugins": [
+    {
+      "name": "tanstack-query",
+      "specifier": "@tanstack/eslint-plugin-query"
+    },
+    {
+      "name": "react-dom",
+      "specifier": "eslint-plugin-react-dom"
+    }
   ],
   "plugins": [
     "jsx-a11y"
@@ -21,19 +32,56 @@
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "off",
     "no-eval": "off",
+    "eslint-comments/no-unlimited-disable": "error",
     "node/no-process-env": "error"
   },
   "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error"
+      }
+    },
     {
       "files": [
         "**/*.js",
         "**/*.ts"
       ],
       "rules": {
+        "tanstack-query/exhaustive-deps": "error",
         "typescript/consistent-type-definitions": [
           "error",
           "type"
         ]
+      }
+    },
+    {
+      "files": [
+        "**/webGALPreview.tsx",
+        "**/markDownViewer.tsx"
+      ],
+      "rules": {
+        "react-dom/no-unsafe-iframe-sandbox": "off"
+      }
+    },
+    {
+      "files": [
+        "api/**/*.js",
+        "api/**/*.ts",
+        "services/**/*.ts",
+        "app/electron.d.ts"
+      ],
+      "rules": {
+        "eslint-comments/no-unlimited-disable": "off"
       }
     },
     {

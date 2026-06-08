@@ -1,0 +1,23 @@
+{
+  "jsPlugins": [
+    {
+      "name": "perfectionist",
+      "specifier": "eslint-plugin-perfectionist"
+    }
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "perfectionist/sort-imports": [
+          "warn",
+          {
+            "tsconfigRootDir": "."
+          }
+        ]
+      }
+    }
+  ]
+}
