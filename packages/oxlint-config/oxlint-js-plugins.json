@@ -5,6 +5,10 @@
       "specifier": "eslint-plugin-react-hooks"
     },
     {
+      "name": "perfectionist",
+      "specifier": "eslint-plugin-perfectionist"
+    },
+    {
       "name": "eslint-comments",
       "specifier": "@eslint-community/eslint-plugin-eslint-comments"
     }
@@ -15,6 +19,12 @@
         "**/*.{js,jsx,ts,tsx}"
       ],
       "rules": {
+        "perfectionist/sort-imports": [
+          "warn",
+          {
+            "tsconfigRootDir": "."
+          }
+        ],
         "react-hooks-js/immutability": "off",
         "react-hooks-js/preserve-manual-memoization": "off",
         "react-hooks-js/purity": "off",

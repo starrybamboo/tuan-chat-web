@@ -16,7 +16,8 @@
     "build:win:nsis": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --win nsis",
     "build:mac:zip": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --mac zip",
     "build:mac:dmg": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --mac dmg",
-    "lint": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern"
+    "lint": "node ../../scripts/run-oxlint-changed-files.mjs --cwd apps/desktop --scope apps/desktop --config .oxlintrc.json",
+    "lint:full": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern"
   },
   "dependencies": {
     "electron-updater": "^6.7.3",

@@ -11,7 +11,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web --port 8082",
-    "lint": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern",
+    "lint": "node ../../scripts/run-oxlint-changed-files.mjs --cwd apps/mobile --scope apps/mobile --config .oxlintrc.json",
+    "lint:full": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

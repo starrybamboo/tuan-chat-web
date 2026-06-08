@@ -1,8 +1,7 @@
 {
   "extends": [
     "./oxlint-core.json",
-    "./oxlint-js-plugins.json",
-    "./oxlint-sort-imports.json"
+    "./oxlint-js-plugins.json"
   ],
   "ignorePatterns": []
 }

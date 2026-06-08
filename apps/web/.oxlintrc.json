@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": [
     "../../packages/oxlint-config/oxlint-core.json",
-    "../../packages/oxlint-config/oxlint-sort-imports.json"
+    "../../packages/oxlint-config/oxlint-js-plugins.json"
   ],
   "jsPlugins": [
     {
@@ -54,6 +54,21 @@
     }
   },
   "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react-hooks-js/component-hook-factories": "error",
+        "react-hooks-js/config": "error",
+        "react-hooks-js/error-boundaries": "error",
+        "react-hooks-js/gating": "error",
+        "react-hooks-js/globals": "error",
+        "react-hooks-js/incompatible-library": "warn",
+        "react-hooks-js/use-memo": "error",
+        "react-hooks-js/void-use-memo": "error"
+      }
+    },
     {
       "files": [
         "**/*.js",
