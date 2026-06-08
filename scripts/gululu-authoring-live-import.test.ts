@@ -1,5 +1,5 @@
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -70,13 +70,51 @@ function createImportPackage() {
   };
 }
 
+async function writeNamedAvatarManifest(params: {
+  assetKind?: string;
+  items: Array<{
+    displayName?: string;
+    file: string;
+    sourceRelPaths?: string[];
+    usageKey?: string;
+  }>;
+  namedRoot: string;
+  role: string;
+}) {
+  const assetKind = params.assetKind ?? "character-avatar-bust";
+  const dir = path.join(params.namedRoot, params.role, assetKind);
+  await mkdir(dir, { recursive: true });
+  for (const item of params.items) {
+    await writeFile(path.join(dir, item.file), "fixture", "utf8");
+  }
+  await writeFile(path.join(dir, "avatar-manifest.json"), `${JSON.stringify({
+    assetKind,
+    count: params.items.length,
+    items: params.items.map((item, index) => ({
+      displayName: item.displayName,
+      file: item.file,
+      members: (item.sourceRelPaths ?? []).map((sourceRelPath, memberIndex) => ({
+        id: `I${String(index + 1).padStart(3, "0")}-${memberIndex + 1}`,
+        sourceCandidates: [{ copied: true, file: `KEEP_SOURCE_${memberIndex + 1}.png`, sourceRelPath }],
+        sourceRelPath,
+      })),
+      representativeSourceRelPath: item.sourceRelPaths?.[0] ?? "",
+      usageKey: item.usageKey,
+    })),
+    role: params.role,
+  }, null, 2)}\n`, "utf8");
+}
+
 describe("gululu-authoring-live-import", () => {
   it("解析 live import CLI 参数", () => {
     const args = parseLiveImportArgs([
       "--apply",
       "--skip-avatar-upload",
+      "--skip-named-avatars",
       "--input",
       "import.json",
+      "--named-avatar-root",
+      "named-avatars",
       "--target-room-id",
       "62",
       "--target-space-id",
@@ -98,6 +136,8 @@ describe("gululu-authoring-live-import", () => {
       dicerAvatarId: 3,
       dicerRoleId: 2,
       input: "import.json",
+      namedAvatarRoot: "named-avatars",
+      skipNamedAvatars: true,
       skipAvatarUpload: true,
       targetRoomId: 62,
       targetSpaceId: 88,
@@ -192,6 +232,74 @@ describe("gululu-authoring-live-import", () => {
     expect(plan.warnings).toEqual(["BGM 暂以文本事件保留：远野幻想物语"]);
   });
 
+  it("会从最终 named-avatars manifest 导入语义头像并把原图对白映射到语义头像", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "gululu-live-import-named-"));
+    try {
+      const namedRoot = path.join(tempDir, "image-role-review-clean-vision-final", "named-avatars");
+      await writeNamedAvatarManifest({
+        items: [
+          {
+            displayName: "严肃睁眼",
+            file: "neutral_three_quarter_open_front_closed_focused__v001.png",
+            sourceRelPaths: ["gululu/retsu.png", "gululu/retsu-duplicate.png"],
+            usageKey: "neutral_three_quarter_open_front_closed_focused",
+          },
+          {
+            displayName: "闭眼微笑",
+            file: "happy_three_quarter_closed_front_smile__v001.png",
+            sourceRelPaths: ["gululu/retsu-smile.png"],
+            usageKey: "happy_three_quarter_closed_front_smile",
+          },
+        ],
+        namedRoot,
+        role: "烈海王",
+      });
+      await writeNamedAvatarManifest({
+        items: [{
+          displayName: "平静",
+          file: "calm_front_open_front_closed__v001.png",
+          usageKey: "calm_front_open_front_closed",
+        }],
+        namedRoot,
+        role: "八意永琳",
+      });
+
+      const plan = buildGululuLiveImportPlan(createImportPackage(), {
+        namedAvatarRoot: namedRoot,
+        skipAvatarUpload: false,
+        sourceRoot: tempDir,
+        targetRoomId: 62,
+        targetSpaceId: 8801,
+      });
+
+      expect(plan.roles.map(role => role.name)).toEqual(expect.arrayContaining(["八意永琳", "烈海王"]));
+      expect(plan.avatars).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          avatarTitle: { label: "严肃睁眼" },
+          displayName: "严肃睁眼",
+          fileName: "neutral_three_quarter_open_front_closed_focused__v001.png",
+          imagePath: "image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
+          key: "role:烈海王:image:image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
+          sourceImagePaths: ["gululu/retsu.png", "gululu/retsu-duplicate.png"],
+          upload: true,
+          usageKey: "neutral_three_quarter_open_front_closed_focused",
+        }),
+        expect.objectContaining({
+          avatarTitle: { label: "平静" },
+          key: "role:八意永琳:image:image-role-review-clean-vision-final/named-avatars/八意永琳/character-avatar-bust/calm_front_open_front_closed__v001.png",
+        }),
+      ]));
+      expect(plan.avatars.some(avatar => avatar.imagePath === "gululu/retsu.png")).toBe(false);
+      expect(plan.messages[0]).toMatchObject({
+        avatarKey: "role:烈海王:image:image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
+        roleKey: "role:烈海王",
+      });
+    }
+    finally {
+      await rm(tempDir, { recursive: true });
+    }
+  });
+
   it("会把嵌套骰链写成同一条 diceTurn 的多条回复", () => {
     const plan = buildGululuLiveImportPlan({
       messages: [{
@@ -254,6 +362,12 @@ describe("gululu-authoring-live-import", () => {
       visibleBounds: { height: 370, width: 377, x: 17, y: 0 },
       width: 395,
     });
+    const wideHeadBust = buildGululuImportedSpriteTransform({
+      hasAlpha: true,
+      height: 319,
+      visibleBounds: { height: 319, width: 529, x: 0, y: 0 },
+      width: 529,
+    });
     const mangaAvatar = buildGululuImportedSpriteTransform({ hasAlpha: false, height: 253, width: 580 });
 
     expect(fullBody).toMatchObject({
@@ -261,11 +375,12 @@ describe("gululu-authoring-live-import", () => {
       positionX: 0,
       rotation: 0,
     });
-    expect(fullBody.scale).toBeGreaterThan(headBust.scale);
-    expect(fullBody.positionY).toBeLessThan(headBust.positionY);
-    expect(headBust.positionY).toBeGreaterThan(-100);
-    expect(mangaAvatar.scale).toBeLessThanOrEqual(0.42);
-    expect(mangaAvatar.positionY).toBeGreaterThan(0);
+    expect(fullBody.scale!).toBeGreaterThan(headBust.scale!);
+    expect(fullBody.positionY!).toBeLessThan(headBust.positionY!);
+    expect(headBust.positionY!).toBeGreaterThan(-100);
+    expect(wideHeadBust.scale!).toBeGreaterThan(0.44);
+    expect(mangaAvatar.scale!).toBeLessThanOrEqual(0.42);
+    expect(mangaAvatar.positionY!).toBeGreaterThan(0);
   });
 
   it("dry-run 只写计划文件，不调用 live client", async () => {
