@@ -900,6 +900,129 @@ describe("useChatMessageSubmit", () => {
     expect(String(sendMessageWithInsert.mock.calls[1]?.[0]?.content ?? "")).not.toMatch(/^[.。/]/);
   });
 
+  it("连写带符号骰子表达式 .st 会掷骰后发送 STATE_EVENT(varOp)", async () => {
+    mocks.isCommandMock.mockReturnValue(true);
+    useChatInputUiStore.setState({
+      plainText: ".st 力量+1d6",
+      textWithoutMentions: ".st 力量+1d6",
+      mentionedRoles: [],
+    });
+
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
+    try {
+      const roomUiStoreApi = createRoomUiStore();
+      const commandExecutor = vi.fn();
+      const sendMessageWithInsert = vi.fn(async request => ({
+        ...createMessage(25),
+        messageType: request.messageType,
+        content: request.content,
+        extra: request.extra,
+      }));
+      mocks.writeRoleVarOpsThroughAbilitiesMock.mockResolvedValueOnce({
+        changedAbilities: [{
+          ability: {
+            roleId: 3,
+            ruleId: 7,
+            basic: { 力量: "54" },
+          },
+          roleId: 3,
+          ruleId: 7,
+        }],
+        changedRoleIds: [3],
+        roleVarOps: [{
+          type: "varOp",
+          scope: {
+            kind: "role",
+            roleId: 3,
+          },
+          key: "力量",
+          op: "add",
+          value: 4,
+          beforeValue: 50,
+          afterValue: 54,
+        }],
+      });
+
+      const { handleMessageSubmit } = useChatMessageSubmit({
+        roomId: 1,
+        spaceId: 2,
+        isSpaceOwner: false,
+        curRoleId: 3,
+        ruleId: 7,
+        notMember: false,
+        noRole: false,
+        isSubmitting: false,
+        setIsSubmitting: vi.fn(),
+        sendMessageWithInsert,
+        sendMessageBatch: vi.fn(async () => []),
+        ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+        commandExecutor,
+        containsCommandRequestAllToken: vi.fn(() => false),
+        stripCommandRequestAllToken: vi.fn((text: string) => text),
+        extractFirstCommandText: vi.fn(() => null),
+        setInputText: vi.fn(),
+        roomUiStoreApi,
+      });
+
+      await handleMessageSubmit();
+
+      expect(commandExecutor).not.toHaveBeenCalled();
+      expect(mocks.writeRoleVarOpsThroughAbilitiesMock).toHaveBeenCalledWith(expect.objectContaining({
+        events: [{
+          type: "varOp",
+          scope: {
+            kind: "role",
+            roleId: 3,
+          },
+          key: "力量",
+          op: "add",
+          value: 4,
+        }],
+      }));
+      expect(sendMessageWithInsert).toHaveBeenNthCalledWith(1, expect.objectContaining({
+        messageType: MessageType.DICE,
+        content: ".st 力量+1d6",
+        extra: expect.objectContaining({
+          diceTurn: {
+            command: ".st 力量+1d6",
+            replies: [{
+              content: "状态已更新：角色 #3 · 力量 50 -> 54",
+              customRoleName: "骰娘",
+            }],
+          },
+        }),
+      }), { optimistic: false });
+      expect(sendMessageWithInsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
+        messageType: MessageType.STATE_EVENT,
+        content: "状态更新：力量 +4（1d6[4]）",
+        extra: {
+          stateEvent: {
+            source: {
+              kind: "command",
+              commandName: "st",
+              parserVersion: "state-event-v1",
+            },
+            events: [{
+              type: "varOp",
+              scope: {
+                kind: "role",
+                roleId: 3,
+              },
+              key: "力量",
+              op: "add",
+              value: 4,
+              beforeValue: 50,
+              afterValue: 54,
+            }],
+          },
+        },
+      }), { optimistic: false });
+    }
+    finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   it("空格赋值 。st 手枪 80 会发送骰娘反馈和 STATE_EVENT(varOp)", async () => {
     mocks.isCommandMock.mockReturnValue(true);
     useChatInputUiStore.setState({

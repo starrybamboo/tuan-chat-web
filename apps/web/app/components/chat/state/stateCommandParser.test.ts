@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { parseSimpleStateCommand } from "@/components/chat/state/stateCommandParser";
 
@@ -106,6 +106,40 @@ describe("stateCommandParser", () => {
         }],
       },
     });
+  });
+
+  it("支持属性名与带符号骰子表达式连写", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      expect(parseSimpleStateCommand({
+        curRoleId: 3,
+        inputText: ".st 力量+1d6",
+        inputTextWithoutMentions: ".st 力量+1d6",
+        mentionedRoleCount: 0,
+      })).toEqual({
+        content: "状态更新：力量 +1（1d6[1]）",
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "st",
+            parserVersion: "state-event-v1",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: 3,
+            },
+            key: "力量",
+            op: "add",
+            value: 1,
+          }],
+        },
+      });
+    }
+    finally {
+      randomSpy.mockRestore();
+    }
   });
 
   it("在没有角色 ID 时拒绝解析 .st", () => {

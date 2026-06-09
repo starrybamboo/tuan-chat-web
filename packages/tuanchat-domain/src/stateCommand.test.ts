@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildEndCombatStateEventExtra,
@@ -134,5 +134,39 @@ describe("stateCommand", () => {
       inputTextWithoutMentions: ".st 手枪 1d4+1d8",
       mentionedRoleCount: 0,
     })).toBeNull();
+  });
+
+  it("支持带符号骰子表达式的 .st 增减命令", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
+    try {
+      expect(parseSimpleStateCommand({
+        curRoleId: 3,
+        inputText: ".st 力量+1d6",
+        inputTextWithoutMentions: ".st 力量+1d6",
+        mentionedRoleCount: 0,
+      })).toEqual({
+        content: "状态更新：力量 +4（1d6[4]）",
+        stateEvent: {
+          source: {
+            kind: "command",
+            commandName: "st",
+            parserVersion: "state-event-v1",
+          },
+          events: [{
+            type: "varOp",
+            scope: {
+              kind: "role",
+              roleId: 3,
+            },
+            key: "力量",
+            op: "add",
+            value: 4,
+          }],
+        },
+      });
+    }
+    finally {
+      randomSpy.mockRestore();
+    }
   });
 });
