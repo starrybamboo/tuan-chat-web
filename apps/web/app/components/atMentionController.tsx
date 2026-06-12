@@ -1,8 +1,7 @@
 import type {
   RefObject,
 } from "react";
-import type { UserRole } from "../../api";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
 import React, {
   useCallback,
   useEffect,
@@ -11,18 +10,23 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
 import { Mounter } from "@/components/common/mounter";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 
+import type { UserRole } from "../../api";
+
 // 定义 props 类型
-interface AtMentionProps {
+type AtMentionProps = {
   chatInputRef: RefObject<ChatInputAreaHandle | null>;
   allRoles: UserRole[];
 }
 
 // 定义将通过 ref 暴露的句柄（Handle）类型
-export interface AtMentionHandle {
+export type AtMentionHandle = {
   isDialogOpen: () => boolean;
   onKeyDown: (e: React.KeyboardEvent) => boolean; // 返回 true 表示事件已被处理
   onKeyUp: (e: React.KeyboardEvent) => void;

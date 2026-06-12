@@ -33,6 +33,8 @@ import { MessageType } from "./wsModels";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
 
 const WS_HANDLER_DEBUG_LOG_ENABLED = import.meta.env.DEV;
+const GROUP_MESSAGE_PUSH_TYPE = 4;
+const GROUP_MESSAGE_BATCH_PUSH_TYPE = 25;
 
 type ImmerUpdater<T> = (recipe: (draft: T) => void) => void;
 
@@ -65,6 +67,20 @@ function normalizeExtraForMatch(extra: unknown): string {
   catch {
     return "{}";
   }
+}
+
+function isChatMessageResponse(value: unknown): value is ChatMessageResponse {
+  return !!(value as ChatMessageResponse | undefined)?.message;
+}
+
+export function parseRoomMessagePushPayload(type: number, data: unknown): ChatMessageResponse[] {
+  if (type === GROUP_MESSAGE_PUSH_TYPE) {
+    return isChatMessageResponse(data) ? [data] : [];
+  }
+  if (type !== GROUP_MESSAGE_BATCH_PUSH_TYPE || !Array.isArray(data)) {
+    return [];
+  }
+  return data.filter(isChatMessageResponse);
 }
 
 export function useWebSocketMessageHandlers({
@@ -196,6 +212,12 @@ export function useWebSocketMessageHandlers({
     void notifyNewGroupMessage(chatMessageResponse);
   }, [handleChatStatusChange, notifyNewGroupMessage, receivedMessagesRef, updateLatestSyncId, updateReceivedMessages]);
 
+  const handleChatMessages = useCallback((chatMessageResponses: ChatMessageResponse[]) => {
+    for (const chatMessageResponse of chatMessageResponses) {
+      handleChatMessage(chatMessageResponse);
+    }
+  }, [handleChatMessage]);
+
   const handleDirectChatMessage = useCallback((message: DirectMessageEvent) => {
     const { receiverId, senderId } = message;
     const selfUserId = resolveSelfUserId(message.userId);
@@ -285,8 +307,11 @@ export function useWebSocketMessageHandlers({
       1: () => {
         handleDirectChatMessage(message.data as DirectMessageEvent);
       },
-      4: () => {
-        handleChatMessage(message.data as ChatMessageResponse);
+      [GROUP_MESSAGE_PUSH_TYPE]: () => {
+        handleChatMessages(parseRoomMessagePushPayload(message.type, message.data));
+      },
+      [GROUP_MESSAGE_BATCH_PUSH_TYPE]: () => {
+        handleChatMessages(parseRoomMessagePushPayload(message.type, message.data));
       },
       11: () => {
         const event = message as MemberChangePush;
@@ -429,6 +454,7 @@ export function useWebSocketMessageHandlers({
     closingRef,
     connect,
     handleChatMessage,
+    handleChatMessages,
     handleChatStatusChange,
     handleDirectChatMessage,
     notifyNewFriendRequest,

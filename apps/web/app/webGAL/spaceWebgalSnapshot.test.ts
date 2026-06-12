@@ -29,7 +29,6 @@ describe("buildSpaceWebgalInputSnapshot", () => {
       ],
       gameConfig: { baseTemplate: "black" },
       coverAvatarFileId: 99,
-      coverAvatarUrl: "https://legacy.example/cover.webp",
       coverAvatarMediaType: "image",
     });
 
@@ -40,7 +39,6 @@ describe("buildSpaceWebgalInputSnapshot", () => {
     expect(snapshot.hydratedGameConfig).toMatchObject({ baseTemplate: "black" });
     expect(snapshot.coverAvatarSource).toMatchObject({
       fileId: 99,
-      url: "https://legacy.example/cover.webp",
       mediaType: "image",
     });
   });

@@ -1,8 +1,12 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
-import type { MessageDirectType } from "../types/messageDirect";
+
 import { motion } from "motion/react";
 import { useMemo } from "react";
+
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
+
+import type { MessageDirectType } from "../types/messageDirect";
+
 import ChatItem from "./ChatItem";
 
 function getContactUserFromMessage(contactId: number, message: MessageDirectType | null) {

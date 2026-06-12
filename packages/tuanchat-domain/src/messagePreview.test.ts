@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { describe, expect, it } from "vitest";
 
 import { ANNOTATION_IDS } from "./message-annotations";
 import { getMessagePreviewText } from "./messagePreview";

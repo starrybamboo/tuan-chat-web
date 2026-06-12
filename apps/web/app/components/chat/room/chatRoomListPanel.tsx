@@ -1,10 +1,10 @@
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
-import type { Room } from "../../../../api";
-import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
-import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 
 import { PackageIcon } from "@phosphor-icons/react";
 import React, { useMemo, useState } from "react";
+
+import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
+
 import { partitionClueFolderRooms } from "@/components/chat/clues/clueRooms";
 import RoomSidebarCategory from "@/components/chat/room/roomSidebarCategory";
 import RoomSidebarMaterialPackageItem from "@/components/chat/room/roomSidebarMaterialPackageItem";
@@ -27,6 +27,10 @@ import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOve
 import MaterialPackageImportModal from "@/components/material/components/materialPackageImportModal";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import LeftChatList from "@/components/privateChat/LeftChatList";
+
+import type { Room } from "../../../../api";
+import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
+
 import {
   getRoomSidebarMaterialSectionClassName,
   shouldShowRoomSidebarSplitLayout,
@@ -39,7 +43,7 @@ import SidebarTreeOverlays from "./sidebarTreeOverlays";
 const ROOM_DOC_SECTION_KEY = "section:room-docs";
 const MATERIAL_SECTION_KEY = "section:materials";
 
-interface ChatRoomListPanelProps {
+type ChatRoomListPanelProps = {
   isPrivateChatMode: boolean;
 
   currentUserId?: number | null;

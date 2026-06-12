@@ -2,7 +2,7 @@ import type { DragEvent, ReactNode } from "react";
 
 import RoomSidebarInsertLine from "@/components/chat/room/roomSidebarInsertLine";
 
-interface RoomSidebarCategoryContainerProps {
+type RoomSidebarCategoryContainerProps = {
   categoryId: string;
   isSpaceOwner: boolean;
   docCopyDropCategoryId: string | null;

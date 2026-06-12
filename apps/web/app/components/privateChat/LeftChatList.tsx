@@ -1,6 +1,8 @@
 import { useParams } from "@tanstack/react-router";
+
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { getScreenSize } from "@/utils/getScreenSize";
+
 import ChatList from "./components/ChatList";
 import ContextMenuCommon from "./components/ContextMenuCommon";
 import PrivateChatTopTabs from "./components/PrivateChatTopTabs";

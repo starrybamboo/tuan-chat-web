@@ -1,6 +1,5 @@
-import type { MessageEditorMessage } from "../messageEditorTypes";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
@@ -8,9 +7,12 @@ import { MediaImage } from "@/components/common/mediaImage";
 import { TrashIcon } from "@/icons";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { MessageEditorMessage } from "../messageEditorTypes";
+
 import { isMessageEditorFileDrag, isMessageEditorUploadableMediaMessage } from "../runtime/messageEditorFileDrop";
 
-interface MessageEditorAtomicBlockProps {
+type MessageEditorAtomicBlockProps = {
   active?: boolean;
   blockId: string;
   message: MessageEditorMessage;

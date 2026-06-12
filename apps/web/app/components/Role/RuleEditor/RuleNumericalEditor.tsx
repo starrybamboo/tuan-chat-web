@@ -1,10 +1,11 @@
 import { useEffect, useReducer, useRef, useState } from "react";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 
 type NumericalData = Record<string, string>;
 
-interface RuleNumericalEditorProps {
+type RuleNumericalEditorProps = {
   title?: string;
   data?: NumericalData;
   onSave?: (data: NumericalData) => void;

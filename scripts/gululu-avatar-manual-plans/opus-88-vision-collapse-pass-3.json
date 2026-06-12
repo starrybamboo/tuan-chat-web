@@ -1,0 +1,118 @@
+{
+  "createdAt": "2026-06-08T00:00:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第三批：处理 pass2 deferred 项。只折叠同语义状态；严肃/咬牙/不满、脸红、阴影强度、漫画对白框/分镜角度差异保留。",
+  "groups": [
+    {
+      "role": "烈海王",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I010"],
+      "reason": "同为黑发闭眼微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I017"],
+      "reason": "同为黑发自信微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I022"],
+      "reason": "同为黑发开口微笑，眼型嘴型和情绪一致，仅裁切差异；I022 为用户确认从芙兰误归属迁入。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I011",
+      "memberIds": ["I011", "I020"],
+      "reason": "同为黑发闭眼平静，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I015",
+      "memberIds": ["I015", "I018"],
+      "reason": "同为黑发愤怒开口怒吼，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "依神紫苑",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I018"],
+      "reason": "同为闭眼笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "依神紫苑",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I013"],
+      "reason": "同为张口惊讶，无汗泪脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "依神紫苑",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I017"],
+      "reason": "同为闭眼大笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "四季映姬",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I018"],
+      "reason": "同为平静侧视闭口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "四季映姬",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I005"],
+      "reason": "同为淡定侧视闭口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "四季映姬",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I013", "I016"],
+      "reason": "同为闭眼小口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "四季映姬",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I010"],
+      "reason": "同为闭眼笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "manga-avatar",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I007"],
+      "reason": "漫画头像同为正面吃惊张口，同一状态下的裁切差异。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "manga-avatar",
+      "representativeId": "I012",
+      "memberIds": ["I012", "I029"],
+      "reason": "漫画头像同为带“我没所谓”对白的侧脸半睁噘嘴格，差异仅为裁切范围。"
+    }
+  ],
+  "stillDeferred": [
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I018",
+      "note": "用户指出“这个是”但未补全目标角色，暂不迁移。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "manga-avatar",
+      "note": "多数漫画分镜含对白框、角度或动作差异，本批只折叠两组高置信重复。"
+    }
+  ]
+}

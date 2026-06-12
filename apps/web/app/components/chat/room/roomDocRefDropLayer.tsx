@@ -1,9 +1,9 @@
+import React, { useCallback, useEffect, useRef, useState } from "react";
+
 import type { ClueRefDragPayload } from "@/components/chat/utils/clueRef";
 import type { DocRefDragPayload } from "@/components/chat/utils/docRef";
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 import type { RoomRefDragPayload } from "@/components/chat/utils/roomRef";
-
-import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";
 import { getClueRefDragData, isClueRefDrag } from "@/components/chat/utils/clueRef";
@@ -12,7 +12,7 @@ import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef"
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 import { getRoomRefDragData, isRoomRefDrag } from "@/components/chat/utils/roomRef";
 
-interface RoomDocRefDropLayerProps {
+type RoomDocRefDropLayerProps = {
   onSendClueCard: (payload: ClueRefDragPayload) => Promise<void> | void;
   onSendDocCard: (payload: DocRefDragPayload) => Promise<void> | void;
   onSendMaterialItem: (payload: MaterialItemDragPayload) => Promise<void> | void;

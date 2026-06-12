@@ -1,14 +1,16 @@
 import React, { useEffect, useRef } from "react";
+
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl } from "@/utils/mediaUrl";
+
 import {
   useGetMomentFeedStatsQuery,
   useGetUserMomentFeedInfiniteQuery,
 } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 
-interface ActivitiesTabProps {
+type ActivitiesTabProps = {
   userId: number;
 }
 

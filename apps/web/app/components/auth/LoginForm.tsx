@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+
 import { motion } from "motion/react";
 
-interface LoginFormProps {
+type LoginFormProps = {
   username?: string;
   setUsername: (value: string) => void;
   password: string;

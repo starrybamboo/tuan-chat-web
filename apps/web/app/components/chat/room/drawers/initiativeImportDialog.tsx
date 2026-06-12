@@ -1,10 +1,11 @@
+import { useState } from "react";
+
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+
 import type { InitiativeAbilityQuery, InitiativeRoleRef } from "./initiativeListDerived";
 import type { Initiative } from "./initiativeListTypes";
 
-import { useState } from "react";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-
-interface InitiativeImportDialogProps {
+type InitiativeImportDialogProps = {
   isOpen: boolean;
   importableRoles: InitiativeRoleRef[];
   abilityQueries: InitiativeAbilityQuery[];

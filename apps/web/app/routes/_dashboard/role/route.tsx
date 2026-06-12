@@ -1,8 +1,10 @@
-import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { CaretRightIcon } from "@phosphor-icons/react";
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
+
+import type { RouteMetaArgs } from "@/routes/routeTypes";
+
 import { Sidebar } from "@/components/Role/Sidebar/Sidebar";
 import { useRoleUiStore } from "@/components/Role/stores/roleUiStore";
 import { useRoleListModel } from "@/components/Role/useRoleListModel";
@@ -72,6 +74,7 @@ function RoleLayout() {
         `}>
           <Sidebar
             roles={rolesModel.roles}
+            isRoleListLoading={rolesModel.isRoleListLoading}
             selectedRoleId={selectedRoleId}
             onNavigate={() => setIsDrawerOpen(false)}
           />
@@ -157,6 +160,7 @@ function RoleLayout() {
               <div className="flex-1 overflow-y-auto">
                 <Sidebar
                   roles={rolesModel.roles}
+                  isRoleListLoading={rolesModel.isRoleListLoading}
                   selectedRoleId={selectedRoleId}
                   onNavigate={() => setIsDrawerOpen(false)}
                 />

@@ -1,9 +1,11 @@
 import { Handle, Position } from "@xyflow/react";
 import { useLayoutEffect, useRef, useState } from "react";
+
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+
 import ItemDetail from "../ItemDetail";
 
-interface SceneNodeProps {
+type SceneNodeProps = {
   data: {
     label: string;
     idx: number;

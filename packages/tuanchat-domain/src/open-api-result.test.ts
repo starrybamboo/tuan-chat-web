@@ -1,8 +1,7 @@
-import { describe, expect, it } from "vitest";
-
 import type { ApiRequestOptions } from "@tuanchat/openapi-client/core/ApiRequestOptions";
 
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
+import { describe, expect, it } from "vitest";
 
 import {
   assertOpenApiResultSuccess,

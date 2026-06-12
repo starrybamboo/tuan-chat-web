@@ -1,13 +1,15 @@
 import type { CSSProperties } from "react";
-import type { ChatMessageResponse } from "../../../api";
 
 import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import React, { useCallback } from "react";
+
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { DraggableIcon, PlusOutline } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageResponse } from "../../../api";
 
 const MESSAGE_DRAG_GUTTER_CLASS = "pl-6 sm:pl-7";
 const MESSAGE_DRAG_HANDLE_CLASS = [
@@ -45,7 +47,7 @@ export function getChatFrameMessageItemClassName(params: {
   ].filter(Boolean).join(" ");
 }
 
-interface ChatFrameMessageItemProps {
+type ChatFrameMessageItemProps = {
   chatMessageResponse: ChatMessageResponse;
   isSelected: boolean;
   isDragging: boolean;

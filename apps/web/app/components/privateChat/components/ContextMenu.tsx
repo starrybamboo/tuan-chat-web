@@ -1,10 +1,11 @@
-import type { MessageDirectRecallRequest } from "api";
 import React, { useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import type { MessageDirectRecallRequest } from "api";
+
 type PrivateContextMenuState = { messageId: number } | null;
 
-interface ContextMenuProps {
+type ContextMenuProps = {
   allMessages: any[];
   userId: number;
   contextMenu: PrivateContextMenuState;

@@ -1,12 +1,14 @@
-// 类型导入 (parent-type)
-import type { ChatStatusType } from "../../../api/wsModels";
 // 外部库
 import React, { useMemo } from "react";
+
 import TypingIndicator from "@/components/chat/message/typingIndicator";
 import WaitingIndicator from "@/components/chat/message/waitingIndicator";
 import UserIdToName from "@/components/chat/shared/components/userIdToName";
 
-interface ChatStatusBarProps {
+// 类型导入 (parent-type)
+import type { ChatStatusType } from "../../../api/wsModels";
+
+type ChatStatusBarProps = {
   roomId: number;
   userId: number | undefined | null;
   webSocketUtils: any;

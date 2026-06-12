@@ -1,10 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { buildUserProfileNavigation } from "@/components/common/userAvatarNavigation";
 import { UserDetail } from "@/components/common/userDetail";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(

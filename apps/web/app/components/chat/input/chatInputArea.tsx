@@ -1,8 +1,10 @@
-import type { UserRole } from "../../../../api";
 import React, { useImperativeHandle, useRef } from "react";
+
 import { extractEditablePlainText } from "@/components/chat/input/chatInputPlainText";
 import { insertPlainTextWithUndo } from "@/components/chat/input/undoablePlainText";
 import { getEditorRange } from "@/utils/getSelectionCoords";
+
+import type { UserRole } from "../../../../api";
 
 // --- 外部接口 ---
 
@@ -10,7 +12,7 @@ import { getEditorRange } from "@/utils/getSelectionCoords";
  * 这是暴露给父组件 (RoomWindow) 的句柄(Handle)类型。
  * 父组件将通过 ref.current.methodName() 来调用这些函数。
  */
-export interface ChatInputAreaHandle {
+export type ChatInputAreaHandle = {
   /**
    * 命令式地设置 contentEditable div 的内容 (HTML)。
    * 用于父组件清空输入框或设置文本。
@@ -61,7 +63,7 @@ export interface ChatInputAreaHandle {
 
 // --- 组件 Props ---
 
-interface ChatInputAreaProps {
+type ChatInputAreaProps = {
   /** 当输入框内容变化时，将解析后的纯文本和提及列表回调给父组件 */
   onInputSync: (plainText: string, textWithoutMentions: string, mentionedRoles: UserRole[]) => void;
   /** 将粘贴的文件回调给父组件 */

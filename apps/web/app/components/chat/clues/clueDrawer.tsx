@@ -1,4 +1,5 @@
 import { use, useEffect, useMemo, useState } from "react";
+
 import ClueFolderSidebar from "@/components/chat/clues/clueFolderSidebar";
 import { partitionClueFolderRooms, PRIVATE_CLUE_FOLDER_NAME, PUBLIC_CLUE_FOLDER_NAME } from "@/components/chat/clues/clueRooms";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -6,6 +7,7 @@ import SidebarSection from "@/components/chat/room/sidebarSection";
 import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueReferenceNavigationStore";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+
 import { useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
 
 export default function ClueDrawer() {

@@ -1,10 +1,13 @@
 import type { FocusEvent, KeyboardEvent } from "react";
+
+import { useEffect, useReducer, useRef } from "react";
+import toast from "react-hot-toast";
+
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useReducer, useRef } from "react";
-import toast from "react-hot-toast";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
@@ -25,16 +28,17 @@ const NUMERIC_FIELD_SPAN_THRESHOLDS = {
   lgFull: 40,
 };
 
-interface NumericalEditorProps {
+type NumericalEditorProps = {
   data: NumericalData;
   onChange: (data: NumericalData) => void;
   roleId: number;
   ruleId: number;
   title?: string;
   fieldType: FieldType; // 新增:指定要更新的字段类型
+  hideTitle?: boolean;
   hideTitleOnMobile?: boolean;
-  syncValueChanges?: boolean;
   existingKeys?: string[];
+  allowAddField?: boolean;
 }
 
 // Reducer actions
@@ -117,14 +121,18 @@ export default function NumericalEditor({
   ruleId,
   title = "数值数据",
   fieldType,
+  hideTitle = false,
   hideTitleOnMobile = false,
-  syncValueChanges = false,
   existingKeys,
+  allowAddField = true,
 }: NumericalEditorProps) {
-  const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
-  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutateAsync: updateKeyFieldAsync } = useUpdateKeyFieldByRoleIdMutation();
+  const { mutate: updateFieldValue, mutateAsync: updateFieldValueAsync } = useUpdateRoleAbilityByRoleIdMutation();
   const pendingChangesRef = useRef<Record<string, string>>({});
-  const headerClassName = hideTitleOnMobile
+  const latestDataRef = useRef(data);
+  const headerClassName = hideTitle
+    ? "hidden"
+    : hideTitleOnMobile
     ? "hidden md:flex justify-between items-center md:mb-4"
     : "flex justify-between items-center mb-4";
 
@@ -136,8 +144,20 @@ export default function NumericalEditor({
 
   // 使用 useEffect 同步 props.data 的变化
   useEffect(() => {
-    dispatch({ type: "SYNC_PROPS", payload: data });
+    latestDataRef.current = data;
+    const pendingChanges = pendingChangesRef.current;
+    dispatch({
+      type: "SYNC_PROPS",
+      payload: Object.keys(pendingChanges).length > 0
+        ? { ...data, ...pendingChanges }
+        : data,
+    });
   }, [data]);
+
+  useEffect(() => {
+    pendingChangesRef.current = {};
+    dispatch({ type: "SYNC_PROPS", payload: latestDataRef.current });
+  }, [roleId, ruleId, fieldType]);
 
   const buildFieldUpdateRequest = (fields: Record<string, string | null>) =>
     buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, fields);
@@ -162,8 +182,8 @@ export default function NumericalEditor({
       return;
     }
 
-    const updatedData = {
-      ...localData,
+    const nextPendingChanges = {
+      ...pendingChangesRef.current,
       [fieldKey]: newValue,
     };
 
@@ -172,14 +192,7 @@ export default function NumericalEditor({
       payload: { key: fieldKey, value: newValue },
     });
 
-    // 仅在需要时同步到父组件，避免模板区输入时字段立即“迁移”到自定义区
-    if (syncValueChanges) {
-      onChange(updatedData);
-    }
-    pendingChangesRef.current = {
-      ...pendingChangesRef.current,
-      [fieldKey]: newValue,
-    };
+    pendingChangesRef.current = nextPendingChanges;
   };
 
   const commitPendingChanges = (
@@ -223,67 +236,64 @@ export default function NumericalEditor({
   };
 
   const handleFieldCommit = (fieldKey: string, newValue: string) => {
+    let nextPendingChanges = pendingChangesRef.current;
     if (localData[fieldKey] !== newValue) {
+      nextPendingChanges = {
+        ...pendingChangesRef.current,
+        [fieldKey]: newValue,
+      };
       dispatch({
         type: "UPDATE_FIELD",
         payload: { key: fieldKey, value: newValue },
       });
-      pendingChangesRef.current = {
-        ...pendingChangesRef.current,
-        [fieldKey]: newValue,
-      };
+      pendingChangesRef.current = nextPendingChanges;
     }
-    commitPendingChanges({ ...localData, [fieldKey]: newValue }, "field");
+    const updatedData = {
+      ...localData,
+      ...nextPendingChanges,
+      [fieldKey]: newValue,
+    };
+    if (Object.keys(nextPendingChanges).length === 0) {
+      return;
+    }
+    commitPendingChanges(updatedData, "field");
   };
 
   // 添加新字段
-  const handleAddField = (newFieldKey: string, newFieldValue: string) => {
+  const handleAddField = async (newFieldKey: string, newFieldValue: string) => {
     if (!newFieldKey.trim() || isReservedFieldKey(newFieldKey)) {
       return;
     }
 
-    // 先计算新数据
+    const pendingChanges = pendingChangesRef.current;
     const updatedData = {
       ...localData,
+      ...pendingChanges,
       [newFieldKey]: newFieldValue,
     };
+    pendingChangesRef.current = {};
 
-    commitPendingChanges(updatedData, "add", updatedData);
-
-    // 更新本地状态
-    dispatch({
-      type: "ADD_FIELD",
-      payload: { key: newFieldKey, value: newFieldValue },
-    });
-    onChange(updatedData);
-
-    updateFieldValue(buildValueUpdateRequest({ [newFieldKey]: newFieldValue }), {
-      onSuccess: () => {
-        toast.success("能力已更新");
-      },
-      onError: error => handleFieldSaveError(error, data),
-    });
+    try {
+      await updateFieldValueAsync(buildValueUpdateRequest({
+        ...pendingChanges,
+        [newFieldKey]: newFieldValue,
+      }));
+      dispatch({ type: "SYNC_PROPS", payload: updatedData });
+      handleFieldSaveSuccess(updatedData, "add");
+    }
+    catch (error) {
+      pendingChangesRef.current = {
+        ...pendingChanges,
+        ...pendingChangesRef.current,
+      };
+      handleFieldSaveError(error, data);
+      throw error;
+    }
   };
 
   // 删除字段
   const handleDeleteField = (fieldKey: string) => {
-    takePendingValue(fieldKey);
-
-    // 先计算新数据
-    const updatedData = { ...localData };
-    delete updatedData[fieldKey];
-
-    commitPendingChanges(updatedData, "delete", updatedData);
-
-    // 更新本地状态
-    dispatch({ type: "DELETE_FIELD", payload: fieldKey });
-
-    updateKeyField(buildFieldUpdateRequest({ [fieldKey]: null }), {
-      onSuccess: () => {
-        handleFieldSaveSuccess(updatedData);
-      },
-      onError: error => handleFieldSaveError(error, data),
-    });
+    void saveDeleteField(fieldKey);
   };
 
   // 修改字段名
@@ -292,40 +302,69 @@ export default function NumericalEditor({
       return; // 新字段名不能为空、相同或重复
     }
 
-    const pendingValue = takePendingValue(oldKey);
+    void saveRenameField(oldKey, newKey);
+  };
 
-    // 先计算新数据
+  const saveDeleteField = async (fieldKey: string) => {
+    takePendingValue(fieldKey);
+    const pendingChanges = pendingChangesRef.current;
+    const updatedData = {
+      ...localData,
+      ...pendingChanges,
+    };
+    delete updatedData[fieldKey];
+    pendingChangesRef.current = {};
+
+    try {
+      if (Object.keys(pendingChanges).length > 0) {
+        await updateFieldValueAsync(buildValueUpdateRequest(pendingChanges));
+      }
+      await updateKeyFieldAsync(buildFieldUpdateRequest({ [fieldKey]: null }));
+      dispatch({ type: "SYNC_PROPS", payload: updatedData });
+      handleFieldSaveSuccess(updatedData);
+    }
+    catch (error) {
+      pendingChangesRef.current = {
+        ...pendingChanges,
+        ...pendingChangesRef.current,
+      };
+      handleFieldSaveError(error, data);
+    }
+  };
+
+  const saveRenameField = async (oldKey: string, newKey: string) => {
+    const pendingValue = takePendingValue(oldKey);
+    const pendingChanges = pendingChangesRef.current;
     const value = pendingValue ?? localData[oldKey];
-    const updatedData = { ...localData };
+    const updatedData = {
+      ...localData,
+      ...pendingChanges,
+    };
     delete updatedData[oldKey];
     updatedData[newKey] = value;
+    pendingChangesRef.current = {};
 
-    commitPendingChanges(updatedData, "rename", updatedData);
-
-    // 更新本地状态
-    dispatch({
-      type: "RENAME_FIELD",
-      payload: { oldKey, newKey },
-    });
-    onChange(updatedData);
-
-    updateKeyField(buildFieldUpdateRequest({
-      [oldKey]: newKey,
-    }), {
-      onSuccess: () => {
-        if (pendingValue === undefined) {
-          toast.success("能力已更新");
-          return;
-        }
-        updateFieldValue(buildValueUpdateRequest({ [newKey]: pendingValue }), {
-          onSuccess: () => {
-            handleFieldSaveSuccess(updatedData, "rename");
-          },
-          onError: error => handleFieldSaveError(error, data),
-        });
-      },
-      onError: error => handleFieldSaveError(error, data),
-    });
+    try {
+      if (Object.keys(pendingChanges).length > 0) {
+        await updateFieldValueAsync(buildValueUpdateRequest(pendingChanges));
+      }
+      await updateKeyFieldAsync(buildFieldUpdateRequest({ [oldKey]: newKey }));
+      if (pendingValue !== undefined) {
+        await updateFieldValueAsync(buildValueUpdateRequest({ [newKey]: pendingValue }));
+      }
+      dispatch({ type: "SYNC_PROPS", payload: updatedData });
+      handleFieldSaveSuccess(updatedData, "rename");
+    }
+    catch (error) {
+      pendingChangesRef.current = {
+        ...pendingChanges,
+        ...pendingChangesRef.current,
+      };
+      if (pendingValue !== undefined) {
+        pendingChangesRef.current[oldKey] = pendingValue;
+      }
+      handleFieldSaveError(error, data);
+    }
   };
 
   const handleGridBlur = (e: FocusEvent<HTMLDivElement>) => {
@@ -414,13 +453,7 @@ export default function NumericalEditor({
       [overflow-anchor:none]
     ">
       <div className={headerClassName}>
-        <h3 className={`
-          card-title text-lg items-center gap-2
-          ${hideTitleOnMobile ? `
-            hidden
-            md:flex
-          ` : `flex`}
-        `}>
+        <h3 className="card-title flex items-center gap-2 text-lg">
           {title}
         </h3>
       </div>
@@ -429,7 +462,7 @@ export default function NumericalEditor({
         <div className="
           grid grid-cols-2
           md:grid-cols-4
-          gap-6 min-h-32
+          gap-6
         " onKeyDown={handleArrowNavigation} onBlur={handleGridBlur}>
           {Object.entries(localData).map(([key, value]) => {
             const strVal = String(value ?? "");
@@ -483,15 +516,18 @@ export default function NumericalEditor({
             );
           })}
 
-          <div className="col-span-full">
-            <AddFieldForm
-              onAddField={handleAddField}
-              existingKeys={reservedKeys}
-              layout="inline"
-              className="col-span-full pt-2 mt-2"
-              enableArrowNavigation
-            />
-          </div>
+          {allowAddField && (
+            <div>
+              <AddFieldForm
+                onAddField={handleAddField}
+                existingKeys={reservedKeys}
+                layout="inline"
+                variant="tile"
+                showTitle={false}
+                enableArrowNavigation
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
-import type { SpaceMember } from "../../../../api";
 import { createContext } from "react";
 
-export interface SpaceContextType {
+import type { SpaceMember } from "../../../../api";
+
+export type SpaceContextType = {
   /** 当前激活的空间ID */
   spaceId?: number;
 

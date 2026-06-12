@@ -1,10 +1,12 @@
 import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageResponse } from "../../../api";
-import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
+
 import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
+
+import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
+
 import { addDroppedFilesToComposer, isFileDrag } from "@/components/chat/utils/dndUpload";
 import { describeMessageDisplayFilterStatus } from "@/components/chat/utils/messageDisplayFilter";
 import {
@@ -13,6 +15,10 @@ import {
   unreadBadgeBounceMotionProps,
 } from "@/components/common/motion/chatMessageMotion";
 import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
+
+import type { ChatMessageResponse } from "../../../api";
+
+import { CHAT_COMPOSER_RESIZE_EVENT } from "./chatFrameEvents";
 import { getChatFrameItemKey } from "./chatFrameListKey";
 
 function Header() {
@@ -23,7 +29,7 @@ function Header() {
   );
 }
 
-interface SelectionToolbarProps {
+type SelectionToolbarProps = {
   selectedCount: number;
   totalCount: number;
   isVisible: boolean;
@@ -179,7 +185,7 @@ const SelectionToolbar = memo(({
   );
 });
 
-interface MessageFilterControlProps {
+type MessageFilterControlProps = {
   isActive: boolean;
   filterConfig: MessageDisplayFilterConfig | null;
   visibleCount: number;
@@ -285,7 +291,7 @@ type MessageFilterTransitionState = {
 
 const CHAT_COMPOSER_ROOT_SELECTOR = "[data-chat-composer-root=\"true\"]";
 
-interface UnreadIndicatorProps {
+type UnreadIndicatorProps = {
   enabled: boolean;
   unreadMessageNumber: number;
   historyLength: number;
@@ -328,7 +334,7 @@ const UnreadIndicator = memo(({
   );
 });
 
-interface GalPatchProposalToolbarProps {
+type GalPatchProposalToolbarProps = {
   added: number;
   deleted: number;
   modified: number;
@@ -435,7 +441,7 @@ const GalPatchProposalToolbar = memo(({
   );
 });
 
-interface DragHandlers {
+type DragHandlers = {
   handleDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: React.DragEvent<HTMLDivElement>) => void;
 }
@@ -459,7 +465,7 @@ function useChatFrameListDragHandlers(roomId: number): DragHandlers {
   return { handleDragOver, handleDrop };
 }
 
-interface ChatFrameListProps {
+type ChatFrameListProps = {
   historyMessages: ChatMessageResponse[];
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   scrollerRef: React.MutableRefObject<HTMLElement | null>;
@@ -588,6 +594,7 @@ export default function ChatFrameList({
   const [filterTransitionState, setFilterTransitionState] = useState<MessageFilterTransitionState>(null);
   const pendingAnchorSyncRef = useRef<number | null>(null);
   const previousFilterActiveRef = useRef(isMessageFilterActive);
+  const currentVirtuosoIndexRef = useRef(0);
   const filterTransitionKey = useMemo(() => {
     if (!isMessageFilterActive || !currentMessageFilter) {
       return "inactive";
@@ -625,10 +632,16 @@ export default function ChatFrameList({
     });
   }, [filterTransitionKey, isMessageFilterActive]);
 
+  const commitCurrentVirtuosoIndex = useCallback((index: number) => {
+    const safeIndex = Number.isFinite(index) ? Math.max(0, Math.floor(index)) : 0;
+    currentVirtuosoIndexRef.current = safeIndex;
+    setCurrentVirtuosoIndex(safeIndex);
+  }, [setCurrentVirtuosoIndex]);
+
   const syncCurrentVirtuosoIndex = useCallback((fallbackIndex: number) => {
     const scroller = scrollerRef.current;
     if (!scroller) {
-      setCurrentVirtuosoIndex(Math.max(0, Math.floor(fallbackIndex)));
+      commitCurrentVirtuosoIndex(fallbackIndex);
       return;
     }
 
@@ -647,7 +660,7 @@ export default function ChatFrameList({
           }))
         : [];
       const lineBottom = resolveChatFrameRenderLineBottom(scroller);
-      setCurrentVirtuosoIndex(resolveChatFrameSeenIndexFromBounds(itemBounds, lineBottom, fallbackIndex));
+      commitCurrentVirtuosoIndex(resolveChatFrameSeenIndexFromBounds(itemBounds, lineBottom, fallbackIndex));
     };
 
     if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
@@ -656,7 +669,20 @@ export default function ChatFrameList({
     }
 
     pendingAnchorSyncRef.current = window.requestAnimationFrame(runSync);
-  }, [scrollerRef, setCurrentVirtuosoIndex]);
+  }, [commitCurrentVirtuosoIndex, scrollerRef]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const handleComposerResize = () => {
+      syncCurrentVirtuosoIndex(currentVirtuosoIndexRef.current);
+    };
+    window.addEventListener(CHAT_COMPOSER_RESIZE_EVENT, handleComposerResize);
+    return () => {
+      window.removeEventListener(CHAT_COMPOSER_RESIZE_EVENT, handleComposerResize);
+    };
+  }, [syncCurrentVirtuosoIndex]);
 
   return (
     <>

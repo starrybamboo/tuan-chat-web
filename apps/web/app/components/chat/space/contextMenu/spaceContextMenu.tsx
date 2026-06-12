@@ -1,11 +1,13 @@
 import { useRouter } from "@tanstack/react-router";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
+
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ConfirmModal from "@/components/common/comfirmModel";
+
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
 
-export interface SpaceContextMenuProps {
+export type SpaceContextMenuProps = {
   contextMenu: { x: number; y: number; spaceId: number } | null;
   isSpaceOwner: boolean;
   isArchived: boolean;

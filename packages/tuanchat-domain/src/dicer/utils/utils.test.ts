@@ -15,12 +15,12 @@ describe("dicer utils", () => {
     expect(resolved).toBe(88);
   });
 
-  it("空间禁用自定义骰娘时忽略角色绑定", async () => {
+  it("没有角色绑定时回退到空间骰娘", async () => {
     const resolved = await UTILS.getDicerRoleId(
       { curRoleId: 10, spaceId: 1 },
       {
-        currentRoleSnapshot: { roleId: 10, extra: { dicerRoleId: 88 } },
-        spaceSnapshot: { dicerRoleId: 2, extra: { allowCustomDicerRole: false, dicerRoleId: 77 } },
+        currentRoleSnapshot: { roleId: 10, extra: {} },
+        spaceSnapshot: { dicerRoleId: 2, extra: { dicerRoleId: 77 } },
       },
     );
 

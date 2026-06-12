@@ -1,8 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 import { useEffect, useRef, useState } from "react";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { fetchUserRoomsWithCache, useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
 
 export const Route = createFileRoute("/invite/$code")({
   component: InvitePage,

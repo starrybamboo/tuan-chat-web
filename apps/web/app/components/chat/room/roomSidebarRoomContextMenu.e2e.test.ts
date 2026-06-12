@@ -4,16 +4,19 @@ import { build } from "esbuild";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let browser: Browser;
 let tempDir = "";
 let bundlePath = "";
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
+const appRoot = path.resolve(packageRoot, "app");
 
 function resolveAppAlias(specifier: string) {
   const withoutAlias = specifier.slice(2);
-  const basePath = path.join("D:\\A_collection\\tuan-chat-web\\app", withoutAlias);
+  const basePath = path.resolve(appRoot, withoutAlias);
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -37,15 +40,42 @@ async function expectText(page: Page, testId: string, expected: string) {
   await page.waitForFunction(
     ([id, value]) => document.querySelector(`[data-testid="${id}"]`)?.textContent?.trim() === value,
     [testId, expected],
+    { timeout: 5_000 },
   );
 }
 
 async function createPage() {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.setContent("<!doctype html><html><body><div id=\"app\"></div></body></html>");
+  const runtimeErrors: string[] = [];
+  page.on("pageerror", error => runtimeErrors.push(`pageerror: ${error.message}`));
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      runtimeErrors.push(`console error: ${message.text()}`);
+    }
+  });
+  await page.route("http://localhost/**", (route) => {
+    const resourceType = route.request().resourceType();
+    return route.fulfill({
+      body: resourceType === "document" ? "<!doctype html><html><body><div id=\"app\"></div></body></html>" : "",
+      contentType: resourceType === "document" ? "text/html" : "text/plain",
+      status: 200,
+    });
+  });
+  await page.goto("http://localhost/");
   await page.addScriptTag({ path: bundlePath });
-  await expectText(page, "harness-ready", "ready");
+  try {
+    await expectText(page, "harness-ready", "ready");
+  }
+  catch (error) {
+    const bodyText = await page.locator("body").textContent().catch(() => "");
+    throw new Error([
+      "room sidebar context menu harness did not become ready",
+      ...runtimeErrors,
+      `body: ${bodyText ?? ""}`,
+      error instanceof Error ? error.message : String(error),
+    ].filter(Boolean).join("\n"));
+  }
   return { context, page };
 }
 
@@ -55,8 +85,9 @@ describe("room sidebar context menu browser e2e", () => {
     bundlePath = path.join(tempDir, "room-sidebar-contextmenu-harness.js");
 
     await build({
+      absWorkingDir: packageRoot,
       entryPoints: [
-        "D:\\A_collection\\tuan-chat-web\\app\\components\\chat\\room\\roomSidebarRoomContextMenu.e2e.harness.tsx",
+        path.resolve(appRoot, "components/chat/room/roomSidebarRoomContextMenu.e2e.harness.tsx"),
       ],
       outfile: bundlePath,
       bundle: true,

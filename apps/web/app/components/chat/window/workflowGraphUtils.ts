@@ -1,9 +1,8 @@
+import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
 import type { Edge, Node } from "@xyflow/react";
 
 import { MarkerType } from "@xyflow/react";
-
-import type { Room } from "@tuanchat/openapi-client/models/Room";
-import type { Space } from "@tuanchat/openapi-client/models/Space";
 
 import { SCENE_DEFAULT_DESCRIPTION } from "@/components/chat/window/workflowSceneDescriptionEditor";
 

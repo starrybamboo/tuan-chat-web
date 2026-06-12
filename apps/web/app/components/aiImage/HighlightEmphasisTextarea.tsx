@@ -1,22 +1,23 @@
 import type { MutableRefObject, TextareaHTMLAttributes } from "react";
+
 import { useCallback, useEffect, useId, useLayoutEffect, useRef } from "react";
 
 type SegmentTone = "neutral" | "strengthen" | "weaken" | "inverse";
 type SegmentKind = "text" | "syntax" | "numeric-close" | "comment";
 
-interface EmphasisSegment {
+type EmphasisSegment = {
   text: string;
   kind: SegmentKind;
   tone: SegmentTone;
   level: 0 | 1 | 2 | 3;
 }
 
-interface HighlightEmphasisTextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> {
+type HighlightEmphasisTextareaProps = {
   contentClassName: string;
   highlightEnabled?: boolean;
   surfaceClassName: string;
   textareaRef?: MutableRefObject<HTMLTextAreaElement | null>;
-}
+} & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className">
 
 const NUMERIC_EMPHASIS_PATTERN = /^-?(?:\d+(?:\.\d+)?|\.\d+)::/;
 // The overlay must keep identical text metrics to the real textarea, otherwise

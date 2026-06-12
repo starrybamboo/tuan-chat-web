@@ -1,5 +1,6 @@
 import { createFileRoute, useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+
 import LoginModal from "@/components/auth/LoginModal";
 import { normalizeAuthRedirectPath } from "@/utils/auth/redirect";
 import { createSeoMeta } from "@/utils/seo";

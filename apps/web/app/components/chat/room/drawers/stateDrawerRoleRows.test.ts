@@ -5,6 +5,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import {
   buildCustomCombatStateKey,
+  buildCombatRecordValueRow,
   buildNextCopiedInitiativeRoleName,
   buildRoleAbilityFieldDeletePatch,
   collectCombatInitiativeRecords,
@@ -88,6 +89,50 @@ describe("stateDrawerRoleRows", () => {
     expect(collectCombatInitiativeRecords(messages)).toMatchObject([
       { initiative: 50, recordId: "12:7:0", roleId: 7, sourceMessageId: 12 },
     ]);
+  });
+
+  it("先攻记录行优先显示角色卡实时 HP，而不是导入消息里的旧 HP", () => {
+    expect(buildCombatRecordValueRow({
+      baseValues: { hp: 18 },
+      derivedValues: { hp: 15 },
+      fallbackAbility: { ability: { hp: "18" } },
+      key: "hp",
+      recordValue: 2,
+      valueKeys: ["hp"],
+    })).toEqual({
+      key: "hp",
+      baseValue: 18,
+      displayValue: 15,
+    });
+  });
+
+  it("先攻记录行优先显示角色卡实时先攻，而不是导入消息里的旧先攻", () => {
+    expect(buildCombatRecordValueRow({
+      baseValues: { initiative: 22 },
+      derivedValues: { initiative: 22 },
+      fallbackAbility: { skill: { initiative: "22" } },
+      key: "initiative",
+      recordValue: 8,
+      valueKeys: ["initiative", "init", "先攻", "先攻值"],
+    })).toEqual({
+      key: "initiative",
+      baseValue: 22,
+      displayValue: 22,
+    });
+  });
+
+  it("角色卡能力未加载时，先攻记录行保留导入消息里的 HP", () => {
+    expect(buildCombatRecordValueRow({
+      baseValues: { hp: 0 },
+      derivedValues: { hp: 0 },
+      key: "hp",
+      recordValue: 21,
+      valueKeys: ["hp"],
+    })).toEqual({
+      key: "hp",
+      baseValue: 21,
+      displayValue: 21,
+    });
   });
 
   it("数值未变化时不提交更新", () => {

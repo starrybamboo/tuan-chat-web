@@ -1,16 +1,19 @@
 import type { UseMutationResult } from "@tanstack/react-query";
-import type { ApiResultMessage, Message } from "../../../../api";
-import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { SpaceContextType } from "@/components/chat/core/spaceContext";
+
 import { useCallback } from "react";
 import toast from "react-hot-toast";
+
+import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { SpaceContextType } from "@/components/chat/core/spaceContext";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import RoleChooser from "@/components/chat/input/roleChooser";
 import { useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
-interface UseChatFrameNarratorToggleParams {
+import type { ApiResultMessage, Message } from "../../../../api";
+
+type UseChatFrameNarratorToggleParams = {
   roomContext: RoomContextType;
   spaceContext: SpaceContextType;
   updateMessageMutation: UseMutationResult<ApiResultMessage, unknown, Message, unknown>;

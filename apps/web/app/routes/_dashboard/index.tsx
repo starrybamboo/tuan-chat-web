@@ -1,5 +1,7 @@
-import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+
+import type { RouteMetaArgs } from "@/routes/routeTypes";
+
 import { createSeoMeta } from "@/utils/seo";
 
 export function meta(_args: RouteMetaArgs) {

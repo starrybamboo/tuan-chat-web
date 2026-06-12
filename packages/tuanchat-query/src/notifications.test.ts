@@ -1,10 +1,9 @@
 import type { InfiniteData } from "@tanstack/react-query";
+import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
+import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
 
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
-
-import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
-import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
 
 import {
   getNotificationsQueryKey,

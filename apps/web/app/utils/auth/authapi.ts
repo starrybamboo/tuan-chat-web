@@ -1,8 +1,9 @@
+import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
+
 import type { UserLoginRequest, UserRegisterRequest } from "api";
 
 import { queryClient, resetTuanChatQueryCache } from "@/queryClient";
 import { extractOpenApiErrorMessage } from "@/utils/openApiResult";
-import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
 
 import { tuanchat } from "../../../api/instance";
 import { dispatchStoredAuthSessionChanged } from "./sessionEvents";

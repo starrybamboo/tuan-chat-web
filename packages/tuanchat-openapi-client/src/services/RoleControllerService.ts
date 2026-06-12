@@ -153,4 +153,21 @@ export class RoleControllerService {
             },
         });
     }
+    /**
+     * 根据id批量硬删除角色
+     * @param roleId
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public hardDeleteRole(
+        roleId: Array<number>,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/role/hard',
+            query: {
+                'roleId': roleId,
+            },
+        });
+    }
 }

@@ -430,18 +430,11 @@ async function getDicerRoleIdRaw(roomContext: RoomContextType, options?: DicerRo
   const spaceId = Number(roomContext.spaceId ?? 0);
   const space = await getSpaceSnapshot(spaceId, options);
   const extraRecord = normalizeRecord(space?.extra);
-  const rawAllowCustom = extraRecord.allowCustomDicerRole;
-  const allowCustomDicerRole = rawAllowCustom === undefined
-    ? true
-    : rawAllowCustom === true
-      || rawAllowCustom === "true"
-      || rawAllowCustom === 1
-      || rawAllowCustom === "1";
   const currentRoleId = Number(roomContext.curRoleId);
   // 旁白/未选角色（<=0）统一走空间骰娘，避免触发 getRole(-1) 后回退到默认 2。
   const hasSelectedRole = Number.isFinite(currentRoleId) && currentRoleId > 0;
 
-  if (allowCustomDicerRole && hasSelectedRole) {
+  if (hasSelectedRole) {
     const roleDicerRoleId = await getRoleBoundDicerRoleId(currentRoleId, options);
     if (roleDicerRoleId != null) {
       return roleDicerRoleId;

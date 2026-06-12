@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { describe, expect, it } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 

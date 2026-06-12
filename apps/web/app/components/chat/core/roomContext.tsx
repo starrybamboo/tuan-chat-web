@@ -1,3 +1,7 @@
+import { createContext } from "react";
+
+import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
+
 // src/context/chat-context.tsx
 import type {
   ChatMessageRequest,
@@ -6,10 +10,8 @@ import type {
   SpaceMember,
   UserRole,
 } from "../../../../api";
-import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
-import { createContext } from "react";
 
-export interface RoomContextType {
+export type RoomContextType = {
   /** 当前激活的群组ID */
   roomId?: number;
 

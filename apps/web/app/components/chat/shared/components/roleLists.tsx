@@ -1,8 +1,8 @@
-import type { UserRole } from "../../../../../api";
-
 import { setRoleRefDragData } from "@/components/chat/utils/roleRef";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
+
+import type { UserRole } from "../../../../../api";
 
 export default function RoleList({
   roles,

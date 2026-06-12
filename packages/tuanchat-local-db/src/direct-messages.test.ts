@@ -1,10 +1,8 @@
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { Database, SqlValue } from "sql.js";
 
-import path from "node:path";
 import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
-
-import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import type { LocalDbSqliteDriver } from "./index";
 
@@ -15,6 +13,7 @@ import {
   normalizeDirectMessagesForStorage,
   toDirectMessageRecord,
 } from "./direct-messages";
+import { locateSqlJsFile } from "./testSqlJs";
 
 function createDirectMessage(
   messageId: number,
@@ -38,7 +37,7 @@ function createDirectMessage(
 
 async function createMemoryDriver(): Promise<LocalDbSqliteDriver> {
   const SQL = await initSqlJs({
-    locateFile: file => path.resolve(process.cwd(), "node_modules/sql.js/dist", file),
+    locateFile: locateSqlJsFile,
   });
   const db = new SQL.Database();
 

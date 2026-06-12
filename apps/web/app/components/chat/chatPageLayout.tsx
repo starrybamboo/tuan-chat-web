@@ -1,10 +1,11 @@
 import React from "react";
+
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { SidebarSimpleIcon } from "@/icons";
 
 type ScreenSize = "sm" | "md" | "lg";
 
-interface ChatPageLayoutProps {
+type ChatPageLayoutProps = {
   screenSize: ScreenSize;
   isOpenLeftDrawer: boolean;
   shouldShowLeftDrawerToggle: boolean;

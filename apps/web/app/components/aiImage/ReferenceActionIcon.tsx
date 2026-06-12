@@ -1,4 +1,4 @@
-interface ReferenceActionIconProps {
+type ReferenceActionIconProps = {
   className?: string;
   src: string;
 }

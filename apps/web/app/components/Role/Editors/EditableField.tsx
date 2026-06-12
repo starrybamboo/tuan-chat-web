@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-interface EditableFieldProps {
+type EditableFieldProps = {
   fieldKey: string;
   value: string;
   isEditing: boolean;

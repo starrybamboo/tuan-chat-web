@@ -7,7 +7,7 @@ import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
 import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
@@ -95,6 +95,9 @@ const styles = StyleSheet.create({
 });
 
 const CLUE_MESSAGES_STALE_TIME_MS = 60_000;
+const CLUE_INITIAL_RENDER_COUNT = 10;
+const CLUE_RENDER_BATCH_SIZE = 8;
+const CLUE_WINDOW_SIZE = 7;
 
 function getMessageKey(message: Message, index: number) {
   return `clue:${message.messageId ?? message.syncId ?? index}`;
@@ -124,7 +127,7 @@ type MobileClueFolderMessagesProps = {
   isKP: boolean;
 };
 
-function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId, folderRoom, isKP }: MobileClueFolderMessagesProps) {
+function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRoomId, folderRoom, isKP }: MobileClueFolderMessagesProps) {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const roomId = folderRoom.roomId ?? null;
@@ -143,11 +146,14 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
   const lastReadSyncIdRef = useRef(0);
 
   const messages = useMemo(() => {
-    return messagesQuery.messages
-      .map(item => item.message)
-      .filter(message => message.status !== 1)
-      .slice()
-      .reverse();
+    const next: Message[] = [];
+    for (let index = messagesQuery.messages.length - 1; index >= 0; index -= 1) {
+      const message = messagesQuery.messages[index]?.message;
+      if (message && message.status !== 1) {
+        next.push(message);
+      }
+    }
+    return next;
   }, [messagesQuery.messages]);
 
   useEffect(() => {
@@ -163,13 +169,13 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
     updateReadPosition.mutate({ roomId, syncId: targetSyncId });
   }, [messagesQuery.messages, queryClient, roomId, updateReadPosition]);
 
-  const closeEditor = () => {
+  const closeEditor = useCallback(() => {
     setEditingMessage(null);
     setDraftContent("");
     setActionError(null);
-  };
+  }, []);
 
-  const handleAction = async (action: MessageAction, message: Message) => {
+  const handleAction = useCallback(async (action: MessageAction, message: Message) => {
     setActionMenuVisible(false);
     setActionError(null);
     if (action === "copy") {
@@ -228,9 +234,9 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
         setActionError(getErrorMessage(error, "删除线索失败。"));
       }
     }
-  };
+  }, [currentRoleId, currentRoomId, deleteMessage, isKP, sendRoomMessageMutation]);
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!editingMessage) {
       return;
     }
@@ -249,58 +255,101 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
     catch (error) {
       setActionError(getErrorMessage(error, "保存线索失败。"));
     }
-  };
+  }, [closeEditor, draftContent, editMessage, editingMessage]);
+
+  const handleOpenActionMenu = useCallback((message: Message) => {
+    setActionMenuMessage(message);
+    setActionMenuVisible(true);
+  }, []);
+
+  const handleCloseActionMenu = useCallback(() => {
+    setActionMenuVisible(false);
+  }, []);
+
+  const handleActionMenuAction = useCallback((action: MessageAction, message: Message) => {
+    void handleAction(action, message);
+  }, [handleAction]);
+
+  const handleSaveEditPress = useCallback(() => {
+    void handleSaveEdit();
+  }, [handleSaveEdit]);
+
+  const renderClueMessage = useCallback(({ item }: { item: Message }) => (
+    <Pressable
+      onPress={() => handleOpenActionMenu(item)}
+      style={[styles.clueCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+    >
+      <TextEnhanceRenderer
+        content={getClueText(item)}
+        style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}
+      />
+      <MobileMessageMediaPreview
+        compact
+        content={item.content}
+        extra={item.extra}
+        messageType={item.messageType}
+      />
+    </Pressable>
+  ), [handleOpenActionMenu, theme.backgroundElement, theme.border, theme.text]);
 
   const overlays = (
     <>
-      <MessageActionMenu
-        canAddClue={false}
-        canMultiSelect={false}
-        canReply={false}
-        canSendToRoom
-        currentUserId={currentUserId}
-        hasHostPrivileges={isKP}
-        message={actionMenuMessage}
-        onAction={(action, message) => void handleAction(action, message)}
-        onClose={() => setActionMenuVisible(false)}
-        visible={actionMenuVisible}
-      />
-      <BottomSheetModal
-        backgroundColor={theme.surface}
-        handleColor={theme.border}
-        maxHeight="70%"
-        onClose={closeEditor}
-        sheetStyle={styles.editorSheet}
-        visible={editingMessage !== null}
-      >
-        <View style={styles.editorHeader}>
-          <ThemedText style={[styles.editorTitle, { color: theme.text }]}>编辑线索</ThemedText>
-          <Pressable onPress={closeEditor} style={[styles.editorButton, { backgroundColor: theme.backgroundElement }]}>
-            <ThemedText type="smallBold" themeColor="textSecondary">取消</ThemedText>
-          </Pressable>
-          <Pressable onPress={() => void handleSaveEdit()} style={[styles.editorButton, { backgroundColor: theme.accentMuted }]}>
-            <ThemedText type="smallBold" themeColor="accent">保存</ThemedText>
-          </Pressable>
-        </View>
-        <TextInput
-          multiline
-          onChangeText={setDraftContent}
-          placeholder="写下这条线索..."
-          placeholderTextColor={theme.textSecondary}
-          style={[
-            styles.editorInput,
-            {
-              backgroundColor: theme.backgroundElement,
-              borderColor: theme.border,
-              color: theme.text,
-            },
-          ]}
-          value={draftContent}
-        />
-        {actionError
-          ? <ThemedText type="caption" style={{ color: theme.danger }}>{actionError}</ThemedText>
-          : null}
-      </BottomSheetModal>
+      {actionMenuVisible
+        ? (
+            <MessageActionMenu
+              canAddClue={false}
+              canMultiSelect={false}
+              canReply={false}
+              canSendToRoom
+              currentUserId={currentUserId}
+              hasHostPrivileges={isKP}
+              message={actionMenuMessage}
+              onAction={handleActionMenuAction}
+              onClose={handleCloseActionMenu}
+              visible
+            />
+          )
+        : null}
+      {editingMessage
+        ? (
+            <BottomSheetModal
+              backgroundColor={theme.surface}
+              handleColor={theme.border}
+              maxHeight="70%"
+              onClose={closeEditor}
+              sheetStyle={styles.editorSheet}
+              visible
+            >
+              <View style={styles.editorHeader}>
+                <ThemedText style={[styles.editorTitle, { color: theme.text }]}>编辑线索</ThemedText>
+                <Pressable onPress={closeEditor} style={[styles.editorButton, { backgroundColor: theme.backgroundElement }]}>
+                  <ThemedText type="smallBold" themeColor="textSecondary">取消</ThemedText>
+                </Pressable>
+                <Pressable onPress={handleSaveEditPress} style={[styles.editorButton, { backgroundColor: theme.accentMuted }]}>
+                  <ThemedText type="smallBold" themeColor="accent">保存</ThemedText>
+                </Pressable>
+              </View>
+              <TextInput
+                multiline
+                onChangeText={setDraftContent}
+                placeholder="写下这条线索..."
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.editorInput,
+                  {
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
+                value={draftContent}
+              />
+              {actionError
+                ? <ThemedText type="caption" style={{ color: theme.danger }}>{actionError}</ThemedText>
+                : null}
+            </BottomSheetModal>
+          )
+        : null}
     </>
   );
 
@@ -312,26 +361,10 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyExtractor={getMessageKey}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => {
-                setActionMenuMessage(item);
-                setActionMenuVisible(true);
-              }}
-              style={[styles.clueCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-            >
-              <TextEnhanceRenderer
-                content={getClueText(item)}
-                style={{ color: theme.text, fontSize: 14, lineHeight: 20 }}
-              />
-              <MobileMessageMediaPreview
-                compact
-                content={item.content}
-                extra={item.extra}
-                messageType={item.messageType}
-              />
-            </Pressable>
-          )}
+          renderItem={renderClueMessage}
+          initialNumToRender={CLUE_INITIAL_RENDER_COUNT}
+          maxToRenderPerBatch={CLUE_RENDER_BATCH_SIZE}
+          windowSize={CLUE_WINDOW_SIZE}
         />
         {actionError && !editingMessage
           ? <ThemedText style={styles.stateText} themeColor="textSecondary">{actionError}</ThemedText>
@@ -352,6 +385,8 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
   return <ThemedText style={styles.stateText} themeColor="textSecondary">暂无线索</ThemedText>;
 }
 
+const MobileClueFolderMessages = memo(MobileClueFolderMessagesInner);
+
 type MobileCluePanelProps = {
   clueRooms: Room[];
   currentUserId: number | null;
@@ -361,7 +396,7 @@ type MobileCluePanelProps = {
   spaceId: number | null;
 };
 
-export function MobileCluePanel({ clueRooms, currentUserId, currentRoleId, currentRoomId, isKP, spaceId }: MobileCluePanelProps) {
+function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, currentRoomId, isKP, spaceId }: MobileCluePanelProps) {
   const theme = useTheme();
   const visibleFolders = clueRooms;
   const [firstFolder] = visibleFolders;
@@ -373,6 +408,9 @@ export function MobileCluePanel({ clueRooms, currentUserId, currentRoleId, curre
     : firstFolder?.roomId ?? null;
   const activeFolder = visibleFolders.find(room => room.roomId === activeRoomId) ?? firstFolder ?? null;
   const hasPublicFolder = visibleFolders.some(room => getClueFolderMeta(room)?.scope === "public");
+  const handleSelectFolder = useCallback((roomId: number | null | undefined) => {
+    setSelectedFolderRoomId(roomId ?? null);
+  }, []);
 
   useEffect(() => {
     if (!spaceId || spaceId <= 0 || hasPublicFolder || joinAttemptedSpaceIdRef.current === spaceId) {
@@ -404,9 +442,7 @@ export function MobileCluePanel({ clueRooms, currentUserId, currentRoleId, curre
           return (
             <Pressable
               key={`clue-folder:${room.roomId ?? title}`}
-              onPress={() => {
-                setSelectedFolderRoomId(room.roomId ?? null);
-              }}
+              onPress={() => handleSelectFolder(room.roomId)}
               style={[styles.folderTab, { backgroundColor: active ? theme.accentMuted : theme.backgroundElement }]}
             >
               <ThemedText
@@ -435,3 +471,5 @@ export function MobileCluePanel({ clueRooms, currentUserId, currentRoleId, curre
     </View>
   );
 }
+
+export const MobileCluePanel = memo(MobileCluePanelInner);

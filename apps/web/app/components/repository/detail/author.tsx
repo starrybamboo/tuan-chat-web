@@ -1,11 +1,12 @@
-import { useGetUserProfileQuery } from "api/hooks/UserHooks";
 import { useCallback, useState } from "react";
+
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { imageLowUrl } from "@/utils/mediaUrl";
+import { useGetUserProfileQuery } from "api/hooks/UserHooks";
 
 export default function Author({ userId }: { userId?: number }) {
   // 获取全局用户ID

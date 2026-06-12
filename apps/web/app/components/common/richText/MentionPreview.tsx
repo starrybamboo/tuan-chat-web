@@ -1,12 +1,18 @@
 /* eslint-disable react-dom/no-dangerously-set-innerhtml */
 import { useMemo, useRef } from "react";
+
 import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg"; // 新增：复用只读 HTML 标签安全渲染
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
 import "./rich-text-overrides.css";
 
 let __mpCounter = 0; // 调试：区分多个 MentionPreview 实例
 // 全局调试开关：在控制台执行 window.__MENTION_PREVIEW_DEBUG__=true 打开；false 关闭
-declare global { interface Window { __MENTION_PREVIEW_DEBUG__?: boolean } }
+declare global {
+  // oxlint-disable-next-line typescript/consistent-type-definitions -- Window 扩展依赖 interface 声明合并。
+  interface Window {
+    __MENTION_PREVIEW_DEBUG__?: boolean;
+  }
+}
 function mpDbg(...args: any[]) {
   try {
     if (typeof window === "undefined" || !window.__MENTION_PREVIEW_DEBUG__) {
@@ -18,7 +24,7 @@ function mpDbg(...args: any[]) {
 }
 mpDbg("file loaded / module eval");
 
-interface MentionPreviewProps {
+type MentionPreviewProps = {
   category: string;
   name: string;
   description?: string;

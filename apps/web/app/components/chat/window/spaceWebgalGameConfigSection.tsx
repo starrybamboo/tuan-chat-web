@@ -1,8 +1,10 @@
 import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
+
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { mediaFileUrl } from "@/utils/mediaUrl";
+
 import {
   BASE_TEMPLATE_OPTIONS,
   ConfigHelpButton,
@@ -11,7 +13,7 @@ import {
   SectionCollapseToggle,
 } from "./spaceWebgalRenderWindowParts";
 
-interface SpaceWebgalGameConfigSectionProps {
+type SpaceWebgalGameConfigSectionProps = {
   expanded: boolean;
   gameConfig: RealtimeGameConfig;
   descriptionInput: string;
@@ -82,12 +84,9 @@ export function SpaceWebgalGameConfigSection({
   handleStartupLogoFileChange,
   handleClearStartupLogo,
 }: SpaceWebgalGameConfigSectionProps) {
-  const typingSoundSeSrc = mediaFileUrl(gameConfig.typingSoundSeFileId, gameConfig.typingSoundSeMediaType || "audio", "original")
-    || gameConfig.typingSoundSeUrl;
-  const titleImagePreviewSrc = mediaFileUrl(gameConfig.titleImageFileId, "image", "medium")
-    || gameConfig.titleImageUrl;
-  const startupLogoPreviewSrc = mediaFileUrl(gameConfig.startupLogoFileId, "image", "medium")
-    || gameConfig.startupLogoUrl;
+  const typingSoundSeSrc = mediaFileUrl(gameConfig.typingSoundSeFileId, gameConfig.typingSoundSeMediaType || "audio", "original");
+  const titleImagePreviewSrc = mediaFileUrl(gameConfig.titleImageFileId, "image", "medium");
+  const startupLogoPreviewSrc = mediaFileUrl(gameConfig.startupLogoFileId, "image", "medium");
   const hasTypingSoundSe = Boolean(typingSoundSeSrc);
   const hasTitleImage = Boolean(titleImagePreviewSrc);
   const hasStartupLogo = Boolean(startupLogoPreviewSrc);

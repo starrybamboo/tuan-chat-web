@@ -2,10 +2,12 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import type { InpaintViewportSize, InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
 import type { InpaintDialogSource, InpaintSubmitPayload } from "@/components/aiImage/types";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { triggerBrowserDownload } from "@/components/aiImage/helpers";
 import { InpaintBottomBar } from "@/components/aiImage/inpaint/InpaintBottomBar";
 import { InpaintCanvasStage } from "@/components/aiImage/inpaint/InpaintCanvasStage";
@@ -37,7 +39,7 @@ import {
   resolvePixelSnappedSquareMaskStampRect,
 } from "@/components/aiImage/inpaintMaskUtils";
 
-interface InpaintDialogProps {
+type InpaintDialogProps = {
   isOpen: boolean;
   source: InpaintDialogSource | null;
   isSubmitting: boolean;
@@ -46,17 +48,17 @@ interface InpaintDialogProps {
   onSubmit: (payload: InpaintSubmitPayload) => void | Promise<void>;
 }
 
-interface CanvasPoint {
+type CanvasPoint = {
   x: number;
   y: number;
 }
 
-interface BrushCursorPoint {
+type BrushCursorPoint = {
   x: number;
   y: number;
 }
 
-interface InpaintViewportPanSession {
+type InpaintViewportPanSession = {
   startClientX: number;
   startClientY: number;
   startPanX: number;

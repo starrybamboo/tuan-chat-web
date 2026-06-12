@@ -1,6 +1,6 @@
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../../api/hooks/userFollowQueryHooks";
 
-interface FollowButtonProps {
+type FollowButtonProps = {
   userId: number;
   status?: number;
   onStatusChange?: (newStatus: number) => void;

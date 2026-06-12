@@ -1,9 +1,8 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { getDiceResultExtra, getDiceTurnExtra } from "@tuanchat/domain/message-extra";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 function toFiniteNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {

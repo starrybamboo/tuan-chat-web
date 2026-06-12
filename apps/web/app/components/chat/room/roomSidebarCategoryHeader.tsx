@@ -1,12 +1,14 @@
 import type { DragEvent, MouseEvent } from "react";
-import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
-import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import { ListPlusIcon } from "@phosphor-icons/react";
+
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { ChevronDown } from "@/icons";
 
-interface RoomSidebarCategoryHeaderProps {
+import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
+import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
+
+type RoomSidebarCategoryHeaderProps = {
   categoryId: string;
   categoryName: string;
   categoryIndex: number;

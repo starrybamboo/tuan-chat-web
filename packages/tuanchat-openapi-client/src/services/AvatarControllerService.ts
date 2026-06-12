@@ -3,11 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultListRoleAvatar } from '../models/ApiResultListRoleAvatar';
+import type { ApiResultListRoleAvatarVariant } from '../models/ApiResultListRoleAvatarVariant';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultRoleAvatar } from '../models/ApiResultRoleAvatar';
+import type { ApiResultRoleAvatarVariant } from '../models/ApiResultRoleAvatarVariant';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { RoleAvatar } from '../models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from '../models/RoleAvatarCreateRequest';
+import type { RoleAvatarRequest } from '../models/RoleAvatarRequest';
+import type { RoleAvatarVariantCreateRequest } from '../models/RoleAvatarVariantCreateRequest';
+import type { RoleAvatarVariantUpdateRequest } from '../models/RoleAvatarVariantUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class AvatarControllerService {
@@ -39,7 +43,7 @@ export class AvatarControllerService {
      * @throws ApiError
      */
     public updateRoleAvatar(
-        requestBody: RoleAvatar,
+        requestBody: RoleAvatarRequest,
     ): CancelablePromise<ApiResultRoleAvatar> {
         return this.httpRequest.request({
             method: 'PUT',
@@ -82,6 +86,55 @@ export class AvatarControllerService {
         });
     }
     /**
+     * 更新角色立绘组
+     * @param requestBody
+     * @returns ApiResultRoleAvatarVariant OK
+     * @throws ApiError
+     */
+    public updateRoleAvatarVariant(
+        requestBody: RoleAvatarVariantUpdateRequest,
+    ): CancelablePromise<ApiResultRoleAvatarVariant> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/avatar/variant',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 创建角色立绘组
+     * @param requestBody
+     * @returns ApiResultRoleAvatarVariant OK
+     * @throws ApiError
+     */
+    public createRoleAvatarVariant(
+        requestBody: RoleAvatarVariantCreateRequest,
+    ): CancelablePromise<ApiResultRoleAvatarVariant> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/avatar/variant',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * 删除角色立绘组
+     * @param variantId
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public deleteRoleAvatarVariant(
+        variantId: number,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/avatar/variant',
+            query: {
+                'variantId': variantId,
+            },
+        });
+    }
+    /**
      * 恢复头像
      * @param avatarId
      * @returns ApiResultVoid OK
@@ -95,6 +148,23 @@ export class AvatarControllerService {
             url: '/avatar/trash/restore',
             query: {
                 'avatarId': avatarId,
+            },
+        });
+    }
+    /**
+     * 获取角色所有立绘组
+     * @param roleId
+     * @returns ApiResultListRoleAvatarVariant OK
+     * @throws ApiError
+     */
+    public listRoleAvatarVariants(
+        roleId: number,
+    ): CancelablePromise<ApiResultListRoleAvatarVariant> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/avatar/variant/list',
+            query: {
+                'roleId': roleId,
             },
         });
     }

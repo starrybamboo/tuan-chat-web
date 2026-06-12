@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
+
+import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { FolderIcon } from "@/icons";
 
-interface RunSideDrawerButtonsProps {
+type RunSideDrawerButtonsProps = {
   className?: string;
   orientation?: "row" | "column";
   tooltipPlacement?: "top" | "bottom" | "right";

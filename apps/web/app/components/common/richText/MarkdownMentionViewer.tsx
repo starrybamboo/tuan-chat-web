@@ -1,12 +1,13 @@
 /* eslint-disable react-dom/no-dangerously-set-innerhtml */
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { renderInlineHtmlUsingWysiwyg } from "./htmlTagWysiwyg";
 import { markdownToHtmlWithEntities, rawMarkdownToHtml } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
 
 const MENTION_SELECTOR = "span.entity-mention[data-label][data-category]";
 
-interface MarkdownMentionViewerProps {
+type MarkdownMentionViewerProps = {
   markdown: string;
   entitiesMap?: Record<string, string[]>; // { 人物: [...], 地点: [...], 物品: [...] }
   className?: string;

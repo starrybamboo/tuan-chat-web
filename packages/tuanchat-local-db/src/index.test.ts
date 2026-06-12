@@ -1,10 +1,8 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Database, SqlValue } from "sql.js";
 
-import path from "node:path";
 import initSqlJs from "sql.js";
 import { describe, expect, it } from "vitest";
-
-import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import {
   createDocSnapshotRepository,
@@ -20,6 +18,7 @@ import {
   ROOM_MESSAGE_SCHEMA_SQL,
   toRoomMessageRecord,
 } from "./index";
+import { locateSqlJsFile } from "./testSqlJs";
 
 function createMessage(messageId: number, overrides: Partial<ChatMessageResponse["message"]> = {}): ChatMessageResponse {
   return {
@@ -39,7 +38,7 @@ function createMessage(messageId: number, overrides: Partial<ChatMessageResponse
 
 async function createMemoryDriver() {
   const SQL = await initSqlJs({
-    locateFile: file => path.resolve(process.cwd(), "node_modules/sql.js/dist", file),
+    locateFile: locateSqlJsFile,
   });
   const db = new SQL.Database();
 

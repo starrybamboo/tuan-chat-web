@@ -2,6 +2,7 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -52,7 +53,7 @@ type RightDrawerPanelProps = {
   spaceId: number | null;
 };
 
-export function RightDrawerPanel({
+function RightDrawerPanelInner({
   activeTab,
   clueRooms,
   currentUserId,
@@ -74,6 +75,9 @@ export function RightDrawerPanel({
   spaceId,
 }: RightDrawerPanelProps) {
   const theme = useTheme();
+  const handleShowClues = useCallback(() => onChangeActiveTab("clues"), [onChangeActiveTab]);
+  const handleShowCombat = useCallback(() => onChangeActiveTab("combat"), [onChangeActiveTab]);
+  const handleShowMap = useCallback(() => onChangeActiveTab("map"), [onChangeActiveTab]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
@@ -118,7 +122,7 @@ export function RightDrawerPanel({
       </View>
 
       <View style={[styles.tabBar, { borderTopColor: theme.border }]}>
-        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("clues")}>
+        <Pressable style={styles.tab} onPress={handleShowClues}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "clues" ? "accent" : "textSecondary"}
@@ -126,7 +130,7 @@ export function RightDrawerPanel({
             线索
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("combat")}>
+        <Pressable style={styles.tab} onPress={handleShowCombat}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "combat" ? "accent" : "textSecondary"}
@@ -134,7 +138,7 @@ export function RightDrawerPanel({
             战斗
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("map")}>
+        <Pressable style={styles.tab} onPress={handleShowMap}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "map" ? "accent" : "textSecondary"}
@@ -146,3 +150,5 @@ export function RightDrawerPanel({
     </View>
   );
 }
+
+export const RightDrawerPanel = memo(RightDrawerPanelInner);

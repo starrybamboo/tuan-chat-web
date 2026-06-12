@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 import { acquireCachedVideoElement } from "@/components/chat/infra/videoMessage/videoElementCache";
 
-interface CachedVideoMessageProps {
+type CachedVideoMessageProps = {
   cacheKey: string;
   url: string;
   className?: string;

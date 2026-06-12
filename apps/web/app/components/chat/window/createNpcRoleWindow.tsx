@@ -1,14 +1,15 @@
-import type { CharacterData } from "@/components/Role/RoleCreation/types";
-import type { Role } from "@/components/Role/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { use, useMemo, useState } from "react";
-
 import toast from "react-hot-toast";
+
+import type { CharacterData } from "@/components/Role/RoleCreation/types";
+import type { Role } from "@/components/Role/types";
 
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import RoleCreationFlow from "@/components/Role/RoleCreation/RoleCreationFlow";
+
 import { useAddRoomRoleMutation, useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 

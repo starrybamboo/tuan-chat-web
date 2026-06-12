@@ -1,14 +1,17 @@
 // 角色音频预览播放器，采用流式播放与进度条控件。
 // 支持删除角色音频并同步到外部状态。
 import type { MouseEvent } from "react";
-import type { Role } from "../types";
 
 import H5AudioPlayer, { RHAP_UI } from "react-h5-audio-player";
+
+import type { Role } from "../types";
+
 import { buildRoleVoiceClearPatch, resolveRoleVoiceUrl } from "../roleVoiceMedia";
 import "react-h5-audio-player/lib/styles.css";
+
 import "../../common/audioPlayer.css";
 
-interface AudioPlayerProps {
+type AudioPlayerProps = {
   role: Role;
   size?: "default" | "compact";
   onRoleUpdate?: (updatedRole: Role) => void;

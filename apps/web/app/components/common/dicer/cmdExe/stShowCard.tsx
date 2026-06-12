@@ -1,13 +1,15 @@
-import type { RoleAbility } from "../../../../../api";
 import type { QueryClient } from "@tanstack/react-query";
 
 import UTILS from "@/components/common/dicer/utils/utils";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { formatStateKeyLabel } from "@/types/stateEvent";
+
+import type { RoleAbility } from "../../../../../api";
+
 import { fetchRuleDetailWithCache } from "../../../../../api/hooks/ruleQueryHooks";
 import { tuanchat } from "../../../../../api/instance";
 
-interface RuleTemplateLike {
+type RuleTemplateLike = {
   basicDefault?: Record<string, string>;
   abilityFormula?: Record<string, string>;
   skillDefault?: Record<string, string>;
@@ -15,33 +17,33 @@ interface RuleTemplateLike {
 
 type AbilitySection = "basic" | "ability" | "skill";
 
-interface RawEntry {
+type RawEntry = {
   key: string;
   value: string;
   section: AbilitySection;
   canonicalKey: string;
 }
 
-export interface StShowDisplayEntry {
+export type StShowDisplayEntry = {
   key: string;
   label: string;
   value: string;
 }
 
-export interface StShowCardModel {
+export type StShowCardModel = {
   entries: StShowDisplayEntry[];
   requestedMode: boolean;
   hiddenDefaultCount: number;
 }
 
-interface BuildStShowCardModelParams {
+type BuildStShowCardModelParams = {
   ability: RoleAbility;
   template?: RuleTemplateLike | null;
   requestedKeys?: string[];
   keyAliasMap?: Record<string, string>;
 }
 
-interface OpenStShowCardWindowParams {
+type OpenStShowCardWindowParams = {
   ability: RoleAbility;
   roleName?: string;
   requestedKeys?: string[];
@@ -202,7 +204,7 @@ function buildDefaultValueMap(
   return nextMap;
 }
 
-interface CanonicalEntryGroup {
+type CanonicalEntryGroup = {
   canonicalKey: string;
   representative: RawEntry;
   entries: RawEntry[];

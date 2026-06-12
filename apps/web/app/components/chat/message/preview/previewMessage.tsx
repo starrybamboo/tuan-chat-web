@@ -1,16 +1,19 @@
-import type { Message } from "../../../../../api";
 import { use } from "react";
+
 import { useGetMessageByIdSmartly } from "@/components/chat/core/hooks";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { canCurrentUserViewHiddenDiceReply, canCurrentUserViewMessage } from "@/components/chat/utils/hiddenDiceVisibility";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { Message } from "../../../../../api";
+
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { getMessagePreviewText } from "./getMessagePreviewText";
 import { MessagePreviewContent } from "./messagePreviewContent";
 
-interface PreviewRenderState {
+type PreviewRenderState = {
   previewMessage?: Message;
   previewText: string;
   isPlainTextOnly: boolean;

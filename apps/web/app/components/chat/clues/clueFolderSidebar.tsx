@@ -1,10 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 
-import type { ChatMessageResponse, Message, Room, SpaceMember } from "../../../../api";
-
-import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
-import type { MessageDraft } from "@/types/messageDraft";
 import { FilmSlateIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -16,6 +12,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
+
+import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
+import type { MessageDraft } from "@/types/messageDraft";
+
 import { useClueFolderActions } from "@/components/chat/clues/useClueFolderActions";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
@@ -32,6 +32,9 @@ import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia }
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
+
+import type { ChatMessageResponse, Message, Room, SpaceMember } from "../../../../api";
+
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
@@ -39,7 +42,7 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
-interface ClueFolderSidebarProps {
+type ClueFolderSidebarProps = {
   canManagePublicClueMembers?: boolean;
   createRequestKey?: number;
   currentUserId?: number | null;
@@ -54,7 +57,7 @@ type ClueFolderRoom = Room & {
   roomId: number;
 };
 
-interface ClueFolderSectionProps {
+type ClueFolderSectionProps = {
   activeMessageId?: number;
   isLoading: boolean;
   messages: ChatMessageResponse[];
@@ -63,7 +66,7 @@ interface ClueFolderSectionProps {
   roomId: number;
 }
 
-interface ApiResultLike {
+type ApiResultLike = {
   errMsg?: string;
   success?: boolean;
 }
@@ -75,18 +78,18 @@ type ClueEditorState
 type ClueAttachmentKind = "image" | "audio" | "video" | "file";
 type ClueDropPlacement = "before" | "after";
 
-interface ClueReorderParams {
+type ClueReorderParams = {
   draggedMessageId: number;
   targetMessageId: number;
   placement: ClueDropPlacement;
 }
 
-interface ClueReorderState {
+type ClueReorderState = {
   placement: ClueDropPlacement;
   targetMessageId: number;
 }
 
-interface ClueAttachmentDraft {
+type ClueAttachmentDraft = {
   file: File;
   kind: ClueAttachmentKind;
   previewUrl: string;

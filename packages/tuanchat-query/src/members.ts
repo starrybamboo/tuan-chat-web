@@ -1,8 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import { useQuery } from "@tanstack/react-query";
-
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 export type MemberQueryOptions = {
   enabled?: boolean;

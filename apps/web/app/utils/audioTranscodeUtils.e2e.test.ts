@@ -5,10 +5,13 @@ import { createReadStream, existsSync, mkdtempSync, rmSync, statSync, writeFileS
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const PROJECT_ROOT = "D:\\A_collection\\tuan-chat-web";
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const workspaceRoot = path.resolve(packageRoot, "..", "..");
+const appRoot = path.resolve(packageRoot, "app");
 const PROVIDED_AUDIO_FIXTURE_PATH = "D:\\software\\FormatFactory\\Music\\Sport\\48s Come Back.mp3";
 
 let browser: Browser;
@@ -20,7 +23,7 @@ let stopServer: (() => Promise<void>) | null = null;
 
 function resolveAppAlias(specifier: string) {
   const withoutAlias = specifier.slice(2);
-  const basePath = path.join(PROJECT_ROOT, "app", withoutAlias);
+  const basePath = path.resolve(appRoot, withoutAlias);
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -101,15 +104,15 @@ function resolveStaticFilePath(requestPath: string): string | null {
   const mappings = [
     {
       prefix: "/ffmpeg-wrapper/",
-      baseDir: path.join(PROJECT_ROOT, "node_modules", "@ffmpeg", "ffmpeg", "dist", "esm"),
+      baseDir: path.join(workspaceRoot, "node_modules", "@ffmpeg", "ffmpeg", "dist", "esm"),
     },
     {
       prefix: "/ffmpeg-core/dist/esm/",
-      baseDir: path.join(PROJECT_ROOT, "node_modules", "@ffmpeg", "core", "dist", "esm"),
+      baseDir: path.join(workspaceRoot, "node_modules", "@ffmpeg", "core", "dist", "esm"),
     },
     {
       prefix: "/ffmpeg-core/dist/umd/",
-      baseDir: path.join(PROJECT_ROOT, "node_modules", "@ffmpeg", "core", "dist", "umd"),
+      baseDir: path.join(workspaceRoot, "node_modules", "@ffmpeg", "core", "dist", "umd"),
     },
   ] as const;
 
@@ -201,8 +204,9 @@ describe("audioTranscodeUtils browser e2e", () => {
     stopServer = server.stop;
 
     await build({
+      absWorkingDir: packageRoot,
       entryPoints: [
-        path.join(PROJECT_ROOT, "app", "utils", "audioTranscodeUtils.e2e.harness.ts"),
+        path.resolve(appRoot, "utils/audioTranscodeUtils.e2e.harness.ts"),
       ],
       outfile: bundlePath,
       bundle: true,

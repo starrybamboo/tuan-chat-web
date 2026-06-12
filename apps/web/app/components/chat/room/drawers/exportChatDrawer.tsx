@@ -1,14 +1,18 @@
-import type { ChatMessageResponse } from "../../../../../api";
-import type { ExportOptions } from "@/utils/exportChatMessages";
 import { ExportIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { ExportOptions } from "@/utils/exportChatMessages";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { exportChatMessages } from "@/utils/exportChatMessages";
+
+import type { ChatMessageResponse } from "../../../../../api";
+
 import { fetchRoomInfoWithCache, fetchSpaceInfoWithCache } from "../../../../../api/hooks/chatQueryHooks";
 import { fetchRoleWithCache, useGetRolesQueries } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { tuanchat } from "../../../../../api/instance";
@@ -17,7 +21,7 @@ import { tuanchat } from "../../../../../api/instance";
  * 聊天记录导出抽屉组件
  * 显示在房间右侧，提供导出当前聊天记录的功能
  */
-interface ExportChatDrawerProps {
+type ExportChatDrawerProps = {
   messages?: ChatMessageResponse[];
   onClose?: () => void;
 }

@@ -3,7 +3,6 @@ import type { RealtimeGameConfig } from "./realtimeRendererConfig";
 
 export type SpaceWebgalCoverAvatarSource = {
   fileId?: number;
-  url?: string;
   mediaType?: string;
 };
 
@@ -33,7 +32,6 @@ export type SpaceWebgalInput = {
   rawGameConfig?: string;
   sharedEngineUrl?: string;
   coverAvatarFileId?: number;
-  coverAvatarUrl?: string;
   coverAvatarMediaType?: string;
 };
 
@@ -104,14 +102,12 @@ function normalizeMessagesByRoomId(
 
 function normalizeCoverAvatarSource(input: SpaceWebgalInput): SpaceWebgalCoverAvatarSource | undefined {
   const fileId = normalizePositiveNumber(input.coverAvatarFileId);
-  const url = String(input.coverAvatarUrl ?? "").trim();
   const mediaType = String(input.coverAvatarMediaType ?? "").trim();
-  if (fileId == null && !url && !mediaType) {
+  if (fileId == null) {
     return undefined;
   }
   return {
-    ...(fileId != null ? { fileId } : {}),
-    ...(url ? { url } : {}),
+    fileId,
     ...(mediaType ? { mediaType } : {}),
   };
 }

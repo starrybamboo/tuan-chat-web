@@ -1,9 +1,12 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+
+import { CircleNotch, ImageSquareIcon, ImagesSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import type { ProEditorContentLocalProps } from "@/components/aiImage/sidebar/ProEditorContent";
 import type { SimpleEditorContentLocalProps } from "@/components/aiImage/sidebar/SimpleEditorContent";
 import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
-import { CircleNotch, ImageSquareIcon, ImagesSquareIcon, SparkleIcon, XCircleIcon } from "@phosphor-icons/react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   CUSTOM_RESOLUTION_ID,
   RESOLUTION_PRESETS,
@@ -25,7 +28,7 @@ import { useDismissibleLayer } from "@/components/aiImage/sidebar/useDismissible
 import { useFloatingPanelPosition } from "@/components/aiImage/sidebar/useFloatingPanelPosition";
 import { ChevronDown } from "@/icons";
 
-interface AiImageSidebarProps {
+type AiImageSidebarProps = {
   sidebarProps: AiImagePageController["sidebarProps"];
 }
 

@@ -1,17 +1,18 @@
+import { createFileRoute } from "@tanstack/react-router";
+
 import type {
   RouteClientLoaderArgs,
   RouteMetaArgs,
 } from "@/routes/routeTypes";
-import { createFileRoute } from "@tanstack/react-router";
 // import { DEFAULT_REPOSITORY_DATA } from "@/components/repository/detail/constants";
 
-import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { queryClient } from "@/queryClient";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 import { createSeoMeta } from "@/utils/seo";
+import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
 
-interface RepositorySeoData {
+type RepositorySeoData = {
   repositoryName?: string | null;
   description?: string | null;
   authorName?: string | null;

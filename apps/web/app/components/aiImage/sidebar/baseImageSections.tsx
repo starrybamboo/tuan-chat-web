@@ -1,6 +1,7 @@
+import { ArrowClockwise, CaretLeftIcon, FileArrowUpIcon, PencilSimpleLineIcon, SelectionPlusIcon, TrashIcon } from "@phosphor-icons/react";
+
 import type { AiImageHistoryMode } from "@/utils/aiImageHistoryDb";
 
-import { ArrowClockwise, CaretLeftIcon, FileArrowUpIcon, PencilSimpleLineIcon, SelectionPlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { clampRange, formatSliderValue } from "@/components/aiImage/helpers";
 import { ChevronDown } from "@/icons";
 
@@ -17,7 +18,7 @@ function bindInfillAppendTextarea(node: HTMLTextAreaElement | null) {
   autoResizeInfillAppendTextarea(node);
 }
 
-interface SharedBaseImageSectionProps {
+type SharedBaseImageSectionProps = {
   sourceImageDataUrl: string;
   infillMaskDataUrl: string;
   infillAppendPrompt: string;

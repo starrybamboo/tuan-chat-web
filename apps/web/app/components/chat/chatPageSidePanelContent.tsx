@@ -1,8 +1,11 @@
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
-import type { Room } from "api";
+
+import React from "react";
+
 import type { ActiveMaterialSelection, OpenSpaceDetailPanelOptions, RoomSettingTab, SelectRoomOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import type { MinimalDocMeta, SidebarTree } from "@/components/chat/room/sidebarTree";
-import React from "react";
+import type { Room } from "api";
+
 import LeftChatList from "@/components/privateChat/LeftChatList";
 
 const LazyChatRoomListPanel = React.lazy(() => import("@/components/chat/room/chatRoomListPanel"));
@@ -14,7 +17,7 @@ function SkeletonLine({ className }: { className: string }) {
   `} />;
 }
 
-interface ChatPageSidePanelContentProps {
+type ChatPageSidePanelContentProps = {
   isPrivateChatMode: boolean;
   activeSpaceId: number | null;
   onToggleLeftDrawer?: () => void;

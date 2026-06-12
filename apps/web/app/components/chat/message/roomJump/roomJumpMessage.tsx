@@ -1,21 +1,23 @@
-import type { ChatMessageResponse } from "../../../../../api";
 import { ArrowRightIcon, ChatCircleIcon } from "@phosphor-icons/react";
-
 import { useLocation, useRouter } from "@tanstack/react-router";
 import React, { use, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageLowUrl } from "@/utils/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
+
+import type { ChatMessageResponse } from "../../../../../api";
+
 import { useGetUserRoomsQuery } from "../../../../../api/hooks/chatQueryHooks";
 
 function normalizeName(value: string | undefined): string {
   return String(value ?? "").trim().toLowerCase();
 }
 
-interface ResolveTargetResult {
+type ResolveTargetResult = {
   roomId: number | null;
   reason?: string;
 }

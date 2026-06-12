@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+
 import { clampFloatingMenuPosition } from "./floatingMenuPosition";
 
-export interface CategoryEditorState {
+export type CategoryEditorState = {
   mode: "add" | "rename";
   categoryId?: string;
   name: string;
@@ -13,14 +14,14 @@ export type SidebarTreeContextMenuState
     | { kind: "doc"; x: number; y: number; categoryId: string; index: number; docId: string }
     | null;
 
-export interface DeleteConfirmDocState {
+export type DeleteConfirmDocState = {
   docId: string;
   title: string;
   categoryId: string;
   index: number;
 }
 
-interface SidebarTreeOverlaysProps {
+type SidebarTreeOverlaysProps = {
   canEdit: boolean;
 
   // category editor modal

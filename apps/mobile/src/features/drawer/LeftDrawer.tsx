@@ -2,7 +2,7 @@ import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
 
 import { CaretDown, CaretRight, ChatCircle, Plus } from "phosphor-react-native";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, PanResponder, Pressable, StyleSheet, View } from "react-native";
 
 import type { DmBackTarget } from "@/features/friends/dmNavigationState";
@@ -36,6 +36,9 @@ const SPACE_RAIL_CONTENT_TOP_PADDING = Spacing.sm;
 const SPACE_RAIL_AUTO_SCROLL_EDGE_SIZE = 72;
 const SPACE_RAIL_AUTO_SCROLL_MAX_STEP = 14;
 const UNREAD_BADGE_SIZE = 16;
+const DRAWER_INITIAL_RENDER_COUNT = 12;
+const DRAWER_RENDER_BATCH_SIZE = 8;
+const DRAWER_WINDOW_SIZE = 7;
 
 const ROOM_TYPE_ALL_MEMBER = 2;
 const ROOM_TYPE_GAME = 1;
@@ -373,7 +376,7 @@ function buildRoomListItems(options: {
   return items;
 }
 
-export function LeftDrawer({
+function LeftDrawerInner({
   activeDmTab,
   activeSpaces,
   availableRooms,
@@ -803,6 +806,8 @@ export function LeftDrawer({
                   keyExtractor={space => `space:${space.spaceId ?? space.name ?? "unknown"}`}
                   renderItem={renderSpaceItem}
                   ListFooterComponent={renderSpaceFooter}
+                  initialNumToRender={DRAWER_INITIAL_RENDER_COUNT}
+                  maxToRenderPerBatch={DRAWER_RENDER_BATCH_SIZE}
                   onContentSizeChange={(_width, height) => {
                     spaceRailContentHeightRef.current = height;
                   }}
@@ -821,6 +826,8 @@ export function LeftDrawer({
                   scrollEventThrottle={16}
                   scrollEnabled={draggingSpaceId == null}
                   showsVerticalScrollIndicator={false}
+                  updateCellsBatchingPeriod={50}
+                  windowSize={DRAWER_WINDOW_SIZE}
                 />
               </View>
             )
@@ -843,6 +850,10 @@ export function LeftDrawer({
             contentContainerStyle={styles.roomListContent}
             keyExtractor={item => item.key}
             renderItem={renderRoomListItem}
+            initialNumToRender={DRAWER_INITIAL_RENDER_COUNT}
+            maxToRenderPerBatch={DRAWER_RENDER_BATCH_SIZE}
+            updateCellsBatchingPeriod={50}
+            windowSize={DRAWER_WINDOW_SIZE}
           />
         </View>
       ) : (
@@ -858,3 +869,5 @@ export function LeftDrawer({
     </View>
   );
 }
+
+export const LeftDrawer = memo(LeftDrawerInner);

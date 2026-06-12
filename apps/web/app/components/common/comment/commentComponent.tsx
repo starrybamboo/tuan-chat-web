@@ -1,5 +1,7 @@
-import type { CommentVO } from "api";
 import React, { use, useMemo, useState } from "react";
+
+import type { CommentVO } from "api";
+
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
@@ -13,6 +15,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ChevronRightIcon, CloseIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
+
 import {
   DEFAULT_COMMENT_CHILD_LIMIT,
   DEFAULT_COMMENT_MAX_LEVEL,

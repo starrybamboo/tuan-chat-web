@@ -1,12 +1,13 @@
-import type { CommentTargetInfo } from "../../../../api/hooks/commentQueryHooks";
 import { createContext } from "react";
 
-export interface CommentTreeOptions {
+import type { CommentTargetInfo } from "../../../../api/hooks/commentQueryHooks";
+
+export type CommentTreeOptions = {
   childLimit: number;
   maxLevel: number;
 }
 
-export interface CommentContextType {
+export type CommentContextType = {
   targetInfo: CommentTargetInfo;
   treeOptions?: CommentTreeOptions;
 }

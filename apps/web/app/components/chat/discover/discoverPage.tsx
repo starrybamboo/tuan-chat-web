@@ -1,7 +1,8 @@
-import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+
+import type { ChatDiscoverNavItem } from "@/components/chat/discover/chatDiscoverNavPanel";
+
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import ChatDiscoverNavPanel from "@/components/chat/discover/chatDiscoverNavPanel";
@@ -17,6 +18,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { scheduleNonCriticalTask } from "@/utils/scheduleNonCriticalTask";
+import { useGetUserActiveSpacesQuery } from "api/hooks/chatQueryHooks";
 
 const EMPTY_ARRAY: never[] = [];
 const isProductionMode = import.meta.env.MODE === "production";

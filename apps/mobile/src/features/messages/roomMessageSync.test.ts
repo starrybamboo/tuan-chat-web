@@ -14,6 +14,7 @@ import {
   extractChatMessageResponses,
   fetchRoomMessagesWithLocalSync,
   upsertLiveRoomMessageWithGapRepair,
+  upsertLiveRoomMessagesWithGapRepair,
   upsertRoomMessagesToQueryAndDisk,
 } from "./roomMessageSync";
 
@@ -199,6 +200,32 @@ describe("roomMessageSync", () => {
 
     expect(fetchHistoryMessages).toHaveBeenCalledWith(9, 2);
     expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, [live]);
+    expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, [missing]);
+  });
+
+  it("批量实时消息按整批合并，并从批内第一个 sync 缺口补拉", async () => {
+    const queryClient = createQueryClientStub([createRoomMessage(1, 1)]);
+    const missing = createRoomMessage(3, 3);
+    const batch = [
+      createRoomMessage(2, 2),
+      createRoomMessage(4, 4),
+    ];
+    const fetchHistoryMessages = vi.fn().mockResolvedValue([missing]);
+    const writeCachedRoomMessages = vi.fn().mockResolvedValue(undefined);
+
+    upsertLiveRoomMessagesWithGapRepair(9, batch, {
+      fetchHistoryMessages,
+      queryClient,
+      writeCachedRoomMessages,
+    });
+
+    await vi.waitFor(() => {
+      expect(queryClient.snapshot().map(item => item.message.messageId)).toEqual([1, 2, 3, 4]);
+    });
+
+    expect(fetchHistoryMessages).toHaveBeenCalledTimes(1);
+    expect(fetchHistoryMessages).toHaveBeenCalledWith(9, 3);
+    expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, batch);
     expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, [missing]);
   });
 });

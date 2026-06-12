@@ -1,10 +1,6 @@
 import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 import type { DragEvent } from "react";
-import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
-import type { MaterialPackageDraft } from "./materialPackageEditorShared";
-import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
-import type { MessageDraft } from "@/types/messageDraft";
+
 import {
   CaretRightIcon,
   FileIcon,
@@ -16,6 +12,11 @@ import {
 } from "@phosphor-icons/react";
 import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
+import type { MessageDraft } from "@/types/messageDraft";
+
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -23,6 +24,10 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+
+import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
+import type { MaterialPackageDraft } from "./materialPackageEditorShared";
+
 import { MaterialComposerProvider } from "./materialComposerContext";
 import MaterialMessageComposer from "./materialMessageComposer";
 import MaterialMessageEditorCard from "./materialMessageEditorCard";
@@ -45,7 +50,7 @@ import {
   updateNodeInContent,
 } from "./materialPackageTreeUtils";
 
-interface MaterialPackageWorkbenchProps {
+type MaterialPackageWorkbenchProps = {
   selectionSyncKey: string;
   dragPackageId?: number;
   requestedSelectedNodeKey?: string | null;

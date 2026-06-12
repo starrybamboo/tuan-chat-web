@@ -56,6 +56,10 @@ const AUDIO_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
 const VIDEO_ORIGINAL_MAX_BYTES = 200 * 1024 * 1024;
 const OTHER_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
 type ImageMediaProfile = (typeof MEDIA_COMPRESSION_PROFILES.image)[keyof typeof MEDIA_COMPRESSION_PROFILES.image];
+type RasterizeImageWorkerResponse = {
+  blob?: Blob;
+  error?: string;
+};
 
 function isChatroomUploadScene(scene: number | undefined): boolean {
   return scene === 1;
@@ -139,7 +143,70 @@ async function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: nu
   });
 }
 
+async function rasterizeImageInWorker(file: File, quality: MediaQuality, profile: ImageMediaProfile): Promise<File | null> {
+  if (
+    typeof Worker === "undefined"
+    || typeof OffscreenCanvas === "undefined"
+    || typeof globalThis.createImageBitmap !== "function"
+  ) {
+    return null;
+  }
+
+  let bitmap: ImageBitmap | null = await globalThis.createImageBitmap(file);
+  let transferred = false;
+  try {
+    const worker = new Worker(new URL("./imageRasterizeWorker.ts", import.meta.url), { type: "module" });
+    const fileName = buildDerivedImageFileName(file, quality);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      worker.onmessage = (event: MessageEvent<RasterizeImageWorkerResponse>) => {
+        worker.terminate();
+        if (event.data.error || !event.data.blob) {
+          reject(new Error(event.data.error || "图片派生文件生成失败"));
+          return;
+        }
+        resolve(event.data.blob);
+      };
+      worker.onerror = (event) => {
+        worker.terminate();
+        reject(new Error(event.message || "图片派生 Worker 执行失败"));
+      };
+      worker.postMessage({
+        bitmap,
+        profile: {
+          maxSizeKB: profile.maxSizeKB,
+          maxWidthOrHeight: profile.maxWidthOrHeight,
+          quality: profile.quality,
+        },
+      }, [bitmap!]);
+      transferred = true;
+      bitmap = null;
+    });
+
+    return new File([blob], fileName, {
+      type: "image/webp",
+      lastModified: file.lastModified,
+    });
+  }
+  catch (error) {
+    console.warn("[媒体上传] 图片 Worker 光栅化失败，回退主线程 canvas", {
+      name: file.name,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+  finally {
+    if (!transferred && bitmap) {
+      bitmap.close();
+    }
+  }
+}
+
 async function rasterizeImageToWebp(file: File, quality: MediaQuality, profile: ImageMediaProfile): Promise<File> {
+  const workerResult = await rasterizeImageInWorker(file, quality, profile);
+  if (workerResult) {
+    return workerResult;
+  }
+
   if (typeof document === "undefined") {
     throw new TypeError("当前环境不支持图片派生文件生成");
   }
@@ -264,17 +331,18 @@ async function generateImageUploadFiles(file: File): Promise<GeneratedMediaUploa
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
 
   const imageMetadataPromise = extractImageMetadata(normalizedFile);
-  const original = await (async () => {
+  const originalPromise = (async () => {
     const result = await buildImageOriginalFile(normalizedFile);
     assertMaxBytes(result, IMAGE_ORIGINAL_MAX_BYTES, "图片 original");
     return result;
   })();
-  const imageMetadata = await imageMetadataPromise;
+  const [original, imageMetadata] = await Promise.all([originalPromise, imageMetadataPromise]);
 
-  const low = await buildImageVariantFileWhenUseful(original, "low", MEDIA_COMPRESSION_PROFILES.image.low);
-  const medium = await buildImageVariantFileWhenUseful(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium);
-  const high = await buildImageVariantFileWhenUseful(original, "high", MEDIA_COMPRESSION_PROFILES.image.high);
-  const filesByQuality = { original, low, medium, high };
+  const [low, medium] = await Promise.all([
+    buildImageVariantFileWhenUseful(original, "low", MEDIA_COMPRESSION_PROFILES.image.low),
+    buildImageVariantFileWhenUseful(original, "medium", MEDIA_COMPRESSION_PROFILES.image.medium),
+  ]);
+  const filesByQuality = { original, low, medium };
 
   return {
     original,
@@ -308,15 +376,24 @@ async function generateAudioUploadFiles(file: File, scene?: number): Promise<Gen
   }
 
   const original = normalizedFile;
-  const low = await transcodeAudioFileToOpusOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.audio.low, isolated: true });
-  const medium = isChatroom
-    ? undefined
-    : await transcodeAudioFileToOpusOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.audio.medium, isolated: true });
+  const lowPromise = transcodeAudioFileToOpusOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.audio.low, isolated: true });
+  const mediumPromise = isChatroom
+    ? Promise.resolve<File | undefined>(undefined)
+    : transcodeAudioFileToOpusOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.audio.medium, isolated: true });
 
   if (!isChatroom) {
-    const originalTranscoded = normalizedFile.size <= AUDIO_ORIGINAL_MAX_BYTES
-      ? normalizedFile
-      : await transcodeAudioFileToOpusOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.audio.high, isolated: true });
+    const originalPromise = normalizedFile.size <= AUDIO_ORIGINAL_MAX_BYTES
+      ? Promise.resolve(normalizedFile)
+      : mediumPromise.then((file) => {
+          if (!file) {
+            throw new Error("音频 original 转码失败");
+          }
+          return file;
+        });
+    const [originalTranscoded, low, medium] = await Promise.all([originalPromise, lowPromise, mediumPromise]);
+    if (!medium) {
+      throw new Error("音频 medium 转码失败");
+    }
     assertMaxBytes(originalTranscoded, AUDIO_ORIGINAL_MAX_BYTES, "音频 original");
     return {
       original: originalTranscoded,
@@ -326,7 +403,7 @@ async function generateAudioUploadFiles(file: File, scene?: number): Promise<Gen
       filesByQuality: {
         original: originalTranscoded,
         low: ensureFileType(low, "audio/webm", "webm"),
-        medium: ensureFileType(medium!, "audio/webm", "webm"),
+        medium: ensureFileType(medium, "audio/webm", "webm"),
       },
     };
   }
@@ -337,7 +414,7 @@ async function generateAudioUploadFiles(file: File, scene?: number): Promise<Gen
     hasNovelAiMetadata: false,
     metadata: {},
     filesByQuality: {
-      low: ensureFileType(low, "audio/webm", "webm"),
+      low: ensureFileType(await lowPromise, "audio/webm", "webm"),
     },
   };
 }
@@ -360,15 +437,24 @@ async function generateVideoUploadFiles(file: File, scene?: number): Promise<Gen
   }
 
   const original = normalizedFile;
-  const low = await transcodeVideoFileToWebmOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.video.low, isolated: true });
-  const medium = isChatroom
-    ? undefined
-    : await transcodeVideoFileToWebmOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.video.medium, isolated: true });
+  const lowPromise = transcodeVideoFileToWebmOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.video.low, isolated: true });
+  const mediumPromise = isChatroom
+    ? Promise.resolve<File | undefined>(undefined)
+    : transcodeVideoFileToWebmOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.video.medium, isolated: true });
 
   if (!isChatroom) {
-    const originalTranscoded = normalizedFile.size <= VIDEO_ORIGINAL_MAX_BYTES
-      ? normalizedFile
-      : await transcodeVideoFileToWebmOrThrow(normalizedFile, { ...MEDIA_COMPRESSION_PROFILES.video.high, isolated: true });
+    const originalPromise = normalizedFile.size <= VIDEO_ORIGINAL_MAX_BYTES
+      ? Promise.resolve(normalizedFile)
+      : mediumPromise.then((file) => {
+          if (!file) {
+            throw new Error("视频 original 转码失败");
+          }
+          return file;
+        });
+    const [originalTranscoded, low, medium] = await Promise.all([originalPromise, lowPromise, mediumPromise]);
+    if (!medium) {
+      throw new Error("视频 medium 转码失败");
+    }
     assertMaxBytes(originalTranscoded, VIDEO_ORIGINAL_MAX_BYTES, "视频 original");
     return {
       original: originalTranscoded,
@@ -378,7 +464,7 @@ async function generateVideoUploadFiles(file: File, scene?: number): Promise<Gen
       filesByQuality: {
         original: originalTranscoded,
         low: ensureFileType(low, "video/webm", "webm"),
-        medium: ensureFileType(medium!, "video/webm", "webm"),
+        medium: ensureFileType(medium, "video/webm", "webm"),
       },
     };
   }
@@ -389,7 +475,7 @@ async function generateVideoUploadFiles(file: File, scene?: number): Promise<Gen
     hasNovelAiMetadata: false,
     metadata: {},
     filesByQuality: {
-      low: ensureFileType(low, "video/webm", "webm"),
+      low: ensureFileType(await lowPromise, "video/webm", "webm"),
     },
   };
 }
@@ -445,6 +531,9 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
   await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
     const fileForQuality = payload.filesByQuality[quality as MediaQuality];
     if (!fileForQuality) {
+      if (quality === "high") {
+        return;
+      }
       throw new Error(`缺少 ${quality} 上传文件`);
     }
     await putMediaTarget(target, fileForQuality, options.signal);

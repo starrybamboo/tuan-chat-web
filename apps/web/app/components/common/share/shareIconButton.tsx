@@ -1,11 +1,13 @@
 import React, { useRef } from "react";
 import toast from "react-hot-toast";
+
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+
 import useSearchParamsState from "../customHooks/useSearchParamState";
 import CopyLinkButton from "./copyLinkButton";
 import SavePictureButton from "./savePictureButton";
 
-interface ShareIconButtonProps {
+type ShareIconButtonProps = {
   targetRef: React.RefObject<HTMLElement>;
   qrLink: string;
   searchKey: string;

@@ -1,13 +1,15 @@
-import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
 import React from "react";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
+
+import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
+
 import { PREVIEW_ANCHOR_LABELS, PREVIEW_ANCHOR_ORDER } from "../Preview/previewAnchor";
 
 /**
  * Transform状态接口
  */
-export interface Transform {
+export type Transform = {
   scale: number;
   positionX: number;
   positionY: number;
@@ -18,7 +20,7 @@ export interface Transform {
 /**
  * Transform控制组件的属性接口
  */
-interface TransformControlProps {
+type TransformControlProps = {
   // 当前Transform״̬
   transform: Transform;
   // Transform状态更新函数

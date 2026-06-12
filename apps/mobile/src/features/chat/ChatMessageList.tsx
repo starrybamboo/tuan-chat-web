@@ -2,7 +2,7 @@ import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -43,6 +43,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.huge,
   },
 });
+
+const MESSAGE_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
+const MESSAGE_INITIAL_RENDER_COUNT = 10;
+const MESSAGE_RENDER_BATCH_SIZE = 10;
+const MESSAGE_WINDOW_SIZE = 9;
 
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
   return getMobileMessageAuthorLabel(msg, roomRolesById, {
@@ -90,7 +95,7 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function ChatMessageList({
+function ChatMessageListInner({
   currentRoleId,
   error,
   isCommandRequestConsumed,
@@ -268,12 +273,13 @@ export function ChatMessageList({
         contentContainerStyle={styles.listContent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        initialNumToRender={12}
-        maxToRenderPerBatch={20}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        initialNumToRender={MESSAGE_INITIAL_RENDER_COUNT}
+        maxToRenderPerBatch={MESSAGE_RENDER_BATCH_SIZE}
+        maintainVisibleContentPosition={MESSAGE_LIST_MAINTAIN_VISIBLE_POSITION}
         // 倒置消息流依赖 anchored rows 保持阅读位置，Android 裁剪回收会放大跳动风险。
         removeClippedSubviews={false}
-        windowSize={15}
+        updateCellsBatchingPeriod={50}
+        windowSize={MESSAGE_WINDOW_SIZE}
       />
       <ChatNewMessagesPill
         count={newMessageCount}
@@ -283,3 +289,5 @@ export function ChatMessageList({
     </View>
   );
 }
+
+export const ChatMessageList = memo(ChatMessageListInner);

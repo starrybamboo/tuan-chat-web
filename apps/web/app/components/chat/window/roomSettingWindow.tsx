@@ -1,5 +1,13 @@
+import { use, useCallback, useMemo, useState } from "react";
+
 import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
+
+import { RoomContext } from "@/components/chat/core/roomContext";
+import MemberLists from "@/components/chat/shared/components/memberLists";
+import RoleList from "@/components/chat/shared/components/roleLists";
+import { useGlobalUserId } from "@/components/globalContextProvider";
+import { BaselineArrowBackIosNew, MemberIcon, RoleListIcon, Setting } from "@/icons";
 import {
   useGetMemberListQuery,
   useGetRoomInfoQuery,
@@ -8,12 +16,7 @@ import {
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
-import { use, useCallback, useMemo, useState } from "react";
-import { RoomContext } from "@/components/chat/core/roomContext";
-import MemberLists from "@/components/chat/shared/components/memberLists";
-import RoleList from "@/components/chat/shared/components/roleLists";
-import { useGlobalUserId } from "@/components/globalContextProvider";
-import { BaselineArrowBackIosNew, MemberIcon, RoleListIcon, Setting } from "@/icons";
+
 import { SpaceContext } from "../core/spaceContext";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {

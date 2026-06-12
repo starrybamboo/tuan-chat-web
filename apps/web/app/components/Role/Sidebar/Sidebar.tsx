@@ -1,24 +1,67 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
-import type { Role } from "../types";
+
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { getRoleRule } from "@/utils/roleRuleStorage";
+import { useDeleteRolesMutation } from "api/hooks/RoleAndAvatarHooks";
+import { useDeleteRuleMutation, useRuleListQuery } from "api/hooks/ruleQueryHooks";
+
+import type { Role } from "../types";
+
 import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
-import { RoleListItem } from "./RoleListItem";
+import { RoleListItem, RoleListItemSkeleton } from "./RoleListItem";
 
-interface SidebarProps {
+type SidebarProps = {
   roles: Role[];
+  isRoleListLoading?: boolean;
   selectedRoleId: number | null;
   onNavigate?: () => void;
 }
 
+function SidebarGroupCount({
+  count,
+  isLoading,
+}: {
+  count: number;
+  isLoading?: boolean;
+}) {
+  return (
+    <span className="text-xs text-base-content/60">
+      {isLoading
+        ? <span className="skeleton inline-block h-3 w-5 rounded-full align-middle" />
+        : (
+            <>
+              (
+              {count}
+              )
+            </>
+          )}
+    </span>
+  );
+}
+
+function RoleListSkeleton({
+  count,
+}: {
+  count: number;
+}) {
+  return (
+    <div className="space-y-1 px-1 py-1" role="status" aria-label="正在加载角色列表">
+      <span className="sr-only">正在加载角色列表</span>
+      {Array.from({ length: count }, (_, index) => (
+        <RoleListItemSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
+
 export function Sidebar({
   roles,
+  isRoleListLoading = false,
   selectedRoleId,
   onNavigate,
 }: SidebarProps) {
@@ -314,6 +357,7 @@ export function Sidebar({
 
           <div
             className="h-full overflow-y-auto"
+            aria-busy={isRoleListLoading}
           >
             {/* "全部"视图：分组可折叠列表，顺序为规则->骰娘->角色 */}
             <>
@@ -344,11 +388,10 @@ export function Sidebar({
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                   <span className="font-medium">规则</span>
-                  <span className="text-xs text-base-content/60">
-                    (
-                    {filteredRules.length}
-                    )
-                  </span>
+                  <SidebarGroupCount
+                    count={filteredRules.length}
+                    isLoading={ruleListQuery.isLoading}
+                  />
                 </button>
                 {!isRuleCollapsed && (
                   <div className="ml-2">
@@ -544,11 +587,10 @@ export function Sidebar({
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                   <span className="font-medium">骰娘</span>
-                  <span className="text-xs text-base-content/60">
-                    (
-                    {diceRoles.length}
-                    )
-                  </span>
+                  <SidebarGroupCount
+                    count={diceRoles.length}
+                    isLoading={isRoleListLoading}
+                  />
                 </button>
                 {!isDiceCollapsed && (
                   <div className="ml-2">
@@ -605,38 +647,40 @@ export function Sidebar({
                       </div>
                     </button>
                     {/* 骰娘角色列表 */}
-                    {diceRoles.map((role) => {
-                      const storedRuleId = getRoleRule(role.id) || 1;
-                      return (
-                        <div
-                          key={role.id}
-                          className={`
-                            rounded-lg px-1
-                            ${
-                            (selectedRoleId === role.id && !isSelectionMode) ? `
-                              bg-primary/10 text-primary
-                            ` : ""
-                          }
-                          `}
-                        >
-                          <RoleListItem
-                            role={role}
-                            isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                            onSelect={() => {
-                              if (isSelectionMode) {
-                                toggleRoleSelection(role.id);
+                    {isRoleListLoading
+                      ? <RoleListSkeleton count={2} />
+                      : diceRoles.map((role) => {
+                          const storedRuleId = getRoleRule(role.id) || 1;
+                          return (
+                            <div
+                              key={role.id}
+                              className={`
+                                rounded-lg px-1
+                                ${
+                                (selectedRoleId === role.id && !isSelectionMode) ? `
+                                  bg-primary/10 text-primary
+                                ` : ""
                               }
-                              else {
-                                router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
-                                onNavigate?.();
-                              }
-                            }}
-                            onDelete={() => handleDelete(role.id)}
-                            isSelectionMode={isSelectionMode}
-                          />
-                        </div>
-                      );
-                    })}
+                              `}
+                            >
+                              <RoleListItem
+                                role={role}
+                                isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                                onSelect={() => {
+                                  if (isSelectionMode) {
+                                    toggleRoleSelection(role.id);
+                                  }
+                                  else {
+                                    router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
+                                    onNavigate?.();
+                                  }
+                                }}
+                                onDelete={() => handleDelete(role.id)}
+                                isSelectionMode={isSelectionMode}
+                              />
+                            </div>
+                          );
+                        })}
                   </div>
                 )}
               </div>
@@ -668,11 +712,10 @@ export function Sidebar({
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                   <span className="font-medium">角色</span>
-                  <span className="text-xs text-base-content/60">
-                    (
-                    {normalRoles.length}
-                    )
-                  </span>
+                  <SidebarGroupCount
+                    count={normalRoles.length}
+                    isLoading={isRoleListLoading}
+                  />
                 </button>
                 {!isNormalCollapsed && (
                   <div className="ml-2">
@@ -725,38 +768,40 @@ export function Sidebar({
                       </div>
                     </button>
 
-                    {normalRoles.map((role) => {
-                      const storedRuleId = getRoleRule(role.id) || 1;
-                      return (
-                        <div
-                          key={role.id}
-                          className={`
-                            rounded-lg px-1
-                            ${
-                            (selectedRoleId === role.id && !isSelectionMode) ? `
-                              bg-primary/10 text-primary
-                            ` : ""
-                          }
-                          `}
-                        >
-                          <RoleListItem
-                            role={role}
-                            isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                            onSelect={() => {
-                              if (isSelectionMode) {
-                                toggleRoleSelection(role.id);
+                    {isRoleListLoading
+                      ? <RoleListSkeleton count={4} />
+                      : normalRoles.map((role) => {
+                          const storedRuleId = getRoleRule(role.id) || 1;
+                          return (
+                            <div
+                              key={role.id}
+                              className={`
+                                rounded-lg px-1
+                                ${
+                                (selectedRoleId === role.id && !isSelectionMode) ? `
+                                  bg-primary/10 text-primary
+                                ` : ""
                               }
-                              else {
-                                router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
-                                onNavigate?.();
-                              }
-                            }}
-                            onDelete={() => handleDelete(role.id)}
-                            isSelectionMode={isSelectionMode}
-                          />
-                        </div>
-                      );
-                    })}
+                              `}
+                            >
+                              <RoleListItem
+                                role={role}
+                                isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                                onSelect={() => {
+                                  if (isSelectionMode) {
+                                    toggleRoleSelection(role.id);
+                                  }
+                                  else {
+                                    router.history.push(`/role/${role.id}?rule=${storedRuleId}`);
+                                    onNavigate?.();
+                                  }
+                                }}
+                                onDelete={() => handleDelete(role.id)}
+                                isSelectionMode={isSelectionMode}
+                              />
+                            </div>
+                          );
+                        })}
                   </div>
                 )}
               </div>

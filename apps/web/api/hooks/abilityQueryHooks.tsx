@@ -12,6 +12,7 @@ import {
     roleAbilityByRuleQueryKey,
     roleAbilityListQueryKey,
 } from "./abilityMutationInvalidation";
+import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
 
 type JsonObject = Record<string, unknown>;
@@ -589,15 +590,19 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
  * 批量获取多个角色的 ability（用于避免在循环中直接调用 Hook）
  */
 export function useGetRolesAbilitiesQueries(roleIds: number[]) {
+    const querySlots = createUniqueQuerySlots(
+        roleIds,
+        (roleId, index) => roleId > 0 ? String(roleId) : `invalid:${index}`,
+    );
     const results = useQueries({
-        queries: roleIds.map((roleId) => ({
-            queryKey: roleAbilityListQueryKey(roleId),
+        queries: querySlots.queryItems.map(({ item: roleId, originalIndex }) => ({
+            queryKey: roleId > 0 ? roleAbilityListQueryKey(roleId) : ["listRoleAbility", "invalid", originalIndex],
             queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
             staleTime: 10000,
             enabled: roleId > 0,
         })),
     });
-    return results;
+    return mapUniqueQueryResults(results, querySlots.resultIndexes);
 }
 
 /**
@@ -634,17 +639,6 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     return useMutation({
         mutationFn: updateRoleAbilityByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
-            const previousAbilityByRule = queryClient.getQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId));
-            setRoleAbilityByRuleCache(queryClient, variables);
-            return { previousAbilityByRule };
-        },
-        onError: (_error, variables, context) => {
-            if (context?.previousAbilityByRule !== undefined) {
-                queryClient.setQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId), context.previousAbilityByRule);
-            }
-        },
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
                 setRoleAbilityByRuleCache(queryClient, variables);
@@ -659,17 +653,6 @@ export function useUpdateKeyFieldByRoleIdMutation() {
     return useMutation({
         mutationFn: updateRoleAbilityFieldByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
-            const previousAbilityByRule = queryClient.getQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId));
-            patchRoleAbilityFieldsCache(queryClient, variables);
-            return { previousAbilityByRule };
-        },
-        onError: (_error, variables, context) => {
-            if (context?.previousAbilityByRule !== undefined) {
-                queryClient.setQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId), context.previousAbilityByRule);
-            }
-        },
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
                 patchRoleAbilityFieldsCache(queryClient, variables);

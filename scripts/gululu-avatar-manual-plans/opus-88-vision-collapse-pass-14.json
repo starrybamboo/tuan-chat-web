@@ -1,0 +1,21 @@
+{
+  "createdAt": "2026-06-08T14:10:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第十四批：用户验收指出小铃 character-avatar-bust 中 neutral/worried 两张主图实际同语义。补折叠该漏项，并记录上轮验收只做结构清零、不足以证明视觉无重复。",
+  "groups": [
+    {
+      "role": "小铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I004"],
+      "reason": "两张均为小铃正面睁眼、闭口、浅脸红、无汗泪阴影伤的紧张/空白表情；眼型、嘴型和情绪语义一致，差异主要是裁切、缩放和轻微线条强度。"
+    }
+  ],
+  "reviewNotes": [
+    {
+      "role": "小铃",
+      "assetKind": "character-avatar-bust",
+      "note": "neutral_front_open_front_closed_light_blank__v001 与 worried_front_open_front_closed_light_tense__v001 已合并；保留 neutral 作为主图，worried 进入该组 _interchangeable。"
+    }
+  ]
+}

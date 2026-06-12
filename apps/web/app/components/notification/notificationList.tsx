@@ -1,10 +1,11 @@
+import { motion } from "motion/react";
+
 import type { UserNotificationItem } from "@/components/notification/notificationTypes";
 
-import { motion } from "motion/react";
 import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import { formatNotificationTime } from "@/components/notification/notificationTypes";
 
-interface NotificationListProps {
+type NotificationListProps = {
   items: UserNotificationItem[];
   emptyText: string;
   loading?: boolean;

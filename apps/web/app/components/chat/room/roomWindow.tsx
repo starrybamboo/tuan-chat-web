@@ -1,14 +1,14 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
-import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { GalAuthoringLocalSnapshot, GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { patchInsertMessages } from "@tuanchat/query/chat";
 import { fetchUserInfoWithCache } from "@tuanchat/query/users";
-import { tuanchat } from "api/instance";
 import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
+
+import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { GalAuthoringLocalSnapshot, GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
+
 // hooks (local)
 import { useClueFolderActions } from "@/components/chat/clues/useClueFolderActions";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -51,6 +51,9 @@ import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
+import { tuanchat } from "api/instance";
+
+import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
 
 import {
   useGetRoomInfoQuery,

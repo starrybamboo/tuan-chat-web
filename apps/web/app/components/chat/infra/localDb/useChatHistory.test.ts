@@ -1,6 +1,5 @@
-import { describe, expect, it } from "vitest";
-
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
+import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../../../api";
 

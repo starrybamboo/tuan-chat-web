@@ -1,4 +1,4 @@
-interface RoomSidebarInsertLineProps {
+type RoomSidebarInsertLineProps = {
   className?: string;
 }
 

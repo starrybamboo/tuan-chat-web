@@ -4,6 +4,7 @@ import { build } from "esbuild";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -17,10 +18,12 @@ type MockAudioStats = {
 let browser: Browser;
 let tempDir = "";
 let bundlePath = "";
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
+const appRoot = path.resolve(packageRoot, "app");
 
 function resolveAppAlias(specifier: string) {
   const withoutAlias = specifier.slice(2);
-  const basePath = path.join("D:\\A_collection\\tuan-chat-web\\app", withoutAlias);
+  const basePath = path.resolve(appRoot, withoutAlias);
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -113,8 +116,9 @@ describe("audioMessage auto play browser e2e", () => {
     bundlePath = path.join(tempDir, "audio-autoplay-harness.js");
 
     await build({
+      absWorkingDir: packageRoot,
       entryPoints: [
-        "D:\\A_collection\\tuan-chat-web\\app\\components\\chat\\infra\\audioMessage\\audioMessageAutoPlay.e2e.harness.tsx",
+        path.resolve(appRoot, "components/chat/infra/audioMessage/audioMessageAutoPlay.e2e.harness.tsx"),
       ],
       outfile: bundlePath,
       bundle: true,

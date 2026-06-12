@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -57,6 +57,20 @@ function externalImage(url: string) {
   };
 }
 
+function variantGroup(baseAvatarId = 11) {
+  return {
+    variantId: 100,
+    roleId: 1,
+    name: "校服",
+    baseAvatarId,
+    compositionConfig: {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x: 12, y: 34, width: 256, height: 256 },
+      output: { format: "webp" },
+    },
+  };
+}
+
 function normalizeLineEndings(content: string): string {
   return content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
@@ -78,6 +92,10 @@ function getFileContent(files: RenderedPackage["files"], path: string): string {
 describe("renderWebgalPublishPackage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("renders an index entry that boots the shared engine from start.txt", async () => {
@@ -302,6 +320,67 @@ describe("renderWebgalPublishPackage", () => {
     const content = getFileContent(pkg.files, "game/scene/room_10.txt");
     expect(content).toContain("changeFigure:https://cdn.example.com/figure.webp -id=image_message");
     expect(pkg.files.some(file => file.path.includes("figure.webp"))).toBe(false);
+  });
+
+  it("packages composable role figures as one base sprite plus avatar layer", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      new Blob([Uint8Array.of(1, 2, 3)], { type: "image/webp" }),
+      { status: 200 },
+    )));
+
+    const pkg = await renderWebgalPublishPackage({
+      rooms: [room(10, "立绘")],
+      roles: [{ userId: 1, roleId: 1, roleName: "明日香", type: 0 }],
+      avatars: [
+        {
+          avatarId: 11,
+          roleId: 1,
+          variantId: 100,
+          variantGroup: variantGroup(11),
+          spriteFileId: 2048,
+          avatarFileId: 3001,
+          avatarCropContext: {
+            sourceWidth: 1000,
+            sourceHeight: 1600,
+            crop: { x: 10, y: 20, width: 300, height: 300 },
+          },
+        },
+        {
+          avatarId: 12,
+          roleId: 1,
+          variantId: 100,
+          variantGroup: variantGroup(11),
+          spriteFileId: 4096,
+          avatarFileId: 3002,
+          avatarCropContext: {
+            sourceWidth: 1000,
+            sourceHeight: 1600,
+            crop: { x: 12, y: 34, width: 256, height: 256 },
+          },
+        },
+      ],
+      messagesByRoomId: {
+        10: [
+          message({
+            messageId: 1,
+            roleId: 1,
+            avatarId: 12,
+            content: "笑脸差分",
+            annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+          }),
+        ],
+      },
+    });
+
+    const content = getFileContent(pkg.files, "game/scene/room_10.txt");
+    const paths = pkg.files.map(file => file.path);
+    expect(content).toContain("composeFigure:");
+    expect(content).toContain(" -composite -id=1 ");
+    expect(content).toContain(`"src":"role_1/base_11_2048.webp"`);
+    expect(content).toContain(`"src":"role_1/avatar_12_3002_`);
+    expect(paths).toContain("game/figure/role_1/base_11_2048.webp");
+    expect(paths.some(path => /^game\/figure\/role_1\/avatar_12_3002_[a-z0-9]+\.webp$/.test(path))).toBe(true);
+    expect(paths).not.toContain("game/figure/role_1/sprite_12.webp");
   });
 
   it("renders BGM as a direct URL command", async () => {

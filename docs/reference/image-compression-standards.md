@@ -5,7 +5,7 @@
 ## 核心原则
 
 1. 同一类图片尽量复用同一压缩标准，避免同尺寸不同体积上限。
-2. 展示图用于 Web 端加载速度与带宽控制；原图字段用于后续裁剪、导出和桌面端打包，但图片 original 也必须是 WebP。
+2. 展示图用于 Web 端加载速度与带宽控制；original 质量档用于后续裁剪、导出和桌面端打包，但图片 original 也必须是 WebP。
 3. 小尺寸头像统一使用 `200px / 40KB`，`avatarThumb` 与 `smallThumbnail` 复用同一个 `image/low` 物理档。
 4. 大图预览、二次裁剪、桌面端打包不得依赖缩略图，应使用对应的 original 字段。
 
@@ -23,26 +23,24 @@
 | `avatar` | 头像展示图 | 512px | 150KB | 0.76 |
 | `avatarThumb` | 头像缩略图 | 200px | 40KB | 0.72 |
 
-## 头像字段语义
+## 头像媒体语义
 
-| 字段 | 是否压缩 | 标准 | 用途 |
+| 媒体文件 ID | 质量档 | 标准 | 用途 |
 | --- | --- | --- | --- |
-| `avatarOriginalUrl` | 是 | `originalImage`，2560px / 3MiB WebP | 头像二次裁剪、导出、桌面端高质量资源 |
-| `avatarUrl` | 是 | `avatar`，512px / 150KB | 角色详情、头像管理、中大尺寸头像展示 |
-| `avatarThumbUrl` | 是 | `avatarThumb`，200px / 40KB | 消息头像、角色列表、选择器、提及、小尺寸头像 |
+| `avatarFileId` | `original` | `originalImage`，2560px / 3MiB WebP | 头像二次裁剪、导出、桌面端高质量资源 |
+| `avatarFileId` | `medium` | `avatar`，512px / 150KB | 角色详情、头像管理、中大尺寸头像展示 |
+| `avatarFileId` | `low` | `avatarThumb`，200px / 40KB | 消息头像、角色列表、选择器、提及、小尺寸头像 |
 
 ## 统一命名
 
-头像缩略图字段统一命名为 `avatarThumbUrl`。用户头像、角色头像、空间头像、房间头像在 API 响应和前端消费中都应优先使用这个字段表示 200px / 40KB 的小尺寸头像。
+头像类实体统一保存 `avatarFileId`。前端需要展示时，通过媒体地址工具按质量档派生实际 `src`。
 
-| 实体 | 缩略图字段 | 历史兼容字段 | 原图字段 |
+| 实体 | 媒体文件字段 | 小尺寸展示 | 原图/高质量展示 |
 | --- | --- | --- | --- |
-| 用户 | `avatarThumbUrl` | `avatar` | `originalAvatar` |
-| 角色头像 | `avatarThumbUrl` | `avatarUrl` | `avatarOriginalUrl` |
-| 空间 | `avatarThumbUrl` | `avatar` | `originalAvatar` |
-| 房间 | `avatarThumbUrl` | `avatar` | `originalAvatar` |
-
-空间和房间的 `avatar` 是历史兼容字段，当前仍保留并与 `avatarThumbUrl` 写入同一个缩略图 URL。新代码应读取和提交 `avatarThumbUrl`，只在兼容旧数据或旧接口时回退到 `avatar`。
+| 用户 | `avatarFileId` | `low` | `original` |
+| 角色头像 | `avatarFileId` | `low` | `original` |
+| 空间 | `avatarFileId` | `low` | `original` |
+| 房间 | `avatarFileId` | `low` | `original` |
 
 ## 列表头像规则
 
@@ -56,9 +54,9 @@
 
 ## 使用规则
 
-1. 展示尺寸小于等于 200px 的头像，应优先使用 `avatarThumbUrl`。
-2. 展示尺寸大于 200px 的普通头像，应使用 `avatarUrl`。
-3. 需要再次裁剪、打包、导出或保留质量时，应使用 `avatarOriginalUrl`、`spriteOriginalUrl` 或 `originUrl`。
+1. 展示尺寸小于等于 200px 的头像，应通过 `avatarFileId` 派生 `low` 质量档。
+2. 展示尺寸大于 200px 的普通头像，应通过 `avatarFileId` 派生 `medium` 质量档。
+3. 需要再次裁剪、打包、导出或保留质量时，应使用对应媒体文件 ID 的 `original` 质量档；角色立绘裁剪链路优先使用 `spriteFileId`，原始上传源使用 `originFileId`。
 4. 不应为小尺寸头像再引入新的独立体积标准。
 5. 如果需要新增图片场景，先复用现有 preset；只有现有 preset 无法表达真实用途时，才新增 preset 并更新本文档。
 

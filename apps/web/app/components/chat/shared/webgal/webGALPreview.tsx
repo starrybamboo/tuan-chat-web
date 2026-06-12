@@ -6,6 +6,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { deriveCombatVisualActiveAtMessageIndex } from "@/components/chat/hooks/chatFrameCombatVisualState";
@@ -22,7 +23,7 @@ import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderS
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { getTerreBaseUrl } from "@/webGAL/terreConfig";
 
-interface WebGALPreviewProps {
+type WebGALPreviewProps = {
   previewUrl: string | null;
   isResizing?: boolean;
   onClose?: () => void;

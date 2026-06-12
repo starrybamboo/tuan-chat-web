@@ -1,7 +1,8 @@
-import type { ChatMessageResponse } from "../../../../api";
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 
-interface ExportChatWindowProps {
+import type { ChatMessageResponse } from "../../../../api";
+
+type ExportChatWindowProps = {
   selectedMessages: ChatMessageResponse[];
   onClose: () => void;
 }

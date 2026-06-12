@@ -4,23 +4,25 @@ import type { CPI } from "../types";
 
 import executorCoc from "./cmdExeCoc";
 
+type MockFn = (...args: any[]) => any;
+
 describe("domain coc7 骰子指令", () => {
   let cpi: CPI;
 
   beforeEach(() => {
     cpi = {
-      replyMessage: vi.fn(),
-      sendToast: vi.fn(),
-      getRoleAbilityList: vi.fn().mockReturnValue({
+      replyMessage: vi.fn<MockFn>(),
+      sendToast: vi.fn<MockFn>(),
+      getRoleAbilityList: vi.fn<MockFn>().mockReturnValue({
         skill: {
           手枪: "80",
         },
       }),
-      getSpaceInfo: vi.fn(),
-      getSpaceData: vi.fn().mockReturnValue("0"),
-      setRoleAbilityList: vi.fn(),
-      setCopywritingKey: vi.fn(),
-      setSpaceData: vi.fn(),
+      getSpaceInfo: vi.fn<MockFn>(),
+      getSpaceData: vi.fn<MockFn>().mockReturnValue("0"),
+      setRoleAbilityList: vi.fn<MockFn>(),
+      setCopywritingKey: vi.fn<MockFn>(),
+      setSpaceData: vi.fn<MockFn>(),
     };
   });
 

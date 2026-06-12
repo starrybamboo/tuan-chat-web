@@ -1,463 +1,212 @@
-import type { PreviewAnchorPosition } from "../Preview/previewAnchor";
-import type { Transform } from "../sprite/TransformControl";
-// 导入必要的类型和组件
-import type { CropMode } from "@/utils/imgCropper/useCropPreview";
+import type { RoleAvatarVariant } from "api";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { ReactCrop } from "react-image-crop";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import { isMobileScreen } from "@/utils/getScreenSize";
-import { canvasPreview, createFullImageCrop, createTopCenteredSquareCrop, getCroppedImageFile, useCropPreview } from "@/utils/imgCropper";
-import { uploadMediaFile } from "@/utils/mediaUpload";
-import { avatarUrl as buildAvatarUrl, imageMediumUrl } from "@/utils/mediaUrl";
-import { AvatarPreview } from "../Preview/AvatarPreview";
-import { RenderPreview } from "../Preview/RenderPreview";
-import { TransformControl } from "../sprite/TransformControl";
-import { runAvatarBatchUpload } from "./avatarBatchUpload";
-import "react-image-crop/dist/ReactCrop.css";
 
-function createDefaultTransform(): Transform {
-  return {
-    scale: 1,
-    positionX: 0,
-    positionY: 0,
-    alpha: 1,
-    rotation: 0,
-  };
+export type UploadVariantTarget =
+  | { mode: "none" }
+  | { mode: "existing"; variantId: number; variantGroup?: RoleAvatarVariant }
+  | { mode: "new"; name: string };
+
+export type AvatarUploadFilesContext = {
+  target: UploadVariantTarget;
+  batchKey: string;
 }
 
-/**
- * 图片上传器组件的属性接口
- */
-export interface UploadContext {
-  batch?: boolean;
-  index?: number;
-  total?: number;
+type UploadVariantTargetDraft = {
+  mode: "none" | "existing" | "new";
+  variantId: string;
+  name: string;
 }
 
-interface PreparedBatchAvatarUpload {
-  avatarFileId: number;
-  spriteFileId: number;
-  originFileId?: number;
-  transform: Transform;
-}
-
-interface ImgUploaderWithCopperProps {
-  // 设置原始图片下载链接的回调函数
-  setDownloadUrl?: (newUrl: string) => void | undefined;
-  // 设置裁剪后图片下载链接的回调函数
-  setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
-  // 子组件，用作触发上传的UI元素
+type CharacterCopperProps = {
   children: React.ReactNode;
-  // 上传文件的文件名
-  fileName: string;
-  // 上传场景：1.聊天室,2.表情包，3.角色差分 4.仓库图片
-  scene: 1 | 2 | 3 | 4;
-  // 数据更新回调函数
-  mutate?: (data: any, context?: UploadContext) => void | Promise<void>;
-  // 外层div的className
   wrapperClassName?: string;
-  // 内层div的className
   triggerClassName?: string;
-  // 外部传入的文件（用于拖拽上传）
   externalFiles?: File[] | null;
-  // 外部文件批次标识（用于防止重复处理）
   externalFilesBatchId?: number;
-  // 外部文件处理完成回调（用于清理）
   onExternalFilesHandled?: () => void;
-  // 使用独立的弹窗状态 key，避免多入口冲突
-  stateKey?: string;
+  lockedVariantGroup?: RoleAvatarVariant;
+  availableVariants?: RoleAvatarVariant[];
+  defaultVariantId?: number;
+  onFilesSelected: (files: File[], context: AvatarUploadFilesContext) => void | Promise<void>;
+}
+
+function normalizeVariantId(value: unknown): number | undefined {
+  const id = Number(value);
+  return Number.isFinite(id) && id > 0 ? Math.floor(id) : undefined;
+}
+
+function getVariantDisplayName(variant: RoleAvatarVariant | undefined) {
+  const id = normalizeVariantId(variant?.variantId);
+  return String(variant?.name ?? "").trim() || `立绘组 ${id ?? ""}`;
+}
+
+function createUploadBatchKey() {
+  return `avatar-upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 /**
- * 带裁剪功能的图片上传组件
- * 支持图片上传、预览、裁剪和保存功能
+ * 头像上传入口只负责选择文件与立绘组目标。
+ * 具体裁剪统一交给 SpriteSettingsPopup 内的立绘校正 / 头像校正流程。
  */
 export function CharacterCopper({
-  setDownloadUrl,
-  setCopperedDownloadUrl,
   children,
-  fileName,
-  mutate,
   triggerClassName,
   wrapperClassName,
   externalFiles,
   externalFilesBatchId,
   onExternalFilesHandled,
-  stateKey,
-}: ImgUploaderWithCopperProps) {
-  // 文件输入框引用
+  lockedVariantGroup,
+  availableVariants,
+  defaultVariantId,
+  onFilesSelected,
+}: CharacterCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // 控制弹窗的显示状态
-  const searchKey = stateKey ?? "characterCopperPop";
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(searchKey, false);
-
-  // 图片相关状态
-  const [imgSrc, setImgSrc] = useState("");
-
-  // 存储当前选择的图片文件
-  const imgFile = useRef<File>(null);
-
-  // 存储用户最初选择的原始图片文件（未裁剪）
-  const originalFileRef = useRef<File | null>(null);
-
-  const [originFileId, setOriginFileId] = useState<number | undefined>();
-
-  // 提交状态
-  const [isSubmiting, setisSubmiting] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-
-  // Transform控制状态
-  const [transform, setTransform] = useState<Transform>(createDefaultTransform);
-  const [previewAnchorPosition, setPreviewAnchorPosition] = useState<PreviewAnchorPosition>("center");
-
-  // 获取当前裁剪模式（第一步为sprite全图裁剪，第二步为avatar头像裁剪）
-  const getCropMode = useCallback((): CropMode => {
-    return currentStep === 1 ? "sprite" : "avatar";
-  }, [currentStep]);
-
-  // 添加渲染版本号，用于通知子组件 canvas 内容已更新
-  const [previewRenderKey, setPreviewRenderKey] = useState(0);
-
-  // 使用 useCropPreview hook 管理裁剪状态
-  const {
-    imgRef,
-    previewCanvasRef,
-    crop,
-    setCrop,
-    completedCrop,
-    previewDataUrl: currentAvatarUrl,
-    onImageLoad,
-    onCropChange,
-    onCropComplete,
-    reset: resetCropState,
-    getCroppedFile,
-  } = useCropPreview({
-    mode: getCropMode,
-    debounceMs: 100,
-    initialCrop: useCallback(({ width, height, mode }: { width: number; height: number; mode: CropMode }) => {
-      if (mode !== "avatar")
-        return undefined;
-      return createTopCenteredSquareCrop(width, height);
-    }, []),
-  });
-
-  // 监听裁剪完成，延迟更新渲染key以确保canvas已经绘制完成
-  React.useEffect(() => {
-    if (completedCrop && imgRef.current && previewCanvasRef.current && currentStep === 2) {
-      const timeoutId = setTimeout(() => {
-        setPreviewRenderKey(prev => prev + 1);
-      }, 150); // 延迟确保防抖后的canvas绘制已完成
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [completedCrop, currentStep, imgRef, previewCanvasRef]);
-
-  /**
-   * 重置所有状态到初始值
-   */
-  function resetAllStates() {
-    setCurrentStep(1);
-    setImgSrc("");
-    setisSubmiting(false);
-    setPreviewRenderKey(0);
-    // 重置Transform״̬
-    setTransform(createDefaultTransform());
-    setPreviewAnchorPosition("center");
-    // 重置裁剪状态
-    resetCropState();
-    // 清除图片引用
-    if (imgRef.current) {
-      imgRef.current.src = "";
-    }
-    // 清除文件输入框
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    // 清除文件引用
-    imgFile.current = null;
-
-    // 清除原图与 originUrl
-    originalFileRef.current = null;
-    setOriginFileId(undefined);
-  }
-
-  // 使用防抖 Hook 更新预览画布（已集成在 useCropPreview 中）
-
-  /**
-   * 处理文件选择变化
-   * 验证文件类型并预览图片
-   */
-  const loadImageFromFile = useCallback((file: File): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        img.width = img.naturalWidth;
-        img.height = img.naturalHeight;
-        URL.revokeObjectURL(url);
-        resolve(img);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error("图片加载失败"));
-      };
-      img.src = url;
-    });
-  }, []);
-
-  const handleSingleFile = useCallback(async (file: File) => {
-    if (!file || !file.type.startsWith("image/")) {
-      return;
-    }
-
-    setIsOpen(true);
-    imgFile.current = file;
-    originalFileRef.current = file;
-
-    setOriginFileId(undefined);
-
-    setCrop(undefined); // Makes crop preview update between images.
-    const reader = new FileReader();
-    reader.addEventListener("load", () =>
-      setImgSrc(reader.result?.toString() || ""));
-    reader.readAsDataURL(file);
-  }, [setIsOpen, setCrop]);
-
-  const uploadFileWithDefaults = useCallback(async (file: File, index: number, total: number, baseName: string) => {
-    if (!file.type.startsWith("image/")) {
-      throw new Error("仅支持图片文件");
-    }
-
-    const img = await loadImageFromFile(file);
-    const fileBaseName = total > 1 ? `${baseName}-${index + 1}` : baseName;
-    const { pixelCrop: spritePixelCrop } = createFullImageCrop(img.naturalWidth, img.naturalHeight);
-    const spriteCanvas = document.createElement("canvas");
-    await canvasPreview(img, spriteCanvas, spritePixelCrop, 1, 0, { previewMode: false });
-    const spriteFile = await getCroppedImageFile(spriteCanvas, `${fileBaseName}.png`);
-
-    const { pixelCrop: avatarPixelCrop } = createTopCenteredSquareCrop(img.naturalWidth, img.naturalHeight);
-    const avatarCanvas = document.createElement("canvas");
-    await canvasPreview(img, avatarCanvas, avatarPixelCrop, 1, 0, { previewMode: false });
-    const avatarFile = await getCroppedImageFile(avatarCanvas, `${fileBaseName}-cropped.png`);
-
-    const originFileIdPromise = uploadMediaFile(file)
-      .then(result => result.fileId)
-      .catch((error) => {
-        console.error("originFileId 上传失败:", error);
-        return undefined;
-      });
-
-    const [originFileId, spriteUpload, avatarUpload] = await Promise.all([
-      originFileIdPromise,
-      uploadMediaFile(spriteFile),
-      uploadMediaFile(avatarFile),
-    ]);
-
-    return {
-      avatarFileId: avatarUpload.fileId,
-      spriteFileId: spriteUpload.fileId,
-      originFileId,
-      transform: createDefaultTransform(),
-    } satisfies PreparedBatchAvatarUpload;
-  }, [loadImageFromFile]);
-
-  const handleFiles = useCallback(async (files: File[]) => {
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    if (imageFiles.length === 0) {
-      return;
-    }
-    if (imageFiles.length === 1) {
-      await handleSingleFile(imageFiles[0]);
-      return;
-    }
-
-    const baseName = fileName || `avatar-upload-${Date.now()}`;
-    const toastId = `avatar-batch-upload-${Date.now()}`;
-    setisSubmiting(true);
-    toast.loading(`正在上传头像 (0/${imageFiles.length})...`, { id: toastId });
-    try {
-      const { errorCount } = await runAvatarBatchUpload({
-        files: imageFiles,
-        prepareUpload: (file, index, total) => uploadFileWithDefaults(file, index, total, baseName),
-        commitUpload: async (payload, context) => {
-          await Promise.resolve(mutate?.(payload, context));
-        },
-        onProgress: (completed, total) => {
-          toast.loading(`正在上传头像 (${completed}/${total})...`, { id: toastId });
-        },
-        onItemError: (error) => {
-          console.error("批量上传失败:", error);
-        },
-      });
-
-      if (errorCount > 0) {
-        toast.error("部分头像上传失败，请重试", { id: toastId });
-      }
-      else {
-        toast.success("头像上传完成", { id: toastId });
-      }
-    }
-    catch (error) {
-      console.error("批量上传失败:", error);
-      toast.error("头像上传失败，请重试", { id: toastId });
-    }
-    finally {
-      setisSubmiting(false);
-    }
-  }, [fileName, handleSingleFile, mutate, uploadFileWithDefaults]);
-
   const externalFilesHandledRef = useRef<number | null>(null);
+  const variantGroups = useMemo(() => availableVariants ?? [], [availableVariants]);
+  const variantGroupById = useMemo(() => {
+    const map = new Map<number, RoleAvatarVariant>();
+    variantGroups.forEach((variant) => {
+      const id = normalizeVariantId(variant.variantId);
+      if (id) {
+        map.set(id, variant);
+      }
+    });
+    const lockedId = normalizeVariantId(lockedVariantGroup?.variantId);
+    if (lockedId && lockedVariantGroup) {
+      map.set(lockedId, lockedVariantGroup);
+    }
+    return map;
+  }, [lockedVariantGroup, variantGroups]);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
+  const [pendingUploadFiles, setPendingUploadFiles] = useState<File[] | null>(null);
+  const [variantTargetDialogOpen, setVariantTargetDialogOpen] = useState(false);
+  const [variantTargetDraft, setVariantTargetDraft] = useState<UploadVariantTargetDraft>(() => ({
+    mode: "none",
+    variantId: "",
+    name: "立绘组 1",
+  }));
+  const [isSubmittingFiles, setIsSubmittingFiles] = useState(false);
+
+  const beginUploadFlow = useCallback(async (files: File[], target: UploadVariantTarget) => {
     if (files.length === 0) {
       return;
     }
-    void handleFiles(files);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    setIsSubmittingFiles(true);
+    try {
+      await Promise.resolve(onFilesSelected(files, {
+        target,
+        batchKey: createUploadBatchKey(),
+      }));
     }
-  }
+    catch (error) {
+      console.error("上传入口处理失败:", error);
+      toast.error(error instanceof Error ? error.message : "上传入口处理失败");
+    }
+    finally {
+      setIsSubmittingFiles(false);
+    }
+  }, [onFilesSelected]);
 
-  React.useEffect(() => {
-    if (!externalFiles || externalFiles.length === 0) {
+  const openVariantTargetDialog = useCallback((files: File[]) => {
+    const defaultId = normalizeVariantId(defaultVariantId ?? lockedVariantGroup?.variantId);
+    setPendingUploadFiles(files);
+    setVariantTargetDraft({
+      mode: defaultId ? "existing" : "none",
+      variantId: defaultId ? String(defaultId) : "",
+      name: `立绘组 ${variantGroups.length + 1}`,
+    });
+    setVariantTargetDialogOpen(true);
+  }, [defaultVariantId, lockedVariantGroup?.variantId, variantGroups.length]);
+
+  const resolveVariantTargetDraft = useCallback((): UploadVariantTarget | null => {
+    if (variantTargetDraft.mode === "none") {
+      return { mode: "none" };
+    }
+    if (variantTargetDraft.mode === "new") {
+      const name = variantTargetDraft.name.trim();
+      if (!name) {
+        toast.error("请输入立绘组名称");
+        return null;
+      }
+      return { mode: "new", name };
+    }
+    const variantId = normalizeVariantId(variantTargetDraft.variantId);
+    if (!variantId) {
+      toast.error("请选择立绘组");
+      return null;
+    }
+    return {
+      mode: "existing",
+      variantId,
+      variantGroup: variantGroupById.get(variantId),
+    };
+  }, [variantGroupById, variantTargetDraft]);
+
+  const handleFiles = useCallback((files: File[]) => {
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("请选择图片文件");
       return;
     }
-    if (!externalFilesBatchId) {
+    if (availableVariants) {
+      openVariantTargetDialog(imageFiles);
+      return;
+    }
+
+    const lockedId = normalizeVariantId(lockedVariantGroup?.variantId);
+    void beginUploadFlow(imageFiles, lockedId
+      ? { mode: "existing", variantId: lockedId, variantGroup: lockedVariantGroup }
+      : { mode: "none" });
+  }, [availableVariants, beginUploadFlow, lockedVariantGroup, openVariantTargetDialog]);
+
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+    event.currentTarget.value = "";
+  }, [handleFiles]);
+
+  React.useEffect(() => {
+    if (!externalFiles?.length || !externalFilesBatchId) {
       return;
     }
     if (externalFilesHandledRef.current === externalFilesBatchId) {
       return;
     }
     externalFilesHandledRef.current = externalFilesBatchId;
-    void handleFiles(externalFiles).finally(() => {
-      onExternalFilesHandled?.();
-    });
-  }, [externalFiles, externalFilesBatchId, handleFiles, onExternalFilesHandled]);
-
-  /**
-   * 处理提交操作
-   * 上传原始图片和裁剪后的图片
-   */
-  async function handleSubmit() {
-    setisSubmiting(true);
-    if (!imgFile.current) {
-      return;
-    }
-
-    const toastId = currentStep === 2 ? `avatar-upload-${Date.now()}` : null;
-    if (toastId) {
-      toast.loading("正在上传头像...", { id: toastId });
-    }
-
-    const originalFile = imgFile.current;
-    const fileWithNewName = new File(
-      [originalFile],
-      fileName,
-      {
-        type: originalFile.type,
-        lastModified: originalFile.lastModified,
-      },
-    );
-
-    const shouldUploadSprite = Boolean(setDownloadUrl || mutate);
-    const shouldUploadAvatar = Boolean(setCopperedDownloadUrl || mutate);
-
     try {
-      let downloadUrl = "";
-      let copperedDownloadUrl = "";
-
-      if (currentStep === 1) {
-        // 第一步：只保存裁剪后的图片用于第二步使用
-        const firstStepCroppedImage = await getCroppedFile(`${fileName}-cropped.png`);
-        // 将裁剪后的图片设置为第二步的原始图片
-        const reader = new FileReader();
-        reader.addEventListener("load", () => setImgSrc(reader.result?.toString() || ""));
-        reader.readAsDataURL(firstStepCroppedImage);
-        // 更新当前图片文件引用
-        imgFile.current = firstStepCroppedImage;
-        setCurrentStep(2);
-      }
-      else if (currentStep === 2) {
-        // 第二步：上传原始图片和裁剪后的头像
-        const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
-        let spriteFileId: number | undefined;
-        let avatarFileId: number | undefined;
-        if (shouldUploadSprite) {
-          spriteFileId = (await uploadMediaFile(fileWithNewName)).fileId;
-          downloadUrl = imageMediumUrl(spriteFileId);
-          setDownloadUrl?.(downloadUrl);
-        }
-        if (shouldUploadAvatar) {
-          avatarFileId = (await uploadMediaFile(copperedImgFile)).fileId;
-          copperedDownloadUrl = buildAvatarUrl(avatarFileId);
-          setCopperedDownloadUrl?.(copperedDownloadUrl);
-        }
-
-        let resolvedOriginFileId = originFileId;
-        if (!resolvedOriginFileId && originalFileRef.current) {
-          try {
-            resolvedOriginFileId = (await uploadMediaFile(originalFileRef.current)).fileId;
-            setOriginFileId(resolvedOriginFileId);
-          }
-          catch (error) {
-            console.error("originFileId 二次上传失败:", error);
-          }
-        }
-
-        if (mutate !== undefined) {
-          await Promise.resolve(mutate({
-            avatarFileId,
-            spriteFileId,
-            originFileId: resolvedOriginFileId,
-            transform,
-          }));
-        }
-        if (toastId) {
-          toast.success("头像上传成功", { id: toastId });
-        }
-        // 延迟关闭弹窗和重置状态，避免抖动
-        setTimeout(() => {
-          resetAllStates();
-          setIsOpen(false);
-        }, 100);
-      }
-    }
-    catch (error) {
-      console.error("上传失败:", error);
-      if (toastId) {
-        toast.error("头像上传失败，请重试", { id: toastId });
-      }
+      handleFiles(externalFiles);
     }
     finally {
-      setisSubmiting(false);
-      // 不要关闭弹窗，让用户继续进行第二步
-      // setIsOpen(false);
+      onExternalFilesHandled?.();
     }
-  }
+  }, [externalFiles, externalFilesBatchId, handleFiles, onExternalFilesHandled]);
 
-  /**
-   * 处理裁剪图片下载
-   * 创建临时下载链接并触发下载
-   */
-  async function handleDownload() {
-    const copperedImgFile = await getCroppedFile(`${fileName}-cropped.png`);
-    const url = URL.createObjectURL(copperedImgFile);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${fileName}-cropped.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  const handleConfirmVariantTarget = useCallback(() => {
+    const files = pendingUploadFiles;
+    if (!files?.length) {
+      setVariantTargetDialogOpen(false);
+      return;
+    }
+    const target = resolveVariantTargetDraft();
+    if (!target) {
+      return;
+    }
+    setVariantTargetDialogOpen(false);
+    setPendingUploadFiles(null);
+    void beginUploadFlow(files, target);
+  }, [beginUploadFlow, pendingUploadFiles, resolveVariantTargetDraft]);
+
+  const handleCancelVariantTarget = useCallback(() => {
+    setVariantTargetDialogOpen(false);
+    setPendingUploadFiles(null);
+  }, []);
 
   return (
     <div className={wrapperClassName || ""}>
-      {/* 隐藏的文件输入框 */}
       <input
         type="file"
         ref={fileInputRef}
@@ -466,177 +215,131 @@ export function CharacterCopper({
         accept="image/*"
         multiple
       />
-      {/* 触发文件选择的容器 */}
-      <div className={triggerClassName || ""} onClick={() => fileInputRef.current?.click()}>
+      <div
+        className={triggerClassName || ""}
+        onClick={() => {
+          if (!isSubmittingFiles) {
+            fileInputRef.current?.click();
+          }
+        }}
+      >
         {children}
       </div>
-      {/* 裁剪弹窗 */}
-      <ToastWindow
-        isOpen={isOpen}
-        onClose={() => {
-          resetAllStates();
-          setIsOpen(false);
-        }}
-        fullScreen={isMobileScreen()}
-      >
-        <div className="w-[92vw] max-w-4xl min-h-[70vh] mx-auto flex flex-col">
-          <div className="flex items-center gap-8">
-            <div className="w-full flex items-center">
-              <h1 className="
-                text-xl
-                md:text-2xl
-                font-bold w-64
-              ">
-                {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
-                ：
-              </h1>
-              <ul className="w-full steps">
-                <li className={`
-                  step
-                  ${currentStep >= 1 ? "step-primary" : ""}
-                `}></li>
-                <li className={`
-                  step
-                  ${currentStep >= 2 ? "step-primary" : ""}
-                `}></li>
-              </ul>
+
+      {variantTargetDialogOpen && (
+        <div className="modal modal-open">
+          <div className="modal-box w-[92vw] max-w-md rounded-md">
+            <h3 className="text-lg font-bold">
+              {pendingUploadFiles && pendingUploadFiles.length > 1 ? "批量上传头像" : "上传头像"}
+            </h3>
+            <p className="mt-2 text-sm text-base-content/70">
+              选择本次上传的立绘组归属，确认后进入统一校正流程。
+            </p>
+            <div className="mt-4 space-y-3">
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-base-300 px-3 py-2">
+                <input
+                  type="radio"
+                  className="radio radio-sm"
+                  checked={variantTargetDraft.mode === "none"}
+                  onChange={() => setVariantTargetDraft(prev => ({ ...prev, mode: "none" }))}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">不绑定立绘组</span>
+                  <span className="block text-xs text-base-content/60">只创建独立头像和立绘</span>
+                </span>
+              </label>
+
+              <label className="block rounded-md border border-base-300 px-3 py-2">
+                <span className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="radio"
+                    className="radio radio-sm"
+                    checked={variantTargetDraft.mode === "existing"}
+                    onChange={() => setVariantTargetDraft(prev => ({
+                      ...prev,
+                      mode: "existing",
+                      variantId: prev.variantId || String(normalizeVariantId(defaultVariantId) ?? ""),
+                    }))}
+                    disabled={variantGroups.length === 0}
+                  />
+                  <span className="text-sm font-medium">绑定到已有立绘组</span>
+                </span>
+                <select
+                  className="select select-sm mt-2 w-full"
+                  value={variantTargetDraft.variantId}
+                  onChange={(event) => {
+                    const variantId = event.currentTarget.value;
+                    setVariantTargetDraft(prev => ({
+                      ...prev,
+                      mode: "existing",
+                      variantId,
+                    }));
+                  }}
+                  disabled={variantTargetDraft.mode !== "existing" || variantGroups.length === 0}
+                >
+                  <option value="">选择立绘组</option>
+                  {variantGroups.map((variant) => {
+                    const id = normalizeVariantId(variant.variantId);
+                    if (!id) {
+                      return null;
+                    }
+                    return (
+                      <option key={id} value={id}>
+                        {getVariantDisplayName(variant)}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+
+              <label className="block rounded-md border border-base-300 px-3 py-2">
+                <span className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="radio"
+                    className="radio radio-sm"
+                    checked={variantTargetDraft.mode === "new"}
+                    onChange={() => setVariantTargetDraft(prev => ({ ...prev, mode: "new" }))}
+                  />
+                  <span className="text-sm font-medium">新建立绘组</span>
+                </span>
+                <input
+                  className="input input-sm mt-2 w-full"
+                  value={variantTargetDraft.name}
+                  onChange={(event) => {
+                    const name = event.currentTarget.value;
+                    setVariantTargetDraft(prev => ({
+                      ...prev,
+                      mode: "new",
+                      name,
+                    }));
+                  }}
+                  disabled={variantTargetDraft.mode !== "new"}
+                  placeholder="立绘组名称"
+                />
+              </label>
             </div>
-            {/* 桌面端按钮组 */}
-            {!!completedCrop && (
-              <div className="
-                shrink-0 hidden
-                md:block
-              ">
-                {isSubmiting
-                  ? (
-                      <button className="btn btn-md loading" disabled={true} type="button"></button>
-                    )
-                  : (
-                      <div className="flex gap-2">
-                        <button className="btn btn-md btn-info" onClick={handleSubmit} type="button">
-                          {currentStep === 1 ? "下一步" : "创建完成"}
-                        </button>
-                        <button className="btn btn-md btn-outline" onClick={handleDownload} type="button">
-                          下载图像
-                        </button>
-                      </div>
-                    )}
-              </div>
-            )}
+            <div className="modal-action">
+              <button type="button" className="btn btn-ghost" onClick={handleCancelVariantTarget}>
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConfirmVariantTarget}
+                disabled={isSubmittingFiles}
+              >
+                {isSubmittingFiles ? "处理中..." : "继续校正"}
+              </button>
+            </div>
           </div>
-          <div className="divider my-0"></div>
-          <div className="
-            flex flex-1 min-h-0 flex-col
-            md:flex-row
-            gap-8 justify-center
-          ">
-            {/* 原始图片裁剪区域 */}
-            <div className="
-              w-full
-              md:w-1/2
-              p-2 gap-4 flex flex-col items-center
-            ">
-              {!!imgSrc && (
-                <>
-                  <h2 className="text-xl font-bold">裁剪预览</h2>
-                  <div className="
-                    w-full rounded-lg flex items-center justify-center
-                  ">
-                    <ReactCrop
-                      crop={crop}
-                      onChange={onCropChange}
-                      onComplete={onCropComplete}
-                      aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
-                      minHeight={10}
-                    >
-                      <img
-                        ref={imgRef}
-                        alt="Crop me"
-                        src={imgSrc}
-                        // style={{ transform: `scale(${scale})` }}
-                        onLoad={onImageLoad}
-                        // className="max-w-[50vw] max-h-[70vh]"
-                        // 不能用className设置, 否则会出问题, 见鬼!!!
-                        style={{
-                          maxHeight: "70vh",
-                        }}
-                      />
-                    </ReactCrop>
-                  </div>
-                </>
-              )}
-            </div>
-            {/* 裁剪预览和操作按钮 */}
-            {!!completedCrop && (
-              <div className="
-                w-full
-                md:w-2/3
-                p-2 gap-4 flex flex-col items-center
-              ">
-                {
-                  currentStep !== 1
-                    ? (
-                        <AvatarPreview
-                          previewCanvasRef={previewCanvasRef}
-                          currentAvatarUrl={currentAvatarUrl}
-                          characterName="角色名"
-                          previewRenderKey={previewRenderKey}
-                        />
-                      )
-                    : (
-                        <>
-                          <h2 className="text-xl font-bold">渲染预览</h2>
-                          <div className="
-                            size-full bg-info/30 rounded-lg p-4 flex flex-col
-                            gap-4
-                          ">
-                            <RenderPreview
-                              previewCanvasRef={previewCanvasRef}
-                              transform={transform}
-                              anchorPosition={previewAnchorPosition}
-                              characterName="角色名"
-                              dialogContent="对话内容"
-                            />
-                            <TransformControl
-                              transform={transform}
-                              setTransform={setTransform}
-                              anchorPosition={previewAnchorPosition}
-                              setAnchorPosition={setPreviewAnchorPosition}
-                            />
-                          </div>
-                        </>
-                      )
-
-                }
-
-              </div>
-            )}
-          </div>
-
-          {/* 移动端按钮组 - 底部固定 */}
-          {!!completedCrop && (
-            <div className="
-              mt-6 pt-4 border-t border-base-300
-              md:hidden
-            ">
-              {isSubmiting
-                ? (
-                    <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>
-                  )
-                : (
-                    <div className="flex flex-col gap-2 w-full">
-                      <button className="btn btn-lg btn-info w-full" onClick={handleSubmit} type="button">
-                        {currentStep === 1 ? "下一步" : "创建完成"}
-                      </button>
-                      <button className="btn btn-lg btn-outline w-full" onClick={handleDownload} type="button">
-                        下载图像
-                      </button>
-                    </div>
-                  )}
-            </div>
-          )}
+          <button
+            type="button"
+            className="modal-backdrop"
+            onClick={handleCancelVariantTarget}
+            aria-label="关闭上传目标选择"
+          />
         </div>
-      </ToastWindow>
+      )}
     </div>
   );
 }

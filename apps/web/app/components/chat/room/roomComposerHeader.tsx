@@ -6,7 +6,7 @@ import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRoleIcon, NarratorIcon } from "@/icons";
 
-interface RoomComposerHeaderProps {
+type RoomComposerHeaderProps = {
   roomId: number;
   userId: number;
   webSocketUtils: any;

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-interface ForgotPasswordFormProps {
+type ForgotPasswordFormProps = {
   email: string;
   setEmail: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
