@@ -3,7 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { createInMemoryAuthoringPrimitives } from "../app/agentAuthoring";
+import { createInMemoryAuthoringPrimitives } from "../apps/web/app/agentAuthoring";
 import { applyGululuReplayImportToAuthoring } from "./gululu-replay-import.mjs";
 
 type DryRunArgs = {

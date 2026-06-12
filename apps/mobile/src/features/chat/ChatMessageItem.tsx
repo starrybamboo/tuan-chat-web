@@ -1,21 +1,21 @@
 import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { RoomRolesById } from "./chat-avatar-utils";
+
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
-
 import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
-
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { memo } from "react";
 import { Pressable, StyleSheet, Vibration, View } from "react-native";
+
 import { CachedImage } from "@/components/CachedImage";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { resolveMessageMediaUrl } from "@/features/messages/messageMediaSource";
 import { MobileMessageMediaPreview } from "@/features/messages/MobileMessageMediaPreview";
-
 import { useTheme } from "@/hooks/use-theme";
+
+import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { CommandRequestCard, getCommandRequestDisableReason } from "./CommandRequestCard";
 import { getMobileMessageAuthorLabel, isNarratorMessage, isOutOfCharacterMessage } from "./messageAuthorLabel";
@@ -163,7 +163,7 @@ function getCompactMediaText(message: Message): string {
   return getMessagePreview(message);
 }
 
-interface ChatMessageItemProps {
+type ChatMessageItemProps = {
   currentRoleId?: number;
   isCommandRequestConsumed?: (messageId: number) => boolean;
   isGrouped: boolean;
@@ -180,7 +180,7 @@ interface ChatMessageItemProps {
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
   stateEventSummary?: StateEventMessageSummary;
-}
+};
 
 export const ChatMessageItem = memo(({
   currentRoleId = 0,

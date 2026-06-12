@@ -46,9 +46,8 @@ export type UserRole = {
      * 角色类型,0:角色,1:骰娘,2:NPC
      */
     type: number;
-    voiceUrl?: string;
     /**
-     * 角色语音媒体文件 ID；替代 voiceUrl
+     * 角色语音媒体文件 ID
      */
     voiceFileId?: number;
     /**

@@ -1,10 +1,10 @@
-﻿import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { describe, expect, it } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-avatar-prefetch";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { describe, expect, it } from "vitest";
+
+import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 
 function createMessage(avatarFileId?: number | null, roleId?: number | null, imageFileId?: number | null): Message {
@@ -70,5 +70,10 @@ describe("collectChatAvatarThumbUrls", () => {
       "https://media.tuan.chat/media/v1/files/022/22/image/low.webp",
     ]);
   });
-});
 
+  it("预取窗口只选择最近消息，避免长房间全量预取", () => {
+    expect(selectChatMessagePrefetchWindow([1, 2, 3, 4, 5], 2)).toEqual([4, 5]);
+    expect(selectChatMessagePrefetchWindow([1, 2, 3], 10)).toEqual([1, 2, 3]);
+    expect(selectChatMessagePrefetchWindow([1, 2, 3], 0)).toEqual([]);
+  });
+});

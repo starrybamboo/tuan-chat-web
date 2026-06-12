@@ -40,6 +40,15 @@ describe("memberUtils", () => {
     ]);
   });
 
+  it("房间成员缺少空间身份时会按玩家兜底", () => {
+    const merged = mergeRoomMembersWithSpaceMembers(
+      [{ userId: 1002, username: "pl" }],
+      [],
+    );
+
+    expect(merged).toEqual([{ memberType: 2, userId: 1002, username: "pl" }]);
+  });
+
   it("可以找到当前用户对应的成员信息", () => {
     const currentMember = findCurrentMember([
       { memberType: 3, userId: 1001 },

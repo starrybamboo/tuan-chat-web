@@ -1,9 +1,10 @@
-import { mobileApiClient } from "@/lib/api";
 import {
   useCreateAvatarMutation as useSharedCreateAvatarMutation,
   useDeleteAvatarMutation as useSharedDeleteAvatarMutation,
   useUpdateAvatarMutation as useSharedUpdateAvatarMutation,
 } from "@tuanchat/query/roles";
+
+import { mobileApiClient } from "@/lib/api";
 
 export function useCreateAvatarMutation() {
   return useSharedCreateAvatarMutation(mobileApiClient);

@@ -1,5 +1,10 @@
+import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+import type { RoleAvatarCreateRequest } from "@tuanchat/openapi-client/models/RoleAvatarCreateRequest";
+import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
+
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -12,6 +17,10 @@ import {
   parseLiveImportArgs,
   runGululuAuthoringLiveImport,
 } from "./gululu-authoring-live-import";
+
+type ApiSuccess<T = undefined> = T extends undefined
+  ? { success: true }
+  : { data: T; success: true };
 
 function createImportPackage() {
   return {
@@ -70,13 +79,53 @@ function createImportPackage() {
   };
 }
 
+async function writeNamedAvatarManifest(params: {
+  assetKind?: string;
+  items: Array<{
+    displayName?: string;
+    file: string;
+    sourceRelPaths?: string[];
+    usageKey?: string;
+  }>;
+  namedRoot: string;
+  role: string;
+}) {
+  const assetKind = params.assetKind ?? "character-avatar-bust";
+  const dir = path.join(params.namedRoot, params.role, assetKind);
+  await mkdir(dir, { recursive: true });
+  for (const item of params.items) {
+    await writeFile(path.join(dir, item.file), "fixture", "utf8");
+  }
+  await writeFile(path.join(dir, "avatar-manifest.json"), `${JSON.stringify({
+    assetKind,
+    count: params.items.length,
+    items: params.items.map((item, index) => ({
+      displayName: item.displayName,
+      file: item.file,
+      members: (item.sourceRelPaths ?? []).map((sourceRelPath, memberIndex) => ({
+        id: `I${String(index + 1).padStart(3, "0")}-${memberIndex + 1}`,
+        sourceCandidates: [{ copied: true, file: `KEEP_SOURCE_${memberIndex + 1}.png`, sourceRelPath }],
+        sourceRelPath,
+      })),
+      representativeSourceRelPath: item.sourceRelPaths?.[0] ?? "",
+      usageKey: item.usageKey,
+    })),
+    role: params.role,
+  }, null, 2)}\n`, "utf8");
+}
+
 describe("gululu-authoring-live-import", () => {
   it("解析 live import CLI 参数", () => {
     const args = parseLiveImportArgs([
       "--apply",
       "--skip-avatar-upload",
+      "--skip-named-avatars",
       "--input",
       "import.json",
+      "--named-avatar-root",
+      "named-avatars",
+      "--room-name",
+      "安科文 GAL 导入",
       "--target-room-id",
       "62",
       "--target-space-id",
@@ -98,6 +147,9 @@ describe("gululu-authoring-live-import", () => {
       dicerAvatarId: 3,
       dicerRoleId: 2,
       input: "import.json",
+      namedAvatarRoot: "named-avatars",
+      roomName: "安科文 GAL 导入",
+      skipNamedAvatars: true,
       skipAvatarUpload: true,
       targetRoomId: 62,
       targetSpaceId: 88,
@@ -192,6 +244,74 @@ describe("gululu-authoring-live-import", () => {
     expect(plan.warnings).toEqual(["BGM 暂以文本事件保留：远野幻想物语"]);
   });
 
+  it("会从最终 named-avatars manifest 导入语义头像并把原图对白映射到语义头像", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "gululu-live-import-named-"));
+    try {
+      const namedRoot = path.join(tempDir, "image-role-review-clean-vision-final", "named-avatars");
+      await writeNamedAvatarManifest({
+        items: [
+          {
+            displayName: "严肃睁眼",
+            file: "neutral_three_quarter_open_front_closed_focused__v001.png",
+            sourceRelPaths: ["gululu/retsu.png", "gululu/retsu-duplicate.png"],
+            usageKey: "neutral_three_quarter_open_front_closed_focused",
+          },
+          {
+            displayName: "闭眼微笑",
+            file: "happy_three_quarter_closed_front_smile__v001.png",
+            sourceRelPaths: ["gululu/retsu-smile.png"],
+            usageKey: "happy_three_quarter_closed_front_smile",
+          },
+        ],
+        namedRoot,
+        role: "烈海王",
+      });
+      await writeNamedAvatarManifest({
+        items: [{
+          displayName: "平静",
+          file: "calm_front_open_front_closed__v001.png",
+          usageKey: "calm_front_open_front_closed",
+        }],
+        namedRoot,
+        role: "八意永琳",
+      });
+
+      const plan = buildGululuLiveImportPlan(createImportPackage(), {
+        namedAvatarRoot: namedRoot,
+        skipAvatarUpload: false,
+        sourceRoot: tempDir,
+        targetRoomId: 62,
+        targetSpaceId: 8801,
+      });
+
+      expect(plan.roles.map(role => role.name)).toEqual(expect.arrayContaining(["八意永琳", "烈海王"]));
+      expect(plan.avatars).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          avatarTitle: { label: "严肃睁眼" },
+          displayName: "严肃睁眼",
+          fileName: "neutral_three_quarter_open_front_closed_focused__v001.png",
+          imagePath: "image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
+          key: "role:烈海王:image:image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
+          sourceImagePaths: ["gululu/retsu.png", "gululu/retsu-duplicate.png"],
+          upload: true,
+          usageKey: "neutral_three_quarter_open_front_closed_focused",
+        }),
+        expect.objectContaining({
+          avatarTitle: { label: "平静" },
+          key: "role:八意永琳:image:image-role-review-clean-vision-final/named-avatars/八意永琳/character-avatar-bust/calm_front_open_front_closed__v001.png",
+        }),
+      ]));
+      expect(plan.avatars.some(avatar => avatar.imagePath === "gululu/retsu.png")).toBe(false);
+      expect(plan.messages[0]).toMatchObject({
+        avatarKey: "role:烈海王:image:image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
+        roleKey: "role:烈海王",
+      });
+    }
+    finally {
+      await rm(tempDir, { recursive: true });
+    }
+  });
+
   it("会把嵌套骰链写成同一条 diceTurn 的多条回复", () => {
     const plan = buildGululuLiveImportPlan({
       messages: [{
@@ -254,6 +374,12 @@ describe("gululu-authoring-live-import", () => {
       visibleBounds: { height: 370, width: 377, x: 17, y: 0 },
       width: 395,
     });
+    const wideHeadBust = buildGululuImportedSpriteTransform({
+      hasAlpha: true,
+      height: 319,
+      visibleBounds: { height: 319, width: 529, x: 0, y: 0 },
+      width: 529,
+    });
     const mangaAvatar = buildGululuImportedSpriteTransform({ hasAlpha: false, height: 253, width: 580 });
 
     expect(fullBody).toMatchObject({
@@ -261,11 +387,12 @@ describe("gululu-authoring-live-import", () => {
       positionX: 0,
       rotation: 0,
     });
-    expect(fullBody.scale).toBeGreaterThan(headBust.scale);
-    expect(fullBody.positionY).toBeLessThan(headBust.positionY);
-    expect(headBust.positionY).toBeGreaterThan(-100);
-    expect(mangaAvatar.scale).toBeLessThanOrEqual(0.42);
-    expect(mangaAvatar.positionY).toBeGreaterThan(0);
+    expect(fullBody.scale!).toBeGreaterThan(headBust.scale!);
+    expect(fullBody.positionY!).toBeLessThan(headBust.positionY!);
+    expect(headBust.positionY!).toBeGreaterThan(-100);
+    expect(wideHeadBust.scale!).toBeGreaterThan(0.44);
+    expect(mangaAvatar.scale!).toBeLessThanOrEqual(0.42);
+    expect(mangaAvatar.positionY!).toBeGreaterThan(0);
   });
 
   it("dry-run 只写计划文件，不调用 live client", async () => {
@@ -416,6 +543,82 @@ describe("gululu-authoring-live-import", () => {
       },
       messageType: MESSAGE_TYPE.DICE,
     });
+  });
+
+  it("apply 可以先创建新房间再把导入消息写入真实 roomId", async () => {
+    const plan = buildGululuLiveImportPlan(createImportPackage(), {
+      roomName: "安科文 1-62 楼 named avatar 导入",
+      skipAvatarUpload: true,
+      targetSpaceId: 8801,
+    });
+    expect(plan.messages.every(message => message.request.roomId === -1)).toBe(true);
+    const calls: string[] = [];
+    const client = {
+      avatarController: {
+        setRoleAvatar: vi.fn<(request: RoleAvatarCreateRequest) => Promise<ApiSuccess<number>>>(async request => {
+          calls.push(`avatar.create:${request.roleId}`);
+          return { data: 2001, success: true };
+        }),
+        updateRoleAvatar: vi.fn<(request: RoleAvatar) => Promise<ApiSuccess<RoleAvatar>>>(
+          async request => ({ data: request, success: true }),
+        ),
+      },
+      chatController: {
+        sendMessage1: vi.fn<(request: ChatMessageRequest) => Promise<ApiSuccess<{ messageId: number }>>>(
+          async request => {
+            calls.push(`message.room:${request.roomId}`);
+            return { data: { messageId: 3001 }, success: true };
+          },
+        ),
+      },
+      roleController: {
+        createRole: vi.fn<(request: RoleCreateRequest) => Promise<ApiSuccess<number>>>(async request => {
+          calls.push(`role.create:${request.roleName}`);
+          return { data: 1001, success: true };
+        }),
+      },
+      roomRoleController: {
+        addRole: vi.fn<(request: { roleIdList: number[]; roomId: number; type?: number }) => Promise<ApiSuccess>>(
+          async request => {
+            calls.push(`roomRole.add:${request.roomId}:${request.roleIdList.join(",")}`);
+            return { success: true };
+          },
+        ),
+        roomNpcRole: vi.fn<(roomId: number) => Promise<ApiSuccess<never[]>>>(async roomId => {
+          calls.push(`roomRole.list:${roomId}`);
+          return { data: [], success: true };
+        }),
+      },
+      spaceController: {
+        createRoom: vi.fn<
+          (request: { roomName?: string; spaceId: number; userIdList?: number[] }) => Promise<ApiSuccess<{
+            name?: string;
+            roomId: number;
+            spaceId?: number;
+          }>>
+        >(async request => {
+          calls.push(`room.create:${request.spaceId}:${request.roomName}`);
+          return { data: { name: request.roomName, roomId: 7001, spaceId: request.spaceId }, success: true };
+        }),
+      },
+    };
+
+    const result = await applyGululuLiveImportPlan(plan, client);
+
+    expect(result.room).toEqual({
+      action: "created",
+      name: "安科文 1-62 楼 named avatar 导入",
+      roomId: 7001,
+      spaceId: 8801,
+    });
+    expect(plan.target.roomId).toBe(7001);
+    expect(calls).toEqual(expect.arrayContaining([
+      "room.create:8801:安科文 1-62 楼 named avatar 导入",
+      "roomRole.list:7001",
+      "roomRole.add:7001:1001",
+    ]));
+    expect(client.chatController.sendMessage1).toHaveBeenCalledTimes(5);
+    expect(client.chatController.sendMessage1.mock.calls.every(call => call[0].roomId === 7001)).toBe(true);
   });
 
   it("apply 会复用同名 NPC 角色并避免重复拉入房间", async () => {

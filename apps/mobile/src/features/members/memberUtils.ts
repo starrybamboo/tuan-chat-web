@@ -1,5 +1,5 @@
 import { getSpaceMemberTypeLabel } from "@tuanchat/domain/display-labels";
-import { getMemberTypeSortWeight, hasHostPrivileges } from "@tuanchat/domain/member-permissions";
+import { getMemberTypeSortWeight, hasHostPrivileges, SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 
 export type MemberPreviewItem = {
   avatarFileId?: number | null;
@@ -61,7 +61,7 @@ export function mergeRoomMembersWithSpaceMembers<T extends MemberPreviewItem>(
       : undefined;
     return {
       ...member,
-      memberType,
+      memberType: memberType ?? SPACE_MEMBER_TYPE.PLAYER,
     };
   }));
 }

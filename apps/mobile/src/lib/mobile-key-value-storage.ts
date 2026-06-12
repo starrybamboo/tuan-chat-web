@@ -1,6 +1,6 @@
-import { Platform } from "react-native";
-
 import type { MobileCacheScopeOptions, MobileKeyValueEntry } from "@tuanchat/local-db";
+
+import { Platform } from "react-native";
 
 import { getMobileKeyValueRepository } from "./mobile-local-db";
 

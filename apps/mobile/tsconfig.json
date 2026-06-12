@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.expo-base.json",
+  "extends": "@tuanchat/typescript-config/expo.json",
   "compilerOptions": {
     "paths": {
       "@/*": [
@@ -7,33 +7,8 @@
       ],
       "@/assets/*": [
         "./assets/*"
-      ],
-      "@tuanchat/domain": [
-        "../../packages/tuanchat-domain/src/index.ts"
-      ],
-      "@tuanchat/domain/*": [
-        "../../packages/tuanchat-domain/src/*"
-      ],
-      "@tuanchat/local-db": [
-        "../../packages/tuanchat-local-db/src/index.ts"
-      ],
-      "@tuanchat/local-db/*": [
-        "../../packages/tuanchat-local-db/src/*"
-      ],
-      "@tuanchat/openapi-client": [
-        "../../packages/tuanchat-openapi-client/src/index.ts"
-      ],
-      "@tuanchat/openapi-client/*": [
-        "../../packages/tuanchat-openapi-client/src/*"
-      ],
-      "@tuanchat/query": [
-        "../../packages/tuanchat-query/src/index.ts"
-      ],
-      "@tuanchat/query/*": [
-        "../../packages/tuanchat-query/src/*"
       ]
-    },
-    "strict": true
+    }
   },
   "include": [
     "**/*.ts",

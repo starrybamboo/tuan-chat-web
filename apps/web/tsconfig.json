@@ -1,0 +1,25 @@
+{
+  "extends": "@tuanchat/typescript-config/app.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./app/*"],
+      "api": ["./api/index.ts"],
+      "api/*": ["./api/*"]
+    },
+    "types": ["node", "vite/client", "vitest/globals"]
+  },
+  "include": [
+    "app/**/*",
+    "api/**/*",
+    "functions/**/*",
+    "tooling/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vitest.e2e.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "../../dist",
+    "../../build"
+  ]
+}

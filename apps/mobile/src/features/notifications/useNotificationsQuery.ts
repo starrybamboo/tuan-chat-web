@@ -1,5 +1,10 @@
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
 
+import {
+  getNotificationsQueryKey,
+  useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
+} from "@tuanchat/query/notifications";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -7,10 +12,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getNotificationsQueryKey,
-  useNotificationsInfiniteQuery as useSharedNotificationsInfiniteQuery,
-} from "@tuanchat/query/notifications";
 
 const PAGE_SIZE = 20;
 const NOTIFICATIONS_FIRST_PAGE_SNAPSHOT_TTL_MS = 2 * 60_000;

@@ -19,6 +19,7 @@ __pycache__/
 .DS_Store
 /node_modules/
 /builder/
+/release/
 
 # React Router
 /.react-router/

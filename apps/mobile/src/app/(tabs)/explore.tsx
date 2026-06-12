@@ -1,3 +1,4 @@
+import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -23,6 +24,7 @@ import { useCurrentUserQuery } from "@/features/auth/use-current-user-query";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
 import { resolveMobileNotificationRoute } from "@/features/notifications/mobile-notification-routing";
+import { useMobileNotificationSession } from "@/features/notifications/mobileNotificationSessionContext";
 import { NotificationPreferencesCard } from "@/features/notifications/NotificationPreferencesCard";
 import { useMarkAllReadMutation, useMarkSingleReadMutation } from "@/features/notifications/useMarkReadMutation";
 import { useNotificationPreferences } from "@/features/notifications/useNotificationPreferences";
@@ -33,7 +35,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { setStringAsync } from "@/lib/clipboard";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
-import { buildAccountInviteRegisterUrl } from "@tuanchat/domain/account-invite";
 
 const AVATAR_SIZE = 120;
 const NOTIFICATION_DOT_SIZE = 8;
@@ -80,11 +81,13 @@ export default function ProfileScreen() {
   const markAllReadMutation = useMarkAllReadMutation();
   const markSingleReadMutation = useMarkSingleReadMutation();
   const notifPrefs = useNotificationPreferences();
+  const { notificationPermissionStatus, refreshNotificationPermissionStatus } = useMobileNotificationSession();
 
   const [editing, setEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
+  const [notificationActionError, setNotificationActionError] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const [inviteShareFeedback, setInviteShareFeedback] = useState("");
@@ -141,24 +144,33 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleMarkAllRead = () => {
-    markAllReadMutation.mutate();
+  const handleMarkAllRead = async () => {
+    setNotificationActionError("");
+    try {
+      await markAllReadMutation.mutateAsync();
+    }
+    catch (error) {
+      setNotificationActionError(error instanceof Error ? error.message : "批量标记已读失败，请稍后重试。");
+    }
   };
 
   const handleNotificationPress = async (notificationId: number, isRead: boolean, targetPath?: string | null, resourceType?: string | null, resourceId?: number | null) => {
+    setNotificationActionError("");
     if (!isRead) {
       try {
         await markSingleReadMutation.mutateAsync(notificationId);
       }
-      catch {
-        // 标记失败不阻断跳转
+      catch (error) {
+        setNotificationActionError(error instanceof Error ? error.message : "通知已读失败，请稍后重试。");
       }
     }
 
     const href = resolveMobileNotificationRoute({ targetPath, resourceType, resourceId });
     if (href) {
       router.push(href as any);
+      return;
     }
+    setNotificationActionError("通知目标暂不可打开，已停留在当前页面。");
   };
 
   const avatarThumbSrc = avatarThumbUrl(user?.avatarFileId);
@@ -173,7 +185,7 @@ export default function ProfileScreen() {
 
   const showInviteShareFeedback = (message: string) => {
     setInviteShareFeedback(message);
-    setTimeout(() => setInviteShareFeedback(""), 1800);
+    setTimeout(setInviteShareFeedback, 1800, "");
   };
 
   const handleShareInviteLink = async () => {
@@ -293,12 +305,20 @@ export default function ProfileScreen() {
               </ThemedText>
               {unreadCount > 0
                 ? (
-                    <Pressable onPress={handleMarkAllRead} disabled={markAllReadMutation.isPending}>
+                    <Pressable onPress={() => void handleMarkAllRead()} disabled={markAllReadMutation.isPending}>
                       <ThemedText themeColor="accent" type="small">全部已读</ThemedText>
                     </Pressable>
                   )
                 : null}
             </View>
+
+            {notificationActionError
+              ? (
+                  <ThemedText style={{ color: theme.danger, fontSize: 12 }}>
+                    {notificationActionError}
+                  </ThemedText>
+                )
+              : null}
 
             <View style={{ flexDirection: "row", gap: Spacing.md }}>
               <Pressable
@@ -355,7 +375,9 @@ export default function ProfileScreen() {
 
           {/* Notification Preferences */}
           <NotificationPreferencesCard
+            onRefreshPermissionStatus={refreshNotificationPermissionStatus}
             prefs={notifPrefs.prefs}
+            permissionStatus={notificationPermissionStatus}
             onUpdate={patch => void notifPrefs.update(patch)}
           />
 

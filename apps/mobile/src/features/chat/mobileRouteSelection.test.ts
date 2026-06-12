@@ -1,6 +1,5 @@
-import { describe, expect, it } from "vitest";
-
 import { buildClueFolderExtraValue, CLUE_FOLDER_EXTRA_KEY } from "@tuanchat/domain/clue-folder";
+import { describe, expect, it } from "vitest";
 
 import {
   getMobileNavigableRooms,

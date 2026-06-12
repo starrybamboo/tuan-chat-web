@@ -1,3 +1,5 @@
+import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
+
 import { QueryClient } from "@tanstack/react-query";
 import {
   STATE_EVENT_PARSER_VERSION,
@@ -5,14 +7,11 @@ import {
   STATE_EVENT_SOURCE_KIND,
   STATE_EVENT_VAR_OP,
 } from "@tuanchat/domain/state-event";
-import { describe, expect, it } from "vitest";
-
-import type { RoleAbility } from "@tuanchat/openapi-client/models/RoleAbility";
-
 import {
   roleAbilityByRuleQueryKey,
   roleAbilityListQueryKey,
 } from "@tuanchat/query/role-abilities";
+import { describe, expect, it } from "vitest";
 
 import { mergeStateEventRoleVarSnapshots, setChangedRoleAbilityCaches } from "./sendRoomMessageMutationHelpers";
 

@@ -24,12 +24,12 @@ const NUMERIC_ABILITY_SECTIONS: NumericAbilitySection[] = ["basic", "ability", "
 
 export function cloneRoleAbility(ability: RoleAbility | null | undefined): RoleAbility {
   return {
-    ...(ability ?? {}),
-    act: { ...(ability?.act ?? {}) },
-    basic: { ...(ability?.basic ?? {}) },
-    ability: { ...(ability?.ability ?? {}) },
-    skill: { ...(ability?.skill ?? {}) },
-    extra: { ...(ability?.extra ?? {}) },
+    ...ability,
+    act: { ...ability?.act },
+    basic: { ...ability?.basic },
+    ability: { ...ability?.ability },
+    skill: { ...ability?.skill },
+    extra: { ...ability?.extra },
   };
 }
 
@@ -49,7 +49,7 @@ export function collectNumericRoleAbilityValues(ability: RoleAbility | null | un
       continue;
     }
     for (const [key, rawValue] of Object.entries(record)) {
-      if (Object.prototype.hasOwnProperty.call(values, key)) {
+      if (Object.hasOwn(values, key)) {
         continue;
       }
       const value = readFiniteNumericAbilityValue(rawValue);
@@ -93,7 +93,7 @@ function applyRuntimeValue(
   const normalizedValue = String(value);
   for (const section of NUMERIC_ABILITY_SECTIONS) {
     const record = nextAbility[section];
-    if (record && Object.prototype.hasOwnProperty.call(record, key)) {
+    if (record && Object.hasOwn(record, key)) {
       if (overrideExisting) {
         record[key] = normalizedValue;
       }
@@ -102,7 +102,7 @@ function applyRuntimeValue(
   }
 
   nextAbility.skill = {
-    ...(nextAbility.skill ?? {}),
+    ...nextAbility.skill,
     [key]: normalizedValue,
   };
 }

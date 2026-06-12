@@ -2,9 +2,7 @@ import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import type { ChatMessageListItem } from "./messageListModel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import {
   ActivityIndicator,
   FlatList,
@@ -12,13 +10,15 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-
 import { prefetchImages } from "@/lib/mobile-image-cache";
 
-import { collectChatAvatarThumbUrls, collectChatImageThumbUrls } from "./chat-avatar-prefetch";
+import type { ChatMessageListItem } from "./messageListModel";
+
+import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
@@ -64,7 +64,7 @@ function shouldGroupWithPrevious(current: Message, previous: Message | undefined
   return true;
 }
 
-interface ChatMessageListProps {
+type ChatMessageListProps = {
   currentRoleId?: number;
   error: unknown;
   isCommandRequestConsumed?: (messageId: number) => boolean;
@@ -82,7 +82,7 @@ interface ChatMessageListProps {
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
   stateEventSummariesByMessageId?: Record<number, StateEventMessageSummary>;
-}
+};
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim())
@@ -125,17 +125,21 @@ export function ChatMessageList({
     () => visibleMessages.map(item => item.message),
     [visibleMessages],
   );
+  const prefetchCandidateMessages = useMemo(
+    () => selectChatMessagePrefetchWindow(visibleChatMessages),
+    [visibleChatMessages],
+  );
   const invertedData = useMemo(
     () => [...visibleMessages].reverse(),
     [visibleMessages],
   );
   const avatarThumbUrls = useMemo(
-    () => collectChatAvatarThumbUrls(visibleChatMessages, roomRolesById),
-    [roomRolesById, visibleChatMessages],
+    () => collectChatAvatarThumbUrls(prefetchCandidateMessages, roomRolesById),
+    [prefetchCandidateMessages, roomRolesById],
   );
   const messageImageThumbUrls = useMemo(
-    () => collectChatImageThumbUrls(visibleChatMessages),
-    [visibleChatMessages],
+    () => collectChatImageThumbUrls(prefetchCandidateMessages),
+    [prefetchCandidateMessages],
   );
   const prefetchUrls = useMemo(
     () => [...avatarThumbUrls, ...messageImageThumbUrls],
@@ -267,6 +271,7 @@ export function ChatMessageList({
         initialNumToRender={12}
         maxToRenderPerBatch={20}
         maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+        // 倒置消息流依赖 anchored rows 保持阅读位置，Android 裁剪回收会放大跳动风险。
         removeClippedSubviews={false}
         windowSize={15}
       />

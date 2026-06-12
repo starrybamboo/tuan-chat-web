@@ -31,7 +31,7 @@ describe("room-message-query-data", () => {
     })).toEqual(messages);
   });
 
-  it("preserves the existing query data shape when updating messages", () => {
+  it("keeps raw arrays when updating messages", () => {
     const messages = [createMessage(1)];
     const next = createMessage(2);
 
@@ -39,13 +39,15 @@ describe("room-message-query-data", () => {
       ...messages,
       next,
     ]);
+  });
+
+  it("converts sync result updates to arrays after merging cache state", () => {
+    const messages = [createMessage(1)];
+    const next = createMessage(2);
 
     expect(updateRoomMessagesQueryData({
       messages,
       mode: "delta",
-    }, current => [...(current ?? []), next])).toEqual({
-      messages: [...messages, next],
-      mode: "delta",
-    });
+    }, current => [...(current ?? []), next])).toEqual([...messages, next]);
   });
 });

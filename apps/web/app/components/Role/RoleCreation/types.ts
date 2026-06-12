@@ -1,0 +1,20 @@
+export type CharacterData = {
+  // 基础信息
+  id?: number;
+  name: string;
+  description: string;
+  voiceFileId?: number | null;
+  avatar?: string;
+  avatarId?: number;
+  // 规则ID（后端规则主键）
+  ruleId: number;
+  act: Record<string, string>;
+  basic: Record<string, string>;
+  ability: Record<string, string>;
+  skill: Record<string, string>;
+};
+
+// type Step = {
+//   id: number;
+//   title: string;
+// };

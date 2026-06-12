@@ -19,6 +19,7 @@
     "./room-message-query-data": "./src/room-message-query-data.ts",
     "./room-message-lifecycle": "./src/room-message-lifecycle.ts",
     "./room-roles": "./src/room-roles.ts",
+    "./rules": "./src/rules.ts",
     "./spaces": "./src/spaces.ts",
     "./stickers": "./src/stickers.ts",
     "./users": "./src/users.ts"
@@ -27,5 +28,8 @@
     "@tanstack/react-query": "^5.69.0",
     "@tuanchat/domain": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*"
   }
 }

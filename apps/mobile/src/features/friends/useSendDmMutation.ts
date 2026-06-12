@@ -1,16 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-
 import type { MessageDirectRecallRequest } from "@tuanchat/openapi-client/models/MessageDirectRecallRequest";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
 
-import { mobileApiClient } from "@/lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DIRECT_MESSAGE_READ_LINE_TYPE, getLatestIncomingSync } from "@tuanchat/domain/direct-message";
 import {
   getDirectInboxQueryKey,
   markDirectMessageRecalledInCaches,
   upsertDirectInboxQueryData,
 } from "@tuanchat/query/direct-message";
+
+import { mobileApiClient } from "@/lib/api";
 
 import {
   markCachedDirectMessagesRecalled,
@@ -19,6 +19,7 @@ import {
 } from "./mobileDirectMessageCache";
 import {
   createMobileOptimisticDirectMessage,
+  markMobileOptimisticDirectMessageFailedData,
   removeMobileOptimisticDirectMessageData,
   replaceMobileOptimisticDirectMessageData,
 } from "./mobileDirectMessageOptimistic";
@@ -75,7 +76,7 @@ export function useSendDmMutation(currentUserId?: number | null) {
     onError: (_error, _request, context) => {
       queryClient.setQueryData<MessageDirectResponse[]>(
         getDirectInboxQueryKey(currentUserId),
-        current => removeMobileOptimisticDirectMessageData(current, context?.optimisticMessageId),
+        current => markMobileOptimisticDirectMessageFailedData(current, context?.optimisticMessageId),
       );
     },
     onSuccess: (result, _request, context) => {

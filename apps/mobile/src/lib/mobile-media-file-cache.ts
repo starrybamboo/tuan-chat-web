@@ -1,7 +1,6 @@
+import { extractMediaFileIdFromUrl } from "@tuanchat/domain/media-url";
 import { Directory, File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
-
-import { extractMediaFileIdFromUrl } from "@tuanchat/domain/media-url";
 
 const CACHE_DIR_NAME = "mobile-media-file-cache";
 const FAILURE_BACKOFF_MS = 30_000;

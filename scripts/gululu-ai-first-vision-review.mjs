@@ -135,11 +135,6 @@ function boolValue(value) {
   return /^(?:1|true|yes|y|是)$/i.test(String(value ?? ""));
 }
 
-function numberValue(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 function clampConfidence(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 0;
@@ -253,6 +248,8 @@ function systemPrompt() {
     "你必须严格输出 JSON 对象，不要 Markdown，不要解释。",
     "目标是减少人类参与，但低置信必须标记 needs-human-review。",
     "漫画图，包括漫画头像和漫画分镜，永远不能抠图。",
+    "manga-avatar 不是“动漫/漫画画风头像”，而是黑白灰/低彩度漫画媒介中的角色头部裁切。",
+    "高彩度彩色角色头像禁止标记为 manga-avatar，应标记为 character-avatar-bust 或 character-avatar-chat。",
     "非漫画彩色头像/立绘如有差分，不要建议合并为同一张；本任务只判断用途和角色候选。",
     "路径名和旧分类只能作为弱证据，画面和上下文优先。",
     "assetKind 只能是 character-sprite, character-avatar-bust, character-avatar-chat, manga-avatar, manga-panel, background, reference-only, author-asset, excluded, unknown。",
@@ -265,7 +262,7 @@ function systemPrompt() {
 function userTextPayload(context) {
   return [
     "请根据图片和证据判断这个视觉组的最终用途。",
-    "如果是漫画角色头部且可代表单角色，assetKind=manga-avatar, renderUse=chat-avatar, mattingAllowed=false。",
+    "只有黑白灰/低彩度漫画媒介中的角色头部且可代表单角色时，assetKind=manga-avatar, renderUse=chat-avatar, mattingAllowed=false。",
     "如果是漫画分镜/战斗画面/大幅剧情参考，assetKind=manga-panel 或 reference-only, renderUse=reference。",
     "如果是单角色彩色胸像/头像，按 character-avatar-bust 或 character-avatar-chat。",
     "如果是可上舞台的非漫画角色立绘/半身且白底或透明底，renderUse=stage，可按条件 needsMatting=true。",

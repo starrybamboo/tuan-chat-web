@@ -1,15 +1,15 @@
-import { useQueryClient } from "@tanstack/react-query";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-import { mobileApiClient } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import {
   restoreRoomMessageInList,
   restoreRoomMessagesInList,
 } from "@tuanchat/query/room-message-lifecycle";
+
+import { mobileApiClient } from "@/lib/api";
 
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 

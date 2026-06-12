@@ -14,9 +14,7 @@ import {
 const DEFAULT_ROOT = "D:\\gululu-cache\\output\\opus-88-owner-only-refetch-v3";
 const IMAGE_MARKDOWN_PATTERN = /!\[image\]\(([^)]+)\)/g;
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"]);
-const BGM_LINE_PATTERN = /^\s*BGM\s*[:：]\s*(?<name>.+?)\s*$/i;
 const SPEAKER_LINE_PATTERN = /^\s*(?<speaker>[^:：\r\n]{1,18})\s*[:：]\s*(?<content>.*)$/;
-const DICE_PATTERN = /(?:【[^】]*(?:\d*d\d+|\d+d\d+|1d|d\d+)[^】]*】|\[[0-9]*d[0-9]+[:：=][^\]]*\])/i;
 const SCENE_TILDE_PATTERN = /^\s*[~～](?<label>[^~～]{1,48})[~～]\s*$/;
 const SCENE_DASH_PATTERN = /^\s*[—-]{2,}(?<label>[^—-]{1,48})[—-]{2,}\s*$/;
 const LOCATION_WORDS = [
@@ -877,10 +875,6 @@ async function writeJsonl(file, rows) {
   await fs.writeFile(file, `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`, "utf8");
 }
 
-function imageHtml(relPath, rootRelativePrefix = "..") {
-  return `<img loading="lazy" src="${rootRelativePrefix}/images/${relPath.replaceAll("\\", "/")}" alt="${relPath}">`;
-}
-
 async function makeContactSheet({ items, outPath, root, title }) {
   const tileW = 160;
   const tileH = 190;
@@ -1111,7 +1105,6 @@ async function main() {
       width: feature?.width ?? 0,
     };
   });
-  const evidenceBySha = new Map(evidencePacks.map((pack) => [pack.sha256, pack]));
   const evidenceBySource = new Map(evidencePacks.map((pack) => [pack.sourceRelPath, pack]));
 
   const typeLabels = evidencePacks.map((pack) => {

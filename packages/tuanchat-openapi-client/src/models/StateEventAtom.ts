@@ -53,10 +53,6 @@ export type StateEventAtom = {
      */
     mapFileId?: number;
     /**
-     * 战斗地图图片访问地址，仅 mapConfigUpsert 使用
-     */
-    imageUrl?: string;
-    /**
      * 战斗地图网格行数，仅 mapConfigUpsert 使用
      */
     gridRows?: number;

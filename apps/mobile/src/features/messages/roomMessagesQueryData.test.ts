@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
+import { describe, expect, it } from "vitest";
 
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
 
@@ -31,7 +31,7 @@ describe("roomMessagesQueryData", () => {
     })).toEqual(messages);
   });
 
-  it("keeps the existing query data shape when updating messages", () => {
+  it("keeps raw arrays when updating messages", () => {
     const messages = [createMessage(1)];
     const next = createMessage(2);
 
@@ -39,13 +39,15 @@ describe("roomMessagesQueryData", () => {
       ...messages,
       next,
     ]);
+  });
+
+  it("converts sync result updates to arrays after merging cache state", () => {
+    const messages = [createMessage(1)];
+    const next = createMessage(2);
 
     expect(updateRoomMessagesQueryData({
       messages,
       mode: "delta",
-    }, current => [...(current ?? []), next])).toEqual({
-      messages: [...messages, next],
-      mode: "delta",
-    });
+    }, current => [...(current ?? []), next])).toEqual([...messages, next]);
   });
 });
