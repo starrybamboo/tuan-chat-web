@@ -23,6 +23,7 @@ __pycache__/
 # React Router
 /.react-router/
 /build/
+/apps/desktop/build/
 
 # Package managers
 package-lock.json
