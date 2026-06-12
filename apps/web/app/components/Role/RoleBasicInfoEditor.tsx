@@ -1,8 +1,10 @@
-import type { Role } from "./types";
 import { useState } from "react";
+
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 
-interface RoleBasicInfoEditorProps {
+import type { Role } from "./types";
+
+type RoleBasicInfoEditorProps = {
   localRole: Role;
   maxRoleNameLength: number;
   maxDescriptionLength: number;

@@ -1,6 +1,7 @@
+import { buildCommittedRoomMessage } from "@tuanchat/query/room-message-lifecycle";
+
 import { getSoundMessagePurposeFromAnnotations, normalizeSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { ANNOTATION_IDS, hasAnnotation } from "@/types/messageAnnotations";
-import { buildCommittedRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 
 import type { ChatMessageResponse } from "../../../../api";
 

@@ -139,7 +139,7 @@ publishable 能力必须走共享编译层：
 - 默认在 `miniAvatarEnabled=true` 时对普通对话输出
 - 旁白/黑屏文字默认清空为 `miniAvatar:none;`
 - 骰子消息可通过 payload 的 `showMiniAvatar` 覆盖
-- `figure.mini-avatar` 标注可在单条消息上强制显示小头像，使用角色头像资源（优先缩略图，回退到 `avatarUrl`）
+- `figure.mini-avatar` 标注可在单条消息上强制显示小头像，使用 `avatarFileId` 派生的小头像资源
 - 历史渲染与单条消息更新前会预热本轮命中的小头像资源，避免首次命中时在渲染热路径内懒上传
 
 2. TTS 生成条件（全部满足才生成）

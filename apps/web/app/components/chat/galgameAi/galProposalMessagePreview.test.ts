@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { describe, expect, it } from "vitest";
 
 import { MessageType } from "../../../../api/wsModels";
 import { GAL_NARRATOR, projectGalMessages } from "./authoringProjection";

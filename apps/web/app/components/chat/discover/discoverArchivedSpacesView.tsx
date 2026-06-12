@@ -2,21 +2,22 @@ import type { ApiResultListSpace } from "@tuanchat/openapi-client/models/ApiResu
 import type { ApiResultPageBaseRespRepository } from "@tuanchat/openapi-client/models/ApiResultPageBaseRespRepository";
 import type { Repository } from "@tuanchat/openapi-client/models/Repository";
 import type { Space } from "@tuanchat/openapi-client/models/Space";
-import { ArrowLeftIcon, CompassIcon, MagnifyingGlassIcon, PackageIcon } from "@phosphor-icons/react";
 
+import { ArrowLeftIcon, CompassIcon, MagnifyingGlassIcon, PackageIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
-import { tuanchat } from "api/instance";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
+import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
+import { tuanchat } from "api/instance";
 
 type DiscoverArchivedSpacesMode = "square" | "my";
 
-interface DiscoverArchivedSpacesViewProps {
+type DiscoverArchivedSpacesViewProps = {
   mode: DiscoverArchivedSpacesMode;
 }
 
@@ -74,7 +75,7 @@ function toRepositories(result?: ApiResultPageBaseRespRepository): Repository[] 
   return Array.isArray(data) ? data as Repository[] : [];
 }
 
-interface ArchivedRepositoryGroup {
+type ArchivedRepositoryGroup = {
   repositoryId: number;
   repository?: Repository;
   latestSpace: Space;

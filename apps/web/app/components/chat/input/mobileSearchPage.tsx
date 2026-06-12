@@ -1,14 +1,16 @@
-import type { UserRole } from "../../../../api";
 import { useDebounce } from "ahooks";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
 import useGetRoleSmartly from "@/components/chat/shared/components/useGetRoleName";
 import { filterVisibleChatMessages } from "@/components/chat/utils/hiddenDiceVisibility";
 import { BaselineArrowBackIosNew, SearchFilled, XMarkICon } from "@/icons";
 
-interface MobileSearchPageProps {
+import type { UserRole } from "../../../../api";
+
+type MobileSearchPageProps = {
   isOpen: boolean;
   onClose: () => void;
 }

@@ -12,6 +12,8 @@ import type {
   AuthoringResourceRef,
   AuthoringRole,
   AuthoringUnresolvedMedia,
+  AgentAuthoringCommand,
+  AgentAuthoringCommandResult,
   RecordUnresolvedMediaRequest,
   StartAuthoringBatchRequest,
   UpsertAvatarRequest,
@@ -199,6 +201,41 @@ export class InMemoryAuthoringPrimitives {
         source: item.source ? { ...item.source } : undefined,
       })),
     };
+  }
+
+  executeCommand(command: AgentAuthoringCommand): AgentAuthoringCommandResult {
+    switch (command.type) {
+      case "batch.start":
+        return { batch: this.startBatch(command.request) };
+      case "batch.cleanup":
+        return { report: this.cleanupBatch(command.batchId) };
+      case "batch.commit":
+        return { report: this.commitBatch(command.batchId) };
+      case "batch.inspect":
+        return { report: this.inspectBatch(command.batchId) };
+      case "webgal.inspectReadiness":
+        return { report: this.inspectWebgalReadiness(command.batchId) };
+      case "media.unresolved":
+        return { unresolvedMedia: this.recordUnresolvedMedia(command.request) };
+      case "avatar.upsert": {
+        const { action, ...avatar } = this.upsertAvatar(command.request);
+        return { action, avatar };
+      }
+      case "media.upsert": {
+        const { action, ...media } = this.upsertMedia(command.request);
+        return { action, media };
+      }
+      case "role.upsert": {
+        const { action, ...role } = this.upsertRole(command.request);
+        return { action, role };
+      }
+      case "message.batchWrite":
+        return { messages: this.writeMessages(command.request) };
+      default: {
+        const exhaustive: never = command;
+        throw new AuthoringPrimitiveError("INVALID_REQUEST", "unsupported authoring command", { command: exhaustive });
+      }
+    }
   }
 
   startBatch(request: StartAuthoringBatchRequest): AuthoringBatch {

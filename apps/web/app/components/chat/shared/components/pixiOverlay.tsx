@@ -1,17 +1,18 @@
 import type { Ticker } from "pixi.js";
+
 import { Application, Container, Sprite, Texture } from "pixi.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-interface PixiOverlayProps {
+type PixiOverlayProps = {
   effectName: string | null;
 }
 
-interface Particle extends Sprite {
+type Particle = {
   speed: number;
   sway?: number;
   swayOffset?: number;
   rotationSpeed?: number;
-}
+} & Sprite
 
 export default function PixiOverlay({ effectName }: PixiOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);

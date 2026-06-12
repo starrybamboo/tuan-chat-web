@@ -1,7 +1,10 @@
 import type { RefObject } from "react";
+
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import type { MessageDraft } from "@/types/messageDraft";
-import { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import ChatToolbar from "@/components/chat/input/chatToolbar";
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
@@ -10,6 +13,7 @@ import { openMessageAnnotationPicker } from "@/components/chat/message/annotatio
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
+
 import MaterialComposerAttachmentsPreview from "./materialComposerAttachmentsPreview";
 import { useMaterialComposerContext } from "./materialComposerContext";
 import {
@@ -17,11 +21,11 @@ import {
 } from "./materialComposerShared";
 import useMaterialMessageComposerSubmit from "./useMaterialMessageComposerSubmit";
 
-export interface MaterialMessageComposerHandle {
+export type MaterialMessageComposerHandle = {
   focusInput: () => void;
 }
 
-interface MaterialMessageComposerProps {
+type MaterialMessageComposerProps = {
   composerKey: string;
   onAppendMessages: (messages: MessageDraft[]) => void;
 }

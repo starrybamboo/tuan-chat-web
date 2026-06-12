@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { GalAuthoringContext, GalPatchValidationError, GalStoryPatch } from "@tuanchat/galgame-ai-contract";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fetchWithUnifiedAuthMock = vi.hoisted(() => vi.fn());
 

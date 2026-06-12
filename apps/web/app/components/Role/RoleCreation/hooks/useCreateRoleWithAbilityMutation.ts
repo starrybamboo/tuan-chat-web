@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-import type { UserRoleWithAvatarUrls } from "api/roleQueryCache";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { tuanchat } from "@/../api/instance";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
 import { invalidateRoleCreateQueries } from "api/hooks/roleMutationInvalidation";
 import { seedUserRoleQueryCache, upsertUserRoleListQueryCache } from "api/roleQueryCache";
 
@@ -43,15 +43,15 @@ export function useCreateRoleWithAbilityMutation() {
       }
 
       let avatarId = 0;
-      const avatarUrl = ROLE_DEFAULT_AVATAR_URL;
-      const avatarThumb = ROLE_DEFAULT_AVATAR_URL;
+      let avatarFileId: number | undefined;
 
       try {
         const avatarCreateRes = await tuanchat.avatarController.setRoleAvatar({ roleId });
         const createdAvatarId = avatarCreateRes?.data;
         if (avatarCreateRes.success && createdAvatarId) {
           avatarId = createdAvatarId;
-          await ensureCreatedRoleDefaultAvatar(queryClient, roleId, createdAvatarId);
+          const defaultAvatar = await ensureCreatedRoleDefaultAvatar(queryClient, roleId, createdAvatarId);
+          avatarFileId = defaultAvatar?.avatarFileId;
           await tuanchat.roleController.updateRole({
             roleId,
             avatarId,
@@ -73,25 +73,27 @@ export function useCreateRoleWithAbilityMutation() {
         });
       }
 
+      const avatarSrc = avatarUrl(avatarFileId) || ROLE_DEFAULT_AVATAR_URL;
+      const avatarThumb = avatarThumbUrl(avatarFileId) || avatarSrc;
+
       const role: Role = {
         id: roleId,
         name: input.roleName,
         description: input.description,
-        avatar: avatarUrl,
+        avatar: avatarSrc,
         avatarThumb,
         avatarId,
         type: input.type ?? 0,
         extra: {},
       };
 
-      const userRole: UserRoleWithAvatarUrls = {
+      const userRole: UserRole = {
         userId: userId ?? 0,
         roleId,
         roleName: input.roleName,
         description: input.description,
         avatarId,
-        avatarUrl,
-        avatarThumbUrl: avatarThumb,
+        avatarFileId,
         type: input.type ?? 0,
         diceMaiden: input.type === 1,
         extra: {},

@@ -10,7 +10,7 @@ export type UploadedRoleVoiceMedia = {
 };
 
 export function resolveRoleVoiceUrl(role: RoleVoiceMediaSource | null | undefined): string {
-  return mediaFileUrl(role?.voiceFileId, "audio", "original");
+  return mediaFileUrl(role?.voiceFileId, "audio", "original") || "";
 }
 
 export function hasRoleVoiceMedia(role: RoleVoiceMediaSource | null | undefined): boolean {

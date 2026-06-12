@@ -12,6 +12,7 @@ type CropParams = {
   crop: PixelCrop;
   scale?: number;
   rotate?: number;
+  displaySize?: { width: number; height: number };
 };
 
 type CropMessage = {
@@ -20,7 +21,6 @@ type CropMessage = {
   crop: PixelCrop;
   scale: number;
   rotate: number;
-  pixelRatio: number;
   imageNaturalWidth: number;
   imageNaturalHeight: number;
   imageDisplayWidth: number;
@@ -105,7 +105,7 @@ class WorkerPool {
   }
 
   private async executeOnWorker(worker: Worker, params: CropParams): Promise<Blob> {
-    const { img, crop, scale = 1, rotate = 0 } = params;
+    const { img, crop, scale = 1, rotate = 0, displaySize } = params;
 
     // 使用 createImageBitmap 创建可转移的 ImageBitmap
     let imageBitmap: ImageBitmap | null = null;
@@ -124,11 +124,10 @@ class WorkerPool {
       crop,
       scale,
       rotate,
-      pixelRatio: window.devicePixelRatio,
       imageNaturalWidth: img.naturalWidth,
       imageNaturalHeight: img.naturalHeight,
-      imageDisplayWidth: img.width,
-      imageDisplayHeight: img.height,
+      imageDisplayWidth: displaySize?.width ?? img.width,
+      imageDisplayHeight: displaySize?.height ?? img.height,
     };
 
     // 发送到 Worker 并等待响应（带超时保护）

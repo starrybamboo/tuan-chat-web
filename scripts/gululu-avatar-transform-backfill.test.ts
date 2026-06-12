@@ -15,6 +15,8 @@ const TEST_PNG = Buffer.from(
   "base64",
 );
 
+type MockFn = (...args: any[]) => any;
+
 function createLiveResult(filePath: string) {
   return {
     plan: {
@@ -72,7 +74,7 @@ describe("gululu-avatar-transform-backfill", () => {
       const imagePath = path.join(tempDir, "retsu.png");
       await writeFile(imagePath, "fixture", "utf8");
       const plan = await buildGululuAvatarTransformBackfillPlan(createLiveResult(imagePath), {
-        readImageMetadata: vi.fn(async () => ({ height: 250, width: 500 })),
+        readImageMetadata: vi.fn<MockFn>(async () => ({ height: 250, width: 500 })),
       });
 
       expect(plan.stats).toEqual({ avatars: 1, skipped: 0 });
@@ -118,7 +120,7 @@ describe("gululu-avatar-transform-backfill", () => {
     };
     const client = {
       avatarController: {
-        getRoleAvatar: vi.fn(async () => ({
+        getRoleAvatar: vi.fn<MockFn>(async () => ({
           data: {
             avatarFileId: 30558,
             avatarId: 18967,
@@ -130,7 +132,7 @@ describe("gululu-avatar-transform-backfill", () => {
           },
           success: true,
         })),
-        updateRoleAvatar: vi.fn(async request => ({ data: request, success: true })),
+        updateRoleAvatar: vi.fn<MockFn>(async request => ({ data: request, success: true })),
       },
     };
 

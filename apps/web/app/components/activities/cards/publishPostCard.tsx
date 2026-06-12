@@ -1,12 +1,16 @@
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
-import type { PublishPostImageAsset } from "./publishPostMedia";
+
 import React, { useEffect, useRef, useState } from "react";
+
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
 import { UploadUtils } from "@/utils/UploadUtils";
+
+import type { PublishPostImageAsset } from "./publishPostMedia";
+
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
 import {
@@ -16,7 +20,7 @@ import {
 
 } from "./publishPostMedia";
 
-interface PublishBoxProps {
+type PublishBoxProps = {
   loginUserId: number;
 }
 

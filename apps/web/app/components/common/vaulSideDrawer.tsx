@@ -1,7 +1,8 @@
 import React from "react";
+
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 
-interface VaulSideDrawerProps {
+type VaulSideDrawerProps = {
   isOpen: boolean;
   children: React.ReactNode;
   className?: string;

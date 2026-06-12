@@ -1,10 +1,12 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+
 import { CaretDown, Check, X } from "@phosphor-icons/react";
-import { useUpdateRoomMutation } from "api/hooks/chatQueryHooks";
 import React from "react";
 import toast from "react-hot-toast";
 
-interface RoomDescriptionDropdownProps {
+import { useUpdateRoomMutation } from "api/hooks/chatQueryHooks";
+
+type RoomDescriptionDropdownProps = {
   room?: Room | null;
 }
 

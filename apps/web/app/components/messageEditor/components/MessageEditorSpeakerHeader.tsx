@@ -1,11 +1,14 @@
-import type { MessageEditorMessage } from "../messageEditorTypes";
 import { useMemo } from "react";
+
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { NarratorIcon } from "@/icons";
+
+import type { MessageEditorMessage } from "../messageEditorTypes";
+
 import { useGetRoleAvatarQuery, useGetRoleAvatarsQuery, useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { resolveMessageEditorAvatarTitleLabel, resolveMessageEditorSpeakerLabel } from "../model/messageEditorSpeaker";
 
-interface MessageEditorSpeakerHeaderProps {
+type MessageEditorSpeakerHeaderProps = {
   className?: string;
   message: MessageEditorMessage;
 }

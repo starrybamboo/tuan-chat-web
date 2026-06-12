@@ -1,0 +1,51 @@
+{
+  "createdAt": "2026-06-08T15:18:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第十八批：按最终主图 contact sheet 检查八意永琳、红美铃、比那名居天子、风见幽香、森近霖之助、四季映姬 chat、稀神探女。",
+  "groups": [
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I004"],
+      "reason": "同为正面睁眼无脸红/汗/泪/阴影的平静微笑；差异主要是裁切、轻微头部角度和画布范围。"
+    }
+  ],
+  "reviewNotes": [
+    {
+      "role": "八意永琳",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；接近项存在脸红、嘴型、汗泪、阴影或情绪强度差异，保留。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；冒汗惊讶、含泪担心、阴影低落、困倦半睁等状态差异保留。"
+    },
+    {
+      "role": "比那名居天子",
+      "assetKind": "character-avatar-bust",
+      "note": "I009/I011 都是阴影不满但视线方向和阴影强度不同，保留；I004/I014 分别为汗/泪，保留；I006/I007 笑的开口强度不同，保留。"
+    },
+    {
+      "role": "风见幽香",
+      "assetKind": "character-avatar-bust",
+      "note": "未折叠跨伞/无伞与明显画风构图差异的相似表情，避免影响演出识别；脸红、阴影、惊讶和困倦状态保留。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "note": "I008 惊讶微张口与 I013 微惊小口眼型/嘴型强度不同，保留；脸红、汗、阴影、闭眼严肃等状态保留。"
+    },
+    {
+      "role": "四季映姬",
+      "assetKind": "character-avatar-chat",
+      "note": "未发现高置信同语义重复；闭眼笑、闭眼张口、脸红闭眼笑、半睁阴影笑、惊讶小口等按状态保留。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；同为手遮口的头像仍按汗、泪、阴影、脸红、视线和情绪强度差异保留。"
+    }
+  ]
+}

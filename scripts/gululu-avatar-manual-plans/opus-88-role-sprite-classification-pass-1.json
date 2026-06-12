@@ -1,0 +1,23 @@
+{
+  "createdAt": "2026-06-08T03:20:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉分类剩余 role-sprites/unknown-role 立绘。两张均为已抠图舞台立绘，不属于头像折叠；本记录用于补齐剩余角色资源分类。",
+  "roleSpriteCorrections": [
+    {
+      "sourceRelPath": "gululu/2033_178ac94dbd4e.png",
+      "fromRole": "unknown-role",
+      "toRole": "博丽灵梦",
+      "assetKind": "character-sprite",
+      "outputRelPath": "role-sprites/博丽灵梦/00578__2033_178ac94dbd4e__b773d51f08b8.png",
+      "reason": "人工视觉确认：红白巫女服、红色大蝴蝶结、御币符札，为博丽灵梦全身立绘。"
+    },
+    {
+      "sourceRelPath": "gululu/57253_309375ee51d6.png",
+      "fromRole": "unknown-role",
+      "toRole": "射命丸文",
+      "assetKind": "character-sprite",
+      "outputRelPath": "role-sprites/射命丸文/01426__57253_309375ee51d6__6bd60443408a.png",
+      "reason": "人工视觉确认：黑发赤瞳、红色头饰、记者/天狗装并持枫叶扇，为射命丸文全身立绘。"
+    }
+  ]
+}

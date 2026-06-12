@@ -1,0 +1,21 @@
+{
+  "createdAt": "2026-06-08T14:40:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第十六批：复查第一批受影响角色的新 final-main contact sheet 后，补折莉格露闭眼微笑漏项。",
+  "groups": [
+    {
+      "role": "莉格露",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I017"],
+      "reason": "同为闭眼轻微微笑，无脸红、汗、泪、阴影、伤差异；差异主要是头部倾斜、裁切和画布范围。"
+    }
+  ],
+  "reviewNotes": [
+    {
+      "role": "莉格露",
+      "assetKind": "character-avatar-bust",
+      "note": "surprised_front_wide_front_open_tense_open_mouth 与 surprised_front_wide_front_open_alert 因冷汗/紧张嘴型差异保留；半睁、阴影、脸红、惊恐等状态保留。"
+    }
+  ]
+}

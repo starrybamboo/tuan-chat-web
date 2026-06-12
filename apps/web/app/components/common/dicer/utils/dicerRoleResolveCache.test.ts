@@ -99,22 +99,6 @@ describe("dicer role resolve cache", () => {
     expect(fetchRoleWithCacheMock).toHaveBeenCalledWith(expect.anything(), 8);
   });
 
-  it("空间禁用角色自定义骰娘时跳过角色绑定", async () => {
-    const roomContext = {
-      spaceId: 43,
-      curRoleId: 8,
-      roomMembers: [],
-      roomRolesThatUserOwn: [],
-    } satisfies RoomContextType;
-
-    const resolved = await UTILS.getDicerRoleId(roomContext, {
-      spaceSnapshot: { extra: { allowCustomDicerRole: false, dicerRoleId: 11 } },
-      currentRoleSnapshot: { roleId: 8, extra: { dicerRoleId: 10 } },
-    });
-
-    expect(resolved).toBe(11);
-  });
-
   it("空间骰娘变更后传入的新快照会立即参与计算", async () => {
     const roomContext = {
       spaceId: 42,

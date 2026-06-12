@@ -1,11 +1,12 @@
 import { UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
 import React, { useState } from "react";
+
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canInviteSpectators, canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { InfoIcon } from "@/icons";
 
-interface SpaceInvitePanelProps {
+type SpaceInvitePanelProps = {
   onAddSpectator: (userId: number) => void;
   onAddPlayer: (userId: number) => void;
   title?: string;

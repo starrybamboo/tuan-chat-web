@@ -1,13 +1,15 @@
 import type { ComponentProps } from "react";
-import type { GeneratedImageItem } from "@/components/aiImage/types";
+
 import { ArrowSquareInIcon, PlantIcon, TrashSimpleIcon } from "@phosphor-icons/react";
 import { memo, useEffect, useState } from "react";
+
+import type { GeneratedImageItem } from "@/components/aiImage/types";
 
 import { AiImageHistoryPane } from "@/components/aiImage/AiImageHistoryPane";
 import { AiImagePreviewPane } from "@/components/aiImage/AiImagePreviewPane";
 import { HistoryIcon } from "@/icons";
 
-interface AiImageWorkspaceProps {
+type AiImageWorkspaceProps = {
   isDirectorToolsOpen: boolean;
   previewPaneProps: ComponentProps<typeof AiImagePreviewPane>;
   historyPaneProps: Omit<ComponentProps<typeof AiImageHistoryPane>, "isDirectorToolsOpen" | "onCollapse">;

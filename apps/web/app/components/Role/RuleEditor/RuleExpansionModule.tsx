@@ -1,7 +1,10 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
-import type { RoleConfigTabKey } from "../rules/configTabMeta";
+
 import { MaskHappyIcon } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
+
+import type { RoleConfigTabKey } from "../rules/configTabMeta";
+
 import Section from "../Editors/Section";
 import { ROLE_CONFIG_TAB_ITEMS } from "../rules/configTabMeta";
 import { RuleConfigurationSection } from "./RuleConfigurationSection";

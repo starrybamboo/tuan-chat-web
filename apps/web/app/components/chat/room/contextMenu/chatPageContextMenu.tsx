@@ -1,15 +1,18 @@
-import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 import { AddressBookIcon, BellIcon, BellSlashIcon, InfoIcon, TrashIcon, UserPlusIcon, UsersIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
-import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
 import { use, useEffect, useRef, useState } from "react";
+
+import type { RoomSettingTab } from "@/components/chat/chatPage.types";
+
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
+import { useDissolveRoomMutation } from "api/hooks/chatQueryHooks";
+
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../../../api/hooks/messageSessionQueryHooks";
 import { clampFloatingMenuPosition } from "../floatingMenuPosition";
 
-interface ChatPageContextMenuProps {
+type ChatPageContextMenuProps = {
   contextMenu: { x: number; y: number; roomId: number } | null;
   unreadMessagesNumber: Record<number, number>;
   activeRoomId: number | null;

@@ -8,9 +8,10 @@ import {
   applySoloActiveStagePolicy,
   applyStagePlan,
   buildGululuGalDirectedImportPlan,
-
   parseGululuGalDirectedImportArgs,
 } from "./gululu-gal-directed-import";
+
+type MockFn = (...args: any[]) => any;
 
 function createLiveResult() {
   return {
@@ -499,13 +500,13 @@ describe("gululu-gal-directed-import", () => {
       targetSpaceId: 10438,
     });
     const calls: string[] = [];
-    const setSidebarTree = vi.fn(async (request: { treeJson: string }) => ({
+    const setSidebarTree = vi.fn<MockFn>(async (request: { treeJson: string }) => ({
       data: { treeJson: request.treeJson, version: 2 },
       success: true,
     }));
     const client = {
       chatController: {
-        patchRoomMessages: vi.fn(async (request: { operations: any[]; roomId: number }) => {
+        patchRoomMessages: vi.fn<MockFn>(async (request: { operations: any[]; roomId: number }) => {
           calls.push(`patch:${request.roomId}:${request.operations.length}`);
           return {
             data: request.operations.map((_operation, index) => ({
@@ -517,7 +518,7 @@ describe("gululu-gal-directed-import", () => {
         }),
       },
       roomController: {
-        getUserRooms: vi.fn(async () => ({
+        getUserRooms: vi.fn<MockFn>(async () => ({
           data: {
             rooms: [{ name: "1-62楼GAL演出版", roomId: 9001 }],
             spaceId: 10438,
@@ -526,23 +527,23 @@ describe("gululu-gal-directed-import", () => {
         })),
       },
       roomRoleController: {
-        addRole: vi.fn(async (request: { roleIdList: number[] }) => {
+        addRole: vi.fn<MockFn>(async (request: { roleIdList: number[] }) => {
           calls.push(`role.add:${request.roleIdList.join(",")}`);
           return { success: true };
         }),
-        roomNpcRole: vi.fn(async () => {
+        roomNpcRole: vi.fn<MockFn>(async () => {
           calls.push("role.list");
           return { data: [], success: true };
         }),
       },
       spaceController: {
-        createRoom: vi.fn(async () => {
+        createRoom: vi.fn<MockFn>(async () => {
           calls.push("room.create");
           return { data: { name: "1-62楼GAL演出版", roomId: 9001, spaceId: 10438 }, success: true };
         }),
       },
       spaceSidebarTreeController: {
-        getSidebarTree: vi.fn(async () => ({
+        getSidebarTree: vi.fn<MockFn>(async () => ({
           data: {
             treeJson: JSON.stringify({ categories: [], schemaVersion: 2 }),
             version: 1,

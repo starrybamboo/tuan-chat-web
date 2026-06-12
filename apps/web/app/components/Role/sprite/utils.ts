@@ -1,4 +1,4 @@
-import type { RoleAvatar } from "api";
+import type { RoleAvatar, RoleAvatarVariantCompositionConfig } from "api";
 
 import type { RoleAvatarMediaSource } from "./roleAvatarMedia";
 import type { Transform } from "./TransformControl";
@@ -21,6 +21,10 @@ export function getEffectiveSpriteOriginalUrl(avatar: RoleAvatarMediaSource | nu
   return resolveRoleAvatarMedia(avatar).sprite.originalUrl;
 }
 
+export function getEffectiveOriginUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
+  return resolveRoleAvatarMedia(avatar).origin.url;
+}
+
 export function getSpriteCropSourceUrl(avatar: RoleAvatarMediaSource | null | undefined): string {
   return resolveRoleAvatarMedia(avatar).sprite.cropSourceUrl;
 }
@@ -30,17 +34,18 @@ export function getEffectiveSpriteUrl(avatar: RoleAvatarMediaSource | null | und
 }
 
 export function parseTransformFromAvatar(avatar: RoleAvatar | null): Transform {
-  if (!avatar) {
-    return {
-      scale: 1,
-      positionX: 0,
-      positionY: 0,
-      alpha: 1,
-      rotation: 0,
-    };
-  }
+  return parseTransformFromSpriteTransform(avatar?.spriteTransform);
+}
 
-  const spriteTransform = avatar.spriteTransform;
+export function parseTransformFromVariantConfig(
+  config: RoleAvatarVariantCompositionConfig | null | undefined,
+): Transform {
+  return parseTransformFromSpriteTransform(config?.spriteTransform);
+}
+
+export function parseTransformFromSpriteTransform(
+  spriteTransform: RoleAvatar["spriteTransform"] | null | undefined,
+): Transform {
   const scale = spriteTransform?.scale ?? 1;
   const positionX = spriteTransform?.positionX ?? 0;
   const positionY = spriteTransform?.positionY ?? 0;

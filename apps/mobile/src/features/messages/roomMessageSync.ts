@@ -2,6 +2,7 @@ import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMe
 
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
 import {
+  getMaxRoomMessageSyncId,
   getRoomMessageSyncGapStart,
 } from "@tuanchat/query/room-message";
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
@@ -110,9 +111,23 @@ export function upsertLiveRoomMessageWithGapRepair(
   message: ChatMessageResponse,
   deps: UpsertRoomMessagesToQueryAndDiskDeps,
 ) {
+  upsertLiveRoomMessagesWithGapRepair(roomId, [message], deps);
+}
+
+export function upsertLiveRoomMessagesWithGapRepair(
+  roomId: number,
+  messages: ChatMessageResponse[],
+  deps: UpsertRoomMessagesToQueryAndDiskDeps,
+) {
+  if (!Number.isInteger(roomId) || roomId <= 0 || messages.length === 0) {
+    return;
+  }
+
   const queryKey = getAllRoomMessagesQueryKey(roomId);
   const currentMessages = extractRoomMessagesFromQueryData(deps.queryClient.getQueryData(queryKey));
-  const gapStartSyncId = getRoomMessageSyncGapStart(currentMessages, message);
+  const gapStartSyncId = messages.length === 1
+    ? getRoomMessageSyncGapStart(currentMessages, messages[0])
+    : getBatchRoomMessageSyncGapStart(currentMessages, messages);
 
   if (gapStartSyncId != null) {
     void deps.fetchHistoryMessages(roomId, gapStartSyncId).then((missingMessages) => {
@@ -120,5 +135,27 @@ export function upsertLiveRoomMessageWithGapRepair(
     });
   }
 
-  upsertRoomMessagesToQueryAndDisk(roomId, [message], deps);
+  upsertRoomMessagesToQueryAndDisk(roomId, messages, deps);
+}
+
+function getBatchRoomMessageSyncGapStart(
+  currentMessages: ChatMessageResponse[],
+  incomingMessages: ChatMessageResponse[],
+): number | null {
+  const maxKnownSyncId = getMaxRoomMessageSyncId(currentMessages);
+  const incomingSyncIds = incomingMessages
+    .map(item => item.message?.syncId)
+    .filter((syncId): syncId is number => typeof syncId === "number" && Number.isFinite(syncId) && syncId > maxKnownSyncId);
+  if (incomingSyncIds.length === 0) {
+    return null;
+  }
+
+  const incomingSyncIdSet = new Set(incomingSyncIds);
+  const maxIncomingSyncId = Math.max(...incomingSyncIds);
+  for (let expectedSyncId = maxKnownSyncId + 1; expectedSyncId <= maxIncomingSyncId; expectedSyncId += 1) {
+    if (!incomingSyncIdSet.has(expectedSyncId)) {
+      return expectedSyncId;
+    }
+  }
+  return null;
 }

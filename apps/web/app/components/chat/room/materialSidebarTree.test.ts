@@ -1,6 +1,5 @@
-import { describe, expect, it } from "vitest";
-
 import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
+import { describe, expect, it } from "vitest";
 
 import { buildMaterialSidebarTree, collectMaterialExpandableKeys } from "./materialSidebarTree";
 

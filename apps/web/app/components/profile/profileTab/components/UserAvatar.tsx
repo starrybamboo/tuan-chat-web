@@ -1,4 +1,3 @@
-import type { UserInfoResponse } from "../../../../../api";
 import React, { useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
@@ -6,7 +5,9 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import { imageLowUrl } from "@/utils/mediaUrl";
 
-interface UserAvatarProps {
+import type { UserInfoResponse } from "../../../../../api";
+
+type UserAvatarProps = {
   user: UserInfoResponse | undefined;
   userId: number;
   loginUserId: number;

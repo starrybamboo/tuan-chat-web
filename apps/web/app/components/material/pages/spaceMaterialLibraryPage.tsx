@@ -1,10 +1,14 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
+
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
+
 import { appendPathQuery } from "@/utils/pathQuery";
+
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
   useCreateSpaceMaterialPackageMutation,
@@ -24,7 +28,7 @@ import MaterialPackageLibrarySidebar from "../components/materialPackageLibraryS
 import MaterialPackageLibraryWorkspace from "../components/materialPackageLibraryWorkspace";
 import { parseNodePath, serializeNodePath } from "../components/materialPackageTreeUtils";
 
-interface SpaceMaterialLibraryPageProps {
+type SpaceMaterialLibraryPageProps = {
   spaceId: number;
   embedded?: boolean;
 }

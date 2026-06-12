@@ -1,11 +1,14 @@
+import { useMemo, useState } from "react";
+
+import { ChevronRightIcon } from "@/icons";
+
 import type { RoleConfigTabKey } from "./configTabMeta";
-import { useMemo } from "react";
-import { CollapsibleAlert } from "@/components/common/CollapsibleAlert";
+
 import Section from "../Editors/Section";
 import { getRoleConfigTabItem } from "./configTabMeta";
 import NumericalEditor from "./NumericalEditor";
 
-interface ConfigurationSectionProps {
+type ConfigurationSectionProps = {
   title?: string;
   roleId: number;
   ruleId: number;
@@ -58,41 +61,6 @@ function separateDataByTemplate(
   return { modified, template };
 }
 
-// 能力可视化：从数据里抽取 hp / mp / san
-function extractHpMpSan(data: Record<string, any>) {
-  const entries = Object.entries(data || {});
-  const findKey = (candidates: string[]) =>
-    entries.find(([k]) => candidates.includes(k.toLowerCase()));
-
-  const hpEntry = findKey(["hp", "health", "生命"]);
-  const mpEntry = findKey(["mp", "mana", "魔法"]);
-  const sanEntry = findKey(["san", "sanity", "理智"]);
-
-  const toNum = (v: any) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  return {
-    hpKey: hpEntry?.[0],
-    hpValue: hpEntry ? toNum(hpEntry[1]) : undefined,
-    mpKey: mpEntry?.[0],
-    mpValue: mpEntry ? toNum(mpEntry[1]) : undefined,
-    sanKey: sanEntry?.[0],
-    sanValue: sanEntry ? toNum(sanEntry[1]) : undefined,
-  };
-}
-
-// 映射到 0~100，便于进度条宽度
-function toPercent(value?: number, max = 100) {
-  if (value == null)
-    return 0;
-  if (!Number.isFinite(value) || max <= 0)
-    return 0;
-  const v = Math.max(0, Math.min(value, max));
-  return (v / max) * 100;
-}
-
 export function ConfigurationSection({
   title,
   roleId,
@@ -106,6 +74,9 @@ export function ConfigurationSection({
   localEdits,
   onDataChange,
 }: ConfigurationSectionProps) {
+  const [isModifiedOpen, setIsModifiedOpen] = useState(true);
+  const [isTemplateOpen, setIsTemplateOpen] = useState(true);
+
   // 分离数据的逻辑
   const { modifiedData, templateData } = useMemo(() => {
     const currentData = localEdits || abilityData;
@@ -116,16 +87,6 @@ export function ConfigurationSection({
   const allFieldKeys = useMemo(
     () => Array.from(new Set([...Object.keys(modifiedData), ...Object.keys(templateData)])),
     [modifiedData, templateData],
-  );
-
-  // 能力配置可视化数据
-  const modifiedAbilityVisual = useMemo(
-    () => extractHpMpSan(modifiedData),
-    [modifiedData],
-  );
-  const templateAbilityVisual = useMemo(
-    () => extractHpMpSan(templateData),
-    [templateData],
   );
 
   // 通用的数据合并和更新函数
@@ -154,9 +115,51 @@ export function ConfigurationSection({
   const templateCount = Object.keys(templateData).length;
 
   const sectionHeaderClassName = hideExternalTitlesOnMobile
-    ? "hidden md:flex items-center gap-2"
-    : "flex items-center gap-2";
+    ? "hidden md:flex"
+    : "flex";
   const { Icon } = getRoleConfigTabItem(configKey);
+
+  const renderSectionHeader = ({
+    badgeClassName,
+    count,
+    isOpen,
+    labelPrefix,
+    onToggle,
+  }: {
+    badgeClassName: string;
+    count: number;
+    isOpen: boolean;
+    labelPrefix: string;
+    onToggle: () => void;
+  }) => (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      className={`
+        ${sectionHeaderClassName}
+        group w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left
+        transition-colors hover:bg-base-content/5
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25
+      `}
+      title={isOpen ? "收起" : "展开"}
+    >
+      <ChevronRightIcon
+        className={`
+          size-4 shrink-0 text-base-content/45 transition-transform
+          group-hover:text-primary
+          ${isOpen ? "rotate-90" : ""}
+        `}
+        aria-hidden="true"
+      />
+      <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
+      <span className="text-lg font-semibold">
+        {labelPrefix}
+        {customLabel}
+      </span>
+      <div className={badgeClassName}>{count}</div>
+    </button>
+  );
 
   return (
     <Section
@@ -170,199 +173,52 @@ export function ConfigurationSection({
     >
       <div className="space-y-6">
         <div className="space-y-4">
-          <div className={sectionHeaderClassName}>
-            <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
-            <h4 className="text-lg font-semibold">
-              已自定义的
-              {customLabel}
-            </h4>
-            <div className="badge badge-success badge-sm min-w-6">{modifiedCount}</div>
-          </div>
+          {renderSectionHeader({
+            badgeClassName: "badge badge-success badge-sm min-w-6",
+            count: modifiedCount,
+            isOpen: isModifiedOpen,
+            labelPrefix: "已自定义的",
+            onToggle: () => setIsModifiedOpen(isOpen => !isOpen),
+          })}
 
-          {/* 能力配置 */}
-          {fieldType === "ability" && (
-            (modifiedAbilityVisual.hpValue != null
-              || modifiedAbilityVisual.mpValue != null
-              || modifiedAbilityVisual.sanValue != null) && (
-              <div className="space-y-2">
-                {modifiedAbilityVisual.hpValue != null && (
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>{modifiedAbilityVisual.hpKey || "HP"}</span>
-                      <span>{modifiedAbilityVisual.hpValue}</span>
-                    </div>
-                    <div className="
-                      h-3 w-full bg-base-300 rounded-full overflow-hidden
-                    ">
-                      <div
-                        className="h-full bg-error"
-                        style={{
-                          width: `${toPercent(modifiedAbilityVisual.hpValue, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {modifiedAbilityVisual.mpValue != null && (
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>{modifiedAbilityVisual.mpKey || "MP"}</span>
-                      <span>{modifiedAbilityVisual.mpValue}</span>
-                    </div>
-                    <div className="
-                      h-3 w-full bg-base-300 rounded-full overflow-hidden
-                    ">
-                      <div
-                        className="h-full bg-primary"
-                        style={{
-                          width: `${toPercent(modifiedAbilityVisual.mpValue, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {modifiedAbilityVisual.sanValue != null && (
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>{modifiedAbilityVisual.sanKey || "SAN"}</span>
-                      <span>{modifiedAbilityVisual.sanValue}</span>
-                    </div>
-                    <div className="
-                      h-3 w-full bg-base-300 rounded-full overflow-hidden
-                    ">
-                      <div
-                        className="h-full bg-purple-500"
-                        style={{
-                          width: `${toPercent(modifiedAbilityVisual.sanValue, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          )}
-
-          {modifiedCount > 0 && (
-            <CollapsibleAlert
-              type="success"
-              message="这些{label}已经过自定义修改，不同于规则模版"
-              replacements={{ label: customLabel }}
-            />
-          )}
-
-          <NumericalEditor
-            data={modifiedData}
-            onChange={handleModifiedChange}
-            roleId={roleId}
-            ruleId={ruleId}
-            title={`自定义${customLabel}`}
-            fieldType={fieldType}
-            hideTitleOnMobile={hideExternalTitlesOnMobile}
-            syncValueChanges
-            existingKeys={allFieldKeys}
-          />
-        </div>
-
-        {/* 规则模版数据区域：去掉折叠按钮，直接展示 */}
-        {templateCount > 0 && (
-          <div className="space-y-4">
-            <div className={sectionHeaderClassName}>
-              <Icon className="size-5 shrink-0 text-base-content/80" weight="bold" aria-hidden="true" />
-              <h4 className="text-lg font-semibold">
-                规则模版
-                {customLabel}
-              </h4>
-              <div className="badge badge-info badge-sm">{templateCount}</div>
-            </div>
-
-            {/* 能力配置：模板 HP / MP / SAN 可视化 */}
-            {fieldType === "ability" && (
-              (templateAbilityVisual.hpValue != null
-                || templateAbilityVisual.mpValue != null
-                || templateAbilityVisual.sanValue != null) && (
-                <div className="bg-base-100 rounded-xl p-4 shadow-sm space-y-2">
-                  <h5 className={`
-                    font-semibold text-sm
-                    ${hideExternalTitlesOnMobile ? `
-                      hidden
-                      md:block
-                    ` : ""}
-                  `}>模板能力可视化</h5>
-                  {templateAbilityVisual.hpValue != null && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{templateAbilityVisual.hpKey || "HP"}</span>
-                        <span>{templateAbilityVisual.hpValue}</span>
-                      </div>
-                      <div className="
-                        h-3 w-full bg-base-300 rounded-full overflow-hidden
-                      ">
-                        <div
-                          className="h-full bg-error"
-                          style={{
-                            width: `${toPercent(templateAbilityVisual.hpValue, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {templateAbilityVisual.mpValue != null && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{templateAbilityVisual.mpKey || "MP"}</span>
-                        <span>{templateAbilityVisual.mpValue}</span>
-                      </div>
-                      <div className="
-                        h-3 w-full bg-base-300 rounded-full overflow-hidden
-                      ">
-                        <div
-                          className="h-full bg-primary"
-                          style={{
-                            width: `${toPercent(templateAbilityVisual.mpValue, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {templateAbilityVisual.sanValue != null && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>{templateAbilityVisual.sanKey || "SAN"}</span>
-                        <span>{templateAbilityVisual.sanValue}</span>
-                      </div>
-                      <div className="
-                        h-3 w-full bg-base-300 rounded-full overflow-hidden
-                      ">
-                        <div
-                          className="h-full bg-purple-500"
-                          style={{
-                            width: `${toPercent(templateAbilityVisual.sanValue, 100)}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-
-            <CollapsibleAlert
-              type="info"
-              message="这些{label}使用规则模版的默认值，编辑后将移动到上方的自定义区域"
-              replacements={{ label: customLabel }}
-            />
-
+          {isModifiedOpen && (
             <NumericalEditor
-              data={templateData}
-              onChange={handleTemplateChange}
+              data={modifiedData}
+              onChange={handleModifiedChange}
               roleId={roleId}
               ruleId={ruleId}
-              title={`模版${customLabel}`}
               fieldType={fieldType}
-              hideTitleOnMobile={hideExternalTitlesOnMobile}
+              hideTitle
+              hideTitleOnMobile
               existingKeys={allFieldKeys}
+              allowAddField
             />
+          )}
+        </div>
+
+        {templateCount > 0 && (
+          <div className="space-y-4">
+            {renderSectionHeader({
+              badgeClassName: "badge badge-info badge-sm",
+              count: templateCount,
+              isOpen: isTemplateOpen,
+              labelPrefix: "规则模版",
+              onToggle: () => setIsTemplateOpen(isOpen => !isOpen),
+            })}
+
+            {isTemplateOpen && (
+              <NumericalEditor
+                data={templateData}
+                onChange={handleTemplateChange}
+                roleId={roleId}
+                ruleId={ruleId}
+                fieldType={fieldType}
+                hideTitle
+                hideTitleOnMobile
+                existingKeys={allFieldKeys}
+                allowAddField={false}
+              />
+            )}
           </div>
         )}
 

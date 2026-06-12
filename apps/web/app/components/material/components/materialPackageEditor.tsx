@@ -1,15 +1,19 @@
-import type { MaterialPackageDraft } from "./materialPackageEditorShared";
-import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
 import { ArrowLeftIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
+
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+
+import type { MaterialPackageDraft } from "./materialPackageEditorShared";
+
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
 import { ensureMaterialPackageContent } from "./materialPackageTreeUtils";
 import MaterialPackageWorkbench from "./materialPackageWorkbench";
 
-interface MaterialPackageEditorProps {
+type MaterialPackageEditorProps = {
   valueKey: string;
   dragPackageId?: number;
   selectedNodeKey?: string | null;

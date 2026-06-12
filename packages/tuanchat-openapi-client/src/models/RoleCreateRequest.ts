@@ -19,7 +19,7 @@ export type RoleCreateRequest = {
      */
     type?: number;
     /**
-     * 空间id（NPC 绑定空间；非NPC可为空）
+     * 空间id（仅 NPC 绑定空间；非NPC应为空）
      */
     spaceId?: number;
     /**

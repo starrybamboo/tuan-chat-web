@@ -1,11 +1,12 @@
-import type { UserRole } from "../../../../api";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import RoomToastWindows from "@/components/chat/room/roomToastWindows";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
-interface RoomWindowOverlaysProps {
+import type { UserRole } from "../../../../api";
+
+type RoomWindowOverlaysProps = {
   isImportChatTextOpen: boolean;
   setIsImportChatTextOpen: (isOpen: boolean) => void;
   availableRoles: UserRole[];

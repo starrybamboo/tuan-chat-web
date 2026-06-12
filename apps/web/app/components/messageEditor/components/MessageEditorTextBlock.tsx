@@ -1,17 +1,20 @@
-import type { MessageEditorMessage } from "../messageEditorTypes";
+import { useLayoutEffect, useRef } from "react";
+
 // oxlint-disable jsx-a11y/no-static-element-interactions
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import { useLayoutEffect, useRef } from "react";
+
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import EditableMessageContent from "@/components/chat/message/editableMessageContent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { MessageEditorMessage } from "../messageEditorTypes";
 
 import {
   normalizeMessageEditorContent,
   parseMessageEditorMarkdownPreview,
 } from "../model/messageEditorTransforms";
 
-interface MessageEditorTextBlockProps {
+type MessageEditorTextBlockProps = {
   active: boolean;
   blockId: string;
   message: MessageEditorMessage;
@@ -70,7 +73,7 @@ function plainTextToHtml(value: string) {
   return escapeHtml(value).replace(/\r?\n/g, "<br>");
 }
 
-interface EditableSelectionSnapshot {
+type EditableSelectionSnapshot = {
   end: number;
   start: number;
 }

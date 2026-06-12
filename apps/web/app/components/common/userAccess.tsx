@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+
 import type { UserAvatarSource } from "./userAccess.shared";
 
 import { getUserAvatarComponentProps } from "./userAccess.shared";

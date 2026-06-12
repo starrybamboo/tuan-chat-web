@@ -109,7 +109,7 @@ describe("mediaUpload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("非聊天室图片会先生成 WebP original，再生成 low -> medium -> high", async () => {
+  it("非聊天室图片会先生成 WebP original，再并行生成 low 和 medium，不再生成 high", async () => {
     const order: string[] = [];
     compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number; maxSizeKB?: number }) => {
       order.push(`start-${profile.maxWidthOrHeight}`);
@@ -126,17 +126,15 @@ describe("mediaUpload", () => {
       "start-2560",
       "end-2560",
       "start-200",
-      "end-200",
       "start-512",
+      "end-200",
       "end-512",
-      "start-2560",
-      "end-2560",
     ]);
     expect(result.filesByQuality.original?.name).toBe("derived-2560.webp");
     expect(result.filesByQuality.low?.name).toBe("derived-200.webp");
     expect(result.filesByQuality.medium?.name).toBe("derived-512.webp");
-    expect(result.filesByQuality.high?.name).toBe("derived-2560.webp");
-    expect(result.metadata.uploadedQualities).toEqual(["original", "low", "medium", "high"]);
+    expect(result.filesByQuality.high).toBeUndefined();
+    expect(result.metadata.uploadedQualities).toEqual(["original", "low", "medium"]);
   });
 
   it("图片 low 档派生标准与 40KB 缩略图上限保持一致", async () => {
@@ -179,7 +177,7 @@ describe("mediaUpload", () => {
     expect(result.metadata.uploadedQualities).toEqual(["original"]);
   });
 
-  it("聊天室场景的图片也会生成 WebP original、low、medium 和 high", async () => {
+  it("聊天室场景的图片也会生成 WebP original、low 和 medium，但不再生成 high", async () => {
     const file = new File([new Uint8Array(1024)], "room.png", { type: "image/png" });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxWidthOrHeight?: number; maxSizeKB?: number }) => {
       const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
@@ -188,9 +186,9 @@ describe("mediaUpload", () => {
 
     const result = await generateMediaUploadFiles(file, 1);
 
-    expect(Object.keys(result.filesByQuality).sort()).toEqual(["high", "low", "medium", "original"]);
+    expect(Object.keys(result.filesByQuality).sort()).toEqual(["low", "medium", "original"]);
     expect(result.filesByQuality.original?.type).toBe("image/webp");
-    expect(result.filesByQuality.high?.name).toBe("derived-2560.webp");
+    expect(result.filesByQuality.high).toBeUndefined();
     expect(compressImageMock).toHaveBeenCalledWith(file, expect.objectContaining({
       maxWidthOrHeight: 2560,
       maxSizeKB: 3072,
@@ -198,14 +196,10 @@ describe("mediaUpload", () => {
       preserveNovelAiMetadata: true,
       forceOutput: true,
     }));
-    expect(compressImageMock).toHaveBeenCalledWith(expect.any(File), expect.objectContaining({
-      maxWidthOrHeight: 2560,
-      maxSizeKB: 800,
-      fileType: "image/webp",
-    }));
+    expect(compressImageMock).not.toHaveBeenCalledWith(expect.any(File), expect.objectContaining({ maxSizeKB: 800 }));
   });
 
-  it("聊天室场景上传图片时会上传 original、low、medium 和 high 目标", async () => {
+  it("聊天室场景上传图片时会上传 original、low 和 medium，跳过后端遗留 high 目标", async () => {
     const file = new File([new Uint8Array(1024)], "room.png", { type: "image/png" });
     compressImageMock.mockImplementation(async (_file: File, profile: { maxSizeKB?: number }) => {
       const bytes = profile.maxSizeKB === 3072 ? 900 * 1024 : 1024;
@@ -235,11 +229,66 @@ describe("mediaUpload", () => {
       mediaType: "image",
       uploadRequired: true,
     });
-    expect(globalThis.fetch).toHaveBeenCalledTimes(4);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+    expect(globalThis.fetch).not.toHaveBeenCalledWith("https://oss.example.com/high", expect.anything());
     expect(prepareUploadMock).toHaveBeenCalledWith(expect.objectContaining({
       scene: 1,
     }));
     expect(completeUploadMock).toHaveBeenCalledWith(99);
+  });
+
+  it("非聊天室音频 low 和 medium 使用独立 FFmpeg 实例并行转码", async () => {
+    const order: string[] = [];
+    vi.mocked(transcodeAudioFileToOpusOrThrow).mockImplementation(async (_file: File, options: { bitrateKbps?: number; isolated?: boolean } = {}) => {
+      order.push(`start-${options.bitrateKbps}`);
+      await Promise.resolve();
+      order.push(`end-${options.bitrateKbps}`);
+      return new File([String(options.bitrateKbps)], `audio-${options.bitrateKbps}.webm`, { type: "audio/webm" });
+    });
+
+    const file = new File([new Uint8Array(1024)], "voice.mp3", { type: "audio/mpeg" });
+    const result = await generateMediaUploadFiles(file, 2);
+
+    expect(order).toEqual(["start-64", "start-128", "end-64", "end-128"]);
+    expect(transcodeAudioFileToOpusOrThrow).toHaveBeenCalledWith(file, expect.objectContaining({
+      bitrateKbps: 64,
+      isolated: true,
+    }));
+    expect(transcodeAudioFileToOpusOrThrow).toHaveBeenCalledWith(file, expect.objectContaining({
+      bitrateKbps: 128,
+      isolated: true,
+    }));
+    expect(result.filesByQuality.high).toBeUndefined();
+    expect(result.filesByQuality.low?.name).toBe("audio-64.webm");
+    expect(result.filesByQuality.medium?.name).toBe("audio-128.webm");
+    expect(result.filesByQuality.original).toBe(file);
+  });
+
+  it("非聊天室视频 low 和 medium 使用独立 FFmpeg 实例并行转码", async () => {
+    const order: string[] = [];
+    vi.mocked(transcodeVideoFileToWebmOrThrow).mockImplementation(async (_file: File, options: { crf?: number; isolated?: boolean; maxHeight?: number } = {}) => {
+      order.push(`start-${options.maxHeight}`);
+      await Promise.resolve();
+      order.push(`end-${options.maxHeight}`);
+      return new File([String(options.crf)], `video-${options.maxHeight}.webm`, { type: "video/webm" });
+    });
+
+    const file = new File([new Uint8Array(1024)], "clip.mp4", { type: "video/mp4" });
+    const result = await generateMediaUploadFiles(file, 2);
+
+    expect(order).toEqual(["start-360", "start-720", "end-360", "end-720"]);
+    expect(transcodeVideoFileToWebmOrThrow).toHaveBeenCalledWith(file, expect.objectContaining({
+      maxHeight: 360,
+      isolated: true,
+    }));
+    expect(transcodeVideoFileToWebmOrThrow).toHaveBeenCalledWith(file, expect.objectContaining({
+      maxHeight: 720,
+      isolated: true,
+    }));
+    expect(result.filesByQuality.high).toBeUndefined();
+    expect(result.filesByQuality.low?.name).toBe("video-360.webm");
+    expect(result.filesByQuality.medium?.name).toBe("video-720.webm");
+    expect(result.filesByQuality.original).toBe(file);
   });
 
   it("已是 WebM 的音频不会再次进入 FFmpeg 转码", async () => {

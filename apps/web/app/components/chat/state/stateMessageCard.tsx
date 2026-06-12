@@ -1,11 +1,12 @@
-import type { Message } from "../../../../api";
-
 import React from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { collectStateEventScopeLabels, formatStateEventAtomDetail, formatStateEventPreviewText, formatStateRoleLabel, formatStateScopeLabel, getNormalizedStateEventExtra } from "@/types/stateEvent";
 
-interface StateMessageCardProps {
+import type { Message } from "../../../../api";
+
+type StateMessageCardProps = {
   message: Pick<Message, "content" | "extra"> & Partial<Pick<Message, "messageId">>;
 }
 

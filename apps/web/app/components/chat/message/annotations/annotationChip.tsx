@@ -1,6 +1,6 @@
 import type { AnnotationDefinition, AnnotationTone } from "@/components/chat/message/annotations/annotationCatalog";
 
-interface AnnotationChipProps {
+type AnnotationChipProps = {
   annotation: AnnotationDefinition;
   active?: boolean;
   interactive?: boolean;

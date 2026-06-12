@@ -20,7 +20,7 @@ import {
 import { mediaDebug } from "@/components/chat/infra/media/mediaDebug";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 
-interface AudioMessageProps {
+type AudioMessageProps = {
   url: string;
   /** 所属房间（BGM 自动播放与切换需要） */
   roomId?: number;

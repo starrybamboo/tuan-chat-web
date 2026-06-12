@@ -240,7 +240,6 @@ export function startPersistentMediaImageDerivativeProbe(src: string | null | un
       fileId: derivativeInfo.fileId,
       src: derivativeInfo.normalizedSrc,
     });
-    writeMediaImageDerivativeRecord(derivativeInfo.fileId, "available");
     cleanup();
   };
   image.onerror = () => {

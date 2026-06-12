@@ -1,7 +1,7 @@
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
 
-interface RoomSidebarAddPanelProps {
+type RoomSidebarAddPanelProps = {
   categoryId: string;
   isSpaceOwner: boolean;
   pendingAddRoomId: number | null;

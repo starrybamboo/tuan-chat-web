@@ -1,11 +1,13 @@
 import React, { useState } from "react";
+
 import UserRepositoriesList from "@/components/profile/workTabPart/repositoryList";
 import RolesList from "@/components/profile/workTabPart/rolesList";
+
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useGetUserRolesPageQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 type TabType = "repositories" | "roles";
-interface WorksTabProp {
+type WorksTabProp = {
   userId: number;
 }
 

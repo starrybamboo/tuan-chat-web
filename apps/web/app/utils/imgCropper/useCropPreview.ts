@@ -27,7 +27,13 @@ type UseCropPreviewOptions = {
   /** 防抖延迟，默认 100ms */
   debounceMs?: number;
   /** 自定义初始裁剪区域（可选） */
-  initialCrop?: (args: { width: number; height: number; mode: CropMode }) => { crop: Crop; pixelCrop: PixelCrop } | undefined;
+  initialCrop?: (args: {
+    width: number;
+    height: number;
+    naturalWidth: number;
+    naturalHeight: number;
+    mode: CropMode;
+  }) => { crop: Crop; pixelCrop: PixelCrop } | undefined;
   /**
    * 是否将首次预览绘制延后到下一帧（requestAnimationFrame）。
    * 用于“图片切换时需要先提交外部状态（如 transform）再绘制 canvas”的场景，避免出现中间帧闪烁。
@@ -147,10 +153,10 @@ export function useCropPreview(options: UseCropPreviewOptions): UseCropPreviewRe
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     // 使用显示尺寸（受 CSS 限制后的尺寸），而不是 naturalWidth/naturalHeight
     // 这样裁剪框才能正确覆盖显示的图片区域
-    const { width, height } = e.currentTarget;
+    const { width, height, naturalWidth, naturalHeight } = e.currentTarget;
     const currentMode = getMode();
 
-    const resolvedInitialCrop = initialCrop?.({ width, height, mode: currentMode });
+    const resolvedInitialCrop = initialCrop?.({ width, height, naturalWidth, naturalHeight, mode: currentMode });
     const { crop: newCrop, pixelCrop } = resolvedInitialCrop ?? (currentMode === "avatar"
       ? createCenteredSquareCrop(width, height)
       : createFullImageCrop(width, height));

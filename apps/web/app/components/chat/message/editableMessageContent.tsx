@@ -1,9 +1,11 @@
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
 import ChatInputArea from "@/components/chat/input/chatInputArea";
 import { TextEnhanceRenderer } from "@/components/common/textEnhanceRenderer";
 
-interface EditableMessageContentProps {
+type EditableMessageContentProps = {
   content: string;
   className?: string;
   editorClassName?: string;

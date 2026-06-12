@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
+
+import { describe, expect, it, vi } from "vitest";
 
 import {
   getRoomMessageSyncGapStart,
@@ -11,6 +11,8 @@ import {
   selectVisibleMainRoomMessages,
   upsertRoomMessagesListData,
 } from "./chat";
+
+type MockFn = (...args: any[]) => any;
 
 function createChatMessageResponse(
   messageId: number,
@@ -157,7 +159,7 @@ describe("chat room message helpers", () => {
   });
 
   it("批量插入消息时可透传 mutationMeta", async () => {
-    const patchRoomMessages = vi.fn(async () => ({ data: [], success: true }));
+    const patchRoomMessages = vi.fn<MockFn>(async () => ({ data: [], success: true }));
 
     await patchInsertMessages({
       chatController: {
@@ -191,7 +193,7 @@ describe("chat room message helpers", () => {
   });
 
   it("批量插入消息未传 mutationMeta 时保持旧请求形状", async () => {
-    const patchRoomMessages = vi.fn(async () => ({ data: [], success: true }));
+    const patchRoomMessages = vi.fn<MockFn>(async () => ({ data: [], success: true }));
 
     await patchInsertMessages({
       chatController: {

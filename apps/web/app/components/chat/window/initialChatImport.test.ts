@@ -1,7 +1,7 @@
+import { patchInsertMessages } from "@tuanchat/query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
-import { patchInsertMessages } from "@tuanchat/query";
 
 import { addRoomRoleWithSuccessGuard } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";

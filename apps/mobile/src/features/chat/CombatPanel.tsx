@@ -3,7 +3,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
 import { compareStateValueText } from "@tuanchat/domain/state-runtime";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -117,12 +117,14 @@ function collectCombatDisplayKeys(recordedKeys: string[], activeStates: RoomStat
   return [...keys].sort((left, right) => left.localeCompare(right, "zh-CN"));
 }
 
-export function CombatPanel(props: CombatPanelProps) {
+function CombatPanelInner(props: CombatPanelProps) {
   if (props.roomStateRuntime) {
     return <CombatPanelContent {...props} runtime={props.roomStateRuntime} />;
   }
   return <CombatPanelWithRuntime {...props} />;
 }
+
+export const CombatPanel = memo(CombatPanelInner);
 
 function CombatPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props }: CombatPanelProps) {
   const runtime = useRoomStateRuntime({

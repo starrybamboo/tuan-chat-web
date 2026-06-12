@@ -1,7 +1,7 @@
+import { use, useMemo, useState } from "react";
+
 import type { CommentTimelineVO } from "api";
 
-import type { CommentTargetInfo } from "../../../api/hooks/commentQueryHooks";
-import { use, useMemo, useState } from "react";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
@@ -9,15 +9,18 @@ import { buildMediaContentPreview } from "@/components/common/content/mediaConte
 import MediaContentView from "@/components/common/content/mediaContentView";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CloseIcon } from "@/icons";
+
+import type { CommentTargetInfo } from "../../../api/hooks/commentQueryHooks";
+
 import { useDeleteCommentMutation, useGetCommentTimelineInfiniteQuery } from "../../../api/hooks/commentQueryHooks";
 
-interface FeedbackIssueTimelineProps {
+type FeedbackIssueTimelineProps = {
   commentCount: number;
   targetInfo: CommentTargetInfo;
   loginUserId: number;
 }
 
-interface ReplyTarget {
+type ReplyTarget = {
   commentId: number;
   rootCommentId: number;
   parentUserInfo?: CommentTimelineVO["userInfo"];

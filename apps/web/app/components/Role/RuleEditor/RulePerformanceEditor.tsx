@@ -1,11 +1,12 @@
 import { useEffect, useReducer, useRef, useState } from "react";
+
 import { useIsMobile } from "@/utils/getScreenSize";
 import { getGridSpan, getGridSpanMobile } from "@/utils/gridSpan";
 
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
 
-interface RulePerformanceEditorProps {
+type RulePerformanceEditorProps = {
   title?: string;
   data?: Record<string, string>;
   onSave?: (data: Record<string, string>) => void;

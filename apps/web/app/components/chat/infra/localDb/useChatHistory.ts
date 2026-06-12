@@ -1,21 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import {
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
   mergeRoomMessagesForLocalState,
 } from "@tuanchat/query/room-message-lifecycle";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../../api";
 
 import { tuanchat } from "../../../../../api/instance";
-import {
-  addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
-  clearMessagesByRoomId as dbClearMessages,
-  deleteMessagesByIds as dbDeleteMessagesByIds,
-  getMessagesByRoomId as dbGetMessagesByRoomId,
-  markMessagesDeletedByIds as dbMarkMessagesDeletedByIds,
-} from "./chatHistoryDb";
+import { loadChatHistoryDb } from "./chatHistoryDbLoader";
 import { logMessageOrderChange } from "./messageOrderDebug";
 
 const WS_RECONNECTED_EVENT = "tc:ws-reconnected";
@@ -94,7 +87,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
 
     try {
-      await dbDeleteMessagesByIds(duplicateIds);
+      const db = await loadChatHistoryDb();
+      await db.deleteMessagesByIds(duplicateIds);
     }
     catch (err) {
       setError(err as Error);
@@ -155,12 +149,13 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
 
       // 异步将消息批量存入数据库
       try {
-        await dbAddOrUpdateMessages(newMessages);
+        const db = await loadChatHistoryDb();
+        await db.addOrUpdateMessagesBatch(newMessages);
         const duplicateIds = collectPersistedOptimisticDuplicateIds(
           mergeRoomMessagesForLocalState(messagesRawRef.current, newMessages),
         );
         if (duplicateIds.length > 0) {
-          await dbDeleteMessagesByIds(duplicateIds);
+          await db.deleteMessagesByIds(duplicateIds);
         }
       }
       catch (err) {
@@ -207,7 +202,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     });
 
     try {
-      await dbMarkMessagesDeletedByIds([messageId]);
+      const db = await loadChatHistoryDb();
+      await db.markMessagesDeletedByIds([messageId]);
     }
     catch (err) {
       setError(err as Error);
@@ -255,10 +251,11 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     });
 
     try {
+      const db = await loadChatHistoryDb();
       if (fromMessageId !== nextMessage.messageId) {
-        await dbDeleteMessagesByIds([fromMessageId]);
+        await db.deleteMessagesByIds([fromMessageId]);
       }
-      await dbAddOrUpdateMessages([mergedForDb]);
+      await db.addOrUpdateMessagesBatch([mergedForDb]);
     }
     catch (err) {
       setError(err as Error);
@@ -296,7 +293,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       return [];
     currentFetchingRoomId.current = roomId;
     try {
-      const persistedMessages = await dbGetMessagesByRoomId(roomId);
+      const db = await loadChatHistoryDb();
+      const persistedMessages = await db.getMessagesByRoomId(roomId);
       const messages = await stripPersistedOptimisticDuplicates(persistedMessages);
       if (currentFetchingRoomId.current !== roomId) {
         return [];
@@ -325,7 +323,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     if (roomId === null)
       return;
     try {
-      await dbClearMessages(roomId);
+      const db = await loadChatHistoryDb();
+      await db.clearMessagesByRoomId(roomId);
       setMessages([]);
     }
     catch (err) {
@@ -350,7 +349,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     const loadAndFetch = async () => {
       try {
         // SQLite 加载本地历史记录
-        const persistedLocalHistory = await dbGetMessagesByRoomId(roomId);
+        const db = await loadChatHistoryDb();
+        const persistedLocalHistory = await db.getMessagesByRoomId(roomId);
         const localHistory = await stripPersistedOptimisticDuplicates(persistedLocalHistory);
         if (isCancelled)
           return;

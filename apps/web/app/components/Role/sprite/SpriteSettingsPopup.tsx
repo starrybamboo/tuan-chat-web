@@ -1,40 +1,386 @@
-import type { RoleAvatar } from "api";
-import type { UploadContext } from "../RoleInfoCard/AvatarUploadCropper";
-import type { Role } from "../types";
+import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
+
 import {
+  ArrowLeftIcon,
+  CaretDownIcon,
   CheckCircleIcon,
   ChecksIcon,
   CropIcon,
-  EyeIcon,
-  FunnelIcon,
+  FolderOpenIcon,
   GearIcon,
   ImageIcon,
+  PlusIcon,
   TrashIcon,
   UserCircleIcon,
   UserFocusIcon,
   WarningCircleIcon,
-  XCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useClearDeletedRoleAvatarsMutation, useGetDeletedRoleAvatarsQuery, useRestoreRoleAvatarMutation, useUploadAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useApplyCropAvatarMutation,
+  useApplyCropMutation,
+  useClearDeletedRoleAvatarsMutation,
+  useCreateRoleAvatarVariantMutation,
+  useGetDeletedRoleAvatarsQuery,
+  useRestoreRoleAvatarMutation,
+  useRoleAvatarVariantsQuery,
+  useUpdateRoleAvatarMutation,
+  useUpdateRoleAvatarVariantMutation,
+  useUploadAvatarMutation,
+} from "api/hooks/RoleAndAvatarHooks";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Drawer } from "vaul";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
+import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
+
+import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
+import type { Role } from "../types";
+import type { BatchSpriteCropApplyResult, VariantInitializationCropResult } from "./Tabs/SpriteCropper";
+
+import {
+  createAvatarCropContextFromVariantConfig,
+  createPixelSpriteCropFromVariantConfig,
+  createPixelCropFromVariantConfig,
+  createSpriteCropContextFromVariantConfig,
+  isOriginImageCompatibleWithVariantConfig,
+} from "./avatarCropContext";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
-import { PreviewTab } from "./Tabs/PreviewTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
-import { getEffectiveAvatarUrl, getEffectiveSpriteUrl, getSpriteCropSourceUrl } from "./utils";
+import {
+  getEffectiveAvatarUrl,
+  getEffectiveOriginUrl,
+  getEffectiveSpriteOriginalUrl,
+  getEffectiveSpriteUrl,
+  getSpriteCropSourceUrl,
+  parseTransformFromVariantConfig,
+  toSpriteTransformPayload,
+} from "./utils";
 
-export type SettingsTab = "cropper" | "avatarCropper" | "preview" | "setting" | "trash";
+export type SettingsTab = "cropper" | "avatarCropper" | "setting" | "trash";
 
-interface SpriteSettingsPopupProps {
+const UNGROUPED_VARIANT_KEY = "__ungrouped__";
+const DEFAULT_VARIANT = "未分组";
+// 头像优先随左栏缩小；缩到下限后再减少列数，避免出现半列空白。
+const AVATAR_LIST_GRID_TEMPLATE_COLUMNS = "repeat(auto-fit, minmax(min(5.75rem, 100%), 1fr))";
+const AVATAR_FOLDER_GRID_TEMPLATE_COLUMNS = "repeat(auto-fill, minmax(min(5.75rem, 100%), 1fr))";
+
+type PendingVariantInitialization = {
+  name: string;
+  existingVariantId?: number;
+}
+
+type PendingUploadAvatarWorkflow = {
+  avatarIds: number[];
+  target: AvatarUploadFilesContext["target"];
+  batchKey: string;
+}
+
+type AvatarUploadFilesSelectedContext = AvatarUploadFilesContext & {
+  uploadDefaults?: Pick<RoleAvatar, "category" | "variantId">;
+}
+
+function getAvatarVariantKey(avatar: RoleAvatar | null | undefined) {
+  const variantId = normalizeVariantId(avatar?.variantId);
+  return variantId
+    ? String(variantId)
+    : UNGROUPED_VARIANT_KEY;
+}
+
+function normalizeVariantId(value: unknown): number | null {
+  const raw = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return null;
+  }
+  return Math.floor(raw);
+}
+
+function getVariantDisplayName(variant: RoleAvatarVariant) {
+  const variantId = normalizeVariantId(variant.variantId);
+  return String(variant.name ?? "").trim() || `立绘组 ${variantId ?? ""}`;
+}
+
+function getAvatarVariantLabel(avatar: RoleAvatar | null | undefined) {
+  const variantKey = getAvatarVariantKey(avatar);
+  if (variantKey === UNGROUPED_VARIANT_KEY) {
+    return DEFAULT_VARIANT;
+  }
+  return String(avatar?.variantGroup?.name ?? "").trim() || `立绘组 ${variantKey}`;
+}
+
+function getFallbackVariantLabel(variantKey: string) {
+  if (variantKey === UNGROUPED_VARIANT_KEY) {
+    return DEFAULT_VARIANT;
+  }
+  return `立绘组 ${variantKey}`;
+}
+
+function isLocalImageSource(url: string): boolean {
+  return /^(?:blob|data|file|asset):/i.test(url);
+}
+
+function toCropCanvasSourceUrl(rawUrl: string): string {
+  const value = rawUrl.trim();
+  if (!value || isLocalImageSource(value)) {
+    return value;
+  }
+
+  const originalUrl = imageOriginalUrlFromUrl(value) || value;
+  try {
+    const baseUrl = typeof window !== "undefined" ? window.location.href : "http://localhost/";
+    const url = new URL(originalUrl, baseUrl);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      // 裁剪画布需要 CORS 可读；加稳定 query 避免复用已被普通预览加载过的 no-cors 缓存。
+      url.searchParams.set("tc-cors-crop", "1");
+    }
+    return url.toString();
+  }
+  catch {
+    return originalUrl;
+  }
+}
+
+function loadCropCanvasImage(rawUrl: string): Promise<HTMLImageElement> {
+  const src = toCropCanvasSourceUrl(rawUrl);
+  if (!src) {
+    return Promise.reject(new Error("图片地址为空"));
+  }
+
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    if (!isLocalImageSource(src)) {
+      image.crossOrigin = "anonymous";
+    }
+    image.onload = () => {
+      image.width = image.naturalWidth;
+      image.height = image.naturalHeight;
+      resolve(image);
+    };
+    image.onerror = () => reject(new Error("图片加载失败"));
+    image.src = src;
+  });
+}
+
+function createCropOutputCanvas(width: number, height: number): HTMLCanvasElement | OffscreenCanvas {
+  if (typeof OffscreenCanvas !== "undefined") {
+    return new OffscreenCanvas(width, height);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+async function createCroppedSpriteAndAvatarByVariantConfig(
+  avatar: RoleAvatar,
+  config: RoleAvatarVariantCompositionConfig,
+) {
+  const sourceUrl = getEffectiveOriginUrl(avatar);
+  if (!sourceUrl) {
+    throw new Error("缺少可裁剪的原图");
+  }
+
+  if (!createSpriteCropContextFromVariantConfig(config)) {
+    throw new Error("目标立绘组缺少立绘裁剪配置，请先校正立绘组");
+  }
+
+  const originImage = await loadCropCanvasImage(sourceUrl);
+  if (!isOriginImageCompatibleWithVariantConfig(config, originImage)) {
+    throw new Error("原图尺寸与目标立绘组不一致");
+  }
+
+  const spriteCrop = createPixelSpriteCropFromVariantConfig(config, {
+    naturalWidth: originImage.naturalWidth,
+    naturalHeight: originImage.naturalHeight,
+    width: originImage.naturalWidth,
+    height: originImage.naturalHeight,
+  });
+  const spriteCropContext = createSpriteCropContextFromVariantConfig(config, avatar.originFileId);
+  if (!spriteCrop || !spriteCropContext) {
+    throw new Error("无法应用目标立绘组的立绘裁剪配置");
+  }
+
+  const spriteCanvas = createCropOutputCanvas(
+    Math.round(spriteCrop.pixelCrop.width),
+    Math.round(spriteCrop.pixelCrop.height),
+  );
+  await canvasPreview(originImage, spriteCanvas, spriteCrop.pixelCrop, 1, 0, { previewMode: false });
+  const spriteBlob = await canvasToBlob(spriteCanvas);
+
+  const spriteObjectUrl = URL.createObjectURL(spriteBlob);
+  const spriteImage = await loadCropCanvasImage(spriteObjectUrl);
+  URL.revokeObjectURL(spriteObjectUrl);
+  const avatarCrop = createPixelCropFromVariantConfig(config, {
+    naturalWidth: spriteImage.naturalWidth,
+    naturalHeight: spriteImage.naturalHeight,
+    width: spriteImage.naturalWidth,
+    height: spriteImage.naturalHeight,
+  });
+  if (!avatarCrop) {
+    throw new Error("无法应用目标立绘组的头像槽位");
+  }
+
+  const avatarCanvas = createCropOutputCanvas(
+    Math.round(avatarCrop.pixelCrop.width),
+    Math.round(avatarCrop.pixelCrop.height),
+  );
+  await canvasPreview(spriteImage, avatarCanvas, avatarCrop.pixelCrop, 1, 0, { previewMode: false });
+  return {
+    spriteBlob,
+    spriteCropContext,
+    avatarBlob: await canvasToBlob(avatarCanvas),
+  };
+}
+
+async function runWithConcurrencyLimit<T, R>(
+  items: T[],
+  limit: number,
+  processor: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const results: R[] = [];
+  let nextIndex = 0;
+  const workerCount = Math.min(Math.max(1, limit), items.length);
+
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await processor(items[index]!, index);
+    }
+  }));
+
+  return results;
+}
+
+type VariantNameDialogProps = {
+  initialName: string;
+  selectedCount: number;
+  onCancel: () => void;
+  onConfirm: (name: string) => void;
+}
+
+function VariantNameDialog({
+  initialName,
+  selectedCount,
+  onCancel,
+  onConfirm,
+}: VariantNameDialogProps) {
+  const [draft, setDraft] = useState(initialName);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const isComposingRef = useRef(false);
+  const trimmedDraft = draft.trim();
+
+  useEffect(() => {
+    setDraft(initialName);
+  }, [initialName]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (!trimmedDraft) {
+      toast.error("请输入立绘组名称");
+      return;
+    }
+    onConfirm(trimmedDraft);
+  }, [onConfirm, trimmedDraft]);
+
+  return (
+    <div
+      className="
+        absolute inset-0 z-40 flex items-center justify-center
+        p-4
+      "
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default bg-black/55"
+        onClick={onCancel}
+        aria-label="关闭新建立绘组弹窗"
+      />
+      <div
+        className="
+          relative z-10 w-full max-w-md rounded-md border border-base-300
+          bg-base-100 p-6 shadow-2xl
+        "
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="variant-name-dialog-title"
+      >
+        <h3 id="variant-name-dialog-title" className="text-lg font-bold">新建立绘组</h3>
+        <p className="py-3 text-sm text-base-content/60">
+          将使用当前选择的
+          {" "}
+          <span className="font-medium text-base-content">
+            {selectedCount}
+          </span>
+          {" "}
+          个头像初始化立绘组。
+        </p>
+        <label className="form-control w-full">
+          <span className="label-text mb-1 text-sm">名称</span>
+          <input
+            ref={inputRef}
+            className="input input-bordered w-full"
+            value={draft}
+            onChange={event => setDraft(event.currentTarget.value)}
+            onCompositionStart={() => {
+              isComposingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              isComposingRef.current = false;
+            }}
+            onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing || isComposingRef.current) {
+                return;
+              }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSubmit();
+              }
+            }}
+            maxLength={40}
+            placeholder="立绘组名称"
+          />
+        </label>
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onCancel}
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={!trimmedDraft}
+          >
+            继续裁剪
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SpriteSettingsPopupProps = {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: SettingsTab;
@@ -55,13 +401,13 @@ interface SpriteSettingsPopupProps {
 
 /**
  * 立绘设置弹窗组件
- * 左侧固定显示头像列表，右侧 tab 切换不同功能：预览、立绘校正、头像校正、头像设置
+ * 左侧固定显示头像列表，右侧 tab 切换不同功能：立绘校正、头像校正、头像设置
  * 内部维护共享的立绘索引状态
  */
 export function SpriteSettingsPopup({
   isOpen,
   onClose,
-  defaultTab = "preview",
+  defaultTab = "setting",
   spritesAvatars,
   roleAvatars,
   currentSpriteIndex,
@@ -74,8 +420,23 @@ export function SpriteSettingsPopup({
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
   const isMobile = isMobileScreen();
   const [isMobileControlDrawerOpen, setIsMobileControlDrawerOpen] = useState(false);
-  const DEFAULT_CATEGORY = "默认";
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [variantFilter, setVariantFilter] = useState<string>(UNGROUPED_VARIANT_KEY);
+  const [pendingVariantInitialization, setPendingVariantInitialization] = useState<PendingVariantInitialization | null>(null);
+  const [pendingUploadAvatarWorkflow, setPendingUploadAvatarWorkflow] = useState<PendingUploadAvatarWorkflow | null>(null);
+  const [pendingUploadSpriteCalibration, setPendingUploadSpriteCalibration] = useState<PendingUploadAvatarWorkflow | null>(null);
+  const [variantNameDialogOpen, setVariantNameDialogOpen] = useState(false);
+  const [variantNameDraft, setVariantNameDraft] = useState("");
+  const [variantCreationIndices, setVariantCreationIndices] = useState<number[]>([]);
+  const [pendingVariantSpriteCalibrationIndices, setPendingVariantSpriteCalibrationIndices] = useState<number[] | null>(null);
+  const [batchVariantCreationPrompt, setBatchVariantCreationPrompt] = useState<{
+    indices: number[];
+    successCount: number;
+    failedCount: number;
+    totalCount: number;
+  } | null>(null);
+  const [batchTargetVariantId, setBatchTargetVariantId] = useState("");
+  const [draggedAvatarIndices, setDraggedAvatarIndices] = useState<number[]>([]);
+  const [variantDropTarget, setVariantDropTarget] = useState<string | null>(null);
 
   // ========== 内部共享的立绘索引 ==========
   // 使用外部传入的 currentSpriteIndex 作为初始值
@@ -93,50 +454,131 @@ export function SpriteSettingsPopup({
   // ========== 多选状态管理 ==========
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(() => new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
-  const isMultiSelectDisabled = activeTab === "setting";
+  const variantGroupsQuery = useRoleAvatarVariantsQuery(role?.id ?? 0, {
+    enabled: isOpen && Boolean(role?.id),
+  });
+  const createVariantMutation = useCreateRoleAvatarVariantMutation(role?.id);
+  const updateVariantMutation = useUpdateRoleAvatarVariantMutation(role?.id);
+  const updateRoleAvatarMutation = useUpdateRoleAvatarMutation(role?.id ?? 0);
+  const applyCropMutation = useApplyCropMutation();
+  const applyCropAvatarMutation = useApplyCropAvatarMutation();
 
-  const { categoryOptions, hasDefaultCategory } = useMemo(() => {
-    const categorySet = new Set<string>();
-    let hasDefault = false;
-    spritesAvatars.forEach((avatar) => {
-      const category = String(avatar.category ?? "").trim();
-      if (category) {
-        if (category === DEFAULT_CATEGORY) {
-          hasDefault = true;
-        }
-        else {
-          categorySet.add(category);
-        }
+  const variantGroups = useMemo(() => {
+    const groupMap = new Map<number, RoleAvatarVariant>();
+    const addGroup = (group: RoleAvatarVariant | undefined) => {
+      const id = normalizeVariantId(group?.variantId);
+      if (id == null) {
+        return;
       }
-      else {
-        hasDefault = true;
+      if (group) {
+        groupMap.set(id, group);
+      }
+    };
+
+    spritesAvatars.forEach(avatar => addGroup(avatar.variantGroup));
+    (variantGroupsQuery.data?.data ?? []).forEach(addGroup);
+
+    return Array.from(groupMap.values()).sort((a, b) => {
+      return getVariantDisplayName(a).localeCompare(getVariantDisplayName(b), "zh-CN");
+    });
+  }, [spritesAvatars, variantGroupsQuery.data]);
+
+  const variantGroupById = useMemo(() => {
+    const map = new Map<number, RoleAvatarVariant>();
+    variantGroups.forEach((group) => {
+      const id = normalizeVariantId(group.variantId);
+      if (id != null) {
+        map.set(id, group);
       }
     });
-    return {
-      categoryOptions: Array.from(categorySet).sort((a, b) => a.localeCompare(b, "zh-CN")),
-      hasDefaultCategory: hasDefault,
-    };
-  }, [spritesAvatars, DEFAULT_CATEGORY]);
+    return map;
+  }, [variantGroups]);
 
-  const filteredIndices = useMemo(() => {
-    if (!categoryFilter) {
-      return spritesAvatars.map((_, index) => index);
-    }
-    if (categoryFilter === DEFAULT_CATEGORY) {
-      return spritesAvatars
-        .map((avatar, index) => {
-          const category = String(avatar.category ?? "").trim();
-          return !category || category === DEFAULT_CATEGORY ? index : -1;
-        })
-        .filter(index => index >= 0);
-    }
-    return spritesAvatars
-      .map((avatar, index) => {
-        const category = String(avatar.category ?? "").trim();
-        return category === categoryFilter ? index : -1;
+  const bindableVariantGroups = useMemo(() => (
+    variantGroups.filter(group => (
+      normalizeVariantId(group.variantId) != null
+      && Boolean(group.compositionConfig)
+    ))
+  ), [variantGroups]);
+
+  const { variantOptions, variantCountMap, variantLabelMap } = useMemo(() => {
+    const countMap = new Map<string, number>();
+    const labelMap = new Map<string, string>();
+    spritesAvatars.forEach((avatar) => {
+      const variant = getAvatarVariantKey(avatar);
+      countMap.set(variant, (countMap.get(variant) ?? 0) + 1);
+      labelMap.set(variant, getAvatarVariantLabel(avatar));
+    });
+    const options = Array.from(countMap.keys()).sort((a, b) => {
+      if (a === UNGROUPED_VARIANT_KEY)
+        return -1;
+      if (b === UNGROUPED_VARIANT_KEY)
+        return 1;
+      return (labelMap.get(a) ?? a).localeCompare(labelMap.get(b) ?? b, "zh-CN");
+    });
+    return { variantOptions: options, variantCountMap: countMap, variantLabelMap: labelMap };
+  }, [spritesAvatars]);
+
+  const variantFolderItems = useMemo(() => (
+    variantGroups
+      .map((variant) => {
+        const variantId = normalizeVariantId(variant.variantId);
+        if (!variantId) {
+          return null;
+        }
+        const variantKey = String(variantId);
+        const firstAvatar = spritesAvatars.find(avatar => (
+          normalizeVariantId(avatar.variantId) === variantId
+          && normalizeVariantId(avatar.avatarId) === normalizeVariantId(variant.baseAvatarId)
+        )) ?? spritesAvatars.find(avatar => normalizeVariantId(avatar.variantId) === variantId);
+        return {
+          variant,
+          variantId,
+          variantKey,
+          label: getVariantDisplayName(variant),
+          count: variantCountMap.get(variantKey) ?? 0,
+          coverUrl: firstAvatar ? getEffectiveAvatarUrl(firstAvatar) : "",
+        };
       })
-      .filter(index => index >= 0);
-  }, [spritesAvatars, categoryFilter]);
+      .filter((item): item is {
+        variant: RoleAvatarVariant;
+        variantId: number;
+        variantKey: string;
+        label: string;
+        count: number;
+        coverUrl: string;
+      } => Boolean(item))
+  ), [spritesAvatars, variantCountMap, variantGroups]);
+
+  const variantFilteredIndices = useMemo(() => (
+    spritesAvatars
+      .map((avatar, index) => (
+        getAvatarVariantKey(avatar) === variantFilter ? index : -1
+      ))
+      .filter(index => index >= 0)
+  ), [spritesAvatars, variantFilter]);
+
+  useEffect(() => {
+    if (variantFilter === UNGROUPED_VARIANT_KEY) {
+      return;
+    }
+    if (variantOptions.includes(variantFilter)) {
+      return;
+    }
+    const pendingVariantId = normalizeVariantId(variantFilter);
+    if (pendingVariantId && variantGroupById.has(pendingVariantId)) {
+      return;
+    }
+    setVariantFilter(UNGROUPED_VARIANT_KEY);
+  }, [variantGroupById, variantOptions, variantFilter]);
+
+  const filteredIndices = variantFilteredIndices;
+  const isVariantGroupView = variantFilter !== UNGROUPED_VARIANT_KEY;
+  const activeVariantId = isVariantGroupView ? normalizeVariantId(variantFilter) : null;
+  const activeVariantGroup = activeVariantId ? variantGroupById.get(activeVariantId) : undefined;
+  const activeVariantLabel = activeVariantGroup
+    ? getVariantDisplayName(activeVariantGroup)
+    : variantLabelMap.get(variantFilter) ?? getFallbackVariantLabel(variantFilter);
 
   const filteredIndexMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -163,13 +605,105 @@ export function SpriteSettingsPopup({
       .filter((avatar): avatar is RoleAvatar => Boolean(avatar)),
     [filteredIndices, spritesAvatars],
   );
+  const spriteCropperItems = useMemo(() => (
+    filteredIndices
+      .map(originalIndex => ({
+        originalIndex,
+        avatar: spritesAvatars[originalIndex],
+      }))
+      .filter((item): item is { originalIndex: number; avatar: RoleAvatar } => (
+        Boolean(item.avatar)
+        && Boolean(getEffectiveOriginUrl(item.avatar))
+      ))
+  ), [filteredIndices, spritesAvatars]);
+  const avatarCropperSourceIndices = useMemo(() => {
+    if (isVariantGroupView) {
+      return filteredIndices;
+    }
+    if (isMultiSelectMode && selectedIndices.size > 0) {
+      return filteredIndices.filter(index => selectedIndices.has(index));
+    }
+    return filteredIndices;
+  }, [filteredIndices, isMultiSelectMode, isVariantGroupView, selectedIndices]);
+  const avatarCropperItems = useMemo(() => (
+    avatarCropperSourceIndices
+      .map(originalIndex => ({
+        originalIndex,
+        avatar: spritesAvatars[originalIndex],
+      }))
+      .filter((item): item is { originalIndex: number; avatar: RoleAvatar } => (
+        Boolean(item.avatar) && Boolean(getSpriteCropSourceUrl(item.avatar))
+      ))
+  ), [avatarCropperSourceIndices, spritesAvatars]);
+  const spriteCropperAvatars = useMemo(
+    () => spriteCropperItems.map(item => item.avatar),
+    [spriteCropperItems],
+  );
+  const avatarCropperAvatars = useMemo(
+    () => avatarCropperItems.map(item => item.avatar),
+    [avatarCropperItems],
+  );
+  const spriteCropperInitialIndex = useMemo(() => {
+    const index = spriteCropperItems.findIndex(item => item.originalIndex === internalIndex);
+    return index >= 0 ? index : 0;
+  }, [internalIndex, spriteCropperItems]);
+  const avatarCropperInitialIndex = useMemo(() => {
+    const index = avatarCropperItems.findIndex(item => item.originalIndex === internalIndex);
+    return index >= 0 ? index : 0;
+  }, [avatarCropperItems, internalIndex]);
+  const spriteCropperSelectedIndices = useMemo(() => {
+    const indexMap = new Map<number, number>();
+    spriteCropperItems.forEach((item, index) => {
+      indexMap.set(item.originalIndex, index);
+    });
+    const next = new Set<number>();
+    selectedIndices.forEach((originalIndex) => {
+      const cropperIndex = indexMap.get(originalIndex);
+      if (cropperIndex !== undefined) {
+        next.add(cropperIndex);
+      }
+    });
+    return next;
+  }, [selectedIndices, spriteCropperItems]);
+  const avatarCropperSelectedIndices = useMemo(() => {
+    const indexMap = new Map<number, number>();
+    avatarCropperItems.forEach((item, index) => {
+      indexMap.set(item.originalIndex, index);
+    });
+    const next = new Set<number>();
+    selectedIndices.forEach((originalIndex) => {
+      const cropperIndex = indexMap.get(originalIndex);
+      if (cropperIndex !== undefined) {
+        next.add(cropperIndex);
+      }
+    });
+    return next;
+  }, [avatarCropperItems, selectedIndices]);
+  const spriteCropperGroupSelectedIndices = useMemo(() => (
+    new Set(spriteCropperItems.map((_, index) => index))
+  ), [spriteCropperItems]);
+  const avatarCropperGroupSelectedIndices = useMemo(() => (
+    new Set(avatarCropperItems.map((_, index) => index))
+  ), [avatarCropperItems]);
+  const effectiveSpriteCropperSelectedIndices = isVariantGroupView
+    ? spriteCropperGroupSelectedIndices
+    : spriteCropperSelectedIndices;
+  const effectiveAvatarCropperSelectedIndices = isVariantGroupView
+    ? avatarCropperGroupSelectedIndices
+    : avatarCropperSelectedIndices;
+  const effectiveSpriteCropperMultiSelectMode = isVariantGroupView
+    ? effectiveSpriteCropperSelectedIndices.size > 0
+    : isMultiSelectMode;
+  const effectiveAvatarCropperMultiSelectMode = isVariantGroupView
+    ? effectiveAvatarCropperSelectedIndices.size > 0
+    : isMultiSelectMode;
 
   const visibleCount = filteredIndices.length;
 
   useEffect(() => {
     setIsMultiSelectMode(false);
     setSelectedIndices(new Set());
-  }, [categoryFilter]);
+  }, [variantFilter]);
 
   useEffect(() => {
     if (filteredIndices.length === 0) {
@@ -187,66 +721,182 @@ export function SpriteSettingsPopup({
     }
     return null;
   }, [spritesAvatars, internalIndex]);
+  const selectedAvatarItems = useMemo(() => (
+    Array.from(selectedIndices)
+      .sort((a, b) => a - b)
+      .map(index => ({
+        index,
+        avatar: spritesAvatars[index],
+      }))
+      .filter((item): item is { index: number; avatar: RoleAvatar } => Boolean(item.avatar))
+  ), [selectedIndices, spritesAvatars]);
+  const variantGroupAvatarItems = useMemo(() => (
+    filteredIndices
+      .map(index => ({
+        index,
+        avatar: spritesAvatars[index],
+      }))
+      .filter((item): item is { index: number; avatar: RoleAvatar } => Boolean(item.avatar))
+  ), [filteredIndices, spritesAvatars]);
+  // 进入立绘组目录时，组本身就是一个隐式多选集。
+  const effectiveSelectedAvatarItems = isVariantGroupView
+    ? variantGroupAvatarItems
+    : selectedAvatarItems;
+  const selectedAvatarCount = selectedAvatarItems.length;
+  const effectiveSelectedAvatarCount = effectiveSelectedAvatarItems.length;
+  const selectedAvatarIds = useMemo(() => (
+    effectiveSelectedAvatarItems
+      .map(({ avatar }) => avatar.avatarId)
+      .filter((avatarId): avatarId is number => typeof avatarId === "number")
+  ), [effectiveSelectedAvatarItems]);
+  const selectedVariantKeys = useMemo(() => {
+    const keys = new Set<string>();
+    effectiveSelectedAvatarItems.forEach(({ avatar }) => {
+      keys.add(getAvatarVariantKey(avatar));
+    });
+    return keys;
+  }, [effectiveSelectedAvatarItems]);
+  const selectedVariantSummary = useMemo(() => {
+    if (selectedVariantKeys.size === 0) {
+      return DEFAULT_VARIANT;
+    }
+    if (selectedVariantKeys.size > 1) {
+      return "混合立绘组";
+    }
+    const [variantKey] = Array.from(selectedVariantKeys);
+    return variantLabelMap.get(variantKey) ?? getFallbackVariantLabel(variantKey);
+  }, [selectedVariantKeys, variantLabelMap]);
+  const selectedMissingCropContextCount = useMemo(() => (
+    effectiveSelectedAvatarItems.filter(({ avatar }) => !avatar.avatarCropContext).length
+  ), [effectiveSelectedAvatarItems]);
+  const selectedWithVariantCount = useMemo(() => (
+    effectiveSelectedAvatarItems.filter(({ avatar }) => getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY).length
+  ), [effectiveSelectedAvatarItems]);
 
   // 当前选中的立绘 URL
-  const currentSpriteUrl = currentAvatar ? (getEffectiveSpriteUrl(currentAvatar) || null) : null;
-  const currentAvatarCropSourceUrl = currentAvatar ? (getSpriteCropSourceUrl(currentAvatar) || null) : null;
+  const currentSpriteCropperAvatar = spriteCropperAvatars[spriteCropperInitialIndex];
+  const currentAvatarCropperAvatar = avatarCropperAvatars[avatarCropperInitialIndex];
+  const currentSpriteUrl = currentSpriteCropperAvatar
+    ? (getEffectiveOriginUrl(currentSpriteCropperAvatar) || null)
+    : null;
+  const canShowCurrentAvatarCropper = Boolean(
+    isVariantGroupView
+    || (isMultiSelectMode && selectedIndices.size > 0)
+    || (currentAvatar && getSpriteCropSourceUrl(currentAvatar)),
+  );
+  const currentAvatarCropSourceUrl = canShowCurrentAvatarCropper && currentAvatarCropperAvatar
+    ? (getSpriteCropSourceUrl(currentAvatarCropperAvatar) || null)
+    : null;
 
   // ========== 上传和删除功能 ==========
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
-
-  // Notification state for upload feedback
-  const [uploadNotification, setUploadNotification] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-
-  // Auto-dismiss notification after 3 seconds
-  useEffect(() => {
-    if (uploadNotification) {
-      const timer = setTimeout(() => {
-        setUploadNotification(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [uploadNotification]);
-
-  // Handle avatar upload
-  const handleAvatarUpload = useCallback(async (data: any, context?: UploadContext) => {
-    const isBatchUpload = Boolean(context?.batch);
+  const handleAvatarUploadFilesSelected = useCallback(async (
+    files: File[],
+    context: AvatarUploadFilesSelectedContext,
+  ) => {
     if (!role?.id) {
-      if (!isBatchUpload) {
-        setUploadNotification({
-          type: "error",
-          message: "角色信息缺失，无法上传头像",
-        });
-      }
-      if (isBatchUpload) {
-        throw new Error("角色信息缺失，无法上传头像");
-      }
+      toast.error("角色信息缺失，无法上传头像");
       return;
     }
 
+    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("请选择图片文件");
+      return;
+    }
+
+    const toastId = `avatar-origin-upload-${Date.now()}`;
+    const createdAvatarIdsByIndex: Array<number | undefined> = [];
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+
     try {
-      // Upload avatar with transform data (autoApply: false, autoNameFirst: true)
-      await uploadAvatar({ ...data, roleId: role.id, autoApply: false, autoNameFirst: true });
+      toast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
+      await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
+        try {
+          const originFile = await uploadMediaFile(file, { scene: 3 });
+          const uploadRes = await uploadAvatar({
+            roleId: role.id,
+            originFileId: originFile.fileId,
+            autoApply: false,
+            autoNameFirst: true,
+          });
+          const uploadedAvatar = uploadRes?.data;
+          const avatarId = normalizeVariantId(uploadedAvatar?.avatarId);
+          if (!avatarId || !uploadedAvatar) {
+            throw new Error("头像创建失败");
+          }
+
+          if (context.uploadDefaults?.category) {
+            await updateRoleAvatarMutation.mutateAsync({
+              ...uploadedAvatar,
+              roleId: uploadedAvatar.roleId ?? role.id,
+              avatarId,
+              category: context.uploadDefaults.category,
+            } as RoleAvatar);
+          }
+
+          createdAvatarIdsByIndex[index] = avatarId;
+          successCount += 1;
+        }
+        catch (error) {
+          failedCount += 1;
+          console.error("上传原图失败:", file.name, error);
+        }
+        finally {
+          completedCount += 1;
+          toast.loading(
+            `正在导入原图：${completedCount}/${imageFiles.length}（成功 ${successCount} 失败 ${failedCount}）`,
+            { id: toastId },
+          );
+        }
+      });
+
+      const createdAvatarIds = createdAvatarIdsByIndex.filter((avatarId): avatarId is number => Boolean(avatarId));
+      if (createdAvatarIds.length === 0) {
+        toast.error("导入失败：没有成功创建头像", { id: toastId });
+        return;
+      }
+
+      setPendingUploadAvatarWorkflow({
+        avatarIds: createdAvatarIds,
+        target: context.target,
+        batchKey: context.batchKey,
+      });
+      toast.success(
+        failedCount > 0
+          ? `部分导入完成：成功 ${successCount}/${imageFiles.length}，继续校正成功项`
+          : `已导入 ${successCount} 个头像，继续校正`,
+        { id: toastId },
+      );
     }
     catch (error) {
-      console.error("头像上传失败:", error);
-      if (!isBatchUpload) {
-        setUploadNotification({
-          type: "error",
-          message: "头像上传失败，请重试",
-        });
-      }
-      throw error;
+      console.error("批量导入头像失败:", error);
+      toast.error(error instanceof Error ? error.message : "导入头像失败", { id: toastId });
     }
-  }, [role, uploadAvatar]);
+  }, [
+    role?.id,
+    updateRoleAvatarMutation,
+    uploadAvatar,
+  ]);
 
   // 内部索引变更处理
   const handleInternalIndexChange = useCallback((index: number) => {
     setInternalIndex(index);
   }, []);
+  const handleSpriteCropperIndexChange = useCallback((index: number) => {
+    const originalIndex = spriteCropperItems[index]?.originalIndex;
+    if (originalIndex !== undefined) {
+      handleInternalIndexChange(originalIndex);
+    }
+  }, [handleInternalIndexChange, spriteCropperItems]);
+  const handleAvatarCropperIndexChange = useCallback((index: number) => {
+    const originalIndex = avatarCropperItems[index]?.originalIndex;
+    if (originalIndex !== undefined) {
+      handleInternalIndexChange(originalIndex);
+    }
+  }, [avatarCropperItems, handleInternalIndexChange]);
 
   const handleAvatarSelectById = useCallback((avatarId: number) => {
     const index = spritesAvatars.findIndex(a => a.avatarId === avatarId);
@@ -344,7 +994,7 @@ export function SpriteSettingsPopup({
       return;
     }
     const avatarToRepair = spritesAvatars.find(avatar => (
-      Boolean(avatar.avatarId) && !avatar.avatarFileId && !avatar.spriteFileId
+      Boolean(avatar.avatarId) && !avatar.avatarFileId && !avatar.spriteFileId && !avatar.originFileId
     ));
     const avatarId = avatarToRepair?.avatarId;
     if (!avatarId || repairedDefaultAvatarIdsRef.current.has(avatarId)) {
@@ -359,11 +1009,6 @@ export function SpriteSettingsPopup({
   }, [isOpen, queryClient, role?.id, spritesAvatars]);
   const { handleBatchDelete, isDeleting: isDeletingAvatar } = deletionHook;
 
-  // 展示预览（仅同步外部索引，不关闭弹窗）
-  const handlePreview = useCallback(() => {
-    onSpriteIndexChange?.(internalIndex);
-  }, [onSpriteIndexChange, internalIndex]);
-
   // 应用完成后关闭弹窗
   const handleApply = useCallback(() => {
     onClose();
@@ -377,14 +1022,6 @@ export function SpriteSettingsPopup({
     setSelectedIndices(indices);
     setIsMultiSelectMode(isMultiMode);
   }, []);
-
-  // 头像设置页禁用多选，并强制回到单选
-  useEffect(() => {
-    if (isMultiSelectDisabled && isMultiSelectMode) {
-      setIsMultiSelectMode(false);
-      setSelectedIndices(new Set());
-    }
-  }, [isMultiSelectDisabled, isMultiSelectMode]);
 
   // 请求批量删除
   const handleBatchDeleteRequest = useCallback(() => {
@@ -429,21 +1066,36 @@ export function SpriteSettingsPopup({
   useEffect(() => {
     if (isOpen && !wasOpen) {
       setActiveTab(defaultTab);
-      // 同步外部索引到内部
-      const validIndex = Math.max(0, Math.min(currentSpriteIndex, spritesAvatars.length - 1));
+      // 弹窗打开默认进入未分组，避免当前应用头像把左侧列表带进某个立绘组。
+      const fallbackIndex = Math.max(0, Math.min(currentSpriteIndex, spritesAvatars.length - 1));
+      const ungroupedIndex = spritesAvatars.findIndex(avatar => (
+        getAvatarVariantKey(avatar) === UNGROUPED_VARIANT_KEY
+      ));
+      const validIndex = ungroupedIndex >= 0 ? ungroupedIndex : fallbackIndex;
       setInternalIndex(validIndex);
+      setVariantFilter(ungroupedIndex >= 0
+        ? UNGROUPED_VARIANT_KEY
+        : getAvatarVariantKey(spritesAvatars[validIndex]));
       setIsMobileControlDrawerOpen(isMobile);
     }
     setWasOpen(isOpen);
-  }, [isOpen, wasOpen, defaultTab, currentSpriteIndex, spritesAvatars.length, isMobile]);
+  }, [isOpen, wasOpen, defaultTab, currentSpriteIndex, spritesAvatars, isMobile]);
 
   useEffect(() => {
     if (!isOpen) {
       setIsMobileControlDrawerOpen(false);
+      setPendingVariantInitialization(null);
+      setPendingUploadAvatarWorkflow(null);
+      setPendingUploadSpriteCalibration(null);
+      setPendingVariantSpriteCalibrationIndices(null);
+      setBatchVariantCreationPrompt(null);
     }
   }, [isOpen]);
 
   const handleTabChange = useCallback((tab: SettingsTab) => {
+    if (tab !== "avatarCropper") {
+      setPendingVariantInitialization(null);
+    }
     setActiveTab(tab);
     if (isMobile) {
       setIsMobileControlDrawerOpen(false);
@@ -451,8 +1103,6 @@ export function SpriteSettingsPopup({
   }, [isMobile]);
 
   const activeTabLabel = useMemo(() => {
-    if (activeTab === "preview")
-      return "渲染预览";
     if (activeTab === "cropper")
       return "立绘校正";
     if (activeTab === "avatarCropper")
@@ -462,46 +1112,1008 @@ export function SpriteSettingsPopup({
     return "回收站";
   }, [activeTab]);
 
+  const roleDisplayName = characterName.trim() || "角色";
+  const avatarListTitle = isVariantGroupView
+    ? `${roleDisplayName}【${activeVariantLabel}】`
+    : roleDisplayName;
+  const currentUploadVariantId = activeVariantId ?? undefined;
+  const currentUploadVariantGroup = activeVariantGroup;
+  const isVariantMutationPending = createVariantMutation.isPending
+    || updateVariantMutation.isPending
+    || updateRoleAvatarMutation.isPending
+    || applyCropAvatarMutation.isPending;
+  const isVariantWorkflowPending = Boolean(pendingVariantInitialization)
+    || Boolean(pendingVariantSpriteCalibrationIndices)
+    || isVariantMutationPending;
+  const handleVariantFilterChange = useCallback((nextVariant: string) => {
+    setVariantFilter(nextVariant);
+    const firstVariantIndex = spritesAvatars.findIndex(avatar => (
+      getAvatarVariantKey(avatar) === nextVariant
+    ));
+    if (firstVariantIndex >= 0) {
+      setInternalIndex(firstVariantIndex);
+    }
+  }, [spritesAvatars]);
+
+  const getVariantCreationIndices = useCallback(() => {
+    if (!role?.id) {
+      toast.error("角色信息缺失，无法新建立绘组");
+      return null;
+    }
+
+    const sourceItems = isMultiSelectMode && selectedAvatarItems.length > 0
+      ? selectedAvatarItems
+      : currentAvatar
+        ? [{ index: internalIndex, avatar: currentAvatar }]
+        : [];
+    const validIndices: number[] = [];
+    let needsSpriteCalibration = false;
+    let allHaveOrigin = true;
+    const seen = new Set<number>();
+
+    for (const { index, avatar } of sourceItems) {
+      if (seen.has(index)) {
+        continue;
+      }
+      seen.add(index);
+      if (getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY) {
+        toast.error("所选头像包含已绑定立绘组的头像");
+        return null;
+      }
+      const originUrl = getEffectiveOriginUrl(avatar);
+      const spriteCropSourceUrl = getSpriteCropSourceUrl(avatar);
+      allHaveOrigin = allHaveOrigin && Boolean(originUrl);
+      if (!avatar.avatarId || (!originUrl && !spriteCropSourceUrl)) {
+        toast.error("所选头像需要都有原图或已生成立绘");
+        return null;
+      }
+      const hasSpriteCropContext = Boolean(
+        avatar.spriteCropContext?.crop
+        && avatar.spriteCropContext.sourceWidth
+        && avatar.spriteCropContext.sourceHeight,
+      );
+      if (!hasSpriteCropContext) {
+        if (!originUrl) {
+          toast.error("所选头像缺少原图，无法补齐立绘校正");
+          return null;
+        }
+        needsSpriteCalibration = true;
+      }
+      if (hasSpriteCropContext && !spriteCropSourceUrl) {
+        toast.error("所选头像缺少已生成立绘，请先完成立绘裁剪");
+        return null;
+      }
+      validIndices.push(index);
+    }
+
+    if (validIndices.length === 0) {
+      toast.error("没有可用于新建立绘组的头像");
+      return null;
+    }
+    if (needsSpriteCalibration && !allHaveOrigin) {
+      toast.error("本批次需要补齐立绘校正，所选头像都必须有原图");
+      return null;
+    }
+    return {
+      indices: validIndices,
+      needsSpriteCalibration,
+    };
+  }, [currentAvatar, internalIndex, isMultiSelectMode, role?.id, selectedAvatarItems]);
+
+  const handleCreateVariantFromCurrentAvatar = useCallback(() => {
+    const creation = getVariantCreationIndices();
+    if (!creation) {
+      return;
+    }
+    const { indices: validIndices, needsSpriteCalibration } = creation;
+
+    if (needsSpriteCalibration) {
+      const baseIndex = validIndices.includes(internalIndex) ? internalIndex : validIndices[0];
+      setInternalIndex(baseIndex);
+      setSelectedIndices(new Set(validIndices));
+      setIsMultiSelectMode(validIndices.length > 1);
+      setPendingVariantSpriteCalibrationIndices(validIndices);
+      setActiveTab("cropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
+      toast("先完成立绘校正，完成后继续创建立绘组");
+      return;
+    }
+
+    setVariantCreationIndices(validIndices);
+    setVariantNameDraft(`立绘组 ${variantGroups.length + 1}`);
+    setVariantNameDialogOpen(true);
+  }, [getVariantCreationIndices, internalIndex, isMobile, variantGroups.length]);
+
+  const handleConfirmVariantName = useCallback((nextName: string) => {
+    const name = nextName.trim();
+    if (!name) {
+      toast.error("请输入立绘组名称");
+      return;
+    }
+    if (variantCreationIndices.length === 0) {
+      toast.error("没有可用于新建立绘组的头像");
+      return;
+    }
+
+    const validIndices = variantCreationIndices.filter(index => Boolean(spritesAvatars[index]));
+    if (validIndices.length === 0) {
+      toast.error("没有可用于新建立绘组的头像");
+      return;
+    }
+
+    const baseIndex = validIndices.includes(internalIndex) ? internalIndex : validIndices[0];
+    setInternalIndex(baseIndex);
+    if (validIndices.length > 1) {
+      setIsMultiSelectMode(true);
+      setSelectedIndices(new Set(validIndices));
+    }
+    else {
+      setIsMultiSelectMode(false);
+      setSelectedIndices(new Set());
+    }
+    setPendingVariantInitialization({ name });
+    setVariantNameDialogOpen(false);
+    setVariantCreationIndices([]);
+    setActiveTab("avatarCropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [
+    internalIndex,
+    isMobile,
+    spritesAvatars,
+    variantCreationIndices,
+  ]);
+
+  const handleCancelVariantName = useCallback(() => {
+    setVariantNameDialogOpen(false);
+    setVariantCreationIndices([]);
+  }, []);
+
+  const handleOpenSpriteCropperForSelection = useCallback(() => {
+    if (effectiveSelectedAvatarItems.length === 0) {
+      toast.error("请先选择头像");
+      return;
+    }
+    const firstCropCandidate = effectiveSelectedAvatarItems.find(({ avatar }) => getEffectiveOriginUrl(avatar));
+    if (!firstCropCandidate) {
+      toast.error("所选头像缺少可用于立绘校正的原图");
+      return;
+    }
+    setInternalIndex(firstCropCandidate.index);
+    setActiveTab("cropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [effectiveSelectedAvatarItems, isMobile]);
+
+  const handleOpenAvatarCropperForSelection = useCallback(() => {
+    if (effectiveSelectedAvatarItems.length === 0) {
+      toast.error("请先选择头像");
+      return;
+    }
+    const firstCropCandidate = effectiveSelectedAvatarItems.find(({ avatar }) => getSpriteCropSourceUrl(avatar));
+    if (!firstCropCandidate) {
+      toast.error("所选头像缺少可裁剪的立绘源图");
+      return;
+    }
+    setInternalIndex(firstCropCandidate.index);
+    setActiveTab("avatarCropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [effectiveSelectedAvatarItems, isMobile]);
+
+  const handleBatchSpriteCropApplied = useCallback((result: BatchSpriteCropApplyResult) => {
+    if (isVariantGroupView) {
+      return;
+    }
+    if (result.successCount <= 0) {
+      return;
+    }
+    const updatedAvatarIds = new Set(
+      result.avatars
+        .map(avatar => avatar.avatarId)
+        .filter((avatarId): avatarId is number => typeof avatarId === "number"),
+    );
+    const updatedIndices = spritesAvatars
+      .map((avatar, index) => (
+        avatar.avatarId && updatedAvatarIds.has(avatar.avatarId) ? index : -1
+      ))
+      .filter(index => index >= 0);
+    if (pendingUploadSpriteCalibration) {
+      const successfulUploadIds = pendingUploadSpriteCalibration.avatarIds
+        .filter(avatarId => updatedAvatarIds.size === 0 || updatedAvatarIds.has(avatarId));
+      const uploadIndices = successfulUploadIds
+        .map(avatarId => spritesAvatars.findIndex(avatar => normalizeVariantId(avatar.avatarId) === avatarId))
+        .filter(index => index >= 0);
+
+      if (uploadIndices.length === 0) {
+        toast.error("没有可继续头像校正的上传头像");
+        setPendingUploadSpriteCalibration(null);
+        return;
+      }
+
+      const baseIndex = uploadIndices.includes(internalIndex) ? internalIndex : uploadIndices[0];
+      setInternalIndex(baseIndex);
+      setSelectedIndices(new Set(uploadIndices));
+      setIsMultiSelectMode(uploadIndices.length > 1);
+      setPendingUploadSpriteCalibration(null);
+
+      const { target } = pendingUploadSpriteCalibration;
+      if (target.mode === "new") {
+        setPendingVariantInitialization({ name: target.name });
+      }
+      else if (target.mode === "existing" && !target.variantGroup?.compositionConfig) {
+        setPendingVariantInitialization({
+          name: target.variantGroup ? getVariantDisplayName(target.variantGroup) : `立绘组 ${target.variantId}`,
+          existingVariantId: target.variantId,
+        });
+      }
+      else {
+        setPendingVariantInitialization(null);
+      }
+      setActiveTab("avatarCropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
+      toast("立绘校正完成，继续头像校正");
+      return;
+    }
+    if (pendingVariantSpriteCalibrationIndices) {
+      const fallbackIndices = pendingVariantSpriteCalibrationIndices
+        .filter(index => Boolean(spritesAvatars[index]));
+      const calibratedIndexSet = new Set(fallbackIndices);
+      const nextIndices = updatedIndices
+        .filter(index => calibratedIndexSet.has(index));
+      const creationIndices = nextIndices.length > 0 ? nextIndices : fallbackIndices;
+      if (creationIndices.length === 0) {
+        toast.error("没有可用于新建立绘组的头像");
+        setPendingVariantSpriteCalibrationIndices(null);
+        return;
+      }
+      setVariantCreationIndices(creationIndices);
+      setVariantNameDraft(`立绘组 ${variantGroups.length + 1}`);
+      setVariantNameDialogOpen(true);
+      setPendingVariantSpriteCalibrationIndices(null);
+      return;
+    }
+    const fallbackIndices = Array.from(selectedIndices).filter(index => Boolean(spritesAvatars[index]));
+
+    setBatchVariantCreationPrompt({
+      indices: updatedIndices.length > 0 ? updatedIndices : fallbackIndices,
+      successCount: result.successCount,
+      failedCount: result.failedCount,
+      totalCount: result.totalCount,
+    });
+  }, [
+    internalIndex,
+    isVariantGroupView,
+    isMobile,
+    pendingUploadSpriteCalibration,
+    pendingVariantSpriteCalibrationIndices,
+    selectedIndices,
+    spritesAvatars,
+    variantGroups.length,
+  ]);
+
+  const handleCancelBatchVariantCreation = useCallback(() => {
+    setBatchVariantCreationPrompt(null);
+  }, []);
+
+  const handleConfirmBatchVariantCreation = useCallback(() => {
+    if (!batchVariantCreationPrompt) {
+      return;
+    }
+    const validIndices = batchVariantCreationPrompt.indices.filter(index => Boolean(spritesAvatars[index]));
+    if (validIndices.length === 0) {
+      toast.error("没有可用于新建立绘组的头像");
+      setBatchVariantCreationPrompt(null);
+      return;
+    }
+
+    const invalidAvatar = validIndices
+      .map(index => spritesAvatars[index])
+      .find(avatar => !avatar || getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY);
+    if (invalidAvatar) {
+      toast.error("所选头像包含已绑定立绘组的头像");
+      setBatchVariantCreationPrompt(null);
+      return;
+    }
+
+    setVariantCreationIndices(validIndices);
+    setVariantNameDraft(`立绘组 ${variantGroups.length + 1}`);
+    setVariantNameDialogOpen(true);
+    setBatchVariantCreationPrompt(null);
+  }, [batchVariantCreationPrompt, spritesAvatars, variantGroups.length]);
+
+  const handleBatchUnassignVariant = useCallback(async () => {
+    if (!role?.id || effectiveSelectedAvatarItems.length === 0) {
+      toast.error("请先选择头像");
+      return;
+    }
+    const avatarsToUpdate = effectiveSelectedAvatarItems
+      .map(({ avatar }) => avatar)
+      .filter(avatar => getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY);
+    if (avatarsToUpdate.length === 0) {
+      toast.error("所选头像均未绑定立绘组");
+      return;
+    }
+
+    try {
+      await Promise.all(avatarsToUpdate.map(avatar => updateRoleAvatarMutation.mutateAsync({
+        ...avatar,
+        roleId: avatar.roleId ?? role.id,
+        variantId: null,
+        variantGroup: undefined,
+      } as unknown as RoleAvatar)));
+      setSelectedIndices(new Set());
+      setIsMultiSelectMode(false);
+      setVariantFilter(UNGROUPED_VARIANT_KEY);
+      toast.success(`已移出 ${avatarsToUpdate.length} 个头像`);
+    }
+    catch (error) {
+      console.error("批量移出立绘组失败:", error);
+      toast.error("移出失败，请稍后重试");
+    }
+  }, [effectiveSelectedAvatarItems, role?.id, updateRoleAvatarMutation]);
+
+  const assignAvatarItemsToVariant = useCallback(async (
+    avatarItems: Array<{ index: number; avatar: RoleAvatar }>,
+    variantId: number,
+    options?: {
+      allowReassign?: boolean;
+      actionLabel?: string;
+      switchToVariant?: boolean;
+    },
+  ) => {
+    if (!role?.id || !variantId) {
+      toast.error("请选择要绑定的立绘组");
+      return false;
+    }
+    const variantGroup = variantGroupById.get(variantId);
+    if (!variantGroup?.compositionConfig) {
+      toast.error("该立绘组缺少合成配置，无法绑定");
+      return false;
+    }
+    if (avatarItems.length === 0) {
+      toast.error("请先选择头像");
+      return false;
+    }
+
+    const uniqueItems = Array.from(
+      new Map(avatarItems.map(item => [
+        item.avatar.avatarId ?? item.index,
+        item,
+      ])).values(),
+    );
+    const targetVariantKey = String(variantId);
+    const itemsToAssign = uniqueItems.filter(({ avatar }) => (
+      getAvatarVariantKey(avatar) !== targetVariantKey
+    ));
+
+    if (!options?.allowReassign && uniqueItems.some(({ avatar }) => (
+      getAvatarVariantKey(avatar) !== UNGROUPED_VARIANT_KEY
+    ))) {
+      toast.error("所选头像包含已绑定立绘组的头像，请先移出原组");
+      return false;
+    }
+    if (itemsToAssign.length === 0) {
+      toast.success("所选头像已在该立绘组中");
+      if (options?.switchToVariant !== false) {
+        setVariantFilter(targetVariantKey);
+      }
+      return true;
+    }
+
+    const actionLabel = options?.actionLabel ?? "绑定立绘组";
+    const toastId = `sprite-batch-assign-variant-${Date.now()}`;
+    const variantTransform = parseTransformFromVariantConfig(variantGroup.compositionConfig);
+    const variantSpriteTransform = toSpriteTransformPayload(variantTransform);
+    let completedCount = 0;
+    let successCount = 0;
+    let failedCount = 0;
+    try {
+      toast.loading(`正在${actionLabel}：0/${itemsToAssign.length}`, { id: toastId });
+      await runWithConcurrencyLimit(itemsToAssign, 4, async ({ avatar }) => {
+        try {
+          const roleId = avatar.roleId ?? role.id;
+          if (!roleId || !avatar.avatarId) {
+            throw new Error("头像信息缺失");
+          }
+
+          const croppedResult = await createCroppedSpriteAndAvatarByVariantConfig(
+            avatar,
+            variantGroup.compositionConfig!,
+          );
+          const spriteUpdateRes = await applyCropMutation.mutateAsync({
+            roleId,
+            avatarId: avatar.avatarId,
+            croppedImageBlob: croppedResult.spriteBlob,
+            transform: variantTransform,
+            currentAvatar: avatar,
+            spriteCropContext: croppedResult.spriteCropContext,
+          });
+          const spriteUpdatedAvatar = spriteUpdateRes?.data ?? {
+            ...avatar,
+            spriteCropContext: croppedResult.spriteCropContext,
+            spriteTransform: variantSpriteTransform ?? avatar.spriteTransform,
+          };
+          const avatarCropContext = createAvatarCropContextFromVariantConfig(
+            variantGroup.compositionConfig,
+            spriteUpdatedAvatar.spriteFileId,
+          );
+          if (!avatarCropContext) {
+            throw new Error("无法应用目标立绘组的头像槽位");
+          }
+          await applyCropAvatarMutation.mutateAsync({
+            roleId,
+            avatarId: avatar.avatarId,
+            croppedImageBlob: croppedResult.avatarBlob,
+            currentAvatar: spriteUpdatedAvatar,
+            avatarCropContext,
+            variantId,
+          });
+
+          successCount += 1;
+        }
+        catch (error) {
+          failedCount += 1;
+          console.error("绑定立绘组时处理头像失败:", avatar.avatarId, error);
+        }
+        finally {
+          completedCount += 1;
+          toast.loading(`正在${actionLabel}：${completedCount}/${itemsToAssign.length}`, { id: toastId });
+        }
+      });
+
+      if (successCount === 0) {
+        toast.error("绑定失败：所选头像无法应用该立绘组", { id: toastId });
+        return false;
+      }
+
+      setSelectedIndices(new Set());
+      setIsMultiSelectMode(false);
+      if (options?.switchToVariant !== false) {
+        setVariantFilter(targetVariantKey);
+      }
+      if (failedCount > 0) {
+        toast.error(`部分绑定失败：成功 ${successCount} 个，失败 ${failedCount} 个`, { id: toastId });
+      }
+      else {
+        toast.success(`已绑定 ${successCount} 个头像`, { id: toastId });
+      }
+      return true;
+    }
+    catch (error) {
+      console.error("批量绑定立绘组失败:", error);
+      toast.error("绑定失败，请稍后重试", { id: toastId });
+      return false;
+    }
+  }, [
+    applyCropAvatarMutation,
+    applyCropMutation,
+    role?.id,
+    variantGroupById,
+  ]);
+
+  useEffect(() => {
+    if (!pendingUploadAvatarWorkflow) {
+      return;
+    }
+
+    const uploadedItems = pendingUploadAvatarWorkflow.avatarIds
+      .map((avatarId) => {
+        const index = spritesAvatars.findIndex(avatar => normalizeVariantId(avatar.avatarId) === avatarId);
+        return index >= 0 && spritesAvatars[index]
+          ? { index, avatar: spritesAvatars[index]! }
+          : null;
+      })
+      .filter((item): item is { index: number; avatar: RoleAvatar } => Boolean(item));
+
+    if (uploadedItems.length < pendingUploadAvatarWorkflow.avatarIds.length) {
+      return;
+    }
+
+    const uploadedIndices = uploadedItems.map(item => item.index);
+    const firstIndex = uploadedIndices[0];
+    if (firstIndex !== undefined) {
+      setInternalIndex(firstIndex);
+    }
+    setSelectedIndices(new Set(uploadedIndices));
+    setIsMultiSelectMode(uploadedIndices.length > 1);
+    setPendingUploadAvatarWorkflow(null);
+
+    const { target } = pendingUploadAvatarWorkflow;
+    if (target.mode === "existing" && target.variantGroup?.compositionConfig) {
+      void assignAvatarItemsToVariant(uploadedItems, target.variantId, {
+        allowReassign: true,
+        actionLabel: "应用立绘组",
+      });
+      return;
+    }
+
+    setPendingUploadSpriteCalibration(pendingUploadAvatarWorkflow);
+    setVariantFilter(UNGROUPED_VARIANT_KEY);
+    setActiveTab("cropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+    toast("先完成立绘校正，完成后继续头像校正");
+  }, [
+    assignAvatarItemsToVariant,
+    isMobile,
+    pendingUploadAvatarWorkflow,
+    spritesAvatars,
+  ]);
+
+  const handleBatchAssignVariant = useCallback(async () => {
+    const variantId = normalizeVariantId(batchTargetVariantId);
+    if (!variantId) {
+      toast.error("请选择要绑定的立绘组");
+      return;
+    }
+    await assignAvatarItemsToVariant(effectiveSelectedAvatarItems, variantId, {
+      allowReassign: false,
+      actionLabel: "绑定立绘组",
+    });
+  }, [assignAvatarItemsToVariant, batchTargetVariantId, effectiveSelectedAvatarItems]);
+
+  const handleAvatarListDragStart = useCallback((filteredIndex: number) => {
+    const originalIndex = filteredIndices[filteredIndex];
+    if (originalIndex === undefined || !spritesAvatars[originalIndex]) {
+      setDraggedAvatarIndices([]);
+      return;
+    }
+
+    const dragIndices = isMultiSelectMode && selectedIndices.has(originalIndex)
+      ? Array.from(selectedIndices)
+      : [originalIndex];
+    const nextIndices = Array.from(new Set(dragIndices))
+      .filter(index => Boolean(spritesAvatars[index]));
+    setDraggedAvatarIndices(nextIndices);
+  }, [filteredIndices, isMultiSelectMode, selectedIndices, spritesAvatars]);
+
+  const handleAvatarListDragEnd = useCallback(() => {
+    setDraggedAvatarIndices([]);
+    setVariantDropTarget(null);
+  }, []);
+
+  const handleVariantFolderDragOver = useCallback((
+    event: DragEvent<HTMLButtonElement>,
+    variantKey: string,
+  ) => {
+    if (draggedAvatarIndices.length === 0) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setVariantDropTarget(variantKey);
+  }, [draggedAvatarIndices.length]);
+
+  const handleVariantFolderDrop = useCallback(async (
+    event: DragEvent<HTMLButtonElement>,
+    variantId: number,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const avatarItems = draggedAvatarIndices
+      .map(index => ({
+        index,
+        avatar: spritesAvatars[index],
+      }))
+      .filter((item): item is { index: number; avatar: RoleAvatar } => Boolean(item.avatar));
+
+    setDraggedAvatarIndices([]);
+    setVariantDropTarget(null);
+    if (avatarItems.length === 0) {
+      return;
+    }
+
+    await assignAvatarItemsToVariant(avatarItems, variantId, {
+      allowReassign: true,
+      actionLabel: "移动到立绘组",
+    });
+  }, [assignAvatarItemsToVariant, draggedAvatarIndices, spritesAvatars]);
+
+  const handleVariantInitializationComplete = useCallback(async (result: VariantInitializationCropResult) => {
+    if (!role?.id || !pendingVariantInitialization) {
+      throw new Error("立绘组创建状态已失效");
+    }
+    if (!result.baseAvatar.avatarId) {
+      throw new Error("基准头像信息缺失，无法创建立绘组");
+    }
+    if (result.croppedAvatars.length === 0) {
+      throw new Error("没有可绑定到立绘组的裁剪结果");
+    }
+
+    let variantId: number;
+    if (pendingVariantInitialization.existingVariantId) {
+      const currentVariant = variantGroupById.get(pendingVariantInitialization.existingVariantId);
+      await updateVariantMutation.mutateAsync({
+        variantId: pendingVariantInitialization.existingVariantId,
+        name: currentVariant?.name ?? pendingVariantInitialization.name,
+        baseAvatarId: currentVariant?.baseAvatarId ?? result.baseAvatar.avatarId,
+        compositionConfig: result.compositionConfig,
+      });
+      variantId = pendingVariantInitialization.existingVariantId;
+    }
+    else {
+      const createRes = await createVariantMutation.mutateAsync({
+        roleId: role.id,
+        baseAvatarId: result.baseAvatar.avatarId,
+        name: pendingVariantInitialization.name,
+        compositionConfig: result.compositionConfig,
+      });
+      variantId = Number(createRes.data?.variantId ?? 0);
+    }
+    if (!Number.isFinite(variantId) || variantId <= 0) {
+      throw new Error("初始化立绘组失败");
+    }
+
+    const variantSpriteTransform = toSpriteTransformPayload(parseTransformFromVariantConfig(result.compositionConfig));
+    await Promise.all(result.croppedAvatars.map(item => updateRoleAvatarMutation.mutateAsync({
+      ...item.avatar,
+      roleId: item.avatar.roleId ?? role.id,
+      variantId: Math.floor(variantId),
+      avatarCropContext: item.avatarCropContext,
+      spriteTransform: variantSpriteTransform ?? item.avatar.spriteTransform,
+    } as RoleAvatar)));
+
+    setPendingVariantInitialization(null);
+    setVariantFilter(String(Math.floor(variantId)));
+    setIsMultiSelectMode(false);
+    setSelectedIndices(new Set());
+    toast.success(`已初始化立绘组，绑定 ${result.croppedAvatars.length} 个头像`);
+  }, [
+    createVariantMutation,
+    pendingVariantInitialization,
+    role?.id,
+    updateRoleAvatarMutation,
+    updateVariantMutation,
+    variantGroupById,
+  ]);
+
+  const variantFoldersSlot = !isVariantGroupView && (
+    <section className="min-w-0 space-y-2">
+      <div className="flex min-w-0 items-center justify-between gap-2 px-1">
+        <span className="truncate text-xs font-semibold text-base-content/75">
+          立绘组
+        </span>
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs h-6 min-h-0 gap-1 px-1.5"
+          onClick={handleCreateVariantFromCurrentAvatar}
+          disabled={isVariantWorkflowPending}
+        >
+          <PlusIcon className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>{isVariantWorkflowPending ? "新建中" : "新建"}</span>
+        </button>
+      </div>
+      <div
+        className="grid w-full min-w-0 gap-2"
+        style={{ gridTemplateColumns: AVATAR_FOLDER_GRID_TEMPLATE_COLUMNS }}
+      >
+        {variantFolderItems.map((item) => {
+          const isDropTarget = item.variantKey === variantDropTarget;
+          return (
+            <div key={item.variantKey} className="min-w-0">
+              <button
+                type="button"
+                className={`
+                  relative aspect-square w-full overflow-hidden rounded-lg border-2
+                  bg-base-200 transition-[border-color,box-shadow,background-color]
+                  border-base-300 hover:border-primary/50 hover:bg-base-300
+                  ${isDropTarget ? "border-primary bg-primary/10 ring-2 ring-primary/40" : ""}
+                `}
+                title={`${item.label} · ${item.count}`}
+                aria-label={`打开立绘组 ${item.label}`}
+                onClick={() => handleVariantFilterChange(item.variantKey)}
+                onDragOver={event => handleVariantFolderDragOver(event, item.variantKey)}
+                onDragLeave={() => {
+                  if (variantDropTarget === item.variantKey) {
+                    setVariantDropTarget(null);
+                  }
+                }}
+                onDrop={event => handleVariantFolderDrop(event, item.variantId)}
+              >
+                {item.coverUrl
+                  ? (
+                      <MediaImage
+                        src={item.coverUrl}
+                        alt={item.label}
+                        className="size-full object-cover"
+                        loading="lazy"
+                        draggable={false}
+                      />
+                    )
+                  : (
+                      <div className="
+                        flex size-full items-center justify-center text-base-content/45
+                      ">
+                        <FolderOpenIcon className="size-9" weight="duotone" aria-hidden="true" />
+                      </div>
+                    )}
+                <span className="
+                  absolute right-1 top-1 rounded-md bg-base-100/90 p-1
+                  text-base-content shadow-sm
+                ">
+                  <FolderOpenIcon className="size-3.5" weight="fill" aria-hidden="true" />
+                </span>
+                {isDropTarget && (
+                  <span className="
+                    absolute inset-0 flex items-center justify-center
+                    bg-primary/15 text-xs font-semibold text-primary
+                  ">
+                    放入
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                className="
+                  mt-1 block w-full truncate text-center text-xs
+                  text-base-content/70 hover:text-base-content
+                "
+                title={`${item.label} · ${item.count}`}
+                onClick={() => handleVariantFilterChange(item.variantKey)}
+              >
+                {item.label}
+                <span className="text-base-content/45">
+                  {" "}
+                  ·
+                  {" "}
+                  {item.count}
+                </span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+
+  const batchTargetVariantLabel = (() => {
+    const variantId = normalizeVariantId(batchTargetVariantId);
+    if (!variantId) {
+      return bindableVariantGroups.length === 0 ? "无可绑定立绘组" : "选择立绘组";
+    }
+    const variant = variantGroupById.get(variantId);
+    return variant ? getVariantDisplayName(variant) : "选择立绘组";
+  })();
+
+  const batchSettingsPanel = (
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-4 overflow-auto">
+      <div className="
+        flex shrink-0 flex-col gap-3 border-b border-base-300/70 pb-4
+        lg:flex-row lg:items-center lg:justify-between
+      ">
+        <div className="min-w-0">
+          <h3 className="text-lg font-semibold">
+            {isVariantGroupView ? "立绘组设置" : "批量设置"}
+          </h3>
+          <p className="mt-1 text-sm text-base-content/60">
+            {isVariantGroupView ? "组内" : "已选"}
+            {" "}
+            <span className="font-medium text-base-content">{effectiveSelectedAvatarCount}</span>
+            {" "}
+            个头像
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
+          <span className="rounded-md border border-base-300 bg-base-200/50 px-2 py-1">
+            {selectedVariantSummary}
+          </span>
+          {selectedMissingCropContextCount > 0 && (
+            <span className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-warning-content">
+              {selectedMissingCropContextCount}
+              {" "}
+              个头像将自动校正
+            </span>
+          )}
+          {selectedAvatarIds.length > 0 && (
+            <span className="rounded-md border border-base-300 bg-base-200/50 px-2 py-1 font-mono">
+              #
+              {selectedAvatarIds.slice(0, 3).join(" #")}
+              {selectedAvatarIds.length > 3 ? " ..." : ""}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <section className="rounded-md border border-base-300 bg-base-100 p-4">
+        <div className="flex items-start gap-3">
+          <CropIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <h4 className="font-medium">立绘校正</h4>
+            <p className="mt-1 text-sm text-base-content/60">
+              先批量裁剪并上传立绘；完成后可继续创建新的立绘组。
+            </p>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm mt-3"
+              onClick={handleOpenSpriteCropperForSelection}
+              disabled={effectiveSelectedAvatarCount === 0}
+            >
+              进入立绘校正
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-md border border-base-300 bg-base-100 p-4">
+        <div className="flex items-start gap-3">
+          <UserFocusIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <h4 className="font-medium">头像校正</h4>
+            <p className="mt-1 text-sm text-base-content/60">
+              对所选头像批量裁剪，或应用已有立绘组的头像槽位。
+            </p>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm mt-3"
+              onClick={handleOpenAvatarCropperForSelection}
+              disabled={effectiveSelectedAvatarCount === 0}
+            >
+              进入头像校正
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {!isVariantGroupView && (
+        <section className="rounded-md border border-base-300 bg-base-100 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <h4 className="font-medium">绑定到已有立绘组</h4>
+              <p className="mt-1 text-sm text-base-content/60">
+                自动按所选立绘组的头像槽位补齐校正并绑定。
+              </p>
+            </div>
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+              <div className="dropdown dropdown-end w-full sm:w-56">
+                <button
+                  type="button"
+                  tabIndex={0}
+                  className="
+                    btn btn-outline btn-sm w-full justify-between gap-2 rounded-md px-3
+                  "
+                  disabled={isVariantMutationPending || bindableVariantGroups.length === 0}
+                  title={`目标立绘组：${batchTargetVariantLabel}`}
+                  aria-label="选择目标立绘组"
+                >
+                  <span className="truncate">{batchTargetVariantLabel}</span>
+                  <CaretDownIcon className="size-3.5 shrink-0" aria-hidden="true" />
+                </button>
+                <ul className="
+                  dropdown-content menu bg-base-100 rounded-box shadow-xl border
+                  border-base-300 z-40 mt-1 w-56 p-2
+                ">
+                  {bindableVariantGroups.length === 0
+                    ? (
+                        <li>
+                          <span className="text-base-content/50">无可绑定立绘组</span>
+                        </li>
+                      )
+                    : bindableVariantGroups.map((variant) => {
+                        const variantId = normalizeVariantId(variant.variantId);
+                        if (!variantId) {
+                          return null;
+                        }
+                        const variantLabel = getVariantDisplayName(variant);
+                        return (
+                          <li key={variantId}>
+                            <button
+                              type="button"
+                              className={String(variantId) === batchTargetVariantId ? "active font-semibold" : ""}
+                              onClick={() => setBatchTargetVariantId(String(variantId))}
+                            >
+                              <span className="min-w-0 flex-1 truncate text-left">{variantLabel}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                </ul>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleBatchAssignVariant}
+                disabled={
+                  isVariantMutationPending
+                  || effectiveSelectedAvatarCount === 0
+                  || !batchTargetVariantId
+                }
+              >
+                {isVariantMutationPending ? "绑定中..." : "绑定"}
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="rounded-md border border-base-300 bg-base-100 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h4 className="font-medium">{isVariantGroupView ? "管理组内头像" : "管理所选头像"}</h4>
+            <p className="mt-1 text-sm text-base-content/60">
+              {isVariantGroupView
+                ? "可将组内头像移回未分组，再重新校正或绑定。"
+                : "已绑定立绘组的头像可先移出，再重新校正或绑定。"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={handleBatchUnassignVariant}
+              disabled={isVariantMutationPending || selectedWithVariantCount === 0}
+            >
+              移出立绘组
+            </button>
+            {!isVariantGroupView && (
+              <button
+                type="button"
+                className="btn btn-error btn-sm"
+                onClick={handleBatchDeleteRequest}
+                disabled={selectedAvatarCount === 0}
+              >
+                删除所选
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
   const avatarListPanel = (
     <>
       {/* 头像列表标题栏 */}
       <div className="shrink-0 border-b border-base-300 bg-base-200/50">
-        <div className="flex justify-between items-center p-3">
-          <h3 className="text-lg font-semibold">头像列表</h3>
-          <div className="flex gap-2">
+        <div className="
+          flex items-center justify-between gap-2 p-3
+        ">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {isVariantGroupView && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-square btn-xs shrink-0"
+                onClick={() => handleVariantFilterChange(UNGROUPED_VARIANT_KEY)}
+                title="返回未分组"
+                aria-label="返回未分组"
+              >
+                <ArrowLeftIcon className="size-4" aria-hidden="true" />
+              </button>
+            )}
+            <h3 className="min-w-0 truncate text-lg font-semibold" title={avatarListTitle}>
+              {avatarListTitle}
+            </h3>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
             {isMultiSelectMode && (
               <>
                 <button
                   type="button"
                   className="btn btn-soft bg-base-200 btn-square btn-xs"
                   onClick={() => {
-                    const allSelected = visibleCount > 0 && selectedIndices.size === visibleCount;
+                    const allSelected = visibleCount > 0 && filteredSelectedIndices.size === visibleCount;
                     const newSelected = allSelected
                       ? new Set<number>()
                       : new Set(filteredIndices);
                     setSelectedIndices(newSelected);
                   }}
                   title={
-                    visibleCount > 0 && selectedIndices.size === visibleCount
+                    visibleCount > 0 && filteredSelectedIndices.size === visibleCount
                       ? "取消全选"
-                      : selectedIndices.size > 0 && selectedIndices.size < visibleCount
-                        ? `已选 ${selectedIndices.size}`
+                      : filteredSelectedIndices.size > 0 && filteredSelectedIndices.size < visibleCount
+                        ? `已选 ${filteredSelectedIndices.size}`
                         : "全选"
                   }
                 >
                   <ChecksIcon className="size-5" aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className={`
-                    btn btn-error btn-square btn-xs
-                    ${selectedIndices.size === 0 ? `btn-disabled` : ""}
-                  `}
-                  onClick={handleBatchDeleteRequest}
-                  disabled={selectedIndices.size === 0}
-                  title="删除所选头像"
-                >
-                  <TrashIcon className="size-5" aria-hidden="true" />
                 </button>
                 <button
                   type="button"
@@ -519,74 +2131,13 @@ export function SpriteSettingsPopup({
             {!isMultiSelectMode && visibleCount > 1 && (
               <button
                 type="button"
-                className={`
-                  btn btn-soft bg-base-200 btn-square btn-xs
-                  ${isMultiSelectDisabled ? `btn-disabled` : ""}
-                `}
-                onClick={() => {
-                  if (!isMultiSelectDisabled)
-                    setIsMultiSelectMode(true);
-                }}
+                className="btn btn-soft bg-base-200 btn-square btn-xs"
+                onClick={() => setIsMultiSelectMode(true)}
                 title="进入选择模式"
-                disabled={isMultiSelectDisabled}
               >
                 <CheckCircleIcon className="size-5" aria-hidden="true" />
               </button>
             )}
-            <div className="dropdown dropdown-end">
-              <button
-                type="button"
-                tabIndex={0}
-                className={`
-                  btn btn-square btn-xs
-                  ${categoryFilter ? `btn-primary` : `btn-soft bg-base-200`}
-                `}
-                title={categoryFilter ? `当前分类：${categoryFilter}` : "分类筛选"}
-                aria-label="头像分类筛选"
-              >
-                <FunnelIcon className="size-5" aria-hidden="true" />
-              </button>
-              <ul className="
-                dropdown-content menu bg-base-100 rounded-box shadow-xl border
-                border-base-300 z-40 w-44 p-2 mt-1
-              ">
-                <li>
-                  <button
-                    type="button"
-                    className={categoryFilter === "" ? "active font-semibold" : ""}
-                    onClick={() => setCategoryFilter("")}
-                  >
-                    全部
-                  </button>
-                </li>
-                {hasDefaultCategory && (
-                  <li>
-                    <button
-                      type="button"
-                      className={categoryFilter === DEFAULT_CATEGORY ? `
-                        active font-semibold
-                      ` : ""}
-                      onClick={() => setCategoryFilter(DEFAULT_CATEGORY)}
-                    >
-                      默认
-                    </button>
-                  </li>
-                )}
-                {categoryOptions.map(category => (
-                  <li key={category}>
-                    <button
-                      type="button"
-                      className={categoryFilter === category ? `
-                        active font-semibold
-                      ` : ""}
-                      onClick={() => setCategoryFilter(category)}
-                    >
-                      {category}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
         </div>
       </div>
@@ -606,15 +2157,22 @@ export function SpriteSettingsPopup({
           }}
           mode="manage"
           className="size-full min-w-0"
-          gridCols="grid-cols-4 md:grid-cols-3"
+          gridCols=""
+          gridTemplateColumns={AVATAR_LIST_GRID_TEMPLATE_COLUMNS}
           role={role}
           onAvatarChange={handleAvatarChange}
           onAvatarSelect={handleAvatarSelectById}
           onAvatarDeleted={handleAvatarDeleted}
-          onUpload={handleAvatarUpload}
-          fileName={role?.id ? `avatar-${role.id}` : undefined}
+          onUploadFilesSelected={handleAvatarUploadFilesSelected}
           selectedIndices={filteredSelectedIndices}
           isMultiSelectMode={isMultiSelectMode}
+          groupByCategory
+          uploadVariantId={currentUploadVariantId}
+          lockedUploadVariantGroup={currentUploadVariantGroup}
+          availableVariants={variantGroups}
+          beforeContentSlot={variantFoldersSlot}
+          onAvatarDragStart={handleAvatarListDragStart}
+          onAvatarDragEnd={handleAvatarListDragEnd}
           onMultiSelectChange={(indices, isMultiMode) => {
             const nextSelected = new Set<number>();
             indices.forEach((filteredIndex) => {
@@ -636,10 +2194,10 @@ export function SpriteSettingsPopup({
         flex flex-wrap gap-1.5 p-2 overflow-x-hidden
         md:flex-nowrap md:overflow-x-auto
       ">
-        {/* 预览 Tab */}
+        {/* 头像设置 Tab */}
         <button
           type="button"
-          onClick={() => handleTabChange("preview")}
+          onClick={() => handleTabChange("setting")}
           className={`
             flex items-center gap-1.5
             sm:gap-2
@@ -649,18 +2207,18 @@ export function SpriteSettingsPopup({
             sm:text-sm
             transition-colors whitespace-nowrap
             ${
-            activeTab === "preview"
+            activeTab === "setting"
               ? "bg-primary text-primary-content"
               : "hover:bg-base-300"
           }
           `}
         >
-          <EyeIcon className="
+          <GearIcon className="
             size-4
             sm:size-5
             shrink-0
           " aria-hidden="true" />
-          <span>渲染预览</span>
+          <span>头像设置</span>
         </button>
 
         {/* 立绘校正 Tab */}
@@ -717,33 +2275,6 @@ export function SpriteSettingsPopup({
           <span>头像校正</span>
         </button>
 
-        {/* 头像设置 Tab */}
-        <button
-          type="button"
-          onClick={() => handleTabChange("setting")}
-          className={`
-            flex items-center gap-1.5
-            sm:gap-2
-            px-2.5 py-2
-            sm:px-3
-            rounded-lg text-xs
-            sm:text-sm
-            transition-colors whitespace-nowrap
-            ${
-            activeTab === "setting"
-              ? "bg-primary text-primary-content"
-              : "hover:bg-base-300"
-          }
-          `}
-        >
-          <GearIcon className="
-            size-4
-            sm:size-5
-            shrink-0
-          " aria-hidden="true" />
-          <span>头像设置</span>
-        </button>
-
         {/* 回收站 Tab */}
         <button
           type="button"
@@ -788,40 +2319,21 @@ export function SpriteSettingsPopup({
       onClose={onClose}
       fullScreen={isMobile}
       showCloseButton={!isMobile}
+      disableScroll
+      panelClassName="
+        md:!h-[88vh] md:!max-h-[88vh] md:!w-[90vw]
+        md:!max-w-[90vw] md:!overflow-hidden
+      "
     >
-      {/* Upload notification toast */}
-      {uploadNotification && (
-        <div className="toast toast-top toast-center z-50">
-          <div className={`
-            alert
-            ${uploadNotification.type === "success" ? `alert-success` : `
-              alert-error
-            `}
-            shadow-lg flex flex-row items-center gap-2
-          `}>
-            {uploadNotification.type === "success"
-              ? (
-                  <CheckCircleIcon
-                    className="shrink-0 size-6"
-                    aria-hidden="true"
-                  />
-                )
-              : (
-                  <XCircleIcon className="shrink-0 size-6" aria-hidden="true" />
-                )}
-            <span>{uploadNotification.message}</span>
-          </div>
-        </div>
-      )}
-
       <div className="
         flex size-full min-h-0 min-w-0 flex-col overflow-x-hidden
-        md:h-[80vh] md:w-[86vw] md:max-w-6xl md:flex-row
+        md:w-full md:max-w-none md:flex-row
       ">
         {/* 左侧头像列表 - 桌面端固定显示 */}
         <div className="
           hidden
-          md:flex md:w-80 md:shrink-0 md:border-r
+          md:flex md:w-[clamp(9.5rem,calc(100vw_-_52rem),32rem)]
+          md:shrink-0 md:border-r
           border-base-300 bg-base-200/30
           md:min-h-0 md:overflow-hidden md:flex-col
         ">
@@ -879,33 +2391,83 @@ export function SpriteSettingsPopup({
             md:p-4
             min-h-0
           ">
-            {/* 预览内容 */}
-            {activeTab === "preview" && (
-              <PreviewTab
-                currentAvatar={currentAvatar}
-                characterName={characterName}
-                onAvatarChange={handleAvatarChange}
-                onPreview={handlePreview}
-                onApply={handleApply}
-              />
-            )}
-
             {/* 立绘校正内容 */}
             {activeTab === "cropper" && (
               <div className="h-full">
                 {currentSpriteUrl
                   ? (
-                      <SpriteCropper
-                        spriteUrl={currentSpriteUrl}
-                        roleAvatars={roleAvatars}
-                        initialSpriteIndex={internalIndex}
-                        characterName={characterName}
-                        onClose={onClose}
-                        cropMode="sprite"
-                        onSpriteIndexChange={handleInternalIndexChange}
-                        selectedIndices={selectedIndices}
-                        isMultiSelectMode={isMultiSelectMode}
-                      />
+                      <div className="flex h-full min-h-0 flex-col gap-2">
+                        {pendingUploadSpriteCalibration && (
+                          <div className="
+                            flex shrink-0 items-center justify-between gap-3
+                            rounded-md border border-primary/30 bg-primary/5 px-3 py-2
+                            text-sm text-base-content
+                          ">
+                            <span className="min-w-0 truncate">
+                              正在校正刚导入的
+                              {" "}
+                              <span className="font-semibold">
+                                {pendingUploadSpriteCalibration.avatarIds.length}
+                                {" "}
+                                个头像
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs shrink-0"
+                              onClick={() => setPendingUploadSpriteCalibration(null)}
+                              disabled={isVariantMutationPending}
+                            >
+                              取消
+                            </button>
+                          </div>
+                        )}
+                        {pendingVariantSpriteCalibrationIndices && (
+                          <div className="
+                            flex shrink-0 items-center justify-between gap-3
+                            rounded-md border border-primary/30 bg-primary/5 px-3 py-2
+                            text-sm text-base-content
+                          ">
+                            <span className="min-w-0 truncate">
+                              正在为新立绘组补齐立绘校正
+                              {" "}
+                              <span className="font-semibold">
+                                {pendingVariantSpriteCalibrationIndices.length}
+                                {" "}
+                                个头像
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs shrink-0"
+                              onClick={() => setPendingVariantSpriteCalibrationIndices(null)}
+                              disabled={isVariantMutationPending}
+                            >
+                              取消
+                            </button>
+                          </div>
+                        )}
+                        <div className="min-h-0 flex-1">
+                          <SpriteCropper
+                            spriteUrl={currentSpriteUrl}
+                            roleAvatars={spriteCropperAvatars}
+                            initialSpriteIndex={spriteCropperInitialIndex}
+                            characterName={characterName}
+                            onClose={onClose}
+                            cropMode="sprite"
+                            onSpriteIndexChange={handleSpriteCropperIndexChange}
+                            selectedIndices={effectiveSpriteCropperSelectedIndices}
+                            isMultiSelectMode={effectiveSpriteCropperMultiSelectMode}
+                            availableVariants={variantGroups}
+                            allowVariantGroupEditing={isVariantGroupView}
+                            editingVariantGroup={activeVariantGroup}
+                            onBatchSpriteCropApplied={handleBatchSpriteCropApplied}
+                            onSingleSpriteCropApplied={pendingVariantSpriteCalibrationIndices || pendingUploadSpriteCalibration
+                              ? handleBatchSpriteCropApplied
+                              : undefined}
+                          />
+                        </div>
+                      </div>
                     )
                   : (
                       <div className="
@@ -924,17 +2486,55 @@ export function SpriteSettingsPopup({
               <div className="h-full">
                 {currentAvatarCropSourceUrl
                   ? (
-                      <SpriteCropper
-                        spriteUrl={currentAvatarCropSourceUrl}
-                        roleAvatars={roleAvatars}
-                        initialSpriteIndex={internalIndex}
-                        characterName={characterName}
-                        onClose={onClose}
-                        cropMode="avatar"
-                        onSpriteIndexChange={handleInternalIndexChange}
-                        selectedIndices={selectedIndices}
-                        isMultiSelectMode={isMultiSelectMode}
-                      />
+                      <div className="flex h-full min-h-0 flex-col gap-2">
+                        {pendingVariantInitialization && (
+                          <div className="
+                            flex shrink-0 items-center justify-between gap-3
+                            rounded-md border border-primary/30 bg-primary/5 px-3 py-2
+                            text-sm text-base-content
+                          ">
+                            <span className="min-w-0 truncate">
+                              正在创建
+                              {" "}
+                              <span className="font-semibold">
+                                {pendingVariantInitialization.name}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-xs shrink-0"
+                              onClick={() => setPendingVariantInitialization(null)}
+                              disabled={isVariantMutationPending}
+                            >
+                              取消
+                            </button>
+                          </div>
+                        )}
+                        <div className="min-h-0 flex-1">
+                          <SpriteCropper
+                            spriteUrl={currentAvatarCropSourceUrl}
+                            roleAvatars={avatarCropperAvatars}
+                            initialSpriteIndex={avatarCropperInitialIndex}
+                            characterName={characterName}
+                            onClose={onClose}
+                            cropMode="avatar"
+                            onSpriteIndexChange={handleAvatarCropperIndexChange}
+                            selectedIndices={effectiveAvatarCropperSelectedIndices}
+                            isMultiSelectMode={effectiveAvatarCropperMultiSelectMode}
+                            availableVariants={variantGroups}
+                            allowVariantGroupEditing={isVariantGroupView}
+                            editingVariantGroup={activeVariantGroup}
+                            variantInitialization={pendingVariantInitialization
+                              ? {
+                                  active: true,
+                                  name: pendingVariantInitialization.name,
+                                  onComplete: handleVariantInitializationComplete,
+                                  onCancel: () => setPendingVariantInitialization(null),
+                                }
+                              : undefined}
+                          />
+                        </div>
+                      </div>
                     )
                   : (
                       <div className="
@@ -942,7 +2542,7 @@ export function SpriteSettingsPopup({
                         text-base-content/70
                       ">
                         <UserCircleIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
-                        <p>当前没有可用的立绘进行头像裁剪</p>
+                        <p>当前没有可用的立绘进行头像裁剪，请先完成立绘裁剪。</p>
                       </div>
                     )}
               </div>
@@ -950,12 +2550,26 @@ export function SpriteSettingsPopup({
 
             {/* 头像设置内容 */}
             {activeTab === "setting" && (
-              <AvatarSettingsTab
-                spritesAvatars={spritesAvatars}
-                roleAvatars={roleAvatars}
-                selectedIndex={internalIndex}
-                onApply={handleApply}
-              />
+              isVariantGroupView || (isMultiSelectMode && selectedAvatarCount > 0)
+                ? batchSettingsPanel
+                : (
+                    <AvatarSettingsTab
+                      spritesAvatars={spritesAvatars}
+                      roleAvatars={roleAvatars}
+                      selectedIndex={internalIndex}
+                      characterName={characterName}
+                      availableVariants={variantGroups}
+                      onApply={handleApply}
+                      onAssignVariant={(avatar, variantId) => assignAvatarItemsToVariant(
+                        [{ index: internalIndex, avatar }],
+                        variantId,
+                        {
+                          allowReassign: true,
+                          actionLabel: "绑定立绘组",
+                        },
+                      )}
+                    />
+                  )
             )}
 
             {/* 回收站内容 */}
@@ -1130,6 +2744,65 @@ export function SpriteSettingsPopup({
             </Drawer.Content>
           </Drawer.Portal>
         </Drawer.Root>
+      )}
+
+      {variantNameDialogOpen && (
+        <VariantNameDialog
+          initialName={variantNameDraft}
+          selectedCount={variantCreationIndices.length}
+          onCancel={handleCancelVariantName}
+          onConfirm={handleConfirmVariantName}
+        />
+      )}
+
+      {batchVariantCreationPrompt && (
+        <div className="modal modal-open">
+          <div className="modal-box w-[92vw] max-w-md">
+            <h3 className="text-lg font-bold">创建新的立绘组？</h3>
+            <p className="py-4 text-sm text-base-content/70">
+              已完成批量立绘上传：成功
+              {" "}
+              <span className="font-semibold text-base-content">
+                {batchVariantCreationPrompt.successCount}
+                /
+                {batchVariantCreationPrompt.totalCount}
+              </span>
+              {batchVariantCreationPrompt.failedCount > 0 && (
+                <>
+                  {" "}
+                  ，失败
+                  {" "}
+                  <span className="font-semibold text-error">
+                    {batchVariantCreationPrompt.failedCount}
+                  </span>
+                </>
+              )}
+              。是否继续为这批头像创建新的立绘组？
+            </p>
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleCancelBatchVariantCreation}
+              >
+                暂不创建
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConfirmBatchVariantCreation}
+              >
+                创建立绘组
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="modal-backdrop"
+            onClick={handleCancelBatchVariantCreation}
+            aria-label="关闭创建立绘组确认弹窗"
+          />
+        </div>
       )}
 
       {/* Batch Delete Confirmation Dialog */}

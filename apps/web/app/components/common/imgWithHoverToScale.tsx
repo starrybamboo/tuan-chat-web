@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
-interface ImgWithHoverProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+type ImgWithHoverProps = {
   enableScale?: boolean;
   hoverTime?: number;
   imgViewHeight?: number;
-}
+} & React.ImgHTMLAttributes<HTMLImageElement>
 
 /**
  * @param hoverTime hover多久后会出现放大的图片，单位是毫秒

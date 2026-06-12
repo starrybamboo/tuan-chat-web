@@ -1,15 +1,13 @@
-import type { Database, SqlValue } from "sql.js";
-
-import initSqlJs from "sql.js";
-import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
-
 import type {
   RoomMessageRepository,
   RoomMessageSqliteDriver,
   SqliteValue,
 } from "@tuanchat/local-db";
+import type { Database, SqlValue } from "sql.js";
 
 import { createRoomMessageRepository } from "@tuanchat/local-db";
+import initSqlJs from "sql.js";
+import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 
 import type { ChatMessageResponse } from "../../../../../api";
 

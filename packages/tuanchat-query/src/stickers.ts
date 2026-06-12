@@ -1,11 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import type { ApiResultListSticker } from "@tuanchat/openapi-client/models/ApiResultListSticker";
 import type { ApiResultLong } from "@tuanchat/openapi-client/models/ApiResultLong";
 import type { ApiResultVoid } from "@tuanchat/openapi-client/models/ApiResultVoid";
 import type { StickerCreateRequest } from "@tuanchat/openapi-client/models/StickerCreateRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { assertOpenApiResultSuccess } from "@tuanchat/domain/open-api-result";
 
 type StickerClient = Pick<TuanChat, "stickerController">;

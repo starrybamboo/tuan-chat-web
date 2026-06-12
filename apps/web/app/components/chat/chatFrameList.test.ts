@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import type { ChatMessageResponse } from "../../../api";
 
+import { CHAT_COMPOSER_RESIZE_EVENT } from "./chatFrameEvents";
 import {
   resolveChatFrameFollowOutput,
   resolveChatFrameInitialTopMostItemIndex,
   resolveChatFrameSeenIndexFromBounds,
 } from "./chatFrameList";
 import { getChatFrameItemKey } from "./chatFrameListKey";
+
+describe("CHAT_COMPOSER_RESIZE_EVENT", () => {
+  it("为输入框高度变化提供稳定事件名", () => {
+    expect(CHAT_COMPOSER_RESIZE_EVENT).toBe("tc:chat-composer-resize");
+  });
+});
 
 function buildMessage(partial: Partial<ChatMessageResponse["message"]>): ChatMessageResponse {
   return {

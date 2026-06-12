@@ -1,8 +1,5 @@
-import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
-import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
-import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
-
 import { FileTextIcon } from "@phosphor-icons/react";
+
 import {
   buildDocCardReferencePayload,
   resolveDocCardDisplayCoverUrl,
@@ -12,9 +9,13 @@ import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { MediaImage } from "@/components/common/mediaImage";
 
+import type { MinimalDocMeta, SidebarLeafNode } from "./sidebarTree";
+import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
+import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
+
 const DOC_DRAG_MIME = "application/x-tuanchat-doc-id";
 
-interface RoomSidebarDocItemProps {
+type RoomSidebarDocItemProps = {
   node: SidebarLeafNode;
   nodeId: string;
   categoryId: string;

@@ -27,6 +27,21 @@ export type RoleAbilityFieldDeletePatch = {
   skillFields?: Record<string, string>;
 };
 
+export type CombatRecordValueRow = {
+  baseValue: number;
+  displayValue: number;
+  key: string;
+};
+
+export type CombatRecordValueRowInput = {
+  baseValues?: Record<string, number>;
+  derivedValues?: Record<string, number>;
+  fallbackAbility?: RoleAbilityValueSections | null;
+  key: string;
+  recordValue?: number | null;
+  valueKeys: string[];
+};
+
 export type CustomCombatKvInput = {
   key: string;
   value: number;
@@ -182,6 +197,61 @@ function findRoleAbilityValueKeyByAliases(record: Record<string, string> | undef
       return matchedKey;
     }
   }
+  return null;
+}
+
+function readNumericRoleAbilityValue(record: Record<string, string> | undefined, keys: string[]): number | null {
+  const matchedKey = findRoleAbilityValueKeyByAliases(record, keys);
+  if (!matchedKey) {
+    return null;
+  }
+  const value = Number(record?.[matchedKey]);
+  return Number.isFinite(value) ? value : null;
+}
+
+function readNumericStateValue(values: Record<string, number> | undefined, keys: string[]): number | null {
+  if (!values) {
+    return null;
+  }
+  for (const key of keys) {
+    const value = values[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  const matchedKey = Object.keys(values).find(candidate => keys.some(key => normalizeRoleValueKey(key) === normalizeRoleValueKey(candidate)));
+  if (!matchedKey) {
+    return null;
+  }
+  const value = values[matchedKey];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readFallbackRoleAbilityNumber(ability: RoleAbilityValueSections | null | undefined, keys: string[]): number | null {
+  return readNumericRoleAbilityValue(ability?.basic, keys)
+    ?? readNumericRoleAbilityValue(ability?.ability, keys)
+    ?? readNumericRoleAbilityValue(ability?.skill, keys);
+}
+
+export function buildCombatRecordValueRow({
+  baseValues,
+  derivedValues,
+  fallbackAbility,
+  key,
+  recordValue,
+  valueKeys,
+}: CombatRecordValueRowInput): CombatRecordValueRow | null {
+  const fallbackValue = readFallbackRoleAbilityNumber(fallbackAbility, valueKeys);
+  if (typeof fallbackValue === "number") {
+    const baseValue = readNumericStateValue(baseValues, valueKeys) ?? fallbackValue;
+    const displayValue = readNumericStateValue(derivedValues, valueKeys) ?? baseValue;
+    return { key, baseValue, displayValue };
+  }
+
+  if (typeof recordValue === "number" && Number.isFinite(recordValue)) {
+    return { key, baseValue: recordValue, displayValue: recordValue };
+  }
+
   return null;
 }
 

@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
+
 import DocRefDragOverlay from "@/components/chat/shared/components/docRefDragOverlay";
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
 
-interface MaterialEditorDropLayerProps {
+type MaterialEditorDropLayerProps = {
   children: ReactNode;
   onEditMaterialItem: (payload: MaterialItemDragPayload) => void;
 }

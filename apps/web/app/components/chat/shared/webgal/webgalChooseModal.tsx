@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
-import type { WebgalChooseOptionDraft } from "./webgalChooseDraft";
+
 import { createPortal } from "react-dom";
 
-interface WebgalChooseModalProps {
+import type { WebgalChooseOptionDraft } from "./webgalChooseDraft";
+
+type WebgalChooseModalProps = {
   isOpen: boolean;
   title: string;
   description?: ReactNode;

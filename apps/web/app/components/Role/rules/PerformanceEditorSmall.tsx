@@ -1,16 +1,19 @@
 import type { FocusEvent, KeyboardEvent } from "react";
+
+import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { getGridSpan } from "@/utils/gridSpan";
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { getGridSpan } from "@/utils/gridSpan";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import PerformanceField from "../Editors/PerformanceField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
 
-interface PerformanceEditorSmallProps {
+type PerformanceEditorSmallProps = {
   fields: Record<string, string>;
   onChange: (fields: Record<string, string>) => void;
   abilityData: Record<string, string>;
@@ -32,8 +35,8 @@ export default function PerformanceEditorSmall({
   roleId,
   ruleId,
 }: PerformanceEditorSmallProps) {
-  const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
-  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutateAsync: updateKeyFieldAsync } = useUpdateKeyFieldByRoleIdMutation();
+  const { mutate: updateFieldValue, mutateAsync: updateFieldValueAsync } = useUpdateRoleAbilityByRoleIdMutation();
   const pendingChangesRef = useRef<Record<string, string>>({});
   const [localFields, setLocalFields] = useState(fields);
 
@@ -53,44 +56,59 @@ export default function PerformanceEditorSmall({
   };
 
   const handleDeleteField = (key: string) => {
-    takePendingValue(key);
-    commitPendingChanges();
-    const updatedFields = { ...localFields };
-    delete updatedFields[key];
-    setLocalFields(updatedFields);
-    updateKeyField(
-      buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
-        [key]: null,
-      }),
-      {
-        onSuccess: () => {
-          onChange(updatedFields);
-        },
-        onError: restoreFieldsAfterError,
-      },
-    );
+    void saveDeleteField(key);
   };
 
-  const handleAddField = (key: string, value: string) => {
+  const saveDeleteField = async (key: string) => {
+    takePendingValue(key);
+    const pendingChanges = pendingChangesRef.current;
+    const updatedFields = { ...localFields };
+    delete updatedFields[key];
+    pendingChangesRef.current = {};
+
+    try {
+      if (Object.keys(pendingChanges).length > 0) {
+        await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", pendingChanges));
+      }
+      await updateKeyFieldAsync(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+        [key]: null,
+      }));
+      setLocalFields(updatedFields);
+      onChange(updatedFields);
+    }
+    catch (error) {
+      pendingChangesRef.current = {
+        ...pendingChanges,
+        ...pendingChangesRef.current,
+      };
+      restoreFieldsAfterError(error);
+    }
+  };
+
+  const handleAddField = async (key: string, value: string) => {
     const nextKey = key.trim();
     if (!nextKey || nextKey in localFields)
       return;
     const pendingChanges = pendingChangesRef.current;
     const updatedFields = { ...localFields, ...pendingChanges, [nextKey]: value };
     pendingChangesRef.current = {};
-    setLocalFields(updatedFields);
-    updateFieldValue(
-      buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+
+    try {
+      await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
         ...pendingChanges,
         [nextKey]: value,
-      }),
-      {
-        onSuccess: () => {
-          onChange(updatedFields);
-        },
-        onError: restoreFieldsAfterError,
-      },
-    );
+      }));
+      setLocalFields(updatedFields);
+      onChange(updatedFields);
+    }
+    catch (error) {
+      pendingChangesRef.current = {
+        ...pendingChanges,
+        ...pendingChangesRef.current,
+      };
+      restoreFieldsAfterError(error);
+      throw error;
+    }
   };
 
   const handleValueChange = (key: string, value: string) => {
@@ -144,31 +162,42 @@ export default function PerformanceEditorSmall({
     if (!newKey.trim() || newKey === oldKey || newKey in localFields) {
       return;
     }
+    void saveRename(oldKey, newKey);
+  };
+
+  const saveRename = async (oldKey: string, newKey: string) => {
     const pendingValue = takePendingValue(oldKey);
-    commitPendingChanges();
-    const newFields = { ...localFields };
+    const pendingChanges = pendingChangesRef.current;
+    const newFields = { ...localFields, ...pendingChanges };
     newFields[newKey] = pendingValue ?? newFields[oldKey];
     delete newFields[oldKey];
-    setLocalFields(newFields);
-    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
-      [oldKey]: newKey,
-    }), {
-      onSuccess: () => {
-        if (pendingValue === undefined) {
-          onChange(newFields);
-          return;
-        }
-        updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
+    pendingChangesRef.current = {};
+
+    try {
+      if (Object.keys(pendingChanges).length > 0) {
+        await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", pendingChanges));
+      }
+      await updateKeyFieldAsync(buildRoleAbilityFieldKeyPayload(roleId, ruleId, "act", {
+        [oldKey]: newKey,
+      }));
+      if (pendingValue !== undefined) {
+        await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, "act", {
           [newKey]: pendingValue,
-        }), {
-          onSuccess: () => {
-            onChange(newFields);
-          },
-          onError: restoreFieldsAfterError,
-        });
-      },
-      onError: restoreFieldsAfterError,
-    });
+        }));
+      }
+      setLocalFields(newFields);
+      onChange(newFields);
+    }
+    catch (error) {
+      pendingChangesRef.current = {
+        ...pendingChanges,
+        ...pendingChangesRef.current,
+      };
+      if (pendingValue !== undefined) {
+        pendingChangesRef.current[oldKey] = pendingValue;
+      }
+      restoreFieldsAfterError(error);
+    }
   };
 
   const handleGridBlur = (e: FocusEvent<HTMLDivElement>) => {

@@ -1,15 +1,15 @@
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
+
+import { Check, X } from "@phosphor-icons/react";
+import { patchInsertMessages } from "@tuanchat/query/chat";
+import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
 import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import type { GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 
-import { Check, X } from "@phosphor-icons/react";
-import { patchInsertMessages } from "@tuanchat/query/chat";
-import { tuanchat } from "api/instance";
-import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
@@ -43,6 +43,10 @@ import { collectMessageDisplayFilterEntries } from "@/components/chat/utils/mess
 import { ANNOTATION_IDS, areAnnotationsEqual, hasAnnotation, normalizeAnnotations } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
+import { tuanchat } from "api/instance";
+
+import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../api";
+
 import {
   useDeleteMessageMutation,
   usePatchMessagesMutation,
@@ -56,7 +60,7 @@ const EMPTY_REJECTED_GAL_PATCH_MESSAGE_IDS = new Set<string>();
  * @param props 组件参数
  * @param props.virtuosoRef 虚拟列表的 ref
  */
-interface ChatFrameProps {
+type ChatFrameProps = {
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
   messagesOverride?: ChatMessageResponse[];
   enableWsSync?: boolean;

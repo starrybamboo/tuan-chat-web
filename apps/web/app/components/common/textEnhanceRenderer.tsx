@@ -1,4 +1,5 @@
 import React from "react";
+
 import {
   parseTextEnhanceCSSString,
   parseTextEnhanceSegments,
@@ -17,7 +18,7 @@ import {
  * - ruby: 注音文本
  */
 
-interface EnhancedTextProps {
+type EnhancedTextProps = {
   content: string;
   params: Record<string, string>;
 }
@@ -55,7 +56,7 @@ function EnhancedText({ content, params }: EnhancedTextProps) {
   return <>{content}</>;
 }
 
-interface TextEnhanceRendererProps {
+type TextEnhanceRendererProps = {
   /** 要渲染的文本内容 */
   content: string;
   /** 额外的类名 */

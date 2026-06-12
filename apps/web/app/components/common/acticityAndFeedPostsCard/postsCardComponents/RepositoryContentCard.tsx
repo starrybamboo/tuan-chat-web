@@ -1,8 +1,9 @@
 import React from "react";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 
-interface RepositoryContentCardProps {
+type RepositoryContentCardProps = {
   name: string;
   description: string;
   repositoryCoverFileId?: number;

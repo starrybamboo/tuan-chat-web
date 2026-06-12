@@ -1,4 +1,26 @@
 import type { ReactNode } from "react";
+
+import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
+import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
+import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import { parseImportedChatText } from "@/components/chat/utils/importChatText";
+import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import {
+  readImageDimensions,
+  readMediaDuration,
+  readVideoDimensions,
+} from "@/utils/mediaMetadata";
+import { UploadUtils } from "@/utils/UploadUtils";
+
 import type { Message, UserRole } from "../../../api";
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
 import type { MessageEditorMessage } from "./messageEditorTypes";
@@ -8,28 +30,9 @@ import type {
   MessageEditorInsertableBlockKind,
   MessageEditorSelectionTextResult,
 } from "./model/messageEditorTransforms";
-
 import type { MessageEditorController } from "./runtime/messageEditorController";
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
-import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { RoomContext } from "@/components/chat/core/roomContext";
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
-import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
-import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
-import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
-import { parseImportedChatText } from "@/components/chat/utils/importChatText";
 
-import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import {
-  readImageDimensions,
-  readMediaDuration,
-  readVideoDimensions,
-} from "@/utils/mediaMetadata";
-import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
@@ -81,7 +84,7 @@ import {
   restoreMessageEditorSelection,
 } from "./runtime/messageEditorSelection";
 
-interface MessageEditorProps {
+type MessageEditorProps = {
   className?: string;
   coverUrl?: string;
   docId?: string;
@@ -109,12 +112,12 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 type MessageEditorRemotePatchSourceSurface = "doc_view" | "message_editor";
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
 
-interface MessageEditorHistoryFocus {
+type MessageEditorHistoryFocus = {
   blockId: string;
   caret: number;
 }
 
-interface MessageEditorHistoryEntry {
+type MessageEditorHistoryEntry = {
   focus: MessageEditorHistoryFocus | null;
   messages: MessageEditorMessage[];
   serialized: string;
@@ -122,18 +125,18 @@ interface MessageEditorHistoryEntry {
 
 type MessageEditorHistoryKind = "default" | "typing";
 
-interface MessageEditorDragState {
+type MessageEditorDragState = {
   draggedBlockId: string;
   position: "before" | "after";
   targetBlockId: string;
 }
 
-interface MessageEditorResolvedDragTarget {
+type MessageEditorResolvedDragTarget = {
   position: "before" | "after";
   targetBlockId: string;
 }
 
-interface MessageEditorSpeakerMenuState {
+type MessageEditorSpeakerMenuState = {
   blockId: string;
   commandKey: string;
   items: MessageEditorSpeakerMenuItem[];
@@ -142,7 +145,7 @@ interface MessageEditorSpeakerMenuState {
   remainder: string;
 }
 
-interface MessageEditorSpeakerAvatarMenuState {
+type MessageEditorSpeakerAvatarMenuState = {
   blockId: string;
   clearSpeaker?: boolean;
   commandKey: string;
@@ -543,7 +546,7 @@ function MessageEditorFloatingCommandMenu({ children }: { children: ReactNode })
  * 判断文档级点击是否应被视为编辑器外部点击。
  * 工具栏内部的 SVG / Path 等元素同样需要被识别为“内部”，否则会误触发清理逻辑。
  */
-interface MessageEditorSelectionEventElementLike {
+type MessageEditorSelectionEventElementLike = {
   closest?: (selector: string) => MessageEditorSelectionEventElementLike | null;
   parentElement?: MessageEditorSelectionEventElementLike | null;
   tagName?: string;

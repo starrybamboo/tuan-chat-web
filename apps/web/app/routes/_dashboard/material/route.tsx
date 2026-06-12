@@ -1,6 +1,8 @@
-import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
+
+import type { RouteMetaArgs } from "@/routes/routeTypes";
+
 import { createSeoMeta } from "@/utils/seo";
 
 const LazyMaterialLibraryPage = lazy(() => import("@/components/material/pages/materialLibraryPage"));

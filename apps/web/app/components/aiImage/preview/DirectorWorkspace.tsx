@@ -1,4 +1,3 @@
-import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
 import {
   ArrowLeftIcon,
   ClipboardTextIcon,
@@ -6,8 +5,10 @@ import {
   UploadSimpleIcon,
   XIcon,
 } from "@phosphor-icons/react";
-
 import { useRef } from "react";
+
+import type { AiImagePreviewPaneProps } from "@/components/aiImage/preview/types";
+
 import { DIRECTOR_EMOTION_OPTIONS, DIRECTOR_TOOL_OPTIONS, isDirectorToolDisabled } from "@/components/aiImage/constants";
 import { EmptyPreviewPlaceholder } from "@/components/aiImage/preview/EmptyPreviewPlaceholder";
 import { ChevronDown, SharpDownload } from "@/icons";

@@ -1,17 +1,19 @@
 import type { DragEvent, MouseEvent } from "react";
-import type { Room } from "../../../../api";
-import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
 import RoomButton from "@/components/chat/shared/components/roomButton";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setRoomRefDragData } from "@/components/chat/utils/roomRef";
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
+
+import type { Room } from "../../../../api";
+import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
+
 import { createFloatingMenuAnchorFromElement } from "./floatingMenuPosition";
 import RoomSidebarItemMenuButton from "./roomSidebarItemMenuButton";
 
 const ROOM_DRAG_MIME = "application/x-tuanchat-room-id";
 
-interface RoomSidebarRoomItemProps {
+type RoomSidebarRoomItemProps = {
   room: Room;
   roomId: number;
   activeSpaceId: number | null;

@@ -92,12 +92,13 @@ export async function canvasToBlob(
   type = "image/png",
   quality?: number,
 ): Promise<Blob> {
-  if (canvas instanceof OffscreenCanvas) {
+  if (typeof OffscreenCanvas !== "undefined" && canvas instanceof OffscreenCanvas) {
     return canvas.convertToBlob({ type, quality });
   }
+  const htmlCanvas = canvas as HTMLCanvasElement;
   return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      blob => blob ? resolve(blob) : reject(new Error("Canvas to blob failed")),
+    htmlCanvas.toBlob(
+      (blob: Blob | null) => blob ? resolve(blob) : reject(new Error("Canvas to blob failed")),
       type,
       quality,
     );

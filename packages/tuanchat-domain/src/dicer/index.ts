@@ -7,3 +7,4 @@ export * from "./dice";
 export * from "./dicerReplyPreparation";
 export * from "./roleAbilityAliasMaps";
 export * from "./types";
+export * from "./wwExpression";

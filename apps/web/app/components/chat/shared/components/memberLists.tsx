@@ -1,7 +1,8 @@
 import type { Ref } from "react";
-import type { SpaceMember } from "../../../../../api";
+
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { MemberTypeTag } from "@/components/chat/message/types/memberTypeTag";
@@ -12,6 +13,9 @@ import {
 } from "@/components/chat/utils/memberPermissions";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+
+import type { SpaceMember } from "../../../../../api";
+
 import {
   useAddRoomMemberMutation,
   useDeleteRoomMemberMutation,

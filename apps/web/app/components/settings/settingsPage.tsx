@@ -1,7 +1,8 @@
-import type { SecurityTab } from "@/components/profile/profileTab/components/AccountSecurityModal";
-import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { SecurityTab } from "@/components/profile/profileTab/components/AccountSecurityModal";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { AccountSecurityModal } from "@/components/profile/profileTab/components/AccountSecurityModal";
 import {
@@ -14,6 +15,7 @@ import {
   writeFeedbackInAppEnabledToLocalStorage,
   writeGroupMessagePopupEnabledToLocalStorage,
 } from "@/components/settings/notificationPreferences";
+import { useGetMyUserInfoQuery, useUpdateUserInfoMutation } from "api/hooks/UserHooks";
 
 export default function SettingsPage() {
   const currentUserId = useGlobalUserId() ?? -1;

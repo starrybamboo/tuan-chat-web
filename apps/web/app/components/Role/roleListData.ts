@@ -6,15 +6,10 @@ import type { Role } from "./types";
 
 import { resolveRoleAvatarMedia } from "./sprite/roleAvatarMedia";
 
-export type RoleListAvatarFields = UserRole & {
-  avatarUrl?: string;
-  avatarThumbUrl?: string;
-};
+export type RoleListAvatarFields = UserRole;
 
-type RoleAvatarUrlSource = {
+type RoleAvatarSource = {
   avatarFileId?: number;
-  avatarUrl?: string;
-  avatarThumbUrl?: string;
 };
 
 type CachedRoleAvatarRecord = {
@@ -39,7 +34,7 @@ type HydrateRoleListOptions = {
   fetchRoleAvatar: (avatarId: number) => Promise<{ success: boolean; data?: RoleAvatar }>;
 };
 
-export function resolveRoleAvatarUrls(source?: RoleAvatarUrlSource | null) {
+export function resolveRoleAvatarUrls(source?: RoleAvatarSource | null) {
   const media = resolveRoleAvatarMedia(source);
   const avatarUrl = media.avatar.url;
   const avatarThumbUrl = media.avatar.thumbUrl || avatarUrl;

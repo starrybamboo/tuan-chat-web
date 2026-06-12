@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { RoleCreateRequest } from "@tuanchat/openapi-client/models/RoleCreateRequest";
 import type { RoleUpdateRequest } from "@tuanchat/openapi-client/models/RoleUpdateRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 type RoleClient = Pick<TuanChat, "avatarController" | "roleController">;
 

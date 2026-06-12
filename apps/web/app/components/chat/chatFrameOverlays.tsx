@@ -1,10 +1,11 @@
 import type { MutableRefObject, WheelEvent } from "react";
-import type { ChatMessageResponse } from "../../../api";
+
+import { AnimatePresence, motion } from "motion/react";
+
 import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageActions";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 
-import { AnimatePresence, motion } from "motion/react";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import WebgalChooseModal from "@/components/chat/shared/webgal/webgalChooseModal";
 import ExportChatWindow from "@/components/chat/window/exportChatWindow";
@@ -15,7 +16,9 @@ import { floatingPanelMotionProps } from "@/components/common/motion/floatingPan
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { resolveWheelScrollDelta } from "@/utils/browserShortcutGuard";
 
-interface ChatFrameOverlaysProps {
+import type { ChatMessageResponse } from "../../../api";
+
+type ChatFrameOverlaysProps = {
   isForwardWindowOpen: boolean;
   setIsForwardWindowOpen: (open: boolean) => void;
   isExportFileWindowOpen: boolean;

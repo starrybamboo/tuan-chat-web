@@ -1,8 +1,10 @@
 import { memo } from "react";
+
 import MarkdownMentionViewer from "@/components/common/richText/MarkdownMentionViewer";
+
 import { useContentPermission } from "../ContentPermissionContext";
 
-interface ItemDetailProps {
+type ItemDetailProps = {
   itemName: string;
   itemList: any[];
 }

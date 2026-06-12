@@ -195,13 +195,28 @@ function parseDiceDescriptionLine(line) {
   };
 }
 
+function parseNumberedOptionPrefix(line) {
+  const matched = String(line ?? "").trim().match(/^(\d{1,3}|[一二三四五六七八九十]+)(?:[\s.、]|(?=[^\d\s.、:：]))/);
+  if (!matched?.[1]) {
+    return undefined;
+  }
+  if (/^\d+$/.test(matched[1])) {
+    const parsed = Number(matched[1]);
+    return parsed >= 0 && parsed <= 100 ? matched[1] : undefined;
+  }
+  return matched[1];
+}
+
 function isNumberedOptionLine(line) {
-  return /^\s*(?:\d+|[一二三四五六七八九十]+)[\s.、]/.test(line);
+  return parseNumberedOptionPrefix(line) != null;
 }
 
 function parseNumberedOptionIndex(line) {
-  const matched = String(line ?? "").trim().match(/^(\d+)[\s.、]/);
-  return matched ? Number(matched[1]) : undefined;
+  const prefix = parseNumberedOptionPrefix(line);
+  if (!prefix || !/^\d+$/.test(prefix)) {
+    return undefined;
+  }
+  return Number(prefix);
 }
 
 function isNumberedOptionBlock(content) {

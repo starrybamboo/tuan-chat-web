@@ -1,8 +1,10 @@
 import { use, useMemo, useState } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { RoleAvatarByRole } from "@/components/common/roleAccess";
 import { AddRingLight } from "@/icons";
+
 import { useGetRoomNpcRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetSpaceRepositoryRoleQuery } from "../../../../api/hooks/spaceRepositoryHooks";
 import CreateNpcRoleWindow from "./createNpcRoleWindow";

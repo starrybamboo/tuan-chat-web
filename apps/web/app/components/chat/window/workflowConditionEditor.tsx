@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export interface WorkflowConditionEditorProps {
+export type WorkflowConditionEditorProps = {
   initialValue: string;
   onCancel: () => void;
   onConfirm: (value: string) => void;

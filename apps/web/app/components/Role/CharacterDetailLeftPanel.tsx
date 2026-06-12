@@ -1,13 +1,16 @@
 import type { RoleAvatar } from "api";
-import type { Role } from "./types";
+
 import { DiceFiveIcon, GearOutline, MicrophoneIcon } from "@/icons";
+
+import type { Role } from "./types";
+
 import RoleBasicInfoEditor from "./RoleBasicInfoEditor";
 import AudioPlayer from "./RoleInfoCard/AudioPlayer";
 import CharacterAvatar from "./RoleInfoCard/CharacterAvatar";
 import RoleSidebarActionCard from "./RoleSidebarActionCard";
 import { hasRoleVoiceMedia } from "./roleVoiceMedia";
 
-export interface CharacterDetailLeftPanelProps {
+export type CharacterDetailLeftPanelProps = {
   isQueryLoading: boolean;
   isDiceMaiden: boolean;
   localRole: Role;

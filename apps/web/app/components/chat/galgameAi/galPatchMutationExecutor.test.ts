@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
+
+import { describe, expect, it, vi } from "vitest";
 
 import type { GalPatchMutationPlan } from "./galPatchMutationAdapter";
 

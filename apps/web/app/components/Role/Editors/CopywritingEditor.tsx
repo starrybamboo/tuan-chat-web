@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-interface CopywritingEditorProps {
+type CopywritingEditorProps = {
   value: Record<string, string[]>;
   onChange: (next: Record<string, string[]>) => void;
 }

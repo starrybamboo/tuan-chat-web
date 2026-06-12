@@ -1,7 +1,7 @@
 import type { CommandInfo } from "@tuanchat/domain/command-request";
 
 import { filterCommandCatalog, getCommandCatalog } from "@tuanchat/domain/command-catalog";
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -58,7 +58,9 @@ type MobileCommandPanelProps = {
   ruleId: number | null;
 };
 
-export function MobileCommandPanel({ draftMessage, onSelectCommand, ruleId }: MobileCommandPanelProps) {
+const commandKeyExtractor = (item: CommandInfo) => item.name;
+
+function MobileCommandPanelInner({ draftMessage, onSelectCommand, ruleId }: MobileCommandPanelProps) {
   const theme = useTheme();
   const { height } = useWindowDimensions();
   const query = getCommandQuery(draftMessage);
@@ -72,6 +74,40 @@ export function MobileCommandPanel({ draftMessage, onSelectCommand, ruleId }: Mo
     return filterCommandCatalog(catalog, query);
   }, [query, ruleId]);
 
+  const renderCommandItem = useCallback(({ item }: { item: CommandInfo }) => (
+    <Pressable
+      onPress={() => onSelectCommand(item)}
+      style={({ pressed }) => [
+        styles.item,
+        { backgroundColor: pressed ? theme.backgroundSelected : "transparent" },
+      ]}
+    >
+      <View style={styles.itemHeader}>
+        <ThemedText style={[styles.cmdName, { color: theme.accent }]}>
+          .
+          {item.name}
+        </ThemedText>
+        <ThemedText style={[styles.cmdDesc, { color: theme.textSecondary }]}>
+          {item.description}
+        </ThemedText>
+      </View>
+      {item.usage
+        ? (
+            <ThemedText style={[styles.cmdUsage, { color: theme.textSecondary }]}>
+              {item.usage}
+            </ThemedText>
+          )
+        : null}
+      {item.examples.length > 0
+        ? (
+            <ThemedText style={[styles.examples, { color: theme.textSecondary }]}>
+              {item.examples.slice(0, 2).join("    ")}
+            </ThemedText>
+          )
+        : null}
+    </Pressable>
+  ), [onSelectCommand, theme.accent, theme.backgroundSelected, theme.textSecondary]);
+
   if (query === null || commands.length === 0)
     return null;
 
@@ -80,7 +116,7 @@ export function MobileCommandPanel({ draftMessage, onSelectCommand, ruleId }: Mo
   return (
     <FlatList
       data={commands}
-      keyExtractor={item => item.name}
+      keyExtractor={commandKeyExtractor}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.listContent}
       style={[
@@ -91,39 +127,9 @@ export function MobileCommandPanel({ draftMessage, onSelectCommand, ruleId }: Mo
           height: panelHeight,
         },
       ]}
-      renderItem={({ item }) => (
-        <Pressable
-          onPress={() => onSelectCommand(item)}
-          style={({ pressed }) => [
-            styles.item,
-            { backgroundColor: pressed ? theme.backgroundSelected : "transparent" },
-          ]}
-        >
-          <View style={styles.itemHeader}>
-            <ThemedText style={[styles.cmdName, { color: theme.accent }]}>
-              .
-              {item.name}
-            </ThemedText>
-            <ThemedText style={[styles.cmdDesc, { color: theme.textSecondary }]}>
-              {item.description}
-            </ThemedText>
-          </View>
-          {item.usage
-            ? (
-                <ThemedText style={[styles.cmdUsage, { color: theme.textSecondary }]}>
-                  {item.usage}
-                </ThemedText>
-              )
-            : null}
-          {item.examples.length > 0
-            ? (
-                <ThemedText style={[styles.examples, { color: theme.textSecondary }]}>
-                  {item.examples.slice(0, 2).join("    ")}
-                </ThemedText>
-              )
-            : null}
-        </Pressable>
-      )}
+      renderItem={renderCommandItem}
     />
   );
 }
+
+export const MobileCommandPanel = memo(MobileCommandPanelInner);

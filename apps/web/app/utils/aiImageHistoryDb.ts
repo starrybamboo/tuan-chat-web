@@ -1,10 +1,4 @@
-import {
-  addLocalCollectionItem,
-  clearLocalCollection,
-  listLocalCollectionItems,
-  removeLocalCollectionItem,
-  trimLocalCollection,
-} from "@/components/chat/infra/localDb/chatHistoryDb";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 
 export type AiImageHistoryMode = "txt2img" | "img2img" | "infill";
 
@@ -69,17 +63,19 @@ export async function addAiImageHistoryBatch(rows: Array<Omit<AiImageHistoryRow,
   if (!rows.length)
     return;
 
-  await Promise.all(rows.map(row => addLocalCollectionItem(COLLECTION, row, { sortAt: row.createdAt })));
+  const db = await loadChatHistoryDb();
+  await Promise.all(rows.map(row => db.addLocalCollectionItem(COLLECTION, row, { sortAt: row.createdAt })));
 
   const maxItems = options?.maxItems ?? 30;
   if (!Number.isFinite(maxItems) || maxItems <= 0)
     return;
 
-  await trimLocalCollection(COLLECTION, maxItems);
+  await db.trimLocalCollection(COLLECTION, maxItems);
 }
 
 export async function listAiImageHistory(params?: { limit?: number }): Promise<AiImageHistoryRow[]> {
-  const rows = await listLocalCollectionItems<Omit<AiImageHistoryRow, "id">>(COLLECTION, params);
+  const db = await loadChatHistoryDb();
+  const rows = await db.listLocalCollectionItems<Omit<AiImageHistoryRow, "id">>(COLLECTION, params);
   return rows.map(row => ({
     ...row.payload,
     id: row.id,
@@ -87,9 +83,11 @@ export async function listAiImageHistory(params?: { limit?: number }): Promise<A
 }
 
 export async function deleteAiImageHistory(id: number) {
-  await removeLocalCollectionItem(COLLECTION, id);
+  const db = await loadChatHistoryDb();
+  await db.removeLocalCollectionItem(COLLECTION, id);
 }
 
 export async function clearAiImageHistory() {
-  await clearLocalCollection(COLLECTION);
+  const db = await loadChatHistoryDb();
+  await db.clearLocalCollection(COLLECTION);
 }

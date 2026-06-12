@@ -1,7 +1,8 @@
 import React from "react";
+
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 
-interface AvatarDropdownContentProps {
+type AvatarDropdownContentProps = {
   roleId: number;
   onAvatarChange: (avatarId: number) => void;
   onRoleChange: (roleId: number) => void;

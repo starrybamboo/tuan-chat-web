@@ -1,12 +1,14 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
-import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
-import type { StateEventAtom } from "@/types/stateEvent";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
+
+import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
+import type { StateEventAtom } from "@/types/stateEvent";
+
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { persistRoleAbilitySnapshot } from "@/components/chat/state/roleVarWriteThrough";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
@@ -23,6 +25,9 @@ import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDi
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
+
 import { invalidateRoleAbilityCaches, roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
 import {
   fetchRoleAbilityByRuleWithCache,
@@ -34,13 +39,13 @@ import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hook
 
 initAliasMapOnce();
 
-interface PendingOptimisticCommandMessage {
+type PendingOptimisticCommandMessage = {
   optimisticMessageId: number;
   fallbackPosition: number;
   stableMessageKey: string;
 }
 
-interface QueuedDicerMessage {
+type QueuedDicerMessage = {
   content: string;
   visibility: DicerMessageVisibility;
 }

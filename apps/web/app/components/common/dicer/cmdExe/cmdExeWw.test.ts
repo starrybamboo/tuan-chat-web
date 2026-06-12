@@ -129,6 +129,19 @@ describe("cmdExeWw", () => {
         exprStr: "力量+近战",
       });
     });
+
+    it("非法属性表达式不会执行代码并回退到默认骰池", () => {
+      const mockGetValue = (key: string) => key === "力量" ? 3 : 0;
+
+      expect(parseWwCommandArgs(["力量+(1).constructor"], mockGetValue)).toEqual({
+        diceCount: 1,
+        explodeAt: 10,
+        bonusSuccess: 0,
+        successAt: 8,
+        sides: 10,
+        exprStr: "力量+(1).constructor",
+      });
+    });
   });
 
   describe("rollWw (mocked)", () => {

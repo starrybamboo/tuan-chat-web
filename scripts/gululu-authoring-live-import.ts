@@ -70,6 +70,24 @@ type GululuNamedAvatarCatalog = {
   byRoleAndSource: Map<string, GululuNamedAvatarCatalogItem>;
 };
 
+type GululuCleanIndexAvatarCatalogItem = {
+  assetKind: string;
+  displayName?: string;
+  fileName: string;
+  filePath: string;
+  imagePath: string;
+  renderUse?: string;
+  roleName: string;
+  sourceRelPaths: string[];
+};
+
+type GululuCleanIndexAvatarCatalog = {
+  byChatAvatarRole: Map<string, GululuCleanIndexAvatarCatalogItem[]>;
+  byChatAvatarRoleAndSource: Map<string, GululuCleanIndexAvatarCatalogItem>;
+  byStageSpriteRole: Map<string, GululuCleanIndexAvatarCatalogItem[]>;
+  byStageSpriteRoleAndSource: Map<string, GululuCleanIndexAvatarCatalogItem>;
+};
+
 type GululuReplayMessage = {
   bgmName?: string;
   content?: string;
@@ -127,6 +145,7 @@ export type GululuLiveImportArgs = {
   namedAvatarRoot?: string;
   opusId?: number;
   out?: string;
+  resumeExistingAvatars?: boolean;
   roomName?: string;
   skipNamedAvatars?: boolean;
   skipAvatarUpload?: boolean;
@@ -146,15 +165,23 @@ export type GululuLiveImportRolePlan = {
 
 export type GululuLiveImportAvatarPlan = {
   assetKind?: string;
+  avatarMissing?: boolean;
   avatarTitle: Record<string, string>;
+  bindingImagePath?: string;
   displayName?: string;
   fileName: string;
   filePath?: string;
   imagePath: string;
   key: string;
+  originMediaKind?: "avatar" | "sprite";
   roleKey: string;
   sourceImagePaths?: string[];
   sourceKey: string;
+  spriteAssetKind?: string;
+  spriteFileName?: string;
+  spriteFilePath?: string;
+  spriteImagePath?: string;
+  spriteSourceImagePaths?: string[];
   upload: boolean;
   usageKey?: string;
 };
@@ -199,6 +226,7 @@ export type GululuLiveImportPlan = {
 
 export type GululuLiveImportClient = {
   avatarController: {
+    getRoleAvatars?: (roleId: number) => Promise<ApiResult<RoleAvatar[]>>;
     setRoleAvatar: (requestBody: { category?: string; roleId?: number }) => Promise<ApiResult<number>>;
     updateRoleAvatar: (requestBody: RoleAvatar) => Promise<ApiResult<RoleAvatar>>;
   };
@@ -243,20 +271,27 @@ type UploadedAvatarImage = {
   spriteTransform: SpriteTransform;
 };
 
+type GululuImportedSpriteRenderKind = "avatar" | "stage-sprite";
+
 type ApplyLiveImportDeps = {
+  resumeExistingAvatars?: boolean;
   uploadAvatarImage?: (params: {
     client: GululuLiveImportClient;
     filePath: string;
+    renderKind?: GululuImportedSpriteRenderKind;
   }) => Promise<UploadedAvatarImage>;
 };
 
 export type GululuLiveImportApplyResult = {
   avatars: Array<{
-    action: "created";
+    action: "created" | "reused";
+    avatarFileId?: number;
     avatarId: number;
     key: string;
     mediaFileId?: number;
+    originFileId?: number;
     roleId: number;
+    spriteFileId?: number;
     spriteTransform?: SpriteTransform;
   }>;
   messages: Array<{ messageId?: number; sourceEventIndex: number }>;
@@ -285,6 +320,7 @@ const WEBGAL_STAGE_HEIGHT = 1440;
 const IMPORTED_SPRITE_SAFE_TOP_Y = 80;
 const IMPORTED_FULL_BODY_BOTTOM_Y = 1020;
 const IMPORTED_AVATAR_BOTTOM_Y = 990;
+const IMPORTED_STAGE_SPRITE_BOTTOM_Y = 1220;
 
 type ImportedSpriteKind = "full-body" | "head-bust" | "framed-avatar";
 
@@ -316,6 +352,14 @@ const IMPORTED_FULL_BODY_SPRITE_LAYOUT: ImportedSpriteLayoutPreset = {
   maxWidth: 920,
   minScale: 0.18,
   targetHeight: 920,
+};
+
+const IMPORTED_STAGE_SPRITE_COWBOY_LAYOUT: ImportedSpriteLayoutPreset = {
+  bottomY: IMPORTED_STAGE_SPRITE_BOTTOM_Y,
+  maxScale: 1.12,
+  maxWidth: 1320,
+  minScale: 0.22,
+  targetHeight: 1560,
 };
 
 const IMPORTED_HEAD_BUST_SPRITE_LAYOUT: ImportedSpriteLayoutPreset = {
@@ -411,7 +455,11 @@ function resolveImportedSpriteKind(input: GululuImportedSpriteImageMetadata, vis
 function resolveImportedSpriteLayoutPreset(
   kind: ImportedSpriteKind,
   visibleBounds: GululuImportedSpriteVisibleBounds,
+  renderKind: GululuImportedSpriteRenderKind,
 ): ImportedSpriteLayoutPreset {
+  if (renderKind === "stage-sprite") {
+    return IMPORTED_STAGE_SPRITE_COWBOY_LAYOUT;
+  }
   if (kind === "full-body") {
     return IMPORTED_FULL_BODY_SPRITE_LAYOUT;
   }
@@ -435,7 +483,10 @@ function buildImportedSpriteFallbackTransform(): SpriteTransform {
   };
 }
 
-export function buildGululuImportedSpriteTransform(input: GululuImportedSpriteImageMetadata): SpriteTransform {
+export function buildGululuImportedSpriteTransform(
+  input: GululuImportedSpriteImageMetadata,
+  options: { renderKind?: GululuImportedSpriteRenderKind } = {},
+): SpriteTransform {
   const width = Number(input.width ?? 0);
   const height = Number(input.height ?? 0);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -445,7 +496,7 @@ export function buildGululuImportedSpriteTransform(input: GululuImportedSpriteIm
   const containScale = Math.min(WEBGAL_STAGE_WIDTH / width, WEBGAL_STAGE_HEIGHT / height);
   const visibleBounds = normalizeVisibleBounds(input, width, height);
   const kind = resolveImportedSpriteKind(input, visibleBounds);
-  const preset = resolveImportedSpriteLayoutPreset(kind, visibleBounds);
+  const preset = resolveImportedSpriteLayoutPreset(kind, visibleBounds, options.renderKind ?? "avatar");
   const renderedVisibleWidthAtScaleOne = visibleBounds.width * containScale;
   const renderedVisibleHeightAtScaleOne = visibleBounds.height * containScale;
   const scale = clampNumber(
@@ -529,6 +580,9 @@ export function parseLiveImportArgs(argv: string[]): GululuLiveImportArgs {
     }
     else if (arg === "--skip-named-avatars") {
       args.skipNamedAvatars = true;
+    }
+    else if (arg === "--resume-existing-avatars") {
+      args.resumeExistingAvatars = true;
     }
     else if (arg === "--input") {
       args.input = readValue(argv, index, arg);
@@ -649,12 +703,108 @@ function inferNamedAvatarRoot(sourceRoot: string | undefined) {
   return existsSync(candidate) ? candidate : undefined;
 }
 
+function inferCleanIndexRoot(options: Pick<GululuLiveImportArgs, "namedAvatarRoot" | "sourceRoot">) {
+  if (options.namedAvatarRoot) {
+    const namedRoot = path.resolve(options.namedAvatarRoot);
+    return path.basename(namedRoot) === "named-avatars"
+      ? path.dirname(namedRoot)
+      : namedRoot;
+  }
+  return options.sourceRoot
+    ? path.join(options.sourceRoot, "image-role-review-clean-vision-final")
+    : undefined;
+}
+
+function parseCsv(text: string): Array<Record<string, string>> {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === "\"") {
+      if (quoted && text[index + 1] === "\"") {
+        cell += "\"";
+        index++;
+      }
+      else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (char === "," && !quoted) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+    if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && text[index + 1] === "\n") {
+        index++;
+      }
+      row.push(cell);
+      if (row.some(value => value !== "")) {
+        rows.push(row);
+      }
+      row = [];
+      cell = "";
+      continue;
+    }
+    cell += char;
+  }
+  row.push(cell);
+  if (row.some(value => value !== "")) {
+    rows.push(row);
+  }
+  const [headers, ...body] = rows;
+  if (!headers) {
+    return [];
+  }
+  return body.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""])));
+}
+
+function splitPipeCell(value: string | undefined) {
+  return String(value ?? "").split("|").map(item => normalizeImagePath(item)).filter(Boolean);
+}
+
 function compareNamedAvatarItems(left: GululuNamedAvatarCatalogItem, right: GululuNamedAvatarCatalogItem) {
   const leftPriority = NAMED_AVATAR_KIND_PRIORITY.get(left.assetKind) ?? 99;
   const rightPriority = NAMED_AVATAR_KIND_PRIORITY.get(right.assetKind) ?? 99;
   return leftPriority - rightPriority
     || left.fileName.localeCompare(right.fileName, "zh-Hans-CN")
     || left.imagePath.localeCompare(right.imagePath);
+}
+
+function compareCleanIndexItems(left: GululuCleanIndexAvatarCatalogItem, right: GululuCleanIndexAvatarCatalogItem) {
+  return left.fileName.localeCompare(right.fileName, "zh-Hans-CN")
+    || left.imagePath.localeCompare(right.imagePath);
+}
+
+function normalizeAssetKind(value: string | undefined) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function normalizeRenderUse(value: string | undefined) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function isStageSpriteCleanIndexItem(item: Pick<GululuCleanIndexAvatarCatalogItem, "assetKind" | "renderUse">) {
+  const renderUse = normalizeRenderUse(item.renderUse);
+  if (renderUse === "stage" || renderUse === "stage-sprite") {
+    return true;
+  }
+  if (renderUse === "chat-avatar" || renderUse === "avatar") {
+    return false;
+  }
+  return normalizeAssetKind(item.assetKind).includes("sprite");
+}
+
+function pushCleanIndexRoleItem(
+  map: Map<string, GululuCleanIndexAvatarCatalogItem[]>,
+  item: GululuCleanIndexAvatarCatalogItem,
+) {
+  const items = map.get(item.roleName) ?? [];
+  items.push(item);
+  map.set(item.roleName, items);
 }
 
 function loadNamedAvatarCatalog(options: Pick<GululuLiveImportArgs, "namedAvatarRoot" | "skipNamedAvatars" | "sourceRoot">): GululuNamedAvatarCatalog | undefined {
@@ -726,6 +876,65 @@ function loadNamedAvatarCatalog(options: Pick<GululuLiveImportArgs, "namedAvatar
     }
   }
   return { byRole, byRoleAndSource };
+}
+
+function loadCleanIndexAvatarCatalog(options: Pick<GululuLiveImportArgs, "namedAvatarRoot" | "skipNamedAvatars" | "sourceRoot">): GululuCleanIndexAvatarCatalog | undefined {
+  if (options.skipNamedAvatars) {
+    return undefined;
+  }
+  const cleanRoot = inferCleanIndexRoot(options);
+  const indexPath = cleanRoot ? path.join(cleanRoot, "index.csv") : undefined;
+  if (!cleanRoot || !indexPath || !existsSync(indexPath)) {
+    return undefined;
+  }
+
+  const rows = parseCsv(readFileSync(indexPath, "utf8"));
+  const byChatAvatarRole = new Map<string, GululuCleanIndexAvatarCatalogItem[]>();
+  const byChatAvatarRoleAndSource = new Map<string, GululuCleanIndexAvatarCatalogItem>();
+  const byStageSpriteRole = new Map<string, GululuCleanIndexAvatarCatalogItem[]>();
+  const byStageSpriteRoleAndSource = new Map<string, GululuCleanIndexAvatarCatalogItem>();
+  for (const row of rows) {
+    const roleName = row.character?.trim();
+    const outputRelPath = normalizeOptionalImagePath(row.outputRelPath) || normalizeOptionalImagePath(row.transparentRelPath);
+    if (!roleName || !outputRelPath) {
+      continue;
+    }
+    const filePath = path.join(cleanRoot, outputRelPath);
+    if (!existsSync(filePath)) {
+      continue;
+    }
+    const sourceRelPaths = [
+      normalizeOptionalImagePath(row.sourceRelPath),
+      ...splitPipeCell(row.aggregatedSourceRelPaths),
+    ].filter((value): value is string => Boolean(value));
+    if (sourceRelPaths.length === 0) {
+      continue;
+    }
+    const item: GululuCleanIndexAvatarCatalogItem = {
+      assetKind: row.assetKind?.trim() || "unknown",
+      fileName: path.basename(filePath),
+      filePath,
+      imagePath: avatarImagePathFromFile(options.sourceRoot, filePath),
+      renderUse: row.renderUse?.trim() || undefined,
+      roleName,
+      sourceRelPaths: [...new Set(sourceRelPaths)],
+    };
+    const targetRoleMap = isStageSpriteCleanIndexItem(item) ? byStageSpriteRole : byChatAvatarRole;
+    const targetSourceMap = isStageSpriteCleanIndexItem(item) ? byStageSpriteRoleAndSource : byChatAvatarRoleAndSource;
+    pushCleanIndexRoleItem(targetRoleMap, item);
+    for (const sourceRelPath of item.sourceRelPaths) {
+      const key = namedAvatarSourceKey(roleName, sourceRelPath);
+      if (!targetSourceMap.has(key)) {
+        targetSourceMap.set(key, item);
+      }
+    }
+  }
+  for (const items of [...byChatAvatarRole.values(), ...byStageSpriteRole.values()]) {
+    items.sort(compareCleanIndexItems);
+  }
+  return byChatAvatarRoleAndSource.size > 0 || byStageSpriteRoleAndSource.size > 0
+    ? { byChatAvatarRole, byChatAvatarRoleAndSource, byStageSpriteRole, byStageSpriteRoleAndSource }
+    : undefined;
 }
 
 function roleKey(roleName: string) {
@@ -918,30 +1127,85 @@ function firstAvatarPathFor(role: GululuReplayRole | undefined) {
     ?? role?.avatarImages?.find(avatar => avatar.imagePath)?.imagePath;
 }
 
+function firstNamedAvatarForRole(catalog: GululuNamedAvatarCatalog | undefined, roleName: string) {
+  return catalog?.byRole.get(roleName)?.[0];
+}
+
 function firstNamedAvatarPathFor(catalog: GululuNamedAvatarCatalog | undefined, roleName: string) {
-  return catalog?.byRole.get(roleName)?.[0]?.imagePath;
+  return firstNamedAvatarForRole(catalog, roleName)?.imagePath;
+}
+
+function firstCleanIndexRoleItem(
+  map: Map<string, GululuCleanIndexAvatarCatalogItem[]> | undefined,
+  roleName: string,
+  role: GululuReplayRole | undefined,
+) {
+  for (const name of roleSourceNames(roleName, role)) {
+    const item = map?.get(name)?.[0];
+    if (item) {
+      return item;
+    }
+  }
+  return undefined;
+}
+
+function firstCleanIndexChatAvatarForRole(
+  catalog: GululuCleanIndexAvatarCatalog | undefined,
+  roleName: string,
+  role: GululuReplayRole | undefined,
+) {
+  return firstCleanIndexRoleItem(catalog?.byChatAvatarRole, roleName, role);
+}
+
+function firstCleanIndexStageSpriteForRole(
+  catalog: GululuCleanIndexAvatarCatalog | undefined,
+  roleName: string,
+  role: GululuReplayRole | undefined,
+) {
+  return firstCleanIndexRoleItem(catalog?.byStageSpriteRole, roleName, role);
 }
 
 function hasRoleAvatarEvidence(
   role: GululuReplayRole | undefined,
   roleName: string,
   catalog: GululuNamedAvatarCatalog | undefined,
+  cleanIndexCatalog: GululuCleanIndexAvatarCatalog | undefined,
 ) {
-  return Boolean(firstAvatarPathFor(role) || firstNamedAvatarPathFor(catalog, roleName));
+  return Boolean(
+    firstAvatarPathFor(role)
+      || firstNamedAvatarPathFor(catalog, roleName)
+      || firstCleanIndexChatAvatarForRole(cleanIndexCatalog, roleName, role)
+      || firstCleanIndexStageSpriteForRole(cleanIndexCatalog, roleName, role),
+  );
 }
 
 function collectRoleNamesWithAvatarEvidence(
   importPackage: GululuReplayImportPackage,
   catalog: GululuNamedAvatarCatalog | undefined,
+  cleanIndexCatalog: GululuCleanIndexAvatarCatalog | undefined,
 ) {
   const roleNames = new Set<string>();
+  const canonicalRoleNames = new Map<string, string>();
   for (const role of importPackage.roles ?? []) {
-    if (hasRoleAvatarEvidence(role, role.name, catalog)) {
+    canonicalRoleNames.set(role.name, role.name);
+    for (const alias of role.aliases ?? []) {
+      const aliasName = alias.name?.trim();
+      if (aliasName && !canonicalRoleNames.has(aliasName)) {
+        canonicalRoleNames.set(aliasName, role.name);
+      }
+    }
+    if (hasRoleAvatarEvidence(role, role.name, catalog, cleanIndexCatalog)) {
       roleNames.add(role.name);
     }
   }
   for (const roleName of catalog?.byRole.keys() ?? []) {
-    roleNames.add(roleName);
+    roleNames.add(canonicalRoleNames.get(roleName) ?? roleName);
+  }
+  for (const roleName of cleanIndexCatalog?.byChatAvatarRole.keys() ?? []) {
+    roleNames.add(canonicalRoleNames.get(roleName) ?? roleName);
+  }
+  for (const roleName of cleanIndexCatalog?.byStageSpriteRole.keys() ?? []) {
+    roleNames.add(canonicalRoleNames.get(roleName) ?? roleName);
   }
   return [...roleNames].sort((left, right) => left.localeCompare(right, "zh-Hans-CN"));
 }
@@ -952,65 +1216,251 @@ function namedAvatarTitle(item: GululuNamedAvatarCatalogItem) {
   };
 }
 
+function cleanIndexAvatarTitle(item: GululuCleanIndexAvatarCatalogItem) {
+  return {
+    label: item.assetKind === "manga-avatar" ? "原文漫画配图" : "原文配图",
+  };
+}
+
+function stageSpriteAvatarTitle(item: GululuCleanIndexAvatarCatalogItem) {
+  return {
+    label: `立绘：${path.basename(item.fileName, path.extname(item.fileName))}`,
+  };
+}
+
+function cleanIndexSpriteFields(item: GululuCleanIndexAvatarCatalogItem | undefined) {
+  return item
+    ? {
+        spriteAssetKind: item.assetKind,
+        spriteFileName: item.fileName,
+        spriteFilePath: item.filePath,
+        spriteImagePath: item.imagePath,
+        spriteSourceImagePaths: item.sourceRelPaths,
+      }
+    : {};
+}
+
+function roleSourceNames(roleName: string, role: GululuReplayRole | undefined) {
+  return [
+    roleName,
+    ...(role?.aliases ?? []).map(alias => alias.name?.trim()).filter((name): name is string => Boolean(name)),
+  ];
+}
+
+function findCleanIndexItemForRoleSource(
+  map: Map<string, GululuCleanIndexAvatarCatalogItem> | undefined,
+  roleName: string,
+  role: GululuReplayRole | undefined,
+  sourceRelPath: string | undefined,
+) {
+  if (!map || !sourceRelPath) {
+    return undefined;
+  }
+  for (const name of roleSourceNames(roleName, role)) {
+    const item = map.get(namedAvatarSourceKey(name, sourceRelPath));
+    if (item) {
+      return item;
+    }
+  }
+  return undefined;
+}
+
+function findCleanIndexChatAvatarForRoleSource(
+  catalog: GululuCleanIndexAvatarCatalog | undefined,
+  roleName: string,
+  role: GululuReplayRole | undefined,
+  sourceRelPath: string | undefined,
+) {
+  return findCleanIndexItemForRoleSource(catalog?.byChatAvatarRoleAndSource, roleName, role, sourceRelPath);
+}
+
+function findCleanIndexStageSpriteForRoleSource(
+  catalog: GululuCleanIndexAvatarCatalog | undefined,
+  roleName: string,
+  role: GululuReplayRole | undefined,
+  sourceRelPath: string | undefined,
+) {
+  return findCleanIndexItemForRoleSource(catalog?.byStageSpriteRoleAndSource, roleName, role, sourceRelPath);
+}
+
+function dialogSourceImagePathsForRole(messages: GululuReplayMessage[], roleName: string) {
+  const paths = new Set<string>();
+  for (const message of messages) {
+    if (message.kind !== "dialog" || message.roleName !== roleName) {
+      continue;
+    }
+    const imagePath = normalizeOptionalImagePath(message.imagePath);
+    if (imagePath) {
+      paths.add(imagePath);
+    }
+  }
+  return [...paths];
+}
+
+function cleanIndexAvatarPlanForRole(
+  rolePlan: GululuLiveImportRolePlan,
+  item: GululuCleanIndexAvatarCatalogItem,
+  options: GululuLiveImportArgs,
+): GululuLiveImportAvatarPlan {
+  return {
+    assetKind: item.assetKind,
+    avatarTitle: cleanIndexAvatarTitle(item),
+    fileName: item.fileName,
+    filePath: item.filePath,
+    imagePath: item.imagePath,
+    key: avatarKey(rolePlan.name, item.imagePath),
+    roleKey: rolePlan.key,
+    sourceImagePaths: item.sourceRelPaths,
+    sourceKey: `gululu:clean-index:${rolePlan.name}:${item.assetKind}:${item.fileName}`,
+    upload: !options.skipAvatarUpload,
+  };
+}
+
+function stageSpriteAvatarPlanForRole(
+  rolePlan: GululuLiveImportRolePlan,
+  spriteItem: GululuCleanIndexAvatarCatalogItem,
+  options: GululuLiveImportArgs,
+): GululuLiveImportAvatarPlan {
+  return {
+    assetKind: spriteItem.assetKind,
+    avatarTitle: stageSpriteAvatarTitle(spriteItem),
+    bindingImagePath: spriteItem.imagePath,
+    fileName: spriteItem.fileName,
+    filePath: spriteItem.filePath,
+    imagePath: spriteItem.imagePath,
+    key: avatarKey(rolePlan.name, spriteItem.imagePath),
+    originMediaKind: "sprite",
+    roleKey: rolePlan.key,
+    sourceImagePaths: spriteItem.sourceRelPaths,
+    sourceKey: `gululu:stage-sprite:${rolePlan.name}:${spriteItem.assetKind}:${spriteItem.fileName}`,
+    ...cleanIndexSpriteFields(spriteItem),
+    upload: !options.skipAvatarUpload,
+  };
+}
+
+function rawAvatarPlanForRole(
+  rolePlan: GululuLiveImportRolePlan,
+  imagePath: string,
+  index: number,
+  options: GululuLiveImportArgs,
+): GululuLiveImportAvatarPlan {
+  const filePath = resolveImageFilePath(options.sourceRoot, imagePath);
+  const fileExists = typeof filePath === "string" && existsSync(filePath);
+  const fileName = path.basename(imagePath);
+  return {
+    avatarTitle: { label: index === 0 ? "原文配图" : fileName },
+    fileName,
+    ...(filePath ? { filePath } : {}),
+    imagePath,
+    key: avatarKey(rolePlan.name, imagePath),
+    roleKey: rolePlan.key,
+    sourceImagePaths: [imagePath],
+    sourceKey: sourceKeyForAvatar(imagePath),
+    upload: !options.skipAvatarUpload && fileExists,
+  };
+}
+
 function collectAvatarPlansForRole(
   rolePlan: GululuLiveImportRolePlan,
   role: GululuReplayRole | undefined,
   messages: GululuReplayMessage[],
   options: GululuLiveImportArgs,
   catalog: GululuNamedAvatarCatalog | undefined,
+  cleanIndexCatalog: GululuCleanIndexAvatarCatalog | undefined,
 ): GululuLiveImportAvatarPlan[] {
   const namedItems = catalog?.byRole.get(rolePlan.name);
+  const plans: GululuLiveImportAvatarPlan[] = [];
+  const plannedKeys = new Set<string>();
+  const addPlan = (plan: GululuLiveImportAvatarPlan) => {
+    if (plannedKeys.has(plan.key)) {
+      return;
+    }
+    plannedKeys.add(plan.key);
+    plans.push(plan);
+  };
+
   if (namedItems?.length) {
-    return namedItems.map(item => ({
-      assetKind: item.assetKind,
-      avatarTitle: namedAvatarTitle(item),
-      ...(item.displayName ? { displayName: item.displayName } : {}),
-      fileName: item.fileName,
-      filePath: item.filePath,
-      imagePath: item.imagePath,
-      key: avatarKey(rolePlan.name, item.imagePath),
-      roleKey: rolePlan.key,
-      sourceImagePaths: item.sourceRelPaths,
-      sourceKey: `gululu:named-avatar:${rolePlan.name}:${item.assetKind}:${item.usageKey ?? item.fileName}`,
-      upload: !options.skipAvatarUpload,
-      ...(item.usageKey ? { usageKey: item.usageKey } : {}),
-    }));
+    for (const item of namedItems) {
+      addPlan({
+        assetKind: item.assetKind,
+        avatarTitle: namedAvatarTitle(item),
+        ...(item.displayName ? { displayName: item.displayName } : {}),
+        fileName: item.fileName,
+        filePath: item.filePath,
+        imagePath: item.imagePath,
+        key: avatarKey(rolePlan.name, item.imagePath),
+        roleKey: rolePlan.key,
+        sourceImagePaths: item.sourceRelPaths,
+        sourceKey: `gululu:named-avatar:${rolePlan.name}:${item.assetKind}:${item.usageKey ?? item.fileName}`,
+        upload: !options.skipAvatarUpload,
+        ...(item.usageKey ? { usageKey: item.usageKey } : {}),
+      });
+    }
   }
 
-  return collectAvatarImagePaths(role!, messages).map((imagePath, index) => {
-    const filePath = resolveImageFilePath(options.sourceRoot, imagePath);
-    const fileExists = typeof filePath === "string" && existsSync(filePath);
-    const fileName = path.basename(imagePath);
-    return {
-      avatarTitle: { label: index === 0 ? "默认" : fileName },
-      fileName,
-      ...(filePath ? { filePath } : {}),
-      imagePath,
-      key: avatarKey(rolePlan.name, imagePath),
-      roleKey: rolePlan.key,
-      sourceKey: sourceKeyForAvatar(imagePath),
-      upload: !options.skipAvatarUpload && fileExists,
-    };
-  });
+  const messageSourcePaths = dialogSourceImagePathsForRole(messages, rolePlan.name);
+  for (const sourceImagePath of messageSourcePaths) {
+    const spriteItem = findCleanIndexStageSpriteForRoleSource(cleanIndexCatalog, rolePlan.name, role, sourceImagePath);
+    if (spriteItem) {
+      addPlan(stageSpriteAvatarPlanForRole(rolePlan, spriteItem, options));
+      continue;
+    }
+    const namedItem = catalog?.byRoleAndSource.get(namedAvatarSourceKey(rolePlan.name, sourceImagePath));
+    if (namedItem) {
+      continue;
+    }
+    const cleanItem = findCleanIndexChatAvatarForRoleSource(cleanIndexCatalog, rolePlan.name, role, sourceImagePath);
+    if (cleanItem) {
+      addPlan(cleanIndexAvatarPlanForRole(rolePlan, cleanItem, options));
+      continue;
+    }
+    addPlan(rawAvatarPlanForRole(rolePlan, sourceImagePath, plans.length, options));
+  }
+
+  if (plans.length > 0) {
+    return plans;
+  }
+
+  const defaultSpriteItem = firstCleanIndexStageSpriteForRole(cleanIndexCatalog, rolePlan.name, role);
+  if (defaultSpriteItem) {
+    return [stageSpriteAvatarPlanForRole(rolePlan, defaultSpriteItem, options)];
+  }
+
+  return role
+    ? collectAvatarImagePaths(role, messages).map((imagePath, index) =>
+        rawAvatarPlanForRole(rolePlan, imagePath, index, options))
+    : [];
 }
 
 function resolveDialogAvatarImagePath(params: {
+  cleanIndexCatalog?: GululuCleanIndexAvatarCatalog;
   catalog?: GululuNamedAvatarCatalog;
   message: GululuReplayMessage;
   role?: GululuReplayRole;
   roleName: string;
 }) {
-  const { catalog, message, role, roleName } = params;
+  const { catalog, cleanIndexCatalog, message, role, roleName } = params;
   const sourceImagePath = normalizeOptionalImagePath(message.imagePath);
+  const spriteItem = findCleanIndexStageSpriteForRoleSource(cleanIndexCatalog, roleName, role, sourceImagePath);
+  if (spriteItem) {
+    return spriteItem.imagePath;
+  }
   if (catalog) {
     const namedItem = sourceImagePath
       ? catalog.byRoleAndSource.get(namedAvatarSourceKey(roleName, sourceImagePath))
       : undefined;
-    return namedItem?.imagePath
-      ?? firstNamedAvatarPathFor(catalog, roleName)
-      ?? normalizeOptionalImagePath(sourceImagePath || firstAvatarPathFor(role));
+    if (namedItem) {
+      return namedItem.imagePath;
+    }
   }
-  return normalizeOptionalImagePath(sourceImagePath || firstAvatarPathFor(role));
+  if (sourceImagePath) {
+    return findCleanIndexChatAvatarForRoleSource(cleanIndexCatalog, roleName, role, sourceImagePath)?.imagePath
+      ?? sourceImagePath;
+  }
+  return firstNamedAvatarPathFor(catalog, roleName)
+    ?? firstCleanIndexChatAvatarForRole(cleanIndexCatalog, roleName, role)?.imagePath
+    ?? firstCleanIndexStageSpriteForRole(cleanIndexCatalog, roleName, role)?.imagePath
+    ?? normalizeOptionalImagePath(firstAvatarPathFor(role));
 }
 
 export function buildGululuLiveImportPlan(
@@ -1034,8 +1484,9 @@ export function buildGululuLiveImportPlan(
   const messages = importPackage.messages ?? [];
   const rolesByName = new Map((importPackage.roles ?? []).map(role => [role.name, role]));
   const namedAvatarCatalog = loadNamedAvatarCatalog(options);
+  const cleanIndexCatalog = loadCleanIndexAvatarCatalog(options);
 
-  const roles = collectRoleNamesWithAvatarEvidence(importPackage, namedAvatarCatalog)
+  const roles = collectRoleNamesWithAvatarEvidence(importPackage, namedAvatarCatalog, cleanIndexCatalog)
     .map((roleName): GululuLiveImportRolePlan => ({
       createRoleRequest: {
         description: `由咕噜噜 replay 导入：${source.title ?? source.key}`,
@@ -1056,10 +1507,13 @@ export function buildGululuLiveImportPlan(
   const rolePlanKeys = new Set(roles.map(role => role.key));
   const avatars = roles.flatMap((rolePlan): GululuLiveImportAvatarPlan[] => {
     const role = rolesByName.get(rolePlan.name);
-    const roleAvatars = collectAvatarPlansForRole(rolePlan, role, messages, options, namedAvatarCatalog);
+    const roleAvatars = collectAvatarPlansForRole(rolePlan, role, messages, options, namedAvatarCatalog, cleanIndexCatalog);
     for (const avatar of roleAvatars) {
       if (!options.skipAvatarUpload && avatar.filePath && !existsSync(avatar.filePath)) {
         warnings.push(`头像文件不存在：${avatar.filePath}`);
+      }
+      if (!options.skipAvatarUpload && avatar.spriteFilePath && !existsSync(avatar.spriteFilePath)) {
+        warnings.push(`立绘文件不存在：${avatar.spriteFilePath}`);
       }
     }
     return roleAvatars;
@@ -1076,6 +1530,7 @@ export function buildGululuLiveImportPlan(
       const role = rolesByName.get(roleName);
       const imagePath = resolveDialogAvatarImagePath({
         catalog: namedAvatarCatalog,
+        cleanIndexCatalog,
         message,
         role,
         roleName,
@@ -1411,6 +1866,85 @@ export async function ensureRoomInSidebarTree(
   };
 }
 
+async function loadExistingAvatarQueues(params: {
+  client: GululuLiveImportClient;
+  plan: GululuLiveImportPlan;
+  resumeExistingAvatars: boolean | undefined;
+  roleIds: Map<string, number>;
+}) {
+  if (!params.resumeExistingAvatars) {
+    return new Map<number, RoleAvatar[]>();
+  }
+  if (!params.client.avatarController.getRoleAvatars) {
+    throw new Error("当前 client 缺少 getRoleAvatars，无法恢复已有头像导入");
+  }
+
+  const roleIdsInPlan = new Set<number>();
+  for (const avatar of params.plan.avatars) {
+    const roleId = params.roleIds.get(avatar.roleKey);
+    if (roleId) {
+      roleIdsInPlan.add(roleId);
+    }
+  }
+
+  const queues = new Map<number, RoleAvatar[]>();
+  for (const roleId of roleIdsInPlan) {
+    const avatars = assertApiSuccess(
+      await params.client.avatarController.getRoleAvatars(roleId),
+      `读取角色头像失败：${roleId}`,
+    ) ?? [];
+    queues.set(roleId, avatars
+      .filter(avatar => typeof avatar.avatarId === "number" && avatar.avatarId > 0)
+      .sort((left, right) => (left.avatarId ?? 0) - (right.avatarId ?? 0)));
+  }
+  return queues;
+}
+
+function avatarTitleLabel(value: Record<string, string> | undefined) {
+  return value?.label ?? "";
+}
+
+function planNeedsUploadedAvatarMedia(planned: GululuLiveImportAvatarPlan) {
+  return Boolean(planned.upload && planned.filePath);
+}
+
+function planNeedsUploadedSpriteMedia(planned: GululuLiveImportAvatarPlan) {
+  return Boolean(planned.upload && (planned.spriteFilePath || planned.filePath));
+}
+
+function existingAvatarIsComplete(existing: RoleAvatar, planned: GululuLiveImportAvatarPlan) {
+  if (avatarTitleLabel(existing.avatarTitle) !== avatarTitleLabel(planned.avatarTitle)) {
+    return false;
+  }
+  if (planNeedsUploadedAvatarMedia(planned) && !existing.avatarFileId) {
+    return false;
+  }
+  if (planNeedsUploadedSpriteMedia(planned) && !existing.spriteFileId) {
+    return false;
+  }
+  if (planNeedsUploadedSpriteMedia(planned) && !existing.spriteTransform) {
+    return false;
+  }
+  return true;
+}
+
+function takeExistingAvatarForPlan(
+  existingAvatarQueues: Map<number, RoleAvatar[]>,
+  roleId: number,
+  planned: GululuLiveImportAvatarPlan,
+) {
+  const queue = existingAvatarQueues.get(roleId);
+  const plannedLabel = avatarTitleLabel(planned.avatarTitle);
+  if (!queue?.length || !plannedLabel) {
+    return undefined;
+  }
+  const existingIndex = queue.findIndex(avatar => avatarTitleLabel(avatar.avatarTitle) === plannedLabel);
+  if (existingIndex < 0) {
+    return undefined;
+  }
+  return queue.splice(existingIndex, 1)[0];
+}
+
 export async function applyGululuLiveImportPlan(
   plan: GululuLiveImportPlan,
   client: GululuLiveImportClient,
@@ -1453,33 +1987,86 @@ export async function applyGululuLiveImportPlan(
     );
   }
 
+  const existingAvatarQueues = await loadExistingAvatarQueues({
+    client,
+    plan,
+    resumeExistingAvatars: deps.resumeExistingAvatars,
+    roleIds,
+  });
   const avatarIds = new Map<string, number>();
   const avatarResults: GululuLiveImportApplyResult["avatars"] = [];
+  const uploadedMediaByPath = new Map<string, UploadedAvatarImage>();
+  const uploadPlannedImage = async (
+    filePath: string | undefined,
+    renderKind: GululuImportedSpriteRenderKind,
+  ) => {
+    if (!filePath || !deps.uploadAvatarImage) {
+      return undefined;
+    }
+    const resolvedFilePath = path.resolve(filePath);
+    const cacheKey = `${renderKind}\u0000${resolvedFilePath}`;
+    const cached = uploadedMediaByPath.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    const uploaded = await deps.uploadAvatarImage({ client, filePath, renderKind });
+    uploadedMediaByPath.set(cacheKey, uploaded);
+    return uploaded;
+  };
   for (const avatar of plan.avatars) {
     const roleId = roleIds.get(avatar.roleKey);
     if (!roleId) {
       throw new Error(`头像缺少角色映射：${avatar.key}`);
     }
-    const avatarId = assertApiData(
-      await client.avatarController.setRoleAvatar({ category: ROLE_AVATAR_CATEGORY, roleId }),
-      `创建头像失败：${avatar.imagePath}`,
-    );
+    const existingAvatar = takeExistingAvatarForPlan(existingAvatarQueues, roleId, avatar);
+    let avatarId = existingAvatar?.avatarId;
+    if (!avatarId) {
+      avatarId = assertApiData(
+        await client.avatarController.setRoleAvatar({ category: ROLE_AVATAR_CATEGORY, roleId }),
+        `创建头像失败：${avatar.imagePath}`,
+      );
+    }
     avatarIds.set(avatar.key, avatarId);
 
-    const uploadedAvatar = avatar.upload && avatar.filePath && deps.uploadAvatarImage
-      ? await deps.uploadAvatarImage({ client, filePath: avatar.filePath })
+    if (existingAvatar && existingAvatarIsComplete(existingAvatar, avatar)) {
+      avatarResults.push({
+        action: "reused",
+        avatarId,
+        key: avatar.key,
+        ...(existingAvatar.avatarFileId ? {
+          avatarFileId: existingAvatar.avatarFileId,
+          mediaFileId: existingAvatar.avatarFileId,
+        } : {}),
+        ...(existingAvatar.originFileId ? { originFileId: existingAvatar.originFileId } : {}),
+        roleId,
+        ...(existingAvatar.spriteFileId ? { spriteFileId: existingAvatar.spriteFileId } : {}),
+        ...(existingAvatar.spriteTransform ? { spriteTransform: existingAvatar.spriteTransform } : {}),
+      });
+      continue;
+    }
+
+    const uploadedSprite = avatar.upload ? await uploadPlannedImage(avatar.spriteFilePath, "stage-sprite") : undefined;
+    const uploadedAvatar = avatar.upload && avatar.originMediaKind !== "sprite"
+      ? await uploadPlannedImage(avatar.filePath, "avatar")
       : undefined;
-    const mediaFileId = uploadedAvatar?.mediaFileId;
+    const avatarFileId = uploadedAvatar?.mediaFileId
+      ?? (avatar.originMediaKind === "sprite" ? uploadedSprite?.mediaFileId : undefined)
+      ?? existingAvatar?.avatarFileId;
+    const spriteFileId = uploadedSprite?.mediaFileId ?? avatarFileId ?? existingAvatar?.spriteFileId;
+    const originFileId = avatar.originMediaKind === "sprite"
+      ? spriteFileId ?? avatarFileId ?? existingAvatar?.originFileId
+      : avatarFileId ?? spriteFileId ?? existingAvatar?.originFileId;
+    const spriteTransform = uploadedSprite?.spriteTransform ?? uploadedAvatar?.spriteTransform ?? existingAvatar?.spriteTransform;
     assertApiSuccess(
       await client.avatarController.updateRoleAvatar({
-        avatarFileId: mediaFileId,
         avatarId,
         avatarTitle: avatar.avatarTitle,
         category: ROLE_AVATAR_CATEGORY,
-        originFileId: mediaFileId,
+        ...(avatarFileId ? { avatarFileId } : {}),
+        ...(originFileId ? { originFileId } : {}),
         roleId,
-        ...(uploadedAvatar?.spriteTransform ? { spriteTransform: uploadedAvatar.spriteTransform } : {}),
-        spriteFileId: mediaFileId,
+        ...(spriteTransform ? { spriteTransform } : {}),
+        ...(spriteFileId ? { spriteFileId } : {}),
       }),
       `更新头像失败：${avatar.imagePath}`,
     );
@@ -1487,9 +2074,11 @@ export async function applyGululuLiveImportPlan(
       action: "created",
       avatarId,
       key: avatar.key,
-      ...(mediaFileId ? { mediaFileId } : {}),
+      ...(avatarFileId ? { avatarFileId, mediaFileId: avatarFileId } : {}),
+      ...(originFileId ? { originFileId } : {}),
       roleId,
-      ...(uploadedAvatar?.spriteTransform ? { spriteTransform: uploadedAvatar.spriteTransform } : {}),
+      ...(spriteFileId ? { spriteFileId } : {}),
+      ...(spriteTransform ? { spriteTransform } : {}),
     });
   }
 
@@ -1549,6 +2138,7 @@ async function uploadLocalImageAsRoleAvatarMedia(params: {
     };
   };
   filePath: string;
+  renderKind?: GululuImportedSpriteRenderKind;
 }): Promise<UploadedAvatarImage> {
   if (!params.client.mediaController) {
     throw new Error("当前 client 缺少 mediaController，无法上传头像图片");
@@ -1581,7 +2171,7 @@ async function uploadLocalImageAsRoleAvatarMedia(params: {
     }
     return {
       mediaFileId: prepared.fileId,
-      spriteTransform: buildGululuImportedSpriteTransform(metadata),
+      spriteTransform: buildGululuImportedSpriteTransform(metadata, { renderKind: params.renderKind }),
     };
   }
   if (!prepared.sessionId || !prepared.uploadTargets) {
@@ -1612,15 +2202,16 @@ async function uploadLocalImageAsRoleAvatarMedia(params: {
   }
   return {
     mediaFileId: completed.fileId,
-    spriteTransform: buildGululuImportedSpriteTransform(metadata),
+    spriteTransform: buildGululuImportedSpriteTransform(metadata, { renderKind: params.renderKind }),
   };
 }
 
-function createDefaultDeps(client: GululuLiveImportClient): ApplyLiveImportDeps {
+export function createDefaultDeps(client: GululuLiveImportClient): ApplyLiveImportDeps {
   return {
-    uploadAvatarImage: ({ filePath }) => uploadLocalImageAsRoleAvatarMedia({
+    uploadAvatarImage: ({ filePath, renderKind }) => uploadLocalImageAsRoleAvatarMedia({
       client: client as Parameters<typeof uploadLocalImageAsRoleAvatarMedia>[0]["client"],
       filePath,
+      renderKind,
     }),
   };
 }
@@ -1659,7 +2250,10 @@ export async function runGululuAuthoringLiveImport(argv: string[]) {
   }
 
   const client = createClient(args);
-  const result = await applyGululuLiveImportPlan(plan, client, createDefaultDeps(client));
+  const result = await applyGululuLiveImportPlan(plan, client, {
+    ...createDefaultDeps(client),
+    resumeExistingAvatars: args.resumeExistingAvatars,
+  });
   await writeFile(outputPath, `${JSON.stringify({ plan, result }, null, 2)}\n`, "utf8");
   return { outputPath, plan, result };
 }

@@ -1,4 +1,5 @@
 import { toast } from "react-hot-toast";
+
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 

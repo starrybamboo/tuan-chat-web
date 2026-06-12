@@ -1,7 +1,9 @@
 import { useParams } from "@tanstack/react-router";
-import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useEffect, useMemo } from "react";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { useGetInboxMessageWithUserQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
+
 import ContextMenu from "./components/ContextMenu";
 import MessageInput from "./components/MessageInput";
 import MessageWindow from "./components/MessageWindow";

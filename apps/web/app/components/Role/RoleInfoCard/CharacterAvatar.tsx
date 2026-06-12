@@ -1,13 +1,16 @@
-import type { RoleAvatar } from "api";
-import type { Role } from "../types";
-
 import { useState } from "react";
+
+import type { RoleAvatar } from "api";
+
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+
+import type { Role } from "../types";
+
 import { SpriteSettingsPopup } from "../sprite/SpriteSettingsPopup";
 
-interface CharacterAvatarProps {
+type CharacterAvatarProps = {
   role: Role;
   roleAvatars: RoleAvatar[];
   selectedAvatarId: number;
@@ -96,7 +99,7 @@ export default function CharacterAvatar({
       <SpriteSettingsPopup
         isOpen={changeAvatarConfirmOpen}
         onClose={() => setChangeAvatarConfirmOpen(false)}
-        defaultTab="preview"
+        defaultTab="setting"
         spritesAvatars={roleAvatars}
         roleAvatars={roleAvatars}
         currentSpriteIndex={validSelectedIndex}

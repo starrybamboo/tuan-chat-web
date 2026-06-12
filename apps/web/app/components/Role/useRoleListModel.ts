@@ -5,8 +5,15 @@ import { tuanchat } from "@/../api/instance";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { seedRoleAvatarQueryCaches, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
+import { createUniqueQuerySlots } from "api/hooks/querySlots";
 
 import { mapUserRoleToRole, resolveRoleAvatarUrls } from "./roleListData";
+
+type RoleListItem = ReturnType<typeof mapUserRoleToRole>;
+
+function shouldLoadRoleAvatar(role: RoleListItem): boolean {
+  return role.avatarId > 0 && !role.avatar && !role.avatarThumb;
+}
 
 export function useRoleListModel() {
   const queryClient = useQueryClient();
@@ -23,27 +30,47 @@ export function useRoleListModel() {
       .filter(role => role.type !== 2);
   }, [diceRolesQuery.data, normalRolesQuery.data]);
 
+  const rolesByAvatarId = useMemo(() => {
+    const next = new Map<number, RoleListItem[]>();
+    baseRoles.filter(shouldLoadRoleAvatar).forEach((role) => {
+      next.set(role.avatarId, [...(next.get(role.avatarId) ?? []), role]);
+    });
+    return next;
+  }, [baseRoles]);
+
+  const avatarQuerySlots = useMemo(
+    () => createUniqueQuerySlots([...rolesByAvatarId.keys()], avatarId => String(avatarId)),
+    [rolesByAvatarId],
+  );
+
   const avatarQueries = useQueries({
-    queries: baseRoles.map(role => ({
-      queryKey: ["getRoleAvatar", role.avatarId],
+    queries: avatarQuerySlots.queryItems.map(({ item: avatarId }) => ({
+      queryKey: ["getRoleAvatar", avatarId],
       queryFn: async () => {
-        const response = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
+        const response = await tuanchat.avatarController.getRoleAvatar(avatarId);
         if (response.success && response.data) {
-          seedRoleAvatarQueryCaches(queryClient, response.data, role.id);
+          const avatar = response.data;
+          rolesByAvatarId.get(avatarId)?.forEach((role) => {
+            seedRoleAvatarQueryCaches(queryClient, avatar, role.id);
+          });
         }
         return response;
       },
       staleTime: 86400000,
-      enabled: role.avatarId > 0 && !role.avatar && !role.avatarThumb,
     })),
   });
 
   const roles = useMemo(() => {
-    return baseRoles.map((role, index) => {
+    const avatarQueryByAvatarId = new Map<number, (typeof avatarQueries)[number]>();
+    avatarQuerySlots.queryItems.forEach(({ item: avatarId }, index) => {
+      avatarQueryByAvatarId.set(avatarId, avatarQueries[index]);
+    });
+
+    return baseRoles.map((role) => {
       if (role.avatar || role.avatarThumb || !role.avatarId) {
         return role;
       }
-      const avatar = avatarQueries[index]?.data?.data;
+      const avatar = avatarQueryByAvatarId.get(role.avatarId)?.data?.data;
       if (!avatar) {
         return role;
       }
@@ -56,15 +83,16 @@ export function useRoleListModel() {
         avatarThumb,
       };
     });
-  }, [avatarQueries, baseRoles]);
+  }, [avatarQueries, avatarQuerySlots.queryItems, baseRoles]);
 
-  const isLoading = diceRolesQuery.isLoading
-    || normalRolesQuery.isLoading
+  const isRoleListLoading = diceRolesQuery.isLoading || normalRolesQuery.isLoading;
+  const isLoading = isRoleListLoading
     || avatarQueries.some(query => query.isLoading);
 
   return {
     roles,
     isLoading,
+    isRoleListLoading,
     diceRolesQuery,
     normalRolesQuery,
   };

@@ -8,9 +8,12 @@ import type { ChatMessageResponse, Room, UserRole } from "../../api";
 import { RealtimeRenderer } from "./realtimeRenderer";
 
 const manageGameControllerEditTextFile = vi.fn(async () => ({}));
-const { fetchRoleAvatarWithCache } = vi.hoisted(() => ({
+const { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache } = vi.hoisted(() => ({
   fetchRoleAvatarWithCache: vi.fn(async (_queryClient: unknown, avatarId: number) => ({
     data: { data: { avatarId, roleId: avatarId === 22 ? 2 : 1, spriteFileId: avatarId === 22 ? 4096 : 2048 } },
+  })),
+  fetchRoleAvatarsWithCache: vi.fn(async () => ({
+    data: [],
   })),
 }));
 
@@ -23,6 +26,7 @@ vi.mock("@/webGAL/index", () => ({
 
 vi.mock("../../api/hooks/RoleAndAvatarHooks", () => ({
   fetchRoleAvatarWithCache,
+  fetchRoleAvatarsWithCache,
 }));
 
 vi.mock("./fileOperator", async (importOriginal) => {
@@ -48,6 +52,20 @@ function role(roleId: number, roleName: string): UserRole {
     roleName,
     userId: 1,
     type: 0,
+  };
+}
+
+function variantGroup(baseAvatarId = 11) {
+  return {
+    variantId: 100,
+    roleId: 1,
+    name: "校服",
+    baseAvatarId,
+    compositionConfig: {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x: 12, y: 34, width: 256, height: 256 },
+      output: { format: "webp" },
+    },
   };
 }
 
@@ -216,6 +234,76 @@ describe("realtimeRenderer shared compiler full render", () => {
     const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
     expect(sceneText).toContain("changeFigure:role_1/sprite_11.webp");
     expect(sceneText).toContain("changeFigure:role_1/sprite_12.webp");
+    expect(sceneText).toContain("明日香: 笑脸差分 -figureId=1;");
+  });
+
+  it("实时追加有效立绘组时会先合成再显示 composite 立绘", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    const avatars = [
+      {
+        avatarId: 11,
+        roleId: 1,
+        variantId: 100,
+        variantGroup: variantGroup(11),
+        spriteFileId: 2048,
+        avatarFileId: 3001,
+        avatarCropContext: {
+          sourceWidth: 1000,
+          sourceHeight: 1600,
+          crop: { x: 10, y: 20, width: 300, height: 300 },
+        },
+      },
+      {
+        avatarId: 12,
+        roleId: 1,
+        variantId: 100,
+        variantGroup: variantGroup(11),
+        spriteFileId: 4096,
+        avatarFileId: 3002,
+        avatarCropContext: {
+          sourceWidth: 1000,
+          sourceHeight: 1600,
+          crop: { x: 12, y: 34, width: 256, height: 256 },
+        },
+      },
+    ];
+    const queryClient = {
+      getQueryData: vi.fn((key: unknown[]) => {
+        if (key[0] === "getRoleAvatar") {
+          return undefined;
+        }
+        if (key[0] === "getRoleAvatars" && key[1] === 1) {
+          return { data: avatars };
+        }
+        return undefined;
+      }),
+    };
+
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([{ ...role(1, "明日香"), avatarId: 11 }]);
+    renderer.setQueryClient(queryClient as any);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    await renderer.appendMessage(message({
+      messageId: 1,
+      roomId: 10,
+      roleId: 1,
+      avatarId: 12,
+      content: "笑脸差分",
+      messageType: MESSAGE_TYPE.TEXT,
+      annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+    }), 10, false);
+
+    const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
+    const composeIndex = sceneText.indexOf("composeFigure:");
+    const changeIndex = sceneText.indexOf("changeFigure:role_1_variant");
+    expect(composeIndex).toBeGreaterThanOrEqual(0);
+    expect(changeIndex).toBeGreaterThan(composeIndex);
+    expect(sceneText).toContain(`"src":"role_1/base_11_2048.webp"`);
+    expect(sceneText).toContain(`"src":"role_1/avatar_12_3002_`);
+    expect(sceneText).toContain(" -composite -id=1 ");
     expect(sceneText).toContain("明日香: 笑脸差分 -figureId=1;");
   });
 

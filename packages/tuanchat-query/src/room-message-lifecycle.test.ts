@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
-
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { describe, expect, it } from "vitest";
 
 import {
   buildCommittedRoomMessage,

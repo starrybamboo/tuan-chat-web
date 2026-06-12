@@ -1,7 +1,8 @@
 import type { MouseEvent } from "react";
-import type { RoleAvatar, UserRole } from "../../../../api";
+
 import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
@@ -14,6 +15,9 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl } from "@/components/Role/sprite/utils";
 import { AddRingLight, AddRoleIcon, ExpandCornersIcon, EyedropperIcon, IdentificationCardIcon, NarratorIcon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
+
+import type { RoleAvatar, UserRole } from "../../../../api";
+
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
 export function ExpressionChooser({

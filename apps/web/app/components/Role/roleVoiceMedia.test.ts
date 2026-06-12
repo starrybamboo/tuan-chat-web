@@ -9,7 +9,7 @@ import {
 
 vi.mock("@/utils/mediaUrl", () => ({
   mediaFileUrl: (fileId?: number | string | null, mediaType?: string | null, quality?: string | null) =>
-    fileId ? `media:${mediaType}:${quality}:${fileId}` : "",
+    fileId ? `media:${mediaType}:${quality}:${fileId}` : undefined,
 }));
 
 describe("roleVoiceMedia", () => {
