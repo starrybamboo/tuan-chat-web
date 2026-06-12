@@ -1,12 +1,12 @@
+import type { CommandInfo } from "@tuanchat/domain/command-request";
+
+import { filterCommandCatalog, getCommandCatalog } from "@tuanchat/domain/command-catalog";
 import { useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
-
-import type { CommandInfo } from "@tuanchat/domain/command-request";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { filterCommandCatalog, getCommandCatalog } from "@tuanchat/domain/command-catalog";
 
 import { getCommandQuery } from "./mobileCommandQuery";
 

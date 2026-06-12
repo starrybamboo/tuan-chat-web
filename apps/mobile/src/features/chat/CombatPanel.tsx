@@ -1,16 +1,18 @@
-import { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
+
+import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
+import { compareStateValueText } from "@tuanchat/domain/state-runtime";
+import { useMemo } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
-import { formatStateKeyLabel, formatStateScopeLabel } from "@tuanchat/domain/state-event";
-import { compareStateValueText } from "@tuanchat/domain/state-runtime";
+
+import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
 import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
@@ -88,7 +90,12 @@ type CombatPanelProps = {
   onEnterStateCommandMode: () => void;
   onStartCombat: () => void;
   roomRoles: UserRole[];
+  roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
+};
+
+type CombatPanelContentProps = Omit<CombatPanelProps, "messages" | "roomStateRuntime" | "ruleId"> & {
+  runtime: RoomStateRuntimeValue;
 };
 
 function getStatColor(key: string) {
@@ -102,7 +109,7 @@ function formatStatValue(baseValue: number, derivedValue: number): string {
   return `${derivedValue}/${baseValue}`;
 }
 
-function collectCombatDisplayKeys(recordedKeys: string[], activeStates: ReturnType<typeof useRoomStateRuntime>["activeStates"]): string[] {
+function collectCombatDisplayKeys(recordedKeys: string[], activeStates: RoomStateRuntimeValue["activeStates"]): string[] {
   const keys = new Set(recordedKeys);
   activeStates.forEach((state) => {
     state.modifiers.forEach(modifier => keys.add(modifier.key));
@@ -110,26 +117,36 @@ function collectCombatDisplayKeys(recordedKeys: string[], activeStates: ReturnTy
   return [...keys].sort((left, right) => left.localeCompare(right, "zh-CN"));
 }
 
-export function CombatPanel({
+export function CombatPanel(props: CombatPanelProps) {
+  if (props.roomStateRuntime) {
+    return <CombatPanelContent {...props} runtime={props.roomStateRuntime} />;
+  }
+  return <CombatPanelWithRuntime {...props} />;
+}
+
+function CombatPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props }: CombatPanelProps) {
+  const runtime = useRoomStateRuntime({
+    currentRoleId: props.currentRoleId,
+    messages: props.messages,
+    roomRoles: props.roomRoles,
+    ruleId: props.ruleId,
+  });
+  return <CombatPanelContent {...props} runtime={runtime} />;
+}
+
+function CombatPanelContent({
   currentRoleId,
   isKP,
   isSendingCombatRoundEvent,
   isStateCommandMode,
-  messages,
   onAdvanceTurn,
   onEndCombat,
   onEnterStateCommandMode,
   onStartCombat,
+  runtime,
   roomRoles,
-  ruleId,
-}: CombatPanelProps) {
+}: CombatPanelContentProps) {
   const theme = useTheme();
-  const runtime = useRoomStateRuntime({
-    currentRoleId,
-    messages,
-    roomRoles,
-    ruleId,
-  });
   const displayedRound = runtime.combatRoundActive ? runtime.turn : 0;
 
   const roleNameById = useMemo(() => {

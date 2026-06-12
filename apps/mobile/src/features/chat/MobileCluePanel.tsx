@@ -1,10 +1,14 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
+import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
+import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { TextEnhanceRenderer } from "@/components/TextEnhanceRenderer";
@@ -19,10 +23,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
 import { confirmAction } from "@/lib/confirm";
-import { getClueFolderMeta, getClueFolderRoomName } from "@tuanchat/domain/clue-folder";
-import { getClueCardRenderData } from "@tuanchat/domain/message-render-data";
-import { getMaxRoomMessageSyncId, markRoomSessionReadInCache, useUpdateRoomReadPositionMutation } from "@tuanchat/query";
-import { useJoinPublicClueFolderMutation } from "@tuanchat/query/clue-folder";
 
 import type { MessageAction } from "./MessageActionMenu";
 
@@ -332,7 +332,6 @@ function MobileClueFolderMessages({ currentUserId, currentRoleId, currentRoomId,
               />
             </Pressable>
           )}
-          removeClippedSubviews={false}
         />
         {actionError && !editingMessage
           ? <ThemedText style={styles.stateText} themeColor="textSecondary">{actionError}</ThemedText>

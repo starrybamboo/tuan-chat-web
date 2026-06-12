@@ -1,0 +1,43 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "../../packages/oxlint-config/oxlint-base.json"
+  ],
+  "rules": {
+    "node/no-process-env": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "typescript/no-require-imports": "off",
+        "vitest/require-mock-type-parameters": "off",
+        "no-console": [
+          "warn",
+          {
+            "allow": [
+              "warn",
+              "error"
+            ]
+          }
+        ],
+        "react-hooks-js/immutability": "warn",
+        "react-hooks-js/preserve-manual-memoization": "warn",
+        "react-hooks-js/purity": "warn",
+        "react-hooks-js/refs": "warn",
+        "react-hooks-js/set-state-in-effect": "warn",
+        "react-hooks-js/static-components": "warn"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    ".expo/**",
+    ".expo-export-web/**",
+    ".tmp/**",
+    "android/**",
+    "ios/**",
+    "scripts/**"
+  ]
+}

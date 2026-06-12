@@ -1,11 +1,10 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-import { describe, expect, it } from "vitest";
-
 import {
   canDeleteRoomMessage,
   canEditRoomMessage,
   canReplyRoomMessage,
 } from "@tuanchat/domain/message-action-permissions";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { describe, expect, it } from "vitest";
 
 describe("messageActionMenu permission logic", () => {
   describe("kP sees edit/delete for others' messages", () => {

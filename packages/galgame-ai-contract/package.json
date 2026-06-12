@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*"
   }
 }

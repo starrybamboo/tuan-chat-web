@@ -1,3 +1,6 @@
+import type { Room } from "@tuanchat/openapi-client/models/Room";
+import type { Space } from "@tuanchat/openapi-client/models/Space";
+
 import { CaretDown, CaretRight, ChatCircle, Plus } from "phosphor-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, PanResponder, Pressable, StyleSheet, View } from "react-native";
@@ -5,8 +8,6 @@ import { FlatList, PanResponder, Pressable, StyleSheet, View } from "react-nativ
 import type { DmBackTarget } from "@/features/friends/dmNavigationState";
 import type { DmTab } from "@/features/friends/DmTopTabs";
 import type { DmConversation } from "@/features/friends/useDmInboxQuery";
-import type { Room } from "@tuanchat/openapi-client/models/Room";
-import type { Space } from "@tuanchat/openapi-client/models/Space";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -550,9 +551,7 @@ export function LeftDrawer({
       return;
     }
 
-    if (dragAutoScrollFrameRef.current == null) {
-      dragAutoScrollFrameRef.current = requestAnimationFrame(runSpaceRailAutoScroll);
-    }
+    dragAutoScrollFrameRef.current ??= requestAnimationFrame(runSpaceRailAutoScroll);
   }, [getAutoScrollStep, getDragPointerViewportY, runSpaceRailAutoScroll, stopSpaceRailAutoScroll]);
 
   const resetDraggingSpace = useCallback(() => {
@@ -817,6 +816,7 @@ export function LeftDrawer({
                       updateSpaceDragPosition(dragDyRef.current, nextOffset);
                     }
                   }}
+                  // Space rail 支持拖拽排序，裁剪回收会干扰拖拽中的目标测算。
                   removeClippedSubviews={false}
                   scrollEventThrottle={16}
                   scrollEnabled={draggingSpaceId == null}
@@ -843,7 +843,6 @@ export function LeftDrawer({
             contentContainerStyle={styles.roomListContent}
             keyExtractor={item => item.key}
             renderItem={renderRoomListItem}
-            removeClippedSubviews={false}
           />
         </View>
       ) : (

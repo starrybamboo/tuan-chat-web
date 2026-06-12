@@ -1,5 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
@@ -7,9 +5,11 @@ import {
   createOptimisticRoomMessage,
   getRoomMessageLocalRenderKey,
 } from "@tuanchat/query/room-message-lifecycle";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 
+import { extractRoomMessagesFromQueryData } from "./roomMessagesQueryData";
 import {
   extractChatMessageResponses,
   fetchRoomMessagesWithLocalSync,
@@ -38,9 +38,9 @@ function createRoomMessage(
   };
 }
 
-function createQueryClientStub(initialMessages: ChatMessageResponse[] = []) {
+function createQueryClientStub(initialData: RoomMessagesQueryData = []) {
   const data = new Map<string, RoomMessagesQueryData>();
-  data.set(JSON.stringify(getAllRoomMessagesQueryKey(9)), initialMessages);
+  data.set(JSON.stringify(getAllRoomMessagesQueryKey(9)), initialData);
 
   return {
     getQueryData: vi.fn((queryKey: readonly unknown[]) => {
@@ -50,7 +50,8 @@ function createQueryClientStub(initialMessages: ChatMessageResponse[] = []) {
       const key = JSON.stringify(queryKey);
       data.set(key, updater(data.get(key)));
     }),
-    snapshot: () => extractChatMessageResponses(data.get(JSON.stringify(getAllRoomMessagesQueryKey(9)))),
+    rawData: () => data.get(JSON.stringify(getAllRoomMessagesQueryKey(9))),
+    snapshot: () => extractRoomMessagesFromQueryData(data.get(JSON.stringify(getAllRoomMessagesQueryKey(9)))),
   };
 }
 
@@ -123,6 +124,26 @@ describe("roomMessageSync", () => {
     });
 
     expect(queryClient.snapshot().map(item => item.message.messageId)).toEqual([1, 2]);
+    expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, [incoming]);
+  });
+
+  it("实时消息合并后不保留 sync result 形态，避免被误当作 fetch 增量再次落盘", () => {
+    const existing = createRoomMessage(1);
+    const queryClient = createQueryClientStub({
+      messages: [existing],
+      mode: "delta",
+    });
+    const writeCachedRoomMessages = vi.fn().mockResolvedValue(undefined);
+    const incoming = createRoomMessage(2);
+
+    upsertRoomMessagesToQueryAndDisk(9, [incoming], {
+      fetchHistoryMessages: vi.fn(),
+      queryClient,
+      writeCachedRoomMessages,
+    });
+
+    expect(queryClient.snapshot().map(item => item.message.messageId)).toEqual([1, 2]);
+    expect(queryClient.rawData()).toEqual([existing, incoming]);
     expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, [incoming]);
   });
 

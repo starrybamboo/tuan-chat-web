@@ -1,12 +1,15 @@
-import { describe, expect, it } from "vitest";
-
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "@tuanchat/openapi-client/models/MessageDirectSendRequest";
+
+import { describe, expect, it } from "vitest";
 
 import {
   createMobileOptimisticDirectMessage,
   filterPersistableDirectMessages,
+  isMobileFailedDirectMessage,
   isMobileOptimisticDirectMessage,
+  markMobileOptimisticDirectMessageFailedData,
+  removeMobileLocalDirectMessageData,
   removeMobileOptimisticDirectMessageData,
   replaceMobileOptimisticDirectMessageData,
 } from "./mobileDirectMessageOptimistic";
@@ -83,5 +86,19 @@ describe("mobileDirectMessageOptimistic", () => {
     const committed = createServerMessage();
 
     expect(filterPersistableDirectMessages([optimistic!, committed])).toEqual([committed]);
+  });
+
+  it("发送失败会保留本地失败项，且可清理并避免落盘", () => {
+    const optimistic = createMobileOptimisticDirectMessage({
+      currentUserId: 7,
+      optimisticMessageId: -1,
+      optimisticSyncId: 9001,
+      request: createRequest(),
+    })!;
+    const failedMessages = markMobileOptimisticDirectMessageFailedData([optimistic], -1) ?? [];
+
+    expect(isMobileFailedDirectMessage(failedMessages[0])).toBe(true);
+    expect(filterPersistableDirectMessages(failedMessages)).toEqual([]);
+    expect(removeMobileLocalDirectMessageData(failedMessages, -1)).toEqual([]);
   });
 });

@@ -8,6 +8,8 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 
+import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
+
 import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
@@ -28,7 +30,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface RightDrawerPanelProps {
+type RightDrawerPanelProps = {
   activeTab: RightDrawerTabKey;
   clueRooms: Room[];
   currentUserId: number | null;
@@ -45,9 +47,10 @@ interface RightDrawerPanelProps {
   onStartCombat: () => void;
   roomId: number | null;
   roomRoles: UserRole[];
+  roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
   spaceId: number | null;
-}
+};
 
 export function RightDrawerPanel({
   activeTab,
@@ -66,6 +69,7 @@ export function RightDrawerPanel({
   onStartCombat,
   roomId,
   roomRoles,
+  roomStateRuntime,
   ruleId,
   spaceId,
 }: RightDrawerPanelProps) {
@@ -81,6 +85,7 @@ export function RightDrawerPanel({
             messages={messages}
             roomId={roomId}
             roomRoles={roomRoles}
+            roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
           />
         )}
@@ -96,6 +101,7 @@ export function RightDrawerPanel({
             onEnterStateCommandMode={onEnterStateCommandMode}
             onStartCombat={onStartCombat}
             roomRoles={roomRoles}
+            roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
           />
         )}

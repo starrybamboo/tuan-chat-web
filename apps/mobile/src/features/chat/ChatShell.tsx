@@ -1,17 +1,8 @@
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Sticker } from "@tuanchat/openapi-client/models/Sticker";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { AlertButton } from "react-native";
-import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
-import type { ChatComposerShortcutAction } from "./ChatComposer";
-import type { MessageAction } from "./MessageActionMenu";
-import type { RightDrawerTabKey } from "./RightDrawerPanel";
-import type { DrawerMode } from "@/features/drawer/LeftDrawer";
-import type { MemberPreviewItem } from "@/features/members/memberUtils";
-import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
-import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { containsCommandRequestAllToken, extractFirstCommandText, isCommand, stripCommandRequestAllToken } from "@tuanchat/domain/command-request";
@@ -26,7 +17,6 @@ import {
   START_COMBAT_CONTENT,
 } from "@tuanchat/domain/state-command";
 import { toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
-
 import { useCopyMessageToClueFolderMutation } from "@tuanchat/query/clue-folder";
 import { getRoomMembersQueryKey, getSpaceMembersQueryKey } from "@tuanchat/query/members";
 import { selectVisibleMainRoomMessages } from "@tuanchat/query/room-message";
@@ -51,9 +41,15 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+import type { DrawerMode } from "@/features/drawer/LeftDrawer";
+import type { MemberPreviewItem } from "@/features/members/memberUtils";
+import type { MobileMessageAttachment, MobileMessageAttachmentKind } from "@/features/messages/mobileMessageAttachment";
+import type { MobileMessageMode } from "@/features/messages/mobileMessageComposer";
+
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -105,12 +101,16 @@ import { useUserActiveSpacesQuery } from "@/features/spaces/use-user-active-spac
 import { useWorkspaceSession } from "@/features/workspace/workspace-session";
 import { useTheme } from "@/hooks/use-theme";
 import { useGestureDrawer } from "@/hooks/useGestureDrawer";
-import { DRAWER_ACTIVE_OFFSET_X, DRAWER_FAIL_OFFSET_Y, shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
+import { shouldDrawerOverlayCaptureTouches } from "@/hooks/useGestureDrawerConfig";
 import { mobileApiClient } from "@/lib/api";
 import * as Clipboard from "@/lib/clipboard";
-
 import { confirmAction } from "@/lib/confirm";
 import { DRAWER_EDGE_SWIPE_ZONE_WIDTH, RIGHT_DRAWER_WIDTH } from "@/lib/layout-constants";
+
+import type { StShowCardModel } from "../../components/common/dicer/cmdExe/stShowCard";
+import type { ChatComposerShortcutAction } from "./ChatComposer";
+import type { MessageAction } from "./MessageActionMenu";
+import type { RightDrawerTabKey } from "./RightDrawerPanel";
 
 import { buildRoomRolesById } from "./chat-avatar-utils";
 import { ChatComposer } from "./ChatComposer";
@@ -152,11 +152,11 @@ function parsePositiveIntegerSearchParam(value: string | string[] | undefined): 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-interface ProfileSheetState {
+type ProfileSheetState = {
   avatarFileId?: number | null;
   userId: number | null;
   username: string | null;
-}
+};
 
 /* PLACEHOLDER_STYLES */
 const styles = StyleSheet.create({
@@ -184,13 +184,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     position: "absolute",
     right: 0,
-    top: 0,
-    width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
-  },
-  leftDrawerGestureEdge: {
-    bottom: 0,
-    left: 0,
-    position: "absolute",
     top: 0,
     width: DRAWER_EDGE_SWIPE_ZONE_WIDTH,
   },
@@ -586,29 +579,6 @@ export default function ChatShell() {
     setDrawerMode("dm");
   }, [dmBackTarget]);
   const isRoutePage = !selectedRoomId && !currentContactId;
-  const handleLeftEdgeSwipe = useCallback(() => {
-    if (searchPageVisible) {
-      setSearchPageVisible(false);
-      return;
-    }
-    if (currentContactId) {
-      handleBackFromDmChat();
-      return;
-    }
-    if (!isRoutePage) {
-      handleBackToRoutePage();
-    }
-  }, [currentContactId, handleBackFromDmChat, handleBackToRoutePage, isRoutePage, searchPageVisible]);
-
-  const leftEdgeBackGesture = useMemo(() => Gesture.Pan()
-    .activeOffsetX(DRAWER_ACTIVE_OFFSET_X)
-    .failOffsetY(DRAWER_FAIL_OFFSET_Y)
-    .onEnd((event) => {
-      if (event.translationX >= DRAWER_EDGE_SWIPE_ZONE_WIDTH || event.velocityX >= 500) {
-        runOnJS(handleLeftEdgeSwipe)();
-      }
-    }), [handleLeftEdgeSwipe]);
-
   const handleOpenRightDrawerTab = useCallback((tab: RightDrawerTabKey) => {
     Keyboard.dismiss();
     setRightDrawerTab(tab);
@@ -710,7 +680,6 @@ export default function ChatShell() {
     if (Platform.OS !== "android") {
       return undefined;
     }
-    // eslint-disable-next-line react-web-api/no-leaked-event-listener -- React Native BackHandler returns a NativeEventSubscription removed below.
     const subscription = BackHandler.addEventListener("hardwareBackPress", handleSystemBack);
     return () => subscription.remove();
   }, [handleSystemBack]);
@@ -1240,7 +1209,7 @@ export default function ChatShell() {
     handleSelectMessageAnchor,
   ]);
 
-  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: undefined, ios: "padding" });
+  const keyboardBehavior = Platform.select<"height" | "padding" | "position" | undefined>({ android: "height", ios: "padding" });
 
   return (
     <ThemedView style={styles.shell}>
@@ -1448,13 +1417,6 @@ export default function ChatShell() {
                                   )}
                             </>
                           )}
-                    {!isRoutePage
-                      ? (
-                          <GestureDetector gesture={leftEdgeBackGesture}>
-                            <View style={[styles.leftDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
-                          </GestureDetector>
-                        )
-                      : null}
                     <GestureDetector gesture={panGesture}>
                       <View style={[styles.rightDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
                     </GestureDetector>
@@ -1494,6 +1456,7 @@ export default function ChatShell() {
                             onStartCombat={() => void sendCombatRoundEvent("start")}
                             roomId={selectedRoomId}
                             roomRoles={roomRoles}
+                            roomStateRuntime={roomStateRuntime}
                             ruleId={selectedRuleId}
                             isSendingCombatRoundEvent={isSendingCombatRoundEvent}
                             spaceId={selectedSpaceId}

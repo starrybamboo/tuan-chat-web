@@ -1,9 +1,8 @@
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { IconProps } from "phosphor-react-native";
 
 import { ArrowBendUpLeft, Copy, ShareNetwork, Trash, WarningCircle } from "phosphor-react-native";
 import { Pressable, StyleSheet } from "react-native";
-
-import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { ThemedText } from "@/components/themed-text";

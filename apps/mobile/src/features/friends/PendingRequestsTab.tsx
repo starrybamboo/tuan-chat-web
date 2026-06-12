@@ -1,7 +1,7 @@
+import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
+
 import { useCallback } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
-
-import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -167,7 +167,6 @@ export function PendingRequestsTab({
         keyExtractor={item => `embedded-request:${item.id ?? item.fromId ?? "unknown"}`}
         renderItem={renderRequest}
         ListEmptyComponent={emptyContent}
-        removeClippedSubviews={false}
         scrollEnabled={false}
       />
     );
@@ -180,7 +179,6 @@ export function PendingRequestsTab({
       keyExtractor={item => `request:${item.id ?? item.fromId ?? "unknown"}`}
       renderItem={renderRequest}
       ListEmptyComponent={emptyContent}
-      removeClippedSubviews={false}
     />
   );
 }

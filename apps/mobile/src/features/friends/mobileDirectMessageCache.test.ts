@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   clearCachedDirectMessages,
@@ -55,8 +55,8 @@ describe("mobileDirectMessageCache", () => {
     await expect(readCachedDirectInboxMessages(7)).resolves.toBe(inboxMessages);
     await expect(readCachedDirectConversationMessages(7, 42)).resolves.toBe(contactMessages);
 
-    expect(repositoryMock.getMessagesByUser).toHaveBeenCalledWith(7);
-    expect(repositoryMock.getMessagesByContact).toHaveBeenCalledWith(7, 42);
+    expect(repositoryMock.getMessagesByUser).toHaveBeenCalledWith(7, { limit: 240 });
+    expect(repositoryMock.getMessagesByContact).toHaveBeenCalledWith(7, 42, { limit: 120 });
   });
 
   it("会把写入、撤回、已读线和清理转发给 SQLite repository", async () => {

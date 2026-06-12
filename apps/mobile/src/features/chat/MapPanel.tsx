@@ -1,14 +1,14 @@
+import type { StateEventAtom } from "@tuanchat/domain/state-event";
+import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { LayoutChangeEvent } from "react-native";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
+import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
 import { ArrowsOutSimple, X } from "phosphor-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-
-import type { StateEventAtom } from "@tuanchat/domain/state-event";
-import type { Message } from "@tuanchat/openapi-client/models/Message";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -19,9 +19,9 @@ import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessa
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { avatarThumbUrl } from "@/lib/media-url";
-import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
 
 import type { RoomDndMapToken } from "./roomDndMap";
+import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
 import { MapGridOverlay } from "./MapGridOverlay";
 import { buildMobileMapStatusRows, buildMobileMapTokenStatusByRoleId, formatMobileMapNumericValue } from "./mapStatusSummary";
@@ -137,7 +137,12 @@ type MapPanelProps = {
   messages: Message[];
   roomId: number | null;
   roomRoles: UserRole[];
+  roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
+};
+
+type MapPanelContentProps = Omit<MapPanelProps, "messages" | "roomStateRuntime" | "ruleId"> & {
+  runtime: RoomStateRuntimeValue;
 };
 
 function parsePositiveInt(value: string, fallback: number) {
@@ -270,7 +275,24 @@ function MapStatusBar({
   );
 }
 
-export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, ruleId }: MapPanelProps) {
+export function MapPanel(props: MapPanelProps) {
+  if (props.roomStateRuntime) {
+    return <MapPanelContent {...props} runtime={props.roomStateRuntime} />;
+  }
+  return <MapPanelWithRuntime {...props} />;
+}
+
+function MapPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props }: MapPanelProps) {
+  const runtime = useRoomStateRuntime({
+    currentRoleId: props.currentRoleId,
+    messages: props.messages,
+    roomRoles: props.roomRoles,
+    ruleId: props.ruleId,
+  });
+  return <MapPanelContent {...props} runtime={runtime} />;
+}
+
+function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: MapPanelContentProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -280,12 +302,6 @@ export function MapPanel({ currentRoleId, isKP, messages, roomId, roomRoles, rul
     upsertMapMutation,
   } = useRoomDndMapMutations(roomId);
   const sendRoomMessageMutation = useSendRoomMessageMutation(roomId);
-  const runtime = useRoomStateRuntime({
-    currentRoleId,
-    messages,
-    roomRoles,
-    ruleId,
-  });
 
   const map = roomDndMapQuery.data;
   const mapImageUrl = getRoomDndMapImageUrl(map);

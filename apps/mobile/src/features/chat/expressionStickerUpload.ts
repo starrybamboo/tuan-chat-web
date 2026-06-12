@@ -1,9 +1,9 @@
 import type { UploadedImageMessageDraftAsset } from "@tuanchat/domain/message-draft";
-
-import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 import type { StickerCreateRequest } from "@tuanchat/openapi-client/models/StickerCreateRequest";
 
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
+
+import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
 const STICKER_UPLOAD_FALLBACK_ERROR_MESSAGE = "表情包上传失败。";

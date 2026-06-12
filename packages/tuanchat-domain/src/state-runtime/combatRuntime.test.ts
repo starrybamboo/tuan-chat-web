@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+
+import { describe, expect, it } from "vitest";
 
 import { MESSAGE_TYPE } from "../messageType";
 import {
@@ -90,7 +90,6 @@ describe("buildCombatStateRuntime", () => {
         createStateMessage(1, [{
           type: "mapConfigUpsert",
           mapFileId: 200,
-          imageUrl: "https://example.test/old-map.png",
           gridRows: 8,
           gridCols: 9,
           gridColor: "#64748b",
@@ -98,7 +97,6 @@ describe("buildCombatStateRuntime", () => {
         createStateMessage(2, [{
           type: "mapConfigUpsert",
           mapFileId: 200,
-          imageUrl: "https://example.test/old-map.png",
           gridRows: 10,
           gridCols: 12,
           gridColor: "#22c55e",
@@ -110,7 +108,6 @@ describe("buildCombatStateRuntime", () => {
     expect(runtime.hasMapConfigState).toBe(true);
     expect(runtime.mapConfig).toEqual({
       mapFileId: 200,
-      imageUrl: "https://example.test/old-map.png",
       gridRows: 10,
       gridCols: 12,
       gridColor: "#22c55e",

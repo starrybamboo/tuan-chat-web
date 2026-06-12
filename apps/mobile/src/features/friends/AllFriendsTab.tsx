@@ -1,9 +1,9 @@
+import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+
 import { Prohibit, Trash } from "phosphor-react-native";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-
-import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
@@ -174,7 +174,6 @@ export function AllFriendsTab({ friends, isPending, onDeleteFriend, onBlockFrien
               {searchText ? "未找到匹配的好友" : "暂无好友"}
             </ThemedText>
           )}
-      removeClippedSubviews={false}
     />
   );
 }

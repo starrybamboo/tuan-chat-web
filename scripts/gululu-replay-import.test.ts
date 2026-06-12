@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { createInMemoryAuthoringPrimitives } from "../app/agentAuthoring";
+import { createInMemoryAuthoringPrimitives } from "../apps/web/app/agentAuthoring";
 import { runGululuAuthoringDryRun } from "./gululu-authoring-dry-run";
 import {
   applyGululuReplayImportToAuthoring,

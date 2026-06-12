@@ -1,7 +1,6 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getRoomMessageLocalRenderKey } from "@tuanchat/query/room-message-lifecycle";
 
 export type ChatMessageListItem = {

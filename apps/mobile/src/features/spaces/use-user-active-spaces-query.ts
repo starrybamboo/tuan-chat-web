@@ -1,3 +1,8 @@
+import {
+  getUserActiveSpacesQueryKey,
+  useGetUserActiveSpacesQuery as useSharedGetUserActiveSpacesQuery,
+} from "@tuanchat/query/spaces";
+
 import { useAuthSession } from "@/features/auth/auth-session";
 import { mobileApiClient } from "@/lib/api";
 import {
@@ -5,10 +10,6 @@ import {
   createMobileQuerySnapshotKey,
   useMobileQuerySnapshot,
 } from "@/lib/use-mobile-query-snapshot";
-import {
-  getUserActiveSpacesQueryKey,
-  useGetUserActiveSpacesQuery as useSharedGetUserActiveSpacesQuery,
-} from "@tuanchat/query/spaces";
 
 const ACTIVE_SPACES_SNAPSHOT_TTL_MS = 10 * 60_000;
 

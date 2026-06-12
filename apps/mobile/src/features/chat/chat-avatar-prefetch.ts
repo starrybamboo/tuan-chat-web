@@ -1,14 +1,25 @@
-import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
-
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { getImageMessageExtra } from "@tuanchat/domain/message-extra";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
 import type { RoomRolesById } from "./chat-avatar-utils";
 
 import { avatarThumbUrl, mediaFileUrl } from "../../lib/media-url";
 import { resolveInternalMessageMediaFileId } from "../messages/messageMediaSource";
 import { resolveMessageAvatarFileId } from "./chat-avatar-utils";
+
+export const CHAT_MESSAGE_PREFETCH_WINDOW_SIZE = 40;
+
+export function selectChatMessagePrefetchWindow<T>(
+  messages: readonly T[],
+  windowSize = CHAT_MESSAGE_PREFETCH_WINDOW_SIZE,
+): T[] {
+  if (windowSize <= 0) {
+    return [];
+  }
+  return messages.slice(Math.max(0, messages.length - windowSize));
+}
 
 /**
  * 收集当前消息列表里需要预取的唯一头像 URL。

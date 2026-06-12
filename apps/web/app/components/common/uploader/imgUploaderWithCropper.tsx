@@ -1,0 +1,466 @@
+/**
+ *这下面和./imgCopper中很多的代码是从https://www.npmjs.com/package/react-image-crop中搞过来的
+ */
+
+import type { Crop, PixelCrop } from "react-image-crop";
+import type { ImageCompressionPreset } from "@/utils/imgCompressUtils";
+
+import React, { useRef, useState } from "react";
+import { ReactCrop } from "react-image-crop";
+
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
+import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
+import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
+import { uploadMediaFile } from "@/utils/mediaUpload";
+import { imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import "react-image-crop/dist/ReactCrop.css";
+
+// 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）
+function makeInitialFreeCrop(mediaWidth: number, mediaHeight: number) {
+  // 取较小边的 90% 作为初始宽高基准，保持居中；用户之后可随意拖动改变为任意长宽比
+  const base = Math.min(mediaWidth, mediaHeight) * 0.9;
+  const initWidth = Math.min(base, mediaWidth * 0.9);
+  const initHeight = Math.min(base, mediaHeight * 0.9);
+  const x = (mediaWidth - initWidth) / mediaWidth * 100;
+  const y = (mediaHeight - initHeight) / mediaHeight * 100;
+  return {
+    unit: "%" as const,
+    x,
+    y,
+    width: (initWidth / mediaWidth) * 100,
+    height: (initHeight / mediaHeight) * 100,
+  };
+}
+
+interface ImgUploaderWithCopperProps {
+  setDownloadUrl?: (newUrl: string) => void | undefined;
+  setOriginalDownloadUrl?: (newUrl: string) => void | undefined;
+  setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
+  children: React.ReactNode;
+  fileName?: string;
+  mutate?: (data: any) => void;
+  copperedCompressionPreset?: ImageCompressionPreset;
+  /**
+   * 固定裁剪比例（例如头像传 1 表示 1:1）。不传则为自由裁剪。
+   */
+  aspect?: number;
+}
+
+function imageUrlByPreset(fileId: number | undefined, preset?: ImageCompressionPreset) {
+  if (!fileId)
+    return "";
+  if (preset === "avatarThumb" || preset === "smallThumbnail")
+    return imageLowUrl(fileId);
+  return imageMediumUrl(fileId);
+}
+
+/**
+ * 图片上传组件，带裁剪
+ * @param {object} props 组件属性
+ * @param {(url: string) => void} [props.setDownloadUrl] 上传展示图完成后的回调
+ * @param {(url: string) => void} [props.setOriginalDownloadUrl] 上传原图完成后的回调，会返回未压缩原图地址
+ * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调，同上。
+ * @param {React.ReactNode} props.children 触发上传的子元素
+ * @param {string} props.fileName 上传与下载时使用的文件名
+ * @param {(data: any) => void} [props.mutate] 可选的更新函数
+ * @param {ImageCompressionPreset} [props.copperedCompressionPreset] 裁剪图上传时使用的压缩预设
+ * @param {number} [props.aspect] 固定裁剪比例（例如头像 1:1）
+ * @constructor
+ */
+export function ImgUploaderWithCopper({
+  setDownloadUrl,
+  setOriginalDownloadUrl,
+  setCopperedDownloadUrl,
+  children,
+  fileName,
+  mutate,
+  copperedCompressionPreset,
+  aspect,
+}: ImgUploaderWithCopperProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // 控制弹窗的显示与隐藏
+  const [isOpen, setIsOpen] = useState(false);
+
+  const [imgSrc, setImgSrc] = useState("");
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+
+  const imgFile = useRef<File>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isMobile = useScreenSize() === "sm";
+
+  // 给用户的状态提示（加载中 / 生成预览 / 上传中 / 完成 / 错误）
+  const [statusMessage, setStatusMessage] = useState<string>("");
+
+  function clearPreviewCanvas() {
+    const canvas = previewCanvasRef.current;
+    if (!canvas)
+      return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx)
+      return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 把尺寸归零以避免意外的残留渲染
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    // 使用 naturalWidth/naturalHeight 确保基于真实图片尺寸计算裁剪区域
+    const imgEl = e.currentTarget;
+    try {
+      const naturalW = imgEl.naturalWidth || imgEl.width;
+      const naturalH = imgEl.naturalHeight || imgEl.height;
+      setStatusMessage("已加载图片，请调整裁剪框以生成预览...");
+      const initialCrop = typeof aspect === "number" && aspect > 0
+        ? createCenteredAspectCrop(naturalW, naturalH, aspect)
+        : makeInitialFreeCrop(naturalW, naturalH);
+      setCrop(initialCrop);
+
+      // 立即生成一次 pixel crop，让预览能直接出现（避免必须先拖一下才有预览）
+      const renderedW = imgEl.width || naturalW;
+      const renderedH = imgEl.height || naturalH;
+      if (
+        initialCrop.unit === "%"
+        && typeof initialCrop.width === "number"
+        && typeof initialCrop.height === "number"
+        && typeof initialCrop.x === "number"
+        && typeof initialCrop.y === "number"
+      ) {
+        setCompletedCrop({
+          unit: "px",
+          x: Math.round((initialCrop.x / 100) * renderedW),
+          y: Math.round((initialCrop.y / 100) * renderedH),
+          width: Math.round((initialCrop.width / 100) * renderedW),
+          height: Math.round((initialCrop.height / 100) * renderedH),
+        });
+      }
+      else {
+        // completedCrop 由 onComplete 更新 - 在加载时清空旧的 completedCrop
+        setCompletedCrop(undefined);
+      }
+      clearPreviewCanvas();
+    }
+    catch (err) {
+      console.error("onImageLoad 错误：", err);
+      setStatusMessage("图片加载异常");
+    }
+  }
+
+  useDebounceEffect(
+    async () => {
+      if (
+        completedCrop?.width
+        && completedCrop?.height
+        && imgRef.current
+        && previewCanvasRef.current
+      ) {
+        setStatusMessage("生成预览中...");
+        try {
+          // We use canvasPreview as it's much faster than imgPreview.
+          await canvasPreview(
+            imgRef.current,
+            previewCanvasRef.current,
+            completedCrop,
+            1,
+            0,
+          );
+          setStatusMessage("预览就绪");
+        }
+        catch (err) {
+          console.error("canvasPreview 错误:", err);
+          setStatusMessage("生成预览失败");
+        }
+      }
+      else {
+        // 没有 completedCrop 时清空画布
+        clearPreviewCanvas();
+      }
+    },
+    100,
+    [completedCrop],
+  );
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // 判断文件类型
+    if (!file || !file.type.startsWith("image/")) {
+      return;
+    }
+
+    setIsOpen(true);
+    // 保存文件引用
+    imgFile.current = file;
+
+    // 清理旧状态，避免旧图片残留
+    setImgSrc("");
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    clearPreviewCanvas();
+    setStatusMessage("加载图片中...");
+
+    const reader = new FileReader();
+    reader.addEventListener("load", () =>
+      setImgSrc(reader.result?.toString() || ""));
+    reader.readAsDataURL(file);
+  }
+
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    setStatusMessage("上传中...");
+    if (!imgFile.current) {
+      setStatusMessage("没有图片可上传");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const originalFile = imgFile.current;
+    const fileWithNewName = new File(
+      [originalFile],
+      fileName ?? originalFile.name,
+      {
+        type: originalFile.type,
+        lastModified: originalFile.lastModified,
+      },
+    );
+
+    try {
+      let downloadUrl = "";
+      let originalDownloadUrl = "";
+      let copperedDownloadUrl = "";
+      let originalFileId: number | undefined;
+      let displayFileId: number | undefined;
+      let copperedFileId: number | undefined;
+      if (setOriginalDownloadUrl) {
+        originalFileId = (await uploadMediaFile(fileWithNewName)).fileId;
+        originalDownloadUrl = imageOriginalUrl(originalFileId);
+        setOriginalDownloadUrl(originalDownloadUrl);
+      }
+      if (setDownloadUrl) {
+        if (originalFileId) {
+          displayFileId = originalFileId;
+        }
+        else {
+          displayFileId = (await uploadMediaFile(fileWithNewName)).fileId;
+        }
+        downloadUrl = imageMediumUrl(displayFileId);
+        setDownloadUrl(downloadUrl);
+      }
+      if (setCopperedDownloadUrl || mutate) {
+        const copperedImgFile = await getCopperedImg();
+        setStatusMessage("上传裁剪后图片中...");
+        copperedFileId = (await uploadMediaFile(copperedImgFile)).fileId;
+        copperedDownloadUrl = imageUrlByPreset(copperedFileId, copperedCompressionPreset);
+        setCopperedDownloadUrl?.(copperedDownloadUrl);
+      }
+      if (mutate !== undefined) {
+        mutate({
+          avatarFileId: copperedFileId,
+          spriteFileId: displayFileId,
+          originFileId: originalFileId,
+          avatarUrl: copperedDownloadUrl,
+          spriteUrl: downloadUrl,
+        });
+      }
+      setStatusMessage("上传完成");
+    }
+    catch (error) {
+      console.error("上传失败:", error);
+      setStatusMessage("上传失败，请重试");
+    }
+    finally {
+      setIsSubmitting(false);
+      // 关闭弹窗时也清理状态
+      setIsOpen(false);
+      // 小延迟后清除状态（避免闪烁）
+      setTimeout(() => {
+        setStatusMessage("");
+        setImgSrc("");
+        setCrop(undefined);
+        setCompletedCrop(undefined);
+        clearPreviewCanvas();
+      }, 300);
+    }
+  }
+
+  async function getCopperedImg() {
+    const previewCanvas = previewCanvasRef.current;
+    if (!previewCanvas || !completedCrop) {
+      throw new Error("Crop canvas does not exist");
+    }
+    return await getCroppedImageFile(previewCanvas, `${fileName}-coppered`);
+  }
+
+  async function handleDownload() {
+    try {
+      setStatusMessage("准备下载...");
+      const copperedImgFile = await getCopperedImg();
+      const url = URL.createObjectURL(copperedImgFile);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${fileName}-cropped.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatusMessage("下载已开始");
+    }
+    catch (err) {
+      console.error("下载失败:", err);
+      setStatusMessage("下载失败");
+    }
+    finally {
+      setTimeout(() => setStatusMessage(""), 800);
+    }
+  }
+
+  // 动态计算图片样式，因为听说不能用 classname，那就这样写了
+  const getImageStyle = () => {
+    return {
+      maxWidth: isMobile ? "90vw" : "40vw",
+      maxHeight: isMobile ? "50vh" : "60vh",
+    };
+  };
+
+  // 当弹窗关闭时，重置状态
+  function handleClose() {
+    setIsOpen(false);
+    setImgSrc("");
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    clearPreviewCanvas();
+    setStatusMessage("");
+    imgFile.current = null;
+  }
+
+  return (
+    <div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/*"
+        title="选择图片文件"
+        aria-label="选择图片文件"
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="contents"
+      >
+        {children}
+      </button>
+      <ToastWindow isOpen={isOpen} onClose={handleClose}>
+        <h2 className="text-2xl mt-4 font-bold">上传图像</h2>
+        <div className={isMobile ? `
+          flex flex-col items-center gap-4 max-h-[90vh] p-4
+        ` : `flex flex-row items-center justify-center gap-8 overflow-auto p-6`}>
+          {!!imgSrc && (
+            <div className="flex shrink-0">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={c => setCompletedCrop(c)}
+                // 传入 aspect 时锁定裁剪比例（例如头像 1:1）
+                aspect={aspect}
+                minHeight={10}
+                keepSelection={true}
+                disabled={false}
+              >
+                <img
+                  ref={imgRef}
+                  alt="Crop me"
+                  src={imgSrc}
+                  // style={{ transform: `scale(${scale})` }}
+                  onLoad={onImageLoad}
+                  // className="max-w-[50vw] max-h-[70vh]"
+                  // 不能用className设置, 否则会出问题, 见鬼!!!
+                  style={getImageStyle()}
+                />
+              </ReactCrop>
+            </div>
+          )}
+          <div className={isMobile ? "divider" : `
+            divider
+            lg:divider-horizontal
+          `}></div>
+          {!!completedCrop && (
+            <div className="flex flex-col gap-3 items-center">
+              <div className={isMobile ? "w-64 h-64 shrink-0" : `
+                w-80 h-80 shrink-0
+              `}>
+                <canvas
+                  ref={previewCanvasRef}
+                  style={{
+                    objectFit: "contain",
+                    width: "100%",
+                    height: "100%",
+                  }}
+                  className="border border-gray-200 rounded"
+                />
+              </div>
+              {/* 状态提示 */}
+              {statusMessage && (
+                <div className="text-lg text-base-500">{statusMessage}</div>
+              )}
+              {
+                isSubmitting
+                  ? (
+                      <button
+                        className={isMobile ? "btn loading btn-sm" : `
+                          btn loading
+                        `}
+                        disabled={true}
+                        type="button"
+                        aria-label="上传中"
+                      >
+                        <span className="sr-only">上传中</span>
+                      </button>
+                    )
+                  : (
+                      <div className={isMobile ? "flex flex-col gap-2 w-full" : `
+                        flex flex-row justify-center gap-4
+                      `}>
+                        <button
+                          className={isMobile ? `
+                            btn btn-info btn-md w-full text-md
+                          ` : `btn w-max btn-info`}
+                          onClick={handleSubmit}
+                          type="button"
+                        >
+                          完成
+                        </button>
+                        <button
+                          className={isMobile ? `
+                            btn btn-outline btn-info btn-md w-full text-md
+                          ` : `btn w-max btn-info`}
+                          onClick={handleDownload}
+                          type="button"
+                        >
+                          下载裁切后的图像
+                        </button>
+                      </div>
+                    )
+              }
+            </div>
+          )}
+          {/* 如果还没有完成的裁切，也展示状态（避免用户看不到任何反馈，之前遇到过这个问题，但是没复现，打个补丁兜底吧） */}
+          {!completedCrop && imgSrc && (
+            <div className="flex flex-col items-center gap-2">
+              <div className="
+                w-64 h-64 flex items-center justify-center text-sm text-gray-400
+                border border-dashed rounded
+              ">
+                {statusMessage || "请调整裁剪框以生成预览"}
+              </div>
+            </div>
+          )}
+        </div>
+      </ToastWindow>
+    </div>
+  );
+}

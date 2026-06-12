@@ -1,0 +1,15 @@
+{
+  "name": "@tuanchat/oxlint-config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./oxlint-base.json": "./oxlint-base.json"
+  },
+  "dependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
+    "eslint": "^9.39.2",
+    "eslint-plugin-perfectionist": "^4.15.1",
+    "eslint-plugin-react-hooks": "^7.0.0"
+  }
+}

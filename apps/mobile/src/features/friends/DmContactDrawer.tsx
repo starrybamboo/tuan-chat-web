@@ -1,3 +1,4 @@
+import { useGetUserProfileQuery } from "@tuanchat/query/users";
 import { Trash } from "phosphor-react-native";
 import { useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -9,7 +10,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
-import { useGetUserProfileQuery } from "@tuanchat/query/users";
 
 import { useDeleteFriendMutation } from "./useFriendMutations";
 
