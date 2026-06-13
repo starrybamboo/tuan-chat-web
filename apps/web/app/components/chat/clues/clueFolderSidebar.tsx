@@ -396,10 +396,10 @@ function ClueFolderSection({
             key={messageId}
             type="button"
             className={`
-              group relative w-full rounded-md px-2 py-1.5 text-left text-xs
-              text-base-content/80 transition-colors
-              hover:bg-base-300
-              ${activeMessageId === messageId ? `bg-info/12 ring-1 ring-info/35` : ""}
+              group relative w-full rounded-md border border-base-content/10 px-2 py-1.5
+              text-left text-xs text-base-content/80 transition-colors
+              hover:border-primary hover:bg-primary/12
+              ${activeMessageId === messageId ? `border-primary bg-primary/12 ring-1 ring-primary/35` : ""}
             `}
             data-clue-message-id={messageId}
             draggable
