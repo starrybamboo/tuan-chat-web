@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { CachedRoleAbility } from "./roleAbilityCacheData";
 
 import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
+import { isOpenApiBusinessError, withOpenApiBusinessFallback } from "@tuanchat/domain/open-api-result";
 import {tuanchat} from "../instance";
 import type {AbilityByRuleFieldUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleFieldUpdateRequest";
 import type {AbilityByRuleUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleUpdateRequest";
@@ -81,7 +82,7 @@ export async function updateRoleAbilityFieldByRuleWithSuccessGuard(req: AbilityB
 }
 
 export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
-    if (isRoleAbilityNotExistError(error)) {
+    if (isOpenApiBusinessError(error, ROLE_ABILITY_NOT_EXIST_ERR_CODE)) {
         return false;
     }
     const statusCode = error?.response?.status || error?.status;
@@ -89,11 +90,6 @@ export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
         return false;
     }
     return failureCount < 2;
-}
-
-function isRoleAbilityNotExistError(error: any): boolean {
-    const body = error?.body ?? error?.response?.body ?? error?.response?.data;
-    return body?.success === false && Number(body?.errCode) === ROLE_ABILITY_NOT_EXIST_ERR_CODE;
 }
 
 export const ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS = {
@@ -106,23 +102,23 @@ export const ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS = {
 } as const;
 
 export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Promise<CachedRoleAbility | null> {
-    try {
+    return withOpenApiBusinessFallback(async () => {
         const res = await tuanchat.abilityController.getRoleAbilityByRule(ruleId, roleId);
         if (res.success && res.data) {
             return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
         }
         return null;
-    } catch (error: any) {
-        if (isRoleAbilityNotExistError(error)) {
-            return null;
-        }
+    }, {
+        errCodes: ROLE_ABILITY_NOT_EXIST_ERR_CODE,
+        fallback: null,
+    }).catch((error: any) => {
         const statusCode = error?.response?.status || error?.status;
         if (statusCode && statusCode >= 400 && statusCode < 500) {
             console.warn(`Ability not found for roleId: ${roleId}, ruleId: ${ruleId} (status: ${statusCode})`);
             return null;
         }
         throw error;
-    }
+    });
 }
 
 export function getFreshRoleAbilityByRuleFromCache(queryClient: QueryClient, roleId: number, ruleId: number) {
