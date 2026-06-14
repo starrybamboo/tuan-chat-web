@@ -13,8 +13,7 @@ import type { CombatStateRuntime } from "./stateRuntime";
 import { roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
 import {
   loadRoleAbilityByRule,
-  ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
-  shouldRetryRoleAbilityByRule,
+  ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { EMPTY_STATE_DEFINITION_RESOLVER } from "./stateDefinitionResolver";
 import { buildCombatStateRuntime } from "./stateRuntime";
@@ -86,8 +85,7 @@ export function StateRuntimeProvider({
     queries: roleIds.map(roleId => ({
       queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
       enabled: roleId > 0 && ruleId > 0,
-      staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
-      retry: shouldRetryRoleAbilityByRule,
+      ...ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS,
       queryFn: (): Promise<RoleAbility | null> => loadRoleAbilityByRule(roleId, ruleId),
     })),
   });
