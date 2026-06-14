@@ -20,11 +20,18 @@ function getApiResultErrorMessage(result: { errMsg?: string } | null | undefined
 export function assertSuccessfulAbilityApiResult<T extends { success?: boolean; errMsg?: string } | null | undefined>(
   result: T,
   fallback: string,
-): T {
+): NonNullable<T> {
   if (result?.success !== true) {
     throw new Error(getApiResultErrorMessage(result, fallback));
   }
-  return result;
+  return result as NonNullable<T>;
+}
+
+export function readSuccessfulAbilityApiResultData<T>(
+  result: { success?: boolean; errMsg?: string; data?: T | null } | null | undefined,
+  fallback: string,
+): T | null {
+  return assertSuccessfulAbilityApiResult(result, fallback).data ?? null;
 }
 
 async function setRoleAbilityWithSuccessGuard(client: AbilityClient, req: AbilitySetRequest) {
@@ -80,7 +87,7 @@ export function useRoleAbilitiesByRule(
       }
       const entries = await Promise.all(sortedRoleIds.map(async (roleId) => {
         const response = await client.abilityController.getRoleAbilityByRule(ruleId, roleId);
-        return [String(roleId), response.data ?? null] as const;
+        return [String(roleId), readSuccessfulAbilityApiResultData(response, "获取角色能力失败")] as const;
       }));
       return Object.fromEntries(entries.filter((entry): entry is readonly [string, RoleAbility] => Boolean(entry[1])));
     },
@@ -140,7 +147,7 @@ export function useAbilityByRuleAndRoleQuery(
     queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
     queryFn: async () => {
       const res = await client.abilityController.getRoleAbilityByRule(ruleId, roleId);
-      return res.data ?? null;
+      return readSuccessfulAbilityApiResultData(res, "获取角色能力失败");
     },
     staleTime: options.staleTime ?? 60_000,
     enabled: (options.enabled ?? true) && roleId > 0 && ruleId > 0,

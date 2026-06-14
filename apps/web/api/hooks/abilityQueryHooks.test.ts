@@ -62,18 +62,28 @@ describe("abilityQueryHooks success guard", () => {
     })).rejects.toThrow("更新角色能力字段失败");
   });
 
-  it("按规则获取能力时，能力不存在业务错误会作为空能力缓存且不重试", async () => {
-    const abilityNotExistError = {
-      status: 200,
-      body: {
-        success: false,
-        errCode: 8003,
-        errMsg: "能力不存在",
-      },
-    };
-    abilityControllerMock.getRoleAbilityByRule.mockRejectedValueOnce(abilityNotExistError);
+  it("按规则获取能力时，未配置能力的成功空数据会作为空能力缓存", async () => {
+    abilityControllerMock.getRoleAbilityByRule.mockResolvedValueOnce({
+      success: true,
+      data: null,
+    });
 
     await expect(loadRoleAbilityByRule(15481, 1)).resolves.toBeNull();
-    expect(shouldRetryRoleAbilityByRule(0, abilityNotExistError)).toBe(false);
+  });
+
+  it("按规则获取能力时，业务失败不会被降级成空能力", async () => {
+    abilityControllerMock.getRoleAbilityByRule.mockResolvedValueOnce({
+      success: false,
+      errCode: 8003,
+      errMsg: "能力不存在",
+    });
+
+    await expect(loadRoleAbilityByRule(15481, 1)).rejects.toThrow("能力不存在");
+  });
+
+  it("按规则获取能力时，4xx 请求错误不重试", () => {
+    expect(shouldRetryRoleAbilityByRule(0, { status: 404 })).toBe(false);
+    expect(shouldRetryRoleAbilityByRule(1, { status: 500 })).toBe(true);
+    expect(shouldRetryRoleAbilityByRule(2, { status: 500 })).toBe(false);
   });
 });
