@@ -6,6 +6,18 @@ type ApiResultLike<T> = {
   data?: T;
 };
 
+type OpenApiBusinessErrorBody = {
+  success?: unknown;
+  errCode?: unknown;
+  errorCode?: unknown;
+  code?: unknown;
+};
+
+type OpenApiBusinessFallbackOptions<T> = {
+  errCodes: number | readonly number[];
+  fallback: T | ((error: unknown) => T | Promise<T>);
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -51,6 +63,79 @@ export function extractOpenApiErrorMessage(error: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+function readOpenApiErrorBody(error: unknown): OpenApiBusinessErrorBody | null {
+  if (error instanceof ApiError && isRecord(error.body)) {
+    return error.body;
+  }
+
+  if (!isRecord(error)) {
+    return null;
+  }
+
+  const directBody = error.body;
+  if (isRecord(directBody)) {
+    return directBody;
+  }
+
+  const response = error.response;
+  if (isRecord(response)) {
+    const responseBody = response.body;
+    if (isRecord(responseBody)) {
+      return responseBody;
+    }
+    const responseData = response.data;
+    if (isRecord(responseData)) {
+      return responseData;
+    }
+  }
+
+  return null;
+}
+
+function readOpenApiBusinessErrorCode(body: OpenApiBusinessErrorBody): number | null {
+  const rawCode = body.errCode ?? body.errorCode ?? body.code;
+  if (typeof rawCode === "number" && Number.isFinite(rawCode)) {
+    return rawCode;
+  }
+  if (typeof rawCode === "string" && rawCode.trim() !== "") {
+    const parsed = Number(rawCode);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+export function isOpenApiBusinessError(error: unknown, errCodes: number | readonly number[]): boolean {
+  const body = readOpenApiErrorBody(error);
+  if (!body || body.success !== false) {
+    return false;
+  }
+
+  const actualCode = readOpenApiBusinessErrorCode(body);
+  if (actualCode === null) {
+    return false;
+  }
+
+  const expectedCodes = Array.isArray(errCodes) ? errCodes : [errCodes];
+  return expectedCodes.includes(actualCode);
+}
+
+export async function withOpenApiBusinessFallback<T>(
+  task: () => Promise<T>,
+  options: OpenApiBusinessFallbackOptions<T>,
+): Promise<T> {
+  try {
+    return await task();
+  }
+  catch (error) {
+    if (!isOpenApiBusinessError(error, options.errCodes)) {
+      throw error;
+    }
+    return typeof options.fallback === "function"
+      ? await (options.fallback as (error: unknown) => T | Promise<T>)(error)
+      : options.fallback;
+  }
 }
 
 export function unwrapOpenApiResultData<T>(
