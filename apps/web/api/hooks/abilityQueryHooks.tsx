@@ -2,7 +2,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { CachedRoleAbility } from "./roleAbilityCacheData";
 
 import {useMutation, useQuery, useQueryClient, useQueries} from "@tanstack/react-query";
-import { isOpenApiBusinessError, withOpenApiBusinessFallback } from "@tuanchat/domain/open-api-result";
 import {tuanchat} from "../instance";
 import type {AbilityByRuleFieldUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleFieldUpdateRequest";
 import type {AbilityByRuleUpdateRequest} from "@tuanchat/openapi-client/models/AbilityByRuleUpdateRequest";
@@ -45,7 +44,6 @@ type FullRolePayload = {
 const USER_PROMPT_MAX_CHARS = 4000;
 const REPAIR_RAW_MAX_CHARS = 6000;
 export const ROLE_ABILITY_BY_RULE_STALE_TIME_MS = 60_000;
-const ROLE_ABILITY_NOT_EXIST_ERR_CODE = 8003;
 
 function isSuccessfulApiResult(result: { success?: boolean } | null | undefined): boolean {
     return result?.success === true;
@@ -82,9 +80,6 @@ export async function updateRoleAbilityFieldByRuleWithSuccessGuard(req: AbilityB
 }
 
 export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
-    if (isOpenApiBusinessError(error, ROLE_ABILITY_NOT_EXIST_ERR_CODE)) {
-        return false;
-    }
     const statusCode = error?.response?.status || error?.status;
     if (statusCode && statusCode >= 400 && statusCode < 500) {
         return false;
@@ -102,23 +97,14 @@ export const ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS = {
 } as const;
 
 export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Promise<CachedRoleAbility | null> {
-    return withOpenApiBusinessFallback(async () => {
-        const res = await tuanchat.abilityController.getRoleAbilityByRule(ruleId, roleId);
-        if (res.success && res.data) {
-            return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
-        }
-        return null;
-    }, {
-        errCodes: ROLE_ABILITY_NOT_EXIST_ERR_CODE,
-        fallback: null,
-    }).catch((error: any) => {
-        const statusCode = error?.response?.status || error?.status;
-        if (statusCode && statusCode >= 400 && statusCode < 500) {
-            console.warn(`Ability not found for roleId: ${roleId}, ruleId: ${ruleId} (status: ${statusCode})`);
-            return null;
-        }
-        throw error;
-    });
+    const res = assertSuccessfulAbilityApiResult(
+        await tuanchat.abilityController.getRoleAbilityByRule(ruleId, roleId),
+        "获取角色能力失败",
+    );
+    if (res.data) {
+        return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
+    }
+    return null;
 }
 
 export function getFreshRoleAbilityByRuleFromCache(queryClient: QueryClient, roleId: number, ruleId: number) {

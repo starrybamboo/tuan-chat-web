@@ -6,9 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertOpenApiResultSuccess,
   extractOpenApiErrorMessage,
-  isOpenApiBusinessError,
   unwrapOpenApiResultData,
-  withOpenApiBusinessFallback,
 } from "./open-api-result";
 
 const request: ApiRequestOptions = {
@@ -45,27 +43,5 @@ describe("open-api-result helpers", () => {
       success: true,
       data: false,
     }, "请求失败")).toBe(false);
-  });
-
-  it("isOpenApiBusinessError 支持识别 ApiError 里的业务错误码", () => {
-    const error = createApiError({ success: false, errCode: 8003, errMsg: "能力不存在" });
-
-    expect(isOpenApiBusinessError(error, 8003)).toBe(true);
-    expect(isOpenApiBusinessError(error, [8001, 8003])).toBe(true);
-    expect(isOpenApiBusinessError(error, 8004)).toBe(false);
-  });
-
-  it("withOpenApiBusinessFallback 只把显式允许的业务错误码降级成正常值", async () => {
-    const toleratedError = createApiError({ success: false, errCode: 8003, errMsg: "能力不存在" });
-    const fatalError = createApiError({ success: false, errCode: 8004, errMsg: "能力已存在" });
-
-    await expect(withOpenApiBusinessFallback(
-      () => Promise.reject(toleratedError),
-      { errCodes: 8003, fallback: null },
-    )).resolves.toBeNull();
-    await expect(withOpenApiBusinessFallback(
-      () => Promise.reject(fatalError),
-      { errCodes: 8003, fallback: null },
-    )).rejects.toBe(fatalError);
   });
 });

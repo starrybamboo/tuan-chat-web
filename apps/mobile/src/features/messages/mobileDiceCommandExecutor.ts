@@ -16,6 +16,7 @@ import {
 } from "@tuanchat/domain/state-event";
 import { persistRoleAbilitySnapshot } from "@tuanchat/domain/state-runtime";
 import {
+  readSuccessfulAbilityApiResultData,
   roleAbilityByRuleQueryKey,
   roleAbilityListQueryKey,
 } from "@tuanchat/query/role-abilities";
@@ -218,13 +219,12 @@ async function getOrFetchRoleAbility(
     return normalizeRoleAbility(cached, roleId, ruleId);
   }
 
-  try {
-    const response = await mobileApiClient.abilityController.getRoleAbilityByRule(ruleId, roleId);
-    return normalizeRoleAbility(response.data ?? {}, roleId, ruleId);
-  }
-  catch {
-    return normalizeRoleAbility({}, roleId, ruleId);
-  }
+  const response = await mobileApiClient.abilityController.getRoleAbilityByRule(ruleId, roleId);
+  return normalizeRoleAbility(
+    readSuccessfulAbilityApiResultData(response, "获取角色能力失败。") ?? {},
+    roleId,
+    ruleId,
+  );
 }
 
 function cacheRoleAbility(queryClient: QueryClient, ability: RoleAbility): void {

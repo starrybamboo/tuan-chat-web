@@ -100,7 +100,7 @@ function createParams(overrides: Partial<ExecuteMobileDicerCommandParams> = {}):
 
 describe("mobileDiceCommandExecutor", () => {
   beforeEach(() => {
-    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({ data: null });
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({ success: true, data: null });
     mobileApiClientMock.abilityController.setRoleAbility.mockResolvedValue({ data: 99 });
     mobileApiClientMock.abilityController.updateRoleAbilityByRule.mockResolvedValue({ data: {} });
     mobileApiClientMock.roleController.getRole.mockResolvedValue({ data: null });
@@ -205,6 +205,7 @@ describe("mobileDiceCommandExecutor", () => {
       .mockReturnValueOnce(0)
       .mockReturnValueOnce(0.1);
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      success: true,
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -236,6 +237,7 @@ describe("mobileDiceCommandExecutor", () => {
 
   it("执行 .st 会保存角色能力并生成状态事件", async () => {
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      success: true,
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -276,6 +278,7 @@ describe("mobileDiceCommandExecutor", () => {
 
   it("执行 .st 写角色卡失败时不发送 STATE_EVENT", async () => {
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      success: true,
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -292,8 +295,24 @@ describe("mobileDiceCommandExecutor", () => {
     expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
   });
 
+  it("执行 .st 读取角色能力业务失败时不降级成空角色卡", async () => {
+    mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      success: false,
+      errMsg: "能力读取失败",
+      data: null,
+    });
+    const params = createParams({ command: ".st 力量+10" });
+
+    await expect(executeMobileDicerCommand(params)).rejects.toThrow("能力读取失败");
+
+    expect(mobileApiClientMock.abilityController.updateRoleAbilityByRule).not.toHaveBeenCalled();
+    expect(params.sendRoomMessageMutation.sendRequest).not.toHaveBeenCalled();
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+  });
+
   it("执行 .st show 有 UI 回调时不发送消息并打开属性卡模型", async () => {
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      success: true,
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
@@ -329,6 +348,7 @@ describe("mobileDiceCommandExecutor", () => {
 
   it("执行 .st show 没有 UI 回调时保留文本降级回复", async () => {
     mobileApiClientMock.abilityController.getRoleAbilityByRule.mockResolvedValue({
+      success: true,
       data: {
         abilityId: 7,
         roleId: actorRole.roleId,
