@@ -28,9 +28,10 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
 
-import { invalidateRoleAbilityCaches, roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
+import { invalidateRoleAbilityCaches } from "../../../../api/hooks/abilityMutationInvalidation";
 import {
   fetchRoleAbilityByRuleWithCache,
+  getFreshRoleAbilityByRuleFromCache,
   setRoleAbilityWithSuccessGuard,
   updateRoleAbilityByRuleWithSuccessGuard,
 } from "../../../../api/hooks/abilityQueryHooks";
@@ -69,8 +70,10 @@ function logDicerFlow(step: string, payload: Record<string, unknown>): void {
 }
 
 async function getOrFetchRoleAbility(queryClient: QueryClient, ruleId: number, roleId: number): Promise<RoleAbility> {
-  const cached = queryClient.getQueryData<RoleAbility | null>(roleAbilityByRuleQueryKey(roleId, ruleId));
-  const ability = (cached ?? await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId) ?? {}) as RoleAbility;
+  const cached = getFreshRoleAbilityByRuleFromCache(queryClient, roleId, ruleId);
+  const ability = (cached !== undefined
+    ? cached
+    : await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId)) ?? {} as RoleAbility;
   return cloneRoleAbility({
     ...ability,
     roleId: ability.roleId ?? roleId,
@@ -103,7 +106,10 @@ function normalizeCopywritingMap(raw: unknown): Record<string, string[]> {
 }
 
 async function getDicerCopywritingMap(queryClient: QueryClient, ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
-  const ability = await fetchRoleAbilityByRuleWithCache(queryClient, dicerRoleId, ruleId);
+  const cached = getFreshRoleAbilityByRuleFromCache(queryClient, dicerRoleId, ruleId);
+  const ability = cached !== undefined
+    ? cached
+    : await fetchRoleAbilityByRuleWithCache(queryClient, dicerRoleId, ruleId);
   const rawCopywriting = (ability as any)?.extra?.copywriting;
   let parsedRaw: unknown = rawCopywriting;
   if (typeof rawCopywriting === "string") {

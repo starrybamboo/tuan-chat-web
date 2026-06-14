@@ -61,6 +61,12 @@
 - 已打开页面的 Browser / Computer Use 测试，运行 `pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js`，再在目标页面执行生成脚本注入登录态。
 - `.auth/` 是本机认证缓存目录，包含敏感登录态，禁止提交。
 
+## 浏览器工具使用约束
+
+- 查代码、文件内容或目录结构时，必须使用终端工具，例如 `rg`、`Get-Content`、`ls`、`git diff`；不要用浏览器打开本地文件夹、目录索引或 `file://` 页面来阅读代码。
+- Codex Browser、DevTools、Computer Use 只用于明确的 Web 页面验证、UI 交互、网络请求、截图和运行时状态观察。
+- 如果浏览器停在本地目录索引、旧 `file://` 标签页或非目标页面，应立即切回明确的 Web 目标，例如 `http://localhost:5177/...`，不要基于目录索引继续分析代码。
+
 ## UI 与前端约束
 
 - 前端页面不要产生对功能进行叙述的文字。

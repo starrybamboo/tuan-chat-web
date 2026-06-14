@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { abilityControllerMock } = vi.hoisted(() => ({
   abilityControllerMock: {
+    getRoleAbilityByRule: vi.fn(),
     setRoleAbility: vi.fn(),
     updateRoleAbilityByRule: vi.fn(),
     updateRoleAbilityFieldByRule: vi.fn(),
@@ -15,7 +16,9 @@ vi.mock("../instance", () => ({
 }));
 
 import {
+  loadRoleAbilityByRule,
   setRoleAbilityWithSuccessGuard,
+  shouldRetryRoleAbilityByRule,
   updateRoleAbilityByRuleWithSuccessGuard,
   updateRoleAbilityFieldByRuleWithSuccessGuard,
 } from "./abilityQueryHooks";
@@ -57,5 +60,20 @@ describe("abilityQueryHooks success guard", () => {
       ruleId: 3,
       skillFields: { 侦查: null as unknown as string },
     })).rejects.toThrow("更新角色能力字段失败");
+  });
+
+  it("按规则获取能力时，能力不存在业务错误会作为空能力缓存且不重试", async () => {
+    const abilityNotExistError = {
+      status: 200,
+      body: {
+        success: false,
+        errCode: 8003,
+        errMsg: "能力不存在",
+      },
+    };
+    abilityControllerMock.getRoleAbilityByRule.mockRejectedValueOnce(abilityNotExistError);
+
+    await expect(loadRoleAbilityByRule(15481, 1)).resolves.toBeNull();
+    expect(shouldRetryRoleAbilityByRule(0, abilityNotExistError)).toBe(false);
   });
 });

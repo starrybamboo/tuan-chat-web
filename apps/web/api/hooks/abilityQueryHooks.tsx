@@ -44,6 +44,7 @@ type FullRolePayload = {
 const USER_PROMPT_MAX_CHARS = 4000;
 const REPAIR_RAW_MAX_CHARS = 6000;
 export const ROLE_ABILITY_BY_RULE_STALE_TIME_MS = 60_000;
+const ROLE_ABILITY_NOT_EXIST_ERR_CODE = 8003;
 
 function isSuccessfulApiResult(result: { success?: boolean } | null | undefined): boolean {
     return result?.success === true;
@@ -80,12 +81,29 @@ export async function updateRoleAbilityFieldByRuleWithSuccessGuard(req: AbilityB
 }
 
 export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
+    if (isRoleAbilityNotExistError(error)) {
+        return false;
+    }
     const statusCode = error?.response?.status || error?.status;
     if (statusCode && statusCode >= 400 && statusCode < 500) {
         return false;
     }
     return failureCount < 2;
 }
+
+function isRoleAbilityNotExistError(error: any): boolean {
+    const body = error?.body ?? error?.response?.body ?? error?.response?.data;
+    return body?.success === false && Number(body?.errCode) === ROLE_ABILITY_NOT_EXIST_ERR_CODE;
+}
+
+export const ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS = {
+    staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
+    retry: shouldRetryRoleAbilityByRule,
+    retryOnMount: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+} as const;
 
 export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Promise<CachedRoleAbility | null> {
     try {
@@ -95,6 +113,9 @@ export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Pro
         }
         return null;
     } catch (error: any) {
+        if (isRoleAbilityNotExistError(error)) {
+            return null;
+        }
         const statusCode = error?.response?.status || error?.status;
         if (statusCode && statusCode >= 400 && statusCode < 500) {
             console.warn(`Ability not found for roleId: ${roleId}, ruleId: ${ruleId} (status: ${statusCode})`);
@@ -104,7 +125,25 @@ export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Pro
     }
 }
 
+export function getFreshRoleAbilityByRuleFromCache(queryClient: QueryClient, roleId: number, ruleId: number) {
+    const state = queryClient.getQueryState<CachedRoleAbility | null>(roleAbilityByRuleQueryKey(roleId, ruleId));
+    if (!state || state.data === undefined || state.isInvalidated) {
+        return undefined;
+    }
+    if (Date.now() - state.dataUpdatedAt > ROLE_ABILITY_BY_RULE_STALE_TIME_MS) {
+        return undefined;
+    }
+    return state.data;
+}
+
 export function fetchRoleAbilityByRuleWithCache(queryClient: QueryClient, roleId: number, ruleId: number) {
+    if (roleId <= 0 || ruleId <= 0) {
+        return Promise.resolve(null);
+    }
+    const cached = getFreshRoleAbilityByRuleFromCache(queryClient, roleId, ruleId);
+    if (cached !== undefined) {
+        return Promise.resolve(cached);
+    }
     return queryClient.fetchQuery({
         queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
         queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
@@ -668,9 +707,8 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
     return useQuery({
       queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
       queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
-      staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
-      // 仅对 4xx 客户端错误禁用重试；其他错误保留全局重试配置
-      retry: shouldRetryRoleAbilityByRule,
+      ...ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS,
+      enabled: roleId > 0 && ruleId > 0,
     })
   }
 
