@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import ChatStatusBar from "@/components/chat/chatStatusBar";
+import { formatUnreadBadgeCount } from "@/components/chat/clues/clueUnread";
 import ChatToolbarDock from "@/components/chat/input/chatToolbarDock";
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
@@ -61,6 +62,7 @@ type ChatToolbarProps = {
   // 跑团模式
   runModeEnabled?: boolean;
   onToggleRunMode?: () => void;
+  runModeBadgeCount?: number;
   // WebGAL 控制
   onSendEffect?: (effectName: string) => void;
   onClearBackground?: () => void;
@@ -82,6 +84,22 @@ type ChatToolbarProps = {
   showCopilotControl?: boolean;
 }
 
+function UnreadBadge({ count }: { count?: number }) {
+  if (!count || count <= 0) {
+    return null;
+  }
+
+  return (
+    <span className="
+      pointer-events-none absolute -right-2 -top-2 z-10 flex h-4 min-w-4
+      items-center justify-center rounded-full bg-error px-1 text-[10px]
+      font-semibold leading-none text-error-content shadow-sm
+    ">
+      {formatUnreadBadgeCount(count)}
+    </span>
+  );
+}
+
 function ChatToolbar({
   roomId,
   updateEmojiUrls,
@@ -101,6 +119,7 @@ function ChatToolbar({
   onToggleWebgalLinkMode,
   runModeEnabled = false,
   onToggleRunMode,
+  runModeBadgeCount = 0,
   onSendEffect,
   onClearBackground,
   onClearFigure,
@@ -205,6 +224,7 @@ function ChatToolbar({
   };
 
   const richActionDisabledClass = disableRichMessageActions ? "cursor-not-allowed opacity-20" : "cursor-pointer";
+  const runModeToggleTip = runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗";
   const openMediaPicker = useCallback(() => {
     if (disableRichMessageActions) {
       handleBlockedRichMessageAction();
@@ -354,16 +374,27 @@ function ChatToolbar({
               {showRunModeToggle && onToggleRunMode && !isStacked && (
                 <div
                   className="tooltip tooltip-top"
-                  data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗"}
+                  data-tip={runModeToggleTip}
                 >
-                  <DiceD6Icon
-                    className={`
-                      md:mb-1
-                      size-6 cursor-pointer jump_icon
-                      ${runModeEnabled ? `text-info` : ""}
-                    `}
+                  <button
+                    type="button"
+                    className="
+                      relative inline-flex appearance-none items-center
+                      justify-center border-0 bg-transparent p-0 text-inherit
+                    "
+                    aria-label={runModeToggleTip}
+                    title={runModeToggleTip}
                     onClick={handleToggleRunMode}
-                  />
+                  >
+                    <DiceD6Icon
+                      className={`
+                        md:mb-1
+                        size-6 cursor-pointer jump_icon
+                        ${runModeEnabled ? `text-info` : ""}
+                      `}
+                    />
+                    <UnreadBadge count={runModeBadgeCount} />
+                  </button>
                 </div>
               )}
 
@@ -399,15 +430,26 @@ function ChatToolbar({
                 {showRunModeToggle && onToggleRunMode && (
                   <div
                     className="tooltip tooltip-top"
-                    data-tip={runModeEnabled ? "关闭跑团模式" : "开启跑团模式后显示地图/文档/战斗"}
+                    data-tip={runModeToggleTip}
                   >
-                    <DiceD6Icon
-                      className={`
-                        size-6 cursor-pointer jump_icon
-                        ${runModeEnabled ? `text-info` : ""}
-                      `}
+                    <button
+                      type="button"
+                      className="
+                        relative inline-flex appearance-none items-center
+                        justify-center border-0 bg-transparent p-0 text-inherit
+                      "
+                      aria-label={runModeToggleTip}
+                      title={runModeToggleTip}
                       onClick={handleToggleRunMode}
-                    />
+                    >
+                      <DiceD6Icon
+                        className={`
+                          size-6 cursor-pointer jump_icon
+                          ${runModeEnabled ? `text-info` : ""}
+                        `}
+                      />
+                      <UnreadBadge count={runModeBadgeCount} />
+                    </button>
                   </div>
                 )}
 

@@ -5,6 +5,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea"
 
 import AtMentionController from "@/components/atMentionController";
 import { CHAT_COMPOSER_RESIZE_EVENT } from "@/components/chat/chatFrameEvents";
+import { useVisibleClueFolderUnreadCount } from "@/components/chat/clues/clueUnread";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/localDb/composerAnnotationsDb";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
@@ -133,6 +134,7 @@ function RoomComposerPanelImpl({
   const screenSize = useScreenSize();
   const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
   const spaceContext = React.use(SpaceContext);
+  const clueUnreadCount = useVisibleClueFolderUnreadCount(spaceContext.spaceId);
   const spaceMembers = spaceContext.spaceMembers;
   const resolveDefaultFigurePosition = React.useCallback((role?: UserRole) => {
     if (!role) {
@@ -386,6 +388,7 @@ function RoomComposerPanelImpl({
     autoReplyMode,
     onToggleAutoReplyMode: toggleAutoReplyMode,
     runModeEnabled,
+    runModeBadgeCount: clueUnreadCount,
     onToggleRunMode,
     onSendEffect,
     onClearBackground,
@@ -407,6 +410,7 @@ function RoomComposerPanelImpl({
     isKP,
     isSpectator,
     isSubmitting,
+    clueUnreadCount,
     noRole,
     notMember,
     onChangeChatStatus,
