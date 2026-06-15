@@ -320,6 +320,32 @@ describe("gululu-authoring-live-import", () => {
     expect(plan.warnings).toEqual(["BGM 暂以文本事件保留：远野幻想物语"]);
   });
 
+  it("会把角色卡事件写成独立角色卡文本消息", () => {
+    const importPackage = createImportPackage();
+    importPackage.messages.push({
+      content: "烈海王；Atk 144；Hp 13；技能：消力、四千年传承",
+      floor: 1,
+      kind: "role_card" as const,
+    });
+
+    const plan = buildGululuLiveImportPlan(importPackage, {
+      skipAvatarUpload: true,
+      sourceKey: "opus-88:floors:1-1",
+      targetRoomId: 62,
+      targetSpaceId: 8801,
+    });
+
+    expect(plan.messages.at(-1)).toMatchObject({
+      kind: "role_card",
+      request: {
+        content: "烈海王；Atk 144；Hp 13；技能：消力、四千年传承",
+        customRoleName: "角色卡",
+        messageType: MESSAGE_TYPE.TEXT,
+        roleId: -1,
+      },
+    });
+  });
+
   it("会从最终 named-avatars manifest 导入语义头像并把原图对白映射到语义头像", async () => {
     const tempDir = await mkdtemp(path.join(tmpdir(), "gululu-live-import-named-"));
     try {
@@ -531,10 +557,11 @@ describe("gululu-authoring-live-import", () => {
       positionX: 0,
       rotation: 0,
     });
-    expect(stageSprite.scale!).toBeGreaterThan(fullBody.scale!);
-    expect(stageSprite.positionY!).toBeGreaterThan(fullBody.positionY!);
+    expect(fullBody).toEqual(stageSprite);
+    expect(fullBody.scale!).toBeGreaterThan(1);
+    expect(fullBody.positionY!).toBeGreaterThan(0);
     expect(fullBody.scale!).toBeGreaterThan(headBust.scale!);
-    expect(fullBody.positionY!).toBeLessThan(headBust.positionY!);
+    expect(fullBody.positionY!).toBeGreaterThan(headBust.positionY!);
     expect(headBust.positionY!).toBeGreaterThan(-100);
     expect(wideHeadBust.scale!).toBeGreaterThan(0.44);
     expect(mangaAvatar.scale!).toBeLessThanOrEqual(0.42);

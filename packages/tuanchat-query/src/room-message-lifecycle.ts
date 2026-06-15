@@ -1,6 +1,7 @@
 import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMessageRequest";
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
+import type { RoomMessageStreamPatchOperation } from "@tuanchat/openapi-client/models/RoomMessageStreamPatchOperation";
 
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 
@@ -13,6 +14,10 @@ export type RoomMessageSyncLike = {
   status?: number;
   tcLocalRenderKey?: string | null;
   tcLocalSyncState?: RoomMessageLocalSyncState | string | null;
+};
+
+export type PatchOptimisticMessageInput = Partial<Message> & {
+  clientId?: string;
 };
 
 const OPTIMISTIC_RENDER_KEY_PREFIX = "room-message:optimistic:";
@@ -96,6 +101,163 @@ export function createOptimisticRoomMessage(
   return {
     message: optimisticMessage,
   };
+}
+
+let optimisticRoomMessageIdSeed = -1;
+
+function nextOptimisticRoomMessageId(): number {
+  const next = optimisticRoomMessageIdSeed;
+  optimisticRoomMessageIdSeed -= 1;
+  return next;
+}
+
+function toFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function getPatchOptimisticMessageId(message: PatchOptimisticMessageInput): number | undefined {
+  const messageId = toFiniteNumber(message.messageId);
+  return messageId !== undefined && messageId > 0 ? messageId : undefined;
+}
+
+function getFallbackPatchUserId(messages: PatchOptimisticMessageInput[], fallbackUserId = 0): number {
+  const message = messages.find((item) => {
+    const userId = toFiniteNumber(item.userId);
+    return userId !== undefined && userId > 0;
+  });
+  const userId = toFiniteNumber(message?.userId);
+  return userId !== undefined && userId > 0 ? userId : fallbackUserId;
+}
+
+function toOptimisticPatchMessage(params: {
+  fallbackUserId: number;
+  message: PatchOptimisticMessageInput;
+  messageId: number;
+  roomId: number;
+  syncId: number;
+  status?: number;
+}): Message & RoomMessageSyncLike {
+  const nowIso = new Date().toISOString();
+  const messageId = params.messageId;
+  const userId = toFiniteNumber(params.message.userId);
+  const position = toFiniteNumber(params.message.position);
+  const messageType = toFiniteNumber(params.message.messageType);
+  const status = toFiniteNumber(params.message.status);
+  return {
+    messageId,
+    syncId: params.syncId,
+    roomId: params.roomId,
+    userId: userId !== undefined ? userId : params.fallbackUserId,
+    ...(toFiniteNumber(params.message.roleId) !== undefined ? { roleId: params.message.roleId } : {}),
+    content: params.message.content ?? "",
+    ...(typeof params.message.customRoleName === "string" ? { customRoleName: params.message.customRoleName } : {}),
+    ...(Array.isArray(params.message.annotations) ? { annotations: params.message.annotations } : {}),
+    ...(toFiniteNumber(params.message.avatarId) !== undefined ? { avatarId: params.message.avatarId } : {}),
+    ...(params.message.webgal ? { webgal: params.message.webgal } : {}),
+    ...(toFiniteNumber(params.message.replyMessageId) !== undefined ? { replyMessageId: params.message.replyMessageId } : {}),
+    status: params.status ?? status ?? 0,
+    messageType: messageType ?? MESSAGE_TYPE.TEXT,
+    position: position ?? 1,
+    ...(params.message.extra ? { extra: params.message.extra } : {}),
+    createTime: typeof params.message.createTime === "string" ? params.message.createTime : nowIso,
+    updateTime: nowIso,
+    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${messageId}:${nowIso}`,
+    tcLocalSyncState: "optimistic",
+  };
+}
+
+export function buildOptimisticRoomMessagesFromPatch(params: {
+  baselineMessages: PatchOptimisticMessageInput[];
+  nextMessages: PatchOptimisticMessageInput[];
+  operations: RoomMessageStreamPatchOperation[];
+  roomId: number;
+  userId?: number;
+}): Message[] {
+  if (params.operations.length === 0) {
+    return [];
+  }
+
+  const fallbackUserId = getFallbackPatchUserId([
+    ...params.nextMessages,
+    ...params.baselineMessages,
+  ], params.userId ?? 0);
+  const nextByMessageId = new Map<number, PatchOptimisticMessageInput>();
+  const nextByClientId = new Map<string, PatchOptimisticMessageInput>();
+  for (const message of params.nextMessages) {
+    const messageId = getPatchOptimisticMessageId(message);
+    if (messageId !== undefined) {
+      nextByMessageId.set(messageId, message);
+    }
+    if (message.clientId) {
+      nextByClientId.set(message.clientId, message);
+    }
+  }
+
+  const baselineByMessageId = new Map<number, PatchOptimisticMessageInput>();
+  for (const message of params.baselineMessages) {
+    const messageId = getPatchOptimisticMessageId(message);
+    if (messageId !== undefined) {
+      baselineByMessageId.set(messageId, message);
+    }
+  }
+
+  return params.operations
+    .map((operation) => {
+      if (operation.op === "insert") {
+        const message = operation.clientId ? nextByClientId.get(operation.clientId) : undefined;
+        if (!message) {
+          return null;
+        }
+        const optimisticId = nextOptimisticRoomMessageId();
+        return toOptimisticPatchMessage({
+          fallbackUserId,
+          message: {
+            ...message,
+            position: operation.position ?? message.position,
+          },
+          messageId: optimisticId,
+          roomId: params.roomId,
+          syncId: optimisticId,
+        });
+      }
+
+      if (typeof operation.messageId !== "number") {
+        return null;
+      }
+
+      if (operation.op === "delete") {
+        const message = baselineByMessageId.get(operation.messageId);
+        if (!message) {
+          return null;
+        }
+        const syncId = toFiniteNumber(message.syncId);
+        return toOptimisticPatchMessage({
+          fallbackUserId,
+          message,
+          messageId: operation.messageId,
+          roomId: params.roomId,
+          syncId: syncId ?? operation.messageId,
+          status: 1,
+        });
+      }
+
+      const message = nextByMessageId.get(operation.messageId) ?? baselineByMessageId.get(operation.messageId);
+      if (!message) {
+        return null;
+      }
+      const syncId = toFiniteNumber(message.syncId);
+      return toOptimisticPatchMessage({
+        fallbackUserId,
+        message: {
+          ...message,
+          position: operation.position ?? message.position,
+        },
+        messageId: operation.messageId,
+        roomId: params.roomId,
+        syncId: syncId ?? operation.messageId,
+      });
+    })
+    .filter((message): message is Message => Boolean(message));
 }
 
 export function getNextAppendPosition(messages: readonly ChatMessageResponse[]): number {

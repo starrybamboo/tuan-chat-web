@@ -32,7 +32,7 @@ describe("roleAvatarMedia", () => {
     expect(media.sprite.originalUrl).toBe("");
   });
 
-  it("立绘槽位只解析 spriteFileId，不回退到 originFileId", () => {
+  it("立绘展示使用压缩图，头像裁剪源只使用 sprite 原图", () => {
     expect(resolveRoleAvatarMedia({
       spriteFileId: 200,
       originFileId: 300,
@@ -40,7 +40,11 @@ describe("roleAvatarMedia", () => {
     expect(resolveRoleAvatarMedia({
       spriteFileId: 200,
       originFileId: 300,
-    }).sprite.cropSourceUrl).toBe("image-medium:200");
+    }).sprite.cropSourceUrl).toBe("image-original:200");
+    expect(resolveRoleAvatarMedia({
+      spriteFileId: 200,
+      originFileId: 300,
+    }).sprite.originalUrl).toBe("image-original:200");
 
     expect(resolveRoleAvatarMedia({
       originFileId: 300,

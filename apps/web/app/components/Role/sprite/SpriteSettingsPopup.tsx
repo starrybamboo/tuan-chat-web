@@ -1,5 +1,3 @@
-import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
-
 import {
   ArrowLeftIcon,
   CaretDownIcon,
@@ -17,21 +15,11 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useApplyCropAvatarMutation,
-  useApplyCropMutation,
-  useClearDeletedRoleAvatarsMutation,
-  useCreateRoleAvatarVariantMutation,
-  useGetDeletedRoleAvatarsQuery,
-  useRestoreRoleAvatarMutation,
-  useRoleAvatarVariantsQuery,
-  useUpdateRoleAvatarMutation,
-  useUpdateRoleAvatarVariantMutation,
-  useUploadAvatarMutation,
-} from "api/hooks/RoleAndAvatarHooks";
 import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Drawer } from "vaul";
+
+import type { RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig } from "api";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -40,6 +28,19 @@ import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
+import {
+  useApplyCropAvatarMutation,
+  useApplyCropMutation,
+  useClearDeletedRoleAvatarsMutation,
+  useCreateRoleAvatarVariantMutation,
+  useDeleteRoleAvatarVariantMutation,
+  useGetDeletedRoleAvatarsQuery,
+  useRestoreRoleAvatarMutation,
+  useRoleAvatarVariantsQuery,
+  useUpdateRoleAvatarMutation,
+  useUpdateRoleAvatarVariantMutation,
+  useUploadAvatarMutation,
+} from "api/hooks/RoleAndAvatarHooks";
 
 import type { AvatarUploadFilesContext } from "../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../types";
@@ -59,8 +60,6 @@ import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import {
   getEffectiveAvatarUrl,
   getEffectiveOriginUrl,
-  getEffectiveSpriteOriginalUrl,
-  getEffectiveSpriteUrl,
   getSpriteCropSourceUrl,
   parseTransformFromVariantConfig,
   toSpriteTransformPayload,
@@ -84,6 +83,20 @@ type PendingUploadAvatarWorkflow = {
   target: AvatarUploadFilesContext["target"];
   batchKey: string;
 }
+
+type PendingVariantRemovalConfirm =
+  | {
+    mode: "deleteVariant";
+    variantId: number;
+    label: string;
+    avatarCount: number;
+  }
+  | {
+    mode: "unassignAvatars";
+    avatars: RoleAvatar[];
+    label: string;
+    avatarCount: number;
+  }
 
 type AvatarUploadFilesSelectedContext = AvatarUploadFilesContext & {
   uploadDefaults?: Pick<RoleAvatar, "category" | "variantId">;
@@ -421,6 +434,7 @@ export function SpriteSettingsPopup({
   const isMobile = isMobileScreen();
   const [isMobileControlDrawerOpen, setIsMobileControlDrawerOpen] = useState(false);
   const [variantFilter, setVariantFilter] = useState<string>(UNGROUPED_VARIANT_KEY);
+  const [selectedVariantKey, setSelectedVariantKey] = useState<string | null>(null);
   const [pendingVariantInitialization, setPendingVariantInitialization] = useState<PendingVariantInitialization | null>(null);
   const [pendingUploadAvatarWorkflow, setPendingUploadAvatarWorkflow] = useState<PendingUploadAvatarWorkflow | null>(null);
   const [pendingUploadSpriteCalibration, setPendingUploadSpriteCalibration] = useState<PendingUploadAvatarWorkflow | null>(null);
@@ -459,6 +473,7 @@ export function SpriteSettingsPopup({
   });
   const createVariantMutation = useCreateRoleAvatarVariantMutation(role?.id);
   const updateVariantMutation = useUpdateRoleAvatarVariantMutation(role?.id);
+  const deleteVariantMutation = useDeleteRoleAvatarVariantMutation(role?.id);
   const updateRoleAvatarMutation = useUpdateRoleAvatarMutation(role?.id ?? 0);
   const applyCropMutation = useApplyCropMutation();
   const applyCropAvatarMutation = useApplyCropAvatarMutation();
@@ -572,6 +587,17 @@ export function SpriteSettingsPopup({
     setVariantFilter(UNGROUPED_VARIANT_KEY);
   }, [variantGroupById, variantOptions, variantFilter]);
 
+  useEffect(() => {
+    if (selectedVariantKey == null) {
+      return;
+    }
+    const selectedVariantId = normalizeVariantId(selectedVariantKey);
+    if (selectedVariantId && variantGroupById.has(selectedVariantId)) {
+      return;
+    }
+    setSelectedVariantKey(null);
+  }, [selectedVariantKey, variantGroupById]);
+
   const filteredIndices = variantFilteredIndices;
   const isVariantGroupView = variantFilter !== UNGROUPED_VARIANT_KEY;
   const activeVariantId = isVariantGroupView ? normalizeVariantId(variantFilter) : null;
@@ -579,6 +605,27 @@ export function SpriteSettingsPopup({
   const activeVariantLabel = activeVariantGroup
     ? getVariantDisplayName(activeVariantGroup)
     : variantLabelMap.get(variantFilter) ?? getFallbackVariantLabel(variantFilter);
+  const selectedVariantId = normalizeVariantId(selectedVariantKey);
+  const selectedVariantGroup = selectedVariantId ? variantGroupById.get(selectedVariantId) : undefined;
+  const selectedVariantLabel = selectedVariantGroup
+    ? getVariantDisplayName(selectedVariantGroup)
+    : selectedVariantKey
+      ? variantLabelMap.get(selectedVariantKey) ?? getFallbackVariantLabel(selectedVariantKey)
+      : "";
+  const isVariantFolderSelected = !isVariantGroupView && selectedVariantKey != null;
+  const isVariantBatchSelection = isVariantGroupView || isVariantFolderSelected;
+  const editingVariantGroup = isVariantGroupView ? activeVariantGroup : selectedVariantGroup;
+
+  const selectedVariantIndices = useMemo(() => {
+    if (selectedVariantKey == null) {
+      return [];
+    }
+    return spritesAvatars
+      .map((avatar, index) => (
+        getAvatarVariantKey(avatar) === selectedVariantKey ? index : -1
+      ))
+      .filter(index => index >= 0);
+  }, [selectedVariantKey, spritesAvatars]);
 
   const filteredIndexMap = useMemo(() => {
     const map = new Map<number, number>();
@@ -605,8 +652,11 @@ export function SpriteSettingsPopup({
       .filter((avatar): avatar is RoleAvatar => Boolean(avatar)),
     [filteredIndices, spritesAvatars],
   );
+  const spriteCropperSourceIndices = isVariantFolderSelected
+    ? selectedVariantIndices
+    : filteredIndices;
   const spriteCropperItems = useMemo(() => (
-    filteredIndices
+    spriteCropperSourceIndices
       .map(originalIndex => ({
         originalIndex,
         avatar: spritesAvatars[originalIndex],
@@ -615,16 +665,26 @@ export function SpriteSettingsPopup({
         Boolean(item.avatar)
         && Boolean(getEffectiveOriginUrl(item.avatar))
       ))
-  ), [filteredIndices, spritesAvatars]);
+  ), [spriteCropperSourceIndices, spritesAvatars]);
   const avatarCropperSourceIndices = useMemo(() => {
     if (isVariantGroupView) {
       return filteredIndices;
+    }
+    if (isVariantFolderSelected) {
+      return selectedVariantIndices;
     }
     if (isMultiSelectMode && selectedIndices.size > 0) {
       return filteredIndices.filter(index => selectedIndices.has(index));
     }
     return filteredIndices;
-  }, [filteredIndices, isMultiSelectMode, isVariantGroupView, selectedIndices]);
+  }, [
+    filteredIndices,
+    isMultiSelectMode,
+    isVariantFolderSelected,
+    isVariantGroupView,
+    selectedIndices,
+    selectedVariantIndices,
+  ]);
   const avatarCropperItems = useMemo(() => (
     avatarCropperSourceIndices
       .map(originalIndex => ({
@@ -685,16 +745,16 @@ export function SpriteSettingsPopup({
   const avatarCropperGroupSelectedIndices = useMemo(() => (
     new Set(avatarCropperItems.map((_, index) => index))
   ), [avatarCropperItems]);
-  const effectiveSpriteCropperSelectedIndices = isVariantGroupView
+  const effectiveSpriteCropperSelectedIndices = isVariantBatchSelection
     ? spriteCropperGroupSelectedIndices
     : spriteCropperSelectedIndices;
-  const effectiveAvatarCropperSelectedIndices = isVariantGroupView
+  const effectiveAvatarCropperSelectedIndices = isVariantBatchSelection
     ? avatarCropperGroupSelectedIndices
     : avatarCropperSelectedIndices;
-  const effectiveSpriteCropperMultiSelectMode = isVariantGroupView
+  const effectiveSpriteCropperMultiSelectMode = isVariantBatchSelection
     ? effectiveSpriteCropperSelectedIndices.size > 0
     : isMultiSelectMode;
-  const effectiveAvatarCropperMultiSelectMode = isVariantGroupView
+  const effectiveAvatarCropperMultiSelectMode = isVariantBatchSelection
     ? effectiveAvatarCropperSelectedIndices.size > 0
     : isMultiSelectMode;
 
@@ -709,10 +769,13 @@ export function SpriteSettingsPopup({
     if (filteredIndices.length === 0) {
       return;
     }
+    if (isVariantFolderSelected) {
+      return;
+    }
     if (!filteredIndices.includes(internalIndex)) {
       setInternalIndex(filteredIndices[0]);
     }
-  }, [filteredIndices, internalIndex]);
+  }, [filteredIndices, internalIndex, isVariantFolderSelected]);
 
   // 当前选中的头像数据
   const currentAvatar = useMemo(() => {
@@ -738,10 +801,20 @@ export function SpriteSettingsPopup({
       }))
       .filter((item): item is { index: number; avatar: RoleAvatar } => Boolean(item.avatar))
   ), [filteredIndices, spritesAvatars]);
+  const selectedVariantAvatarItems = useMemo(() => (
+    selectedVariantIndices
+      .map(index => ({
+        index,
+        avatar: spritesAvatars[index],
+      }))
+      .filter((item): item is { index: number; avatar: RoleAvatar } => Boolean(item.avatar))
+  ), [selectedVariantIndices, spritesAvatars]);
   // 进入立绘组目录时，组本身就是一个隐式多选集。
   const effectiveSelectedAvatarItems = isVariantGroupView
     ? variantGroupAvatarItems
-    : selectedAvatarItems;
+    : isVariantFolderSelected
+      ? selectedVariantAvatarItems
+      : selectedAvatarItems;
   const selectedAvatarCount = selectedAvatarItems.length;
   const effectiveSelectedAvatarCount = effectiveSelectedAvatarItems.length;
   const selectedAvatarIds = useMemo(() => (
@@ -757,6 +830,9 @@ export function SpriteSettingsPopup({
     return keys;
   }, [effectiveSelectedAvatarItems]);
   const selectedVariantSummary = useMemo(() => {
+    if (isVariantFolderSelected && selectedVariantLabel) {
+      return selectedVariantLabel;
+    }
     if (selectedVariantKeys.size === 0) {
       return DEFAULT_VARIANT;
     }
@@ -765,7 +841,7 @@ export function SpriteSettingsPopup({
     }
     const [variantKey] = Array.from(selectedVariantKeys);
     return variantLabelMap.get(variantKey) ?? getFallbackVariantLabel(variantKey);
-  }, [selectedVariantKeys, variantLabelMap]);
+  }, [isVariantFolderSelected, selectedVariantKeys, selectedVariantLabel, variantLabelMap]);
   const selectedMissingCropContextCount = useMemo(() => (
     effectiveSelectedAvatarItems.filter(({ avatar }) => !avatar.avatarCropContext).length
   ), [effectiveSelectedAvatarItems]);
@@ -781,6 +857,7 @@ export function SpriteSettingsPopup({
     : null;
   const canShowCurrentAvatarCropper = Boolean(
     isVariantGroupView
+    || isVariantFolderSelected
     || (isMultiSelectMode && selectedIndices.size > 0)
     || (currentAvatar && getSpriteCropSourceUrl(currentAvatar)),
   );
@@ -915,6 +992,20 @@ export function SpriteSettingsPopup({
     }
   }, [onAvatarChange, onSpriteIndexChange, spritesAvatars, internalIndex]);
 
+  const handleDefaultAvatarApplied = useCallback((avatar: RoleAvatar) => {
+    if (!avatar.avatarId) {
+      return;
+    }
+
+    const nextIndex = spritesAvatars.findIndex(item => item.avatarId === avatar.avatarId);
+    if (nextIndex === -1) {
+      return;
+    }
+
+    handleInternalIndexChange(nextIndex);
+    onSpriteIndexChange?.(nextIndex);
+  }, [handleInternalIndexChange, onSpriteIndexChange, spritesAvatars]);
+
   const queryClient = useQueryClient();
   const repairedDefaultAvatarIdsRef = useRef<Set<number>>(new Set());
   const trashQuery = useGetDeletedRoleAvatarsQuery(role?.id ?? 0, { enabled: Boolean(role?.id) });
@@ -1016,12 +1107,16 @@ export function SpriteSettingsPopup({
 
   // 批量删除确认对话框状态
   const [batchDeleteConfirmOpen, setBatchDeleteConfirmOpen] = useState(false);
+  const [variantRemovalConfirm, setVariantRemovalConfirm] = useState<PendingVariantRemovalConfirm | null>(null);
 
   // 处理多选状态变化
   const handleMultiSelectChange = useCallback((indices: Set<number>, isMultiMode: boolean) => {
+    if (!isVariantGroupView) {
+      setSelectedVariantKey(null);
+    }
     setSelectedIndices(indices);
     setIsMultiSelectMode(isMultiMode);
-  }, []);
+  }, [isVariantGroupView]);
 
   // 请求批量删除
   const handleBatchDeleteRequest = useCallback(() => {
@@ -1073,9 +1168,8 @@ export function SpriteSettingsPopup({
       ));
       const validIndex = ungroupedIndex >= 0 ? ungroupedIndex : fallbackIndex;
       setInternalIndex(validIndex);
-      setVariantFilter(ungroupedIndex >= 0
-        ? UNGROUPED_VARIANT_KEY
-        : getAvatarVariantKey(spritesAvatars[validIndex]));
+      setVariantFilter(UNGROUPED_VARIANT_KEY);
+      setSelectedVariantKey(null);
       setIsMobileControlDrawerOpen(isMobile);
     }
     setWasOpen(isOpen);
@@ -1089,6 +1183,7 @@ export function SpriteSettingsPopup({
       setPendingUploadSpriteCalibration(null);
       setPendingVariantSpriteCalibrationIndices(null);
       setBatchVariantCreationPrompt(null);
+      setSelectedVariantKey(null);
     }
   }, [isOpen]);
 
@@ -1120,6 +1215,7 @@ export function SpriteSettingsPopup({
   const currentUploadVariantGroup = activeVariantGroup;
   const isVariantMutationPending = createVariantMutation.isPending
     || updateVariantMutation.isPending
+    || deleteVariantMutation.isPending
     || updateRoleAvatarMutation.isPending
     || applyCropAvatarMutation.isPending;
   const isVariantWorkflowPending = Boolean(pendingVariantInitialization)
@@ -1127,6 +1223,9 @@ export function SpriteSettingsPopup({
     || isVariantMutationPending;
   const handleVariantFilterChange = useCallback((nextVariant: string) => {
     setVariantFilter(nextVariant);
+    if (nextVariant !== UNGROUPED_VARIANT_KEY) {
+      setSelectedVariantKey(nextVariant);
+    }
     const firstVariantIndex = spritesAvatars.findIndex(avatar => (
       getAvatarVariantKey(avatar) === nextVariant
     ));
@@ -1134,6 +1233,25 @@ export function SpriteSettingsPopup({
       setInternalIndex(firstVariantIndex);
     }
   }, [spritesAvatars]);
+
+  const handleSelectVariantFolder = useCallback((variantKey: string) => {
+    setSelectedVariantKey(variantKey);
+    setSelectedIndices(new Set());
+    setIsMultiSelectMode(false);
+    const firstVariantIndex = spritesAvatars.findIndex(avatar => (
+      getAvatarVariantKey(avatar) === variantKey
+    ));
+    if (firstVariantIndex >= 0) {
+      setInternalIndex(firstVariantIndex);
+    }
+  }, [spritesAvatars]);
+
+  const handleEnterSelectedVariantGroup = useCallback(() => {
+    if (selectedVariantKey == null) {
+      return;
+    }
+    handleVariantFilterChange(selectedVariantKey);
+  }, [handleVariantFilterChange, selectedVariantKey]);
 
   const getVariantCreationIndices = useCallback(() => {
     if (!role?.id) {
@@ -1307,9 +1425,6 @@ export function SpriteSettingsPopup({
   }, [effectiveSelectedAvatarItems, isMobile]);
 
   const handleBatchSpriteCropApplied = useCallback((result: BatchSpriteCropApplyResult) => {
-    if (isVariantGroupView) {
-      return;
-    }
     if (result.successCount <= 0) {
       return;
     }
@@ -1323,6 +1438,29 @@ export function SpriteSettingsPopup({
         avatar.avatarId && updatedAvatarIds.has(avatar.avatarId) ? index : -1
       ))
       .filter(index => index >= 0);
+    const fallbackIndices = effectiveSelectedAvatarItems.length > 0
+      ? effectiveSelectedAvatarItems.map(item => item.index)
+      : currentAvatar
+        ? [internalIndex]
+        : [];
+    const nextAvatarCropIndices = updatedIndices.length > 0 ? updatedIndices : fallbackIndices;
+    const enterAvatarCropperAfterSpriteCrop = () => {
+      const baseIndex = nextAvatarCropIndices.includes(internalIndex)
+        ? internalIndex
+        : nextAvatarCropIndices[0];
+      if (baseIndex !== undefined) {
+        setInternalIndex(baseIndex);
+      }
+      if (!isVariantBatchSelection && nextAvatarCropIndices.length > 0) {
+        setSelectedIndices(new Set(nextAvatarCropIndices));
+        setIsMultiSelectMode(nextAvatarCropIndices.length > 1);
+      }
+      setActiveTab("avatarCropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
+      toast("立绘校正完成，请继续头像校正");
+    };
     if (pendingUploadSpriteCalibration) {
       const successfulUploadIds = pendingUploadSpriteCalibration.avatarIds
         .filter(avatarId => updatedAvatarIds.size === 0 || updatedAvatarIds.has(avatarId));
@@ -1380,21 +1518,24 @@ export function SpriteSettingsPopup({
       setPendingVariantSpriteCalibrationIndices(null);
       return;
     }
-    const fallbackIndices = Array.from(selectedIndices).filter(index => Boolean(spritesAvatars[index]));
 
-    setBatchVariantCreationPrompt({
-      indices: updatedIndices.length > 0 ? updatedIndices : fallbackIndices,
-      successCount: result.successCount,
-      failedCount: result.failedCount,
-      totalCount: result.totalCount,
-    });
+    enterAvatarCropperAfterSpriteCrop();
+    if (!isVariantBatchSelection && result.totalCount > 1) {
+      setBatchVariantCreationPrompt({
+        indices: nextAvatarCropIndices,
+        successCount: result.successCount,
+        failedCount: result.failedCount,
+        totalCount: result.totalCount,
+      });
+    }
   }, [
+    currentAvatar,
+    effectiveSelectedAvatarItems,
     internalIndex,
-    isVariantGroupView,
+    isVariantBatchSelection,
     isMobile,
     pendingUploadSpriteCalibration,
     pendingVariantSpriteCalibrationIndices,
-    selectedIndices,
     spritesAvatars,
     variantGroups.length,
   ]);
@@ -1429,7 +1570,7 @@ export function SpriteSettingsPopup({
     setBatchVariantCreationPrompt(null);
   }, [batchVariantCreationPrompt, spritesAvatars, variantGroups.length]);
 
-  const handleBatchUnassignVariant = useCallback(async () => {
+  const handleRequestVariantRemoval = useCallback(() => {
     if (!role?.id || effectiveSelectedAvatarItems.length === 0) {
       toast.error("请先选择头像");
       return;
@@ -1442,23 +1583,125 @@ export function SpriteSettingsPopup({
       return;
     }
 
+    if (isVariantGroupView || isVariantFolderSelected) {
+      const variantId = isVariantGroupView ? activeVariantId : selectedVariantId;
+      const label = (isVariantGroupView ? activeVariantLabel : selectedVariantLabel) || "立绘组";
+      if (!variantId) {
+        toast.error("请选择立绘组");
+        return;
+      }
+      setVariantRemovalConfirm({
+        mode: "deleteVariant",
+        variantId,
+        label,
+        avatarCount: avatarsToUpdate.length,
+      });
+      return;
+    }
+
+    setVariantRemovalConfirm({
+      mode: "unassignAvatars",
+      avatars: avatarsToUpdate,
+      label: selectedVariantSummary,
+      avatarCount: avatarsToUpdate.length,
+    });
+  }, [
+    activeVariantId,
+    activeVariantLabel,
+    effectiveSelectedAvatarItems,
+    isVariantFolderSelected,
+    isVariantGroupView,
+    role?.id,
+    selectedVariantId,
+    selectedVariantLabel,
+    selectedVariantSummary,
+  ]);
+
+  const handleConfirmVariantRemoval = useCallback(async () => {
+    if (!variantRemovalConfirm) {
+      return;
+    }
+    if (!role?.id) {
+      toast.error("角色信息缺失，无法移出立绘组");
+      return;
+    }
+
     try {
-      await Promise.all(avatarsToUpdate.map(avatar => updateRoleAvatarMutation.mutateAsync({
-        ...avatar,
-        roleId: avatar.roleId ?? role.id,
-        variantId: null,
-        variantGroup: undefined,
-      } as unknown as RoleAvatar)));
+      if (variantRemovalConfirm.mode === "deleteVariant") {
+        await deleteVariantMutation.mutateAsync(variantRemovalConfirm.variantId);
+        toast.success(`已解散 ${variantRemovalConfirm.label}，${variantRemovalConfirm.avatarCount} 个头像已移回未分组`);
+      }
+      else {
+        await Promise.all(variantRemovalConfirm.avatars.map(avatar => updateRoleAvatarMutation.mutateAsync({
+          ...avatar,
+          roleId: avatar.roleId ?? role.id,
+          variantId: null,
+          variantGroup: undefined,
+        } as unknown as RoleAvatar)));
+        toast.success(`已移回未分组 ${variantRemovalConfirm.avatarCount} 个头像`);
+      }
       setSelectedIndices(new Set());
       setIsMultiSelectMode(false);
       setVariantFilter(UNGROUPED_VARIANT_KEY);
-      toast.success(`已移出 ${avatarsToUpdate.length} 个头像`);
+      setSelectedVariantKey(null);
+      setVariantRemovalConfirm(null);
     }
     catch (error) {
-      console.error("批量移出立绘组失败:", error);
+      console.error("移出立绘组失败:", error);
       toast.error("移出失败，请稍后重试");
     }
-  }, [effectiveSelectedAvatarItems, role?.id, updateRoleAvatarMutation]);
+  }, [deleteVariantMutation, role?.id, updateRoleAvatarMutation, variantRemovalConfirm]);
+
+  const handleUnassignSingleAvatarVariant = useCallback(async (avatar: RoleAvatar) => {
+    if (!role?.id || !avatar.avatarId) {
+      throw new Error("头像信息缺失，无法移出立绘组");
+    }
+
+    const avatarVariantKey = getAvatarVariantKey(avatar);
+    if (avatarVariantKey === UNGROUPED_VARIANT_KEY) {
+      toast.error("当前头像未绑定立绘组");
+      return false;
+    }
+
+    const remainingGroupIndex = spritesAvatars.findIndex(item => (
+      item.avatarId !== avatar.avatarId
+      && getAvatarVariantKey(item) === avatarVariantKey
+    ));
+    const result = await updateRoleAvatarMutation.mutateAsync({
+      ...avatar,
+      roleId: avatar.roleId ?? role.id,
+      variantId: null,
+      variantGroup: undefined,
+    } as unknown as RoleAvatar);
+    if (!result.success) {
+      throw new Error(result.errMsg || "移出立绘组失败");
+    }
+
+    setSelectedIndices(new Set());
+    setIsMultiSelectMode(false);
+    if (isVariantGroupView && variantFilter === avatarVariantKey) {
+      if (remainingGroupIndex >= 0) {
+        handleInternalIndexChange(remainingGroupIndex);
+      }
+      else {
+        setVariantFilter(UNGROUPED_VARIANT_KEY);
+        setSelectedVariantKey(null);
+      }
+    }
+    else if (selectedVariantKey === avatarVariantKey && remainingGroupIndex < 0) {
+      setSelectedVariantKey(null);
+    }
+    toast.success("已移出立绘组");
+    return true;
+  }, [
+    handleInternalIndexChange,
+    isVariantGroupView,
+    role?.id,
+    selectedVariantKey,
+    spritesAvatars,
+    updateRoleAvatarMutation,
+    variantFilter,
+  ]);
 
   const assignAvatarItemsToVariant = useCallback(async (
     avatarItems: Array<{ index: number; avatar: RoleAvatar }>,
@@ -1503,6 +1746,7 @@ export function SpriteSettingsPopup({
     if (itemsToAssign.length === 0) {
       toast.success("所选头像已在该立绘组中");
       if (options?.switchToVariant !== false) {
+        setSelectedVariantKey(targetVariantKey);
         setVariantFilter(targetVariantKey);
       }
       return true;
@@ -1577,6 +1821,7 @@ export function SpriteSettingsPopup({
       setSelectedIndices(new Set());
       setIsMultiSelectMode(false);
       if (options?.switchToVariant !== false) {
+        setSelectedVariantKey(targetVariantKey);
         setVariantFilter(targetVariantKey);
       }
       if (failedCount > 0) {
@@ -1655,10 +1900,14 @@ export function SpriteSettingsPopup({
       toast.error("请选择要绑定的立绘组");
       return;
     }
-    await assignAvatarItemsToVariant(effectiveSelectedAvatarItems, variantId, {
+    const assigned = await assignAvatarItemsToVariant(effectiveSelectedAvatarItems, variantId, {
       allowReassign: false,
       actionLabel: "绑定立绘组",
+      switchToVariant: false,
     });
+    if (assigned) {
+      setSelectedVariantKey(String(variantId));
+    }
   }, [assignAvatarItemsToVariant, batchTargetVariantId, effectiveSelectedAvatarItems]);
 
   const handleAvatarListDragStart = useCallback((filteredIndex: number) => {
@@ -1712,10 +1961,14 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    await assignAvatarItemsToVariant(avatarItems, variantId, {
+    const assigned = await assignAvatarItemsToVariant(avatarItems, variantId, {
       allowReassign: true,
       actionLabel: "移动到立绘组",
+      switchToVariant: false,
     });
+    if (assigned) {
+      setSelectedVariantKey(String(Math.floor(variantId)));
+    }
   }, [assignAvatarItemsToVariant, draggedAvatarIndices, spritesAvatars]);
 
   const handleVariantInitializationComplete = useCallback(async (result: VariantInitializationCropResult) => {
@@ -1798,6 +2051,7 @@ export function SpriteSettingsPopup({
       >
         {variantFolderItems.map((item) => {
           const isDropTarget = item.variantKey === variantDropTarget;
+          const isSelected = selectedVariantKey === item.variantKey;
           return (
             <div key={item.variantKey} className="min-w-0">
               <button
@@ -1805,12 +2059,14 @@ export function SpriteSettingsPopup({
                 className={`
                   relative aspect-square w-full overflow-hidden rounded-lg border-2
                   bg-base-200 transition-[border-color,box-shadow,background-color]
-                  border-base-300 hover:border-primary/50 hover:bg-base-300
+                  ${isSelected
+                    ? "border-primary shadow-lg ring-2 ring-primary/30"
+                    : "border-base-300 hover:border-primary/50 hover:bg-base-300"}
                   ${isDropTarget ? "border-primary bg-primary/10 ring-2 ring-primary/40" : ""}
                 `}
                 title={`${item.label} · ${item.count}`}
-                aria-label={`打开立绘组 ${item.label}`}
-                onClick={() => handleVariantFilterChange(item.variantKey)}
+                aria-label={`选择立绘组 ${item.label}`}
+                onClick={() => handleSelectVariantFolder(item.variantKey)}
                 onDragOver={event => handleVariantFolderDragOver(event, item.variantKey)}
                 onDragLeave={() => {
                   if (variantDropTarget === item.variantKey) {
@@ -1850,6 +2106,14 @@ export function SpriteSettingsPopup({
                     放入
                   </span>
                 )}
+                {isSelected && !isDropTarget && (
+                  <span className="
+                    absolute inset-0 flex items-center justify-center bg-primary/10
+                    text-primary
+                  ">
+                    <CheckCircleIcon className="size-6" weight="fill" aria-hidden="true" />
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -1858,7 +2122,7 @@ export function SpriteSettingsPopup({
                   text-base-content/70 hover:text-base-content
                 "
                 title={`${item.label} · ${item.count}`}
-                onClick={() => handleVariantFilterChange(item.variantKey)}
+                onClick={() => handleSelectVariantFolder(item.variantKey)}
               >
                 {item.label}
                 <span className="text-base-content/45">
@@ -1892,10 +2156,10 @@ export function SpriteSettingsPopup({
       ">
         <div className="min-w-0">
           <h3 className="text-lg font-semibold">
-            {isVariantGroupView ? "立绘组设置" : "批量设置"}
+            {isVariantBatchSelection ? "立绘组设置" : "批量设置"}
           </h3>
           <p className="mt-1 text-sm text-base-content/60">
-            {isVariantGroupView ? "组内" : "已选"}
+            {isVariantBatchSelection ? "组内" : "已选"}
             {" "}
             <span className="font-medium text-base-content">{effectiveSelectedAvatarCount}</span>
             {" "}
@@ -1963,7 +2227,7 @@ export function SpriteSettingsPopup({
         </div>
       </section>
 
-      {!isVariantGroupView && (
+      {!isVariantGroupView && !isVariantFolderSelected && (
         <section className="rounded-md border border-base-300 bg-base-100 p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
@@ -2037,23 +2301,37 @@ export function SpriteSettingsPopup({
       <section className="rounded-md border border-base-300 bg-base-100 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <h4 className="font-medium">{isVariantGroupView ? "管理组内头像" : "管理所选头像"}</h4>
+            <h4 className="font-medium">{isVariantBatchSelection ? "管理组内头像" : "管理所选头像"}</h4>
             <p className="mt-1 text-sm text-base-content/60">
               {isVariantGroupView
                 ? "可将组内头像移回未分组，再重新校正或绑定。"
-                : "已绑定立绘组的头像可先移出，再重新校正或绑定。"}
+                : isVariantFolderSelected
+                  ? "进入组内后可按分类查看、上传或整理头像；当前校正会批量作用于整个立绘组。"
+                  : "已绑定立绘组的头像可先移出，再重新校正或绑定。"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {isVariantFolderSelected && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm gap-1.5"
+                onClick={handleEnterSelectedVariantGroup}
+              >
+                <FolderOpenIcon className="size-4" aria-hidden="true" />
+                <span>进入组内管理</span>
+              </button>
+            )}
             <button
               type="button"
-              className="btn btn-outline btn-sm"
-              onClick={handleBatchUnassignVariant}
+              className="btn btn-error btn-sm"
+              onClick={handleRequestVariantRemoval}
               disabled={isVariantMutationPending || selectedWithVariantCount === 0}
             >
-              移出立绘组
+              {isVariantMutationPending
+                ? "处理中..."
+                : isVariantBatchSelection ? "解散立绘组" : "移回未分组"}
             </button>
-            {!isVariantGroupView && (
+            {!isVariantGroupView && !isVariantFolderSelected && (
               <button
                 type="button"
                 className="btn btn-error btn-sm"
@@ -2132,7 +2410,12 @@ export function SpriteSettingsPopup({
               <button
                 type="button"
                 className="btn btn-soft bg-base-200 btn-square btn-xs"
-                onClick={() => setIsMultiSelectMode(true)}
+                onClick={() => {
+                  if (!isVariantGroupView) {
+                    setSelectedVariantKey(null);
+                  }
+                  setIsMultiSelectMode(true);
+                }}
                 title="进入选择模式"
               >
                 <CheckCircleIcon className="size-5" aria-hidden="true" />
@@ -2147,12 +2430,16 @@ export function SpriteSettingsPopup({
       ">
         <SpriteListGrid
           avatars={filteredSprites}
+          allAvatars={spritesAvatars}
           totalAvatarsCount={spritesAvatars.length}
-          selectedIndex={filteredIndexMap.get(internalIndex) ?? 0}
+          selectedIndex={isVariantFolderSelected ? -1 : (filteredIndexMap.get(internalIndex) ?? 0)}
           onSelect={(index) => {
             const originalIndex = filteredIndices[index];
             if (originalIndex === undefined)
               return;
+            if (!isVariantGroupView) {
+              setSelectedVariantKey(null);
+            }
             handleInternalIndexChange(originalIndex);
           }}
           mode="manage"
@@ -2459,12 +2746,10 @@ export function SpriteSettingsPopup({
                             selectedIndices={effectiveSpriteCropperSelectedIndices}
                             isMultiSelectMode={effectiveSpriteCropperMultiSelectMode}
                             availableVariants={variantGroups}
-                            allowVariantGroupEditing={isVariantGroupView}
-                            editingVariantGroup={activeVariantGroup}
+                            allowVariantGroupEditing={isVariantFolderSelected}
+                            editingVariantGroup={editingVariantGroup}
                             onBatchSpriteCropApplied={handleBatchSpriteCropApplied}
-                            onSingleSpriteCropApplied={pendingVariantSpriteCalibrationIndices || pendingUploadSpriteCalibration
-                              ? handleBatchSpriteCropApplied
-                              : undefined}
+                            onSingleSpriteCropApplied={handleBatchSpriteCropApplied}
                           />
                         </div>
                       </div>
@@ -2522,8 +2807,8 @@ export function SpriteSettingsPopup({
                             selectedIndices={effectiveAvatarCropperSelectedIndices}
                             isMultiSelectMode={effectiveAvatarCropperMultiSelectMode}
                             availableVariants={variantGroups}
-                            allowVariantGroupEditing={isVariantGroupView}
-                            editingVariantGroup={activeVariantGroup}
+                            allowVariantGroupEditing={isVariantFolderSelected}
+                            editingVariantGroup={editingVariantGroup}
                             variantInitialization={pendingVariantInitialization
                               ? {
                                   active: true,
@@ -2550,7 +2835,7 @@ export function SpriteSettingsPopup({
 
             {/* 头像设置内容 */}
             {activeTab === "setting" && (
-              isVariantGroupView || (isMultiSelectMode && selectedAvatarCount > 0)
+              isVariantFolderSelected || (isMultiSelectMode && selectedAvatarCount > 0)
                 ? batchSettingsPanel
                 : (
                     <AvatarSettingsTab
@@ -2559,7 +2844,11 @@ export function SpriteSettingsPopup({
                       selectedIndex={internalIndex}
                       characterName={characterName}
                       availableVariants={variantGroups}
+                      defaultAvatarId={role?.avatarId}
                       onApply={handleApply}
+                      onDefaultAvatarApplied={handleDefaultAvatarApplied}
+                      showUnassignVariantAction={isVariantGroupView}
+                      onUnassignVariant={handleUnassignSingleAvatarVariant}
                       onAssignVariant={(avatar, variantId) => assignAvatarItemsToVariant(
                         [{ index: internalIndex, avatar }],
                         variantId,
@@ -2801,6 +3090,74 @@ export function SpriteSettingsPopup({
             className="modal-backdrop"
             onClick={handleCancelBatchVariantCreation}
             aria-label="关闭创建立绘组确认弹窗"
+          />
+        </div>
+      )}
+
+      {variantRemovalConfirm && (
+        <div className="modal modal-open">
+          <div className="modal-box w-[92vw] max-w-md">
+            <h3 className="font-bold text-lg">
+              {variantRemovalConfirm.mode === "deleteVariant" ? "确认解散立绘组" : "确认移回未分组"}
+            </h3>
+            <div className="alert alert-error my-4">
+              <WarningCircleIcon className="shrink-0 size-6" aria-hidden="true" />
+              <span>
+                {variantRemovalConfirm.mode === "deleteVariant"
+                  ? (
+                      <>
+                        将删除
+                        {" "}
+                        <span className="font-semibold">{variantRemovalConfirm.label}</span>
+                        {" "}
+                        这个立绘组，并把组内
+                        {" "}
+                        <span className="font-semibold">{variantRemovalConfirm.avatarCount}</span>
+                        {" "}
+                        个头像移回未分组。头像和图片文件会保留。
+                      </>
+                    )
+                  : (
+                      <>
+                        将选中的
+                        {" "}
+                        <span className="font-semibold">{variantRemovalConfirm.avatarCount}</span>
+                        {" "}
+                        个头像移回未分组，并解除当前立绘组绑定。
+                      </>
+                    )}
+              </span>
+            </div>
+            <div className="modal-action">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setVariantRemovalConfirm(null)}
+                disabled={isVariantMutationPending}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-error"
+                onClick={handleConfirmVariantRemoval}
+                disabled={isVariantMutationPending}
+              >
+                {isVariantMutationPending
+                  ? "处理中..."
+                  : variantRemovalConfirm.mode === "deleteVariant" ? "确认解散" : "确认移回"}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="modal-backdrop"
+            onClick={() => {
+              if (!isVariantMutationPending) {
+                setVariantRemovalConfirm(null);
+              }
+            }}
+            aria-label="关闭移出立绘组确认弹窗"
           />
         </div>
       )}

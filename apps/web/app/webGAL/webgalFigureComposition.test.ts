@@ -66,7 +66,7 @@ describe("webgalFigureComposition", () => {
     expect(candidate).toBeUndefined();
   });
 
-  it("生成携带坐标的 compact composeFigure JSON 行", () => {
+  it("生成携带坐标的 composeFigure base/layer 行", () => {
     const group = variantGroup({ baseAvatarId: 10 });
     const current = avatar({ avatarId: 12, avatarFileId: 3002, spriteFileId: undefined, variantGroup: group });
     const candidate = resolveFigureCompositionCandidate(current, [
@@ -79,8 +79,8 @@ describe("webgalFigureComposition", () => {
 
     expect(asset.composite).toBe(true);
     expect(asset.composeLine).toContain(`composeFigure:${asset.target}`);
-    expect(asset.composeLine).toContain(`"src":"role_1/base.webp"`);
-    expect(asset.composeLine).toContain(`"src":"role_1/avatar.webp","x":10,"y":20,"width":300,"height":300`);
+    expect(asset.composeLine).toContain("-base=role_1/base.webp");
+    expect(asset.composeLine).toContain("-layer=role_1/avatar.webp,10,20,300,300");
     expect(asset.composeLine).toContain("-width=1000 -height=1600 -format=webp;");
     expect(asset.stateKey).toContain("avatar:12:3002");
   });

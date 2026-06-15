@@ -13,6 +13,7 @@ const TEXT_KINDS = new Set([
   "dice",
   "bgm",
   "scene",
+  "role_card",
   "reference",
   "author_note",
   "system",

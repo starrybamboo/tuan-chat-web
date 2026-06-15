@@ -107,6 +107,7 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 - curRoleIdMap：房间 -> 当前角色（localStorage: curRoleIdMap）
 - curAvatarIdMap：角色 -> 当前立绘（localStorage: curAvatarIdMap）
+- curAvatarVariantIdMap：角色 -> 当前打开的立绘组（localStorage: curAvatarVariantIdMap，0 表示未分组）
 
 ### 4) drawerPreferenceStore：右侧抽屉宽度偏好
 
@@ -1536,7 +1537,6 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
 
 
 

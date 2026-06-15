@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
+import { formatUnreadBadgeCount } from "./clueUnread";
 import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
@@ -29,10 +30,30 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
   },
+  tabLabelWrap: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  tabBadge: {
+    alignItems: "center",
+    borderRadius: 999,
+    height: 16,
+    justifyContent: "center",
+    minWidth: 16,
+    paddingHorizontal: 4,
+  },
+  tabBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 12,
+  },
 });
 
 type RightDrawerPanelProps = {
   activeTab: RightDrawerTabKey;
+  clueUnreadCount?: number;
   clueRooms: Room[];
   currentUserId: number | null;
   currentRoleId: number | null;
@@ -55,6 +76,7 @@ type RightDrawerPanelProps = {
 
 function RightDrawerPanelInner({
   activeTab,
+  clueUnreadCount = 0,
   clueRooms,
   currentUserId,
   currentRoleId,
@@ -123,12 +145,23 @@ function RightDrawerPanelInner({
 
       <View style={[styles.tabBar, { borderTopColor: theme.border }]}>
         <Pressable style={styles.tab} onPress={handleShowClues}>
-          <ThemedText
-            type="smallBold"
-            themeColor={activeTab === "clues" ? "accent" : "textSecondary"}
-          >
-            线索
-          </ThemedText>
+          <View style={styles.tabLabelWrap}>
+            <ThemedText
+              type="smallBold"
+              themeColor={activeTab === "clues" ? "accent" : "textSecondary"}
+            >
+              线索
+            </ThemedText>
+            {clueUnreadCount > 0
+              ? (
+                  <View style={[styles.tabBadge, { backgroundColor: theme.danger }]}>
+                    <ThemedText style={styles.tabBadgeText}>
+                      {formatUnreadBadgeCount(clueUnreadCount)}
+                    </ThemedText>
+                  </View>
+                )
+              : null}
+          </View>
         </Pressable>
         <Pressable style={styles.tab} onPress={handleShowCombat}>
           <ThemedText

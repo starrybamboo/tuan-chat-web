@@ -185,22 +185,12 @@ export function resolveFigureCompositionCandidate<TAvatar extends FigureComposit
   };
 }
 
-export function buildFigureCompositionLayersJson(
+export function buildFigureCompositionLayerArg(
   candidate: FigureCompositionCandidate,
-  basePath: string,
   avatarLayerPath: string,
 ): string {
   const { crop } = candidate.cropContext;
-  return JSON.stringify([
-    { src: basePath },
-    {
-      src: avatarLayerPath,
-      x: crop.x,
-      y: crop.y,
-      width: crop.width,
-      height: crop.height,
-    },
-  ]);
+  return [avatarLayerPath, crop.x, crop.y, crop.width, crop.height].join(",");
 }
 
 export function buildWebgalFigureRenderAsset(
@@ -210,12 +200,12 @@ export function buildWebgalFigureRenderAsset(
 ): WebgalFigureRenderAsset {
   const normalizedBasePath = basePath.trim();
   const normalizedAvatarLayerPath = avatarLayerPath.trim();
-  const layersJson = buildFigureCompositionLayersJson(candidate, normalizedBasePath, normalizedAvatarLayerPath);
+  const layerArg = buildFigureCompositionLayerArg(candidate, normalizedAvatarLayerPath);
   return {
     target: candidate.alias,
     stateKey: candidate.cacheKey,
     composite: true,
-    composeLine: `composeFigure:${candidate.alias} -layers=${layersJson} -width=${candidate.cropContext.sourceWidth} -height=${candidate.cropContext.sourceHeight} -format=webp;`,
+    composeLine: `composeFigure:${candidate.alias} -base=${normalizedBasePath} -layer=${layerArg} -width=${candidate.cropContext.sourceWidth} -height=${candidate.cropContext.sourceHeight} -format=webp;`,
     basePath: normalizedBasePath,
     avatarLayerPath: normalizedAvatarLayerPath,
     candidate,

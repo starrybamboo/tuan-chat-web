@@ -14,6 +14,7 @@ const TEXT_KINDS = new Set([
   "dice",
   "bgm",
   "scene",
+  "role_card",
   "reference",
   "author_note",
   "system",
@@ -137,6 +138,7 @@ async function loadStore(args) {
   if (store.schemaVersion !== SCHEMA_VERSION) {
     throw new Error(`Unsupported schemaVersion: ${store.schemaVersion}`);
   }
+  store.taxonomy = [...TEXT_KINDS];
   return store;
 }
 
@@ -190,6 +192,7 @@ function normalizeFloorRecord(record, sourceInfo) {
 
 function defaultPerformanceUse(kind) {
   if (kind === "system") return "system";
+  if (kind === "role_card") return "reference";
   if (kind === "reference") return "reference";
   if (kind === "author_note") return "metadata";
   if (kind === "unknown") return "review";

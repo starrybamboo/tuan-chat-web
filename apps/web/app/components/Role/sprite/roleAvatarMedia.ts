@@ -48,7 +48,7 @@ export function resolveRoleAvatarMedia(
     },
     sprite: {
       url: spriteMedium || spriteOriginal,
-      cropSourceUrl: spriteMedium || spriteOriginal,
+      cropSourceUrl: spriteOriginal,
       originalUrl: spriteOriginal,
     },
     origin: {

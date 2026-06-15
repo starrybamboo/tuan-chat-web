@@ -170,8 +170,8 @@ describe("realtimeRendererAssetUploads", () => {
     expect(result?.composite).toBe(true);
     expect(result?.basePath).toBe("role_1/base_5_2048.webp");
     expect(result?.avatarLayerPath).toMatch(/^role_1\/avatar_7_9918_[a-z0-9]+\.webp$/);
-    expect(result?.composeLine).toContain(`"src":"role_1/base_5_2048.webp"`);
-    expect(result?.composeLine).toContain(`"x":12,"y":34,"width":256,"height":256`);
+    expect(result?.composeLine).toContain("-base=role_1/base_5_2048.webp");
+    expect(result?.composeLine).toContain(`-layer=${result?.avatarLayerPath},12,34,256,256`);
     expect(uploadFile).toHaveBeenCalledTimes(2);
     expect(vi.mocked(uploadFile).mock.calls[0][2]).toBe("base_5_2048.webp");
     expect(String(vi.mocked(uploadFile).mock.calls[1][2])).toMatch(/^avatar_7_9918_[a-z0-9]+\.webp$/);

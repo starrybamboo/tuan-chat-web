@@ -1,12 +1,11 @@
-import type { AvatarCropContext, RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig, SpriteCropContext } from "api";
 import type { PixelCrop } from "react-image-crop";
 
-import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateRoleAvatarVariantMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ReactCrop } from "react-image-crop";
 
 import type { ImageLoadContext } from "@/utils/imgCropper";
+import type { AvatarCropContext, RoleAvatar, RoleAvatarVariant, RoleAvatarVariantCompositionConfig, SpriteCropContext } from "api";
 
 import { isMobileScreen } from "@/utils/getScreenSize";
 import {
@@ -16,6 +15,7 @@ import {
   useCropPreview,
 } from "@/utils/imgCropper";
 import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
+import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateRoleAvatarVariantMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";
 import type { Transform } from "../TransformControl";
@@ -27,19 +27,13 @@ import {
   createAvatarCropContextFromSource,
   createSpriteCropContextFromImage,
   createSpriteCropContextFromSource,
-  createSpriteCropContextFromVariantConfig,
-  createVariantCompositionConfigFromAvatarCropContext,
-  createAvatarCropContextFromVariantConfig,
   createPixelSpriteCropFromVariantConfig,
   createPixelCropFromVariantConfig,
-  isImageCompatibleWithVariantConfig,
-  isOriginImageCompatibleWithVariantConfig,
+  createVariantCompositionConfigFromAvatarCropContext,
 } from "../avatarCropContext";
 import { TransformControl } from "../TransformControl";
 import {
   getEffectiveOriginUrl,
-  getEffectiveSpriteOriginalUrl,
-  getEffectiveSpriteUrl,
   getSpriteCropSourceUrl,
   parseTransformFromAvatar,
   parseTransformFromSpriteTransform,
@@ -96,11 +90,6 @@ function getPositiveVariantId(value: unknown): number | undefined {
     return undefined;
   }
   return Math.floor(id);
-}
-
-function getVariantLabel(variant: RoleAvatarVariant): string {
-  const variantId = getPositiveVariantId(variant.variantId);
-  return String(variant.name ?? "").trim() || `立绘组 ${variantId ?? ""}`;
 }
 
 function getAvatarVariantId(avatar: RoleAvatar | undefined): number | undefined {
@@ -392,11 +381,6 @@ export function SpriteCropper({
   const initialAvatarCompositionConfig = (isManualCropLocked || isVariantGroupEditingMode)
     ? currentCompositionConfig
     : undefined;
-  const variantApplyOptions = useMemo(() => (
-    availableVariants
-      .filter(variant => Boolean(getPositiveVariantId(variant.variantId) && variant.compositionConfig))
-      .sort((a, b) => getVariantLabel(a).localeCompare(getVariantLabel(b), "zh-CN"))
-  ), [availableVariants]);
   const rawCurrentUrl = getCurrentSourceUrl();
   const currentUrl = toCropCanvasSourceUrl(rawCurrentUrl);
   const currentAvatarId = currentAvatar?.avatarId || 0;
@@ -471,22 +455,20 @@ export function SpriteCropper({
     if (!isAvatarMode) {
       const currentSprite = filteredAvatars[currentSpriteIndex];
       if (currentSprite) {
-        const newTransform = isVariantGroupEditingMode
+        const newTransform = (isManualCropLocked || isVariantGroupEditingMode)
           ? parseTransformFromSpriteTransform(currentCompositionConfig?.spriteTransform)
           : parseTransformFromAvatar(currentSprite);
         setDisplayTransform(newTransform);
       }
     }
-  }, [currentCompositionConfig?.spriteTransform, isAvatarMode, isVariantGroupEditingMode, filteredAvatars, currentSpriteIndex]);
+  }, [currentCompositionConfig?.spriteTransform, isAvatarMode, isManualCropLocked, isVariantGroupEditingMode, filteredAvatars, currentSpriteIndex]);
 
   // 使用 useCropPreview 管理裁剪状态
   const {
     imgRef,
     previewCanvasRef,
     crop,
-    setCrop,
     completedCrop,
-    setCompletedCrop,
     previewDataUrl: currentAvatarUrl,
     onImageLoad,
     onCropChange,
@@ -507,16 +489,19 @@ export function SpriteCropper({
       naturalHeight: number;
       mode: "avatar" | "sprite";
     }) => {
-      if (mode !== "avatar")
-        return undefined;
       if (initialAvatarCompositionConfig) {
-        return createPixelCropFromVariantConfig(initialAvatarCompositionConfig, {
+        const image = {
           width,
           height,
           naturalWidth,
           naturalHeight,
-        });
+        };
+        return mode === "avatar"
+          ? createPixelCropFromVariantConfig(initialAvatarCompositionConfig, image)
+          : createPixelSpriteCropFromVariantConfig(initialAvatarCompositionConfig, image);
       }
+      if (mode !== "avatar")
+        return undefined;
       return createTopCenteredSquareCrop(width, height);
     }, [initialAvatarCompositionConfig]),
     onImageLoadExtend: handleImageLoadExtend,
@@ -796,14 +781,12 @@ export function SpriteCropper({
             ),
           );
         }
-        if (!isVariantGroupEditingMode) {
-          onSingleSpriteCropApplied?.({
-            avatars: [updatedAvatar],
-            totalCount: 1,
-            successCount: 1,
-            failedCount: 0,
-          });
-        }
+        onSingleSpriteCropApplied?.({
+          avatars: [updatedAvatar],
+          totalCount: 1,
+          successCount: 1,
+          failedCount: 0,
+        });
       }
 
       // --- 共同的回调逻辑 ---
@@ -1172,7 +1155,7 @@ export function SpriteCropper({
       else {
         toast.error(`批量处理完成：成功 ${uploadSuccessCount}/${totalCount}，失败 ${totalFail}`, { id: toastId });
       }
-      if (!isAvatarMode && uploadSuccessCount > 0 && !isVariantGroupEditingMode) {
+      if (!isAvatarMode && uploadSuccessCount > 0) {
         onBatchSpriteCropApplied?.({
           avatars: uploadedSpriteCropResults,
           totalCount,
@@ -1185,207 +1168,6 @@ export function SpriteCropper({
       console.error("批量裁剪失败:", error);
       const errMsg = error instanceof Error ? error.message : "未知错误";
       toast.error(`批量裁剪失败：${errMsg}`, { id: toastId });
-    }
-    finally {
-      setIsCropping(false);
-    }
-  }
-
-  async function handleApplyVariant(variantId: number) {
-    const variant = variantApplyOptions.find(item => getPositiveVariantId(item.variantId) === variantId);
-    if (!variant?.compositionConfig) {
-      toast.error("立绘组配置缺失，无法应用");
-      return;
-    }
-    const nextVariantId = getPositiveVariantId(variant.variantId);
-    if (!nextVariantId) {
-      toast.error("立绘组信息缺失，无法应用");
-      return;
-    }
-    const compositionConfig = variant.compositionConfig;
-
-    const applyVariantToAvatar = async (avatar: RoleAvatar) => {
-      if (!avatar.roleId || !avatar.avatarId) {
-        throw new Error("头像信息缺失，无法应用立绘组");
-      }
-      if (isAvatarVariantLocked(avatar)) {
-        throw new Error("已绑定立绘组，裁剪已锁定");
-      }
-      const sourceUrl = getEffectiveOriginUrl(avatar);
-      if (!sourceUrl) {
-        throw new Error("头像缺少原图，无法应用立绘组");
-      }
-      if (!createSpriteCropContextFromVariantConfig(compositionConfig)) {
-        throw new Error("该立绘组缺少立绘裁剪配置，请先校正立绘组");
-      }
-      const originImage = await loadCropCanvasImage(sourceUrl);
-      if (!isOriginImageCompatibleWithVariantConfig(compositionConfig, originImage)) {
-        throw new Error("原图尺寸与该立绘组不一致");
-      }
-
-      const spriteCrop = createPixelSpriteCropFromVariantConfig(compositionConfig, {
-        naturalWidth: originImage.naturalWidth,
-        naturalHeight: originImage.naturalHeight,
-        width: originImage.naturalWidth,
-        height: originImage.naturalHeight,
-      });
-      const spriteCropContext = createSpriteCropContextFromVariantConfig(
-        compositionConfig,
-        avatar.originFileId,
-      );
-      if (!spriteCrop || !spriteCropContext) {
-        throw new Error("无法应用该立绘组的立绘裁剪配置");
-      }
-
-      const croppedSpriteBlob = await getCroppedImageBlobFromImg(originImage, {
-        crop: spriteCrop.pixelCrop,
-        displaySize: {
-          width: originImage.naturalWidth,
-          height: originImage.naturalHeight,
-        },
-      });
-
-      const spriteUpdateRes = await applyCropMutation.mutateAsync({
-        roleId: avatar.roleId,
-        avatarId: avatar.avatarId,
-        croppedImageBlob: croppedSpriteBlob,
-        transform: parseTransformFromSpriteTransform(compositionConfig.spriteTransform),
-        currentAvatar: avatar,
-        spriteCropContext,
-      });
-      if (!spriteUpdateRes?.success) {
-        throw new Error("立绘上传失败");
-      }
-      const spriteUpdatedAvatar = spriteUpdateRes.data ?? {
-        ...avatar,
-        spriteCropContext,
-        spriteTransform: compositionConfig.spriteTransform,
-      };
-
-      const spriteObjectUrl = URL.createObjectURL(croppedSpriteBlob);
-      const spriteImage = await loadCropCanvasImage(spriteObjectUrl);
-      URL.revokeObjectURL(spriteObjectUrl);
-      const avatarCrop = createPixelCropFromVariantConfig(compositionConfig, {
-        naturalWidth: spriteImage.naturalWidth,
-        naturalHeight: spriteImage.naturalHeight,
-        width: spriteImage.naturalWidth,
-        height: spriteImage.naturalHeight,
-      });
-      if (!avatarCrop) {
-        throw new Error("无法应用该立绘组头像槽位");
-      }
-      const croppedAvatarBlob = await getCroppedImageBlobFromImg(spriteImage, {
-        crop: avatarCrop.pixelCrop,
-        displaySize: {
-          width: spriteImage.naturalWidth,
-          height: spriteImage.naturalHeight,
-        },
-      });
-      const avatarCropContext = createAvatarCropContextFromVariantConfig(
-        compositionConfig,
-        spriteUpdatedAvatar.spriteFileId,
-      );
-      if (!avatarCropContext) {
-        throw new Error("无法生成头像裁剪上下文");
-      }
-      await applyCropAvatarMutation.mutateAsync({
-        roleId: avatar.roleId,
-        avatarId: avatar.avatarId,
-        croppedImageBlob: croppedAvatarBlob,
-        currentAvatar: spriteUpdatedAvatar,
-        avatarCropContext,
-        variantId: nextVariantId,
-      });
-      return originImage;
-    };
-
-    if (operationMode === "batch") {
-      const avatarsToProcess = selectedAvatarIndices
-        .map(index => filteredAvatars[index])
-        .filter(isNonNullable);
-      if (avatarsToProcess.length === 0) {
-        toast.error("请先选择头像");
-        return;
-      }
-      if (avatarsToProcess.some(avatar => isAvatarVariantLocked(avatar))) {
-        toast.error("所选头像包含已绑定立绘组，裁剪已锁定");
-        return;
-      }
-
-      const MAX_CONCURRENCY = 8;
-      const toastId = `sprite-apply-variant-${Date.now()}`;
-      let done = 0;
-      let success = 0;
-      let failed = 0;
-
-      try {
-        setIsCropping(true);
-        toast.loading(`批量应用立绘组：0/${avatarsToProcess.length}`, { id: toastId });
-        const results = await cropImagesWithConcurrency(
-          avatarsToProcess,
-          MAX_CONCURRENCY,
-          async (avatar) => {
-            try {
-              await applyVariantToAvatar(avatar);
-              success += 1;
-              return true;
-            }
-            catch (error) {
-              failed += 1;
-              console.error("批量应用立绘组失败:", { avatarId: avatar.avatarId, error });
-              return false;
-            }
-            finally {
-              done += 1;
-              toast.loading(
-                `批量应用立绘组：${done}/${avatarsToProcess.length}（成功 ${success} 失败 ${failed}）`,
-                { id: toastId },
-              );
-            }
-          },
-        );
-        const successCount = results.filter(Boolean).length;
-        if (successCount === avatarsToProcess.length) {
-          toast.success(`已应用立绘组：${successCount}/${avatarsToProcess.length}`, { id: toastId });
-        }
-        else {
-          toast.error(`应用完成：成功 ${successCount}/${avatarsToProcess.length}，失败 ${failed}`, { id: toastId });
-        }
-      }
-      finally {
-        setIsCropping(false);
-      }
-      return;
-    }
-
-    if (!currentAvatar?.roleId || !currentAvatar.avatarId) {
-      toast.error("当前头像信息缺失，无法应用立绘组");
-      return;
-    }
-
-    try {
-      setIsCropping(true);
-      await applyVariantToAvatar(currentAvatar);
-
-      const displayImage = imgRef.current;
-      if (displayImage && isImageCompatibleWithVariantConfig(variant.compositionConfig, displayImage)) {
-        const displayCrop = createPixelCropFromVariantConfig(variant.compositionConfig, {
-          naturalWidth: displayImage.naturalWidth,
-          naturalHeight: displayImage.naturalHeight,
-          width: displayImage.width,
-          height: displayImage.height,
-        });
-        if (displayCrop) {
-          setCrop(displayCrop.crop);
-          setCompletedCrop(displayCrop.pixelCrop);
-        }
-      }
-
-      toast.success("已应用立绘组");
-    }
-    catch (error) {
-      console.error("应用立绘组失败:", error);
-      toast.error(error instanceof Error ? error.message : "应用立绘组失败");
     }
     finally {
       setIsCropping(false);
@@ -1417,111 +1199,44 @@ export function SpriteCropper({
   const cropApplyButtonLabel = isVariantInitializationMode
     ? operationMode === "batch" ? "批量创建立绘组" : "创建立绘组"
     : isAvatarMode ? "应用裁剪" : operationMode === "batch" ? "批量应用立绘" : "一键应用";
-  const cropApplyControls = (
-    <div
-      className="
-        mt-3 flex w-full flex-col items-end gap-2
-      "
+  const cropApplyHint = operationMode === "batch"
+    ? hasLockedSelectedAvatars
+      ? `已选头像中有 ${selectedLockedAvatarCount} 个绑定了立绘组，裁剪已锁定。`
+      : isVariantInitializationMode
+        ? "当前裁剪框会作为立绘组头像槽位，并应用到已选头像。"
+        : isAvatarMode
+          ? "批量模式会将当前裁剪框应用到已选头像。"
+          : "批量模式会先上传已选立绘，完成后可继续创建立绘组。"
+    : isManualCropLocked
+      ? "已绑定立绘组，裁剪已锁定。"
+      : "";
+  const cropApplyButton = (
+    <button
+      className={`
+        btn btn-primary btn-sm min-w-24 rounded-md px-4 font-semibold
+        ${actionButtonSizeClass}
+      `}
       data-no-crop-modal="true"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (operationMode === "batch") {
+          handleBatchCropAll(!isAvatarMode);
+          return;
+        }
+        handleApplyCrop(!isAvatarMode);
+      }}
+      type="button"
+      disabled={isManualApplyDisabled}
     >
-      {operationMode === "batch" && (
-        <div className="w-full text-xs text-base-content/60">
-          {hasLockedSelectedAvatars
-            ? `已选头像中有 ${selectedLockedAvatarCount} 个绑定了立绘组，裁剪已锁定。`
-            : isVariantInitializationMode
-              ? "当前裁剪框会作为立绘组头像槽位，并应用到已选头像。"
-              : isAvatarMode
-                ? "批量模式会将当前裁剪框应用到已选头像。"
-                : "批量模式会先上传已选立绘，完成后可继续创建立绘组。"}
-        </div>
-      )}
-      {isManualCropLocked && operationMode !== "batch" && (
-        <div className="w-full text-xs text-base-content/60">
-          已绑定立绘组，裁剪已锁定。
-        </div>
-      )}
-      <button
-        className={`
-          btn btn-sm min-w-24 rounded-md border border-base-content/20
-          bg-base-100/70 px-4 font-semibold text-base-content
-          shadow-none hover:border-primary hover:bg-primary/10 hover:text-primary
-          disabled:border-base-300/60 disabled:bg-base-200/50
-          disabled:text-base-content/35
-          ${actionButtonSizeClass}
-        `}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (operationMode === "batch") {
-            handleBatchCropAll(!isAvatarMode);
-            return;
-          }
-          handleApplyCrop(!isAvatarMode);
-        }}
-        type="button"
-        disabled={isManualApplyDisabled}
-      >
-        {isCropping
-          ? (
-              <span className="loading loading-spinner loading-xs"></span>
-            )
-          : (
-              cropApplyButtonLabel
-            )}
-      </button>
-    </div>
-  );
-  const variantApplyControls = isAvatarMode && !isVariantInitializationMode && !isVariantGroupEditingMode
-    ? (
-        <div
-          className="
-            flex min-w-0 flex-wrap items-center gap-2
-            sm:justify-end
-          "
-          data-no-crop-modal="true"
-        >
-          {(isManualCropLocked || (operationMode === "batch" && hasLockedSelectedAvatars)) && (
-            <div className="badge badge-outline badge-sm shrink-0">
-              立绘组锁定
-            </div>
+      {isCropping
+        ? (
+            <span className="loading loading-spinner loading-xs"></span>
+          )
+        : (
+            cropApplyButtonLabel
           )}
-          <select
-            className="select select-sm max-w-44 rounded-md"
-            value={currentVariantId ?? ""}
-            onChange={(event) => {
-              const variantId = Number(event.currentTarget.value);
-              if (Number.isFinite(variantId) && variantId > 0) {
-                void handleApplyVariant(Math.floor(variantId));
-              }
-            }}
-            disabled={
-              isProcessing
-              || !currentAvatar
-              || variantApplyOptions.length === 0
-              || (operationMode === "batch" && selectedAvatarIndices.length === 0)
-            }
-            title="应用立绘组"
-          >
-            <option value="">
-              {variantApplyOptions.length === 0
-                ? "无可用立绘组"
-                : operationMode === "batch" ? "批量应用立绘组" : "应用立绘组"}
-            </option>
-            {variantApplyOptions.map((variant) => {
-              const variantId = getPositiveVariantId(variant.variantId);
-              if (!variantId) {
-                return null;
-              }
-              return (
-                <option key={variantId} value={variantId}>
-                  {getVariantLabel(variant)}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      )
-    : null;
-
+    </button>
+  );
   return (
     <div className="max-w-7xl mx-auto flex flex-col h-full">
       {/* 模式显示 */}
@@ -1529,36 +1244,48 @@ export function SpriteCropper({
         mb-2 flex w-full flex-col gap-2
         sm:flex-row sm:items-center sm:justify-between
       ">
-        <h3 className="
-          text-base/tight font-bold
-          sm:text-lg
-        ">
-          {isVariantInitializationMode
-            ? (
-                <>
-                  {operationMode === "single" ? "创建立绘组" : `批量创建立绘组 (已选 ${selectedIndices.size} 个)`}
-                  {variantInitialization?.name ? ` - ${variantInitialization.name}` : ""}
-                </>
-              )
-            : (
-                <>
-                  {operationMode === "single" ? "单体模式" : `批量模式 (已选 ${selectedIndices.size} 个)`}
-                  {isAvatarMode ? " - 从立绘裁剪头像" : " - 立绘裁剪"}
-                </>
-              )}
-        </h3>
+        <div className="min-w-0">
+          <h3 className="
+            text-base/tight font-bold
+            sm:text-lg
+          ">
+            {isVariantInitializationMode
+              ? (
+                  <>
+                    {operationMode === "single" ? "创建立绘组" : `批量创建立绘组 (已选 ${selectedIndices.size} 个)`}
+                    {variantInitialization?.name ? ` - ${variantInitialization.name}` : ""}
+                  </>
+                )
+              : (
+                  <>
+                    {operationMode === "single" ? "单体模式" : `批量模式 (已选 ${selectedIndices.size} 个)`}
+                    {isAvatarMode ? " - 从立绘裁剪头像" : " - 立绘裁剪"}
+                  </>
+                )}
+          </h3>
+        </div>
         <div className="
-          flex flex-wrap items-center gap-2
-          sm:justify-end
+          flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1
         ">
-          {variantApplyControls}
-          {isMultiSelectMode && selectedIndices.size > 1 && (
-            <div className="badge badge-primary">
-              选中
-              {selectedIndices.size}
-              个头像
+          {cropApplyHint && (
+            <div className="
+              max-w-full whitespace-nowrap text-right text-xs text-base-content/60
+            ">
+              {cropApplyHint}
             </div>
           )}
+          <div className="
+            flex flex-wrap items-center justify-end gap-2
+          ">
+            {isMultiSelectMode && selectedIndices.size > 1 && (
+              <div className="badge badge-primary">
+                选中
+                {selectedIndices.size}
+                个头像
+              </div>
+            )}
+            {cropApplyButton}
+          </div>
         </div>
       </div>
 
@@ -1649,7 +1376,6 @@ export function SpriteCropper({
                     crossOrigin={isLocalImageSource(currentUrl) ? undefined : "anonymous"}
                   />
                 </ReactCrop>
-                {cropApplyControls}
               </div>
             )}
           </div>

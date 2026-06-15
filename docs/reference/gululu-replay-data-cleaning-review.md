@@ -236,7 +236,7 @@ flowchart TD
 | `sourceTime` | 来源时间 |
 | `sourceLineStart` / `sourceLineEnd` | 在楼层正文中的行号，能定位原文 |
 | `sourceText` | 原始文本块 |
-| `kind` | `scene`、`dialog`、`inferredDialog`、`narration`、`dice`、`bgm`、`nonPerformance` |
+| `kind` | `scene`、`dialog`、`inferredDialog`、`narration`、`dice`、`bgm`、`role_card`、`nonPerformance` |
 | `performanceUse` | `perform`、`metadata`、`reference`、`exclude` |
 | `imagePath` | 当前事件绑定的原始图片路径 |
 | `sceneId` | 当前作者场景标志产生的场景 ID |
@@ -259,7 +259,9 @@ flowchart LR
   B -->|是| BGM["bgm"]
   B -->|否| D{"是否骰子表达式?"}
   D -->|是| Dice["dice"]
-  D -->|否| P{"是否明确说话人?"}
+  D -->|否| C{"是否人物卡 / 战斗卡 / 角色卡变更?"}
+  C -->|是| RoleCard["role_card"]
+  C -->|否| P{"是否明确说话人?"}
   P -->|是| Dialog["dialog"]
   P -->|否| I{"是否允许图片推断对白?"}
   I -->|是| Inferred["inferredDialog"]
@@ -274,6 +276,7 @@ flowchart LR
 | `narration` | 普通叙述 | 是 | 可转旁白或 intro |
 | `dice` | 历史骰子和选项 | 是 | 不重新投骰 |
 | `bgm` | `BGM：xxx` | 是，或保留事件 | 无音频时保留缺失项 |
+| `role_card` | 人物卡、战斗卡、角色卡变更 | 可选，通常作为参考 | 不和技能/规则说明混为 `reference` |
 | `nonPerformance` | 作者公告、格式说明、无关吐槽 | 否 | 保留来源，不进入演出 |
 
 ### 楼层拆分与事件顺序
@@ -282,7 +285,7 @@ flowchart LR
 
 规则：
 
-- 一个楼层可以拆成多条 `dialog`、`narration`、`dice`、`bgm`、`scene`。
+- 一个楼层可以拆成多条 `dialog`、`narration`、`dice`、`bgm`、`scene`、`role_card`。
 - 事件顺序按原文出现顺序排列；图片 Markdown 本身不是消息，但会影响后续文本的 `imagePath`。
 - 空行可以触发旁白段落 flush，但不能打散骰子选项表。
 - 同楼层连续骰子、骰子说明、选项表需要作为一个 `diceTurn` 审查。
@@ -456,6 +459,7 @@ diceTurn.sourceText
 清洗规则：
 
 - 骰子前说明尽量并入 `diceTurn.command`。
+- WebGAL 骰子演出必须保持“说明 -> 结果 -> 反应”的时序；骰前事件只能包含问题、选项、规则和不含结果的场景说明，骰后才放命中选项、结算文本和即时吐槽，避免在投骰前剧透结果。
 - 选项表不能拆成多条旁白。
 - 嵌套骰要保留多段 `replies`。
 - 大成功/大失败、重投、继续投不能压成单一结果。

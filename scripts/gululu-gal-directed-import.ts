@@ -23,7 +23,7 @@ type ApiResult<T> = {
 
 type SourceMessagePlan = {
   avatarKey?: string;
-  kind: "dialog" | "narration" | "dice" | "bgm";
+  kind: "dialog" | "narration" | "dice" | "bgm" | "role_card";
   request: ChatMessageRequest;
   roleKey?: string;
   source: {
@@ -190,6 +190,41 @@ type GululuGalDirectedClient = {
 
 const NPC_ROLE_TYPE = 2;
 const DEFAULT_PATCH_CHUNK_SIZE = 100;
+const REVIEWED_AUTHOR_DICE_COMMENT_EVENT_INDICES = new Set([
+  69,
+  137,
+  140,
+  142,
+  146,
+]);
+const OMITTED_AUTHOR_STAGE_COMMENT_EVENT_INDICES = new Set([
+  111,
+  112,
+  113,
+  114,
+  115,
+  116,
+  117,
+  118,
+  119,
+  120,
+  121,
+  122,
+  123,
+  124,
+  125,
+  126,
+  127,
+  318,
+  319,
+  320,
+  321,
+  322,
+  323,
+  340,
+  341,
+  342,
+]);
 
 function readValue(args: string[], index: number, flag: string) {
   const value = args[index + 1];
@@ -767,6 +802,105 @@ function buildDiceExtra(
   };
 }
 
+function isShortParenthesizedDiceComment(message: GululuGalCompiledMessage) {
+  const request = message.request;
+  const content = request.content?.trim();
+  return request.messageType === MESSAGE_TYPE.TEXT
+    && typeof content === "string"
+    && /^（[^）\r\n]{1,80}）$/.test(content)
+    && !hasExplicitSpeaker(message)
+    && (request.roleId == null || request.roleId === -1)
+    && (request.avatarId == null || request.avatarId === -1)
+    && (!request.annotations || request.annotations.length === 0)
+    && !getRecordField(request.webgal, "imageShow");
+}
+
+function hasExplicitSpeaker(message: GululuGalCompiledMessage) {
+  return typeof message.source.speakerName === "string" && message.source.speakerName.trim().length > 0;
+}
+
+function isReviewedAuthorDiceComment(message: GululuGalCompiledMessage) {
+  // 人工审定名单覆盖自动 speakerName：部分骰后作者吐槽会因邻近头像被误挂角色。
+  return REVIEWED_AUTHOR_DICE_COMMENT_EVENT_INDICES.has(message.source.eventIndex)
+    && message.request.messageType === MESSAGE_TYPE.TEXT
+    && !getRecordField(message.request.webgal, "imageShow");
+}
+
+function isMergeableDiceComment(message: GululuGalCompiledMessage) {
+  return isShortParenthesizedDiceComment(message) || isReviewedAuthorDiceComment(message);
+}
+
+function canMergeDiceComment(previous: GululuGalCompiledMessage | undefined, current: GululuGalCompiledMessage) {
+  if (!previous || previous.request.messageType !== MESSAGE_TYPE.DICE || !isMergeableDiceComment(current)) {
+    return false;
+  }
+  if (previous.source.floor !== current.source.floor) {
+    return false;
+  }
+  if (previous.source.sourceTime && current.source.sourceTime && previous.source.sourceTime !== current.source.sourceTime) {
+    return false;
+  }
+  return current.source.eventIndex === previous.source.eventIndex + 1;
+}
+
+function findDiceCommentTargetIndex(messages: GululuGalCompiledMessage[], current: GululuGalCompiledMessage) {
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const previous = messages[index];
+    if (!previous) {
+      continue;
+    }
+    if (previous.request.messageType === MESSAGE_TYPE.IMG) {
+      continue;
+    }
+    return canMergeDiceComment(previous, current) ? index : -1;
+  }
+  return -1;
+}
+
+function appendDiceComment(previous: GululuGalCompiledMessage, comment: GululuGalCompiledMessage): GululuGalCompiledMessage {
+  const request = cloneJson(previous.request);
+  const commentContent = comment.request.content?.trim();
+  if (!commentContent) {
+    return previous;
+  }
+  const existing = getExistingDiceText(request);
+  const replies = [...(existing.replies ?? [])];
+  if (!replies.some(reply => reply.content === commentContent)) {
+    replies.push({
+      content: commentContent,
+      customRoleName: "旁白",
+    });
+  }
+  const diceText = {
+    commandContent: existing.commandContent,
+    replies,
+    replyContent: replies.map(reply => reply.content).join("\n"),
+  };
+  request.extra = buildDiceExtra(request, diceText);
+  request.webgal = mergeDiceRenderText(request.webgal, diceText);
+  return {
+    ...previous,
+    request,
+  };
+}
+
+function mergeAdjacentDiceComments(messages: GululuGalCompiledMessage[]) {
+  const merged: GululuGalCompiledMessage[] = [];
+  for (const message of messages) {
+    const targetIndex = findDiceCommentTargetIndex(merged, message);
+    if (targetIndex >= 0) {
+      merged[targetIndex] = appendDiceComment(merged[targetIndex]!, message);
+      continue;
+    }
+    merged.push(message);
+  }
+  return merged;
+}
+
+function removeOmittedAuthorStageComments(messages: GululuGalCompiledMessage[]) {
+  return messages.filter(message => !OMITTED_AUTHOR_STAGE_COMMENT_EVENT_INDICES.has(message.source.eventIndex));
+}
+
 function materializeRequest(params: {
   avatarIds: Map<string, number>;
   direction: GululuGalDirectionEntry;
@@ -980,8 +1114,10 @@ export function buildGululuGalDirectedImportPlan(
     });
   }
 
+  const mergedMessages = mergeAdjacentDiceComments(removeOmittedAuthorStageComments(messages));
+
   return {
-    messages,
+    messages: mergedMessages,
     reused: {
       avatars: [...avatarIds.entries()].map(([key, avatarId]) => {
         const source = liveResult.result?.avatars?.find(item => item.key === key);
@@ -991,10 +1127,10 @@ export function buildGululuGalDirectedImportPlan(
     },
     source: liveResult.plan?.source,
     stats: {
-      diceMessages: messages.filter(message => message.request.messageType === MESSAGE_TYPE.DICE).length,
-      messages: messages.length,
-      messagesWithAnnotations: messages.filter(message => (message.request.annotations ?? []).length > 0).length,
-      messagesWithWebgal: messages.filter(message => message.request.webgal && Object.keys(message.request.webgal).length > 0).length,
+      diceMessages: mergedMessages.filter(message => message.request.messageType === MESSAGE_TYPE.DICE).length,
+      messages: mergedMessages.length,
+      messagesWithAnnotations: mergedMessages.filter(message => (message.request.annotations ?? []).length > 0).length,
+      messagesWithWebgal: mergedMessages.filter(message => message.request.webgal && Object.keys(message.request.webgal).length > 0).length,
       reusedAvatars: avatarIds.size,
       reusedRoles: roleIds.size,
     },

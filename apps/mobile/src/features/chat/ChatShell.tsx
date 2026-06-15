@@ -119,6 +119,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatMessageList } from "./ChatMessageList";
 import { ChatSearchPage } from "./ChatSearchPage";
 import { resolveChatShellBackNavigationAction } from "./chatShellBackNavigation";
+import { getVisibleClueFolderUnreadCount } from "./clueUnread";
 import { ExpressionPickerSheet } from "./ExpressionPickerSheet";
 import { buildExpressionDraftAsset } from "./expressionSticker";
 import { MapSheet } from "./MapSheet";
@@ -423,6 +424,12 @@ export default function ChatShell() {
   }, [canAddRoomRole, selectedRoomId]);
 
   const currentRoomUnreadCount = selectedRoomId ? (roomUnreadCounts[selectedRoomId] ?? 0) : 0;
+  const clueUnreadCount = useMemo(() => getVisibleClueFolderUnreadCount({
+    currentUserId,
+    rooms: allAvailableRooms,
+    spaceId: selectedSpaceId,
+    unreadMessagesNumber: roomUnreadCounts,
+  }), [allAvailableRooms, currentUserId, roomUnreadCounts, selectedSpaceId]);
   const draftRoleId = useMemo(() => {
     if (selectedRoleId)
       return selectedRoleId;
@@ -609,8 +616,9 @@ export default function ChatShell() {
   const rightDrawerShortcutActions = useMemo<readonly ChatComposerShortcutAction[]>(() => RIGHT_DRAWER_SHORTCUTS.map(item => ({
     Icon: item.Icon,
     accessibilityLabel: `打开${item.label}`,
+    badgeCount: item.tab === "clues" ? clueUnreadCount : undefined,
     onPress: () => handleOpenRightDrawerTab(item.tab),
-  })), [handleOpenRightDrawerTab]);
+  })), [clueUnreadCount, handleOpenRightDrawerTab]);
 
   const handleOpenDmContactDrawer = useCallback(() => {
     Keyboard.dismiss();
@@ -1650,6 +1658,7 @@ export default function ChatShell() {
                         ? (
                           <RightDrawerPanel
                             activeTab={rightDrawerTab}
+                            clueUnreadCount={clueUnreadCount}
                             clueRooms={clueRooms}
                             currentUserId={currentUserId}
                             currentRoleId={draftRoleId ?? currentRole?.roleId ?? null}

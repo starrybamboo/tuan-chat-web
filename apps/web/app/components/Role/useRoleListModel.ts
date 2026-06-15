@@ -4,12 +4,24 @@ import { useMemo } from "react";
 import { tuanchat } from "@/../api/instance";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { seedRoleAvatarQueryCaches, useGetUserRolesByTypeQuery } from "api/hooks/RoleAndAvatarHooks";
 import { createUniqueQuerySlots } from "api/hooks/querySlots";
+import {
+  seedRoleAvatarQueryCaches,
+  useGetDeletedSpaceNpcRolesPageQuery,
+  useGetDeletedUserRolesPageQuery,
+  useGetUserRolesByTypeQuery,
+} from "api/hooks/RoleAndAvatarHooks";
 
 import { mapUserRoleToRole, resolveRoleAvatarUrls } from "./roleListData";
 
 type RoleListItem = ReturnType<typeof mapUserRoleToRole>;
+
+type RoleTrashModelOptions = {
+  roleName?: string;
+  pageSize?: number;
+  scope?: "personal" | "spaceNpc";
+  spaceId?: number;
+};
 
 function shouldLoadRoleAvatar(role: RoleListItem): boolean {
   return role.avatarId > 0 && !role.avatar && !role.avatarThumb;
@@ -95,5 +107,52 @@ export function useRoleListModel() {
     isRoleListLoading,
     diceRolesQuery,
     normalRolesQuery,
+  };
+}
+
+export function useRoleTrashModel({
+  roleName,
+  pageSize = 100,
+  scope = "personal",
+  spaceId = -1,
+}: RoleTrashModelOptions = {}) {
+  const userId = useGlobalContext().userId;
+  const normalizedRoleName = roleName?.trim() ?? "";
+  const params = {
+    userId: userId ?? -1,
+    pageNo: 1,
+    pageSize,
+    roleName: normalizedRoleName || undefined,
+  };
+  const personalTrashQuery = useGetDeletedUserRolesPageQuery(params, {
+    enabled: scope === "personal",
+  });
+  const spaceNpcTrashQuery = useGetDeletedSpaceNpcRolesPageQuery(params, spaceId, {
+    enabled: scope === "spaceNpc",
+  });
+  const trashQuery = scope === "spaceNpc" ? spaceNpcTrashQuery : personalTrashQuery;
+  const deletedRoleList = trashQuery.data?.data?.list ?? [];
+
+  const roles = useMemo(() => {
+    return deletedRoleList.map(mapUserRoleToRole);
+  }, [deletedRoleList]);
+
+  return {
+    roles,
+    total: trashQuery.data?.data?.totalRecords ?? roles.length,
+    isLoading: trashQuery.isLoading,
+    isFetching: trashQuery.isFetching,
+    isError: trashQuery.isError,
+    refetch: trashQuery.refetch,
+    trashQuery,
+  };
+}
+
+export function useRoleTrashCount(roleName?: string) {
+  const trashModel = useRoleTrashModel({ roleName, pageSize: 1 });
+  return {
+    count: trashModel.total,
+    isLoading: trashModel.isLoading,
+    isError: trashModel.isError,
   };
 }
