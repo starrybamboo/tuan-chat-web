@@ -1,5 +1,6 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 
+import { TrashSimpleIcon } from "@phosphor-icons/react";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -13,6 +14,7 @@ import type { Role } from "../types";
 
 import { useGlobalContext } from "../../globalContextProvider";
 import { useRoleUiStore } from "../stores/roleUiStore";
+import { useRoleTrashCount } from "../useRoleListModel";
 import { RoleListItem, RoleListItemSkeleton } from "./RoleListItem";
 
 type SidebarProps = {
@@ -77,6 +79,7 @@ export function Sidebar({
   const isDiceCollapsed = collapsedSidebarGroups.dice;
   const isNormalCollapsed = collapsedSidebarGroups.normal;
   const isRuleCollapsed = collapsedSidebarGroups.rule;
+  const isTrashCollapsed = collapsedSidebarGroups.trash;
   const location = useLocation();
   const router = useRouter();
   const searchParams = useMemo(() => new URLSearchParams(location.searchStr), [location.searchStr]);
@@ -84,6 +87,7 @@ export function Sidebar({
   const ruleListQuery = useRuleListQuery();
   const deleteRolesMutation = useDeleteRolesMutation();
   const { mutateAsync: deleteRule } = useDeleteRuleMutation();
+  const trashCount = useRoleTrashCount(searchQuery);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
@@ -126,6 +130,11 @@ export function Sidebar({
   }, [ruleListQuery.data, searchQuery, userId]);
 
   const activeRuleId = Number(searchParams.get("ruleId") ?? 0);
+  const trashMode = searchParams.get("trash");
+  const isPersonalTrashActive = trashMode === "1" || trashMode === "personal";
+  const isSpaceNpcTrashActive = trashMode === "spaceNpc";
+  const isTrashActive = isPersonalTrashActive || isSpaceNpcTrashActive;
+  const isTrashExpanded = isTrashActive || !isTrashCollapsed;
 
   // 切换选择模式
   const toggleSelectionMode = () => {
@@ -681,6 +690,99 @@ export function Sidebar({
                             </div>
                           );
                         })}
+                  </div>
+                )}
+              </div>
+
+              {/* 回收站分组 */}
+              <div className="mb-2">
+                <button
+                  type="button"
+                  className={`
+                    flex items-center gap-2 w-full p-2 rounded-lg
+                    hover:bg-base-100
+                    transition-colors
+                    ${isTrashActive ? "text-error" : ""}
+                  `}
+                  onClick={() => toggleSidebarGroup("trash")}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`
+                      size-4 transition-transform
+                      ${isTrashExpanded ? `rotate-90` : ""}
+                    `}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                  <span className="font-medium">回收站</span>
+                  <SidebarGroupCount
+                    count={trashCount.count}
+                    isLoading={trashCount.isLoading}
+                  />
+                </button>
+                {isTrashExpanded && (
+                  <div className="ml-2">
+                    <button
+                      type="button"
+                      className={`
+                        mb-1 flex w-full items-center gap-3 rounded-lg p-3 text-left
+                        transition-all duration-150
+                        ${isPersonalTrashActive ? "bg-base-100 text-error" : "hover:bg-base-100"}
+                      `}
+                      onClick={() => {
+                        clearSelectedRoleIds();
+                        setSelectionMode(false);
+                        router.history.push("/role?trash=1");
+                        onNavigate?.();
+                      }}
+                      title="查看角色与骰娘回收站"
+                    >
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-error/10 text-error">
+                        <TrashSimpleIcon size={22} weight="bold" />
+                      </div>
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <h3 className="truncate font-medium">角色与骰娘</h3>
+                        <p className="mt-1 truncate text-xs text-base-content/70">
+                          {trashCount.isLoading
+                            ? "正在统计已删除项目"
+                            : trashCount.isError
+                              ? "回收站加载失败"
+                              : `${trashCount.count} 个已删除项目`}
+                        </p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      className={`
+                        mb-1 flex w-full items-center gap-3 rounded-lg p-3 text-left
+                        transition-all duration-150
+                        ${isSpaceNpcTrashActive ? "bg-base-100 text-error" : "hover:bg-base-100"}
+                      `}
+                      onClick={() => {
+                        clearSelectedRoleIds();
+                        setSelectionMode(false);
+                        router.history.push("/role?trash=spaceNpc");
+                        onNavigate?.();
+                      }}
+                      title="查看空间 NPC 回收站"
+                    >
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-error/10 text-error">
+                        <TrashSimpleIcon size={22} weight="bold" />
+                      </div>
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <h3 className="truncate font-medium">空间 NPC</h3>
+                        <p className="mt-1 truncate text-xs text-base-content/70">
+                          按空间管理
+                        </p>
+                      </div>
+                    </button>
                   </div>
                 )}
               </div>

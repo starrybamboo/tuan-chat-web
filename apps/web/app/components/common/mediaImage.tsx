@@ -8,7 +8,6 @@ import {
   resetPersistentMediaImageCacheForTests,
   resolveMediaImageOriginalFallbackSrc,
   resolvePersistentMediaImageSrcSync,
-  startPersistentMediaImageDerivativeProbe,
 } from "./mediaPersistentImageCache";
 
 type MediaImageProps = ImgHTMLAttributes<HTMLImageElement> & {
@@ -31,7 +30,6 @@ export function resolveMediaOriginalFallbackSrc(src: string | null | undefined):
 function loadImageOnce(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = src;
@@ -82,7 +80,6 @@ export function MediaImage({
       resolvedDisplaySrc,
     });
     setCurrentSrc(resolvedDisplaySrc);
-    startPersistentMediaImageDerivativeProbe(resolvedDisplaySrc);
   }, [normalizedSrc, normalizedFallbackSrc]);
 
   const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {

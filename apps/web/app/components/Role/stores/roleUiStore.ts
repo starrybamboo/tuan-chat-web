@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 type AbilityTab = "basic" | "ability" | "skill" | "act";
-type SidebarGroup = "rule" | "dice" | "normal";
+type SidebarGroup = "rule" | "dice" | "trash" | "normal";
 
 type RoleUiState = {
   activeAbilityTabByRoleRule: Record<string, AbilityTab>;
@@ -33,6 +33,7 @@ export const useRoleUiStore = create<RoleUiState>(set => ({
   collapsedSidebarGroups: {
     rule: true,
     dice: true,
+    trash: true,
     normal: false,
   },
   selectionMode: false,

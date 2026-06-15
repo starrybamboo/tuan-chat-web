@@ -804,6 +804,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           `}>
             <ExpressionChooser
               roleId={message.roleId ?? -1}
+              selectedAvatarId={message.avatarId ?? undefined}
               handleExpressionChange={(avatarId) => {
                 handleExpressionChange(avatarId);
                 onClose();

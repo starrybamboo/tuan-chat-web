@@ -30,9 +30,9 @@ jobs:
       BUILD_MODE: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'production') || (github.ref_name == 'dev' && 'test') || 'production' }}
       PAGES_PROJECT_NAME: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'tuan-chat-web-test') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'tuan-chat-web') || (github.ref_name == 'dev' && 'tuan-chat-web-test') || 'tuan-chat-web' }}
       PAGES_BRANCH: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'dev') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'main') || github.ref_name }}
-      BACKEND_API_BASE_URL: /api
-      BACKEND_WS_URL: /ws
-      BACKEND_TTS_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'https://test.tuan.chat/tts') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'https://tuan.chat/tts') || (github.ref_name == 'dev' && 'https://test.tuan.chat/tts') || 'https://tuan.chat/tts' }}
+      BACKEND_API_BASE_URL: https://api.tuan.chat/api
+      BACKEND_WS_URL: wss://api.tuan.chat/ws
+      BACKEND_TTS_URL: https://api.tuan.chat/tts
       VITE_MEDIA_CDN_BASE_URL: https://media.tuan.chat
       PUBLIC_SITE_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'test' && 'https://test.tuan.chat') || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'production' && 'https://tuan.chat') || (github.ref_name == 'dev' && 'https://test.tuan.chat') || 'https://tuan.chat' }}
     steps:

@@ -47,7 +47,7 @@ export function ToastWindowFrame({
         `}>
           <motion.div
             className={`
-              relative flex flex-col
+              relative flex flex-col overflow-hidden
               ${transparent ? "bg-transparent w-full h-screen" : `
                 bg-base-100
                 dark:bg-base-300

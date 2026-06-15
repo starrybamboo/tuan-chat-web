@@ -376,8 +376,9 @@ describe("renderWebgalPublishPackage", () => {
     const paths = pkg.files.map(file => file.path);
     expect(content).toContain("composeFigure:");
     expect(content).toContain(" -composite -id=1 ");
-    expect(content).toContain(`"src":"role_1/base_11_2048.webp"`);
-    expect(content).toContain(`"src":"role_1/avatar_12_3002_`);
+    expect(content).toContain("-base=role_1/base_11_2048.webp");
+    expect(content).toContain("-layer=role_1/avatar_12_3002_");
+    expect(content).toContain(",12,34,256,256");
     expect(paths).toContain("game/figure/role_1/base_11_2048.webp");
     expect(paths.some(path => /^game\/figure\/role_1\/avatar_12_3002_[a-z0-9]+\.webp$/.test(path))).toBe(true);
     expect(paths).not.toContain("game/figure/role_1/sprite_12.webp");

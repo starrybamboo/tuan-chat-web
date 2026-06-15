@@ -7,6 +7,7 @@ export function invalidateUserRoleListQueries(queryClient: QueryInvalidator) {
   queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] });
   queryClient.invalidateQueries({ queryKey: ["getRole"] });
   queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
+  queryClient.invalidateQueries({ queryKey: ["getDeletedUserRolesPage"] });
 }
 
 export function invalidateRoleCreateQueries(

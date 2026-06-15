@@ -95,7 +95,7 @@ type GululuReplayMessage = {
   diceReplies?: string[];
   floor?: number;
   imagePath?: string;
-  kind: "dialog" | "narration" | "dice" | "bgm";
+  kind: "dialog" | "narration" | "dice" | "bgm" | "role_card";
   options?: string[];
   roleName?: string;
   rollText?: string;
@@ -318,7 +318,6 @@ const MAX_MESSAGE_CONTENT_LENGTH = 1024;
 const WEBGAL_STAGE_WIDTH = 2560;
 const WEBGAL_STAGE_HEIGHT = 1440;
 const IMPORTED_SPRITE_SAFE_TOP_Y = 80;
-const IMPORTED_FULL_BODY_BOTTOM_Y = 1020;
 const IMPORTED_AVATAR_BOTTOM_Y = 990;
 const IMPORTED_STAGE_SPRITE_BOTTOM_Y = 1220;
 
@@ -347,11 +346,13 @@ type ImportedSpriteLayoutPreset = {
 };
 
 const IMPORTED_FULL_BODY_SPRITE_LAYOUT: ImportedSpriteLayoutPreset = {
-  bottomY: IMPORTED_FULL_BODY_BOTTOM_Y,
-  maxScale: 0.78,
-  maxWidth: 920,
-  minScale: 0.18,
-  targetHeight: 920,
+  // Transparent full-body sources are WebGAL stage figures even when the
+  // catalog has placed them in an avatar bucket. Render them as cowboy shots.
+  bottomY: IMPORTED_STAGE_SPRITE_BOTTOM_Y,
+  maxScale: 1.12,
+  maxWidth: 1320,
+  minScale: 0.22,
+  targetHeight: 1560,
 };
 
 const IMPORTED_STAGE_SPRITE_COWBOY_LAYOUT: ImportedSpriteLayoutPreset = {
@@ -1094,6 +1095,18 @@ function createNarrationRequest(roomId: number, content: string): ChatMessageReq
   };
 }
 
+function createRoleCardRequest(roomId: number, content: string): ChatMessageRequest {
+  return {
+    avatarId: -1,
+    content,
+    customRoleName: "角色卡",
+    extra: {},
+    messageType: MESSAGE_TYPE.TEXT,
+    roleId: -1,
+    roomId,
+  };
+}
+
 function createMessageSource(message: GululuReplayMessage, eventIndex: number) {
   return {
     eventIndex,
@@ -1612,6 +1625,18 @@ export function buildGululuLiveImportPlan(
         source: sourceInfo,
       });
       warnings.push(`BGM 暂以文本事件保留：${message.bgmName ?? contentOrEmpty(message)}`);
+      return;
+    }
+
+    if (message.kind === "role_card") {
+      plannedMessages.push({
+        kind: "role_card",
+        request: createRoleCardRequest(
+          planRoomId,
+          safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条角色卡`),
+        ),
+        source: sourceInfo,
+      });
       return;
     }
 

@@ -14,6 +14,7 @@ import {
   parseMessageEditorMarkdownPreview,
   previewVisibleOffsetToMessageEditorRawOffset,
   replaceMessageEditorSelectionText,
+  replaceMessageEditorSelectionTextAsBlocks,
   setMessageEditorSpeakerMetadata,
   setMessageEditorUploadedMedia,
   setMessageEditorWebgalChooseOptions,
@@ -197,6 +198,59 @@ describe("messageEditorTransforms", () => {
     const nextMessages = moveMessageEditorMessageToIndex([first, second, third], getMessageEditorBlockId(first), 2);
 
     expect(nextMessages.map(message => message.content)).toEqual(["second", "third", "first"]);
+  });
+
+  it("splits pasted multiline text into separate message blocks", () => {
+    const source = createMessageEditorTextDraft({ content: "" });
+    const blockId = getMessageEditorBlockId(source);
+
+    const result = replaceMessageEditorSelectionTextAsBlocks([source], {
+      start: {
+        blockId,
+        offset: 0,
+      },
+      end: {
+        blockId,
+        offset: 0,
+      },
+      segments: [],
+    }, "又见面了？\n嗯，又见面了呢。");
+
+    expect(result?.messages.map(message => message.content)).toEqual([
+      "又见面了？",
+      "嗯，又见面了呢。",
+    ]);
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[1]),
+      caret: "嗯，又见面了呢。".length,
+    });
+  });
+
+  it("keeps middle blank pasted lines but ignores a single trailing newline", () => {
+    const source = createMessageEditorTextDraft({ content: "开头" });
+    const blockId = getMessageEditorBlockId(source);
+
+    const result = replaceMessageEditorSelectionTextAsBlocks([source], {
+      start: {
+        blockId,
+        offset: 2,
+      },
+      end: {
+        blockId,
+        offset: 2,
+      },
+      segments: [],
+    }, "A\n\nB\n");
+
+    expect(result?.messages.map(message => message.content)).toEqual([
+      "开头A",
+      "",
+      "B",
+    ]);
+    expect(result?.focus).toEqual({
+      blockId: getMessageEditorBlockId(result!.messages[2]),
+      caret: 1,
+    });
   });
 
   it("writes uploaded media payloads back into atomic blocks", () => {

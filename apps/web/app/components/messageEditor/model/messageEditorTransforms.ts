@@ -1063,6 +1063,106 @@ export function replaceMessageEditorSelectionText(
   };
 }
 
+function splitPastedTextIntoBlocks(text: string): string[] {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  if (lines.length > 1 && lines.at(-1) === "") {
+    lines.pop();
+  }
+  return lines;
+}
+
+/**
+ * 用粘贴文本替换 editor 级文本选区；换行会拆成多个消息块。
+ */
+export function replaceMessageEditorSelectionTextAsBlocks(
+  messages: MessageEditorMessage[],
+  selection: MessageEditorTextSelection,
+  replacement: string,
+): MessageEditorSelectionTextResult | null {
+  const lines = splitPastedTextIntoBlocks(replacement);
+  if (lines.length <= 1) {
+    return replaceMessageEditorSelectionText(messages, selection, replacement);
+  }
+
+  const range = resolveSelectionRange(messages, selection);
+  if (!range) {
+    return null;
+  }
+
+  const { endIndex, normalizedMessages, startIndex } = range;
+  const startMessage = normalizedMessages[startIndex];
+  const endMessage = normalizedMessages[endIndex];
+  const startIsText = isMessageEditorTextMessage(startMessage);
+  const endIsText = isMessageEditorTextMessage(endMessage);
+  const startOffset = getMessageEditorSelectionOffset(startMessage, selection.start.offset);
+  const endOffset = getMessageEditorSelectionOffset(endMessage, selection.end.offset);
+  const startPrefix = startIsText
+    ? normalizeMessageEditorContent(startMessage.content).slice(0, startOffset)
+    : "";
+  const endSuffix = endIsText
+    ? normalizeMessageEditorContent(endMessage.content).slice(endOffset)
+    : "";
+  const firstLine = lines[0] ?? "";
+  const lastLine = lines.at(-1) ?? "";
+  const replacementMessages: MessageEditorMessage[] = [
+    startIsText
+      ? inheritRuntimeBlockId(startMessage, {
+          ...startMessage,
+          content: `${startPrefix}${firstLine}`,
+        })
+      : createMessageEditorTextDraft({ content: `${startPrefix}${firstLine}`, sourceMessage: startMessage }),
+  ];
+
+  for (let index = 1; index < lines.length; index += 1) {
+    const isLast = index === lines.length - 1;
+    replacementMessages.push(createMessageEditorTextDraft({
+      content: `${lines[index]}${isLast ? endSuffix : ""}`,
+      messageType: MESSAGE_TYPE.TEXT,
+    }));
+  }
+
+  const nextMessages = [...normalizedMessages];
+  nextMessages.splice(startIndex, endIndex - startIndex + 1, ...replacementMessages);
+  const focusMessage = replacementMessages.at(-1)!;
+  const firstReplacementBlockId = getMessageEditorBlockId(replacementMessages[0]);
+  const lastReplacementBlockId = getMessageEditorBlockId(focusMessage);
+  const focusCaret = lastLine.length;
+
+  return {
+    messages: ensureMessageEditorMessages(nextMessages),
+    focus: {
+      blockId: lastReplacementBlockId,
+      caret: focusCaret,
+    },
+    selection: {
+      start: {
+        blockId: firstReplacementBlockId,
+        offset: startPrefix.length,
+      },
+      end: {
+        blockId: lastReplacementBlockId,
+        offset: focusCaret,
+      },
+      segments: replacementMessages.map((message, index) => {
+        const blockId = getMessageEditorBlockId(message);
+        if (index === 0) {
+          return {
+            blockId,
+            start: startPrefix.length,
+            end: startPrefix.length + firstLine.length,
+          };
+        }
+        const line = lines[index] ?? "";
+        return {
+          blockId,
+          start: 0,
+          end: line.length,
+        };
+      }),
+    },
+  };
+}
+
 /**
  * 对每个选区片段分别做文本变换，用于跨块加聊天室文本增强语法时保留块结构。
  */

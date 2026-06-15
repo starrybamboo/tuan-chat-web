@@ -257,8 +257,8 @@ describe("spaceWebgalCompiler", () => {
     const changeIndex = scene.content.indexOf("changeFigure:");
     expect(composeIndex).toBeGreaterThanOrEqual(0);
     expect(changeIndex).toBeGreaterThan(composeIndex);
-    expect(scene.content).toContain(`"src":"role_1/base_11_2048.webp"`);
-    expect(scene.content).toContain(`"src":"role_1/avatar_12_3002.webp","x":12,"y":34,"width":256,"height":256`);
+    expect(scene.content).toContain("-base=role_1/base_11_2048.webp");
+    expect(scene.content).toContain("-layer=role_1/avatar_12_3002.webp,12,34,256,256");
     expect(scene.content).toContain(" -composite -id=1 ");
     expect(scene.content).toContain("明日香: 笑脸差分 -figureId=1;");
     expect(scene.renderedFigures.get("1")?.fileName).toContain("avatar:12:3002");

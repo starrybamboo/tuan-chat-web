@@ -386,6 +386,7 @@ function renderHtml(data) {
     .badge.kind-dice { background: #fff3d8; }
     .badge.kind-narration { background: #e9f1ff; }
     .badge.kind-bgm { background: #f0e9ff; }
+    .badge.kind-role_card { background: #e9f8f6; }
     .badge.kind-reference { background: #edf2f7; }
     .badge.kind-author_note { background: #fff0f0; }
     .badge.kind-scene { background: #e6fffb; }
@@ -562,7 +563,12 @@ function renderHtml(data) {
     (function () {
       var data = JSON.parse(document.getElementById("audit-data").textContent);
       var floors = data.floors || [];
-      var kinds = Object.keys(data.stats.kindCounts || {}).sort();
+      var taxonomy = ["dialog", "narration", "dice", "bgm", "scene", "role_card", "reference", "author_note", "system", "unknown"];
+      var kindSet = {};
+      taxonomy.concat(Object.keys(data.stats.kindCounts || {})).forEach(function (kind) {
+        kindSet[kind] = true;
+      });
+      var kinds = Object.keys(kindSet);
       var uses = Object.keys(data.stats.performanceUseCounts || {}).sort();
       var storageKey = "gululu-text-classification-review:" + data.sourceRoot;
       var state = loadState();

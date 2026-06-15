@@ -301,8 +301,9 @@ describe("realtimeRenderer shared compiler full render", () => {
     const changeIndex = sceneText.indexOf("changeFigure:role_1_variant");
     expect(composeIndex).toBeGreaterThanOrEqual(0);
     expect(changeIndex).toBeGreaterThan(composeIndex);
-    expect(sceneText).toContain(`"src":"role_1/base_11_2048.webp"`);
-    expect(sceneText).toContain(`"src":"role_1/avatar_12_3002_`);
+    expect(sceneText).toContain("-base=role_1/base_11_2048.webp");
+    expect(sceneText).toContain("-layer=role_1/avatar_12_3002_");
+    expect(sceneText).toContain(",12,34,256,256");
     expect(sceneText).toContain(" -composite -id=1 ");
     expect(sceneText).toContain("明日香: 笑脸差分 -figureId=1;");
   });

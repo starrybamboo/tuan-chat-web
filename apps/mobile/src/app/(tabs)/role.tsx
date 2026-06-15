@@ -299,6 +299,10 @@ export default function RoleScreen() {
     router.push("/role-edit");
   };
 
+  const handleOpenTrash = () => {
+    router.push("/role-trash" as any);
+  };
+
   const toggleRoleSelection = useCallback((roleId: number) => {
     setSelectedRoleIds((prev) => {
       const next = new Set(prev);
@@ -334,7 +338,7 @@ export default function RoleScreen() {
     const confirmed = await confirmAction({
       confirmText: "删除",
       destructive: true,
-      message: `确定要删除选中的 ${roleIds.length} 个角色吗？删除后无法恢复。`,
+      message: `确定要删除选中的 ${roleIds.length} 个角色吗？删除后会进入回收站。`,
       title: "删除角色",
     });
     if (!confirmed) {
@@ -426,14 +430,24 @@ export default function RoleScreen() {
                   </View>
                 )
               : (
-                  <Pressable
-                    accessibilityLabel="进入选择模式"
-                    accessibilityRole="button"
-                    onPress={enterSelectionMode}
-                    style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-                  >
-                    <CheckCircle color={theme.text} size={24} weight="bold" />
-                  </Pressable>
+                  <View style={styles.toolbarActions}>
+                    <Pressable
+                      accessibilityLabel="打开角色回收站"
+                      accessibilityRole="button"
+                      onPress={handleOpenTrash}
+                      style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                    >
+                      <Trash color={theme.textSecondary} size={20} weight="bold" />
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel="进入选择模式"
+                      accessibilityRole="button"
+                      onPress={enterSelectionMode}
+                      style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                    >
+                      <CheckCircle color={theme.text} size={24} weight="bold" />
+                    </Pressable>
+                  </View>
                 )}
           </View>
 

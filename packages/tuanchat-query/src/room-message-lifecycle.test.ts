@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCommittedRoomMessage,
+  buildOptimisticRoomMessagesFromPatch,
   collectPersistedOptimisticDuplicateIds,
   commitOptimisticRoomMessageInList,
   createOptimisticRoomMessage,
@@ -74,6 +75,174 @@ describe("createOptimisticRoomMessage", () => {
       position: 4,
     });
     expect(result.message.position).toBe(99);
+  });
+});
+
+describe("buildOptimisticRoomMessagesFromPatch", () => {
+  it("builds optimistic insert messages before a patch request completes", () => {
+    const optimistic = buildOptimisticRoomMessagesFromPatch({
+      baselineMessages: [],
+      nextMessages: [
+        {
+          clientId: "block_1",
+          content: "立刻显示",
+          messageType: 1,
+        },
+      ],
+      operations: [
+        {
+          clientId: "block_1",
+          message: {
+            content: "立刻显示",
+            messageType: 1,
+          },
+          op: "insert",
+          position: 1,
+        },
+      ],
+      roomId: 10,
+      userId: 20,
+    });
+
+    expect(optimistic).toHaveLength(1);
+    expect(optimistic[0]).toMatchObject({
+      content: "立刻显示",
+      messageType: 1,
+      position: 1,
+      roomId: 10,
+      status: 0,
+      userId: 20,
+    });
+    expect(optimistic[0].messageId).toBeLessThan(0);
+    expect(optimistic[0].syncId).toBe(optimistic[0].messageId);
+    expect(getRoomMessageLocalRenderKey(optimistic[0])).toMatch(/^room-message:optimistic:-/);
+    expect((optimistic[0] as any).tcLocalSyncState).toBe("optimistic");
+  });
+
+  it("builds optimistic updates with the persisted message id", () => {
+    const optimistic = buildOptimisticRoomMessagesFromPatch({
+      baselineMessages: [
+        {
+          clientId: "block_7",
+          content: "旧内容",
+          messageId: 7,
+          messageType: 1,
+          position: 1,
+          syncId: 70,
+          userId: 20,
+        },
+      ],
+      nextMessages: [
+        {
+          clientId: "block_7",
+          content: "新内容",
+          messageId: 7,
+          messageType: 1,
+          position: 1,
+          syncId: 70,
+          userId: 20,
+        },
+      ],
+      operations: [
+        {
+          messageId: 7,
+          message: {
+            content: "新内容",
+            messageType: 1,
+          },
+          op: "update",
+          position: 1,
+        },
+      ],
+      roomId: 10,
+    });
+
+    expect(optimistic).toHaveLength(1);
+    expect(optimistic[0]).toMatchObject({
+      content: "新内容",
+      messageId: 7,
+      roomId: 10,
+      status: 0,
+      syncId: 70,
+    });
+    expect((optimistic[0] as any).tcLocalSyncState).toBe("optimistic");
+  });
+
+  it("builds optimistic tombstones for delete operations", () => {
+    const optimistic = buildOptimisticRoomMessagesFromPatch({
+      baselineMessages: [
+        {
+          clientId: "block_8",
+          content: "删除我",
+          messageId: 8,
+          messageType: 1,
+          position: 2,
+          syncId: 80,
+          userId: 20,
+        },
+      ],
+      nextMessages: [],
+      operations: [
+        {
+          messageId: 8,
+          op: "delete",
+        },
+      ],
+      roomId: 10,
+    });
+
+    expect(optimistic).toHaveLength(1);
+    expect(optimistic[0]).toMatchObject({
+      content: "删除我",
+      messageId: 8,
+      roomId: 10,
+      status: 1,
+      syncId: 80,
+    });
+  });
+
+  it("builds optimistic move messages with the new position", () => {
+    const optimistic = buildOptimisticRoomMessagesFromPatch({
+      baselineMessages: [
+        {
+          clientId: "block_9",
+          content: "移动我",
+          messageId: 9,
+          messageType: 1,
+          position: 2,
+          syncId: 90,
+          userId: 20,
+        },
+      ],
+      nextMessages: [
+        {
+          clientId: "block_9",
+          content: "移动我",
+          messageId: 9,
+          messageType: 1,
+          position: 3,
+          syncId: 90,
+          userId: 20,
+        },
+      ],
+      operations: [
+        {
+          messageId: 9,
+          op: "move",
+          position: 3,
+        },
+      ],
+      roomId: 10,
+    });
+
+    expect(optimistic).toHaveLength(1);
+    expect(optimistic[0]).toMatchObject({
+      content: "移动我",
+      messageId: 9,
+      position: 3,
+      roomId: 10,
+      syncId: 90,
+    });
   });
 });
 

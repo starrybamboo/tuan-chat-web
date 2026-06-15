@@ -14,7 +14,7 @@ vi.mock("@/utils/mediaUrl", () => ({
 }));
 
 describe("sprite utils", () => {
-  it("头像裁剪源只使用已生成立绘，不回退到原图或头像图", () => {
+  it("头像裁剪源只使用已生成立绘的原图，不回退到原图或头像图", () => {
     expect(getSpriteCropSourceUrl({
       avatarFileId: 9918,
       originFileId: 6488,
@@ -24,7 +24,7 @@ describe("sprite utils", () => {
       avatarFileId: 9918,
       spriteFileId: 6000,
       originFileId: 6488,
-    })).toBe("image-medium:6000");
+    })).toBe("image-original:6000");
 
     expect(getSpriteCropSourceUrl({
       avatarFileId: 9918,

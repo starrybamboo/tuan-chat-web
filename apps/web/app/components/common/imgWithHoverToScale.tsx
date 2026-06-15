@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { MediaImage } from "@/components/common/mediaImage";
+import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
 import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
@@ -10,6 +10,39 @@ type ImgWithHoverProps = {
   hoverTime?: number;
   imgViewHeight?: number;
 } & React.ImgHTMLAttributes<HTMLImageElement>
+
+type HoverPreviewImageMetrics = Pick<HTMLImageElement, "height" | "naturalHeight" | "naturalWidth" | "width">;
+
+export function calculateHoverPreviewSize(
+  image: HoverPreviewImageMetrics,
+  imgViewHeight: number,
+  viewportHeight: number,
+): { width: number; height: number } {
+  const previewHeight = viewportHeight * imgViewHeight;
+  const imageWidth = image.naturalWidth || image.width;
+  const imageHeight = image.naturalHeight || image.height;
+
+  if (imageWidth <= 0 || imageHeight <= 0) {
+    return {
+      width: previewHeight,
+      height: previewHeight,
+    };
+  }
+
+  return {
+    width: previewHeight * imageWidth / imageHeight,
+    height: previewHeight,
+  };
+}
+
+export async function loadHoverPreviewSize(
+  src: string | null | undefined,
+  imgViewHeight: number,
+  viewportHeight: number,
+): Promise<{ width: number; height: number }> {
+  const image = await loadMediaImageWithOriginalFallback(src);
+  return calculateHoverPreviewSize(image, imgViewHeight, viewportHeight);
+}
 
 /**
  * @param hoverTime hover多久后会出现放大的图片，单位是毫秒
@@ -36,6 +69,7 @@ export default function ImgWithHoverToScale({
   const [previewPosition, setPreviewPosition] = useState({ left: 0, top: 0 });
   const [previewSize, setPreviewSize] = useState({ width: 300, height: 300 }); // 默认尺寸
   const hoverTimer = useRef<NodeJS.Timeout | null>(null);
+  const previewLoadRequestId = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const previewSrc = typeof src === "string" ? imagePreviewUrlFromUrl(src) : src;
 
@@ -47,15 +81,18 @@ export default function ImgWithHoverToScale({
 
     // 预加载图像以获取准确尺寸
     if (previewSrc) {
-      const img = new Image();
-      img.src = previewSrc;
-      img.onload = () => {
-        // 设置预览图像的尺寸
-        setPreviewSize({
-          width: window.innerHeight * imgViewHeight * img.width / img.height,
-          height: window.innerHeight * imgViewHeight,
+      const requestId = previewLoadRequestId.current + 1;
+      previewLoadRequestId.current = requestId;
+      void loadHoverPreviewSize(previewSrc, imgViewHeight, window.innerHeight)
+        .then((nextPreviewSize) => {
+          if (previewLoadRequestId.current !== requestId) {
+            return;
+          }
+          setPreviewSize(nextPreviewSize);
+        })
+        .catch(() => {
+          // 保持默认尺寸，避免缺失派生图或原图加载失败时打断悬停预览。
         });
-      };
     }
 
     hoverTimer.current = setTimeout(() => {
@@ -69,6 +106,7 @@ export default function ImgWithHoverToScale({
     }
     setIsHovering(false);
     setShowPreview(false);
+    previewLoadRequestId.current += 1;
     if (hoverTimer.current) {
       clearTimeout(hoverTimer.current);
       hoverTimer.current = null;
@@ -123,6 +161,7 @@ export default function ImgWithHoverToScale({
       if (hoverTimer.current) {
         clearTimeout(hoverTimer.current);
       }
+      previewLoadRequestId.current += 1;
     };
   }, []);
 

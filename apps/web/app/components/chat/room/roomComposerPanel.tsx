@@ -247,12 +247,12 @@ function RoomComposerPanelImpl({
     return selectableRoles.find(role => role.roleId === curRoleId);
   }, [curRoleId, selectableRoles]);
 
-  const shouldLoadRoleAvatarsForFallback = curRoleId > 0
-    && !isSpectator
+  const shouldWarmCurrentRoleAvatars = curRoleId > 0 && !isSpectator;
+  const shouldLoadRoleAvatarsForFallback = shouldWarmCurrentRoleAvatars
     && curAvatarId <= 0
     && !currentRole?.avatarId;
   const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1, {
-    enabled: shouldLoadRoleAvatarsForFallback,
+    enabled: shouldWarmCurrentRoleAvatars,
   });
   const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const hasRoleAvatarsLoaded = !shouldLoadRoleAvatarsForFallback || Boolean(roleAvatarsQuery.data);

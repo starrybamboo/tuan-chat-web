@@ -290,12 +290,12 @@ function App() {
       {import.meta.env.DEV
         ? (
             <TanStackRouterDevtools
-              position="top-left"
+              position="top-right"
               toggleButtonProps={{
                 style: {
                   top: "8px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
+                  // 贴近顶部操作区，避免开发工具按钮盖在页面正中间。
+                  right: "clamp(3.5rem, 14rem, calc(100vw - 11rem))",
                 },
               }}
             />

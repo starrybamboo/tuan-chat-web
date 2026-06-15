@@ -1,12 +1,12 @@
-import type { RoleAvatar, RoleAvatarVariant } from "api";
-
 import { CaretDownIcon, CaretRightIcon } from "@phosphor-icons/react";
-import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 import { type ReactNode, useCallback, useState } from "react";
+
+import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { BaselineDeleteOutline } from "@/icons";
+import { useUpdateAvatarNameMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { AvatarUploadFilesContext } from "../../RoleInfoCard/AvatarUploadCropper";
 import type { Role } from "../../types";
@@ -18,6 +18,8 @@ import { getEffectiveAvatarUrl } from "../utils";
 type SpriteListGridProps = {
   /** 头像/立绘列表 */
   avatars: RoleAvatar[];
+  /** 角色完整头像列表，用于跨分组删除时判断和切换替代头像 */
+  allAvatars?: RoleAvatar[];
   /** 头像总数（用于判断是否允许删除全部） */
   totalAvatarsCount?: number;
   /** 当前选中的索引 */
@@ -110,6 +112,7 @@ function groupAvatarsByCategory(avatars: RoleAvatar[]): AvatarCategoryGroup[] {
  */
 export function SpriteListGrid({
   avatars,
+  allAvatars,
   totalAvatarsCount,
   selectedIndex,
   onSelect,
@@ -154,6 +157,8 @@ export function SpriteListGrid({
   const deletionHook = useAvatarDeletion({
     role,
     avatars,
+    allAvatars,
+    totalAvatarsCount,
     selectedAvatarId,
     onAvatarChange,
     onAvatarSelect,

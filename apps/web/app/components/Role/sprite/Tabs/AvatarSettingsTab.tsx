@@ -1,15 +1,15 @@
-import type { RoleAvatar, RoleAvatarVariant } from "api";
-
-import { UserCircle } from "@phosphor-icons/react";
-import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
+import { CheckCircle, UserCircle } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { DisplayChatBubble } from "@/components/Role/Preview/displayChatBubble";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { canvasPreview, createFullImageCrop } from "@/utils/imgCropper";
+import { useSetDefaultRoleAvatarMutation, useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Transform } from "../TransformControl";
 
@@ -26,8 +26,16 @@ type AvatarSettingsTabProps = {
   characterName: string;
   /** 可绑定的立绘组列表 */
   availableVariants?: RoleAvatarVariant[];
+  /** 当前角色正在使用的默认头像 ID */
+  defaultAvatarId?: number;
   /** 应用完成后的回调（用于关闭弹窗等） */
   onApply?: () => void;
+  /** 默认头像设置成功后的回调，用于同步外层选中状态 */
+  onDefaultAvatarApplied?: (avatar: RoleAvatar) => void;
+  /** 显示将当前头像移出立绘组的动作 */
+  showUnassignVariantAction?: boolean;
+  /** 将当前头像移出立绘组 */
+  onUnassignVariant?: (avatar: RoleAvatar) => Promise<boolean>;
   /** 将当前头像归入目标立绘组，并按立绘组上下文重建裁剪结果 */
   onAssignVariant?: (avatar: RoleAvatar, variantId: number) => Promise<boolean>;
 }
@@ -188,6 +196,10 @@ export function AvatarSettingsTab({
   selectedIndex,
   characterName,
   availableVariants = [],
+  defaultAvatarId,
+  onDefaultAvatarApplied,
+  showUnassignVariantAction = false,
+  onUnassignVariant,
   onAssignVariant,
 }: AvatarSettingsTabProps) {
   // 当前选中的头像（从完整列表中根据 spritesAvatars 的 avatarId 查找）
@@ -200,8 +212,14 @@ export function AvatarSettingsTab({
   // 头像标题设置
   const [editingName, setEditingName] = useState("");
   const [editingCategory, setEditingCategory] = useState("");
+  const [localDefaultAvatarId, setLocalDefaultAvatarId] = useState(defaultAvatarId);
+  const [isUnassigningVariant, setIsUnassigningVariant] = useState(false);
   const roleIdForMutation = currentAvatar?.roleId ?? currentSpriteAvatar?.roleId ?? 0;
   const { mutateAsync: updateAvatar, isPending: isSaving } = useUpdateRoleAvatarMutation(roleIdForMutation);
+  const {
+    mutateAsync: setDefaultAvatar,
+    isPending: isSettingDefaultAvatar,
+  } = useSetDefaultRoleAvatarMutation(roleIdForMutation);
   const previewCharacterName = characterName.trim() || "角色";
   const fallbackAvatarTitle = currentAvatar ? `头像${selectedIndex + 1}` : "未命名头像";
   const avatarTitleRecord = useMemo<Record<string, string>>(() => {
@@ -219,6 +237,10 @@ export function AvatarSettingsTab({
       queueMicrotask(() => setEditingCategory(currentAvatar.category?.trim() || DEFAULT_CATEGORY));
     }
   }, [currentAvatar, avatarTitleRecord, fallbackAvatarTitle]);
+
+  useEffect(() => {
+    setLocalDefaultAvatarId(defaultAvatarId);
+  }, [defaultAvatarId]);
 
   const variantOptions = useMemo(() => {
     const map = new Map<number, RoleAvatarVariant>();
@@ -238,6 +260,7 @@ export function AvatarSettingsTab({
       getVariantLabel(a).localeCompare(getVariantLabel(b), "zh-CN")
     ));
   }, [availableVariants, currentAvatar?.variantGroup]);
+  const currentVariantId = normalizeVariantId(currentAvatar?.variantId);
 
   const saveAvatarSettings = useCallback(async (
     nextNameValue: string,
@@ -264,6 +287,7 @@ export function AvatarSettingsTab({
 
     try {
       let nextAvatarForVariant = currentAvatar;
+      let handledVariantChangeExternally = false;
       if (hasBasicChanges) {
         const updateResult = await updateAvatar({
           avatarId: currentAvatar.avatarId,
@@ -289,11 +313,20 @@ export function AvatarSettingsTab({
 
       if (hasVariantChange) {
         if (nextVariantId == null) {
-          await updateAvatar({
-            avatarId: currentAvatar.avatarId,
-            roleId: currentAvatar.roleId ?? currentSpriteAvatar?.roleId,
-            variantId: null,
-          } as unknown as RoleAvatar);
+          if (onUnassignVariant && currentVariantId != null) {
+            const unassigned = await onUnassignVariant(nextAvatarForVariant);
+            if (!unassigned) {
+              return;
+            }
+            handledVariantChangeExternally = true;
+          }
+          else {
+            await updateAvatar({
+              avatarId: currentAvatar.avatarId,
+              roleId: currentAvatar.roleId ?? currentSpriteAvatar?.roleId,
+              variantId: null,
+            } as unknown as RoleAvatar);
+          }
         }
         else {
           if (!onAssignVariant) {
@@ -305,13 +338,23 @@ export function AvatarSettingsTab({
           }
         }
       }
-      toast.success("头像设置已保存");
+      if (!handledVariantChangeExternally) {
+        toast.success("头像设置已保存");
+      }
     }
     catch (error) {
       console.error("更新头像设置失败:", error);
       toast.error("保存失败，请稍后重试");
     }
-  }, [currentAvatar, currentSpriteAvatar, updateAvatar, avatarTitleRecord, fallbackAvatarTitle, onAssignVariant]);
+  }, [
+    currentAvatar,
+    currentSpriteAvatar,
+    updateAvatar,
+    avatarTitleRecord,
+    fallbackAvatarTitle,
+    onAssignVariant,
+    onUnassignVariant,
+  ]);
 
   const avatarDisplayUrl = useMemo(() => {
     if (!currentAvatar)
@@ -328,6 +371,68 @@ export function AvatarSettingsTab({
   const spritePreviewTransform = useMemo(() => (
     parseTransformFromAvatar(currentAvatar)
   ), [currentAvatar]);
+  const isCurrentDefaultAvatar = Boolean(
+    currentAvatar?.avatarId
+    && localDefaultAvatarId
+    && currentAvatar.avatarId === localDefaultAvatarId,
+  );
+  const canSetDefaultAvatar = Boolean(currentAvatar?.avatarId && roleIdForMutation);
+  const canUnassignVariant = Boolean(
+    showUnassignVariantAction
+    && onUnassignVariant
+    && currentAvatar?.avatarId
+    && currentVariantId,
+  );
+
+  const handleSetDefaultAvatar = useCallback(async () => {
+    if (!currentAvatar?.avatarId || !roleIdForMutation) {
+      toast.error("头像信息缺失，无法设为默认头像");
+      return;
+    }
+    if (isCurrentDefaultAvatar || isSettingDefaultAvatar) {
+      return;
+    }
+
+    try {
+      const result = await setDefaultAvatar(currentAvatar);
+      setLocalDefaultAvatarId(result.avatar.avatarId);
+      toast.success("已设为默认头像");
+      onDefaultAvatarApplied?.(result.avatar);
+    }
+    catch (error) {
+      console.error("设置默认头像失败:", error);
+      toast.error(error instanceof Error ? error.message : "设置默认头像失败，请稍后重试");
+    }
+  }, [
+    currentAvatar,
+    isCurrentDefaultAvatar,
+    isSettingDefaultAvatar,
+    onDefaultAvatarApplied,
+    roleIdForMutation,
+    setDefaultAvatar,
+  ]);
+
+  const handleUnassignVariant = useCallback(async () => {
+    if (!currentAvatar?.avatarId || !onUnassignVariant || !currentVariantId) {
+      toast.error("当前头像未绑定立绘组");
+      return;
+    }
+    if (isUnassigningVariant) {
+      return;
+    }
+
+    try {
+      setIsUnassigningVariant(true);
+      await onUnassignVariant(currentAvatar);
+    }
+    catch (error) {
+      console.error("移出立绘组失败:", error);
+      toast.error(error instanceof Error ? error.message : "移出立绘组失败，请稍后重试");
+    }
+    finally {
+      setIsUnassigningVariant(false);
+    }
+  }, [currentAvatar, currentVariantId, isUnassigningVariant, onUnassignVariant]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
@@ -403,19 +508,48 @@ export function AvatarSettingsTab({
           <div className="
             ml-auto flex min-w-0 shrink-0 items-center gap-2
           ">
+            <button
+              type="button"
+              className={`
+                btn btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3
+                ${isCurrentDefaultAvatar ? "btn-outline btn-success" : "btn-primary"}
+              `}
+              onClick={() => void handleSetDefaultAvatar()}
+              disabled={!canSetDefaultAvatar || isSaving || isSettingDefaultAvatar || isCurrentDefaultAvatar}
+              title={isCurrentDefaultAvatar ? "当前头像已是默认头像" : "将当前头像设为默认头像"}
+            >
+              {isSettingDefaultAvatar
+                ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                : <CheckCircle className="size-4 shrink-0" weight={isCurrentDefaultAvatar ? "fill" : "regular"} aria-hidden="true" />}
+              <span>{isSettingDefaultAvatar ? "设置中" : isCurrentDefaultAvatar ? "默认头像" : "设为默认"}</span>
+            </button>
+
+            {showUnassignVariantAction && (
+              <button
+                type="button"
+                className="btn btn-outline btn-warning btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3"
+                onClick={() => void handleUnassignVariant()}
+                disabled={!canUnassignVariant || isSaving || isUnassigningVariant}
+                title={canUnassignVariant ? "将当前头像移出立绘组" : "当前头像未绑定立绘组"}
+              >
+                {isUnassigningVariant && <span className="loading loading-spinner loading-xs" aria-hidden="true" />}
+                <span>{isUnassigningVariant ? "移出中" : "移出立绘组"}</span>
+              </button>
+            )}
+
             <select
               className="
                 select select-sm select-bordered h-8 min-h-8 max-w-[14rem]
                 rounded-md bg-base-100/70 pr-8 text-sm text-base-content/85
                 disabled:text-base-content/35
               "
-              value={String(normalizeVariantId(currentAvatar.variantId) ?? UNGROUPED_VARIANT_VALUE)}
+              value={String(currentVariantId ?? UNGROUPED_VARIANT_VALUE)}
               onChange={(event) => {
                 const value = event.target.value;
                 const nextVariantId = value ? Number(value) : null;
                 void saveAvatarSettings(editingName, editingCategory, nextVariantId);
               }}
-              disabled={isSaving}
+              disabled={isSaving || isUnassigningVariant}
               aria-label="选择立绘组"
               title="选择立绘组"
             >

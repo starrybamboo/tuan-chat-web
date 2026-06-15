@@ -58,8 +58,8 @@ pnpm mobile:typecheck
 仓库提供三个模式文件：
 
 - `.env.development`：本地开发，默认 `VITE_API_BASE_URL=http://localhost:8081`、`VITE_API_WS_URL=ws://localhost:8090`。
-- `.env.test`：测试环境构建，默认连接 `https://test.tuan.chat`。
-- `.env.production`：生产环境构建，默认连接 `https://tuan.chat`。
+- `.env.test`：测试环境构建，默认直连 `https://api.tuan.chat/api`、`wss://api.tuan.chat/ws`。
+- `.env.production`：生产环境构建，默认直连 `https://api.tuan.chat/api`、`wss://api.tuan.chat/ws`。
 
 本机私有覆盖请使用 `.env.development.local`、`.env.local` 等已被 gitignore 忽略的文件。不要提交账号、密码、token 或其他敏感配置。
 
@@ -160,12 +160,12 @@ Web 部署：
 - Cloudflare Pages Git 集成负责自动部署；`tuan-chat-web` 连接 `main` 分支并对应 `https://tuan.chat/`，`tuan-chat-web-test` 连接 `dev` 分支并对应 `https://test.tuan.chat/`。
 - 两个 Pages 项目都使用构建命令 `pnpm run build`，输出目录 `dist`。
 - 构建脚本会在 Cloudflare Pages 环境中按分支自动选择模式：`main` 使用 `.env.production`，`dev` 使用 `.env.test`。
-- Cloudflare Pages 环境变量由仓库内 `.env.production` / `.env.test` 提供，控制台中无需重复配置同名变量；若控制台中配置了同名变量，会覆盖仓库文件。
+- API、WebSocket、TTS 与媒体域名由 `.env.production` / `.env.test` 显式配置为直连地址；Cloudflare Pages 控制台或手动部署 workflow 中的同名变量会覆盖仓库文件。
 - `.github/workflows/cd.yaml` 是 Cloudflare Pages 手动兜底部署入口。
 - `deploy_env=test` 会使用 `tuan-chat-web-test` 项目和 `test` mode。
 - `deploy_env=production` 会使用 `tuan-chat-web` 项目和 `production` mode。
 - 构建产物目录为 `dist`，部署命令使用 `wrangler pages deploy dist`。
-- 线上 Web 运行时会把 API、WebSocket、TTS 默认归一到直连后端域名 `https://api.tuan.chat`，媒体默认归一到独立直读域名 `https://media.tuan.chat`，不再把主流量打到 Pages Functions。
+- 线上 Web 运行时使用环境变量中的直连域名访问 API、WebSocket、TTS 与媒体资源，不再把主流量打到 Pages Functions。
 - Pages Functions 仅作为旧同源路径和特殊路径兜底：`public/_routes.json` 限定只有 `/api`、`/ws`、`/tts`、`/terre`、`/media`、`/avatar`、`/updates` 会触发 Functions；静态资源和 SPA fallback 保持 Pages 静态托管。
 
 Electron 增量更新：
