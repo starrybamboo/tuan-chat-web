@@ -257,7 +257,7 @@ export function buildBattleOverlaySnapshot({
   const currentActorName = currentActorRoleId != null
     ? buildRoleName(roleById.get(currentActorRoleId), currentActorRoleId)
     : "";
-  const visible = combatRoundActive;
+  const visible = combatRoundActive || mapSnapshot !== null;
 
   return {
     schemaVersion: TUANCHAT_BATTLE_OVERLAY_SCHEMA_VERSION,
