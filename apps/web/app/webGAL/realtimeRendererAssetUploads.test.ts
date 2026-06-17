@@ -1,6 +1,6 @@
 import type { RealtimeAssetUploadContext, RealtimeRoleAvatarSource } from "./realtimeRendererAssetUploads";
 
-import { uploadFile } from "./fileOperator";
+import { checkFileExist, uploadFile } from "./fileOperator";
 import {
   getAndUploadFigureAsset,
   getAndUploadMiniAvatarAsset,
@@ -10,6 +10,7 @@ import {
 } from "./realtimeRendererAssetUploads";
 
 vi.mock("./fileOperator", () => ({
+  checkFileExist: vi.fn(async () => true),
   getFileExtensionFromUrl: vi.fn(() => "webp"),
   uploadFile: vi.fn(async (_url: string, _path: string, fileName?: string) => fileName ?? "uploaded.webp"),
 }));
@@ -45,6 +46,7 @@ function variantGroup(baseAvatarId = 5, x = 12) {
 describe("realtimeRendererAssetUploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(checkFileExist).mockResolvedValue(true);
   });
 
   it("上传立绘时不会把 avatarFileId 当作 sprite 兜底", async () => {
@@ -238,6 +240,27 @@ describe("realtimeRendererAssetUploads", () => {
     expect(first).toBe("token_role_14993.webp");
     expect(second).toBe("token_role_15223.webp");
     expect(uploadFile).toHaveBeenCalledTimes(2);
+  });
+
+  it("图片立绘缓存命中但文件丢失时会重新上传", async () => {
+    const context = createContext();
+    const url = "https://example.test/avatar.webp";
+    context.uploadedImageFiguresMap.set(`token_role_14562|${url}`, "token_role_14562.webp");
+    vi.mocked(checkFileExist).mockResolvedValueOnce(false);
+
+    const result = await uploadImageFigureAsset(context, url, "token_role_14562");
+
+    expect(result).toBe("token_role_14562.webp");
+    expect(checkFileExist).toHaveBeenCalledWith(
+      "games/realtime_1/game/figure/",
+      "token_role_14562.webp",
+    );
+    expect(uploadFile).toHaveBeenCalledWith(
+      url,
+      "games/realtime_1/game/figure/",
+      "token_role_14562.webp",
+    );
+    expect(context.uploadedImageFiguresMap.get(`token_role_14562|${url}`)).toBe("token_role_14562.webp");
   });
 
   it("上传地图图片到 WebGAL 背景目录并返回本地资源名", async () => {

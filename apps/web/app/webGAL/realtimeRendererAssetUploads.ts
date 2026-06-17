@@ -4,7 +4,7 @@ import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia
 
 import type { RoleAvatar } from "../../api";
 
-import { getFileExtensionFromUrl, uploadFile } from "./fileOperator";
+import { checkFileExist, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";
 import {
   buildOrdinaryFigureRenderAsset,
@@ -218,12 +218,16 @@ export async function uploadImageFigureAsset(
   fileName?: string,
 ): Promise<string | null> {
   const cacheKey = `${fileName?.trim() || ""}|${url}`;
-  if (context.uploadedImageFiguresMap.has(cacheKey)) {
-    return context.uploadedImageFiguresMap.get(cacheKey) || null;
+  const path = `games/${context.gameName}/game/figure/`;
+  const cachedName = context.uploadedImageFiguresMap.get(cacheKey);
+  if (cachedName) {
+    if (await checkFileExist(path, cachedName)) {
+      return cachedName;
+    }
+    context.uploadedImageFiguresMap.delete(cacheKey);
   }
 
   try {
-    const path = `games/${context.gameName}/game/figure/`;
     const targetName = buildImageFileName(url, fileName, "img");
     const uploadedName = await uploadFile(url, path, targetName);
     context.uploadedImageFiguresMap.set(cacheKey, uploadedName);
