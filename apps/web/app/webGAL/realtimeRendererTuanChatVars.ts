@@ -3,13 +3,7 @@ import type { StateEventAtom, StateEventExtra } from "@/types/stateEvent";
 export const TUANCHAT_ROLE_IDS_VAR = "tuanchat.roleIds";
 export const TUANCHAT_COMBAT_ACTIVE_VAR = "tuanchat.combat.active";
 export const TUANCHAT_COMBAT_TURN_VAR = "tuanchat.combat.turn";
-export const TUANCHAT_MAP_BACKGROUND_VAR = "tuanchat.map.background";
-export const TUANCHAT_MAP_CONFIG_ACTIVE_VAR = "tuanchat.map.config.active";
-export const TUANCHAT_MAP_GRID_ROWS_VAR = "tuanchat.map.gridRows";
-export const TUANCHAT_MAP_GRID_COLS_VAR = "tuanchat.map.gridCols";
-export const TUANCHAT_MAP_GRID_COLOR_VAR = "tuanchat.map.gridColor";
-export const TUANCHAT_MAP_OVERLAY_ACTIVE_VAR = "tuanchat.map.overlay.active";
-export const TUANCHAT_ROLE_AVATAR_URL_KEY = "avatarUrl";
+const TUANCHAT_MAP_COMMAND = "tuanChatMap";
 
 function isSafeVarSegment(value: string): boolean {
   return value.length > 0 && !/[=;\r\n]/.test(value);
@@ -35,43 +29,12 @@ function buildSetVarLine(key: string, value: number | string | boolean): string 
   return `setVar:${key}=${formatWebgalValue(value)};`;
 }
 
-function isAllowedResourceUrl(value: string): boolean {
-  return value === "" || value.startsWith("./game/");
-}
-
-function buildResourceSetVarLine(key: string, value: string): string | null {
-  const trimmed = value.trim();
-  if (!isAllowedResourceUrl(trimmed)) {
-    return null;
-  }
-  return buildSetVarLine(key, trimmed);
-}
-
-function buildBackgroundAssetSetVarLine(key: string, value: string): string | null {
-  const trimmed = value.trim();
-  if (trimmed === "") {
-    return buildSetVarLine(key, "");
-  }
-  if (!/^[\w.-]+$/.test(trimmed)) {
-    return null;
-  }
-  return buildSetVarLine(key, trimmed);
-}
-
 export function buildTuanChatRoleVarKey(roleId: number, key: string): string {
   return `tuanchat.role.${roleId}.${key.trim()}`;
 }
 
 export function buildTuanChatRoomVarKey(key: string): string {
   return `tuanchat.room.${key.trim()}`;
-}
-
-export function buildTuanChatMapTokenVarKey(roleId: number, key: "active" | "rowIndex" | "colIndex"): string {
-  return `tuanchat.map.token.${roleId}.${key}`;
-}
-
-export function buildTuanChatRoleAvatarUrlLine(roleId: number, avatarUrl: string): string | null {
-  return buildResourceSetVarLine(buildTuanChatRoleVarKey(roleId, TUANCHAT_ROLE_AVATAR_URL_KEY), avatarUrl);
 }
 
 function buildSetVarExpressionLine(key: string, expression: string): string | null {
@@ -120,12 +83,32 @@ export function hasTuanChatMapOverlayTrigger(events: StateEventExtra["events"] |
 }
 
 export function buildTuanChatMapOverlayActiveLine(active: boolean): string {
-  return buildSetVarLine(TUANCHAT_MAP_OVERLAY_ACTIVE_VAR, active)!;
+  return buildTuanChatMapCommandLine(active ? "show" : "hide")!;
+}
+
+function isSafeCommandArgValue(value: string): boolean {
+  return value.length > 0 && !/[;\r\n]/.test(value) && !/\s-/.test(value);
+}
+
+function buildTuanChatMapCommandLine(
+  action: "reset" | "show" | "hide" | "config" | "clear" | "token",
+  args: Record<string, number | string | boolean | null | undefined> = {},
+): string | null {
+  const parts = Object.entries(args).flatMap(([key, rawValue]) => {
+    if (!isSafeVarSegment(key) || rawValue == null || rawValue === "") {
+      return [];
+    }
+    if (typeof rawValue === "boolean") {
+      return rawValue ? [`-${key}`] : [];
+    }
+    const value = String(rawValue).trim();
+    return isSafeCommandArgValue(value) ? [`-${key}=${value}`] : [];
+  });
+  return `${TUANCHAT_MAP_COMMAND}:${action}${parts.length > 0 ? ` ${parts.join(" ")}` : ""};`;
 }
 
 export function buildTuanChatWebgalInitVarLines(params: {
   roleIds: number[];
-  avatarUrlsByRoleId?: Record<number, string | null | undefined>;
 }): string[] {
   const roleIds = [...new Set(params.roleIds.filter(roleId => Number.isFinite(roleId) && roleId > 0))]
     .sort((left, right) => left - right);
@@ -133,16 +116,8 @@ export function buildTuanChatWebgalInitVarLines(params: {
     buildSetVarLine(TUANCHAT_ROLE_IDS_VAR, roleIds.join(",")),
     buildSetVarLine(TUANCHAT_COMBAT_ACTIVE_VAR, false),
     buildSetVarLine(TUANCHAT_COMBAT_TURN_VAR, 0),
-    buildSetVarLine(TUANCHAT_MAP_BACKGROUND_VAR, ""),
-    buildTuanChatMapOverlayActiveLine(false),
+    buildTuanChatMapCommandLine("reset"),
   ];
-
-  roleIds.forEach((roleId) => {
-    const avatarUrl = params.avatarUrlsByRoleId?.[roleId]?.trim();
-    if (avatarUrl) {
-      lines.push(buildTuanChatRoleAvatarUrlLine(roleId, avatarUrl));
-    }
-  });
 
   return lines.filter((line): line is string => Boolean(line));
 }
@@ -155,6 +130,14 @@ export function applyTuanChatStateEventToMapTokenRoleIds(
   events.forEach((event) => {
     if (event.type === "mapTokenRemove") {
       roleIds.delete(event.roleId);
+      return;
+    }
+    if (event.type === "mapConfigUpsert" && event.clearTokens) {
+      roleIds.clear();
+      return;
+    }
+    if (event.type === "mapConfigClear") {
+      roleIds.clear();
       return;
     }
     if (event.type === "mapTokenUpsert") {
@@ -207,38 +190,39 @@ export function buildTuanChatStateEventVarLines(params: {
     }
 
     if (event.type === "mapConfigUpsert") {
-      pushLine(lines, buildTuanChatMapOverlayActiveLine(true));
-      pushLine(lines, buildSetVarLine(TUANCHAT_MAP_CONFIG_ACTIVE_VAR, true));
       const mapBackground = String(params.mapBackgroundsByFileId?.[event.mapFileId] ?? "").trim();
-      pushLine(lines, buildBackgroundAssetSetVarLine(
-        TUANCHAT_MAP_BACKGROUND_VAR,
-        mapBackground,
-      ));
-      pushLine(lines, buildSetVarLine(TUANCHAT_MAP_GRID_ROWS_VAR, event.gridRows));
-      pushLine(lines, buildSetVarLine(TUANCHAT_MAP_GRID_COLS_VAR, event.gridCols));
-      pushLine(lines, buildSetVarLine(TUANCHAT_MAP_GRID_COLOR_VAR, event.gridColor));
+      pushLine(lines, buildTuanChatMapCommandLine("config", {
+        background: mapBackground,
+        rows: event.gridRows,
+        cols: event.gridCols,
+        gridColor: event.gridColor,
+        clearTokens: event.clearTokens,
+      }));
+      pushLine(lines, buildTuanChatMapOverlayActiveLine(true));
       return;
     }
     if (event.type === "mapConfigClear") {
+      pushLine(lines, buildTuanChatMapCommandLine("clear"));
       pushLine(lines, buildTuanChatMapOverlayActiveLine(true));
-      pushLine(lines, buildSetVarLine(TUANCHAT_MAP_CONFIG_ACTIVE_VAR, false));
-      pushLine(lines, buildBackgroundAssetSetVarLine(TUANCHAT_MAP_BACKGROUND_VAR, ""));
       return;
     }
     if (event.type === "mapTokenRemove") {
+      pushLine(lines, buildTuanChatMapCommandLine("token", {
+        roleId: event.roleId,
+        remove: true,
+      }));
       pushLine(lines, buildTuanChatMapOverlayActiveLine(true));
-      pushLine(lines, buildSetVarLine(buildTuanChatMapTokenVarKey(event.roleId, "active"), false));
       return;
     }
     if (event.type === "mapTokenUpsert") {
       const avatarUrl = params.avatarUrlsByRoleId?.[event.roleId]?.trim();
-      if (avatarUrl) {
-        pushLine(lines, buildTuanChatRoleAvatarUrlLine(event.roleId, avatarUrl));
-      }
+      pushLine(lines, buildTuanChatMapCommandLine("token", {
+        roleId: event.roleId,
+        row: event.rowIndex,
+        col: event.colIndex,
+        avatar: avatarUrl,
+      }));
       pushLine(lines, buildTuanChatMapOverlayActiveLine(true));
-      pushLine(lines, buildSetVarLine(buildTuanChatMapTokenVarKey(event.roleId, "active"), true));
-      pushLine(lines, buildSetVarLine(buildTuanChatMapTokenVarKey(event.roleId, "rowIndex"), event.rowIndex));
-      pushLine(lines, buildSetVarLine(buildTuanChatMapTokenVarKey(event.roleId, "colIndex"), event.colIndex));
     }
   });
 
