@@ -133,7 +133,7 @@ describe("battleOverlaySnapshot", () => {
     expect(snapshot.roles[0]?.avatarUrl).toContain("100");
   });
 
-  it("非战斗轮有地图时也显示 overlay 并保留角色元数据", () => {
+  it("非战斗轮只同步底图和角色元数据，不常驻显示 overlay", () => {
     const map: RoomDndMapSnapshot = {
       roomId: 12,
       mapFileId: 200,
@@ -152,7 +152,7 @@ describe("battleOverlaySnapshot", () => {
       useStaticMapTokensFallback: false,
     });
 
-    expect(snapshot.visible).toBe(true);
+    expect(snapshot.visible).toBe(false);
     expect(snapshot.round).toBeNull();
     expect(snapshot.map?.imageUrl).toContain("200");
     expect(snapshot.map?.tokens).toEqual([]);
@@ -199,7 +199,7 @@ describe("battleOverlaySnapshot", () => {
     expect(snapshot.roles.map(role => role.roleId)).toEqual([3]);
   });
 
-  it("状态地图和 token 不依赖战斗轮开启也会显示", () => {
+  it("状态地图和 token 不依赖战斗轮开启也会同步给 WebGAL", () => {
     const snapshot = buildBattleOverlaySnapshot({
       roomId: 12,
       roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
@@ -220,7 +220,7 @@ describe("battleOverlaySnapshot", () => {
       }),
     });
 
-    expect(snapshot.visible).toBe(true);
+    expect(snapshot.visible).toBe(false);
     expect(snapshot.round).toBeNull();
     expect(snapshot.map).toMatchObject({
       gridRows: 10,
