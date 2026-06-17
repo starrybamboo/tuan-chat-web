@@ -70,6 +70,10 @@ export function buildTuanChatMapTokenVarKey(roleId: number, key: "active" | "row
   return `tuanchat.map.token.${roleId}.${key}`;
 }
 
+export function buildTuanChatRoleAvatarUrlLine(roleId: number, avatarUrl: string): string | null {
+  return buildResourceSetVarLine(buildTuanChatRoleVarKey(roleId, TUANCHAT_ROLE_AVATAR_URL_KEY), avatarUrl);
+}
+
 function buildSetVarExpressionLine(key: string, expression: string): string | null {
   if (!isSafeVarSegment(key) || /[;\r\n]/.test(expression)) {
     return null;
@@ -136,7 +140,7 @@ export function buildTuanChatWebgalInitVarLines(params: {
   roleIds.forEach((roleId) => {
     const avatarUrl = params.avatarUrlsByRoleId?.[roleId]?.trim();
     if (avatarUrl) {
-      lines.push(buildResourceSetVarLine(buildTuanChatRoleVarKey(roleId, TUANCHAT_ROLE_AVATAR_URL_KEY), avatarUrl));
+      lines.push(buildTuanChatRoleAvatarUrlLine(roleId, avatarUrl));
     }
   });
 
@@ -163,6 +167,7 @@ export function applyTuanChatStateEventToMapTokenRoleIds(
 export function buildTuanChatStateEventVarLines(params: {
   stateEvent: StateEventExtra | undefined;
   mapBackgroundsByFileId?: Record<number, string | null | undefined>;
+  avatarUrlsByRoleId?: Record<number, string | null | undefined>;
   mapTokenRoleIds?: Iterable<number>;
 }): { lines: string[]; mapTokenRoleIds: number[] } {
   const stateEvent = params.stateEvent;
@@ -226,6 +231,10 @@ export function buildTuanChatStateEventVarLines(params: {
       return;
     }
     if (event.type === "mapTokenUpsert") {
+      const avatarUrl = params.avatarUrlsByRoleId?.[event.roleId]?.trim();
+      if (avatarUrl) {
+        pushLine(lines, buildTuanChatRoleAvatarUrlLine(event.roleId, avatarUrl));
+      }
       pushLine(lines, buildTuanChatMapOverlayActiveLine(true));
       pushLine(lines, buildSetVarLine(buildTuanChatMapTokenVarKey(event.roleId, "active"), true));
       pushLine(lines, buildSetVarLine(buildTuanChatMapTokenVarKey(event.roleId, "rowIndex"), event.rowIndex));

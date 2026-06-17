@@ -69,6 +69,26 @@ describe("realtimeRendererTuanChatVars", () => {
     expect(result.mapTokenRoleIds).toEqual([3, 8]);
   });
 
+  it("地图 token 更新会先写入角色头像变量再激活 token", () => {
+    const result = buildTuanChatStateEventVarLines({
+      avatarUrlsByRoleId: {
+        14562: "./game/figure/token_role_14562.webp",
+      },
+      stateEvent: {
+        source: { kind: "ui", parserVersion: "state-event-v1" },
+        events: [{ type: "mapTokenUpsert", roleId: 14562, rowIndex: 6, colIndex: 2 }],
+      },
+    });
+
+    expect(result.lines).toEqual([
+      "setVar:tuanchat.role.14562.avatarUrl=\"./game/figure/token_role_14562.webp\";",
+      "setVar:tuanchat.map.overlay.active=true;",
+      "setVar:tuanchat.map.token.14562.active=true;",
+      "setVar:tuanchat.map.token.14562.rowIndex=6;",
+      "setVar:tuanchat.map.token.14562.colIndex=2;",
+    ]);
+  });
+
   it("资源 URL 变量只允许写入安全的图片地址，地图只写本地背景资源名", () => {
     expect(buildTuanChatWebgalInitVarLines({
       roleIds: [3],

@@ -250,6 +250,45 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect(dialogIndex).toBeGreaterThan(closeIndex);
   });
 
+  it("地图 token 增量更新会补写对应角色头像变量", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+    await renderer.initRoomScene(10);
+
+    renderer.setRoleCache([{
+      ...role(14562, "调查员"),
+      avatarFileId: 31586,
+      avatarMediaType: "image",
+    }]);
+
+    await renderer.appendMessage(message({
+      messageId: 1,
+      roomId: 10,
+      roleId: 0,
+      content: ".combat map-move",
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: { kind: "ui", parserVersion: "state-event-v1" },
+          events: [{ type: "mapTokenUpsert", roleId: 14562, rowIndex: 6, colIndex: 2 }],
+        },
+      },
+    }), 10, false);
+
+    const lines = String((renderer as any).sceneContextMap.get(10)?.text ?? "").trim().split("\n");
+    const avatarLine = "setVar:tuanchat.role.14562.avatarUrl=\"./game/figure/token_role_14562.webp\";";
+    const activeLine = "setVar:tuanchat.map.token.14562.active=true;";
+    const avatarIndex = lines.indexOf(avatarLine);
+    const activeIndex = lines.indexOf(activeLine);
+    expect(lines).toContain("setVar:tuanchat.roleIds=\"\";");
+    expect(lines.filter(line => line === avatarLine)).toHaveLength(1);
+    expect(activeIndex).toBeGreaterThan(avatarIndex);
+  });
+
   it("实时追加同一角色不同 avatarId 时会切换差分立绘", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     const queryClient = {

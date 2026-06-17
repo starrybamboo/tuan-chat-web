@@ -446,15 +446,31 @@ export class RealtimeRenderer {
     return Object.fromEntries(entries.filter((entry): entry is [number, string] => Boolean(entry)));
   }
 
+  private async resolveStateEventMapTokenAvatarUrls(stateEvent: StateEventExtra): Promise<Record<number, string>> {
+    const roleIds = [...new Set(stateEvent.events
+      .filter(event => event.type === "mapTokenUpsert")
+      .map(event => event.roleId)
+      .filter(roleId => Number.isFinite(roleId) && roleId > 0))];
+    const entries = await Promise.all(roleIds.map(async (roleId): Promise<[number, string] | null> => {
+      const avatarUrl = await this.uploadRoleAvatarForMapToken(roleId);
+      return avatarUrl ? [roleId, avatarUrl] : null;
+    }));
+    return Object.fromEntries(entries.filter((entry): entry is [number, string] => Boolean(entry)));
+  }
+
   private async appendStateEventVarLines(
     roomId: number,
     stateEvent: StateEventExtra,
     syncToFile: boolean,
   ): Promise<void> {
-    const mapBackgroundsByFileId = await this.resolveStateEventMapBackgrounds(stateEvent);
+    const [mapBackgroundsByFileId, avatarUrlsByRoleId] = await Promise.all([
+      this.resolveStateEventMapBackgrounds(stateEvent),
+      this.resolveStateEventMapTokenAvatarUrls(stateEvent),
+    ]);
     const result = buildTuanChatStateEventVarLines({
       stateEvent,
       mapBackgroundsByFileId,
+      avatarUrlsByRoleId,
       mapTokenRoleIds: this.getMapTokenRoleIds(roomId),
     });
     this.setMapTokenRoleIds(roomId, result.mapTokenRoleIds);
