@@ -151,7 +151,7 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v18";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v19";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
@@ -344,15 +344,8 @@ export class RealtimeRenderer {
 
   private async buildSceneInitLinesWithTuanChatVars(): Promise<string[]> {
     const roleIds = [...this.roleMap.keys()].filter(roleId => roleId > 0).sort((left, right) => left - right);
-    const avatarUrlsByRoleId: Record<number, string> = {};
-    await Promise.all(roleIds.map(async (roleId) => {
-      const avatarUrl = await this.uploadRoleAvatarForMapToken(roleId);
-      if (avatarUrl) {
-        avatarUrlsByRoleId[roleId] = avatarUrl;
-      }
-    }));
     return [
-      ...buildTuanChatWebgalInitVarLines({ roleIds, avatarUrlsByRoleId }),
+      ...buildTuanChatWebgalInitVarLines({ roleIds }),
       ...buildSceneInitLines(),
     ];
   }
@@ -365,7 +358,7 @@ export class RealtimeRenderer {
       return null;
     }
     const fileName = await uploadImageFigureAsset(this.getAssetUploadContext(), avatarUrl, `token_role_${roleId}`);
-    return fileName ? `./game/figure/${fileName}` : null;
+    return fileName;
   }
 
   private getMapTokenRoleIds(roomId: number): Set<number> {

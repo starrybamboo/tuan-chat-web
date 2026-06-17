@@ -236,10 +236,10 @@ describe("realtimeRenderer shared compiler full render", () => {
 
     const lines = String((renderer as any).sceneContextMap.get(10)?.text ?? "").trim().split("\n");
     const openIndices = lines
-      .map((line, index) => line === "setVar:tuanchat.map.overlay.active=true;" ? index : -1)
+      .map((line, index) => line === "tuanChatMap:show;" ? index : -1)
       .filter(index => index >= 0);
     const closeIndices = lines
-      .map((line, index) => line === "setVar:tuanchat.map.overlay.active=false;" ? index : -1)
+      .map((line, index) => line === "tuanChatMap:hide;" ? index : -1)
       .filter(index => index >= 0);
     const closeIndicesAfterOpen = closeIndices.filter(index => index > openIndices[0]);
     const closeIndex = closeIndicesAfterOpen[0] ?? -1;
@@ -250,7 +250,7 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect(dialogIndex).toBeGreaterThan(closeIndex);
   });
 
-  it("地图 token 增量更新会补写对应角色头像变量", async () => {
+  it("地图 token 增量更新会携带对应角色头像资源", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     renderer.setRooms([room(10, "序章")]);
     renderer.setRoleCache([]);
@@ -280,13 +280,13 @@ describe("realtimeRenderer shared compiler full render", () => {
     }), 10, false);
 
     const lines = String((renderer as any).sceneContextMap.get(10)?.text ?? "").trim().split("\n");
-    const avatarLine = "setVar:tuanchat.role.14562.avatarUrl=\"./game/figure/token_role_14562.webp\";";
-    const activeLine = "setVar:tuanchat.map.token.14562.active=true;";
-    const avatarIndex = lines.indexOf(avatarLine);
-    const activeIndex = lines.indexOf(activeLine);
+    const tokenLine = "tuanChatMap:token -roleId=14562 -row=6 -col=2 -avatar=token_role_14562.webp;";
+    const tokenIndex = lines.indexOf(tokenLine);
+    const showIndex = lines.indexOf("tuanChatMap:show;");
     expect(lines).toContain("setVar:tuanchat.roleIds=\"\";");
-    expect(lines.filter(line => line === avatarLine)).toHaveLength(1);
-    expect(activeIndex).toBeGreaterThan(avatarIndex);
+    expect(lines.filter(line => line === tokenLine)).toHaveLength(1);
+    expect(showIndex).toBeGreaterThan(tokenIndex);
+    expect(lines.some(line => line.startsWith("setVar:tuanchat.role.14562.avatarUrl="))).toBe(false);
   });
 
   it("实时追加同一角色不同 avatarId 时会切换差分立绘", async () => {
