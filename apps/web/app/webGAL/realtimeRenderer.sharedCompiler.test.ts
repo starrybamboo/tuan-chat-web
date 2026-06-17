@@ -190,6 +190,66 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect((renderer as any).messageLineMap.size).toBeGreaterThan(0);
   });
 
+  it("非战斗轮连续地图更新会显示到下一条可视消息前再关闭", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    await renderer.appendMessage(message({
+      messageId: 1,
+      roomId: 10,
+      roleId: 0,
+      content: ".combat map-move",
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: { kind: "ui", parserVersion: "state-event-v1" },
+          events: [{ type: "mapTokenUpsert", roleId: 1, rowIndex: 6, colIndex: 3 }],
+        },
+      },
+    }), 10, false);
+
+    await renderer.appendMessage(message({
+      messageId: 2,
+      roomId: 10,
+      roleId: 0,
+      content: ".combat map-move-again",
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: { kind: "ui", parserVersion: "state-event-v1" },
+          events: [{ type: "mapTokenUpsert", roleId: 1, rowIndex: 7, colIndex: 4 }],
+        },
+      },
+    }), 10, false);
+
+    await renderer.appendMessage(message({
+      messageId: 3,
+      roomId: 10,
+      roleId: 1,
+      content: "移动一下位置",
+      messageType: MESSAGE_TYPE.TEXT,
+    }), 10, false);
+
+    const lines = String((renderer as any).sceneContextMap.get(10)?.text ?? "").trim().split("\n");
+    const openIndices = lines
+      .map((line, index) => line === "setVar:tuanchat.map.overlay.active=true;" ? index : -1)
+      .filter(index => index >= 0);
+    const closeIndices = lines
+      .map((line, index) => line === "setVar:tuanchat.map.overlay.active=false;" ? index : -1)
+      .filter(index => index >= 0);
+    const closeIndicesAfterOpen = closeIndices.filter(index => index > openIndices[0]);
+    const closeIndex = closeIndicesAfterOpen[0] ?? -1;
+    const dialogIndex = lines.indexOf("明日香: 移动一下位置;");
+    expect(openIndices).toHaveLength(2);
+    expect(closeIndicesAfterOpen).toHaveLength(1);
+    expect(closeIndex).toBeGreaterThan(openIndices[openIndices.length - 1] ?? -1);
+    expect(dialogIndex).toBeGreaterThan(closeIndex);
+  });
+
   it("实时追加同一角色不同 avatarId 时会切换差分立绘", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     const queryClient = {

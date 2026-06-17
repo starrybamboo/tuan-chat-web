@@ -19,6 +19,7 @@ describe("realtimeRendererTuanChatVars", () => {
       "setVar:tuanchat.combat.active=false;",
       "setVar:tuanchat.combat.turn=0;",
       "setVar:tuanchat.map.background=\"\";",
+      "setVar:tuanchat.map.overlay.active=false;",
       "setVar:tuanchat.role.3.avatarUrl=\"./game/figure/token_role_3.webp\";",
     ]);
   });
@@ -51,12 +52,16 @@ describe("realtimeRendererTuanChatVars", () => {
 
     expect(result.lines).toEqual([
       "setVar:tuanchat.combat.active=true;",
+      "setVar:tuanchat.map.overlay.active=false;",
       "setVar:tuanchat.role.3.hp=tuanchat.role.3.hp - 5;",
       "setVar:tuanchat.combat.turn=tuanchat.combat.turn + 1;",
+      "setVar:tuanchat.map.overlay.active=true;",
+      "setVar:tuanchat.map.config.active=true;",
       "setVar:tuanchat.map.background=\"map_12.png\";",
       "setVar:tuanchat.map.gridRows=10;",
       "setVar:tuanchat.map.gridCols=12;",
       "setVar:tuanchat.map.gridColor=\"#fff\";",
+      "setVar:tuanchat.map.overlay.active=true;",
       "setVar:tuanchat.map.token.3.active=true;",
       "setVar:tuanchat.map.token.3.rowIndex=1;",
       "setVar:tuanchat.map.token.3.colIndex=2;",
@@ -75,6 +80,7 @@ describe("realtimeRendererTuanChatVars", () => {
       "setVar:tuanchat.combat.active=false;",
       "setVar:tuanchat.combat.turn=0;",
       "setVar:tuanchat.map.background=\"\";",
+      "setVar:tuanchat.map.overlay.active=false;",
     ]);
 
     expect(buildTuanChatWebgalInitVarLines({
@@ -119,6 +125,8 @@ describe("realtimeRendererTuanChatVars", () => {
         events: [{ type: "mapConfigClear" }],
       },
     }).lines).toEqual([
+      "setVar:tuanchat.map.overlay.active=true;",
+      "setVar:tuanchat.map.config.active=false;",
       "setVar:tuanchat.map.background=\"\";",
     ]);
   });

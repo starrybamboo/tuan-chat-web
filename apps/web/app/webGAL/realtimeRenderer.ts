@@ -125,8 +125,10 @@ import {
 import { TextEnhanceSyntax } from "./realtimeRendererTextEnhance";
 import {
   applyTuanChatStateEventToMapTokenRoleIds,
+  buildTuanChatMapOverlayActiveLine,
   buildTuanChatStateEventVarLines,
   buildTuanChatWebgalInitVarLines,
+  hasTuanChatMapOverlayTrigger,
 } from "./realtimeRendererTuanChatVars";
 import {
   parseWorkflowRoomMap,
@@ -249,6 +251,7 @@ export class RealtimeRenderer {
   private renderedMiniAvatarVisibleMap = new Map<number, boolean>(); // roomId -> 最近一次下发的小头像是否可见
   private messageRenderStateSnapshotMap = new Map<string, RoomRenderStateSnapshot>(); // `${roomId}_${messageId}` -> 消息执行后的房间状态快照
   private combatRoundActiveMap = new Map<number, boolean>(); // roomId -> STATE_EVENT 回放出的战斗轮状态
+  private mapOverlayActiveMap = new Map<number, boolean>(); // roomId -> 非战斗轮地图更新后的临时展示状态
   private mapTokenRoleIdsMap = new Map<number, Set<number>>();
   private annotationEffectSoundCache = new Map<string, string>(); // effectId -> 可用音效文件名
   private roomSyncBatchDepthMap = new Map<number, number>();
@@ -379,6 +382,55 @@ export class RealtimeRenderer {
     this.mapTokenRoleIdsMap.set(roomId, new Set(roleIds));
   }
 
+  private setMapOverlayActive(roomId: number, active: boolean): void {
+    this.mapOverlayActiveMap.set(roomId, active);
+  }
+
+  private applyMapOverlayStateEvent(roomId: number, stateEvent: StateEventExtra): void {
+    let active = this.mapOverlayActiveMap.get(roomId) ?? false;
+    stateEvent.events.forEach((event) => {
+      if (event.type === "combatRoundStart" || event.type === "combatRoundEnd") {
+        active = false;
+        return;
+      }
+      if (hasTuanChatMapOverlayTrigger([event])) {
+        active = true;
+      }
+    });
+    this.setMapOverlayActive(roomId, active);
+  }
+
+  private isMapOverlayClosingMessage(message: ChatMessageResponse["message"]): boolean {
+    switch (message.messageType as number) {
+      case MESSAGE_TYPE.TEXT:
+      case MESSAGE_TYPE.IMG:
+      case MESSAGE_TYPE.DICE:
+      case MESSAGE_TYPE.SOUND:
+      case MESSAGE_TYPE.EFFECT:
+      case MESSAGE_TYPE.INTRO_TEXT:
+      case MESSAGE_TYPE.WEBGAL_CHOOSE:
+      case MESSAGE_TYPE.VIDEO:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private async appendMapOverlayCloseBeforeMessageIfNeeded(
+    roomId: number,
+    message: ChatMessageResponse["message"],
+    syncToFile: boolean,
+  ): Promise<void> {
+    if (!this.mapOverlayActiveMap.get(roomId) || (this.combatRoundActiveMap.get(roomId) ?? false)) {
+      return;
+    }
+    if (!this.isMapOverlayClosingMessage(message)) {
+      return;
+    }
+    await this.appendLine(roomId, buildTuanChatMapOverlayActiveLine(false), syncToFile);
+    this.setMapOverlayActive(roomId, false);
+  }
+
   private async resolveStateEventMapBackgrounds(stateEvent: StateEventExtra): Promise<Record<number, string>> {
     const entries = await Promise.all(stateEvent.events.map(async (event): Promise<[number, string] | null> => {
       if (event.type !== "mapConfigUpsert") {
@@ -409,6 +461,7 @@ export class RealtimeRenderer {
     for (const line of result.lines) {
       await this.appendLine(roomId, line, syncToFile);
     }
+    this.applyMapOverlayStateEvent(roomId, stateEvent);
   }
 
   private hasExplicitCombatRoundEvent(extra: StateEventExtra | undefined, type: "combatRoundStart" | "combatRoundEnd"): boolean {
@@ -633,6 +686,7 @@ export class RealtimeRenderer {
     return {
       currentSpriteStateMap: this.currentSpriteStateMap,
       lastFigureSlotIdMap: this.lastFigureSlotIdMap,
+      mapOverlayActiveMap: this.mapOverlayActiveMap,
       messageLineMap: this.messageLineMap,
       messageRenderStateSnapshotMap: this.messageRenderStateSnapshotMap,
       renderedFigureStateMap: this.renderedFigureStateMap,
@@ -675,6 +729,7 @@ export class RealtimeRenderer {
     this.renderedFigureStateMap.set(roomId, new Map());
     this.renderedMiniAvatarVisibleMap.delete(roomId);
     this.lastFigureSlotIdMap.delete(roomId);
+    this.mapOverlayActiveMap.delete(roomId);
     this.mapTokenRoleIdsMap.delete(roomId);
   }
 
@@ -877,6 +932,7 @@ export class RealtimeRenderer {
         this.lastFigureSlotIdMap.set(roomId, compiledRoomScene.lastFigureSlotId);
       }
       this.combatRoundActiveMap.set(roomId, false);
+      this.mapOverlayActiveMap.delete(roomId);
       this.setMapTokenRoleIds(roomId, []);
       debugRealtimeRender(`[RealtimeRenderer] 房间 ${sceneName} 已复用 shared compiler 完成全量场景重建`);
       return true;
@@ -2083,6 +2139,7 @@ export class RealtimeRenderer {
         return;
 
       await this.appendSyntheticCombatRoundMarkerIfNeeded(targetRoomId, msg, syncToFile, options);
+      await this.appendMapOverlayCloseBeforeMessageIfNeeded(targetRoomId, msg, syncToFile);
 
       const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
       const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
@@ -2598,6 +2655,7 @@ export class RealtimeRenderer {
     }
     this.clearPendingDiceMerge(targetRoomId);
     this.combatRoundActiveMap.set(targetRoomId, false);
+    this.mapOverlayActiveMap.delete(targetRoomId);
     this.setMapTokenRoleIds(targetRoomId, []);
 
     // 批量处理消息，不进行文件同步和 WebSocket 同步
@@ -2803,6 +2861,7 @@ export class RealtimeRenderer {
       this.messageLineMap.clear();
       this.messageRenderStateSnapshotMap.clear();
       this.combatRoundActiveMap.clear();
+      this.mapOverlayActiveMap.clear();
       this.mapTokenRoleIdsMap.clear();
       this.clearPendingDiceMerge();
     }
@@ -2876,10 +2935,15 @@ export class RealtimeRenderer {
     const savedLineNumber = context.lineNumber;
     const savedText = context.text;
     const savedStateSnapshot = this.captureRoomRenderStateSnapshot(targetRoomId);
+    const previousMessageLines = savedText.split("\n").slice(lineRange.startLine - 1, lineRange.endLine);
+    const shouldRenderWithMapOverlayActive = previousMessageLines.includes(buildTuanChatMapOverlayActiveLine(false));
 
     // 临时重置上下文，用于收集新渲染的内容
     context.lineNumber = 0;
     context.text = "";
+    if (shouldRenderWithMapOverlayActive) {
+      this.setMapOverlayActive(targetRoomId, true);
+    }
 
     // 重新渲染该消息（不同步到文件）
     await this.renderMessage(message, targetRoomId, false, { bypassDiceMerge: true, skipBookkeeping: true });
@@ -2976,6 +3040,7 @@ export class RealtimeRenderer {
     this.roomSyncPendingSet.clear();
     this.messageRenderStateSnapshotMap.clear();
     this.combatRoundActiveMap.clear();
+    this.mapOverlayActiveMap.clear();
     this.mapTokenRoleIdsMap.clear();
     this.onStatusChange = undefined;
     this.onProgressChange = undefined;
