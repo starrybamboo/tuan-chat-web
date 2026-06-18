@@ -409,17 +409,20 @@ export class RealtimeRenderer {
     }
   }
 
-  private async appendMapOverlayCloseBeforeMessageIfNeeded(
+  private shouldCloseMapOverlayAfterMessage(
     roomId: number,
     message: ChatMessageResponse["message"],
+  ): boolean {
+    if (!this.mapOverlayActiveMap.get(roomId) || (this.combatRoundActiveMap.get(roomId) ?? false)) {
+      return false;
+    }
+    return this.isMapOverlayClosingMessage(message);
+  }
+
+  private async appendMapOverlayCloseAfterMessage(
+    roomId: number,
     syncToFile: boolean,
   ): Promise<void> {
-    if (!this.mapOverlayActiveMap.get(roomId) || (this.combatRoundActiveMap.get(roomId) ?? false)) {
-      return;
-    }
-    if (!this.isMapOverlayClosingMessage(message)) {
-      return;
-    }
     await this.appendLine(roomId, buildTuanChatMapOverlayActiveLine(false), syncToFile);
     this.setMapOverlayActive(roomId, false);
   }
@@ -2114,15 +2117,20 @@ export class RealtimeRenderer {
       }
 
       const initialLineNumber = this.sceneContextMap.get(targetRoomId)?.lineNumber ?? 0;
-      const finalizeMessageLineRange = () => {
+      let shouldCloseMapOverlayAfterMessage = false;
+      const finalizeMessageLineRange = async () => {
+        const context = this.sceneContextMap.get(targetRoomId);
+        if (!context) {
+          return;
+        }
+        if (shouldCloseMapOverlayAfterMessage && context.lineNumber > initialLineNumber) {
+          await this.appendMapOverlayCloseAfterMessage(targetRoomId, syncToFile);
+          shouldCloseMapOverlayAfterMessage = false;
+        }
         if (options?.skipBookkeeping) {
           return;
         }
         if (!msg.messageId) {
-          return;
-        }
-        const context = this.sceneContextMap.get(targetRoomId);
-        if (!context) {
           return;
         }
         const endLine = context.lineNumber;
@@ -2148,7 +2156,7 @@ export class RealtimeRenderer {
         return;
 
       await this.appendSyntheticCombatRoundMarkerIfNeeded(targetRoomId, msg, syncToFile, options);
-      await this.appendMapOverlayCloseBeforeMessageIfNeeded(targetRoomId, msg, syncToFile);
+      shouldCloseMapOverlayAfterMessage = this.shouldCloseMapOverlayAfterMessage(targetRoomId, msg);
 
       const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
       const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
@@ -2208,7 +2216,7 @@ export class RealtimeRenderer {
             }
           }
         }
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         return;
       }
 
@@ -2220,7 +2228,7 @@ export class RealtimeRenderer {
         const videoMsg = messageExtra?.videoMessage;
         const url = resolveMessageMediaUrl(videoMsg, "medium", "video");
         if (!url) {
-          finalizeMessageLineRange();
+          await finalizeMessageLineRange();
           return;
         }
 
@@ -2234,7 +2242,7 @@ export class RealtimeRenderer {
             this.sendSyncMessage(targetRoomId);
         }
 
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         return;
       }
 
@@ -2244,7 +2252,7 @@ export class RealtimeRenderer {
       if (soundMsg) {
         const url = resolveMessageMediaUrl(soundMsg, "medium", "audio");
         if (!url) {
-          finalizeMessageLineRange();
+          await finalizeMessageLineRange();
           return;
         }
 
@@ -2288,7 +2296,7 @@ export class RealtimeRenderer {
           }
         }
         // 如果既不是 BGM 也不是音效，则跳过（默认不处理普通语音消息）
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         return;
       }
 
@@ -2331,7 +2339,7 @@ export class RealtimeRenderer {
         if (wroteEffectCommand && syncToFile) {
           this.sendSyncMessage(targetRoomId);
         }
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         return;
       }
 
@@ -2339,7 +2347,7 @@ export class RealtimeRenderer {
       if ((msg.messageType as number) === MESSAGE_TYPE.WEBGAL_CHOOSE) {
         const payload = extractWebgalChoosePayload(msg.extra);
         if (!payload) {
-          finalizeMessageLineRange();
+          await finalizeMessageLineRange();
           return;
         }
         const lines = compileRealtimeRenderMessageLines(
@@ -2351,7 +2359,7 @@ export class RealtimeRenderer {
         if (syncToFile) {
           this.sendSyncMessage(targetRoomId);
         }
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         return;
       }
 
@@ -2363,7 +2371,7 @@ export class RealtimeRenderer {
         if (normalizedStateEventExtra) {
           await this.appendStateEventVarLines(targetRoomId, normalizedStateEventExtra, syncToFile);
         }
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
         return;
@@ -2397,7 +2405,7 @@ export class RealtimeRenderer {
           }),
         );
         await this.appendCompiledLines(targetRoomId, lines, syncToFile);
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         if (syncToFile)
           this.sendSyncMessage(targetRoomId);
         return;
@@ -2405,7 +2413,7 @@ export class RealtimeRenderer {
 
       // 只处理文本消息（messageType === 1）、黑屏文字（messageType === 9）和骰子消息（messageType === 6）
       if (msg.messageType !== 1 && msg.messageType !== 9 && !isDiceMessage) {
-        finalizeMessageLineRange();
+        await finalizeMessageLineRange();
         return;
       }
 
@@ -2625,7 +2633,7 @@ export class RealtimeRenderer {
       );
       await this.appendCompiledLines(targetRoomId, compiledLines, syncToFile);
 
-      finalizeMessageLineRange();
+      await finalizeMessageLineRange();
 
       // 自动跳转已关闭，保留写入但不主动跳转
       if (syncToFile) {

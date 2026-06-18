@@ -190,7 +190,7 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect((renderer as any).messageLineMap.size).toBeGreaterThan(0);
   });
 
-  it("非战斗轮连续地图更新会显示到下一条可视消息前再关闭", async () => {
+  it("非战斗轮连续地图更新会显示覆盖下一条可视消息再关闭", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     renderer.setRooms([room(10, "序章")]);
     renderer.setRoleCache([role(1, "明日香")]);
@@ -247,7 +247,7 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect(openIndices).toHaveLength(2);
     expect(closeIndicesAfterOpen).toHaveLength(1);
     expect(closeIndex).toBeGreaterThan(openIndices[openIndices.length - 1] ?? -1);
-    expect(dialogIndex).toBeGreaterThan(closeIndex);
+    expect(closeIndex).toBeGreaterThan(dialogIndex);
   });
 
   it("地图 token 增量更新会携带对应角色头像资源", async () => {
