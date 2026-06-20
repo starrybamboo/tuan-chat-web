@@ -42,16 +42,21 @@ pnpm openapi
 移动端常用入口：
 
 ```bash
-pnpm mobile:android
-pnpm mobile:android:start
-pnpm mobile:android:emulator
 pnpm mobile:start
+pnpm mobile:android
 pnpm mobile:web
-pnpm mobile:lint
 pnpm mobile:typecheck
+pnpm mobile:local-apk
+pnpm mobile:cloud-apk
+pnpm mobile:workflow:preview
+pnpm mobile:workflow:production
+pnpm mobile:ios:credentials
+pnpm mobile:ios:bootstrap-production
 ```
 
-移动端更细的 Android 调试约定见 `apps/mobile/README.md`。
+- `pnpm mobile:start`：启动 Expo 开发服务器，终端会显示二维码。
+- `pnpm mobile:android`：启动 Expo 开发服务器并尝试唤起 Android。
+- 其余 `mobile:*` 为发版和云端 EAS 相关入口。
 
 ## 环境变量
 

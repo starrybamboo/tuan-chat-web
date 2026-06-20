@@ -14,13 +14,31 @@
 
 ```bash
 pnpm install
-pnpm android:fast
-pnpm android:open
-pnpm android:dev
-pnpm android:build
-pnpm android:reverse
-pnpm android:emulator
+pnpm mobile:local-apk
+pnpm mobile:cloud-apk
+pnpm mobile:workflow:preview
+pnpm mobile:workflow:production
+pnpm mobile:ios:credentials
+pnpm mobile:ios:bootstrap-production
+```
+
+当前仓库根目录只保留发版和 EAS 相关移动端命令。
+
+如需本地 Expo 开发，请进入 `apps/mobile` 目录后直接使用该目录自己的脚本，例如：
+
+```bash
+pnpm start
 pnpm android
+pnpm ios
+pnpm web
+pnpm typecheck
+```
+
+此外，仓库根目录也恢复了一组精简的 Expo 开发入口：
+
+```bash
+pnpm mobile:start
+pnpm mobile:android
 pnpm mobile:web
 pnpm mobile:typecheck
 ```
@@ -70,8 +88,7 @@ pnpm android:dev
 pnpm android:dev
 ```
 
-- `pnpm android` 现在等价于 `pnpm android:dev`。
-- 旧的 `pnpm mobile:android:*` 入口暂时保留为兼容别名。
+- 仓库根目录不再暴露旧的本地 Android 调试脚本入口；如果后续还需要这类入口，再按当前工作流重新整理。
 
 - 这条命令会自动完成：
   1. 固定使用 `D:\android-sdk` 下的 `adb.exe`

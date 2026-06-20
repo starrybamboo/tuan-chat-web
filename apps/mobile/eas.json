@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 20.0.0",
+    "version": "20.3.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -30,6 +30,13 @@
         "EAS_GRADLE_CACHE": "1",
         "EAS_USE_CACHE": "1",
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
       }
     }
   },

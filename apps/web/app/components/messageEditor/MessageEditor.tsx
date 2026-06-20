@@ -81,6 +81,7 @@ import {
   getAdjacentMessageEditorTextBlockPoint,
   getMessageEditorSelectionText,
   moveMessageEditorDocumentPointByCharacter,
+  resolveMessageEditorSelectionFromNative,
   resolveMessageEditorSelectionFromRange,
   restoreMessageEditorSelection,
 } from "./runtime/messageEditorSelection";
@@ -902,7 +903,7 @@ export default function MessageEditor({
     const root = editorRootRef.current;
     const nativeSelection = window.getSelection();
     if (root && nativeSelection && nativeSelection.rangeCount > 0) {
-      const resolved = resolveMessageEditorSelectionFromRange(root, sourceMessages, registry, nativeSelection.getRangeAt(0));
+      const resolved = resolveMessageEditorSelectionFromNative(root, sourceMessages, registry, nativeSelection);
       const focus = clampPoint(resolved?.focus);
       if (focus) {
         return focus;
@@ -1303,7 +1304,7 @@ export default function MessageEditor({
 
     const selection = window.getSelection();
     if (!preferSaved && selection && selection.rangeCount > 0) {
-      const resolved = resolveMessageEditorSelectionFromRange(root, messagesRef.current, registry, selection.getRangeAt(0));
+      const resolved = resolveMessageEditorSelectionFromNative(root, messagesRef.current, registry, selection);
       if (resolved) {
         eventBus.emit("selectionChanged", {
           blockIds: resolved.blockIds,
@@ -2311,7 +2312,7 @@ export default function MessageEditor({
     }
 
     const range = selection.getRangeAt(0);
-    const editorSelection = resolveMessageEditorSelectionFromRange(root, messagesRef.current, registry, range);
+    const editorSelection = resolveMessageEditorSelectionFromNative(root, messagesRef.current, registry, selection);
     if (!editorSelection) {
       return;
     }

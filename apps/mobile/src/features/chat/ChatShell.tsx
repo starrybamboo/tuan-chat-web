@@ -88,7 +88,6 @@ import {
 import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { useMobileCommandRequests } from "@/features/messages/useMobileCommandRequests";
 import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
-import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
@@ -219,7 +218,7 @@ export default function ChatShell() {
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const currentUserId = session?.userId ?? null;
-  const { selectedSpaceId, selectedRoomId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
+  const { selectedSpaceId, selectedRoomId, setActiveDirectContactId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const {
     panGesture,
@@ -256,7 +255,6 @@ export default function ChatShell() {
   const { refetch: refetchSpaceMembers } = spaceMembersQuery;
   const { refetch: refetchRoomMembers } = roomMembersQuery;
   const { refetch: refetchRoomMessages } = roomMessagesQuery;
-  useRoomMessagesLiveSync(selectedRoomId);
   const sendRoomMessageMutation = useSendRoomMessageMutation(selectedRoomId, session?.userId ?? 0);
   const copyMessageToClueFolderMutation = useCopyMessageToClueFolderMutation(mobileApiClient);
   const { editMessage } = useEditRoomMessageMutation(selectedRoomId);
@@ -301,6 +299,13 @@ export default function ChatShell() {
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
   const [stShowCardModel, setStShowCardModel] = useState<StShowCardModel | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+
+  useEffect(() => {
+    setActiveDirectContactId(currentContactId);
+    return () => {
+      setActiveDirectContactId(null);
+    };
+  }, [currentContactId, setActiveDirectContactId]);
 
   useEffect(() => {
     draftMessageRef.current = draftMessage;
