@@ -4,7 +4,15 @@ import { dirname, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const passthroughArgs = process.argv.slice(2);
+function normalizePassthroughArgs(args) {
+  const result = [...args];
+  while (result[0] === "--") {
+    result.shift();
+  }
+  return result;
+}
+
+const passthroughArgs = normalizePassthroughArgs(process.argv.slice(2));
 const hasExplicitMode = passthroughArgs.some((arg, index) => {
   return arg === "--mode" || arg.startsWith("--mode=") || passthroughArgs[index - 1] === "--mode";
 });
