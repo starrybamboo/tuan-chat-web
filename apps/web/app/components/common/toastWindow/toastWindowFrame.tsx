@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
+
 import "@/components/common/scrollbar.css";
 
-export interface ToastWindowFrameProps {
+export type ToastWindowFrameProps = {
   isOpen: boolean;
   children: React.ReactNode;
   onClose: () => void;
@@ -46,7 +47,7 @@ export function ToastWindowFrame({
         `}>
           <motion.div
             className={`
-              relative flex flex-col
+              relative flex flex-col overflow-hidden
               ${transparent ? "bg-transparent w-full h-screen" : `
                 bg-base-100
                 dark:bg-base-300

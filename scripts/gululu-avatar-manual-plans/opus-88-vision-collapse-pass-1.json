@@ -1,0 +1,287 @@
+{
+  "createdAt": "2026-06-07T20:17:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第一批：只折叠同语义状态，汗/泪/脸红/阴影/嘴型/眼型差异保留。",
+  "groups": [
+    {
+      "role": "莉格露",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I008", "I034"],
+      "reason": "同为脸红闭眼大笑，差异仅为裁切和画布范围。"
+    },
+    {
+      "role": "莉格露",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I018", "I020", "I029", "I030", "I031"],
+      "reason": "同为正面睁眼平静微笑，无汗泪脸红阴影差异，仅裁切/线条差异。"
+    },
+    {
+      "role": "莉格露",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I024"],
+      "reason": "同为半睁侧视小口的平淡/嘟囔状态，表情状态一致。"
+    },
+    {
+      "role": "莉格露",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I009",
+      "memberIds": ["I009", "I021"],
+      "reason": "同为倾斜姿态的睁眼惊讶张口，差异仅为裁切。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I010", "I023", "I031"],
+      "reason": "同为闭眼大笑，手部/身体露出范围不同但脸部状态一致。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I019", "I020", "I032"],
+      "reason": "同为闭眼平静/休息状态，无汗泪脸红阴影差异，仅裁切和头部位置差异。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I007",
+      "memberIds": ["I007", "I012"],
+      "reason": "同为带汗滴的小口惊讶，表情状态一致。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I014",
+      "memberIds": ["I014", "I026", "I027", "I030"],
+      "reason": "同为睁眼惊讶张口，无汗泪脸红阴影差异，差异仅为裁切。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I024",
+      "memberIds": ["I024", "I029"],
+      "reason": "同为阴影下侧视狡黠微笑，表情状态一致。"
+    },
+    {
+      "role": "铃仙",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I003", "I005", "I029"],
+      "reason": "同为闭眼开心张口笑，无脸红强化或阴影差异，仅裁切/画布差异。"
+    },
+    {
+      "role": "铃仙",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I008"],
+      "reason": "同为闭眼平静微笑，表情状态一致。"
+    },
+    {
+      "role": "铃仙",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I011",
+      "memberIds": ["I011", "I013", "I027"],
+      "reason": "同为轻微惊讶小口，眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "铃仙",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I012",
+      "memberIds": ["I012", "I019"],
+      "reason": "同为睁大眼的小口惊讶，状态一致。"
+    },
+    {
+      "role": "二岩猯藏",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I013"],
+      "reason": "同为戴帽闭眼平静状态，仅裁切/画布差异。"
+    },
+    {
+      "role": "二岩猯藏",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I012"],
+      "reason": "同为戴帽闭眼大笑，表情状态一致。"
+    },
+    {
+      "role": "二岩猯藏",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I020"],
+      "reason": "同为戴帽半睁侧视微笑，表情状态一致。"
+    },
+    {
+      "role": "二岩猯藏",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I024",
+      "memberIds": ["I024", "I027", "I028"],
+      "reason": "同为戴帽阴影下微笑，阴影和嘴型状态一致，仅裁切差异。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I009", "I016", "I020"],
+      "reason": "同为睁眼平静遮口状态，无汗泪脸红阴影差异，仅裁切/视图范围差异。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I007", "I014", "I021"],
+      "reason": "同为闭眼平静遮口状态，表情状态一致。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I013", "I023"],
+      "reason": "同为闭眼微笑遮口，无脸红强化差异。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I025"],
+      "reason": "同为睁眼小口惊讶，表情状态一致。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I022"],
+      "reason": "同为汗滴惊讶小口，眼型嘴型和汗状态一致。"
+    },
+    {
+      "role": "稀神探女",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I015",
+      "memberIds": ["I015", "I024", "I026"],
+      "reason": "同为脸红闭眼微笑遮口，脸红状态一致。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I011", "I021", "I025"],
+      "reason": "同为闭眼开心大笑，无汗泪脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I007"],
+      "reason": "同为侧视惊讶张口状态，眼型嘴型一致。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I014"],
+      "reason": "同为带汗滴的小口惊讶，表情状态一致。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I012",
+      "memberIds": ["I012", "I018"],
+      "reason": "同为正面平静闭口状态，眼型嘴型一致。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I013",
+      "memberIds": ["I013", "I015"],
+      "reason": "同为正面睁眼温和微笑，表情状态一致。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I006", "I022"],
+      "reason": "同为闭眼担心/不安并带汗，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I015", "I019", "I024"],
+      "reason": "同为睁眼平静正面微笑，眼型嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I013", "I016", "I023"],
+      "reason": "同为闭眼开心张口笑，表情状态一致。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I007",
+      "memberIds": ["I007", "I008"],
+      "reason": "同为阴影下担心张口状态，差异仅为裁切/角度。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I012"],
+      "reason": "同为睁眼惊讶张口，表情状态一致。"
+    },
+    {
+      "role": "森近霖之助",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I014",
+      "memberIds": ["I014", "I025"],
+      "reason": "同为半睁侧视困惑张口，表情状态一致。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I015"],
+      "reason": "同为闭眼开心大笑，表情状态一致。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I018"],
+      "reason": "同为小口惊讶/担心状态，眼型嘴型一致。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I020", "I022", "I024"],
+      "reason": "同为睁眼温和微笑，差异仅为裁切和身体露出范围。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I023"],
+      "reason": "同为半睁淡笑状态，眼型嘴型一致。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I016"],
+      "reason": "同为睁大眼张口惊讶，表情状态一致。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I009",
+      "memberIds": ["I009", "I011"],
+      "reason": "同为闭眼平静状态，表情状态一致。"
+    }
+  ]
+}

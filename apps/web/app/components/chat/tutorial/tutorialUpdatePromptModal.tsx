@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-interface TutorialUpdatePromptModalProps {
+type TutorialUpdatePromptModalProps = {
   open: boolean;
   mode: "missing" | "update" | null;
   latestCommitId?: number | null;

@@ -1,10 +1,11 @@
+import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { useMemo } from "react";
 
-import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
-import { mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 
 export function usePrivateMessageReceiver(userId: number, currentContactUserId: number | null, historyMessages: MessageDirectResponse[]) {

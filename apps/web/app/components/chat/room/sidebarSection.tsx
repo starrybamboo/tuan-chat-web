@@ -2,9 +2,10 @@ import type { ReactNode } from "react";
 
 import { FolderPlusIcon } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
+
 import { ChevronDown } from "@/icons";
 
-interface SidebarSectionProps {
+type SidebarSectionProps = {
   title: string;
   isExpanded: boolean;
   onToggleExpanded: () => void;
@@ -12,6 +13,7 @@ interface SidebarSectionProps {
   actionTitle?: string;
   onAction?: () => void;
   actionIcon?: ReactNode;
+  actionVisibility?: "always" | "hover";
   className?: string;
   contentClassName?: string;
   fillContent?: boolean;
@@ -26,6 +28,7 @@ export default function SidebarSection({
   actionTitle,
   onAction,
   actionIcon,
+  actionVisibility = "hover",
   className,
   contentClassName,
   fillContent = false,
@@ -37,7 +40,10 @@ export default function SidebarSection({
   const sectionClassName = `px-1 ${withDivider ? "mt-0.5 border-t border-base-300/70 pt-1" : ""} ${className ?? ""}`;
   const headerClassName = "group flex items-center gap-1 rounded-md bg-base-300/55 px-2 py-1.5 text-[12.5px] font-semibold tracking-[0.08em] text-base-content/86";
   const iconButtonClassName = "inline-flex size-5 items-center justify-center rounded-sm text-base-content/60 transition hover:bg-base-100/70 hover:text-base-content/88";
-  const actionButtonClassName = "ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 opacity-0 transition-[opacity,color,background-color] duration-150 hover:bg-base-100/70 hover:text-base-content/90 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 group-hover:opacity-100";
+  const actionButtonVisibilityClassName = actionVisibility === "always"
+    ? "opacity-100"
+    : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100";
+  const actionButtonClassName = `ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-base-content/62 transition-[opacity,color,background-color] duration-150 hover:bg-base-100/70 hover:text-base-content/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${actionButtonVisibilityClassName}`;
 
   return (
     <section className={sectionClassName}>

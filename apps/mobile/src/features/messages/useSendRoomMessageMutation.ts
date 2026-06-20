@@ -17,6 +17,7 @@ import {
 } from "@tuanchat/query/chat";
 import {
   roleAbilityByRuleQueryKey,
+  readSuccessfulAbilityApiResultData,
 } from "@tuanchat/query/role-abilities";
 import {
   commitOptimisticRoomMessageInList,
@@ -161,7 +162,7 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
       return cached;
     }
     const response = await mobileApiClient.abilityController.getRoleAbilityByRule(ruleId, roleId);
-    return response.data ?? null;
+    return readSuccessfulAbilityApiResultData(response, "获取角色能力失败。");
   };
 
   const sendRequest = async (request: ChatMessageRequest) => {

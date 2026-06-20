@@ -1,6 +1,5 @@
 import type { MediaQualityInput, MediaType } from "@tuanchat/domain/media-url";
 
-import { resolveRuntimeMediaBaseUrl } from "@/utils/runtimeUrl";
 import {
   avatarOriginalUrl as _avatarOriginalUrl,
   avatarThumbUrl as _avatarThumbUrl,
@@ -25,6 +24,8 @@ import {
   mediaShard,
   normalizeMediaType,
 } from "@tuanchat/domain/media-url";
+
+import { resolveRuntimeMediaBaseUrl } from "@/utils/runtimeUrl";
 
 export {
   extractMediaFileIdFromUrl,

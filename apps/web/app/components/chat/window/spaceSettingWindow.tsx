@@ -1,12 +1,13 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useGetSpaceInfoQuery,
   useGetUserSpacesQuery,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { imageLowUrl } from "@/utils/mediaUrl";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = React.use(SpaceContext);

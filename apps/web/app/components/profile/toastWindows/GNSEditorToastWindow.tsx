@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
 
-interface Ratings {
+type Ratings = {
   Gamism: number;
   Narrativism: number;
   Simulationism: number;
 }
 
-interface GNSPreferenceEditorProps {
+type GNSPreferenceEditorProps = {
   initialRatings: Ratings;
   onSave: (ratings: Ratings) => Promise<void>;
   onCancel: () => void;

@@ -1,9 +1,9 @@
-import type { UserRegisterRequest } from "api";
-
 import {
   ACCOUNT_INVITE_CODE_PATTERN,
   normalizeAccountInviteCode,
 } from "@tuanchat/domain/account-invite";
+
+import type { UserRegisterRequest } from "api";
 
 export function normalizeRegisterInviteCode(value: string | null | undefined) {
   return normalizeAccountInviteCode(value);

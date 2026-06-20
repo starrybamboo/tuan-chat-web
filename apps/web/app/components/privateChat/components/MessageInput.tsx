@@ -1,10 +1,12 @@
 import type { Sticker as StickerType } from "@tuanchat/openapi-client/models/Sticker";
+
 import StickerWindow from "@/components/chat/window/StickerWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { EmojiIcon, Image2Fill } from "@/icons";
 import { mediaFileUrl } from "@/utils/mediaUrl";
+
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 
 export default function MessageInput({ userId, currentContactUserId }: { userId: number; currentContactUserId: number | null }) {

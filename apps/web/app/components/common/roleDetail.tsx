@@ -1,4 +1,5 @@
 import { use, useState } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
@@ -8,6 +9,7 @@ import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared"
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import ExpansionModule from "@/components/Role/rules/ExpansionModule";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery, useGetUserRolesQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";

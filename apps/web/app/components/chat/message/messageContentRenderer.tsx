@@ -1,6 +1,6 @@
-import type { Message } from "../../../../api";
 import { FileArrowUpIcon } from "@phosphor-icons/react";
 import { useEffect, useMemo } from "react";
+
 import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import AudioMessage from "@/components/chat/message/media/AudioMessage";
 import CachedVideoMessage from "@/components/chat/message/media/CachedVideoMessage";
@@ -25,6 +25,8 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
+import type { Message } from "../../../../api";
+
 type ReadonlyRenderableMessage = Pick<
   Message,
   | "messageType"
@@ -38,7 +40,7 @@ type ReadonlyRenderableMessage = Pick<
   webgal?: Record<string, any>;
 };
 
-interface MessageContentRendererProps {
+type MessageContentRendererProps = {
   message: ReadonlyRenderableMessage;
   annotations?: string[];
   cacheKeyBase?: string;
@@ -48,7 +50,7 @@ type LocalImageMessagePayload = NonNullable<ReturnType<typeof getImageMessageExt
   localFile?: File;
 };
 
-interface LocalMediaMessagePayload {
+type LocalMediaMessagePayload = {
   localFile?: File;
 }
 

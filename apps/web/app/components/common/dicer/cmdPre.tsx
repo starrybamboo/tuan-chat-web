@@ -1,12 +1,14 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
-import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
-import type { StateEventAtom } from "@/types/stateEvent";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
+
+import type { RoomContextType } from "@/components/chat/core/roomContext";
+import type { DicerMessageVisibility } from "@/components/common/dicer/commandMessageVisibility";
+import type { StateEventAtom } from "@/types/stateEvent";
+
 import { getNextAppendPosition } from "@/components/chat/shared/messageOrder";
 import { persistRoleAbilitySnapshot } from "@/components/chat/state/roleVarWriteThrough";
 import { initAliasMapOnce, RULES } from "@/components/common/dicer/aliasRegistry";
@@ -23,9 +25,13 @@ import { buildRoleScopedStateDiceReply } from "@/components/common/dicer/stateDi
 import UTILS from "@/components/common/dicer/utils/utils";
 import { buildCommandStateEventExtra, formatStateEventAtomDetail, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { invalidateRoleAbilityCaches, roleAbilityByRuleQueryKey } from "../../../../api/hooks/abilityMutationInvalidation";
+
+import type { ChatMessageRequest, ChatMessageResponse, RoleAbility, RoleAvatar, UserRole } from "../../../../api";
+
+import { invalidateRoleAbilityCaches } from "../../../../api/hooks/abilityMutationInvalidation";
 import {
   fetchRoleAbilityByRuleWithCache,
+  getFreshRoleAbilityByRuleFromCache,
   setRoleAbilityWithSuccessGuard,
   updateRoleAbilityByRuleWithSuccessGuard,
 } from "../../../../api/hooks/abilityQueryHooks";
@@ -34,13 +40,13 @@ import { fetchRoleAvatarsWithCache, useGetRoleQuery } from "../../../../api/hook
 
 initAliasMapOnce();
 
-interface PendingOptimisticCommandMessage {
+type PendingOptimisticCommandMessage = {
   optimisticMessageId: number;
   fallbackPosition: number;
   stableMessageKey: string;
 }
 
-interface QueuedDicerMessage {
+type QueuedDicerMessage = {
   content: string;
   visibility: DicerMessageVisibility;
 }
@@ -64,8 +70,10 @@ function logDicerFlow(step: string, payload: Record<string, unknown>): void {
 }
 
 async function getOrFetchRoleAbility(queryClient: QueryClient, ruleId: number, roleId: number): Promise<RoleAbility> {
-  const cached = queryClient.getQueryData<RoleAbility | null>(roleAbilityByRuleQueryKey(roleId, ruleId));
-  const ability = (cached ?? await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId) ?? {}) as RoleAbility;
+  const cached = getFreshRoleAbilityByRuleFromCache(queryClient, roleId, ruleId);
+  const ability = (cached !== undefined
+    ? cached
+    : await fetchRoleAbilityByRuleWithCache(queryClient, roleId, ruleId)) ?? {} as RoleAbility;
   return cloneRoleAbility({
     ...ability,
     roleId: ability.roleId ?? roleId,
@@ -98,7 +106,10 @@ function normalizeCopywritingMap(raw: unknown): Record<string, string[]> {
 }
 
 async function getDicerCopywritingMap(queryClient: QueryClient, ruleId: number, dicerRoleId: number): Promise<Record<string, string[]>> {
-  const ability = await fetchRoleAbilityByRuleWithCache(queryClient, dicerRoleId, ruleId);
+  const cached = getFreshRoleAbilityByRuleFromCache(queryClient, dicerRoleId, ruleId);
+  const ability = cached !== undefined
+    ? cached
+    : await fetchRoleAbilityByRuleWithCache(queryClient, dicerRoleId, ruleId);
   const rawCopywriting = (ability as any)?.extra?.copywriting;
   let parsedRaw: unknown = rawCopywriting;
   if (typeof rawCopywriting === "string") {

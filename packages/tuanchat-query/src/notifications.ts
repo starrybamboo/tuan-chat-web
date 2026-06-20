@@ -1,7 +1,4 @@
 import type { InfiniteData, QueryClient } from "@tanstack/react-query";
-
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@tuanchat/openapi-client/models/ApiResultCursorPageBaseResponseNotificationItemResponse";
 import type { ApiResultNotificationUnreadCountResponse } from "@tuanchat/openapi-client/models/ApiResultNotificationUnreadCountResponse";
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
@@ -9,6 +6,8 @@ import type { NotificationPageRequest } from "@tuanchat/openapi-client/models/No
 import type { NotificationReadAllRequest } from "@tuanchat/openapi-client/models/NotificationReadAllRequest";
 import type { NotificationReadRequest } from "@tuanchat/openapi-client/models/NotificationReadRequest";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 type NotificationClient = Pick<TuanChat, "notificationController">;
 type NotificationPageData = InfiniteData<ApiResultCursorPageBaseResponseNotificationItemResponse, number | undefined>;

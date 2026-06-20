@@ -17,10 +17,25 @@ type PreparedImagePayload = {
 };
 
 function resolveChatroomImageUrlQuality(quality: MediaQuality): MediaQuality {
-  if (quality === "low" || quality === "high") {
+  if (quality === "low") {
     return quality;
   }
   return "medium";
+}
+
+function buildPreparedFilesByQuality(
+  file: File,
+  mediaType: MediaType,
+  scene: 1 | 2 | 3 | 4,
+  quality: MediaQuality,
+): Partial<Record<MediaQuality, File>> {
+  if (scene !== 1) {
+    return { original: file, low: file, medium: file };
+  }
+  if (mediaType === "image") {
+    return { original: file, low: file, medium: file };
+  }
+  return { [quality]: file };
 }
 
 export type UploadedDualImageResult = {
@@ -58,7 +73,7 @@ export class UploadUtils {
   ): Promise<UploadedMediaAssetResult> {
     const uploaded = await uploadMediaFile(file, { scene });
     const sceneQuality = scene === 1
-      ? (uploaded.mediaType === "image" ? "high" : "low")
+      ? (uploaded.mediaType === "image" ? "medium" : "low")
       : "original";
     const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, sceneQuality);
     return {
@@ -82,9 +97,7 @@ export class UploadUtils {
     scene: 1 | 2 | 3 | 4 = 1,
     quality: MediaQuality = "medium",
   ): Promise<UploadedMediaAssetResult> {
-    const filesByQuality: Partial<Record<MediaQuality, File>> = scene === 1
-      ? { [quality]: file }
-      : { original: file, low: file, medium: file };
+    const filesByQuality = buildPreparedFilesByQuality(file, mediaType, scene, quality);
     const uploaded = await uploadGeneratedMediaFiles({
       original: file,
       mediaType,
@@ -93,7 +106,7 @@ export class UploadUtils {
       filesByQuality,
     }, { scene });
     const sceneQuality = scene === 1
-      ? (uploaded.mediaType === "image" ? "high" : "low")
+      ? (uploaded.mediaType === "image" ? "medium" : "low")
       : "original";
     const originalUrl = mediaFileUrl(uploaded.fileId, uploaded.mediaType, sceneQuality);
     return {

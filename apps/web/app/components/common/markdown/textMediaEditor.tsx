@@ -1,5 +1,7 @@
 import type { ChangeEvent, ClipboardEvent } from "react";
+
 import { useEffect, useRef, useState } from "react";
+
 import {
   buildImageMarkdown,
   buildMediaReferenceToken,
@@ -8,7 +10,7 @@ import {
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { UploadUtils } from "@/utils/UploadUtils";
 
-interface TextMediaEditorProps {
+type TextMediaEditorProps = {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;

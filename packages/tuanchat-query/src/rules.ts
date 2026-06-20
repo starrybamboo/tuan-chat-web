@@ -1,8 +1,8 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 type RuleClient = Pick<TuanChat, "ruleController">;
 

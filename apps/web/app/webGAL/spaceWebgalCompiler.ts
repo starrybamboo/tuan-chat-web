@@ -1,4 +1,5 @@
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
+import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 import {
   ANNOTATION_IDS,
   getFigureAnimationFromAnnotations,
@@ -38,6 +39,13 @@ import {
   buildWorkflowTransitionLineWithEnd,
   getWorkflowEndSceneName,
 } from "./realtimeRendererWorkflowScenes";
+import {
+  buildOrdinaryFigureRenderAsset,
+  buildPreparedFigureCompositionAsset,
+  buildWebgalFigureRenderAsset,
+  resolveFigureCompositionCandidate,
+} from "./webgalFigureComposition";
+import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 export type WebgalPublishFile = {
   path: string;
@@ -66,6 +74,8 @@ export type CompiledRoomSceneResult = {
 
 type WebgalCompiledRoleAvatar = RoleAvatar & {
   webgalSpritePath?: string;
+  webgalAvatarLayerPath?: string;
+  webgalCompositionBasePath?: string;
 };
 
 const GAME_DIR = "game";
@@ -155,9 +165,8 @@ export function resolveProjectableMediaUrl(
   fileId?: number,
   mediaType: "image" | "audio" | "video" = "image",
   quality: "low" | "medium" | "high" | "original" = "medium",
-  fallbackUrl?: string,
 ): string {
-  return mediaFileUrl(fileId, mediaType, quality) || String(fallbackUrl ?? "").trim();
+  return mediaFileUrl(fileId, mediaType, quality) || "";
 }
 
 function buildBaseRuntimeSupportFiles(): WebgalPublishFile[] {
@@ -210,16 +219,15 @@ export function resolvePublishedGameName(
 export function buildConfigContent(snapshot: SpaceWebgalInputSnapshot): string {
   const entries = parseGameConfig(snapshot.rawGameConfig ?? "");
   const gameConfig = snapshot.hydratedGameConfig;
-  const coverAvatarUrl = resolveProjectableMediaUrl(snapshot.coverAvatarSource?.fileId, "image", "medium", snapshot.coverAvatarSource?.url);
-  const titleImageUrl = resolveProjectableMediaUrl(gameConfig.titleImageFileId, "image", "medium", gameConfig.titleImageUrl)
+  const coverAvatarUrl = resolveProjectableMediaUrl(snapshot.coverAvatarSource?.fileId, "image", "medium");
+  const titleImageUrl = resolveProjectableMediaUrl(gameConfig.titleImageFileId, "image", "medium")
     || ((gameConfig.coverFromRoomAvatarEnabled ?? true) ? coverAvatarUrl : "");
-  const startupLogoUrl = resolveProjectableMediaUrl(gameConfig.startupLogoFileId, "image", "medium", gameConfig.startupLogoUrl)
+  const startupLogoUrl = resolveProjectableMediaUrl(gameConfig.startupLogoFileId, "image", "medium")
     || (gameConfig.startupLogoFromRoomAvatarEnabled ? coverAvatarUrl : "");
   const typingSoundSeUrl = resolveProjectableMediaUrl(
     gameConfig.typingSoundSeFileId,
     (gameConfig.typingSoundSeMediaType as "audio" | "image" | "video" | undefined) || "audio",
     "low",
-    gameConfig.typingSoundSeUrl,
   );
 
   upsertGameConfigEntry(entries, "Game_name", resolvePublishedGameName(snapshot.spaceId, snapshot.spaceName, gameConfig));
@@ -296,7 +304,44 @@ export function buildIndexHtml(spaceName?: string, sharedEngineUrl?: string, inc
 }
 
 function resolveSpriteUrl(avatar: WebgalCompiledRoleAvatar | undefined): string {
-  return avatar?.webgalSpritePath?.trim() || "";
+  return avatar?.webgalSpritePath?.trim() || resolveRoleAvatarMedia(avatar).sprite.url;
+}
+
+function resolveAvatarLayerUrl(avatar: WebgalCompiledRoleAvatar | undefined): string {
+  return avatar?.webgalAvatarLayerPath?.trim() || resolveRoleAvatarMedia(avatar).avatar.url;
+}
+
+function resolveFigureRenderAsset(
+  avatar: WebgalCompiledRoleAvatar | undefined,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
+): WebgalFigureRenderAsset | undefined {
+  if (!avatar) {
+    return undefined;
+  }
+
+  const avatarList = Array.from(avatarMap.values());
+  const candidate = resolveFigureCompositionCandidate(avatar, avatarList);
+  if (candidate) {
+    const basePath = resolveSpriteUrl(candidate.baseAvatar);
+    const avatarLayerPath = resolveAvatarLayerUrl(avatar);
+    if (basePath && avatarLayerPath) {
+      return buildWebgalFigureRenderAsset(candidate, basePath, avatarLayerPath);
+    }
+  }
+
+  if (avatar.webgalCompositionBasePath && avatar.webgalAvatarLayerPath) {
+    const preparedAsset = buildPreparedFigureCompositionAsset({
+      avatar,
+      baseAvatar: avatar,
+      basePath: avatar.webgalCompositionBasePath,
+      avatarLayerPath: avatar.webgalAvatarLayerPath,
+    }, avatarList);
+    if (preparedAsset) {
+      return preparedAsset;
+    }
+  }
+
+  return buildOrdinaryFigureRenderAsset(resolveSpriteUrl(avatar));
 }
 
 function appendLine(context: { lines: string[] }, line: string | null | undefined): void {
@@ -442,18 +487,22 @@ function renderFigureCommands(
 
   const messageAvatarId = Number(payload.avatarId ?? 0);
   const avatar = messageAvatarId > 0 ? avatarMap.get(messageAvatarId) : undefined;
-  const spriteUrl = resolveSpriteUrl(avatar);
-  if (!spriteUrl) {
+  const figureAsset = resolveFigureRenderAsset(avatar, avatarMap);
+  if (!figureAsset) {
     return "";
   }
 
   const figureSlot = resolveFigureSlot(figurePosition);
   const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0);
   const previous = context.renderedFigures.get(figureSlot.id);
-  if (!previous || previous.fileName !== spriteUrl || previous.transform !== transform) {
+  if (!previous || previous.fileName !== figureAsset.stateKey || previous.transform !== transform) {
     const figureArgs = buildFigureArgs(figureSlot.id, transform);
-    appendLine(context, `changeFigure:${spriteUrl} ${figureArgs} -next;`);
-    context.renderedFigures.set(figureSlot.id, { fileName: spriteUrl, transform });
+    if (figureAsset.composeLine) {
+      appendLine(context, figureAsset.composeLine);
+    }
+    const compositePart = figureAsset.composite ? " -composite" : "";
+    appendLine(context, `changeFigure:${figureAsset.target}${compositePart} ${figureArgs} -next;`);
+    context.renderedFigures.set(figureSlot.id, { fileName: figureAsset.stateKey, transform });
   }
   context.lastFigureSlotId = figureSlot.id;
 

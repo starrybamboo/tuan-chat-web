@@ -1,7 +1,9 @@
-import type { Room } from "api";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import type { ChatPageSubWindowTab } from "@/components/chat/hooks/useChatPageSubWindow";
 import type { MinimalDocMeta } from "@/components/chat/room/sidebarTree";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Room } from "api";
+
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef";
 import { getMaterialItemDragData, isMaterialItemDrag } from "@/components/chat/utils/materialItemDrag";
@@ -14,7 +16,7 @@ const LazySpaceMaterialSubWindow = React.lazy(() => import("@/components/chat/sp
 
 type ScreenSize = "sm" | "md" | "lg";
 
-interface ChatPageSubWindowProps {
+type ChatPageSubWindowProps = {
   screenSize: ScreenSize;
   activeSpaceId: number | null;
   isKPInSpace: boolean;

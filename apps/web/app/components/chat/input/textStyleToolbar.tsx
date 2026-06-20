@@ -1,6 +1,4 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { FloatingSelectionToolbarPosition } from "@/components/common/floatingSelectionToolbar";
 
 import {
   CaretDownIcon,
@@ -18,16 +16,19 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { FloatingSelectionToolbarPosition } from "@/components/common/floatingSelectionToolbar";
+
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 import { buildTextStyleSyntax, clearTextStyleSyntax } from "./textStyleSyntax";
 
 type SelectionTransform = (selectedText: string) => string;
-interface TextStyleInsertOptions { transform?: SelectionTransform }
+type TextStyleInsertOptions = { transform?: SelectionTransform }
 type ManagedTextStyleInsert = (text: string, selectedText: string, options?: TextStyleInsertOptions) => boolean | void;
 
-interface TextStyleToolbarProps {
+type TextStyleToolbarProps = {
   /** 输入框的 ref，用于插入文本 */
   chatInputRef: RefObject<ChatInputAreaHandle | null>;
   /** 外部托管的原始字符串选区，例如文档编辑器的跨块选区 */

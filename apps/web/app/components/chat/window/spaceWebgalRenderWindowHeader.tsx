@@ -1,10 +1,11 @@
-import type { BatchProgress } from "./spaceWebgalRenderWindowParts";
 import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 import type { InitProgress, RealtimeRenderStatus } from "@/webGAL/useRealtimeRender";
 
+import type { BatchProgress } from "./spaceWebgalRenderWindowParts";
+
 import { buildStatusMeta } from "./spaceWebgalRenderWindowParts";
 
-interface SpaceWebgalRenderWindowHeaderProps {
+type SpaceWebgalRenderWindowHeaderProps = {
   realtimeStatus: RealtimeRenderStatus;
   realtimeInitProgress: InitProgress | null;
   isRealtimeActive: boolean;

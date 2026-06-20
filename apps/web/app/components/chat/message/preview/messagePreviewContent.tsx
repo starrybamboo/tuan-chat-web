@@ -1,14 +1,14 @@
-import type { Message } from "../../../../../api";
-
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
 
+import type { Message } from "../../../../../api";
+
 import { getMessagePreviewText } from "./getMessagePreviewText";
 
-interface MessagePreviewContentProps {
+type MessagePreviewContentProps = {
   canViewHiddenDiceReply?: boolean;
   message?: Message | null;
   /**

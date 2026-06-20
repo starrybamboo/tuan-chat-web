@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 type CollapsibleAlertType = "info" | "success";
 
-export interface CollapsibleAlertProps {
+export type CollapsibleAlertProps = {
   type: CollapsibleAlertType;
   message: string;
   /** Replace tokens like {label} in message */

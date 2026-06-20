@@ -1,6 +1,7 @@
-import type { ChatMessageResponse, Message } from "../../../../../api";
-import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
 import { use, useCallback, useEffect, useMemo, useRef } from "react";
+
+import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
+
 import { canCopyMessageToClueFolder } from "@/components/chat/clues/clueRooms";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import {
@@ -10,7 +11,9 @@ import {
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
-interface ContextMenuProps {
+import type { ChatMessageResponse, Message } from "../../../../../api";
+
+type ContextMenuProps = {
   contextMenu: { x: number; y: number; messageId: number } | null;
   historyMessages: ChatMessageResponse[];
   selectedMessageIds: Set<number>;
@@ -27,7 +30,7 @@ interface ContextMenuProps {
   onToggleNarrator?: (messageId: number) => void;
 }
 
-interface ContextMenuItem {
+type ContextMenuItem = {
   key: string;
   label: string;
   onSelect: () => void;

@@ -1,10 +1,11 @@
 import React from "react";
+
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-
 import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
+
 import { useGetUserProfileQuery } from "../../../../api/hooks/UserHooks";
 import { FollowStats } from "./components/FollowStats";
 import { ProfileEditPanel } from "./components/ProfileEditPanel";
@@ -15,7 +16,7 @@ import { UserReadMe } from "./components/UserReadMe";
 import { useFollowData } from "./hooks/useFollowData";
 import { useProfileEditing } from "./hooks/useProfileEditing";
 
-interface HomeTabProps {
+type HomeTabProps = {
   userId: number;
 }
 

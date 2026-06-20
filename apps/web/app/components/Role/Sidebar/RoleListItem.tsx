@@ -1,9 +1,10 @@
-import type { Role } from "../types";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
+import type { Role } from "../types";
+
 // 1. 从 Props 接口中移除 onSelect
-interface RoleListItemProps {
+type RoleListItemProps = {
   role: Role;
   isSelected: boolean;
   onSelect: () => void;
@@ -104,6 +105,27 @@ export function RoleListItem({
           </svg>
         </button>
       )}
+    </div>
+  );
+}
+
+export function RoleListItemSkeleton() {
+  return (
+    <div
+      className="flex items-center gap-3 rounded-lg p-3"
+      aria-hidden="true"
+    >
+      <div className="avatar shrink-0">
+        <div className="
+          skeleton size-12 rounded-full
+          md:size-14
+        " />
+      </div>
+      <div className="min-w-0 flex-1 space-y-2 overflow-hidden">
+        <div className="skeleton h-4 w-28 rounded-full" />
+        <div className="skeleton h-3 w-40 max-w-full rounded-full" />
+      </div>
+      <div className="skeleton size-4 rounded-full opacity-70" />
     </div>
   );
 }

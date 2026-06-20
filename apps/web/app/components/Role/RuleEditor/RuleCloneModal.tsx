@@ -1,7 +1,10 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+
 import { useDebounce } from "ahooks";
-import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
+
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+
 import RulesSection from "../rules/RulesSection";
 
 export default function RuleCloneModal({

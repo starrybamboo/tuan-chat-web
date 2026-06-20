@@ -1,18 +1,21 @@
-import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
 import { AddressBookIcon, ArchiveIcon, ArrowCounterClockwise, FolderPlusIcon, HouseIcon, SignOutIcon, TrashIcon, UserPlusIcon } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
 import toast from "react-hot-toast";
+
+import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/chat/chatPage.types";
+
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { prepareSpaceDocsForArchive } from "@/components/chat/infra/doc/space/prepareSpaceDocsForArchive";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { ChevronDown, DiceD6Icon, MemberIcon, Setting, SidebarSimpleIcon, WebgalIcon } from "@/icons";
+
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../api/hooks/chatQueryHooks";
 
-interface SpaceHeaderBarProps {
+type SpaceHeaderBarProps = {
   spaceName?: string;
   isArchived?: boolean;
   isSpaceOwner: boolean;

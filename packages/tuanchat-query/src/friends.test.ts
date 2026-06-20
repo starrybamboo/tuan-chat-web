@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { FriendReqResponse } from "@tuanchat/openapi-client/models/FriendReqResponse";
+
+import { describe, expect, it } from "vitest";
 
 import {
   FRIEND_REQUEST_STATUS_PENDING,

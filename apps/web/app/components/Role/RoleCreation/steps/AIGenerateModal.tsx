@@ -1,14 +1,14 @@
 import { useState } from "react";
 
 // AI生成的预览数据类型
-interface AIGeneratedData {
+type AIGeneratedData = {
   act?: Record<string, string>;
   basic?: Record<string, string>;
   ability?: Record<string, string>;
   skill?: Record<string, string>;
 }
 
-interface AIGenerateModalProps {
+type AIGenerateModalProps = {
   isOpen: boolean;
   onClose: () => void;
   ruleId: number;

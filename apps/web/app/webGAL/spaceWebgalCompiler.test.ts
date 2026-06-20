@@ -20,6 +20,20 @@ function getFileContent(files: Awaited<ReturnType<typeof renderWebgalPublishPack
   return file!.content;
 }
 
+function variantGroup(baseAvatarId = 11) {
+  return {
+    variantId: 100,
+    roleId: 1,
+    name: "校服",
+    baseAvatarId,
+    compositionConfig: {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x: 12, y: 34, width: 256, height: 256 },
+      output: { format: "webp" },
+    },
+  };
+}
+
 type AuthoredDiceExtra = MessageExtra & {
   authoredDice: {
     options?: string[];
@@ -43,13 +57,10 @@ describe("spaceWebgalCompiler", () => {
         gameIconFromRoomAvatarEnabled: false,
         gameNameFromRoomNameEnabled: true,
         titleImageFileId: 1001,
-        titleImageUrl: "https://legacy.example/title.webp",
         startupLogoFileId: 1002,
-        startupLogoUrl: "https://legacy.example/logo.webp",
         typingSoundEnabled: true,
         typingSoundSeFileId: 1003,
         typingSoundSeMediaType: "audio",
-        typingSoundSeUrl: "https://legacy.example/typing.webm",
       },
       rawGameConfig: "Description:旧描述;",
     });
@@ -181,6 +192,76 @@ describe("spaceWebgalCompiler", () => {
     expect(scene.content).toContain("changeFigure:role_1/sprite_11.webp");
     expect(scene.content).toContain("changeFigure:role_1/sprite_12.webp");
     expect(scene.renderedFigures.get("1")?.fileName).toBe("role_1/sprite_12.webp");
+  });
+
+  it("静态场景编译会对有效立绘组输出 composeFigure 和 changeFigure -composite", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>([
+      [11, {
+        avatarId: 11,
+        roleId: 1,
+        variantId: 100,
+        variantGroup: variantGroup(11),
+        spriteFileId: 2048,
+        avatarFileId: 3001,
+        webgalSpritePath: "role_1/base_11_2048.webp",
+      } as RoleAvatar],
+      [12, {
+        avatarId: 12,
+        roleId: 1,
+        variantId: 100,
+        variantGroup: variantGroup(11),
+        spriteFileId: 4096,
+        avatarFileId: 3002,
+        webgalAvatarLayerPath: "role_1/avatar_12_3002.webp",
+        avatarCropContext: {
+          sourceWidth: 1000,
+          sourceHeight: 1600,
+          crop: { x: 12, y: 34, width: 256, height: 256 },
+        },
+      } as RoleAvatar],
+    ]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 1,
+          avatarId: 12,
+          content: "笑脸差分",
+          status: 0,
+          messageType: MESSAGE_TYPE.TEXT,
+          position: 1,
+          annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    const composeIndex = scene.content.indexOf("composeFigure:");
+    const changeIndex = scene.content.indexOf("changeFigure:");
+    expect(composeIndex).toBeGreaterThanOrEqual(0);
+    expect(changeIndex).toBeGreaterThan(composeIndex);
+    expect(scene.content).toContain("-base=role_1/base_11_2048.webp");
+    expect(scene.content).toContain("-layer=role_1/avatar_12_3002.webp,12,34,256,256");
+    expect(scene.content).toContain(" -composite -id=1 ");
+    expect(scene.content).toContain("明日香: 笑脸差分 -figureId=1;");
+    expect(scene.renderedFigures.get("1")?.fileName).toContain("avatar:12:3002");
   });
 
   it("静态场景编译缺少 spriteFileId 时会和实时追加一样使用 originFileId", () => {

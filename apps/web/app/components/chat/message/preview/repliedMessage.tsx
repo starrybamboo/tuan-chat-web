@@ -1,11 +1,14 @@
-import type { Message } from "../../../../../api";
 import { use } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { XMarkICon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { Message } from "../../../../../api";
+
 import { useGetRoleQuery } from "../../../../../api/hooks/RoleAndAvatarHooks";
 import { MessagePreviewContent } from "./messagePreviewContent";
 

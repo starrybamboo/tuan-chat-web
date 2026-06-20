@@ -1,6 +1,9 @@
 import type { SyntheticEvent } from "react";
-import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
+
 import { useEffect, useState } from "react";
+
+import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWindowRenderer";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";

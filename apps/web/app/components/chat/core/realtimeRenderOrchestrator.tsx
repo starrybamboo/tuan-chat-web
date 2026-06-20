@@ -1,8 +1,7 @@
-import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "react-hot-toast";
+
 import {
   getMaxRenderedMessagePosition,
   shouldAutoAdvanceAppendedMessage,
@@ -26,6 +25,8 @@ import {
 import { getTerreHealthcheckUrl } from "@/webGAL/terreConfig";
 import useRealtimeRender from "@/webGAL/useRealtimeRender";
 
+import type { ChatMessageResponse, Room, UserRole } from "../../../../api";
+
 const MESSAGE_SYNC_TOAST_ID = "webgal-message-sync";
 const MESSAGE_SYNC_TOAST_DELAY_MS = 350;
 
@@ -33,7 +34,7 @@ function sortMessagesForRender(messages: ChatMessageResponse[]) {
   return [...messages].sort(compareChatMessageResponsesByOrder);
 }
 
-export interface RealtimeRenderOrchestratorApi {
+export type RealtimeRenderOrchestratorApi = {
   toggleRealtimeRender: () => Promise<void>;
   stopRealtimeRender: () => void;
   jumpToMessage: (messageId: number) => boolean;
@@ -47,7 +48,7 @@ export interface RealtimeRenderOrchestratorApi {
   clearBackground: () => void;
 }
 
-interface Props {
+type Props = {
   spaceId: number;
   spaceName?: string;
   ruleId?: number | null;

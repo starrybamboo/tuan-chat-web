@@ -1,9 +1,10 @@
+import { patchInsertMessages } from "@tuanchat/query";
+
 import type { ImportedDiceTurn } from "@/components/chat/utils/importChatText";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { buildImportedChatMessageRequests } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
-import { patchInsertMessages } from "@tuanchat/query";
 
 import type { ChatMessageRequest, RoleAvatar, UserRole } from "../../../../api";
 

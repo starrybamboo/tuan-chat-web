@@ -1,12 +1,7 @@
-import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
-import type { InitialImportChatMessage } from "./initialChatImport";
-
 import { ChatCircleText, Trash } from "@phosphor-icons/react";
-import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useState } from "react";
 import toast from "react-hot-toast";
+
 import checkBack from "@/components/common/autoContrastText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -14,12 +9,19 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { PlusIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
+import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserRolesQuery } from "api/queryHooks";
+
+import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
+import type { InitialImportChatMessage } from "./initialChatImport";
+
 import { runCreateRoomPostCreateSteps } from "./createRoomInitialImportFlow";
 import { createRoomNameDraftFromInput, resolveCreateRoomNameInputState } from "./createRoomNameDraft";
 import ImportChatMessagesWindow from "./importChatMessagesWindow";
 import { sendInitialImportChatMessages } from "./initialChatImport";
 
-interface CreateRoomWindowProps {
+type CreateRoomWindowProps = {
   spaceId: number;
   spaceAvatarThumbUrl?: string;
   isKP?: boolean;

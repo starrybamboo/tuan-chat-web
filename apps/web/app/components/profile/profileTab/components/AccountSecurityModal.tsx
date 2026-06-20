@@ -1,18 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import {
   bindEmailByVerification,
   changeEmailByVerification,
   changePasswordByEmailVerification,
   sendEmailVerificationCode,
 } from "@/utils/auth/accountSecurityApi";
+
 import { useGetMyUserInfoQuery } from "../../../../../api/hooks/UserHooks";
 import { useVerificationCodeCooldown } from "../../../auth/useVerificationCodeCooldown";
 
 export type SecurityTab = "password" | "email";
 
-interface AccountSecurityModalProps {
+type AccountSecurityModalProps = {
   isOpen: boolean;
   onClose: () => void;
   initialTab: SecurityTab;

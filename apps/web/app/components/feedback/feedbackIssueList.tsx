@@ -1,6 +1,8 @@
-import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
+
+import type { FeedbackIssueListFilters, FeedbackIssueListItem, FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
+
 import { listItemMotionProps } from "@/components/common/motion/listItemMotion";
 import {
   FEEDBACK_ISSUE_STATUS_COMPLETED,

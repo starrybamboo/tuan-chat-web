@@ -1,7 +1,7 @@
-import { useState } from "react";
-
 import type { UserProfileInfoResponse } from "@tuanchat/openapi-client/models/UserProfileInfoResponse";
 import type { UserUpdateInfoRequest } from "@tuanchat/openapi-client/models/UserUpdateInfoRequest";
+
+import { useState } from "react";
 
 import { useUpdateUserInfoMutation } from "../../../../../api/hooks/UserHooks";
 

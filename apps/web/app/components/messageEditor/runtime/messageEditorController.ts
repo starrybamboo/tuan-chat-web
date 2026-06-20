@@ -16,6 +16,7 @@ import {
   moveMessageEditorMessage,
   moveMessageEditorMessageToIndex,
   normalizeMessageEditorContent,
+  replaceMessageEditorSelectionTextAsBlocks,
   replaceMessageEditorSelectionText,
   splitMessageEditorMessage,
   transformMessageEditorSelectionText,
@@ -36,6 +37,7 @@ export type MessageEditorController = {
   updateTextContent: (blockId: string, nextContent: string) => void;
   splitAtSelection: (selection: MessageEditorSelection) => { blockId: string; caret: number } | null;
   replaceSelectionText: (selection: MessageEditorSelection, replacement: string) => MessageEditorSelectionTextResult | null;
+  replaceSelectionTextAsBlocks: (selection: MessageEditorSelection, replacement: string) => MessageEditorSelectionTextResult | null;
   transformSelectionText: (
     selection: MessageEditorSelection,
     transform: (selectedText: string) => string,
@@ -122,6 +124,17 @@ export function createMessageEditorController(params: {
     },
     replaceSelectionText(selection, replacement) {
       const result = replaceMessageEditorSelectionText(params.getMessages(), selection, replacement);
+      if (!result) {
+        return null;
+      }
+      params.setMessages(() => {
+        emitBlocksChanged(result.messages);
+        return result.messages;
+      });
+      return result;
+    },
+    replaceSelectionTextAsBlocks(selection, replacement) {
+      const result = replaceMessageEditorSelectionTextAsBlocks(params.getMessages(), selection, replacement);
       if (!result) {
         return null;
       }

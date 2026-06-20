@@ -1,7 +1,8 @@
+import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
+
 import { getFigurePositionFromAnnotations, hasMiniAvatarAnnotation } from "@/types/messageAnnotations";
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalDicePayload, isLikelyAnkoDiceContent, isLikelyTrpgDiceContent } from "@/types/webgalDice";
-import { getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 
 import type { ChatMessageResponse, UserRole } from "../../api";
 

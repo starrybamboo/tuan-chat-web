@@ -1,7 +1,7 @@
+import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
-
-import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 type RoomExtraClient = Pick<TuanChat, "roomController">;
 

@@ -3,12 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { CloseIcon, SlidersIcon } from "@/icons";
 import {
   useAbilityByRuleAndRole,
-  useGenerateRoleByRuleMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
 import { useGetRoleAvatarsQuery, useGetRoleQuery, useUpdateAvatarNameMutation, useUpdateRoleWithLocalMutation } from "api/hooks/RoleAndAvatarHooks";
@@ -19,7 +19,6 @@ import type { Role } from "./types";
 
 import CharacterDetailLeftPanelHorizontal from "./CharacterDetailLeftPanelHorizontal";
 import DiceMaidenLinkModal from "./DiceMaidenLinkModal";
-import AIGenerateModal from "./RoleCreation/steps/AIGenerateModal";
 import AudioUploadModal from "./RoleInfoCard/AudioUploadModal";
 import { buildRoleVoiceClearPatch, buildRoleVoiceUploadPatch } from "./roleVoiceMedia";
 import DicerConfigJsonModal from "./rules/DicerConfigJsonModal";
@@ -148,7 +147,6 @@ function CharacterDetailInner({
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
   const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
-  const [isAIGenerateModalOpen, setIsAIGenerateModalOpen] = useState(false); // AI生成弹窗状态
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false); // 骰娘关联弹窗状态
   const [isDicerConfigJsonModalOpen, setIsDicerConfigJsonModalOpen] = useState(false); // 骰娘配置JSON弹窗状态
 
@@ -158,7 +156,6 @@ function CharacterDetailInner({
   // 获取骰娘文案配置数据
   const abilityQuery = useAbilityByRuleAndRole(role.id, selectedRuleId || 0);
   const { mutate: updateFieldAbility } = useUpdateRoleAbilityByRoleIdMutation();
-  const { mutate: generateRoleByRule } = useGenerateRoleByRuleMutation();
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -181,42 +178,6 @@ function CharacterDetailInner({
   // 打开音频上传弹窗
   const handleOpenAudioModal = () => {
     setIsAudioModalOpen(true);
-  };
-
-  // 打开AI生成弹窗
-  const handleOpenAIGenerateModal = () => {
-    if (!selectedRuleId) {
-      toast.error("请先选择规则");
-      return;
-    }
-    setIsAIGenerateModalOpen(true);
-  };
-
-  // 应用AI生成数据到当前角色
-  const handleAIApply = (data: {
-    act?: Record<string, string>;
-    basic?: Record<string, string>;
-    ability?: Record<string, string>;
-    skill?: Record<string, string>;
-  }) => {
-    const currentAbility = abilityQuery.data;
-    const payload = {
-      roleId: displayRole.id,
-      ruleId: selectedRuleId,
-      act: { ...currentAbility?.actTemplate, ...data.act },
-      basic: { ...currentAbility?.basicDefault, ...data.basic },
-      ability: { ...currentAbility?.abilityDefault, ...data.ability },
-      skill: { ...currentAbility?.skillDefault, ...data.skill },
-    };
-
-    updateFieldAbility(payload, {
-      onSuccess: () => {
-        toast.success("AI生成内容已应用");
-      },
-      onError: () => {
-        toast.error("AI生成内容应用失败");
-      },
-    });
   };
 
   // 打开骰娘关联弹窗
@@ -451,7 +412,6 @@ function CharacterDetailInner({
               isStImportModalOpen={isStImportModalOpen}
               onStImportModalClose={() => setIsStImportModalOpen(false)}
               onOpenStImportModal={() => setIsStImportModalOpen(true)}
-              onOpenAIGenerateModal={handleOpenAIGenerateModal}
             />
           )}
     </>
@@ -482,27 +442,35 @@ function CharacterDetailInner({
             order-1 hidden min-w-0
             md:order-0 md:block md:flex-none
           ">
-            <h1 className="
-              font-semibold text-2xl
-              md:text-3xl md:my-2
-            ">
-              {displayRole.name || "未命名角色"}
+            <h1 className="md:my-2">
+              <DoubleClickEditableText
+                value={displayRole.name ?? ""}
+                onCommit={nextName => saveRoleBase({ ...displayRole, name: nextName })}
+                trigger="click"
+                commitOnBlur
+                commitOnEnter
+                invalidBehavior="keepEditing"
+                placeholder="未命名角色"
+                validate={nextName => nextName.length > MAX_ROLE_NAME_LENGTH ? `角色名称不能超过${MAX_ROLE_NAME_LENGTH}字` : null}
+                inputProps={{
+                  maxLength: MAX_ROLE_NAME_LENGTH,
+                  "aria-label": "角色名称",
+                }}
+                className="block min-w-0"
+                displayClassName="
+                  block max-w-[min(46vw,36rem)] truncate rounded-md px-1 py-0.5
+                  text-2xl font-semibold text-base-content transition-colors
+                  hover:bg-base-200/70 hover:text-primary
+                  md:text-3xl
+                "
+                inputClassName="
+                  w-[min(46vw,36rem)] max-w-full rounded-md border
+                  border-base-content/15 bg-base-100 px-2 py-1
+                  text-2xl font-semibold text-base-content
+                  md:text-3xl
+                "
+              />
             </h1>
-            <p className="
-              truncate text-base-content/60
-              md:block
-            ">
-              <span className="md:hidden">{currentRuleData?.ruleName || "未选择规则"}</span>
-              <span className="
-                hidden
-                md:inline
-              ">
-                {isDiceMaiden ? "骰娘展示" : "角色展示"}
-                {" "}
-                ·
-                {currentRuleData?.ruleName || "未选择规则"}
-              </span>
-            </p>
           </div>
           <div className="
             order-2 flex shrink-0 items-center gap-1.5
@@ -550,6 +518,15 @@ function CharacterDetailInner({
           w-full items-center justify-center gap-1.5
           md:w-auto md:justify-end md:gap-2
         `}>
+          <div className="
+            hidden rounded-lg border border-base-content/10 bg-base-100/50
+            px-3 py-1.5 font-mono text-sm text-base-content/70
+            md:block
+          ">
+            id:
+            {" "}
+            {displayRole.id}
+          </div>
           {isDiceMaiden && (
             <div className="
               tooltip tooltip-bottom hidden
@@ -708,14 +685,6 @@ function CharacterDetailInner({
         onSave={handleDicerConfigSave}
       />
 
-      {/* AI生成弹窗 */}
-      <AIGenerateModal
-        isOpen={isAIGenerateModalOpen}
-        onClose={() => setIsAIGenerateModalOpen(false)}
-        ruleId={selectedRuleId}
-        onApply={handleAIApply}
-        generateRoleByRule={generateRoleByRule}
-      />
     </div>
   );
 }

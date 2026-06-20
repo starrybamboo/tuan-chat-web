@@ -340,6 +340,7 @@ export default defineConfig(() => {
 
   return {
     root: __dirname,
+    envDir: workspaceRoot,
     plugins: [
       tanstackRouter({
         target: "react",

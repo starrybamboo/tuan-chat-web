@@ -1,9 +1,11 @@
-import type { UserRole } from "../../../../api";
+import React from "react";
+
 import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 
-import React from "react";
 import AtMentionController from "@/components/atMentionController";
+import { CHAT_COMPOSER_RESIZE_EVENT } from "@/components/chat/chatFrameEvents";
+import { useVisibleClueFolderUnreadCount } from "@/components/chat/clues/clueUnread";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getComposerAnnotations, setComposerAnnotations as persistComposerAnnotations } from "@/components/chat/infra/localDb/composerAnnotationsDb";
 import ChatInputArea from "@/components/chat/input/chatInputArea";
@@ -24,9 +26,12 @@ import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
+
+import type { UserRole } from "../../../../api";
+
 import { useGetRoleAvatarsQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 
-interface RoomComposerPanelProps {
+type RoomComposerPanelProps = {
   roomId: number;
   userId: number;
   webSocketUtils: any;
@@ -129,6 +134,7 @@ function RoomComposerPanelImpl({
   const screenSize = useScreenSize();
   const toolbarLayout: "inline" | "stacked" = screenSize === "sm" ? "stacked" : "inline";
   const spaceContext = React.use(SpaceContext);
+  const clueUnreadCount = useVisibleClueFolderUnreadCount(spaceContext.spaceId);
   const spaceMembers = spaceContext.spaceMembers;
   const resolveDefaultFigurePosition = React.useCallback((role?: UserRole) => {
     if (!role) {
@@ -197,6 +203,9 @@ function RoomComposerPanelImpl({
     const update = () => {
       const { height } = target.getBoundingClientRect();
       root.style.setProperty("--chat-composer-height", `${height}px`);
+      window.dispatchEvent(new CustomEvent(CHAT_COMPOSER_RESIZE_EVENT, {
+        detail: { height },
+      }));
     };
     update();
     if (typeof ResizeObserver === "undefined") {
@@ -238,12 +247,12 @@ function RoomComposerPanelImpl({
     return selectableRoles.find(role => role.roleId === curRoleId);
   }, [curRoleId, selectableRoles]);
 
-  const shouldLoadRoleAvatarsForFallback = curRoleId > 0
-    && !isSpectator
+  const shouldWarmCurrentRoleAvatars = curRoleId > 0 && !isSpectator;
+  const shouldLoadRoleAvatarsForFallback = shouldWarmCurrentRoleAvatars
     && curAvatarId <= 0
     && !currentRole?.avatarId;
   const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1, {
-    enabled: shouldLoadRoleAvatarsForFallback,
+    enabled: shouldWarmCurrentRoleAvatars,
   });
   const roleAvatars = React.useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
   const hasRoleAvatarsLoaded = !shouldLoadRoleAvatarsForFallback || Boolean(roleAvatarsQuery.data);
@@ -379,6 +388,7 @@ function RoomComposerPanelImpl({
     autoReplyMode,
     onToggleAutoReplyMode: toggleAutoReplyMode,
     runModeEnabled,
+    runModeBadgeCount: clueUnreadCount,
     onToggleRunMode,
     onSendEffect,
     onClearBackground,
@@ -400,6 +410,7 @@ function RoomComposerPanelImpl({
     isKP,
     isSpectator,
     isSubmitting,
+    clueUnreadCount,
     noRole,
     notMember,
     onChangeChatStatus,

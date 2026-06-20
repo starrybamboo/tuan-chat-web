@@ -1,4 +1,4 @@
-import { getLocalValue, removeLocalValue, setLocalValue } from "@/components/chat/infra/localDb/chatHistoryDb";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 
 import type { GalPatchProposal, GalPatchProposalSummary } from "./authoringTypes";
 
@@ -129,12 +129,14 @@ export function normalizePersistedGalPatchProposal(proposal: GalPatchProposal): 
 
 export class SqliteGalPatchProposalStore implements GalPatchProposalStore {
   async save(proposal: GalPatchProposal): Promise<void> {
-    await setLocalValue(makeProposalKey(proposal.proposalId), proposal);
+    const db = await loadChatHistoryDb();
+    await db.setLocalValue(makeProposalKey(proposal.proposalId), proposal);
     await removeLegacyProposal(proposal.proposalId);
   }
 
   async get(proposalId: string): Promise<GalPatchProposal | null> {
-    const proposal = await getLocalValue<GalPatchProposal>(makeProposalKey(proposalId));
+    const db = await loadChatHistoryDb();
+    const proposal = await db.getLocalValue<GalPatchProposal>(makeProposalKey(proposalId));
     if (proposal) {
       return normalizePersistedGalPatchProposal(proposal);
     }
@@ -149,22 +151,24 @@ export class SqliteGalPatchProposalStore implements GalPatchProposalStore {
   }
 
   async setActive(roomId: string, proposalId: string | null): Promise<void> {
+    const db = await loadChatHistoryDb();
     if (proposalId) {
-      await setLocalValue(makeActiveKey(roomId), proposalId);
+      await db.setLocalValue(makeActiveKey(roomId), proposalId);
     }
     else {
-      await removeLocalValue(makeActiveKey(roomId));
+      await db.removeLocalValue(makeActiveKey(roomId));
     }
     removeLegacyActiveProposalId(roomId);
   }
 
   async getActive(roomId: string): Promise<GalPatchProposal | null> {
+    const db = await loadChatHistoryDb();
     const activeKey = makeActiveKey(roomId);
-    const proposalId = await getLocalValue<string>(activeKey) ?? getLegacyActiveProposalId(roomId);
+    const proposalId = await db.getLocalValue<string>(activeKey) ?? getLegacyActiveProposalId(roomId);
     if (!proposalId) {
       return null;
     }
-    await setLocalValue(activeKey, proposalId);
+    await db.setLocalValue(activeKey, proposalId);
     removeLegacyActiveProposalId(roomId);
     return this.get(proposalId);
   }
@@ -184,7 +188,8 @@ export class SqliteGalPatchProposalStore implements GalPatchProposalStore {
   }
 
   async delete(proposalId: string): Promise<void> {
-    await removeLocalValue(makeProposalKey(proposalId));
+    const db = await loadChatHistoryDb();
+    await db.removeLocalValue(makeProposalKey(proposalId));
     await removeLegacyProposal(proposalId);
   }
 }

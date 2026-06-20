@@ -1,11 +1,15 @@
-import type { CommentVO } from "api";
-import type { CommentTargetInfo } from "../../../../api/hooks/commentQueryHooks";
-import type { CommentContextType } from "@/components/common/comment/commentContext";
 import { useMemo } from "react";
+
+import type { CommentContextType } from "@/components/common/comment/commentContext";
+import type { CommentVO } from "api";
+
 import CommentComponent from "@/components/common/comment/commentComponent";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import UserAvatarComponent from "@/components/common/userAvatar";
+
+import type { CommentTargetInfo } from "../../../../api/hooks/commentQueryHooks";
+
 import {
 
   DEFAULT_COMMENT_CHILD_LIMIT,
@@ -16,7 +20,7 @@ import {
 
 type CommentPanelDisplayMode = "threaded" | "flat";
 
-interface CommentPanelProps {
+type CommentPanelProps = {
   targetInfo: CommentTargetInfo;
   className?: string;
   composerStyle?: "card" | "split";
@@ -26,7 +30,7 @@ interface CommentPanelProps {
   maxLevel?: number;
 }
 
-interface FlatCommentEntry {
+type FlatCommentEntry = {
   comment: CommentVO;
   parentComment: CommentVO | null;
 }

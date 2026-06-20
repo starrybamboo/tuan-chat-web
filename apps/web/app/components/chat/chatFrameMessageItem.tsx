@@ -1,13 +1,15 @@
 import type { CSSProperties } from "react";
-import type { ChatMessageResponse } from "../../../api";
 
 import { isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import React, { useCallback } from "react";
+
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomUiStore } from "@/components/chat/stores/roomUiStore";
-import { DraggableIcon, PlusOutline } from "@/icons";
+import { DraggableIcon } from "@/icons";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+
+import type { ChatMessageResponse } from "../../../api";
 
 const MESSAGE_DRAG_GUTTER_CLASS = "pl-6 sm:pl-7";
 const MESSAGE_DRAG_HANDLE_CLASS = [
@@ -45,7 +47,7 @@ export function getChatFrameMessageItemClassName(params: {
   ].filter(Boolean).join(" ");
 }
 
-interface ChatFrameMessageItemProps {
+type ChatFrameMessageItemProps = {
   chatMessageResponse: ChatMessageResponse;
   isSelected: boolean;
   isDragging: boolean;
@@ -182,7 +184,7 @@ export default function ChatFrameMessageItem({
           {!isSelecting && !isOptimisticMessage && (
             <button
               type="button"
-              className="absolute inset-0 z-20 cursor-pointer w-full"
+              className="absolute inset-x-0 -top-4 -bottom-3 z-20 cursor-pointer"
               title="插入消息"
               aria-label="插入消息"
               onClick={handleInsertAfterClick}
@@ -204,31 +206,6 @@ export default function ChatFrameMessageItem({
             }
             `}
           />
-          {!isSelecting && !isOptimisticMessage && (
-            <span
-              className={`
-                pointer-events-none absolute left-0 top-1/2 z-10
-                -translate-y-1/2 size-6 rounded border bg-base-100 flex
-                items-center justify-center transition-all duration-200
-                ${
-                isInsertTarget
-                  ? `
-                    border-primary text-primary shadow-sm opacity-100 scale-100
-                  `
-                  : `
-                    border-base-content/20 text-base-content/40 shadow-none
-                    opacity-0 scale-90
-                    group-hover/insert:opacity-100 group-hover/insert:scale-100
-                    group-hover/insert:border-primary/50
-                    group-hover/insert:text-primary
-                  `
-              }
-              `}
-              aria-hidden="true"
-            >
-              <PlusOutline className="size-4" />
-            </span>
-          )}
         </div>
       )}
     </div>

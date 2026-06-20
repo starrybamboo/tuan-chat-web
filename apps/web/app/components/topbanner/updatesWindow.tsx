@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 

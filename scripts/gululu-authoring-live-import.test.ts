@@ -22,6 +22,8 @@ type ApiSuccess<T = undefined> = T extends undefined
   ? { success: true }
   : { data: T; success: true };
 
+type MockFn = (...args: any[]) => any;
+
 function createImportPackage() {
   return {
     messages: [
@@ -114,12 +116,84 @@ async function writeNamedAvatarManifest(params: {
   }, null, 2)}\n`, "utf8");
 }
 
+async function writeCleanIndex(params: {
+  cleanRoot: string;
+  rows: Array<{
+    aggregatedSourceRelPaths?: string[];
+    assetKind: string;
+    character: string;
+    outputRelPath: string;
+    sourceRelPath: string;
+  }>;
+}) {
+  const columns = [
+    "sourceRelPath",
+    "outputRelPath",
+    "sha256",
+    "visualGroupId",
+    "assetKind",
+    "renderUse",
+    "character",
+    "locationName",
+    "decisionStatus",
+    "visualStatus",
+    "confidence",
+    "mattingAllowed",
+    "needsMatting",
+    "mattingStatus",
+    "normalizedFromAssetKind",
+    "normalizationReason",
+    "aggregatedSourceCount",
+    "aggregatedSourceRelPaths",
+    "materializedAs",
+    "transparentRelPath",
+    "alphaMaskRelPath",
+    "evidenceSummary",
+    "notes",
+  ];
+  await mkdir(params.cleanRoot, { recursive: true });
+  await writeFile(path.join(params.cleanRoot, "index.csv"), [
+    columns.join(","),
+    ...params.rows.map((row, index) => [
+      row.sourceRelPath,
+      row.outputRelPath,
+      `sha-${index + 1}`,
+      `visual-${index + 1}`,
+      row.assetKind,
+      row.assetKind.includes("sprite") ? "stage" : "chat-avatar",
+      row.character,
+      "",
+      "ai-confirmed",
+      "ai-confirmed",
+      "0.99",
+      "false",
+      "false",
+      "not-needed",
+      "",
+      "",
+      String(row.aggregatedSourceRelPaths?.length ?? 1),
+      (row.aggregatedSourceRelPaths ?? [row.sourceRelPath]).join("|"),
+      "source-copy",
+      "",
+      "",
+      "fixture",
+      "",
+    ].join(",")),
+  ].join("\n"), "utf8");
+  for (const row of params.rows) {
+    const filePath = path.join(params.cleanRoot, row.outputRelPath);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, "fixture", "utf8");
+  }
+}
+
 describe("gululu-authoring-live-import", () => {
   it("解析 live import CLI 参数", () => {
     const args = parseLiveImportArgs([
       "--apply",
       "--skip-avatar-upload",
       "--skip-named-avatars",
+      "--resume-existing-avatars",
       "--input",
       "import.json",
       "--named-avatar-root",
@@ -149,6 +223,7 @@ describe("gululu-authoring-live-import", () => {
       input: "import.json",
       namedAvatarRoot: "named-avatars",
       roomName: "安科文 GAL 导入",
+      resumeExistingAvatars: true,
       skipNamedAvatars: true,
       skipAvatarUpload: true,
       targetRoomId: 62,
@@ -180,9 +255,10 @@ describe("gululu-authoring-live-import", () => {
     ]);
     expect(plan.avatars).toEqual([
       expect.objectContaining({
-        avatarTitle: { label: "默认" },
+        avatarTitle: { label: "原文配图" },
         imagePath: "gululu/retsu.png",
         key: "role:烈海王:image:gululu/retsu.png",
+        sourceImagePaths: ["gululu/retsu.png"],
         upload: false,
       }),
     ]);
@@ -244,10 +320,37 @@ describe("gululu-authoring-live-import", () => {
     expect(plan.warnings).toEqual(["BGM 暂以文本事件保留：远野幻想物语"]);
   });
 
+  it("会把角色卡事件写成独立角色卡文本消息", () => {
+    const importPackage = createImportPackage();
+    importPackage.messages.push({
+      content: "烈海王；Atk 144；Hp 13；技能：消力、四千年传承",
+      floor: 1,
+      kind: "role_card" as const,
+    });
+
+    const plan = buildGululuLiveImportPlan(importPackage, {
+      skipAvatarUpload: true,
+      sourceKey: "opus-88:floors:1-1",
+      targetRoomId: 62,
+      targetSpaceId: 8801,
+    });
+
+    expect(plan.messages.at(-1)).toMatchObject({
+      kind: "role_card",
+      request: {
+        content: "烈海王；Atk 144；Hp 13；技能：消力、四千年传承",
+        customRoleName: "角色卡",
+        messageType: MESSAGE_TYPE.TEXT,
+        roleId: -1,
+      },
+    });
+  });
+
   it("会从最终 named-avatars manifest 导入语义头像并把原图对白映射到语义头像", async () => {
     const tempDir = await mkdtemp(path.join(tmpdir(), "gululu-live-import-named-"));
     try {
       const namedRoot = path.join(tempDir, "image-role-review-clean-vision-final", "named-avatars");
+      const cleanRoot = path.dirname(namedRoot);
       await writeNamedAvatarManifest({
         items: [
           {
@@ -275,8 +378,38 @@ describe("gululu-authoring-live-import", () => {
         namedRoot,
         role: "八意永琳",
       });
+      await writeCleanIndex({
+        cleanRoot,
+        rows: [{
+          aggregatedSourceRelPaths: ["gululu/retsu-stage.png", "gululu/retsu-stage-duplicate.png"],
+          assetKind: "character-sprite",
+          character: "烈",
+          outputRelPath: "role-sprites/烈海王/retsu-stage__v001.png",
+          sourceRelPath: "gululu/retsu-stage.png",
+        }],
+      });
+      await mkdir(path.join(tempDir, "gululu"), { recursive: true });
+      await writeFile(path.join(tempDir, "gululu", "retsu-raw.png"), "fixture", "utf8");
 
-      const plan = buildGululuLiveImportPlan(createImportPackage(), {
+      const importPackage = createImportPackage();
+      importPackage.messages.push({
+        content: "这张原文图不在 named manifest，但 final index 有处理后资源",
+        floor: 2,
+        imagePath: "gululu/retsu-stage.png",
+        kind: "dialog" as const,
+        roleName: "烈海王",
+        speakerName: "烈",
+      });
+      importPackage.messages.push({
+        content: "这张原文图不在 final index 时也不能退回默认头像",
+        floor: 3,
+        imagePath: "gululu/retsu-raw.png",
+        kind: "dialog" as const,
+        roleName: "烈海王",
+        speakerName: "烈",
+      });
+
+      const plan = buildGululuLiveImportPlan(importPackage, {
         namedAvatarRoot: namedRoot,
         skipAvatarUpload: false,
         sourceRoot: tempDir,
@@ -297,6 +430,27 @@ describe("gululu-authoring-live-import", () => {
           usageKey: "neutral_three_quarter_open_front_closed_focused",
         }),
         expect.objectContaining({
+          assetKind: "character-sprite",
+          avatarTitle: { label: "立绘：retsu-stage__v001" },
+          bindingImagePath: "image-role-review-clean-vision-final/role-sprites/烈海王/retsu-stage__v001.png",
+          fileName: "retsu-stage__v001.png",
+          filePath: expect.stringContaining("retsu-stage__v001.png"),
+          imagePath: "image-role-review-clean-vision-final/role-sprites/烈海王/retsu-stage__v001.png",
+          key: "role:烈海王:image:image-role-review-clean-vision-final/role-sprites/烈海王/retsu-stage__v001.png",
+          originMediaKind: "sprite",
+          sourceImagePaths: ["gululu/retsu-stage.png", "gululu/retsu-stage-duplicate.png"],
+          spriteFileName: "retsu-stage__v001.png",
+          spriteImagePath: "image-role-review-clean-vision-final/role-sprites/烈海王/retsu-stage__v001.png",
+          spriteSourceImagePaths: ["gululu/retsu-stage.png", "gululu/retsu-stage-duplicate.png"],
+          upload: true,
+        }),
+        expect.objectContaining({
+          imagePath: "gululu/retsu-raw.png",
+          key: "role:烈海王:image:gululu/retsu-raw.png",
+          sourceImagePaths: ["gululu/retsu-raw.png"],
+          upload: true,
+        }),
+        expect.objectContaining({
           avatarTitle: { label: "平静" },
           key: "role:八意永琳:image:image-role-review-clean-vision-final/named-avatars/八意永琳/character-avatar-bust/calm_front_open_front_closed__v001.png",
         }),
@@ -305,6 +459,16 @@ describe("gululu-authoring-live-import", () => {
       expect(plan.messages[0]).toMatchObject({
         avatarKey: "role:烈海王:image:image-role-review-clean-vision-final/named-avatars/烈海王/character-avatar-bust/neutral_three_quarter_open_front_closed_focused__v001.png",
         roleKey: "role:烈海王",
+      });
+      expect(plan.messages[5]).toMatchObject({
+        avatarKey: "role:烈海王:image:image-role-review-clean-vision-final/role-sprites/烈海王/retsu-stage__v001.png",
+        roleKey: "role:烈海王",
+        source: { imagePath: "gululu/retsu-stage.png" },
+      });
+      expect(plan.messages[6]).toMatchObject({
+        avatarKey: "role:烈海王:image:gululu/retsu-raw.png",
+        roleKey: "role:烈海王",
+        source: { imagePath: "gululu/retsu-raw.png" },
       });
     }
     finally {
@@ -368,6 +532,12 @@ describe("gululu-authoring-live-import", () => {
       visibleBounds: { height: 706, width: 556, x: 12, y: 10 },
       width: 580,
     });
+    const stageSprite = buildGululuImportedSpriteTransform({
+      hasAlpha: true,
+      height: 725,
+      visibleBounds: { height: 706, width: 556, x: 12, y: 10 },
+      width: 580,
+    }, { renderKind: "stage-sprite" });
     const headBust = buildGululuImportedSpriteTransform({
       hasAlpha: true,
       height: 370,
@@ -387,8 +557,11 @@ describe("gululu-authoring-live-import", () => {
       positionX: 0,
       rotation: 0,
     });
+    expect(fullBody).toEqual(stageSprite);
+    expect(fullBody.scale!).toBeGreaterThan(1);
+    expect(fullBody.positionY!).toBeGreaterThan(0);
     expect(fullBody.scale!).toBeGreaterThan(headBust.scale!);
-    expect(fullBody.positionY!).toBeLessThan(headBust.positionY!);
+    expect(fullBody.positionY!).toBeGreaterThan(headBust.positionY!);
     expect(headBust.positionY!).toBeGreaterThan(-100);
     expect(wideHeadBust.scale!).toBeGreaterThan(0.44);
     expect(mangaAvatar.scale!).toBeLessThanOrEqual(0.42);
@@ -442,33 +615,33 @@ describe("gululu-authoring-live-import", () => {
     const calls: string[] = [];
     const client = {
       avatarController: {
-        setRoleAvatar: vi.fn(async (request) => {
+        setRoleAvatar: vi.fn<MockFn>(async (request) => {
           calls.push(`avatar.create:${request.roleId}`);
           return { data: 2001, success: true };
         }),
-        updateRoleAvatar: vi.fn(async (request) => {
+        updateRoleAvatar: vi.fn<MockFn>(async (request) => {
           calls.push(`avatar.update:${request.avatarId}:${request.avatarFileId ?? "no-media"}`);
           return { data: request, success: true };
         }),
       },
       chatController: {
-        sendMessage1: vi.fn(async (request) => {
+        sendMessage1: vi.fn<MockFn>(async (request) => {
           calls.push(`message:${request.messageType}:${request.roleId ?? "none"}:${request.avatarId ?? "none"}`);
           return { data: { messageId: calls.length + 1000 }, success: true };
         }),
       },
       roleController: {
-        createRole: vi.fn(async (request) => {
+        createRole: vi.fn<MockFn>(async (request) => {
           calls.push(`role.create:${request.roleName}`);
           return { data: 1001, success: true };
         }),
       },
       roomRoleController: {
-        addRole: vi.fn(async (request) => {
+        addRole: vi.fn<MockFn>(async (request) => {
           calls.push(`roomRole.add:${request.roleIdList.join(",")}`);
           return { success: true };
         }),
-        roomNpcRole: vi.fn(async () => {
+        roomNpcRole: vi.fn<MockFn>(async () => {
           calls.push("roomRole.list");
           return { data: [], success: true };
         }),
@@ -476,7 +649,7 @@ describe("gululu-authoring-live-import", () => {
     };
 
     const result = await applyGululuLiveImportPlan(plan, client, {
-      uploadAvatarImage: vi.fn(async ({ filePath }) => {
+      uploadAvatarImage: vi.fn<MockFn>(async ({ filePath }) => {
         calls.push(`media.upload:${filePath}`);
         return {
           mediaFileId: 3001,
@@ -507,13 +680,17 @@ describe("gululu-authoring-live-import", () => {
     expect(result.roles).toEqual([{ action: "created", key: "role:烈海王", roleId: 1001 }]);
     expect(result.avatars[0]).toMatchObject({
       avatarId: 2001,
+      avatarFileId: 3001,
       mediaFileId: 3001,
+      originFileId: 3001,
+      spriteFileId: 3001,
       spriteTransform: {
         positionY: -180,
         scale: 0.32,
       },
     });
-    expect(client.avatarController.updateRoleAvatar.mock.calls[0]![0]).toMatchObject({
+    const updateRequest = client.avatarController.updateRoleAvatar.mock.calls[0]![0];
+    expect(updateRequest).toMatchObject({
       avatarFileId: 3001,
       originFileId: 3001,
       spriteFileId: 3001,
@@ -542,6 +719,56 @@ describe("gululu-authoring-live-import", () => {
         },
       },
       messageType: MESSAGE_TYPE.DICE,
+    });
+  });
+
+  it("apply 会把立绘媒体同时写入头像字段和立绘字段，并使用立绘 transform", async () => {
+    const plan = buildGululuLiveImportPlan(createImportPackage(), {
+      skipAvatarUpload: false,
+      sourceRoot: "D:/fixture",
+      targetRoomId: 62,
+      targetSpaceId: 8801,
+    });
+    plan.avatars[0]!.filePath = "D:/fixture/role-sprites/retsu-stage.png";
+    plan.avatars[0]!.spriteFilePath = "D:/fixture/role-sprites/retsu-stage.png";
+    plan.avatars[0]!.spriteImagePath = "image-role-review-clean-vision-final/role-sprites/烈海王/retsu-stage.png";
+    plan.avatars[0]!.originMediaKind = "sprite";
+    plan.avatars[0]!.upload = true;
+
+    const client = {
+      avatarController: {
+        setRoleAvatar: vi.fn<MockFn>(async () => ({ data: 2001, success: true })),
+        updateRoleAvatar: vi.fn<MockFn>(async request => ({ data: request, success: true })),
+      },
+      chatController: {
+        sendMessage1: vi.fn<MockFn>(async () => ({ data: { messageId: 1 }, success: true })),
+      },
+      roleController: {
+        createRole: vi.fn<MockFn>(async () => ({ data: 1001, success: true })),
+      },
+      roomRoleController: {
+        addRole: vi.fn<MockFn>(async () => ({ success: true })),
+        roomNpcRole: vi.fn<MockFn>(async () => ({ data: [], success: true })),
+      },
+    };
+
+    await applyGululuLiveImportPlan(plan, client, {
+      uploadAvatarImage: vi.fn<MockFn>(async ({ filePath }) => ({
+        mediaFileId: filePath.includes("role-sprites") ? 3002 : 3001,
+        spriteTransform: filePath.includes("role-sprites")
+          ? { alpha: 1, positionX: 0, positionY: -180, rotation: 0, scale: 0.32 }
+          : { alpha: 1, positionX: 0, positionY: 20, rotation: 0, scale: 0.5 },
+      })),
+    });
+
+    expect(client.avatarController.updateRoleAvatar.mock.calls[0]![0]).toMatchObject({
+      avatarFileId: 3002,
+      originFileId: 3002,
+      spriteFileId: 3002,
+      spriteTransform: {
+        positionY: -180,
+        scale: 0.32,
+      },
     });
   });
 
@@ -629,18 +856,18 @@ describe("gululu-authoring-live-import", () => {
     });
     const client = {
       avatarController: {
-        setRoleAvatar: vi.fn(async (_request: unknown) => ({ data: 2001, success: true })),
-        updateRoleAvatar: vi.fn(async request => ({ data: request, success: true })),
+        setRoleAvatar: vi.fn<MockFn>(async (_request: unknown) => ({ data: 2001, success: true })),
+        updateRoleAvatar: vi.fn<MockFn>(async request => ({ data: request, success: true })),
       },
       chatController: {
-        sendMessage1: vi.fn(async (_request: unknown) => ({ data: { messageId: 1 }, success: true })),
+        sendMessage1: vi.fn<MockFn>(async (_request: unknown) => ({ data: { messageId: 1 }, success: true })),
       },
       roleController: {
-        createRole: vi.fn(async (_request: unknown) => ({ data: 0, success: true })),
+        createRole: vi.fn<MockFn>(async (_request: unknown) => ({ data: 0, success: true })),
       },
       roomRoleController: {
-        addRole: vi.fn(async (_request: unknown) => ({ success: true })),
-        roomNpcRole: vi.fn(async () => ({
+        addRole: vi.fn<MockFn>(async (_request: unknown) => ({ success: true })),
+        roomNpcRole: vi.fn<MockFn>(async () => ({
           data: [{ roleId: 1001, roleName: "烈海王", type: 2, userId: 7 }],
           success: true,
         })),
@@ -664,23 +891,23 @@ describe("gululu-authoring-live-import", () => {
       targetRoomId: 62,
       targetSpaceId: 8801,
     });
-    const setSidebarTree = vi.fn(async (request: { treeJson: string }) => ({
+    const setSidebarTree = vi.fn<MockFn>(async (request: { treeJson: string }) => ({
       data: { treeJson: request.treeJson, version: 8 },
       success: true,
     }));
     const client = {
       avatarController: {
-        setRoleAvatar: vi.fn(),
-        updateRoleAvatar: vi.fn(),
+        setRoleAvatar: vi.fn<MockFn>(),
+        updateRoleAvatar: vi.fn<MockFn>(),
       },
       chatController: {
-        sendMessage1: vi.fn(),
+        sendMessage1: vi.fn<MockFn>(),
       },
       roleController: {
-        createRole: vi.fn(),
+        createRole: vi.fn<MockFn>(),
       },
       roomController: {
-        getUserRooms: vi.fn(async () => ({
+        getUserRooms: vi.fn<MockFn>(async () => ({
           data: {
             rooms: [
               { name: "旧房间", roomId: 1 },
@@ -692,11 +919,11 @@ describe("gululu-authoring-live-import", () => {
         })),
       },
       roomRoleController: {
-        addRole: vi.fn(),
-        roomNpcRole: vi.fn(),
+        addRole: vi.fn<MockFn>(),
+        roomNpcRole: vi.fn<MockFn>(),
       },
       spaceSidebarTreeController: {
-        getSidebarTree: vi.fn(async () => ({
+        getSidebarTree: vi.fn<MockFn>(async () => ({
           data: {
             treeJson: JSON.stringify({
               categories: [{
@@ -741,21 +968,21 @@ describe("gululu-authoring-live-import", () => {
     });
     const client = {
       avatarController: {
-        setRoleAvatar: vi.fn(),
-        updateRoleAvatar: vi.fn(),
+        setRoleAvatar: vi.fn<MockFn>(),
+        updateRoleAvatar: vi.fn<MockFn>(),
       },
       chatController: {
-        sendMessage1: vi.fn(),
+        sendMessage1: vi.fn<MockFn>(),
       },
       roleController: {
-        createRole: vi.fn(),
+        createRole: vi.fn<MockFn>(),
       },
       roomRoleController: {
-        addRole: vi.fn(),
-        roomNpcRole: vi.fn(),
+        addRole: vi.fn<MockFn>(),
+        roomNpcRole: vi.fn<MockFn>(),
       },
       spaceSidebarTreeController: {
-        getSidebarTree: vi.fn(async () => ({
+        getSidebarTree: vi.fn<MockFn>(async () => ({
           data: {
             treeJson: JSON.stringify({
               categories: [{
@@ -769,7 +996,7 @@ describe("gululu-authoring-live-import", () => {
           },
           success: true,
         })),
-        setSidebarTree: vi.fn(),
+        setSidebarTree: vi.fn<MockFn>(),
       },
     };
 

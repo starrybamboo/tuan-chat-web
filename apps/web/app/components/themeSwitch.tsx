@@ -1,6 +1,7 @@
 import { MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { useMediaQuery } from "@uidotdev/usehooks";
 import { useLayoutEffect } from "react";
+
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
 const THEME_SWITCHING_CLASS_NAME = "theme-switching";

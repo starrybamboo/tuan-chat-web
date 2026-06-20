@@ -1,9 +1,18 @@
+import { Link } from "@tanstack/react-router";
+
+function getCurrentOrigin(): string | null {
+  if (typeof window === "undefined" || !window.location?.origin) {
+    return null;
+  }
+  return window.location.origin;
+}
+
 /**
  * 判断是否为内部链接
  * @param href 链接地址
  * @returns 是否为内部链接
  */
-function isInternalLink(href: string): boolean {
+export function isInternalLink(href: string, currentOrigin: string | null = getCurrentOrigin()): boolean {
   if (!href)
     return false;
 
@@ -15,10 +24,14 @@ function isInternalLink(href: string): boolean {
   if (href.startsWith("#"))
     return true;
 
+  if (!currentOrigin) {
+    return false;
+  }
+
   // 如果是完整 URL，检查是否是同域名
   try {
-    const url = new URL(href, window.location.origin);
-    return url.origin === window.location.origin;
+    const url = new URL(href, currentOrigin);
+    return url.origin === currentOrigin;
   }
   catch {
     // 如果不是有效 URL，认为是内部链接
@@ -26,10 +39,42 @@ function isInternalLink(href: string): boolean {
   }
 }
 
+export function resolveInternalRouteHref(href: string, currentOrigin: string | null = getCurrentOrigin()): string | null {
+  if (!isInternalLink(href, currentOrigin) || href.startsWith("#")) {
+    return null;
+  }
+  if (href.startsWith("/")) {
+    return href;
+  }
+  if (!currentOrigin) {
+    return null;
+  }
+  try {
+    const url = new URL(href, currentOrigin);
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  catch {
+    return href;
+  }
+}
+
 /**
  * 自定义链接组件
  */
 export default function LinkComponent({ href, children, navigate, ...props }: any) {
+  if (typeof href !== "string" || !href) {
+    return <a {...props}>{children}</a>;
+  }
+
+  const internalRouteHref = resolveInternalRouteHref(href);
+  if (internalRouteHref) {
+    return (
+      <Link {...props} to={internalRouteHref}>
+        {children}
+      </Link>
+    );
+  }
+
   if (isInternalLink(href)) {
     return (
       <a

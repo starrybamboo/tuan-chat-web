@@ -25,6 +25,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { COMPOSER_MAX_HEIGHT, COMPOSER_MIN_HEIGHT } from "@/lib/layout-constants";
 import { avatarThumbUrl } from "@/lib/media-url";
 
+import { formatUnreadBadgeCount } from "./clueUnread";
 import { getMessagePreview } from "./mobileChatUtils";
 import { MobileCommandPanel } from "./MobileCommandPanel";
 
@@ -117,7 +118,25 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     height: 40,
     justifyContent: "center",
+    position: "relative",
     width: 40,
+  },
+  toolButtonBadge: {
+    alignItems: "center",
+    borderRadius: Radius.full,
+    height: 16,
+    justifyContent: "center",
+    minWidth: 16,
+    paddingHorizontal: 4,
+    position: "absolute",
+    right: 1,
+    top: 1,
+  },
+  toolButtonBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 12,
   },
   input: {
     borderRadius: 8,
@@ -208,6 +227,7 @@ type ChatComposerProps = {
 export type ChatComposerShortcutAction = {
   Icon: ComponentType<IconProps>;
   accessibilityLabel: string;
+  badgeCount?: number;
   onPress: () => void;
 };
 
@@ -423,6 +443,7 @@ function ChatComposerInner({
             : null}
 
           {shortcutActions?.map((action) => {
+            const badgeCount = action.badgeCount ?? 0;
             return (
               <Pressable
                 key={action.accessibilityLabel}
@@ -433,6 +454,15 @@ function ChatComposerInner({
                 style={styles.toolButton}
               >
                 <action.Icon color={theme.textSecondary} size={20} />
+                {badgeCount > 0
+                  ? (
+                      <View style={[styles.toolButtonBadge, { backgroundColor: theme.danger }]}>
+                        <ThemedText style={styles.toolButtonBadgeText}>
+                          {formatUnreadBadgeCount(badgeCount)}
+                        </ThemedText>
+                      </View>
+                    )
+                  : null}
               </Pressable>
             );
           })}

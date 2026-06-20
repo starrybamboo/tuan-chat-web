@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
+
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
 
-interface MaterialPackageLibraryFrameProps {
+type MaterialPackageLibraryFrameProps = {
   embedded?: boolean;
   sidebarNode: ReactNode;
   mainContentNode: ReactNode;

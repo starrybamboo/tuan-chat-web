@@ -1,4 +1,5 @@
 import { use, useEffect, useMemo, useState } from "react";
+
 import ClueFolderSidebar from "@/components/chat/clues/clueFolderSidebar";
 import { partitionClueFolderRooms, PRIVATE_CLUE_FOLDER_NAME, PUBLIC_CLUE_FOLDER_NAME } from "@/components/chat/clues/clueRooms";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -6,6 +7,7 @@ import SidebarSection from "@/components/chat/room/sidebarSection";
 import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueReferenceNavigationStore";
 import { canManageMemberPermissions } from "@/components/chat/utils/memberPermissions";
 import { useGlobalUserId } from "@/components/globalContextProvider";
+
 import { useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
 
 export default function ClueDrawer() {
@@ -64,6 +66,7 @@ export default function ClueDrawer() {
             isExpanded={expandedByKey.private}
             onToggleExpanded={() => toggleExpanded("private")}
             actionTitle="新建线索"
+            actionVisibility="always"
             onAction={() => setPrivateClueCreateRequestKey(key => key + 1)}
           >
             <ClueFolderSidebar
@@ -83,6 +86,7 @@ export default function ClueDrawer() {
             isExpanded={expandedByKey.public}
             onToggleExpanded={() => toggleExpanded("public")}
             actionTitle="新建线索"
+            actionVisibility="always"
             onAction={() => setPublicClueCreateRequestKey(key => key + 1)}
             withDivider
           >

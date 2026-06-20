@@ -1,0 +1,28 @@
+{
+  "createdAt": "2026-06-08T02:40:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第十二批：覆盖审计中补扫的中低计数目录。未发现新的高置信同语义折叠组。",
+  "groups": [],
+  "reviewedNoCollapse": [
+    "坂田合欢乃/character-avatar-bust",
+    "风见幽香/character-avatar-chat",
+    "九十九弁弁/character-avatar-bust",
+    "米斯蒂娅·萝蕾拉/character-avatar-bust",
+    "物部布都/character-avatar-bust",
+    "西行寺幽幽子/character-avatar-bust",
+    "星熊勇仪/character-avatar-bust",
+    "本部以藏/manga-avatar",
+    "灵乌路空/character-avatar-bust",
+    "若鹭姬/character-avatar-bust",
+    "霍青娥/character-avatar-bust"
+  ],
+  "stillDeferred": [
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I014",
+      "originalItemId": "I018",
+      "note": "灰度/反相神子表情，当前无高置信目标角色可迁；保留为丰聪耳神子的独立状态。"
+    }
+  ]
+}

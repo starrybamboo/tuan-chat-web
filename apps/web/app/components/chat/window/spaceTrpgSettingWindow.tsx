@@ -1,3 +1,11 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { MediaImage } from "@/components/common/mediaImage";
+import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
+import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 // 跑团设置页面：集中管理空间规则与空间骰娘，成员可见，空间拥有者可编辑。
 import {
   useGetSpaceInfoQuery,
@@ -6,13 +14,6 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
-import { MediaImage } from "@/components/common/mediaImage";
-import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
-import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 
 function SpaceTrpgSettingWindow() {
   const spaceContext = React.use(SpaceContext);
@@ -27,28 +28,22 @@ function SpaceTrpgSettingWindow() {
 
   const [ruleId, setRuleId] = useState(1);
   const [diceRollerId, setDiceRollerId] = useState(2);
-  const [allowCustomDicerRole, setAllowCustomDicerRole] = useState(true);
   const [isDiceMaidenLinkModalOpen, setIsDiceMaidenLinkModalOpen] = useState(false);
 
   const latestRuleIdRef = useRef(ruleId);
   const latestDiceRollerIdRef = useRef(diceRollerId);
-  const latestAllowCustomDicerRoleRef = useRef(allowCustomDicerRole);
   useEffect(() => {
     latestRuleIdRef.current = ruleId;
   }, [ruleId]);
   useEffect(() => {
     latestDiceRollerIdRef.current = diceRollerId;
   }, [diceRollerId]);
-  useEffect(() => {
-    latestAllowCustomDicerRoleRef.current = allowCustomDicerRole;
-  }, [allowCustomDicerRole]);
 
   // 自动保存状态管理（防抖 + 并发合并 + 失败重试）
-  const buildSnapshot = useCallback((nextRuleId: number, dicerRoleId: number, nextAllowCustomDicerRole: boolean) => {
+  const buildSnapshot = useCallback((nextRuleId: number, dicerRoleId: number) => {
     return JSON.stringify({
       ruleId: nextRuleId,
       dicerRoleId,
-      allowCustomDicerRole: nextAllowCustomDicerRole,
     });
   }, []);
 
@@ -68,20 +63,12 @@ function SpaceTrpgSettingWindow() {
 
     const nextRuleId = Number(space.ruleId) || 1;
     let initialDicerRoleId = latestDiceRollerIdRef.current;
-    let initialAllowCustomDicerRole = true;
     try {
       const extra = JSON.parse(space.extra ?? "{}");
       const nextId = Number(extra?.dicerRoleId);
       if (Number.isFinite(nextId) && nextId > 0) {
         initialDicerRoleId = nextId;
       }
-      const rawAllowCustom = extra?.allowCustomDicerRole;
-      initialAllowCustomDicerRole = rawAllowCustom === undefined
-        ? true
-        : rawAllowCustom === true
-          || rawAllowCustom === "true"
-          || rawAllowCustom === 1
-          || rawAllowCustom === "1";
     }
     catch {
       // ignore
@@ -89,9 +76,8 @@ function SpaceTrpgSettingWindow() {
 
     setRuleId(nextRuleId);
     setDiceRollerId(initialDicerRoleId);
-    setAllowCustomDicerRole(initialAllowCustomDicerRole);
 
-    lastSavedSnapshotRef.current = buildSnapshot(nextRuleId, initialDicerRoleId, initialAllowCustomDicerRole);
+    lastSavedSnapshotRef.current = buildSnapshot(nextRuleId, initialDicerRoleId);
     dirtyRef.current = false;
     didInitRef.current = true;
   }, [space, buildSnapshot]);
@@ -118,7 +104,7 @@ function SpaceTrpgSettingWindow() {
 
   const updateSpaceMutation = useUpdateSpaceMutation();
   const setSpaceExtraMutation = useSetSpaceExtraMutation();
-  const saveNow = async (params?: { allowCustomDicerRole?: boolean; dicerRoleId?: number; ruleId?: number }) => {
+  const saveNow = async (params?: { dicerRoleId?: number; ruleId?: number }) => {
     if (!canEdit)
       return;
     if (!Number.isFinite(spaceId) || spaceId <= 0)
@@ -128,9 +114,8 @@ function SpaceTrpgSettingWindow() {
 
     const nextRuleId = params?.ruleId ?? latestRuleIdRef.current;
     const dicerRoleId = params?.dicerRoleId ?? latestDiceRollerIdRef.current;
-    const nextAllowCustomDicerRole = params?.allowCustomDicerRole ?? latestAllowCustomDicerRoleRef.current;
 
-    const snapshot = buildSnapshot(nextRuleId, dicerRoleId, nextAllowCustomDicerRole);
+    const snapshot = buildSnapshot(nextRuleId, dicerRoleId);
     if (snapshot === lastSavedSnapshotRef.current) {
       dirtyRef.current = false;
       return;
@@ -151,13 +136,8 @@ function SpaceTrpgSettingWindow() {
       key: "dicerRoleId",
       value: String(dicerRoleId),
     });
-    const allowCustomPromise = setSpaceExtraMutation.mutateAsync({
-      spaceId,
-      key: "allowCustomDicerRole",
-      value: String(nextAllowCustomDicerRole),
-    });
 
-    await Promise.all([updatePromise, extraPromise, allowCustomPromise]);
+    await Promise.all([updatePromise, extraPromise]);
     invalidateDicerRoleResolveCache(spaceId);
 
     lastSavedSnapshotRef.current = snapshot;
@@ -215,7 +195,6 @@ function SpaceTrpgSettingWindow() {
     dirtyRef.current = buildSnapshot(
       latestRuleIdRef.current,
       latestDiceRollerIdRef.current,
-      latestAllowCustomDicerRoleRef.current,
     ) !== lastSavedSnapshotRef.current;
     if (!dirtyRef.current)
       return;
@@ -241,12 +220,6 @@ function SpaceTrpgSettingWindow() {
       return;
     scheduleAutoSave();
   }, [diceRollerId]);
-
-  useEffect(() => {
-    if (!didInitRef.current)
-      return;
-    scheduleAutoSave();
-  }, [allowCustomDicerRole]);
 
   useEffect(() => {
     return () => {
@@ -399,28 +372,6 @@ function SpaceTrpgSettingWindow() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className={`
-                  flex items-center justify-between gap-4 rounded-lg bg-base-200
-                  p-4
-                  ${canEdit ? "" : `opacity-70`}
-                `}>
-                  <div className="min-w-0">
-                    <span className="block font-semibold text-sm">允许角色绑定骰娘优先</span>
-                    <span className="block text-xs text-base-content/60">
-                      开启后优先使用当前角色关联的骰娘；关闭后统一使用空间骰娘。
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-accent shrink-0"
-                    checked={allowCustomDicerRole}
-                    disabled={!canEdit}
-                    onChange={event => setAllowCustomDicerRole(event.currentTarget.checked)}
-                  />
-                </label>
               </div>
             </div>
           )}

@@ -3,7 +3,7 @@ import React from "react";
 // 定义状态类型
 type StatusType = 1 | 2;
 
-interface UserStatusDotProps {
+type UserStatusDotProps = {
   status?: StatusType | string; // 允许传入 string 或 undefined
   size?: "sm" | "md" | "lg";
   editable?: boolean;

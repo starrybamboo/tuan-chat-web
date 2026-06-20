@@ -1,11 +1,13 @@
-import type { MessageEditorSpeakerAvatarMenuItem } from "../model/messageEditorSpeakerAvatar";
 import { X } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
+
 import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/components/common/motion/floatingPanelMotion";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 
-interface MessageEditorSpeakerAvatarMenuProps {
+import type { MessageEditorSpeakerAvatarMenuItem } from "../model/messageEditorSpeakerAvatar";
+
+type MessageEditorSpeakerAvatarMenuProps = {
   items: MessageEditorSpeakerAvatarMenuItem[];
   loading?: boolean;
   onSelect: (item: MessageEditorSpeakerAvatarMenuItem) => void;

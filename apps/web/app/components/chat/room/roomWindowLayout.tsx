@@ -1,10 +1,12 @@
 import type { Room } from "@tuanchat/openapi-client/models/Room";
-import type { Message } from "../../../../api";
+
+import { motion, useReducedMotion } from "motion/react";
+import React from "react";
+
 import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 import type { RoomContentMode } from "@/components/chat/room/roomHeaderBar";
-import { motion, useReducedMotion } from "motion/react";
-import React from "react";
+
 import ChatFrame from "@/components/chat/chatFrame";
 import { ChatPageDocContent } from "@/components/chat/chatPageMainContent";
 import RoomComposerPanel from "@/components/chat/room/roomComposerPanel";
@@ -12,6 +14,8 @@ import RoomHeaderBar from "@/components/chat/room/roomHeaderBar";
 import RoomSideDrawers from "@/components/chat/room/roomSideDrawers";
 import SubRoomWindow from "@/components/chat/room/subRoomWindow";
 import WebgalPreviewDrawer from "@/components/chat/room/webgalPreviewDrawer";
+
+import type { Message } from "../../../../api";
 
 type ChatFrameProps = React.ComponentProps<typeof ChatFrame>;
 type RoomComposerPanelProps = React.ComponentProps<typeof RoomComposerPanel>;
@@ -39,7 +43,7 @@ const roomContentEnterVariants = {
   },
 };
 
-interface RoomWindowLayoutProps {
+type RoomWindowLayoutProps = {
   spaceId: number;
   roomId: number;
   roomName?: string;

@@ -1,10 +1,11 @@
 import { FilmSlateIcon, Sparkle } from "@phosphor-icons/react";
+
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { BranchIcon, WebgalIcon } from "@/icons";
 
-interface ChatToolbarDockProps {
+type ChatToolbarDockProps = {
   isInline: boolean;
   isRunModeOnly: boolean;
   showWebgalControls?: boolean;

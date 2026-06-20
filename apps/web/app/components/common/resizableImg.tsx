@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // 定义一个类型，用于表示一个2D点或向量
-interface Point { x: number; y: number }
+type Point = { x: number; y: number }
 
 export function resolveResizableImgInitialTransform({
   containerWidth,

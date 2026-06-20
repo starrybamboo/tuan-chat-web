@@ -201,7 +201,7 @@ export function useWebSocket() {
 
   // 这里代表“前端已显式实现处理逻辑”的 WS type（对应 onMessage 的 switch cases）。
   // 未在该列表中的 type，会在运行时第一次收到时通过 default 分支提示。
-  const implementedWsTypes = useRef<Set<number>>(new Set([1, 4, 11, 12, 14, 15, 16, 17, 21, 22, 100]));
+  const implementedWsTypes = useRef<Set<number>>(new Set([1, 4, 11, 12, 14, 15, 16, 17, 21, 22, 25, 100]));
   const unhandledWsTypes = useRef<Set<number>>(new Set());
   const countByTypeRef = useRef<Record<number, number>>({});
 

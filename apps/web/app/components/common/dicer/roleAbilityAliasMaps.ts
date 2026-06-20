@@ -47,6 +47,7 @@ export const COC_ABILITY_ALIASES: Record<string, string> = {
   重型机械: "操作重型机械",
   重型: "操作重型机械",
   侦察: "侦查",
+  巧手: "妙手",
 };
 
 // noinspection NonAsciiCharacters

@@ -1,12 +1,14 @@
 import React from "react";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
+
 import { DisplayChatBubble } from "./displayChatBubble";
 
 /**
  * 头像预览组件的属性接口
  */
-interface AvatarPreviewProps {
+type AvatarPreviewProps = {
   // 预览Canvas引用
   previewCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
   // 当前头像URL（备用）
@@ -63,7 +65,7 @@ function AvatarPreviewComponent({
   // 渲染图片预览
   const renderImagePreview = () => (
     <div className={`
-      bg-gray-50 rounded border flex items-center justify-center overflow-hidden
+      bg-base-100 rounded border border-base-300 flex items-center justify-center overflow-hidden
       ${className}
     `}>
       {previewCanvasRef
@@ -112,9 +114,7 @@ function AvatarPreviewComponent({
     // 渲染气泡样式内容
     const bubbleContent = showBubbleStyle && (
       <div className="
-        bg-gray-100
-        dark:bg-gray-800
-        rounded-lg p-4 space-y-2
+        rounded-lg border border-base-300 bg-base-100/50 p-4 space-y-2
       ">
         {chatMessages.map(message => (
           <DisplayChatBubble
@@ -133,9 +133,7 @@ function AvatarPreviewComponent({
     // 渲染传统样式内容
     const traditionalContent = showTraditionalStyle && (
       <div className="
-        bg-gray-100
-        dark:bg-gray-800
-        rounded-lg p-4 space-y-2
+        rounded-lg border border-base-300 bg-base-100/50 p-4 space-y-2
       ">
         {chatMessages.map(message => (
           <DisplayChatBubble

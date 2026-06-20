@@ -45,6 +45,7 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeAssetUploadContext } from "./realtimeRendererAssetUploads";
+import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 import type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
 import type { RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
 import type {
@@ -54,7 +55,7 @@ import type {
 } from "./realtimeRendererStateSnapshots";
 import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 
-import { fetchRoleAvatarWithCache } from "../../api/hooks/RoleAndAvatarHooks";
+import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache } from "../../api/hooks/RoleAndAvatarHooks";
 import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
   collectMessageAssetWarmupPlan,
@@ -64,6 +65,7 @@ import {
 import { debugRealtimeRender } from "./realtimeRenderDebug";
 import {
   deleteAvatarScopedCacheEntries,
+  getAndUploadFigureAsset,
   getAndUploadMiniAvatarAsset,
   getAndUploadSpriteAsset,
   uploadBackgroundAsset,
@@ -744,14 +746,34 @@ export class RealtimeRenderer {
       if (!avatar || roleId <= 0) {
         continue;
       }
-      const spriteFileName = await this.getAndUploadSprite(avatarId, roleId);
-      if (!spriteFileName) {
+      const figureAsset = await this.getAndUploadFigure(avatarId, roleId);
+      if (!figureAsset) {
         continue;
       }
-      avatarMap.set(avatarId, {
-        ...avatar,
-        webgalSpritePath: spriteFileName,
-      } as RoleAvatar & { webgalSpritePath: string });
+      const compiledAvatar: RoleAvatar & {
+        webgalSpritePath?: string;
+        webgalAvatarLayerPath?: string;
+        webgalCompositionBasePath?: string;
+      } = { ...avatar };
+      if (figureAsset.composite) {
+        compiledAvatar.webgalAvatarLayerPath = figureAsset.avatarLayerPath;
+        compiledAvatar.webgalCompositionBasePath = figureAsset.basePath;
+        const baseAvatar = figureAsset.candidate?.baseAvatar;
+        const baseAvatarId = Number(baseAvatar?.avatarId ?? 0);
+        if (baseAvatar && baseAvatarId > 0) {
+          avatarMap.set(baseAvatarId, {
+            ...baseAvatar,
+            webgalSpritePath: figureAsset.basePath,
+          } as RoleAvatar & { webgalSpritePath?: string });
+        }
+        if (baseAvatarId === avatarId) {
+          compiledAvatar.webgalSpritePath = figureAsset.basePath;
+        }
+      }
+      else {
+        compiledAvatar.webgalSpritePath = figureAsset.target;
+      }
+      avatarMap.set(avatarId, compiledAvatar);
     }
     return avatarMap;
   }
@@ -1097,25 +1119,22 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
     const avatarUrl = buildAvatarUrl(primaryRoom?.avatarFileId) || avatarOriginalUrl(primaryRoom?.avatarFileId);
-    const titleImageUrl = resolveProjectableMediaUrl(this.gameConfig.titleImageFileId, "image", "medium", this.gameConfig.titleImageUrl);
+    const titleImageUrl = resolveProjectableMediaUrl(this.gameConfig.titleImageFileId, "image", "medium");
     const titleImageUploadUrl = resolveProjectableMediaUrl(
       this.gameConfig.originalTitleImageFileId ?? this.gameConfig.titleImageFileId,
       "image",
       "medium",
-      this.gameConfig.originalTitleImageUrl ?? this.gameConfig.titleImageUrl,
     );
-    const startupLogoUrl = resolveProjectableMediaUrl(this.gameConfig.startupLogoFileId, "image", "medium", this.gameConfig.startupLogoUrl);
+    const startupLogoUrl = resolveProjectableMediaUrl(this.gameConfig.startupLogoFileId, "image", "medium");
     const startupLogoUploadUrl = resolveProjectableMediaUrl(
       this.gameConfig.originalStartupLogoFileId ?? this.gameConfig.startupLogoFileId,
       "image",
       "medium",
-      this.gameConfig.originalStartupLogoUrl ?? this.gameConfig.startupLogoUrl,
     );
     const typingSoundSeUrl = resolveProjectableMediaUrl(
       this.gameConfig.typingSoundSeFileId,
       (this.gameConfig.typingSoundSeMediaType as "audio" | "image" | "video" | undefined) || "audio",
       "low",
-      this.gameConfig.typingSoundSeUrl,
     );
     const roomId = Number(primaryRoom?.roomId ?? 0);
 
@@ -1620,6 +1639,27 @@ export class RealtimeRenderer {
     return undefined;
   }
 
+  private async getOrFetchRoleAvatars(roleId: number): Promise<RoleAvatar[]> {
+    if (!this.queryClient || !Number.isFinite(roleId) || roleId <= 0) {
+      return [];
+    }
+
+    const cachedList = this.queryClient.getQueryData<any>(["getRoleAvatars", roleId]);
+    const cachedAvatars = extractRoleAvatarListFromQueryValue(cachedList);
+    if (cachedAvatars.length > 0) {
+      return cachedAvatars;
+    }
+
+    try {
+      const response = await fetchRoleAvatarsWithCache(this.queryClient, roleId);
+      return extractRoleAvatarListFromQueryValue(response);
+    }
+    catch (error) {
+      console.warn(`[RealtimeRenderer] 获取角色头像列表失败: roleId=${roleId}`, error);
+    }
+    return [];
+  }
+
   /**
    * 设置 TTS 配置
    */
@@ -1771,6 +1811,16 @@ export class RealtimeRenderer {
     );
   }
 
+  private async getAndUploadFigure(avatarId: number, roleId: number): Promise<WebgalFigureRenderAsset | null> {
+    return getAndUploadFigureAsset(
+      this.getAssetUploadContext(),
+      avatarId,
+      roleId,
+      targetAvatarId => this.getOrFetchRoleAvatar(targetAvatarId, roleId),
+      targetRoleId => this.getOrFetchRoleAvatars(targetRoleId),
+    );
+  }
+
   /**
    * 获取小头像文件名（如果未上传则上传）
    */
@@ -1809,7 +1859,7 @@ export class RealtimeRenderer {
         return;
       }
       if (kind === "sprite") {
-        await this.getAndUploadSprite(target.avatarId, target.roleId);
+        await this.getAndUploadFigure(target.avatarId, target.roleId);
         return;
       }
       await this.getAndUploadMiniAvatar(target.avatarId, target.roleId);
@@ -2324,10 +2374,11 @@ export class RealtimeRenderer {
       // 获取头像信息
       const avatar = messageAvatarId > 0 ? this.getCachedRoleAvatar(messageAvatarId, roleId) : undefined;
 
-      // 获取立绘文件名
-      const spriteFileName = (messageAvatarId > 0 && roleId > 0)
-        ? await this.getAndUploadSprite(messageAvatarId, roleId)
+      // 获取立绘素材；立绘组会返回运行时 composeFigure 目标，普通头像返回 sprite 路径。
+      const figureAsset = (messageAvatarId > 0 && roleId > 0)
+        ? await this.getAndUploadFigure(messageAvatarId, roleId)
         : null;
+      const spriteFileName = figureAsset?.target ?? null;
 
       const diceShowFigure = isDiceMessage
         ? (dicePayload?.showFigure ?? (roleId > 0))
@@ -2359,7 +2410,7 @@ export class RealtimeRenderer {
       const allowFigure = !isIntroText && (diceShowFigure === true || (!isNarrator && diceShowFigure !== false));
       const shouldShowFigure = allowFigure && !!figurePosition;
 
-      if (shouldShowFigure && spriteFileName && figurePosition) {
+      if (shouldShowFigure && figureAsset && spriteFileName && figurePosition) {
       // 不再自动清除立绘，立绘需要手动清除
         const figureSlot = resolveFigureSlot(figurePosition);
         this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
@@ -2368,12 +2419,16 @@ export class RealtimeRenderer {
         const previous = renderedState.get(figureSlot.id);
         const shouldUpdateFigure
           = !previous
-            || previous.fileName !== spriteFileName
+            || previous.fileName !== figureAsset.stateKey
             || previous.transform !== transform;
         if (shouldUpdateFigure) {
           const figureArgs = buildFigureArgs(figureSlot.id, transform);
-          await this.appendLine(targetRoomId, `changeFigure:${spriteFileName} ${figureArgs} -next;`, syncToFile);
-          renderedState.set(figureSlot.id, { fileName: spriteFileName, transform });
+          if (figureAsset.composeLine) {
+            await this.appendLine(targetRoomId, figureAsset.composeLine, syncToFile);
+          }
+          const compositePart = figureAsset.composite ? " -composite" : "";
+          await this.appendLine(targetRoomId, `changeFigure:${spriteFileName}${compositePart} ${figureArgs} -next;`, syncToFile);
+          renderedState.set(figureSlot.id, { fileName: figureAsset.stateKey, transform });
         }
 
         // 处理立绘动画（在立绘显示后）

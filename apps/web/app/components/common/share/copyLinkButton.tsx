@@ -1,7 +1,8 @@
 import { toast } from "react-hot-toast";
+
 import { Link } from "@/icons";
 
-interface CopyLinkButtonProps {
+type CopyLinkButtonProps = {
   title?: string;
   className?: string;
 }

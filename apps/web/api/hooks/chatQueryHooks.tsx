@@ -42,6 +42,7 @@ import {
     useGetUserRoomsQuery as useSharedGetUserRoomsQuery,
     useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
 } from "@tuanchat/query/spaces";
+import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
 export const SPACE_INFO_STALE_TIME_MS = 300_000;
@@ -965,14 +966,19 @@ export function useGetRoomRoleQuery(roomId: number) {
  * @param roomIds 群组ID数组
  */
 export function useGetRoomRolesQueries(roomIds: number[]) {
-    return useQueries({
-        queries: roomIds.map(roomId => ({
-            queryKey: roomRoleQueryKey(roomId),
+    const querySlots = createUniqueQuerySlots(
+        roomIds,
+        (roomId, index) => roomId > 0 ? String(roomId) : `invalid:${index}`,
+    );
+    const results = useQueries({
+        queries: querySlots.queryItems.map(({ item: roomId, originalIndex }) => ({
+            queryKey: roomId > 0 ? roomRoleQueryKey(roomId) : ["roomRole", "invalid", originalIndex],
             queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
             staleTime: ROOM_ROLE_STALE_TIME_MS,
             enabled: roomId > 0 // 确保roomId有效时才启用查询
         }))
     });
+    return mapUniqueQueryResults(results, querySlots.resultIndexes);
 }
 
 

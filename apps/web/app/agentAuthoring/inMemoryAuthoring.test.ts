@@ -66,6 +66,111 @@ describe("agent authoring primitives", () => {
     expect(forced.batchId).not.toBe(batch.batchId);
   });
 
+  it("executes typed command envelopes for CLI and API adapters", () => {
+    const authoring = createInMemoryAuthoringPrimitives();
+    const started = authoring.executeCommand({
+      request: {
+        inputHash: "hash:command",
+        source: { key: "command:sample", kind: "manual" },
+        targetRoomId: 21,
+      },
+      type: "batch.start",
+    }) as { batch: { batchId: string; status: string } };
+    const batchId = started.batch.batchId;
+    expect(started.batch.status).toBe("pending");
+
+    const roleResult = authoring.executeCommand({
+      request: {
+        batchId,
+        normalizedName: "命令角色",
+        sourceKey: "role:command",
+      },
+      type: "role.upsert",
+    }) as { action: string; role: { roleId: number } };
+    expect(roleResult.action).toBe("created");
+
+    const avatarResult = authoring.executeCommand({
+      request: {
+        batchId,
+        fileHash: "sha256:avatar-command",
+        roleId: roleResult.role.roleId,
+      },
+      type: "avatar.upsert",
+    }) as { action: string; avatar: { avatarId: number } };
+    expect(avatarResult.action).toBe("created");
+
+    const mediaResult = authoring.executeCommand({
+      request: {
+        batchId,
+        purpose: "bgm",
+        remoteUrl: "https://cdn.example.test/command.ogg",
+      },
+      type: "media.upsert",
+    }) as { action: string; media: { mediaId: number } };
+    expect(mediaResult.action).toBe("created");
+
+    const unresolvedResult = authoring.executeCommand({
+      request: {
+        batchId,
+        originalName: "待补音效",
+        purpose: "se",
+        reason: "missing source",
+      },
+      type: "media.unresolved",
+    }) as { unresolvedMedia: { unresolvedMediaId: string } };
+    expect(unresolvedResult.unresolvedMedia.unresolvedMediaId).toMatch(/^unresolved-/);
+
+    const written = authoring.executeCommand({
+      request: {
+        batchId,
+        messages: [{
+          avatarId: avatarResult.avatar.avatarId,
+          content: "通过通用命令写入",
+          kind: "dialog",
+          mediaId: mediaResult.media.mediaId,
+          roleId: roleResult.role.roleId,
+        }],
+      },
+      type: "message.batchWrite",
+    }) as { messages: Array<{ content: string; messageType: number }> };
+    expect(written.messages).toMatchObject([{ content: "通过通用命令写入" }]);
+
+    const inspected = authoring.executeCommand({ batchId, type: "batch.inspect" }) as {
+      report: { stats: { avatarsCreated: number; mediaCreated: number; messagesWritten: number; rolesCreated: number; unresolvedMedia: number } };
+    };
+    expect(inspected.report.stats).toMatchObject({
+      avatarsCreated: 1,
+      mediaCreated: 1,
+      messagesWritten: 1,
+      rolesCreated: 1,
+      unresolvedMedia: 1,
+    });
+
+    const readiness = authoring.executeCommand({ batchId, type: "webgal.inspectReadiness" }) as {
+      report: { exportable: boolean; messageCount: number };
+    };
+    expect(readiness.report).toMatchObject({
+      exportable: false,
+      messageCount: 1,
+    });
+
+    const committed = authoring.executeCommand({ batchId, type: "batch.commit" }) as { report: { batch: { status: string } } };
+    expect(committed.report.batch.status).toBe("committed");
+
+    const cleanupStarted = authoring.executeCommand({
+      request: {
+        source: { key: "command:cleanup", kind: "manual" },
+        targetRoomId: 22,
+      },
+      type: "batch.start",
+    }) as { batch: { batchId: string } };
+    const cleaned = authoring.executeCommand({
+      batchId: cleanupStarted.batch.batchId,
+      type: "batch.cleanup",
+    }) as { report: { batch: { status: string } } };
+    expect(cleaned.report.batch.status).toBe("cleaned");
+  });
+
   it("upserts roles, handles name collisions, and cleans draft-created roles", () => {
     const authoring = createInMemoryAuthoringPrimitives();
     const batch = authoring.startBatch({

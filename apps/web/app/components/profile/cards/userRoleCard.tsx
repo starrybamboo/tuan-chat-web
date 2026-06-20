@@ -1,12 +1,14 @@
-import type { UserRole } from "../../../../api";
 import React, { useState } from "react";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 
-interface UserRoleCardProps {
+import type { UserRole } from "../../../../api";
+
+type UserRoleCardProps = {
   role: UserRole;
 }
 

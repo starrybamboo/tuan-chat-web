@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
  * 原生选区快照。
  * 用于在浮动工具栏点击后恢复编辑区内的选中文本。
  */
-export interface SavedNativeSelection {
+export type SavedNativeSelection = {
   range: Range;
   text: string;
   editor: HTMLElement;
@@ -14,12 +14,12 @@ export interface SavedNativeSelection {
 /**
  * 浮动工具栏在视口中的定位坐标。
  */
-export interface FloatingSelectionToolbarPosition {
+export type FloatingSelectionToolbarPosition = {
   x: number;
   y: number;
 }
 
-interface UseFloatingSelectionToolbarOptions {
+type UseFloatingSelectionToolbarOptions = {
   /**
    * 是否允许显示浮动工具栏。
    */
@@ -34,7 +34,7 @@ interface UseFloatingSelectionToolbarOptions {
   resolveEditorElement: (range: Range) => HTMLElement | null;
 }
 
-interface FloatingSelectionToolbarState {
+type FloatingSelectionToolbarState = {
   toolbarRef: React.RefObject<HTMLDivElement | null>;
   isFloatingVisible: boolean;
   toolbarPos: FloatingSelectionToolbarPosition | null;
@@ -235,7 +235,7 @@ export function useFloatingSelectionToolbar({
   };
 }
 
-interface FloatingSelectionToolbarProps {
+type FloatingSelectionToolbarProps = {
   /**
    * 工具栏是否可见。
    */

@@ -1,6 +1,8 @@
-import type { ScreenSize } from "@/utils/getScreenSize";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+
+import type { ScreenSize } from "@/utils/getScreenSize";
+
 import { useHorizontalResizeDrag } from "@/components/common/customHooks/useHorizontalResizeDrag";
 import { getScreenSize } from "@/utils/getScreenSize";
 

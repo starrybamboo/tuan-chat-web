@@ -1,13 +1,14 @@
 import { useRouter } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
+
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { unreadBadgeBounceMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { resolveUserDisplayName, useResolvedUserInfo } from "@/components/common/userAccess.shared";
 import { XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-interface MessageDirectType {
+type MessageDirectType = {
   messageId?: number;
   userId?: number;
   syncId?: number;

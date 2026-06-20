@@ -4,7 +4,7 @@ import ChatFrameList from "@/components/chat/chatFrameList";
 import ChatFrameOverlays from "@/components/chat/chatFrameOverlays";
 import ChatFrameContextMenu from "@/components/chat/room/contextMenu/chatFrameContextMenu";
 
-interface ChatFrameViewProps {
+type ChatFrameViewProps = {
   listProps: ComponentProps<typeof ChatFrameList>;
   overlaysProps: ComponentProps<typeof ChatFrameOverlays>;
   contextMenuProps: ComponentProps<typeof ChatFrameContextMenu>;

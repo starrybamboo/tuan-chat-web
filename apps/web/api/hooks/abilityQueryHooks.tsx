@@ -12,6 +12,7 @@ import {
     roleAbilityByRuleQueryKey,
     roleAbilityListQueryKey,
 } from "./abilityMutationInvalidation";
+import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 import { normalizeRoleAbilityCacheData } from "./roleAbilityCacheData";
 
 type JsonObject = Record<string, unknown>;
@@ -86,24 +87,45 @@ export function shouldRetryRoleAbilityByRule(failureCount: number, error: any) {
     return failureCount < 2;
 }
 
+export const ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS = {
+    staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
+    retry: shouldRetryRoleAbilityByRule,
+    retryOnMount: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+} as const;
+
 export async function loadRoleAbilityByRule(roleId: number, ruleId: number): Promise<CachedRoleAbility | null> {
-    try {
-        const res = await tuanchat.abilityController.getRoleAbilityByRule(ruleId, roleId);
-        if (res.success && res.data) {
-            return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
-        }
-        return null;
-    } catch (error: any) {
-        const statusCode = error?.response?.status || error?.status;
-        if (statusCode && statusCode >= 400 && statusCode < 500) {
-            console.warn(`Ability not found for roleId: ${roleId}, ruleId: ${ruleId} (status: ${statusCode})`);
-            return null;
-        }
-        throw error;
+    const res = assertSuccessfulAbilityApiResult(
+        await tuanchat.abilityController.getRoleAbilityByRule(ruleId, roleId),
+        "获取角色能力失败",
+    );
+    if (res.data) {
+        return normalizeRoleAbilityCacheData(res.data, { roleId, ruleId });
     }
+    return null;
+}
+
+export function getFreshRoleAbilityByRuleFromCache(queryClient: QueryClient, roleId: number, ruleId: number) {
+    const state = queryClient.getQueryState<CachedRoleAbility | null>(roleAbilityByRuleQueryKey(roleId, ruleId));
+    if (!state || state.data === undefined || state.isInvalidated) {
+        return undefined;
+    }
+    if (Date.now() - state.dataUpdatedAt > ROLE_ABILITY_BY_RULE_STALE_TIME_MS) {
+        return undefined;
+    }
+    return state.data;
 }
 
 export function fetchRoleAbilityByRuleWithCache(queryClient: QueryClient, roleId: number, ruleId: number) {
+    if (roleId <= 0 || ruleId <= 0) {
+        return Promise.resolve(null);
+    }
+    const cached = getFreshRoleAbilityByRuleFromCache(queryClient, roleId, ruleId);
+    if (cached !== undefined) {
+        return Promise.resolve(cached);
+    }
     return queryClient.fetchQuery({
         queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
         queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
@@ -589,15 +611,19 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
  * 批量获取多个角色的 ability（用于避免在循环中直接调用 Hook）
  */
 export function useGetRolesAbilitiesQueries(roleIds: number[]) {
+    const querySlots = createUniqueQuerySlots(
+        roleIds,
+        (roleId, index) => roleId > 0 ? String(roleId) : `invalid:${index}`,
+    );
     const results = useQueries({
-        queries: roleIds.map((roleId) => ({
-            queryKey: roleAbilityListQueryKey(roleId),
+        queries: querySlots.queryItems.map(({ item: roleId, originalIndex }) => ({
+            queryKey: roleId > 0 ? roleAbilityListQueryKey(roleId) : ["listRoleAbility", "invalid", originalIndex],
             queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
             staleTime: 10000,
             enabled: roleId > 0,
         })),
     });
-    return results;
+    return mapUniqueQueryResults(results, querySlots.resultIndexes);
 }
 
 /**
@@ -634,17 +660,6 @@ export function useUpdateRoleAbilityByRoleIdMutation() {
     return useMutation({
         mutationFn: updateRoleAbilityByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
-            const previousAbilityByRule = queryClient.getQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId));
-            setRoleAbilityByRuleCache(queryClient, variables);
-            return { previousAbilityByRule };
-        },
-        onError: (_error, variables, context) => {
-            if (context?.previousAbilityByRule !== undefined) {
-                queryClient.setQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId), context.previousAbilityByRule);
-            }
-        },
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
                 setRoleAbilityByRuleCache(queryClient, variables);
@@ -659,17 +674,6 @@ export function useUpdateKeyFieldByRoleIdMutation() {
     return useMutation({
         mutationFn: updateRoleAbilityFieldByRuleWithSuccessGuard,
         mutationKey: ["updateRoleAbilityByRoleId"],
-        onMutate: async (variables) => {
-            await queryClient.cancelQueries({ queryKey: roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId) });
-            const previousAbilityByRule = queryClient.getQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId));
-            patchRoleAbilityFieldsCache(queryClient, variables);
-            return { previousAbilityByRule };
-        },
-        onError: (_error, variables, context) => {
-            if (context?.previousAbilityByRule !== undefined) {
-                queryClient.setQueryData(roleAbilityByRuleQueryKey(variables.roleId, variables.ruleId), context.previousAbilityByRule);
-            }
-        },
         onSuccess: (result, variables) => {
             if (isSuccessfulApiResult(result)) {
                 patchRoleAbilityFieldsCache(queryClient, variables);
@@ -685,9 +689,8 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
     return useQuery({
       queryKey: roleAbilityByRuleQueryKey(roleId, ruleId),
       queryFn: () => loadRoleAbilityByRule(roleId, ruleId),
-      staleTime: ROLE_ABILITY_BY_RULE_STALE_TIME_MS,
-      // 仅对 4xx 客户端错误禁用重试；其他错误保留全局重试配置
-      retry: shouldRetryRoleAbilityByRule,
+      ...ROLE_ABILITY_BY_RULE_OBSERVER_OPTIONS,
+      enabled: roleId > 0 && ruleId > 0,
     })
   }
 

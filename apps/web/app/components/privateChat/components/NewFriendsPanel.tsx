@@ -1,3 +1,10 @@
+import { motion } from "motion/react";
+import { useMemo, useState } from "react";
+
+import { MediaImage } from "@/components/common/mediaImage";
+import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
+import { Search, XMarkICon } from "@/icons";
+import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -6,12 +13,6 @@ import {
   useSendFriendRequestMutation,
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { motion } from "motion/react";
-import { useMemo, useState } from "react";
-import { MediaImage } from "@/components/common/mediaImage";
-import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
-import { Search, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
 
 type SearchMode = "id" | "username";
 

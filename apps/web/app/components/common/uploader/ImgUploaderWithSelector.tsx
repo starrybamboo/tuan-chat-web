@@ -1,6 +1,6 @@
 import { ImgUploaderWithCopper } from "./imgUploaderWithCropper";
 
-interface ImgUploaderWithSelectorProps {
+type ImgUploaderWithSelectorProps = {
   setDownloadUrl?: (newUrl: string) => void | undefined;
   setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
   children: React.ReactNode;

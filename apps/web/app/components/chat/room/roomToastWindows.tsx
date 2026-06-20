@@ -1,4 +1,5 @@
 import React from "react";
+
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 
 const LazyAddRoleWindow = React.lazy(async () => {
@@ -11,7 +12,7 @@ const LazyAddNpcRoleWindow = React.lazy(async () => {
   return { default: module.AddNpcRoleWindow };
 });
 
-interface RoomToastWindowsProps {
+type RoomToastWindowsProps = {
   isRoleHandleOpen: boolean;
   setIsRoleAddWindowOpen: (open: boolean) => void;
   handleAddRole: (roleId: number) => void;

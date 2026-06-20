@@ -42,4 +42,50 @@ export class MediaControllerService {
             mediaType: 'application/json',
         });
     }
+    /**
+     * 读取媒体派生对象
+     * @param shard
+     * @param fileId
+     * @param category
+     * @param fileName
+     * @returns binary OK
+     * @throws ApiError
+     */
+    public downloadVariant(
+        shard: string,
+        fileId: number,
+        category: string,
+        fileName: string,
+    ): CancelablePromise<Blob> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/media/v1/files/{shard}/{fileId}/{category}/{fileName}',
+            path: {
+                'shard': shard,
+                'fileId': fileId,
+                'category': category,
+                'fileName': fileName,
+            },
+        });
+    }
+    /**
+     * 读取媒体 original 对象
+     * @param shard
+     * @param fileId
+     * @returns binary OK
+     * @throws ApiError
+     */
+    public downloadOriginal(
+        shard: string,
+        fileId: number,
+    ): CancelablePromise<Blob> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/media/v1/files/{shard}/{fileId}/original',
+            path: {
+                'shard': shard,
+                'fileId': fileId,
+            },
+        });
+    }
 }

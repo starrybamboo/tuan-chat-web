@@ -1,8 +1,10 @@
 import React from "react";
+
 import { ExpressionChooser } from "@/components/chat/input/expressionChooser";
 
-interface AvatarDropdownContentProps {
+type AvatarDropdownContentProps = {
   roleId: number;
+  selectedAvatarId?: number;
   onAvatarChange: (avatarId: number) => void;
   onRoleChange: (roleId: number) => void;
   onRequestClose?: () => void;
@@ -12,6 +14,7 @@ interface AvatarDropdownContentProps {
 
 function AvatarDropdownContentImpl({
   roleId,
+  selectedAvatarId,
   onAvatarChange,
   onRoleChange,
   onRequestClose,
@@ -19,14 +22,16 @@ function AvatarDropdownContentImpl({
   onRequestFullscreen,
 }: AvatarDropdownContentProps) {
   return (
-    <div className="p-2">
+    <div className="size-full min-h-0 min-w-0">
       <ExpressionChooser
         roleId={roleId}
+        selectedAvatarId={selectedAvatarId}
         handleExpressionChange={onAvatarChange}
         handleRoleChange={onRoleChange}
         onRequestClose={onRequestClose}
         defaultFullscreen={defaultFullscreen}
         onRequestFullscreen={onRequestFullscreen}
+        fitContainer={true}
       />
     </div>
   );

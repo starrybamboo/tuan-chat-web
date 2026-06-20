@@ -1,5 +1,5 @@
 import { UsersThree } from "phosphor-react-native";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -13,6 +13,9 @@ import { ContactListAvatar } from "./ContactListAvatar";
 import { normalizeDmConversations } from "./dmConversationListModel";
 
 const AVATAR_SIZE = 40;
+const CONVERSATION_INITIAL_RENDER_COUNT = 12;
+const CONVERSATION_RENDER_BATCH_SIZE = 8;
+const CONVERSATION_WINDOW_SIZE = 7;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -90,7 +93,7 @@ type DmConversationListProps = {
   isRefreshing?: boolean;
 };
 
-export function DmConversationList({
+function DmConversationListInner({
   conversations,
   currentContactId,
   hideHeader = false,
@@ -176,8 +179,10 @@ export function DmConversationList({
         data={sortedConversations}
         keyExtractor={item => String(item.contactId)}
         renderItem={renderItem}
-        initialNumToRender={15}
-        maxToRenderPerBatch={10}
+        initialNumToRender={CONVERSATION_INITIAL_RENDER_COUNT}
+        maxToRenderPerBatch={CONVERSATION_RENDER_BATCH_SIZE}
+        updateCellsBatchingPeriod={50}
+        windowSize={CONVERSATION_WINDOW_SIZE}
         contentContainerStyle={styles.listContent}
         style={styles.list}
         refreshControl={
@@ -205,3 +210,5 @@ export function DmConversationList({
     </View>
   );
 }
+
+export const DmConversationList = memo(DmConversationListInner);

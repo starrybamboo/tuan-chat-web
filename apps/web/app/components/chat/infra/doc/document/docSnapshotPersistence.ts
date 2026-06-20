@@ -1,6 +1,6 @@
 import type { StoredSnapshot } from "@/components/chat/infra/doc/document/docSnapshotTypes";
 
-import { getDocSnapshot, removeDocSnapshot, setDocSnapshot } from "@/components/chat/infra/localDb/chatHistoryDb";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 
 type DocSnapshotRow = {
   docId: string;
@@ -103,14 +103,15 @@ export async function getPersistedDocSnapshot(docId: string): Promise<StoredSnap
     return null;
   }
 
-  const sqliteSnapshot = await getDocSnapshot<StoredSnapshot>(key);
+  const db = await loadChatHistoryDb();
+  const sqliteSnapshot = await db.getDocSnapshot<StoredSnapshot>(key);
   if (isStoredSnapshot(sqliteSnapshot)) {
     return sqliteSnapshot;
   }
 
   const legacySnapshot = await getLegacyIndexedDbSnapshot(key);
   if (legacySnapshot) {
-    await setDocSnapshot(key, legacySnapshot);
+    await db.setDocSnapshot(key, legacySnapshot);
     await removeLegacyIndexedDbSnapshot(key).catch((error) => {
       console.warn("[DocSnapshot] remove legacy IndexedDB snapshot failed", error);
     });
@@ -124,7 +125,8 @@ export async function setPersistedDocSnapshot(docId: string, snapshot: StoredSna
     return;
   }
 
-  await setDocSnapshot(key, snapshot);
+  const db = await loadChatHistoryDb();
+  await db.setDocSnapshot(key, snapshot);
   await removeLegacyIndexedDbSnapshot(key).catch((error) => {
     console.warn("[DocSnapshot] remove legacy IndexedDB snapshot failed", error);
   });
@@ -136,7 +138,8 @@ export async function removePersistedDocSnapshot(docId: string): Promise<void> {
     return;
   }
 
-  await removeDocSnapshot(key);
+  const db = await loadChatHistoryDb();
+  await db.removeDocSnapshot(key);
   await removeLegacyIndexedDbSnapshot(key).catch((error) => {
     console.warn("[DocSnapshot] remove legacy IndexedDB snapshot failed", error);
   });

@@ -1,4 +1,4 @@
-import { getLocalValue, setLocalValue } from "@/components/chat/infra/localDb/chatHistoryDb";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 
 type ComposerAnnotationsRow = {
   key: string;
@@ -18,7 +18,8 @@ export async function getComposerAnnotations(params: {
   roomId: number;
   roleId: number;
 }): Promise<string[] | null> {
-  const row = await getLocalValue<ComposerAnnotationsRow>(makeKey(params.roomId, params.roleId));
+  const db = await loadChatHistoryDb();
+  const row = await db.getLocalValue<ComposerAnnotationsRow>(makeKey(params.roomId, params.roleId));
   return row?.annotations ?? null;
 }
 
@@ -28,7 +29,8 @@ export async function setComposerAnnotations(params: {
   annotations: string[];
 }): Promise<void> {
   const key = makeKey(params.roomId, params.roleId);
-  await setLocalValue(key, {
+  const db = await loadChatHistoryDb();
+  await db.setLocalValue(key, {
     key,
     roomId: params.roomId,
     roleId: params.roleId,

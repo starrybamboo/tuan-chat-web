@@ -1,6 +1,5 @@
 import type { Dispatch, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject, SetStateAction } from "react";
-import type { NovelAiV45ChannelSnapshot, NovelAiV45TokenSnapshot } from "@/components/aiImage/tokenMeter/snapshot";
-import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
+
 import {
   ArrowClockwise,
   CaretDownIcon,
@@ -15,6 +14,10 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 import { memo } from "react";
+
+import type { NovelAiV45ChannelSnapshot, NovelAiV45TokenSnapshot } from "@/components/aiImage/tokenMeter/snapshot";
+import type { AiImagePageController } from "@/components/aiImage/useAiImagePageController";
+
 import { AiImageContextLimitMeter } from "@/components/aiImage/AiImageContextLimitMeter";
 import preciseReferenceIconSrc from "@/components/aiImage/assets/precise-reference.png";
 import vibeTransferIconSrc from "@/components/aiImage/assets/vibe-transfer.png";
@@ -25,7 +28,7 @@ import { NOVELAI_V45_CONTEXT_LIMIT } from "@/components/aiImage/novelaiV45TokenM
 import { ReferenceActionIcon } from "@/components/aiImage/ReferenceActionIcon";
 import { ChevronDown } from "@/icons";
 
-export interface ProEditorContentLocalProps {
+export type ProEditorContentLocalProps = {
   editorPanelClassName: string;
   segmentedControlClassName: string;
   segmentedButtonBaseClassName: string;
@@ -86,7 +89,7 @@ export interface ProEditorContentLocalProps {
   setIsBaseImageToolsOpen: Dispatch<SetStateAction<boolean>>;
 }
 
-interface ProEditorContentProps {
+type ProEditorContentProps = {
   sidebarProps: AiImagePageController["sidebarProps"];
   local: ProEditorContentLocalProps;
 }

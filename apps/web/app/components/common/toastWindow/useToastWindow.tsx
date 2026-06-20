@@ -1,4 +1,5 @@
 import React, { use, useCallback, useEffect, useMemo, useRef } from "react";
+
 import { ChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
@@ -6,7 +7,7 @@ import { CommentContext } from "@/components/common/comment/commentContext";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { ContentPermissionContext } from "@/components/repository/detail/ContentTab/ContentPermissionContext";
 
-export interface ToastWindowStateProps {
+export type ToastWindowStateProps = {
   isOpen: boolean;
   children: React.ReactNode;
   onClose: () => void;

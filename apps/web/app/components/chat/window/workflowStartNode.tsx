@@ -1,6 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 
-interface WorkflowStartNodeProps {
+type WorkflowStartNodeProps = {
   data: {
     label?: string;
   };

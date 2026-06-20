@@ -1,0 +1,333 @@
+{
+  "createdAt": "2026-06-07T20:47:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第二批：只折叠同语义状态。脸红、汗、泪、阴影、嘴型、眼型、外观形态、发色或漫画分镜差异保留。",
+  "groups": [
+    {
+      "role": "八意永琳",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I003"],
+      "reason": "同为脸红半睁微笑，差异仅为裁切/画布范围。"
+    },
+    {
+      "role": "八意永琳",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I015",
+      "memberIds": ["I015", "I016"],
+      "reason": "同为阴影半睁狡黠笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "八意永琳",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I017",
+      "memberIds": ["I017", "I018"],
+      "reason": "同为正面惊讶张口，无汗泪脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "比那名居天子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I009"],
+      "reason": "同为普通正面微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "比那名居天子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I007",
+      "memberIds": ["I007", "I018"],
+      "reason": "同为闭眼大笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "比那名居天子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I012"],
+      "reason": "同为阴影不满噘嘴，阴影强度、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "比那名居天子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I015",
+      "memberIds": ["I015", "I017"],
+      "reason": "同为正面惊讶小口，无汗泪脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "风见幽香",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I007",
+      "memberIds": ["I007", "I017"],
+      "reason": "同为睁眼惊讶张口，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "风见幽香",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I009",
+      "memberIds": ["I009", "I012"],
+      "reason": "同为普通侧目平静微笑，眼型嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "风见幽香",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I011"],
+      "reason": "同为闭眼开心张口笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "风见幽香",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I013",
+      "memberIds": ["I013", "I015"],
+      "reason": "同为阴影半睁笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "帕秋莉",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I015"],
+      "reason": "同为半睁平静小口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "帕秋莉",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I016"],
+      "reason": "同为半睁担心小口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "帕秋莉",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I013"],
+      "reason": "同为半睁微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "帕秋莉",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I007",
+      "memberIds": ["I007", "I012", "I017"],
+      "reason": "同为闭眼开心张口笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "赫卡提亚",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I006"],
+      "reason": "同为红发半睁狡黠笑，发色和表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "赫卡提亚",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I007"],
+      "reason": "同为红发闭眼大笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "赫卡提亚",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I010"],
+      "reason": "同为红发阴影半睁笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "赫卡提亚",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I013",
+      "memberIds": ["I013", "I014"],
+      "reason": "同为蓝发闭眼大笑，发色和表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "鬼人正邪",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I010", "I013"],
+      "reason": "同为正面惊讶大张口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "鬼人正邪",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I011"],
+      "reason": "同为半睁小口担心，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I015", "I020", "I024"],
+      "reason": "同为闭眼开心张口，表情状态一致，仅裁切/画布范围差异。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I013"],
+      "reason": "同为正面惊讶小口，无汗泪脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I010", "I019"],
+      "reason": "同为阴影半睁微笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I011",
+      "memberIds": ["I011", "I017"],
+      "reason": "同为侧脸半睁微笑，角度、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I022",
+      "memberIds": ["I022", "I023"],
+      "reason": "同为全身平静站姿，外观状态一致，仅裁切/画布范围差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I018"],
+      "reason": "同为普通侧脸微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I013", "I019"],
+      "reason": "同为闭眼开心张口，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I021"],
+      "reason": "同为半睁狡黠笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I008", "I015"],
+      "reason": "同为闭眼平静，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I009",
+      "memberIds": ["I009", "I023"],
+      "reason": "同为小口惊讶，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I011",
+      "memberIds": ["I011", "I016"],
+      "reason": "同为歪头半睁笑，姿态、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I012",
+      "memberIds": ["I012", "I017"],
+      "reason": "同为歪头闭眼大笑，姿态和表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I018"],
+      "reason": "同为帽子版平静闭口，外观形态、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I019"],
+      "reason": "同为帽子版闭眼小口，外观形态、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I012",
+      "memberIds": ["I012", "I014"],
+      "reason": "同为帽子版闭眼开心张口，外观形态和表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I022"],
+      "reason": "同为角版平静微笑，外观形态、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I010"],
+      "reason": "同为角版惊讶张口，外观形态和表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I015",
+      "memberIds": ["I015", "I020"],
+      "reason": "同为角版闭眼开心张口，外观形态和表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "古明地恋",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I010", "I015", "I018"],
+      "reason": "同为正面惊讶小口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "古明地恋",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I011", "I012", "I017"],
+      "reason": "同为普通睁眼微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "古明地恋",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I009", "I016", "I021"],
+      "reason": "同为闭眼开心张口，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "古明地恋",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I008"],
+      "reason": "同为闭眼平静，眼型嘴型和情绪一致，仅裁切差异。"
+    }
+  ],
+  "anomalies": [
+    {
+      "role": "芙兰朵露·斯卡雷特",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I004",
+      "correctRole": "烈海王",
+      "note": "用户确认：该图不是芙兰头像，而是烈海王头像。暂不折叠，后续应从芙兰目录迁入烈海王头像组。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I018",
+      "note": "异常灰度风格头像，暂不折叠，后续应单独复核是否保留或改类。"
+    },
+    {
+      "role": "烈海王",
+      "assetKind": "manga-avatar",
+      "note": "漫画分镜差异较多，本批未执行折叠；待重新逐编号审查。"
+    }
+  ],
+  "deferred": [
+    "烈海王/character-avatar-bust",
+    "依神紫苑/character-avatar-bust",
+    "四季映姬/character-avatar-chat"
+  ]
+}

@@ -134,4 +134,44 @@ describe("loadMediaImageWithOriginalFallback", () => {
     ]);
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
+
+  it("不会把普通图片预加载强制成跨域请求", async () => {
+    const images: MockImage[] = [];
+
+    class MockImage {
+      crossOrigin = "";
+      onload: (() => void) | null = null;
+      onerror: ((error?: unknown) => void) | null = null;
+      naturalWidth = 0;
+      naturalHeight = 0;
+      private _src = "";
+
+      constructor() {
+        images.push(this);
+      }
+
+      set src(value: string) {
+        this._src = value;
+        queueMicrotask(() => {
+          this.naturalWidth = 256;
+          this.naturalHeight = 256;
+          this.onload?.();
+        });
+      }
+
+      get src() {
+        return this._src;
+      }
+    }
+
+    vi.stubGlobal("Image", MockImage as never);
+
+    await expect(loadMediaImageWithOriginalFallback("/media/v1/files/045/45/image/medium.webp"))
+      .resolves.toMatchObject({
+        src: "http://localhost/media/v1/files/045/45/image/medium.webp",
+      });
+
+    expect(images).toHaveLength(1);
+    expect(images[0]?.crossOrigin).toBe("");
+  });
 });

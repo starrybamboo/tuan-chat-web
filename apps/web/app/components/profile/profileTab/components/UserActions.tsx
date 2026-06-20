@@ -1,15 +1,17 @@
-import type { UserInfoResponse } from "../../../../../api";
 import { useRouter } from "@tanstack/react-router";
 import React from "react";
+
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 
-interface ProfileEditingActions {
+import type { UserInfoResponse } from "../../../../../api";
+
+type ProfileEditingActions = {
   isEditingProfile: boolean;
   startEditingProfile: () => void;
 }
 
-interface UserActionsProps {
+type UserActionsProps = {
   user: UserInfoResponse | undefined;
   userId: number;
   loginUserId: number;

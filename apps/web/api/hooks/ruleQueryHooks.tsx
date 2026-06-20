@@ -10,6 +10,7 @@ import type {Rule} from "@tuanchat/openapi-client/models/Rule";
 import type { PageBaseRespRuleResponse } from "@tuanchat/openapi-client/models/PageBaseRespRuleResponse";
 
 import {tuanchat} from "../instance";
+import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 
 export const RULE_DETAIL_STALE_TIME_MS = 300000;
 
@@ -117,14 +118,19 @@ export function useGetRuleDetailQuery(ruleId: number) {
     });
 }
 export function useGetRuleDetailQueries(ruleIds: number[]) {
-    return useQueries({
-        queries: ruleIds.map(ruleId => ({
-            queryKey: ruleDetailQueryKey(ruleId),
+    const querySlots = createUniqueQuerySlots(
+        ruleIds,
+        (ruleId, index) => ruleId > 0 ? String(ruleId) : `invalid:${index}`,
+    );
+    const results = useQueries({
+        queries: querySlots.queryItems.map(({ item: ruleId, originalIndex }) => ({
+            queryKey: ruleId > 0 ? ruleDetailQueryKey(ruleId) : ["getRuleDetail", "invalid", originalIndex],
             queryFn: () => tuanchat.ruleController.getRuleDetail(ruleId),
             staleTime: RULE_DETAIL_STALE_TIME_MS,
             enabled: ruleId > 0
         }))
     });
+    return mapUniqueQueryResults(results, querySlots.resultIndexes);
 }
 
 /**

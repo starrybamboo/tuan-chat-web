@@ -1,8 +1,9 @@
-import type { UserNotificationItem } from "@/components/notification/notificationTypes";
-
 import { useRouter } from "@tanstack/react-router";
 import { lazy, startTransition, Suspense, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { UserNotificationItem } from "@/components/notification/notificationTypes";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import {
   useMarkAllNotificationsReadMutation,

@@ -1,8 +1,9 @@
-import type { ChatMessageResponse, Message, UserRole } from "../../../../api";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
 import { getClueCardRenderData, getDiceTurnRenderData } from "@tuanchat/domain/message-render-data";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { getNextSyncedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
@@ -46,6 +47,9 @@ import { formatTimeSmartly } from "@/utils/dateUtil";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { isRoleNotFoundApiError } from "@/utils/roleApiError";
 import { areRealtimeRenderMessagesEquivalent } from "@/webGAL/realtimeRenderMessageDelta";
+
+import type { ChatMessageResponse, Message, UserRole } from "../../../../api";
+
 import { useUpdateMessageMutation } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../../api/hooks/RoleAndAvatarHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";
@@ -58,19 +62,19 @@ import {
   getChatMessageMetaRowClass,
 } from "./messageCardStyle";
 
-interface CommandRequestPayload {
+type CommandRequestPayload = {
   command: string;
   allowAll?: boolean;
   allowedRoleIds?: number[];
 }
 
-interface HoverToolbarActionButtonProps {
+type HoverToolbarActionButtonProps = {
   label: string;
   onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
 }
 
-interface DiceTurnReplyRenderPayload {
+type DiceTurnReplyRenderPayload = {
   avatarId?: number;
   content?: string;
   customRoleName?: string;
@@ -800,6 +804,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
           `}>
             <ExpressionChooser
               roleId={message.roleId ?? -1}
+              selectedAvatarId={message.avatarId ?? undefined}
               handleExpressionChange={(avatarId) => {
                 handleExpressionChange(avatarId);
                 onClose();

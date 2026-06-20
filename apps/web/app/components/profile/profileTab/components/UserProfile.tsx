@@ -1,7 +1,8 @@
 import type { UserProfileInfoResponse } from "@tuanchat/openapi-client/models/UserProfileInfoResponse";
+
 import React, { useState } from "react";
 
-interface ProfileEditingState {
+type ProfileEditingState = {
   isEditingProfile: boolean;
   editingUsername: string;
   editingDescription: string;
@@ -12,7 +13,7 @@ interface ProfileEditingState {
   isSaving: boolean;
 }
 
-interface UserProfileProps {
+type UserProfileProps = {
   user: UserProfileInfoResponse | undefined;
   userId: number;
   loginUserId: number;

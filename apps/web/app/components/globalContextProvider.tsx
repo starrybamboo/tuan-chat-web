@@ -1,10 +1,13 @@
+import { createContext, use, useEffect, useMemo, useState } from "react";
+
+import { AUTH_SESSION_CHANGED_EVENT, readStoredAuthUserId } from "@/utils/auth/sessionEvents";
+
 import type { WebsocketUtils } from "../../api/useWebSocket";
 import type { ChatStatusEvent } from "../../api/wsModels";
-import { createContext, use, useEffect, useMemo, useState } from "react";
-import { AUTH_SESSION_CHANGED_EVENT, readStoredAuthUserId } from "@/utils/auth/sessionEvents";
+
 import { useWebSocket } from "../../api/useWebSocket";
 
-interface GlobalContextType {
+type GlobalContextType = {
   userId: number | null;
   websocketUtils: WebsocketUtils;
 }

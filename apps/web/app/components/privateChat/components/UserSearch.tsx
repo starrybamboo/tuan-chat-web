@@ -1,5 +1,12 @@
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
+
 import { useRouter } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+
+import { MediaImage } from "@/components/common/mediaImage";
+import { HomeIcon, Search, XMarkICon } from "@/icons";
+import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,
@@ -9,11 +16,6 @@ import {
   useSendFriendRequestMutation,
 } from "api/hooks/friendQueryHooks";
 import { useGetUserInfoByUsernameQuery, useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { MediaImage } from "@/components/common/mediaImage";
-import { HomeIcon, Search, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
 
 type AddFriendSearchMode = "id" | "username";
 

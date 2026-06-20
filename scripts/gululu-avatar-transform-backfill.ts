@@ -1,12 +1,11 @@
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
+
+import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process, { env } from "node:process";
 import { fileURLToPath } from "node:url";
-
-import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
-
-import { TuanChat } from "@tuanchat/openapi-client/TuanChat";
 
 import {
   buildGululuImportedSpriteTransform,
@@ -26,14 +25,18 @@ type SourceLiveResult = {
       filePath?: string;
       imagePath?: string;
       key?: string;
+      spriteFilePath?: string;
+      spriteImagePath?: string;
     }>;
     source?: Record<string, unknown>;
   };
   result?: {
     avatars?: Array<{
       avatarId?: number;
+      avatarFileId?: number;
       key?: string;
       mediaFileId?: number;
+      spriteFileId?: number;
       roleId?: number;
     }>;
   };
@@ -47,6 +50,7 @@ type BackfillPlanEntry = {
   imagePath?: string;
   key: string;
   mediaFileId?: number;
+  renderKind: "avatar" | "stage-sprite";
   roleId?: number;
   spriteTransform: NonNullable<RoleAvatar["spriteTransform"]>;
 };
@@ -149,18 +153,22 @@ function normalizeImagePath(rawPath: string | undefined) {
 }
 
 function resolveAvatarFilePath(
-  avatar: { filePath?: string; imagePath?: string },
+  avatar: { filePath?: string; imagePath?: string; spriteFilePath?: string; spriteImagePath?: string },
   sourceRoot: string | undefined,
 ) {
-  const filePath = avatar.filePath?.trim();
+  const filePath = avatar.spriteFilePath?.trim() || avatar.filePath?.trim();
   if (filePath) {
     return path.resolve(filePath);
   }
-  const imagePath = normalizeImagePath(avatar.imagePath);
+  const imagePath = normalizeImagePath(avatar.spriteImagePath || avatar.imagePath);
   if (!sourceRoot || !imagePath) {
     return "";
   }
   return path.resolve(sourceRoot, "images", imagePath);
+}
+
+function resolveAvatarRenderKind(avatar: { spriteFilePath?: string; spriteImagePath?: string }) {
+  return avatar.spriteFilePath || avatar.spriteImagePath ? "stage-sprite" : "avatar";
 }
 
 async function readLocalImageMetadata(filePath: string): Promise<ImageMetadata> {
@@ -192,6 +200,7 @@ export async function buildGululuAvatarTransformBackfillPlan(
     }
 
     const filePath = resolveAvatarFilePath(sourceAvatar, options.sourceRoot);
+    const renderKind = resolveAvatarRenderKind(sourceAvatar);
     if (!filePath) {
       warnings.push(`跳过缺少本地图片路径的头像：${key}`);
       continue;
@@ -205,11 +214,14 @@ export async function buildGululuAvatarTransformBackfillPlan(
     entries.push({
       avatarId: avatar.avatarId!,
       filePath,
-      ...(sourceAvatar.imagePath ? { imagePath: normalizeImagePath(sourceAvatar.imagePath) } : {}),
+      ...(sourceAvatar.spriteImagePath || sourceAvatar.imagePath
+        ? { imagePath: normalizeImagePath(sourceAvatar.spriteImagePath || sourceAvatar.imagePath) }
+        : {}),
       key,
-      ...(avatar.mediaFileId ? { mediaFileId: avatar.mediaFileId } : {}),
+      ...(avatar.spriteFileId ?? avatar.mediaFileId ? { mediaFileId: avatar.spriteFileId ?? avatar.mediaFileId } : {}),
+      renderKind,
       ...(avatar.roleId ? { roleId: avatar.roleId } : {}),
-      spriteTransform: buildGululuImportedSpriteTransform(metadata),
+      spriteTransform: buildGululuImportedSpriteTransform(metadata, { renderKind }),
     });
   }
 

@@ -34,9 +34,9 @@ function applyEnvFile(filePath) {
   }
 }
 
-// Allow local override via .env files.
+// Keep static-server env loading aligned with Vite's monorepo envDir.
 for (const envFile of [".env", ".env.local", ".env.production", ".env.production.local"]) {
-  applyEnvFile(path.join(projectRoot, envFile));
+  applyEnvFile(path.join(workspaceRoot, envFile));
 }
 
 const port = Number(process.env.PORT || process.env.VITE_PORT || 5177);

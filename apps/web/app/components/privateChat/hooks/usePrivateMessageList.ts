@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
-
 import type { FriendResponse } from "@tuanchat/openapi-client/models/FriendResponse";
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
+
+import { useEffect, useMemo, useRef } from "react";
+
 import type { WebsocketUtils } from "api/useWebSocket";
 import type { DirectMessageEvent } from "api/wsModels";
 

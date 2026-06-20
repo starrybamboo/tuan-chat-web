@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { assertStickerApiResult } from "./stickers";
 
+type MockFn = (...args: any[]) => any;
+
 describe("stickers", () => {
   it("会把 success=false 的表情接口响应转成错误", () => {
     expect(() => assertStickerApiResult({
@@ -41,7 +43,7 @@ describe("stickers", () => {
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
     });
-    const onSuccess = vi.fn();
+    const onSuccess = vi.fn<MockFn>();
     const mutation = queryClient.getMutationCache().build(queryClient, {
       mutationFn: async () => assertStickerApiResult({
         success: false,
