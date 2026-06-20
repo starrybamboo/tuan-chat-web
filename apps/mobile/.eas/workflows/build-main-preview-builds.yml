@@ -1,0 +1,26 @@
+name: Build Main Preview Builds
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
+jobs:
+  build_android_preview:
+    name: Build Android preview APK
+    type: build
+    environment: preview
+    params:
+      platform: android
+      profile: preview
+  build_ios_preview:
+    name: Build iOS preview build
+    type: build
+    environment: preview
+    params:
+      platform: ios
+      profile: preview

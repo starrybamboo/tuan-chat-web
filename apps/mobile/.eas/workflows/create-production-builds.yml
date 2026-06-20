@@ -1,0 +1,24 @@
+name: Create Production Builds
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
+jobs:
+  build_android:
+    name: Build Android production
+    type: build
+    environment: production
+    params:
+      platform: android
+      profile: production
+  build_ios:
+    name: Build iOS production
+    type: build
+    environment: production
+    params:
+      platform: ios
+      profile: production
