@@ -685,7 +685,7 @@ export default function ChatPage() {
     spaceDocMetas,
   });
 
-  useSearchParamsState<"none" | "user" | "role" | "copilot" | "search" | "combat" | "initiative" | "state" | "map">("rightSideDrawer", "none");
+  useSearchParamsState<"none" | "user" | "role" | "search" | "combat" | "initiative" | "state" | "map">("rightSideDrawer", "none");
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
     webSocketUtils,

@@ -1,4 +1,4 @@
-import type { FigurePositionKey } from "@/types/voiceRenderTypes";
+import type { FigureAnimationSettings, FigurePositionKey } from "@/types/voiceRenderTypes";
 
 import { FIGURE_POSITION_IDS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
@@ -135,12 +135,8 @@ export function clampImageFigureLayoutToSafeZone(
     renderedHeight = safeHeight;
   }
 
-  const baseCenterY = WEBGAL_STAGE_HEIGHT / 2 + layout.offsetY;
-  const minCenterY = IMAGE_FIGURE_SAFE_TOP_Y + renderedHeight / 2;
-  const maxCenterY = IMAGE_FIGURE_SAFE_BOTTOM_Y - renderedHeight / 2;
-  const centerY = minCenterY <= maxCenterY
-    ? Math.min(Math.max(baseCenterY, minCenterY), maxCenterY)
-    : baseCenterY;
+  // WebGAL figure transforms use the stage center as anchor; align image.show to the safe-zone top edge.
+  const centerY = IMAGE_FIGURE_SAFE_TOP_Y + renderedHeight / 2;
 
   return {
     scale,
@@ -158,6 +154,57 @@ export function buildFigureArgs(id: string, transform: string): string {
     parts.push(transform);
   }
   return parts.join(" ");
+}
+
+export function buildFigureTransitionLine(
+  target: string,
+  animation: Pick<FigureAnimationSettings, "enterAnimation" | "exitAnimation"> | undefined,
+): string | null {
+  const trimmedTarget = target.trim();
+  if (!trimmedTarget) {
+    return null;
+  }
+
+  const enterAnimation = animation?.enterAnimation?.trim();
+  const exitAnimation = animation?.exitAnimation?.trim();
+  if (!enterAnimation && !exitAnimation) {
+    return null;
+  }
+
+  const parts = [`setTransition: -target=${trimmedTarget}`];
+  if (enterAnimation) {
+    parts.push(`-enter=${enterAnimation}`);
+  }
+  if (exitAnimation) {
+    parts.push(`-exit=${exitAnimation}`);
+  }
+  parts.push("-keepOffset", "-next;");
+  return parts.join(" ");
+}
+
+export function buildFigureExitTransitionLines(
+  targets: Iterable<string>,
+  animation: Pick<FigureAnimationSettings, "exitAnimation"> | undefined,
+): string[] {
+  const exitAnimation = animation?.exitAnimation?.trim();
+  if (!exitAnimation) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const target of targets) {
+    const trimmedTarget = target.trim();
+    if (!trimmedTarget || seen.has(trimmedTarget)) {
+      continue;
+    }
+    seen.add(trimmedTarget);
+    const line = buildFigureTransitionLine(trimmedTarget, { exitAnimation });
+    if (line) {
+      lines.push(line);
+    }
+  }
+  return lines;
 }
 
 export function buildRoleFigureTransformString(
@@ -226,19 +273,9 @@ export function buildClearFigureLines(options: ClearFigureOptions = {}): string[
   return lines;
 }
 
-function buildDisableFigureEnterTransitionLines(): string[] {
-  const targets = new Set<string>();
-  FIGURE_POSITION_ORDER.forEach((position) => {
-    targets.add(resolveFigureSlot(position).id);
-  });
-  targets.add(IMAGE_MESSAGE_FIGURE_ID);
-  return Array.from(targets).map(target => `setTransition: -target=${target} -enter=none -keepOffset -next;`);
-}
-
 export function buildSceneInitLines(): string[] {
   return [
     "changeBg:none -next;",
-    ...buildDisableFigureEnterTransitionLines(),
     ...buildClearFigureLines({ includeImage: true }),
   ];
 }

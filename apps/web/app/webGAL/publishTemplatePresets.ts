@@ -1,11 +1,10 @@
 import blackTextboxScss from "./templates/black/Stage/TextBox/textbox.scss?raw";
 import blackTemplateJson from "./templates/black/template.json?raw";
 import blackTitleScss from "./templates/black/UI/Title/title.scss?raw";
-// WebGAL 模板文件已 vendored 到仓库内，避免 CI 依赖外部 WebGAL_Terre 工作区。
-import defaultChooseScss from "./templates/default/Stage/Choose/choose.scss?raw";
-import defaultTextboxScss from "./templates/default/Stage/TextBox/textbox.scss?raw";
-import defaultTemplateJson from "./templates/default/template.json?raw";
-import defaultTitleScss from "./templates/default/UI/Title/title.scss?raw";
+import tuanchatChooseScss from "./templates/tuanchat/Stage/Choose/choose.scss?raw";
+import tuanchatTextboxScss from "./templates/tuanchat/Stage/TextBox/textbox.scss?raw";
+import tuanchatTemplateJson from "./templates/tuanchat/template.json?raw";
+import tuanchatTitleScss from "./templates/tuanchat/UI/Title/title.scss?raw";
 
 export type PublishTemplatePreset = {
   chooseScss: string;
@@ -14,11 +13,13 @@ export type PublishTemplatePreset = {
   titleScss: string;
 };
 
-const DEFAULT_TEMPLATE_PRESET: PublishTemplatePreset = {
-  templateJson: defaultTemplateJson,
-  titleScss: defaultTitleScss,
-  textboxScss: defaultTextboxScss,
-  chooseScss: defaultChooseScss,
+export type PublishBaseTemplate = "none" | "black" | "tuanchat";
+
+const TUANCHAT_TEMPLATE_PRESET: PublishTemplatePreset = {
+  templateJson: tuanchatTemplateJson,
+  titleScss: tuanchatTitleScss,
+  textboxScss: tuanchatTextboxScss,
+  chooseScss: tuanchatChooseScss,
 };
 
 const BLACK_TEMPLATE_PRESET: PublishTemplatePreset = {
@@ -29,6 +30,6 @@ const BLACK_TEMPLATE_PRESET: PublishTemplatePreset = {
   chooseScss: "",
 };
 
-export function getPublishTemplatePreset(baseTemplate: "none" | "black" | undefined): PublishTemplatePreset {
-  return baseTemplate === "black" ? BLACK_TEMPLATE_PRESET : DEFAULT_TEMPLATE_PRESET;
+export function getPublishTemplatePreset(baseTemplate: PublishBaseTemplate | undefined): PublishTemplatePreset {
+  return baseTemplate === "black" ? BLACK_TEMPLATE_PRESET : TUANCHAT_TEMPLATE_PRESET;
 }

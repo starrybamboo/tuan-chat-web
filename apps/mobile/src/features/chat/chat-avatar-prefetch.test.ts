@@ -66,8 +66,8 @@ describe("collectChatAvatarThumbUrls", () => {
         createMessage(null, null, null),
       ]),
     ).toEqual([
-      "https://media.tuan.chat/media/v1/files/011/11/image/low.webp",
-      "https://media.tuan.chat/media/v1/files/022/22/image/low.webp",
+      "https://media.tuan.chat/media/v1/files/011/11/image/medium.webp",
+      "https://media.tuan.chat/media/v1/files/022/22/image/medium.webp",
     ]);
   });
 

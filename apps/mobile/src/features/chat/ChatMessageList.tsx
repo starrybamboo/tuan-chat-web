@@ -1,7 +1,8 @@
-import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { useQueries } from "@tanstack/react-query";
+import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,20 +15,21 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { mobileApiClient } from "@/lib/api";
+import { avatarThumbUrl } from "@/lib/media-url";
 import { prefetchImages } from "@/lib/mobile-image-cache";
 
 import type { ChatMessageListItem } from "./messageListModel";
 
 import { collectChatAvatarThumbUrls, collectChatImageThumbUrls, selectChatMessagePrefetchWindow } from "./chat-avatar-prefetch";
-import { buildRoomRolesById } from "./chat-avatar-utils";
+import { buildRoomRolesById, resolveMessageAvatarFileId, resolveMessageAvatarId } from "./chat-avatar-utils";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { ChatNewMessagesPill } from "./ChatNewMessagesPill";
-import { getMobileMessageAuthorLabel } from "./messageAuthorLabel";
+import { getMobileMessageAuthorLabel, isOutOfCharacterMessage } from "./messageAuthorLabel";
 import {
-  buildVisibleMessageMap,
+  buildChatMessageListModel,
   getMessageListItemKey,
   getReplyPreviewText,
-  getVisibleMessageItems,
 } from "./messageListModel";
 import { resolveBottomThresholdTransition } from "./messageListScrollState";
 
@@ -48,6 +50,7 @@ const MESSAGE_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
 const MESSAGE_INITIAL_RENDER_COUNT = 10;
 const MESSAGE_RENDER_BATCH_SIZE = 10;
 const MESSAGE_WINDOW_SIZE = 9;
+const ROLE_AVATAR_STALE_TIME_MS = 24 * 60 * 60_000;
 
 function getReplyAuthorName(msg: Message, roomRolesById: ReadonlyMap<number, UserRole>): string {
   return getMobileMessageAuthorLabel(msg, roomRolesById, {
@@ -69,6 +72,69 @@ function shouldGroupWithPrevious(current: Message, previous: Message | undefined
   return true;
 }
 
+function readPositiveAvatarFileId(value: unknown): number | null {
+  const avatarFileId = (value as { avatarFileId?: unknown } | null)?.avatarFileId;
+  return typeof avatarFileId === "number" && Number.isFinite(avatarFileId) && avatarFileId > 0
+    ? avatarFileId
+    : null;
+}
+
+function collectUnresolvedRoleAvatarIds(messages: readonly Message[], roomRolesById: ReadonlyMap<number, UserRole>): number[] {
+  const avatarIds = new Set<number>();
+  for (const message of messages) {
+    if (resolveMessageAvatarFileId(message, roomRolesById) != null) {
+      continue;
+    }
+    const avatarId = resolveMessageAvatarId(message, roomRolesById);
+    if (avatarId != null) {
+      avatarIds.add(avatarId);
+    }
+  }
+  return [...avatarIds].sort((left, right) => left - right);
+}
+
+function collectUnresolvedOocUserIds(messages: readonly Message[], roomRolesById: ReadonlyMap<number, UserRole>): number[] {
+  const userIds = new Set<number>();
+  for (const message of messages) {
+    if (!isOutOfCharacterMessage(message) || resolveMessageAvatarFileId(message, roomRolesById) != null) {
+      continue;
+    }
+    if (typeof message.userId === "number" && message.userId > 0) {
+      userIds.add(message.userId);
+    }
+  }
+  return [...userIds].sort((left, right) => left - right);
+}
+
+function resolveChatMessageAvatarUrl(
+  message: Message,
+  roomRolesById: ReadonlyMap<number, UserRole>,
+  roleAvatarFileIdByAvatarId: ReadonlyMap<number, number>,
+  userAvatarFileIdByUserId: ReadonlyMap<number, number>,
+): string | null {
+  const directAvatarFileId = resolveMessageAvatarFileId(message, roomRolesById);
+  if (directAvatarFileId != null) {
+    return avatarThumbUrl(directAvatarFileId);
+  }
+
+  const avatarId = resolveMessageAvatarId(message, roomRolesById);
+  if (avatarId != null) {
+    const resolvedRoleAvatarFileId = roleAvatarFileIdByAvatarId.get(avatarId);
+    if (resolvedRoleAvatarFileId != null) {
+      return avatarThumbUrl(resolvedRoleAvatarFileId);
+    }
+  }
+
+  if (isOutOfCharacterMessage(message) && typeof message.userId === "number" && message.userId > 0) {
+    const userAvatarFileId = userAvatarFileIdByUserId.get(message.userId);
+    if (userAvatarFileId != null) {
+      return avatarThumbUrl(userAvatarFileId);
+    }
+  }
+
+  return null;
+}
+
 type ChatMessageListProps = {
   currentRoleId?: number;
   error: unknown;
@@ -86,7 +152,6 @@ type ChatMessageListProps = {
   onToggleMultiSelect?: (message: Message) => void;
   roomRoles: UserRole[];
   selectedAnchorId: number | null;
-  stateEventSummariesByMessageId?: Record<number, StateEventMessageSummary>;
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -112,31 +177,72 @@ function ChatMessageListInner({
   onToggleMultiSelect,
   roomRoles,
   selectedAnchorId,
-  stateEventSummariesByMessageId,
 }: ChatMessageListProps) {
   const theme = useTheme();
   const flatListRef = useRef<FlatList<ChatMessageListItem>>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
   const [newMessageCount, setNewMessageCount] = useState(0);
-  const prevLengthRef = useRef(getVisibleMessageItems(messages).length);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
-
-  const visibleMessages = useMemo(
-    () => getVisibleMessageItems(messages),
+  const messageListModel = useMemo(
+    () => buildChatMessageListModel(messages),
     [messages],
   );
-  const visibleChatMessages = useMemo(
-    () => visibleMessages.map(item => item.message),
-    [visibleMessages],
+  const prevLengthRef = useRef(messageListModel.visibleMessages.length);
+
+  const roleAvatarIds = useMemo(
+    () => collectUnresolvedRoleAvatarIds(messageListModel.visibleChatMessages, roomRolesById),
+    [messageListModel.visibleChatMessages, roomRolesById],
   );
+  const roleAvatarQueryOptions = useMemo(() => roleAvatarIds.map(avatarId => ({
+    enabled: avatarId > 0,
+    queryFn: async () => {
+      const response = await mobileApiClient.avatarController.getRoleAvatar(avatarId);
+      return response.data ?? null;
+    },
+    queryKey: ["getRoleAvatar", avatarId] as const,
+    staleTime: ROLE_AVATAR_STALE_TIME_MS,
+  })), [roleAvatarIds]);
+  const roleAvatarQueries = useQueries({ queries: roleAvatarQueryOptions });
+  const roleAvatarFileIdByAvatarId = useMemo(() => {
+    const map = new Map<number, number>();
+    roleAvatarIds.forEach((avatarId, index) => {
+      const avatarFileId = readPositiveAvatarFileId(roleAvatarQueries[index]?.data);
+      if (avatarFileId != null) {
+        map.set(avatarId, avatarFileId);
+      }
+    });
+    return map;
+  }, [roleAvatarIds, roleAvatarQueries]);
+
+  const oocUserIds = useMemo(
+    () => collectUnresolvedOocUserIds(messageListModel.visibleChatMessages, roomRolesById),
+    [messageListModel.visibleChatMessages, roomRolesById],
+  );
+  const userInfoQueryOptions = useMemo(() => oocUserIds.map(userId => ({
+    enabled: userId > 0,
+    queryFn: async () => {
+      const response = await mobileApiClient.userController.getUserInfo(userId);
+      return response.data ?? null;
+    },
+    queryKey: getUserInfoQueryKey(userId),
+    staleTime: USER_INFO_STALE_TIME_MS,
+  })), [oocUserIds]);
+  const userInfoQueries = useQueries({ queries: userInfoQueryOptions });
+  const userAvatarFileIdByUserId = useMemo(() => {
+    const map = new Map<number, number>();
+    oocUserIds.forEach((userId, index) => {
+      const avatarFileId = readPositiveAvatarFileId(userInfoQueries[index]?.data);
+      if (avatarFileId != null) {
+        map.set(userId, avatarFileId);
+      }
+    });
+    return map;
+  }, [oocUserIds, userInfoQueries]);
+
   const prefetchCandidateMessages = useMemo(
-    () => selectChatMessagePrefetchWindow(visibleChatMessages),
-    [visibleChatMessages],
-  );
-  const invertedData = useMemo(
-    () => [...visibleMessages].reverse(),
-    [visibleMessages],
+    () => selectChatMessagePrefetchWindow(messageListModel.visibleChatMessages),
+    [messageListModel.visibleChatMessages],
   );
   const avatarThumbUrls = useMemo(
     () => collectChatAvatarThumbUrls(prefetchCandidateMessages, roomRolesById),
@@ -171,11 +277,11 @@ function ChatMessageListInner({
 
   useEffect(() => {
     const previousLength = prevLengthRef.current;
-    if (visibleMessages.length > previousLength && !isAtBottomRef.current) {
-      setNewMessageCount(count => count + (visibleMessages.length - previousLength));
+    if (messageListModel.visibleMessages.length > previousLength && !isAtBottomRef.current) {
+      setNewMessageCount(count => count + (messageListModel.visibleMessages.length - previousLength));
     }
-    prevLengthRef.current = visibleMessages.length;
-  }, [visibleMessages.length]);
+    prevLengthRef.current = messageListModel.visibleMessages.length;
+  }, [messageListModel.visibleMessages.length]);
 
   useEffect(() => {
     if (prefetchUrls.length === 0)
@@ -190,21 +296,22 @@ function ChatMessageListInner({
     setNewMessageCount(0);
   }, []);
 
-  const messageMap = useMemo(() => buildVisibleMessageMap(messages), [messages]);
-
   const renderItem = useCallback(({ item, index }: { item: ChatMessageListItem; index: number }) => {
-    const nextItem = invertedData[index + 1];
+    const nextItem = messageListModel.invertedData[index + 1];
     const isGrouped = shouldGroupWithPrevious(item.message, nextItem?.message);
     const replyId = item.message.replyMessageId;
-    const replyMsg = replyId ? messageMap.get(replyId) : undefined;
-    const replyPreviewText = getReplyPreviewText(messageMap, replyId);
+    const replyMsg = replyId ? messageListModel.messageMap.get(replyId) : undefined;
+    const replyPreviewText = getReplyPreviewText(messageListModel.messageMap, replyId);
     const replyAuthorName = replyMsg ? getReplyAuthorName(replyMsg, roomRolesById) : null;
-    const stateEventSummary = typeof item.message.messageId === "number"
-      ? stateEventSummariesByMessageId?.[item.message.messageId]
-      : undefined;
-
+    const avatarUrl = resolveChatMessageAvatarUrl(
+      item.message,
+      roomRolesById,
+      roleAvatarFileIdByAvatarId,
+      userAvatarFileIdByUserId,
+    );
     return (
       <ChatMessageItem
+        avatarUrl={avatarUrl}
         currentRoleId={currentRoleId}
         isCommandRequestConsumed={isCommandRequestConsumed}
         isGrouped={isGrouped}
@@ -220,14 +327,13 @@ function ChatMessageListInner({
         replyAuthorName={replyAuthorName}
         replyPreviewText={replyPreviewText}
         roomRolesById={roomRolesById}
-        stateEventSummary={stateEventSummary}
       />
     );
-  }, [currentRoleId, invertedData, isCommandRequestConsumed, isSpaceOwner, messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roomRolesById, selectedAnchorId, stateEventSummariesByMessageId]);
+  }, [currentRoleId, isCommandRequestConsumed, isSpaceOwner, messageListModel.invertedData, messageListModel.messageMap, multiSelectMode, multiSelectedIds, noRole, onExecuteCommandRequest, onLongPressMessage, onToggleMultiSelect, roleAvatarFileIdByAvatarId, roomRolesById, selectedAnchorId, userAvatarFileIdByUserId]);
 
   const keyExtractor = useCallback((item: ChatMessageListItem, index: number) => getMessageListItemKey(item.message, index), []);
 
-  if (isPending && visibleMessages.length === 0) {
+  if (isPending && messageListModel.visibleMessages.length === 0) {
     return (
       <View style={[styles.container, styles.stateBlock]}>
         <ActivityIndicator color={theme.accent} />
@@ -236,7 +342,7 @@ function ChatMessageListInner({
     );
   }
 
-  if (isError && visibleMessages.length === 0) {
+  if (isError && messageListModel.visibleMessages.length === 0) {
     return (
       <View style={[styles.container, styles.stateBlock]}>
         <ThemedText style={{ color: theme.danger, fontSize: 13 }}>
@@ -253,7 +359,7 @@ function ChatMessageListInner({
     );
   }
 
-  if (visibleMessages.length === 0) {
+  if (messageListModel.visibleMessages.length === 0) {
     return (
       <View style={[styles.container, styles.stateBlock]}>
         <ThemedText themeColor="textSecondary">暂无消息</ThemedText>
@@ -265,7 +371,7 @@ function ChatMessageListInner({
     <View style={styles.container}>
       <FlatList
         ref={flatListRef}
-        data={invertedData}
+        data={messageListModel.invertedData}
         inverted
         keyboardDismissMode="interactive"
         keyExtractor={keyExtractor}

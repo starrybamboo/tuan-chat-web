@@ -67,7 +67,8 @@ function resolveRoleAvatarLayerUrls(avatar: RealtimeRoleAvatarSource | undefined
 }
 
 function resolveRoleMiniAvatarUrl(avatar: RealtimeRoleAvatarSource | undefined): string {
-  return resolveRoleAvatarMedia(avatar).avatar.thumbUrl;
+  const media = resolveRoleAvatarMedia(avatar).avatar;
+  return media.url || media.originalUrl || media.thumbUrl;
 }
 
 export async function uploadSpriteAsset(

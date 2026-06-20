@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessageListItem } from "./messageListModel";
 
 import {
+  buildChatMessageListModel,
   buildVisibleMessageMap,
   getMessageListItemKey,
   getReplyPreviewText,
@@ -47,6 +48,21 @@ describe("messageListModel", () => {
     const effect = makeMessage({ messageId: 3, messageType: MESSAGE_TYPE.EFFECT, content: "特效" });
 
     expect(getVisibleMessageItems([item(visible), item(deleted), item(effect)])).toEqual([item(visible)]);
+  });
+
+  it("一次构建列表模型时产出可见消息、倒序数据和回复查找表", () => {
+    const first = makeMessage({ messageId: 1, content: "第一条" });
+    const deleted = makeMessage({ messageId: 2, status: 1, content: "已删" });
+    const second = makeMessage({ messageId: 3, content: "第二条" });
+
+    const model = buildChatMessageListModel([item(first), item(deleted), item(second)]);
+
+    expect(model.visibleMessages).toEqual([item(first), item(second)]);
+    expect(model.visibleChatMessages).toEqual([first, second]);
+    expect(model.invertedData).toEqual([item(second), item(first)]);
+    expect(model.messageMap.get(1)).toBe(first);
+    expect(model.messageMap.get(3)).toBe(second);
+    expect(model.messageMap.has(2)).toBe(false);
   });
 
   it("列表 key 优先使用乐观消息保留下来的本地渲染 key", () => {

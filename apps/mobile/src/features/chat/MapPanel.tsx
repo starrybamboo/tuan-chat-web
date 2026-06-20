@@ -319,6 +319,13 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
   const resolvedGridRows = parsePositiveInt(gridRowsInput, map?.gridRows ?? 10);
   const resolvedGridCols = parsePositiveInt(gridColsInput, map?.gridCols ?? 10);
   const resolvedGridColor = map?.gridColor ?? "#808080";
+  const roleById = useMemo(() => {
+    const next = new Map<number, UserRole>();
+    roomRoles.forEach((role) => {
+      next.set(role.roleId, role);
+    });
+    return next;
+  }, [roomRoles]);
 
   const mapContainerHeight = Math.min(containerLayout.width * 0.75, 300);
 
@@ -448,7 +455,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
   }, [isKP]);
 
   const handleTokenLongPress = useCallback((roleId: number) => {
-    const role = roomRoles.find(item => item.roleId === roleId);
+    const role = roleById.get(roleId);
     Alert.alert("移除角色", `确定将${role?.roleName ?? "该角色"}从地图移除吗？`, [
       { text: "取消", style: "cancel" },
       {
@@ -464,7 +471,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
         },
       },
     ]);
-  }, [roomRoles, sendMapStateEvents]);
+  }, [roleById, sendMapStateEvents]);
 
   const handleUnplacedRolePress = useCallback((roleId: number) => {
     if (!isKP)
@@ -571,7 +578,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
                           style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
                         />
                         {tokens.map((token) => {
-                          const role = roomRoles.find(r => r.roleId === token.roleId);
+                          const role = roleById.get(token.roleId);
                           const tokenStatus = tokenStatusByRoleId[token.roleId];
                           const left = ((token.colIndex + 0.5) / resolvedGridCols) * imageRect.width - tokenSize / 2;
                           const top = ((token.rowIndex + 0.5) / resolvedGridRows) * imageRect.height - tokenSize / 2;
@@ -713,7 +720,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
                 </Pressable>
               ))}
               {tokens.map((token) => {
-                const role = roomRoles.find(r => r.roleId === token.roleId);
+                const role = roleById.get(token.roleId);
                 return (
                   <Pressable
                     key={token.roleId}
@@ -815,7 +822,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
                           style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
                         />
                         {tokens.map((token) => {
-                          const role = roomRoles.find(r => r.roleId === token.roleId);
+                          const role = roleById.get(token.roleId);
                           const tokenStatus = tokenStatusByRoleId[token.roleId];
                           const left = ((token.colIndex + 0.5) / resolvedGridCols) * fullscreenMapSize.width - fullscreenTokenSize / 2;
                           const top = ((token.rowIndex + 0.5) / resolvedGridRows) * fullscreenMapSize.height - fullscreenTokenSize / 2;

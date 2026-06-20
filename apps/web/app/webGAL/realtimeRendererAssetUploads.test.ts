@@ -123,7 +123,7 @@ describe("realtimeRendererAssetUploads", () => {
     expect(String(vi.mocked(uploadFile).mock.calls[2][0])).toContain("6488");
   });
 
-  it("上传小头像仍然使用 avatarFileId", async () => {
+  it("上传小头像使用头像中清图而不是低清缩略图", async () => {
     const context = createContext();
     const avatar = {
       avatarId: 7,
@@ -137,7 +137,9 @@ describe("realtimeRendererAssetUploads", () => {
 
     expect(result).toBe("role_1/mini_7.webp");
     expect(uploadFile).toHaveBeenCalledOnce();
-    expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("9918");
+    const uploadedUrl = String(vi.mocked(uploadFile).mock.calls[0][0]);
+    expect(uploadedUrl).toContain("9918");
+    expect(uploadedUrl).not.toContain("low");
   });
 
   it("立绘组会上传 base sprite 和当前头像层并返回 composeFigure 资源", async () => {

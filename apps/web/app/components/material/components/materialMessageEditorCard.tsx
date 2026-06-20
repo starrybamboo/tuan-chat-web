@@ -136,9 +136,10 @@ export default function MaterialMessageEditorCard({
   const handleOpenAnnotations = useCallback(() => {
     openMessageAnnotationPicker({
       initialSelected: annotations,
+      messageType: message.messageType,
       onChange: handleUpdateAnnotations,
     });
-  }, [annotations, handleUpdateAnnotations]);
+  }, [annotations, handleUpdateAnnotations, message.messageType]);
 
   const shouldIgnoreEditBlur = useCallback((target: EventTarget | null) => {
     const element = target as HTMLElement | null;

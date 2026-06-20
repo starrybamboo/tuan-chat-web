@@ -81,7 +81,6 @@ type ChatToolbarProps = {
   showSendButton?: boolean;
   showWebgalControls?: boolean;
   showRunControls?: boolean;
-  showCopilotControl?: boolean;
 }
 
 function UnreadBadge({ count }: { count?: number }) {
@@ -137,7 +136,6 @@ function ChatToolbar({
   showSendButton = true,
   showWebgalControls = false,
   showRunControls = false,
-  showCopilotControl = false,
 }: ChatToolbarProps) {
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
@@ -468,7 +466,7 @@ function ChatToolbar({
         )}
       </div>
 
-      {(showWebgalControls || showRunControls || showCopilotControl) && (
+      {(showWebgalControls || showRunControls) && (
         <div className={isInline ? "mt-1" : "mt-2"}>
           <ChatToolbarDock
             isInline={isInline}
@@ -482,7 +480,6 @@ function ChatToolbar({
             onOpenFullMessageDiff={onOpenFullMessageDiff}
             isFullMessageDiffOpen={isFullMessageDiffOpen}
             showRunControls={showRunControls}
-            showCopilotControl={showCopilotControl}
           />
         </div>
       )}

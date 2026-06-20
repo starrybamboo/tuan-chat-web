@@ -29,6 +29,7 @@ import { mediaFileUrl } from "@/utils/mediaUrl";
 import { useCallback } from "react";
 import { recoverAuthTokenFromSession } from "./authRecovery";
 import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
+import { spaceSidebarTreeQueryKey } from "./hooks/spaceSidebarTreeHooks";
 import { MessageType } from "./wsModels";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
 
@@ -372,7 +373,7 @@ export function useWebSocketMessageHandlers({
         const event = message as SpaceSidebarTreeUpdatedPush;
         const spaceId = event?.data?.spaceId;
         if (typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0) {
-          queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", spaceId] });
+          queryClient.invalidateQueries({ queryKey: spaceSidebarTreeQueryKey(spaceId) });
         }
       },
       23: () => {

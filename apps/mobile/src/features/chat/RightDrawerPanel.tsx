@@ -15,12 +15,15 @@ import { formatUnreadBadgeCount } from "./clueUnread";
 import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
+import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 export type RightDrawerTabKey = "map" | "combat" | "clues";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1 },
+  hiddenTabPane: { display: "none" },
+  tabPane: { flex: 1 },
   tabBar: {
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
@@ -74,7 +77,75 @@ type RightDrawerPanelProps = {
   spaceId: number | null;
 };
 
+type RightDrawerPanelContentProps = Omit<RightDrawerPanelProps, "roomStateRuntime"> & {
+  roomStateRuntime: RoomStateRuntimeValue;
+};
+
 function RightDrawerPanelInner({
+  roomStateRuntime,
+  ...props
+}: RightDrawerPanelProps) {
+  if (roomStateRuntime) {
+    return <RightDrawerPanelContent {...props} roomStateRuntime={roomStateRuntime} />;
+  }
+  return <RightDrawerPanelWithRuntime {...props} />;
+}
+
+function RightDrawerPanelWithRuntime({
+  activeTab,
+  clueUnreadCount = 0,
+  clueRooms,
+  currentRoleId,
+  currentUserId,
+  isKP,
+  isSendingCombatRoundEvent,
+  isStateCommandMode,
+  messages,
+  onAdvanceTurn,
+  onChangeActiveTab,
+  onClose,
+  onEndCombat,
+  onEnterStateCommandMode,
+  onStartCombat,
+  roomId,
+  roomRoles,
+  ruleId,
+  spaceId,
+}: Omit<RightDrawerPanelProps, "roomStateRuntime">) {
+  const roomStateRuntime = useRoomStateRuntime({
+    currentRoleId,
+    messages,
+    roomRoles,
+    ruleId,
+  });
+
+  return (
+    <RightDrawerPanelContent
+      activeTab={activeTab}
+      clueUnreadCount={clueUnreadCount}
+      clueRooms={clueRooms}
+      currentRoleId={currentRoleId}
+      currentUserId={currentUserId}
+      isKP={isKP}
+      isSendingCombatRoundEvent={isSendingCombatRoundEvent}
+      isStateCommandMode={isStateCommandMode}
+      messages={messages}
+      onAdvanceTurn={onAdvanceTurn}
+      onChangeActiveTab={onChangeActiveTab}
+      onClose={onClose}
+      onEndCombat={onEndCombat}
+      onEnterStateCommandMode={onEnterStateCommandMode}
+      onStartCombat={onStartCombat}
+      roomId={roomId}
+      roomRoles={roomRoles}
+      roomStateRuntime={roomStateRuntime}
+      ruleId={ruleId}
+      spaceId={spaceId}
+    />
+  );
+}
+
+function RightDrawerPanelContent({
   activeTab,
   clueUnreadCount = 0,
   clueRooms,
@@ -95,7 +166,7 @@ function RightDrawerPanelInner({
   roomStateRuntime,
   ruleId,
   spaceId,
-}: RightDrawerPanelProps) {
+}: RightDrawerPanelContentProps) {
   const theme = useTheme();
   const handleShowClues = useCallback(() => onChangeActiveTab("clues"), [onChangeActiveTab]);
   const handleShowCombat = useCallback(() => onChangeActiveTab("combat"), [onChangeActiveTab]);
@@ -104,7 +175,10 @@ function RightDrawerPanelInner({
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
       <View style={styles.content}>
-        {activeTab === "map" && (
+        <View
+          pointerEvents={activeTab === "map" ? "auto" : "none"}
+          style={[styles.tabPane, activeTab === "map" ? null : styles.hiddenTabPane]}
+        >
           <MapPanel
             currentRoleId={currentRoleId}
             isKP={isKP}
@@ -114,8 +188,11 @@ function RightDrawerPanelInner({
             roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
           />
-        )}
-        {activeTab === "combat" && (
+        </View>
+        <View
+          pointerEvents={activeTab === "combat" ? "auto" : "none"}
+          style={[styles.tabPane, activeTab === "combat" ? null : styles.hiddenTabPane]}
+        >
           <CombatPanel
             currentRoleId={currentRoleId}
             isKP={isKP}
@@ -130,8 +207,11 @@ function RightDrawerPanelInner({
             roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
           />
-        )}
-        {activeTab === "clues" && (
+        </View>
+        <View
+          pointerEvents={activeTab === "clues" ? "auto" : "none"}
+          style={[styles.tabPane, activeTab === "clues" ? null : styles.hiddenTabPane]}
+        >
           <MobileCluePanel
             clueRooms={clueRooms}
             currentUserId={currentUserId}
@@ -140,7 +220,7 @@ function RightDrawerPanelInner({
             isKP={isKP}
             spaceId={spaceId}
           />
-        )}
+        </View>
       </View>
 
       <View style={[styles.tabBar, { borderTopColor: theme.border }]}>

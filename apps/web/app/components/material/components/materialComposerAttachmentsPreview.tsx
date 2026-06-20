@@ -1,6 +1,7 @@
 import { FilmSlateIcon } from "@phosphor-icons/react";
 import React from "react";
 
+import { inferAttachmentAnnotationMessageType } from "@/components/chat/message/annotations/annotationMessageType";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
 import { setRoomMediaAnnotationPreference } from "@/components/chat/utils/mediaAnnotationPreference";
@@ -35,6 +36,12 @@ export default function MaterialComposerAttachmentsPreview({ roomId }: MaterialC
   const hasAttachments = imgFiles.length > 0 || emojiUrls.length > 0 || fileAttachments.length > 0 || !!audioFile;
   const hasImagePreferenceSource = imgFiles.length > 0;
   const hasAudioPreferenceSource = Boolean(audioFile);
+  const annotationMessageType = React.useMemo(() => inferAttachmentAnnotationMessageType({
+    audioFile,
+    emojiCount: emojiUrls.length,
+    fileAttachments,
+    imageCount: imgFiles.length,
+  }), [audioFile, emojiUrls.length, fileAttachments, imgFiles.length]);
 
   React.useEffect(() => {
     if (!hasAttachments) {
@@ -97,6 +104,7 @@ export default function MaterialComposerAttachmentsPreview({ roomId }: MaterialC
   const handleOpenTempAnnotations = () => {
     openMessageAnnotationPicker({
       initialSelected: tempAnnotations,
+      messageType: annotationMessageType,
       onChange: (next) => {
         setTempAnnotations(normalizeAnnotations(next));
       },

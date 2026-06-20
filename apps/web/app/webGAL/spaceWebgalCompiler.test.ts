@@ -41,6 +41,16 @@ type AuthoredDiceExtra = MessageExtra & {
   };
 };
 
+function externalImage(url: string) {
+  return {
+    source: { kind: "external", url },
+    background: false,
+    width: 1280,
+    height: 720,
+    fileName: "image.webp",
+  };
+}
+
 describe("spaceWebgalCompiler", () => {
   it("会统一 preview 和 publish 的房间场景名清洗规则", () => {
     expect(buildWebgalSceneName(10, " 起点 / 第一幕 ")).toBe("room_10");
@@ -120,6 +130,262 @@ describe("spaceWebgalCompiler", () => {
     expect(scene.content).toContain("changeFigure:");
     expect(scene.lastFigureSlotId).toBe("1");
     expect(scene.renderedFigures.get("1")?.fileName).toBe("role_1/sprite_11.webp");
+  });
+
+  it("静态场景编译会把立绘进出场标注紧跟 changeFigure 输出为 setTransition", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>([[11, {
+      avatarId: 11,
+      roleId: 1,
+      spriteFileId: 2048,
+      avatarFileId: 3001,
+      webgalSpritePath: "role_1/sprite_11.webp",
+    } as RoleAvatar]]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 1,
+          avatarId: 11,
+          content: "带进出场",
+          status: 0,
+          messageType: MESSAGE_TYPE.TEXT,
+          position: 1,
+          annotations: [
+            ANNOTATION_IDS.FIGURE_POS_LEFT,
+            ANNOTATION_IDS.FIGURE_ANIM_BA_ENTER_FROM_LEFT,
+            ANNOTATION_IDS.FIGURE_ANIM_BA_EXIT_TO_RIGHT,
+            ANNOTATION_IDS.FIGURE_ANIM_BA_SHAKE,
+          ],
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    const lines = scene.content.trim().split("\n");
+    const changeIndex = lines.findIndex(line => line.startsWith("changeFigure:role_1/sprite_11.webp"));
+    expect(changeIndex).toBeGreaterThanOrEqual(0);
+    expect(lines[changeIndex + 1]).toBe(
+      "setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;",
+    );
+    expect(lines[changeIndex + 2]).toBe("setAnimation:action/BA-shake -target=1 -keepOffset -restoreTransform -next;");
+    expect(scene.content).not.toContain("setAnimation:position/");
+  });
+
+  it("静态场景编译会在清除立绘前应用出场 transition", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>([[11, {
+      avatarId: 11,
+      roleId: 1,
+      spriteFileId: 2048,
+      avatarFileId: 3001,
+      webgalSpritePath: "role_1/sprite_11.webp",
+    } as RoleAvatar]]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [
+        {
+          message: {
+            messageId: 1,
+            syncId: 1,
+            roomId: 10,
+            userId: 1,
+            roleId: 1,
+            avatarId: 11,
+            content: "登场",
+            status: 0,
+            messageType: MESSAGE_TYPE.TEXT,
+            position: 1,
+            annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+          },
+        },
+        {
+          message: {
+            messageId: 2,
+            syncId: 2,
+            roomId: 10,
+            userId: 1,
+            roleId: 1,
+            content: "退场",
+            status: 0,
+            messageType: MESSAGE_TYPE.TEXT,
+            position: 2,
+            annotations: [
+              ANNOTATION_IDS.FIGURE_CLEAR,
+              ANNOTATION_IDS.FIGURE_ANIM_BA_EXIT_TO_RIGHT,
+            ],
+          },
+        },
+      ],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    const lines = scene.content.trim().split("\n");
+    const transitionIndex = lines.findIndex(line =>
+      line === "setTransition: -target=1 -exit=position/ba-exit-to-right -keepOffset -next;"
+    );
+    expect(transitionIndex).toBeGreaterThanOrEqual(0);
+    expect(lines[transitionIndex + 1]).toBe("changeFigure:none -id=1 -next;");
+  });
+
+  it("静态场景编译会把背景进出场和速度标注写入 changeBg", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 0,
+          content: "",
+          status: 0,
+          messageType: MESSAGE_TYPE.IMG,
+          position: 1,
+          annotations: [
+            ANNOTATION_IDS.BACKGROUND_ANIM_BLUR_IN,
+            ANNOTATION_IDS.BACKGROUND_ANIM_EXIT_TO_LEFT,
+            ANNOTATION_IDS.BACKGROUND_SPEED_SLOW,
+          ],
+          extra: {
+            imageMessage: {
+              ...externalImage("https://cdn.example.com/bg.webp"),
+              background: true,
+            },
+          } as MessageExtra,
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      new Map(),
+      new Map(),
+    );
+
+    expect(scene.content).toContain(
+      "changeBg:https://cdn.example.com/bg.webp -enter=background/blur-in-slow -exit=background/exit-to-left-slow -duration=1200 -enterDuration=1200 -exitDuration=1200 -next;",
+    );
+  });
+
+  it("静态场景编译会把清背景出场和速度标注写入 changeBg:none", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 0,
+          content: "切到黑场",
+          status: 0,
+          messageType: MESSAGE_TYPE.TEXT,
+          position: 1,
+          annotations: [
+            ANNOTATION_IDS.BACKGROUND_CLEAR,
+            ANNOTATION_IDS.BACKGROUND_ANIM_EXIT_TO_RIGHT,
+            ANNOTATION_IDS.BACKGROUND_SPEED_FAST,
+          ],
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      new Map(),
+      new Map(),
+    );
+
+    const lines = scene.content.trim().split("\n");
+    const clearIndex = lines.indexOf("changeBg:none -exit=background/exit-to-right-fast -duration=300 -exitDuration=300 -next;");
+    expect(clearIndex).toBeGreaterThanOrEqual(0);
+    expect(lines[clearIndex + 1]).toBe(":切到黑场;");
+  });
+
+  it("静态场景编译会在消息脚本前输出文本框和电影模式控制", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 0,
+          content: "旁白",
+          status: 0,
+          messageType: MESSAGE_TYPE.TEXT,
+          position: 1,
+          annotations: [
+            ANNOTATION_IDS.SCENE_TEXTBOX_HIDE,
+            ANNOTATION_IDS.SCENE_FILM_ON,
+          ],
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      new Map(),
+      new Map(),
+    );
+
+    expect(scene.content.trim().split("\n")).toEqual([
+      "changeBg:none -next;",
+      "setTextbox:hide -next;",
+      "filmMode:on;",
+      ":旁白;",
+    ]);
   });
 
   it("同一角色连续消息使用不同 avatarId 时会切换差分立绘", () => {

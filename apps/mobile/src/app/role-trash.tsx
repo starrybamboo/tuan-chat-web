@@ -3,7 +3,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { router } from "expo-router";
 import { ArrowClockwise, CaretLeft, MagnifyingGlass, Trash, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -50,6 +50,9 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
     paddingHorizontal: Spacing.xxl,
     paddingTop: Spacing.lg,
+  },
+  listHeader: {
+    gap: Spacing.xl,
   },
   intro: {
     gap: Spacing.sm,
@@ -265,6 +268,95 @@ export default function RoleTrashScreen() {
     }
   }, [clearTrashMutation, roleTrashQuery, total]);
 
+  const renderListHeader = useCallback(() => (
+    <View style={styles.listHeader}>
+      <View style={styles.intro}>
+        <ThemedText type="title">角色与骰娘</ThemedText>
+        <ThemedText themeColor="textSecondary">
+          已删除项目会先进入回收站；硬删除后会永久移除角色、头像、立绘组和可释放的媒体引用。
+        </ThemedText>
+      </View>
+
+      <View style={styles.searchToolbar}>
+        <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
+          <TextInput
+            onChangeText={setSearchText}
+            placeholder="搜索回收站"
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.searchInput, { color: theme.text }]}
+            value={searchText}
+          />
+          {searchText.length > 0
+            ? (
+                <Pressable
+                  accessibilityLabel="清空搜索"
+                  accessibilityRole="button"
+                  onPress={() => setSearchText("")}
+                  style={styles.clearSearchButton}
+                >
+                  <X color={theme.textSecondary} size={16} weight="bold" />
+                </Pressable>
+              )
+            : null}
+        </View>
+        <Pressable
+          accessibilityLabel="清空角色回收站"
+          accessibilityRole="button"
+          disabled={clearDisabled}
+          onPress={handleClearTrash}
+          style={[
+            styles.toolbarActionButton,
+            {
+              backgroundColor: clearDisabled ? theme.backgroundElement : theme.dangerMuted,
+              borderColor: clearDisabled ? theme.border : theme.danger,
+              opacity: clearDisabled ? 0.5 : 1,
+            },
+          ]}
+        >
+          {clearTrashMutation.isPending
+            ? <ActivityIndicator color={theme.danger} size="small" />
+            : <Trash color={clearDisabled ? theme.textSecondary : theme.danger} size={20} weight="bold" />}
+        </Pressable>
+      </View>
+    </View>
+  ), [clearDisabled, clearTrashMutation.isPending, handleClearTrash, searchText, theme]);
+
+  const renderEmptyState = useCallback(() => {
+    if (roleTrashQuery.isPending) {
+      return (
+        <View style={styles.stateBlock}>
+          <ActivityIndicator color={theme.accent} />
+        </View>
+      );
+    }
+    if (roleTrashQuery.isError) {
+      return (
+        <View style={styles.stateBlock}>
+          <ThemedText style={{ color: theme.danger }}>回收站加载失败</ThemedText>
+          <Pressable onPress={() => void roleTrashQuery.refetch()}>
+            <ThemedText themeColor="accent">重试</ThemedText>
+          </Pressable>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.stateBlock}>
+        <ThemedText themeColor="textSecondary">
+          {searchText.trim() ? "没有匹配的已删除项目" : "回收站为空"}
+        </ThemedText>
+      </View>
+    );
+  }, [roleTrashQuery, searchText, theme]);
+
+  const renderRoleTrashItem = useCallback(({ item }: { item: UserRole }) => (
+    <RoleTrashItem
+      isDeleting={hardDeleteMutation.isPending && pendingRoleId === item.roleId}
+      onHardDelete={handleHardDelete}
+      role={item}
+    />
+  ), [handleHardDelete, hardDeleteMutation.isPending, pendingRoleId]);
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -289,89 +381,15 @@ export default function RoleTrashScreen() {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.intro}>
-            <ThemedText type="title">角色与骰娘</ThemedText>
-            <ThemedText themeColor="textSecondary">
-              已删除项目会先进入回收站；硬删除后会永久移除角色、头像、立绘组和可释放的媒体引用。
-            </ThemedText>
-          </View>
-
-          <View style={styles.searchToolbar}>
-            <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
-              <TextInput
-                onChangeText={setSearchText}
-                placeholder="搜索回收站"
-                placeholderTextColor={theme.textSecondary}
-                style={[styles.searchInput, { color: theme.text }]}
-                value={searchText}
-              />
-              {searchText.length > 0
-                ? (
-                    <Pressable
-                      accessibilityLabel="清空搜索"
-                      accessibilityRole="button"
-                      onPress={() => setSearchText("")}
-                      style={styles.clearSearchButton}
-                    >
-                      <X color={theme.textSecondary} size={16} weight="bold" />
-                    </Pressable>
-                  )
-                : null}
-            </View>
-            <Pressable
-              accessibilityLabel="清空角色回收站"
-              accessibilityRole="button"
-              disabled={clearDisabled}
-              onPress={handleClearTrash}
-              style={[
-                styles.toolbarActionButton,
-                {
-                  backgroundColor: clearDisabled ? theme.backgroundElement : theme.dangerMuted,
-                  borderColor: clearDisabled ? theme.border : theme.danger,
-                  opacity: clearDisabled ? 0.5 : 1,
-                },
-              ]}
-            >
-              {clearTrashMutation.isPending
-                ? <ActivityIndicator color={theme.danger} size="small" />
-                : <Trash color={clearDisabled ? theme.textSecondary : theme.danger} size={20} weight="bold" />}
-            </Pressable>
-          </View>
-
-          {roleTrashQuery.isPending
-            ? (
-                <View style={styles.stateBlock}>
-                  <ActivityIndicator color={theme.accent} />
-                </View>
-              )
-            : roleTrashQuery.isError
-              ? (
-                  <View style={styles.stateBlock}>
-                    <ThemedText style={{ color: theme.danger }}>回收站加载失败</ThemedText>
-                    <Pressable onPress={() => void roleTrashQuery.refetch()}>
-                      <ThemedText themeColor="accent">重试</ThemedText>
-                    </Pressable>
-                  </View>
-                )
-              : roles.length === 0
-                ? (
-                    <View style={styles.stateBlock}>
-                      <ThemedText themeColor="textSecondary">
-                        {searchText.trim() ? "没有匹配的已删除项目" : "回收站为空"}
-                      </ThemedText>
-                    </View>
-                  )
-                : roles.map(role => (
-                    <RoleTrashItem
-                      key={role.roleId}
-                      isDeleting={hardDeleteMutation.isPending && pendingRoleId === role.roleId}
-                      onHardDelete={handleHardDelete}
-                      role={role}
-                    />
-                  ))}
-        </ScrollView>
+        <FlatList
+          contentContainerStyle={styles.content}
+          data={roleTrashQuery.isPending || roleTrashQuery.isError ? [] : roles}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={item => String(item.roleId)}
+          ListEmptyComponent={renderEmptyState}
+          ListHeaderComponent={renderListHeader}
+          renderItem={renderRoleTrashItem}
+        />
       </SafeAreaView>
     </ThemedView>
   );

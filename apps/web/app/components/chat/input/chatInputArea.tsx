@@ -94,6 +94,19 @@ type ChatInputAreaProps = {
   inputScope?: "composer" | "message-edit";
 }
 
+type SoftLineBreakKeyEvent = Pick<
+  React.KeyboardEvent<HTMLDivElement>,
+  "altKey" | "ctrlKey" | "key" | "metaKey" | "shiftKey"
+>;
+
+export function shouldInsertSoftLineBreak(event: SoftLineBreakKeyEvent): boolean {
+  return event.key === "Enter"
+    && event.shiftKey
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.altKey;
+}
+
 /**
  * 这是一个封装了 contentEditable div 的受控组件。
  * 它通过 useImperativeHandle 暴露 API 来读写其内部 DOM，
@@ -101,6 +114,7 @@ type ChatInputAreaProps = {
  */
 function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.RefObject<ChatInputAreaHandle | null> }) {
   const internalTextareaRef = useRef<HTMLDivElement>(null);
+  const preserveTrailingLineBreakOnNextInputRef = useRef(false);
 
   // 🔧 修复无限循环：使用 ref 保存 props.onInputSync，避免依赖变化导致重新创建回调
   const onInputSyncRef = useRef(props.onInputSync);
@@ -281,8 +295,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   /**
    * [事件] 处理输入。这是连接 DOM 和 React 状态的核心桥梁。
    */
-  const handleInputInternal = () => {
-    normalizeTrailingEmptyBlocks();
+  const handleInputInternal = (options?: { preserveTrailingLineBreak?: boolean }) => {
+    const preserveTrailingLineBreak = Boolean(options?.preserveTrailingLineBreak || preserveTrailingLineBreakOnNextInputRef.current);
+    preserveTrailingLineBreakOnNextInputRef.current = false;
+    if (!preserveTrailingLineBreak) {
+      normalizeTrailingEmptyBlocks();
+    }
 
     // 移动端 WebKit 在 DOM 节点被移除后不一定重新计算高度，
     // 通过短暂切换 overflow 强制触发 reflow。
@@ -296,6 +314,18 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
     props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
     updateHasTextFlag();
+  };
+
+  const handleKeyDownInternal = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    props.onKeyDown(event);
+    if (event.defaultPrevented || !shouldInsertSoftLineBreak(event)) {
+      return;
+    }
+
+    preserveTrailingLineBreakOnNextInputRef.current = true;
+    globalThis.setTimeout(() => {
+      preserveTrailingLineBreakOnNextInputRef.current = false;
+    }, 0);
   };
 
   /**
@@ -427,8 +457,8 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
         ${props.className ?? ""}
       `}
       ref={internalTextareaRef}
-      onInput={handleInputInternal} // 使用内部的 input 处理器
-      onKeyDown={props.onKeyDown} // 转发给父组件
+      onInput={() => handleInputInternal()} // 使用内部的 input 处理器
+      onKeyDown={handleKeyDownInternal}
       onKeyUp={props.onKeyUp} // 转发给父组件
       onMouseDown={props.onMouseDown} // 转发给父组件
 

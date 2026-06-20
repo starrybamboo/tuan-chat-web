@@ -1,13 +1,12 @@
 export const CHAT_MESSAGE_ROW_CLASS = "flex w-full items-start gap-1.5 sm:gap-3 py-1 sm:py-2 group relative";
 
-const CHAT_MESSAGE_META_ROW_BASE_CLASS = "flex items-center gap-2 sm:gap-3 w-full min-w-0 relative";
+const CHAT_MESSAGE_META_ROW_BASE_CLASS = "flex min-w-0 max-w-full items-center gap-2 sm:gap-3 relative";
 
 /**
- * 消息头部右侧预留空间。
- * 抽屉打开时使用更紧凑的留白，避免中等屏幕下角色名被过度压缩。
+ * 消息头部只跟随角色名和时间自身宽度，避免右侧工具条预留空间过早截断角色名。
  */
-export function getChatMessageMetaRowClass(isSideDrawerOpen: boolean): string {
-  return `${CHAT_MESSAGE_META_ROW_BASE_CLASS} ${isSideDrawerOpen ? "sm:pr-32 lg:pr-80" : "sm:pr-80"}`;
+export function getChatMessageMetaRowClass(): string {
+  return CHAT_MESSAGE_META_ROW_BASE_CLASS;
 }
 
 export const CHAT_MESSAGE_BUBBLE_BASE_CLASS = "relative max-w-[calc(100vw-5rem)] sm:max-w-md break-words rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 shadow-sm sm:shadow text-base sm:text-sm lg:text-base transition-all duration-200";

@@ -4,6 +4,7 @@ import {
   applySidebarDocFallbackCache,
   buildDefaultSidebarTree,
   collectExistingDocIds,
+  findSidebarCategoryIdForTarget,
   extractDocMetasFromSidebarTree,
   normalizeSidebarTree,
 } from "./sidebarTree";
@@ -237,5 +238,31 @@ describe("sidebarTree", () => {
       fallbackImageMediaType: "image",
     });
     expect(tree.categories[0]?.items[0]).not.toHaveProperty("fallbackImageUrl");
+  });
+
+  it("findSidebarCategoryIdForTarget 可以定位 room 和 doc 所在分类", () => {
+    const tree = {
+      schemaVersion: 2,
+      categories: [
+        {
+          categoryId: "cat:alpha",
+          name: "A",
+          items: [
+            { nodeId: "room:11", type: "room", targetId: 11 },
+          ],
+        },
+        {
+          categoryId: "cat:beta",
+          name: "B",
+          items: [
+            { nodeId: "doc:22", type: "doc", targetId: "22" },
+          ],
+        },
+      ],
+    } satisfies Parameters<typeof findSidebarCategoryIdForTarget>[0];
+
+    expect(findSidebarCategoryIdForTarget(tree, { type: "room", id: 11 })).toBe("cat:alpha");
+    expect(findSidebarCategoryIdForTarget(tree, { type: "doc", id: "22" })).toBe("cat:beta");
+    expect(findSidebarCategoryIdForTarget(tree, { type: "room", id: 99 })).toBeNull();
   });
 });

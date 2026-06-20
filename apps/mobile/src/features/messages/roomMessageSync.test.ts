@@ -203,6 +203,22 @@ describe("roomMessageSync", () => {
     expect(writeCachedRoomMessages).toHaveBeenCalledWith(9, [missing]);
   });
 
+  it("实时重复消息不会触发补洞拉取", () => {
+    const existing = createRoomMessage(3, 3);
+    const queryClient = createQueryClientStub([createRoomMessage(1, 1), existing]);
+    const fetchHistoryMessages = vi.fn().mockResolvedValue([]);
+    const writeCachedRoomMessages = vi.fn().mockResolvedValue(undefined);
+
+    upsertLiveRoomMessageWithGapRepair(9, existing, {
+      fetchHistoryMessages,
+      queryClient,
+      writeCachedRoomMessages,
+    });
+
+    expect(fetchHistoryMessages).not.toHaveBeenCalled();
+    expect(queryClient.snapshot().map(item => item.message.messageId)).toEqual([1, 3]);
+  });
+
   it("批量实时消息按整批合并，并从批内第一个 sync 缺口补拉", async () => {
     const queryClient = createQueryClientStub([createRoomMessage(1, 1)]);
     const missing = createRoomMessage(3, 3);

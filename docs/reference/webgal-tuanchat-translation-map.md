@@ -109,9 +109,45 @@ B:
 - `dialog.concat` -> `-concat`
 - `dialog.next` -> `-next`
 
+### 5. 立绘入场 / 退场
+
+A:
+
+```txt
+figure.pos.left
+figure.anim.ba-enter-from-left
+figure.anim.ba-exit-to-right
+```
+
+B:
+
+```webgal
+changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -next;
+setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;
+明日香: 内容 -figureId=1;
+```
+
+说明：
+
+- 入场/退场标注必须跟在实际 `changeFigure` 后输出 `setTransition`。
+- `figure.clear` 同时带退场标注时，先输出 `setTransition -exit=...`，再输出 `changeFigure:none`，让已在场立绘按指定出场动画离场。
+- 跳跃、摇晃等动作标注仍输出 `setAnimation`。
+
+清除立绘时的退场示例：
+
+```txt
+figure.clear
+figure.anim.ba-exit-to-right
+```
+
+```webgal
+setTransition: -target=1 -exit=position/ba-exit-to-right -keepOffset -next;
+changeFigure:none -id=1 -next;
+```
+
 ## 立绘 / 图片 / 背景怎么翻
 
-### 5. 普通图片展示
+### 6. 普通图片展示
 
 A:
 
@@ -135,7 +171,7 @@ changeFigure:img_123.webp -id=image_message -transform={...};
 changeFigure:none -id=image_message -next;
 ```
 
-### 6. 背景图
+### 7. 背景图
 
 A:
 
@@ -149,7 +185,7 @@ B:
 changeBg:bg_123.webp -next;
 ```
 
-### 7. 背景清除
+### 8. 背景清除
 
 A:
 
@@ -163,7 +199,7 @@ B:
 changeBg:none -next;
 ```
 
-### 8. CG 解锁
+### 9. CG 解锁
 
 A:
 
@@ -177,7 +213,7 @@ B:
 unlockCg:bg_123.webp -name=CG名;
 ```
 
-### 9. 小头像
+### 10. 小头像
 
 A:
 
@@ -201,7 +237,7 @@ miniAvatar:none;
 
 ## 音频 / 视频 / 特效怎么翻
 
-### 10. BGM
+### 11. BGM
 
 A:
 
@@ -212,10 +248,11 @@ soundMessage.purpose=bgm
 B:
 
 ```webgal
+unlockBgm:music_123.mp3 -name=music_123;
 bgm:music_123.mp3 -volume=60 -next;
 ```
 
-### 11. 音效
+### 12. 音效
 
 A:
 
@@ -234,7 +271,7 @@ playEffect:./game/vocal/se_123.wav -volume=80 -id=loop-1 -next;
 - 上传后的音效默认落到 `./game/vocal/`。
 - TRPG 默认骰子音效走内置的 `./game/se/nettimato-rolling-dice-1.wav`。
 
-### 12. 视频
+### 13. 视频
 
 A:
 
@@ -248,7 +285,7 @@ B:
 playVideo:video_123.webm -skipOff;
 ```
 
-### 13. 角色标注特效
+### 14. 角色标注特效
 
 A:
 
@@ -268,7 +305,7 @@ pixiPerform:effect.1 -target=1 -offsetX=-200 -screenY=360 -screenX=440 -once -du
 - `effect.*` 标注会尽量对齐当前立绘槽位。
 - 如果没有可用音效，只输出 `pixiPerform`。
 
-### 14. 场景环境特效
+### 15. 场景环境特效
 
 A:
 
@@ -282,7 +319,12 @@ B:
 pixiPerform:rain -next;
 ```
 
-### 15. 停止场景特效
+说明：
+
+- `scene.effect.snow` -> `pixiPerform:snow -next;`
+- `scene.effect.sakura` -> `pixiPerform:cherryBlossoms -next;`
+
+### 16. 停止场景特效
 
 A:
 
@@ -298,7 +340,7 @@ pixiInit -next;
 
 ## 骰子怎么翻
 
-### 16. TRPG 骰子
+### 17. TRPG 骰子
 
 A:
 
@@ -321,7 +363,7 @@ playEffect:./game/se/nettimato-rolling-dice-1.wav -next;
 - 如果 `sound.enabled=false`，不输出 `playEffect`。
 - `trpgDice:` 由 WebGAL 自定义命令触发全屏覆盖卡片。
 
-### 17. 普通骰子浮层
+### 18. 普通骰子浮层
 
 A:
 
@@ -339,7 +381,7 @@ dice:掷骰内容 -mode=anko;
 
 - 这个是普通 WebGAL 骰子浮层，不是 TRPG。
 
-### 18. 纯脚本骰子
+### 19. 纯脚本骰子
 
 A:
 
@@ -359,7 +401,7 @@ B:
 - 如果 `lines` 本身是普通脚本，就原样保留。
 - TRPG 骰子不走 `script` 兼容路径；实时生成会覆盖旧脚本。
 
-### 19. 历史骰子导出
+### 20. 历史骰子导出
 
 A:
 
@@ -380,7 +422,7 @@ B:
 
 ## 选择和分支怎么翻
 
-### 20. WebGAL 选择
+### 21. WebGAL 选择
 
 A:
 
@@ -401,7 +443,7 @@ jumpLabel:__choose_1_end;
 label:__choose_1_end;
 ```
 
-### 21. 房间入口
+### 22. 房间入口
 
 A:
 
@@ -415,7 +457,7 @@ B:
 changeScene:room_1.txt;
 ```
 
-### 22. 多起点房间
+### 23. 多起点房间
 
 A:
 
@@ -429,7 +471,7 @@ B:
 choose:房间1:room_1.txt|房间2:room_2.txt;
 ```
 
-### 23. 房间出口
+### 24. 房间出口
 
 A:
 
@@ -458,7 +500,7 @@ changeScene:room_30.txt -when=tuanchat.role.14562.hp <= 0;
 
 ## 状态变量怎么翻
 
-### 24. 初始化变量
+### 25. 初始化变量
 
 A:
 
@@ -476,7 +518,7 @@ setVar:tuanchat.map.background="";
 setVar:tuanchat.role.14562.avatarUrl="./game/figure/token_role_14562.webp";
 ```
 
-### 25. 战斗开始 / 结束
+### 26. 战斗开始 / 结束
 
 A:
 
@@ -503,7 +545,7 @@ setVar:tuanchat.combat.active=false;
 setVar:tuanchat.combat.turn=0;
 ```
 
-### 26. 下一回合
+### 27. 下一回合
 
 A:
 
@@ -517,7 +559,7 @@ B:
 setVar:tuanchat.combat.turn=tuanchat.combat.turn + 1;
 ```
 
-### 27. 地图配置
+### 28. 地图配置
 
 A:
 
@@ -540,7 +582,7 @@ setVar:tuanchat.map.gridColor="#808080";
 - 编译器会把地图图像放入 WebGAL 本地 `background` 资源目录；脚本只写 `map_*.webp` 这样的本地资源名。
 - 清地图只输出 `setVar:tuanchat.map.background="";`，不清 token。
 
-### 28. 地图 token
+### 29. 地图 token
 
 A:
 
@@ -560,7 +602,7 @@ setVar:tuanchat.map.token.14562.colIndex=3;
 
 - overlay 扫描 `tuanchat.map.token.{roleId}.active/rowIndex/colIndex`，不维护单独的 token 列表变量。
 
-### 29. 角色变量运算
+### 30. 角色变量运算
 
 A:
 
@@ -591,4 +633,5 @@ setVar:tuanchat.role.14562.hp=tuanchat.role.14562.hp - 5;
 - realtime 和静态导出都已确认：`figure.pos.*` 不能单独生成立绘，必须同时有消息 `avatarId`。
 - TRPG 骰子最终只保留 `trpgDice + playEffect`，不会再把 `dice:` 或 Pixi 特效命令当成 TRPG 结果卡。
 - 图片立绘缓存已经按 `目标名|URL` 区分，避免不同目标文件名串图。
+- 静态发布包会随包带上团剧共创标注会用到的 `position/*` 与 `action/BA-*` 动画表和 JSON 文件，避免 `setTransition` / `setAnimation` 在导出包中找不到动画。
 - 旧 realtime 工程会靠 marker 版本升级自动重建，避免继续吃旧脚本。

@@ -33,7 +33,7 @@ publishable 能力必须走共享编译层：
 3. 启动阶段：`useRealtimeRender.start()` 会先并发补齐角色默认头像元数据，再完成 renderer 初始化、场景创建、资源预载、WebSocket 建连。  
 4. 历史导入：编排器在 renderer `isActive` 后触发历史消息渲染（不再要求 `status === connected`）；历史导入前会先并发补齐消息涉及的头像元数据，并预热本轮需要的立绘 / 小头像资源。  
 5. 增量更新：新消息进入后优先走增量追加；同序更新先尝试局部 self / suffix 重渲染，无法安全局部处理时再全量重建；插入/删除/重排仍走全量重建。  
-6. 场景初始化会先写入 `setTransition`（`-enter=none -keepOffset`）到所有实时渲染立绘目标（含 `image_message`），用于覆盖 WebGAL 默认进场动画。  
+6. 立绘入场/退场标注会在实际 `changeFigure` 后紧跟 `setTransition`，保证 WebGAL 能把 transition 绑定到本次立绘切换；`figure.clear` 同时带退场标注时，会先输出 `setTransition -exit=...` 再清除立绘；动作类标注继续使用 `setAnimation`。
 
 ## 2. 流程图（roomMap）到场景跳转规则
 
@@ -56,7 +56,7 @@ publishable 能力必须走共享编译层：
 2. 房间末尾分支（在 `renderHistory` 收尾补齐）
 - 会先汇总“普通房间出边 + 结束节点出边”为候选分支：
   - 候选总数为 1：生成 `changeScene:{target}.txt;`
-  - 候选总数大于 1：生成 `choose:标签:目标场景...;`
+  - 候选总数大于 1：生成多条 `changeScene:{target}.txt -when={condition};`；无条件候选直接生成 `changeScene:{target}.txt;`
 - 其中结束节点目标场景命名为 `__tc_end_{id}.txt`
 
 3. 结束节点场景
@@ -84,14 +84,14 @@ publishable 能力必须走共享编译层：
 - 若含 `video.skipoff` 标注，附加 `-skipOff`
 
 4. `SOUND(7)`
-- BGM：`bgm:{file} -volume=? -next;`
+- BGM：先写 `unlockBgm:{file} -name={name};`，再写 `bgm:{file} -volume=? -next;`
 - 音效：`playEffect:{file} -volume=? -id=? -next;`
 
 5. `EFFECT(8)`
 - `none` -> `pixiInit -next;`
 - `clearBackground` -> `changeBg:none -next;`
 - `clearFigure` -> 清空所有立绘槽位
-- 其他特效 -> `pixiPerform:{effect} -next;`（可先补 `playEffect`）
+- 其他特效 -> `pixiPerform:{effect} -next;`（可先补 `playEffect`）；樱花按 WebGAL 预制名输出 `cherryBlossoms`
 
 6. `INTRO_TEXT(9)`
 - `intro:内容;`
@@ -103,7 +103,7 @@ publishable 能力必须走共享编译层：
 8. `DICE(6)`
 - 支持 `script / anko / trpg / narration / dialog` 多种渲染模式
 - 支持两步掷骰（预览 + 结果）与骰子音效
-- TRPG 模式会附加 `pixi` 掷骰特效
+- TRPG 模式输出 `trpgDice` 覆盖卡片，可附加骰子音效；不再输出普通 `dice:` 或 Pixi 掷骰特效
 - 支持“指令+回复”短时间窗口自动合并（默认 260ms）
 
 9. 其他类型
@@ -124,6 +124,7 @@ publishable 能力必须走共享编译层：
   - `autoFigureEnabled = true` -> 默认 `left`
   - `autoFigureEnabled = false` -> 不显示立绘
 - 立绘不会因普通消息自动清空，需显式清理。
+- 入场/退场类标注（如 `figure.anim.enter`、`figure.anim.ba-exit-to-left`）在本条消息实际输出 `changeFigure` 时输出紧随其后的 `setTransition`；`figure.clear` 同时带退场标注时，会在 `changeFigure:none` 前为目标槽位补 `setTransition -exit=...`；动作类标注（如跳跃、摇晃）输出 `setAnimation`。
 
 3. 对话拼接控制
 - `dialog.notend` -> 对话加 `-notend`

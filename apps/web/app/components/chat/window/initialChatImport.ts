@@ -1,7 +1,6 @@
 import { patchInsertMessages } from "@tuanchat/query";
 
-import type { ImportedDiceTurn } from "@/components/chat/utils/importChatText";
-import type { FigurePosition } from "@/types/voiceRenderTypes";
+import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
 
 import { buildImportedChatMessageRequests } from "@/components/chat/utils/importChatMessageRequestBuilder";
 import { IMPORT_SPECIAL_ROLE_ID } from "@/components/chat/utils/importChatText";
@@ -11,13 +10,7 @@ import type { ChatMessageRequest, RoleAvatar, UserRole } from "../../../../api";
 import { addRoomRoleWithSuccessGuard } from "../../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 
-export type InitialImportChatMessage = {
-  roleId: number;
-  content: string;
-  speakerName?: string;
-  figurePosition?: Exclude<FigurePosition, undefined>;
-  diceTurn?: ImportedDiceTurn;
-};
+export type InitialImportChatMessage = ImportChatRequestMessage;
 
 export function buildInitialImportChatRequests(
   roomId: number,

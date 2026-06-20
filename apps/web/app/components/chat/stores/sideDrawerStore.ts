@@ -4,7 +4,6 @@ export type SideDrawerState
   = | "none"
     | "user"
     | "role"
-    | "copilot"
     | "search"
     | "combat"
     | "clue"

@@ -35,6 +35,7 @@ import {
 import {
   Alert,
   BackHandler,
+  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -133,7 +134,6 @@ import {
 } from "./mobileRouteSelection";
 import { MobileStShowCardSheet } from "./MobileStShowCardSheet";
 import { RightDrawerPanel } from "./RightDrawerPanel";
-import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 function readSingleSearchParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
@@ -244,17 +244,6 @@ export default function ChatShell() {
       }
     },
     [setIsOverlayInteractive],
-  );
-
-  // 右侧抽屉关闭时直接卸载重面板，避免输入框每次改动都牵连隐藏抽屉重算。
-  useAnimatedReaction(
-    () => Math.abs(translateX.get()) > 4,
-    (isActive, prev) => {
-      if (isActive !== prev) {
-        runOnJS(setShouldRenderRightDrawer)(isActive);
-      }
-    },
-    [setShouldRenderRightDrawer],
   );
 
   const spacesQuery = useUserActiveSpacesQuery();
@@ -439,12 +428,6 @@ export default function ChatShell() {
 
   const effectiveCurrentRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? 0;
   const noRole = effectiveCurrentRoleId <= 0 && !isSpaceOwner;
-  const roomStateRuntime = useRoomStateRuntime({
-    currentRoleId: effectiveCurrentRoleId > 0 ? effectiveCurrentRoleId : null,
-    messages: roomMessageModels,
-    roomRoles,
-    ruleId: selectedRuleId,
-  });
 
   const handleExecuteCommandFromRequest = useCallback(async (command: string, replyMessageId: number) => {
     const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
@@ -625,6 +608,17 @@ export default function ChatShell() {
     setShouldRenderRightDrawer(true);
     open();
   }, [open]);
+
+  useEffect(() => {
+    if (!selectedRoomId || currentContactId) {
+      return undefined;
+    }
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      setShouldRenderRightDrawer(true);
+    });
+    return () => task.cancel();
+  }, [currentContactId, selectedRoomId]);
 
   const handleLongPressMessage = useCallback((msg: Message) => {
     closeImmediately();
@@ -1568,7 +1562,6 @@ export default function ChatShell() {
                                 noRole={noRole}
                                 isCommandRequestConsumed={commandRequests.isConsumed}
                                 onExecuteCommandRequest={commandRequests.handleExecute}
-                                stateEventSummariesByMessageId={roomStateRuntime.messageSummariesByMessageId}
                               />
                               {multiSelectMode
                                 ? (
@@ -1654,7 +1647,7 @@ export default function ChatShell() {
                             onClose={close}
                           />
                         )
-                      : shouldRenderRightDrawer
+                      : shouldRenderRightDrawer && selectedRoomId
                         ? (
                           <RightDrawerPanel
                             activeTab={rightDrawerTab}
@@ -1673,7 +1666,6 @@ export default function ChatShell() {
                             onStartCombat={handleStartCombat}
                             roomId={selectedRoomId}
                             roomRoles={roomRoles}
-                            roomStateRuntime={roomStateRuntime}
                             ruleId={selectedRuleId}
                             isSendingCombatRoundEvent={isSendingCombatRoundEvent}
                             spaceId={selectedSpaceId}

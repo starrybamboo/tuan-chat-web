@@ -38,6 +38,15 @@ describe("extractEditablePlainText", () => {
     expect(extractEditablePlainText(root)).toBe("第一行\n第二行");
   });
 
+  it("会保留行尾 br 对应的换行符", () => {
+    const root = element("div", [
+      text("第一行"),
+      element("br"),
+    ]);
+
+    expect(extractEditablePlainText(root)).toBe("第一行\n");
+  });
+
   it("会保留块级节点之间的空行", () => {
     const root = element("div", [
       element("div", [text("第一段")]),
