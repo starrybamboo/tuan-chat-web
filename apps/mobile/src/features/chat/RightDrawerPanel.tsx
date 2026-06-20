@@ -4,6 +4,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -168,6 +169,7 @@ function RightDrawerPanelContent({
   spaceId,
 }: RightDrawerPanelContentProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const handleShowClues = useCallback(() => onChangeActiveTab("clues"), [onChangeActiveTab]);
   const handleShowCombat = useCallback(() => onChangeActiveTab("combat"), [onChangeActiveTab]);
   const handleShowMap = useCallback(() => onChangeActiveTab("map"), [onChangeActiveTab]);
@@ -223,7 +225,7 @@ function RightDrawerPanelContent({
         </View>
       </View>
 
-      <View style={[styles.tabBar, { borderTopColor: theme.border }]}>
+      <View style={[styles.tabBar, { borderTopColor: theme.border, paddingBottom: insets.bottom }]}>
         <Pressable style={styles.tab} onPress={handleShowClues}>
           <View style={styles.tabLabelWrap}>
             <ThemedText
