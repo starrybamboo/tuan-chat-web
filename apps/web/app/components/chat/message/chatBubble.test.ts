@@ -184,6 +184,18 @@ describe("chatBubble annotations", () => {
     expect(html).toContain("data-normal-only=\"true\"");
   });
 
+  it("编辑过的消息头不再展示已编辑标记", () => {
+    const response = createChatMessageResponse([]);
+    response.message.updateTime = "2026-05-21 10:05:00";
+
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: response,
+    }));
+
+    expect(html).toContain("【测试角色】");
+    expect(html).not.toContain("已编辑");
+  });
+
   it("线索正文会使用预览而不是空正文", () => {
     const html = renderToStaticMarkup(createElement(ClueCardReadonlyContent, {
       message: {

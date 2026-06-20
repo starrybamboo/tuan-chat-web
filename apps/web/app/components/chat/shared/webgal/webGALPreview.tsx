@@ -18,6 +18,7 @@ import {
   TUANCHAT_BATTLE_OVERLAY_SCHEMA_VERSION,
 } from "@/components/chat/shared/webgal/battleOverlaySnapshot";
 import { resolveWebGALPreviewState } from "@/components/chat/shared/webgal/webGalPreviewState";
+import { buildWebGALEditorUrl } from "@/components/chat/shared/webgal/webgalPreviewUrls";
 import { useOptionalStateRuntimeContext } from "@/components/chat/state/stateRuntimeContext";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -51,6 +52,7 @@ export default function WebGALPreview({
   const realtimeStatus = useRealtimeRenderStore(state => state.status);
   const autoAdvanceEnabled = useRealtimeRenderStore(state => state.autoAdvanceEnabled);
   const setAutoAdvanceEnabled = useRealtimeRenderStore(state => state.setAutoAdvanceEnabled);
+  const terrePort = useRealtimeRenderStore(state => state.terrePort);
 
   useEffect(() => {
     setRealtimeRenderQueryClient(queryClient);
@@ -88,6 +90,10 @@ export default function WebGALPreview({
     realtimeStatus,
     isWebgalPaneActive,
   });
+  const webgalEditorUrl = useMemo(() => buildWebGALEditorUrl({
+    previewUrl,
+    terreBaseUrl: getTerreBaseUrl(),
+  }) ?? previewUrl ?? "#", [previewUrl, terrePort]);
   const combatVisualActive = useMemo(() => {
     const messages = roomContext.chatHistory?.messages ?? [];
     return messages.length > 0
@@ -242,18 +248,7 @@ export default function WebGALPreview({
           </button>
 
           <a
-            href={previewUrl
-              ? (() => {
-                  // 从预览URL中提取游戏名，生成 WebGAL 编辑器URL
-                  const match = previewUrl.match(/\/games\/([^/]+)/);
-                  if (match) {
-                    const gameName = match[1];
-                    // 直接跳转到编辑页面
-                    return `${getTerreBaseUrl()}/#/game/${gameName}`;
-                  }
-                  return previewUrl;
-                })()
-              : "#"}
+            href={webgalEditorUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-ghost btn-xs"

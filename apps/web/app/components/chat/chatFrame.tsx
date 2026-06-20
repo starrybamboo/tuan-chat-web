@@ -1,12 +1,10 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 
-import { Check, X } from "@phosphor-icons/react";
 import { patchInsertMessages } from "@tuanchat/query/chat";
 import React, { memo, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
-import type { GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 import type { WebgalChooseOptionDraft } from "@/components/chat/shared/webgal/webgalChooseDraft";
 import type { MessageDisplayFilterConfig } from "@/components/chat/utils/messageDisplayFilter";
 
@@ -14,7 +12,6 @@ import ChatFrameLoadingState from "@/components/chat/chatFrameLoadingState";
 import ChatFrameView from "@/components/chat/chatFrameView";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildGalProposalMessagePreview, summarizeGalPatchProposalSelection } from "@/components/chat/galgameAi";
 import useChatFrameDragAndDrop from "@/components/chat/hooks/useChatFrameDragAndDrop";
 import useChatFrameIndexing from "@/components/chat/hooks/useChatFrameIndexing";
 import useChatFrameMessageActions from "@/components/chat/hooks/useChatFrameMessageActions";
@@ -53,8 +50,6 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 
-const EMPTY_REJECTED_GAL_PATCH_MESSAGE_IDS = new Set<string>();
-
 /**
  * 聊天框（不带输入部分）
  * @param props 组件参数
@@ -82,10 +77,6 @@ type ChatFrameProps = {
   onCopyMessageToClueFolder?: (message: Message, scope: ClueFolderScope) => void | Promise<void>;
   onExportPremiere?: (selectedMessages: ChatMessageResponse[]) => void | Promise<void>;
   showFullMessageDiff?: boolean;
-  galPatchProposal?: GalPatchProposal | null;
-  isApplyingGalPatchProposal?: boolean;
-  onApplyGalPatchProposal?: (proposal: GalPatchProposal, options?: GalPatchProposalApplyOptions) => void | Promise<void>;
-  onDiscardGalPatchProposal?: (proposal: GalPatchProposal) => void;
 }
 
 function ChatFrame(props: ChatFrameProps) {
@@ -107,10 +98,6 @@ function ChatFrame(props: ChatFrameProps) {
     onCopyMessageToClueFolder,
     onExportPremiere,
     showFullMessageDiff = false,
-    galPatchProposal = null,
-    isApplyingGalPatchProposal = false,
-    onApplyGalPatchProposal,
-    onDiscardGalPatchProposal,
   } = props;
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -192,18 +179,7 @@ function ChatFrame(props: ChatFrameProps) {
   ]);
   const [webgalChooseEditorError, setWebgalChooseEditorError] = useState<string | null>(null);
   const [webgalChooseEditorMessageId, setWebgalChooseEditorMessageId] = useState<number | null>(null);
-  const [galPatchDecisionState, setGalPatchDecisionState] = useState<{
-    proposalId: string | null;
-    rejectedMessageIds: Set<string>;
-  }>(() => ({
-    proposalId: null,
-    rejectedMessageIds: new Set(),
-  }));
   const [messageDisplayFilter, setMessageDisplayFilter] = useState<MessageDisplayFilterConfig | null>(null);
-  const activeGalPatchProposalId = galPatchProposal?.proposalId ?? null;
-  const rejectedGalPatchMessageIds = galPatchDecisionState.proposalId === activeGalPatchProposalId
-    ? galPatchDecisionState.rejectedMessageIds
-    : EMPTY_REJECTED_GAL_PATCH_MESSAGE_IDS;
 
   // Mutations
   const deleteMessageMutation = useDeleteMessageMutation();
@@ -277,27 +253,10 @@ function ChatFrame(props: ChatFrameProps) {
     }
     return getBaseMessageForVersionDiff(message, baseMessageByArchiveId);
   }, [baseMessageByArchiveId, canRenderFullMessageDiff]);
-  const galProposalPreview = useMemo(() => buildGalProposalMessagePreview({
-    historyMessages,
-    proposal: galPatchProposal,
-  }), [galPatchProposal, historyMessages]);
-  const acceptedGalPatchMessageIds = useMemo(() => {
-    if (!galProposalPreview) {
-      return [];
-    }
-    return galProposalPreview.changedMessageIds.filter(messageId => !rejectedGalPatchMessageIds.has(messageId));
-  }, [galProposalPreview, rejectedGalPatchMessageIds]);
-  const galPatchSelectionSummary = useMemo(() => {
-    if (!galPatchProposal || !galProposalPreview) {
-      return null;
-    }
-    return summarizeGalPatchProposalSelection(galPatchProposal, acceptedGalPatchMessageIds);
-  }, [acceptedGalPatchMessageIds, galPatchProposal, galProposalPreview]);
-  const renderedHistoryMessages = galProposalPreview?.messages ?? historyMessages;
   const isMessageFilterActive = messageDisplayFilter !== null;
   const visibleHistoryMessageEntries = useMemo(() => {
-    return collectMessageDisplayFilterEntries(renderedHistoryMessages, messageDisplayFilter);
-  }, [messageDisplayFilter, renderedHistoryMessages]);
+    return collectMessageDisplayFilterEntries(historyMessages, messageDisplayFilter);
+  }, [historyMessages, messageDisplayFilter]);
   const visibleHistoryMessages = useMemo(
     () => visibleHistoryMessageEntries.map(entry => entry.message),
     [visibleHistoryMessageEntries],
@@ -310,63 +269,10 @@ function ChatFrame(props: ChatFrameProps) {
     return visibleHistorySourceIndices[virtuosoIndex] ?? virtuosoIndex;
   }, [visibleHistorySourceIndices]);
   const isMessageFilterHidingMessages = isMessageFilterActive
-    && visibleHistoryMessages.length !== renderedHistoryMessages.length;
+    && visibleHistoryMessages.length !== historyMessages.length;
   const getRenderedBaseVersionMessage = useCallback((message: ChatMessageResponse) => {
-    if (galProposalPreview) {
-      return galProposalPreview.baseMessageByPreviewId.get(message.message.messageId) ?? null;
-    }
     return getBaseVersionMessage(message);
-  }, [galProposalPreview, getBaseVersionMessage]);
-  const setGalPatchMessageAccepted = useCallback((messageId: string, accepted: boolean) => {
-    setGalPatchDecisionState((current) => {
-      const base = current.proposalId === activeGalPatchProposalId
-        ? current.rejectedMessageIds
-        : EMPTY_REJECTED_GAL_PATCH_MESSAGE_IDS;
-      const next = new Set(base);
-      if (accepted) {
-        next.delete(messageId);
-      }
-      else {
-        next.add(messageId);
-      }
-      return {
-        proposalId: activeGalPatchProposalId,
-        rejectedMessageIds: next,
-      };
-    });
-  }, [activeGalPatchProposalId]);
-  const acceptAllGalPatchMessages = useCallback(() => {
-    setGalPatchDecisionState({
-      proposalId: activeGalPatchProposalId,
-      rejectedMessageIds: new Set(),
-    });
-  }, [activeGalPatchProposalId]);
-  const rejectAllGalPatchMessages = useCallback(() => {
-    if (!galProposalPreview) {
-      return;
-    }
-    setGalPatchDecisionState({
-      proposalId: activeGalPatchProposalId,
-      rejectedMessageIds: new Set(galProposalPreview.changedMessageIds),
-    });
-  }, [activeGalPatchProposalId, galProposalPreview]);
-  const getGalPatchLineAction = useCallback((message: ChatMessageResponse) => {
-    if (!galProposalPreview) {
-      return null;
-    }
-    const proposalMessageId = galProposalPreview.proposalMessageIdByPreviewId.get(message.message.messageId);
-    if (!proposalMessageId) {
-      return null;
-    }
-    const accepted = !rejectedGalPatchMessageIds.has(proposalMessageId);
-    return (
-      <GalPatchLineDecision
-        accepted={accepted}
-        onAccept={() => setGalPatchMessageAccepted(proposalMessageId, true)}
-        onReject={() => setGalPatchMessageAccepted(proposalMessageId, false)}
-      />
-    );
-  }, [galProposalPreview, rejectedGalPatchMessageIds, setGalPatchMessageAccepted]);
+  }, [getBaseVersionMessage]);
   const updateWebgalChooseEditorOption = useCallback((index: number, key: keyof WebgalChooseOptionDraft, value: string) => {
     setWebgalChooseEditorOptions(prev => prev.map((option, idx) => (
       idx === index ? { ...option, [key]: value } : option
@@ -475,6 +381,7 @@ function ChatFrame(props: ChatFrameProps) {
     const initialSelected = Array.isArray(target.message.annotations) ? target.message.annotations : [];
     openMessageAnnotationPicker({
       initialSelected,
+      messageType: target.message.messageType,
       onChange: (next) => {
         const latest = historyMessages.find(message => message.message.messageId === messageId);
         if (!latest)
@@ -550,7 +457,7 @@ function ChatFrame(props: ChatFrameProps) {
     unreadMessageNumber,
     scrollToBottom,
   } = useChatFrameScrollState({
-    enableUnreadIndicator: enableUnreadIndicator && !galProposalPreview,
+    enableUnreadIndicator,
     historyMessages: visibleHistoryMessages,
     roomId,
     chatHistory,
@@ -564,7 +471,7 @@ function ChatFrame(props: ChatFrameProps) {
   const { setCurrentVirtuosoIndex } = useChatFrameVisualEffects({
     enableEffects,
     // 筛选只改变列表显示，不应把背景、战斗态、特效的故事状态一起过滤掉。
-    historyMessages: renderedHistoryMessages,
+    historyMessages,
     onBackgroundUrlChange,
     onCombatVisualActiveChange,
     onEffectChange,
@@ -654,30 +561,6 @@ function ChatFrame(props: ChatFrameProps) {
     }
     void onExportPremiere(selectedMessages);
   }, [onExportPremiere, selectedMessages]);
-  const handleApplyGalPatchProposal = useCallback(() => {
-    if (!galPatchProposal) {
-      return;
-    }
-    if (!onApplyGalPatchProposal) {
-      toast.error("当前没有可用的 proposal 应用入口");
-      return;
-    }
-    if (galProposalPreview && acceptedGalPatchMessageIds.length === 0) {
-      toast.error("请至少接受一行改动");
-      return;
-    }
-    void onApplyGalPatchProposal(galPatchProposal, galProposalPreview
-      ? { acceptedMessageIds: acceptedGalPatchMessageIds }
-      : undefined);
-  }, [acceptedGalPatchMessageIds, galPatchProposal, galProposalPreview, onApplyGalPatchProposal]);
-
-  const handleDiscardGalPatchProposal = useCallback(() => {
-    if (!galPatchProposal || !onDiscardGalPatchProposal) {
-      return;
-    }
-    onDiscardGalPatchProposal(galPatchProposal);
-  }, [galPatchProposal, onDiscardGalPatchProposal]);
-
   const {
     handleForwardToRooms,
   } = useChatFrameMessageActions({
@@ -720,20 +603,15 @@ function ChatFrame(props: ChatFrameProps) {
    * 消息渲染
    */
   const canJumpToWebGAL = !!roomContext.jumpToMessageInWebGAL;
-  const isGalProposalPreviewActive = Boolean(galProposalPreview);
-  const baseDraggable = !isGalProposalPreviewActive;
 
   const renderMessage = useChatFrameMessageRenderer({
     selectedMessageIds,
     isDragging,
     isSelecting,
-    baseDraggable,
-    canJumpToWebGAL: canJumpToWebGAL && !isGalProposalPreviewActive,
+    baseDraggable: true,
+    canJumpToWebGAL,
     getBaseVersionMessage: getRenderedBaseVersionMessage,
-    showFullMessageDiff: isGalProposalPreviewActive || canRenderFullMessageDiff,
-    showAddedMessageDiff: !isGalProposalPreviewActive,
-    getMessageAction: isGalProposalPreviewActive ? getGalPatchLineAction : undefined,
-    disableInsertAction: isGalProposalPreviewActive,
+    showFullMessageDiff: canRenderFullMessageDiff,
     isMessageMovable,
     onExecuteCommandRequest,
     isCommandRequestConsumed,
@@ -781,18 +659,8 @@ function ChatFrame(props: ChatFrameProps) {
         onCancelSelection: exitSelection,
         isMessageFilterActive,
         currentMessageFilter: messageDisplayFilter,
-        totalMessageCount: renderedHistoryMessages.length,
+        totalMessageCount: historyMessages.length,
         onOpenMessageFilter: () => setIsMessageFilterWindowOpen(true),
-        galPatchProposalToolbar: galPatchProposal
-          ? {
-              ...(galPatchSelectionSummary ?? galPatchProposal.summary),
-              isApplying: isApplyingGalPatchProposal,
-              onApply: handleApplyGalPatchProposal,
-              onDiscard: onDiscardGalPatchProposal ? handleDiscardGalPatchProposal : undefined,
-              onAcceptAll: galProposalPreview ? acceptAllGalPatchMessages : undefined,
-              onRejectAll: galProposalPreview ? rejectAllGalPatchMessages : undefined,
-            }
-          : null,
       }}
       overlaysProps={{
         isForwardWindowOpen,
@@ -804,7 +672,7 @@ function ChatFrame(props: ChatFrameProps) {
         isMessageFilterWindowOpen,
         setIsMessageFilterWindowOpen,
         historyMessages,
-        filterSourceMessages: renderedHistoryMessages,
+        filterSourceMessages: historyMessages,
         currentMessageFilter: messageDisplayFilter,
         scrollerRef,
         selectedMessageIds,
@@ -844,79 +712,5 @@ function ChatFrame(props: ChatFrameProps) {
     />
   );
 }
-
-const GalPatchLineDecision = memo(({
-  accepted,
-  onAccept,
-  onReject,
-}: {
-  accepted: boolean;
-  onAccept: () => void;
-  onReject: () => void;
-}) => {
-  const handleAccept = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onAccept();
-  }, [onAccept]);
-  const handleReject = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onReject();
-  }, [onReject]);
-
-  return (
-    <div className="
-      inline-flex items-center rounded-md border border-base-300/70
-      bg-base-100/80 p-0.5 text-xs shadow-sm
-    ">
-      <button
-        type="button"
-        className={`
-          btn btn-xs h-6 min-h-0 gap-1 rounded-[5px] px-2
-          ${
-          accepted
-            ? "btn-success text-success-content"
-            : `
-              btn-ghost text-base-content/65
-              hover:bg-success/10 hover:text-success
-            `
-        }
-        `}
-        onClick={handleAccept}
-        title="接受此行"
-        aria-label="接受此行"
-        aria-pressed={accepted}
-      >
-        <Check className="size-3.5" />
-        接受
-      </button>
-      <button
-        type="button"
-        className={`
-          btn btn-xs h-6 min-h-0 gap-1 rounded-[5px] px-2
-          ${
-          accepted
-            ? `
-              btn-ghost text-base-content/65
-              hover:bg-error/10 hover:text-error
-            `
-            : `
-              border-error/35 bg-error/10 text-error
-              hover:bg-error/15
-            `
-        }
-        `}
-        onClick={handleReject}
-        title="不接受此行"
-        aria-label="不接受此行"
-        aria-pressed={!accepted}
-      >
-        <X className="size-3.5" />
-        不接受
-      </button>
-    </div>
-  );
-});
 
 export default memo(ChatFrame);

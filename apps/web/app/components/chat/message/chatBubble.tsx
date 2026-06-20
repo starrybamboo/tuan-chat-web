@@ -23,7 +23,6 @@ import RoomJumpMessage from "@/components/chat/message/roomJump/roomJumpMessage"
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useRoomRoleSelectionStore } from "@/components/chat/stores/roomRoleSelectionStore";
 import { useRoomUiStore, useRoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
-import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { canCurrentUserViewHiddenDiceReply } from "@/components/chat/utils/hiddenDiceVisibility";
 import { isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { isOutOfCharacterSpeech } from "@/components/chat/utils/outOfCharacterSpeech";
@@ -156,6 +155,9 @@ function DiceTurnReplyItem({
 const EFFECT_PREVIEW_DURATION_MS = 2000;
 const narratorAvatarFrameClassName = "flex items-center justify-center rounded-full bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85";
 const narratorAvatarIconClassName = "transition-transform duration-150 ease-out motion-reduce:transition-none group-hover/narrator:scale-105";
+const messageTimeInlineClassName = "shrink-0 whitespace-nowrap text-xs text-base-content/50 transition-opacity duration-200 opacity-0 group-hover:opacity-100";
+const bubbleMessageTimeClassName = `hidden sm:inline-flex ${messageTimeInlineClassName}`;
+const plainMessageTimeClassName = `inline-flex pt-0.5 ${messageTimeInlineClassName}`;
 
 function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActionButtonProps) {
   return (
@@ -301,7 +303,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   baseVersionMessage?: ChatMessageResponse | null;
   showFullMessageDiff?: boolean;
   showAddedMessageDiff?: boolean;
-  /** 附着在消息正文里的操作，例如 Gal Copilot 单行接受/不接受 */
+  /** 附着在消息正文里的扩展操作 */
   messageAction?: React.ReactNode;
 }) {
   const message = chatMessageResponse.message;
@@ -362,7 +364,6 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const useChatBubbleStyleFromStore = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const runModeEnabled = useRoomPreferenceStore(state => state.runModeEnabled);
-  const sideDrawerState = useSideDrawerStore(state => state.state);
   useChatBubbleStyle = useChatBubbleStyle ?? useChatBubbleStyleFromStore;
   const setCurRoleIdForRoom = useRoomRoleSelectionStore(state => state.setCurRoleIdForRoom);
   const setCurAvatarIdForRole = useRoomRoleSelectionStore(state => state.setCurAvatarIdForRole);
@@ -422,7 +423,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const showRoleNameEditor = !isIntroText && !isStateEventMessage && !isOutOfCharacterTextMessage && isEditingRoleName;
   const chatMessageMetaRowClass = isOutOfCharacterTextMessage
     ? "flex items-center gap-2 w-full min-w-0 relative"
-    : getChatMessageMetaRowClass(sideDrawerState !== "none");
+    : getChatMessageMetaRowClass();
   const outOfCharacterBadge = isOutOfCharacterTextMessage
     ? (
         <span className="
@@ -585,9 +586,10 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const handleOpenAnnotations = useCallback(() => {
     openMessageAnnotationPicker({
       initialSelected: annotations,
+      messageType: message.messageType,
       onChange: handleUpdateAnnotations,
     });
-  }, [annotations, handleUpdateAnnotations]);
+  }, [annotations, handleUpdateAnnotations, message.messageType]);
 
   const renderAnnotationsBar = (className?: string) => (
     <MessageAnnotationsBar
@@ -1342,6 +1344,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   >
                                     {speakerDisplayName}
                                   </span>
+                                  {formattedTime && (
+                                    <span className={bubbleMessageTimeClassName}>
+                                      {formattedTime}
+                                    </span>
+                                  )}
                                   {effectPreviewVisible && effectIconUrl && (
                                     <img
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
@@ -1377,17 +1384,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   : null
                               )
                         )}
-                    <span className="
-                      hidden
-                      sm:inline
-                      text-xs text-base-content/50 ml-auto transition-opacity
-                      duration-200 opacity-0
-                      group-hover:opacity-100
-                      shrink-0
-                    ">
-                      {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-                      {formattedTime}
-                    </span>
+                    {(!speakerDisplayName || isIntroText) && formattedTime && (
+                      <span className={bubbleMessageTimeClassName}>
+                        {formattedTime}
+                      </span>
+                    )}
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div
@@ -1496,8 +1497,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                 ">
                   {/* 角色名 */}
                   <div className="
-                    flex items-center w-full gap-2
-                    sm:pr-80
+                    flex min-w-0 max-w-full items-center gap-2
                     relative
                   ">
                     {showRoleNameEditor
@@ -1563,6 +1563,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                       {isOutOfCharacterTextMessage ? speakerDisplayName : `【${speakerDisplayName}】`}
                                     </div>
                                   </div>
+                                  {formattedTime && (
+                                    <span className={plainMessageTimeClassName}>
+                                      {formattedTime}
+                                    </span>
+                                  )}
                                   {effectPreviewVisible && effectIconUrl && (
                                     <img
                                       src={`${effectIconUrl}?t=${effectPreviewToken}`}
@@ -1598,15 +1603,11 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                                   : null
                               )
                         )}
-                    <div className="
-                      text-xs text-base-content/50 pt-1 ml-auto
-                      transition-opacity duration-200 opacity-0
-                      group-hover:opacity-100
-                      shrink-0
-                    ">
-                      {isEdited && <span className="text-warning mr-1">(已编辑)</span>}
-                      {formattedTime}
-                    </div>
+                    {(!speakerDisplayName || isIntroText) && formattedTime && (
+                      <span className={plainMessageTimeClassName}>
+                        {formattedTime}
+                      </span>
+                    )}
                   </div>
                   {!shouldHideOriginalContentInFullDiff && (
                     <div

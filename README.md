@@ -115,7 +115,6 @@ pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js
 - `packages/tuanchat-query`：可在 Web / Mobile 之间复用的查询和缓存更新逻辑。
 - `packages/tuanchat-domain`：纯业务规则、消息草稿、消息类型、状态指令、骰子等可复用领域逻辑。
 - `packages/tuanchat-local-db`：本地数据库相关共享逻辑。
-- `packages/galgame-ai-contract`：Galgame AI 协议与 schema。
 
 后端接口变化后，优先同步 OpenAPI JSON，再运行：
 

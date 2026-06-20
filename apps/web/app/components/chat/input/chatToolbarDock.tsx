@@ -1,4 +1,4 @@
-import { FilmSlateIcon, Sparkle } from "@phosphor-icons/react";
+import { FilmSlateIcon } from "@phosphor-icons/react";
 
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
@@ -17,7 +17,6 @@ type ChatToolbarDockProps = {
   onOpenFullMessageDiff?: () => void;
   isFullMessageDiffOpen?: boolean;
   showRunControls?: boolean;
-  showCopilotControl?: boolean;
 }
 
 export default function ChatToolbarDock({
@@ -27,17 +26,12 @@ export default function ChatToolbarDock({
   onToggleRealtimeRender,
   onOpenFullMessageDiff,
   isFullMessageDiffOpen = false,
-  showCopilotControl = false,
 }: ChatToolbarDockProps) {
   const webgalLinkMode = useRoomPreferenceStore(state => state.webgalLinkMode);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const realtimeRenderStatus = useRealtimeRenderStore(state => state.status);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const isCopilotControlTemporarilyHidden = true;
-  const handleToggleCopilotDrawer = () => {
-    setSideDrawerState(sideDrawerState === "copilot" ? "none" : "copilot");
-  };
   const handleToggleWebgalDrawer = () => {
     if (sideDrawerState === "webgal") {
       setSideDrawerState("none");
@@ -58,24 +52,6 @@ export default function ChatToolbarDock({
         `}
       `}
     >
-      {/* 暂时隐藏：AI 对话按钮后续继续开发时再恢复显示。 */}
-      {showCopilotControl && !isCopilotControlTemporarilyHidden && (
-        <div
-          className={`
-            tooltip tooltip-top mt-0.5
-            md:mt-1
-            ${sideDrawerState === "copilot" ? `text-info` : `hover:text-info`}
-          `}
-          data-tip={sideDrawerState === "copilot" ? "关闭 AI 对话" : "AI 对话"}
-          data-side-drawer-toggle="true"
-          aria-label={sideDrawerState === "copilot" ? "关闭 AI 对话" : "打开 AI 对话"}
-          title={sideDrawerState === "copilot" ? "关闭 AI 对话" : "AI 对话"}
-          onClick={handleToggleCopilotDrawer}
-        >
-          <Sparkle className="size-6 cursor-pointer" />
-        </div>
-      )}
-
       {/* WebGAL 导演控制台 */}
       {showWebgalControls && webgalLinkMode && onSendEffect && (
         <div className="

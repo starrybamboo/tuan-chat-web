@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarTree } from "./sidebarTree";
 
-import { normalizeSidebarTree } from "./sidebarTree";
+import { findSidebarCategoryIdForTarget, normalizeSidebarTree } from "./sidebarTree";
 import usePersistedSidebarExpandedState from "./usePersistedSidebarExpandedState";
 
 type UseRoomSidebarTreeStateParams = {
@@ -12,6 +12,8 @@ type UseRoomSidebarTreeStateParams = {
   canEdit: boolean;
   isDragging: boolean;
   sidebarTree?: SidebarTree | null;
+  activeRoomId?: number | null;
+  activeDocId?: string | null;
   fallbackTextRooms: Room[];
   visibleDocMetas: MinimalDocMeta[];
   includeDocs: boolean;
@@ -76,6 +78,8 @@ export default function useRoomSidebarTreeState({
   canEdit,
   isDragging,
   sidebarTree,
+  activeRoomId,
+  activeDocId,
   fallbackTextRooms,
   visibleDocMetas,
   includeDocs,
@@ -113,6 +117,7 @@ export default function useRoomSidebarTreeState({
   }, [treeToRender]);
   const {
     expandedByKey: expandedByCategoryId,
+    setExpanded: setCategoryExpanded,
     toggleExpanded: toggleCategoryExpanded,
   } = usePersistedSidebarExpandedState({
     activeSpaceId,
@@ -120,6 +125,41 @@ export default function useRoomSidebarTreeState({
     storageScope: "room-doc-tree",
     validKeys: validCategoryKeys,
   });
+  const lastAutoExpandedActiveNodeRef = useRef<string | null>(null);
+  const activeTarget = useMemo(() => {
+    if (activeDocId) {
+      return { key: `doc:${activeDocId}`, target: { type: "doc" as const, id: activeDocId } };
+    }
+    if (typeof activeRoomId === "number" && Number.isFinite(activeRoomId)) {
+      return { key: `room:${activeRoomId}`, target: { type: "room" as const, id: activeRoomId } };
+    }
+    return null;
+  }, [activeDocId, activeRoomId]);
+
+  useEffect(() => {
+    if (!activeTarget) {
+      lastAutoExpandedActiveNodeRef.current = null;
+      return;
+    }
+    if (!expandedByCategoryId) {
+      return;
+    }
+
+    const categoryId = findSidebarCategoryIdForTarget(treeToRender, activeTarget.target);
+    if (!categoryId) {
+      return;
+    }
+
+    const autoExpandIdentity = `${activeSpaceId ?? "none"}:${categoryId}:${activeTarget.key}`;
+    if (lastAutoExpandedActiveNodeRef.current === autoExpandIdentity) {
+      return;
+    }
+    lastAutoExpandedActiveNodeRef.current = autoExpandIdentity;
+
+    if (!expandedByCategoryId[categoryId]) {
+      setCategoryExpanded(categoryId, true);
+    }
+  }, [activeSpaceId, activeTarget, expandedByCategoryId, setCategoryExpanded, treeToRender]);
 
   return {
     treeToRender,

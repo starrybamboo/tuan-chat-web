@@ -3,6 +3,7 @@ import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import {
+  buildClearBackgroundLineFromAnnotations,
   getEffectDurationMs,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -97,7 +98,7 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
   }
 
   if (input.shouldClearBackground && !input.isBackgroundImageMessage) {
-    appendLine(lines, "changeBg:none -next;");
+    appendLine(lines, buildClearBackgroundLineFromAnnotations(msg.annotations));
   }
   if (input.shouldClearBgm) {
     appendLine(lines, "bgm:none -next;");

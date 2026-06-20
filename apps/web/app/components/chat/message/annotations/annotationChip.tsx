@@ -1,5 +1,7 @@
 import type { AnnotationDefinition, AnnotationTone } from "@/components/chat/message/annotations/annotationCatalog";
 
+import AnnotationTooltip from "@/components/chat/message/annotations/annotationTooltip";
+
 type AnnotationChipProps = {
   annotation: AnnotationDefinition;
   active?: boolean;
@@ -70,39 +72,41 @@ export default function AnnotationChip({
   const toneClass = subtle ? getSubtleToneClass(annotation) : getToneClass(annotation);
 
   return (
-    <button
-      type="button"
-      className={`
-        inline-flex items-center justify-center h-6 rounded-md border
-        transition-all select-none
-        ${surfaceClass}
-        ${sizeClass}
-        ${interactiveClass}
-        ${toneClass}
-        ${activeClass}
-      `}
-      onClick={onClick}
-      title={annotation.label}
-    >
-      {Icon
-        ? (
-            <Icon className="size-3.5" aria-hidden="true" />
-          )
-        : hasImage
+    <AnnotationTooltip annotation={annotation}>
+      <button
+        type="button"
+        className={`
+          inline-flex items-center justify-center h-6 rounded-md border
+          transition-all select-none
+          ${surfaceClass}
+          ${sizeClass}
+          ${interactiveClass}
+          ${toneClass}
+          ${activeClass}
+        `}
+        onClick={onClick}
+        aria-label={annotation.label}
+      >
+        {Icon
           ? (
-              <img src={annotation.iconUrl} alt="" className={isEffect ? `
-                size-5 object-contain
-              ` : `size-4 object-contain`} />
+              <Icon className="size-3.5" aria-hidden="true" />
             )
-          : hasLabel
+          : hasImage
             ? (
-                <span className="
-                  text-[11px] font-semibold leading-none whitespace-nowrap
-                ">{annotation.label}</span>
+                <img src={annotation.iconUrl} alt="" className={isEffect ? `
+                  size-5 object-contain
+                ` : `size-4 object-contain`} />
               )
-            : (
-                <span className="sr-only">{annotation.label}</span>
-              )}
-    </button>
+            : hasLabel
+              ? (
+                  <span className="
+                    text-[11px] font-semibold leading-none whitespace-nowrap
+                  ">{annotation.label}</span>
+                )
+              : (
+                  <span className="sr-only">{annotation.label}</span>
+                )}
+      </button>
+    </AnnotationTooltip>
   );
 }

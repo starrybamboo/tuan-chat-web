@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import type { FigurePositionKey } from "@/types/voiceRenderTypes";
 import type { StateEventExtra } from "@/types/stateEvent";
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
@@ -11,11 +12,14 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import {
   ANNOTATION_IDS,
+  buildBackgroundChangeBgArgsFromAnnotations,
+  buildClearBackgroundLineFromAnnotations,
   getEffectDurationMs,
   getEffectFromAnnotations,
   getEffectSoundFileCandidates,
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
+  getSceneControlLinesFromAnnotations,
   getSceneEffectFromAnnotations,
   hasAnnotation,
   hasClearBackgroundAnnotation,
@@ -92,6 +96,8 @@ import {
 import {
   buildClearFigureLines,
   buildFigureArgs,
+  buildFigureExitTransitionLines,
+  buildFigureTransitionLine,
   buildImageFigureTransformString,
   buildRoleFigureTransformString,
   buildSceneInitLines,
@@ -101,7 +107,6 @@ import {
   EFFECT_SCREEN_WIDTH,
   EFFECT_SCREEN_Y,
   IMAGE_MESSAGE_FIGURE_ID,
-
   resolveFigureSlot,
   resolveSlotOffsetById,
 } from "./realtimeRendererFigureLayout";
@@ -139,6 +144,7 @@ import {
   getWorkflowEndSceneName,
 } from "./realtimeRendererWorkflowScenes";
 import {
+  buildUnlockBgmLine,
   buildRoomSceneCompilation,
   buildWebgalSceneName,
   resolveProjectableMediaUrl,
@@ -151,11 +157,13 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v19";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v29";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
+const TUANCHAT_TEMPLATE_DIR = "WebGAL TuanChat";
+const TUANCHAT_TEMPLATE_ID = "7e10b9f3-40b9-43c3-a2b8-5335740b9d5d";
 
 function extractRoleAvatarFromQueryValue(value: unknown): RoleAvatar | undefined {
   const outer = (value as any)?.data ?? value;
@@ -514,35 +522,48 @@ export class RealtimeRenderer {
     this.combatRoundActiveMap.set(roomId, signal === "start");
   }
 
-  private getDesiredBaseTemplate(): "none" | "black" {
-    return this.gameConfig.baseTemplate === "black" ? "black" : "none";
+  private getDesiredBaseTemplate(): "black" | "tuanchat" {
+    return this.gameConfig.baseTemplate === "black" ? "black" : "tuanchat";
   }
 
-  private isBlackTemplateConfig(config: unknown): boolean {
+  private resolveTemplatePresetFromConfig(config: unknown): "none" | "black" | "tuanchat" {
     if (!config || typeof config !== "object") {
-      return false;
+      return "none";
     }
     const templateConfig = config as { id?: unknown; name?: unknown };
     const id = String(templateConfig.id ?? "").trim().toLowerCase();
     if (id && id === BLACK_TEMPLATE_ID.toLowerCase()) {
-      return true;
+      return "black";
+    }
+    if (id && id === TUANCHAT_TEMPLATE_ID.toLowerCase()) {
+      return "tuanchat";
     }
     const name = String(templateConfig.name ?? "").trim().toLowerCase();
-    return name.includes("black");
+    if (name.includes("black")) {
+      return "black";
+    }
+    if (name.includes("tuanchat") || name.includes("团剧共创")) {
+      return "tuanchat";
+    }
+    return "none";
   }
 
-  private async getCurrentTemplatePreset(): Promise<"none" | "black" | null> {
+  private async getCurrentTemplatePreset(): Promise<"none" | "black" | "tuanchat" | null> {
     try {
       const rawTemplateConfig = await readTextFile(this.gameName, "template/template.json");
       const parsedTemplateConfig = JSON.parse(rawTemplateConfig) as unknown;
-      return this.isBlackTemplateConfig(parsedTemplateConfig) ? "black" : "none";
+      return this.resolveTemplatePresetFromConfig(parsedTemplateConfig);
     }
     catch {
       return null;
     }
   }
 
-  private async createGameWithTemplate(templatePreset: "none" | "black"): Promise<void> {
+  private getTemplateDirForPreset(templatePreset: "black" | "tuanchat"): string {
+    return templatePreset === "black" ? BLACK_TEMPLATE_DIR : TUANCHAT_TEMPLATE_DIR;
+  }
+
+  private async createGameWithTemplate(templatePreset: "black" | "tuanchat"): Promise<void> {
     const createGamePayload: {
       gameDir: string;
       gameName: string;
@@ -550,10 +571,8 @@ export class RealtimeRenderer {
     } = {
       gameDir: this.gameName,
       gameName: this.gameName,
+      templateDir: this.getTemplateDirForPreset(templatePreset),
     };
-    if (templatePreset === "black") {
-      createGamePayload.templateDir = BLACK_TEMPLATE_DIR;
-    }
 
     const createResult = await getTerreApis().manageGameControllerCreateGame(createGamePayload);
     if (createResult?.status !== "success") {
@@ -1003,21 +1022,13 @@ export class RealtimeRenderer {
         const currentTemplatePreset = await this.getCurrentTemplatePreset();
         ensureInitActive();
 
-        if (desiredBaseTemplate === "black" && currentTemplatePreset !== "black") {
+        if (currentTemplatePreset !== desiredBaseTemplate) {
           await getTerreApis().manageTemplateControllerApplyTemplateToGame({
             gameDir: this.gameName,
-            templateDir: BLACK_TEMPLATE_DIR,
+            templateDir: this.getTemplateDirForPreset(desiredBaseTemplate),
           });
           ensureInitActive();
-          debugRealtimeRender(`[RealtimeRenderer] 已切换到底层模板: black`);
-        }
-        else if (desiredBaseTemplate === "none" && currentTemplatePreset === "black") {
-          // 目标是 none 且当前为 black 时，需要重建 realtime 工程才能恢复默认模板。
-          await getTerreApis().manageGameControllerDelete({ gameName: this.gameName });
-          ensureInitActive();
-          this.clearUploadCaches();
-          gameExists = false;
-          debugRealtimeRender(`[RealtimeRenderer] 已按模板配置重建游戏: ${this.gameName}`);
+          debugRealtimeRender(`[RealtimeRenderer] 已切换到底层模板: ${desiredBaseTemplate}`);
         }
       }
 
@@ -1788,6 +1799,18 @@ export class RealtimeRenderer {
     return next;
   }
 
+  private resolveFigureClearTransitionTargets(roomId: number, figurePosition?: FigurePositionKey): string[] {
+    if (figurePosition) {
+      return [resolveFigureSlot(figurePosition).id];
+    }
+    const renderedSlotIds = Array.from(this.renderedFigureStateMap.get(roomId)?.keys() ?? []);
+    if (renderedSlotIds.length > 0) {
+      return renderedSlotIds;
+    }
+    const lastSlotId = this.lastFigureSlotIdMap.get(roomId);
+    return lastSlotId ? [lastSlotId] : [];
+  }
+
   /**
    * 上传背景音乐
    */
@@ -2158,11 +2181,17 @@ export class RealtimeRenderer {
       await this.appendSyntheticCombatRoundMarkerIfNeeded(targetRoomId, msg, syncToFile, options);
       shouldCloseMapOverlayAfterMessage = this.shouldCloseMapOverlayAfterMessage(targetRoomId, msg);
 
+      const sceneControlLines = getSceneControlLinesFromAnnotations(msg.annotations);
+      for (const line of sceneControlLines) {
+        await this.appendLine(targetRoomId, line, syncToFile);
+      }
+
       const shouldClearBackground = hasClearBackgroundAnnotation(msg.annotations);
       const isBackgroundImageMessage = msg.messageType === MESSAGE_TYPE.IMG
         && isImageMessageBackground(msg.annotations, msg.extra?.imageMessage);
-      if (shouldClearBackground && !isBackgroundImageMessage) {
-        await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+      const shouldDeferBackgroundClearToEffectMessage = (msg.messageType as number) === MESSAGE_TYPE.EFFECT;
+      if (shouldClearBackground && !isBackgroundImageMessage && !shouldDeferBackgroundClearToEffectMessage) {
+        await this.appendLine(targetRoomId, buildClearBackgroundLineFromAnnotations(msg.annotations), syncToFile);
       }
       const shouldClearBgm = hasClearBgmAnnotation(msg.annotations);
       if (shouldClearBgm) {
@@ -2182,7 +2211,11 @@ export class RealtimeRenderer {
           if (isBackground) {
             const bgFileName = await this.uploadBackground(imageSourceUrl);
             if (bgFileName) {
-              await this.appendLine(targetRoomId, `changeBg:${bgFileName} -next;`, syncToFile);
+              await this.appendLine(
+                targetRoomId,
+                `changeBg:${bgFileName}${buildBackgroundChangeBgArgsFromAnnotations(msg.annotations)} -next;`,
+                syncToFile,
+              );
               if (syncToFile)
                 this.sendSyncMessage(targetRoomId);
             }
@@ -2264,6 +2297,10 @@ export class RealtimeRenderer {
         // 处理 BGM
           const bgmFileName = await this.uploadBgm(url);
           if (bgmFileName) {
+            const unlockBgmLine = buildUnlockBgmLine(bgmFileName, soundMsg);
+            if (unlockBgmLine) {
+              await this.appendLine(targetRoomId, unlockBgmLine, false);
+            }
             let command = `bgm:${bgmFileName}`;
             const vol = (soundMsg as any).volume;
             if (vol !== undefined) {
@@ -2305,7 +2342,7 @@ export class RealtimeRenderer {
         const sceneEffect = getSceneEffectFromAnnotations(msg.annotations);
         const shouldClearBackground = hasAnnotation(msg.annotations, ANNOTATION_IDS.BACKGROUND_CLEAR);
         const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
-        let wroteEffectCommand = false;
+        let wroteEffectCommand = sceneControlLines.length > 0;
 
         if (shouldClearFigure) {
           for (const line of buildClearFigureLines({ includeImage: true })) {
@@ -2317,7 +2354,7 @@ export class RealtimeRenderer {
         }
 
         if (shouldClearBackground) {
-          await this.appendLine(targetRoomId, "changeBg:none -next;", syncToFile);
+          await this.appendLine(targetRoomId, buildClearBackgroundLineFromAnnotations(msg.annotations), syncToFile);
           wroteEffectCommand = true;
         }
 
@@ -2428,9 +2465,19 @@ export class RealtimeRenderer {
       const role = roleId > 0 ? this.roleMap.get(roleId) : undefined;
       // 立绘差分必须来自消息 avatarId；角色默认 avatarId 只用于语音/小头像等非立绘推断。
       const shouldClearFigure = hasAnnotation(msg.annotations, ANNOTATION_IDS.FIGURE_CLEAR);
+      const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
+      const isValidPosition = isFigurePosition(rawFigurePosition);
+      const figureAnimation = getFigureAnimationFromAnnotations(msg.annotations);
 
       // 清除立绘需要在当前消息脚本的最前面，确保在本条对话之前生效
       if (shouldClearFigure) {
+        const transitionTargets = this.resolveFigureClearTransitionTargets(
+          targetRoomId,
+          isValidPosition ? rawFigurePosition : undefined,
+        );
+        for (const line of buildFigureExitTransitionLines(transitionTargets, figureAnimation)) {
+          await this.appendLine(targetRoomId, line, syncToFile);
+        }
         for (const line of buildClearFigureLines()) {
           await this.appendLine(targetRoomId, line, syncToFile);
         }
@@ -2465,18 +2512,13 @@ export class RealtimeRenderer {
           })
         : undefined;
 
-      const rawFigurePosition = getFigurePositionFromAnnotations(msg.annotations);
-      const isValidPosition = isFigurePosition(rawFigurePosition);
       const figurePosition = diceShowFigure === false
         ? undefined
         : (isValidPosition
             ? rawFigurePosition
             : (shouldClearFigure ? undefined : (this.autoFigureEnabled ? "right" : undefined)));
 
-      const annotationFigureAnimation = getFigureAnimationFromAnnotations(msg.annotations);
-      const figureAnimation = annotationFigureAnimation;
-
-      // 黑屏文字默认保持；如需不保持，添加“不暂停”标注（dialog.notend）
+      // 黑屏文字默认保持；如需不保持，添加“自动续播下句”标注（dialog.notend）
       const introHold = !hasAnnotation(msg.annotations, ANNOTATION_IDS.DIALOG_NOTEND);
 
       // 旁白和黑屏文字不需要显示立绘（骰子消息允许通过 showFigure 覆盖）
@@ -2505,21 +2547,17 @@ export class RealtimeRenderer {
           renderedState.set(figureSlot.id, { fileName: figureAsset.stateKey, transform });
         }
 
-        // 处理立绘动画（在立绘显示后）
+        // 进出场效果必须紧跟实际 changeFigure，否则 WebGAL 无法把它绑定到本次立绘切换。
+        if (shouldUpdateFigure) {
+          const transitionLine = buildFigureTransitionLine(figureSlot.id, figureAnimation);
+          if (transitionLine) {
+            await this.appendLine(targetRoomId, transitionLine, syncToFile);
+          }
+        }
+
+        // 处理立绘动作动画（在立绘显示后）
         if (figureAnimation) {
           const animTarget = figureSlot.id; // 根据立绘位置自动推断目标
-
-          // 进出场动画改为一次性播放（setAnimation）
-          if (figureAnimation.enterAnimation || figureAnimation.exitAnimation) {
-            const animationName = figureAnimation.enterAnimation ?? figureAnimation.exitAnimation;
-            if (animationName) {
-              await this.appendLine(
-                targetRoomId,
-                `setAnimation:${animationName} -target=${animTarget}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
-                syncToFile,
-              );
-            }
-          }
 
           // 执行一次性动画（setAnimation）
           if (figureAnimation.animation) {

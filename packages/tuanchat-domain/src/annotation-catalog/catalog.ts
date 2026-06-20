@@ -2,6 +2,8 @@ import type { AnnotationDefinition } from "./types";
 
 import { BUILTIN_ANNOTATIONS, NORMAL_MODE_HIDDEN_ANNOTATION_IDS } from "./data";
 
+type AnnotationMessageType = NonNullable<AnnotationDefinition["messageTypes"]>[number];
+
 export function withNormalModeVisibilityDefaults<T extends AnnotationDefinition>(item: T): T {
   return {
     ...item,
@@ -11,6 +13,20 @@ export function withNormalModeVisibilityDefaults<T extends AnnotationDefinition>
 
 export function getAnnotationCatalog(): AnnotationDefinition[] {
   return BUILTIN_ANNOTATIONS.map(item => withNormalModeVisibilityDefaults(item));
+}
+
+export function isAnnotationVisibleForMessageType(item: AnnotationDefinition, messageType?: number | null): boolean {
+  if (typeof messageType !== "number" || !Number.isFinite(messageType)) {
+    return true;
+  }
+  return !item.messageTypes || item.messageTypes.includes(messageType as AnnotationMessageType);
+}
+
+export function filterAnnotationsForMessageType(
+  catalog: AnnotationDefinition[],
+  messageType?: number | null,
+): AnnotationDefinition[] {
+  return catalog.filter(item => isAnnotationVisibleForMessageType(item, messageType));
 }
 
 export function buildAnnotationMap(catalog?: AnnotationDefinition[]): Map<string, AnnotationDefinition> {

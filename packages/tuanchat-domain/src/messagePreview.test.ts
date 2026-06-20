@@ -2,7 +2,7 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { describe, expect, it } from "vitest";
 
-import { ANNOTATION_IDS } from "./message-annotations";
+import { ANNOTATION_IDS, getSceneEffectFromAnnotations } from "./message-annotations";
 import { getMessagePreviewText } from "./messagePreview";
 import { MESSAGE_TYPE } from "./messageType";
 
@@ -53,6 +53,14 @@ describe("getMessagePreviewText", () => {
       annotations: [ANNOTATION_IDS.SCENE_EFFECT_RAIN],
       messageType: MESSAGE_TYPE.EFFECT,
     }))).toBe("[特效] 下雨");
+  });
+
+  it("樱花场景特效使用 WebGAL 预制命令名但预览保持中文标签", () => {
+    expect(getSceneEffectFromAnnotations([ANNOTATION_IDS.SCENE_EFFECT_SAKURA])).toBe("cherryBlossoms");
+    expect(getMessagePreviewText(createMessage({
+      annotations: [ANNOTATION_IDS.SCENE_EFFECT_SAKURA],
+      messageType: MESSAGE_TYPE.EFFECT,
+    }))).toBe("[特效] 樱花");
   });
 
   it("复用状态事件预览", () => {

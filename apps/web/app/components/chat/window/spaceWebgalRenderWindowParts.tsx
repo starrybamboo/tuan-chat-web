@@ -46,7 +46,7 @@ export const DEFAULT_LANGUAGE_OPTIONS = [
 ] as const;
 
 export const BASE_TEMPLATE_OPTIONS = [
-  { value: "none", label: "无（默认）" },
+  { value: "tuanchat", label: "团剧共创" },
   { value: "black", label: "Black" },
 ] as const;
 

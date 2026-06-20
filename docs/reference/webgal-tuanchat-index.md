@@ -22,6 +22,8 @@
 
 - 翻译速查表：
   - `D:\A_collection\tuan-chat-web\docs\reference\webgal-tuanchat-translation-map.md`
+- 标注讨论与 TODO：
+  - `D:\A_collection\tuan-chat-web\docs\reference\webgal-annotation-roadmap.md`
 - 实时渲染规则：
   - `D:\A_collection\tuan-chat-web\docs\reference\webgal-realtime-render-rules.md`
 - 预览面板：

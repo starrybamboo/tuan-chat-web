@@ -216,6 +216,8 @@ export default function ChatRoomListPanel(props: ChatRoomListPanelProps) {
     canEdit,
     isDragging: Boolean(dragging),
     sidebarTree,
+    activeRoomId,
+    activeDocId,
     fallbackTextRooms,
     visibleDocMetas,
     includeDocs: canViewDocs,

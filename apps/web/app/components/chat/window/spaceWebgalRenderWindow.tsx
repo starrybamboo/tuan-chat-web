@@ -10,6 +10,7 @@ import {
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
+import { buildWebGALEditorUrl } from "@/components/chat/shared/webgal/webgalPreviewUrls";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -795,10 +796,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     setRenderPortExpanded(prev => !prev);
   }, []);
   const webgalEditorUrl = useMemo(() => {
-    const match = realtimePreviewUrl?.match(/\/games\/([^/]+)/);
-    const gameDir = match?.[1] || `realtime_${spaceId}`;
-    return `${getTerreBaseUrl()}/#/game/${gameDir}`;
-  }, [realtimePreviewUrl, spaceId]);
+    return buildWebGALEditorUrl({
+      previewUrl: realtimePreviewUrl,
+      fallbackGameName: `realtime_${spaceId}`,
+      terreBaseUrl: getTerreBaseUrl(),
+    }) ?? `${getTerreBaseUrl()}/#/game/realtime_${spaceId}`;
+  }, [realtimePreviewUrl, spaceId, terrePort]);
 
   return (
     <div className="size-full overflow-y-auto">

@@ -7,12 +7,45 @@ export type ChatMessageListItem = {
   message: Message;
 };
 
+export type ChatMessageListModel = {
+  invertedData: ChatMessageListItem[];
+  messageMap: Map<number, Message>;
+  visibleChatMessages: Message[];
+  visibleMessages: ChatMessageListItem[];
+};
+
 export function isVisibleRoomMessage(message: Message): boolean {
   return message.status !== 1 && message.messageType !== MESSAGE_TYPE.EFFECT;
 }
 
 export function getVisibleMessageItems(messages: readonly ChatMessageListItem[]): ChatMessageListItem[] {
   return messages.filter(item => isVisibleRoomMessage(item.message));
+}
+
+export function buildChatMessageListModel(messages: readonly ChatMessageListItem[]): ChatMessageListModel {
+  const visibleMessages: ChatMessageListItem[] = [];
+  const visibleChatMessages: Message[] = [];
+  const messageMap = new Map<number, Message>();
+
+  for (const item of messages) {
+    const { message } = item;
+    if (!isVisibleRoomMessage(message)) {
+      continue;
+    }
+
+    visibleMessages.push(item);
+    visibleChatMessages.push(message);
+    if (typeof message.messageId === "number") {
+      messageMap.set(message.messageId, message);
+    }
+  }
+
+  return {
+    invertedData: [...visibleMessages].reverse(),
+    messageMap,
+    visibleChatMessages,
+    visibleMessages,
+  };
 }
 
 export function getMessageListItemKey(message: Message, index: number): string {

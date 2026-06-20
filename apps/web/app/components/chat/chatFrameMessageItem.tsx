@@ -175,7 +175,7 @@ export default function ChatFrameMessageItem({
       {!disableInsertAction && (
         <div
           className={`
-            relative h-4 -mt-2 select-none
+            relative h-4 select-none
             ${isSelecting ? `pointer-events-none` : `group/insert`}
           `}
           data-message-insert-action="true"
@@ -184,7 +184,7 @@ export default function ChatFrameMessageItem({
           {!isSelecting && !isOptimisticMessage && (
             <button
               type="button"
-              className="absolute inset-x-0 -top-4 -bottom-3 z-20 cursor-pointer"
+              className="absolute inset-x-0 inset-y-0 z-20 cursor-pointer"
               title="插入消息"
               aria-label="插入消息"
               onClick={handleInsertAfterClick}
@@ -192,7 +192,7 @@ export default function ChatFrameMessageItem({
           )}
           <div
             className={`
-              pointer-events-none absolute left-6 right-0 top-1/2
+              pointer-events-none absolute left-0 right-0 top-0
               -translate-y-1/2 h-[2px] transition-colors duration-200
               ${
               isSelecting || isOptimisticMessage

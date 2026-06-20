@@ -752,6 +752,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
                     <MobileMessageMediaPreview
                       compact
                       content={item.content}
+                      deferPlayableMedia
                       extra={item.extra}
                       messageType={item.messageType}
                     />

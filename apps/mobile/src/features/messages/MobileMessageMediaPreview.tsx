@@ -254,9 +254,41 @@ function EmbeddedAudioCard({ compact, content, fileName, meta, purpose, url }: E
   );
 }
 
+type DeferredPlayableMediaCardProps = {
+  compact: boolean;
+  meta: string;
+  onPress: () => void;
+  title: string;
+  typeLabel: string;
+};
+
+function DeferredPlayableMediaCard({ compact, meta, onPress, title, typeLabel }: DeferredPlayableMediaCardProps) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityLabel={`加载${typeLabel}播放器`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.mediaCard,
+        { backgroundColor: pressed ? theme.backgroundSelected : theme.backgroundElement },
+      ]}
+    >
+      <PlayCircle size={compact ? 24 : 30} color={theme.accent} weight="fill" />
+      <View style={styles.textBlock}>
+        <ThemedText type="smallBold" numberOfLines={1}>{title}</ThemedText>
+        <ThemedText type="caption" themeColor="textSecondary">
+          {[typeLabel, meta || "点击加载播放器"].filter(Boolean).join(" · ")}
+        </ThemedText>
+      </View>
+    </Pressable>
+  );
+}
+
 type MobileMessageMediaPreviewProps = {
   compact?: boolean;
   content?: string | null;
+  deferPlayableMedia?: boolean;
   extra?: unknown;
   messageType?: number | null;
 };
@@ -264,11 +296,13 @@ type MobileMessageMediaPreviewProps = {
 export function MobileMessageMediaPreview({
   compact = false,
   content,
+  deferPlayableMedia = false,
   extra,
   messageType,
 }: MobileMessageMediaPreviewProps) {
   const theme = useTheme();
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [activatedPlayableMediaKey, setActivatedPlayableMediaKey] = useState<string | null>(null);
 
   if (messageType === MESSAGE_TYPE.IMG) {
     const image = getImageMessageExtra(extra);
@@ -315,6 +349,20 @@ export function MobileMessageMediaPreview({
     if (!video || !videoUrl)
       return null;
     const meta = [formatDuration(video.second), formatSize(video.size)].filter(Boolean).join(" · ");
+    const title = video.fileName?.trim() || content?.trim() || "视频消息";
+    const playableMediaKey = `video:${videoUrl}`;
+
+    if (deferPlayableMedia && activatedPlayableMediaKey !== playableMediaKey) {
+      return (
+        <DeferredPlayableMediaCard
+          compact={compact}
+          meta={meta}
+          onPress={() => setActivatedPlayableMediaKey(playableMediaKey)}
+          title={title}
+          typeLabel="视频"
+        />
+      );
+    }
 
     return <EmbeddedVideoCard compact={compact} content={content} fileName={video.fileName} meta={meta} url={videoUrl} />;
   }
@@ -325,6 +373,20 @@ export function MobileMessageMediaPreview({
     if (!sound || !audioUrl)
       return null;
     const meta = [formatDuration(sound.second), formatSize(sound.size)].filter(Boolean).join(" · ");
+    const title = sound.fileName?.trim() || content?.trim() || formatSoundPurpose(sound.purpose);
+    const playableMediaKey = `audio:${audioUrl}`;
+
+    if (deferPlayableMedia && activatedPlayableMediaKey !== playableMediaKey) {
+      return (
+        <DeferredPlayableMediaCard
+          compact={compact}
+          meta={meta}
+          onPress={() => setActivatedPlayableMediaKey(playableMediaKey)}
+          title={title}
+          typeLabel={formatSoundPurpose(sound.purpose)}
+        />
+      );
+    }
 
     return (
       <EmbeddedAudioCard

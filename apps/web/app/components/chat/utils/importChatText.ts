@@ -11,6 +11,7 @@ type ImportedChatLine = {
 export type ImportedDiceTurn = {
   dicerSpeakerName: string;
   replyContent: string;
+  replyContents?: string[];
 };
 
 export const IMPORT_SPECIAL_ROLE_ID = {

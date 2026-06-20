@@ -60,13 +60,21 @@ const EFFECT_ID_BY_TEXTURE_FILE = (() => {
   return map;
 })();
 
-type SceneEffectName = "rain" | "snow" | "sakura" | "none";
+type SceneEffectName = "rain" | "snow" | "cherryBlossoms" | "none";
+type BackgroundAnimationSpeed = "fast" | "normal" | "slow";
+
+export type BackgroundAnimationSettings = {
+  enterAnimation?: string;
+  exitAnimation?: string;
+  duration?: number;
+  speed?: BackgroundAnimationSpeed;
+};
 
 const SCENE_EFFECT_ALIAS_MAP: Record<string, SceneEffectName> = {
   rain: "rain",
   snow: "snow",
-  sakura: "sakura",
-  cherryblossoms: "sakura",
+  sakura: "cherryBlossoms",
+  cherryblossoms: "cherryBlossoms",
   none: "none",
   stop: "none",
 };
@@ -74,7 +82,7 @@ const SCENE_EFFECT_ALIAS_MAP: Record<string, SceneEffectName> = {
 const SCENE_EFFECT_LABEL_MAP: Record<SceneEffectName, string> = {
   rain: "下雨",
   snow: "下雪",
-  sakura: "樱花",
+  cherryBlossoms: "樱花",
   none: "停止特效",
 };
 
@@ -143,6 +151,16 @@ export const ANNOTATION_IDS = {
   SE: "sys:se",
   BACKGROUND: "sys:bg",
   BACKGROUND_CLEAR: "background.clear",
+  BACKGROUND_ANIM_ENTER: "background.anim.enter",
+  BACKGROUND_ANIM_ENTER_FROM_LEFT: "background.anim.enter-from-left",
+  BACKGROUND_ANIM_ENTER_FROM_RIGHT: "background.anim.enter-from-right",
+  BACKGROUND_ANIM_BLUR_IN: "background.anim.blur-in",
+  BACKGROUND_ANIM_EXIT: "background.anim.exit",
+  BACKGROUND_ANIM_EXIT_TO_LEFT: "background.anim.exit-to-left",
+  BACKGROUND_ANIM_EXIT_TO_RIGHT: "background.anim.exit-to-right",
+  BACKGROUND_SPEED_FAST: "background.speed.fast",
+  BACKGROUND_SPEED_NORMAL: "background.speed.normal",
+  BACKGROUND_SPEED_SLOW: "background.speed.slow",
   CG: "sys:cg",
   IMAGE_SHOW: "image.show",
   IMAGE_CLEAR: "image.clear",
@@ -171,6 +189,10 @@ export const ANNOTATION_IDS = {
   FIGURE_ANIM_BA_JUMP: "figure.anim.ba-jump",
   FIGURE_ANIM_BA_SHAKE: "figure.anim.ba-shake",
   FIGURE_ANIM_BA_BIGSHAKE: "figure.anim.ba-bigshake",
+  SCENE_TEXTBOX_HIDE: "scene.textbox.hide",
+  SCENE_TEXTBOX_SHOW: "scene.textbox.show",
+  SCENE_FILM_ON: "scene.film.on",
+  SCENE_FILM_OFF: "scene.film.off",
   SCENE_EFFECT_RAIN: "scene.effect.rain",
   SCENE_EFFECT_SNOW: "scene.effect.snow",
   SCENE_EFFECT_SAKURA: "scene.effect.sakura",
@@ -180,14 +202,14 @@ export const ANNOTATION_IDS = {
 const SCENE_EFFECT_NAME_BY_ANNOTATION: Record<string, SceneEffectName> = {
   [ANNOTATION_IDS.SCENE_EFFECT_RAIN]: "rain",
   [ANNOTATION_IDS.SCENE_EFFECT_SNOW]: "snow",
-  [ANNOTATION_IDS.SCENE_EFFECT_SAKURA]: "sakura",
+  [ANNOTATION_IDS.SCENE_EFFECT_SAKURA]: "cherryBlossoms",
   [ANNOTATION_IDS.SCENE_EFFECT_STOP]: "none",
 };
 
 const SCENE_EFFECT_ANNOTATION_BY_NAME: Record<SceneEffectName, string> = {
   rain: ANNOTATION_IDS.SCENE_EFFECT_RAIN,
   snow: ANNOTATION_IDS.SCENE_EFFECT_SNOW,
-  sakura: ANNOTATION_IDS.SCENE_EFFECT_SAKURA,
+  cherryBlossoms: ANNOTATION_IDS.SCENE_EFFECT_SAKURA,
   none: ANNOTATION_IDS.SCENE_EFFECT_STOP,
 };
 
@@ -229,6 +251,48 @@ const FIGURE_ANIMATION_MAP: Record<string, FigureAnimationSettings> = {
 };
 
 const FIGURE_ANIMATION_ID_SET = new Set(Object.keys(FIGURE_ANIMATION_MAP));
+
+const BACKGROUND_ENTER_ANIMATION_BASE_BY_ID: Record<string, string> = {
+  [ANNOTATION_IDS.BACKGROUND_ANIM_ENTER]: "background/enter",
+  [ANNOTATION_IDS.BACKGROUND_ANIM_ENTER_FROM_LEFT]: "background/enter-from-left",
+  [ANNOTATION_IDS.BACKGROUND_ANIM_ENTER_FROM_RIGHT]: "background/enter-from-right",
+  [ANNOTATION_IDS.BACKGROUND_ANIM_BLUR_IN]: "background/blur-in",
+};
+
+const BACKGROUND_EXIT_ANIMATION_BASE_BY_ID: Record<string, string> = {
+  [ANNOTATION_IDS.BACKGROUND_ANIM_EXIT]: "background/exit",
+  [ANNOTATION_IDS.BACKGROUND_ANIM_EXIT_TO_LEFT]: "background/exit-to-left",
+  [ANNOTATION_IDS.BACKGROUND_ANIM_EXIT_TO_RIGHT]: "background/exit-to-right",
+};
+
+const BACKGROUND_SPEED_BY_ID: Record<string, BackgroundAnimationSpeed> = {
+  [ANNOTATION_IDS.BACKGROUND_SPEED_FAST]: "fast",
+  [ANNOTATION_IDS.BACKGROUND_SPEED_NORMAL]: "normal",
+  [ANNOTATION_IDS.BACKGROUND_SPEED_SLOW]: "slow",
+};
+
+const BACKGROUND_DURATION_MS_BY_SPEED: Record<BackgroundAnimationSpeed, number> = {
+  fast: 300,
+  normal: 700,
+  slow: 1200,
+};
+
+function resolveBackgroundAnimationName(baseName: string, speed?: BackgroundAnimationSpeed): string {
+  if (!speed || speed === "normal") {
+    return baseName;
+  }
+  return `${baseName}-${speed}`;
+}
+
+function buildDurationArgs(duration: number | undefined, mode: "enter-exit" | "exit-only"): string[] {
+  if (!duration) {
+    return [];
+  }
+  if (mode === "exit-only") {
+    return [`-duration=${duration}`, `-exitDuration=${duration}`];
+  }
+  return [`-duration=${duration}`, `-enterDuration=${duration}`, `-exitDuration=${duration}`];
+}
 
 export function normalizeAnnotations(annotations?: string[]) {
   if (!Array.isArray(annotations))
@@ -322,6 +386,83 @@ export function hasClearBackgroundAnnotation(annotations: string[] | undefined) 
 
 export function hasClearBgmAnnotation(annotations: string[] | undefined) {
   return normalizeAnnotations(annotations).includes(ANNOTATION_IDS.BGM_CLEAR);
+}
+
+export function getSceneControlLinesFromAnnotations(annotations: string[] | undefined): string[] {
+  const list = normalizeAnnotations(annotations);
+  let textboxLine: string | undefined;
+  let filmModeLine: string | undefined;
+  for (const id of list) {
+    switch (id) {
+      case ANNOTATION_IDS.SCENE_TEXTBOX_HIDE:
+        textboxLine = "setTextbox:hide -next;";
+        break;
+      case ANNOTATION_IDS.SCENE_TEXTBOX_SHOW:
+        textboxLine = "setTextbox:on -next;";
+        break;
+      case ANNOTATION_IDS.SCENE_FILM_ON:
+        filmModeLine = "filmMode:on;";
+        break;
+      case ANNOTATION_IDS.SCENE_FILM_OFF:
+        filmModeLine = "filmMode:none;";
+        break;
+    }
+  }
+  return [textboxLine, filmModeLine].filter((line): line is string => Boolean(line));
+}
+
+export function getBackgroundAnimationFromAnnotations(
+  annotations: string[] | undefined,
+): BackgroundAnimationSettings | undefined {
+  const list = normalizeAnnotations(annotations);
+  let enterAnimationBase: string | undefined;
+  let exitAnimationBase: string | undefined;
+  let speed: BackgroundAnimationSpeed | undefined;
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const id = list[i];
+    if (!enterAnimationBase && BACKGROUND_ENTER_ANIMATION_BASE_BY_ID[id]) {
+      enterAnimationBase = BACKGROUND_ENTER_ANIMATION_BASE_BY_ID[id];
+    }
+    if (!exitAnimationBase && BACKGROUND_EXIT_ANIMATION_BASE_BY_ID[id]) {
+      exitAnimationBase = BACKGROUND_EXIT_ANIMATION_BASE_BY_ID[id];
+    }
+    if (!speed && BACKGROUND_SPEED_BY_ID[id]) {
+      speed = BACKGROUND_SPEED_BY_ID[id];
+    }
+    if (enterAnimationBase && exitAnimationBase && speed) {
+      break;
+    }
+  }
+  if (!enterAnimationBase && !exitAnimationBase && !speed) {
+    return undefined;
+  }
+  return {
+    ...(enterAnimationBase ? { enterAnimation: resolveBackgroundAnimationName(enterAnimationBase, speed) } : {}),
+    ...(exitAnimationBase ? { exitAnimation: resolveBackgroundAnimationName(exitAnimationBase, speed) } : {}),
+    ...(speed ? { speed, duration: BACKGROUND_DURATION_MS_BY_SPEED[speed] } : {}),
+  };
+}
+
+export function buildBackgroundChangeBgArgsFromAnnotations(annotations: string[] | undefined): string {
+  const settings = getBackgroundAnimationFromAnnotations(annotations);
+  if (!settings) {
+    return "";
+  }
+  const args = [
+    settings.enterAnimation ? `-enter=${settings.enterAnimation}` : undefined,
+    settings.exitAnimation ? `-exit=${settings.exitAnimation}` : undefined,
+    ...buildDurationArgs(settings.duration, "enter-exit"),
+  ].filter((arg): arg is string => Boolean(arg));
+  return args.length > 0 ? ` ${args.join(" ")}` : "";
+}
+
+export function buildClearBackgroundLineFromAnnotations(annotations: string[] | undefined): string {
+  const settings = getBackgroundAnimationFromAnnotations(annotations);
+  const args = [
+    settings?.exitAnimation ? `-exit=${settings.exitAnimation}` : undefined,
+    ...buildDurationArgs(settings?.duration, "exit-only"),
+  ].filter((arg): arg is string => Boolean(arg));
+  return `changeBg:none${args.length > 0 ? ` ${args.join(" ")}` : ""} -next;`;
 }
 
 export function getFigurePositionFromAnnotations(annotations: string[] | undefined) {

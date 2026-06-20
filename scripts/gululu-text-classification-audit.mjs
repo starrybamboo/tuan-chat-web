@@ -31,6 +31,14 @@ const PERFORMANCE_USES = new Set([
 
 const CONFIDENCE_VALUES = new Set(["high", "medium", "low"]);
 
+const BATTLE_PHASES = new Set([
+  "start",
+  "card",
+  "round",
+  "result",
+  "replay_marker",
+]);
+
 function parseArgs(argv) {
   const options = new Map();
   for (let index = 2; index < argv.length; index += 1) {
@@ -154,6 +162,9 @@ function validateStore(store) {
       }
       if (event.confidence && !CONFIDENCE_VALUES.has(event.confidence)) {
         problems.push({ floor, index, problem: `invalid confidence: ${event.confidence}` });
+      }
+      if (event.battlePhase && !BATTLE_PHASES.has(event.battlePhase)) {
+        problems.push({ floor, index, problem: `invalid battlePhase: ${event.battlePhase}` });
       }
     });
   }
