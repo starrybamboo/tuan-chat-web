@@ -1,8 +1,9 @@
+import { memo } from "react";
+
 import type {
   AiImagePreviewPaneProps,
 } from "@/components/aiImage/preview/types";
 
-import { memo } from "react";
 import { DirectorWorkspace } from "@/components/aiImage/preview/DirectorWorkspace";
 import { StandardPreviewWorkspace } from "@/components/aiImage/preview/StandardPreviewWorkspace";
 

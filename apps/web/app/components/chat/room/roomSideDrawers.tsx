@@ -1,12 +1,14 @@
-import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
 import React from "react";
+
+import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
+
 import ExportChatDrawer from "@/components/chat/room/drawers/exportChatDrawer";
 import RoomUserList from "@/components/chat/room/drawers/roomUserList";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { VaulSideDrawer } from "@/components/common/vaulSideDrawer";
 
-interface RoomSideDrawersProps {
+type RoomSideDrawersProps = {
   spaceId: number;
   roomId: number;
   galAuthoringLocalSnapshot?: GalAuthoringLocalSnapshot;

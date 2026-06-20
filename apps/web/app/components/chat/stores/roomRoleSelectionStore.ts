@@ -7,8 +7,12 @@ type RoomRoleSelectionState = {
   /** 角色ID -> 立绘ID */
   curAvatarIdMap: Record<number, number>;
 
+  /** 角色ID -> 当前打开的立绘组ID；0 表示未分组 */
+  curAvatarVariantIdMap: Record<number, number>;
+
   setCurRoleIdForRoom: (roomId: number, roleId: number) => void;
   setCurAvatarIdForRole: (roleId: number, avatarId: number) => void;
+  setCurAvatarVariantIdForRole: (roleId: number, variantId: number) => void;
 };
 
 function canUseLocalStorage(): boolean {
@@ -46,6 +50,7 @@ function writeJson(key: string, value: unknown): void {
 const INITIAL_STATE = {
   curRoleIdMap: readJson<Record<number, number>>("curRoleIdMap", {}),
   curAvatarIdMap: readJson<Record<number, number>>("curAvatarIdMap", {}),
+  curAvatarVariantIdMap: readJson<Record<number, number>>("curAvatarVariantIdMap", {}),
 };
 
 export const useRoomRoleSelectionStore = create<RoomRoleSelectionState>(set => ({
@@ -76,6 +81,20 @@ export const useRoomRoleSelectionStore = create<RoomRoleSelectionState>(set => (
       };
       writeJson("curAvatarIdMap", nextMap);
       return { curAvatarIdMap: nextMap };
+    });
+  },
+
+  setCurAvatarVariantIdForRole: (roleId, variantId) => {
+    set((state) => {
+      if (state.curAvatarVariantIdMap[roleId] === variantId) {
+        return state;
+      }
+      const nextMap = {
+        ...state.curAvatarVariantIdMap,
+        [roleId]: variantId,
+      };
+      writeJson("curAvatarVariantIdMap", nextMap);
+      return { curAvatarVariantIdMap: nextMap };
     });
   },
 }));

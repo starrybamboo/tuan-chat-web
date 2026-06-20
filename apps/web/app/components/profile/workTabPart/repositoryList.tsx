@@ -1,14 +1,15 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import React, { useMemo } from "react";
+
 import Pagination from "@/components/common/pagination";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
-
 import { imageMediumUrl } from "@/utils/mediaUrl";
+
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";
 
-interface UserRepositoriesListProps {
+type UserRepositoriesListProps = {
   userId: number;
   totalRecords: number;
   currentPage: number;

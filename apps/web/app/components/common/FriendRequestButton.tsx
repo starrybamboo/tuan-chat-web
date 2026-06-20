@@ -1,14 +1,16 @@
 import type { Ref } from "react";
+
 import { UserPlusIcon } from "@phosphor-icons/react";
-import { useCheckFriendQuery, useSendFriendRequestMutation } from "api/hooks/friendQueryHooks";
 import { useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
+import { useCheckFriendQuery, useSendFriendRequestMutation } from "api/hooks/friendQueryHooks";
 
 type FriendRequestButtonVariant = "button" | "menu-item";
 
-interface FriendRequestButtonProps {
+type FriendRequestButtonProps = {
   targetUserId?: number | null;
   targetUsername?: string | null;
   className?: string;

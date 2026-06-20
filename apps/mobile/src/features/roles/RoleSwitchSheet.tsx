@@ -2,16 +2,25 @@ import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { CaretLeft, UserPlus } from "phosphor-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 
 import { BottomSheetModal } from "@/components/BottomSheetModal";
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
 import { Radius, Spacing } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/auth-session";
 import { useTheme } from "@/hooks/use-theme";
 import { avatarThumbUrl } from "@/lib/media-url";
+import { readMobileKeyValue, writeMobileKeyValue } from "@/lib/mobile-key-value-storage";
 
+import {
+  buildRoleAvatarCategoryGroups,
+  buildRoleAvatarVariantGroups,
+  getRoleAvatarVariantFolders,
+  resolveActiveRoleAvatarVariantId,
+  ROLE_AVATAR_UNGROUPED_VARIANT_ID,
+} from "./roleAvatarVariantGroups";
 import { useRoleAvatarsQuery } from "./useRoleAvatarsQuery";
 
 const AVATAR_SIZE = 36;
@@ -19,6 +28,7 @@ const AVATAR_GRID_COLUMNS = 4;
 const AVATAR_GRID_GAP = Spacing.md;
 const SHEET_HORIZONTAL_PADDING = Spacing.xl;
 const GRID_HORIZONTAL_PADDING = Spacing.xl;
+const ROLE_SWITCH_AVATAR_VARIANT_STORAGE_SCOPE = "role-switch-avatar-variant";
 
 type RoleSwitchListItem
   = { type: "narrator"; key: string }
@@ -126,6 +136,38 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingHorizontal: Spacing.xl,
   },
+  avatarVariantBackButton: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    flexDirection: "row",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  avatarVariantFolderItem: {
+    alignItems: "center",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    gap: Spacing.xs,
+    justifyContent: "center",
+    padding: Spacing.xs,
+  },
+  avatarVariantFolderCover: {
+    borderRadius: Radius.sm,
+    height: "68%",
+    width: "100%",
+  },
+  avatarVariantHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+  },
+  avatarVariantTitle: {
+    flex: 1,
+  },
   emptyState: {
     alignItems: "center",
     gap: Spacing.md,
@@ -158,18 +200,6 @@ function getRoleTypeLabel(type: number): string {
     case 2: return "NPC";
     default: return "";
   }
-}
-
-function groupAvatarsByCategory(avatars: RoleAvatar[]): Map<string, RoleAvatar[]> {
-  const map = new Map<string, RoleAvatar[]>();
-  for (const avatar of avatars) {
-    const cat = avatar.category ?? "默认";
-    const list = map.get(cat);
-    if (list)
-      list.push(avatar);
-    else map.set(cat, [avatar]);
-  }
-  return map;
 }
 
 type RoleSwitchSheetProps = {
@@ -208,9 +238,12 @@ export function RoleSwitchSheet({
   visible,
 }: RoleSwitchSheetProps) {
   const theme = useTheme();
+  const { session } = useAuthSession();
+  const userId = session?.userId ?? null;
   const { width: windowWidth } = useWindowDimensions();
   const [expandedRoleId, setExpandedRoleId] = useState<number | null>(null);
   const [sheetMode, setSheetMode] = useState<"select" | "add">("select");
+  const [activeVariantIdByRoleId, setActiveVariantIdByRoleId] = useState<Record<number, number>>({});
 
   const avatarGridItemSize = useMemo(() => {
     const horizontalPadding = (SHEET_HORIZONTAL_PADDING + GRID_HORIZONTAL_PADDING) * 2;
@@ -226,7 +259,30 @@ export function RoleSwitchSheet({
   const activeExpandedRoleId = expandedRoleId ?? (currentRoleId && currentRoleId > 0 ? currentRoleId : null);
   const roleAvatarsQuery = useRoleAvatarsQuery(activeExpandedRoleId);
   const roleAvatars = useMemo(() => roleAvatarsQuery.data ?? [], [roleAvatarsQuery.data]);
-  const groupedAvatars = useMemo(() => groupAvatarsByCategory(roleAvatars), [roleAvatars]);
+  const avatarVariantGroups = useMemo(() => buildRoleAvatarVariantGroups(roleAvatars), [roleAvatars]);
+  const avatarVariantFolders = useMemo(() => getRoleAvatarVariantFolders(avatarVariantGroups), [avatarVariantGroups]);
+  const storedActiveVariantId = activeExpandedRoleId ? activeVariantIdByRoleId[activeExpandedRoleId] : undefined;
+  const activeAvatarVariantId = useMemo(() => resolveActiveRoleAvatarVariantId({
+    groups: avatarVariantGroups,
+    preferredVariantId: storedActiveVariantId,
+    selectedAvatarId: currentAvatarId,
+  }), [avatarVariantGroups, currentAvatarId, storedActiveVariantId]);
+  const activeAvatarVariantGroup = useMemo(
+    () => avatarVariantGroups.find(group => group.variantId === activeAvatarVariantId),
+    [activeAvatarVariantId, avatarVariantGroups],
+  );
+  const ungroupedAvatarVariantGroup = useMemo(
+    () => avatarVariantGroups.find(group => group.variantId === ROLE_AVATAR_UNGROUPED_VARIANT_ID),
+    [avatarVariantGroups],
+  );
+  const isAvatarVariantGroupView = activeAvatarVariantId !== ROLE_AVATAR_UNGROUPED_VARIANT_ID;
+  const displayedAvatarVariantGroup = isAvatarVariantGroupView
+    ? activeAvatarVariantGroup
+    : ungroupedAvatarVariantGroup;
+  const avatarCategoryGroups = useMemo(
+    () => displayedAvatarVariantGroup ? buildRoleAvatarCategoryGroups(displayedAvatarVariantGroup.avatars) : [],
+    [displayedAvatarVariantGroup],
+  );
   const roleListItems = useMemo<RoleSwitchListItem[]>(() => {
     const items: RoleSwitchListItem[] = [];
     if (canSelectNarrator) {
@@ -240,6 +296,43 @@ export function RoleSwitchSheet({
     }
     return items;
   }, [canSelectNarrator, myRoles]);
+
+  useEffect(() => {
+    const roleId = activeExpandedRoleId;
+    if (!roleId) {
+      return;
+    }
+
+    let cancelled = false;
+    void readMobileKeyValue<number>(`role:${roleId}`, {
+      scope: ROLE_SWITCH_AVATAR_VARIANT_STORAGE_SCOPE,
+      userId,
+    }).then((entry) => {
+      const value = entry?.value;
+      if (cancelled || typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        return;
+      }
+      setActiveVariantIdByRoleId(prev => prev[roleId] === value ? prev : {
+        ...prev,
+        [roleId]: value,
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeExpandedRoleId, userId]);
+
+  const setActiveRoleAvatarVariantId = useCallback((roleId: number, variantId: number) => {
+    setActiveVariantIdByRoleId(prev => prev[roleId] === variantId ? prev : {
+      ...prev,
+      [roleId]: variantId,
+    });
+    void writeMobileKeyValue(`role:${roleId}`, variantId, {
+      scope: ROLE_SWITCH_AVATAR_VARIANT_STORAGE_SCOPE,
+      userId,
+    });
+  }, [userId]);
 
   const handleSelectRole = useCallback((roleId: number) => {
     if (currentRoleId === roleId) {
@@ -313,6 +406,48 @@ export function RoleSwitchSheet({
     );
   }, [avatarGridImageSize, avatarGridItemSize, currentAvatarId, handleSelectAvatar, theme.accent]);
 
+  const renderAvatarVariantFolderItem = useCallback(({ item }: { item: (typeof avatarVariantFolders)[number] }) => {
+    const coverAvatar = item.coverAvatar ?? item.avatars[0];
+    const coverUri = avatarThumbUrl(coverAvatar?.avatarFileId);
+    return (
+      <Pressable
+        accessibilityLabel={`打开${item.label}`}
+        accessibilityRole="button"
+        onPress={() => {
+          if (activeExpandedRoleId) {
+            setActiveRoleAvatarVariantId(activeExpandedRoleId, item.variantId);
+          }
+        }}
+        style={[
+          styles.avatarVariantFolderItem,
+          {
+            backgroundColor: theme.backgroundElement,
+            borderColor: theme.border,
+            height: avatarGridItemSize,
+            width: avatarGridItemSize,
+          },
+        ]}
+      >
+        {coverUri
+          ? (
+              <CachedImage
+                uri={coverUri}
+                style={styles.avatarVariantFolderCover}
+                contentFit="cover"
+              />
+            )
+          : (
+              <View style={[styles.avatarVariantFolderCover, { alignItems: "center", justifyContent: "center" }]}>
+                <ThemedText themeColor="textSecondary" type="caption">?</ThemedText>
+              </View>
+            )}
+        <ThemedText type="caption" numberOfLines={1}>
+          {item.label}
+        </ThemedText>
+      </Pressable>
+    );
+  }, [activeExpandedRoleId, avatarGridItemSize, setActiveRoleAvatarVariantId, theme.backgroundElement, theme.border]);
+
   const renderExpandedAvatars = useCallback(() => {
     if (roleAvatarsQuery.isPending) {
       return <ActivityIndicator style={{ marginVertical: Spacing.md }} size="small" />;
@@ -325,30 +460,97 @@ export function RoleSwitchSheet({
       );
     }
 
-    return Array.from(groupedAvatars.entries()).map(([category, avatars]) => (
-      <View key={category}>
-        {groupedAvatars.size > 1
+    return (
+      <View>
+        {avatarVariantFolders.length > 0 && !isAvatarVariantGroupView
           ? (
-              <View style={styles.avatarSectionHeader}>
-                <ThemedText type="caption" themeColor="textSecondary">{category}</ThemedText>
+              <View>
+                <View style={styles.avatarSectionHeader}>
+                  <ThemedText type="caption" themeColor="textSecondary">立绘组</ThemedText>
+                </View>
+                <FlatList
+                  data={avatarVariantFolders}
+                  key={`role-avatar-variant-grid-${AVATAR_GRID_COLUMNS}`}
+                  keyExtractor={group => `role-avatar-variant:${group.variantId}`}
+                  renderItem={renderAvatarVariantFolderItem}
+                  numColumns={AVATAR_GRID_COLUMNS}
+                  scrollEnabled={avatarVariantFolders.length > AVATAR_GRID_COLUMNS * 2}
+                  nestedScrollEnabled
+                  style={styles.avatarGrid}
+                  contentContainerStyle={styles.avatarGridContent}
+                  columnWrapperStyle={styles.avatarGridRow}
+                />
               </View>
             )
           : null}
-        <FlatList
-          data={avatars}
-          key={`role-avatar-grid-${AVATAR_GRID_COLUMNS}`}
-          keyExtractor={avatar => `role-avatar:${avatar.avatarId ?? avatar.avatarFileId ?? "unknown"}`}
-          renderItem={renderAvatarItem}
-          numColumns={AVATAR_GRID_COLUMNS}
-          scrollEnabled={avatars.length > AVATAR_GRID_COLUMNS * 3}
-          nestedScrollEnabled
-          style={styles.avatarGrid}
-          contentContainerStyle={styles.avatarGridContent}
-          columnWrapperStyle={styles.avatarGridRow}
-        />
+
+        {isAvatarVariantGroupView && activeExpandedRoleId
+          ? (
+              <View style={styles.avatarVariantHeader}>
+                <Pressable
+                  accessibilityLabel="返回立绘组列表"
+                  accessibilityRole="button"
+                  onPress={() => setActiveRoleAvatarVariantId(activeExpandedRoleId, ROLE_AVATAR_UNGROUPED_VARIANT_ID)}
+                  style={({ pressed }) => [styles.avatarVariantBackButton, pressed && { backgroundColor: theme.backgroundElement }]}
+                >
+                  <CaretLeft size={15} color={theme.textSecondary} weight="bold" />
+                  <ThemedText type="caption" themeColor="textSecondary">立绘组</ThemedText>
+                </Pressable>
+                <ThemedText type="caption" numberOfLines={1} style={styles.avatarVariantTitle}>
+                  {activeAvatarVariantGroup?.label ?? "未命名立绘组"}
+                </ThemedText>
+              </View>
+            )
+          : null}
+
+        {avatarCategoryGroups.map(({ category, avatars }) => (
+          <View key={`${activeAvatarVariantId}:${category}`}>
+            {avatarCategoryGroups.length > 1
+              ? (
+                  <View style={styles.avatarSectionHeader}>
+                    <ThemedText type="caption" themeColor="textSecondary">{category}</ThemedText>
+                  </View>
+                )
+              : null}
+            <FlatList
+              data={avatars}
+              key={`role-avatar-grid-${AVATAR_GRID_COLUMNS}`}
+              keyExtractor={avatar => `role-avatar:${avatar.avatarId ?? avatar.avatarFileId ?? "unknown"}`}
+              renderItem={renderAvatarItem}
+              numColumns={AVATAR_GRID_COLUMNS}
+              scrollEnabled={avatars.length > AVATAR_GRID_COLUMNS * 3}
+              nestedScrollEnabled
+              style={styles.avatarGrid}
+              contentContainerStyle={styles.avatarGridContent}
+              columnWrapperStyle={styles.avatarGridRow}
+            />
+          </View>
+        ))}
+
+        {avatarCategoryGroups.length === 0 && isAvatarVariantGroupView
+          ? (
+              <ThemedText type="caption" themeColor="textSecondary" style={{ paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm }}>
+                当前立绘组暂无可选头像
+              </ThemedText>
+            )
+          : null}
       </View>
-    ));
-  }, [groupedAvatars, renderAvatarItem, roleAvatars.length, roleAvatarsQuery.isPending]);
+    );
+  }, [
+    activeAvatarVariantGroup?.label,
+    activeAvatarVariantId,
+    activeExpandedRoleId,
+    avatarCategoryGroups,
+    avatarVariantFolders,
+    isAvatarVariantGroupView,
+    renderAvatarItem,
+    renderAvatarVariantFolderItem,
+    roleAvatars.length,
+    roleAvatarsQuery.isPending,
+    setActiveRoleAvatarVariantId,
+    theme.backgroundElement,
+    theme.textSecondary,
+  ]);
 
   const renderRoleItem = useCallback(({ item }: { item: RoleSwitchListItem }) => {
     if (item.type === "empty") {

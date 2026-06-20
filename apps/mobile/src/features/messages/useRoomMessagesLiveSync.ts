@@ -16,10 +16,12 @@ import { writeCachedRoomMessages } from "@/features/messages/mobileRoomMessageCa
 import {
   extractChatMessageResponses,
   upsertLiveRoomMessageWithGapRepair,
+  upsertLiveRoomMessagesWithGapRepair,
 } from "@/features/messages/roomMessageSync";
 import { DEFAULT_TUANCHAT_API_BASE_URL, mobileApiClient } from "@/lib/api";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
+const GROUP_MESSAGE_BATCH_PUSH_TYPE = 25;
 const DIRECT_MESSAGE_PUSH_TYPE = 1;
 const USER_NOTIFICATION_PUSH_TYPE = 23;
 const TOKEN_INVALID_PUSH_TYPE = 100;
@@ -67,14 +69,24 @@ function parseWebSocketEnvelope(rawData: unknown): WebSocketEnvelope | null {
   }
 }
 
-function parseIncomingRoomMessage(
+function parseIncomingRoomMessages(
   rawData: unknown,
-): { message: ChatMessageResponse | null; type: number | null } {
+): { messages: ChatMessageResponse[]; type: number | null } {
   const envelope = parseWebSocketEnvelope(rawData);
   const type = typeof envelope?.type === "number" ? envelope.type : null;
+  if (type === GROUP_MESSAGE_BATCH_PUSH_TYPE) {
+    const batch = Array.isArray(envelope?.data) ? envelope.data : [];
+    return {
+      messages: batch
+        .map(item => (item as { message?: ChatMessageResponse["message"] } | undefined)?.message)
+        .filter((message): message is ChatMessageResponse["message"] => !!message)
+        .map(message => ({ message })),
+      type,
+    };
+  }
   if (type !== GROUP_MESSAGE_PUSH_TYPE) {
     return {
-      message: null,
+      messages: [],
       type,
     };
   }
@@ -82,15 +94,15 @@ function parseIncomingRoomMessage(
   const nextMessage = (envelope?.data as { message?: ChatMessageResponse["message"] } | undefined)?.message;
   if (!nextMessage) {
     return {
-      message: null,
+      messages: [],
       type,
     };
   }
 
   return {
-    message: {
+    messages: [{
       message: nextMessage,
-    },
+    }],
     type,
   };
 }
@@ -208,15 +220,25 @@ export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number 
           return;
         }
 
-        const { message, type } = parseIncomingRoomMessage(event.data);
-        if (message) {
-          const messageRoomId = message.message.roomId;
-          const messageSyncId = message.message.syncId;
-          if (typeof messageRoomId === "number" && messageRoomId > 0 && typeof messageSyncId === "number") {
-            bumpRoomSessionLatestSyncInCache(queryClient, messageRoomId, messageSyncId);
+        const { messages, type } = parseIncomingRoomMessages(event.data);
+        if (messages.length > 0) {
+          let latestReadSyncId: number | null = null;
+          const currentRoomMessages: ChatMessageResponse[] = [];
+          for (const message of messages) {
+            const messageRoomId = message.message.roomId;
+            const messageSyncId = message.message.syncId;
+            if (typeof messageRoomId === "number" && messageRoomId > 0 && typeof messageSyncId === "number") {
+              bumpRoomSessionLatestSyncInCache(queryClient, messageRoomId, messageSyncId);
+            }
+            if (messageRoomId === resolvedRoomId) {
+              currentRoomMessages.push(message);
+              if (typeof messageSyncId === "number") {
+                latestReadSyncId = Math.max(latestReadSyncId ?? messageSyncId, messageSyncId);
+              }
+            }
           }
-          if (messageRoomId === resolvedRoomId) {
-            upsertLiveRoomMessageWithGapRepair(resolvedRoomId, message, {
+          if (currentRoomMessages.length === 1) {
+            upsertLiveRoomMessageWithGapRepair(resolvedRoomId, currentRoomMessages[0], {
               fetchHistoryMessages: async (targetRoomId, syncId) => {
                 const result = await mobileApiClient.chatController.getHistoryMessages({
                   roomId: targetRoomId,
@@ -227,9 +249,22 @@ export function useRoomMessagesLiveSync(roomId: number | null, pageSize: number 
               queryClient,
               writeCachedRoomMessages,
             });
-            if (typeof messageSyncId === "number") {
-              markRoomSessionReadInCache(queryClient, resolvedRoomId, messageSyncId);
-            }
+          }
+          else if (currentRoomMessages.length > 1) {
+            upsertLiveRoomMessagesWithGapRepair(resolvedRoomId, currentRoomMessages, {
+              fetchHistoryMessages: async (targetRoomId, syncId) => {
+                const result = await mobileApiClient.chatController.getHistoryMessages({
+                  roomId: targetRoomId,
+                  syncId,
+                });
+                return extractChatMessageResponses(result);
+              },
+              queryClient,
+              writeCachedRoomMessages,
+            });
+          }
+          if (typeof latestReadSyncId === "number") {
+            markRoomSessionReadInCache(queryClient, resolvedRoomId, latestReadSyncId);
           }
           return;
         }

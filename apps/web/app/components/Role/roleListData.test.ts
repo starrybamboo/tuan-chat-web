@@ -13,11 +13,9 @@ function createQueryClientMock(cachedAvatar?: RoleAvatar) {
 }
 
 describe("roleListData", () => {
-  it("解析角色列表头像时优先使用 fileId，不让旧 URL 覆盖正式媒体", () => {
+  it("解析角色列表头像时只使用 fileId", () => {
     expect(resolveRoleAvatarUrls({
       avatarFileId: 2002,
-      avatarUrl: "https://legacy.example/avatar.webp",
-      avatarThumbUrl: "https://legacy.example/avatar-low.webp",
     })).toEqual({
       avatarUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp",
       avatarThumbUrl: "https://media.tuan.chat/media/v1/files/002/2002/image/low.webp",

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+
 import { hasMeaningfulMediaContent, normalizeMediaContent } from "@/components/common/content/mediaContent";
 
 const LazyMarkDownViewer = lazy(async () => {

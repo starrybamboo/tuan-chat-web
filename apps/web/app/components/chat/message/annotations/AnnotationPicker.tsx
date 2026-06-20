@@ -1,6 +1,8 @@
-import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
+
 import {
   loadAnnotationUsage,
   mergeAnnotationCatalog,
@@ -10,7 +12,7 @@ import AnnotationChip from "@/components/chat/message/annotations/annotationChip
 import { reactionPanelMotionProps } from "@/components/common/motion/chatMessageMotion";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 
-interface AnnotationPickerProps {
+type AnnotationPickerProps = {
   initialSelected?: string[];
   onChange?: (next: string[]) => void;
   onClose?: () => void;

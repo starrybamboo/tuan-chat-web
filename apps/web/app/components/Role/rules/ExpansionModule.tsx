@@ -1,11 +1,14 @@
-import type { RoleConfigTabKey } from "./configTabMeta";
 import { DownloadSimpleIcon, MaskHappyIcon, SparkleIcon } from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
+import { CloseIcon, WrenchIcon } from "@/icons";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation, useUpdateRoleAbilityByRoleIdMutation } from "api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { CloseIcon, WrenchIcon } from "@/icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ImportWithStCmd from "@/components/Role/rules/ImportWithStCmd";
+
+import type { RoleConfigTabKey } from "./configTabMeta";
+
 import CopywritingEditor from "../Editors/CopywritingEditor";
 import Section from "../Editors/Section";
 import { ROLE_CONFIG_TAB_ITEMS } from "./configTabMeta";
@@ -16,7 +19,7 @@ import PerformanceEditorSmall from "./PerformanceEditorSmall";
 
 const COPYWRITING_AUTOSAVE_DELAY_MS = 800;
 
-interface ExpansionModuleProps {
+type ExpansionModuleProps = {
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -431,7 +434,12 @@ export default function ExpansionModule({
   const hasQuickTools = Boolean(onOpenStImportModal || onOpenAIGenerateModal);
   const hasDesktopQuickTools = hasQuickTools && !isSmall;
   const desktopConfigButtonClass = "md:h-10 md:min-h-10 md:px-4 md:text-sm md:font-medium";
-  const desktopQuickToolButtonClass = "btn btn-sm h-10 min-h-10 rounded-lg px-4 text-sm font-medium";
+  const desktopQuickToolButtonClass = `
+    btn btn-sm h-10 min-h-10 rounded-lg border border-base-content/10
+    bg-base-100/70 px-4 text-sm font-medium text-base-content/80 shadow-none
+    transition-colors
+    hover:border-primary/40 hover:bg-primary/10 hover:text-primary
+  `;
 
   const tabButtons = !isDiceMaiden
     ? (
@@ -480,7 +488,7 @@ export default function ExpansionModule({
                   onClick={onOpenStImportModal}
                   className={`
                     ${desktopQuickToolButtonClass}
-                    inline-flex items-center gap-2 bg-info/70 text-info-content
+                    inline-flex items-center gap-2
                   `}
                 >
                   <DownloadSimpleIcon className="size-4" weight="bold" aria-hidden="true" />
@@ -493,7 +501,7 @@ export default function ExpansionModule({
                   onClick={onOpenAIGenerateModal}
                   className={`
                     ${desktopQuickToolButtonClass}
-                    inline-flex items-center gap-2 bg-info/70 text-info-content
+                    inline-flex items-center gap-2
                   `}
                 >
                   <SparkleIcon className="size-4" weight="fill" aria-hidden="true" />

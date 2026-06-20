@@ -1,10 +1,11 @@
 // React 组件，用于渲染所有的 toast 窗口
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+
 import { toastManager } from "@/components/common/toastWindow/toastWindow";
 import { ToastWindowFrame } from "@/components/common/toastWindow/toastWindowFrame";
 
-export interface ToastWindowOptions {
+export type ToastWindowOptions = {
   /**
    * 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭
    * @default false
@@ -27,7 +28,7 @@ export interface ToastWindowOptions {
   bodyClassName?: string;
 }
 
-export interface ToastWindowData {
+export type ToastWindowData = {
   id: string;
   children: React.ReactNode;
   options: ToastWindowOptions;

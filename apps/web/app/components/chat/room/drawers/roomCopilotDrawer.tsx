@@ -1,8 +1,9 @@
-import type { CopilotContextRef, GalAuthoringContext, GalAuthoringLocalSnapshot, GalPatchProposal, GalStoryPatch, PersistedRoomCopilotMessage } from "@/components/chat/galgameAi";
 import { ChatCircleText, CheckCircle, CircleNotch, FileText, House, PaperPlaneTilt, Robot, Sparkle, UserCircle, WarningCircle, X } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "react-hot-toast";
+
+import type { CopilotContextRef, GalAuthoringContext, GalAuthoringLocalSnapshot, GalPatchProposal, GalStoryPatch, PersistedRoomCopilotMessage } from "@/components/chat/galgameAi";
 
 import {
   addCopilotContextRef,
@@ -22,14 +23,14 @@ import { getDocRefDragData, isDocRefDrag } from "@/components/chat/utils/docRef"
 import { getRoleRefDragData, isRoleRefDrag } from "@/components/chat/utils/roleRef";
 import { getRoomRefDragData, isRoomRefDrag } from "@/components/chat/utils/roomRef";
 
-interface RoomCopilotDrawerProps {
+type RoomCopilotDrawerProps = {
   spaceId: number;
   roomId: number;
   localSnapshot?: GalAuthoringLocalSnapshot;
   onGalPatchProposalGenerated?: (proposal: GalPatchProposal) => void;
 }
 
-interface CopilotChatMessage {
+type CopilotChatMessage = {
   id: string;
   role: "assistant" | "user";
   content: string;

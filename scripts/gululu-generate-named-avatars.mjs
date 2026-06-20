@@ -17,7 +17,7 @@ const SUPPORTED_ASSET_KINDS = new Set([
   "character-avatar-chat",
   "manga-avatar",
 ]);
-const APPROVED_EXISTING_ROLES = new Set(["八意永琳", "风见幽香"]);
+const APPROVED_EXISTING_ROLES = new Set(["八意永琳", "风见幽香", "博丽灵梦"]);
 const ROLE_ALIASES = new Map([
   ["阿空", "灵乌路空"],
   ["阿燐", "火焰猫燐"],
@@ -168,6 +168,36 @@ function toCsv(rows, columns) {
   ].join("\n");
 }
 
+async function readJsonIfExists(file) {
+  try {
+    return JSON.parse(await fs.readFile(file, "utf8"));
+  }
+  catch (error) {
+    if (error?.code === "ENOENT")
+      return null;
+    throw error;
+  }
+}
+
+function isProtectedNamedAvatarManifest(manifest, role) {
+  if (APPROVED_EXISTING_ROLES.has(role))
+    return true;
+  const source = String(manifest?.source ?? "");
+  if (source.startsWith("manual-"))
+    return true;
+  return Array.isArray(manifest?.items)
+    && manifest.items.some(item => String(item?.reviewStatus ?? "").startsWith("manual-"));
+}
+
+function normalizeRole(role) {
+  const text = String(role ?? "").trim();
+  return ROLE_ALIASES.get(text) ?? text;
+}
+
+function splitPipe(value) {
+  return String(value ?? "").split("|").map(item => item.trim()).filter(Boolean);
+}
+
 async function pathExists(file) {
   try {
     await fs.access(file);
@@ -178,13 +208,51 @@ async function pathExists(file) {
   }
 }
 
-function normalizeRole(role) {
-  const text = String(role ?? "").trim();
-  return ROLE_ALIASES.get(text) ?? text;
+function normalizeSourceRelPath(value) {
+  return String(value ?? "").trim().replaceAll("\\", "/").replace(/^\/+/, "");
 }
 
-function splitPipe(value) {
-  return String(value ?? "").split("|").map(item => item.trim()).filter(Boolean);
+function sourceAbsPath(root, sourceRelPath) {
+  return path.join(root, "images", normalizeSourceRelPath(sourceRelPath).replaceAll("/", path.sep));
+}
+
+function uniqueSourceRelPaths(member) {
+  const seen = new Set();
+  const result = [];
+  for (const relPath of [member.sourceRelPath, ...(member.aggregatedSourceRelPaths ?? [])]) {
+    const normalized = normalizeSourceRelPath(relPath);
+    if (!normalized || seen.has(normalized))
+      continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
+function sourceCandidateFileName({ id, prefix, sourceIndex, sourceRelPath }) {
+  const ext = path.extname(sourceRelPath).toLowerCase() || ".png";
+  const stem = path.basename(sourceRelPath, ext)
+    .replace(/[^\w.-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "source";
+  return `${prefix}_SOURCE__${id}__S${String(sourceIndex + 1).padStart(3, "0")}__${stem}${ext}`;
+}
+
+async function copySourceCandidates({ groupDir, id, member, prefix, root }) {
+  const candidates = [];
+  const relPaths = uniqueSourceRelPaths(member);
+  for (let index = 0; index < relPaths.length; index += 1) {
+    const sourceRelPath = relPaths[index];
+    const absPath = sourceAbsPath(root, sourceRelPath);
+    const file = sourceCandidateFileName({ id, prefix, sourceIndex: index, sourceRelPath });
+    if (!await pathExists(absPath)) {
+      candidates.push({ copied: false, file, sourceRelPath });
+      continue;
+    }
+    await fs.copyFile(absPath, path.join(groupDir, file));
+    candidates.push({ copied: true, file, sourceRelPath });
+  }
+  return candidates;
 }
 
 function sanitizeToken(value, fallback) {
@@ -471,10 +539,11 @@ async function ensureCleanDir(dir, allowedRoot) {
 async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
   const outDir = path.join(finalRoot, "named-avatars", job.role, job.assetKind);
   const manifestPath = path.join(outDir, "avatar-manifest.json");
-  if (!args.force && await pathExists(manifestPath)) {
+  const existingManifest = await readJsonIfExists(manifestPath);
+  if (!args.force && existingManifest) {
     return { role: job.role, assetKind: job.assetKind, skipped: true, reason: "exists", sourceCount: job.items.length };
   }
-  if (args.skipApproved && APPROVED_EXISTING_ROLES.has(job.role)) {
+  if (args.skipApproved && isProtectedNamedAvatarManifest(existingManifest, job.role)) {
     return { role: job.role, assetKind: job.assetKind, skipped: true, reason: "approved-existing", sourceCount: job.items.length };
   }
   const jobReportDir = path.join(reportRoot, "jobs", job.role, job.assetKind);
@@ -535,6 +604,7 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
     const groupDir = path.join(outDir, "_interchangeable", versionedUsageKey);
     await fs.mkdir(groupDir, { recursive: true });
     await fs.copyFile(item.absPath, path.join(groupDir, `KEEP__${item.id}__${item.fileName}`));
+    const sourceCandidates = await copySourceCandidates({ groupDir, id: item.id, member: item, prefix: "KEEP", root: args.root });
 
     const stateSignature = {
       affect: sanitizeToken(label.affect, "uncertain"),
@@ -567,12 +637,15 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
       representativeFinalOutputRelPath: item.finalOutputRelPath,
       representativeSha256: item.sha256,
       memberCount: 1,
+      sourceCandidateCount: sourceCandidates.filter(candidate => candidate.copied).length,
       members: [{
         id: item.id,
         fileName: item.fileName,
         finalOutputRelPath: item.finalOutputRelPath,
         sourceRelPath: item.sourceRelPath,
         aggregatedSourceRelPaths: item.aggregatedSourceRelPaths,
+        sourceCandidateCount: sourceCandidates.filter(candidate => candidate.copied).length,
+        sourceCandidates,
         sha256: item.sha256,
         width: item.width,
         height: item.height,
@@ -591,6 +664,7 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
       representativeOriginalFile: item.fileName,
       representativeSourceRelPath: item.sourceRelPath,
       memberCount: 1,
+      sourceCandidateCount: entry.sourceCandidateCount,
       emotion: entry.emotion,
       eyes: entry.eyes,
       mouth: entry.mouth,
@@ -600,6 +674,7 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
       confidence: entry.confidence,
       notes: entry.notes,
     });
+    await fs.writeFile(path.join(groupDir, "group.json"), JSON.stringify(entry, null, 2), "utf8");
     previewItems.push({ ...item, outputFile, displayName: entry.displayName, versionedUsageKey });
   }
 
@@ -609,7 +684,7 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
     assetKind: job.assetKind,
     generatedAt: new Date().toISOString(),
     count: manifestItems.length,
-    interchangeablePolicy: "safe-main-all: each source image remains in main directory; _interchangeable keeps KEEP evidence only",
+    interchangeablePolicy: "safe-main-all: each source image remains in main directory; _interchangeable keeps KEEP evidence and expanded source candidates",
     items: manifestItems,
   };
   await fs.writeFile(path.join(outDir, "avatar-manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
@@ -623,7 +698,7 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
     `- 角色：${job.role}`,
     `- 类型：${job.assetKind}`,
     `- 主图数量：${manifestItems.length}`,
-    "- 折叠策略：保守模式，每张最终头像都保留在主目录；`_interchangeable/` 保存 KEEP 证据。",
+    "- 折叠策略：保守模式，每张最终头像都保留在主目录；`_interchangeable/` 保存 KEEP 证据、展开后的来源候选和 `group.json`。",
     "- 演出和导入脚本应读取 `avatar-manifest.json`，不要直接猜文件名。",
     "",
   ].join("\n"), "utf8");
@@ -634,6 +709,7 @@ async function processJob({ args, apiKey, finalRoot, reportRoot, job }) {
     sourceCount: job.items.length,
     namedCount: manifestItems.length,
     hiddenAltCount: 0,
+    sourceCandidateCount: manifestItems.reduce((sum, item) => sum + item.sourceCandidateCount, 0),
     outputDir: outDir,
   };
 }
@@ -699,6 +775,7 @@ async function updateSummary(finalRoot, results) {
       namedCount: result.namedCount,
       interchangeableGroups: result.namedCount,
       hiddenAltCount: result.hiddenAltCount,
+      sourceCandidateCount: result.sourceCandidateCount,
       outputDir: result.outputDir.replaceAll("\\", "/"),
     };
   }

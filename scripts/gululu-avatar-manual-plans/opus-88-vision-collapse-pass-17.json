@@ -1,0 +1,48 @@
+{
+  "createdAt": "2026-06-08T15:05:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第十七批：继续按角色最终主图 contact sheet 逐个复看第二批候选，只折叠同语义状态一致的头像。",
+  "groups": [
+    {
+      "role": "依神紫苑",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I014"],
+      "reason": "同为半睁闭嘴冒汗的无奈/担心状态；无脸红、泪、阴影、嘴型或外观形态差异，差异主要是裁切和线条细节。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I009",
+      "memberIds": ["I009", "I015"],
+      "reason": "同为阴影眼狡黠微笑状态；眼型、嘴型、阴影状态和情绪一致，差异主要是裁切、轻微朝向和画布范围。"
+    }
+  ],
+  "reviewNotes": [
+    {
+      "role": "依神紫苑",
+      "assetKind": "character-avatar-bust",
+      "note": "I002 眨眼苦笑与 I011 平静闭眼微笑情绪/姿态不同，保留；半睁小口、含泪惊慌、阴影冷笑等状态保留。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "note": "I007 冒汗小口与 I008 睁眼小圆口汗/惊讶强度不同，保留；I016 阴影倦怠闭口不与阴影微笑合并。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "note": "I001 闭眼张口笑与 I014 闭口低头平静笑嘴型/情绪不同，保留；I002 普通惊讶与 I015 脸红惊讶状态不同，保留。"
+    },
+    {
+      "role": "上白泽慧音",
+      "assetKind": "character-avatar-bust",
+      "note": "帽子蓝发形态与角形态不跨形态合并；I002 与 I017 虽同为闭眼小口，但外观形态不同，保留。"
+    },
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "note": "本轮未发现高置信同语义重复；灰度惊恐头像作为独立状态保留。"
+    }
+  ]
+}

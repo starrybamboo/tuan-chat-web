@@ -1,11 +1,11 @@
-import type { Room } from "../../../../api";
-
 import React from "react";
 import ReactDOMClient from "react-dom/client";
 
 import useChatPageContextMenus from "@/components/chat/hooks/useChatPageContextMenus";
 import RoomSidebarRoomItem from "@/components/chat/room/roomSidebarRoomItem";
 import SidebarSection from "@/components/chat/room/sidebarSection";
+
+import type { Room } from "../../../../api";
 
 const SPACE_ID = 1;
 const ROOM_ID = 1001;

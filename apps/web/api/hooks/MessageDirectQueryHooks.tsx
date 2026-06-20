@@ -12,6 +12,7 @@ import {
 import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 
 import { tuanchat } from "../instance";
+import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
 
 function wrapDirectMessagesData(messages: MessageDirectResponse[] | undefined) {
   return messages ? { success: true, data: messages } : undefined;
@@ -90,14 +91,21 @@ export function useUpdateReadPositionMutation() {
  * 获取所有好友的用户信息。
  */
 export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
-  return useQueries({
-    queries: friends.map(friendId => ({
-      queryKey: getUserInfoQueryKey(friendId || -1),
+  const querySlots = createUniqueQuerySlots(
+    friends,
+    (friendId, index) => typeof friendId === "number" && friendId > 0 ? String(friendId) : `invalid:${index}`,
+  );
+  const results = useQueries({
+    queries: querySlots.queryItems.map(({ item: friendId, originalIndex }) => ({
+      queryKey: typeof friendId === "number" && friendId > 0
+        ? getUserInfoQueryKey(friendId)
+        : ["getUserInfo", "invalid", originalIndex],
       queryFn: () => tuanchat.userController.getUserInfo(friendId || -1),
       staleTime: USER_INFO_STALE_TIME_MS,
       enabled: typeof friendId === "number" && friendId > 0,
     })),
   });
+  return mapUniqueQueryResults(results, querySlots.resultIndexes);
 }
 
 export { getDirectInboxQueryKey };

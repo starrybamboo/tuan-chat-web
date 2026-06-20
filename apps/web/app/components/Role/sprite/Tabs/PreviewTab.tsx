@@ -1,27 +1,19 @@
-import type { RoleAvatar } from "api";
-import type { Transform } from "../TransformControl";
-import { useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
+
+import type { RoleAvatar } from "api";
+
 import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
 import { AvatarPreview } from "@/components/Role/Preview/AvatarPreview";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
-import { CharacterCopper } from "../../RoleInfoCard/AvatarUploadCropper";
-import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl, parseTransformFromAvatar, toSpriteTransformPayload } from "../utils";
 
-interface RenderTransform {
+import { getEffectiveAvatarThumbUrl, getEffectiveAvatarUrl, getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
+
+type RenderTransform = {
   scale: number;
   positionX: number;
   positionY: number;
   alpha: number;
   rotation: number;
-}
-
-interface ReplaceAvatarPayload {
-  avatarFileId?: number;
-  spriteFileId?: number;
-  originFileId?: number;
-  transform?: Transform;
 }
 
 const DEFAULT_TRANSFORM: RenderTransform = {
@@ -32,7 +24,7 @@ const DEFAULT_TRANSFORM: RenderTransform = {
   rotation: 0,
 };
 
-interface PreviewTabProps {
+type PreviewTabProps = {
   /** 当前选中的头像数据 */
   currentAvatar: RoleAvatar | null;
   /** 角色名称 */
@@ -72,13 +64,6 @@ export function PreviewTab({
       ? (parseTransformFromAvatar(currentAvatar) as RenderTransform)
       : DEFAULT_TRANSFORM;
   }, [currentAvatar]);
-  const roleIdForMutation = currentAvatar?.roleId ?? 0;
-  const { mutateAsync: updateAvatar, isPending: isReplacing } = useUpdateRoleAvatarMutation(roleIdForMutation);
-  const replaceStateKey = useMemo(
-    () => `roleAvatarReplacePreview-${currentAvatar?.avatarId ?? "unknown"}`,
-    [currentAvatar?.avatarId],
-  );
-
   // Render preview should avoid showing: old image + new transform (or vice versa).
   // So we only update the transform after the new sprite image is ready to draw.
   const [renderTransform, setRenderTransform] = useState<RenderTransform>(() => computedTransform);
@@ -230,32 +215,6 @@ export function PreviewTab({
     return "立绘";
   };
 
-  const handleReplaceAvatar = useCallback(async (payload: ReplaceAvatarPayload) => {
-    if (!currentAvatar?.avatarId || !roleIdForMutation) {
-      toast.error("当前头像信息缺失，无法修改");
-      return;
-    }
-
-    const nextTransform = payload.transform ?? parseTransformFromAvatar(currentAvatar);
-
-    try {
-      await updateAvatar({
-        ...currentAvatar,
-        roleId: roleIdForMutation,
-        avatarId: currentAvatar.avatarId,
-        avatarFileId: payload.avatarFileId ?? currentAvatar.avatarFileId,
-        spriteFileId: payload.spriteFileId ?? currentAvatar.spriteFileId,
-        originFileId: payload.originFileId ?? currentAvatar.originFileId,
-        spriteTransform: toSpriteTransformPayload(nextTransform),
-      });
-      toast.success("头像已修改");
-    }
-    catch (error) {
-      console.error("修改头像失败:", error);
-      toast.error("修改失败，请稍后重试");
-    }
-  }, [currentAvatar, roleIdForMutation, updateAvatar]);
-
   // 处理展示预览（同步外部索引并关闭弹窗）
   const handlePreview = () => {
     onPreview?.();
@@ -387,22 +346,6 @@ export function PreviewTab({
 
       {/* 操作按钮 */}
       <div className="mt-4 flex shrink-0 items-center justify-end gap-2">
-        {currentAvatar?.avatarId && (
-          <CharacterCopper
-            fileName={`avatar-replace-${currentAvatar.avatarId}`}
-            scene={3}
-            mutate={handleReplaceAvatar}
-            stateKey={replaceStateKey}
-          >
-            <button
-              type="button"
-              className="btn btn-secondary rounded-md"
-              disabled={isReplacing}
-            >
-              {isReplacing ? "替换中..." : "替换头像"}
-            </button>
-          </CharacterCopper>
-        )}
         <button
           type="button"
           className="btn btn-secondary rounded-md"

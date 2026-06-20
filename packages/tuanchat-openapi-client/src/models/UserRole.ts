@@ -35,7 +35,7 @@ export type UserRole = {
      */
     avatarMediaType?: string;
     /**
-     * 空间id（NPC 绑定空间）
+     * 空间id（仅 NPC 绑定空间；普通角色/骰娘应为空）
      */
     spaceId?: number;
     /**
@@ -64,8 +64,8 @@ export type UserRole = {
     versionState?: number;
     createTime?: string;
     updateTime?: string;
-    diceMaiden?: boolean;
     npc?: boolean;
     role?: boolean;
+    diceMaiden?: boolean;
 };
 

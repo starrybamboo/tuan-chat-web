@@ -10,7 +10,7 @@ import sharp from "sharp";
 const DEFAULT_ROOT = "D:\\gululu-cache\\output\\opus-88-owner-only-refetch-v3";
 const DEFAULT_BASE_URL = "https://api.asxs.top/v1";
 const DEFAULT_MODEL = "gpt-5.5";
-const APPROVED_EXISTING_ROLES = new Set(["八意永琳", "风见幽香"]);
+const APPROVED_EXISTING_ROLES = new Set(["八意永琳", "风见幽香", "博丽灵梦"]);
 
 function parseArgs(argv) {
   const args = new Map();
@@ -111,6 +111,16 @@ function groupKeyFromEntry(entry) {
   return parts.join("_").replace(/_+/g, "_");
 }
 
+function isProtectedNamedAvatarManifest(manifest, role) {
+  if (APPROVED_EXISTING_ROLES.has(role))
+    return true;
+  const source = String(manifest?.source ?? "");
+  if (source.startsWith("manual-"))
+    return true;
+  return Array.isArray(manifest?.items)
+    && manifest.items.some(item => String(item?.reviewStatus ?? "").startsWith("manual-"));
+}
+
 function extractJsonObject(text) {
   const raw = String(text ?? "").trim();
   try {
@@ -207,7 +217,7 @@ async function callVision({ apiKey, args, dataUrl, job, items }) {
     const response = await fetch(`${args.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -244,8 +254,7 @@ async function callVisionWithRetry(params) {
     }
     catch (error) {
       lastError = error;
-      const status = Number(error.status);
-      const retryable = status === 429 || status >= 500 || error.name === "AbortError";
+      const retryable = isRetryableVisionError(error);
       if (!retryable || attempt === 5)
         break;
       const waitMs = 1500 * attempt * attempt;
@@ -254,6 +263,16 @@ async function callVisionWithRetry(params) {
     }
   }
   throw lastError;
+}
+
+function isRetryableVisionError(error) {
+  const status = Number(error.status);
+  const code = error?.cause?.code || error?.code;
+  return status === 429
+    || status >= 500
+    || error?.name === "AbortError"
+    || ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN", "UND_ERR_SOCKET"].includes(code)
+    || String(error?.message ?? "").includes("fetch failed");
 }
 
 function normalizeGroups(payload, items, assetKind) {
@@ -314,6 +333,8 @@ async function listJobs(finalRoot, args) {
       if (!await pathExists(manifestPath))
         continue;
       const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+      if (!args.includeApproved && isProtectedNamedAvatarManifest(manifest, role))
+        continue;
       jobs.push({
         assetKind,
         dir,

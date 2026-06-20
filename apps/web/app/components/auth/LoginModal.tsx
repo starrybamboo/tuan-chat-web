@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import {
   requestForgotPasswordByEmail,
   sendEmailVerificationCode,
@@ -8,6 +9,7 @@ import {
 } from "@/utils/auth/accountSecurityApi";
 import { checkAuthStatus, getAuthStatusQueryKey, loginUser, logoutUser, registerUser } from "@/utils/auth/authapi";
 import { appendPathQuery } from "@/utils/pathQuery";
+
 import { AlertMessage } from "./AlertMessage";
 import { runAuthSuccessFlow } from "./authSuccessFlow";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
@@ -20,7 +22,7 @@ import { useVerificationCodeCooldown } from "./useVerificationCodeCooldown";
 
 type AuthMode = "login" | "register" | "forgot";
 
-interface LoginModalProps {
+type LoginModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onAuthenticated?: () => void;

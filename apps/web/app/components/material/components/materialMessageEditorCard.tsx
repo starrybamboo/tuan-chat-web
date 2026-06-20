@@ -1,8 +1,11 @@
 import type { MouseEvent } from "react";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import type { MessageDraft } from "@/types/messageDraft";
+
 import { TrashIcon } from "@phosphor-icons/react";
 import { useCallback, useMemo, useRef, useState } from "react";
+
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+import type { MessageDraft } from "@/types/messageDraft";
+
 import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
 import MessageAnnotationsBar from "@/components/chat/message/annotations/messageAnnotationsBar";
 import { openMessageAnnotationPicker } from "@/components/chat/message/annotations/openMessageAnnotationPicker";
@@ -26,7 +29,7 @@ import {
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-interface MaterialMessageEditorCardProps {
+type MaterialMessageEditorCardProps = {
   message: MessageDraft;
   index: number;
   onChange: (updater: (message: MessageDraft) => MessageDraft) => void;

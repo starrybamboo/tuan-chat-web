@@ -3,10 +3,11 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
-import type { ImageCompressionPreset } from "@/utils/imgCompressUtils";
 
 import React, { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
+
+import type { ImageCompressionPreset } from "@/utils/imgCompressUtils";
 
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
@@ -32,7 +33,7 @@ function makeInitialFreeCrop(mediaWidth: number, mediaHeight: number) {
   };
 }
 
-interface ImgUploaderWithCopperProps {
+type ImgUploaderWithCopperProps = {
   setDownloadUrl?: (newUrl: string) => void | undefined;
   setOriginalDownloadUrl?: (newUrl: string) => void | undefined;
   setCopperedDownloadUrl?: (newUrl: string) => void | undefined;

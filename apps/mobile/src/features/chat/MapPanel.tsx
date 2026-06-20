@@ -6,7 +6,7 @@ import type { LayoutChangeEvent } from "react-native";
 import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@tuanchat/domain/state-event";
 import { ArrowsOutSimple, X } from "phosphor-react-native";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -275,12 +275,14 @@ function MapStatusBar({
   );
 }
 
-export function MapPanel(props: MapPanelProps) {
+function MapPanelInner(props: MapPanelProps) {
   if (props.roomStateRuntime) {
     return <MapPanelContent {...props} runtime={props.roomStateRuntime} />;
   }
   return <MapPanelWithRuntime {...props} />;
 }
+
+export const MapPanel = memo(MapPanelInner);
 
 function MapPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props }: MapPanelProps) {
   const runtime = useRoomStateRuntime({

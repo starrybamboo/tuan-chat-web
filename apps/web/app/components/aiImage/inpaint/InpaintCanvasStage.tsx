@@ -7,7 +7,7 @@ import type {
 import type { InpaintViewportTransform } from "@/components/aiImage/inpaint/inpaintViewportUtils";
 import type { InpaintDialogSource } from "@/components/aiImage/types";
 
-interface BrushCursorPoint {
+type BrushCursorPoint = {
   x: number;
   y: number;
 }
@@ -31,7 +31,7 @@ type BrushCursorOverlay = {
   } | null;
 } | null;
 
-interface InpaintCanvasStageProps {
+type InpaintCanvasStageProps = {
   canvasViewportRef: RefObject<HTMLDivElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   source: InpaintDialogSource;

@@ -6,7 +6,7 @@ import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRoleIcon, NarratorIcon } from "@/icons";
 
-interface RoomComposerHeaderProps {
+type RoomComposerHeaderProps = {
   roomId: number;
   userId: number;
   webSocketUtils: any;
@@ -22,6 +22,35 @@ interface RoomComposerHeaderProps {
   onChangeChatStatus: (status: any) => void;
   leftToolbar?: React.ReactNode;
   headerToolbar?: React.ReactNode;
+}
+
+function resolveAvatarPopoverStyle(triggerRect: DOMRect, isFullscreen: boolean): React.CSSProperties {
+  const margin = 8;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const minLeft = isFullscreen ? margin : Math.max(triggerRect.left, margin);
+  const availableWidth = Math.max(0, viewportWidth - minLeft - margin);
+  const minimumWidth = Math.min(360, viewportWidth - margin * 2);
+  const targetWidth = isFullscreen
+    ? Math.min(Math.floor(viewportWidth * 0.92), viewportWidth - margin * 2)
+    : Math.max(minimumWidth, Math.min(860, availableWidth));
+  const bottom = Math.max(margin, viewportHeight - triggerRect.top + 8);
+  const availableHeight = Math.max(0, viewportHeight - bottom - margin);
+  const targetHeight = isFullscreen
+    ? Math.min(Math.floor(viewportHeight * 0.82), availableHeight)
+    : Math.min(448, availableHeight);
+  const panelLeft = isFullscreen
+    ? (viewportWidth - targetWidth) / 2
+    : minLeft;
+  const maxLeft = Math.max(margin, viewportWidth - targetWidth - margin);
+  return {
+    left: Math.min(Math.max(panelLeft, margin), maxLeft),
+    bottom,
+    width: targetWidth,
+    height: targetHeight,
+    maxWidth: `calc(100vw - ${margin * 2}px)`,
+    maxHeight: `calc(100vh - ${margin * 2}px)`,
+  };
 }
 
 export default function RoomComposerHeader({
@@ -44,8 +73,11 @@ export default function RoomComposerHeader({
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editingName, setEditingName] = React.useState("");
   const [isAvatarPopoverOpen, setIsAvatarPopoverOpen] = React.useState(false);
+  const [isAvatarPopoverPrewarmed, setIsAvatarPopoverPrewarmed] = React.useState(false);
   const [isAvatarChooserFullscreen, setIsAvatarChooserFullscreen] = React.useState(false);
   const avatarPopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const avatarTriggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const [avatarPopoverStyle, setAvatarPopoverStyle] = React.useState<React.CSSProperties | undefined>();
   const screenSize = useScreenSize();
   const isMobile = screenSize === "sm";
   const showSelfStatus = Boolean(currentChatStatus && !isSpectator);
@@ -66,14 +98,73 @@ export default function RoomComposerHeader({
   React.useEffect(() => {
     if (isSpectator) {
       setIsAvatarPopoverOpen(false);
+      setIsAvatarPopoverPrewarmed(false);
     }
   }, [isSpectator]);
 
   React.useEffect(() => {
+    if (isSpectator || curRoleId <= 0 || isAvatarPopoverPrewarmed) {
+      return;
+    }
+
+    const prewarmAvatarPopover = () => setIsAvatarPopoverPrewarmed(true);
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(prewarmAvatarPopover, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(prewarmAvatarPopover, 800);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [curRoleId, isAvatarPopoverPrewarmed, isSpectator]);
+
+  React.useEffect(() => {
     if (!isAvatarPopoverOpen) {
       setIsAvatarChooserFullscreen(false);
+      setAvatarPopoverStyle(undefined);
     }
   }, [isAvatarPopoverOpen]);
+
+  React.useEffect(() => {
+    if (!isAvatarPopoverOpen || isMobile) {
+      setAvatarPopoverStyle(undefined);
+      return;
+    }
+    const updateAvatarPopoverStyle = () => {
+      const triggerRect = avatarTriggerRef.current?.getBoundingClientRect();
+      if (!triggerRect) {
+        return;
+      }
+      setAvatarPopoverStyle(resolveAvatarPopoverStyle(triggerRect, isAvatarChooserFullscreen));
+    };
+    updateAvatarPopoverStyle();
+    window.addEventListener("resize", updateAvatarPopoverStyle);
+    window.addEventListener("scroll", updateAvatarPopoverStyle, true);
+    return () => {
+      window.removeEventListener("resize", updateAvatarPopoverStyle);
+      window.removeEventListener("scroll", updateAvatarPopoverStyle, true);
+    };
+  }, [isAvatarChooserFullscreen, isAvatarPopoverOpen, isMobile]);
+
+  const handleAvatarChooserFullscreenChange = React.useCallback((next: boolean) => {
+    setIsAvatarChooserFullscreen(next);
+    if (isMobile) {
+      return;
+    }
+    const triggerRect = avatarTriggerRef.current?.getBoundingClientRect();
+    if (!triggerRect) {
+      return;
+    }
+    setAvatarPopoverStyle(resolveAvatarPopoverStyle(triggerRect, next));
+  }, [isMobile]);
+
+  const prewarmAvatarPopover = React.useCallback(() => {
+    if (!isSpectator) {
+      setIsAvatarPopoverPrewarmed(true);
+    }
+  }, [isSpectator]);
+
+  const shouldRenderAvatarPopover = (isAvatarPopoverOpen || isAvatarPopoverPrewarmed) && !isSpectator;
+  const isAvatarPopoverVisible = isAvatarPopoverOpen && !isSpectator;
 
   React.useEffect(() => {
     if (!isAvatarPopoverOpen) {
@@ -105,6 +196,7 @@ export default function RoomComposerHeader({
         <div className="flex items-center gap-2 min-w-0">
           <div ref={avatarPopoverRef} className="relative shrink-0">
             <button
+              ref={avatarTriggerRef}
               type="button"
               className={`
                 flex items-center justify-center leading-none
@@ -118,14 +210,26 @@ export default function RoomComposerHeader({
                 if (isSpectator) {
                   return;
                 }
-                setIsAvatarPopoverOpen((prev) => {
-                  const next = !prev;
-                  if (next && isMobile) {
-                    setIsAvatarChooserFullscreen(true);
+                setIsAvatarPopoverPrewarmed(true);
+                if (isAvatarPopoverOpen) {
+                  setIsAvatarPopoverOpen(false);
+                  return;
+                }
+                if (isMobile) {
+                  setIsAvatarChooserFullscreen(true);
+                  setAvatarPopoverStyle(undefined);
+                }
+                else {
+                  const triggerRect = avatarTriggerRef.current?.getBoundingClientRect();
+                  if (triggerRect) {
+                    setAvatarPopoverStyle(resolveAvatarPopoverStyle(triggerRect, false));
                   }
-                  return next;
-                });
+                  setIsAvatarChooserFullscreen(false);
+                }
+                setIsAvatarPopoverOpen(true);
               }}
+              onFocus={prewarmAvatarPopover}
+              onPointerEnter={prewarmAvatarPopover}
             >
               {curRoleId <= 0 && curAvatarId <= 0
                 ? (
@@ -153,27 +257,21 @@ export default function RoomComposerHeader({
                     />
                   )}
             </button>
-            {isAvatarPopoverOpen && !isSpectator && (
+            {shouldRenderAvatarPopover && (
               <div
-                className={isMobile
+                aria-hidden={!isAvatarPopoverVisible}
+                style={isAvatarPopoverVisible && !isMobile ? avatarPopoverStyle : undefined}
+                className={!isAvatarPopoverVisible
+                  ? "hidden"
+                  : isMobile
                   ? "fixed inset-x-2 top-14 bottom-2 z-80 flex items-stretch"
-                  : "absolute left-0 bottom-full mb-2 z-50 flex items-stretch"}
+                  : `fixed z-[80] flex items-stretch ${avatarPopoverStyle ? "" : "invisible"}`}
               >
                 <div
                   className={`
                     ${isMobile
                     ? "size-full"
-                    : (isAvatarChooserFullscreen
-                        ? `
-                          w-[92vw]
-                          md:w-[92vw]
-                          max-w-[92vw]
-                        `
-                        : `
-                          w-[92vw]
-                          md:w-120
-                          min-w-100 max-w-[92vw]
-                        `)
+                    : "h-full w-full"
                   }
                     rounded-box bg-base-100 border border-base-300 shadow-lg p-2
                     self-stretch flex flex-col
@@ -197,11 +295,12 @@ export default function RoomComposerHeader({
                   <div className="flex-1 min-h-0">
                     <AvatarDropdownContent
                       roleId={curRoleId}
+                      selectedAvatarId={curAvatarId > 0 ? curAvatarId : undefined}
                       onAvatarChange={setCurAvatarId}
                       onRoleChange={setCurRoleId}
                       onRequestClose={() => setIsAvatarPopoverOpen(false)}
                       defaultFullscreen={isAvatarChooserFullscreen || isMobile}
-                      onRequestFullscreen={setIsAvatarChooserFullscreen}
+                      onRequestFullscreen={handleAvatarChooserFullscreenChange}
                     />
                   </div>
                 </div>

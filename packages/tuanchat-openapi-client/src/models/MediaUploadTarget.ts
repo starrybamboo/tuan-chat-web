@@ -7,7 +7,7 @@
  */
 export type MediaUploadTarget = {
     /**
-     * 目标质量档：original、low、medium
+     * 目标质量档：original、low、medium、high
      */
     quality?: string;
     /**

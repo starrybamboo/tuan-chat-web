@@ -1,13 +1,14 @@
-import type { BatchProgress, RenderableRoom, RoomRenderState } from "./spaceWebgalRenderWindowParts";
-
 import {
   DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
   MAX_ROOM_CONTENT_ALERT_THRESHOLD,
   MIN_ROOM_CONTENT_ALERT_THRESHOLD,
 } from "@/components/chat/stores/realtimeRenderStore";
+
+import type { BatchProgress, RenderableRoom, RoomRenderState } from "./spaceWebgalRenderWindowParts";
+
 import { buildRoomStatusMeta } from "./spaceWebgalRenderWindowParts";
 
-interface SpaceWebgalRoomContentSettingsPanelProps {
+type SpaceWebgalRoomContentSettingsPanelProps = {
   roomContentAlertThreshold: number;
   roomContentAlertThresholdInput: string;
   setRoomContentAlertThreshold: (value: number) => void;
@@ -81,7 +82,7 @@ export function SpaceWebgalRoomContentSettingsPanel({
   );
 }
 
-interface SpaceWebgalBatchStatusPanelProps {
+type SpaceWebgalBatchStatusPanelProps = {
   spaceId: number;
   spaceName?: string;
   renderableRooms: RenderableRoom[];

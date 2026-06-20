@@ -1,7 +1,8 @@
 import type { MouseEvent } from "react";
+
 import { Handle, Position } from "@xyflow/react";
 
-interface WorkflowEndNodeProps {
+type WorkflowEndNodeProps = {
   data: {
     label?: string;
     endNodeId?: number;

@@ -1,7 +1,7 @@
 import AnnotationPicker from "@/components/chat/message/annotations/AnnotationPicker";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
 
-interface OpenMessageAnnotationPickerParams {
+type OpenMessageAnnotationPickerParams = {
   initialSelected?: string[];
   onChange?: (next: string[]) => void;
 }

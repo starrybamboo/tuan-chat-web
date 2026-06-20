@@ -61,6 +61,12 @@
 - 已打开页面的 Browser / Computer Use 测试，运行 `pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js`，再在目标页面执行生成脚本注入登录态。
 - `.auth/` 是本机认证缓存目录，包含敏感登录态，禁止提交。
 
+## 浏览器工具使用约束
+
+- 查代码、文件内容或目录结构时，必须使用终端工具，例如 `rg`、`Get-Content`、`ls`、`git diff`；不要用浏览器打开本地文件夹、目录索引或 `file://` 页面来阅读代码。
+- Codex Browser、DevTools、Computer Use 只用于明确的 Web 页面验证、UI 交互、网络请求、截图和运行时状态观察。
+- 如果浏览器停在本地目录索引、旧 `file://` 标签页或非目标页面，应立即切回明确的 Web 目标，例如 `http://localhost:5177/...`，不要基于目录索引继续分析代码。
+
 ## UI 与前端约束
 
 - 前端页面不要产生对功能进行叙述的文字。
@@ -83,7 +89,7 @@
 - Cloudflare Pages 部署优先使用官方 Wrangler 命令行，例如 `pnpm dlx wrangler@latest pages deploy dist --project-name <project> --branch <branch> --commit-dirty=true`；部署前可用 `pnpm dlx wrangler@latest whoami` 验证当前登录态。
 - Wrangler 4.x 不提供 DNS 记录管理子命令，也没有 DNS 写入 OAuth scope；需要新增或修改 DNS 记录时，使用带 `Zone / DNS / Edit` 与 `Zone / Zone / Read` 权限的 Cloudflare API Token 调用 Cloudflare REST API，不要误以为当前 Wrangler 登录态可以改 DNS。
 - 如果修改了 WebGAL 引擎（含 WebGAL/packages/webgal 或 WebGAL/packages/parser），需自动执行同步脚本：D:\\A_webgal\\WebGAL\\sync-terre-engine.ps1。
-- WebGAL / Terre 联动改造必须优先复用 WebGAL 原生机制，包括脚本命令、`setVar` 变量系统、资源目录、场景回放和已有 UI 渲染语义；只有原生机制无法表达需求时才允许扩展，并且扩展应保持向后兼容、可回放、可降级，不得用破坏性更新绕过原生命令或另起一套并行状态系统。
+- WebGAL / Terre 联动改造必须优先复用 WebGAL 原生机制，包括脚本命令、`setVar` 变量系统、资源目录、场景回放和已有 UI 渲染语义；只有原生机制无法表达需求时才允许扩展。WebGAL / Terre / 团剧共创联动的本地迭代不要求兼容历史版本或旧脚本语法；当新语法或新数据模型更清晰时，优先直接更新生成端、解析端和文档/测试，不为已废弃写法长期保留兼容分支。
 - WebGAL 舞台不是普通响应式页面：运行时 `#root` 固定为 2560x1440 设计稿尺寸，再由 `index.html` 根据窗口/全屏状态对整个 root 做 `transform: scale(...)`。因此 WebGAL 引擎内覆盖层、战斗地图、骰子 UI、悬浮面板等应优先使用设计稿像素或相对 WebGAL root 的百分比布局，不要把 `vw` / `vh` 当作最终视觉尺寸；否则嵌入预览与全屏会被二次缩放，出现大小跳变。
 - Terre 连接地址在所有环境统一固定为：VITE_TERRE_URL=http://localhost:3001、VITE_TERRE_WS=ws://localhost:3001/api/webgalsync；除非用户明确要求，否则禁止修改这两个变量，包括 .env.development、.env.production、.env.test 与 CI/CD 注入值。
 - 如果用户提到“团剧共创”与 WebGAL / Terre 联动、完整设置开关、角色发言聚焦、空间级 WebGAL 设置，先读 docs/reference/webgal-tuanchat-index.md。

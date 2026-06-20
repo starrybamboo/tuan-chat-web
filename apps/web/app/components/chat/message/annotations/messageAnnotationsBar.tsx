@@ -1,9 +1,10 @@
 import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
+
 import { buildAnnotationMap } from "@/components/chat/message/annotations/annotationCatalog";
 import AnnotationChip from "@/components/chat/message/annotations/annotationChip";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 
-interface MessageAnnotationsBarProps {
+type MessageAnnotationsBarProps = {
   annotations?: string[];
   canEdit?: boolean;
   onToggle?: (id: string) => void;

@@ -1,6 +1,9 @@
-import type { MessageDraft } from "@/types/messageDraft";
 import type { MaterialNode } from "@tuanchat/openapi-client/models/MaterialNode";
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
+
+import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
+
+import type { MessageDraft } from "@/types/messageDraft";
 
 import {
   getFileMessageExtra,
@@ -8,7 +11,6 @@ import {
   getSoundMessageExtra,
   getVideoMessageExtra,
 } from "@/types/messageExtra";
-import { MaterialNode as MaterialNodeModel } from "@tuanchat/openapi-client/models/MaterialNode";
 
 import { MessageType } from "../../../../api/wsModels";
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";

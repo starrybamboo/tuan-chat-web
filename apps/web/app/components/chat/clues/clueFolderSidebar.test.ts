@@ -1,3 +1,4 @@
+import { SPACE_MEMBER_TYPE } from "@tuanchat/domain/member-permissions";
 import { describe, expect, it } from "vitest";
 
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -10,6 +11,7 @@ import {
   getClueAttachmentKind,
   getReorderedCluePosition,
   hasRenderableClueImage,
+  resolveClueMessageSenderContext,
 } from "./clueFolderSidebar";
 
 function createMessage(overrides: Partial<Message>): Message {
@@ -160,5 +162,41 @@ describe("clueFolderSidebar", () => {
       scope: "private",
       spaceId: 12,
     })).toBeNull();
+  });
+
+  it("玩家创建线索时使用当前角色和立绘发言", () => {
+    expect(resolveClueMessageSenderContext({
+      currentAvatarId: 7,
+      currentRoleId: 3,
+      memberType: SPACE_MEMBER_TYPE.PLAYER,
+    })).toEqual({
+      ok: true,
+      requestContext: {
+        avatarId: 7,
+        roleId: 3,
+      },
+    });
+  });
+
+  it("玩家未选择角色时不能创建线索", () => {
+    expect(resolveClueMessageSenderContext({
+      currentAvatarId: -1,
+      currentRoleId: 0,
+      memberType: SPACE_MEMBER_TYPE.PLAYER,
+    })).toEqual({
+      ok: false,
+      message: "请先选择一个可发言角色，再创建线索",
+    });
+  });
+
+  it("主持使用旁白创建线索时不注入玩家角色", () => {
+    expect(resolveClueMessageSenderContext({
+      currentAvatarId: -1,
+      currentRoleId: -1,
+      memberType: SPACE_MEMBER_TYPE.LEADER,
+    })).toEqual({
+      ok: true,
+      requestContext: {},
+    });
   });
 });

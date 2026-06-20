@@ -1771,7 +1771,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleAvatar"
+                "$ref": "#/components/schemas/RoleAvatarRequest"
               }
             }
           },
@@ -1828,6 +1828,96 @@
         "parameters": [
           {
             "name": "avatarId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/avatar/variant": {
+      "put": {
+        "tags": [
+          "AvatarController"
+        ],
+        "summary": "更新角色立绘组",
+        "operationId": "updateRoleAvatarVariant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAvatarVariantUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultRoleAvatarVariant"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AvatarController"
+        ],
+        "summary": "创建角色立绘组",
+        "operationId": "createRoleAvatarVariant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAvatarVariantCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultRoleAvatarVariant"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AvatarController"
+        ],
+        "summary": "删除角色立绘组",
+        "operationId": "deleteRoleAvatarVariant",
+        "parameters": [
+          {
+            "name": "variantId",
             "in": "query",
             "required": true,
             "schema": {
@@ -2482,6 +2572,37 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/space/webgal/publish": {
+      "post": {
+        "tags": [
+          "webgal-publish-controller"
+        ],
+        "summary": "发起 Galgame 发布到 Cloudflare Pages",
+        "operationId": "start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebgalPublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultWebgalPublishJobStatusResponse"
                 }
               }
             }
@@ -5588,6 +5709,37 @@
         }
       }
     },
+    "/space/webgal/publish/{jobId}": {
+      "get": {
+        "tags": [
+          "webgal-publish-controller"
+        ],
+        "summary": "查询 Galgame 发布状态",
+        "operationId": "status",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultWebgalPublishJobStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/space/tutorial/bootstrap": {
       "get": {
         "tags": [
@@ -6176,6 +6328,104 @@
         }
       }
     },
+    "/media/v1/files/{shard}/{fileId}/{category}/{fileName}": {
+      "get": {
+        "tags": [
+          "MediaController"
+        ],
+        "summary": "读取媒体派生对象",
+        "operationId": "downloadVariant",
+        "parameters": [
+          {
+            "name": "shard",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/v1/files/{shard}/{fileId}/original": {
+      "get": {
+        "tags": [
+          "MediaController"
+        ],
+        "summary": "读取媒体 original 对象",
+        "operationId": "downloadOriginal",
+        "parameters": [
+          {
+            "name": "shard",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/materialPackage/detail": {
       "get": {
         "tags": [
@@ -6579,6 +6829,38 @@
         }
       }
     },
+    "/avatar/variant/list": {
+      "get": {
+        "tags": [
+          "AvatarController"
+        ],
+        "summary": "获取角色所有立绘组",
+        "operationId": "listRoleAvatarVariants",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListRoleAvatarVariant"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/avatar/trash/list": {
       "get": {
         "tags": [
@@ -6774,6 +7056,41 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role/hard": {
+      "delete": {
+        "tags": [
+          "RoleController"
+        ],
+        "summary": "根据id批量硬删除角色",
+        "operationId": "hardDeleteRole",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
             }
           }
         ],
@@ -7933,7 +8250,7 @@
           },
           "spaceId": {
             "type": "integer",
-            "description": "空间id（NPC 绑定空间；非NPC可为空）",
+            "description": "空间id（仅 NPC 绑定空间；非NPC应为空）",
             "format": "int64"
           },
           "extra": {
@@ -8634,6 +8951,13 @@
           "source": {
             "$ref": "#/components/schemas/MediaSource"
           },
+          "fileId": {
+            "type": "integer",
+            "description": "兼容旧版扁平媒体文件 ID，读取后会转换为 source",
+            "format": "int64",
+            "writeOnly": true,
+            "deprecated": true
+          },
           "size": {
             "type": "integer",
             "description": "大小（字节）",
@@ -8915,6 +9239,13 @@
           "source": {
             "$ref": "#/components/schemas/MediaSource"
           },
+          "fileId": {
+            "type": "integer",
+            "description": "兼容旧版扁平媒体文件 ID，读取后会转换为 source",
+            "format": "int64",
+            "writeOnly": true,
+            "deprecated": true
+          },
           "size": {
             "type": "integer",
             "description": "大小（字节）",
@@ -9113,6 +9444,13 @@
           "source": {
             "$ref": "#/components/schemas/MediaSource"
           },
+          "fileId": {
+            "type": "integer",
+            "description": "兼容旧版扁平媒体文件 ID，读取后会转换为 source",
+            "format": "int64",
+            "writeOnly": true,
+            "deprecated": true
+          },
           "size": {
             "type": "integer",
             "description": "大小（字节）",
@@ -9249,6 +9587,56 @@
         },
         "description": "Repository 更新请求"
       },
+      "AvatarCropContext": {
+        "type": "object",
+        "properties": {
+          "sourceSpriteFileId": {
+            "type": "integer",
+            "description": "裁剪来源立绘媒体文件 ID",
+            "format": "int64"
+          },
+          "sourceWidth": {
+            "type": "integer",
+            "description": "裁剪来源画布宽度",
+            "format": "int32"
+          },
+          "sourceHeight": {
+            "type": "integer",
+            "description": "裁剪来源画布高度",
+            "format": "int32"
+          },
+          "crop": {
+            "$ref": "#/components/schemas/CropRect"
+          }
+        },
+        "description": "头像裁剪上下文"
+      },
+      "CropRect": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "description": "裁剪区域 X 坐标",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "description": "裁剪区域 Y 坐标",
+            "format": "double"
+          },
+          "width": {
+            "type": "number",
+            "description": "裁剪区域宽度",
+            "format": "double"
+          },
+          "height": {
+            "type": "number",
+            "description": "裁剪区域高度",
+            "format": "double"
+          }
+        },
+        "description": "头像裁剪矩形"
+      },
       "RoleAvatar": {
         "type": "object",
         "properties": {
@@ -9259,20 +9647,27 @@
           },
           "avatarId": {
             "type": "integer",
-            "description": "角色id",
+            "description": "头像id",
             "format": "int64"
           },
           "avatarTitle": {
             "type": "object",
             "additionalProperties": {
-              "type": "string",
-              "description": "头像的标题"
+              "type": "string"
             },
             "description": "头像的标题"
           },
           "category": {
             "type": "string",
             "description": "头像分类"
+          },
+          "variantId": {
+            "type": "integer",
+            "description": "角色立绘组 ID；为空表示不参与合成",
+            "format": "int64"
+          },
+          "variantGroup": {
+            "$ref": "#/components/schemas/RoleAvatarVariant"
           },
           "avatarFileId": {
             "type": "integer",
@@ -9289,10 +9684,86 @@
             "description": "用户上传源图媒体文件 ID",
             "format": "int64"
           },
+          "spriteCropContext": {
+            "$ref": "#/components/schemas/SpriteCropContext"
+          },
+          "avatarMediaType": {
+            "type": "string",
+            "description": "头像媒体类型"
+          },
+          "spriteMediaType": {
+            "type": "string",
+            "description": "立绘媒体类型"
+          },
+          "originMediaType": {
+            "type": "string",
+            "description": "用户上传源图媒体类型"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "integer",
+            "description": "0代表正常，1代表删除",
+            "format": "int32"
+          },
           "spriteTransform": {
             "$ref": "#/components/schemas/SpriteTransform"
+          },
+          "avatarCropContext": {
+            "$ref": "#/components/schemas/AvatarCropContext"
+          },
+          "inheritedArchiveAvatarId": {
+            "type": "integer",
+            "description": "继承来源的归档头像ID",
+            "format": "int64"
+          },
+          "versionState": {
+            "type": "integer",
+            "description": "版本状态",
+            "format": "int32"
           }
-        }
+        },
+        "description": "角色头像差分"
+      },
+      "SpriteCropContext": {
+        "type": "object",
+        "properties": {
+          "sourceOriginFileId": {
+            "type": "integer",
+            "description": "裁剪来源原图媒体文件 ID",
+            "format": "int64"
+          },
+          "sourceWidth": {
+            "type": "integer",
+            "description": "裁剪来源原图宽度",
+            "format": "int32"
+          },
+          "sourceHeight": {
+            "type": "integer",
+            "description": "裁剪来源原图高度",
+            "format": "int32"
+          },
+          "crop": {
+            "$ref": "#/components/schemas/CropRect"
+          },
+          "outputWidth": {
+            "type": "integer",
+            "description": "输出立绘宽度",
+            "format": "int32"
+          },
+          "outputHeight": {
+            "type": "integer",
+            "description": "输出立绘高度",
+            "format": "int32"
+          }
+        },
+        "description": "立绘裁剪上下文"
       },
       "SpriteTransform": {
         "type": "object",
@@ -9346,6 +9817,204 @@
           },
           "data": {
             "$ref": "#/components/schemas/RoleAvatar"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "AvatarSlot": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "description": "槽位 X 坐标",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "description": "槽位 Y 坐标",
+            "format": "double"
+          },
+          "width": {
+            "type": "number",
+            "description": "槽位宽度",
+            "format": "double"
+          },
+          "height": {
+            "type": "number",
+            "description": "槽位高度",
+            "format": "double"
+          }
+        },
+        "description": "头像覆盖槽位"
+      },
+      "Canvas": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "description": "画布宽度",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "description": "画布高度",
+            "format": "int32"
+          }
+        },
+        "description": "合成画布"
+      },
+      "Output": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "输出格式"
+          }
+        },
+        "description": "合成输出设置"
+      },
+      "RoleAvatarVariant": {
+        "type": "object",
+        "properties": {
+          "variantId": {
+            "type": "integer",
+            "description": "立绘组 ID",
+            "format": "int64"
+          },
+          "roleId": {
+            "type": "integer",
+            "description": "角色 ID",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "立绘组展示名"
+          },
+          "baseAvatarId": {
+            "type": "integer",
+            "description": "基准立绘头像 ID",
+            "format": "int64"
+          },
+          "compositionConfig": {
+            "$ref": "#/components/schemas/RoleAvatarVariantCompositionConfig"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "角色立绘组"
+      },
+      "RoleAvatarVariantCompositionConfig": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "合成模式"
+          },
+          "canvas": {
+            "$ref": "#/components/schemas/Canvas"
+          },
+          "avatarSlot": {
+            "$ref": "#/components/schemas/AvatarSlot"
+          },
+          "spriteCrop": {
+            "$ref": "#/components/schemas/SpriteCrop"
+          },
+          "spriteTransform": {
+            "$ref": "#/components/schemas/SpriteTransform"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        },
+        "description": "角色立绘组合成配置"
+      },
+      "SpriteCrop": {
+        "type": "object",
+        "properties": {
+          "sourceOriginFileId": {
+            "type": "integer",
+            "description": "裁剪来源原图媒体文件 ID",
+            "format": "int64"
+          },
+          "sourceWidth": {
+            "type": "integer",
+            "description": "来源原图宽度",
+            "format": "int32"
+          },
+          "sourceHeight": {
+            "type": "integer",
+            "description": "来源原图高度",
+            "format": "int32"
+          },
+          "crop": {
+            "$ref": "#/components/schemas/CropRect"
+          },
+          "outputWidth": {
+            "type": "integer",
+            "description": "输出立绘宽度",
+            "format": "int32"
+          },
+          "outputHeight": {
+            "type": "integer",
+            "description": "输出立绘高度",
+            "format": "int32"
+          }
+        },
+        "description": "原图生成立绘的裁剪配置"
+      },
+      "RoleAvatarVariantUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "variantId": {
+            "type": "integer",
+            "description": "立绘组 ID",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "立绘组展示名"
+          },
+          "baseAvatarId": {
+            "type": "integer",
+            "description": "基准立绘头像 ID",
+            "format": "int64"
+          },
+          "compositionConfig": {
+            "$ref": "#/components/schemas/RoleAvatarVariantCompositionConfig"
+          }
+        },
+        "description": "更新角色立绘组请求"
+      },
+      "ApiResultRoleAvatarVariant": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RoleAvatarVariant"
           }
         },
         "description": "基础返回体"
@@ -10026,6 +10695,102 @@
           }
         },
         "description": "Space对象"
+      },
+      "WebgalPublishClientFile": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentEncoding": {
+            "type": "string"
+          }
+        }
+      },
+      "WebgalPublishClientPackage": {
+        "type": "object",
+        "properties": {
+          "entrypoint": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebgalPublishClientFile"
+            }
+          }
+        },
+        "description": "前端预生成的发布包，可选"
+      },
+      "WebgalPublishRequest": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "commitId": {
+            "type": "integer",
+            "description": "归档 commitId，可选",
+            "format": "int64"
+          },
+          "packageData": {
+            "$ref": "#/components/schemas/WebgalPublishClientPackage"
+          }
+        }
+      },
+      "ApiResultWebgalPublishJobStatusResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WebgalPublishJobStatusResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "WebgalPublishJobStatusResponse": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "deploymentUrl": {
+            "type": "string"
+          },
+          "branchUrl": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          }
+        },
+        "description": "返回对象"
       },
       "ApiResultTutorialPullResponse": {
         "required": [
@@ -10939,7 +11704,7 @@
           },
           "spaceId": {
             "type": "integer",
-            "description": "空间id（NPC 绑定空间；非NPC可为空）",
+            "description": "空间id（仅 NPC 绑定空间；非NPC应为空）",
             "format": "int64"
           },
           "extra": {
@@ -11085,7 +11850,7 @@
           },
           "spaceId": {
             "type": "integer",
-            "description": "空间id（NPC 绑定空间）",
+            "description": "空间id（仅 NPC 绑定空间；普通角色/骰娘应为空）",
             "format": "int64"
           },
           "state": {
@@ -11129,13 +11894,13 @@
             "type": "string",
             "format": "date-time"
           },
-          "diceMaiden": {
-            "type": "boolean"
-          },
           "npc": {
             "type": "boolean"
           },
           "role": {
+            "type": "boolean"
+          },
+          "diceMaiden": {
             "type": "boolean"
           }
         },
@@ -12146,6 +12911,9 @@
               "description": "客户端解析出的媒体元数据，例如 width/height/durationMs"
             },
             "description": "客户端解析出的媒体元数据，例如 width/height/durationMs"
+          },
+          "chatroomScene": {
+            "type": "boolean"
           }
         },
         "description": "媒体单例上传准备请求"
@@ -12215,7 +12983,7 @@
         "properties": {
           "quality": {
             "type": "string",
-            "description": "目标质量档：original、low、medium"
+            "description": "目标质量档：original、low、medium、high"
           },
           "objectKey": {
             "type": "string",
@@ -13697,6 +14465,24 @@
           }
         }
       },
+      "RoomMessageMutationMeta": {
+        "type": "object",
+        "properties": {
+          "sourceSurface": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "来源入口：chat_input/message_editor/doc_view/import/ai"
+          },
+          "operationCause": {
+            "maxLength": 32,
+            "minLength": 0,
+            "type": "string",
+            "description": "操作原因：normal/undo/redo"
+          }
+        },
+        "description": "房间消息变更来源元数据"
+      },
       "RoomMessageStreamItem": {
         "type": "object",
         "properties": {
@@ -14110,9 +14896,43 @@
           "category": {
             "type": "string",
             "description": "头像分类"
+          },
+          "variantId": {
+            "type": "integer",
+            "description": "角色立绘组 ID；为空表示不参与合成",
+            "format": "int64"
+          },
+          "spriteCropContext": {
+            "$ref": "#/components/schemas/SpriteCropContext"
+          },
+          "avatarCropContext": {
+            "$ref": "#/components/schemas/AvatarCropContext"
           }
         },
         "description": "创建角色头像的请求"
+      },
+      "RoleAvatarVariantCreateRequest": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "description": "角色 ID",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "立绘组展示名"
+          },
+          "baseAvatarId": {
+            "type": "integer",
+            "description": "基准立绘头像 ID",
+            "format": "int64"
+          },
+          "compositionConfig": {
+            "$ref": "#/components/schemas/RoleAvatarVariantCompositionConfig"
+          }
+        },
+        "description": "创建角色立绘组请求"
       },
       "OpenAiChatCompletionRequest": {
         "required": [
@@ -14123,7 +14943,7 @@
         "properties": {
           "model": {
             "type": "string",
-            "description": "模型别名（支持 qwen-flash/qwen-max/gpt-4o-mini/gpt-4o/gpt-5/gpt-5-mini/gpt-5-codex/gpt-5-codex-mini/gpt-5.1/gpt-5.1-codex/gpt-5.1-codex-max/gpt-5.1-codex-mini/gpt-5.2/gpt-5.2-codex/gpt-5.2-high/gpt-5.2-low/gpt-5.2-medium/gpt-5.2-xhigh/gpt-5.3-codex/gpt-5.3-codex-high/gpt-5.3-codex-low/gpt-5.3-codex-medium/gpt-5.3-codex-xhigh）",
+            "description": "模型别名（支持 qwen-flash/qwen-max/gpt-4o-mini/gpt-4o/gpt-5/gpt-5-mini/gpt-5-codex/gpt-5-codex-mini/gpt-5.1/gpt-5.1-codex/gpt-5.1-codex-max/gpt-5.1-codex-mini/gpt-5.2/gpt-5.2-codex/gpt-5.2-high/gpt-5.2-low/gpt-5.2-medium/gpt-5.2-xhigh/gpt-5.3-codex/gpt-5.3-codex-high/gpt-5.3-codex-low/gpt-5.3-codex-medium/gpt-5.3-codex-xhigh/gpt-5.4-mini）",
             "example": "qwen-flash"
           },
           "scene": {
@@ -14621,6 +15441,9 @@
           "updateTime": {
             "type": "string",
             "format": "date-time"
+          },
+          "leader": {
+            "type": "boolean"
           }
         },
         "description": "SpaceMember对象"
@@ -15163,6 +15986,35 @@
         },
         "description": "仓库提交链返回"
       },
+      "ApiResultListRoleAvatarVariant": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/RoleAvatarVariant"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
       "ApiResultListRoleAvatar": {
         "required": [
           "success"
@@ -15437,21 +16289,61 @@
           }
         }
       },
-      "RoomMessageMutationMeta": {
+      "RoleAvatarRequest": {
         "type": "object",
         "properties": {
-          "sourceSurface": {
-            "type": "string",
-            "description": "来源入口：chat_input/message_editor/doc_view/import/ai",
-            "maxLength": 32
+          "roleId": {
+            "type": "integer",
+            "description": "角色id",
+            "format": "int64"
           },
-          "operationCause": {
+          "avatarId": {
+            "type": "integer",
+            "description": "角色id",
+            "format": "int64"
+          },
+          "avatarTitle": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "头像的标题"
+            },
+            "description": "头像的标题"
+          },
+          "category": {
             "type": "string",
-            "description": "操作原因：normal/undo/redo",
-            "maxLength": 32
+            "description": "头像分类"
+          },
+          "variantId": {
+            "type": "integer",
+            "description": "角色立绘组 ID；为空表示不参与合成",
+            "format": "int64"
+          },
+          "avatarFileId": {
+            "type": "integer",
+            "description": "头像媒体文件 ID",
+            "format": "int64"
+          },
+          "spriteFileId": {
+            "type": "integer",
+            "description": "立绘媒体文件 ID",
+            "format": "int64"
+          },
+          "originFileId": {
+            "type": "integer",
+            "description": "用户上传源图媒体文件 ID",
+            "format": "int64"
+          },
+          "spriteCropContext": {
+            "$ref": "#/components/schemas/SpriteCropContext"
+          },
+          "spriteTransform": {
+            "$ref": "#/components/schemas/SpriteTransform"
+          },
+          "avatarCropContext": {
+            "$ref": "#/components/schemas/AvatarCropContext"
           }
-        },
-        "description": "房间消息变更来源元数据"
+        }
       }
     },
     "securitySchemes": {

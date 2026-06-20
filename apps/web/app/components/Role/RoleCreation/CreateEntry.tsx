@@ -3,7 +3,7 @@ import { useRouter } from "@tanstack/react-router";
 
 type EntryCardAccent = "primary" | "success" | "info";
 
-interface EntryCardConfig {
+type EntryCardConfig = {
   title: string;
   description: string;
   to: string;
@@ -11,9 +11,9 @@ interface EntryCardConfig {
   accent: EntryCardAccent;
 }
 
-interface CreateEntryCardProps extends EntryCardConfig {
+type CreateEntryCardProps = {
   onClick: () => void;
-}
+} & EntryCardConfig
 
 const cardClassName = "bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 transition-all duration-200 hover:scale-105 hover:shadow-lg h-auto md:h-100 cursor-pointer flex flex-col items-stretch justify-start text-center";
 

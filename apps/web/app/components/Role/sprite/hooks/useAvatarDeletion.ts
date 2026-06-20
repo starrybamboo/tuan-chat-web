@@ -11,7 +11,12 @@ import { getEffectiveAvatarUrl } from "../utils";
 
 type UseAvatarDeletionProps = {
   role: Role | undefined;
+  /** 当前可见或当前操作范围内的头像列表 */
   avatars: RoleAvatar[];
+  /** 角色完整头像列表，用于判断是否为最后一个头像和寻找替代头像 */
+  allAvatars?: RoleAvatar[];
+  /** 角色头像总数，未传时使用 allAvatars 或 avatars 长度 */
+  totalAvatarsCount?: number;
   selectedAvatarId: number;
   onAvatarChange?: (avatarUrl: string, avatarId: number) => void;
   onAvatarSelect?: (avatarId: number) => void;
@@ -29,6 +34,8 @@ type UseAvatarDeletionProps = {
 export function useAvatarDeletion({
   role,
   avatars,
+  allAvatars,
+  totalAvatarsCount,
   selectedAvatarId,
   onAvatarChange,
   onAvatarSelect,
@@ -40,29 +47,31 @@ export function useAvatarDeletion({
 
   const deleteAvatarMutation = useDeleteRoleAvatarWithOptimisticMutation(role?.id);
   const batchDeleteMutation = useBatchDeleteRoleAvatarsWithOptimisticMutation(role?.id);
+  const avatarPool = allAvatars ?? avatars;
+  const effectiveTotalAvatarsCount = totalAvatarsCount ?? avatarPool.length;
 
   /**
    * Find a replacement avatar when deleting the current one
    * Priority: previous avatar > next avatar
    */
   const findReplacementAvatar = useCallback((avatarIdToDelete: number): RoleAvatar | null => {
-    const deleteIndex = avatars.findIndex(a => a.avatarId === avatarIdToDelete);
-    if (deleteIndex === -1 || avatars.length <= 1) {
+    const deleteIndex = avatarPool.findIndex(a => a.avatarId === avatarIdToDelete);
+    if (deleteIndex === -1 || avatarPool.length <= 1) {
       return null;
     }
 
     // Try to get the previous avatar first
     if (deleteIndex > 0) {
-      return avatars[deleteIndex - 1];
+      return avatarPool[deleteIndex - 1];
     }
 
     // Otherwise get the next avatar
-    if (deleteIndex < avatars.length - 1) {
-      return avatars[deleteIndex + 1];
+    if (deleteIndex < avatarPool.length - 1) {
+      return avatarPool[deleteIndex + 1];
     }
 
     return null;
-  }, [avatars]);
+  }, [avatarPool]);
 
   /**
    * Handle avatar deletion with replacement selection
@@ -82,12 +91,12 @@ export function useAvatarDeletion({
     }
 
     // Prevent deleting the last avatar
-    if (avatars.length <= 1) {
+    if (effectiveTotalAvatarsCount <= 1) {
       console.warn("无法删除最后一个头像");
       return;
     }
 
-    const avatarToDelete = avatars.find(a => a.avatarId === avatarId);
+    const avatarToDelete = avatarPool.find(a => a.avatarId === avatarId);
     if (!avatarToDelete) {
       console.error("未找到要删除的头像");
       return;
@@ -137,7 +146,8 @@ export function useAvatarDeletion({
     }
   }, [
     role,
-    avatars,
+    avatarPool,
+    effectiveTotalAvatarsCount,
     selectedAvatarId,
     isDeleting,
     findReplacementAvatar,
@@ -160,7 +170,7 @@ export function useAvatarDeletion({
     }
 
     // Prevent deleting all avatars
-    if (avatarIds.length >= avatars.length) {
+    if (avatarIds.length >= effectiveTotalAvatarsCount) {
       console.warn("无法删除所有头像，至少需要保留一个");
       throw new Error("无法删除所有头像，至少需要保留一个");
     }
@@ -171,7 +181,7 @@ export function useAvatarDeletion({
       throw new Error("删除操作正在进行中，请稍候");
     }
 
-    const avatarsToDelete = avatars.filter(avatar =>
+    const avatarsToDelete = avatarPool.filter(avatar =>
       avatar.avatarId && avatarIds.includes(avatar.avatarId),
     );
 
@@ -180,7 +190,7 @@ export function useAvatarDeletion({
     try {
       // Check if current avatar is in the deletion list
       const roleAvatarByUrl = role.avatar && (!role.avatarId || role.avatarId === 0)
-        ? avatars.find(a => getEffectiveAvatarUrl(a) === role.avatar)
+        ? avatarPool.find(a => getEffectiveAvatarUrl(a) === role.avatar)
         : null;
       const isDeletingCurrentAvatar = avatarIds.includes(role.avatarId)
         || avatarIds.includes(selectedAvatarId)
@@ -189,7 +199,7 @@ export function useAvatarDeletion({
       // Step 1: If deleting current avatar, select replacement first
       if (isDeletingCurrentAvatar) {
         // Find first avatar not in deletion list
-        const replacementAvatar = avatars.find(
+        const replacementAvatar = avatarPool.find(
           a => a.avatarId && !avatarIds.includes(a.avatarId),
         );
 
@@ -230,7 +240,8 @@ export function useAvatarDeletion({
     }
   }, [
     role,
-    avatars,
+    avatarPool,
+    effectiveTotalAvatarsCount,
     selectedAvatarId,
     isDeleting,
     onAvatarChange,
@@ -244,6 +255,6 @@ export function useAvatarDeletion({
     handleDeleteAvatar,
     handleBatchDelete,
     isDeleting,
-    canDelete: avatars.length > 1,
+    canDelete: effectiveTotalAvatarsCount > 1,
   };
 }

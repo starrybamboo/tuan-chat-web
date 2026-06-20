@@ -1,14 +1,15 @@
-import type { MessageEditorInsertableBlockKind } from "../model/messageEditorTransforms";
 import { useEffect, useRef } from "react";
 
-export interface MessageEditorSlashMenuItem {
+import type { MessageEditorInsertableBlockKind } from "../model/messageEditorTransforms";
+
+export type MessageEditorSlashMenuItem = {
   description: string;
   keyword: string;
   kind: MessageEditorInsertableBlockKind;
   label: string;
 }
 
-interface MessageEditorSlashMenuProps {
+type MessageEditorSlashMenuProps = {
   items: MessageEditorSlashMenuItem[];
   onSelect: (item: MessageEditorSlashMenuItem) => void;
   selectedIndex: number;

@@ -10,7 +10,7 @@ function normalizeSceneDefaultDescription(value?: string): string {
   return normalized;
 }
 
-interface WorkflowSceneDescriptionEditorProps {
+type WorkflowSceneDescriptionEditorProps = {
   roomName: string;
   roomAvatar?: string;
   initialDescription?: string;

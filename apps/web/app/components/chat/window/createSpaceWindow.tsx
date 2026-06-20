@@ -1,15 +1,10 @@
 import type { ReactNode } from "react";
-import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
-import type { InitialImportChatMessage } from "./initialChatImport";
+
 import { ChatCircleText, Trash } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { fetchUserRoomsWithCache, useCreateSpaceMutation, useSetSpaceExtraMutation } from "api/hooks/chatQueryHooks";
-import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
-import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useGetUserInfoQuery } from "api/hooks/UserHooks";
-import { useGetUserRolesQuery } from "api/queryHooks";
 import { useEffect, useId, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import checkBack from "@/components/common/autoContrastText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { useResolvedRoleAvatarUrl } from "@/components/common/roleAccess.shared";
@@ -19,15 +14,24 @@ import { useGlobalUserId } from "@/components/globalContextProvider";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { DiceFiveIcon, PlusIcon, WebgalIcon } from "@/icons";
 import { imageLowUrl } from "@/utils/mediaUrl";
+import { fetchUserRoomsWithCache, useCreateSpaceMutation, useSetSpaceExtraMutation } from "api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
+import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
+import { useGetUserInfoQuery } from "api/hooks/UserHooks";
+import { useGetUserRolesQuery } from "api/queryHooks";
+
+import type { ResolvedImportChatMessage } from "./importChatMessagesWindow";
+import type { InitialImportChatMessage } from "./initialChatImport";
+
 import ImportChatMessagesWindow from "./importChatMessagesWindow";
 import { sendInitialImportChatMessages } from "./initialChatImport";
 
-interface CreateSpaceWindowProps {
+type CreateSpaceWindowProps = {
   onCancel?: () => void;
   onSuccess?: () => void;
 }
 
-interface WebgalInitialSettings {
+type WebgalInitialSettings = {
   autoFigureEnabled: boolean;
   coverFromRoomAvatarEnabled: boolean;
   startupLogoFromRoomAvatarEnabled: boolean;

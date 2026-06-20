@@ -1,3 +1,5 @@
+import { evaluateWwDicePoolExpression } from "@tuanchat/domain/dicer/wwExpression";
+
 import { CommandExecutor } from "@/components/common/dicer/cmd";
 import UTILS from "@/components/common/dicer/utils/utils";
 
@@ -145,26 +147,8 @@ export function parseWwCommandArgs(args: string[], getValue?: (key: string) => n
           return String(val);
         });
 
-        try {
-          // 使用 Function 构造函数进行简单计算 (相对安全，因为只包含数字和运算符)
-          // 但要防范恶意代码。上面正则只允许了特定的字符？
-          // normalized 这里可能包含 ( ) . 等。
-          // 暂时只支持 + - * / ( )
-          // 简单的 sanitize
-          if (/^[\d+\-*/().\s]+$/.test(resolvedExpr)) {
-            // eslint-disable-next-line no-new-func
-            diceCount = new Function(`return ${resolvedExpr}`)();
-            diceCount = Math.floor(diceCount); // 取整
-          }
-          else {
-            // 解析失败或含有非法字符，默认 1
-            // console.warn("Illegal definition in expression", resolvedExpr);
-            diceCount = 1;
-          }
-        }
-        catch {
-          diceCount = 1;
-        }
+        const evaluatedDiceCount = evaluateWwDicePoolExpression(resolvedExpr);
+        diceCount = evaluatedDiceCount == null ? 1 : Math.floor(evaluatedDiceCount);
       }
       else {
         // 没有 getValue 不支持表达式

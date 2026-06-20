@@ -1,11 +1,14 @@
 import type { Rule } from "@tuanchat/openapi-client/models/Rule";
+
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { ApiError } from "@tuanchat/openapi-client/core/ApiError";
-import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { EditIcon, SaveIcon } from "@/icons";
+import { useAllRuleListQuery, useCreateRuleMutation, useGetRuleDetailQuery, useUpdateRuleMutation } from "api/hooks/ruleQueryHooks";
+
 import Section from "../Editors/Section";
 import RuleCloneModal from "./RuleCloneModal";
 import RuleExpansionModule from "./RuleExpansionModule";
@@ -13,7 +16,7 @@ import RuleTextInfoEditor from "./RuleTextInfoEditor";
 
 type RuleEditorMode = "create" | "edit";
 
-interface RuleEditorProps {
+type RuleEditorProps = {
   mode?: RuleEditorMode;
   isQueryLoading?: boolean;
   ruleId?: number;
@@ -21,7 +24,7 @@ interface RuleEditorProps {
   onBack?: () => void;
 }
 
-interface RuleCreatePrefillState {
+type RuleCreatePrefillState = {
   prefillRuleName?: string;
   prefillRuleDescription?: string;
   prefillTemplateRuleId?: number;

@@ -1,0 +1,83 @@
+{
+  "createdAt": "2026-06-08T16:26:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第二十二批：复查 6 张和 5 张主图目录，本批无新增折叠，只记录逐角色结论和异常。",
+  "groups": [],
+  "reviewNotes": [
+    {
+      "role": "路人妖精",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；不同发色/外观的路人妖精不跨外观合并，粉发半睁笑按阴影和眼神差异保留。"
+    },
+    {
+      "role": "秦心",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；每张面具不同，不能互折。"
+    },
+    {
+      "role": "小铃",
+      "assetKind": "character-avatar-bust",
+      "note": "复看后无新增折叠；前面用户指出的重复已处理，剩余普通微笑、惊讶小口、半睁阴影笑、闭眼平静、睁眼无口平静、闭眼开心张口笑保留。"
+    },
+    {
+      "role": "依神女苑",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼不悦/闭眼平静、半睁不满/半睁冷淡、开心和惊讶状态保留。"
+    },
+    {
+      "role": "愚地独步",
+      "assetKind": "manga-avatar",
+      "note": "未发现高置信同语义重复；正面严肃、惊讶张口、斜笑、大笑、难过、怒吼是不同漫画分镜状态。"
+    },
+    {
+      "role": "八坂神奈子",
+      "assetKind": "character-avatar-bust",
+      "note": "图板显示疑似不是八坂神奈子外观的紫发帽饰头像；本轮不在神奈子内部折叠，记录为角色归属异常待后续单独归类。"
+    },
+    {
+      "role": "多多良小伞",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；担心小口、惊讶张口、闭眼小口、闭眼平静和开心张口保留。"
+    },
+    {
+      "role": "魂魄妖梦",
+      "assetKind": "character-avatar-chat",
+      "note": "未发现高置信同语义重复；上下双头像组合中的表情差异保留。"
+    },
+    {
+      "role": "九十九八桥",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；半睁微笑、担心小口、闭眼小口、开心张口和闭眼开心张口保留。"
+    },
+    {
+      "role": "九十九弁弁",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；半睁微笑、闭眼小口、惊讶张口、睁眼微笑和闭眼开心张口保留。"
+    },
+    {
+      "role": "铃瑚",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；存在多种外观/全身构图，不能只因角色名相同合并。"
+    },
+    {
+      "role": "米斯蒂娅·萝蕾拉",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；惊讶张口、阴影难过、开心张口、半睁微笑和闭眼平静保留。"
+    },
+    {
+      "role": "物部布都",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；担心小口和惊讶张口强度不同，眨眼笑、半睁笑、侧视平静也保留。"
+    },
+    {
+      "role": "西行寺幽幽子",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；半睁微笑与侧视半睁微笑/阴影感不同，开心张口、半睁不满嘟嘴和平静微笑保留。"
+    },
+    {
+      "role": "星熊勇仪",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼平静、睁眼平静微笑、半睁微笑、闭眼开心张口和闭眼小口保留。"
+    }
+  ]
+}

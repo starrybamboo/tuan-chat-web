@@ -1,4 +1,5 @@
 import { ChatsCircleIcon, CompassIcon } from "@phosphor-icons/react";
+
 import RepositoryHome from "./home/RepositoryHome";
 
 export default function RepositoryWithTabs() {

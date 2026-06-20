@@ -1,4 +1,4 @@
-interface ToolButton {
+type ToolButton = {
   id: string;
   label: string;
   icon: React.ReactNode;
@@ -7,7 +7,7 @@ interface ToolButton {
   variant?: "primary" | "secondary";
 }
 
-interface CreatePageHeaderProps {
+type CreatePageHeaderProps = {
   title: string;
   description: string;
   onBack?: () => void;

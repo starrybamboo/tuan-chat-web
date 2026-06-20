@@ -1,14 +1,13 @@
 import type { ImgHTMLAttributes, Ref, SyntheticEvent } from "react";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   logPersistentMediaImageDebug,
-  rememberPersistentMediaImageDerivedAvailable,
   rememberPersistentMediaImageDerivedMissing,
   resetPersistentMediaImageCacheForTests,
   resolveMediaImageOriginalFallbackSrc,
   resolvePersistentMediaImageSrcSync,
-  startPersistentMediaImageDerivativeProbe,
 } from "./mediaPersistentImageCache";
 
 type MediaImageProps = ImgHTMLAttributes<HTMLImageElement> & {
@@ -31,7 +30,6 @@ export function resolveMediaOriginalFallbackSrc(src: string | null | undefined):
 function loadImageOnce(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = src;
@@ -47,7 +45,6 @@ export async function loadMediaImageWithOriginalFallback(src: string | null | un
   const preferredSrc = resolvePersistentMediaImageSrcSync(normalized) || normalized;
   try {
     const image = await loadImageOnce(preferredSrc);
-    rememberPersistentMediaImageDerivedAvailable(preferredSrc);
     return image;
   }
   catch (error) {
@@ -83,7 +80,6 @@ export function MediaImage({
       resolvedDisplaySrc,
     });
     setCurrentSrc(resolvedDisplaySrc);
-    startPersistentMediaImageDerivativeProbe(resolvedDisplaySrc);
   }, [normalizedSrc, normalizedFallbackSrc]);
 
   const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
@@ -93,7 +89,6 @@ export function MediaImage({
       renderedSrc: currentSrc,
       loadedBrowserSrc: loadedSrc,
     });
-    rememberPersistentMediaImageDerivedAvailable(loadedSrc);
     externalOnLoad?.(event);
   };
 

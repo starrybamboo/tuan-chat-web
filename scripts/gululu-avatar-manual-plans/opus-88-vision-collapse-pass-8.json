@@ -1,0 +1,99 @@
+{
+  "createdAt": "2026-06-08T01:24:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第八批：处理剩余 hidden=0 的 8-10 张目录。只折叠高置信同语义状态；脸红、阴影、困倦、闭眼/睁眼、嘴型强弱差异保留。",
+  "groups": [
+    {
+      "role": "蕾米莉亚",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I003", "I010"],
+      "reason": "同为闭眼开心张口，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "蕾米莉亚",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I004"],
+      "reason": "同为半睁微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "藤原妹红",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I010"],
+      "reason": "同为脸红半睁张口，脸红、眼型、嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "云居一轮",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I007"],
+      "reason": "同为阴影坏笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "云居一轮",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I006"],
+      "reason": "同为侧头平静微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "小铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I005"],
+      "reason": "同为睁眼微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "小铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I007"],
+      "reason": "同为惊讶张口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "稗田阿求",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I002", "I003"],
+      "reason": "同为平静睁眼，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "稗田阿求",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I009"],
+      "reason": "同为闭眼大笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "克劳恩皮丝",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I004"],
+      "reason": "同为惊讶张口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "哆来咪",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I006"],
+      "reason": "同为惊讶小口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "宇佐见堇子",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I006"],
+      "reason": "同为惊讶小口，眼型嘴型和情绪一致，仅裁切差异。"
+    }
+  ],
+  "stillDeferred": [
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I018",
+      "note": "用户指出“这个是”但未补全目标角色，暂不迁移。"
+    }
+  ]
+}

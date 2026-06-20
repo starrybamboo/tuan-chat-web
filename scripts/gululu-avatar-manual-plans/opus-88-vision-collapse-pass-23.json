@@ -1,0 +1,88 @@
+{
+  "createdAt": "2026-06-08T16:42:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第二十三批：复查 4 张及以下主图目录，本批无新增折叠；1 张目录按无内部重复记录为已覆盖。",
+  "groups": [],
+  "reviewNotes": [
+    {
+      "role": "本部以藏",
+      "assetKind": "manga-avatar",
+      "note": "未发现高置信同语义重复；侧脸张口、正面疲惫、坐姿全身和嘴部特写是不同漫画分镜。"
+    },
+    {
+      "role": "皮克",
+      "assetKind": "manga-avatar",
+      "note": "未发现高置信同语义重复；暴怒咬牙、半睁笑、惊讶和震惊张口是不同漫画分镜状态。"
+    },
+    {
+      "role": "八云蓝",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼平静、闭眼微笑和半睁微笑按嘴型/眼型差异保留。"
+    },
+    {
+      "role": "大妖精",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；泪目低落、惊讶小口和普通微笑保留。"
+    },
+    {
+      "role": "魂魄妖梦",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；普通微笑、担心张口和阴影震惊保留。"
+    },
+    {
+      "role": "灵乌路空",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；惊讶小口、闭眼开心张口和平静闭口保留。"
+    },
+    {
+      "role": "梦灵梦",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼大笑、闭眼低落冒汗和平静正面保留。"
+    },
+    {
+      "role": "清兰",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；紧张、惊讶张口和平静闭口保留。"
+    },
+    {
+      "role": "若鹭姬",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；睁眼微笑、闭眼平静和闭眼开心张口保留。"
+    },
+    {
+      "role": "霍青娥",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼开心张口和半睁微笑保留。"
+    },
+    {
+      "role": "九十九八桥",
+      "assetKind": "character-avatar-chat",
+      "note": "I002 看起来不是八桥外观，疑似角色归属异常；本轮不在八桥 chat 内折叠。"
+    },
+    {
+      "role": "克巳",
+      "assetKind": "manga-avatar",
+      "note": "未发现高置信同语义重复；瞪眼张口和惊讶张口是不同漫画状态。"
+    },
+    {
+      "role": "骊驹早鬼",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼平静和睁眼怒吼保留。"
+    },
+    {
+      "role": "犬走椛",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；睁眼自信和睁眼不满张口保留。"
+    },
+    {
+      "role": "响子",
+      "assetKind": "character-avatar-bust",
+      "note": "未发现高置信同语义重复；闭眼开心张口和半睁微笑保留。"
+    },
+    {
+      "role": "single-item-directories",
+      "assetKind": "mixed",
+      "note": "以下单张目录无内部重复空间，按已覆盖记录：橙/character-avatar-bust、花山薰/manga-avatar、莉莉白/character-avatar-bust、莉莉卡/character-avatar-bust、露娜萨/character-avatar-bust、梅露兰/character-avatar-bust、魅魔/character-avatar-bust、梦铃仙/character-avatar-bust、帕秋莉/character-avatar-bust、普莉兹姆利巴三姐妹/character-avatar-bust、四季映姬/character-avatar-bust、小恶魔/character-avatar-bust、小恶魔/character-avatar-chat、云山/character-avatar-bust、诹访子/character-avatar-bust。"
+    }
+  ]
+}

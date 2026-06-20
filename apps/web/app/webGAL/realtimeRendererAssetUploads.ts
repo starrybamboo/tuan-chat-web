@@ -6,6 +6,13 @@ import type { RoleAvatar } from "../../api";
 
 import { getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";
+import {
+  buildOrdinaryFigureRenderAsset,
+  buildWebgalFigureRenderAsset,
+  getAvatarCropContextSignature,
+  resolveFigureCompositionCandidate,
+} from "./webgalFigureComposition";
+import type { FigureCompositionCandidate, WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 export type RealtimeAssetUploadContext = {
   gameName: string;
@@ -19,7 +26,10 @@ export type RealtimeAssetUploadContext = {
   uploadedSoundEffectsMap: Map<string, string>;
 };
 
-export type RealtimeRoleAvatarSource = Pick<RoleAvatar, "avatarId" | "roleId"> & RoleAvatarMediaSource;
+export type RealtimeRoleAvatarSource = Pick<
+  RoleAvatar,
+  "avatarId" | "roleId" | "variantId" | "variantGroup"
+> & RoleAvatarMediaSource;
 
 export function getRoleFigureDirName(roleId: number): string {
   const normalizedRoleId = Number.isFinite(roleId) && roleId > 0 ? Math.floor(roleId) : 0;
@@ -45,6 +55,14 @@ function resolveRoleSpriteUrls(avatar: RealtimeRoleAvatarSource | undefined): st
     media.sprite.url,
     media.sprite.originalUrl,
     media.origin.url,
+  ].map(url => url.trim()).filter(Boolean)));
+}
+
+function resolveRoleAvatarLayerUrls(avatar: RealtimeRoleAvatarSource | undefined): string[] {
+  const media = resolveRoleAvatarMedia(avatar);
+  return Array.from(new Set([
+    media.avatar.url,
+    media.avatar.originalUrl,
   ].map(url => url.trim()).filter(Boolean)));
 }
 
@@ -77,6 +95,78 @@ export async function uploadSpriteAsset(
     console.error("上传立绘失败:", error);
     return null;
   }
+}
+
+async function uploadFigureSourceAsset(
+  context: RealtimeAssetUploadContext,
+  roleId: number,
+  cacheKey: string,
+  sourceUrl: string,
+  targetStem: string,
+): Promise<string | null> {
+  if (context.uploadedSpritesMap.has(cacheKey)) {
+    return context.uploadedSpritesMap.get(cacheKey) || null;
+  }
+
+  try {
+    const roleFigureDir = getRoleFigureDirName(roleId);
+    const path = `games/${context.gameName}/game/figure/${roleFigureDir}/`;
+    const fileExtension = getFileExtensionFromUrl(sourceUrl, "webp");
+    const fileName = await uploadFile(sourceUrl, path, `${targetStem}.${fileExtension}`);
+    const relativePath = `${roleFigureDir}/${fileName}`;
+    context.uploadedSpritesMap.set(cacheKey, relativePath);
+    return relativePath;
+  }
+  catch (error) {
+    console.error("上传合成立绘素材失败:", error);
+    return null;
+  }
+}
+
+async function uploadFirstAvailableFigureSource(
+  context: RealtimeAssetUploadContext,
+  roleId: number,
+  cacheKey: string,
+  sourceUrls: string[],
+  targetStem: string,
+): Promise<string | null> {
+  for (const sourceUrl of sourceUrls) {
+    const uploaded = await uploadFigureSourceAsset(context, roleId, cacheKey, sourceUrl, targetStem);
+    if (uploaded) {
+      return uploaded;
+    }
+  }
+  return null;
+}
+
+function buildCompositionBaseCacheKey(candidate: FigureCompositionCandidate): string {
+  return [
+    "compose_base",
+    candidate.roleId,
+    candidate.variantId,
+    candidate.baseAvatarId,
+    candidate.baseSpriteFileId,
+  ].join("_");
+}
+
+function buildCompositionAvatarCacheKey(candidate: FigureCompositionCandidate): string {
+  return [
+    "compose_avatar",
+    candidate.roleId,
+    candidate.variantId,
+    candidate.avatarId,
+    candidate.avatarFileId,
+    hashString(getAvatarCropContextSignature(candidate.cropContext)),
+  ].join("_");
+}
+
+function buildCompositionBaseTargetStem(candidate: FigureCompositionCandidate): string {
+  return `base_${candidate.baseAvatarId}_${candidate.baseSpriteFileId}`;
+}
+
+function buildCompositionAvatarTargetStem(candidate: FigureCompositionCandidate): string {
+  const cropHash = hashString(getAvatarCropContextSignature(candidate.cropContext));
+  return `avatar_${candidate.avatarId}_${candidate.avatarFileId}_${cropHash}`;
 }
 
 export async function uploadBackgroundAsset(
@@ -245,6 +335,49 @@ export async function getAndUploadSpriteAsset(
     }
   }
   return null;
+}
+
+export async function getAndUploadFigureAsset(
+  context: RealtimeAssetUploadContext,
+  avatarId: number,
+  roleId: number,
+  getRoleAvatar: (avatarId: number) => RealtimeRoleAvatarSource | undefined | Promise<RealtimeRoleAvatarSource | undefined>,
+  getRoleAvatars: (roleId: number) => readonly RealtimeRoleAvatarSource[] | Promise<readonly RealtimeRoleAvatarSource[]>,
+): Promise<WebgalFigureRenderAsset | null> {
+  const avatar = await getRoleAvatar(avatarId);
+  if (!avatar) {
+    console.warn(`[RealtimeRenderer] 头像信息未找到: avatarId=${avatarId}`);
+    return null;
+  }
+  if (Number(avatar.roleId ?? 0) !== roleId) {
+    console.warn(`[RealtimeRenderer] 头像不属于当前角色: avatarId=${avatarId}, roleId=${roleId}, avatarRoleId=${avatar.roleId}`);
+    return null;
+  }
+
+  const roleAvatars = await getRoleAvatars(roleId);
+  const candidate = resolveFigureCompositionCandidate(avatar, roleAvatars);
+  if (candidate) {
+    const basePath = await uploadFirstAvailableFigureSource(
+      context,
+      roleId,
+      buildCompositionBaseCacheKey(candidate),
+      resolveRoleSpriteUrls(candidate.baseAvatar),
+      buildCompositionBaseTargetStem(candidate),
+    );
+    const avatarLayerPath = await uploadFirstAvailableFigureSource(
+      context,
+      roleId,
+      buildCompositionAvatarCacheKey(candidate),
+      resolveRoleAvatarLayerUrls(avatar),
+      buildCompositionAvatarTargetStem(candidate),
+    );
+    if (basePath && avatarLayerPath) {
+      return buildWebgalFigureRenderAsset(candidate, basePath, avatarLayerPath);
+    }
+  }
+
+  const ordinarySprite = await getAndUploadSpriteAsset(context, avatarId, roleId, () => avatar);
+  return ordinarySprite ? buildOrdinaryFigureRenderAsset(ordinarySprite) ?? null : null;
 }
 
 export async function getAndUploadMiniAvatarAsset(

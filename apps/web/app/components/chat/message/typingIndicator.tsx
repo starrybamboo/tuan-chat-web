@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+
 import { typingDotMotionProps } from "@/components/common/motion/chatMessageMotion";
 
 export default function TypingIndicator({

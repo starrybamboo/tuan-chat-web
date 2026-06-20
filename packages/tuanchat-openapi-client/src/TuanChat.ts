@@ -42,6 +42,7 @@ import { TagControllerService } from './services/TagControllerService';
 import { UserControllerService } from './services/UserControllerService';
 import { UserFollowControllerService } from './services/UserFollowControllerService';
 import { UserSecurityControllerService } from './services/UserSecurityControllerService';
+import { WebgalPublishControllerService } from './services/WebgalPublishControllerService';
 import { WebsocketDocService } from './services/WebsocketDocService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
@@ -82,6 +83,7 @@ export class TuanChat {
     public readonly userController: UserControllerService;
     public readonly userFollowController: UserFollowControllerService;
     public readonly userSecurityController: UserSecurityControllerService;
+    public readonly webgalPublishController: WebgalPublishControllerService;
     public readonly websocketDoc: WebsocketDocService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
@@ -133,6 +135,7 @@ export class TuanChat {
         this.userController = new UserControllerService(this.request);
         this.userFollowController = new UserFollowControllerService(this.request);
         this.userSecurityController = new UserSecurityControllerService(this.request);
+        this.webgalPublishController = new WebgalPublishControllerService(this.request);
         this.websocketDoc = new WebsocketDocService(this.request);
     }
 }

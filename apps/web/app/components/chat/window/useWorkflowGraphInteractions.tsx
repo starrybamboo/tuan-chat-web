@@ -1,9 +1,10 @@
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import type { Dispatch, MouseEvent, MutableRefObject, SetStateAction } from "react";
-import type { RoomMap } from "@/components/chat/window/workflowGraphUtils";
 
 import { addEdge, applyEdgeChanges, applyNodeChanges, reconnectEdge } from "@xyflow/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import type { RoomMap } from "@/components/chat/window/workflowGraphUtils";
 
 import WorkflowConditionEditor from "@/components/chat/window/workflowConditionEditor";
 import { buildWorkflowRoomEdge, resolveWorkflowRoomEdgeCondition } from "@/components/chat/window/workflowEdgeUtils";
@@ -25,12 +26,12 @@ import toastWindow from "@/components/common/toastWindow/toastWindow";
 
 type PersistMode = "sync" | "async";
 
-interface UpdateSpacePayload {
+type UpdateSpacePayload = {
   spaceId: number;
   roomMap: Record<string, string[]>;
 }
 
-interface UseWorkflowGraphInteractionsParams {
+type UseWorkflowGraphInteractionsParams = {
   allRoomIds: number[];
   spaceId: number;
   roomMapRef: MutableRefObject<RoomMap>;
@@ -49,7 +50,7 @@ interface UseWorkflowGraphInteractionsParams {
   updateSpaceMutationAsync: (payload: UpdateSpacePayload) => Promise<unknown>;
 }
 
-interface UseWorkflowGraphInteractionsResult {
+type UseWorkflowGraphInteractionsResult = {
   addEndNode: () => Promise<void>;
   handleDeleteEndNode: (endNodeId: number) => void;
   onNodesChange: (changes: NodeChange[]) => void;

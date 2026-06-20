@@ -2,6 +2,7 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
+import { memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -10,6 +11,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 import type { RoomStateRuntimeValue } from "./useRoomStateRuntime";
 
+import { formatUnreadBadgeCount } from "./clueUnread";
 import { CombatPanel } from "./CombatPanel";
 import { MapPanel } from "./MapPanel";
 import { MobileCluePanel } from "./MobileCluePanel";
@@ -28,10 +30,30 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
   },
+  tabLabelWrap: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  tabBadge: {
+    alignItems: "center",
+    borderRadius: 999,
+    height: 16,
+    justifyContent: "center",
+    minWidth: 16,
+    paddingHorizontal: 4,
+  },
+  tabBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 12,
+  },
 });
 
 type RightDrawerPanelProps = {
   activeTab: RightDrawerTabKey;
+  clueUnreadCount?: number;
   clueRooms: Room[];
   currentUserId: number | null;
   currentRoleId: number | null;
@@ -52,8 +74,9 @@ type RightDrawerPanelProps = {
   spaceId: number | null;
 };
 
-export function RightDrawerPanel({
+function RightDrawerPanelInner({
   activeTab,
+  clueUnreadCount = 0,
   clueRooms,
   currentUserId,
   currentRoleId,
@@ -74,6 +97,9 @@ export function RightDrawerPanel({
   spaceId,
 }: RightDrawerPanelProps) {
   const theme = useTheme();
+  const handleShowClues = useCallback(() => onChangeActiveTab("clues"), [onChangeActiveTab]);
+  const handleShowCombat = useCallback(() => onChangeActiveTab("combat"), [onChangeActiveTab]);
+  const handleShowMap = useCallback(() => onChangeActiveTab("map"), [onChangeActiveTab]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface }]}>
@@ -118,15 +144,26 @@ export function RightDrawerPanel({
       </View>
 
       <View style={[styles.tabBar, { borderTopColor: theme.border }]}>
-        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("clues")}>
-          <ThemedText
-            type="smallBold"
-            themeColor={activeTab === "clues" ? "accent" : "textSecondary"}
-          >
-            线索
-          </ThemedText>
+        <Pressable style={styles.tab} onPress={handleShowClues}>
+          <View style={styles.tabLabelWrap}>
+            <ThemedText
+              type="smallBold"
+              themeColor={activeTab === "clues" ? "accent" : "textSecondary"}
+            >
+              线索
+            </ThemedText>
+            {clueUnreadCount > 0
+              ? (
+                  <View style={[styles.tabBadge, { backgroundColor: theme.danger }]}>
+                    <ThemedText style={styles.tabBadgeText}>
+                      {formatUnreadBadgeCount(clueUnreadCount)}
+                    </ThemedText>
+                  </View>
+                )
+              : null}
+          </View>
         </Pressable>
-        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("combat")}>
+        <Pressable style={styles.tab} onPress={handleShowCombat}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "combat" ? "accent" : "textSecondary"}
@@ -134,7 +171,7 @@ export function RightDrawerPanel({
             战斗
           </ThemedText>
         </Pressable>
-        <Pressable style={styles.tab} onPress={() => onChangeActiveTab("map")}>
+        <Pressable style={styles.tab} onPress={handleShowMap}>
           <ThemedText
             type="smallBold"
             themeColor={activeTab === "map" ? "accent" : "textSecondary"}
@@ -146,3 +183,5 @@ export function RightDrawerPanel({
     </View>
   );
 }
+
+export const RightDrawerPanel = memo(RightDrawerPanelInner);

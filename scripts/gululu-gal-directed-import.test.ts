@@ -8,9 +8,10 @@ import {
   applySoloActiveStagePolicy,
   applyStagePlan,
   buildGululuGalDirectedImportPlan,
-
   parseGululuGalDirectedImportArgs,
 } from "./gululu-gal-directed-import";
+
+type MockFn = (...args: any[]) => any;
 
 function createLiveResult() {
   return {
@@ -285,6 +286,391 @@ describe("gululu-gal-directed-import", () => {
     });
   });
 
+  it("把紧跟骰子的短括号吐槽合并进骰子链", () => {
+    const liveResult = createLiveResult();
+    liveResult.plan.messages.push({
+      kind: "narration" as const,
+      request: {
+        avatarId: -1,
+        content: "（90以上不需要永琳就能救命了）",
+        customRoleName: "旁白",
+        extra: {},
+        messageType: MESSAGE_TYPE.TEXT,
+        roleId: -1,
+        roomId: 12970,
+      },
+      source: {
+        eventIndex: 4,
+        floor: 1,
+      },
+    });
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries.push({
+      eventIndex: 4,
+      imageShow: {
+        avatarKey: "role:烈海王:image:gululu/retsu.png",
+      },
+      messageType: "text",
+      webgal: {
+        narration: { mode: "normal" },
+      },
+    });
+
+    const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages).toHaveLength(4);
+    expect(plan.stats.messages).toBe(4);
+    expect(plan.messages.map(message => message.eventIndex)).toEqual([1, 2, 3, 4]);
+    expect(plan.messages[2]!.request.extra).toMatchObject({
+      diceResult: {
+        result: "那么烈啊，你要去往何处呢【1d13：9】\n（90以上不需要永琳就能救命了）",
+      },
+      diceTurn: {
+        command: "那么烈啊，你要去往何处呢【1d13：】",
+        replies: [
+          { content: "那么烈啊，你要去往何处呢【1d13：9】", customRoleName: "骰娘" },
+          { content: "（90以上不需要永琳就能救命了）", customRoleName: "旁白" },
+        ],
+      },
+    });
+    expect(plan.messages[2]!.request.webgal?.diceRender).toMatchObject({
+      content: "那么烈啊，你要去往何处呢【1d13：9】\n（90以上不需要永琳就能救命了）",
+      replyContent: "那么烈啊，你要去往何处呢【1d13：9】\n（90以上不需要永琳就能救命了）",
+    });
+    expect(plan.messages[3]!.request.messageType).toBe(MESSAGE_TYPE.IMG);
+  });
+
+  it("作者骰后吐槽即使沿用舞台头像也按旁白并入骰子链", () => {
+    const liveResult = createLiveResult();
+    liveResult.plan.messages[2]!.source.eventIndex = 68;
+    liveResult.plan.messages.push({
+      avatarKey: "role:烈海王:image:gululu/retsu.png",
+      kind: "narration" as const,
+      request: {
+        avatarId: -1,
+        content: "（指烈的神经）",
+        customRoleName: "旁白",
+        extra: {},
+        messageType: MESSAGE_TYPE.TEXT,
+        roleId: -1,
+        roomId: 12970,
+      },
+      roleKey: "role:烈海王",
+      source: {
+        eventIndex: 69,
+        floor: 1,
+      },
+    });
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries[2]!.eventIndex = 68;
+    directingPlan.entries.push({
+      eventIndex: 69,
+      messageType: "text",
+      webgal: {
+        narration: { mode: "normal" },
+      },
+    });
+
+    const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages.map(message => message.eventIndex)).toEqual([1, 2, 68]);
+    const replies = plan.messages[2]!.request.extra?.diceTurn?.replies ?? [];
+    expect(replies[1]).toEqual({
+      content: "（指烈的神经）",
+      customRoleName: "旁白",
+    });
+  });
+
+  it("人工审定的作者骰后吐槽覆盖误挂的说话人和头像", () => {
+    const liveResult = createLiveResult();
+    liveResult.plan.messages[2]!.source.eventIndex = 136;
+    liveResult.plan.messages.push({
+      avatarKey: "role:烈海王:image:gululu/retsu.png",
+      kind: "narration" as const,
+      request: {
+        avatarId: -1,
+        content: "只比师匠低1是怎么回事，烈意外的有当小白脸的天赋吗",
+        extra: {},
+        messageType: MESSAGE_TYPE.TEXT,
+        roleId: -1,
+        roomId: 12970,
+      },
+      roleKey: "role:烈海王",
+      source: {
+        eventIndex: 137,
+        floor: 1,
+        speakerName: "莉格露",
+      },
+    });
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries[2]!.eventIndex = 136;
+    directingPlan.entries.push({
+      eventIndex: 137,
+      messageType: "text",
+      webgal: {
+        narration: { mode: "normal" },
+      },
+    });
+
+    const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages.map(message => message.eventIndex)).toEqual([1, 2, 136]);
+    const replies = plan.messages[2]!.request.extra?.diceTurn?.replies ?? [];
+    expect(replies[1]).toEqual({
+      content: "只比师匠低1是怎么回事，烈意外的有当小白脸的天赋吗",
+      customRoleName: "旁白",
+    });
+  });
+
+  it("显式角色吐槽保留为独立角色消息", () => {
+    const liveResult = createLiveResult();
+    liveResult.plan.messages[2]!.source.eventIndex = 255;
+    liveResult.plan.messages.push({
+      avatarKey: "role:烈海王:image:gululu/retsu.png",
+      kind: "dialog" as const,
+      request: {
+        avatarId: -1,
+        content: "（这女人搞什么鬼）",
+        customRoleName: "烈",
+        extra: {},
+        messageType: MESSAGE_TYPE.TEXT,
+        roleId: -1,
+        roomId: 12970,
+      },
+      roleKey: "role:烈海王",
+      source: {
+        eventIndex: 256,
+        floor: 1,
+        speakerName: "烈",
+      },
+    });
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries[2]!.eventIndex = 255;
+    directingPlan.entries.push({
+      eventIndex: 256,
+      messageType: "text",
+      webgal: {
+        narration: { mode: "thought" },
+      },
+    });
+
+    const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages.map(message => message.eventIndex)).toEqual([1, 2, 255, 256]);
+    expect(plan.messages[2]!.request.extra?.diceTurn?.replies).toEqual([
+      { content: "那么烈啊，你要去往何处呢【1d13：9】", customRoleName: "骰娘" },
+    ]);
+    expect(plan.messages[3]!.request).toMatchObject({
+      avatarId: 2001,
+      content: "（这女人搞什么鬼）",
+      customRoleName: "烈",
+      messageType: MESSAGE_TYPE.TEXT,
+      roleId: 1001,
+      webgal: {
+        source: {
+          eventIndex: 256,
+          originalSpeaker: "烈",
+        },
+      },
+    });
+  });
+
+  it("过滤人工审定的作者阶段性复盘并保留下一段入口", () => {
+    const liveResult = createLiveResult();
+    liveResult.plan.messages.push(
+      {
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "（以下是我的废话）",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 111,
+          floor: 25,
+        },
+      },
+      {
+        avatarKey: "role:烈海王:image:gululu/retsu.png",
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "大 草 原",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 112,
+          floor: 25,
+        },
+      },
+      {
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "本次的小番外",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 128,
+          floor: 25,
+        },
+      },
+      {
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "第一日的发展过于平和了吧",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 318,
+          floor: 58,
+        },
+      },
+      {
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "今晚的小番外",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 324,
+          floor: 58,
+        },
+      },
+      {
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "PS2：在之后的更新里是否需要对出场角色做一个简要的说明呢？",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 340,
+          floor: 60,
+        },
+      },
+      {
+        kind: "narration" as const,
+        request: {
+          avatarId: -1,
+          content: "烈的人物卡中武术之爱这个技能被舍弃了",
+          customRoleName: "旁白",
+          extra: {},
+          messageType: MESSAGE_TYPE.TEXT,
+          roleId: -1,
+          roomId: 12970,
+        },
+        source: {
+          eventIndex: 343,
+          floor: 61,
+        },
+      },
+    );
+    const directingPlan = createDirectingPlan();
+    directingPlan.entries.push(
+      {
+        eventIndex: 111,
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+      {
+        eventIndex: 112,
+        imageShow: {
+          avatarKey: "role:烈海王:image:gululu/retsu.png",
+        },
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+      {
+        annotations: ["figure.clear", "image.clear"],
+        eventIndex: 128,
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+      {
+        eventIndex: 318,
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+      {
+        annotations: ["figure.clear", "image.clear"],
+        eventIndex: 324,
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+      {
+        eventIndex: 340,
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+      {
+        annotations: ["figure.clear", "image.clear"],
+        eventIndex: 343,
+        messageType: "text",
+        webgal: {
+          narration: { mode: "normal" },
+        },
+      },
+    );
+
+    const plan = buildGululuGalDirectedImportPlan(liveResult, directingPlan, {
+      targetSpaceId: 10438,
+    });
+
+    expect(plan.messages.map(message => message.eventIndex)).toEqual([1, 2, 3, 128, 324, 343]);
+    expect(plan.messages.at(-1)!.request).toMatchObject({
+      annotations: ["figure.clear", "image.clear"],
+      content: "烈的人物卡中武术之爱这个技能被舍弃了",
+      messageType: MESSAGE_TYPE.TEXT,
+    });
+  });
+
   it("保留嵌套骰链的完整选项和多段回复", () => {
     const liveResult = createLiveResult();
     const command = [
@@ -499,13 +885,13 @@ describe("gululu-gal-directed-import", () => {
       targetSpaceId: 10438,
     });
     const calls: string[] = [];
-    const setSidebarTree = vi.fn(async (request: { treeJson: string }) => ({
+    const setSidebarTree = vi.fn<MockFn>(async (request: { treeJson: string }) => ({
       data: { treeJson: request.treeJson, version: 2 },
       success: true,
     }));
     const client = {
       chatController: {
-        patchRoomMessages: vi.fn(async (request: { operations: any[]; roomId: number }) => {
+        patchRoomMessages: vi.fn<MockFn>(async (request: { operations: any[]; roomId: number }) => {
           calls.push(`patch:${request.roomId}:${request.operations.length}`);
           return {
             data: request.operations.map((_operation, index) => ({
@@ -517,7 +903,7 @@ describe("gululu-gal-directed-import", () => {
         }),
       },
       roomController: {
-        getUserRooms: vi.fn(async () => ({
+        getUserRooms: vi.fn<MockFn>(async () => ({
           data: {
             rooms: [{ name: "1-62楼GAL演出版", roomId: 9001 }],
             spaceId: 10438,
@@ -526,23 +912,23 @@ describe("gululu-gal-directed-import", () => {
         })),
       },
       roomRoleController: {
-        addRole: vi.fn(async (request: { roleIdList: number[] }) => {
+        addRole: vi.fn<MockFn>(async (request: { roleIdList: number[] }) => {
           calls.push(`role.add:${request.roleIdList.join(",")}`);
           return { success: true };
         }),
-        roomNpcRole: vi.fn(async () => {
+        roomNpcRole: vi.fn<MockFn>(async () => {
           calls.push("role.list");
           return { data: [], success: true };
         }),
       },
       spaceController: {
-        createRoom: vi.fn(async () => {
+        createRoom: vi.fn<MockFn>(async () => {
           calls.push("room.create");
           return { data: { name: "1-62楼GAL演出版", roomId: 9001, spaceId: 10438 }, success: true };
         }),
       },
       spaceSidebarTreeController: {
-        getSidebarTree: vi.fn(async () => ({
+        getSidebarTree: vi.fn<MockFn>(async () => ({
           data: {
             treeJson: JSON.stringify({ categories: [], schemaVersion: 2 }),
             version: 1,

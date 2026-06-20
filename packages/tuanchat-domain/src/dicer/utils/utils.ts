@@ -74,18 +74,10 @@ const UTILS = {
     },
   ): Promise<number> {
     const spaceExtra = normalizeRecord(options?.spaceSnapshot?.extra);
-    const rawAllowCustom = spaceExtra.allowCustomDicerRole;
-    const allowCustomDicerRole = rawAllowCustom === undefined
-      ? true
-      : rawAllowCustom === true
-        || rawAllowCustom === "true"
-        || rawAllowCustom === 1
-        || rawAllowCustom === "1";
     const currentRoleId = Number(roomContext.curRoleId);
     const roleSnapshot = options?.currentRoleSnapshot;
     const roleExtra = normalizeRecord(roleSnapshot?.extra);
-    const roleDicerRoleId = allowCustomDicerRole
-      && Number.isFinite(currentRoleId)
+    const roleDicerRoleId = Number.isFinite(currentRoleId)
       && currentRoleId > 0
       && toPositiveRoleId(roleSnapshot?.roleId) === Math.trunc(currentRoleId)
       ? toPositiveRoleId(roleExtra.dicerRoleId)

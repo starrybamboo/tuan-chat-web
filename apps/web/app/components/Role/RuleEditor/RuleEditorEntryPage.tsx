@@ -1,13 +1,13 @@
 import { Plus } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
-import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import CreatePageHeader from "@/components/Role/RoleCreation/CreatePageHeader";
 import RulesSection from "@/components/Role/rules/RulesSection";
+import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 
-interface RuleEditorEntryPageProps {
+type RuleEditorEntryPageProps = {
   onBack?: () => void;
 }
 

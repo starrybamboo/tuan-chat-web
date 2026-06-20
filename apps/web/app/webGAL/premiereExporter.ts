@@ -1,13 +1,14 @@
 import type { InferRequest } from "@/tts/engines/index/apiClient";
 
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
+import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 import { createTTSApi } from "@/tts/engines/index/apiClient";
 import {
   getFigurePositionFromAnnotations,
   isImageMessageBackground,
 } from "@/types/messageAnnotations";
 
-import type { ChatMessageResponse } from "../../api";
+import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
 import { getFileExtensionFromUrl } from "./fileOperator";
 
@@ -66,10 +67,9 @@ type TrackClip = {
 };
 
 export type AvatarFetchFn = (avatarId: number) => Promise<{
-  spriteUrl?: string;
-  spriteOriginalUrl?: string;
-  avatarUrl?: string;
-  originUrl?: string;
+  avatarFileId?: RoleAvatar["avatarFileId"];
+  spriteFileId?: RoleAvatar["spriteFileId"];
+  originFileId?: RoleAvatar["originFileId"];
   spriteTransform?: {
     scale?: number;
   };
@@ -729,7 +729,7 @@ export class PremiereExporter {
           const info = await fetchAvatar(effectiveAvatarId);
           if (info) {
             if (!avatarUrl) {
-              avatarUrl = info.spriteOriginalUrl || info.originUrl || info.spriteUrl || info.avatarUrl;
+              avatarUrl = resolveRoleAvatarMedia(info).sprite.url || resolveRoleAvatarMedia(info).avatar.url;
             }
             if (typeof info.spriteTransform?.scale === "number") {
               correctionScale = info.spriteTransform.scale;

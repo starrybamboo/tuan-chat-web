@@ -1,10 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 
-import type { ChatMessageResponse, Message, Room, SpaceMember } from "../../../../api";
-
-import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
-import type { MessageDraft } from "@/types/messageDraft";
 import { FilmSlateIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,10 +9,15 @@ import {
   replaceRoomMessageListData,
   upsertRoomMessagesListData,
 } from "@tuanchat/query/chat";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
+
+import type { ClueFolderScope } from "@/components/chat/clues/clueRooms";
+import type { MessageDraft } from "@/types/messageDraft";
+
 import { useClueFolderActions } from "@/components/chat/clues/useClueFolderActions";
+import { RoomContext } from "@/components/chat/core/roomContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
@@ -26,12 +27,16 @@ import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueRe
 import { setClueRefDragData } from "@/components/chat/utils/clueRef";
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
+import { hasHostPrivileges, isObserverLike } from "@/components/chat/utils/memberPermissions";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { BaselineDeleteOutline, CloseIcon, FileTextIcon, ImageIcon, MusicNotesIcon, PlusIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
+
+import type { ChatMessageResponse, Message, Room, SpaceMember } from "../../../../api";
+
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
@@ -39,7 +44,7 @@ import {
 } from "../../../../api/hooks/chatQueryHooks";
 import { MessageType } from "../../../../api/wsModels";
 
-interface ClueFolderSidebarProps {
+type ClueFolderSidebarProps = {
   canManagePublicClueMembers?: boolean;
   createRequestKey?: number;
   currentUserId?: number | null;
@@ -54,7 +59,7 @@ type ClueFolderRoom = Room & {
   roomId: number;
 };
 
-interface ClueFolderSectionProps {
+type ClueFolderSectionProps = {
   activeMessageId?: number;
   isLoading: boolean;
   messages: ChatMessageResponse[];
@@ -63,7 +68,7 @@ interface ClueFolderSectionProps {
   roomId: number;
 }
 
-interface ApiResultLike {
+type ApiResultLike = {
   errMsg?: string;
   success?: boolean;
 }
@@ -75,21 +80,89 @@ type ClueEditorState
 type ClueAttachmentKind = "image" | "audio" | "video" | "file";
 type ClueDropPlacement = "before" | "after";
 
-interface ClueReorderParams {
+type ClueReorderParams = {
   draggedMessageId: number;
   targetMessageId: number;
   placement: ClueDropPlacement;
 }
 
-interface ClueReorderState {
+type ClueReorderState = {
   placement: ClueDropPlacement;
   targetMessageId: number;
 }
 
-interface ClueAttachmentDraft {
+type ClueAttachmentDraft = {
   file: File;
   kind: ClueAttachmentKind;
   previewUrl: string;
+}
+
+type ClueMessageSenderContext = {
+  avatarId?: number;
+  roleId?: number;
+}
+
+type ClueMessageSenderResolution
+  = | { ok: true; requestContext: ClueMessageSenderContext }
+    | { ok: false; message: string };
+
+function toPositiveNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function canCreateClueWithoutRole(memberType?: number | null): boolean {
+  if (memberType == null) {
+    return false;
+  }
+  return hasHostPrivileges(memberType) || isObserverLike(memberType);
+}
+
+export function resolveClueMessageSenderContext({
+  currentAvatarId,
+  currentRoleId,
+  memberType,
+}: {
+  currentAvatarId?: number | null;
+  currentRoleId?: number | null;
+  memberType?: number | null;
+}): ClueMessageSenderResolution {
+  const roleId = toPositiveNumber(currentRoleId);
+  if (roleId) {
+    const avatarId = toPositiveNumber(currentAvatarId);
+    return {
+      ok: true,
+      requestContext: {
+        roleId,
+        ...(avatarId ? { avatarId } : {}),
+      },
+    };
+  }
+
+  if (currentRoleId == null || memberType == null) {
+    return {
+      ok: false,
+      message: "角色信息加载中，请稍后再创建线索",
+    };
+  }
+
+  if (canCreateClueWithoutRole(memberType)) {
+    return {
+      ok: true,
+      requestContext: {},
+    };
+  }
+
+  return {
+    ok: false,
+    message: "请先选择一个可发言角色，再创建线索",
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -393,10 +466,10 @@ function ClueFolderSection({
             key={messageId}
             type="button"
             className={`
-              group relative w-full rounded-md px-2 py-1.5 text-left text-xs
-              text-base-content/80 transition-colors
-              hover:bg-base-300
-              ${activeMessageId === messageId ? `bg-info/12 ring-1 ring-info/35` : ""}
+              group relative w-full rounded-md border border-base-content/10 px-2 py-1.5
+              text-left text-xs text-base-content/80 transition-colors
+              hover:border-primary hover:bg-primary/12
+              ${activeMessageId === messageId ? `border-primary bg-primary/12 ring-1 ring-primary/35` : ""}
             `}
             data-clue-message-id={messageId}
             draggable
@@ -499,6 +572,7 @@ export default function ClueFolderSidebar({
   spaceMembers = [],
 }: ClueFolderSidebarProps) {
   const queryClient = useQueryClient();
+  const roomContext = useContext(RoomContext);
   const { ensureClueFolderRoom, joinPublicClueFolder } = useClueFolderActions({
     currentUserId,
     hasHostPrivileges: canManagePublicClueMembers,
@@ -795,6 +869,18 @@ export default function ClueFolderSidebar({
       return;
     }
 
+    const senderContext = editorState?.mode === "create"
+      ? resolveClueMessageSenderContext({
+          currentAvatarId: roomContext.curAvatarId,
+          currentRoleId: roomContext.curRoleId,
+          memberType: roomContext.curMember?.memberType,
+        })
+      : null;
+    if (senderContext?.ok === false) {
+      toast.error(senderContext.message);
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (editorState?.mode === "edit") {
@@ -884,6 +970,7 @@ export default function ClueFolderSidebar({
         const request = buildChatMessageRequestFromDraft(draft, {
           roomId: targetRoom.roomId,
           customRoleName: "线索",
+          ...(senderContext?.ok ? senderContext.requestContext : {}),
         });
         const result = await sendMessageMutation.mutateAsync(request);
         if (!isSuccess(result)) {

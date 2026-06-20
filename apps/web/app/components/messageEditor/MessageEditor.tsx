@@ -1,4 +1,27 @@
 import type { ReactNode } from "react";
+
+import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { buildOptimisticRoomMessagesFromPatch } from "@tuanchat/query/room-message-lifecycle";
+
+import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
+import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
+
+import { RoomContext } from "@/components/chat/core/roomContext";
+import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
+import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
+import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
+import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
+import { parseImportedChatText } from "@/components/chat/utils/importChatText";
+import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
+import {
+  readImageDimensions,
+  readMediaDuration,
+  readVideoDimensions,
+} from "@/utils/mediaMetadata";
+import { UploadUtils } from "@/utils/UploadUtils";
+
 import type { Message, UserRole } from "../../../api";
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";
 import type { MessageEditorMessage } from "./messageEditorTypes";
@@ -8,28 +31,9 @@ import type {
   MessageEditorInsertableBlockKind,
   MessageEditorSelectionTextResult,
 } from "./model/messageEditorTransforms";
-
 import type { MessageEditorController } from "./runtime/messageEditorController";
 import type { MessageEditorSelection, MessageEditorSelectionPoint } from "./runtime/messageEditorSelection";
-import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
-import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";
-import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
-import { RoomContext } from "@/components/chat/core/roomContext";
-import { getCachedDocSnapshot, setCachedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotCache";
-import { getPersistedDocSnapshot, setPersistedDocSnapshot } from "@/components/chat/infra/doc/document/docSnapshotPersistence";
-import { patchRemoteRoomMessageStream } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
-import TextStyleToolbar from "@/components/chat/input/textStyleToolbar";
-import { parseImportedChatText } from "@/components/chat/utils/importChatText";
 
-import { useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
-import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import {
-  readImageDimensions,
-  readMediaDuration,
-  readVideoDimensions,
-} from "@/utils/mediaMetadata";
-import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetRoleAvatarsQuery } from "../../../api/hooks/RoleAndAvatarHooks";
 import { MessageEditorAtomicBlock } from "./components/MessageEditorAtomicBlock";
 import { MessageEditorSlashMenu } from "./components/MessageEditorSlashMenu";
@@ -81,7 +85,7 @@ import {
   restoreMessageEditorSelection,
 } from "./runtime/messageEditorSelection";
 
-interface MessageEditorProps {
+type MessageEditorProps = {
   className?: string;
   coverUrl?: string;
   docId?: string;
@@ -109,12 +113,12 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 type MessageEditorRemotePatchSourceSurface = "doc_view" | "message_editor";
 const ROOM_DOC_REMOTE_CHANGE_TOAST_ID = "room-doc-remote-change";
 
-interface MessageEditorHistoryFocus {
+type MessageEditorHistoryFocus = {
   blockId: string;
   caret: number;
 }
 
-interface MessageEditorHistoryEntry {
+type MessageEditorHistoryEntry = {
   focus: MessageEditorHistoryFocus | null;
   messages: MessageEditorMessage[];
   serialized: string;
@@ -122,18 +126,18 @@ interface MessageEditorHistoryEntry {
 
 type MessageEditorHistoryKind = "default" | "typing";
 
-interface MessageEditorDragState {
+type MessageEditorDragState = {
   draggedBlockId: string;
   position: "before" | "after";
   targetBlockId: string;
 }
 
-interface MessageEditorResolvedDragTarget {
+type MessageEditorResolvedDragTarget = {
   position: "before" | "after";
   targetBlockId: string;
 }
 
-interface MessageEditorSpeakerMenuState {
+type MessageEditorSpeakerMenuState = {
   blockId: string;
   commandKey: string;
   items: MessageEditorSpeakerMenuItem[];
@@ -142,7 +146,7 @@ interface MessageEditorSpeakerMenuState {
   remainder: string;
 }
 
-interface MessageEditorSpeakerAvatarMenuState {
+type MessageEditorSpeakerAvatarMenuState = {
   blockId: string;
   clearSpeaker?: boolean;
   commandKey: string;
@@ -268,6 +272,30 @@ function serializeMessageEditorPatchContent(message: MessageEditorMessage): stri
     roleId: message.roleId ?? null,
     webgal: message.webgal ?? null,
   });
+}
+
+function toPatchOptimisticMessageInput(message: MessageEditorMessage): Partial<Message> & { clientId: string } {
+  const runtime = message as RuntimeMessageLike;
+  return {
+    clientId: getMessageEditorBlockId(message),
+    ...(typeof runtime.messageId === "number" && Number.isFinite(runtime.messageId) ? { messageId: runtime.messageId } : {}),
+    ...(typeof runtime.syncId === "number" && Number.isFinite(runtime.syncId) ? { syncId: runtime.syncId } : {}),
+    ...(typeof runtime.roomId === "number" && Number.isFinite(runtime.roomId) ? { roomId: runtime.roomId } : {}),
+    ...(typeof runtime.userId === "number" && Number.isFinite(runtime.userId) ? { userId: runtime.userId } : {}),
+    ...(typeof message.roleId === "number" ? { roleId: message.roleId } : {}),
+    content: normalizeMessageEditorContent(message.content),
+    ...(typeof message.customRoleName === "string" ? { customRoleName: message.customRoleName } : {}),
+    ...(Array.isArray(message.annotations) ? { annotations: message.annotations } : {}),
+    ...(typeof message.avatarId === "number" ? { avatarId: message.avatarId } : {}),
+    ...(message.webgal ? { webgal: message.webgal } : {}),
+    ...(typeof message.replyMessageId === "number" ? { replyMessageId: message.replyMessageId } : {}),
+    ...(typeof runtime.status === "number" && Number.isFinite(runtime.status) ? { status: runtime.status } : {}),
+    messageType: message.messageType ?? MESSAGE_TYPE.TEXT,
+    position: getRuntimePosition(message, 1),
+    ...(message.extra ? { extra: message.extra as Message["extra"] } : {}),
+    ...(typeof runtime.createTime === "string" ? { createTime: runtime.createTime } : {}),
+    ...(typeof runtime.updateTime === "string" ? { updateTime: runtime.updateTime } : {}),
+  };
 }
 
 export function buildRoomMessagePatchOperations(
@@ -543,7 +571,7 @@ function MessageEditorFloatingCommandMenu({ children }: { children: ReactNode })
  * 判断文档级点击是否应被视为编辑器外部点击。
  * 工具栏内部的 SVG / Path 等元素同样需要被识别为“内部”，否则会误触发清理逻辑。
  */
-interface MessageEditorSelectionEventElementLike {
+type MessageEditorSelectionEventElementLike = {
   closest?: (selector: string) => MessageEditorSelectionEventElementLike | null;
   parentElement?: MessageEditorSelectionEventElementLike | null;
   tagName?: string;
@@ -796,6 +824,30 @@ export default function MessageEditor({
     await onRemoteMessagesSaved?.(changedMessages);
     return true;
   }, [onRemoteMessagesSaved]);
+
+  const unloadFlushOptionsRef = useRef({
+    isRoomDocument,
+    onRemoteMessagesSaved,
+    readOnly,
+    reconcileRemotePatchMessages,
+    remotePatchSourceSurface,
+    resolvedDocId,
+    resolvedDocRoomId,
+    shouldUseLocalSnapshot,
+  });
+
+  useEffect(() => {
+    unloadFlushOptionsRef.current = {
+      isRoomDocument,
+      onRemoteMessagesSaved,
+      readOnly,
+      reconcileRemotePatchMessages,
+      remotePatchSourceSurface,
+      resolvedDocId,
+      resolvedDocRoomId,
+      shouldUseLocalSnapshot,
+    };
+  }, [isRoomDocument, onRemoteMessagesSaved, readOnly, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
 
   const isActiveRemoteSaveGeneration = useCallback((generation: number) => {
     return activeRemoteSaveGenerationRef.current === generation
@@ -1150,8 +1202,18 @@ export default function MessageEditor({
 
   useEffect(() => {
     return () => {
-      saveGenerationRef.current += 1;
-      if (readOnly || !resolvedDocId || !dirtySinceLoadRef.current) {
+      const {
+        isRoomDocument: currentIsRoomDocument,
+        onRemoteMessagesSaved: currentOnRemoteMessagesSaved,
+        readOnly: currentReadOnly,
+        reconcileRemotePatchMessages: currentReconcileRemotePatchMessages,
+        remotePatchSourceSurface: currentRemotePatchSourceSurface,
+        resolvedDocId: currentResolvedDocId,
+        resolvedDocRoomId: currentResolvedDocRoomId,
+        shouldUseLocalSnapshot: currentShouldUseLocalSnapshot,
+      } = unloadFlushOptionsRef.current;
+
+      if (currentReadOnly || !currentResolvedDocId || !dirtySinceLoadRef.current) {
         return;
       }
 
@@ -1160,34 +1222,47 @@ export default function MessageEditor({
         return;
       }
 
-      if (isRoomDocument && resolvedDocRoomId && !hasMeaningfulMessageEditorContent(messagesRef.current)) {
+      if (currentIsRoomDocument && currentResolvedDocRoomId && !hasMeaningfulMessageEditorContent(messagesRef.current)) {
         console.warn("[MessageEditor] skip empty room message-stream flush to avoid clearing content");
         return;
       }
 
       const snapshot = createMessageEditorSnapshot(messagesRef.current);
-      lastSavedSerializedRef.current = snapshotFingerprint;
-      if (isRoomDocument && resolvedDocRoomId) {
-        const saveGeneration = saveGenerationRef.current;
-        activeRemoteSaveGenerationRef.current = saveGeneration;
+      if (currentIsRoomDocument && currentResolvedDocRoomId) {
         const operations = buildRoomMessagePatchOperations(baselineMessagesRef.current, messagesRef.current);
         if (operations.length === 0) {
           dirtySinceLoadRef.current = false;
           baselineMessagesRef.current = messagesRef.current;
-          if (activeRemoteSaveGenerationRef.current === saveGeneration) {
-            activeRemoteSaveGenerationRef.current = null;
-          }
           return;
         }
-        const persistRemote = patchRemoteRoomMessageStream({
-          mutationMeta: getMessageEditorPatchMutationMeta(remotePatchSourceSurface),
+        const optimisticMessages = buildOptimisticRoomMessagesFromPatch({
+          baselineMessages: baselineMessagesRef.current.map(toPatchOptimisticMessageInput),
+          nextMessages: messagesRef.current.map(toPatchOptimisticMessageInput),
           operations,
-          roomId: resolvedDocRoomId,
+          roomId: currentResolvedDocRoomId,
+        });
+        if (optimisticMessages.length > 0) {
+          void Promise.resolve(currentOnRemoteMessagesSaved?.(optimisticMessages)).catch((error: unknown) => {
+            console.warn("[MessageEditor] optimistic room message stream merge failed", error);
+          });
+        }
+        if (activeRemoteSaveGenerationRef.current !== null) {
+          return;
+        }
+
+        saveGenerationRef.current += 1;
+        const saveGeneration = saveGenerationRef.current;
+        activeRemoteSaveGenerationRef.current = saveGeneration;
+        lastSavedSerializedRef.current = snapshotFingerprint;
+        const persistRemote = patchRemoteRoomMessageStream({
+          mutationMeta: getMessageEditorPatchMutationMeta(currentRemotePatchSourceSurface),
+          operations,
+          roomId: currentResolvedDocRoomId,
         }).then((changedMessages) => {
           if (!isActiveRemoteSaveGeneration(saveGeneration)) {
             return;
           }
-          return reconcileRemotePatchMessages(operations, changedMessages, { updateState: false });
+          return currentReconcileRemotePatchMessages(operations, changedMessages, { updateState: false });
         });
         void persistRemote.catch((error) => {
           console.warn("[MessageEditor] flush remote room message stream failed", error);
@@ -1199,16 +1274,18 @@ export default function MessageEditor({
         return;
       }
 
-      if (!shouldUseLocalSnapshot) {
+      if (!currentShouldUseLocalSnapshot) {
         return;
       }
 
-      setCachedDocSnapshot(resolvedDocId, snapshot);
-      void setPersistedDocSnapshot(resolvedDocId, snapshot).catch((error) => {
+      saveGenerationRef.current += 1;
+      lastSavedSerializedRef.current = snapshotFingerprint;
+      setCachedDocSnapshot(currentResolvedDocId, snapshot);
+      void setPersistedDocSnapshot(currentResolvedDocId, snapshot).catch((error) => {
         console.error("[MessageEditor] flush snapshot failed", error);
       });
     };
-  }, [isActiveRemoteSaveGeneration, isRoomDocument, readOnly, reconcileRemotePatchMessages, remotePatchSourceSurface, resolvedDocId, resolvedDocRoomId, shouldUseLocalSnapshot]);
+  }, [isActiveRemoteSaveGeneration, isRoomDocument, resolvedDocId, resolvedDocRoomId]);
 
   const resolveEditorSelection = useCallback((preferSaved = false) => {
     if (crossBlockSelection?.selection) {
@@ -1396,6 +1473,11 @@ export default function MessageEditor({
 
   const replaceDocumentSelectionText = useCallback((selection: MessageEditorSelection, replacement: string) => {
     const result = controllerRef.current?.replaceSelectionText(selection, replacement) ?? null;
+    focusAfterSelectionEdit(result?.focus ?? null);
+  }, [focusAfterSelectionEdit]);
+
+  const replaceDocumentSelectionTextAsBlocks = useCallback((selection: MessageEditorSelection, replacement: string) => {
+    const result = controllerRef.current?.replaceSelectionTextAsBlocks(selection, replacement) ?? null;
     focusAfterSelectionEdit(result?.focus ?? null);
   }, [focusAfterSelectionEdit]);
 
@@ -2207,18 +2289,18 @@ export default function MessageEditor({
       event.preventDefault();
       const normalizedText = normalizeEditableText(text);
       if (requestImportTextPaste(normalizedText, () => {
-        replaceDocumentSelectionText(crossBlockSelection.selection, normalizedText);
+        replaceDocumentSelectionTextAsBlocks(crossBlockSelection.selection, normalizedText);
       })) {
         return;
       }
-      replaceDocumentSelectionText(crossBlockSelection.selection, normalizedText);
+      replaceDocumentSelectionTextAsBlocks(crossBlockSelection.selection, normalizedText);
     };
 
     document.addEventListener("paste", handleDocumentPaste);
     return () => {
       document.removeEventListener("paste", handleDocumentPaste);
     };
-  }, [crossBlockSelection, readOnly, replaceDocumentSelectionText, requestImportTextPaste]);
+  }, [crossBlockSelection, readOnly, replaceDocumentSelectionTextAsBlocks, requestImportTextPaste]);
 
   const handleTextKeyDown = useCallback((blockId: string, event: React.KeyboardEvent<HTMLDivElement>) => {
     const root = editorRootRef.current;
@@ -2761,9 +2843,36 @@ export default function MessageEditor({
     }
   }, [insertMediaFileAtSelection, registry, resolveEditorSelection]);
 
-  const handleTextPasteText = useCallback((_blockId: string, text: string, insertPlainText: () => void) => {
-    return requestImportTextPaste(normalizeEditableText(text), insertPlainText);
-  }, [requestImportTextPaste]);
+  const handleTextPasteText = useCallback((blockId: string, text: string, insertPlainText: () => void) => {
+    const normalizedText = normalizeEditableText(text);
+    if (requestImportTextPaste(normalizedText, insertPlainText)) {
+      return true;
+    }
+    if (!normalizedText.includes("\n")) {
+      return false;
+    }
+
+    const selection = resolveEditorSelection(true) ?? resolveEditorSelection(false);
+    if (selection) {
+      replaceDocumentSelectionTextAsBlocks(selection, normalizedText);
+      return true;
+    }
+
+    const message = messagesRef.current.find(item => getMessageEditorBlockId(item) === blockId);
+    const offset = normalizeMessageEditorContent(message?.content).length;
+    const fallbackSelection = createMessageEditorSelection(messagesRef.current, registry, {
+      blockId,
+      offset,
+    }, {
+      blockId,
+      offset,
+    });
+    if (!fallbackSelection) {
+      return false;
+    }
+    replaceDocumentSelectionTextAsBlocks(fallbackSelection, normalizedText);
+    return true;
+  }, [registry, replaceDocumentSelectionTextAsBlocks, requestImportTextPaste, resolveEditorSelection]);
 
   const handleBlockDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     if (isMessageEditorFileDrag(event.dataTransfer)) {

@@ -1,16 +1,18 @@
 import type { ReactNode } from "react";
+
 import { useRouter } from "@tanstack/react-router";
-import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
-import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
+
 import { MediaImage } from "@/components/common/mediaImage";
 import Pagination from "@/components/common/pagination";
 import { imageMediumUrl } from "@/utils/mediaUrl";
+import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
+import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 
 const EMPTY_STRING_LIST: string[] = [];
 
 // 卡片内容类型定义
-interface ContentCardProps {
+type ContentCardProps = {
   // 可选的图片
   image?: string;
   imageAlt?: string;
@@ -370,7 +372,7 @@ export function ContentCard({
 export default function RepositoryHome() {
   const router = useRouter();
 
-  interface RepositoryCard {
+  type RepositoryCard = {
     id: string;
     rule: string;
     title: string;

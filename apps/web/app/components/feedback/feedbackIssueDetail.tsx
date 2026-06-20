@@ -1,6 +1,8 @@
-import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
 import { Link } from "@tanstack/react-router";
 import toast from "react-hot-toast";
+
+import type { FeedbackIssueStatus } from "@/components/feedback/feedbackTypes";
+
 import {
   useFeedbackIssueDetailQuery,
   useUpdateFeedbackIssueArchiveMutation,

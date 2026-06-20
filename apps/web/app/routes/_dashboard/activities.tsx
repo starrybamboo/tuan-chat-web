@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+
 import ActivitiesPage from "@/components/activities/activitiesPage";
 import { createSeoMeta } from "@/utils/seo";
 

@@ -1,4 +1,5 @@
-import { use, useState } from "react";
+import { type ImgHTMLAttributes, use, useState } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { RoleDetail } from "@/components/common/roleDetail";
@@ -7,6 +8,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+
 import {
   useGetRoleAvatarQuery,
   useGetRoleAvatarsQuery,
@@ -63,6 +65,8 @@ export default function RoleAvatarComponent({
   kickOutByManagerOnly = false,
   hoverToScale = false,
   detailVariant = "page",
+  imageLoading,
+  imageDecoding,
 }: {
   avatarId: number;
   avatarUrl?: string;
@@ -82,6 +86,8 @@ export default function RoleAvatarComponent({
   kickOutByManagerOnly?: boolean;
   hoverToScale?: boolean;
   detailVariant?: "simple" | "page";
+  imageLoading?: ImgHTMLAttributes<HTMLImageElement>["loading"];
+  imageDecoding?: ImgHTMLAttributes<HTMLImageElement>["decoding"];
 }) {
   const providedAvatarThumbUrl = (avatarThumbUrl ?? "").trim();
   const providedAvatarUrl = (avatarUrl ?? "").trim();
@@ -133,6 +139,8 @@ export default function RoleAvatarComponent({
                         enableScale={hoverToScale}
                         src={displayAvatarUrl}
                         alt={alt}
+                        loading={imageLoading}
+                        decoding={imageDecoding}
                         className={`
                           w-full h-full object-cover
                           ${avatarImageHoverClassName}
@@ -163,6 +171,8 @@ export default function RoleAvatarComponent({
                         enableScale={hoverToScale}
                         src={displayAvatarUrl}
                         alt={alt}
+                        loading={imageLoading}
+                        decoding={imageDecoding}
                         className={`
                           w-full h-full object-cover
                           ${avatarImageHoverClassName}

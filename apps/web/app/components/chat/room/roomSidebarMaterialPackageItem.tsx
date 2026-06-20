@@ -1,8 +1,8 @@
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
-import type { MaterialSidebarVirtualNode } from "./materialSidebarTree";
 
 import { CaretRightIcon, FileIcon, FolderPlusIcon, FolderSimpleIcon, PackageIcon, PlusIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
+
 import { buildMaterialSidebarTree } from "@/components/chat/room/materialSidebarTree";
 import { setDragPreview } from "@/components/chat/utils/dragPreview";
 import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDrag";
@@ -11,7 +11,9 @@ import { MediaImage } from "@/components/common/mediaImage";
 import { parseNodePath, serializeNodePath } from "@/components/material/components/materialPackageTreeUtils";
 import { imageMediumUrl } from "@/utils/mediaUrl";
 
-interface RoomSidebarMaterialPackageItemProps {
+import type { MaterialSidebarVirtualNode } from "./materialSidebarTree";
+
+type RoomSidebarMaterialPackageItemProps = {
   materialPackageId: number;
   materialPackage?: SpaceMaterialPackageResponse;
   isActivePackage?: boolean;

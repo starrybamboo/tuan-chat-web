@@ -1,4 +1,4 @@
-import { getLocalValue, setLocalValue } from "@/components/chat/infra/localDb/chatHistoryDb";
+import { loadChatHistoryDb } from "@/components/chat/infra/localDb/chatHistoryDbLoader";
 
 type SidebarExpandedState = {
   key: string;
@@ -20,7 +20,8 @@ export async function getSidebarExpandedMap(params: {
   spaceId: number;
   scope: string;
 }): Promise<Record<string, boolean> | null> {
-  const row = await getLocalValue<SidebarExpandedState>(buildKey(params));
+  const db = await loadChatHistoryDb();
+  const row = await db.getLocalValue<SidebarExpandedState>(buildKey(params));
   return row?.expandedByKey ?? row?.expandedByCategoryId ?? null;
 }
 
@@ -31,8 +32,9 @@ export async function setSidebarExpandedMap(params: {
   expandedByKey: Record<string, boolean>;
 }): Promise<void> {
   const key = buildKey(params);
+  const db = await loadChatHistoryDb();
 
-  await setLocalValue(key, {
+  await db.setLocalValue(key, {
     key,
     expandedByKey: params.expandedByKey,
     expandedByCategoryId: params.expandedByKey,

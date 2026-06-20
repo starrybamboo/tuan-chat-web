@@ -1,21 +1,24 @@
 import type { ReactNode } from "react";
+
 import { MagnifyingGlassIcon, UsersIcon } from "@phosphor-icons/react";
 import { use, useMemo, useState } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { UserAvatarByUser } from "@/components/common/userAccess";
 import { CheckIcon, CopyIcon, InfoIcon, Link } from "@/icons";
+
 import { useGetMemberListQuery, useGetSpaceMembersQuery, useSpaceInviteCodeQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetFriendListQuery } from "../../../../api/hooks/friendQueryHooks";
 
-interface MemberLike {
+type MemberLike = {
   userId?: number;
   username?: string;
   avatar?: string;
   avatarThumbUrl?: string;
 }
 
-interface AddMemberWindowProps {
+type AddMemberWindowProps = {
   handleAddMember: (userId: number) => void;
   showSpace?: boolean;
   inviteCodeType?: 0 | 1;

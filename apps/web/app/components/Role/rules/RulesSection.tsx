@@ -3,10 +3,11 @@
 import { Plus } from "@phosphor-icons/react";
 import { useRouter } from "@tanstack/react-router";
 import { useDebounce } from "ahooks";
-import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
 import { Suspense, useCallback, useDeferredValue, useEffect, useState } from "react";
 
-interface RulesListProps {
+import { useRulePageSuspenseQuery } from "api/hooks/ruleQueryHooks";
+
+type RulesListProps = {
   pageNum: number;
   pageSize: number;
   keyword: string;
@@ -22,7 +23,7 @@ interface RulesListProps {
   onMetaChange: (isLast: boolean, rulesCount: number) => void;
 }
 
-interface RulesSectionProps {
+type RulesSectionProps = {
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）

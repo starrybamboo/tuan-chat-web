@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-interface DiscoverProductionPlaceholderProps {
+type DiscoverProductionPlaceholderProps = {
   title?: string;
   description?: string;
 }

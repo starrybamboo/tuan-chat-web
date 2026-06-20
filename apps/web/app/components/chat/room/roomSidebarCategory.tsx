@@ -1,15 +1,17 @@
 import type { DragEvent, MouseEvent } from "react";
+
+import { AnimatePresence, motion } from "motion/react";
+
+import RoomSidebarCategoryBody from "@/components/chat/room/roomSidebarCategoryBody";
+import RoomSidebarCategoryContainer from "@/components/chat/room/roomSidebarCategoryContainer";
+import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
+
 import type { Room } from "../../../../api";
 import type { MinimalDocMeta, SidebarCategoryNode, SidebarLeafNode } from "./sidebarTree";
 import type { SidebarTreeContextMenuState } from "./sidebarTreeOverlays";
 import type { DraggingItem, DropTarget } from "./useRoomSidebarDragState";
 
-import { AnimatePresence, motion } from "motion/react";
-import RoomSidebarCategoryBody from "@/components/chat/room/roomSidebarCategoryBody";
-import RoomSidebarCategoryContainer from "@/components/chat/room/roomSidebarCategoryContainer";
-import RoomSidebarCategoryHeader from "@/components/chat/room/roomSidebarCategoryHeader";
-
-interface RoomSidebarCategoryProps {
+type RoomSidebarCategoryProps = {
   category: SidebarCategoryNode;
   categoryIndex: number;
   canEdit: boolean;

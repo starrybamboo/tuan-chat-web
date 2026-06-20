@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { GalAuthoringContext } from "@tuanchat/galgame-ai-contract";
+
+import { describe, expect, it } from "vitest";
 
 import { compileGalCopilotIntentResponseToPatch, resolveGalMessageSelector } from "./copilotIntentCompiler";
 

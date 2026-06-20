@@ -2,7 +2,7 @@ import { HouseIcon, PackageIcon, SquaresFourIcon } from "@phosphor-icons/react";
 
 type MaterialPackageLibrarySidebarIcon = "house" | "package" | "squares";
 
-interface MaterialPackageLibrarySidebarItem {
+type MaterialPackageLibrarySidebarItem = {
   key: string;
   label: string;
   icon: MaterialPackageLibrarySidebarIcon;
@@ -10,7 +10,7 @@ interface MaterialPackageLibrarySidebarItem {
   onClick?: () => void;
 }
 
-interface MaterialPackageLibrarySidebarProps {
+type MaterialPackageLibrarySidebarProps = {
   description: string;
   items: MaterialPackageLibrarySidebarItem[];
   footerDescription: string;

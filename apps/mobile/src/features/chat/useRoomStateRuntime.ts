@@ -67,12 +67,12 @@ export function useRoomStateRuntime(params: {
     });
   }, [fallbackRoleAbilitiesByRoleId, messages]);
 
-  return {
+  return useMemo(() => ({
     ...runtime,
     currentRoleId: currentRoleId ?? -1,
     fallbackRoleAbilitiesByRoleId,
     isAbilityLoading: isLoading,
-  };
+  }), [currentRoleId, fallbackRoleAbilitiesByRoleId, isLoading, runtime]);
 }
 
 export type RoomStateRuntimeValue = ReturnType<typeof useRoomStateRuntime>;

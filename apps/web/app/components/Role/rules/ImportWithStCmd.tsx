@@ -1,8 +1,9 @@
-import type { StAbilityDraft } from "./stImportParser";
-import { CopyIcon, EditIcon } from "@/icons";
 import { useState } from "react";
-
 import { toast } from "react-hot-toast";
+
+import { CopyIcon, EditIcon } from "@/icons";
+
+import type { StAbilityDraft } from "./stImportParser";
 
 import {
   useGetRoleAbilitiesQuery,
@@ -11,10 +12,9 @@ import {
   useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "../../../../api/hooks/ruleQueryHooks";
-
 import { applyStCommandToDraft } from "./stImportParser";
 
-interface ImportWithStCmdProps {
+type ImportWithStCmdProps = {
   ruleId: number;
   roleId: number;
   onImportSuccess?: () => void;

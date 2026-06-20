@@ -1,7 +1,8 @@
 import type { CharacterData } from "../types";
+
 import { ROLE_DESCRIPTION_MAX_LENGTH, ROLE_NAME_MAX_LENGTH } from "../constants";
 
-interface BasicInfoStepProps {
+type BasicInfoStepProps = {
   characterData: CharacterData;
   onCharacterDataChange: (data: Partial<CharacterData>) => void;
 }

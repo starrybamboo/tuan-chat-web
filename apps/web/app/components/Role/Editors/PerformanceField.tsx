@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-interface PerformanceFieldProps {
+type PerformanceFieldProps = {
   fieldKey: string;
   value: string;
   onValueChange: (key: string, value: string) => void;
@@ -12,7 +12,7 @@ interface PerformanceFieldProps {
   size?: "default" | "compact";
   enableArrowNavigation?: boolean;
   commitOnBlur?: boolean;
-}
+};
 
 /**
  * 表演字段编辑器组件
@@ -44,18 +44,22 @@ export default function PerformanceField({
   };
 
   return (
-    <div className="form-control w-full">
+    <div className="
+      group/form-field form-control h-full w-full rounded-xl border
+      border-base-content/10 bg-base-100/55 p-3
+      transition-colors hover:border-base-content/18 hover:bg-base-100/75
+      focus-within:border-primary/45 focus-within:bg-base-100
+    ">
       <div className={`
-        flex items-center gap-2
+        flex min-h-6 items-center gap-2
         ${isCompact ? "mb-1" : "mb-2"}
       `}>
         {editingFieldKey === fieldKey
           ? (
               <label className={`
-                input flex items-center gap-2 rounded-md transition
+                input flex flex-1 items-center gap-2 rounded-md bg-base-200/60
+                transition focus-within:border-primary focus-within:outline-none
                 focus-within:ring-2 focus-within:ring-primary/20
-                focus-within:border-primary focus-within:outline-none
-                bg-base-100 flex-1
                 ${
                 isCompact ? "input-xs" : "input-sm"
               }
@@ -93,9 +97,8 @@ export default function PerformanceField({
           : (
               <span
                 className={`
-                  ml-1 font-semibold label-text cursor-pointer
-                  hover:text-primary
-                  flex-1
+                  label-text min-w-0 flex-1 cursor-pointer truncate font-semibold
+                  text-base-content/90 hover:text-primary
                   ${
                   isCompact ? "text-xs" : "text-base"
                 }
@@ -113,8 +116,11 @@ export default function PerformanceField({
           type="button"
           onClick={() => onDelete(fieldKey)}
           className="
-            btn btn-ghost btn-xs text-error
-            hover:bg-error/10
+            btn btn-ghost btn-xs size-6 min-h-6 shrink-0 rounded-md p-0
+            text-base-content/30 opacity-100 transition
+            hover:bg-error/10 hover:text-error
+            md:opacity-0 md:group-hover/form-field:opacity-100
+            md:focus-visible:opacity-100
           "
           title="删除字段"
         >
@@ -123,10 +129,10 @@ export default function PerformanceField({
       </div>
 
       <label className={`
-        textarea size-full flex items-center gap-2 rounded-md transition
-        focus-within:ring-2 focus-within:ring-primary/20
+        textarea flex size-full items-center gap-2 rounded-lg border-base-content/10
+        bg-base-200/45 p-0 transition
         focus-within:border-primary focus-within:outline-none
-        bg-base-100 p-0
+        focus-within:ring-2 focus-within:ring-primary/20
         ${
         isCompact ? "textarea-sm" : ""
       }
@@ -134,9 +140,9 @@ export default function PerformanceField({
       >
         <textarea
           className={`
-            textarea grow
-            focus:outline-none
-            border-none outline-none bg-transparent h-full resize-none
+            textarea h-full grow resize-none border-none bg-transparent
+            leading-relaxed outline-none focus:outline-none
+            placeholder:text-base-content/35
             ${
             isCompact ? "text-xs" : ""
           }

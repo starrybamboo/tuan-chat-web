@@ -1,4 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
+
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 import { MediaImage } from "@/components/common/mediaImage";
@@ -7,12 +8,13 @@ import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { imageLowUrl } from "@/utils/mediaUrl";
+
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserProfileQuery } from "../../../api/hooks/UserHooks";
 import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
 
-interface UserDetailProps {
+type UserDetailProps = {
   userId: number;
 }
 

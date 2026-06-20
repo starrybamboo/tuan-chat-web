@@ -2,6 +2,7 @@ import type { RealtimeAssetUploadContext, RealtimeRoleAvatarSource } from "./rea
 
 import { uploadFile } from "./fileOperator";
 import {
+  getAndUploadFigureAsset,
   getAndUploadMiniAvatarAsset,
   getAndUploadSpriteAsset,
   uploadImageFigureAsset,
@@ -24,6 +25,20 @@ function createContext(): RealtimeAssetUploadContext {
     uploadedVideosMap: new Map(),
     uploadedMiniAvatarsMap: new Map(),
     uploadedSoundEffectsMap: new Map(),
+  };
+}
+
+function variantGroup(baseAvatarId = 5, x = 12) {
+  return {
+    variantId: 100,
+    roleId: 1,
+    name: "校服",
+    baseAvatarId,
+    compositionConfig: {
+      canvas: { width: 1000, height: 1600 },
+      avatarSlot: { x, y: 34, width: 256, height: 256 },
+      output: { format: "webp" },
+    },
   };
 }
 
@@ -106,25 +121,6 @@ describe("realtimeRendererAssetUploads", () => {
     expect(String(vi.mocked(uploadFile).mock.calls[2][0])).toContain("6488");
   });
 
-  it("上传立绘允许使用真实 legacy sprite URL", async () => {
-    const context = createContext();
-    const avatar = {
-      avatarId: 7,
-      roleId: 1,
-      avatarFileId: 9918,
-      spriteFileId: undefined,
-      originFileId: undefined,
-      avatarUrl: "https://example.test/avatar.webp",
-      spriteUrl: "https://example.test/legacy-sprite.webp",
-    } satisfies RealtimeRoleAvatarSource;
-
-    const result = await getAndUploadSpriteAsset(context, 7, 1, () => avatar);
-
-    expect(result).toBe("role_1/sprite_7.webp");
-    expect(uploadFile).toHaveBeenCalledOnce();
-    expect(vi.mocked(uploadFile).mock.calls[0][0]).toBe("https://example.test/legacy-sprite.webp");
-  });
-
   it("上传小头像仍然使用 avatarFileId", async () => {
     const context = createContext();
     const avatar = {
@@ -140,6 +136,97 @@ describe("realtimeRendererAssetUploads", () => {
     expect(result).toBe("role_1/mini_7.webp");
     expect(uploadFile).toHaveBeenCalledOnce();
     expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("9918");
+  });
+
+  it("立绘组会上传 base sprite 和当前头像层并返回 composeFigure 资源", async () => {
+    const context = createContext();
+    const avatars = [
+      {
+        avatarId: 5,
+        roleId: 1,
+        variantId: 100,
+        variantGroup: variantGroup(5),
+        spriteFileId: 2048,
+        avatarFileId: 9001,
+      },
+      {
+        avatarId: 7,
+        roleId: 1,
+        variantId: 100,
+        variantGroup: variantGroup(5),
+        avatarFileId: 9918,
+        spriteFileId: 4096,
+      },
+    ] satisfies RealtimeRoleAvatarSource[];
+
+    const result = await getAndUploadFigureAsset(
+      context,
+      7,
+      1,
+      id => avatars.find(avatar => avatar.avatarId === id),
+      () => avatars,
+    );
+
+    expect(result?.composite).toBe(true);
+    expect(result?.basePath).toBe("role_1/base_5_2048.webp");
+    expect(result?.avatarLayerPath).toMatch(/^role_1\/avatar_7_9918_[a-z0-9]+\.webp$/);
+    expect(result?.composeLine).toContain("-base=role_1/base_5_2048.webp");
+    expect(result?.composeLine).toContain(`-layer=${result?.avatarLayerPath},12,34,256,256`);
+    expect(uploadFile).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(uploadFile).mock.calls[0][2]).toBe("base_5_2048.webp");
+    expect(String(vi.mocked(uploadFile).mock.calls[1][2])).toMatch(/^avatar_7_9918_[a-z0-9]+\.webp$/);
+  });
+
+  it("合成立绘缓存会随组合配置变化刷新头像层", async () => {
+    const context = createContext();
+    const baseAvatar = {
+      avatarId: 5,
+      roleId: 1,
+      variantId: 100,
+      variantGroup: variantGroup(5),
+      spriteFileId: 2048,
+      avatarFileId: 9001,
+    } satisfies RealtimeRoleAvatarSource;
+    const makeCurrent = (x: number) => ({
+      avatarId: 7,
+      roleId: 1,
+      variantId: 100,
+      variantGroup: variantGroup(5, x),
+      avatarFileId: 9918,
+      spriteFileId: 4096,
+    } satisfies RealtimeRoleAvatarSource);
+    const firstCurrent = makeCurrent(12);
+    const first = await getAndUploadFigureAsset(
+      context,
+      7,
+      1,
+      id => (id === 5 ? baseAvatar : firstCurrent),
+      () => [baseAvatar, firstCurrent],
+    );
+    const second = await getAndUploadFigureAsset(
+      context,
+      7,
+      1,
+      id => (id === 5 ? baseAvatar : firstCurrent),
+      () => [baseAvatar, firstCurrent],
+    );
+    const changedCurrent = makeCurrent(13);
+    const changed = await getAndUploadFigureAsset(
+      context,
+      7,
+      1,
+      id => (id === 5 ? baseAvatar : changedCurrent),
+      () => [baseAvatar, changedCurrent],
+    );
+
+    expect(first?.stateKey).toBe(second?.stateKey);
+    expect(first?.stateKey).not.toBe(changed?.stateKey);
+    expect(uploadFile).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(uploadFile).mock.calls.map(call => String(call[2]))).toEqual([
+      "base_5_2048.webp",
+      expect.stringMatching(/^avatar_7_9918_[a-z0-9]+\.webp$/),
+      expect.stringMatching(/^avatar_7_9918_[a-z0-9]+\.webp$/),
+    ]);
   });
 
   it("同一源图用于不同目标文件名时不会复用成错误角色文件", async () => {

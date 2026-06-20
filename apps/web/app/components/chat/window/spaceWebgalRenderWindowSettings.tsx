@@ -1,8 +1,11 @@
 import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
-import type { CollapsibleSectionKey, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
-import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
 import { lazy, Suspense } from "react";
+
+import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
+
+import type { CollapsibleSectionKey, SpaceWebgalSettingsTab } from "./spaceWebgalRenderWindowParts";
+
 import { SpaceWebgalGameConfigSection } from "./spaceWebgalGameConfigSection";
 import { SpaceWebgalRoomContentSettingsPanel } from "./spaceWebgalRenderWindowPanels";
 import { SectionCollapseToggle } from "./spaceWebgalRenderWindowParts";
@@ -20,7 +23,7 @@ function WorkflowLazyFallback() {
   );
 }
 
-interface SpaceWebgalRenderWindowSettingsProps {
+type SpaceWebgalRenderWindowSettingsProps = {
   settingsTab: SpaceWebgalSettingsTab;
   sectionExpandedMap: Record<CollapsibleSectionKey, boolean>;
   isAllSectionsExpanded: boolean;

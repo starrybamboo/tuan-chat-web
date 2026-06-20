@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
+
 import { SidebarSimpleIcon } from "@/icons";
 
 export type ChatDiscoverNavItem = "repository-square" | "repository-my" | "material-public" | "material-mine";
 
-interface ChatDiscoverNavPanelProps {
+type ChatDiscoverNavPanelProps = {
   onCloseLeftDrawer: () => void;
   onToggleLeftDrawer?: () => void;
   isLeftDrawerOpen?: boolean;

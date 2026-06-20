@@ -1,6 +1,6 @@
 import React from "react";
 
-interface FollowStatsProps {
+type FollowStatsProps = {
   followingCount: number;
   followersCount: number;
   onFollowingClick: () => void;

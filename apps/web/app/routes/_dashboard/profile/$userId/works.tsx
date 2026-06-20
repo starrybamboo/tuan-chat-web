@@ -1,5 +1,7 @@
-import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+
+import type { RouteMetaArgs } from "@/routes/routeTypes";
+
 import WorksTab from "@/components/profile/profileTab/worksTab";
 import { createSeoMeta } from "@/utils/seo";
 

@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
+
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-
 import GNSPreferenceEditor from "@/components/profile/toastWindows/GNSEditorToastWindow";
+
 import { useGetMyUserInfoQuery, useGetUserProfileQuery, useUpdateUserInfoMutation } from "../../../../api/hooks/UserHooks";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
 
-interface Ratings {
+type Ratings = {
   Gamism: number;
   Narrativism: number;
   Simulationism: number;
 }
 
-interface GNSSpiderChartProps {
+type GNSSpiderChartProps = {
   userId: number;
 }
 
-interface GNSPreference {
+type GNSPreference = {
   gameplayScore?: number | string;
   narrativeScore?: number | string;
   simulationScore?: number | string;

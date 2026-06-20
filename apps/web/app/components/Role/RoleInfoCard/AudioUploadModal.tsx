@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
+
 import { UploadUtils } from "@/utils/UploadUtils";
 
-interface AudioUploadModalProps {
+type AudioUploadModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (audio: { voiceFileId: number; mediaType: string }) => void;

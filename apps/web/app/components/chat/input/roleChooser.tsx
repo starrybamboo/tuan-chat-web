@@ -1,7 +1,6 @@
-import type { UserRole } from "../../../../api";
-import { useDeleteRole1Mutation } from "api/hooks/chatQueryHooks";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { canManageRoomRoles, hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
@@ -12,6 +11,9 @@ import { RoleTypeBadge } from "@/components/common/roleTypeBadge";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { AddRingLight } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
+import { useDeleteRole1Mutation } from "api/hooks/chatQueryHooks";
+
+import type { UserRole } from "../../../../api";
 
 /**
  * 角色选择器组件，用于在聊天中选择不同的角色

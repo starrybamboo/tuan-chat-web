@@ -1,6 +1,6 @@
 import type { AiImageStylePreset } from "@/utils/aiImageStylePresets";
 
-interface StylePickerDialogProps {
+type StylePickerDialogProps = {
   isOpen: boolean;
   viewMode: "select" | "compare";
   selectedStyleIds: string[];

@@ -1,7 +1,8 @@
 import type { Role } from "../types";
+
 import RoleCreationFlow from "./RoleCreationFlow";
 
-interface CreateRoleBySelfProps {
+type CreateRoleBySelfProps = {
   onBack?: () => void;
   onComplete?: (role: Role, ruleId?: number) => void;
 }

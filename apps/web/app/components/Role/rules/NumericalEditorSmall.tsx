@@ -1,9 +1,11 @@
+import { useEffect, useReducer, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
 import {
   useUpdateKeyFieldByRoleIdMutation,
   useUpdateRoleAbilityByRoleIdMutation,
 } from "api/hooks/abilityQueryHooks";
-import { useEffect, useReducer, useState } from "react";
-import toast from "react-hot-toast";
+
 import AddFieldForm from "../Editors/AddFieldForm";
 import EditableField from "../Editors/EditableField";
 import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload } from "./roleAbilityFieldPayload";
@@ -11,7 +13,7 @@ import { buildRoleAbilityFieldKeyPayload, buildRoleAbilitySectionUpdatePayload }
 type NumericalData = Record<string, string>;
 type FieldType = "basic" | "ability" | "skill";
 
-interface NumericalEditorSmallProps {
+type NumericalEditorSmallProps = {
   data: NumericalData;
   onChange: (data: NumericalData) => void;
   roleId: number;
@@ -73,23 +75,42 @@ export default function NumericalEditorSmall({
   ruleId,
   fieldType,
 }: NumericalEditorSmallProps) {
-  const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
-  const { mutate: updateFieldValue } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutateAsync: updateKeyFieldAsync } = useUpdateKeyFieldByRoleIdMutation();
+  const { mutateAsync: updateFieldValueAsync } = useUpdateRoleAbilityByRoleIdMutation();
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const pendingChangesRef = useRef<Record<string, string>>({});
+  const latestDataRef = useRef(data);
 
   const [localData, dispatch] = useReducer(dataReducer, data);
 
   useEffect(() => {
-    dispatch({ type: "SYNC_PROPS", payload: data });
+    latestDataRef.current = data;
+    const pendingChanges = pendingChangesRef.current;
+    dispatch({
+      type: "SYNC_PROPS",
+      payload: Object.keys(pendingChanges).length > 0
+        ? { ...data, ...pendingChanges }
+        : data,
+    });
   }, [data]);
 
+  useEffect(() => {
+    pendingChangesRef.current = {};
+    dispatch({ type: "SYNC_PROPS", payload: latestDataRef.current });
+  }, [roleId, ruleId, fieldType]);
+
   const rollbackAfterError = (error: unknown) => {
+    pendingChangesRef.current = {};
     dispatch({ type: "SYNC_PROPS", payload: data });
     onChange(data);
     toast.error(`能力更新失败：${getErrorMessage(error)}`);
   };
 
   const handleFieldUpdate = (fieldKey: string, newValue: string) => {
+    pendingChangesRef.current = {
+      ...pendingChangesRef.current,
+      [fieldKey]: newValue,
+    };
     dispatch({
       type: "UPDATE_FIELD",
       payload: { key: fieldKey, value: newValue },
@@ -97,58 +118,77 @@ export default function NumericalEditorSmall({
   };
 
   const handleFieldCommit = (fieldKey: string, newValue: string) => {
-    const updatedData = {
-      ...localData,
-      [fieldKey]: newValue,
-    };
-
-    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
-      [fieldKey]: newValue,
-    }), {
-      onSuccess: () => {
-        onChange(updatedData);
-        setEditingKey(null);
-      },
-      onError: rollbackAfterError,
-    });
+    void saveFieldCommit(fieldKey, newValue);
   };
 
-  const handleAddField = (newFieldKey: string, newFieldValue: string) => {
+  const saveFieldCommit = async (fieldKey: string, newValue: string) => {
+    const updatedData = {
+      ...localData,
+      [fieldKey]: newValue,
+    };
+
+    try {
+      await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+        [fieldKey]: newValue,
+      }));
+      const pendingChanges = { ...pendingChangesRef.current };
+      delete pendingChanges[fieldKey];
+      pendingChangesRef.current = pendingChanges;
+      onChange(updatedData);
+      setEditingKey(null);
+    }
+    catch (error) {
+      rollbackAfterError(error);
+    }
+  };
+
+  const handleAddField = async (newFieldKey: string, newFieldValue: string) => {
     const updatedData = {
       ...localData,
       [newFieldKey]: newFieldValue,
     };
 
-    dispatch({
-      type: "ADD_FIELD",
-      payload: { key: newFieldKey, value: newFieldValue },
-    });
-
-    updateFieldValue(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
-      [newFieldKey]: newFieldValue,
-    }), {
-      onSuccess: () => {
-        onChange(updatedData);
-      },
-      onError: rollbackAfterError,
-    });
+    try {
+      await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+        [newFieldKey]: newFieldValue,
+      }));
+      dispatch({
+        type: "ADD_FIELD",
+        payload: { key: newFieldKey, value: newFieldValue },
+      });
+      onChange(updatedData);
+    }
+    catch (error) {
+      rollbackAfterError(error);
+      throw error;
+    }
   };
 
   const handleDeleteField = (fieldKey: string) => {
+    void saveDeleteField(fieldKey);
+  };
+
+  const saveDeleteField = async (fieldKey: string) => {
     const updatedData = { ...localData };
     delete updatedData[fieldKey];
+    const pendingChanges = { ...pendingChangesRef.current };
+    delete pendingChanges[fieldKey];
+    pendingChangesRef.current = pendingChanges;
 
-    dispatch({ type: "DELETE_FIELD", payload: fieldKey });
-
-    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
-      [fieldKey]: null,
-    }), {
-      onSuccess: () => {
-        onChange(updatedData);
-        setEditingKey(prevKey => (prevKey === fieldKey ? null : prevKey));
-      },
-      onError: rollbackAfterError,
-    });
+    try {
+      if (Object.keys(pendingChanges).length > 0) {
+        await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, pendingChanges));
+      }
+      await updateKeyFieldAsync(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+        [fieldKey]: null,
+      }));
+      dispatch({ type: "DELETE_FIELD", payload: fieldKey });
+      onChange(updatedData);
+      setEditingKey(prevKey => (prevKey === fieldKey ? null : prevKey));
+    }
+    catch (error) {
+      rollbackAfterError(error);
+    }
   };
 
   const handleRenameField = (oldKey: string, newKey: string) => {
@@ -156,25 +196,41 @@ export default function NumericalEditorSmall({
       return;
     }
 
+    void saveRenameField(oldKey, newKey);
+  };
+
+  const saveRenameField = async (oldKey: string, newKey: string) => {
+    const pendingChanges = { ...pendingChangesRef.current };
+    const pendingValue = pendingChanges[oldKey];
+    delete pendingChanges[oldKey];
+    pendingChangesRef.current = pendingChanges;
     const value = localData[oldKey];
     const updatedData = { ...localData };
     delete updatedData[oldKey];
-    updatedData[newKey] = value;
+    updatedData[newKey] = pendingValue ?? value;
 
-    dispatch({
-      type: "RENAME_FIELD",
-      payload: { oldKey, newKey },
-    });
-
-    updateKeyField(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
-      [oldKey]: newKey,
-    }), {
-      onSuccess: () => {
-        onChange(updatedData);
-        setEditingKey(newKey);
-      },
-      onError: rollbackAfterError,
-    });
+    try {
+      if (Object.keys(pendingChanges).length > 0) {
+        await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, pendingChanges));
+      }
+      await updateKeyFieldAsync(buildRoleAbilityFieldKeyPayload(roleId, ruleId, fieldType, {
+        [oldKey]: newKey,
+      }));
+      if (pendingValue !== undefined) {
+        await updateFieldValueAsync(buildRoleAbilitySectionUpdatePayload(roleId, ruleId, fieldType, {
+          [newKey]: pendingValue,
+        }));
+      }
+      dispatch({
+        type: "RENAME_FIELD",
+        payload: { oldKey, newKey },
+      });
+      onChange(updatedData);
+      setEditingKey(newKey);
+    }
+    catch (error) {
+      rollbackAfterError(error);
+    }
   };
 
   const entries = Object.entries(localData);

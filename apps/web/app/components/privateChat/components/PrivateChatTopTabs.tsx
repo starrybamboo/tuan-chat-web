@@ -1,11 +1,14 @@
 import type React from "react";
-import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
+
 import { ChatCircleIcon, UserCirclePlusIcon, UserListIcon } from "@phosphor-icons/react";
-import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 import { motion } from "motion/react";
 import { useMemo } from "react";
+
+import type { PrivateChatTab } from "@/components/chat/chatPageLayoutContext";
+
 import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContext";
 import { privateChatTabIndicatorMotionProps } from "@/components/common/motion/privateChatMotion";
+import { useGetFriendRequestPageQuery } from "api/hooks/friendQueryHooks";
 
 export default function PrivateChatTopTabs() {
   const { privateChatTab, setPrivateChatTab } = useChatPageLayoutContext();

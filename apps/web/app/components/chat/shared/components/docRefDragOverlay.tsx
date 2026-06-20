@@ -1,6 +1,6 @@
 import { memo } from "react";
 
-interface DocRefDragOverlayProps {
+type DocRefDragOverlayProps = {
   visible: boolean;
   label?: string;
   className?: string;

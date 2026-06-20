@@ -4,11 +4,12 @@ import type {
 } from "react";
 
 import { SelectionPlusIcon } from "@phosphor-icons/react";
+
 import { XMarkICon } from "@/icons";
 
 export const HISTORY_THUMBNAIL_IMAGE_CLASS_NAME = "block h-full w-full object-contain";
 
-interface HistoryImageTileProps {
+type HistoryImageTileProps = {
   active: boolean;
   alt: string;
   dataUrl: string;

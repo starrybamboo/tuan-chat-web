@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import type { ApiResultListMessageSessionResponse } from "@tuanchat/openapi-client/models/ApiResultListMessageSessionResponse";
+
+import { describe, expect, it } from "vitest";
 
 import {
   bumpRoomSessionLatestSyncData,

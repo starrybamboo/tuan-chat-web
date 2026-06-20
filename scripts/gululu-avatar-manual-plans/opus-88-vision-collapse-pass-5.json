@@ -1,0 +1,71 @@
+{
+  "createdAt": "2026-06-08T00:32:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第五批：复查辉夜、红美铃、圣白莲。只折叠剩余高置信同语义重复；汗滴、脸红、阴影、困倦/半睁状态和嘴型差异保留。",
+  "groups": [
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I011"],
+      "reason": "同为闭眼开心张口，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I013", "I021"],
+      "reason": "同为普通睁眼微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I012"],
+      "reason": "同为惊讶张口，无汗泪脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "蓬莱山辉夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I009",
+      "memberIds": ["I009", "I016"],
+      "reason": "同为阴影微笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I017"],
+      "reason": "同为闭眼笑，表情状态一致，仅裁切差异。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I006",
+      "memberIds": ["I006", "I013"],
+      "reason": "同为冒汗小口担心，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "红美铃",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I011"],
+      "reason": "同为正面平静微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "圣白莲",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I002"],
+      "reason": "同为闭眼开心笑，表情状态一致，仅裁切/露出范围差异。"
+    }
+  ],
+  "stillDeferred": [
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I018",
+      "note": "用户指出“这个是”但未补全目标角色，暂不迁移。"
+    }
+  ]
+}

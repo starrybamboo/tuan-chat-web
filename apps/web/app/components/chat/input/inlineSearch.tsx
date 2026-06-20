@@ -1,7 +1,7 @@
-import type { UserRole } from "../../../../api";
 import { useDebounce } from "ahooks";
 import { AnimatePresence, motion } from "motion/react";
 import { memo, use, useEffect, useMemo, useRef, useState } from "react";
+
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MobileSearchPage from "@/components/chat/input/mobileSearchPage";
 import SearchedMessage from "@/components/chat/message/preview/searchedMessage";
@@ -11,7 +11,9 @@ import { floatingListItemMotionProps, floatingPanelMotionProps } from "@/compone
 import { SearchFilled, XMarkICon } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 
-interface SearchBarProps {
+import type { UserRole } from "../../../../api";
+
+type SearchBarProps = {
   className?: string;
 }
 

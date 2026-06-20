@@ -1,13 +1,14 @@
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { ApiError } from "api";
-import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
+
+import { ApiError } from "api";
+import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 
 import RuleEditor from "./RuleEditor";
 import RuleEditorEntryPage from "./RuleEditorEntryPage";
 
-interface RuleEditorRouteProps {
+type RuleEditorRouteProps = {
   onBack?: () => void;
 }
 

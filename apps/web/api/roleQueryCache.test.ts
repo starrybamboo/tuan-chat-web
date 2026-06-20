@@ -78,35 +78,6 @@ describe("roleQueryCache", () => {
     ]);
   });
 
-  it("头像字段补丁会移除列表里的派生 URL 字段", () => {
-    const queryClient = new QueryClient();
-    queryClient.setQueryData(["getUserRolesByType", 1, 0], [
-      {
-        ...makeRole({ roleId: 7, avatarId: 55, avatarFileId: 1001 }),
-        avatarUrl: "https://legacy.example/avatar.webp",
-        avatarThumbUrl: "https://legacy.example/avatar-low.webp",
-      },
-    ]);
-
-    patchUserRoleAvatarFieldsInListQueryCache(queryClient, {
-      roleId: 7,
-      avatarId: 55,
-      avatarFileId: 2002,
-      avatarMediaType: "image",
-      avatarUrl: "https://legacy.example/next-avatar.webp",
-      avatarThumbUrl: "https://legacy.example/next-avatar-low.webp",
-    });
-
-    const patched = queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.[0] as any;
-    expect(patched).toEqual(expect.objectContaining({
-      roleId: 7,
-      avatarFileId: 2002,
-      avatarMediaType: "image",
-    }));
-    expect(patched.avatarUrl).toBeUndefined();
-    expect(patched.avatarThumbUrl).toBeUndefined();
-  });
-
   it("会把头像 fileId 字段补写到房间角色缓存中", () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(["roomRole", 9], {

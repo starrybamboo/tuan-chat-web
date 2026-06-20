@@ -1,6 +1,6 @@
 import { DislikeLine } from "@/icons";
 
-interface DislikeIconButtonProps {
+type DislikeIconButtonProps = {
   className?: string;
   direction?: "row" | "column";
   onDislike?: () => void;

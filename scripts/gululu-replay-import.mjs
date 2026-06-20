@@ -88,6 +88,10 @@ const DICE_DESCRIPTION_SPEAKER_NAMES = new Set([
 const NON_DIALOG_SPEAKER_PATTERN = /(?:的教导|的独断|的战士|之爱|那一方胜利|数值.*判定)$/;
 const DICE_DESCRIPTION_SPEAKER_PATTERN = /(?:的教导|的战士|之爱|那一方胜利|数值.*判定)$/;
 const RULE_CONTENT_PATTERN = /(?:【情报不明】|Atk|ATK|Hp|HP|战斗力|最终伤害|普通攻击|技能|判定|回避|大成功|大失败|所需值|无效|起效|发动时|造成伤害|CT\d|X\d|x\d|[+\-]\d|[／/]\d)/;
+const ROLE_CARD_LABEL_PATTERN = /(?:人物卡|角色卡|战斗卡)/;
+const ROLE_CARD_HEADER_PATTERN = /(?:[~～][^~～\n]*(?:人物卡|角色卡|战斗卡)[^~～\n]*[~～]|^[\p{Script=Han}A-Za-z0-9·/（）()]+(?:的)?(?:人物卡|角色卡|战斗卡)$)/u;
+const ROLE_CARD_STATS_PATTERN = /(?:\b(?:Atk|ATK|Hp|HP)\b|攻击力|战斗力|技能|必杀技)/;
+const ROLE_CARD_CHANGE_PATTERN = /(?:人物卡|角色卡)[^。！？\n]*(?:舍弃|替代|新增|更新|修正|补回|写入|加入)/;
 
 export function normalizeGululuImagePath(rawPath) {
   return rawPath.trim().replace(/\\/g, "/").replace(/^\.\.\/images\//, "");
@@ -153,6 +157,28 @@ function parseBgmLine(line) {
   return matched?.groups?.name?.trim() || null;
 }
 
+function isRoleCardContent(content) {
+  const text = normalizeLineBreaks(content).trim();
+  if (!text) {
+    return false;
+  }
+  if (ROLE_CARD_HEADER_PATTERN.test(text)) {
+    return true;
+  }
+  if (ROLE_CARD_CHANGE_PATTERN.test(text)) {
+    return true;
+  }
+  if (!ROLE_CARD_STATS_PATTERN.test(text)) {
+    return false;
+  }
+  if (ROLE_CARD_LABEL_PATTERN.test(text)) {
+    return true;
+  }
+  const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+  const statLines = lines.filter(line => /(?:\b(?:Atk|ATK|Hp|HP)\b|攻击力|战斗力)/.test(line));
+  return statLines.length > 0 && lines.some(line => /(?:技能|必杀技)/.test(line));
+}
+
 function parseSpeakerLine(line) {
   const matched = line.match(SPEAKER_LINE_PATTERN);
   if (!matched?.groups) {
@@ -195,13 +221,28 @@ function parseDiceDescriptionLine(line) {
   };
 }
 
+function parseNumberedOptionPrefix(line) {
+  const matched = String(line ?? "").trim().match(/^(\d{1,3}|[一二三四五六七八九十]+)(?:[\s.、]|(?=[^\d\s.、:：]))/);
+  if (!matched?.[1]) {
+    return undefined;
+  }
+  if (/^\d+$/.test(matched[1])) {
+    const parsed = Number(matched[1]);
+    return parsed >= 0 && parsed <= 100 ? matched[1] : undefined;
+  }
+  return matched[1];
+}
+
 function isNumberedOptionLine(line) {
-  return /^\s*(?:\d+|[一二三四五六七八九十]+)[\s.、]/.test(line);
+  return parseNumberedOptionPrefix(line) != null;
 }
 
 function parseNumberedOptionIndex(line) {
-  const matched = String(line ?? "").trim().match(/^(\d+)[\s.、]/);
-  return matched ? Number(matched[1]) : undefined;
+  const prefix = parseNumberedOptionPrefix(line);
+  if (!prefix || !/^\d+$/.test(prefix)) {
+    return undefined;
+  }
+  return Number(prefix);
 }
 
 function isNumberedOptionBlock(content) {
@@ -411,9 +452,10 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
     if (activeNarration.length === 0) {
       return;
     }
+    const content = activeNarration.join("\n");
     pushTextMessage(messages, state, {
-      content: activeNarration.join("\n"),
-      kind: "narration",
+      content,
+      kind: isRoleCardContent(content) ? "role_card" : "narration",
     });
     activeNarration = [];
   };
@@ -502,6 +544,58 @@ function parseSegmentLines(segment, floor, imageSpeakerMap) {
   flushNarration();
   flushDiceDescriptionOnly();
   return messages;
+}
+
+function isRoleCardStopLine(content) {
+  return /^(?:（|顺便解说|感觉|但是|准确来说|请大家指导|如果到进行战斗时)/.test(String(content ?? "").trim());
+}
+
+function isRoleCardBlockContinuation(content) {
+  const text = String(content ?? "").trim();
+  if (!text) {
+    return false;
+  }
+  return isRoleCardContent(text)
+    || ROLE_CARD_STATS_PATTERN.test(text)
+    || /^(?:技能|必杀技)$/.test(text)
+    || /^[\p{Script=Han}A-Za-z0-9·\s]+$/u.test(text)
+    || /^[\p{Script=Han}A-Za-z0-9·\s]+[:：]/u.test(text);
+}
+
+function classifyRoleCardMessages(messages) {
+  const classified = [];
+  let activeFloor;
+  let inRoleCardBlock = false;
+  for (const message of messages) {
+    if (message.floor !== activeFloor) {
+      activeFloor = message.floor;
+      inRoleCardBlock = false;
+    }
+    const content = message.content?.trim() ?? "";
+    if (message.kind === "role_card") {
+      inRoleCardBlock = true;
+      classified.push(message);
+      continue;
+    }
+    if (inRoleCardBlock && isRoleCardStopLine(content)) {
+      inRoleCardBlock = false;
+      classified.push(message);
+      continue;
+    }
+    if (inRoleCardBlock && (message.kind === "narration" || message.kind === "dice") && isRoleCardBlockContinuation(content)) {
+      classified.push({
+        ...message,
+        diceDescription: undefined,
+        diceReplies: undefined,
+        kind: "role_card",
+        options: undefined,
+        rollText: undefined,
+      });
+      continue;
+    }
+    classified.push(message);
+  }
+  return classified;
 }
 
 export function mergeDiceOptionMessages(messages) {
@@ -660,9 +754,9 @@ export function buildGululuReplayImportPackage(floors, options = {}) {
     buildImageSpeakerMap(buildImageSpeakerVotes(floors), { minVotes: 2 }),
     reviewedImageMap,
   );
-  const messages = mergeDiceOptionMessages(selectedFloors.flatMap((floor) => {
+  const messages = mergeDiceOptionMessages(classifyRoleCardMessages(selectedFloors.flatMap((floor) => {
     return splitImageSegments(floor.body).flatMap(segment => parseSegmentLines(segment, floor, imageSpeakerMap));
-  }));
+  })));
 
   const rolesByName = new Map();
   for (const message of messages) {
@@ -748,6 +842,7 @@ function buildMessageSource(batchSource, message, eventIndex) {
   return {
     kind: batchSource.kind,
     eventIndex,
+    originalMessageKind: message.kind,
     originalAssetPath: message.imagePath,
     originalMediaName: message.bgmName,
     originalSpeaker: message.speakerName,
@@ -911,6 +1006,16 @@ function createGululuAuthoringAdapter(authoring, importPackage, options = {}) {
       return;
     }
 
+    if (message.kind === "role_card") {
+      authoredMessages.push({
+        content: message.content,
+        customRoleName: "角色卡",
+        kind: "narration",
+        source,
+      });
+      return;
+    }
+
     authoredMessages.push({
       content: message.content,
       kind: "narration",
@@ -947,6 +1052,7 @@ export function buildImportText(importPackage) {
     bgm: "BGM",
     dice: "骰娘",
     narration: "旁白",
+    role_card: "角色卡",
   };
   return importPackage.messages.map((message) => {
     const speaker = message.kind === "dialog" ? message.speakerName : speakerByKind[message.kind];

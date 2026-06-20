@@ -3,18 +3,20 @@ import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/mode
 
 import { useMemo } from "react";
 import toast from "react-hot-toast";
+
 import MaterialPackageEditor from "@/components/material/components/materialPackageEditor";
 import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "@/components/material/components/materialPackageEditorShared";
 import { buildSpaceMaterialPackageEditorValueKey } from "@/components/material/components/materialPackageEditorValueKey";
 import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+
 import {
   useDeleteSpaceMaterialPackageMutation,
   useSpaceMaterialPackagesQuery,
   useUpdateSpaceMaterialPackageMutation,
 } from "../../../../../api/hooks/materialPackageQueryHooks";
 
-interface SpaceMaterialSubWindowProps {
+type SpaceMaterialSubWindowProps = {
   spaceId: number;
   spacePackageId: number | null;
   materialPathKey?: string | null;

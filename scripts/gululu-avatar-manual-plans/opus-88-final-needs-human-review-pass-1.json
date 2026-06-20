@@ -1,0 +1,40 @@
+{
+  "createdAt": "2026-06-08T03:35:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉复核并结清 image-role-review-clean-vision-final/index.csv 中剩余 21 个 needs-human-review 项。角色桶 unknown/conflict/low-confidence 已为空；本批处理的是最终 index 中仍带 needs-human-review 状态的候选。",
+  "moved": [
+    {
+      "sourceRelPath": "gululu/2241_0bbe28633346.png",
+      "from": "avatars/芙兰朵露·斯卡雷特/character-avatar-bust/00665__2241_0bbe28633346__10dc8ae7c099.png",
+      "to": "avatars/烈海王/character-avatar-bust/00665__2241_0bbe28633346__10dc8ae7c099.png",
+      "reason": "用户此前确认该芙兰候选实际为烈海王；同步 raw avatar 路径与烈海王 named-avatar manifest。"
+    },
+    {
+      "sourceRelPath": "gululu/3258_feb57499b66d.png",
+      "from": "role-sprites/依神紫苑/01036__3258_feb57499b66d__09ed9af18d5d.png",
+      "to": "role-sprites/蓬莱山辉夜/01036__3258_feb57499b66d__09ed9af18d5d.png",
+      "reason": "人工视觉确认：黑长发、红粉衣裙全身立绘，为蓬莱山辉夜，不是依神紫苑。"
+    }
+  ],
+  "manualConfirmed": [
+    "gululu/1035_bbde6656d512.jpg",
+    "gululu/1045_2c7406091360.png",
+    "gululu/1139_2566775b07e8.png",
+    "gululu/1206_67b6db6f963e.png",
+    "gululu/1230_48556978d437.png",
+    "gululu/1240_777c131d9059.png",
+    "gululu/1450_bd641643e8c6.png",
+    "gululu/1556_0041e3251fb7.png",
+    "gululu/1656_80f554dd29c9.png",
+    "gululu/2047_3d2553116646.png",
+    "gululu/2290_e7ac9602c67c.png",
+    "gululu/2332_f204ad3d5646.png",
+    "gululu/3050_d559d28a9b3c.png",
+    "gululu/3152_41c6a9409c59.png",
+    "gululu/3404_a699af5da217.png",
+    "gululu/3511_36828477e79d.png",
+    "gululu/3938_944f3e0eb317.png",
+    "gululu/775_f97a80e1348f.jpg",
+    "gululu/7763_f5e7750e9d79.png"
+  ]
+}

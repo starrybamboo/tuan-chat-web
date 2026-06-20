@@ -1,12 +1,21 @@
 import { useEffect, useRef } from "react";
 
+import {
+  CHAT_MESSAGE_BUBBLE_DEFAULT_CLASS,
+  CHAT_MESSAGE_ROW_CLASS,
+} from "@/components/chat/message/messageCardStyle";
+import { MediaImage } from "@/components/common/mediaImage";
+
+const PREVIEW_MESSAGE_META_ROW_CLASS = "flex min-w-0 w-full items-center gap-2 sm:gap-3 relative";
+const PREVIEW_MESSAGE_BUBBLE_CLASS = `${CHAT_MESSAGE_BUBBLE_DEFAULT_CLASS} !max-w-full sm:!max-w-full`;
+
 /**
  * 展示用聊天气泡组件的属性接口
  */
-interface DisplayChatBubbleProps {
+type DisplayChatBubbleProps = {
   /** 角色名称 */
   roleName: string;
-  /** Դ avatar canvas 引用（优先） */
+  /** 头像 canvas 引用（优先） */
   avatarCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
   /** 角色头像 URL 备用，当没有提供源 canvas 时使用 */
   avatarUrl?: string;
@@ -37,10 +46,10 @@ export function DisplayChatBubble({
     avatarUrlRef.current = avatarUrl ?? null;
   }, [avatarUrl]);
 
-  // 根据样式决定容器的 css 类和画布目标像素尺寸（大致）
-  const containerClass = useChatBubbleStyle
-    ? "w-10 h-10 rounded-full overflow-hidden"
-    : "w-20 h-20 rounded-md overflow-hidden";
+  const avatarFrameClass = useChatBubbleStyle
+    ? "size-10 sm:size-12 rounded-full overflow-hidden"
+    : "size-9 sm:size-20.5 rounded-md overflow-hidden";
+  const displayRoleName = roleName || "Undefined";
 
   const redrawRef = useRef<(() => void) | null>(null);
 
@@ -120,7 +129,6 @@ export function DisplayChatBubble({
 
       if (!img) {
         img = new Image();
-        img.crossOrigin = "anonymous";
       }
 
       const handleDraw = () => {
@@ -207,51 +215,98 @@ export function DisplayChatBubble({
     });
   }, [avatarUrl, avatarCanvasRef]);
 
+  const avatarMedia = avatarCanvasRef
+    ? (
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label={displayRoleName}
+          className="block size-full"
+        />
+      )
+    : (
+        <MediaImage
+          src={avatarUrl}
+          alt={displayRoleName}
+          className="size-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      );
+
+  if (useChatBubbleStyle) {
+    return (
+      <div className={`${CHAT_MESSAGE_ROW_CLASS} min-w-0 max-w-full overflow-hidden`}>
+        <div className="shrink-0">
+          <div className={avatarFrameClass}>
+            {avatarMedia}
+          </div>
+        </div>
+        <div className="flex min-w-0 max-w-full flex-col items-start">
+          <div className={PREVIEW_MESSAGE_META_ROW_CLASS}>
+            <div className="relative flex min-w-0 max-w-full items-center gap-2">
+              <span className="
+                block min-w-10 max-w-full truncate pb-0.5 text-sm
+                font-medium text-base-content/85 transition-all duration-200
+                sm:pb-1 sm:text-sm
+              ">
+                {displayRoleName}
+              </span>
+            </div>
+          </div>
+          <div className={PREVIEW_MESSAGE_BUBBLE_CLASS}>
+            <div className="whitespace-pre-wrap">{content}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {useChatBubbleStyle
-        ? (
-            <div className="flex w-full items-start gap-1 pb-2">
-              {/* Avatar */}
-              <div className="shrink-0">
-                <div className={containerClass}>
-                  <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="
-                    size-full block
-                  " />
-                </div>
-              </div>
-              {/* Content */}
-              <div className="flex flex-col items-start">
-                <div className="text-sm text-base-content/85 pb-1">{roleName || "Undefined"}</div>
-                <div className="
-                  max-w-xs
-                  sm:max-w-md
-                  wrap-break-word rounded-lg px-4 py-2 shadow bg-white
-                  dark:bg-black
-                ">
-                  <div className="whitespace-pre-wrap">{content}</div>
-                </div>
-              </div>
-            </div>
-          )
-        : (
-            <div className="flex w-full pb-4">
-              {/* 圆角矩形头像 */}
-              <div className="shrink-0 mr-3">
-                <div className={containerClass}>
-                  <canvas ref={canvasRef} role="img" aria-label={roleName || "avatar"} className="
-                    size-full block
-                  " />
-                </div>
-              </div>
-              {/* 消息内容 */}
-              <div className="flex-1 overflow-auto">
-                {/* 角色名 */}
-                <div className="font-semibold">{roleName || "Undefined"}</div>
-                <div className="whitespace-pre-wrap">{content}</div>
+    <div className="
+      flex w-full min-w-0 overflow-hidden py-1.5
+      sm:py-2
+      relative
+    ">
+      <div className="
+        shrink-0 pr-2
+        sm:pr-3
+      ">
+        <div className={avatarFrameClass}>
+          {avatarMedia}
+        </div>
+      </div>
+      <div className="
+        flex-1 min-w-0 pr-2
+        sm:pr-5
+      ">
+        <div className="
+          flex min-w-0 w-full items-center gap-2
+          relative
+        ">
+          <div className="relative flex min-w-0 max-w-full items-center gap-2">
+            <div className="
+              min-w-10 max-w-full text-sm/5 font-semibold
+              transition-all duration-200
+              sm:text-base/6
+            ">
+              <div className="block min-w-0 truncate">
+                {`【${displayRoleName}】`}
               </div>
             </div>
-          )}
+          </div>
+        </div>
+        <div className="
+          relative transition-all duration-200 rounded-lg px-1.5 py-0.5
+          sm:px-2 sm:py-0.5
+          wrap-break-word text-base/normal
+          sm:text-sm
+          lg:text-base
+          hover:bg-base-200/50
+        ">
+          <div className="whitespace-pre-wrap">{content}</div>
+        </div>
+      </div>
     </div>
   );
 }

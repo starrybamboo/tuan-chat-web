@@ -6,7 +6,7 @@ import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LI
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
@@ -39,6 +39,11 @@ import {
 import { useRecallDmMutation, useSendDmMutation, useUpdateDmReadPositionMutation } from "./useSendDmMutation";
 
 const PAGE_SIZE = 30;
+const DM_INITIAL_RENDER_COUNT = 16;
+const DM_RENDER_BATCH_SIZE = 12;
+const DM_WINDOW_SIZE = 9;
+const DM_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
+const DM_CHAT_VIEW_DEBUG_ENABLED = false;
 const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
 
 const styles = StyleSheet.create({
@@ -299,7 +304,7 @@ function summarizeDirectMessageForDebug(message?: MessageDirectResponse | null) 
 }
 
 function logDmChatViewDebug(event: string, detail: Record<string, unknown>) {
-  if (!__DEV__) {
+  if (!DM_CHAT_VIEW_DEBUG_ENABLED || !__DEV__) {
     return;
   }
   // eslint-disable-next-line no-console -- development-only diagnostics for direct message rendering.
@@ -342,7 +347,7 @@ function getDirectMessageContent(message: MessageDirectResponse): DirectMessageR
 
 type MessageSendStatus = "sent" | "delivered" | "failed";
 
-export function DmChatView({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenContactDrawer, safeAreaBottomInset = 0 }: DmChatViewProps) {
+function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentUserId, messages, onBack, onOpenContactDrawer, safeAreaBottomInset = 0 }: DmChatViewProps) {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const flatListRef = useRef<FlatList<MessageDirectResponse>>(null);
@@ -436,6 +441,9 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
   }, [draft]);
 
   useEffect(() => {
+    if (!DM_CHAT_VIEW_DEBUG_ENABLED) {
+      return;
+    }
     logDmChatViewDebug("timeline-snapshot", {
       contactId,
       firstChronologicalVisible: summarizeDirectMessageForDebug(paginatedMessages[0]),
@@ -497,7 +505,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     if (transition.changed) {
       commitBottomState(transition.isAtBottom);
     }
-    if (__DEV__ && scrollDebugCountRef.current < 6) {
+    if (DM_CHAT_VIEW_DEBUG_ENABLED && __DEV__ && scrollDebugCountRef.current < 6) {
       scrollDebugCountRef.current += 1;
       logDmChatViewDebug("scroll", {
         contentHeight: contentSize.height,
@@ -537,14 +545,20 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     sendInFlightRef.current = true;
     setErrorMessage(null);
     setIsSending(true);
+    setDraft("");
+    setInputHeight(COMPOSER_MIN_HEIGHT);
+    setAttachments([]);
+    setReplyMessage(null);
+    isAtBottomRef.current = true;
+    setIsAtBottom(true);
     try {
-      const uploaded = attachments.length > 0
-        ? await uploadMobileMessageAttachments(mobileApiClient, attachments)
+      const uploaded = previousAttachments.length > 0
+        ? await uploadMobileMessageAttachments(mobileApiClient, previousAttachments)
         : null;
       const requests = buildDirectMessageSendRequestsFromUploadedMedia({
-        inputText: draft,
+        inputText: previousDraft,
         receiverId: contactId,
-        replyMessageId: replyMessage?.messageId,
+        replyMessageId: previousReplyMessage?.messageId,
         uploadedFiles: uploaded?.uploadedFiles ?? [],
         uploadedImages: uploaded?.uploadedImages ?? [],
         uploadedSoundMessage: uploaded?.uploadedSoundMessage ?? null,
@@ -554,13 +568,6 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
       if (requests.length === 0) {
         throw new Error("消息内容不能为空。");
       }
-
-      setDraft("");
-      setInputHeight(COMPOSER_MIN_HEIGHT);
-      setAttachments([]);
-      setReplyMessage(null);
-      isAtBottomRef.current = true;
-      setIsAtBottom(true);
 
       for (const request of requests) {
         await sendMutation.mutateAsync(request);
@@ -577,6 +584,11 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
       setIsSending(false);
     }
   }, [attachments, contactId, draft, replyMessage, sendMutation]);
+
+  const handleComposerContentSizeChange = useCallback((event: { nativeEvent: { contentSize: { height: number } } }) => {
+    const nextHeight = Math.min(Math.max(event.nativeEvent.contentSize.height, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT);
+    setInputHeight(prev => (prev === nextHeight ? prev : nextHeight));
+  }, []);
 
   const _handlePickAttachments = useCallback(async (kind: MobileMessageAttachmentKind) => {
     setErrorMessage(null);
@@ -796,6 +808,42 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
     );
   }, [currentUserId, theme, contactAvatarUrl, contactName, getMessageStatus, handleRemoveFailedMessage, handleRetryFailedMessage, invertedMessages, onOpenContactDrawer]);
 
+  const handleScrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    isAtBottomRef.current = true;
+    setIsAtBottom(true);
+  }, []);
+
+  const handleContentSizeChange = useCallback((contentWidth: number, contentHeight: number) => {
+    logDmChatViewDebug("content-size", {
+      contentHeight,
+      contentWidth,
+      paginatedCount: paginatedMessages.length,
+    });
+  }, [paginatedMessages.length]);
+
+  const listFooter = useMemo(() => hasMoreMessages
+    ? (
+        <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
+          <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
+        </Pressable>
+      )
+    : null, [handleLoadMore, hasMoreMessages]);
+
+  const listEmpty = useMemo(() => (
+    <View style={styles.emptyState}>
+      <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
+    </View>
+  ), []);
+
+  const handleCloseActionMenu = useCallback(() => {
+    setActionMenuVisible(false);
+  }, []);
+
+  const handleActionMenuAction = useCallback((action: DmMessageAction, message: MessageDirectResponse) => {
+    void handleMessageAction(action, message);
+  }, [handleMessageAction]);
+
   const _attachmentKinds = [
     { label: "图片", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE },
     { label: "视频", kind: MOBILE_MESSAGE_ATTACHMENT_KIND.VIDEO },
@@ -839,43 +887,24 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         keyExtractor={getDirectMessageListItemKey}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
-        initialNumToRender={PAGE_SIZE}
-        ListFooterComponent={hasMoreMessages
-          ? (
-              <Pressable onPress={handleLoadMore} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
-                <ThemedText themeColor="accent" type="caption">加载更多消息</ThemedText>
-              </Pressable>
-            )
-          : null}
-        ListEmptyComponent={(
-          <View style={styles.emptyState}>
-            <ThemedText themeColor="textSecondary">暂无私聊消息</ThemedText>
-          </View>
-        )}
-        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-        maxToRenderPerBatch={PAGE_SIZE}
+        initialNumToRender={DM_INITIAL_RENDER_COUNT}
+        ListFooterComponent={listFooter}
+        ListEmptyComponent={listEmpty}
+        maintainVisibleContentPosition={DM_LIST_MAINTAIN_VISIBLE_POSITION}
+        maxToRenderPerBatch={DM_RENDER_BATCH_SIZE}
         onScroll={handleScroll}
-        onContentSizeChange={(contentWidth, contentHeight) => {
-          logDmChatViewDebug("content-size", {
-            contentHeight,
-            contentWidth,
-            paginatedCount: paginatedMessages.length,
-          });
-        }}
+        onContentSizeChange={DM_CHAT_VIEW_DEBUG_ENABLED ? handleContentSizeChange : undefined}
         // 倒置 DM 消息流需要稳定底部锚点，避免裁剪回收导致阅读位置跳动。
         removeClippedSubviews={false}
         scrollEventThrottle={100}
         style={styles.list}
+        windowSize={DM_WINDOW_SIZE}
       />
 
       {!isAtBottom && paginatedMessages.length > 0
         ? (
             <Pressable
-              onPress={() => {
-                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-                isAtBottomRef.current = true;
-                setIsAtBottom(true);
-              }}
+              onPress={handleScrollToBottom}
               style={[styles.newMessagesPill, { backgroundColor: theme.accent }]}
             >
               <ThemedText style={{ color: "#fff", fontSize: 12 }}>新消息</ThemedText>
@@ -947,10 +976,7 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
             multiline
             value={draft}
             onChangeText={handleChangeDraft}
-            onContentSizeChange={(event) => {
-              const nextHeight = event.nativeEvent.contentSize.height;
-              setInputHeight(Math.min(Math.max(nextHeight, COMPOSER_MIN_HEIGHT), COMPOSER_MAX_HEIGHT));
-            }}
+            onContentSizeChange={handleComposerContentSizeChange}
             placeholder={`给 ${contactName}...`}
             placeholderTextColor={theme.textSecondary}
             scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
@@ -980,13 +1006,19 @@ export function DmChatView({ contactId, contactName, contactAvatarFileId, curren
         </View>
       </View>
 
-      <DmMessageActionMenu
-        currentUserId={currentUserId}
-        message={actionMenuMessage}
-        onAction={(action, message) => void handleMessageAction(action, message)}
-        onClose={() => setActionMenuVisible(false)}
-        visible={actionMenuVisible}
-      />
+      {actionMenuVisible
+        ? (
+            <DmMessageActionMenu
+              currentUserId={currentUserId}
+              message={actionMenuMessage}
+              onAction={handleActionMenuAction}
+              onClose={handleCloseActionMenu}
+              visible
+            />
+          )
+        : null}
     </View>
   );
 }
+
+export const DmChatView = memo(DmChatViewInner);

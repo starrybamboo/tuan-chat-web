@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
-import type { SpaceContextMenuProps } from "@/components/chat/space/contextMenu/spaceContextMenu";
+
 import React from "react";
+
+import type { SpaceContextMenuProps } from "@/components/chat/space/contextMenu/spaceContextMenu";
 
 import ChatPageLayout from "@/components/chat/chatPageLayout";
 import ChatPageModals from "@/components/chat/chatPageModals";
@@ -10,7 +12,7 @@ import ChatSpaceSidebar from "@/components/chat/space/chatSpaceSidebar";
 
 const LazySpaceContextMenu = React.lazy(() => import("@/components/chat/space/contextMenu/spaceContextMenu"));
 
-interface ChatPagePanelsProps {
+type ChatPagePanelsProps = {
   layoutProps: Omit<ComponentProps<typeof ChatPageLayout>, "mainContent" | "sidePanelContent" | "spaceSidebar" | "subWindowContent">;
   mainContent: React.ReactNode;
   subWindowContent?: React.ReactNode;
@@ -36,7 +38,7 @@ export function ChatPagePanels({
   );
 }
 
-interface ChatPageOverlaysProps {
+type ChatPageOverlaysProps = {
   modalsProps: ComponentProps<typeof ChatPageModals>;
   contextMenuProps: ComponentProps<typeof ChatPageContextMenu>;
   spaceContextMenuProps: SpaceContextMenuProps;

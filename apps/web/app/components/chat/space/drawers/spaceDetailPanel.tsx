@@ -1,7 +1,8 @@
-import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
-
 import { lazy, Suspense, use, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { SpaceDetailTab } from "@/components/chat/chatPage.types";
+
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import RoleList from "@/components/chat/shared/components/roleLists";
@@ -13,6 +14,7 @@ import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import SpaceTrpgSettingWindow from "@/components/chat/window/spaceTrpgSettingWindow";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { BaselineArrowBackIosNew } from "@/icons";
+
 import {
   useAddSpaceMemberMutation,
   useAddSpaceRoleMutation,

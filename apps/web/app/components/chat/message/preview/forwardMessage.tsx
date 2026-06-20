@@ -1,9 +1,11 @@
-import type { ChatMessageResponse } from "../../../../../api";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
+
 import { ChatBubble } from "@/components/chat/message/chatBubble";
 import { PreviewMessage } from "@/components/chat/message/preview/previewMessage";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+
+import type { ChatMessageResponse } from "../../../../../api";
 
 /**
  * 转发消息组件，显示转发消息的预览，点击查看详情。

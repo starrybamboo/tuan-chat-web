@@ -1,0 +1,127 @@
+{
+  "createdAt": "2026-06-08T00:48:00+08:00",
+  "createdBy": "codex-current-chat-vision",
+  "notes": "人工视觉审查第六批：处理 hidden=0 且中高计数的射命丸文、今泉影狼、因幡帝、纯狐、八云紫、十六夜咲夜、琪露诺。只折叠高置信同语义状态；脸红、阴影、流泪、手势、倒置、嘴型强弱差异保留。",
+  "groups": [
+    {
+      "role": "射命丸文",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I008",
+      "memberIds": ["I008", "I010", "I012", "I013", "I014"],
+      "reason": "同为闭眼开口笑，表情状态一致，仅裁切/线条差异。"
+    },
+    {
+      "role": "射命丸文",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I006", "I011"],
+      "reason": "同为半睁温和微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "射命丸文",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I007"],
+      "reason": "同为闭眼流汗委屈小口，汗滴、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "今泉影狼",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I006", "I014"],
+      "reason": "同为睁眼微笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "今泉影狼",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I009", "I011"],
+      "reason": "同为惊讶张口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "今泉影狼",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I005"],
+      "reason": "同为闭眼平静，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "因幡帝",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I006", "I012"],
+      "reason": "同为闭眼平静，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "因幡帝",
+      "assetKind": "character-avatar-chat",
+      "representativeId": "I005",
+      "memberIds": ["I005", "I008", "I014"],
+      "reason": "同为阴影坏笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "纯狐",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I005", "I014"],
+      "reason": "同为闭眼开心笑，表情状态一致，仅裁切/画布范围差异。"
+    },
+    {
+      "role": "八云紫",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I001",
+      "memberIds": ["I001", "I007"],
+      "reason": "同为半睁淡笑，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "八云紫",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I006", "I009", "I010"],
+      "reason": "同为闭眼开心笑，表情状态一致，仅裁切/线条差异。"
+    },
+    {
+      "role": "十六夜咲夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I003",
+      "memberIds": ["I003", "I006", "I008", "I012", "I013"],
+      "reason": "同为闭眼笑，表情状态一致，仅裁切/线条差异。"
+    },
+    {
+      "role": "十六夜咲夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I010",
+      "memberIds": ["I010", "I011"],
+      "reason": "同为睁眼惊讶小口，无脸红阴影差异，仅裁切差异。"
+    },
+    {
+      "role": "十六夜咲夜",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I005"],
+      "reason": "同为阴影微笑，阴影、眼型和嘴型一致，仅裁切差异。"
+    },
+    {
+      "role": "琪露诺",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I002",
+      "memberIds": ["I002", "I012"],
+      "reason": "同为开心张口，眼型嘴型和情绪一致，仅裁切差异。"
+    },
+    {
+      "role": "琪露诺",
+      "assetKind": "character-avatar-bust",
+      "representativeId": "I004",
+      "memberIds": ["I004", "I006"],
+      "reason": "同为惊讶张口，眼型嘴型和情绪一致，仅裁切差异。"
+    }
+  ],
+  "stillDeferred": [
+    {
+      "role": "丰聪耳神子",
+      "assetKind": "character-avatar-bust",
+      "itemId": "I018",
+      "note": "用户指出“这个是”但未补全目标角色，暂不迁移。"
+    }
+  ]
+}

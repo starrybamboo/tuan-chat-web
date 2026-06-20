@@ -1,25 +1,18 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
-import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
-
 export type RoleListQuerySnapshot = Array<{
   queryKey: readonly unknown[];
   data: unknown;
 }>;
 
-export type UserRoleWithAvatarUrls = UserRole & {
-  avatarUrl?: string;
-  avatarThumbUrl?: string;
-};
+export type UserRoleCacheRecord = UserRole;
 
 export type RoleAvatarFieldPatch = {
   roleId: number;
   avatarId?: number;
   avatarFileId?: number;
   avatarMediaType?: string;
-  avatarUrl?: string;
-  avatarThumbUrl?: string;
 };
 
 const ROLE_DETAIL_CACHE_COMPLETE_FIELD = "__tcRoleDetailComplete";
@@ -28,7 +21,7 @@ type SeedUserRoleQueryCacheOptions = {
   detailComplete?: boolean;
 };
 
-function hasRoleId(role?: UserRoleWithAvatarUrls | null): role is UserRoleWithAvatarUrls & { roleId: number } {
+function hasRoleId(role?: UserRoleCacheRecord | null): role is UserRoleCacheRecord & { roleId: number } {
   return typeof role?.roleId === "number" && role.roleId > 0;
 }
 
@@ -36,18 +29,8 @@ function hasPatchRoleId(role?: RoleAvatarFieldPatch | null): role is RoleAvatarF
   return typeof role?.roleId === "number" && role.roleId > 0;
 }
 
-function hasAvatarId(role?: UserRoleWithAvatarUrls | null): role is UserRoleWithAvatarUrls & { avatarId: number } {
+function hasAvatarId(role?: UserRoleCacheRecord | null): role is UserRoleCacheRecord & { avatarId: number } {
   return typeof role?.avatarId === "number" && role.avatarId > 0;
-}
-
-function resolveRoleAvatarUrls(role: Pick<UserRoleWithAvatarUrls, "avatarFileId" | "avatarUrl" | "avatarThumbUrl">): { avatarUrl: string; avatarThumbUrl: string } {
-  const media = resolveRoleAvatarMedia(role);
-  const avatarUrl = media.avatar.url;
-  const avatarThumbUrl = media.avatar.thumbUrl || avatarUrl;
-  return {
-    avatarUrl,
-    avatarThumbUrl,
-  };
 }
 
 function omitUndefinedFields<T extends Record<string, unknown>>(record: T): Partial<T> {
@@ -62,14 +45,13 @@ export function isUserRoleDetailCacheComplete(cacheData: unknown): boolean {
 
 export function seedUserRoleQueryCache(
   queryClient: QueryClient,
-  role?: UserRoleWithAvatarUrls | null,
+  role?: UserRoleCacheRecord | null,
   options?: SeedUserRoleQueryCacheOptions,
 ): void {
   if (!hasRoleId(role)) {
     return;
   }
 
-  const roleAvatarUrls = resolveRoleAvatarUrls(role);
   queryClient.setQueryData(["getRole", role.roleId], (old: any) => {
     const previousData = old?.data ?? {};
     const rolePatch = options?.detailComplete
@@ -82,8 +64,6 @@ export function seedUserRoleQueryCache(
       data: {
         ...previousData,
         ...rolePatch,
-        avatarUrl: roleAvatarUrls.avatarUrl || previousData.avatarUrl,
-        avatarThumbUrl: roleAvatarUrls.avatarThumbUrl || previousData.avatarThumbUrl,
       },
     };
   });
@@ -92,16 +72,8 @@ export function seedUserRoleQueryCache(
     return;
   }
 
-  const { avatarUrl, avatarThumbUrl } = roleAvatarUrls;
-  if (!avatarUrl && !avatarThumbUrl) {
-    return;
-  }
-
   queryClient.setQueryData(["getRoleAvatar", role.avatarId], (old: any) => {
     const previousData = old?.data ?? {};
-    const resolvedAvatarUrl = avatarUrl || previousData.avatarUrl || avatarThumbUrl;
-    const resolvedAvatarThumbUrl = avatarThumbUrl || previousData.avatarThumbUrl || resolvedAvatarUrl;
-
     return {
       ...(old && typeof old === "object" ? old : {}),
       success: old?.success ?? true,
@@ -111,8 +83,6 @@ export function seedUserRoleQueryCache(
         roleId: role.roleId,
         avatarFileId: role.avatarFileId,
         avatarMediaType: role.avatarMediaType,
-        avatarUrl: resolvedAvatarUrl,
-        avatarThumbUrl: resolvedAvatarThumbUrl,
       },
     };
   });
@@ -130,7 +100,7 @@ function isRoomRoleListQueryKey(queryKey: readonly unknown[]): boolean {
   return scope === "roomRole" || scope === "roomNpcRole";
 }
 
-function shouldContainRole(queryKey: readonly unknown[], role: UserRoleWithAvatarUrls): boolean {
+function shouldContainRole(queryKey: readonly unknown[], role: UserRoleCacheRecord): boolean {
   const scope = queryKey[0];
   const roleType = role.type ?? 0;
   const queryUserId = queryKey[1];
@@ -155,14 +125,14 @@ function shouldContainRole(queryKey: readonly unknown[], role: UserRoleWithAvata
   return scope === "getUserRoles";
 }
 
-function getTypePriority(role: UserRoleWithAvatarUrls): number {
+function getTypePriority(role: UserRoleCacheRecord): number {
   if (role.type === 1) return 0;
   if (role.type === 0) return 1;
   if (role.type === 2) return 2;
   return 3;
 }
 
-function sortUserRoles(roles: UserRoleWithAvatarUrls[]): UserRoleWithAvatarUrls[] {
+function sortUserRoles(roles: UserRoleCacheRecord[]): UserRoleCacheRecord[] {
   return [...roles].sort((a, b) => {
     const typePriorityDiff = getTypePriority(a) - getTypePriority(b);
     if (typePriorityDiff !== 0) {
@@ -172,17 +142,11 @@ function sortUserRoles(roles: UserRoleWithAvatarUrls[]): UserRoleWithAvatarUrls[
   });
 }
 
-function omitDerivedAvatarUrls<T extends UserRoleWithAvatarUrls>(role: T): UserRoleWithAvatarUrls {
-  const { avatarUrl: _avatarUrl, avatarThumbUrl: _avatarThumbUrl, ...rest } = role;
-  return rest;
-}
-
-function upsertUserRoleList(list: UserRoleWithAvatarUrls[], role: UserRoleWithAvatarUrls): UserRoleWithAvatarUrls[] {
+function upsertUserRoleList(list: UserRoleCacheRecord[], role: UserRoleCacheRecord): UserRoleCacheRecord[] {
   if (!hasRoleId(role)) {
     return list;
   }
 
-  const roleForList = omitDerivedAvatarUrls(role);
   let found = false;
   const next = list.map((item) => {
     if (item.roleId !== role.roleId) {
@@ -191,19 +155,19 @@ function upsertUserRoleList(list: UserRoleWithAvatarUrls[], role: UserRoleWithAv
 
     found = true;
     return {
-      ...omitDerivedAvatarUrls(item),
-      ...roleForList,
+      ...item,
+      ...role,
     };
   });
 
   if (!found) {
-    next.push(roleForList);
+    next.push(role);
   }
 
   return sortUserRoles(next);
 }
 
-function removeUserRoleList(list: UserRoleWithAvatarUrls[], roleIds: Set<number>): UserRoleWithAvatarUrls[] {
+function removeUserRoleList(list: UserRoleCacheRecord[], roleIds: Set<number>): UserRoleCacheRecord[] {
   const next = list.filter(role => !roleIds.has(role.roleId ?? 0));
   return next.length === list.length ? list : next;
 }
@@ -231,7 +195,7 @@ function updatePageList(page: any, list: UserRole[], totalRecords: number): any 
 
 function updateRoleListCacheData(
   old: unknown,
-  updateList: (list: UserRoleWithAvatarUrls[]) => UserRoleWithAvatarUrls[],
+  updateList: (list: UserRoleCacheRecord[]) => UserRoleCacheRecord[],
 ): unknown {
   if (!old) {
     return old;
@@ -289,7 +253,7 @@ function snapshotUserRoleListQueries(queryClient: QueryClient): RoleListQuerySna
     }));
 }
 
-export function upsertUserRoleListQueryCache(queryClient: QueryClient, role?: UserRoleWithAvatarUrls | null): void {
+export function upsertUserRoleListQueryCache(queryClient: QueryClient, role?: UserRoleCacheRecord | null): void {
   if (!hasRoleId(role)) {
     return;
   }
@@ -329,7 +293,7 @@ export function patchUserRoleAvatarFieldsInListQueryCache(
           }
 
           return {
-            ...omitDerivedAvatarUrls(item),
+            ...item,
             avatarId: role.avatarId ?? item.avatarId,
             avatarFileId: role.avatarFileId ?? item.avatarFileId,
             avatarMediaType: role.avatarMediaType ?? item.avatarMediaType,
@@ -361,7 +325,7 @@ export function patchRoomRoleAvatarFieldsInListQueryCache(
           }
 
           return {
-            ...omitDerivedAvatarUrls(item),
+            ...item,
             avatarId: role.avatarId ?? item.avatarId,
             avatarFileId: role.avatarFileId ?? item.avatarFileId,
             avatarMediaType: role.avatarMediaType ?? item.avatarMediaType,

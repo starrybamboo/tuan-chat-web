@@ -1,6 +1,8 @@
-import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
 import { useRouter } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useMemo, useState } from "react";
+
+import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
+
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";

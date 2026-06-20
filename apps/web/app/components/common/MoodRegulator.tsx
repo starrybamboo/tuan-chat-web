@@ -5,7 +5,7 @@ import { DoubleClickEditableText } from "@/components/common/DoubleClickEditable
 export type MoodMap = Record<string, string>;
 type MoodNumberMap = Record<string, number>;
 
-interface MoodRegulatorProps {
+type MoodRegulatorProps = {
   value?: MoodMap | null | undefined;
   defaultValue?: MoodMap;
   onChange?: (next: MoodMap) => void;
@@ -25,7 +25,7 @@ interface MoodRegulatorProps {
   fallbackDefaultLabels?: boolean;
 }
 
-export interface MoodRegulatorHandle {
+export type MoodRegulatorHandle = {
   // 以字符串 map 形式设置当前值（不触发 onChange）
   setValue: (next: MoodMap) => void;
   // 获取当前字符串 map 值（会按当前 labels 导出）

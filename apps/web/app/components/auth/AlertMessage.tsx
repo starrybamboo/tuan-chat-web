@@ -1,4 +1,4 @@
-interface AlertMessageProps {
+type AlertMessageProps = {
   errorMessage: string;
   successMessage: string;
 }

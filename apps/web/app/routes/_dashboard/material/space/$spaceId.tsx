@@ -1,5 +1,7 @@
-import type { RouteMetaArgs } from "@/routes/routeTypes";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+
+import type { RouteMetaArgs } from "@/routes/routeTypes";
+
 import SpaceMaterialLibraryPage from "@/components/material/pages/spaceMaterialLibraryPage";
 import { createSeoMeta } from "@/utils/seo";
 

@@ -1,10 +1,12 @@
 import type { SubmitHandler } from "react-hook-form";
-import { useAddRepositoryMutation } from "api/hooks/repositoryQueryHooks";
+
 import { useForm, useWatch } from "react-hook-form";
+
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import message from "@/components/common/message/message";
+import { useAddRepositoryMutation } from "api/hooks/repositoryQueryHooks";
 
-export interface RepositoryCreateRequest {
+export type RepositoryCreateRequest = {
   ruleId: number;
   authorName: string;
   description: string;

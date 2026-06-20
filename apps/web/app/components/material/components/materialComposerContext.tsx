@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
-import type { MediaAnnotationPreferenceType } from "@/components/chat/utils/mediaAnnotationPreference";
 
 import { produce } from "immer";
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { MediaAnnotationPreferenceType } from "@/components/chat/utils/mediaAnnotationPreference";
+
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
 import { resolveTempAnnotationsForMedia } from "@/components/chat/utils/mediaAnnotationPreference";
 import { areAnnotationsEqual, normalizeAnnotations } from "@/types/messageAnnotations";
+
 import {
   buildQueuedFilesSummary,
   ensureMaterialComposerMediaPreferences,
@@ -14,7 +17,7 @@ import {
   splitComposerFiles,
 } from "./materialComposerShared";
 
-interface EmojiAttachmentMeta {
+type EmojiAttachmentMeta = {
   fileId?: number;
   width?: number;
   height?: number;
@@ -23,14 +26,14 @@ interface EmojiAttachmentMeta {
   fileName?: string;
 }
 
-interface QueueFilesOptions {
+type QueueFilesOptions = {
   showSuccessToast?: boolean;
   showEmptyToast?: boolean;
 }
 
 type MaterialComposerPreferenceSource = MediaAnnotationPreferenceType | null;
 
-interface MaterialComposerContextValue {
+type MaterialComposerContextValue = {
   roomId: number;
   imgFiles: File[];
   emojiUrls: string[];
