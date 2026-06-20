@@ -6,16 +6,31 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EAS_GRADLE_CACHE": "1",
+        "EAS_USE_CACHE": "1",
+        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
+      }
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EAS_GRADLE_CACHE": "1",
+        "EAS_USE_CACHE": "1",
+        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EAS_GRADLE_CACHE": "1",
+        "EAS_USE_CACHE": "1",
+        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1"
+      }
     }
   },
   "submit": {
