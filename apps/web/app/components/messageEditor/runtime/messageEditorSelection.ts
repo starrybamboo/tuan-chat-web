@@ -393,13 +393,36 @@ function getOffsetWithinBlock(blockElement: HTMLElement, container: Node, offset
 }
 
 /**
+ * 判断原生 Selection 是否为反向选择（focus 在 anchor 之前）。
+ * Range 始终按文档序归一化，丢失了 anchor/focus 方向，需借助 Selection 还原。
+ */
+export function isNativeSelectionBackward(selection: Selection | null | undefined): boolean {
+  if (!selection || selection.isCollapsed || !selection.anchorNode || !selection.focusNode) {
+    return false;
+  }
+  const probe = document.createRange();
+  try {
+    probe.setStart(selection.anchorNode, selection.anchorOffset);
+    probe.setEnd(selection.focusNode, selection.focusOffset);
+  }
+  catch {
+    return false;
+  }
+  // setEnd 落在 setStart 之前时 Range 会塌缩，说明 focus 在 anchor 之前。
+  return probe.collapsed;
+}
+
+/**
  * 从原生 Range 中解析 editor 选区。
+ * backward 为 true 时表示 Range 的 end 才是 anchor、start 才是 focus，
+ * 用于保留 Shift 反向选择的方向语义。
  */
 export function resolveMessageEditorSelectionFromRange(
   root: HTMLElement,
   messages: MessageEditorMessage[],
   registry: MessageEditorRegistry,
   range: Range,
+  backward = false,
 ): MessageEditorSelection | null {
   const startBlock = findBlockElement(range.startContainer, root);
   const endBlock = findBlockElement(range.endContainer, root);
@@ -423,13 +446,39 @@ export function resolveMessageEditorSelectionFromRange(
     return previewVisibleOffsetToMessageEditorRawOffset(content, visibleOffset);
   };
 
-  return createMessageEditorSelection(messages, registry, {
+  const startPoint: MessageEditorSelectionPoint = {
     blockId: startBlockId,
     offset: resolveOffset(startBlock, startBlockId, range.startContainer, range.startOffset),
-  }, {
+  };
+  const endPoint: MessageEditorSelectionPoint = {
     blockId: endBlockId,
     offset: resolveOffset(endBlock, endBlockId, range.endContainer, range.endOffset),
-  });
+  };
+
+  const anchor = backward ? endPoint : startPoint;
+  const focus = backward ? startPoint : endPoint;
+  return createMessageEditorSelection(messages, registry, anchor, focus);
+}
+
+/**
+ * 从原生 Selection 中解析 editor 选区，自动保留 anchor/focus 方向。
+ */
+export function resolveMessageEditorSelectionFromNative(
+  root: HTMLElement,
+  messages: MessageEditorMessage[],
+  registry: MessageEditorRegistry,
+  selection: Selection,
+): MessageEditorSelection | null {
+  if (selection.rangeCount === 0) {
+    return null;
+  }
+  return resolveMessageEditorSelectionFromRange(
+    root,
+    messages,
+    registry,
+    selection.getRangeAt(0),
+    isNativeSelectionBackward(selection),
+  );
 }
 
 function findDomPositionByOffset(blockElement: HTMLElement, targetOffset: number): { node: Node; offset: number } {

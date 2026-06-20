@@ -9,12 +9,12 @@ concurrency:
 
 jobs:
   build_android:
-    name: Build Android production
+    name: Build Android production APK
     type: build
     environment: production
     params:
       platform: android
-      profile: production
+      profile: production-apk
   build_ios:
     name: Build iOS production
     type: build

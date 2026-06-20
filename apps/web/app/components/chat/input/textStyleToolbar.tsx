@@ -6,13 +6,16 @@ import {
   GearSixIcon,
   HighlighterIcon,
   PaletteIcon,
+  PlusIcon,
   TextAaIcon,
   TextBIcon,
   TextHOneIcon,
   TextHThreeIcon,
   TextHTwoIcon,
   TextItalicIcon,
+  TextStrikethroughIcon,
   TextUnderlineIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 
@@ -82,6 +85,26 @@ const HEADING_OPTIONS = [
 ] as const;
 const LETTER_SPACING_OPTIONS = ["0.02em", "0.05em", "0.1em", "0.2em"] as const;
 const OPACITY_OPTIONS = ["0.55", "0.7", "0.85", "1"] as const;
+const FONT_WEIGHT_OPTIONS = ["100", "300", "400", "500", "600", "700", "900"] as const;
+const FONT_FAMILY_OPTIONS = [
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+] as const;
+const LINE_HEIGHT_OPTIONS = ["1", "1.2", "1.5", "1.75", "2"] as const;
+const WORD_SPACING_OPTIONS = ["0.1em", "0.25em", "0.5em", "1em"] as const;
+const TEXT_ALIGN_OPTIONS = ["left", "center", "right", "justify"] as const;
+const TEXT_TRANSFORM_OPTIONS = ["none", "uppercase", "lowercase", "capitalize"] as const;
+const TEXT_STROKE_OPTIONS = ["0.5px #000", "1px #000", "1px #fff", "2px #e11d48"] as const;
+const FILTER_OPTIONS = ["blur(1px)", "drop-shadow(0 2px 4px #0008)", "brightness(1.3)", "contrast(1.4)", "grayscale(1)"] as const;
+const TRANSFORM_OPTIONS = ["rotate(-6deg)", "rotate(6deg)", "skewX(-12deg)", "scale(1.15)"] as const;
+const TEXT_SHADOW_OPTIONS = ["0 1px 2px #0009", "0 0 6px #fde68a", "1px 1px 0 #e11d48", "0 2px 8px #4f46e5"] as const;
+const BORDER_OPTIONS = ["1px solid currentColor", "1px dashed #94a3b8", "2px solid #e11d48"] as const;
+const BORDER_RADIUS_OPTIONS = ["2px", "4px", "8px", "9999px"] as const;
+const SPACING_OPTIONS = ["0 2px", "0 4px", "2px 6px", "4px 8px"] as const;
 
 function preventSelectionLoss(event: ReactMouseEvent<HTMLElement>) {
   event.preventDefault();
@@ -352,6 +375,291 @@ function textInputClassName(extra = "") {
   return `h-8 rounded-md border border-base-300 bg-base-100 px-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${extra}`;
 }
 
+function DialogColorPicker({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly string[];
+  value: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          className={[
+            "flex h-7 items-center rounded-md border px-2 text-xs transition hover:bg-base-200",
+            value ? "border-base-300 text-base-content/70" : "border-base-content text-base-content",
+          ].join(" ")}
+          onClick={() => onChange("")}
+        >
+          无
+        </button>
+        {options.map(color => (
+          <button
+            key={color}
+            type="button"
+            className={[
+              "size-7 rounded-md border transition hover:scale-105",
+              value.toLowerCase() === color.toLowerCase() ? "border-base-content ring-2 ring-primary/25" : "border-base-300",
+            ].join(" ")}
+            style={{ backgroundColor: color }}
+            onClick={() => onChange(color)}
+            title={color}
+            aria-label={`${label} ${color}`}
+          />
+        ))}
+        <input
+          type="color"
+          className="h-7 w-9 cursor-pointer rounded border border-base-300 bg-transparent"
+          value={value || "#000000"}
+          onChange={event => onChange(event.target.value)}
+          title={`自定义${label}`}
+          aria-label={`自定义${label}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DialogToggle({
+  active,
+  children,
+  label,
+  onToggle,
+}: {
+  active: boolean;
+  children: ReactNode;
+  label: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={[
+        "flex h-8 min-w-8 items-center justify-center gap-1 rounded-md border px-2 text-sm transition",
+        active ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/75 hover:bg-base-200",
+      ].join(" ")}
+      onClick={onToggle}
+      title={label}
+      aria-label={label}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DialogSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2 rounded-lg border border-base-300/70 bg-base-200/30 p-3">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-medium tracking-wide text-base-content/70">{title}</span>
+        {hint ? <span className="text-[11px] text-base-content/40">{hint}</span> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** 文本输入 + datalist 建议：既能从预设里挑，也能写任意 CSS 值。 */
+function SuggestField({
+  label,
+  value,
+  placeholder,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) {
+  const listId = `suggest-${label}`;
+  return (
+    <label className="flex flex-col gap-1">
+      <FieldLabel>{label}</FieldLabel>
+      <input
+        type="text"
+        className={textInputClassName()}
+        placeholder={placeholder}
+        value={value}
+        list={listId}
+        onChange={event => onChange(event.target.value)}
+      />
+      <datalist id={listId}>
+        {options.map(option => <option key={option} value={option} />)}
+      </datalist>
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  emptyLabel = "不设置",
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  emptyLabel?: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <FieldLabel>{label}</FieldLabel>
+      <select
+        className={textInputClassName(disabled ? "opacity-50" : "")}
+        value={value}
+        disabled={disabled}
+        onChange={event => onChange(event.target.value)}
+      >
+        <option value="">{emptyLabel}</option>
+        {options.map(option => <option key={option} value={option}>{option}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  fallback,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  fallback: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="color"
+          className="h-8 w-10 shrink-0 cursor-pointer rounded border border-base-300 bg-transparent"
+          value={value || fallback}
+          onChange={event => onChange(event.target.value)}
+          title={label}
+          aria-label={label}
+        />
+        <input
+          type="text"
+          className={textInputClassName("min-w-0 flex-1")}
+          placeholder={fallback}
+          value={value}
+          onChange={event => onChange(event.target.value)}
+        />
+        <button
+          type="button"
+          className="h-8 shrink-0 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200 disabled:opacity-40"
+          disabled={!value}
+          onClick={() => onChange("")}
+        >
+          清除
+        </button>
+      </div>
+    </label>
+  );
+}
+
+type CssRow = { id: number; property: string; value: string };
+
+const CSS_PROPERTY_SUGGESTIONS = [
+  "background",
+  "background-clip",
+  "-webkit-background-clip",
+  "-webkit-text-fill-color",
+  "writing-mode",
+  "text-orientation",
+  "white-space",
+  "word-break",
+  "text-indent",
+  "vertical-align",
+  "mix-blend-mode",
+  "backdrop-filter",
+  "clip-path",
+  "animation",
+  "transition",
+  "box-shadow",
+  "outline",
+] as const;
+
+let cssRowSeq = 0;
+function createCssRow(): CssRow {
+  cssRowSeq += 1;
+  return { id: cssRowSeq, property: "", value: "" };
+}
+
+function CssPropertyRepeater({
+  rows,
+  onChange,
+}: {
+  rows: CssRow[];
+  onChange: (rows: CssRow[]) => void;
+}) {
+  const updateRow = (id: number, patch: Partial<CssRow>) => {
+    onChange(rows.map(row => (row.id === id ? { ...row, ...patch } : row)));
+  };
+  const removeRow = (id: number) => {
+    onChange(rows.filter(row => row.id !== id));
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      {rows.map(row => (
+        <div key={row.id} className="flex items-center gap-1.5">
+          <input
+            type="text"
+            className={textInputClassName("min-w-0 flex-1")}
+            placeholder="属性，如 writing-mode"
+            value={row.property}
+            list="css-property-suggestions"
+            onChange={event => updateRow(row.id, { property: event.target.value })}
+          />
+          <span className="text-base-content/40">:</span>
+          <input
+            type="text"
+            className={textInputClassName("min-w-0 flex-1")}
+            placeholder="值，如 vertical-rl"
+            value={row.value}
+            onChange={event => updateRow(row.id, { value: event.target.value })}
+          />
+          <button
+            type="button"
+            className="flex size-8 shrink-0 items-center justify-center rounded-md border border-base-300 text-base-content/60 transition hover:bg-base-200 hover:text-error"
+            onClick={() => removeRow(row.id)}
+            title="删除"
+            aria-label="删除该属性"
+          >
+            <TrashIcon size={15} />
+          </button>
+        </div>
+      ))}
+      <datalist id="css-property-suggestions">
+        {CSS_PROPERTY_SUGGESTIONS.map(property => <option key={property} value={property} />)}
+      </datalist>
+      <button
+        type="button"
+        className="flex h-8 items-center justify-center gap-1.5 rounded-md border border-dashed border-base-300 text-sm text-base-content/70 transition hover:border-primary hover:text-primary"
+        onClick={() => onChange([...rows, createCssRow()])}
+      >
+        <PlusIcon size={15} weight="bold" />
+        添加 CSS 属性
+      </button>
+    </div>
+  );
+}
+
 function AdvancedStyleDialog({
   initialText,
   onClose,
@@ -362,6 +670,13 @@ function AdvancedStyleDialog({
   onConfirm: (text: string, options: Parameters<typeof buildTextStyleSyntax>[1]) => void;
 }) {
   const [text, setText] = useState(initialText || "");
+  const [color, setColor] = useState("");
+  const [backgroundColor, setBackgroundColor] = useState("");
+  const [fontSize, setFontSize] = useState("");
+  const [bold, setBold] = useState(false);
+  const [italic, setItalic] = useState(false);
+  const [underline, setUnderline] = useState(false);
+  const [headingLevel, setHeadingLevel] = useState<0 | 1 | 2 | 3>(0);
   const [ruby, setRuby] = useState("");
   const [letterSpacing, setLetterSpacing] = useState("");
   const [opacity, setOpacity] = useState("");
@@ -371,7 +686,14 @@ function AdvancedStyleDialog({
   const [customStyle, setCustomStyle] = useState("");
   const [customStyleAllText, setCustomStyleAllText] = useState("");
 
+  const headingFontSize = headingLevel === 1 ? "200%" : headingLevel === 2 ? "150%" : headingLevel === 3 ? "125%" : undefined;
   const previewStyle: CSSProperties = {
+    ...(color ? { color } : {}),
+    ...(backgroundColor ? { backgroundColor } : {}),
+    ...(headingFontSize ? { fontSize: headingFontSize } : fontSize ? { fontSize } : {}),
+    ...(headingLevel || bold ? { fontWeight: "bold" } : {}),
+    ...(italic ? { fontStyle: "italic" } : {}),
+    ...(underline ? { textDecoration: "underline" } : {}),
     ...(letterSpacing ? { letterSpacing } : {}),
     ...(opacity ? { opacity } : {}),
     ...(textShadow ? { textShadow } : {}),
@@ -391,6 +713,122 @@ function AdvancedStyleDialog({
           value={text}
           onChange={event => setText(event.target.value)}
         />
+      </label>
+
+      <div className="flex flex-col gap-1.5">
+        <FieldLabel>样式</FieldLabel>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            className={[
+              "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
+              bold ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
+            ].join(" ")}
+            onClick={() => setBold(previous => !previous)}
+            title="粗体"
+            aria-label="粗体"
+          >
+            <TextBIcon size={16} weight="bold" />
+          </button>
+          <button
+            type="button"
+            className={[
+              "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
+              italic ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
+            ].join(" ")}
+            onClick={() => setItalic(previous => !previous)}
+            title="斜体"
+            aria-label="斜体"
+          >
+            <TextItalicIcon size={16} weight="bold" />
+          </button>
+          <button
+            type="button"
+            className={[
+              "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
+              underline ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
+            ].join(" ")}
+            onClick={() => setUnderline(previous => !previous)}
+            title="下划线"
+            aria-label="下划线"
+          >
+            <TextUnderlineIcon size={16} weight="bold" />
+          </button>
+          {HEADING_OPTIONS.map(option => (
+            <button
+              key={option.level}
+              type="button"
+              className={[
+                "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
+                headingLevel === option.level ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
+              ].join(" ")}
+              onClick={() => setHeadingLevel(previous => previous === option.level ? 0 : option.level)}
+              title={option.label}
+              aria-label={option.label}
+            >
+              <HeadingIcon level={option.level} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1">
+          <FieldLabel>文字颜色</FieldLabel>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="color"
+              className="h-8 w-10 cursor-pointer rounded border border-base-300 bg-transparent"
+              value={color || "#E11D48"}
+              onChange={event => setColor(event.target.value)}
+              title="文字颜色"
+              aria-label="文字颜色"
+            />
+            <button
+              type="button"
+              className="h-8 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200 disabled:opacity-40"
+              disabled={!color}
+              onClick={() => setColor("")}
+            >
+              清除
+            </button>
+          </div>
+        </label>
+        <label className="flex flex-col gap-1">
+          <FieldLabel>背景色</FieldLabel>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="color"
+              className="h-8 w-10 cursor-pointer rounded border border-base-300 bg-transparent"
+              value={backgroundColor || "#FEF3C7"}
+              onChange={event => setBackgroundColor(event.target.value)}
+              title="背景色"
+              aria-label="背景色"
+            />
+            <button
+              type="button"
+              className="h-8 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200 disabled:opacity-40"
+              disabled={!backgroundColor}
+              onClick={() => setBackgroundColor("")}
+            >
+              清除
+            </button>
+          </div>
+        </label>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <FieldLabel>字号</FieldLabel>
+        <select
+          className={textInputClassName()}
+          value={fontSize}
+          onChange={event => setFontSize(event.target.value)}
+          disabled={headingLevel !== 0}
+          title={headingLevel !== 0 ? "标题已设定字号" : undefined}
+        >
+          <option value="">不设置</option>
+          {FONT_SIZE_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
+        </select>
       </label>
 
       <label className="flex flex-col gap-1">
@@ -524,14 +962,21 @@ function AdvancedStyleDialog({
               return;
             }
             onConfirm(normalizedText, {
+              backgroundColor: backgroundColor || undefined,
+              bold: bold || undefined,
+              color: color || undefined,
               customStyle,
               customStyleAllText,
+              fontSize: headingLevel === 0 ? (fontSize || undefined) : undefined,
+              headingLevel: headingLevel === 0 ? undefined : headingLevel,
+              italic: italic || undefined,
               letterSpacing: letterSpacing || undefined,
               margin: normalizeTextInput(margin) || undefined,
               opacity: opacity || undefined,
               padding: normalizeTextInput(padding) || undefined,
               ruby: normalizeTextInput(ruby) || undefined,
               textShadow: normalizeTextInput(textShadow) || undefined,
+              underline: underline || undefined,
             });
           }}
         >
