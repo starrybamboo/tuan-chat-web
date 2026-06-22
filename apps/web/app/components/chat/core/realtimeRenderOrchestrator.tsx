@@ -145,6 +145,7 @@ export default function RealtimeRenderOrchestrator({
   const roomSessionRef = useRef(0);
 
   const isRenderingHistoryRef = useRef(false);
+  const pendingJumpMessageIdRef = useRef<number | null>(null);
   const orderedHistoryMessages = useMemo(() => {
     return sortMessagesForRender(historyMessages ?? []);
   }, [historyMessages]);
@@ -170,6 +171,7 @@ export default function RealtimeRenderOrchestrator({
     prevHistoryRenderFingerprintMapRef.current = new Map();
     prevHistoryMessagesByIdRef.current = new Map();
     pendingFullRerenderRef.current = null;
+    pendingJumpMessageIdRef.current = null;
     clearFullRerenderTimer();
   }, [clearFullRerenderTimer]);
   const commitRenderedHistoryState = useCallback((messages: ChatMessageResponse[]) => {
@@ -220,6 +222,17 @@ export default function RealtimeRenderOrchestrator({
       }
     }
   }, []);
+  const flushPendingJumpToWebGAL = useCallback((): boolean => {
+    const messageId = pendingJumpMessageIdRef.current;
+    if (messageId == null) {
+      return false;
+    }
+    pendingJumpMessageIdRef.current = null;
+    if (!realtimeRender.isActive) {
+      return false;
+    }
+    return realtimeRender.jumpToMessage(messageId, roomId, { forceReload: true });
+  }, [realtimeRender, roomId]);
   const renderHistoryMessages = useCallback(async () => {
     const sessionId = roomSessionRef.current;
     if (!orderedHistoryMessages || orderedHistoryMessages.length === 0) {
@@ -253,8 +266,9 @@ export default function RealtimeRenderOrchestrator({
     }
     finally {
       isRenderingHistoryRef.current = false;
+      flushPendingJumpToWebGAL();
     }
-  }, [commitRenderedHistoryState, orderedHistoryMessages, realtimeRender, roomId]);
+  }, [commitRenderedHistoryState, flushPendingJumpToWebGAL, orderedHistoryMessages, realtimeRender, roomId]);
 
   useEffect(() => {
     if (prevRoomIdRef.current === null) {
@@ -445,6 +459,10 @@ export default function RealtimeRenderOrchestrator({
     if (!realtimeRender.isActive) {
       return false;
     }
+    if (isRenderingHistoryRef.current) {
+      pendingJumpMessageIdRef.current = messageId;
+      return true;
+    }
     return realtimeRender.jumpToMessage(messageId, roomId);
   }, [realtimeRender, roomId]);
 
@@ -485,8 +503,9 @@ export default function RealtimeRenderOrchestrator({
     }
     finally {
       isRenderingHistoryRef.current = false;
+      flushPendingJumpToWebGAL();
     }
-  }, [commitRenderedHistoryState, orderedHistoryMessages, realtimeRender, roomId]);
+  }, [commitRenderedHistoryState, flushPendingJumpToWebGAL, orderedHistoryMessages, realtimeRender, roomId]);
 
   const rerenderHistoryFromIndexInWebGAL = useCallback(async (
     startIndex: number,
@@ -516,8 +535,9 @@ export default function RealtimeRenderOrchestrator({
     }
     finally {
       isRenderingHistoryRef.current = false;
+      flushPendingJumpToWebGAL();
     }
-  }, [commitRenderedHistoryState, orderedHistoryMessages, realtimeRender, roomId]);
+  }, [commitRenderedHistoryState, flushPendingJumpToWebGAL, orderedHistoryMessages, realtimeRender, roomId]);
 
   const updateAndRerenderMessageInWebGAL = useCallback(async (
     previousMessage: ChatMessageResponse,
@@ -544,11 +564,18 @@ export default function RealtimeRenderOrchestrator({
 
     return runWithDelayedMessageSyncToast(loadingMessage, async () => {
       if (strategy === "self") {
-        const success = await realtimeRender.updateAndRerenderMessage(message, roomId, regenerateTTS);
-        if (success) {
-          commitTrackedMessageState(message);
+        isRenderingHistoryRef.current = true;
+        try {
+          const success = await realtimeRender.updateAndRerenderMessage(message, roomId, regenerateTTS);
+          if (success) {
+            commitTrackedMessageState(message);
+          }
+          return success;
         }
-        return success;
+        finally {
+          isRenderingHistoryRef.current = false;
+          flushPendingJumpToWebGAL();
+        }
       }
 
       const messagesToRender = orderedHistoryMessages.map((entry) => {
@@ -565,6 +592,7 @@ export default function RealtimeRenderOrchestrator({
     });
   }, [
     commitTrackedMessageState,
+    flushPendingJumpToWebGAL,
     orderedHistoryMessages,
     realtimeAutoFigureEnabled,
     realtimeMiniAvatarEnabled,
@@ -745,6 +773,7 @@ export default function RealtimeRenderOrchestrator({
         }
         finally {
           isRenderingHistoryRef.current = false;
+          flushPendingJumpToWebGAL();
         }
       })();
       const lastAppended = appendedMessages[appendedMessages.length - 1];
@@ -759,6 +788,7 @@ export default function RealtimeRenderOrchestrator({
   }, [
     chatHistoryLoading,
     commitRenderedHistoryState,
+    flushPendingJumpToWebGAL,
     orderedHistoryMessages,
     realtimeAutoFigureEnabled,
     realtimeAutoAdvanceEnabled,

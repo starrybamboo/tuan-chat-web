@@ -14,7 +14,7 @@ describe("internal navigation source guard", () => {
     const loggedInView = readAppFile("apps/web/app/components/auth/LoggedInView.tsx");
 
     expect(loggedInView).toContain("import { Link } from \"@tanstack/react-router\"");
-    expect(loggedInView).toContain("<Link to=\"/\" className=\"btn btn-primary\">");
+    expect(loggedInView).toContain("<Link to=\"/\" className=\"btn btn-primary w-full gap-2\">");
     expect(loggedInView).not.toContain("<a href=\"/\"");
   });
 

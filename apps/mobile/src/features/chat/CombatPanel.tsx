@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   container: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl },
+  scrollContent: { paddingBottom: Spacing.xxl },
   currentBadge: {
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm,
@@ -199,7 +200,7 @@ function CombatPanelContent({
   ]);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <ThemedText style={styles.title}>战斗</ThemedText>
 
       <View style={styles.section}>

@@ -1,7 +1,7 @@
-import type { RoleAvatarVariant } from "api";
-
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+import type { RoleAvatarVariant } from "api";
 
 export type UploadVariantTarget =
   | { mode: "none" }

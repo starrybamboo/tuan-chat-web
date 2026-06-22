@@ -3,6 +3,7 @@ import type { RoleAvatarMediaSource } from "@/components/Role/sprite/roleAvatarM
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 
 import type { RoleAvatar } from "../../api";
+import type { FigureCompositionCandidate, WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { checkFileExist, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
 import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";
@@ -12,7 +13,6 @@ import {
   getAvatarCropContextSignature,
   resolveFigureCompositionCandidate,
 } from "./webgalFigureComposition";
-import type { FigureCompositionCandidate, WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 export type RealtimeAssetUploadContext = {
   gameName: string;

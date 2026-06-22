@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import type { FigurePositionKey } from "@/types/voiceRenderTypes";
 import type { StateEventExtra } from "@/types/stateEvent";
+import type { FigurePositionKey } from "@/types/voiceRenderTypes";
 /**
  * WebGAL 实时渲染器，负责将聊天消息写入场景并提供预览控制。
  */
@@ -49,8 +49,8 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeAssetUploadContext } from "./realtimeRendererAssetUploads";
-import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 import type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
+import type { IDebugMessage } from "./fileOperator";
 import type { RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
 import type {
   RoomFigureRenderState,
@@ -58,9 +58,10 @@ import type {
   RoomRenderStateStores,
 } from "./realtimeRendererStateSnapshots";
 import type { WorkflowGraph } from "./realtimeRendererWorkflow";
+import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache } from "../../api/hooks/RoleAndAvatarHooks";
-import { checkFileExist, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
+import { checkFileExist, DebugCommand, getAsyncMsg, getFileExtensionFromUrl, readTextFile, uploadFile } from "./fileOperator";
 import {
   collectMessageAssetWarmupPlan,
   DEFAULT_REALTIME_ASSET_CONCURRENCY,
@@ -157,7 +158,7 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v29";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v31";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
@@ -190,6 +191,24 @@ type SyncMessageOptions = {
   force?: boolean;
   forceReload?: boolean;
 };
+
+type JumpToMessageOptions = {
+  forceReload?: boolean;
+};
+
+type FastPreviewTimeoutPayload = {
+  elapsedMs?: number;
+  forwardedLineCount?: number;
+  maxDurationMs?: number;
+  scene?: string;
+  sentence?: number;
+  targetSentence?: number;
+};
+
+function normalizeSceneLineFragments(line: string, allowEmpty = false): string[] {
+  const fragments = String(line ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  return allowEmpty ? fragments : fragments.filter(fragment => fragment.trim());
+}
 
 type PendingDiceMergeEntry = {
   message: ChatMessageResponse;
@@ -1417,6 +1436,58 @@ export class RealtimeRenderer {
     this.sendSyncMessage(roomId, { force: true });
   }
 
+  private isQueuedCommand(messageText: string, command: DebugCommand): boolean {
+    try {
+      const parsed = JSON.parse(messageText) as IDebugMessage;
+      return parsed?.data?.command === command;
+    }
+    catch {
+      return false;
+    }
+  }
+
+  private enqueueDebugMessage(messageText: string, options: { replaceQueuedJump?: boolean } = {}): void {
+    if (options.replaceQueuedJump) {
+      this.messageQueue = this.messageQueue.filter(item => !this.isQueuedCommand(item, DebugCommand.JUMP));
+    }
+    this.messageQueue.push(messageText);
+  }
+
+  private sendDebugMessage(messageText: string, options: { replaceQueuedJump?: boolean } = {}): boolean {
+    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
+      this.syncSocket.send(messageText);
+      return true;
+    }
+    this.enqueueDebugMessage(messageText, options);
+    return true;
+  }
+
+  private handleSyncSocketMessage(rawData: unknown): void {
+    if (typeof rawData !== "string") {
+      return;
+    }
+    let parsed: IDebugMessage;
+    try {
+      parsed = JSON.parse(rawData) as IDebugMessage;
+    }
+    catch {
+      return;
+    }
+
+    if (parsed?.data?.command !== DebugCommand.FAST_PREVIEW_TIMEOUT) {
+      return;
+    }
+
+    let payload: FastPreviewTimeoutPayload | null = null;
+    try {
+      payload = JSON.parse(parsed.data.message) as FastPreviewTimeoutPayload;
+    }
+    catch {
+      payload = null;
+    }
+    console.warn("[RealtimeRenderer] WebGAL 实时预览快进超时", payload ?? parsed.data.sceneMsg);
+  }
+
   /**
    * 连接 WebSocket
    */
@@ -1452,6 +1523,13 @@ export class RealtimeRenderer {
           if (msg)
             this.syncSocket?.send(msg);
         }
+      };
+
+      this.syncSocket.onmessage = (event) => {
+        if (this.disposed) {
+          return;
+        }
+        this.handleSyncSocketMessage(event.data);
       };
 
       this.syncSocket.onclose = () => {
@@ -1520,13 +1598,7 @@ export class RealtimeRenderer {
 
     const msg = getAsyncMsg(`${sceneName}.txt`, context.lineNumber, options.forceReload === true);
     const msgStr = JSON.stringify(msg);
-
-    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
-      this.syncSocket.send(msgStr);
-    }
-    else {
-      this.messageQueue.push(msgStr);
-    }
+    this.sendDebugMessage(msgStr, { replaceQueuedJump: true });
   }
 
   /**
@@ -1541,7 +1613,8 @@ export class RealtimeRenderer {
     if (this.disposed) {
       return;
     }
-    if (!allowEmpty && !line.trim())
+    const lineFragments = normalizeSceneLineFragments(line, allowEmpty);
+    if (lineFragments.length === 0)
       return;
 
     let context = this.sceneContextMap.get(roomId);
@@ -1551,10 +1624,11 @@ export class RealtimeRenderer {
       context = this.sceneContextMap.get(roomId)!;
     }
 
+    const appendedText = lineFragments.join("\n");
     context.text = context.text
-      ? `${context.text}\n${line}`
-      : line;
-    context.lineNumber += 1;
+      ? `${context.text}\n${appendedText}`
+      : appendedText;
+    context.lineNumber += lineFragments.length;
 
     if (syncToFile) {
       if (this.isRoomSyncDeferred(roomId)) {
@@ -1580,12 +1654,13 @@ export class RealtimeRenderer {
     endLine: number,
     newLines: string[],
     syncToFile: boolean = true,
-  ): Promise<void> {
+  ): Promise<number> {
     const context = this.sceneContextMap.get(roomId);
     if (!context) {
       console.warn(`[RealtimeRenderer] 房间 ${roomId} 的场景上下文不存在`);
-      return;
+      return 0;
     }
+    const normalizedNewLines = newLines.flatMap(line => normalizeSceneLineFragments(line));
 
     // 将场景文本分割为行
     const lines = context.text.split("\n");
@@ -1595,12 +1670,12 @@ export class RealtimeRenderer {
     const after = lines.slice(endLine);
 
     // 合并新内容
-    const newContent = [...before, ...newLines, ...after];
+    const newContent = [...before, ...normalizedNewLines, ...after];
     context.text = newContent.join("\n");
 
     // 更新行号（总行数变化）
     const oldLineCount = endLine - startLine + 1;
-    const newLineCount = newLines.length;
+    const newLineCount = normalizedNewLines.length;
     const lineDiff = newLineCount - oldLineCount;
     context.lineNumber += lineDiff;
 
@@ -1622,6 +1697,7 @@ export class RealtimeRenderer {
         await this.syncContextToFile(roomId);
       }
     }
+    return newLineCount;
   }
 
   private async syncContextToFile(roomId: number): Promise<void> {
@@ -2976,7 +3052,8 @@ export class RealtimeRenderer {
     if (!lineRange) {
       console.warn(`[RealtimeRenderer] 消息 ${msg.messageId} 未找到对应的行号，将使用 append 方式`);
       await this.renderMessage(message, targetRoomId, true, { bypassDiceMerge: true });
-      return true;
+      const appendedRange = this.messageLineMap.get(key);
+      return appendedRange ? this.jumpToMessage(msg.messageId, targetRoomId, { forceReload: true }) : true;
     }
 
     // 获取场景上下文
@@ -3005,7 +3082,7 @@ export class RealtimeRenderer {
 
     // 获取新渲染的内容
     const newContent = context.text;
-    const newLines = newContent.split("\n").filter(line => line.trim());
+    const newLines = normalizeSceneLineFragments(newContent);
 
     // 恢复上下文状态
     context.lineNumber = savedLineNumber;
@@ -3013,7 +3090,7 @@ export class RealtimeRenderer {
     this.applyRoomRenderStateSnapshot(targetRoomId, savedStateSnapshot);
 
     // 使用替换方法更新指定行
-    await this.replaceLinesInContext(
+    const insertedLineCount = await this.replaceLinesInContext(
       targetRoomId,
       lineRange.startLine,
       lineRange.endLine,
@@ -3021,15 +3098,22 @@ export class RealtimeRenderer {
       true,
     );
 
+    if (insertedLineCount === 0) {
+      this.messageLineMap.delete(key);
+      this.messageRenderStateSnapshotMap.delete(key);
+      this.sendSyncMessage(targetRoomId, { force: true, forceReload: true });
+      return true;
+    }
+
     // 更新消息的行号范围
-    const newEndLine = lineRange.startLine + newLines.length - 1;
+    const newEndLine = lineRange.startLine + insertedLineCount - 1;
     this.messageLineMap.set(key, {
       startLine: lineRange.startLine,
       endLine: newEndLine,
     });
 
     // 跳转到该消息
-    return this.jumpToMessage(msg.messageId, targetRoomId);
+    return this.jumpToMessage(msg.messageId, targetRoomId, { forceReload: true });
   }
 
   /**
@@ -3038,7 +3122,7 @@ export class RealtimeRenderer {
    * @param roomId 房间 ID（可选，默认使用当前房间）
    * @returns 是否跳转成功
    */
-  public jumpToMessage(messageId: number, roomId?: number): boolean {
+  public jumpToMessage(messageId: number, roomId?: number, options: JumpToMessageOptions = {}): boolean {
     const targetRoomId = roomId ?? this.currentRoomId;
     if (!targetRoomId) {
       console.warn("[RealtimeRenderer] 无法确定目标房间ID");
@@ -3052,20 +3136,16 @@ export class RealtimeRenderer {
       console.warn(`[RealtimeRenderer] 消息 ${messageId} 未找到对应的行号`);
       return false;
     }
+    if (lineRange.startLine <= 0 || lineRange.endLine < lineRange.startLine) {
+      console.warn(`[RealtimeRenderer] 消息 ${messageId} 行号范围无效`, lineRange);
+      return false;
+    }
 
     const sceneName = this.getSceneName(targetRoomId);
     // 跳转到消息的起始行
-    const msg = getAsyncMsg(`${sceneName}.txt`, lineRange.startLine);
+    const msg = getAsyncMsg(`${sceneName}.txt`, lineRange.startLine, options.forceReload === true);
     const msgStr = JSON.stringify(msg);
-
-    if (this.isConnected && this.syncSocket?.readyState === WebSocket.OPEN) {
-      this.syncSocket.send(msgStr);
-      return true;
-    }
-    else {
-      console.warn("[RealtimeRenderer] WebSocket 未连接，无法跳转");
-      return false;
-    }
+    return this.sendDebugMessage(msgStr, { replaceQueuedJump: true });
   }
 
   /**

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
+import { buildOptimisticRoomMessagesFromPatch } from "@tuanchat/query/room-message-lifecycle";
 import { use, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { buildOptimisticRoomMessagesFromPatch } from "@tuanchat/query/room-message-lifecycle";
 
 import type { RoomMessageStreamPatchOperation } from "@/components/chat/infra/doc/document/roomMessageStreamApi";
 import type { ChatInputAreaHandle } from "@/components/chat/input/chatInputArea";

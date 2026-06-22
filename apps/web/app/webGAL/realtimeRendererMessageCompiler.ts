@@ -221,6 +221,9 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
   }
 
   if (input.isIntroText) {
+    if (!input.processedContent.trim()) {
+      return lines;
+    }
     const introContent = input.processedContent.replace(/ +/g, "|");
     appendLine(lines, `intro:${introContent}${input.introHold ? " -hold" : ""};`);
     return lines;
@@ -250,6 +253,10 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
   }
   else if (input.miniAvatarVisibleBefore || input.forceMiniAvatar || input.diceShowMiniAvatar === false) {
     appendLine(lines, "miniAvatar:none;");
+  }
+
+  if (!input.processedContent.trim()) {
+    return lines;
   }
 
   const dialogLine = input.isNarrator

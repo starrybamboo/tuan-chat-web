@@ -110,6 +110,7 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   roleAvatarGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
+  scrollContent: { paddingBottom: Spacing.xxl },
   section: { gap: Spacing.sm },
   sectionLabel: { fontSize: 12 },
   statusBar: {
@@ -548,7 +549,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
 
   return (
     <>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.title}>地图</ThemedText>
 
         <View style={styles.section}>

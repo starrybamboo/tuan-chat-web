@@ -63,6 +63,10 @@ type RenderMessageOptions = {
   autoAdvance?: boolean;
 };
 
+type JumpToMessageOptions = {
+  forceReload?: boolean;
+};
+
 type UseRealtimeRenderReturn = {
   /** 渲染状态 */
   status: RealtimeRenderStatus;
@@ -99,7 +103,7 @@ type UseRealtimeRenderReturn = {
   /** 更新房间列表 */
   updateRooms: (rooms: Room[]) => void;
   /** 跳转到指定消息 */
-  jumpToMessage: (messageId: number, roomId?: number) => boolean;
+  jumpToMessage: (messageId: number, roomId?: number, options?: JumpToMessageOptions) => boolean;
   /** 更新 TTS 配置 */
   updateTTSConfig: (config: RealtimeTTSConfig) => void;
   /** 设置角色参考音频 */
@@ -581,12 +585,12 @@ function useRealtimeRender({
   }, []);
 
   // 跳转到指定消息
-  const jumpToMessage = useCallback((messageId: number, roomId?: number): boolean => {
+  const jumpToMessage = useCallback((messageId: number, roomId?: number, options: JumpToMessageOptions = {}): boolean => {
     if (!rendererRef.current) {
       debugRealtimeRender("实时渲染器未就绪，无法跳转");
       return false;
     }
-    return rendererRef.current.jumpToMessage(messageId, roomId);
+    return rendererRef.current.jumpToMessage(messageId, roomId, options);
   }, []);
 
   // 更新 TTS 配置

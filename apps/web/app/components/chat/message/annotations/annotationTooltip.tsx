@@ -1,5 +1,6 @@
-import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 import type { ReactNode } from "react";
+
+import type { AnnotationDefinition } from "@/components/chat/message/annotations/annotationCatalog";
 
 import PortalTooltip from "@/components/common/portalTooltip";
 import { getEffectDurationMs } from "@/types/messageAnnotations";
