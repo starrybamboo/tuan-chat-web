@@ -7,7 +7,7 @@ import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVid
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, StyleSheet, TextInput, View } from "react-native";
+import { Alert, FlatList, Keyboard, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
@@ -43,6 +43,7 @@ const DM_INITIAL_RENDER_COUNT = 16;
 const DM_RENDER_BATCH_SIZE = 12;
 const DM_WINDOW_SIZE = 9;
 const DM_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
+const DM_KEYBOARD_LAYOUT_SETTLE_MS = 320;
 const DM_CHAT_VIEW_DEBUG_ENABLED = false;
 const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
 
@@ -361,6 +362,9 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   const sendInFlightRef = useRef(false);
   const scrollDebugCountRef = useRef(0);
   const previousPaginatedLengthRef = useRef<number | null>(null);
+  const keyboardLayoutGuardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyboardLayoutGuardActiveRef = useRef(false);
+  const wasAtBottomBeforeKeyboardRef = useRef(true);
   const [actionMenuMessage, setActionMenuMessage] = useState<MessageDirectResponse | null>(null);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [failedMessageIds, setFailedMessageIds] = useState<Set<number>>(() => new Set());
@@ -498,7 +502,58 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     setIsAtBottom(nextIsAtBottom);
   }, []);
 
+  const startKeyboardLayoutGuard = useCallback(() => {
+    if (!keyboardLayoutGuardActiveRef.current) {
+      wasAtBottomBeforeKeyboardRef.current = isAtBottomRef.current;
+    }
+    keyboardLayoutGuardActiveRef.current = true;
+    if (keyboardLayoutGuardTimerRef.current) {
+      clearTimeout(keyboardLayoutGuardTimerRef.current);
+      keyboardLayoutGuardTimerRef.current = null;
+    }
+  }, []);
+
+  const settleKeyboardLayoutGuard = useCallback((anchorBottom: boolean) => {
+    if (keyboardLayoutGuardTimerRef.current) {
+      clearTimeout(keyboardLayoutGuardTimerRef.current);
+    }
+    keyboardLayoutGuardTimerRef.current = setTimeout(() => {
+      keyboardLayoutGuardActiveRef.current = false;
+      keyboardLayoutGuardTimerRef.current = null;
+
+      if (anchorBottom && wasAtBottomBeforeKeyboardRef.current) {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+        commitBottomState(true);
+      }
+    }, DM_KEYBOARD_LAYOUT_SETTLE_MS);
+  }, [commitBottomState]);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      startKeyboardLayoutGuard();
+      settleKeyboardLayoutGuard(false);
+    });
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      startKeyboardLayoutGuard();
+      settleKeyboardLayoutGuard(true);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+      if (keyboardLayoutGuardTimerRef.current) {
+        clearTimeout(keyboardLayoutGuardTimerRef.current);
+        keyboardLayoutGuardTimerRef.current = null;
+      }
+      keyboardLayoutGuardActiveRef.current = false;
+    };
+  }, [settleKeyboardLayoutGuard, startKeyboardLayoutGuard]);
+
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (keyboardLayoutGuardActiveRef.current) {
+      return;
+    }
+
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const distanceFromBottom = contentOffset.y;
     const transition = resolveBottomThresholdTransition(isAtBottomRef.current, distanceFromBottom);
@@ -885,6 +940,8 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
         ref={flatListRef}
         data={invertedMessages}
         inverted
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
         keyExtractor={getDirectMessageListItemKey}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
@@ -978,6 +1035,14 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
             value={draft}
             onChangeText={handleChangeDraft}
             onContentSizeChange={handleComposerContentSizeChange}
+            onBlur={() => {
+              startKeyboardLayoutGuard();
+              settleKeyboardLayoutGuard(true);
+            }}
+            onFocus={() => {
+              startKeyboardLayoutGuard();
+              settleKeyboardLayoutGuard(false);
+            }}
             placeholder={`给 ${contactName}...`}
             placeholderTextColor={theme.textSecondary}
             scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}

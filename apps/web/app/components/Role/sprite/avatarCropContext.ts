@@ -1,5 +1,6 @@
-import type { AvatarCropContext, RoleAvatarVariantCompositionConfig, SpriteCropContext, SpriteTransform } from "api";
 import type { Crop, PixelCrop } from "react-image-crop";
+
+import type { AvatarCropContext, RoleAvatarVariantCompositionConfig, SpriteCropContext, SpriteTransform } from "api";
 
 type ImageDimensions = {
   naturalWidth: number;

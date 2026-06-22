@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { XIcon } from "@phosphor-icons/react";
 
 import {
   requestForgotPasswordByEmail,
@@ -417,36 +418,23 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
       ${isOpen ? "modal-open" : ""}
     `}>
       <div className="
-        modal-box relative bg-base-100
-        dark:bg-base-300
+        modal-box relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem]
+        overflow-y-auto border border-base-content/10 bg-base-100/95 p-0
+        shadow-2xl dark:bg-base-300/95
       ">
         <button
           type="button"
           className="
-            btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
-            hover:bg-base-300
-            dark:bg-base-200
-            dark:hover:bg-base-100
+            btn btn-ghost btn-sm btn-circle absolute right-3 top-3 z-10
+            text-base-content/60 hover:bg-base-200 hover:text-base-content
           "
           onClick={handleClose}
+          aria-label="关闭登录弹窗"
         >
-          ✕
+          <XIcon className="size-4" weight="bold" />
         </button>
 
-        <div className="card-body px-0">
-          <h2 className="
-            card-title text-2xl font-bold text-center mb-6 justify-center w-full
-            text-base-content
-          ">
-            {isLoggedIn
-              ? "您已成功登录"
-              : isRegisterMode
-                ? "注册"
-                : isForgotMode
-                  ? "忘记密码"
-                  : "登录"}
-          </h2>
-
+        <div className="space-y-6 px-6 pb-6 pt-12 sm:px-8">
           {isLoggedIn
             ? (
                 <LoggedInView handleLogout={handleLogout} />
@@ -524,41 +512,39 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
                   )}
 
           {!isLoggedIn && (
-            <>
-              <div className="divider" />
-
+            <div className="border-t border-base-content/10 pt-4">
               {isLoginMode && (
-                <>
-                  <p className="text-center mt-2">
+                <div className="grid gap-2 text-center text-sm text-base-content/65">
+                  <p>
                     还没有账号？
                     <button
                       type="button"
                       onClick={() => switchMode("register")}
-                      className="link link-primary ml-1"
+                      className="link link-primary ml-1 font-medium"
                     >
                       立即注册
                     </button>
                   </p>
-                  <p className="text-center mt-2">
+                  <p>
                     忘记密码？
                     <button
                       type="button"
                       onClick={() => switchMode("forgot")}
-                      className="link link-primary ml-1"
+                      className="link link-primary ml-1 font-medium"
                     >
                       找回密码
                     </button>
                   </p>
-                </>
+                </div>
               )}
 
               {isRegisterMode && (
-                <p className="text-center mt-2">
+                <p className="text-center text-sm text-base-content/65">
                   已有账号？
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
-                    className="link link-primary ml-1"
+                    className="link link-primary ml-1 font-medium"
                   >
                     立即登录
                   </button>
@@ -566,18 +552,18 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
               )}
 
               {isForgotMode && (
-                <p className="text-center mt-2">
+                <p className="text-center text-sm text-base-content/65">
                   想起密码了？
                   <button
                     type="button"
                     onClick={() => switchMode("login")}
-                    className="link link-primary ml-1"
+                    className="link link-primary ml-1 font-medium"
                   >
                     返回登录
                   </button>
                 </p>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

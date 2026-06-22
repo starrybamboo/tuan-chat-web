@@ -1,11 +1,11 @@
+import { getNormalizedStateEventExtra } from "@/types/stateEvent";
+
 import type {
   ChatMessageResponse,
   Message,
   RoomMessageStreamItem,
   RoomMessageStreamPatchOperation,
 } from "../../../../../api";
-
-import { getNormalizedStateEventExtra } from "@/types/stateEvent";
 
 import { MessageType } from "../../../../../api/wsModels";
 

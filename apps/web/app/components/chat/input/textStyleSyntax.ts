@@ -1,6 +1,7 @@
 import { extractTextEnhanceVisibleText } from "@/utils/textEnhanceSyntax";
 
 export type TextStyleSyntaxOptions = {
+  animation?: string;
   backgroundColor?: string;
   bold?: boolean;
   border?: string;
@@ -103,6 +104,7 @@ export function buildTextStyleSyntax(text: string, options: TextStyleSyntaxOptio
     ...(options.textStroke ? [`-webkit-text-stroke:${options.textStroke}`] : []),
     ...(options.filter ? [`filter:${options.filter}`] : []),
     ...(options.transform ? [`display:inline-block`, `transform:${options.transform}`] : []),
+    ...(options.animation ? [`display:inline-block`, `animation:${options.animation}`] : []),
     ...(options.border ? [`border:${options.border}`] : []),
     ...(options.borderRadius ? [`border-radius:${options.borderRadius}`] : []),
     ...(options.margin ? [`margin:${options.margin}`] : []),

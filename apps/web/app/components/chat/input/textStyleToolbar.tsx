@@ -1,12 +1,16 @@
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
 
 import {
+  ArrowsHorizontalIcon,
+  BoundingBoxIcon,
   CaretDownIcon,
   EraserIcon,
+  FilmSlateIcon,
   GearSixIcon,
   HighlighterIcon,
   PaletteIcon,
   PlusIcon,
+  SparkleIcon,
   TextAaIcon,
   TextBIcon,
   TextHOneIcon,
@@ -14,6 +18,7 @@ import {
   TextHTwoIcon,
   TextItalicIcon,
   TextStrikethroughIcon,
+  TextTIcon,
   TextUnderlineIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
@@ -24,6 +29,7 @@ import type { FloatingSelectionToolbarPosition } from "@/components/common/float
 
 import { FloatingSelectionToolbar, useFloatingSelectionToolbar } from "@/components/common/floatingSelectionToolbar";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
+import "@/components/common/textEnhanceAnimations.css";
 
 import { buildTextStyleSyntax, clearTextStyleSyntax } from "./textStyleSyntax";
 
@@ -105,6 +111,18 @@ const TEXT_SHADOW_OPTIONS = ["0 1px 2px #0009", "0 0 6px #fde68a", "1px 1px 0 #e
 const BORDER_OPTIONS = ["1px solid currentColor", "1px dashed #94a3b8", "2px solid #e11d48"] as const;
 const BORDER_RADIUS_OPTIONS = ["2px", "4px", "8px", "9999px"] as const;
 const SPACING_OPTIONS = ["0 2px", "0 4px", "2px 6px", "4px 8px"] as const;
+const ANIMATION_PRESETS = [
+  { css: "", label: "无" },
+  { css: "te-shake 0.5s ease-in-out infinite", label: "抖动" },
+  { css: "te-bounce 0.8s ease infinite", label: "弹跳" },
+  { css: "te-pulse 1.2s ease-in-out infinite", label: "脉冲" },
+  { css: "te-flash 1s ease-in-out infinite", label: "闪烁" },
+  { css: "te-float 2.5s ease-in-out infinite", label: "漂浮" },
+  { css: "te-swing 1.2s ease-in-out infinite", label: "摇摆" },
+  { css: "te-rainbow 3s linear infinite", label: "彩虹" },
+  { css: "te-glow 1.6s ease-in-out infinite", label: "发光" },
+  { css: "te-typing 2s steps(20) infinite", label: "打字" },
+] as const;
 
 function preventSelectionLoss(event: ReactMouseEvent<HTMLElement>) {
   event.preventDefault();
@@ -375,58 +393,6 @@ function textInputClassName(extra = "") {
   return `h-8 rounded-md border border-base-300 bg-base-100 px-2 text-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${extra}`;
 }
 
-function DialogColorPicker({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly string[];
-  value: string;
-  onChange: (color: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <FieldLabel>{label}</FieldLabel>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          className={[
-            "flex h-7 items-center rounded-md border px-2 text-xs transition hover:bg-base-200",
-            value ? "border-base-300 text-base-content/70" : "border-base-content text-base-content",
-          ].join(" ")}
-          onClick={() => onChange("")}
-        >
-          无
-        </button>
-        {options.map(color => (
-          <button
-            key={color}
-            type="button"
-            className={[
-              "size-7 rounded-md border transition hover:scale-105",
-              value.toLowerCase() === color.toLowerCase() ? "border-base-content ring-2 ring-primary/25" : "border-base-300",
-            ].join(" ")}
-            style={{ backgroundColor: color }}
-            onClick={() => onChange(color)}
-            title={color}
-            aria-label={`${label} ${color}`}
-          />
-        ))}
-        <input
-          type="color"
-          className="h-7 w-9 cursor-pointer rounded border border-base-300 bg-transparent"
-          value={value || "#000000"}
-          onChange={event => onChange(event.target.value)}
-          title={`自定义${label}`}
-          aria-label={`自定义${label}`}
-        />
-      </div>
-    </div>
-  );
-}
-
 function DialogToggle({
   active,
   children,
@@ -454,12 +420,25 @@ function DialogToggle({
   );
 }
 
-function DialogSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function DialogSection({
+  title,
+  hint,
+  icon,
+  className = "",
+  children,
+}: {
+  title: string;
+  hint?: ReactNode;
+  icon?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-base-300/70 bg-base-200/30 p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="text-xs font-medium tracking-wide text-base-content/70">{title}</span>
-        {hint ? <span className="text-[11px] text-base-content/40">{hint}</span> : null}
+    <section className={`flex flex-col gap-3 rounded-xl border border-base-300/70 bg-base-200/30 p-4 ${className}`}>
+      <div className="flex items-center gap-2">
+        {icon ? <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary">{icon}</span> : null}
+        <span className="text-sm font-semibold tracking-wide text-base-content/80">{title}</span>
+        {hint ? <span className="ml-auto text-[11px] text-base-content/40">{hint}</span> : null}
       </div>
       {children}
     </section>
@@ -472,24 +451,29 @@ function SuggestField({
   value,
   placeholder,
   options,
+  disabled,
+  hint,
   onChange,
 }: {
   label: string;
   value: string;
   placeholder?: string;
   options: readonly string[];
+  disabled?: boolean;
+  hint?: string;
   onChange: (value: string) => void;
 }) {
   const listId = `suggest-${label}`;
   return (
     <label className="flex flex-col gap-1">
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel>{hint ? `${label} · ${hint}` : label}</FieldLabel>
       <input
         type="text"
-        className={textInputClassName()}
+        className={textInputClassName(disabled ? "opacity-50" : "")}
         placeholder={placeholder}
         value={value}
         list={listId}
+        disabled={disabled}
         onChange={event => onChange(event.target.value)}
       />
       <datalist id={listId}>
@@ -669,292 +653,293 @@ function AdvancedStyleDialog({
   onClose: () => void;
   onConfirm: (text: string, options: Parameters<typeof buildTextStyleSyntax>[1]) => void;
 }) {
-  const [text, setText] = useState(initialText || "");
+  const text = initialText || "";
   const [color, setColor] = useState("");
   const [backgroundColor, setBackgroundColor] = useState("");
   const [fontSize, setFontSize] = useState("");
   const [bold, setBold] = useState(false);
   const [italic, setItalic] = useState(false);
   const [underline, setUnderline] = useState(false);
+  const [strikethrough, setStrikethrough] = useState(false);
   const [headingLevel, setHeadingLevel] = useState<0 | 1 | 2 | 3>(0);
   const [ruby, setRuby] = useState("");
+  const [fontWeight, setFontWeight] = useState("");
+  const [fontFamily, setFontFamily] = useState("");
+  const [lineHeight, setLineHeight] = useState("");
   const [letterSpacing, setLetterSpacing] = useState("");
+  const [wordSpacing, setWordSpacing] = useState("");
+  const [textAlign, setTextAlign] = useState("");
+  const [textTransform, setTextTransform] = useState("");
   const [opacity, setOpacity] = useState("");
   const [textShadow, setTextShadow] = useState("");
+  const [textStroke, setTextStroke] = useState("");
+  const [filter, setFilter] = useState("");
+  const [transform, setTransform] = useState("");
+  const [animation, setAnimation] = useState("");
+  const [border, setBorder] = useState("");
+  const [borderRadius, setBorderRadius] = useState("");
   const [margin, setMargin] = useState("");
   const [padding, setPadding] = useState("");
   const [customStyle, setCustomStyle] = useState("");
   const [customStyleAllText, setCustomStyleAllText] = useState("");
+  const [cssRows, setCssRows] = useState<CssRow[]>([]);
+  const [previewDark, setPreviewDark] = useState(false);
 
   const headingFontSize = headingLevel === 1 ? "200%" : headingLevel === 2 ? "150%" : headingLevel === 3 ? "125%" : undefined;
+  const decorationLine = [underline ? "underline" : "", strikethrough ? "line-through" : ""].filter(Boolean).join(" ");
+  const customRowStyle: CSSProperties = cssRows.reduce<Record<string, string>>((accumulator, row) => {
+    const property = row.property.trim();
+    const value = row.value.trim();
+    if (property && value) {
+      const camel = property.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+      accumulator[camel] = value;
+    }
+    return accumulator;
+  }, {});
   const previewStyle: CSSProperties = {
     ...(color ? { color } : {}),
     ...(backgroundColor ? { backgroundColor } : {}),
     ...(headingFontSize ? { fontSize: headingFontSize } : fontSize ? { fontSize } : {}),
-    ...(headingLevel || bold ? { fontWeight: "bold" } : {}),
+    ...(headingLevel ? { fontWeight: "bold" } : fontWeight ? { fontWeight } : bold ? { fontWeight: "bold" } : {}),
     ...(italic ? { fontStyle: "italic" } : {}),
-    ...(underline ? { textDecoration: "underline" } : {}),
+    ...(decorationLine ? { textDecoration: decorationLine } : {}),
+    ...(fontFamily ? { fontFamily } : {}),
+    ...(lineHeight ? { lineHeight } : {}),
     ...(letterSpacing ? { letterSpacing } : {}),
+    ...(wordSpacing ? { wordSpacing } : {}),
+    ...(textAlign ? { textAlign: textAlign as CSSProperties["textAlign"] } : {}),
+    ...(textTransform ? { textTransform: textTransform as CSSProperties["textTransform"] } : {}),
     ...(opacity ? { opacity } : {}),
     ...(textShadow ? { textShadow } : {}),
+    ...(textStroke ? { WebkitTextStroke: textStroke } : {}),
+    ...(filter ? { filter } : {}),
+    ...(transform ? { display: "inline-block", transform } : {}),
+    ...(animation ? { display: "inline-block", animation } : {}),
+    ...(border ? { border } : {}),
+    ...(borderRadius ? { borderRadius } : {}),
     ...(margin ? { margin } : {}),
     ...(padding ? { padding } : {}),
+    ...customRowStyle,
   };
+  const composedCustomStyleAllText = [
+    customStyleAllText.trim(),
+    ...cssRows
+      .map(row => (row.property.trim() && row.value.trim() ? `${row.property.trim()}:${row.value.trim()}` : ""))
+      .filter(Boolean),
+  ].filter(Boolean).join(";");
 
   return (
-    <div className="flex w-90 max-w-[calc(100vw-2rem)] flex-col gap-3 p-4">
-      <div className="text-base font-medium">高级文本样式</div>
-      <label className="flex flex-col gap-1">
-        <FieldLabel>文本</FieldLabel>
-        <input
-          type="text"
-          className={textInputClassName()}
-          placeholder="输入要设置样式的文字"
-          value={text}
-          onChange={event => setText(event.target.value)}
-        />
-      </label>
-
-      <div className="flex flex-col gap-1.5">
-        <FieldLabel>样式</FieldLabel>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            className={[
-              "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
-              bold ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
-            ].join(" ")}
-            onClick={() => setBold(previous => !previous)}
-            title="粗体"
-            aria-label="粗体"
-          >
-            <TextBIcon size={16} weight="bold" />
-          </button>
-          <button
-            type="button"
-            className={[
-              "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
-              italic ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
-            ].join(" ")}
-            onClick={() => setItalic(previous => !previous)}
-            title="斜体"
-            aria-label="斜体"
-          >
-            <TextItalicIcon size={16} weight="bold" />
-          </button>
-          <button
-            type="button"
-            className={[
-              "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
-              underline ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
-            ].join(" ")}
-            onClick={() => setUnderline(previous => !previous)}
-            title="下划线"
-            aria-label="下划线"
-          >
-            <TextUnderlineIcon size={16} weight="bold" />
-          </button>
-          {HEADING_OPTIONS.map(option => (
-            <button
-              key={option.level}
-              type="button"
-              className={[
-                "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition hover:bg-base-200",
-                headingLevel === option.level ? "border-primary bg-primary/10 text-primary" : "border-base-300 text-base-content/80",
-              ].join(" ")}
-              onClick={() => setHeadingLevel(previous => previous === option.level ? 0 : option.level)}
-              title={option.label}
-              aria-label={option.label}
-            >
-              <HeadingIcon level={option.level} />
-            </button>
-          ))}
+    <div className="flex max-h-[88vh] min-h-0 w-[56rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-base-300 px-5 py-4">
+        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <GearSixIcon size={20} weight="bold" />
+        </span>
+        <div className="flex flex-col">
+          <span className="text-base font-semibold leading-tight">高级文本样式</span>
+          <span className="text-xs text-base-content/45">按字体、间距、效果、动画分层组合，贴近原生 CSS 的自由度</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1">
-          <FieldLabel>文字颜色</FieldLabel>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="color"
-              className="h-8 w-10 cursor-pointer rounded border border-base-300 bg-transparent"
-              value={color || "#E11D48"}
-              onChange={event => setColor(event.target.value)}
-              title="文字颜色"
-              aria-label="文字颜色"
-            />
-            <button
-              type="button"
-              className="h-8 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200 disabled:opacity-40"
-              disabled={!color}
-              onClick={() => setColor("")}
-            >
-              清除
-            </button>
-          </div>
-        </label>
-        <label className="flex flex-col gap-1">
-          <FieldLabel>背景色</FieldLabel>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="color"
-              className="h-8 w-10 cursor-pointer rounded border border-base-300 bg-transparent"
-              value={backgroundColor || "#FEF3C7"}
-              onChange={event => setBackgroundColor(event.target.value)}
-              title="背景色"
-              aria-label="背景色"
-            />
-            <button
-              type="button"
-              className="h-8 rounded-md border border-base-300 px-2 text-xs transition hover:bg-base-200 disabled:opacity-40"
-              disabled={!backgroundColor}
-              onClick={() => setBackgroundColor("")}
-            >
-              清除
-            </button>
-          </div>
-        </label>
-      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+        {/* 注音 + 预览：全宽置顶，随时看到效果 */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
+          <DialogSection title="注音" icon={<TextTIcon size={14} weight="bold" />}>
+            <label className="flex flex-col gap-1">
+              <FieldLabel>注音（ruby）</FieldLabel>
+              <input
+                type="text"
+                className={textInputClassName()}
+                placeholder="wen ben"
+                value={ruby}
+                onChange={event => setRuby(event.target.value)}
+              />
+            </label>
+          </DialogSection>
 
-      <label className="flex flex-col gap-1">
-        <FieldLabel>字号</FieldLabel>
-        <select
-          className={textInputClassName()}
-          value={fontSize}
-          onChange={event => setFontSize(event.target.value)}
-          disabled={headingLevel !== 0}
-          title={headingLevel !== 0 ? "标题已设定字号" : undefined}
-        >
-          <option value="">不设置</option>
-          {FONT_SIZE_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <FieldLabel>注音</FieldLabel>
-        <input
-          type="text"
-          className={textInputClassName()}
-          placeholder="wen ben"
-          value={ruby}
-          onChange={event => setRuby(event.target.value)}
-        />
-      </label>
-
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1">
-          <FieldLabel>字距</FieldLabel>
-          <select
-            className={textInputClassName()}
-            value={letterSpacing}
-            onChange={event => setLetterSpacing(event.target.value)}
+          <DialogSection
+            title="实时预览"
+            icon={<SparkleIcon size={14} weight="bold" />}
+            hint={(
+              <button
+                type="button"
+                className="rounded-md border border-base-300 px-2 py-0.5 text-[11px] text-base-content/60 transition hover:bg-base-200"
+                onClick={() => setPreviewDark(previous => !previous)}
+              >
+                {previewDark ? "浅色背景" : "深色背景"}
+              </button>
+            )}
           >
-            <option value="">不设置</option>
-            {LETTER_SPACING_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <FieldLabel>透明度</FieldLabel>
-          <select
-            className={textInputClassName()}
-            value={opacity}
-            onChange={event => setOpacity(event.target.value)}
-          >
-            <option value="">不设置</option>
-            {OPACITY_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
-          </select>
-        </label>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1">
-          <FieldLabel>阴影</FieldLabel>
-          <input
-            type="text"
-            className={textInputClassName()}
-            placeholder="0 1px 2px #000"
-            value={textShadow}
-            onChange={event => setTextShadow(event.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <FieldLabel>外边距</FieldLabel>
-          <input
-            type="text"
-            className={textInputClassName()}
-            placeholder="0 2px"
-            value={margin}
-            onChange={event => setMargin(event.target.value)}
-          />
-        </label>
-      </div>
-
-      <label className="flex flex-col gap-1">
-        <FieldLabel>内边距</FieldLabel>
-        <input
-          type="text"
-          className={textInputClassName()}
-          placeholder="0 2px"
-          value={padding}
-          onChange={event => setPadding(event.target.value)}
-        />
-      </label>
-
-      <details className="rounded-md border border-base-300 p-2">
-        <summary className="cursor-pointer text-sm text-base-content/75">自定义 CSS</summary>
-        <div className="mt-2 flex flex-col gap-2">
-          <label className="flex flex-col gap-1">
-            <FieldLabel>style</FieldLabel>
-            <input
-              type="text"
-              className={textInputClassName()}
-              placeholder="color:#66327C"
-              value={customStyle}
-              onChange={event => setCustomStyle(event.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <FieldLabel>style-alltext</FieldLabel>
-            <input
-              type="text"
-              className={textInputClassName()}
-              placeholder="letter-spacing:0.05em"
-              value={customStyleAllText}
-              onChange={event => setCustomStyleAllText(event.target.value)}
-            />
-          </label>
-        </div>
-      </details>
-
-      <div className="rounded-md bg-base-200 p-2 text-sm">
-        {text
-          ? (
-              ruby
+            <div className={[
+              "flex min-h-24 flex-1 items-center justify-center rounded-lg border border-base-300 p-4 text-lg",
+              previewDark ? "bg-neutral-800 text-neutral-100" : "bg-base-100",
+            ].join(" ")}>
+              {text
                 ? (
-                    <ruby style={previewStyle}>
-                      {text}
-                      <rp>(</rp>
-                      <rt>{ruby}</rt>
-                      <rp>)</rp>
-                    </ruby>
+                    ruby
+                      ? (
+                          <ruby style={previewStyle}>
+                            {text}
+                            <rp>(</rp>
+                            <rt>{ruby}</rt>
+                            <rp>)</rp>
+                          </ruby>
+                        )
+                      : <span style={previewStyle}>{text}</span>
                   )
-                : <span style={previewStyle}>{text}</span>
-            )
-          : <span className="text-base-content/45">请输入文本</span>}
+                : <span className="text-sm text-base-content/45">请输入文本</span>}
+            </div>
+          </DialogSection>
+        </div>
+
+        {/* 控制项：两列网格，按抽象层级分组 */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <DialogSection title="字体" icon={<TextAaIcon size={14} weight="bold" />} hint="字形与字号">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <DialogToggle active={bold} label="粗体" onToggle={() => setBold(previous => !previous)}>
+                <TextBIcon size={16} weight="bold" />
+              </DialogToggle>
+              <DialogToggle active={italic} label="斜体" onToggle={() => setItalic(previous => !previous)}>
+                <TextItalicIcon size={16} weight="bold" />
+              </DialogToggle>
+              <DialogToggle active={underline} label="下划线" onToggle={() => setUnderline(previous => !previous)}>
+                <TextUnderlineIcon size={16} weight="bold" />
+              </DialogToggle>
+              <DialogToggle active={strikethrough} label="删除线" onToggle={() => setStrikethrough(previous => !previous)}>
+                <TextStrikethroughIcon size={16} weight="bold" />
+              </DialogToggle>
+              <span className="mx-1 h-5 w-px bg-base-300" />
+              {HEADING_OPTIONS.map(option => (
+                <DialogToggle
+                  key={option.level}
+                  active={headingLevel === option.level}
+                  label={option.label}
+                  onToggle={() => setHeadingLevel(previous => previous === option.level ? 0 : option.level)}
+                >
+                  <HeadingIcon level={option.level as 1 | 2 | 3} />
+                </DialogToggle>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField
+                label="字号"
+                value={fontSize}
+                options={FONT_SIZE_OPTIONS}
+                disabled={headingLevel !== 0}
+                onChange={setFontSize}
+              />
+              <SuggestField label="字重" value={fontWeight} placeholder="如 600 / bold" options={FONT_WEIGHT_OPTIONS} onChange={setFontWeight} />
+              <SuggestField label="字体" value={fontFamily} placeholder="如 serif" options={FONT_FAMILY_OPTIONS} onChange={setFontFamily} />
+              <SelectField label="大小写" value={textTransform} options={TEXT_TRANSFORM_OPTIONS} onChange={setTextTransform} />
+            </div>
+          </DialogSection>
+
+          <DialogSection title="间距与对齐" icon={<ArrowsHorizontalIcon size={14} weight="bold" />} hint="行高 / 字距 / 对齐">
+            <div className="grid grid-cols-2 gap-2">
+              <SuggestField label="行高" value={lineHeight} placeholder="如 1.5" options={LINE_HEIGHT_OPTIONS} onChange={setLineHeight} />
+              <SelectField label="对齐" value={textAlign} options={TEXT_ALIGN_OPTIONS} onChange={setTextAlign} />
+              <SuggestField label="字距" value={letterSpacing} placeholder="如 0.1em" options={LETTER_SPACING_OPTIONS} onChange={setLetterSpacing} />
+              <SuggestField label="词距" value={wordSpacing} placeholder="如 0.25em" options={WORD_SPACING_OPTIONS} onChange={setWordSpacing} />
+            </div>
+          </DialogSection>
+
+          <DialogSection title="颜色" icon={<PaletteIcon size={14} weight="bold" />}>
+            <div className="grid grid-cols-2 gap-2">
+              <ColorField label="文字颜色" value={color} fallback="#E11D48" onChange={setColor} />
+              <ColorField label="背景色" value={backgroundColor} fallback="#FEF3C7" onChange={setBackgroundColor} />
+            </div>
+            <SuggestField label="描边" value={textStroke} placeholder="如 1px #000" options={TEXT_STROKE_OPTIONS} onChange={setTextStroke} />
+          </DialogSection>
+
+          <DialogSection title="效果" icon={<SparkleIcon size={14} weight="bold" />} hint="阴影 / 滤镜 / 变形">
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField label="透明度" value={opacity} options={OPACITY_OPTIONS} onChange={setOpacity} />
+              <SuggestField label="变形" value={transform} placeholder="如 rotate(-6deg)" options={TRANSFORM_OPTIONS} onChange={setTransform} />
+              <SuggestField label="文字阴影" value={textShadow} placeholder="0 1px 2px #000" options={TEXT_SHADOW_OPTIONS} onChange={setTextShadow} />
+              <SuggestField label="滤镜" value={filter} placeholder="如 blur(1px)" options={FILTER_OPTIONS} onChange={setFilter} />
+            </div>
+          </DialogSection>
+
+          <DialogSection title="动画" icon={<FilmSlateIcon size={14} weight="bold" />} hint="预设或自定义 keyframes" className="lg:col-span-2">
+            <div className="flex flex-wrap gap-1.5">
+              {ANIMATION_PRESETS.map(preset => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={[
+                    "rounded-md border px-2.5 py-1 text-xs transition hover:bg-base-200",
+                    animation === preset.css
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-base-300 text-base-content/75",
+                  ].join(" ")}
+                  onClick={() => setAnimation(preset.css)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <label className="flex flex-col gap-1">
+              <FieldLabel>animation（CSS 简写，可自定义时长 / 缓动 / 次数）</FieldLabel>
+              <input
+                type="text"
+                className={textInputClassName()}
+                placeholder="如 te-shake 0.6s ease-in-out infinite"
+                value={animation}
+                onChange={event => setAnimation(event.target.value)}
+              />
+            </label>
+          </DialogSection>
+
+          <DialogSection title="盒模型" icon={<BoundingBoxIcon size={14} weight="bold" />} hint="边框 / 圆角 / 间距" className="lg:col-span-2">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              <SuggestField label="边框" value={border} placeholder="1px solid #000" options={BORDER_OPTIONS} onChange={setBorder} />
+              <SuggestField label="圆角" value={borderRadius} placeholder="如 4px" options={BORDER_RADIUS_OPTIONS} onChange={setBorderRadius} />
+              <SuggestField label="外边距" value={margin} placeholder="如 0 2px" options={SPACING_OPTIONS} onChange={setMargin} />
+              <SuggestField label="内边距" value={padding} placeholder="如 0 2px" options={SPACING_OPTIONS} onChange={setPadding} />
+            </div>
+          </DialogSection>
+
+          <DialogSection title="自定义 CSS" icon={<PlusIcon size={14} weight="bold" />} hint="任意属性，最贴近原生" className="lg:col-span-2">
+            <CssPropertyRepeater rows={cssRows} onChange={setCssRows} />
+            <details className="mt-1 rounded-md border border-base-300/70 p-2">
+              <summary className="cursor-pointer text-xs text-base-content/70">原始 style / style-alltext</summary>
+              <div className="mt-2 grid grid-cols-1 gap-2 lg:grid-cols-2">
+                <label className="flex flex-col gap-1">
+                  <FieldLabel>style（作用于文字本身）</FieldLabel>
+                  <input
+                    type="text"
+                    className={textInputClassName()}
+                    placeholder="color:#66327C"
+                    value={customStyle}
+                    onChange={event => setCustomStyle(event.target.value)}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <FieldLabel>style-alltext（作用于整体）</FieldLabel>
+                  <input
+                    type="text"
+                    className={textInputClassName()}
+                    placeholder="letter-spacing:0.05em"
+                    value={customStyleAllText}
+                    onChange={event => setCustomStyleAllText(event.target.value)}
+                  />
+                </label>
+              </div>
+            </details>
+          </DialogSection>
+        </div>
       </div>
 
-      <div className="flex justify-end gap-2">
-        <button type="button" className="
-          rounded-md px-3 py-1.5 text-sm
-          hover:bg-base-200
-        " onClick={onClose}>取消</button>
+      <div className="flex justify-end gap-2 border-t border-base-300 px-4 py-3">
         <button
           type="button"
-          className="
-            rounded-md bg-primary px-3 py-1.5 text-sm text-primary-content
-            disabled:opacity-50
-          "
+          className="rounded-md px-3 py-1.5 text-sm hover:bg-base-200"
+          onClick={onClose}
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-content disabled:opacity-50"
           disabled={!normalizeTextInput(text)}
           onClick={() => {
             const normalizedText = normalizeTextInput(text);
@@ -962,21 +947,34 @@ function AdvancedStyleDialog({
               return;
             }
             onConfirm(normalizedText, {
+              animation: normalizeTextInput(animation) || undefined,
               backgroundColor: backgroundColor || undefined,
               bold: bold || undefined,
+              border: normalizeTextInput(border) || undefined,
+              borderRadius: normalizeTextInput(borderRadius) || undefined,
               color: color || undefined,
               customStyle,
-              customStyleAllText,
-              fontSize: headingLevel === 0 ? (fontSize || undefined) : undefined,
+              customStyleAllText: composedCustomStyleAllText,
+              filter: normalizeTextInput(filter) || undefined,
+              fontFamily: normalizeTextInput(fontFamily) || undefined,
+              fontSize: headingLevel === 0 ? (normalizeTextInput(fontSize) || undefined) : undefined,
+              fontWeight: headingLevel === 0 ? (normalizeTextInput(fontWeight) || undefined) : undefined,
               headingLevel: headingLevel === 0 ? undefined : headingLevel,
               italic: italic || undefined,
-              letterSpacing: letterSpacing || undefined,
+              letterSpacing: normalizeTextInput(letterSpacing) || undefined,
+              lineHeight: normalizeTextInput(lineHeight) || undefined,
               margin: normalizeTextInput(margin) || undefined,
               opacity: opacity || undefined,
               padding: normalizeTextInput(padding) || undefined,
               ruby: normalizeTextInput(ruby) || undefined,
+              strikethrough: strikethrough || undefined,
+              textAlign: textAlign || undefined,
               textShadow: normalizeTextInput(textShadow) || undefined,
+              textStroke: normalizeTextInput(textStroke) || undefined,
+              textTransform: textTransform || undefined,
+              transform: normalizeTextInput(transform) || undefined,
               underline: underline || undefined,
+              wordSpacing: normalizeTextInput(wordSpacing) || undefined,
             });
           }}
         >
@@ -1107,16 +1105,19 @@ function TextStyleToolbar({ chatInputRef, externalSelection, onInsertText, visib
       return;
     }
     setActiveMenu(null);
-    toastWindow(onClose => (
-      <AdvancedStyleDialog
-        initialText={selectedText}
-        onClose={onClose}
-        onConfirm={(text, options) => {
-          restoreAndInsertText(buildTextStyleSyntax(text, options), selectedText);
-          onClose();
-        }}
-      />
-    ));
+    toastWindow(
+      onClose => (
+        <AdvancedStyleDialog
+          initialText={selectedText}
+          onClose={onClose}
+          onConfirm={(text, options) => {
+            restoreAndInsertText(buildTextStyleSyntax(text, options), selectedText);
+            onClose();
+          }}
+        />
+      ),
+      { disableScroll: true },
+    );
   }, [getSelectedText, restoreAndInsertText]);
 
   return (

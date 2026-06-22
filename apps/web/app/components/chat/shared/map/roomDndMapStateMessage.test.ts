@@ -1,9 +1,10 @@
-import type { ChatMessageResponse } from "../../../../../api";
-
-import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 import { describe, expect, it } from "vitest";
 
 import type { StateEventAtom } from "@/types/stateEvent";
+
+import { buildCommandStateEventExtra, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
+
+import type { ChatMessageResponse } from "../../../../../api";
 
 import { MessageType } from "../../../../../api/wsModels";
 import {

@@ -11,8 +11,11 @@ import type { NativeAppNotificationPayload } from "./mobileNotificationTypes";
 
 import { MobileNotificationSessionContext } from "./mobileNotificationSessionContext";
 import { normalizeNotificationTargetPath } from "./mobileNotificationTypes";
+import {
+  MOBILE_CHAT_NOTIFICATION_CHANNEL_ID,
+  MOBILE_NOTIFICATION_MAX_BADGE_COUNT,
+} from "./notificationChannels";
 
-const MOBILE_NOTIFICATION_CHANNEL_ID = "tuanchat-mobile-chat";
 const DEDUPE_WINDOW_MS = 15_000;
 
 type NotificationPermissionResponse = Awaited<ReturnType<typeof Notifications.getPermissionsAsync>>;
@@ -20,9 +23,10 @@ type NotificationPermissionResponse = Awaited<ReturnType<typeof Notifications.ge
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
-    shouldSetBadge: false,
+    shouldSetBadge: true,
     shouldShowBanner: true,
     shouldShowList: true,
+    priority: Notifications.AndroidNotificationPriority.MAX,
   }),
 });
 
@@ -97,6 +101,18 @@ function resolveTargetPathFromResponse(response: Notifications.NotificationRespo
   return normalizeNotificationTargetPath(typeof targetPath === "string" ? targetPath : null);
 }
 
+async function incrementBadgeCountAsync() {
+  try {
+    const currentCount = await Notifications.getBadgeCountAsync();
+    const nextCount = Math.min(currentCount + 1, MOBILE_NOTIFICATION_MAX_BADGE_COUNT);
+    await Notifications.setBadgeCountAsync(nextCount);
+    return nextCount;
+  }
+  catch {
+    return undefined;
+  }
+}
+
 export function MobileNotificationSessionProvider({ children }: PropsWithChildren) {
   const { isAuthenticated } = useAuthSession();
   const [pendingTargetPath, setPendingTargetPath] = useState<string | null>(null);
@@ -114,7 +130,7 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
 
     void (async () => {
       if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync(MOBILE_NOTIFICATION_CHANNEL_ID, {
+        await Notifications.setNotificationChannelAsync(MOBILE_CHAT_NOTIFICATION_CHANNEL_ID, {
           name: "团剧通知",
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 200, 250],
@@ -206,12 +222,16 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
     }
 
     recentNotificationTagsRef.current.set(tag, now);
+    const badge = await incrementBadgeCountAsync();
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
+        badge,
+        priority: Notifications.AndroidNotificationPriority.MAX,
         sound: true,
+        vibrate: [0, 250, 200, 250],
         data: {
           tag,
           resourceId: payload.resourceId ?? null,
@@ -219,7 +239,9 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
           targetPath: targetPath ?? "/chat",
         },
       },
-      trigger: null,
+      trigger: Platform.OS === "android"
+        ? { channelId: MOBILE_CHAT_NOTIFICATION_CHANNEL_ID }
+        : null,
     });
   }, []);
 

@@ -88,7 +88,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
   }, [propRoomId, roomMembers, curMember, roomRolesThatUserOwn, useChatBubbleStyle, spaceId]);
   const canViewNpcRoles = canDisplayRoomSettingNpcRoles({
     isSpaceOwner: spaceContext?.isSpaceOwner,
-    memberType: spaceContext?.memberType ?? curMember?.memberType,
+    memberType: spaceContext?.memberType,
   });
   const roleView = useMemo(() => buildRoomSettingRoleView({
     canViewNpcRoles,

@@ -1,14 +1,14 @@
-import { avatarOriginalUrl, avatarUrl } from "@/utils/mediaUrl";
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
+import { avatarOriginalUrl, avatarUrl } from "@/utils/mediaUrl";
 
 import type { RoleAvatar } from "../../api";
 import type { RealtimeGameConfig } from "./realtimeRendererConfig";
 import type { WebgalPublishFile, WebgalPublishPackage } from "./spaceWebgalCompiler";
 import type { SpaceWebgalInput, SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
 
-import { createSquarePngBlobFromUrl } from "./realtimeRendererImageAssets";
-import { getSafeExtensionFromUrl, hashString } from "./realtimeRendererFileNames";
 import { getRoleFigureDirName } from "./realtimeRendererAssetUploads";
+import { getSafeExtensionFromUrl, hashString } from "./realtimeRendererFileNames";
+import { createSquarePngBlobFromUrl } from "./realtimeRendererImageAssets";
 import { buildStaticWebgalPackage } from "./spaceWebgalCompiler";
 import { buildSpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
 import {

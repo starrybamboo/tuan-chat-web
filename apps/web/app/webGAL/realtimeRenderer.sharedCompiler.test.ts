@@ -167,6 +167,155 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect(sceneText.split("\n")[sentence - 1]).toBe("明日香: 第二句;");
   });
 
+  it("局部更新为多行文本后仍会跳转到该消息自己的 WebGAL sentence", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    await renderer.renderHistory([
+      message({
+        messageId: 1,
+        roomId: 10,
+        roleId: 1,
+        content: "第一句",
+        messageType: MESSAGE_TYPE.TEXT,
+      }),
+      message({
+        messageId: 2,
+        roomId: 10,
+        roleId: 1,
+        content: "第二句",
+        messageType: MESSAGE_TYPE.TEXT,
+      }),
+    ], 10);
+
+    const send = vi.fn();
+    const close = vi.fn();
+    vi.stubGlobal("WebSocket", { OPEN: 1 });
+    (renderer as any).isConnected = true;
+    (renderer as any).syncSocket = { readyState: 1, send, close };
+
+    await expect(renderer.updateAndRerenderMessage(message({
+      messageId: 2,
+      roomId: 10,
+      roleId: 1,
+      content: "第二句\n补充一行",
+      messageType: MESSAGE_TYPE.TEXT,
+    }), 10)).resolves.toBe(true);
+
+    const range = (renderer as any).messageLineMap.get("10_2");
+    const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
+    const sceneLines = sceneText.split("\n");
+    const payload = JSON.parse(send.mock.calls.at(-1)?.[0] ?? "{}");
+    const sentence = payload.data.sceneMsg.sentence;
+
+    expect(payload.data.message).toBe("Sync");
+    expect(sentence).toBe(range.startLine);
+    expect(range.endLine).toBe(range.startLine);
+    expect(sceneLines[sentence - 1]).toBe("明日香: 第二句|补充一行;");
+    expect(sceneText).not.toContain("明日香: 第二句\n补充一行;");
+  });
+
+  it("局部更新为空文本后会移除该消息跳转映射", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    await renderer.renderHistory([
+      message({
+        messageId: 1,
+        roomId: 10,
+        roleId: 1,
+        content: "第一句",
+        messageType: MESSAGE_TYPE.TEXT,
+      }),
+      message({
+        messageId: 2,
+        roomId: 10,
+        roleId: 1,
+        content: "第二句",
+        messageType: MESSAGE_TYPE.TEXT,
+      }),
+    ], 10);
+
+    vi.stubGlobal("WebSocket", { OPEN: 1 });
+    (renderer as any).isConnected = true;
+    (renderer as any).syncSocket = { readyState: 1, send: vi.fn(), close: vi.fn() };
+
+    await expect(renderer.updateAndRerenderMessage(message({
+      messageId: 2,
+      roomId: 10,
+      roleId: 1,
+      content: "",
+      messageType: MESSAGE_TYPE.TEXT,
+    }), 10)).resolves.toBe(true);
+
+    const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
+    expect((renderer as any).messageLineMap.has("10_2")).toBe(false);
+    expect(renderer.jumpToMessage(2, 10)).toBe(false);
+    expect(sceneText).not.toContain("明日香: 第二句;");
+  });
+
+  it("WebSocket 暂未连接时会保留最后一次跳转请求", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    await renderer.renderHistory([
+      message({
+        messageId: 1,
+        roomId: 10,
+        roleId: 1,
+        content: "第一句",
+        messageType: MESSAGE_TYPE.TEXT,
+      }),
+      message({
+        messageId: 2,
+        roomId: 10,
+        roleId: 1,
+        content: "第二句",
+        messageType: MESSAGE_TYPE.TEXT,
+      }),
+    ], 10);
+
+    vi.stubGlobal("WebSocket", { OPEN: 1 });
+    (renderer as any).isConnected = false;
+    (renderer as any).syncSocket = null;
+
+    expect(renderer.jumpToMessage(1, 10)).toBe(true);
+    expect(renderer.jumpToMessage(2, 10)).toBe(true);
+
+    const queuedMessages = (renderer as any).messageQueue as string[];
+    expect(queuedMessages).toHaveLength(1);
+    const payload = JSON.parse(queuedMessages[0] ?? "{}");
+    expect(payload.data.sceneMsg.sentence).toBe((renderer as any).messageLineMap.get("10_2").startLine);
+  });
+
+  it("脚本片段包含真实换行时会按物理行数维护场景行号", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+    (renderer as any).sceneContextMap.set(10, { lineNumber: 0, text: "" });
+
+    await (renderer as any).appendLine(10, "changeBg:none -next;\nsetTextbox:hide;", false);
+
+    const context = (renderer as any).sceneContextMap.get(10);
+    expect(context.lineNumber).toBe(2);
+    expect(context.text.split("\n")).toEqual(["changeBg:none -next;", "setTextbox:hide;"]);
+  });
+
   it("历史全量渲染第一句带消息 avatarId 和 figure.pos 时会先输出 changeFigure", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     const queryClient = {

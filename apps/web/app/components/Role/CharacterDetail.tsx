@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
-import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { CloseIcon, SlidersIcon } from "@/icons";
 import {

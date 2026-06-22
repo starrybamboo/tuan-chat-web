@@ -22,6 +22,7 @@ import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api"
 import type { RealtimeGameConfig } from "./realtimeRendererConfig";
 import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 import type { SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
+import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "../types/webgalChoose";
 import { BUILTIN_WEBGAL_ANIMATION_FILES } from "./publishAnimationPresets";
@@ -52,7 +53,6 @@ import {
   buildWebgalFigureRenderAsset,
   resolveFigureCompositionCandidate,
 } from "./webgalFigureComposition";
-import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 export type WebgalPublishFile = {
   path: string;
