@@ -166,7 +166,7 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
               extra: {
                 imageMessage: {
                   source: { kind: "internal", fileId: 9101 },
-                  fileName: "永远亭夜晚.png",
+                  fileName: "永远亭夜晚.webp",
                 },
               },
             }],
@@ -189,7 +189,7 @@ describe("buildReplayMaterialPackageFromAssetManifest", () => {
               extra: {
                 imageMessage: {
                   source: { kind: "internal", fileId: 9501 },
-                  fileName: "展示图.png",
+                  fileName: "展示图.webp",
                 },
               },
             }],

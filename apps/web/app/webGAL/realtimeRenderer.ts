@@ -2321,7 +2321,8 @@ export class RealtimeRenderer {
           if (!isBackground && !unlockCg && isImageMessageShown(msg.annotations)) {
           // 展示图固定上半屏居中，忽略 figure.pos.*，并按安全区自动上移/缩放，避免与底部对话框重叠。
             const imageSlot = resolveFigureSlot("center");
-            const figureFileName = await this.uploadImageFigure(imageSourceUrl, imageMessage.fileName);
+            // image.show 使用媒体 URL 派生本地文件名，避免导入占位名（如 image.png）让多张图撞到同一资源。
+            const figureFileName = await this.uploadImageFigure(imageSourceUrl);
             if (figureFileName) {
               const transform = buildImageFigureTransformString(imageMessage, imageSlot.offsetX);
               const figureArgs = buildFigureArgs(IMAGE_MESSAGE_FIGURE_ID, transform);
