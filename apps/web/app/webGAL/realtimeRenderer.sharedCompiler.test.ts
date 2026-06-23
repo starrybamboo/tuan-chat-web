@@ -6,6 +6,7 @@ import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import type { ChatMessageResponse, Room, UserRole } from "../../api";
 
 import { RealtimeRenderer } from "./realtimeRenderer";
+import { hashString } from "./realtimeRendererFileNames";
 
 const manageGameControllerEditTextFile = vi.fn(async () => ({}));
 const { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache } = vi.hoisted(() => ({
@@ -730,6 +731,35 @@ describe("realtimeRenderer shared compiler full render", () => {
     const bgmIndex = lines.indexOf("bgm:uploaded.webp -volume=55 -next;");
     expect(unlockIndex).toBeGreaterThanOrEqual(0);
     expect(bgmIndex).toBeGreaterThan(unlockIndex);
+  });
+
+  it("实时追加语音消息时会把配音挂到台词上并使用唯一 vocal 文件名", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    const vocalUrl = "https://cdn.example.com/voices/low.webm";
+
+    await renderer.appendMessage(message({
+      messageId: 1,
+      roomId: 10,
+      roleId: 1,
+      content: "我来了",
+      messageType: MESSAGE_TYPE.SOUND,
+      extra: {
+        soundMessage: {
+          source: { kind: "external", url: vocalUrl },
+          purpose: "voice",
+        },
+      },
+    }), 10, false);
+
+    const expectedVocalFileName = `vocal_${hashString(vocalUrl)}.webm`;
+    const lines = String((renderer as any).sceneContextMap.get(10)?.text ?? "").trim().split("\n");
+    expect(lines).toContain(`明日香: 我来了 -vocal=${expectedVocalFileName};`);
   });
 
   it("实时追加有效立绘组时会先合成再显示 composite 立绘", async () => {

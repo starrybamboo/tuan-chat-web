@@ -1,3 +1,4 @@
+import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 import {
@@ -500,28 +501,75 @@ function renderVideoMessage(context: PublishSceneContext, message: ChatMessageRe
   return true;
 }
 
-function renderSoundMessage(context: PublishSceneContext, message: ChatMessageResponse): boolean {
+function renderSoundMessage(
+  context: PublishSceneContext,
+  message: ChatMessageResponse,
+  roleMap: Map<number, UserRole>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
+): boolean {
   const soundMessage = message.message.extra?.soundMessage;
   if (!soundMessage) {
     return false;
   }
 
   const soundUrl = resolveMessageMediaUrl(soundMessage, "low", "audio");
+  // 用途判定与前端其它位置一致：annotation 优先，其次 payload purpose，缺省为 voice。
+  const purpose = resolveRenderedSoundMessagePurpose({
+    annotations: message.message.annotations,
+    payloadPurpose: soundMessage.purpose,
+  });
+
+  if (purpose === "voice") {
+    // 语音消息渲染为带配音的台词：把配音通过 say -vocal=<url> 附加到对话行上。
+    // 没有配音 URL 时仍渲染台词，只是不挂 -vocal。
+    renderVoiceMessage(context, message, roleMap, avatarMap, soundUrl);
+    return true;
+  }
+
   if (!soundUrl) {
     return true;
   }
 
   const volumePart = typeof soundMessage.volume === "number" ? ` -volume=${soundMessage.volume}` : "";
-  if (soundMessage.purpose === "bgm") {
+  if (purpose === "bgm") {
     appendLine(context, buildUnlockBgmLine(soundUrl, soundMessage));
     appendLine(context, `bgm:${soundUrl}${volumePart} -next;`);
     return true;
   }
-  if (soundMessage.purpose === "se") {
+  if (purpose === "se") {
     appendLine(context, `playEffect:${soundUrl}${volumePart} -next;`);
     return true;
   }
   return true;
+}
+
+function renderVoiceMessage(
+  context: PublishSceneContext,
+  message: ChatMessageResponse,
+  roleMap: Map<number, UserRole>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
+  vocalUrl: string | null,
+): void {
+  const payload = message.message;
+  const processedContent = TextEnhanceSyntax.processContent(payload.content ?? "");
+  if (!processedContent.trim()) {
+    return;
+  }
+
+  const vocalPart = vocalUrl ? ` -vocal=${vocalUrl}` : "";
+  const roleId = payload.roleId ?? 0;
+  const nextPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_NEXT) ? " -next" : "";
+  if (roleId <= 0) {
+    appendLine(context, `:${processedContent}${vocalPart}${nextPart};`);
+    return;
+  }
+
+  const role = roleMap.get(roleId);
+  const roleName = payload.customRoleName || role?.roleName || `角色${roleId}`;
+  const figureIdPart = renderFigureCommands(context, message, avatarMap);
+  const notendPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_NOTEND) ? " -notend" : "";
+  const concatPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_CONCAT) ? " -concat" : "";
+  appendLine(context, `${roleName}: ${processedContent}${vocalPart}${figureIdPart}${notendPart}${concatPart}${nextPart};`);
 }
 
 function renderChooseMessage(context: PublishSceneContext, message: ChatMessageResponse): boolean {
@@ -694,7 +742,7 @@ function renderPublishMessage(
   if (renderVideoMessage(context, message)) {
     return;
   }
-  if (renderSoundMessage(context, message)) {
+  if (renderSoundMessage(context, message, roleMap, avatarMap)) {
     return;
   }
   if (renderChooseMessage(context, message)) {
