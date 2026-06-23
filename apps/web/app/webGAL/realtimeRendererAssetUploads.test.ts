@@ -7,6 +7,7 @@ import {
   getAndUploadSpriteAsset,
   uploadImageFigureAsset,
   uploadMapImageAsset,
+  uploadVocalAsset,
 } from "./realtimeRendererAssetUploads";
 
 vi.mock("./fileOperator", () => ({
@@ -26,6 +27,7 @@ function createContext(): RealtimeAssetUploadContext {
     uploadedVideosMap: new Map(),
     uploadedMiniAvatarsMap: new Map(),
     uploadedSoundEffectsMap: new Map(),
+    uploadedVocalsMap: new Map(),
   };
 }
 
@@ -277,6 +279,32 @@ describe("realtimeRendererAssetUploads", () => {
       "map_12.png",
     );
     expect(context.uploadedMapImagesMap.get("http://localhost:3001/map.png?sig=a=b")).toBe("map_12.png");
+  });
+
+  it("上传语音配音时按 URL 哈希生成唯一文件名，避免多个 low.webm 串音", async () => {
+    const context = createContext();
+    const firstUrl = "https://media.tuan.chat/media/v1/files/001/1001/audio/low.webm";
+    const secondUrl = "https://media.tuan.chat/media/v1/files/002/2002/audio/low.webm";
+
+    const first = await uploadVocalAsset(context, firstUrl);
+    const second = await uploadVocalAsset(context, secondUrl);
+
+    expect(first).toMatch(/^vocal_[a-z0-9]+\.webm$/);
+    expect(second).toMatch(/^vocal_[a-z0-9]+\.webm$/);
+    expect(first).not.toBe(second);
+    expect(uploadFile).toHaveBeenNthCalledWith(1, firstUrl, "games/realtime_1/game/vocal/", first);
+    expect(uploadFile).toHaveBeenNthCalledWith(2, secondUrl, "games/realtime_1/game/vocal/", second);
+  });
+
+  it("语音配音上传按完整 URL 缓存", async () => {
+    const context = createContext();
+    const url = "https://media.tuan.chat/media/v1/files/001/1001/audio/medium.webm";
+
+    const first = await uploadVocalAsset(context, url);
+    const second = await uploadVocalAsset(context, url);
+
+    expect(second).toBe(first);
+    expect(uploadFile).toHaveBeenCalledTimes(1);
   });
 
   it("头像不属于当前角色时不会上传立绘或小头像", async () => {

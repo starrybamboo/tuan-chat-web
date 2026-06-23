@@ -8,6 +8,7 @@ import type { FigurePositionKey } from "@/types/voiceRenderTypes";
 import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { deriveCombatVisualActiveAtMessageIndex, getCombatVisualSignal } from "@/components/chat/hooks/chatFrameCombatVisualState";
+import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import {
@@ -48,9 +49,9 @@ import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
  * 4. 增量更新：新消息来时只更新对应房间的场景内容
  */
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
+import type { IDebugMessage } from "./fileOperator";
 import type { RealtimeAssetUploadContext } from "./realtimeRendererAssetUploads";
 import type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererConfig";
-import type { IDebugMessage } from "./fileOperator";
 import type { RealtimeRenderMessageCompilerInput } from "./realtimeRendererMessageCompiler";
 import type {
   RoomFigureRenderState,
@@ -79,6 +80,7 @@ import {
   uploadMapImageAsset,
   uploadSoundEffectAsset,
   uploadVideoAsset,
+  uploadVocalAsset,
 } from "./realtimeRendererAssetUploads";
 import { DEFAULT_REALTIME_GAME_CONFIG } from "./realtimeRendererConfig";
 import {
@@ -299,7 +301,7 @@ export class RealtimeRenderer {
   // TTS 相关
   private ttsConfig: RealtimeTTSConfig = { enabled: false };
   private voiceFileMap = new Map<number, File>(); // roleId -> 参考音频文件
-  private uploadedVocalsMap = new Map<string, string>(); // hash -> fileName (已上传的语音缓存)
+  private uploadedVocalsMap = new Map<string, string>(); // url -> fileName (已上传的语音缓存)
   private ttsGeneratingMap = new Map<string, Promise<string | null>>(); // hash -> Promise (正在生成的语音，避免重复生成)
 
   private constructor(spaceId: number) {
@@ -1749,6 +1751,7 @@ export class RealtimeRenderer {
       uploadedVideosMap: this.uploadedVideosMap,
       uploadedMiniAvatarsMap: this.uploadedMiniAvatarsMap,
       uploadedSoundEffectsMap: this.uploadedSoundEffectsMap,
+      uploadedVocalsMap: this.uploadedVocalsMap,
     };
   }
 
@@ -1899,6 +1902,13 @@ export class RealtimeRenderer {
    */
   private async uploadSoundEffect(url: string): Promise<string | null> {
     return uploadSoundEffectAsset(this.getAssetUploadContext(), url);
+  }
+
+  /**
+   * 上传语音消息的配音到 vocal 文件夹，供 say -vocal=<file> 引用。
+   */
+  private async uploadVocal(url: string): Promise<string | null> {
+    return uploadVocalAsset(this.getAssetUploadContext(), url);
   }
 
   private async resolveDiceSound(
@@ -2355,62 +2365,76 @@ export class RealtimeRenderer {
         return;
       }
 
-      // 处理音频消息（BGM 或 音效）
+      // 处理音频消息（BGM / 音效 / 语音配音）
       const soundMsg = msg.extra?.soundMessage;
+      // 语音消息（配音）携带的台词会走下方对话渲染路径，这里记录上传后的配音文件名。
+      let voiceVocalFileName: string | null = null;
+      let isVoiceMessage = false;
 
       if (soundMsg) {
         const url = resolveMessageMediaUrl(soundMsg, "medium", "audio");
-        if (!url) {
+        // 用途判定与前端其它位置保持一致：annotation 优先，其次 payload purpose，缺省为 voice。
+        const soundPurpose = resolveRenderedSoundMessagePurpose({
+          annotations: msg.annotations,
+          payloadPurpose: soundMsg.purpose,
+        });
+
+        if (soundPurpose === "voice") {
+          // 语音消息渲染为带配音的台词：先上传配音（失败则仅渲染台词），
+          // 然后不在此早退，继续走下方对话渲染逻辑。
+          isVoiceMessage = true;
+          if (url) {
+            voiceVocalFileName = await this.uploadVocal(url);
+          }
+        }
+        else {
+          if (!url) {
+            await finalizeMessageLineRange();
+            return;
+          }
+
+          if (soundPurpose === "bgm") {
+          // 处理 BGM
+            const bgmFileName = await this.uploadBgm(url);
+            if (bgmFileName) {
+              const unlockBgmLine = buildUnlockBgmLine(bgmFileName, soundMsg);
+              if (unlockBgmLine) {
+                await this.appendLine(targetRoomId, unlockBgmLine, false);
+              }
+              let command = `bgm:${bgmFileName}`;
+              const vol = (soundMsg as any).volume;
+              if (vol !== undefined) {
+                command += ` -volume=${vol}`;
+              }
+              command += " -next;";
+              await this.appendLine(targetRoomId, command, syncToFile);
+              if (syncToFile)
+                this.sendSyncMessage(targetRoomId);
+            }
+          }
+          else if (soundPurpose === "se") {
+          // 处理音效（playEffect）
+            const seFileName = await this.uploadSoundEffect(url);
+            if (seFileName) {
+              let command = `playEffect:./game/vocal/${seFileName}`;
+              const vol = (soundMsg as any).volume;
+              if (vol !== undefined) {
+                command += ` -volume=${vol}`;
+              }
+              // 支持循环音效（通过 loopId）
+              const loopId = (soundMsg as any).loopId;
+              if (loopId) {
+                command += ` -id=${loopId}`;
+              }
+              command += " -next;";
+              await this.appendLine(targetRoomId, command, syncToFile);
+              if (syncToFile)
+                this.sendSyncMessage(targetRoomId);
+            }
+          }
           await finalizeMessageLineRange();
           return;
         }
-
-        // 判断是 BGM 还是音效
-        const isMarkedBgm = soundMsg.purpose === "bgm";
-        const isMarkedSE = soundMsg.purpose === "se";
-
-        if (isMarkedBgm) {
-        // 处理 BGM
-          const bgmFileName = await this.uploadBgm(url);
-          if (bgmFileName) {
-            const unlockBgmLine = buildUnlockBgmLine(bgmFileName, soundMsg);
-            if (unlockBgmLine) {
-              await this.appendLine(targetRoomId, unlockBgmLine, false);
-            }
-            let command = `bgm:${bgmFileName}`;
-            const vol = (soundMsg as any).volume;
-            if (vol !== undefined) {
-              command += ` -volume=${vol}`;
-            }
-            command += " -next;";
-            await this.appendLine(targetRoomId, command, syncToFile);
-            if (syncToFile)
-              this.sendSyncMessage(targetRoomId);
-          }
-        }
-        else if (isMarkedSE) {
-        // 处理音效（playEffect）
-          const seFileName = await this.uploadSoundEffect(url);
-          if (seFileName) {
-            let command = `playEffect:./game/vocal/${seFileName}`;
-            const vol = (soundMsg as any).volume;
-            if (vol !== undefined) {
-              command += ` -volume=${vol}`;
-            }
-            // 支持循环音效（通过 loopId）
-            const loopId = (soundMsg as any).loopId;
-            if (loopId) {
-              command += ` -id=${loopId}`;
-            }
-            command += " -next;";
-            await this.appendLine(targetRoomId, command, syncToFile);
-            if (syncToFile)
-              this.sendSyncMessage(targetRoomId);
-          }
-        }
-        // 如果既不是 BGM 也不是音效，则跳过（默认不处理普通语音消息）
-        await finalizeMessageLineRange();
-        return;
       }
 
       // 处理特效消息 (Type 8)：纯 annotation 语义
@@ -2524,8 +2548,9 @@ export class RealtimeRenderer {
         return;
       }
 
-      // 只处理文本消息（messageType === 1）、黑屏文字（messageType === 9）和骰子消息（messageType === 6）
-      if (msg.messageType !== 1 && msg.messageType !== 9 && !isDiceMessage) {
+      // 只处理文本消息（messageType === 1）、黑屏文字（messageType === 9）、骰子消息（messageType === 6）
+      // 以及语音消息（SOUND，配音台词，走对话渲染路径）。
+      if (msg.messageType !== 1 && msg.messageType !== 9 && !isDiceMessage && !isVoiceMessage) {
         await finalizeMessageLineRange();
         return;
       }
@@ -2715,7 +2740,8 @@ export class RealtimeRenderer {
         : "";
 
       const diceSound = isDiceMessage ? await this.resolveDiceSound(dicePayload, true) : null;
-      const vocalPart = "";
+      // 语音消息：把上传后的配音文件名挂到 say 行（say -vocal=<file>）。
+      const vocalPart = voiceVocalFileName ? ` -vocal=${voiceVocalFileName}` : "";
 
       const compiledLines = compileRealtimeRenderMessageLines(
         this.buildRealtimeRenderMessageCompilerInput(msg, {
@@ -2743,6 +2769,7 @@ export class RealtimeRenderer {
           soundLine: diceSound ? buildPlayEffectLine(diceSound) : null,
           diceTrpgLines: isDiceMessage ? buildTrpgDicePerformLines(processedContent, diceSound) : null,
           vocalPart,
+          isVoiceMessage,
         }),
       );
       await this.appendCompiledLines(targetRoomId, compiledLines, syncToFile);

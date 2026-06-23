@@ -6,7 +6,7 @@ import type { RoleAvatar } from "../../api";
 import type { FigureCompositionCandidate, WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { checkFileExist, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
-import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";
+import { buildImageFileName, getSafeExtensionFromUrl, hasFileExtension, hashString } from "./realtimeRendererFileNames";
 import {
   buildOrdinaryFigureRenderAsset,
   buildWebgalFigureRenderAsset,
@@ -24,6 +24,7 @@ export type RealtimeAssetUploadContext = {
   uploadedVideosMap: Map<string, string>;
   uploadedMiniAvatarsMap: Map<string, string>;
   uploadedSoundEffectsMap: Map<string, string>;
+  uploadedVocalsMap: Map<string, string>;
 };
 
 export type RealtimeRoleAvatarSource = Pick<
@@ -170,6 +171,11 @@ function buildCompositionAvatarTargetStem(candidate: FigureCompositionCandidate)
   return `avatar_${candidate.avatarId}_${candidate.avatarFileId}_${cropHash}`;
 }
 
+function buildVocalAssetFileName(url: string): string {
+  const fileExtension = getSafeExtensionFromUrl(url, "webm");
+  return `vocal_${hashString(url)}.${fileExtension}`;
+}
+
 export async function uploadBackgroundAsset(
   context: RealtimeAssetUploadContext,
   url: string,
@@ -302,6 +308,27 @@ export async function uploadSoundEffectAsset(
   }
   catch (error) {
     console.error("上传音效失败:", error);
+    return null;
+  }
+}
+
+export async function uploadVocalAsset(
+  context: RealtimeAssetUploadContext,
+  url: string,
+): Promise<string | null> {
+  if (context.uploadedVocalsMap.has(url)) {
+    return context.uploadedVocalsMap.get(url) || null;
+  }
+
+  try {
+    // 语音消息的配音也放在 WebGAL 的 vocal 文件夹，供 say -vocal=<file> 引用。
+    const path = `games/${context.gameName}/game/vocal/`;
+    const fileName = await uploadFile(url, path, buildVocalAssetFileName(url));
+    context.uploadedVocalsMap.set(url, fileName);
+    return fileName;
+  }
+  catch (error) {
+    console.error("上传配音失败:", error);
     return null;
   }
 }

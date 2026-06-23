@@ -85,6 +85,122 @@ describe("spaceWebgalCompiler", () => {
     expect(projectedConfig).toContain(`TypingSoundSe:${mediaFileUrl(1003, "audio", "low")};`);
   });
 
+  it("语音消息（SOUND voice）会编译为带配音的角色台词", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>();
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 1,
+          content: "我来了",
+          status: 0,
+          messageType: MESSAGE_TYPE.SOUND,
+          position: 1,
+          annotations: [],
+          extra: { soundMessage: { fileId: 5001 } } as unknown as MessageExtra,
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    expect(scene.content).toContain(`明日香: 我来了 -vocal=${mediaFileUrl(5001, "audio", "low")};`);
+  });
+
+  it("语音消息（SOUND voice）无配音时仍编译台词且不挂 -vocal", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>();
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 1,
+          content: "我来了",
+          status: 0,
+          messageType: MESSAGE_TYPE.SOUND,
+          position: 1,
+          annotations: [],
+          extra: { soundMessage: {} } as unknown as MessageExtra,
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    expect(scene.content).toContain("明日香: 我来了;");
+    expect(scene.content).not.toContain("-vocal=");
+  });
+
+  it("BGM 用途的 SOUND 消息仍编译为 bgm 行而非台词", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>();
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 1,
+          content: "不应作为台词",
+          status: 0,
+          messageType: MESSAGE_TYPE.SOUND,
+          position: 1,
+          annotations: [],
+          extra: { soundMessage: { fileId: 5002, purpose: "bgm" } } as unknown as MessageExtra,
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    expect(scene.content).toContain(`bgm:${mediaFileUrl(5002, "audio", "low")}`);
+    expect(scene.content).not.toContain("不应作为台词");
+  });
+
   it("会把共享静态场景编译结果和最终立绘状态一起产出", () => {
     const room = { roomId: 10, name: "序章", status: 0 } as Room;
     const roomMap = new Map([[10, room]]);

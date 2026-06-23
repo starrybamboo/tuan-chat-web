@@ -74,6 +74,70 @@ describe("compileRealtimeRenderMessageLines", () => {
     ]);
   });
 
+  it("语音消息（SOUND）作为带配音的角色台词渲染", () => {
+    const lines = compileRealtimeRenderMessageLines(createInput({
+      message: createMessage({ messageType: MESSAGE_TYPE.SOUND, content: "我来了" }),
+      isVoiceMessage: true,
+      processedContent: "我来了",
+      vocalPart: " -vocal=voice_abc.mp3",
+    }));
+
+    expect(lines).toEqual([
+      "明日香: 我来了 -vocal=voice_abc.mp3;",
+    ]);
+  });
+
+  it("语音消息（SOUND）作为旁白时渲染带配音的旁白行", () => {
+    const lines = compileRealtimeRenderMessageLines(createInput({
+      message: createMessage({ messageType: MESSAGE_TYPE.SOUND, roleId: 0, content: "远处传来脚步声" }),
+      isVoiceMessage: true,
+      isNarrator: true,
+      roleId: 0,
+      processedContent: "远处传来脚步声",
+      vocalPart: " -vocal=voice_def.mp3",
+    }));
+
+    expect(lines).toEqual([
+      ":远处传来脚步声 -vocal=voice_def.mp3;",
+    ]);
+  });
+
+  it("语音消息无配音时仍渲染台词，只是不挂 -vocal", () => {
+    const lines = compileRealtimeRenderMessageLines(createInput({
+      message: createMessage({ messageType: MESSAGE_TYPE.SOUND, content: "我来了" }),
+      isVoiceMessage: true,
+      processedContent: "我来了",
+      vocalPart: "",
+    }));
+
+    expect(lines).toEqual([
+      "明日香: 我来了;",
+    ]);
+  });
+
+  it("语音消息内容为空时不产出对话行", () => {
+    const lines = compileRealtimeRenderMessageLines(createInput({
+      message: createMessage({ messageType: MESSAGE_TYPE.SOUND, content: "" }),
+      isVoiceMessage: true,
+      processedContent: "",
+      vocalPart: " -vocal=voice_abc.mp3",
+    }));
+
+    expect(lines).toEqual([]);
+  });
+
+  it("非语音的 SOUND 消息（bgm）仍只输出音频行", () => {
+    const lines = compileRealtimeRenderMessageLines(createInput({
+      message: createMessage({ messageType: MESSAGE_TYPE.SOUND, content: "" }),
+      isVoiceMessage: false,
+      bgmLine: "bgm:battle.mp3 -next;",
+    }));
+
+    expect(lines).toEqual([
+      "bgm:battle.mp3 -next;",
+    ]);
+  });
+
   it("编译黑屏文字时会输出 intro 指令", () => {
     const lines = compileRealtimeRenderMessageLines(createInput({
       message: createMessage({ messageType: MESSAGE_TYPE.INTRO_TEXT }),
