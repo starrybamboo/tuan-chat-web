@@ -2740,8 +2740,8 @@ export class RealtimeRenderer {
         : "";
 
       const diceSound = isDiceMessage ? await this.resolveDiceSound(dicePayload, true) : null;
-      // 语音消息：把上传后的配音文件名挂到 say 行（say -vocal=<file>）。
-      const vocalPart = voiceVocalFileName ? ` -vocal=${voiceVocalFileName}` : "";
+      // 语音消息：显式写出 WebGAL 运行时可直接访问的相对路径，避免被当成根目录下的裸文件名。
+      const vocalPart = voiceVocalFileName ? ` -vocal=./game/vocal/${voiceVocalFileName}` : "";
 
       const compiledLines = compileRealtimeRenderMessageLines(
         this.buildRealtimeRenderMessageCompilerInput(msg, {
