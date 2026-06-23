@@ -1,14 +1,13 @@
-import type { QueryClient } from "@tanstack/react-query";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 
 import { FilmSlateIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getAllRoomMessagesQueryKey,
-  markRoomMessageDeletedData,
-  replaceRoomMessageListData,
-  upsertRoomMessagesListData,
-} from "@tuanchat/query/chat";
+  invalidateClueFolderMessageQueries,
+  patchClueMessageCreatedQueryCache,
+  patchClueMessageDeletedQueryCache,
+  patchClueMessageUpdatedQueryCache,
+} from "@tuanchat/query/clue-folder";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
@@ -163,39 +162,6 @@ export function resolveClueMessageSenderContext({
     ok: false,
     message: "请先选择一个可发言角色，再创建线索",
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === "object" && !Array.isArray(value);
-}
-
-function isMessage(value: unknown): value is Message {
-  return isRecord(value)
-    && typeof value.messageId === "number"
-    && typeof value.roomId === "number"
-    && typeof value.content === "string";
-}
-
-function extractClueMessages(value: unknown): ChatMessageResponse[] {
-  const rawList = Array.isArray(value)
-    ? value
-    : isRecord(value) && Array.isArray(value.data)
-      ? value.data
-      : isRecord(value) && isRecord(value.data) && Array.isArray(value.data.list)
-        ? value.data.list
-        : [];
-
-  return rawList
-    .map((item): ChatMessageResponse | null => {
-      if (isRecord(item) && isMessage(item.message)) {
-        return { message: item.message };
-      }
-      if (isMessage(item)) {
-        return { message: item };
-      }
-      return null;
-    })
-    .filter((item): item is ChatMessageResponse => item != null);
 }
 
 function getMessageId(message: Message): number | null {
@@ -375,53 +341,6 @@ export function getAutoJoinPublicClueSpaceId({
 
 function getErrorMessage(result: ApiResultLike | null | undefined, fallback: string): string {
   return result?.errMsg?.trim() || fallback;
-}
-
-function patchAllMessageCache(
-  queryClient: QueryClient,
-  roomId: number,
-  updater: (messages: ChatMessageResponse[]) => ChatMessageResponse[],
-) {
-  queryClient.setQueryData(getAllRoomMessagesQueryKey(roomId), (oldData: unknown) => {
-    if (Array.isArray(oldData)) {
-      return updater(extractClueMessages(oldData));
-    }
-    if (isRecord(oldData) && Array.isArray(oldData.data)) {
-      return {
-        ...oldData,
-        data: updater(extractClueMessages(oldData.data)),
-      };
-    }
-    if (isRecord(oldData) && isRecord(oldData.data) && Array.isArray(oldData.data.list)) {
-      return {
-        ...oldData,
-        data: {
-          ...oldData.data,
-          list: updater(extractClueMessages(oldData.data.list)),
-        },
-      };
-    }
-    return oldData;
-  });
-}
-
-function patchClueMessageCreated(queryClient: QueryClient, roomId: number, message: Message) {
-  const response: ChatMessageResponse = { message };
-  patchAllMessageCache(queryClient, roomId, messages => upsertRoomMessagesListData(messages, [response]));
-}
-
-function patchClueMessageUpdated(queryClient: QueryClient, message: Message) {
-  const response: ChatMessageResponse = { message };
-  const messageId = message.messageId;
-  patchAllMessageCache(queryClient, message.roomId, messages => replaceRoomMessageListData(messages, messageId, response));
-}
-
-function patchClueMessageDeleted(queryClient: QueryClient, roomId: number, messageId: number) {
-  patchAllMessageCache(queryClient, roomId, messages => markRoomMessageDeletedData(messages, messageId));
-}
-
-async function invalidateClueMessageQueries(queryClient: QueryClient, roomId: number) {
-  await queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(roomId) });
 }
 
 function ClueFolderSection({
@@ -847,9 +766,9 @@ export default function ClueFolderSidebar({
         throw new Error(getErrorMessage(result, "线索排序失败"));
       }
       const nextMessage = result.data ?? updatedMessage;
-      patchClueMessageUpdated(queryClient, nextMessage);
+      patchClueMessageUpdatedQueryCache(queryClient, nextMessage);
       await clueHistory.addOrUpdateMessage({ message: nextMessage });
-      await invalidateClueMessageQueries(queryClient, room.roomId);
+      await invalidateClueFolderMessageQueries(queryClient, room.roomId);
       toast.success("线索排序已更新");
     }
     catch (error) {
@@ -892,9 +811,9 @@ export default function ClueFolderSidebar({
           throw new Error(getErrorMessage(result, "保存线索失败"));
         }
         const nextMessage = result.data ?? { ...editorState.message, content };
-        patchClueMessageUpdated(queryClient, nextMessage);
+        patchClueMessageUpdatedQueryCache(queryClient, nextMessage);
         await clueHistory.addOrUpdateMessage({ message: nextMessage });
-        await invalidateClueMessageQueries(queryClient, editorState.message.roomId);
+        await invalidateClueFolderMessageQueries(queryClient, editorState.message.roomId);
         toast.success("线索已保存");
       }
       else {
@@ -977,12 +896,12 @@ export default function ClueFolderSidebar({
           throw new Error(getErrorMessage(result, "创建线索失败"));
         }
         if (result.data) {
-          patchClueMessageCreated(queryClient, targetRoom.roomId, result.data);
+          patchClueMessageCreatedQueryCache(queryClient, targetRoom.roomId, result.data);
           if (targetRoom.roomId === room?.roomId) {
             await clueHistory.addOrUpdateMessage({ message: result.data });
           }
         }
-        await invalidateClueMessageQueries(queryClient, targetRoom.roomId);
+        await invalidateClueFolderMessageQueries(queryClient, targetRoom.roomId);
         toast.success("线索已创建");
       }
       setEditorState(null);
@@ -1019,15 +938,15 @@ export default function ClueFolderSidebar({
       if (!isSuccess(result)) {
         throw new Error(getErrorMessage(result, "删除线索失败"));
       }
-      patchClueMessageDeleted(queryClient, editorState.message.roomId, messageId);
+      patchClueMessageDeletedQueryCache(queryClient, editorState.message.roomId, messageId);
       if (result.data) {
-        patchClueMessageUpdated(queryClient, result.data);
+        patchClueMessageUpdatedQueryCache(queryClient, result.data);
         await clueHistory.addOrUpdateMessage({ message: result.data });
       }
       else {
         await clueHistory.removeMessageById(messageId);
       }
-      await invalidateClueMessageQueries(queryClient, editorState.message.roomId);
+      await invalidateClueFolderMessageQueries(queryClient, editorState.message.roomId);
       toast.success("线索已删除");
       setEditorState(null);
       setDraftContent("");

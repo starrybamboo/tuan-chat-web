@@ -3,7 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SidebarTree } from "@/components/chat/room/sidebarTree";
 
 import { parseSidebarTree } from "@/components/chat/room/sidebarTree";
-import { useGetSpaceSidebarTreeQuery, useSetSpaceSidebarTreeMutation } from "api/hooks/spaceSidebarTreeHooks";
+import {
+  isOptimisticSpaceSidebarTreeResponse,
+  useGetSpaceSidebarTreeQuery,
+  useSetSpaceSidebarTreeMutation,
+} from "api/hooks/spaceSidebarTreeHooks";
 
 type UseChatPageSidebarTreeParams = {
   activeSpaceId?: number | null;
@@ -51,9 +55,11 @@ export default function useChatPageSidebarTree({
 }: UseChatPageSidebarTreeParams): UseChatPageSidebarTreeResult {
   const spaceSidebarTreeQuery = useGetSpaceSidebarTreeQuery(activeSpaceId ?? -1);
   const setSpaceSidebarTreeMutation = useSetSpaceSidebarTreeMutation();
-  const sidebarTreeVersion = spaceSidebarTreeQuery.data?.data?.version ?? 0;
+  const sidebarTreeResponse = spaceSidebarTreeQuery.data;
+  const sidebarTreeVersion = sidebarTreeResponse?.data?.version ?? 0;
   const [cachedTreeJson, setCachedTreeJson] = useState<string | null>(null);
-  const remoteTreeJson = spaceSidebarTreeQuery.data?.data?.treeJson;
+  const remoteTreeJson = sidebarTreeResponse?.data?.treeJson;
+  const isOptimisticTree = isOptimisticSpaceSidebarTreeResponse(sidebarTreeResponse);
 
   useEffect(() => {
     if (!activeSpaceId || activeSpaceId <= 0) {
@@ -67,12 +73,12 @@ export default function useChatPageSidebarTree({
     if (!activeSpaceId || activeSpaceId <= 0) {
       return;
     }
-    if (typeof remoteTreeJson !== "string" || remoteTreeJson.trim().length === 0) {
+    if (isOptimisticTree || typeof remoteTreeJson !== "string" || remoteTreeJson.trim().length === 0) {
       return;
     }
     writeCachedSidebarTreeJson(activeSpaceId, remoteTreeJson);
     queueMicrotask(() => setCachedTreeJson(remoteTreeJson));
-  }, [activeSpaceId, remoteTreeJson]);
+  }, [activeSpaceId, isOptimisticTree, remoteTreeJson]);
 
   const sidebarTree = useMemo(() => {
     const effectiveTreeJson = (typeof remoteTreeJson === "string" && remoteTreeJson.trim().length > 0)
@@ -85,8 +91,6 @@ export default function useChatPageSidebarTree({
     if (!activeSpaceId || activeSpaceId <= 0)
       return;
     const treeJson = JSON.stringify(tree);
-    writeCachedSidebarTreeJson(activeSpaceId, treeJson);
-    setCachedTreeJson(treeJson);
     setSpaceSidebarTreeMutation.mutate({
       spaceId: activeSpaceId,
       expectedVersion: sidebarTreeVersion,

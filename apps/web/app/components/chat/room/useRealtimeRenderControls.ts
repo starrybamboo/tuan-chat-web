@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
 import type { RealtimeRenderOrchestratorApi } from "@/components/chat/core/realtimeRenderOrchestrator";
-import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
 
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -26,17 +25,17 @@ type UseRealtimeRenderControlsResult = {
 type RealtimeRenderMountInput = {
   isActive: boolean;
   isEnabled: boolean;
-  sideDrawerState: SideDrawerState;
+  webgalOpen: boolean;
   loadRequested: boolean;
 };
 
 export function shouldMountRealtimeRenderOrchestrator({
   isActive,
   isEnabled,
-  sideDrawerState,
+  webgalOpen,
   loadRequested,
 }: RealtimeRenderMountInput): boolean {
-  return loadRequested || isActive || isEnabled || sideDrawerState === "webgal";
+  return loadRequested || isActive || isEnabled || webgalOpen;
 }
 
 export default function useRealtimeRenderControls(): UseRealtimeRenderControlsResult {
@@ -45,11 +44,11 @@ export default function useRealtimeRenderControls(): UseRealtimeRenderControlsRe
   const [loadRequested, setLoadRequested] = useState(false);
   const isRealtimeRenderActive = useRealtimeRenderStore(state => state.isActive);
   const isRealtimeRenderEnabled = useRealtimeRenderStore(state => state.enabled);
-  const sideDrawerState = useSideDrawerStore(state => state.state);
+  const webgalOpen = useSideDrawerStore(state => state.webgalOpen);
   const shouldMountRealtimeRender = shouldMountRealtimeRenderOrchestrator({
     isActive: isRealtimeRenderActive,
     isEnabled: isRealtimeRenderEnabled,
-    sideDrawerState,
+    webgalOpen,
     loadRequested,
   });
 

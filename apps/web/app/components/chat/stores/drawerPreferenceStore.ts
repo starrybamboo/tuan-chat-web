@@ -8,7 +8,7 @@ type DrawerPreferenceState = {
   initiativeDrawerWidth: number;
   mapDrawerWidth: number;
   exportDrawerWidth: number;
-  webgalDrawerWidth: number;
+  webgalRunSplitRatio: number;
 
   /** 仅在客户端 mount 后调用：从 localStorage 同步偏好，避免 SSR hydration mismatch */
   hydrateFromLocalStorage: () => void;
@@ -20,7 +20,7 @@ type DrawerPreferenceState = {
   setInitiativeDrawerWidth: (width: number) => void;
   setMapDrawerWidth: (width: number) => void;
   setExportDrawerWidth: (width: number) => void;
-  setWebgalDrawerWidth: (width: number) => void;
+  setWebgalRunSplitRatio: (ratio: number) => void;
 };
 
 function canUseLocalStorage(): boolean {
@@ -64,7 +64,7 @@ const DEFAULT_DRAWER_WIDTHS = {
   initiativeDrawerWidth: 320,
   mapDrawerWidth: 600,
   exportDrawerWidth: 320,
-  webgalDrawerWidth: 600,
+  webgalRunSplitRatio: 0.45,
 } as const;
 
 let hasHydrated = false;
@@ -79,22 +79,24 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
   initiativeDrawerWidth: DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth,
   mapDrawerWidth: DEFAULT_DRAWER_WIDTHS.mapDrawerWidth,
   exportDrawerWidth: DEFAULT_DRAWER_WIDTHS.exportDrawerWidth,
-  webgalDrawerWidth: DEFAULT_DRAWER_WIDTHS.webgalDrawerWidth,
+  webgalRunSplitRatio: DEFAULT_DRAWER_WIDTHS.webgalRunSplitRatio,
 
   hydrateFromLocalStorage: () => {
     if (hasHydrated)
       return;
     hasHydrated = true;
 
+    // 旧版本 WebGAL 预览单独保存 webgalDrawerWidth；现在与跑团侧窗共用 subRoomWindowWidth。
+    const legacyWebgalDrawerWidth = readNumber("webgalDrawerWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth);
     const next = {
       chatLeftPanelWidth: readNumber("chatLeftPanelWidth", DEFAULT_DRAWER_WIDTHS.chatLeftPanelWidth),
-      subRoomWindowWidth: readNumber("subRoomWindowWidth", DEFAULT_DRAWER_WIDTHS.subRoomWindowWidth),
+      subRoomWindowWidth: readNumber("subRoomWindowWidth", legacyWebgalDrawerWidth),
       userDrawerWidth: readNumber("userDrawerWidth", DEFAULT_DRAWER_WIDTHS.userDrawerWidth),
       roleDrawerWidth: readNumber("roleDrawerWidth", DEFAULT_DRAWER_WIDTHS.roleDrawerWidth),
       initiativeDrawerWidth: readNumber("initiativeDrawerWidth", DEFAULT_DRAWER_WIDTHS.initiativeDrawerWidth),
       mapDrawerWidth: readNumber("mapDrawerWidth", DEFAULT_DRAWER_WIDTHS.mapDrawerWidth),
       exportDrawerWidth: readNumber("exportDrawerWidth", DEFAULT_DRAWER_WIDTHS.exportDrawerWidth),
-      webgalDrawerWidth: readNumber("webgalDrawerWidth", DEFAULT_DRAWER_WIDTHS.webgalDrawerWidth),
+      webgalRunSplitRatio: readNumber("webgalRunSplitRatio", DEFAULT_DRAWER_WIDTHS.webgalRunSplitRatio),
     } satisfies Partial<DrawerPreferenceState>;
 
     // 仅在确实可用时写入（避免 SSR/安全沙箱报错）。
@@ -172,12 +174,12 @@ export const useDrawerPreferenceStore = create<DrawerPreferenceState>((set, get)
       return { exportDrawerWidth: width };
     });
   },
-  setWebgalDrawerWidth: (width) => {
+  setWebgalRunSplitRatio: (ratio) => {
     set((state) => {
-      if (state.webgalDrawerWidth === width)
+      if (state.webgalRunSplitRatio === ratio)
         return state;
-      writeNumber("webgalDrawerWidth", width);
-      return { webgalDrawerWidth: width };
+      writeNumber("webgalRunSplitRatio", ratio);
+      return { webgalRunSplitRatio: ratio };
     });
   },
 }));

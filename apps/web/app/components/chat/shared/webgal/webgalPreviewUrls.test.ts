@@ -14,7 +14,14 @@ describe("webgalPreviewUrls", () => {
     expect(buildWebGALEditorUrl({
       previewUrl: "http://localhost:3001/games/realtime_10788/index.html?scene=room_12845.txt",
       terreBaseUrl: "http://localhost:3001",
-    })).toBe("http://localhost:3001/#/game/realtime_10788");
+    })).toBe("http://localhost/#/game/realtime_10788");
+  });
+
+  it("仅去掉本地 Terre 默认端口，保留其它显式端口", () => {
+    expect(buildWebGALEditorUrl({
+      previewUrl: "http://localhost:5177/games/realtime_10788/index.html",
+      terreBaseUrl: "http://localhost:3001",
+    })).toBe("http://localhost:5177/#/game/realtime_10788");
   });
 
   it("保留 /terre 代理 base", () => {
@@ -27,6 +34,13 @@ describe("webgalPreviewUrls", () => {
   it("已是编辑器 hash 路由时保持为规范编辑器 URL", () => {
     expect(buildWebGALEditorUrl({
       previewUrl: "http://localhost/#/game/realtime_10788",
+      terreBaseUrl: "http://localhost:3001",
+    })).toBe("http://localhost/#/game/realtime_10788");
+  });
+
+  it("已是本地 3001 编辑器 hash 路由时去掉端口", () => {
+    expect(buildWebGALEditorUrl({
+      previewUrl: "http://localhost:3001/#/game/realtime_10788",
       terreBaseUrl: "http://localhost:3001",
     })).toBe("http://localhost/#/game/realtime_10788");
   });

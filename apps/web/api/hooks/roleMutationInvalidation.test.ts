@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { invalidateRoleCreateQueries } from "./roleMutationInvalidation";
+import { invalidateRoleCreateQueries, invalidateUpdatedRoleQueries } from "./roleMutationInvalidation";
 
 function createQueryClientMock() {
   return {
@@ -34,5 +34,20 @@ describe("invalidateRoleCreateQueries", () => {
 
     expect(queryClient.invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["spaceRole", undefined] });
     expect(queryClient.invalidateQueries).not.toHaveBeenCalledWith({ queryKey: ["spaceRepositoryRole", undefined] });
+  });
+});
+
+describe("invalidateUpdatedRoleQueries", () => {
+  it("会刷新角色详情、角色列表、头像列表和房间角色缓存", () => {
+    const queryClient = createQueryClientMock();
+
+    invalidateUpdatedRoleQueries(queryClient, 42);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getRole", 42] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getRoleAvatars", 42] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByType"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRolesByTypes"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["getUserRoles"] });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["roomRole"] });
   });
 });

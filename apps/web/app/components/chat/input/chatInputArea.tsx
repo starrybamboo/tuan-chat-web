@@ -2,6 +2,7 @@ import React, { useImperativeHandle, useRef } from "react";
 
 import { extractEditablePlainText } from "@/components/chat/input/chatInputPlainText";
 import { insertPlainTextWithUndo } from "@/components/chat/input/undoablePlainText";
+import { getMessageEditorClipboardFiles } from "@/components/messageEditor/runtime/messageEditorFileDrop";
 import { getEditorRange } from "@/utils/getSelectionCoords";
 
 import type { UserRole } from "../../../../api";
@@ -341,27 +342,10 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     const fileItems = items.filter(item => item.kind === "file");
     if (fileItems.length > 0) {
       e.preventDefault();
-      const files: File[] = [];
-      for (const item of fileItems) {
-        const blob = item.getAsFile();
-        if (blob) {
-          const mime = blob.type || "application/octet-stream";
-          const ext = (() => {
-            const subType = mime.split("/")[1] || "bin";
-            const normalized = subType.split(";")[0]?.trim() || "bin";
-            return normalized.replace(/[^a-z0-9.+-]/gi, "") || "bin";
-          })();
-          const typePrefix = mime.startsWith("image/")
-            ? "pasted-image"
-            : mime.startsWith("audio/")
-              ? "pasted-audio"
-              : mime.startsWith("video/")
-                ? "pasted-video"
-                : "pasted-file";
-          const file = new File([blob], `${typePrefix}-${Date.now()}.${ext}`, { type: mime });
-          files.push(file);
-        }
-      }
+      // 保留剪贴板文件的原始文件名（含扩展名），仅在确实无名时才合成占位名。
+      // 直接重命名会丢掉扩展名，导致空/通用 MIME 的音频被误判为普通文件，
+      // 与拖拽路径（保留原名）行为不一致。
+      const files = getMessageEditorClipboardFiles(e.clipboardData);
       if (files.length > 0) {
         props.onPasteFiles(files);
       }

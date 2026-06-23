@@ -1,45 +1,64 @@
 import React from "react";
 
+import { isRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 import WebGALPreview from "@/components/chat/shared/webgal/webGALPreview";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 
-function WebgalPreviewDrawerImpl() {
-  const sideDrawerState = useSideDrawerStore(state => state.state);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
-  const webgalDrawerWidth = useDrawerPreferenceStore(state => state.webgalDrawerWidth);
-  const setWebgalDrawerWidth = useDrawerPreferenceStore(state => state.setWebgalDrawerWidth);
+type WebgalPreviewPanelProps = {
+  className?: string;
+  isResizing?: boolean;
+};
+
+export function WebgalPreviewPanel({
+  className = "",
+  isResizing = false,
+}: WebgalPreviewPanelProps) {
+  const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
   const previewUrl = useRealtimeRenderStore(state => state.previewUrl);
 
   const close = React.useCallback(() => {
-    if (sideDrawerState === "webgal") {
-      setSideDrawerState("none");
-    }
-  }, [setSideDrawerState, sideDrawerState]);
+    setWebgalOpen(false);
+  }, [setWebgalOpen]);
+
+  return (
+    <div className={`
+      h-full min-h-0 bg-base-100 shadow-none
+      ${className}
+    `}>
+      <WebGALPreview
+        previewUrl={previewUrl}
+        isResizing={isResizing}
+        onClose={close}
+        className="h-full"
+      />
+    </div>
+  );
+}
+
+function WebgalPreviewDrawerImpl() {
+  const sideDrawerState = useSideDrawerStore(state => state.state);
+  const webgalOpen = useSideDrawerStore(state => state.webgalOpen);
+  const subRoomWindowWidth = useDrawerPreferenceStore(state => state.subRoomWindowWidth);
+  const setSubRoomWindowWidth = useDrawerPreferenceStore(state => state.setSubRoomWindowWidth);
+  const shouldRenderStandaloneDrawer = webgalOpen && !isRunSideDrawerState(sideDrawerState);
 
   return (
     <OpenAbleDrawer
-      isOpen={sideDrawerState === "webgal"}
+      isOpen={shouldRenderStandaloneDrawer}
       className="h-full shrink-0"
-      initialWidth={webgalDrawerWidth}
-      minWidth={360}
-      maxWidth={900}
+      width={subRoomWindowWidth}
+      initialWidth={subRoomWindowWidth}
+      minWidth={560}
+      maxWidth={1100}
       minRemainingWidth={520}
-      onWidthChange={setWebgalDrawerWidth}
+      onWidthChange={setSubRoomWindowWidth}
       handlePosition="left"
       animationDuration={0.16}
     >
-      <div className="
-        h-full min-h-0 border-l border-base-300 bg-base-100 shadow-none
-      ">
-        <WebGALPreview
-          previewUrl={previewUrl}
-          onClose={close}
-          className="h-full"
-        />
-      </div>
+      <WebgalPreviewPanel className="border-l border-base-300" />
     </OpenAbleDrawer>
   );
 }

@@ -3,6 +3,7 @@ import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 import { AuthSessionProvider } from "@/features/auth/auth-session";
+import { MobileForegroundRefreshBridge } from "@/features/messages/MobileForegroundRefreshBridge";
 import { RoomMessagesLiveSyncBridge } from "@/features/messages/RoomMessagesLiveSyncBridge";
 import { MobileNotificationSessionProvider } from "@/features/notifications/mobile-notification-session";
 import { NotificationNavigationBridge } from "@/features/notifications/NotificationNavigationBridge";
@@ -16,6 +17,7 @@ export function AppProviders({ children }: PropsWithChildren) {
         <MobileNotificationSessionProvider>
           <WorkspaceSessionProvider>
             <NotificationNavigationBridge />
+            <MobileForegroundRefreshBridge />
             <RoomMessagesLiveSyncBridge />
             {children}
           </WorkspaceSessionProvider>

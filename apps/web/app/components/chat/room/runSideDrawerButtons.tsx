@@ -1,10 +1,9 @@
 import { CheckerboardIcon, SwordIcon } from "@phosphor-icons/react";
 import { use, type ReactNode } from "react";
 
-import type { SideDrawerState } from "@/components/chat/stores/sideDrawerStore";
-
 import { formatUnreadBadgeCount, useVisibleClueFolderUnreadCount } from "@/components/chat/clues/clueUnread";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { getNextRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
 import { FolderIcon } from "@/icons";
 
@@ -14,21 +13,7 @@ type RunSideDrawerButtonsProps = {
   tooltipPlacement?: "top" | "bottom" | "right";
 }
 
-type RunSideDrawerTarget = "clue" | "combat" | "map";
-
-function isRunSideDrawerTargetOpen(state: SideDrawerState, target: RunSideDrawerTarget): boolean {
-  if (target === "combat") {
-    return state === "combat" || state === "initiative" || state === "state";
-  }
-  return state === target;
-}
-
-export function getNextRunSideDrawerState(
-  state: SideDrawerState,
-  target: RunSideDrawerTarget,
-): SideDrawerState {
-  return isRunSideDrawerTargetOpen(state, target) ? "none" : target;
-}
+export { getNextRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 
 function UnreadBadge({ count }: { count?: number }) {
   if (!count || count <= 0) {

@@ -29,7 +29,6 @@ export type CharacterDetailLeftPanelProps = {
   onOpenDiceMaidenLinkModal: () => void;
   onAvatarChange: (previewUrl: string, avatarId: number) => void;
   onAvatarSelect: (avatarId: number) => void;
-  onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
   onAvatarTitleSave?: (avatarId: number, title: string) => void;
   onBaseRoleSave: (updatedRole: Role) => void;
@@ -56,7 +55,6 @@ export default function CharacterDetailLeftPanel({
   onOpenDiceMaidenLinkModal,
   onAvatarChange,
   onAvatarSelect,
-  onAvatarDelete,
   onAvatarUpload,
   onBaseRoleSave,
   onAudioRoleUpdate,
@@ -93,7 +91,6 @@ export default function CharacterDetailLeftPanel({
                     selectedSpriteUrl={selectedSpriteUrl}
                     onchange={onAvatarChange}
                     onAvatarSelect={onAvatarSelect}
-                    onAvatarDelete={onAvatarDelete}
                     onAvatarUpload={onAvatarUpload}
                     useUrlState={false}
                   />

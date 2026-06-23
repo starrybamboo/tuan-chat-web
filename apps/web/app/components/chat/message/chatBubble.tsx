@@ -608,7 +608,8 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
 
   const isEditableContentMessage = message.messageType === MESSAGE_TYPE.TEXT
     || message.messageType === MESSAGE_TYPE.INTRO_TEXT
-    || message.messageType === MESSAGE_TYPE.IMG;
+    || message.messageType === MESSAGE_TYPE.IMG
+    || message.messageType === MESSAGE_TYPE.SOUND;
   const canEditContent = canEdit && isEditableContentMessage;
   const canShowTextStyleToolbar = isEditingContent
     && canEdit
@@ -1103,6 +1104,33 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
                   `}
                   editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-sm text-base-content/80"
                   placeholder="添加图片说明"
+                  onEditingChange={setIsEditingContent}
+                  editInputRef={editInputRef}
+                  shouldIgnoreBlur={shouldIgnoreEditBlur}
+                  canEdit={canEditContent}
+                />
+              )}
+            </div>
+          );
+        case MESSAGE_TYPE.SOUND:
+          return (
+            <div className="flex min-w-0 flex-col gap-1">
+              <MessageContentRenderer
+                message={{ ...message, content: "" }}
+                annotations={annotations}
+                cacheKeyBase={`chat:${message.messageId}`}
+              />
+              {(message.content || canEditContent) && (
+                <EditableMessageContent
+                  content={message.content ?? ""}
+                  onCommit={handleContentUpdate}
+                  className={`
+                    editable-field whitespace-pre-wrap wrap-break-word text-sm
+                    text-base-content/80
+                    ${message.content ? "" : `sr-only`}
+                  `}
+                  editorClassName="min-w-[18rem] sm:min-w-[26rem] bg-transparent border-0 rounded-[8px] w-full text-sm text-base-content/80"
+                  placeholder="添加语音文本"
                   onEditingChange={setIsEditingContent}
                   editInputRef={editInputRef}
                   shouldIgnoreBlur={shouldIgnoreEditBlur}

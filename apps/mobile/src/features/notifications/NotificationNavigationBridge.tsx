@@ -5,6 +5,7 @@ import { useAuthSession } from "@/features/auth/auth-session";
 
 import { resolveMobileNotificationRoute } from "./mobile-notification-routing";
 import { useMobileNotificationSession } from "./mobileNotificationSessionContext";
+import { logNotificationTrace } from "./notificationTrace";
 
 export function NotificationNavigationBridge() {
   const { isAuthenticated, isBootstrapping } = useAuthSession();
@@ -15,9 +16,16 @@ export function NotificationNavigationBridge() {
       return;
     }
     const href = resolveMobileNotificationRoute({ targetPath: pendingTargetPath });
+    logNotificationTrace("navigation.resolve", {
+      href,
+      pendingTargetPath,
+    });
     acknowledgeTargetPath(pendingTargetPath);
 
     if (href) {
+      logNotificationTrace("navigation.replace", {
+        href,
+      });
       router.replace(href as any);
     }
   }, [acknowledgeTargetPath, isAuthenticated, isBootstrapping, pendingTargetPath]);

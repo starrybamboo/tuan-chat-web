@@ -141,4 +141,31 @@ describe("useChatInputHandlers", () => {
       audioFiles: [],
     });
   });
+
+  it("粘贴 MIME 缺失但带音频扩展名的文件按扩展名识别为音频", () => {
+    const { handlePasteFiles } = useTestHook();
+    // 从系统资源管理器复制的音频，剪贴板 blob 常无 MIME，只能靠扩展名兜底。
+    const audioFile = new File(["audio"], "voice-note.m4a", { type: "" });
+
+    handlePasteFiles([audioFile]);
+
+    expect(useChatComposerStore.getState().audioFile).toBe(audioFile);
+    expect(useChatComposerStore.getState().fileAttachments).toEqual([]);
+    expect(mocks.applyRoomMediaAnnotationPreferenceToComposerMock).toHaveBeenCalledWith(1, "audio");
+    expect(mocks.preheatChatMediaPreprocessMock).toHaveBeenCalledWith({
+      imageFiles: [],
+      videoFiles: [],
+      audioFiles: [audioFile],
+    });
+  });
+
+  it("粘贴通用 application/octet-stream MIME 的音频仍按扩展名识别", () => {
+    const { handlePasteFiles } = useTestHook();
+    const audioFile = new File(["audio"], "clip.flac", { type: "application/octet-stream" });
+
+    handlePasteFiles([audioFile]);
+
+    expect(useChatComposerStore.getState().audioFile).toBe(audioFile);
+    expect(useChatComposerStore.getState().fileAttachments).toEqual([]);
+  });
 });

@@ -2,6 +2,27 @@ function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
+function normalizeEditorBaseUrl(value: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  }
+  catch {
+    return trimTrailingSlash(value);
+  }
+
+  const isLocalHost = parsed.hostname === "localhost"
+    || parsed.hostname === "127.0.0.1"
+    || parsed.hostname === "[::1]";
+
+  // 本地 Terre API 跑在 3001，但编辑器页经常由本地反代暴露在默认 http 端口。
+  if (parsed.protocol === "http:" && isLocalHost && parsed.port === "3001") {
+    parsed.port = "";
+  }
+
+  return trimTrailingSlash(parsed.toString());
+}
+
 function decodePathSegment(value: string): string {
   try {
     return decodeURIComponent(value);
@@ -65,5 +86,5 @@ export function buildWebGALEditorUrl(params: {
   }
 
   const baseUrl = previewInfo?.baseUrl || trimTrailingSlash(params.terreBaseUrl);
-  return `${baseUrl}/#/game/${encodeURIComponent(gameName)}`;
+  return `${normalizeEditorBaseUrl(baseUrl)}/#/game/${encodeURIComponent(gameName)}`;
 }

@@ -42,15 +42,18 @@ import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } fr
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import {
   optimisticRemoveUserRolesFromListQueryCache,
+  optimisticPatchRoleAvatarTitleInListQueryCache,
+  optimisticRemoveRoleAvatarsFromListQueryCache,
   patchRoomRoleAvatarFieldsInListQueryCache,
   patchUserRoleAvatarFieldsInListQueryCache,
+  rollbackRoleAvatarListQueryCache,
   rollbackUserRoleListQueryCache,
   isUserRoleDetailCacheComplete,
   seedUserRoleQueryCache,
 } from "../roleQueryCache";
 import { invalidateRoleAbilityCaches } from "./abilityMutationInvalidation";
 import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
-import { invalidateRoleCreateQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
+import { invalidateRoleCreateQueries, invalidateUpdatedRoleQueries, invalidateUserRoleListQueries } from "./roleMutationInvalidation";
 
 export const ROLE_AVATARS_STALE_TIME_MS = 86_400_000;
 export const ROLE_AVATAR_STALE_TIME_MS = 86_400_000;
@@ -553,6 +556,10 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
       if (error.response && error.response.data) {
         console.error("Server response:", error.response.data);
       }
+    },
+    onSettled: (_result, _error, variables) => {
+      const resolvedRoleId = variables?.roleId ?? variables?.id;
+      invalidateUpdatedRoleQueries(queryClient, resolvedRoleId);
     },
   });
 }
@@ -1335,6 +1342,7 @@ export function useUploadAvatarMutation() {
     spriteCropContext?: SpriteCropContext;
     avatarCropContext?: AvatarCropContext;
     variantId?: number;
+    avatarName?: string;
     autoApply?: boolean;
     autoNameFirst?: boolean;
   }>({
@@ -1348,6 +1356,7 @@ export function useUploadAvatarMutation() {
       spriteCropContext,
       avatarCropContext,
       variantId,
+      avatarName,
       autoApply = true,
       autoNameFirst = false,
     }) => {
@@ -1369,6 +1378,10 @@ export function useUploadAvatarMutation() {
         const avatarId = res.data;
 
         if (avatarId) {
+          const trimmedAvatarName = avatarName?.trim();
+          const avatarTitle = trimmedAvatarName
+            ? { label: trimmedAvatarName }
+            : undefined;
           // 直接使用transform参数或默认值
           const t: Transform = transform || {
             scale: 1,
@@ -1387,6 +1400,7 @@ export function useUploadAvatarMutation() {
             spriteCropContext,
             avatarCropContext,
             variantId,
+            ...(avatarTitle ? { avatarTitle } : {}),
           });
           if (!uploadRes.success) {
             console.error("头像更新失败", uploadRes);
@@ -1409,7 +1423,7 @@ export function useUploadAvatarMutation() {
           }
           
           // 如果是首次上传且需要自动命名
-          if (autoNameFirst) {
+          if (autoNameFirst && !avatarTitle) {
             try {
               const list = await tuanchat.avatarController.getRoleAvatars(roleId);
               const avatars = list?.data ?? [];
@@ -1444,6 +1458,7 @@ export function useUploadAvatarMutation() {
             spriteCropContext,
             avatarCropContext,
             variantId,
+            ...(avatarTitle && !uploadRes.data?.avatarTitle ? { avatarTitle } : {}),
           };
           upsertRoleAvatarQueryCaches(queryClient, nextAvatar, roleId);
           syncRoleAvatarCaches(queryClient, nextAvatar, roleId);
@@ -1598,45 +1613,12 @@ export function useDeleteRoleAvatarWithOptimisticMutation(roleId?: number) {
     mutationKey: ['deleteRoleAvatarOptimistic', roleId],
     mutationFn: deleteRoleAvatarWithSuccessGuard,
     onMutate: async (avatarId) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: ["getRoleAvatars", roleId],
-      });
-
-      // Snapshot previous value for rollback
-      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", roleId]);
-
-      // Optimistically update the cache
-      queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
-        if (!old) return old;
-
-        // Handle both direct array and wrapped response
-        if (Array.isArray(old)) {
-          return old.filter((a: RoleAvatar) => a.avatarId !== avatarId);
-        }
-
-        if (old.data && Array.isArray(old.data)) {
-          return {
-            ...old,
-            data: old.data.filter((a: RoleAvatar) => a.avatarId !== avatarId),
-          };
-        }
-
-        return old;
-      });
-
-      return { previousAvatars };
+      const snapshot = await optimisticRemoveRoleAvatarsFromListQueryCache(queryClient, roleId, [avatarId]);
+      return { snapshot };
     },
     onError: (err, _avatarId, context) => {
       console.error("删除头像失败:", err);
-
-      // Rollback optimistic update
-      if (context?.previousAvatars) {
-        queryClient.setQueryData(
-          ["getRoleAvatars", roleId],
-          context.previousAvatars,
-        );
-      }
+      rollbackRoleAvatarListQueryCache(queryClient, context?.snapshot);
     },
     onSuccess: (_, avatarId) => {
       console.warn("删除头像成功");
@@ -1675,45 +1657,12 @@ export function useBatchDeleteRoleAvatarsWithOptimisticMutation(roleId?: number)
     mutationKey: ['batchDeleteRoleAvatarsOptimistic', roleId],
     mutationFn: deleteRoleAvatarsWithSuccessGuard,
     onMutate: async (avatarIds) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: ["getRoleAvatars", roleId],
-      });
-
-      // Snapshot previous value for rollback
-      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", roleId]);
-
-      // Optimistically update the cache (remove all avatars at once)
-      queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
-        if (!old) return old;
-
-        // Handle both direct array and wrapped response
-        if (Array.isArray(old)) {
-          return old.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0));
-        }
-
-        if (old.data && Array.isArray(old.data)) {
-          return {
-            ...old,
-            data: old.data.filter((a: RoleAvatar) => !avatarIds.includes(a.avatarId || 0)),
-          };
-        }
-
-        return old;
-      });
-
-      return { previousAvatars };
+      const snapshot = await optimisticRemoveRoleAvatarsFromListQueryCache(queryClient, roleId, avatarIds);
+      return { snapshot };
     },
     onError: (err, _avatarIds, context) => {
       console.error("批量删除头像失败:", err);
-
-      // Rollback optimistic update on failure
-      if (context?.previousAvatars) {
-        queryClient.setQueryData(
-          ["getRoleAvatars", roleId],
-          context.previousAvatars,
-        );
-      }
+      rollbackRoleAvatarListQueryCache(queryClient, context?.snapshot);
     },
     onSuccess: (_, avatarIds) => {
       console.warn(`批量删除成功：共删除 ${avatarIds.length} 个头像`);
@@ -1766,58 +1715,17 @@ export function useUpdateAvatarNameMutation(roleId?: number) {
       return res;
     },
     onMutate: async ({ avatar, name }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({
-        queryKey: ["getRoleAvatars", roleId],
-      });
-
-      // Snapshot previous value for rollback
-      const previousAvatars = queryClient.getQueryData(["getRoleAvatars", roleId]);
-
-      // Optimistically update the cache
-      queryClient.setQueryData(["getRoleAvatars", roleId], (old: any) => {
-        if (!old) return old;
-
-        const updateAvatar = (a: RoleAvatar) => {
-          if (a.avatarId === avatar.avatarId) {
-            return {
-              ...a,
-              avatarTitle: {
-                ...a.avatarTitle,
-                label: name,
-              },
-            };
-          }
-          return a;
-        };
-
-        // Handle both direct array and wrapped response
-        if (Array.isArray(old)) {
-          return old.map(updateAvatar);
-        }
-
-        if (old.data && Array.isArray(old.data)) {
-          return {
-            ...old,
-            data: old.data.map(updateAvatar),
-          };
-        }
-
-        return old;
-      });
-
-      return { previousAvatars };
+      const snapshot = await optimisticPatchRoleAvatarTitleInListQueryCache(
+        queryClient,
+        roleId,
+        avatar.avatarId,
+        name,
+      );
+      return { snapshot };
     },
     onError: (err, _variables, context) => {
       console.error("更新头像名称失败:", err);
-
-      // Rollback optimistic update
-      if (context?.previousAvatars) {
-        queryClient.setQueryData(
-          ["getRoleAvatars", roleId],
-          context.previousAvatars,
-        );
-      }
+      rollbackRoleAvatarListQueryCache(queryClient, context?.snapshot);
     },
     onSuccess: (_, variables) => {
       const nextAvatar: RoleAvatar = {

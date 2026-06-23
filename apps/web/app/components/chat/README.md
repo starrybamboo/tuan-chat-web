@@ -113,8 +113,8 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/drawerPreferenceStore.ts
 
-- userDrawerWidth / roleDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
-- 对应 localStorage key 与字段同名（保持兼容）
+- userDrawerWidth / roleDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / subRoomWindowWidth / webgalRunSplitRatio
+- 对应 localStorage key 与字段同名；旧 `webgalDrawerWidth` 会迁移为 `subRoomWindowWidth`
 
 相关组件：
 
@@ -140,7 +140,8 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/sideDrawerStore.ts
 
-- state：当前右侧抽屉（none/user/role/search/initiative/map/export/webgal）
+- state：当前右侧抽屉（none/user/role/search/initiative/map/export）；跑团抽屉使用 map/combat/clue/initiative/state
+- webgalOpen：WebGAL 预览是否打开，可与跑团抽屉上下分屏显示
 - 仅在前端内存中维护，不再写入 URL
 
 ### 7) chatInputUiStore：输入框编辑态快照

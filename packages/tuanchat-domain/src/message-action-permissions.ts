@@ -29,6 +29,7 @@ function isDeletedMessage(context: MessageActionContext): boolean {
 const EDITABLE_MESSAGE_TYPES = new Set<number>([
   MESSAGE_TYPE.TEXT,
   MESSAGE_TYPE.DICE,
+  MESSAGE_TYPE.SOUND,
   MESSAGE_TYPE.COMMAND_REQUEST,
   MESSAGE_TYPE.STATE_EVENT,
 ]);

@@ -1,5 +1,6 @@
 import { FilmSlateIcon } from "@phosphor-icons/react";
 
+import { isRunSideDrawerState } from "@/components/chat/room/runSideDrawerState";
 import { useRealtimeRenderStore } from "@/components/chat/stores/realtimeRenderStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
@@ -32,12 +33,17 @@ export default function ChatToolbarDock({
   const realtimeRenderStatus = useRealtimeRenderStore(state => state.status);
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const webgalOpen = useSideDrawerStore(state => state.webgalOpen);
+  const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
   const handleToggleWebgalDrawer = () => {
-    if (sideDrawerState === "webgal") {
-      setSideDrawerState("none");
+    if (webgalOpen) {
+      setWebgalOpen(false);
       return;
     }
-    setSideDrawerState("webgal");
+    if (sideDrawerState !== "none" && !isRunSideDrawerState(sideDrawerState)) {
+      setSideDrawerState("none");
+    }
+    setWebgalOpen(true);
     if (!isRealtimeRenderActive && realtimeRenderStatus !== "initializing") {
       void onToggleRealtimeRender?.();
     }
@@ -106,13 +112,13 @@ export default function ChatToolbarDock({
           className={`
             tooltip tooltip-top mt-0.5
             md:mt-1
-            ${sideDrawerState === "webgal" ? `text-info` : isRealtimeRenderActive ? `
+            ${webgalOpen ? `text-info` : isRealtimeRenderActive ? `
               text-success
             ` : `hover:text-info`}
           `}
-          data-tip={sideDrawerState === "webgal" ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
-          aria-label={sideDrawerState === "webgal" ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
-          title={sideDrawerState === "webgal" ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
+          data-tip={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
+          aria-label={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
+          title={webgalOpen ? "关闭 WebGAL 预览" : "打开 WebGAL 预览"}
           onClick={handleToggleWebgalDrawer}
         >
           <WebgalIcon className={`
