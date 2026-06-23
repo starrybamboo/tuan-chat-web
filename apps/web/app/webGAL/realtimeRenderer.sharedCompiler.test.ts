@@ -759,7 +759,7 @@ describe("realtimeRenderer shared compiler full render", () => {
 
     const expectedVocalFileName = `vocal_${hashString(vocalUrl)}.webm`;
     const lines = String((renderer as any).sceneContextMap.get(10)?.text ?? "").trim().split("\n");
-    expect(lines).toContain(`明日香: 我来了 -vocal=${expectedVocalFileName};`);
+    expect(lines).toContain(`明日香: 我来了 -vocal=./game/vocal/${expectedVocalFileName};`);
   });
 
   it("实时追加有效立绘组时会先合成再显示 composite 立绘", async () => {
