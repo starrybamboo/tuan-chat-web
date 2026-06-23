@@ -675,6 +675,59 @@ describe("realtimeRenderer shared compiler full render", () => {
     );
   });
 
+  it("实时追加 image.show 时会忽略通用 fileName 并生成唯一 WebP 展示图资源", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([]);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    const firstUrl = "https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp";
+    const secondUrl = "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp";
+    const firstFileName = `img_${hashString(firstUrl)}.webp`;
+    const secondFileName = `img_${hashString(secondUrl)}.webp`;
+
+    await renderer.appendMessage(message({
+      messageId: 1,
+      roomId: 10,
+      messageType: MESSAGE_TYPE.IMG,
+      annotations: [ANNOTATION_IDS.IMAGE_SHOW],
+      extra: {
+        imageMessage: {
+          source: { kind: "internal", fileId: 1001 },
+          fileName: "image.png",
+          width: 800,
+          height: 600,
+          size: 1234,
+          background: false,
+        },
+      },
+    }), 10, false);
+    await renderer.appendMessage(message({
+      messageId: 2,
+      roomId: 10,
+      messageType: MESSAGE_TYPE.IMG,
+      annotations: [ANNOTATION_IDS.IMAGE_SHOW],
+      extra: {
+        imageMessage: {
+          source: { kind: "internal", fileId: 2002 },
+          fileName: "image.png",
+          width: 640,
+          height: 900,
+          size: 2345,
+          background: false,
+        },
+      },
+    }), 10, false);
+
+    const sceneText = String((renderer as any).sceneContextMap.get(10)?.text ?? "");
+    expect(firstFileName).not.toBe(secondFileName);
+    expect(sceneText).toContain(`changeFigure:${firstFileName} -id=image_message`);
+    expect(sceneText).toContain(`changeFigure:${secondFileName} -id=image_message`);
+    expect(sceneText).not.toContain("changeFigure:image.png");
+  });
+
   it("实时追加场景控制标注时会先输出文本框和电影模式命令", async () => {
     const renderer = RealtimeRenderer.getInstance(42);
     renderer.setRooms([room(10, "序章")]);

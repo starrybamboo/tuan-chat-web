@@ -246,6 +246,21 @@ describe("realtimeRendererAssetUploads", () => {
     expect(uploadFile).toHaveBeenCalledTimes(2);
   });
 
+  it("图片展示资源未指定目标名时按 URL 哈希生成唯一 WebP 文件名", async () => {
+    const context = createContext();
+    const firstUrl = "https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp";
+    const secondUrl = "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp";
+
+    const first = await uploadImageFigureAsset(context, firstUrl);
+    const second = await uploadImageFigureAsset(context, secondUrl);
+
+    expect(first).toMatch(/^img_[a-z0-9]+\.webp$/);
+    expect(second).toMatch(/^img_[a-z0-9]+\.webp$/);
+    expect(first).not.toBe(second);
+    expect(uploadFile).toHaveBeenNthCalledWith(1, firstUrl, "games/realtime_1/game/figure/", first);
+    expect(uploadFile).toHaveBeenNthCalledWith(2, secondUrl, "games/realtime_1/game/figure/", second);
+  });
+
   it("图片立绘缓存命中但文件丢失时会重新上传", async () => {
     const context = createContext();
     const url = "https://example.test/avatar.webp";

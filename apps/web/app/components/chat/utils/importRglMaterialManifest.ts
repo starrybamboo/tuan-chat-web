@@ -199,7 +199,7 @@ function buildImageMessage(
         width: toPositiveNumber(entry.width),
         height: toPositiveNumber(entry.height),
         size: toPositiveNumber(entry.size),
-        fileName: toTrimmedString(entry.fileName) || `${name}.png`,
+        fileName: toTrimmedString(entry.fileName) || `${name}.webp`,
         background: config.imageBackground ?? false,
       }),
     },
