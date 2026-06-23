@@ -77,6 +77,26 @@ describe("canEditRoomMessage", () => {
       messageType: MESSAGE_TYPE.COMMAND_REQUEST,
     })).toBe(true);
   });
+
+  it("sender can edit sound (voice) message text", () => {
+    expect(canEditRoomMessage({
+      currentUserId: 5,
+      hasHostPrivileges: false,
+      messageSenderId: 5,
+      messageStatus: 0,
+      messageType: MESSAGE_TYPE.SOUND,
+    })).toBe(true);
+  });
+
+  it("non-sender without host privileges cannot edit sound message", () => {
+    expect(canEditRoomMessage({
+      currentUserId: 9,
+      hasHostPrivileges: false,
+      messageSenderId: 5,
+      messageStatus: 0,
+      messageType: MESSAGE_TYPE.SOUND,
+    })).toBe(false);
+  });
 });
 
 describe("canDeleteRoomMessage", () => {

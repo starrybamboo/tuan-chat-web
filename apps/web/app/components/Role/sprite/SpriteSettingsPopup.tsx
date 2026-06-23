@@ -53,6 +53,7 @@ import {
   createSpriteCropContextFromVariantConfig,
   isOriginImageCompatibleWithVariantConfig,
 } from "./avatarCropContext";
+import { resolveAvatarUploadName } from "./avatarUploadName";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
 import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
@@ -896,6 +897,7 @@ export function SpriteSettingsPopup({
           const uploadRes = await uploadAvatar({
             roleId: role.id,
             originFileId: originFile.fileId,
+            avatarName: resolveAvatarUploadName(file.name),
             autoApply: false,
             autoNameFirst: true,
           });

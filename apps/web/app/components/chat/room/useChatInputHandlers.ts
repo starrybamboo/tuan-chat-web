@@ -7,6 +7,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { preheatChatMediaPreprocess } from "@/components/chat/utils/attachmentPreprocess";
+import { classifyFileKind } from "@/components/chat/utils/dndUpload";
 import { applyRoomMediaAnnotationPreferenceToComposer } from "@/components/chat/utils/mediaAnnotationPreference";
 
 type UseChatInputHandlersParams = {
@@ -44,38 +45,21 @@ export default function useChatInputHandlers({
   }, [handleMessageSubmit]);
 
   const handlePasteFiles = useCallback((files: File[]) => {
-    const isImageFile = (file: File) => {
-      if (file.type.startsWith("image/")) {
-        return true;
-      }
-      return /\.(?:png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(file.name || "");
-    };
-    const isVideoFile = (file: File) => {
-      if (file.type.startsWith("video/")) {
-        return true;
-      }
-      return /\.(?:mp4|mov|m4v|avi|mkv|wmv|flv|mpeg|mpg|webm)$/i.test(file.name || "");
-    };
-    const isAudioFile = (file: File) => {
-      if (file.type.startsWith("audio/")) {
-        return true;
-      }
-      return /\.(?:mp3|wav|m4a|aac|ogg|opus|flac)$/i.test(file.name || "");
-    };
-
     const imageFiles: File[] = [];
     const videoFiles: File[] = [];
     const audioFiles: File[] = [];
     const otherFiles: File[] = [];
 
     for (const file of files) {
-      if (isImageFile(file)) {
+      // 与拖拽路径共用同一套「MIME 优先、扩展名兜底」分类，避免两条入口规则漂移。
+      const kind = classifyFileKind(file);
+      if (kind === "image") {
         imageFiles.push(file);
       }
-      else if (isVideoFile(file)) {
+      else if (kind === "video") {
         videoFiles.push(file);
       }
-      else if (isAudioFile(file)) {
+      else if (kind === "audio") {
         audioFiles.push(file);
       }
       else {

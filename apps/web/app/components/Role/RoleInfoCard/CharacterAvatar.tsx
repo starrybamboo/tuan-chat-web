@@ -20,7 +20,6 @@ type CharacterAvatarProps = {
   avatarSizeClassName?: string;
   onchange: (avatarUrl: string, avatarId: number) => void;
   onAvatarSelect: (avatarId: number) => void;
-  onAvatarDelete: (avatarId: number) => void;
   onAvatarUpload: (data: any) => void;
   useUrlState?: boolean;
   editable?: boolean;

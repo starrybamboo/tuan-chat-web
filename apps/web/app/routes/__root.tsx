@@ -13,6 +13,7 @@ import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebu
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
+import StartupNoticeCenter from "@/components/startupNotice/startupNoticeCenter";
 import { queryClient } from "@/queryClient";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
@@ -86,8 +87,6 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 
 const isTestBuild = import.meta.env.MODE === "test";
 const shouldEnableReactScan = typeof window !== "undefined" && (isTestBuild || import.meta.env.DEV);
-const TEST_ENV_SPLASH_SESSION_KEY = "tc:test-env-splash:2026-02-20";
-const BUG_FEEDBACK_SPLASH_SESSION_KEY = "tc:bug-feedback-splash:2026-05-20";
 
 if (shouldEnableReactScan) {
   void import("react-scan")
@@ -185,8 +184,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [isTestEnvSplashOpen, setIsTestEnvSplashOpen] = React.useState(false);
-  const [isBugFeedbackSplashOpen, setIsBugFeedbackSplashOpen] = React.useState(false);
   const [cloudflareWebAnalyticsStatus, setCloudflareWebAnalyticsStatus] = React.useState<CloudflareWebAnalyticsStatus>(
     () => cloudflareWebAnalytics.getStatus(),
   );
@@ -221,61 +218,6 @@ function App() {
     return unsubscribe;
   }, []);
 
-  React.useEffect(() => {
-    if (typeof window === "undefined" || !isTestBuild)
-      return;
-    try {
-      if (window.sessionStorage.getItem(TEST_ENV_SPLASH_SESSION_KEY) === "1")
-        return;
-    }
-    catch {
-      // ignore
-    }
-    setIsTestEnvSplashOpen(true);
-  }, []);
-
-  const closeTestEnvSplash = React.useCallback(() => {
-    setIsTestEnvSplashOpen(false);
-    try {
-      window.sessionStorage.setItem(TEST_ENV_SPLASH_SESSION_KEY, "1");
-    }
-    catch {
-      // ignore
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (authStatusQuery.isLoading && !isAnalyticsBlockedByAdBlocker) {
-      setIsBugFeedbackSplashOpen(false);
-      return;
-    }
-    if (!shouldShowBugFeedbackGuide && !isAnalyticsBlockedByAdBlocker) {
-      setIsBugFeedbackSplashOpen(false);
-      return;
-    }
-    try {
-      if (window.sessionStorage.getItem(BUG_FEEDBACK_SPLASH_SESSION_KEY) === "1")
-        return;
-    }
-    catch {
-      // ignore
-    }
-    setIsBugFeedbackSplashOpen(true);
-  }, [authStatusQuery.isLoading, isAnalyticsBlockedByAdBlocker, shouldShowBugFeedbackGuide]);
-
-  const closeBugFeedbackSplash = React.useCallback(() => {
-    setIsBugFeedbackSplashOpen(false);
-    try {
-      window.sessionStorage.setItem(BUG_FEEDBACK_SPLASH_SESSION_KEY, "1");
-    }
-    catch {
-      // ignore
-    }
-  }, []);
-
   return (
     <GlobalContextProvider>
       {/* <Topbar></Topbar> */}
@@ -287,6 +229,12 @@ function App() {
       <Toaster />
       {/* ToastWindow渲染器，可以访问Router上下文 */}
       <ToastWindowRenderer />
+      <StartupNoticeCenter
+        isTestBuild={isTestBuild}
+        isAuthStatusLoading={authStatusQuery.isLoading}
+        isAnalyticsBlockedByAdBlocker={isAnalyticsBlockedByAdBlocker}
+        shouldShowBugFeedbackGuide={shouldShowBugFeedbackGuide}
+      />
       {import.meta.env.DEV
         ? (
             <TanStackRouterDevtools
@@ -301,74 +249,6 @@ function App() {
             />
           )
         : null}
-      {isTestEnvSplashOpen && (
-        <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="测试环境提示">
-          <div className="modal-box max-w-2xl">
-            <h3 className="text-lg font-bold">测试环境提示</h3>
-            <div className="mt-4 space-y-3 leading-7">
-              <p>
-                您现在访问的是团剧共创测试环境，相比于正式环境，测试环境会多出很多没有经过完善测试的功能，同时也有很多的bug，如果你不是团剧共创的深度用户，请酌情考虑使用。
-              </p>
-              <p>
-                你可以访问团剧共创的正式环境来避免很多奇怪的bug。正式环境为，
-                <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noreferrer">tuan.chat</a>
-              </p>
-            </div>
-            <div className="modal-action">
-              <a className="btn btn-outline" href="https://tuan.chat" target="_blank" rel="noreferrer">前往正式环境</a>
-              <button type="button" className="btn btn-primary" onClick={closeTestEnvSplash}>我知道了</button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            aria-label="关闭测试环境提示"
-            onClick={closeTestEnvSplash}
-          />
-        </div>
-      )}
-      {isBugFeedbackSplashOpen && (
-        <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Bug反馈与诊断提示">
-          <div className="modal-box max-w-2xl">
-            <h3 className="text-lg font-bold">Bug 反馈与诊断提示</h3>
-            <div className="mt-4 space-y-3 leading-7">
-              {isAnalyticsBlockedByAdBlocker && (
-                <div className="
-                  rounded-xl border border-warning/30 bg-warning/10 px-4 py-3
-                  text-sm leading-7 text-base-content
-                ">
-                  <p className="font-semibold text-warning">检测到浏览器可能拦截了诊断脚本</p>
-                  <p className="mt-2">
-                    当前站点使用 Cloudflare 的 JS beacon 收集性能和错误现场，用于性能优化和 Bug 分析。
-                    如果你开启了广告拦截插件，建议将当前站点加入白名单，或临时关闭插件后刷新页面，以便我们拿到更完整的诊断数据。
-                  </p>
-                </div>
-              )}
-              <p>
-                如果你在使用过程中遇到了 Bug，可以通过以下步骤快速反馈，帮助我们尽快修复问题：
-              </p>
-              <ol className="list-decimal list-inside space-y-2">
-                <li>点击顶栏右侧的 QQ 图标按钮</li>
-                <li>在弹窗中简要描述你遇到的问题</li>
-                <li>点击「生成现场文件」下载诊断信息文件</li>
-                <li>将该文件和问题描述一起发送到 QQ 反馈群中</li>
-              </ol>
-              <p className="text-sm opacity-80">
-                现场文件包含当前页面地址、浏览器信息等诊断数据，能帮助开发者快速定位问题。如有截图或录屏请一并附上。
-              </p>
-            </div>
-            <div className="modal-action">
-              <button type="button" className="btn btn-primary" onClick={closeBugFeedbackSplash}>我知道了</button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="modal-backdrop"
-            aria-label="关闭Bug反馈与诊断提示"
-            onClick={closeBugFeedbackSplash}
-          />
-        </div>
-      )}
     </GlobalContextProvider>
   );
 }

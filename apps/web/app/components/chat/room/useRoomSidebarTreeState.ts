@@ -100,7 +100,8 @@ export default function useRoomSidebarTreeState({
       queueMicrotask(() => setLocalTree(null));
       return;
     }
-    if (isDragging) {
+    if (!isDragging) {
+      queueMicrotask(() => setLocalTree(null));
       return;
     }
     queueMicrotask(() => setLocalTree((prev) => {
@@ -111,7 +112,7 @@ export default function useRoomSidebarTreeState({
     }));
   }, [canEdit, displayTree, isDragging]);
 
-  const treeToRender = canEdit ? (localTree ?? displayTree) : displayTree;
+  const treeToRender = canEdit && isDragging ? (localTree ?? displayTree) : displayTree;
   const validCategoryKeys = useMemo(() => {
     return treeToRender.categories.map(category => category.categoryId);
   }, [treeToRender]);

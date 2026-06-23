@@ -61,6 +61,151 @@
   100% { clip-path: inset(0 0 0 0); }
 }
 
+/* ---- 入场类（一般配 1 次播放，不要 infinite）---- */
+@keyframes te-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes te-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes te-fade-in-up {
+  from { opacity: 0; transform: translateY(0.6em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes te-fade-in-down {
+  from { opacity: 0; transform: translateY(-0.6em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes te-slide-in-left {
+  from { opacity: 0; transform: translateX(-1em); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes te-slide-in-right {
+  from { opacity: 0; transform: translateX(1em); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes te-zoom-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes te-zoom-out {
+  from { opacity: 0; transform: scale(1.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---- 强调 / 循环类（配 infinite 持续播放）---- */
+@keyframes te-jello {
+  0%, 100% { transform: skewX(0deg) skewY(0deg); }
+  30% { transform: skewX(-12deg) skewY(-12deg); }
+  40% { transform: skewX(8deg) skewY(8deg); }
+  50% { transform: skewX(-6deg) skewY(-6deg); }
+  65% { transform: skewX(3deg) skewY(3deg); }
+}
+@keyframes te-rubber {
+  0%, 100% { transform: scale(1, 1); }
+  30% { transform: scale(1.25, 0.75); }
+  50% { transform: scale(0.85, 1.15); }
+  70% { transform: scale(1.05, 0.95); }
+}
+@keyframes te-heartbeat {
+  0%, 40%, 100% { transform: scale(1); }
+  20% { transform: scale(1.2); }
+  30% { transform: scale(0.95); }
+}
+@keyframes te-breathe {
+  0%, 100% { opacity: 0.6; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+@keyframes te-headshake {
+  0%, 100% { transform: translateX(0) rotateY(0); }
+  25% { transform: translateX(-4px) rotateY(-9deg); }
+  75% { transform: translateX(4px) rotateY(9deg); }
+}
+@keyframes te-tada {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  10%, 20% { transform: scale(0.9) rotate(-3deg); }
+  30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+  40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+}
+@keyframes te-flip {
+  0% { transform: perspective(400px) rotateY(0); }
+  100% { transform: perspective(400px) rotateY(360deg); }
+}
+@keyframes te-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes te-wobble {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  15% { transform: translateX(-15%) rotate(-5deg); }
+  30% { transform: translateX(10%) rotate(3deg); }
+  45% { transform: translateX(-8%) rotate(-3deg); }
+  60% { transform: translateX(5%) rotate(2deg); }
+  75% { transform: translateX(-3%) rotate(-1deg); }
+}
+@keyframes te-wave {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-4deg); }
+  75% { transform: translateY(3px) rotate(4deg); }
+}
+
+/* ---- 颜色 / 发光 / 特效类 ---- */
+/* 流光：需配合 background-clip:text 使用，见弹窗渐变文字 */
+@keyframes te-shine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes te-neon {
+  0%, 100% { text-shadow: 0 0 4px currentColor, 0 0 11px currentColor; }
+  50% { text-shadow: 0 0 2px currentColor, 0 0 6px currentColor, 0 0 16px currentColor; }
+}
+@keyframes te-color-cycle {
+  0% { color: #e11d48; }
+  20% { color: #ea580c; }
+  40% { color: #16a34a; }
+  60% { color: #0284c7; }
+  80% { color: #7c3aed; }
+  100% { color: #e11d48; }
+}
+@keyframes te-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes te-caret {
+  0%, 100% { border-right: 2px solid currentColor; }
+  50% { border-right: 2px solid transparent; }
+}
+@keyframes te-focus-in {
+  0% { filter: blur(8px); opacity: 0; }
+  100% { filter: blur(0); opacity: 1; }
+}
+@keyframes te-glitch {
+  0%, 100% { transform: translate(0); text-shadow: none; }
+  20% { transform: translate(-2px, 1px); text-shadow: -2px 0 #e11d48, 2px 0 #0284c7; }
+  40% { transform: translate(2px, -1px); text-shadow: 2px 0 #e11d48, -2px 0 #0284c7; }
+  60% { transform: translate(-1px, -1px); text-shadow: -1px 0 #e11d48, 1px 0 #0284c7; }
+  80% { transform: translate(1px, 1px); text-shadow: none; }
+}
+@keyframes te-vibrate {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(1px, -1px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+@keyframes te-drop {
+  0% { transform: translateY(-0.8em); opacity: 0; }
+  60% { transform: translateY(0.1em); opacity: 1; }
+  100% { transform: translateY(0); }
+}
+@keyframes te-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
 /* 标记应用动画的整体需要 inline-block 才能变形，渲染器无法保证，故提供工具类。 */
 .te-animated {
   display: inline-block;

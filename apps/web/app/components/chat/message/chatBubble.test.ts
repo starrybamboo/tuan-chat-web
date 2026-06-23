@@ -264,4 +264,48 @@ describe("chatBubble annotations", () => {
     expect(html).toContain("data-placeholder=\"添加图片说明\"");
     expect(html).toContain("sr-only");
   });
+
+  it("音频消息正文会渲染成可编辑文本", () => {
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: {
+        message: {
+          ...createChatMessageResponse([]).message,
+          content: "这是语音台词",
+          messageType: MESSAGE_TYPE.SOUND,
+          extra: {
+            soundMessage: {
+              source: { kind: "internal", fileId: 77 },
+              second: 3,
+            },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("data-testid=\"editable-content\"");
+    expect(html).toContain("data-can-edit=\"true\"");
+    expect(html).toContain("这是语音台词");
+  });
+
+  it("空音频正文也保留编辑入口并带占位提示", () => {
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: {
+        message: {
+          ...createChatMessageResponse([]).message,
+          content: "",
+          messageType: MESSAGE_TYPE.SOUND,
+          extra: {
+            soundMessage: {
+              source: { kind: "internal", fileId: 77 },
+              second: 3,
+            },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("data-testid=\"editable-content\"");
+    expect(html).toContain("data-placeholder=\"添加语音文本\"");
+    expect(html).toContain("sr-only");
+  });
 });

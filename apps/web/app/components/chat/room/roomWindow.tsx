@@ -252,6 +252,7 @@ function RoomWindow({
   });
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
   const initialDocMessages = React.useMemo(() => {
     return mainHistoryMessages
       .map(item => item.message)
@@ -290,8 +291,9 @@ function RoomWindow({
   const canViewDocContent = Boolean(spaceContext.isSpaceOwner || hasHostPrivileges(curMember?.memberType));
   const handleToggleRoomContentMode = useCallback(() => {
     setSideDrawerState("none");
+    setWebgalOpen(false);
     setRoomContentMode(mode => (mode === "doc" ? "room" : "doc"));
-  }, [setSideDrawerState]);
+  }, [setSideDrawerState, setWebgalOpen]);
   const visibleRoleIdsForStateDrawer = React.useMemo(() => {
     if (sideDrawerState !== "combat" && sideDrawerState !== "initiative" && sideDrawerState !== "state") {
       return undefined;

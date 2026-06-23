@@ -2,6 +2,12 @@
 
 团剧共创前端仓库包含 Web、Electron 桌面端和 Expo 移动端。Web 端以 React、TanStack Router、React Query、Tailwind CSS v4 为主；桌面端通过 Electron 打包；移动端位于 `apps/mobile`，通过 pnpm workspace 复用共享包。
 
+## 版本策略
+
+- 产品版本从 `0.1.0.0` 开始；每次迭代递增最后一位，例如 `0.1.0.1`。
+- npm workspace、Electron 等需要 SemVer 的 `package.json` 版本只记录前三段，例如 `0.1.0`。
+- Android 安装包使用四段 `versionName`，同时每次迭代递增 `versionCode`，保证设备可以覆盖安装。
+
 ## 环境要求
 
 - Node.js 22 或更高版本

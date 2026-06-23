@@ -62,15 +62,15 @@ export default function WebGALPreview({
     void ensureHydrated(spaceId);
   }, [ensureHydrated, spaceId]);
 
-  const sideDrawerState = useSideDrawerStore(state => state.state);
-  const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const webgalOpen = useSideDrawerStore(state => state.webgalOpen);
+  const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
   const mapQuery = useQuery({
     enabled: roomId != null,
     queryKey: roomDndMapQueryKey(roomId ?? -1),
     queryFn: () => fetchRoomDndMap(roomId ?? -1),
   });
 
-  const isWebgalPaneActive = sideDrawerState === "webgal";
+  const isWebgalPaneActive = webgalOpen;
   const canOpenSpaceWebgalSettings = typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0;
   const queryWithoutTab = useCallback(() => {
     const nextSearchParams = new URLSearchParams(location.searchStr);
@@ -82,9 +82,9 @@ export default function WebGALPreview({
     if (!canOpenSpaceWebgalSettings) {
       return;
     }
-    setSideDrawerState("none");
+    setWebgalOpen(false);
     router.history.push(`/chat/${spaceId}/webgal${queryWithoutTab()}`);
-  }, [canOpenSpaceWebgalSettings, queryWithoutTab, router, setSideDrawerState, spaceId]);
+  }, [canOpenSpaceWebgalSettings, queryWithoutTab, router, setWebgalOpen, spaceId]);
   const previewState = resolveWebGALPreviewState({
     previewUrl,
     realtimeStatus,

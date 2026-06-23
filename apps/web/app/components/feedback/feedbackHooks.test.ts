@@ -4,7 +4,16 @@ import { describe, expect, it } from "vitest";
 
 import type { FeedbackIssuePageResponse } from "@/components/feedback/feedbackTypes";
 
-import { patchFeedbackIssuePageData } from "@/components/feedback/feedbackHooks";
+import {
+  FEEDBACK_ISSUES_QUERY_KEY,
+  feedbackIssueDetailQueryKey,
+  invalidateFeedbackIssueQueries,
+  optimisticPatchFeedbackIssueCaches,
+  patchFeedbackIssuePageData,
+  reconcileFeedbackIssueCaches,
+  rollbackFeedbackIssueCaches,
+} from "api/feedbackQueryCache";
+import { QueryClient } from "@tanstack/react-query";
 
 function createPageData(): InfiniteData<FeedbackIssuePageResponse> {
   return {
@@ -89,5 +98,79 @@ describe("feedbackHooks", () => {
     });
 
     expect(patched).toBe(data);
+  });
+
+  it("会乐观更新反馈详情和列表缓存，并能按快照回滚", async () => {
+    const queryClient = new QueryClient();
+    const pageData = createPageData();
+    queryClient.setQueryData(feedbackIssueDetailQueryKey(12), {
+      ...pageData.pages[1].list[0],
+      content: "完整内容",
+    });
+    queryClient.setQueryData([...FEEDBACK_ISSUES_QUERY_KEY, { archived: false }], pageData);
+
+    const context = await optimisticPatchFeedbackIssueCaches(queryClient, {
+      feedbackIssueId: 12,
+      status: 3,
+      archived: true,
+    });
+
+    expect(queryClient.getQueryData<any>(feedbackIssueDetailQueryKey(12))).toMatchObject({
+      feedbackIssueId: 12,
+      status: 3,
+      archived: true,
+    });
+    expect(queryClient.getQueryData<any>([...FEEDBACK_ISSUES_QUERY_KEY, { archived: false }])?.pages[1].list[0]).toMatchObject({
+      feedbackIssueId: 12,
+      status: 3,
+      archived: true,
+    });
+
+    rollbackFeedbackIssueCaches(queryClient, context);
+
+    expect(queryClient.getQueryData<any>(feedbackIssueDetailQueryKey(12))).toMatchObject({
+      feedbackIssueId: 12,
+      status: 2,
+      archived: false,
+    });
+    expect(queryClient.getQueryData<any>([...FEEDBACK_ISSUES_QUERY_KEY, { archived: false }])?.pages[1].list[0]).toMatchObject({
+      feedbackIssueId: 12,
+      status: 2,
+      archived: false,
+    });
+  });
+
+  it("成功返回会用服务端反馈详情校准缓存，并在 settled 阶段失效查询", async () => {
+    const queryClient = new QueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const pageData = createPageData();
+    queryClient.setQueryData([...FEEDBACK_ISSUES_QUERY_KEY, { archived: false }], pageData);
+
+    reconcileFeedbackIssueCaches(queryClient, {
+      ...pageData.pages[1].list[0],
+      content: "服务端内容",
+      status: 4,
+      archived: true,
+      commentCount: 8,
+      updateTime: "2026-03-12 13:30:00",
+    });
+    await invalidateFeedbackIssueQueries(queryClient, 12);
+
+    expect(queryClient.getQueryData<any>(feedbackIssueDetailQueryKey(12))).toMatchObject({
+      feedbackIssueId: 12,
+      status: 4,
+      archived: true,
+      commentCount: 8,
+      updateTime: "2026-03-12 13:30:00",
+    });
+    expect(queryClient.getQueryData<any>([...FEEDBACK_ISSUES_QUERY_KEY, { archived: false }])?.pages[1].list[0]).toMatchObject({
+      feedbackIssueId: 12,
+      status: 4,
+      archived: true,
+      commentCount: 8,
+      updateTime: "2026-03-12 13:30:00",
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: FEEDBACK_ISSUES_QUERY_KEY });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: feedbackIssueDetailQueryKey(12) });
   });
 });

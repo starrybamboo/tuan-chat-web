@@ -214,6 +214,11 @@ export function markAllNotificationsReadInCaches(queryClient: QueryClient, paylo
   }
 }
 
+export function invalidateNotificationQueries(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
+}
+
 function snapshotNotificationCaches(queryClient: QueryClient): NotificationCacheSnapshot {
   return {
     pageEntries: queryClient.getQueriesData<NotificationPageData>({ queryKey: ["notifications"] }),
@@ -287,6 +292,9 @@ export function useMarkNotificationsReadMutation(client: NotificationClient) {
       markNotificationsReadInCaches(queryClient, ids);
       queryClient.invalidateQueries({ queryKey: getNotificationsUnreadCountQueryKey() });
     },
+    onSettled: () => {
+      invalidateNotificationQueries(queryClient);
+    },
   });
 }
 
@@ -306,6 +314,9 @@ export function useMarkAllNotificationsReadMutation(client: NotificationClient) 
     },
     onSuccess: (_result, payload) => {
       markAllNotificationsReadInCaches(queryClient, payload);
+    },
+    onSettled: () => {
+      invalidateNotificationQueries(queryClient);
     },
   });
 }

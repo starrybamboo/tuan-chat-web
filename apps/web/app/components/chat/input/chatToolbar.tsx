@@ -358,14 +358,24 @@ function ChatToolbar({
                   className="tooltip tooltip-top"
                   data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                 >
-                  <LinkFilled
-                    className={`
-                      size-6 cursor-pointer jump_icon
-                      md:mb-1
-                      ${webgalLinkMode ? `text-info` : ""}
-                    `}
+                  <button
+                    type="button"
+                    className="
+                      inline-flex appearance-none items-center justify-center
+                      border-0 bg-transparent p-0 text-inherit
+                    "
+                    aria-label={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
+                    title={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                     onClick={handleToggleWebgalLinkMode}
-                  />
+                  >
+                    <LinkFilled
+                      className={`
+                        size-6 cursor-pointer jump_icon
+                        md:mb-1
+                        ${webgalLinkMode ? `text-info` : ""}
+                      `}
+                    />
+                  </button>
                 </div>
               )}
 
@@ -415,13 +425,23 @@ function ChatToolbar({
                     className="tooltip tooltip-top"
                     data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                   >
-                    <LinkFilled
-                      className={`
-                        size-6 cursor-pointer jump_icon
-                        ${webgalLinkMode ? `text-info` : ""}
-                      `}
+                    <button
+                      type="button"
+                      className="
+                        inline-flex appearance-none items-center justify-center
+                        border-0 bg-transparent p-0 text-inherit
+                      "
+                      aria-label={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
+                      title={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                       onClick={handleToggleWebgalLinkMode}
-                    />
+                    >
+                      <LinkFilled
+                        className={`
+                          size-6 cursor-pointer jump_icon
+                          ${webgalLinkMode ? `text-info` : ""}
+                        `}
+                      />
+                    </button>
                   </div>
                 )}
 
