@@ -1,5 +1,6 @@
 import type { InfiniteData } from "@tanstack/react-query";
 
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import type { FeedbackIssuePageResponse } from "@/components/feedback/feedbackTypes";
@@ -13,7 +14,6 @@ import {
   reconcileFeedbackIssueCaches,
   rollbackFeedbackIssueCaches,
 } from "api/feedbackQueryCache";
-import { QueryClient } from "@tanstack/react-query";
 
 function createPageData(): InfiniteData<FeedbackIssuePageResponse> {
   return {

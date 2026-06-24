@@ -1,7 +1,8 @@
-import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
+import type { ChangeEvent, ClipboardEvent, DragEvent, MouseEvent } from "react";
 
 import { FilmSlateIcon } from "@phosphor-icons/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import {
   invalidateClueFolderMessageQueries,
   patchClueMessageCreatedQueryCache,
@@ -20,7 +21,6 @@ import { RoomContext } from "@/components/chat/core/roomContext";
 import useChatFrameMessages from "@/components/chat/hooks/useChatFrameMessages";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import MessageContentRenderer from "@/components/chat/message/messageContentRenderer";
-import { MessagePreviewContent } from "@/components/chat/message/preview/messagePreviewContent";
 import { compareChatMessageResponsesByOrder } from "@/components/chat/shared/messageOrder";
 import { useClueReferenceNavigationStore } from "@/components/chat/stores/clueReferenceNavigationStore";
 import { setClueRefDragData } from "@/components/chat/utils/clueRef";
@@ -104,6 +104,10 @@ type ClueMessageSenderContext = {
 type ClueMessageSenderResolution
   = | { ok: true; requestContext: ClueMessageSenderContext }
     | { ok: false; message: string };
+
+const CLUE_CONTENT_MAX_LENGTH = 1024;
+const CLUE_LIST_PREVIEW_MAX_LENGTH = 160;
+const CLUE_TITLE_PREVIEW_MAX_LENGTH = 240;
 
 function toPositiveNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -322,6 +326,37 @@ function isSuccess(result: ApiResultLike | null | undefined): boolean {
   return result?.success === true;
 }
 
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
+}
+
+function clearActiveTextSelection() {
+  if (typeof window === "undefined" || typeof window.getSelection !== "function") {
+    return;
+  }
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed) {
+    return;
+  }
+  selection.removeAllRanges();
+}
+
+export function normalizeClueDraftContent(value: string): string {
+  return value.length > CLUE_CONTENT_MAX_LENGTH
+    ? value.slice(0, CLUE_CONTENT_MAX_LENGTH)
+    : value;
+}
+
+export function getClueListPreviewText(message: Message, maxLength = CLUE_LIST_PREVIEW_MAX_LENGTH): string {
+  const previewText = getMessagePreviewText(message)
+    .replace(/\s+/g, " ")
+    .trim();
+  return truncateText(previewText || "线索", maxLength);
+}
+
 export function getAutoJoinPublicClueSpaceId({
   canManagePublicClueMembers,
   clueRoom,
@@ -379,6 +414,8 @@ function ClueFolderSection({
         if (!messageId) {
           return null;
         }
+        const previewText = getClueListPreviewText(message);
+        const titleText = getClueListPreviewText(message, CLUE_TITLE_PREVIEW_MAX_LENGTH);
         const isDropTarget = reorderState?.targetMessageId === messageId;
         return (
           <button
@@ -386,14 +423,27 @@ function ClueFolderSection({
             type="button"
             className={`
               group relative w-full rounded-md border border-base-content/10 px-2 py-1.5
-              text-left text-xs text-base-content/80 transition-colors
+              select-none text-left text-xs text-base-content/80 transition-colors
               hover:border-primary hover:bg-primary/12
               ${activeMessageId === messageId ? `border-primary bg-primary/12 ring-1 ring-primary/35` : ""}
             `}
             data-clue-message-id={messageId}
             draggable
-            title={message.content || "线索"}
-            onClick={() => onEditClue(message)}
+            title={titleText}
+            onMouseDown={(event) => {
+              if (event.detail > 1) {
+                event.preventDefault();
+              }
+              clearActiveTextSelection();
+            }}
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
+              if (event.detail > 1) {
+                event.preventDefault();
+                return;
+              }
+              clearActiveTextSelection();
+              onEditClue(message);
+            }}
             onDragStart={(event) => {
               const payload = buildClueDragPayload(message);
               const sourceMessageId = getMessageId(message);
@@ -471,7 +521,7 @@ function ClueFolderSection({
               block min-w-0 overflow-hidden text-ellipsis wrap-break-word
               leading-5 line-clamp-2
             ">
-              <MessagePreviewContent message={message} withMediaPreview />
+              {previewText}
             </span>
           </button>
         );
@@ -565,6 +615,7 @@ export default function ClueFolderSidebar({
     if (draftAttachmentRef.current) {
       URL.revokeObjectURL(draftAttachmentRef.current.previewUrl);
     }
+    clearActiveTextSelection();
     draftAttachmentRef.current = null;
     setDraftAttachment(null);
     setEditorState({ mode: "create", message: null });
@@ -608,10 +659,11 @@ export default function ClueFolderSidebar({
     if (draftAttachmentRef.current) {
       URL.revokeObjectURL(draftAttachmentRef.current.previewUrl);
     }
+    clearActiveTextSelection();
     draftAttachmentRef.current = null;
     setDraftAttachment(null);
     setEditorState({ mode: "edit", message });
-    setDraftContent(message.content ?? "");
+    setDraftContent(normalizeClueDraftContent(message.content ?? ""));
   };
 
   useEffect(() => {
@@ -738,6 +790,14 @@ export default function ClueFolderSidebar({
     handleAttachmentFiles(Array.from(event.dataTransfer.files ?? []));
   };
 
+  const handleDraftContentChange = (value: string) => {
+    const normalized = normalizeClueDraftContent(value);
+    if (normalized.length !== value.length) {
+      toast.error(`线索内容最多 ${CLUE_CONTENT_MAX_LENGTH} 字，已截断`);
+    }
+    setDraftContent(normalized);
+  };
+
   const reorderClue = async ({ draggedMessageId, placement, targetMessageId }: ClueReorderParams) => {
     if (!room) {
       return;
@@ -779,6 +839,10 @@ export default function ClueFolderSidebar({
 
   const saveClue = async () => {
     const content = draftContent.trim();
+    if (draftContent.length > CLUE_CONTENT_MAX_LENGTH) {
+      toast.error(`线索内容最多 ${CLUE_CONTENT_MAX_LENGTH} 字`);
+      return;
+    }
     if (editorState?.mode === "create" && !content && !draftAttachment) {
       toast.error("线索内容不能为空");
       return;
@@ -1114,11 +1178,18 @@ export default function ClueFolderSidebar({
                 text-sm/6
               "
               value={draftContent}
+              maxLength={CLUE_CONTENT_MAX_LENGTH}
               placeholder="写下这条线索..."
               disabled={isSaving || isDeleting}
               onPaste={handleAttachmentPaste}
-              onChange={event => setDraftContent(event.target.value)}
+              onChange={event => handleDraftContentChange(event.target.value)}
             />
+
+            <div className="mt-1 text-right text-xs text-base-content/45">
+              {draftContent.length}
+              /
+              {CLUE_CONTENT_MAX_LENGTH}
+            </div>
 
             <div className="modal-action items-center justify-between">
               <div>

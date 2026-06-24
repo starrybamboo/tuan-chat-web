@@ -8,7 +8,7 @@
     "scheme": "tuanchat",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.tuanchat.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -16,9 +16,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#313338",
         "backgroundImage": "./assets/images/android-icon-background.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -32,14 +32,14 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "./plugins/with-android-foreground-message-service.cjs",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
+          "backgroundColor": "#000000",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain"
         }
       ]
     ],

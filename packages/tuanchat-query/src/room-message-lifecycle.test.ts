@@ -2,7 +2,7 @@ import type { ChatMessageRequest } from "@tuanchat/openapi-client/models/ChatMes
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildCommittedRoomMessage,
@@ -38,7 +38,14 @@ function msg(messageId: number, position: number, overrides: Partial<Message> = 
 }
 
 describe("createOptimisticRoomMessage", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("creates a message with negative ID and correct fields", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 21, 20, 1, 2));
+
     const request: ChatMessageRequest = {
       roomId: 10,
       messageType: 1,
@@ -60,6 +67,8 @@ describe("createOptimisticRoomMessage", () => {
     expect(result.message.status).toBe(0);
     expect(result.message.position).toBe(4);
     expect(getRoomMessageLocalRenderKey(result.message)).toMatch(/^room-message:optimistic:-1:/);
+    expect(result.message.createTime).toBe("2026-05-21 20:01:02");
+    expect(result.message.updateTime).toBe("2026-05-21 20:01:02");
   });
 
   it("uses request.position when provided", () => {

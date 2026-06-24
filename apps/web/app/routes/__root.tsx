@@ -86,6 +86,7 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 }
 
 const isTestBuild = import.meta.env.MODE === "test";
+const isDevBuild = import.meta.env.DEV;
 const shouldEnableReactScan = typeof window !== "undefined" && (isTestBuild || import.meta.env.DEV);
 
 if (shouldEnableReactScan) {
@@ -231,6 +232,7 @@ function App() {
       <ToastWindowRenderer />
       <StartupNoticeCenter
         isTestBuild={isTestBuild}
+        isDevBuild={isDevBuild}
         isAuthStatusLoading={authStatusQuery.isLoading}
         isAnalyticsBlockedByAdBlocker={isAnalyticsBlockedByAdBlocker}
         shouldShowBugFeedbackGuide={shouldShowBugFeedbackGuide}

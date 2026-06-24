@@ -153,11 +153,43 @@ function DiceTurnReplyItem({
 }
 
 const EFFECT_PREVIEW_DURATION_MS = 2000;
+const MESSAGE_TIME_CLOCK_SKEW_TOLERANCE_MS = 60_000;
 const narratorAvatarFrameClassName = "flex items-center justify-center rounded-full bg-base-200/65 text-base-content/70 transition-colors duration-150 ease-out motion-reduce:transition-none hover:bg-base-300/70 hover:text-base-content/85";
 const narratorAvatarIconClassName = "transition-transform duration-150 ease-out motion-reduce:transition-none group-hover/narrator:scale-105";
 const messageTimeInlineClassName = "shrink-0 whitespace-nowrap text-xs text-base-content/50 transition-opacity duration-200 opacity-0 group-hover:opacity-100";
 const bubbleMessageTimeClassName = `hidden sm:inline-flex ${messageTimeInlineClassName}`;
 const plainMessageTimeClassName = `inline-flex pt-0.5 ${messageTimeInlineClassName}`;
+
+function parseMessageTimeToMs(time?: string | number | null): number | undefined {
+  if (time == null) {
+    return undefined;
+  }
+  if (typeof time === "number") {
+    return Number.isFinite(time) ? time : undefined;
+  }
+
+  const nativeParsed = new Date(time).getTime();
+  if (!Number.isNaN(nativeParsed)) {
+    return nativeParsed;
+  }
+  const fallbackParsed = time.includes("-") ? new Date(time.replace(/-/g, "/")).getTime() : Number.NaN;
+  return Number.isNaN(fallbackParsed) ? undefined : fallbackParsed;
+}
+
+function formatMessageHeaderTime(createTime?: string | number | null, updateTime?: string | number | null): string {
+  const createTimeMs = parseMessageTimeToMs(createTime);
+  const updateTimeMs = parseMessageTimeToMs(updateTime);
+  const createdLabel = createTime ? formatTimeSmartly(createTime) : "";
+  const updatedLabel = updateTime ? formatTimeSmartly(updateTime) : "";
+  const createTimeLooksConsistent = createTimeMs === undefined
+    || updateTimeMs === undefined
+    || createTimeMs <= updateTimeMs + MESSAGE_TIME_CLOCK_SKEW_TOLERANCE_MS;
+  // 历史 WS 缓存可能把本机收到时间写成 createTime；这种值会晚于服务端 updateTime。
+  if (createdLabel && createTimeLooksConsistent) {
+    return createdLabel;
+  }
+  return updatedLabel || createdLabel;
+}
 
 function HoverToolbarActionButton({ label, onClick, children }: HoverToolbarActionButtonProps) {
   return (
@@ -383,22 +415,7 @@ function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle, onExecut
   const isStateEventMessage = message.messageType === MESSAGE_TYPE.STATE_EVENT;
   const createTime = message.createTime;
   const updateTime = message.updateTime;
-  const parseTimeToMs = (time?: string | number | null) => {
-    if (time == null) {
-      return undefined;
-    }
-    if (typeof time === "number") {
-      return Number.isFinite(time) ? time : undefined;
-    }
-    const normalized = time.includes("-") ? time.replace(/-/g, "/") : time;
-    const parsed = new Date(normalized).getTime();
-    return Number.isNaN(parsed) ? undefined : parsed;
-  };
-  const createTimeMs = parseTimeToMs(createTime);
-  const updateTimeMs = parseTimeToMs(updateTime);
-  const isEdited = Boolean(createTimeMs && updateTimeMs && updateTimeMs > createTimeMs);
-  const displayTime = (isEdited ? updateTime : createTime) ?? updateTime ?? createTime;
-  const formattedTime = displayTime ? formatTimeSmartly(displayTime) : "";
+  const formattedTime = formatMessageHeaderTime(createTime, updateTime);
   // 获取自定义角色名（如果有）
   const customRoleName = message.customRoleName as string | undefined;
   // 获取显示的角色名（黑屏文字不显示）
@@ -1687,6 +1704,7 @@ export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps)
     prevMsg.content === nextMsg.content
     && prevMsg.avatarId === nextMsg.avatarId
     && prevMsg.roleId === nextMsg.roleId
+    && prevMsg.createTime === nextMsg.createTime
     && prevMsg.updateTime === nextMsg.updateTime
     && prevMsg.messageType === nextMsg.messageType
     && prevMsg.status === nextMsg.status

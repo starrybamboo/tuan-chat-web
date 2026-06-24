@@ -9,8 +9,10 @@ import {
   buildClueDragPayload,
   getAutoJoinPublicClueSpaceId,
   getClueAttachmentKind,
+  getClueListPreviewText,
   getReorderedCluePosition,
   hasRenderableClueImage,
+  normalizeClueDraftContent,
   resolveClueMessageSenderContext,
 } from "./clueFolderSidebar";
 
@@ -40,6 +42,28 @@ function createResponse(messageId: number, position: number): ChatMessageRespons
 }
 
 describe("clueFolderSidebar", () => {
+  it("线索草稿内容会按后端长度上限截断", () => {
+    const contentAtLimit = "一".repeat(1024);
+    const contentOverLimit = `${contentAtLimit}二`;
+
+    expect(normalizeClueDraftContent(contentAtLimit)).toBe(contentAtLimit);
+    expect(normalizeClueDraftContent(contentOverLimit)).toBe(contentAtLimit);
+  });
+
+  it("线索列表预览会压缩空白并截断长文本", () => {
+    expect(getClueListPreviewText(createMessage({
+      content: "  第一行\n第二行\t第三行  ",
+    }))).toBe("第一行 第二行 第三行");
+
+    expect(getClueListPreviewText(createMessage({
+      content: "12345678901",
+    }), 10)).toBe("1234567...");
+
+    expect(getClueListPreviewText(createMessage({
+      content: "   ",
+    }))).toBe("线索");
+  });
+
   it("拖拽图片线索时保留原消息快照", () => {
     const message = createMessage({
       messageType: MESSAGE_TYPE.IMG,

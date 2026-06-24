@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { ArrowRightIcon, IdentificationCardIcon, UserIcon } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 
 import { LockKeyhole, LockKeyholeOpen } from "@/icons";
 
