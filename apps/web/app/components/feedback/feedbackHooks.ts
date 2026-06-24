@@ -7,14 +7,6 @@ import type {
   FeedbackIssueListFilters,
   FeedbackIssueStatusUpdatePayload,
 } from "@/components/feedback/feedbackTypes";
-import {
-  FEEDBACK_ISSUES_QUERY_KEY,
-  feedbackIssueDetailQueryKey,
-  invalidateFeedbackIssueQueries,
-  optimisticPatchFeedbackIssueCaches,
-  reconcileFeedbackIssueCaches,
-  rollbackFeedbackIssueCaches,
-} from "api/feedbackQueryCache";
 
 import {
   createFeedbackIssue,
@@ -26,6 +18,14 @@ import {
 import {
   getFeedbackIssueStatusAfterArchive,
 } from "@/components/feedback/feedbackTypes";
+import {
+  FEEDBACK_ISSUES_QUERY_KEY,
+  feedbackIssueDetailQueryKey,
+  invalidateFeedbackIssueQueries,
+  optimisticPatchFeedbackIssueCaches,
+  reconcileFeedbackIssueCaches,
+  rollbackFeedbackIssueCaches,
+} from "api/feedbackQueryCache";
 
 export function useFeedbackIssuesInfiniteQuery(filters: FeedbackIssueListFilters) {
   return useInfiniteQuery({

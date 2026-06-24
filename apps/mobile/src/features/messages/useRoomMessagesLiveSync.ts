@@ -26,7 +26,9 @@ import {
 import { useMobileNotificationSession } from "@/features/notifications/mobileNotificationSessionContext";
 import { readNotificationPreferences } from "@/features/notifications/notificationPreferences";
 import { logNotificationTrace } from "@/features/notifications/notificationTrace";
-import { DEFAULT_TUANCHAT_API_BASE_URL, mobileApiClient } from "@/lib/api";
+import { mobileApiClient } from "@/lib/api";
+
+import { createMobileWebSocketUrl, maskMobileWebSocketUrl } from "./mobileWebSocketUrl";
 
 const GROUP_MESSAGE_PUSH_TYPE = 4;
 const GROUP_MESSAGE_BATCH_PUSH_TYPE = 25;
@@ -171,30 +173,6 @@ function shouldNotifyRoomMessage(
   );
 }
 
-function createWebSocketUrl(token: string) {
-  const explicitWebSocketUrl = (globalThis as {
-    process?: {
-      env?: Record<string, string | undefined>;
-    };
-  }).process?.env?.EXPO_PUBLIC_TUANCHAT_API_WS_URL?.trim();
-  const fallbackWebSocketUrl = DEFAULT_TUANCHAT_API_BASE_URL === "https://tuan.chat/api"
-    ? "wss://tuan.chat/ws"
-    : null;
-  const normalizedBaseUrl = (explicitWebSocketUrl || fallbackWebSocketUrl || DEFAULT_TUANCHAT_API_BASE_URL)
-    .trim()
-    .replace(/\/$/, "");
-  const webSocketBaseUrl = (explicitWebSocketUrl || fallbackWebSocketUrl)
-    ? normalizedBaseUrl
-    : `${normalizedBaseUrl.replace(/^http/i, "ws")}/ws`;
-  const separator = webSocketBaseUrl.includes("?") ? "&" : "?";
-
-  return `${webSocketBaseUrl}${separator}token=${encodeURIComponent(token)}`;
-}
-
-function maskWebSocketUrl(webSocketUrl: string) {
-  return webSocketUrl.replace(/([?&]token=)[^&]+/i, "$1<redacted>");
-}
-
 function parseWebSocketEnvelope(rawData: unknown): WebSocketEnvelope | null {
   if (typeof rawData !== "string" || rawData.trim().length === 0) {
     return null;
@@ -302,6 +280,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
   const watchdogTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // 最近一次从服务端收到任何帧（消息或 pong）的时间戳，看门狗据此判断连接是否假死。
   const lastReceivedAtRef = useRef(0);
+  const directReceivedCountRef = useRef(0);
 
   // 当前会话/路由状态用 ref 读取，房间或页面切换时不重建 WebSocket 连接。
   const optionsRef = useRef({ currentContactId, currentRoomId, currentSpaceId, isChatRouteActive });
@@ -320,7 +299,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
       return null;
     }
 
-    return createWebSocketUrl(token);
+    return createMobileWebSocketUrl(token);
   }, [session?.token]);
 
   useEffect(() => {
@@ -349,7 +328,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
     let disposed = false;
 
     logNotificationTrace("ws.effect.start", {
-      url: maskWebSocketUrl(resolvedWebSocketUrl),
+      url: maskMobileWebSocketUrl(resolvedWebSocketUrl),
     });
 
     const cleanupReconnectTimer = () => {
@@ -649,7 +628,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
 
       logNotificationTrace("ws.connect.start", {
         appState: appStateRef.current,
-        url: maskWebSocketUrl(resolvedWebSocketUrl),
+        url: maskMobileWebSocketUrl(resolvedWebSocketUrl),
       });
 
       const socket = new WebSocket(resolvedWebSocketUrl);
@@ -688,9 +667,14 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
 
         const directMessage = parseIncomingDirectMessage(event.data);
         if (directMessage) {
+          directReceivedCountRef.current += 1;
+          const content = readString((directMessage as { content?: unknown }).content);
           logNotificationTrace("dm.received", {
+            appState: appStateRef.current,
+            contentPreview: content ? content.slice(0, 80) : null,
             messageId: directMessage.messageId ?? null,
             receiverId: directMessage.receiverId ?? null,
+            receivedSeq: directReceivedCountRef.current,
             senderId: directMessage.senderId ?? null,
             status: directMessage.status ?? null,
             syncId: directMessage.syncId ?? null,

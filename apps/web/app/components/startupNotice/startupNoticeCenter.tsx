@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
 import { XIcon } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { StartupNoticeId } from "@/components/startupNotice/startupNoticeRules";
 
@@ -12,6 +13,7 @@ import {
 
 type StartupNoticeCenterProps = {
   isTestBuild: boolean;
+  isDevBuild: boolean;
   isAuthStatusLoading: boolean;
   isAnalyticsBlockedByAdBlocker: boolean;
   shouldShowBugFeedbackGuide: boolean;
@@ -20,21 +22,18 @@ type StartupNoticeCenterProps = {
 type StartupNoticeItem = {
   id: StartupNoticeId;
   title: string;
-  badge: string;
   content: ReactNode;
-  tabCategory: string;
 };
 
-const NOTICE_TITLES: Record<StartupNoticeId, Pick<StartupNoticeItem, "title" | "badge" | "tabCategory">> = {
+const NOTICE_TITLES: Record<StartupNoticeId, Pick<StartupNoticeItem, "title">> = {
   "test-env": {
     title: "测试环境提示",
-    badge: "测试环境",
-    tabCategory: "环境",
+  },
+  "dev-env": {
+    title: "开发环境提示",
   },
   "bug-feedback": {
     title: "Bug 反馈与诊断提示",
-    badge: "诊断反馈",
-    tabCategory: "问题",
   },
 };
 
@@ -72,12 +71,13 @@ function markNoticeSeen(noticeId: StartupNoticeId) {
 
 export default function StartupNoticeCenter({
   isTestBuild,
+  isDevBuild,
   isAuthStatusLoading,
   isAnalyticsBlockedByAdBlocker,
   shouldShowBugFeedbackGuide,
 }: StartupNoticeCenterProps) {
   const [acknowledgedNoticeIds, setAcknowledgedNoticeIds] = useState<Set<StartupNoticeId>>(() => new Set());
-  const [activeNoticeId, setActiveNoticeId] = useState<StartupNoticeId | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const noticeIds = useMemo(() => {
     const seenNoticeIds = readSeenNoticeIds();
@@ -87,6 +87,7 @@ export default function StartupNoticeCenter({
 
     return resolveStartupNoticeIds({
       isTestBuild,
+      isDevBuild,
       isAuthStatusLoading,
       isAnalyticsBlockedByAdBlocker,
       shouldShowBugFeedbackGuide,
@@ -96,6 +97,7 @@ export default function StartupNoticeCenter({
     acknowledgedNoticeIds,
     isAnalyticsBlockedByAdBlocker,
     isAuthStatusLoading,
+    isDevBuild,
     isTestBuild,
     shouldShowBugFeedbackGuide,
   ]);
@@ -107,36 +109,34 @@ export default function StartupNoticeCenter({
         return {
           id: noticeId,
           title: titleInfo.title,
-          badge: titleInfo.badge,
-          tabCategory: titleInfo.tabCategory,
           content: <TestEnvironmentNoticeContent />,
+        };
+      }
+
+      if (noticeId === "dev-env") {
+        return {
+          id: noticeId,
+          title: titleInfo.title,
+          content: <DevEnvironmentNoticeContent />,
         };
       }
 
       return {
         id: noticeId,
         title: titleInfo.title,
-        badge: titleInfo.badge,
-        tabCategory: titleInfo.tabCategory,
         content: <BugFeedbackNoticeContent isAnalyticsBlockedByAdBlocker={isAnalyticsBlockedByAdBlocker} />,
       };
     });
   }, [isAnalyticsBlockedByAdBlocker, noticeIds]);
 
-  useEffect(() => {
-    if (notices.length === 0) {
-      if (activeNoticeId !== null) {
-        setActiveNoticeId(null);
-      }
-      return;
-    }
+  const isOpen = notices.length > 0;
 
-    if (!activeNoticeId || !notices.some(notice => notice.id === activeNoticeId)) {
-      setActiveNoticeId(notices[0].id);
-    }
-  }, [activeNoticeId, notices]);
-
-  const activeNotice = notices.find(notice => notice.id === activeNoticeId) ?? null;
+  // 缓存最后一次展示的内容，退出动画期间 notices 已清空，靠快照继续渲染
+  const lastShownRef = useRef<StartupNoticeItem[]>([]);
+  if (notices.length > 0) {
+    lastShownRef.current = notices;
+  }
+  const displayedNotices = lastShownRef.current;
 
   const acknowledgeNoticeIds = useCallback((noticeIdsToAcknowledge: StartupNoticeId[]) => {
     if (noticeIdsToAcknowledge.length === 0) {
@@ -155,77 +155,89 @@ export default function StartupNoticeCenter({
     });
   }, []);
 
-  const handleCloseActiveNotice = useCallback(() => {
-    if (!activeNotice) {
+  // 关闭即把当前展示的每个区块按各自的 session key 记为已读
+  const handleCloseAll = useCallback(() => {
+    acknowledgeNoticeIds(notices.map(notice => notice.id));
+  }, [acknowledgeNoticeIds, notices]);
+
+  // 打开时支持 Esc 关闭
+  useEffect(() => {
+    if (!isOpen) {
       return;
     }
-    acknowledgeNoticeIds([activeNotice.id]);
-  }, [acknowledgeNoticeIds, activeNotice]);
 
-  if (!activeNotice) {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleCloseAll();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleCloseAll, isOpen]);
+
+  // 打开时锁定背景滚动，关闭/卸载时还原
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  if (displayedNotices.length === 0) {
     return null;
   }
 
   return (
-    <div className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="startup-notice-title">
-      <div className="modal-box max-w-3xl p-0 overflow-hidden">
-        <div className="
-          flex items-center justify-between gap-3 border-b border-base-300
-          bg-base-200/70 px-5 py-3
-        ">
-          {notices.length > 1
-            ? (
-                <div className="flex min-w-0 gap-4 overflow-x-auto" role="tablist" aria-label="启动提示分类">
-                  {notices.map(notice => (
-                    <button
-                      key={notice.id}
-                      type="button"
-                      role="tab"
-                      className={`
-                        border-b-2 px-0 py-1 text-sm font-medium transition-colors
-                        ${notice.id === activeNotice.id
-                          ? "border-primary text-base-content"
-                          : "border-transparent text-base-content/55 hover:text-base-content"}
-                      `}
-                      onClick={() => setActiveNoticeId(notice.id)}
-                      aria-selected={notice.id === activeNotice.id}
-                    >
-                      <span className="whitespace-nowrap">
-                        {notice.tabCategory}
-                        {" / "}
-                        {notice.badge}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )
-            : (
-                <div className="min-w-0 text-sm font-medium text-base-content/65">
-                  <span className="whitespace-nowrap">
-                    {activeNotice.tabCategory}
-                    {" / "}
-                    {activeNotice.badge}
-                  </span>
-                </div>
-              )}
-
-          <button
-            type="button"
-            className="btn btn-ghost btn-square btn-sm"
-            onClick={handleCloseActiveNotice}
-            aria-label="关闭当前启动提示"
+    <AnimatePresence>
+      {isOpen && (
+        <div className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="startup-notice-title">
+          <motion.div
+            className="modal-box max-w-3xl p-0 overflow-hidden"
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <XIcon className="size-4" weight="bold" aria-hidden="true" />
-          </button>
-        </div>
+            <div className="flex justify-end px-3 pt-3">
+              <button
+                type="button"
+                className="btn btn-ghost btn-square btn-sm"
+                onClick={handleCloseAll}
+                aria-label="关闭启动提示"
+              >
+                <XIcon className="size-4" weight="bold" aria-hidden="true" />
+              </button>
+            </div>
 
-        <div className="min-h-72 px-6 py-5">
-          <h3 id="startup-notice-title" className="sr-only">{activeNotice.title}</h3>
-          {activeNotice.content}
+            <h2 id="startup-notice-title" className="sr-only">启动提示</h2>
+            <div className="max-h-[70vh] divide-y divide-base-300/60 overflow-y-auto">
+              {displayedNotices.map(notice => (
+                <section key={notice.id} className="px-6 py-6 first:pt-2">
+                  <h3 className="mb-3 text-base font-semibold text-base-content">{notice.title}</h3>
+                  {notice.content}
+                </section>
+              ))}
+            </div>
+          </motion.div>
+          <motion.button
+            type="button"
+            aria-label="关闭启动提示"
+            className="modal-backdrop"
+            onClick={handleCloseAll}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "linear" }}
+          />
         </div>
-      </div>
-      <div className="modal-backdrop" aria-hidden="true" />
-    </div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -237,11 +249,22 @@ function TestEnvironmentNoticeContent() {
       </p>
       <p>
         如果你不是团剧共创的深度用户，建议优先使用正式环境：
-        <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noreferrer">tuan.chat</a>
+        <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noopener noreferrer">tuan.chat</a>
       </p>
-      <div className="pt-2">
-        <a className="btn btn-outline" href="https://tuan.chat" target="_blank" rel="noreferrer">前往正式环境</a>
-      </div>
+    </div>
+  );
+}
+
+function DevEnvironmentNoticeContent() {
+  return (
+    <div className="space-y-3 leading-7">
+      <p>
+        您现在访问的是团剧共创本地开发环境。这里运行的是未发布的开发构建，会包含更多仍在调试中的功能，也更可能遇到未修复的问题。
+      </p>
+      <p>
+        如果你不是团剧共创的开发者，建议优先使用正式环境：
+        <a className="link link-primary ml-1" href="https://tuan.chat" target="_blank" rel="noopener noreferrer">tuan.chat</a>
+      </p>
     </div>
   );
 }
@@ -269,9 +292,6 @@ function BugFeedbackNoticeContent({ isAnalyticsBlockedByAdBlocker }: { isAnalyti
         <li>在 QQ 反馈群里说明具体场景和复现步骤</li>
         <li>把日志文件、截图或录屏一起发送，方便定位问题</li>
       </ol>
-      <p className="text-sm opacity-80">
-        日志文件包含当前页面地址、浏览器信息和前端控制台记录，不包含账号密码。
-      </p>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { useAuthSession } from "@/features/auth/auth-session";
 import type { ForegroundBanner } from "./ForegroundNotificationBanner";
 import type { NativeAppNotificationPayload } from "./mobileNotificationTypes";
 
+import { getAndroidForegroundMessageServiceStatus } from "./androidForegroundMessageService";
 import { ForegroundNotificationBanner } from "./ForegroundNotificationBanner";
 import { MobileNotificationSessionContext } from "./mobileNotificationSessionContext";
 import { normalizeNotificationTargetPath } from "./mobileNotificationTypes";
@@ -315,6 +316,16 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
     if (permissionStatus !== "granted") {
       logNotificationTrace("present.skip-permission", {
         permissionStatus,
+        tag,
+      });
+      return;
+    }
+
+    const foregroundServiceStatus = await getAndroidForegroundMessageServiceStatus();
+    if (Platform.OS === "android" && foregroundServiceStatus?.running && foregroundServiceStatus.connected) {
+      logNotificationTrace("present.skip-native-foreground-service", {
+        lastEvent: foregroundServiceStatus.lastEvent ?? null,
+        lastMessageAt: foregroundServiceStatus.lastMessageAt ?? null,
         tag,
       });
       return;
