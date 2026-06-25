@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { MediaImage } from "@/components/common/mediaImage";
 import { interactiveButtonMotionProps } from "@/components/common/motion/interactiveButtonMotion";
 import PortalTooltip from "@/components/common/portalTooltip";
-import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { Space } from "../../../../../api";
 

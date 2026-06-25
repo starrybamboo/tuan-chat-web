@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import type { Space } from "../../../../api";
 

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { loadMediaImageWithOriginalFallback, MediaImage } from "@/components/common/mediaImage";
-import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
+import { imagePreviewUrlFromUrl } from "@/utils/media/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
 type ImgWithHoverProps = {

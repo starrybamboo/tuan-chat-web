@@ -7,14 +7,16 @@ import type { Crop, PixelCrop } from "react-image-crop";
 import React, { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 
-import type { ImageCompressionPreset } from "@/utils/imgCompressUtils";
+import type { ImageCompressionPreset } from "@/utils/media/imgCompressUtils";
 
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
-import { uploadMediaFile } from "@/utils/mediaUpload";
-import { imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import "react-image-crop/dist/ReactCrop.css";
+
+const uploadUtils = new UploadUtils();
 
 // 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）
 function makeInitialFreeCrop(mediaWidth: number, mediaHeight: number) {
@@ -236,7 +238,7 @@ export function ImgUploaderWithCopper({
       let displayFileId: number | undefined;
       let copperedFileId: number | undefined;
       if (setOriginalDownloadUrl) {
-        originalFileId = (await uploadMediaFile(fileWithNewName)).fileId;
+        originalFileId = (await uploadUtils.uploadMediaFile(fileWithNewName)).fileId;
         originalDownloadUrl = imageOriginalUrl(originalFileId);
         setOriginalDownloadUrl(originalDownloadUrl);
       }
@@ -245,7 +247,7 @@ export function ImgUploaderWithCopper({
           displayFileId = originalFileId;
         }
         else {
-          displayFileId = (await uploadMediaFile(fileWithNewName)).fileId;
+          displayFileId = (await uploadUtils.uploadMediaFile(fileWithNewName)).fileId;
         }
         downloadUrl = imageMediumUrl(displayFileId);
         setDownloadUrl(downloadUrl);
@@ -253,7 +255,7 @@ export function ImgUploaderWithCopper({
       if (setCopperedDownloadUrl || mutate) {
         const copperedImgFile = await getCopperedImg();
         setStatusMessage("上传裁剪后图片中...");
-        copperedFileId = (await uploadMediaFile(copperedImgFile)).fileId;
+        copperedFileId = (await uploadUtils.uploadMediaFile(copperedImgFile)).fileId;
         copperedDownloadUrl = imageUrlByPreset(copperedFileId, copperedCompressionPreset);
         setCopperedDownloadUrl?.(copperedDownloadUrl);
       }

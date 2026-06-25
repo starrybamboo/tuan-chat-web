@@ -8,7 +8,7 @@ import type {
 
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { queryClient } from "@/queryClient";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 import { createSeoMeta } from "@/utils/seo";
 import { fetchRepositoryDetailWithCache } from "api/hooks/repositoryQueryHooks";
 

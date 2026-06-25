@@ -2,14 +2,14 @@ import * as bundledFfmpegWrapperUrlModule from "@ffmpeg/ffmpeg?url";
 import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
 import * as bundledFfmpegUtilUrlModule from "@ffmpeg/util?url";
 
-import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
-import { copyBytesToBlobPart } from "@/utils/blobParts";
-import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
+import { isAudioUploadDebugEnabled } from "@/utils/media/audioDebugFlags";
+import { copyBytesToBlobPart } from "@/utils/media/blobParts";
+import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/media/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
   getFfmpegWrapperUrlCandidates,
-} from "@/utils/ffmpegCoreSourceConfig";
-import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
+} from "@/utils/media/ffmpegCoreSourceConfig";
+import { resolveFfmpegLoadTimeoutMs } from "@/utils/media/ffmpegLoadTimeoutConfig";
 
 export type AudioTranscodeOptions = {
   maxDurationSec?: number;

@@ -7,7 +7,7 @@ import type { ToastWindowOptions } from "@/components/common/toastWindow/toastWi
 import { MediaImage } from "@/components/common/mediaImage";
 import { ResizableImg } from "@/components/common/resizableImg";
 import toastWindow from "@/components/common/toastWindow/toastWindow";
-import { imageUrlWithQuality } from "@/utils/mediaUrl";
+import { imageUrlWithQuality } from "@/utils/media/mediaUrl";
 import { markObservedWebgalAsset } from "@/webGAL/browserAssetCache";
 
 /**

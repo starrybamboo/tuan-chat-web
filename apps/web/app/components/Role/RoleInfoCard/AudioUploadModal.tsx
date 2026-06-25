@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 
-import { UploadUtils } from "@/utils/UploadUtils";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 type AudioUploadModalProps = {
   isOpen: boolean;

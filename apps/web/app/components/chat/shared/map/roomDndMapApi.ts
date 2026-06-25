@@ -1,4 +1,4 @@
-import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
 import { tuanchat } from "api/instance";
 
 export type RoomDndMapToken = {

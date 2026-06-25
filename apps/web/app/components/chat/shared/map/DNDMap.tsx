@@ -19,7 +19,7 @@ import {
   toApiMessageExtraWithStateEvent,
 } from "@/types/stateEvent";
 import { useIsMobile } from "@/utils/getScreenSize";
-import { uploadMediaFile } from "@/utils/mediaUpload";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { ChatMessageRequest, UserRole } from "../../../../../api";
 import type { RoomDndMapToken } from "./roomDndMapApi";
@@ -59,6 +59,7 @@ const DEFAULT_GRID_ROWS = 10;
 const DEFAULT_GRID_COLS = 10;
 const DEFAULT_GRID_COLOR = "#808080";
 const CHATROOM_UPLOAD_SCENE = 1;
+const uploadUtils = new UploadUtils();
 const MAP_TOKEN_DRAG_THRESHOLD_PX = 4;
 
 type DNDMapProps = {
@@ -786,7 +787,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       return;
     }
     try {
-      const uploadedImage = await uploadMediaFile(file, { scene: CHATROOM_UPLOAD_SCENE });
+      const uploadedImage = await uploadUtils.uploadMediaFile(file, { scene: CHATROOM_UPLOAD_SCENE });
       if (!uploadedImage.fileId) {
         toast.error("上传失败，请重试");
         return;

@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 
 import { resolveMediaContentSource } from "@/components/common/content/mediaContent";
 import { MediaImage } from "@/components/common/mediaImage";
-import { imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
+import { imagePreviewUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import LinkComponent from "./linkHandler";
 import { MarkdownSyntaxHighlighter } from "./markdownSyntaxHighlighter";

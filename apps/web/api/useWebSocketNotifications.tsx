@@ -13,7 +13,7 @@ import {
   readGroupMessagePopupEnabledFromLocalStorage,
 } from "@/components/settings/notificationPreferences";
 import { showDesktopNotification } from "@/utils/desktopNotification";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl } from "@/utils/media/mediaUrl";
 import { isRunningInsideNativeAppWebView, postNativeAppNotification } from "@/utils/nativeAppBridge";
 import { useCallback } from "react";
 import toast from "react-hot-toast";

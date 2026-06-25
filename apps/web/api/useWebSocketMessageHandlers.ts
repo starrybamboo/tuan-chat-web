@@ -23,7 +23,7 @@ import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMess
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
 import { getSoundMessageExtra } from "@/types/messageExtra";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 import { useCallback } from "react";
 import { recoverAuthTokenFromSession } from "./authRecovery";
 import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "./feedbackQueryCache";

@@ -37,8 +37,8 @@ import {
 } from "api";
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
-import { uploadMediaFile } from "@/utils/mediaUpload";
-import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { uploadMediaFile } from "@/utils/media/mediaUpload";
+import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import {
   optimisticRemoveUserRolesFromListQueryCache,

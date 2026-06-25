@@ -5,7 +5,7 @@ import type { ForwardMode } from "@/components/chat/hooks/useChatFrameMessageAct
 
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { MediaImage } from "@/components/common/mediaImage";
-import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { ChatMessageResponse } from "../../../../api";
 

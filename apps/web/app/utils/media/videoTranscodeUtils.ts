@@ -2,12 +2,12 @@ import * as bundledFfmpegWrapperUrlModule from "@ffmpeg/ffmpeg?url";
 import * as bundledWorkerUrlModule from "@ffmpeg/ffmpeg/worker?worker&url";
 import * as bundledFfmpegUtilUrlModule from "@ffmpeg/util?url";
 
-import { copyBytesToBlobPart } from "@/utils/blobParts";
-import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/ffmpegAssetCache";
+import { copyBytesToBlobPart } from "@/utils/media/blobParts";
+import { resolvePersistentFfmpegAssetBlobUrl } from "@/utils/media/ffmpegAssetCache";
 import {
   getFfmpegCoreBaseUrlCandidates,
-} from "@/utils/ffmpegCoreSourceConfig";
-import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
+} from "@/utils/media/ffmpegCoreSourceConfig";
+import { resolveFfmpegLoadTimeoutMs } from "@/utils/media/ffmpegLoadTimeoutConfig";
 
 export type VideoTranscodeOptions = {
   loadTimeoutMs?: number;

@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import Pagination from "@/components/common/pagination";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 
 import { useRepositoryListByUserQuery } from "../../../../api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";

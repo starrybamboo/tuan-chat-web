@@ -1,4 +1,4 @@
-import type { MediaType } from "@/utils/imgCompressUtils";
+import type { MediaType } from "@/utils/media/imgCompressUtils";
 
 const GENERIC_MIME_TYPES = new Set(["", "application/octet-stream", "binary/octet-stream"]);
 

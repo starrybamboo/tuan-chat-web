@@ -16,8 +16,8 @@ import {
   summarizeReplayAssetManifestSections,
 } from "@/components/chat/utils/importRglAssetManifestUpload";
 import { applyReplayMaterialPackageImport, buildReplayMaterialPackageFromAssetManifest } from "@/components/chat/utils/importRglMaterialManifest";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import { appendPathQuery } from "@/utils/pathQuery";
-import { UploadUtils } from "@/utils/UploadUtils";
 import { tuanchat } from "api/instance";
 
 import {

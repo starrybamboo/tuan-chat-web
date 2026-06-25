@@ -171,6 +171,51 @@ describe("uploadUtils media service adapter", () => {
     warnSpy.mockRestore();
   });
 
+  it("兼容入口会通过 UploadUtils 转发到媒体上传管线", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "raw.png", { type: "image/png" });
+    const controller = new AbortController();
+    const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
+    uploadMediaFileMock.mockResolvedValueOnce({
+      fileId: 48,
+      mediaType: "image",
+      uploadRequired: false,
+    });
+
+    const result = await utils.uploadMediaFile(file, { scene: 2, signal: controller.signal });
+
+    expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 2, signal: controller.signal });
+    expect(result).toEqual({
+      fileId: 48,
+      mediaType: "image",
+      uploadRequired: false,
+    });
+  });
+
+  it("图片资源入口会返回 fileId 与业务可用地址", async () => {
+    const utils = new UploadUtils();
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "cover.png", { type: "image/png" });
+    const uploadMediaFileMock = uploadMediaFile as ReturnType<typeof vi.fn>;
+    uploadMediaFileMock.mockResolvedValueOnce({
+      fileId: 49,
+      mediaType: "image",
+      uploadRequired: true,
+    });
+
+    const result = await utils.uploadImageAsset(file, 4);
+
+    expect(uploadMediaFileMock).toHaveBeenCalledWith(file, { scene: 4 });
+    expect(result).toEqual({
+      fileId: 49,
+      fileName: "cover.png",
+      mediaType: "image",
+      originalUrl: "https://media.tuan.chat/media/v1/files/049/49/original",
+      size: file.size,
+      uploadRequired: true,
+      url: "https://media.tuan.chat/media/v1/files/049/49/image/medium.webp",
+    });
+  });
+
   it("图片上传通过媒体服务返回可用中档位地址", async () => {
     const utils = new UploadUtils();
     const file = new File([new Uint8Array([1, 2, 3, 4])], "same.png", { type: "image/png" });

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import Pagination from "@/components/common/pagination";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 import { useRepositoryListQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 

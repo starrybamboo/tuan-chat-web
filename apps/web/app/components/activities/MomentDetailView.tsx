@@ -5,7 +5,7 @@ import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { UserDetail } from "@/components/common/userDetail";
 import { CommentOutline, XMarkICon } from "@/icons";
-import { imageLowUrl, imageMediumUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl } from "@/utils/media/mediaUrl";
 
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";

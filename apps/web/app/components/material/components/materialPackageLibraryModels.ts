@@ -1,7 +1,7 @@
 import type { MaterialPackageResponse } from "@tuanchat/openapi-client/models/MaterialPackageResponse";
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 
 export type MaterialPackageLibraryPlaceholderIcon = "house" | "package";
 

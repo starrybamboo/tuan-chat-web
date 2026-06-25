@@ -11,7 +11,7 @@ import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
-import { imageLowUrl, imageMediumUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageMediumUrl } from "@/utils/media/mediaUrl";
 
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/hooks/UserHooks";

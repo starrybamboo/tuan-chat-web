@@ -19,8 +19,8 @@ import {
   readImageDimensions,
   readMediaDuration,
   readVideoDimensions,
-} from "@/utils/mediaMetadata";
-import { UploadUtils } from "@/utils/UploadUtils";
+} from "@/utils/media/mediaMetadata";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { Message, UserRole } from "../../../api";
 import type { MessageEditorSlashMenuItem } from "./components/MessageEditorSlashMenu";

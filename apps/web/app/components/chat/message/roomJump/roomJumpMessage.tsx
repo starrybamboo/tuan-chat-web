@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { extractRoomJumpPayload } from "@/components/chat/utils/roomJump";
 import { MediaImage } from "@/components/common/mediaImage";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
 
 import type { ChatMessageResponse } from "../../../../../api";

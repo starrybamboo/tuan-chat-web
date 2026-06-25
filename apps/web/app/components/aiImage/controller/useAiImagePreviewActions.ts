@@ -25,7 +25,7 @@ import {
   triggerBlobDownload,
   triggerBrowserDownload,
 } from "@/components/aiImage/helpers";
-import { copyBytesToBlobPart } from "@/utils/blobParts";
+import { copyBytesToBlobPart } from "@/utils/media/blobParts";
 
 type UseAiImagePreviewActionsOptions = {
   uiMode: "simple" | "pro";

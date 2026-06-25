@@ -33,7 +33,7 @@ import { computeInitialRoomNodePositions, computePositionForNewWorkflowNode } fr
 import WorkflowSceneDescriptionEditor from "@/components/chat/window/workflowSceneDescriptionEditor";
 import WorkflowStartNode from "@/components/chat/window/workflowStartNode";
 import SceneNode from "@/components/repository/detail/ContentTab/scene/react flow/NewSceneNode";
-import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl } from "@/utils/media/mediaUrl";
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery, useUpdateRoomMutation, useUpdateSpaceMutation } from "api/hooks/chatQueryHooks";
 
 import { SpaceContext } from "../core/spaceContext";

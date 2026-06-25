@@ -7,7 +7,7 @@ import { useChatPageLayoutContext } from "@/components/chat/chatPageLayoutContex
 import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps } from "@/components/common/motion/privateChatMotion";
 import { SearchFilled, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { useGetFriendListQuery } from "api/hooks/friendQueryHooks";
 
 export default function FriendsListPanel() {

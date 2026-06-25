@@ -1,4 +1,4 @@
-import { extractMediaFileIdFromUrl, imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
+import { extractMediaFileIdFromUrl, imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 
 type MediaImageDerivativeStatus = "available" | "missing";
 

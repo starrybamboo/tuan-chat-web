@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { avatarUrl, mediaFileUrl } from "@/utils/mediaUrl";
+import { avatarUrl, mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import type { ChatMessageResponse, Room } from "../../api";
 

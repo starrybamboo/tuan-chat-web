@@ -23,7 +23,7 @@ import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useMaterialEditorActionStore } from "@/components/material/stores/materialEditorActionStore";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { MaterialMessageComposerHandle } from "./materialMessageComposer";
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";

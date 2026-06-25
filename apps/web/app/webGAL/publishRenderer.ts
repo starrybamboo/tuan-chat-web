@@ -1,5 +1,5 @@
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
-import { avatarOriginalUrl, avatarUrl } from "@/utils/mediaUrl";
+import { avatarOriginalUrl, avatarUrl } from "@/utils/media/mediaUrl";
 
 import type { RoleAvatar } from "../../api";
 import type { RealtimeGameConfig } from "./realtimeRendererConfig";

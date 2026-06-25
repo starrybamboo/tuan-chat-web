@@ -2,7 +2,7 @@ import type { RoomDndMapSnapshot } from "@/components/chat/shared/map/roomDndMap
 import type { ActiveStateInstance, CombatStateRuntime } from "@/components/chat/state/stateRuntime";
 
 import { getRoomDndMapImageUrl } from "@/components/chat/shared/map/roomDndMapApi";
-import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 
 import type { UserRole } from "../../../../../api";
 

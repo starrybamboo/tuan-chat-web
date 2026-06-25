@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import {
   useGetSpaceInfoQuery,
   useGetUserSpacesQuery,

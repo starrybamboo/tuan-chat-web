@@ -1,4 +1,4 @@
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 export type RoleVoiceMediaSource = {
   voiceFileId?: number | null;

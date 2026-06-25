@@ -1,7 +1,7 @@
-import type { UploadedDualImageResult, UploadedMediaAssetResult, UploadUtils } from "@/utils/UploadUtils";
+import type { UploadedDualImageResult, UploadedMediaAssetResult, UploadUtils } from "@/utils/media/UploadUtils";
 
-import { getImageSize } from "@/utils/getImgSize";
-import { readMediaDuration } from "@/utils/mediaMetadata";
+import { getImageSize } from "@/utils/media/getImgSize";
+import { readMediaDuration } from "@/utils/media/mediaMetadata";
 
 type ReplayAssetManifestRecord = Record<string, unknown>;
 type ReplayAssetUploadScene = 1 | 3;

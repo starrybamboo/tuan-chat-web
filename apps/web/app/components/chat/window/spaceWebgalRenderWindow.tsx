@@ -12,8 +12,8 @@ import {
   useRealtimeRenderStore,
 } from "@/components/chat/stores/realtimeRenderStore";
 import launchWebGal, { appendWebgalLaunchHints } from "@/utils/launchWebGal";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import { pollPort } from "@/utils/pollPort";
-import { UploadUtils } from "@/utils/UploadUtils";
 import { getWebgalPublishJob, startWebgalPublish } from "@/webGAL/publishClient";
 import { renderWebgalPublishPackage } from "@/webGAL/publishRenderer";
 import { buildSpaceWebgalInputSnapshot } from "@/webGAL/spaceWebgalSnapshot";

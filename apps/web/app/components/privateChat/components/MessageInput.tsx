@@ -5,7 +5,7 @@ import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { EmojiIcon, Image2Fill } from "@/icons";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 

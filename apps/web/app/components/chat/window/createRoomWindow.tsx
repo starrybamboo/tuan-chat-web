@@ -8,7 +8,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { PlusIcon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { useCreateRoomMutation, useGetSpaceInfoQuery } from "api/hooks/chatQueryHooks";
 import { useGetUserInfoQuery } from "api/hooks/UserHooks";
 import { useGetUserRolesQuery } from "api/queryHooks";

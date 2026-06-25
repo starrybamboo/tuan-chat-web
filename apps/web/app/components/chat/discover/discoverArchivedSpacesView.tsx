@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import RepositoryDetailComponent from "@/components/repository/detail/repositoryDetail";
 import { ContentCard } from "@/components/repository/home/RepositoryHome";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 import { appendPathQuery } from "@/utils/pathQuery";
 import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { tuanchat } from "api/instance";

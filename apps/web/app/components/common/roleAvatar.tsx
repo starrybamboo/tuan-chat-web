@@ -7,7 +7,7 @@ import { RoleDetailPagePopup } from "@/components/common/roleDetailPagePopup";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 
 import {
   useGetRoleAvatarQuery,

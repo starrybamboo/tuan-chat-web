@@ -7,7 +7,7 @@ import {
   embedNovelAiMetadataIntoPngBytes,
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
-} from "@/utils/novelaiImageMetadata";
+} from "@/utils/media/novelaiImageMetadata";
 
 export type FocusedMaskBounds = {
   left: number;

@@ -4,11 +4,12 @@ import type { RoleAvatar } from "api";
 
 import { tuanchat } from "@/../api/instance";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { copyBytesToBlobPart } from "@/utils/blobParts";
-import { uploadMediaFile } from "@/utils/mediaUpload";
+import { copyBytesToBlobPart } from "@/utils/media/blobParts";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import { seedRoleAvatarQueryCaches } from "api/hooks/RoleAndAvatarHooks";
 
 const FALLBACK_DEFAULT_AVATAR_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lw9l6wAAAABJRU5ErkJggg==";
+const uploadUtils = new UploadUtils();
 
 function mergeAvatarPatch(avatar: RoleAvatar, patch?: RoleAvatar | null): RoleAvatar {
   if (!patch) {
@@ -96,7 +97,7 @@ async function uploadDefaultAvatarMediaFile(): Promise<number | null> {
   const defaultAvatarFile = await fetchDefaultAvatarFile()
     ?? await createCanvasDefaultAvatarFile()
     ?? await createFallbackDefaultAvatarFile();
-  const uploaded = await uploadMediaFile(defaultAvatarFile);
+  const uploaded = await uploadUtils.uploadImageAsset(defaultAvatarFile, 3);
   return uploaded.fileId || null;
 }
 

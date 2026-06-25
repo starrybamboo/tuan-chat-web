@@ -2,7 +2,7 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 
 import type { Message } from "../../../../../api";
 

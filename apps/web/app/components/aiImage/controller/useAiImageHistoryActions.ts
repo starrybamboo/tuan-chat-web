@@ -13,7 +13,7 @@ import type {
   VibeTransferReferenceRow,
 } from "@/components/aiImage/types";
 import type { AiImageHistoryMode, AiImageHistoryRow } from "@/utils/aiImageHistoryDb";
-import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
+import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetadata";
 import type { NovelAiNl2TagsResult } from "@/utils/novelaiNl2Tags";
 
 import { applyHistorySettingsAction, applyImportedMetadataAction } from "@/components/aiImage/controller/metadataHistoryActions";

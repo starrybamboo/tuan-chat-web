@@ -1,12 +1,12 @@
 import bundledImageCompressionLibUrl from "browser-image-compression/dist/browser-image-compression.js?url";
 import bundledImageCompressionModuleUrl from "browser-image-compression/dist/browser-image-compression.mjs?url";
 
-import { copyBytesToBlobPart } from "@/utils/blobParts";
+import { copyBytesToBlobPart } from "@/utils/media/blobParts";
 import {
   embedNovelAiMetadataIntoWebpBytes,
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromWebpBytes,
-} from "@/utils/novelaiImageMetadata";
+} from "@/utils/media/novelaiImageMetadata";
 
 export type MediaType = "image" | "audio" | "video" | "document" | "other";
 export type MediaQuality = "original" | "low" | "medium" | "high";

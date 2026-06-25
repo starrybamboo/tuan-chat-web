@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { MediaImage } from "@/components/common/mediaImage";
 import { privateChatListItemMotionProps, privateChatPanelMotionProps } from "@/components/common/motion/privateChatMotion";
 import { Search, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,

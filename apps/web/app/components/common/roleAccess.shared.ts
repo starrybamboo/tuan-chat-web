@@ -1,5 +1,5 @@
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 
 import type { UserRole } from "../../../api";
 

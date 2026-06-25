@@ -5,7 +5,7 @@ import {
   getSpriteCropSourceUrl,
 } from "./utils";
 
-vi.mock("@/utils/mediaUrl", () => ({
+vi.mock("@/utils/media/mediaUrl", () => ({
   avatarOriginalUrl: (fileId?: number | string | null) => fileId ? `avatar-original:${fileId}` : "",
   avatarUrl: (fileId?: number | string | null) => fileId ? `avatar-medium:${fileId}` : "",
   imageLowUrl: (fileId?: number | string | null) => fileId ? `image-low:${fileId}` : "",

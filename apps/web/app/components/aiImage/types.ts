@@ -1,7 +1,7 @@
 import type {
   AiImageHistoryRow,
 } from "@/utils/aiImageHistoryDb";
-import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
+import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetadata";
 
 export type UiMode = "simple" | "pro";
 

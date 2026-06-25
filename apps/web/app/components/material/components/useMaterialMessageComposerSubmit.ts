@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import type { MessageDraft } from "@/types/messageDraft";
 
 import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 type UseMaterialMessageComposerSubmitParams = {
   inputText: string;

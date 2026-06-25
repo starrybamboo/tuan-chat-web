@@ -69,7 +69,7 @@ import {
 import {
   extractNovelAiMetadataFromPngBytes,
   extractNovelAiMetadataFromStealthPixels,
-} from "@/utils/novelaiImageMetadata";
+} from "@/utils/media/novelaiImageMetadata";
 import { convertNaturalLanguageToNovelAiTags } from "@/utils/novelaiNl2Tags";
 
 const DEFAULT_METADATA_IMPORT_SELECTION: MetadataImportSelectionState = {
