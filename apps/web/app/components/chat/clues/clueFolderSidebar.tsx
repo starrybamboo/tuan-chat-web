@@ -31,8 +31,8 @@ import { useGlobalWebSocket } from "@/components/globalContextProvider";
 import { BaselineDeleteOutline, CloseIcon, FileTextIcon, ImageIcon, MusicNotesIcon, PlusIcon, SaveIcon } from "@/icons";
 import { buildChatMessageRequestFromDraft, buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
 import { getImageMessageExtra } from "@/types/messageExtra";
-import { getImageSize } from "@/utils/getImgSize";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { getImageSize } from "@/utils/media/getImgSize";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { ChatMessageResponse, Message, Room, SpaceMember } from "../../../../api";
 

@@ -63,8 +63,8 @@ import ConfirmModal from "@/components/common/comfirmModel";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
-import { copyBytesToBlobPart } from "@/utils/blobParts";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { copyBytesToBlobPart } from "@/utils/media/blobParts";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import { tuanchat } from "api/instance";
 
 import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMaterialPackageResponse } from "../../../../api";

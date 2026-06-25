@@ -6,7 +6,7 @@ import {
   imageLowUrl,
   imageMediumUrl,
   imageOriginalUrl,
-} from "@/utils/mediaUrl";
+} from "@/utils/media/mediaUrl";
 
 export type RoleAvatarMediaSource = Pick<
   RoleAvatar,

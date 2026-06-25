@@ -6,8 +6,8 @@ import { internalMessageMediaSource } from "@/components/chat/message/messageMed
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { buildMessageExtraForRequest } from "@/types/messageDraft";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { getImageSize } from "@/utils/getImgSize";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { getImageSize } from "@/utils/media/getImgSize";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { MessageDirectSendRequest } from "../../../../api";
 

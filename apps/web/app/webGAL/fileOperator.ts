@@ -1,8 +1,8 @@
 import type { GameInfoDto } from "@/webGAL/apis";
 
-import { transcodeAudioBlobToOpusOrThrow } from "@/utils/audioTranscodeUtils";
-import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
-import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
+import { transcodeAudioBlobToOpusOrThrow } from "@/utils/media/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/media/audioUploadPolicy";
+import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 import {
   fetchObservedWebgalAssetBlob,
   getMirroredWebgalAssetBlob,

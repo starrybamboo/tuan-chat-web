@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import type { UserInfoResponse } from "../../../../../api";
 

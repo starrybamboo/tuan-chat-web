@@ -8,7 +8,7 @@ import MaterialPackageEditor from "@/components/material/components/materialPack
 import MaterialPackageEditorInlinePage from "@/components/material/components/materialPackageEditorInlinePage";
 import { createEmptyMaterialPackageContent } from "@/components/material/components/materialPackageEditorShared";
 import { buildSpaceMaterialPackageEditorValueKey } from "@/components/material/components/materialPackageEditorValueKey";
-import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
 
 import {
   useDeleteSpaceMaterialPackageMutation,

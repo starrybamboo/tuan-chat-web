@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import type { MessageExtra, RoleAvatar, Room, UserRole } from "../../api";
 

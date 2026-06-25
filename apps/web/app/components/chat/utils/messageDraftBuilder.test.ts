@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { UploadUtils } from "@/utils/UploadUtils";
+import type { UploadUtils } from "@/utils/media/UploadUtils";
 
 import { MessageType } from "../../../../api/wsModels";
 import { buildMessageDraftsFromComposerSnapshot, resolveEmojiImageMeta } from "./messageDraftBuilder";
@@ -9,7 +9,7 @@ const { getImageSizeMock } = vi.hoisted(() => ({
   getImageSizeMock: vi.fn(),
 }));
 
-vi.mock("@/utils/getImgSize", () => ({
+vi.mock("@/utils/media/getImgSize", () => ({
   getImageSize: getImageSizeMock,
 }));
 

@@ -1,6 +1,6 @@
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import type { MediaQuality, MediaType } from "@/utils/media/imgCompressUtils";
 
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 const IMAGE_MARKDOWN_RE = /!\[[^\]]*\]\(([^)]+)\)/g;
 const VIDEO_TOKEN_RE = /\{\{\s*video\s*:\s*([^\s}]+)\s*\}\}/gi;

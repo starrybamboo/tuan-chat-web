@@ -24,7 +24,7 @@ const {
   resolveOssUploadTargetMock: vi.fn(),
 }));
 
-vi.mock("@/utils/imgCompressUtils", async () => {
+vi.mock("@/utils/media/imgCompressUtils", async () => {
   const actual = await vi.importActual<typeof import("./imgCompressUtils")>("./imgCompressUtils");
   return {
     ...actual,
@@ -32,7 +32,7 @@ vi.mock("@/utils/imgCompressUtils", async () => {
   };
 });
 
-vi.mock("@/utils/mediaMime", () => ({
+vi.mock("@/utils/media/mediaMime", () => ({
   inferMediaTypeFromMimeType: (mimeType: string) => {
     if (mimeType.startsWith("image/"))
       return "image";
@@ -46,24 +46,24 @@ vi.mock("@/utils/mediaMime", () => ({
   normalizeMimeType: (mimeType: string) => mimeType,
 }));
 
-vi.mock("@/utils/novelaiImageMetadata", () => ({
+vi.mock("@/utils/media/novelaiImageMetadata", () => ({
   extractNovelAiMetadataFromPngBytes: extractNovelAiMetadataFromPngBytesMock,
   extractNovelAiMetadataFromWebpBytes: extractNovelAiMetadataFromWebpBytesMock,
 }));
 
-vi.mock("@/utils/audioTranscodeUtils", () => ({
+vi.mock("@/utils/media/audioTranscodeUtils", () => ({
   transcodeAudioFileToOpusOrThrow: vi.fn(),
 }));
 
-vi.mock("@/utils/videoTranscodeUtils", () => ({
+vi.mock("@/utils/media/videoTranscodeUtils", () => ({
   transcodeVideoFileToWebmOrThrow: vi.fn(),
 }));
 
-vi.mock("@/utils/ossUploadTarget", () => ({
+vi.mock("@/utils/media/ossUploadTarget", () => ({
   resolveOssUploadTarget: resolveOssUploadTargetMock,
 }));
 
-vi.mock("../../api/instance", () => ({
+vi.mock("../../../api/instance", () => ({
   tuanchat: {
     request: {
       request: tuanchatRequestMock,

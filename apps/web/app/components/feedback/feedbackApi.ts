@@ -12,7 +12,7 @@ import type {
 } from "@/components/feedback/feedbackTypes";
 import type { FeedbackIssueAuthorResponse } from "api";
 
-import { avatarUrl, imageLowUrl } from "@/utils/mediaUrl";
+import { avatarUrl, imageLowUrl } from "@/utils/media/mediaUrl";
 import {
   compactRequestBody,
   extractOpenApiErrorMessage,

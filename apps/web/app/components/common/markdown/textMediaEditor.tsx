@@ -8,7 +8,7 @@ import {
   buildVideoToken,
 } from "@/components/common/content/mediaContent";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 type TextMediaEditorProps = {
   value: string;

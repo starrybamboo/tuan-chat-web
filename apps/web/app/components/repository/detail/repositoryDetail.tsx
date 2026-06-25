@@ -3,7 +3,7 @@ import { useParams, useRouter } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 import { fetchUserRoomsWithCache, useGetUserRoomsQuery, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "api/hooks/repositoryQueryHooks";
 import { useRuleListQuery } from "api/hooks/ruleQueryHooks";

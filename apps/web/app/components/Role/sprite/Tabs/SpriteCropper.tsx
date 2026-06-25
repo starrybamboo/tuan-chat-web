@@ -14,7 +14,7 @@ import {
   createTopCenteredSquareCrop,
   useCropPreview,
 } from "@/utils/imgCropper";
-import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
+import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateRoleAvatarVariantMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { PreviewAnchorPosition } from "../../Preview/previewAnchor";

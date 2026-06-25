@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   preprocessAudioForUploadMock: vi.fn<(...args: any[]) => any>(),
 }));
 
-vi.mock("@/utils/imgCompressUtils", () => ({
+vi.mock("@/utils/media/imgCompressUtils", () => ({
   compressImage: mocks.compressImageMock,
   MEDIA_COMPRESSION_PROFILES: {
     image: {
@@ -18,7 +18,7 @@ vi.mock("@/utils/imgCompressUtils", () => ({
   },
 }));
 
-vi.mock("@/utils/UploadUtils", () => ({
+vi.mock("@/utils/media/UploadUtils", () => ({
   UploadUtils: class {
     preprocessVideoForUpload = mocks.preprocessVideoForUploadMock;
     preprocessAudioForUpload = mocks.preprocessAudioForUploadMock;

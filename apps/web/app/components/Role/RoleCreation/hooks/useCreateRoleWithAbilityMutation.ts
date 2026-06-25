@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "@/../api/instance";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
-import { avatarThumbUrl, avatarUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl, avatarUrl } from "@/utils/media/mediaUrl";
 import { invalidateRoleCreateQueries } from "api/hooks/roleMutationInvalidation";
 import { seedUserRoleQueryCache, upsertUserRoleListQueryCache } from "api/roleQueryCache";
 

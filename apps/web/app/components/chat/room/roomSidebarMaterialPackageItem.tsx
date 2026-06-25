@@ -9,7 +9,7 @@ import { setMaterialItemDragData } from "@/components/chat/utils/materialItemDra
 import { setSubWindowDragPayload } from "@/components/chat/utils/subWindowDragPayload";
 import { MediaImage } from "@/components/common/mediaImage";
 import { parseNodePath, serializeNodePath } from "@/components/material/components/materialPackageTreeUtils";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 
 import type { MaterialSidebarVirtualNode } from "./materialSidebarTree";
 

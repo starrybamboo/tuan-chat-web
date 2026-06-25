@@ -12,7 +12,7 @@ import type {
   ProFeatureSectionKey,
   UiMode,
 } from "@/components/aiImage/types";
-import type { NovelAiImageMetadataResult } from "@/utils/novelaiImageMetadata";
+import type { NovelAiImageMetadataResult } from "@/utils/media/novelaiImageMetadata";
 
 import {
   pickDirectorSourceHistoryImageAction,

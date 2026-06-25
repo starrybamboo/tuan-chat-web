@@ -1,5 +1,5 @@
 import { getDocCardExtra } from "@/types/messageExtra";
-import { imageLowUrl, imageLowUrlFromUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/mediaUrl";
+import { imageLowUrl, imageLowUrlFromUrl, imageMediumUrl, imageMediumUrlFromUrl } from "@/utils/media/mediaUrl";
 
 type DocCardCoverQuality = "low" | "medium";
 

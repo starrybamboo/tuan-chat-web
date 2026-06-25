@@ -7,7 +7,7 @@ import {
   resolveRoleVoiceUrl,
 } from "./roleVoiceMedia";
 
-vi.mock("@/utils/mediaUrl", () => ({
+vi.mock("@/utils/media/mediaUrl", () => ({
   mediaFileUrl: (fileId?: number | string | null, mediaType?: string | null, quality?: string | null) =>
     fileId ? `media:${mediaType}:${quality}:${fileId}` : undefined,
 }));

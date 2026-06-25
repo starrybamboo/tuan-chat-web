@@ -2,7 +2,7 @@ import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSo
 import BetterImg from "@/components/common/betterImg";
 import { MediaImage } from "@/components/common/mediaImage";
 import { getImageMessageExtra, getVideoMessageExtra } from "@/types/messageExtra";
-import { avatarThumbUrl } from "@/utils/mediaUrl";
+import { avatarThumbUrl } from "@/utils/media/mediaUrl";
 
 import type { MessageDirectResponse } from "../../../../api";
 

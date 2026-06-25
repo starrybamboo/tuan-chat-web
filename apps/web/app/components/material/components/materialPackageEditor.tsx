@@ -4,14 +4,16 @@ import toast from "react-hot-toast";
 
 import type { MaterialEditorActionScope } from "@/components/chat/chatPage.types";
 
-import { uploadMediaFile } from "@/utils/mediaUpload";
-import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
 
 import { createEmptyMaterialPackageContent } from "./materialPackageEditorShared";
 import { ensureMaterialPackageContent } from "./materialPackageTreeUtils";
 import MaterialPackageWorkbench from "./materialPackageWorkbench";
+
+const uploadUtils = new UploadUtils();
 
 type MaterialPackageEditorProps = {
   valueKey: string;
@@ -153,7 +155,7 @@ export default function MaterialPackageEditor({
     toast.loading("封面上传中...", { id: toastId });
 
     try {
-      const uploadedImage = await uploadMediaFile(file);
+      const uploadedImage = await uploadUtils.uploadImageAsset(file, 4);
       setDraft(previous => ({
         ...previous,
         coverFileId: uploadedImage.fileId,

@@ -5,12 +5,13 @@ import { toast } from "react-hot-toast";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { getImageSize } from "@/utils/getImgSize";
-import { uploadMediaFile } from "@/utils/mediaUpload";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { getImageSize } from "@/utils/media/getImgSize";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import { useCreateStickerMutation, useDeleteStickerMutation, useGetUserStickersQuery } from "api/hooks/stickerQueryHooks";
 
 const SUPPORTED_STICKER_FORMATS = new Set(["jpg", "jpeg", "png", "gif", "webp"]);
+const uploadUtils = new UploadUtils();
 
 function normalizeStickerFormat(format?: string | null): string | null {
   if (!format)
@@ -55,7 +56,7 @@ export default function StickerWindow({ onChoose }:
       return;
     }
     try {
-      const uploadedImage = await uploadMediaFile(newImg);
+      const uploadedImage = await uploadUtils.uploadMediaFile(newImg, { scene: 2 });
       const format = resolveStickerFormat(newImg);
 
       if (!format) {

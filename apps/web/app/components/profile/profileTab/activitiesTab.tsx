@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 
 import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { MediaImage } from "@/components/common/mediaImage";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import {
   useGetMomentFeedStatsQuery,

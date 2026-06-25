@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { HomeIcon, Search, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import {
   useAcceptFriendRequestMutation,
   useCheckFriendQuery,

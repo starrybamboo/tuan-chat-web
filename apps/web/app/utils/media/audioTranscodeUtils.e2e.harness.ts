@@ -1,5 +1,5 @@
-import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
-import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
+import { transcodeAudioFileToOpusOrThrow } from "@/utils/media/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/media/audioUploadPolicy";
 
 const root = document.getElementById("app");
 

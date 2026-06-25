@@ -1,4 +1,4 @@
-import { avatarUrl, imageLowUrl } from "@/utils/mediaUrl";
+import { avatarUrl, imageLowUrl } from "@/utils/media/mediaUrl";
 
 import type { UserInfoResponse } from "../../../api";
 

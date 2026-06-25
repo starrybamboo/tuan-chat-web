@@ -1,19 +1,41 @@
 import { Md5 } from "ts-md5";
 
-import type { ImageCompressionOptions, ImageCompressionPreset, MediaQuality, MediaType } from "@/utils/imgCompressUtils";
+import type { ImageCompressionOptions, ImageCompressionPreset, MediaQuality, MediaType } from "@/utils/media/imgCompressUtils";
+import type { UploadedMediaFile } from "@/utils/media/mediaUpload";
 
-import { isAudioUploadDebugEnabled } from "@/utils/audioDebugFlags";
-import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
-import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/audioUploadPolicy";
-import { BUSINESS_MEDIA_QUALITY, compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/imgCompressUtils";
-import { inferMediaTypeFromMimeType, normalizeFileMimeType } from "@/utils/mediaMime";
-import { uploadGeneratedMediaFiles, uploadMediaFile } from "@/utils/mediaUpload";
-import { mediaFileUrl } from "@/utils/mediaUrl";
-import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
+import { isAudioUploadDebugEnabled } from "@/utils/media/audioDebugFlags";
+import { transcodeAudioFileToOpusOrThrow } from "@/utils/media/audioTranscodeUtils";
+import { assertAudioUploadInputSizeOrThrow, buildDefaultAudioUploadTranscodeOptions } from "@/utils/media/audioUploadPolicy";
+import { BUSINESS_MEDIA_QUALITY, compressImage, DEFAULT_IMAGE_COMPRESSION_OPTIONS, IMAGE_COMPRESSION_PRESETS } from "@/utils/media/imgCompressUtils";
+import { inferMediaTypeFromMimeType, normalizeFileMimeType } from "@/utils/media/mediaMime";
+import { uploadGeneratedMediaFiles, uploadMediaFile as uploadRawMediaFile } from "@/utils/media/mediaUpload";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
+import { transcodeVideoFileToWebmOrThrow } from "@/utils/media/videoTranscodeUtils";
 
 type PreparedImagePayload = {
   processedFile: File;
   isGif: boolean;
+};
+
+/**
+ * 前端业务上传场景，沿用后端媒体服务的 scene 编码。
+ */
+export type MediaUploadScene = 1 | 2 | 3 | 4;
+
+/**
+ * 只需要 fileId/mediaType 的业务上传参数。
+ */
+export type UploadUtilsMediaFileOptions = {
+  scene?: MediaUploadScene;
+  signal?: AbortSignal;
+};
+
+/**
+ * 需要 URL 与文件信息的业务上传参数。
+ */
+export type UploadMediaAssetOptions = {
+  quality?: MediaQuality;
+  scene?: MediaUploadScene;
 };
 
 function resolveChatroomImageUrlQuality(quality: MediaQuality): MediaQuality {
@@ -26,7 +48,7 @@ function resolveChatroomImageUrlQuality(quality: MediaQuality): MediaQuality {
 function buildPreparedFilesByQuality(
   file: File,
   mediaType: MediaType,
-  scene: 1 | 2 | 3 | 4,
+  scene: MediaUploadScene,
   quality: MediaQuality,
 ): Partial<Record<MediaQuality, File>> {
   if (scene !== 1) {
@@ -38,6 +60,9 @@ function buildPreparedFilesByQuality(
   return { [quality]: file };
 }
 
+/**
+ * 图片上传后用于消息、素材等业务层消费的双地址结果。
+ */
 export type UploadedDualImageResult = {
   fileId: number;
   mediaType: MediaType;
@@ -46,6 +71,9 @@ export type UploadedDualImageResult = {
   url: string;
 };
 
+/**
+ * 媒体上传后用于业务层消费的统一结果。
+ */
 export type UploadedMediaAssetResult = {
   fileId: number;
   fileName: string;
@@ -56,6 +84,13 @@ export type UploadedMediaAssetResult = {
   url: string;
 };
 
+/**
+ * 业务组件的统一媒体入口。
+ *
+ * 职责边界：
+ * - UploadUtils：面向业务，负责 scene、quality、URL、预处理、转码兜底和返回结构。
+ * - mediaUpload：面向上传管线，负责派生文件、上传会话、OSS PUT、complete 和去重。
+ */
 export class UploadUtils {
   private static readonly imagePrepareCache = new WeakMap<File, Map<string, Promise<PreparedImagePayload>>>();
   private static readonly videoPrepareCache = new WeakMap<File, Promise<File>>();
@@ -66,12 +101,32 @@ export class UploadUtils {
     return BUSINESS_MEDIA_QUALITY[preset]?.quality ?? "medium";
   }
 
-  private async uploadMediaAsset(
+  /**
+   * 兼容只需要 fileId/mediaType 的业务调用。
+   *
+   * 新业务如果需要可展示 URL，优先使用 uploadImageAsset / uploadAudioAsset /
+   * uploadVideo / uploadFileAsset 这些带业务语义的入口。
+   */
+  public async uploadMediaFile(file: File, options: UploadUtilsMediaFileOptions = {}): Promise<UploadedMediaFile> {
+    return await uploadRawMediaFile(file, options);
+  }
+
+  /**
+   * 上传任意媒体文件并返回业务可直接消费的 URL 与文件信息。
+   */
+  public async uploadMediaAsset(
     file: File,
-    scene: 1 | 2 | 3 | 4 = 1,
+    options: UploadMediaAssetOptions = {},
+  ): Promise<UploadedMediaAssetResult> {
+    return await this.uploadMediaAssetWithQuality(file, options.scene ?? 1, options.quality ?? "medium");
+  }
+
+  private async uploadMediaAssetWithQuality(
+    file: File,
+    scene: MediaUploadScene = 1,
     quality: MediaQuality = "medium",
   ): Promise<UploadedMediaAssetResult> {
-    const uploaded = await uploadMediaFile(file, { scene });
+    const uploaded = await uploadRawMediaFile(file, { scene });
     const sceneQuality = scene === 1
       ? (uploaded.mediaType === "image" ? "medium" : "low")
       : "original";
@@ -94,7 +149,7 @@ export class UploadUtils {
   private async uploadPreparedMediaAsset(
     file: File,
     mediaType: MediaType,
-    scene: 1 | 2 | 3 | 4 = 1,
+    scene: MediaUploadScene = 1,
     quality: MediaQuality = "medium",
   ): Promise<UploadedMediaAssetResult> {
     const filesByQuality = buildPreparedFilesByQuality(file, mediaType, scene, quality);
@@ -395,11 +450,11 @@ export class UploadUtils {
    * @param scene 上传场景 1.聊天室,2.表情包，3.角色差分 4.仓库图片（暂时使用场景1）
    * @param maxDuration 最大时长（秒），默认30秒
    */
-  async uploadAudio(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<string> {
+  async uploadAudio(file: File, scene: MediaUploadScene = 1, maxDuration = 30): Promise<string> {
     return (await this.uploadAudioAsset(file, scene, maxDuration)).url;
   }
 
-  async uploadAudioAsset(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<UploadedMediaAssetResult> {
+  async uploadAudioAsset(file: File, scene: MediaUploadScene = 1, maxDuration = 30): Promise<UploadedMediaAssetResult> {
     // 检查文件类型
     const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
     if (inferMediaTypeFromMimeType(normalizedInput.type) !== "audio") {
@@ -448,18 +503,18 @@ export class UploadUtils {
    * 上传原始音频文件（不做 Opus 转码）
    * - 用于“语音参考文件”等不适合被统一转码的场景
    */
-  async uploadAudioOriginal(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+  async uploadAudioOriginal(file: File, scene: MediaUploadScene = 1): Promise<string> {
     return (await this.uploadAudioOriginalAsset(file, scene)).originalUrl;
   }
 
-  async uploadAudioOriginalAsset(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<UploadedMediaAssetResult> {
+  async uploadAudioOriginalAsset(file: File, scene: MediaUploadScene = 1): Promise<UploadedMediaAssetResult> {
     const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
     if (inferMediaTypeFromMimeType(normalizedInput.type) !== "audio") {
       throw new Error("只支持音频文件格式");
     }
 
     assertAudioUploadInputSizeOrThrow(normalizedInput.size);
-    return await this.uploadMediaAsset(normalizedInput, scene, scene === 1 ? "low" : "original");
+    return await this.uploadMediaAssetWithQuality(normalizedInput, scene, scene === 1 ? "low" : "original");
   }
 
   /**
@@ -469,7 +524,7 @@ export class UploadUtils {
    */
   async uploadVideo(
     file: File,
-    scene: 1 | 2 | 3 | 4 = 1,
+    scene: MediaUploadScene = 1,
   ): Promise<UploadedMediaAssetResult> {
     const normalizedInput = await normalizeFileMimeType(file, { expectedMediaType: "video" });
     const normalizedVideoFile = this.normalizeVideoInputFileOrThrow(normalizedInput);
@@ -498,23 +553,35 @@ export class UploadUtils {
   /**
    * 上传通用文件（用于聊天文件消息）
    */
-  async uploadFile(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+  async uploadFile(file: File, scene: MediaUploadScene = 1): Promise<string> {
     return (await this.uploadFileAsset(file, scene)).originalUrl;
   }
 
-  async uploadFileAsset(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<UploadedMediaAssetResult> {
+  async uploadFileAsset(file: File, scene: MediaUploadScene = 1): Promise<UploadedMediaAssetResult> {
     const normalizedFile = await normalizeFileMimeType(file);
-    return await this.uploadMediaAsset(normalizedFile, scene, scene === 1 ? "low" : "original");
+    return await this.uploadMediaAssetWithQuality(normalizedFile, scene, scene === 1 ? "low" : "original");
+  }
+
+  /**
+   * 上传图片并返回 fileId、originalUrl 与按 quality 解析后的展示 URL。
+   */
+  async uploadImageAsset(
+    file: File,
+    scene: MediaUploadScene = 1,
+    quality: MediaQuality = "medium",
+  ): Promise<UploadedMediaAssetResult> {
+    const normalizedFile = await this.normalizeImageInputOrThrow(file);
+    return await this.uploadMediaAssetWithQuality(normalizedFile, scene, quality);
   }
 
   async uploadDualImage(
     file: File,
-    scene: 1 | 2 | 3 | 4 = 1,
+    scene: MediaUploadScene = 1,
     _options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<UploadedDualImageResult> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
     const originalSize = file.size;
-    const uploaded = await this.uploadMediaAsset(normalizedFile, scene, "medium");
+    const uploaded = await this.uploadMediaAssetWithQuality(normalizedFile, scene, "medium");
     return {
       fileId: uploaded.fileId,
       mediaType: uploaded.mediaType,
@@ -527,11 +594,11 @@ export class UploadUtils {
   async uploadDualImageByPreset(
     file: File,
     preset: ImageCompressionPreset,
-    scene: 1 | 2 | 3 | 4 = 1,
+    scene: MediaUploadScene = 1,
   ): Promise<UploadedDualImageResult> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
     const originalSize = file.size;
-    const uploaded = await this.uploadMediaAsset(normalizedFile, scene, UploadUtils.resolvePresetQuality(preset));
+    const uploaded = await this.uploadMediaAssetWithQuality(normalizedFile, scene, UploadUtils.resolvePresetQuality(preset));
     return {
       fileId: uploaded.fileId,
       mediaType: uploaded.mediaType,
@@ -545,9 +612,9 @@ export class UploadUtils {
    * 上传原始图片，不走压缩流程。
    * 适用于需要保留裁剪后无压缩版本的场景。
    */
-  async uploadOriginalImg(file: File, scene: 1 | 2 | 3 | 4 = 1): Promise<string> {
+  async uploadOriginalImg(file: File, scene: MediaUploadScene = 1): Promise<string> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
-    return (await this.uploadMediaAsset(normalizedFile, scene, scene === 1 ? "medium" : "original")).originalUrl;
+    return (await this.uploadMediaAssetWithQuality(normalizedFile, scene, scene === 1 ? "medium" : "original")).originalUrl;
   }
 
   /**
@@ -558,20 +625,20 @@ export class UploadUtils {
    */
   async uploadImg(
     file: File,
-    scene: 1 | 2 | 3 | 4 = 1,
+    scene: MediaUploadScene = 1,
     _options: ImageCompressionOptions = DEFAULT_IMAGE_COMPRESSION_OPTIONS,
   ): Promise<string> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
-    return (await this.uploadMediaAsset(normalizedFile, scene, "medium")).url;
+    return (await this.uploadMediaAssetWithQuality(normalizedFile, scene, "medium")).url;
   }
 
   async uploadImgByPreset(
     file: File,
     preset: ImageCompressionPreset,
-    scene: 1 | 2 | 3 | 4 = 1,
+    scene: MediaUploadScene = 1,
   ): Promise<string> {
     const normalizedFile = await this.normalizeImageInputOrThrow(file);
-    return (await this.uploadMediaAsset(normalizedFile, scene, UploadUtils.resolvePresetQuality(preset))).url;
+    return (await this.uploadMediaAssetWithQuality(normalizedFile, scene, UploadUtils.resolvePresetQuality(preset))).url;
   }
 
   /**

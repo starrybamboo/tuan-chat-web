@@ -14,7 +14,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { ChevronRightIcon, CloseIcon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 
 import {
   DEFAULT_COMMENT_CHILD_LIMIT,

@@ -13,7 +13,7 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import DiceMaidenLinkModal from "@/components/Role/DiceMaidenLinkModal";
 import { DiceFiveIcon, PlusIcon, WebgalIcon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
 import { fetchUserRoomsWithCache, useCreateSpaceMutation, useSetSpaceExtraMutation } from "api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "api/hooks/RoleAndAvatarHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";

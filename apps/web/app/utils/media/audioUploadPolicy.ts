@@ -1,6 +1,6 @@
-import type { AudioTranscodeOptions } from "@/utils/audioTranscodeUtils";
+import type { AudioTranscodeOptions } from "@/utils/media/audioTranscodeUtils";
 
-import { resolveFfmpegLoadTimeoutMs } from "@/utils/ffmpegLoadTimeoutConfig";
+import { resolveFfmpegLoadTimeoutMs } from "@/utils/media/ffmpegLoadTimeoutConfig";
 
 const AUDIO_UPLOAD_MAX_INPUT_BYTES = 30 * 1024 * 1024;
 const AUDIO_UPLOAD_PREFER_SMALLER_MIN_BYTES = 48 * 1024;

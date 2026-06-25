@@ -24,7 +24,7 @@ import UTILS from "@/components/common/dicer/utils/utils";
 import { normalizeAnnotations } from "@/types/messageAnnotations";
 import { buildChatMessageRequestFromDraft } from "@/types/messageDraft";
 import { toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 

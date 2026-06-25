@@ -15,8 +15,8 @@ import {
   LinkFilled,
   SendIcon,
 } from "@/icons";
-import { ALLOWED_IMG_TYPES } from "@/utils/allowedImgFiles";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { ALLOWED_IMG_TYPES } from "@/utils/media/allowedImgFiles";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 type ChatToolbarProps = {
   /** 当前房间（用于BGM个人开关/停止全员BGM） */

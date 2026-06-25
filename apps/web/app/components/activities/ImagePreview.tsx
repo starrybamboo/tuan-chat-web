@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
 import { RotateLeftIcon, RotateRightIcon } from "@/icons";
-import { imageMediumUrlFromUrl, imagePreviewUrlFromUrl } from "@/utils/mediaUrl";
+import { imageMediumUrlFromUrl, imagePreviewUrlFromUrl } from "@/utils/media/mediaUrl";
 
 type ImagePreviewProps = {
   images: string[];

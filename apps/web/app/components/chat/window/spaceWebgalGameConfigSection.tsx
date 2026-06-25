@@ -3,7 +3,7 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
 import type { RealtimeGameConfig } from "@/webGAL/realtimeRenderer";
 
 import { MediaImage } from "@/components/common/mediaImage";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import {
   BASE_TEMPLATE_OPTIONS,

@@ -1,14 +1,14 @@
-import type { MediaQuality, MediaType } from "@/utils/imgCompressUtils";
-import type { OssUploadHeaders } from "@/utils/ossUploadTarget";
+import type { MediaQuality, MediaType } from "@/utils/media/imgCompressUtils";
+import type { OssUploadHeaders } from "@/utils/media/ossUploadTarget";
 
-import { transcodeAudioFileToOpusOrThrow } from "@/utils/audioTranscodeUtils";
-import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
-import { inferMediaTypeFromMimeType, normalizeFileMimeType, normalizeMimeType } from "@/utils/mediaMime";
-import { extractNovelAiMetadataFromPngBytes, extractNovelAiMetadataFromWebpBytes } from "@/utils/novelaiImageMetadata";
-import { resolveOssUploadTarget } from "@/utils/ossUploadTarget";
-import { transcodeVideoFileToWebmOrThrow } from "@/utils/videoTranscodeUtils";
+import { transcodeAudioFileToOpusOrThrow } from "@/utils/media/audioTranscodeUtils";
+import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/media/imgCompressUtils";
+import { inferMediaTypeFromMimeType, normalizeFileMimeType, normalizeMimeType } from "@/utils/media/mediaMime";
+import { extractNovelAiMetadataFromPngBytes, extractNovelAiMetadataFromWebpBytes } from "@/utils/media/novelaiImageMetadata";
+import { resolveOssUploadTarget } from "@/utils/media/ossUploadTarget";
+import { transcodeVideoFileToWebmOrThrow } from "@/utils/media/videoTranscodeUtils";
 
-import { tuanchat } from "../../api/instance";
+import { tuanchat } from "../../../api/instance";
 
 type MediaUploadTarget = {
   quality?: string;
@@ -61,6 +61,162 @@ type RasterizeImageWorkerResponse = {
   error?: string;
 };
 
+// ========== 对外入口 ==========
+
+// 这里的导出面向 UploadUtils 与上传管线测试；业务组件应统一从 UploadUtils 进入。
+
+/**
+ * 根据文件 MIME 类型推断媒体分类。
+ */
+export function inferMediaType(file: File): MediaType {
+  return inferMediaTypeFromMimeType(file.type);
+}
+
+/**
+ * 统一媒体上传入口：先生成上传文件，再完成媒体上传会话。
+ */
+export async function uploadMediaFile(file: File, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
+  throwIfUploadAborted(options.signal);
+  const payload = await generateMediaUploadFiles(file, options.scene);
+  throwIfUploadAborted(options.signal);
+  return await uploadGeneratedMediaFiles(payload, options);
+}
+
+/**
+ * 按媒体类型生成最终需要上传的文件集合。
+ */
+export async function generateMediaUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
+  const normalizedFile = await normalizeFileMimeType(file);
+  const mediaType = inferMediaType(normalizedFile);
+  if (mediaType === "image") {
+    return await generateImageUploadFiles(normalizedFile);
+  }
+  if (mediaType === "audio") {
+    return await generateAudioUploadFiles(normalizedFile, scene);
+  }
+  if (mediaType === "video") {
+    return await generateVideoUploadFiles(normalizedFile, scene);
+  }
+
+  assertMaxBytes(normalizedFile, OTHER_ORIGINAL_MAX_BYTES, "文件 original");
+  return {
+    original: normalizedFile,
+    mediaType,
+    hasNovelAiMetadata: false,
+    metadata: {},
+    filesByQuality: isChatroomUploadScene(scene) ? { low: normalizedFile } : { original: normalizedFile, low: normalizedFile },
+  };
+}
+
+/**
+ * 上传已生成好的 original / low / medium 等文件集合。
+ */
+export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
+  throwIfUploadAborted(options.signal);
+  const prepared = await prepareMediaUpload(payload, options);
+  throwIfUploadAborted(options.signal);
+  if (!prepared.uploadRequired) {
+    return {
+      fileId: prepared.fileId!,
+      mediaType: prepared.mediaType!,
+      uploadRequired: false,
+    };
+  }
+  if (!prepared.sessionId || !prepared.uploadTargets) {
+    throw new Error("媒体上传响应缺少上传会话");
+  }
+
+  await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
+    const fileForQuality = payload.filesByQuality[quality as MediaQuality];
+    if (!fileForQuality) {
+      if (quality === "high") {
+        return;
+      }
+      throw new Error(`缺少 ${quality} 上传文件`);
+    }
+    await putMediaTarget(target, fileForQuality, options.signal);
+  }));
+  throwIfUploadAborted(options.signal);
+  await completeMediaUpload(prepared.sessionId, options.signal);
+
+  return {
+    fileId: prepared.fileId!,
+    mediaType: prepared.mediaType!,
+    uploadRequired: true,
+  };
+}
+
+/**
+ * 计算 original 文件哈希，用于后端准备上传与去重。
+ */
+export async function calculateFileSha256(file: File) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("当前环境不支持 SHA-256 计算");
+  }
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ========== 上传会话与对象存储 ==========
+
+async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}) {
+  throwIfUploadAborted(options.signal);
+  const result = await tuanchat.request.request<ApiResult<MediaPrepareUploadResponse>>({
+    method: "POST",
+    url: "/media/prepare-upload",
+    body: {
+      fileName: payload.original.name,
+      scene: options.scene,
+      sha256: await calculateFileSha256(payload.original),
+      sizeBytes: payload.original.size,
+      mimeType: normalizeMimeType(payload.original.type) || "application/octet-stream",
+      contentType: normalizeMimeType(payload.original.type) || "application/octet-stream",
+      hasNovelAiMetadata: payload.hasNovelAiMetadata,
+      metadata: payload.metadata,
+    },
+    mediaType: "application/json",
+  });
+  throwIfUploadAborted(options.signal);
+  if (!result.success || !result.data?.fileId || !result.data.mediaType) {
+    throw new Error(result.errMsg || "准备媒体上传失败");
+  }
+  return result.data;
+}
+
+async function putMediaTarget(target: MediaUploadTarget, file: File, signal?: AbortSignal) {
+  throwIfUploadAborted(signal);
+  if (!target.uploadUrl) {
+    throw new Error("上传目标缺少 uploadUrl");
+  }
+  const { targetUrl, headers } = resolveOssUploadTarget(target.uploadUrl, file, target.uploadHeaders);
+  const response = await fetch(targetUrl, {
+    method: "PUT",
+    body: file,
+    headers,
+    signal,
+  });
+  throwIfUploadAborted(signal);
+  if (!response.ok) {
+    throw new Error(`媒体文件上传失败: ${response.status}`);
+  }
+}
+
+async function completeMediaUpload(sessionId: number, signal?: AbortSignal) {
+  throwIfUploadAborted(signal);
+  const result = await tuanchat.request.request<ApiResult<unknown>>({
+    method: "POST",
+    url: `/media/upload-sessions/${sessionId}/complete`,
+  });
+  throwIfUploadAborted(signal);
+  if (!result.success) {
+    throw new Error(result.errMsg || "完成媒体上传失败");
+  }
+}
+
+// ========== 通用判定与中断处理 ==========
+
 function isChatroomUploadScene(scene: number | undefined): boolean {
   return scene === 1;
 }
@@ -78,10 +234,6 @@ function throwIfUploadAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
     throw createUploadAbortError();
   }
-}
-
-export function inferMediaType(file: File): MediaType {
-  return inferMediaTypeFromMimeType(file.type);
 }
 
 function assertMaxBytes(file: File, maxBytes: number, label: string) {
@@ -107,6 +259,8 @@ function buildDerivedImageFileName(file: File, quality: MediaQuality) {
   const baseName = file.name.replace(/(\.[^.]+)?$/, "");
   return `${baseName}_${quality}.webp`;
 }
+
+// ========== 图片文件生成 ==========
 
 async function createDrawableImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
   if (typeof globalThis.createImageBitmap === "function") {
@@ -358,6 +512,8 @@ async function generateImageUploadFiles(file: File): Promise<GeneratedMediaUploa
   };
 }
 
+// ========== 音频文件生成 ==========
+
 async function generateAudioUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "audio" });
   const isChatroom = isChatroomUploadScene(scene);
@@ -419,6 +575,8 @@ async function generateAudioUploadFiles(file: File, scene?: number): Promise<Gen
   };
 }
 
+// ========== 视频文件生成 ==========
+
 async function generateVideoUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
   const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "video" });
   const isChatroom = isChatroomUploadScene(scene);
@@ -478,133 +636,4 @@ async function generateVideoUploadFiles(file: File, scene?: number): Promise<Gen
       low: ensureFileType(await lowPromise, "video/webm", "webm"),
     },
   };
-}
-
-export async function calculateFileSha256(file: File) {
-  if (!globalThis.crypto?.subtle) {
-    throw new Error("当前环境不支持 SHA-256 计算");
-  }
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return Array.from(new Uint8Array(digest))
-    .map(byte => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-export async function generateMediaUploadFiles(file: File, scene?: number): Promise<GeneratedMediaUploadFiles> {
-  const normalizedFile = await normalizeFileMimeType(file);
-  const mediaType = inferMediaType(normalizedFile);
-  if (mediaType === "image") {
-    return await generateImageUploadFiles(normalizedFile);
-  }
-  if (mediaType === "audio") {
-    return await generateAudioUploadFiles(normalizedFile, scene);
-  }
-  if (mediaType === "video") {
-    return await generateVideoUploadFiles(normalizedFile, scene);
-  }
-
-  assertMaxBytes(normalizedFile, OTHER_ORIGINAL_MAX_BYTES, "文件 original");
-  return {
-    original: normalizedFile,
-    mediaType,
-    hasNovelAiMetadata: false,
-    metadata: {},
-    filesByQuality: isChatroomUploadScene(scene) ? { low: normalizedFile } : { original: normalizedFile, low: normalizedFile },
-  };
-}
-
-export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
-  throwIfUploadAborted(options.signal);
-  const prepared = await prepareMediaUpload(payload, options);
-  throwIfUploadAborted(options.signal);
-  if (!prepared.uploadRequired) {
-    return {
-      fileId: prepared.fileId!,
-      mediaType: prepared.mediaType!,
-      uploadRequired: false,
-    };
-  }
-  if (!prepared.sessionId || !prepared.uploadTargets) {
-    throw new Error("媒体上传响应缺少上传会话");
-  }
-
-  await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
-    const fileForQuality = payload.filesByQuality[quality as MediaQuality];
-    if (!fileForQuality) {
-      if (quality === "high") {
-        return;
-      }
-      throw new Error(`缺少 ${quality} 上传文件`);
-    }
-    await putMediaTarget(target, fileForQuality, options.signal);
-  }));
-  throwIfUploadAborted(options.signal);
-  await completeMediaUpload(prepared.sessionId, options.signal);
-
-  return {
-    fileId: prepared.fileId!,
-    mediaType: prepared.mediaType!,
-    uploadRequired: true,
-  };
-}
-
-async function putMediaTarget(target: MediaUploadTarget, file: File, signal?: AbortSignal) {
-  throwIfUploadAborted(signal);
-  if (!target.uploadUrl) {
-    throw new Error("上传目标缺少 uploadUrl");
-  }
-  const { targetUrl, headers } = resolveOssUploadTarget(target.uploadUrl, file, target.uploadHeaders);
-  const response = await fetch(targetUrl, {
-    method: "PUT",
-    body: file,
-    headers,
-    signal,
-  });
-  throwIfUploadAborted(signal);
-  if (!response.ok) {
-    throw new Error(`媒体文件上传失败: ${response.status}`);
-  }
-}
-
-async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}) {
-  throwIfUploadAborted(options.signal);
-  const result = await tuanchat.request.request<ApiResult<MediaPrepareUploadResponse>>({
-    method: "POST",
-    url: "/media/prepare-upload",
-    body: {
-      fileName: payload.original.name,
-      scene: options.scene,
-      sha256: await calculateFileSha256(payload.original),
-      sizeBytes: payload.original.size,
-      mimeType: normalizeMimeType(payload.original.type) || "application/octet-stream",
-      contentType: normalizeMimeType(payload.original.type) || "application/octet-stream",
-      hasNovelAiMetadata: payload.hasNovelAiMetadata,
-      metadata: payload.metadata,
-    },
-    mediaType: "application/json",
-  });
-  throwIfUploadAborted(options.signal);
-  if (!result.success || !result.data?.fileId || !result.data.mediaType) {
-    throw new Error(result.errMsg || "准备媒体上传失败");
-  }
-  return result.data;
-}
-
-async function completeMediaUpload(sessionId: number, signal?: AbortSignal) {
-  throwIfUploadAborted(signal);
-  const result = await tuanchat.request.request<ApiResult<unknown>>({
-    method: "POST",
-    url: `/media/upload-sessions/${sessionId}/complete`,
-  });
-  throwIfUploadAborted(signal);
-  if (!result.success) {
-    throw new Error(result.errMsg || "完成媒体上传失败");
-  }
-}
-
-export async function uploadMediaFile(file: File, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {
-  throwIfUploadAborted(options.signal);
-  const payload = await generateMediaUploadFiles(file, options.scene);
-  throwIfUploadAborted(options.signal);
-  return await uploadGeneratedMediaFiles(payload, options);
 }

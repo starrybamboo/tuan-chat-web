@@ -6,8 +6,8 @@ import StickerWindow from "@/components/chat/window/StickerWindow";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
-import { imageLowUrl } from "@/utils/mediaUrl";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { imageLowUrl } from "@/utils/media/mediaUrl";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 import type { PublishPostImageAsset } from "./publishPostMedia";
 

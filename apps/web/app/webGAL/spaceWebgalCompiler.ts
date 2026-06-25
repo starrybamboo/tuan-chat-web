@@ -17,7 +17,7 @@ import {
   isImageMessageShown,
 } from "@/types/messageAnnotations";
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api";
 import type { RealtimeGameConfig } from "./realtimeRendererConfig";

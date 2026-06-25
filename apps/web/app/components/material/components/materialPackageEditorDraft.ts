@@ -1,6 +1,6 @@
 import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/MaterialPackageContent";
 
-import { imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
 
 import type { MaterialPackageDraft } from "./materialPackageEditorShared";
 

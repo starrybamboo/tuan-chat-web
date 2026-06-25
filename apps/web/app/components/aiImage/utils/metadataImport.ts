@@ -3,7 +3,7 @@ import type {
   MetadataImportSelectionState,
   ProFeatureSectionKey,
 } from "@/components/aiImage/types";
-import type { NovelAiImportedSettings } from "@/utils/novelaiImageMetadata";
+import type { NovelAiImportedSettings } from "@/utils/media/novelaiImageMetadata";
 
 import { DEFAULT_PRO_FEATURE_SECTION_OPEN } from "@/components/aiImage/constants";
 

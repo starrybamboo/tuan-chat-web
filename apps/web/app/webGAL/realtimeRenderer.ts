@@ -34,7 +34,7 @@ import { buildCommandStateEventExtra, getNormalizedStateEventExtra } from "@/typ
 import { isFigurePosition, MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "@/types/webgalChoose";
 import { extractWebgalDicePayload } from "@/types/webgalDice";
-import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, mediaFileUrl } from "@/utils/mediaUrl";
+import { avatarOriginalUrl, avatarUrl as buildAvatarUrl, mediaFileUrl } from "@/utils/media/mediaUrl";
 import { checkGameExist, getTerreApis } from "@/webGAL/index";
 import { getTerreBaseUrl, getTerreWsUrl } from "@/webGAL/terreConfig";
 

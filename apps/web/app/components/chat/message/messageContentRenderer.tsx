@@ -23,7 +23,7 @@ import {
 } from "@/types/messageExtra";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 import { extractWebgalChoosePayload } from "@/types/webgalChoose";
-import { mediaFileUrl } from "@/utils/mediaUrl";
+import { mediaFileUrl } from "@/utils/media/mediaUrl";
 
 import type { Message } from "../../../../api";
 

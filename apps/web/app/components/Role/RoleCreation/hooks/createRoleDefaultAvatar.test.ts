@@ -18,8 +18,10 @@ vi.mock("@/../api/instance", () => ({
   },
 }));
 
-vi.mock("@/utils/mediaUpload", () => ({
-  uploadMediaFile: uploadMediaFileMock,
+vi.mock("@/utils/media/UploadUtils", () => ({
+  UploadUtils: class {
+    uploadImageAsset = uploadMediaFileMock;
+  },
 }));
 
 function createQueryClient() {
@@ -97,6 +99,7 @@ describe("ensureCreatedRoleDefaultAvatar", () => {
     const avatar = await ensureRoleAvatarDefaultMedia(queryClient, 12, 34);
 
     expect(uploadMediaFileMock).toHaveBeenCalledTimes(1);
+    expect(uploadMediaFileMock).toHaveBeenCalledWith(expect.any(File), 3);
     expect(updateRoleAvatarMock).toHaveBeenCalledWith(
       expect.objectContaining({
         avatarId: 34,

@@ -4,12 +4,12 @@ import type {
   UploadedSoundMessageDraftAsset,
   UploadedVideoMessageDraftAsset,
 } from "@/types/messageDraft";
-import type { UploadUtils } from "@/utils/UploadUtils";
+import type { UploadUtils } from "@/utils/media/UploadUtils";
 
 import { ANNOTATION_IDS, hasAnnotation, normalizeAnnotations, setAnnotation } from "@/types/messageAnnotations";
 import { buildMessageDraftsFromUploadedMedia } from "@/types/messageDraft";
-import { getImageSize } from "@/utils/getImgSize";
-import { readMediaDuration } from "@/utils/mediaMetadata";
+import { getImageSize } from "@/utils/media/getImgSize";
+import { readMediaDuration } from "@/utils/media/mediaMetadata";
 
 import { MessageType } from "../../../../api/wsModels";
 

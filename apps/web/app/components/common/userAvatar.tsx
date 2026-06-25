@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { MediaImage } from "@/components/common/mediaImage";
 import { buildUserProfileNavigation } from "@/components/common/userAvatarNavigation";
 import { UserDetail } from "@/components/common/userDetail";
-import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/mediaUrl";
+import { imageLowUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
 
 import { useGetUserInfoQuery } from "../../../api/hooks/UserHooks";
 

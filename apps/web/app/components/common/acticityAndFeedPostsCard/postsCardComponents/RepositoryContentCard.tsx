@@ -1,7 +1,7 @@
 import React from "react";
 
 import { MediaImage } from "@/components/common/mediaImage";
-import { imageMediumUrl } from "@/utils/mediaUrl";
+import { imageMediumUrl } from "@/utils/media/mediaUrl";
 
 type RepositoryContentCardProps = {
   name: string;

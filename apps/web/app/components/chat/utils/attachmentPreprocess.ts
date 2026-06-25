@@ -1,6 +1,6 @@
-import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/imgCompressUtils";
-import { normalizeFileMimeType } from "@/utils/mediaMime";
-import { UploadUtils } from "@/utils/UploadUtils";
+import { compressImage, MEDIA_COMPRESSION_PROFILES } from "@/utils/media/imgCompressUtils";
+import { normalizeFileMimeType } from "@/utils/media/mediaMime";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 
 type ChatMediaPreprocessInput = {
   imageFiles?: File[];
