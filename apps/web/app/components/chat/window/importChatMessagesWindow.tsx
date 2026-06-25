@@ -3,35 +3,75 @@ import {
   ChatCircleText,
   CheckCircle,
   FileText,
+  ImageSquare,
   Info,
+  Table,
   User,
   UserPlus,
   Warning,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
-import type { ImportedDiceTurn } from "@/components/chat/utils/importChatText";
+import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
+import type { RglImportResolverSources } from "@/components/chat/utils/importRglResolvers";
 import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
+import { createRglImportCompileContextFromSources } from "@/components/chat/utils/importRglResolvers";
+import { compileRglImportEvents, parseRglImportText, summarizeRglImportEvents } from "@/components/chat/utils/importRglText";
 import { FIGURE_POSITION_LABELS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
 import type { UserRole } from "../../../../api";
+import type { ImportChatWindowMode } from "./importChatMessagesWindowState";
 
-export type ResolvedImportChatMessage = {
+import { getImportChatWindowReadiness } from "./importChatMessagesWindowState";
+
+export type RglImportSourcesLoader = () => Promise<Omit<RglImportResolverSources, "roles">>;
+export type RglRoleAssetsImportResult = {
+  create: number;
+  roleCreate: number;
+  update: number;
+};
+export type RglMaterialAssetsImportResult = {
+  action: "create" | "update";
+  materialCount: number;
+  name: string;
+  spacePackageId?: number;
+};
+export type RglLocalAssetsImportResult = {
+  material?: RglMaterialAssetsImportResult;
+  role?: RglRoleAssetsImportResult;
+};
+export type RglLocalAssetsImporter = (files: FileList) => Promise<RglLocalAssetsImportResult>;
+export type RglMaterialAssetsImporter = (file: File) => Promise<RglMaterialAssetsImportResult>;
+export type RglRoleAssetsImporter = (file: File) => Promise<RglRoleAssetsImportResult>;
+
+export type ResolvedImportChatMessage = ImportChatRequestMessage & {
   lineNumber: number;
-  speakerName: string;
-  roleId: number;
-  content: string;
-  figurePosition?: Exclude<FigurePosition, undefined>;
-  diceTurn?: ImportedDiceTurn;
+  speakerName?: string;
 }
+
+const RGL_EVENT_SUMMARY_ITEMS = [
+  { key: "dialog", label: "对白" },
+  { key: "narration", label: "旁白" },
+  { key: "material", label: "素材" },
+  { key: "dice", label: "骰子" },
+  { key: "control", label: "控制" },
+] as const;
+const RGL_LOCAL_ASSET_DIRECTORY_INPUT_PROPS = {
+  directory: "",
+  webkitdirectory: "",
+} as Record<string, string>;
 
 type ImportChatMessagesWindowProps = {
   availableRoles: UserRole[];
   initialRawText?: string;
+  loadRglImportSources?: RglImportSourcesLoader;
+  onImportRglLocalAssets?: RglLocalAssetsImporter;
+  onImportRglMaterialAssets?: RglMaterialAssetsImporter;
+  onImportRglRoleAssets?: RglRoleAssetsImporter;
   onImport: (messages: ResolvedImportChatMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   onClose: () => void;
   onOpenRoleAddWindow?: () => void;
@@ -43,6 +83,10 @@ type ImportChatMessagesWindowProps = {
 export default function ImportChatMessagesWindow({
   availableRoles,
   initialRawText,
+  loadRglImportSources,
+  onImportRglLocalAssets,
+  onImportRglMaterialAssets,
+  onImportRglRoleAssets,
   onImport,
   onClose,
   onOpenRoleAddWindow,
@@ -52,12 +96,24 @@ export default function ImportChatMessagesWindow({
 }: ImportChatMessagesWindowProps) {
   const [rawText, setRawText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [importMode, setImportMode] = useState<ImportChatWindowMode>("plain");
   const [mapping, setMapping] = useState<Record<string, number | null>>({});
   const [figurePositionMap, setFigurePositionMap] = useState<Record<string, Exclude<FigurePosition, undefined> | null>>({});
   const [isImporting, setIsImporting] = useState(false);
+  const [isImportingRglLocalAssets, setIsImportingRglLocalAssets] = useState(false);
+  const [isImportingRglMaterialAssets, setIsImportingRglMaterialAssets] = useState(false);
+  const [isImportingRglRoleAssets, setIsImportingRglRoleAssets] = useState(false);
   const [progress, setProgress] = useState<{ sent: number; total: number } | null>(null);
+  const rglLocalAssetsInputRef = useRef<HTMLInputElement | null>(null);
+  const rglMaterialAssetsInputRef = useRef<HTMLInputElement | null>(null);
+  const rglRoleAssetsInputRef = useRef<HTMLInputElement | null>(null);
 
-  const parsed = useMemo(() => parseImportedChatText(rawText), [rawText]);
+  const plainParsed = useMemo(() => parseImportedChatText(rawText), [rawText]);
+  const rglParsed = useMemo(() => parseRglImportText(rawText), [rawText]);
+  const rglEventSummary = useMemo(() => summarizeRglImportEvents(rglParsed.events), [rglParsed.events]);
+  const supportsRglImport = typeof loadRglImportSources === "function";
+  const isImportingRglAssets = isImportingRglLocalAssets || isImportingRglMaterialAssets || isImportingRglRoleAssets;
+  const isImportBusy = isImporting || isImportingRglAssets;
 
   useEffect(() => {
     if (typeof initialRawText !== "string") {
@@ -67,10 +123,16 @@ export default function ImportChatMessagesWindow({
     setRawText(initialRawText);
   }, [initialRawText]);
 
+  const activeMessageCount = importMode === "rgl" ? rglParsed.events.length : plainParsed.messages.length;
+  const activeInvalidLines = importMode === "rgl" ? rglParsed.invalidLines : plainParsed.invalidLines;
+
   const speakers = useMemo(() => {
+    if (importMode === "rgl") {
+      return [];
+    }
     const seen = new Set<string>();
     const out: string[] = [];
-    for (const m of parsed.messages) {
+    for (const m of plainParsed.messages) {
       const key = m.speakerName;
       if (seen.has(key))
         continue;
@@ -78,7 +140,7 @@ export default function ImportChatMessagesWindow({
       out.push(key);
     }
     return out;
-  }, [parsed.messages]);
+  }, [importMode, plainParsed.messages]);
 
   const roleOptions = useMemo(() => {
     return availableRoles
@@ -137,6 +199,9 @@ export default function ImportChatMessagesWindow({
   }, [availableRoles, speakers]);
 
   const handlePickFile = async (files: FileList | null) => {
+    if (isImportBusy) {
+      return;
+    }
     const file = files?.[0];
     if (!file)
       return;
@@ -152,41 +217,168 @@ export default function ImportChatMessagesWindow({
     }
   };
 
+  const handlePickRglRoleAssets = () => {
+    if (isImportBusy || !onImportRglRoleAssets) {
+      return;
+    }
+    rglRoleAssetsInputRef.current?.click();
+  };
+
+  const handlePickRglLocalAssets = () => {
+    if (isImportBusy || !onImportRglLocalAssets) {
+      return;
+    }
+    rglLocalAssetsInputRef.current?.click();
+  };
+
+  const handlePickRglMaterialAssets = () => {
+    if (isImportBusy || !onImportRglMaterialAssets) {
+      return;
+    }
+    rglMaterialAssetsInputRef.current?.click();
+  };
+
+  const handleImportRglLocalAssetsFile = async (files: FileList | null) => {
+    if (isImportBusy || !files?.length || !onImportRglLocalAssets) {
+      return;
+    }
+
+    setIsImportingRglLocalAssets(true);
+    try {
+      const result = await onImportRglLocalAssets(files);
+      const details: string[] = [];
+      if (result.material) {
+        details.push(`${result.material.action === "update" ? "重写" : "创建"}通用素材包 ${result.material.name}（${result.material.materialCount} 个素材）`);
+      }
+      if (result.role) {
+        details.push(`角色新建 ${result.role.roleCreate}，角色素材新建 ${result.role.create}，更新 ${result.role.update}`);
+      }
+      toast.success(details.length > 0 ? `本地素材已导入：${details.join("；")}` : "本地素材已导入");
+    }
+    catch (e: any) {
+      console.error("导入 RGL 本地素材失败", e);
+      toast.error(e?.message ? `导入本地素材失败：${e.message}` : "导入本地素材失败");
+    }
+    finally {
+      setIsImportingRglLocalAssets(false);
+      if (rglLocalAssetsInputRef.current) {
+        rglLocalAssetsInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportRglMaterialAssetsFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (isImportBusy || !file || !onImportRglMaterialAssets) {
+      return;
+    }
+
+    setIsImportingRglMaterialAssets(true);
+    try {
+      const result = await onImportRglMaterialAssets(file);
+      toast.success(`${result.action === "update" ? "已重写" : "已创建"}通用素材包：${result.name}（${result.materialCount} 个素材）`);
+    }
+    catch (e: any) {
+      console.error("导入 RGL 通用素材失败", e);
+      toast.error(e?.message ? `导入通用素材失败：${e.message}` : "导入通用素材失败");
+    }
+    finally {
+      setIsImportingRglMaterialAssets(false);
+      if (rglMaterialAssetsInputRef.current) {
+        rglMaterialAssetsInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportRglRoleAssetsFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (isImportBusy || !file || !onImportRglRoleAssets) {
+      return;
+    }
+
+    setIsImportingRglRoleAssets(true);
+    try {
+      const result = await onImportRglRoleAssets(file);
+      toast.success(`角色素材已导入：角色新建 ${result.roleCreate}，差分新建 ${result.create}，更新 ${result.update}`);
+    }
+    catch (e: any) {
+      console.error("导入 RGL 角色素材失败", e);
+      toast.error(e?.message ? `导入角色素材失败：${e.message}` : "导入角色素材失败");
+    }
+    finally {
+      setIsImportingRglRoleAssets(false);
+      if (rglRoleAssetsInputRef.current) {
+        rglRoleAssetsInputRef.current.value = "";
+      }
+    }
+  };
+
   const missingSpeakers = useMemo(() => {
     return speakers.filter(s => mapping[s] == null);
   }, [mapping, speakers]);
 
-  const canImport = parsed.messages.length > 0 && missingSpeakers.length === 0 && !isImporting;
-  const hasParsedContent = parsed.messages.length > 0 || parsed.invalidLines.length > 0;
+  const hasRglParseError = importMode === "rgl" && activeInvalidLines.length > 0;
+  const hasParsedContent = activeMessageCount > 0 || activeInvalidLines.length > 0;
   const resolvedSpeakerCount = speakers.length - missingSpeakers.length;
-  const importBlockedReason = parsed.messages.length === 0
-    ? "请先粘贴文本或上传 .txt 文件"
-    : missingSpeakers.length > 0
-      ? `还有 ${missingSpeakers.length} 个角色未匹配`
-      : "已准备好导入";
+  const importReadiness = getImportChatWindowReadiness({
+    activeMessageCount,
+    hasRglParseError,
+    importMode,
+    isImporting,
+    isImportingRglAssets,
+    missingSpeakerCount: missingSpeakers.length,
+    supportsRglImport,
+  });
+  const canImport = importReadiness.canImport;
+  const importBlockedReason = importReadiness.blockedReason;
 
   const handleImport = async () => {
-    if (!parsed.messages.length) {
+    if (isImportBusy) {
+      toast.error(isImportingRglAssets ? "素材导入中，请等待完成" : "正在导入消息");
+      return;
+    }
+    if (activeMessageCount === 0) {
       toast.error("没有可导入的有效消息");
       return;
     }
-    if (missingSpeakers.length > 0) {
+    if (importMode === "plain" && missingSpeakers.length > 0) {
       toast.error("请先为所有角色名指定对应角色");
       return;
     }
-
-    const resolved: ResolvedImportChatMessage[] = parsed.messages.map(m => ({
-      lineNumber: m.lineNumber,
-      speakerName: m.speakerName,
-      roleId: mapping[m.speakerName] as number,
-      content: m.content,
-      figurePosition: figurePositionMap[m.speakerName] ?? undefined,
-      diceTurn: m.diceTurn,
-    }));
+    if (importMode === "rgl" && activeInvalidLines.length > 0) {
+      const firstInvalid = rglParsed.invalidLines[0];
+      toast.error(firstInvalid ? `第 ${firstInvalid.lineNumber} 行：${firstInvalid.reason}` : "请先修正 RGL 解析错误");
+      return;
+    }
+    if (importMode === "rgl" && !loadRglImportSources) {
+      toast.error("当前入口暂不支持 RGL 素材解析");
+      return;
+    }
 
     setIsImporting(true);
-    setProgress({ sent: 0, total: resolved.length });
+    setProgress({ sent: 0, total: activeMessageCount });
     try {
+      let resolved: ResolvedImportChatMessage[];
+      if (importMode === "rgl") {
+        const sources = await loadRglImportSources!();
+        const context = createRglImportCompileContextFromSources({
+          roles: availableRoles,
+          ...sources,
+        });
+        resolved = compileRglImportEvents(rglParsed.events, context)
+          .map((message, index) => ({ ...message, lineNumber: rglParsed.events[index]?.lineNumber ?? index + 1 }));
+      }
+      else {
+        resolved = plainParsed.messages.map(m => ({
+          lineNumber: m.lineNumber,
+          speakerName: m.speakerName,
+          roleId: mapping[m.speakerName] as number,
+          content: m.content,
+          figurePosition: figurePositionMap[m.speakerName] ?? undefined,
+          diceTurn: m.diceTurn,
+        }));
+      }
+
       await onImport(resolved, (sent, total) => setProgress({ sent, total }));
       toast.success(successMessage);
       onClose();
@@ -219,6 +411,9 @@ export default function ImportChatMessagesWindow({
   };
 
   const handleClear = () => {
+    if (isImportBusy) {
+      return;
+    }
     setFileName(null);
     setRawText("");
   };
@@ -241,13 +436,34 @@ export default function ImportChatMessagesWindow({
             </div>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h2 className="text-lg/6 font-semibold">导入对话</h2>
+              {supportsRglImport && (
+                <div className="join">
+                  <button
+                    type="button"
+                    className={`join-item btn btn-xs ${importMode === "plain" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setImportMode("plain")}
+                    disabled={isImportBusy}
+                  >
+                    普通
+                  </button>
+                  <button
+                    type="button"
+                    className={`join-item btn btn-xs ${importMode === "rgl" ? "btn-primary" : "btn-ghost"}`}
+                    onClick={() => setImportMode("rgl")}
+                    disabled={isImportBusy}
+                  >
+                    <Table size={13} />
+                    RGL
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <button
             type="button"
             className="btn btn-ghost btn-circle btn-sm shrink-0"
             onClick={onClose}
-            disabled={isImporting}
+            disabled={isImportBusy}
             title="关闭"
           >
             <X size={20} />
@@ -275,7 +491,7 @@ export default function ImportChatMessagesWindow({
                 hover:bg-error/10
               "
               onClick={handleClear}
-              disabled={isImporting || (!rawText && !fileName)}
+              disabled={isImportBusy || (!rawText && !fileName)}
               title="清空内容"
             >
               <Broom size={14} />
@@ -289,13 +505,13 @@ export default function ImportChatMessagesWindow({
             <div className="relative group flex-none">
               <input
                 type="file"
-                accept=".txt,text/plain"
+                accept=".txt,.rgl,.md,text/plain,text/markdown"
                 className="
                   absolute inset-0 z-10 size-full cursor-pointer opacity-0
                   disabled:cursor-not-allowed
                 "
                 onChange={e => handlePickFile(e.target.files)}
-                disabled={isImporting}
+                disabled={isImportBusy}
                 title="选择文本文件"
               />
               <div
@@ -331,7 +547,7 @@ export default function ImportChatMessagesWindow({
                         <FileText size={26} weight="light" />
                         <span className="
                           text-sm font-medium text-base-content/70
-                        ">拖入或点击选择 .txt 文件</span>
+                        ">拖入或点击选择 .txt/.rgl/.md 文件</span>
                         <span className="text-[11px]">也可以在下方粘贴文本</span>
                       </div>
                     )}
@@ -346,10 +562,12 @@ export default function ImportChatMessagesWindow({
                 focus:outline-none focus:ring-2 focus:ring-primary/20
                 focus:border-primary
               "
-              placeholder={"[KP]：欢迎来到这里\n<张三>：这是哪里？\n\n或\n\n木落(303451945) 2022/03/21 19:06:53\n房前有两棵树"}
+              placeholder={importMode === "rgl"
+                ? "<sys:bg>:永远亭夜晚\n\n[烈.震惊]<figure.pos.left-center><figure.anim.enter>:这是一句台词。\n[师匠=八意永琳.默认]<figure.pos.right-center>:先喝茶。\n\n[旁白]<dialog.next>:夜色渐深。\n\n<dice>:\ndicer: 海豹一号机\ncmd: 【1d10：】\n1. 继续观察\n2. 直接行动\n=> 【1d10:2】；2 直接行动"
+                : "[KP]：欢迎来到这里\n<张三>：这是哪里？\n\n或\n\n木落(303451945) 2022/03/21 19:06:53\n房前有两棵树"}
               value={rawText}
               onChange={e => setRawText(e.target.value)}
-              disabled={isImporting}
+              disabled={isImportBusy}
             />
 
             {hasParsedContent && (
@@ -359,23 +577,23 @@ export default function ImportChatMessagesWindow({
               ">
                 <div className="badge badge-sm badge-ghost gap-1">
                   <CheckCircle className="text-success" size={12} weight="fill" />
-                  {parsed.messages.length}
+                  {activeMessageCount}
                   {" "}
                   条有效
                 </div>
-                {parsed.invalidLines.length > 0 && (
+                {activeInvalidLines.length > 0 && (
                   <div className="badge badge-sm badge-warning gap-1">
                     <Warning className="text-warning-content" size={12} weight="fill" />
-                    {parsed.invalidLines.length}
+                    {activeInvalidLines.length}
                     {" "}
                     条无效
                   </div>
                 )}
-                {parsed.invalidLines.length > 0 && (
+                {activeInvalidLines.length > 0 && (
                   <span className="min-w-0 text-base-content/55">
                     无法解析行号：
-                    {parsed.invalidLines.slice(0, 10).map(i => i.lineNumber).join(", ")}
-                    {parsed.invalidLines.length > 10 && " ..."}
+                    {activeInvalidLines.slice(0, 10).map(i => i.lineNumber).join(", ")}
+                    {activeInvalidLines.length > 10 && " ..."}
                   </span>
                 )}
               </div>
@@ -384,201 +602,349 @@ export default function ImportChatMessagesWindow({
         </section>
 
         <section className="flex min-h-0 flex-col bg-base-100">
-          <div className="
-            flex flex-none items-center justify-between gap-3 border-b
-            border-base-300/70 px-5 py-3
-          ">
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold">角色映射</h3>
-              {speakers.length > 0 && (
-                <p className="mt-0.5 text-xs text-base-content/50">
-                  {resolvedSpeakerCount}
-                  {" / "}
-                  {speakers.length}
-                  {" 已匹配"}
-                </p>
-              )}
-            </div>
-            {(onOpenRoleAddWindow || onOpenNpcAddWindow) && (
-              <div className="flex shrink-0 items-center gap-2">
-                {onOpenRoleAddWindow && (
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-outline btn-primary gap-1"
-                    onClick={handleQuickCreateRole}
-                    disabled={isImporting}
-                  >
-                    <UserPlus size={14} />
-                    新建角色
-                  </button>
-                )}
-                {onOpenNpcAddWindow && (
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-outline btn-secondary gap-1"
-                    onClick={handleQuickCreateNpc}
-                    disabled={isImporting}
-                  >
-                    <UserPlus size={14} />
-                    新建NPC
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-            {roleOptions.length === 0 && (
-              <div className="m-4 alert alert-info py-3 text-sm">
-                <Info size={20} />
-                <span className="text-xs">暂无可用角色，请先新建或导入</span>
-              </div>
-            )}
-
-            {speakers.length === 0
-              ? (
+          {importMode === "plain"
+            ? (
+                <>
                   <div className="
-                    flex flex-1 flex-col items-center justify-center gap-2 px-8
-                    text-center text-base-content/35
+                    flex flex-none items-center justify-between gap-3 border-b
+                    border-base-300/70 px-5 py-3
                   ">
-                    <User size={40} weight="duotone" />
-                    <span className="text-sm font-medium text-base-content/45">等待导入文本</span>
-                  </div>
-                )
-              : (
-                  <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
-                    <div className="space-y-2">
-                      {speakers.map((speaker) => {
-                        const value = mapping[speaker];
-                        const figurePosition = figurePositionMap[speaker] ?? null;
-                        const isMissing = value == null;
-
-                        return (
-                          <div
-                            key={speaker}
-                            className={`
-                              rounded-md border p-3 transition
-                              ${
-                              isMissing
-                                ? "border-error/30 bg-error/5"
-                                : `
-                                  border-base-300/70 bg-base-200/30
-                                  hover:bg-base-200/55
-                                `
-                            }
-                            `}
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold">角色映射</h3>
+                      {speakers.length > 0 && (
+                        <p className="mt-0.5 text-xs text-base-content/50">
+                          {resolvedSpeakerCount}
+                          {" / "}
+                          {speakers.length}
+                          {" 已匹配"}
+                        </p>
+                      )}
+                    </div>
+                    {(onOpenRoleAddWindow || onOpenNpcAddWindow) && (
+                      <div className="flex shrink-0 items-center gap-2">
+                        {onOpenRoleAddWindow && (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline btn-primary gap-1"
+                            onClick={handleQuickCreateRole}
+                            disabled={isImportBusy}
                           >
-                            <div className="
-                              mb-2 flex items-center justify-between gap-3
-                            ">
-                              <div className="
-                                max-w-60 truncate font-mono text-sm font-medium
-                              " title={speaker}>
-                                {speaker}
-                              </div>
-                              <div className={`
-                                badge badge-sm
-                                ${isMissing ? `badge-error` : `
-                                  badge-success badge-outline
-                                `}
-                              `}>
-                                {isMissing ? "待匹配" : "已匹配"}
-                              </div>
-                            </div>
+                            <UserPlus size={14} />
+                            新建角色
+                          </button>
+                        )}
+                        {onOpenNpcAddWindow && (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-outline btn-secondary gap-1"
+                            onClick={handleQuickCreateNpc}
+                            disabled={isImportBusy}
+                          >
+                            <UserPlus size={14} />
+                            新建NPC
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
-                            <div className="grid gap-2">
-                              <select
-                                className={`
-                                  select select-bordered select-sm w-full
-                                  rounded-md
-                                  ${isMissing ? `select-error` : ""}
-                                `}
-                                value={value == null ? "" : String(value)}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  setMapping(prev => ({ ...prev, [speaker]: v ? Number(v) : null }));
-                                }}
-                                disabled={isImporting}
-                                title="选择角色"
-                              >
-                                <option value="">请选择对应角色</option>
-                                <option disabled className="
-                                  text-xs font-bold bg-base-200
-                                  text-base-content/50
-                                ">— 特殊角色 —</option>
-                                <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>旁白</option>
-                                <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>骰娘 (系统)</option>
-                                <option disabled className="
-                                  text-xs font-bold bg-base-200
-                                  text-base-content/50
-                                ">— 房间角色 —</option>
-                                {roleOptions.map(o => (
-                                  <option key={o.roleId} value={String(o.roleId)}>
-                                    {o.label}
-                                  </option>
-                                ))}
-                              </select>
+                  <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                    {roleOptions.length === 0 && (
+                      <div className="m-4 alert alert-info py-3 text-sm">
+                        <Info size={20} />
+                        <span className="text-xs">暂无可用角色，请先新建或导入</span>
+                      </div>
+                    )}
 
-                              <div className="flex items-center gap-2">
-                                <span className="
-                                  shrink-0 text-[11px] text-base-content/45
-                                ">立绘</span>
-                                <div className="join min-w-0 flex-1">
-                                  {FIGURE_POSITION_ORDER.map(pos => (
-                                    <input
-                                      key={pos}
-                                      className="
-                                        join-item btn btn-xs btn-ghost flex-1
-                                        px-1 text-[10px] font-normal
-                                        aria-checked:bg-primary/20
-                                        aria-checked:text-primary
-                                      "
-                                      type="radio"
-                                      name={`pos-${speaker}`}
-                                      aria-label={FIGURE_POSITION_LABELS[pos]}
-                                      checked={figurePosition === pos}
-                                      onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: pos }))}
-                                      disabled={isImporting || value == null || value <= 0}
-                                      title={`立绘位置：${FIGURE_POSITION_LABELS[pos]}`}
-                                    />
-                                  ))}
-                                  <input
-                                    className="
-                                      join-item btn btn-xs btn-ghost px-2
-                                      font-mono text-[10px]
-                                      aria-checked:opacity-50
-                                    "
-                                    type="radio"
-                                    name={`pos-${speaker}`}
-                                    aria-label="无"
-                                    checked={figurePosition == null}
-                                    onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: null }))}
-                                    disabled={isImporting || value == null || value <= 0}
-                                    title="不显示立绘"
-                                  />
-                                </div>
-                              </div>
+                    {speakers.length === 0
+                      ? (
+                          <div className="
+                            flex flex-1 flex-col items-center justify-center gap-2 px-8
+                            text-center text-base-content/35
+                          ">
+                            <User size={40} weight="duotone" />
+                            <span className="text-sm font-medium text-base-content/45">等待导入文本</span>
+                          </div>
+                        )
+                      : (
+                          <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+                            <div className="space-y-2">
+                              {speakers.map((speaker) => {
+                                const value = mapping[speaker];
+                                const figurePosition = figurePositionMap[speaker] ?? null;
+                                const isMissing = value == null;
+
+                                return (
+                                  <div
+                                    key={speaker}
+                                    className={`
+                                      rounded-md border p-3 transition
+                                      ${
+                                      isMissing
+                                        ? "border-error/30 bg-error/5"
+                                        : `
+                                          border-base-300/70 bg-base-200/30
+                                          hover:bg-base-200/55
+                                        `
+                                    }
+                                    `}
+                                  >
+                                    <div className="
+                                      mb-2 flex items-center justify-between gap-3
+                                    ">
+                                      <div className="
+                                        max-w-60 truncate font-mono text-sm font-medium
+                                      " title={speaker}>
+                                        {speaker}
+                                      </div>
+                                      <div className={`
+                                        badge badge-sm
+                                        ${isMissing ? `badge-error` : `
+                                          badge-success badge-outline
+                                        `}
+                                      `}>
+                                        {isMissing ? "待匹配" : "已匹配"}
+                                      </div>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                      <select
+                                        className={`
+                                          select select-bordered select-sm w-full
+                                          rounded-md
+                                          ${isMissing ? `select-error` : ""}
+                                        `}
+                                        value={value == null ? "" : String(value)}
+                                        onChange={(e) => {
+                                          const v = e.target.value;
+                                          setMapping(prev => ({ ...prev, [speaker]: v ? Number(v) : null }));
+                                        }}
+                                        disabled={isImportBusy}
+                                        title="选择角色"
+                                      >
+                                        <option value="">请选择对应角色</option>
+                                        <option disabled className="
+                                          text-xs font-bold bg-base-200
+                                          text-base-content/50
+                                        ">— 特殊角色 —</option>
+                                        <option value={String(IMPORT_SPECIAL_ROLE_ID.NARRATOR)}>旁白</option>
+                                        <option value={String(IMPORT_SPECIAL_ROLE_ID.DICER)}>骰娘 (系统)</option>
+                                        <option disabled className="
+                                          text-xs font-bold bg-base-200
+                                          text-base-content/50
+                                        ">— 房间角色 —</option>
+                                        {roleOptions.map(o => (
+                                          <option key={o.roleId} value={String(o.roleId)}>
+                                            {o.label}
+                                          </option>
+                                        ))}
+                                      </select>
+
+                                      <div className="flex items-center gap-2">
+                                        <span className="
+                                          shrink-0 text-[11px] text-base-content/45
+                                        ">立绘</span>
+                                        <div className="join min-w-0 flex-1">
+                                          {FIGURE_POSITION_ORDER.map(pos => (
+                                            <input
+                                              key={pos}
+                                              className="
+                                                join-item btn btn-xs btn-ghost flex-1
+                                                px-1 text-[10px] font-normal
+                                                aria-checked:bg-primary/20
+                                                aria-checked:text-primary
+                                              "
+                                              type="radio"
+                                              name={`pos-${speaker}`}
+                                              aria-label={FIGURE_POSITION_LABELS[pos]}
+                                              checked={figurePosition === pos}
+                                              onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: pos }))}
+                                              disabled={isImportBusy || value == null || value <= 0}
+                                              title={`立绘位置：${FIGURE_POSITION_LABELS[pos]}`}
+                                            />
+                                          ))}
+                                          <input
+                                            className="
+                                              join-item btn btn-xs btn-ghost px-2
+                                              font-mono text-[10px]
+                                              aria-checked:opacity-50
+                                            "
+                                            type="radio"
+                                            name={`pos-${speaker}`}
+                                            aria-label="无"
+                                            checked={figurePosition == null}
+                                            onChange={() => setFigurePositionMap(prev => ({ ...prev, [speaker]: null }))}
+                                            disabled={isImportBusy || value == null || value <= 0}
+                                            title="不显示立绘"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-                        );
-                      })}
+                        )}
+
+                    {speakers.length > 0 && missingSpeakers.length > 0 && (
+                      <div className="
+                        border-t border-error/10 bg-error/10 px-4 py-2 text-center
+                        text-xs text-error
+                      ">
+                        还有
+                        {" "}
+                        {missingSpeakers.length}
+                        {" "}
+                        个未匹配
+                      </div>
+                    )}
+                  </div>
+                </>
+              )
+            : (
+                <>
+                  <div className="
+                    flex flex-none items-center justify-between gap-3 border-b
+                    border-base-300/70 px-5 py-3
+                  ">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold">RGL 导入</h3>
+                      <p className="mt-0.5 text-xs text-base-content/50">
+                        按底层 annotation ID 解析角色、素材和骰子
+                      </p>
+                    </div>
+                    <div className="badge badge-outline badge-sm gap-1">
+                      <Table size={12} />
+                      严格模式
                     </div>
                   </div>
-                )}
 
-            {speakers.length > 0 && missingSpeakers.length > 0 && (
-              <div className="
-                border-t border-error/10 bg-error/10 px-4 py-2 text-center
-                text-xs text-error
-              ">
-                还有
-                {" "}
-                {missingSpeakers.length}
-                {" "}
-                个未匹配
-              </div>
-            )}
-          </div>
+                  <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+                    {!supportsRglImport && (
+                      <div className="alert alert-warning py-3 text-sm">
+                        <Warning size={20} />
+                        <span className="text-xs">当前入口没有提供素材/头像加载器，无法执行 RGL 导入。</span>
+                      </div>
+                    )}
+
+                    <div className="rounded-md border border-base-300/70 bg-base-200/20 p-3 text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="badge badge-ghost badge-sm gap-1">
+                          <CheckCircle className="text-success" size={12} weight="fill" />
+                          {activeMessageCount}
+                          {" "}
+                          条有效
+                        </span>
+                        {activeInvalidLines.length > 0 && (
+                          <span className="badge badge-warning badge-sm gap-1">
+                            <Warning className="text-warning-content" size={12} weight="fill" />
+                            {activeInvalidLines.length}
+                            {" "}
+                            条无效
+                          </span>
+                        )}
+                      </div>
+                      {activeInvalidLines.length > 0 && (
+                        <div className="mt-2 text-[11px] text-error/90">
+                          无法解析行号：
+                          {activeInvalidLines.slice(0, 10).map(i => i.lineNumber).join(", ")}
+                          {activeInvalidLines.length > 10 && " ..."}
+                        </div>
+                      )}
+                      {activeMessageCount > 0 && (
+                        <div className="mt-3 grid grid-cols-5 gap-1">
+                          {RGL_EVENT_SUMMARY_ITEMS.map(item => (
+                            <div
+                              key={item.key}
+                              className="rounded bg-base-100 px-2 py-1 text-center"
+                            >
+                              <div className="text-[10px] text-base-content/45">{item.label}</div>
+                              <div className="font-mono text-sm font-semibold">{rglEventSummary[item.key]}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {onImportRglLocalAssets && (
+                      <div className="rounded-md border border-base-300/70 bg-base-100 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium">本地素材清单</div>
+                            <div className="mt-1 text-[11px] text-base-content/55">
+                              选择包含 assets.json / replay-assets.json / local-assets.json 和素材文件的目录，上传后写入通用素材和角色素材。
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-xs shrink-0 gap-1"
+                            onClick={handlePickRglLocalAssets}
+                            disabled={isImportBusy}
+                          >
+                            {isImportingRglLocalAssets
+                              ? <span className="loading loading-spinner loading-xs"></span>
+                              : <ImageSquare size={13} />}
+                            上传
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {onImportRglMaterialAssets && (
+                      <div className="rounded-md border border-base-300/70 bg-base-100 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium">通用素材</div>
+                            <div className="mt-1 text-[11px] text-base-content/55">
+                              读取导入期 asset-manifest.json 的 media 段，创建或重写 Replay 局内素材包。
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-xs shrink-0 gap-1"
+                            onClick={handlePickRglMaterialAssets}
+                            disabled={isImportBusy}
+                          >
+                            {isImportingRglMaterialAssets
+                              ? <span className="loading loading-spinner loading-xs"></span>
+                              : <ImageSquare size={13} />}
+                            导入
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {onImportRglRoleAssets && (
+                      <div className="rounded-md border border-base-300/70 bg-base-100 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium">角色素材</div>
+                            <div className="mt-1 text-[11px] text-base-content/55">
+                              读取导入期 asset-manifest.json 的 roles 段，按现有房间角色更新 RoleAvatar。
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-xs shrink-0 gap-1"
+                            onClick={handlePickRglRoleAssets}
+                            disabled={isImportBusy}
+                          >
+                            {isImportingRglRoleAssets
+                              ? <span className="loading loading-spinner loading-xs"></span>
+                              : <ImageSquare size={13} />}
+                            导入
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="rounded-md border border-base-300/70 bg-base-100 p-3 text-xs text-base-content/70">
+                      角色解析按房间角色名和头像差分名匹配；素材解析按素材包分组名和素材名匹配。任何未找到、重名或缺少 annotation 的素材都会直接失败。
+                    </div>
+                  </div>
+                </>
+              )}
         </section>
       </main>
 
@@ -606,17 +972,29 @@ export default function ImportChatMessagesWindow({
                   <progress className="progress progress-primary h-2 w-full" value={progress.sent} max={progress.total}></progress>
                 </div>
               )
+            : isImportingRglAssets
+              ? (
+                  <div className="truncate text-xs text-base-content/55">
+                    素材导入中，请等待完成后再导入消息
+                  </div>
+                )
             : (
                 <div className="truncate text-xs text-base-content/55">
-                  {parsed.messages.length === 0
-                    ? "请先粘贴文本或上传 .txt 文件"
+                  {activeMessageCount === 0
+                    ? "请先粘贴文本或上传 .txt/.rgl/.md 文件"
                     : (
                         <>
-                          <span className="font-medium text-base-content/80">{parsed.messages.length}</span>
+                          <span className="font-medium text-base-content/80">{activeMessageCount}</span>
                           {" 条消息 · "}
-                          <span className="font-medium text-base-content/80">{speakers.length}</span>
-                          {" 个角色"}
-                          {missingSpeakers.length > 0 && (
+                          {importMode === "rgl"
+                            ? "RGL"
+                            : (
+                                <>
+                                  <span className="font-medium text-base-content/80">{speakers.length}</span>
+                                  {" 个角色"}
+                                </>
+                              )}
+                          {importMode === "plain" && missingSpeakers.length > 0 && (
                             <span className="ml-1 text-error/80">
                               {"· 还有 "}
                               {missingSpeakers.length}
@@ -637,7 +1015,7 @@ export default function ImportChatMessagesWindow({
             type="button"
             className="btn btn-ghost"
             onClick={onClose}
-            disabled={isImporting}
+            disabled={isImportBusy}
           >
             取消
           </button>
@@ -649,10 +1027,35 @@ export default function ImportChatMessagesWindow({
             title={canImport ? "开始导入" : importBlockedReason}
           >
             {isImporting ? <span className="loading loading-spinner loading-xs"></span> : null}
-            {submitLabel ? submitLabel(parsed.messages.length, isImporting) : (isImporting ? "正在导入..." : `导入 ${parsed.messages.length} 条`)}
+            {submitLabel ? submitLabel(activeMessageCount, isImporting) : (isImporting ? "正在导入..." : `导入 ${activeMessageCount} 条`)}
           </button>
         </div>
       </footer>
+      <input
+        ref={rglLocalAssetsInputRef}
+        type="file"
+        className="hidden"
+        multiple
+        {...RGL_LOCAL_ASSET_DIRECTORY_INPUT_PROPS}
+        disabled={isImportBusy}
+        onChange={event => void handleImportRglLocalAssetsFile(event.target.files)}
+      />
+      <input
+        ref={rglMaterialAssetsInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        disabled={isImportBusy}
+        onChange={event => void handleImportRglMaterialAssetsFile(event.target.files)}
+      />
+      <input
+        ref={rglRoleAssetsInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        disabled={isImportBusy}
+        onChange={event => void handleImportRglRoleAssetsFile(event.target.files)}
+      />
     </div>
   );
 }

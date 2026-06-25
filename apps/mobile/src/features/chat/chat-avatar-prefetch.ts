@@ -63,7 +63,7 @@ export function collectChatImageThumbUrls(messages: readonly Message[]) {
     }
 
     seenFileIds.add(fileId);
-    const url = mediaFileUrl(fileId, "image", "low");
+    const url = mediaFileUrl(fileId, "image", "medium");
     if (url) {
       urls.push(url);
     }

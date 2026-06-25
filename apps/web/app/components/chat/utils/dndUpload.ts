@@ -19,7 +19,7 @@ type DroppedFileSummary = {
   total: number;
 };
 
-function classifyFileKind(input: { type?: string; name?: string }): "image" | "video" | "audio" | "file" {
+export function classifyFileKind(input: { type?: string; name?: string }): "image" | "video" | "audio" | "file" {
   const type = (input.type || "").toLowerCase();
   if (type.startsWith("image/")) {
     return "image";

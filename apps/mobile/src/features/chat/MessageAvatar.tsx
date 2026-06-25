@@ -36,6 +36,7 @@ function getAvatarInitial(displayName: string) {
 type MessageAvatarProps = {
   avatarFileId?: number | null;
   avatarId?: number | null;
+  avatarUrl?: string | null;
   displayName?: string | null;
   preferUserAvatar?: boolean;
   roleId?: number | null;
@@ -47,6 +48,7 @@ type MessageAvatarProps = {
 export const MessageAvatar = memo(({
   avatarFileId,
   avatarId,
+  avatarUrl,
   displayName,
   preferUserAvatar,
   roleId,
@@ -68,7 +70,8 @@ export const MessageAvatar = memo(({
     },
     roomRolesById,
   );
-  const shouldFetchAvatar = resolvedAvatarFileId == null && resolvedAvatarId != null;
+  const hasProvidedAvatarUrl = avatarUrl !== undefined;
+  const shouldFetchAvatar = !hasProvidedAvatarUrl && resolvedAvatarFileId == null && resolvedAvatarId != null;
   const roleAvatarQuery = useQuery({
     enabled: shouldFetchAvatar,
     queryFn: async () => {
@@ -81,6 +84,7 @@ export const MessageAvatar = memo(({
     staleTime: 24 * 60 * 60_000,
   });
   const shouldFetchUserAvatar = Boolean(preferUserAvatar)
+    && !hasProvidedAvatarUrl
     && resolvedAvatarFileId == null
     && !roleAvatarQuery.data?.avatarFileId
     && typeof userId === "number"
@@ -96,15 +100,17 @@ export const MessageAvatar = memo(({
     queryKey: getUserInfoQueryKey(userId ?? -1),
     staleTime: USER_INFO_STALE_TIME_MS,
   });
-  const avatarUrl = resolvedAvatarFileId
-    ? avatarThumbUrl(resolvedAvatarFileId)
-    : avatarThumbUrl(roleAvatarQuery.data?.avatarFileId ?? userInfoQuery.data?.avatarFileId);
+  const resolvedAvatarUrl = hasProvidedAvatarUrl
+    ? avatarUrl
+    : resolvedAvatarFileId
+      ? avatarThumbUrl(resolvedAvatarFileId)
+      : avatarThumbUrl(roleAvatarQuery.data?.avatarFileId ?? userInfoQuery.data?.avatarFileId);
   const borderRadius = size / 2;
 
-  if (avatarUrl) {
+  if (resolvedAvatarUrl) {
     return (
       <CachedImage
-        uri={avatarUrl}
+        uri={resolvedAvatarUrl}
         contentFit="cover"
         style={{ borderRadius, height: size, width: size }}
       />

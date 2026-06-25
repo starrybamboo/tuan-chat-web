@@ -16,6 +16,9 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["**/*.e2e.test.ts", "**/.codex-tmp/**", "**/node_modules/**", "**/dist/**"],
     maxWorkers: 4,
+    css: {
+      include: [/\.scss\?raw$/],
+    },
     coverage: {
       provider: "v8",
       include: [
@@ -32,6 +35,7 @@ export default defineConfig({
         "apps/mobile/src/features/chat/mapStatusSummary.ts",
         "apps/mobile/src/features/chat/messageListModel.ts",
         "apps/mobile/src/features/chat/messageListScrollState.ts",
+        "apps/mobile/src/features/chat/mobileAnnotations.ts",
         "apps/mobile/src/features/chat/mobileRouteSelection.ts",
         "apps/mobile/src/features/drawer/leftDrawerLayout.ts",
         "apps/mobile/src/features/drawer/spaceRailOrder.ts",
@@ -53,7 +57,6 @@ export default defineConfig({
         "apps/mobile/src/lib/mobile-image-cache.ts",
         "apps/mobile/src/lib/mobile-media-file-cache.ts",
         "apps/mobile/src/lib/use-mobile-query-snapshot.ts",
-        "packages/galgame-ai-contract/src/schemas.ts",
         "packages/tuanchat-domain/src/display-labels/index.ts",
         "packages/tuanchat-domain/src/media-url/media-url.ts",
       ],

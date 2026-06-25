@@ -117,6 +117,40 @@ export function collectExistingDocIds(tree: SidebarTree | null | undefined): Set
   return ids;
 }
 
+export function findSidebarCategoryIdForTarget(
+  tree: SidebarTree | null | undefined,
+  target: { type: "room"; id: number } | { type: "doc"; id: string },
+): string | null {
+  if (target.type === "room") {
+    for (const category of tree?.categories ?? []) {
+      for (const item of category.items ?? []) {
+        if (item.type !== "room")
+          continue;
+        const roomId = normalizeRoomId(item.targetId);
+        if (roomId === target.id) {
+          return category.categoryId;
+        }
+      }
+    }
+    return null;
+  }
+
+  const docId = normalizeSidebarDocId(target.id);
+  if (!docId) {
+    return null;
+  }
+  for (const category of tree?.categories ?? []) {
+    for (const item of category.items ?? []) {
+      if (item.type !== "doc")
+        continue;
+      if (normalizeSidebarDocId(item.targetId) === docId) {
+        return category.categoryId;
+      }
+    }
+  }
+  return null;
+}
+
 export function applySidebarDocFallbackCache(params: {
   tree: SidebarTree;
   docMetaMap: Map<string, MinimalDocMeta>;

@@ -5,6 +5,8 @@ import {
   parseTextEnhanceSegments,
 } from "@/utils/textEnhanceSyntax";
 
+import "./textEnhanceAnimations.css";
+
 /**
  * WebGAL 文本拓展语法渲染器
  *
@@ -34,6 +36,11 @@ function EnhancedText({ content, params }: EnhancedTextProps) {
     ...styleAllText,
     ...style,
   };
+
+  // 动画 / 变形需要 inline-block 才能真正生效，渲染时自动补上。
+  if ((combinedStyle.animation || combinedStyle.animationName || combinedStyle.transform) && !combinedStyle.display) {
+    combinedStyle.display = "inline-block";
+  }
 
   // 如果有注音，使用 <ruby> 标签
   if (ruby) {

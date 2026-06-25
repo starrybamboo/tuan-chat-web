@@ -27,7 +27,6 @@ export default function CharacterDetailLeftPanelHorizontal({
   onOpenDiceMaidenLinkModal,
   onAvatarChange,
   onAvatarSelect,
-  onAvatarDelete,
   onAvatarUpload,
   onBaseRoleSave,
 }: CharacterDetailLeftPanelProps) {
@@ -191,7 +190,6 @@ export default function CharacterDetailLeftPanelHorizontal({
                       avatarSizeClassName="w-32 sm:w-36"
                       onchange={onAvatarChange}
                       onAvatarSelect={onAvatarSelect}
-                      onAvatarDelete={onAvatarDelete}
                       onAvatarUpload={onAvatarUpload}
                       useUrlState={false}
                     />
@@ -320,7 +318,6 @@ export default function CharacterDetailLeftPanelHorizontal({
                       avatarSizeClassName="w-44"
                       onchange={onAvatarChange}
                       onAvatarSelect={onAvatarSelect}
-                      onAvatarDelete={onAvatarDelete}
                       onAvatarUpload={onAvatarUpload}
                       useUrlState={false}
                     />

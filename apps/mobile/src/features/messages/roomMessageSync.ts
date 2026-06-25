@@ -1,10 +1,6 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
-import {
-  getMaxRoomMessageSyncId,
-  getRoomMessageSyncGapStart,
-} from "@tuanchat/query/room-message";
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
 
 import type {
@@ -37,6 +33,51 @@ type RoomMessageQueryCache = {
     updater: (currentData: RoomMessagesQueryData) => RoomMessagesQueryData,
   ) => void;
 };
+
+type RoomMessageSyncIndex = {
+  knownMessageIds: Set<number>;
+  maxKnownSyncId: number;
+};
+
+function toFinitePositiveNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function buildRoomMessageSyncIndex(messages: readonly ChatMessageResponse[]): RoomMessageSyncIndex {
+  const knownMessageIds = new Set<number>();
+  let maxKnownSyncId = 0;
+
+  for (const item of messages) {
+    const messageId = toFinitePositiveNumber(item.message?.messageId);
+    if (messageId != null) {
+      knownMessageIds.add(messageId);
+    }
+
+    const syncId = toFinitePositiveNumber(item.message?.syncId);
+    if (syncId != null && syncId > maxKnownSyncId) {
+      maxKnownSyncId = syncId;
+    }
+  }
+
+  return { knownMessageIds, maxKnownSyncId };
+}
+
+function getSingleRoomMessageSyncGapStart(
+  index: RoomMessageSyncIndex,
+  incomingMessage: ChatMessageResponse | undefined,
+): number | null {
+  const incomingSyncId = toFinitePositiveNumber(incomingMessage?.message?.syncId);
+  if (incomingSyncId == null) {
+    return null;
+  }
+
+  const incomingMessageId = toFinitePositiveNumber(incomingMessage?.message?.messageId);
+  if (incomingMessageId != null && index.knownMessageIds.has(incomingMessageId)) {
+    return null;
+  }
+
+  return incomingSyncId > index.maxKnownSyncId + 1 ? index.maxKnownSyncId + 1 : null;
+}
 
 export type UpsertRoomMessagesToQueryAndDiskDeps = {
   fetchHistoryMessages: (roomId: number, syncId: number) => Promise<ChatMessageResponse[]>;
@@ -125,9 +166,10 @@ export function upsertLiveRoomMessagesWithGapRepair(
 
   const queryKey = getAllRoomMessagesQueryKey(roomId);
   const currentMessages = extractRoomMessagesFromQueryData(deps.queryClient.getQueryData(queryKey));
+  const currentSyncIndex = buildRoomMessageSyncIndex(currentMessages);
   const gapStartSyncId = messages.length === 1
-    ? getRoomMessageSyncGapStart(currentMessages, messages[0])
-    : getBatchRoomMessageSyncGapStart(currentMessages, messages);
+    ? getSingleRoomMessageSyncGapStart(currentSyncIndex, messages[0])
+    : getBatchRoomMessageSyncGapStart(currentSyncIndex, messages);
 
   if (gapStartSyncId != null) {
     void deps.fetchHistoryMessages(roomId, gapStartSyncId).then((missingMessages) => {
@@ -139,20 +181,23 @@ export function upsertLiveRoomMessagesWithGapRepair(
 }
 
 function getBatchRoomMessageSyncGapStart(
-  currentMessages: ChatMessageResponse[],
+  currentSyncIndex: RoomMessageSyncIndex,
   incomingMessages: ChatMessageResponse[],
 ): number | null {
-  const maxKnownSyncId = getMaxRoomMessageSyncId(currentMessages);
-  const incomingSyncIds = incomingMessages
-    .map(item => item.message?.syncId)
-    .filter((syncId): syncId is number => typeof syncId === "number" && Number.isFinite(syncId) && syncId > maxKnownSyncId);
+  const incomingSyncIds: number[] = [];
+  for (const item of incomingMessages) {
+    const syncId = toFinitePositiveNumber(item.message?.syncId);
+    if (syncId != null && syncId > currentSyncIndex.maxKnownSyncId) {
+      incomingSyncIds.push(syncId);
+    }
+  }
   if (incomingSyncIds.length === 0) {
     return null;
   }
 
   const incomingSyncIdSet = new Set(incomingSyncIds);
   const maxIncomingSyncId = Math.max(...incomingSyncIds);
-  for (let expectedSyncId = maxKnownSyncId + 1; expectedSyncId <= maxIncomingSyncId; expectedSyncId += 1) {
+  for (let expectedSyncId = currentSyncIndex.maxKnownSyncId + 1; expectedSyncId <= maxIncomingSyncId; expectedSyncId += 1) {
     if (!incomingSyncIdSet.has(expectedSyncId)) {
       return expectedSyncId;
     }

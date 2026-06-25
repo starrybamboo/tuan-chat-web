@@ -1,6 +1,6 @@
 import type { FlatIndexLocationWithAlign, VirtuosoHandle } from "react-virtuoso";
 
-import { Check, FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
+import { FileArrowDown, FilmSlate, Funnel, ImageSquare, SelectionAll, ShareFat, X } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
@@ -334,113 +334,6 @@ const UnreadIndicator = memo(({
   );
 });
 
-type GalPatchProposalToolbarProps = {
-  added: number;
-  deleted: number;
-  modified: number;
-  moved: number;
-  metadataChanged: number;
-  selectedMessageCount?: number;
-  totalMessageCount?: number;
-  isApplying: boolean;
-  onApply: () => void;
-  onDiscard?: () => void;
-  onAcceptAll?: () => void;
-  onRejectAll?: () => void;
-}
-
-const GalPatchProposalToolbar = memo(({
-  added,
-  deleted,
-  modified,
-  moved,
-  metadataChanged,
-  selectedMessageCount,
-  totalMessageCount,
-  isApplying,
-  onApply,
-  onDiscard,
-  onAcceptAll,
-  onRejectAll,
-}: GalPatchProposalToolbarProps) => {
-  const total = added + deleted + modified + moved;
-  const hasLineSelection = typeof selectedMessageCount === "number" && typeof totalMessageCount === "number";
-  const details = [
-    added > 0 ? `新增 ${added}` : "",
-    modified > 0 ? `修改 ${modified}` : "",
-    deleted > 0 ? `删除 ${deleted}` : "",
-    moved > 0 ? `移动 ${moved}` : "",
-    metadataChanged > 0 ? `元数据 ${metadataChanged}` : "",
-  ].filter(Boolean).join(" / ");
-  const detailText = total > 0 ? details : "没有可应用的变更";
-
-  return (
-    <div className="
-      pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center
-      px-3
-    ">
-      <div className="
-        pointer-events-auto flex max-w-full flex-wrap items-center gap-3
-        rounded-lg border border-base-300/70 bg-base-100/90 px-3 py-2 text-sm
-        text-base-content shadow-lg backdrop-blur-md
-      ">
-        <div className="min-w-0">
-          <div className="font-medium leading-5">改动预览</div>
-          <div className="truncate text-xs text-base-content/60">
-            {hasLineSelection ? `已接受 ${selectedMessageCount}/${totalMessageCount} 行` : detailText}
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {onAcceptAll && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm gap-1"
-              onClick={onAcceptAll}
-              disabled={isApplying}
-            >
-              <Check className="size-4" />
-              全部接受
-            </button>
-          )}
-          {onRejectAll && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm gap-1"
-              onClick={onRejectAll}
-              disabled={isApplying}
-            >
-              <X className="size-4" />
-              全部忽略
-            </button>
-          )}
-          {onDiscard && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm gap-1"
-              onClick={onDiscard}
-              disabled={isApplying}
-            >
-              <X className="size-4" />
-              取消
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-success btn-sm gap-1 text-success-content"
-            onClick={onApply}
-            disabled={isApplying || total === 0}
-          >
-            {isApplying ? <span className="loading loading-spinner loading-xs" /> : <Check className="
-              size-4
-            " />}
-            {hasLineSelection && selectedMessageCount !== totalMessageCount ? "应用已选" : "应用"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 type DragHandlers = {
   handleDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -492,7 +385,6 @@ type ChatFrameListProps = {
   currentMessageFilter: MessageDisplayFilterConfig | null;
   totalMessageCount: number;
   onOpenMessageFilter: () => void;
-  galPatchProposalToolbar?: GalPatchProposalToolbarProps | null;
 }
 
 /**
@@ -586,7 +478,6 @@ export default function ChatFrameList({
   currentMessageFilter,
   totalMessageCount,
   onOpenMessageFilter,
-  galPatchProposalToolbar,
 }: ChatFrameListProps) {
   const { handleDragOver, handleDrop } = useChatFrameListDragHandlers(roomId);
   const computeItemKey = useCallback((index: number, item: ChatMessageResponse) => getChatFrameItemKey(index, item), []);
@@ -798,9 +689,6 @@ export default function ChatFrameList({
           isAtBottom={isAtBottom}
           onScrollToBottom={scrollToBottom}
         />
-        {galPatchProposalToolbar && (
-          <GalPatchProposalToolbar {...galPatchProposalToolbar} />
-        )}
       </div>
     </>
   );

@@ -21,3 +21,16 @@ export function invalidateRoleCreateQueries(
     queryClient.invalidateQueries({ queryKey: ["spaceRepositoryRole", spaceId] });
   }
 }
+
+export function invalidateUpdatedRoleQueries(
+  queryClient: QueryInvalidator,
+  roleId?: number | null,
+) {
+  invalidateUserRoleListQueries(queryClient);
+  queryClient.invalidateQueries({ queryKey: ["roomRole"] });
+
+  if (typeof roleId === "number" && Number.isFinite(roleId) && roleId > 0) {
+    queryClient.invalidateQueries({ queryKey: ["getRole", roleId] });
+    queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+  }
+}

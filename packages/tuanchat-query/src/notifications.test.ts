@@ -3,11 +3,12 @@ import type { ApiResultCursorPageBaseResponseNotificationItemResponse } from "@t
 import type { NotificationItemResponse } from "@tuanchat/openapi-client/models/NotificationItemResponse";
 
 import { QueryClient } from "@tanstack/react-query";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   getNotificationsQueryKey,
   getNotificationsUnreadCountQueryKey,
+  invalidateNotificationQueries,
   markAllNotificationsReadInCaches,
   markAllNotificationsReadInPageData,
   markNotificationsReadInCaches,
@@ -153,5 +154,15 @@ describe("notification cache helpers", () => {
 
     expect(queryClient.getQueryData<ReturnType<typeof unreadCountData>>(getNotificationsUnreadCountQueryKey())?.data?.unreadCount).toBe(0);
     expect(queryClient.getQueryData<NotificationData>(getNotificationsQueryKey({ pageSize: 20 }))?.pages[0].data?.list.map(item => item.isRead)).toEqual([true, true]);
+  });
+
+  it("失效通知查询时会同时校准列表和未读数", () => {
+    const queryClient = new QueryClient();
+    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
+
+    invalidateNotificationQueries(queryClient);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["notifications"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: getNotificationsUnreadCountQueryKey() });
   });
 });

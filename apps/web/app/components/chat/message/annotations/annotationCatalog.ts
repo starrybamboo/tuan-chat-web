@@ -28,8 +28,10 @@ export type { AnnotationTone } from "@tuanchat/domain/annotation-catalog";
 
 export {
   buildCustomAnnotationId,
+  filterAnnotationsForMessageType,
   getAnnotationsByCategory,
   getFrequentAnnotations,
+  isAnnotationVisibleForMessageType,
   NORMAL_MODE_HIDDEN_ANNOTATION_IDS,
   normalizeAnnotations,
   toggleAnnotation,
@@ -98,6 +100,7 @@ export function saveCustomAnnotations(items: AnnotationDefinition[]) {
     label: item.label,
     category: item.category,
     iconUrl: item.iconUrl,
+    messageTypes: item.messageTypes,
     tone: item.tone,
     showInNormalMode: item.showInNormalMode ?? !NORMAL_MODE_HIDDEN_ANNOTATION_IDS.has(item.id),
   }));

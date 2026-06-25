@@ -387,7 +387,7 @@ export function SpaceWebgalGameConfigSection({
             ">
               <ConfigItemLabel
                 label="WebGAL模板"
-                description="none 为内置默认模板；black 会覆盖为 WebGAL Black。"
+                description="默认使用团剧共创模板；black 会覆盖为 WebGAL Black。"
               />
               <select
                 className="select select-bordered select-sm w-40"

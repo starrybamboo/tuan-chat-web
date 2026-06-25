@@ -1,0 +1,29 @@
+# Local dependencies and package-manager caches
+node_modules/
+.npm/
+.pnpm-store/
+
+# Expo local state and generated exports
+.expo/
+.expo-export-web/
+dist/
+web-build/
+
+# Local native prebuild outputs; EAS regenerates native projects from app config
+android/
+ios/
+
+# Local build/cache artifacts
+.tmp/
+.gradle/
+.kotlin/
+*.tsbuildinfo
+
+# Editor and OS metadata
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local env files must not be uploaded to EAS build context
+.env
+.env.*

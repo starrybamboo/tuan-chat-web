@@ -43,10 +43,11 @@ export default function useRoomSidebarNormalizer({
       docHeaderOverrides,
     });
 
-    setLocalTree(normalizedWithCache);
     if (save) {
       onSaveSidebarTree?.(normalizedWithCache);
+      return;
     }
+    setLocalTree(normalizedWithCache);
   }, [docHeaderOverrides, docMetaMap, fallbackTextRooms, isSpaceOwner, onSaveSidebarTree, setLocalTree, visibleDocMetas]);
 
   return normalizeAndSet;

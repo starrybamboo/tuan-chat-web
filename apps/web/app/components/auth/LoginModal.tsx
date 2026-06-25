@@ -1,6 +1,8 @@
+import { XIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   requestForgotPasswordByEmail,
@@ -89,6 +91,8 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   const loginTurnstile = useTurnstileChallenge();
   const registerTurnstile = useTurnstileChallenge();
   const forgotTurnstile = useTurnstileChallenge();
+  const shouldReduceMotion = useReducedMotion();
+  const titleId = useId();
 
   const registerCodeCooldown = useVerificationCodeCooldown(60);
 
@@ -152,6 +156,35 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   }, [clearPendingTimeouts, isOpen]);
 
   useEffect(() => clearPendingTimeouts, [clearPendingTimeouts]);
+
+  // 打开时支持 Esc 关闭
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleClose, isOpen]);
+
+  // 打开时锁定背景滚动，关闭/卸载时还原
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isRegisterMode) {
@@ -412,190 +445,192 @@ export default function LoginModal({ isOpen, onClose, onAuthenticated }: LoginMo
   };
 
   return (
-    <div className={`
-      modal
-      ${isOpen ? "modal-open" : ""}
-    `}>
-      <div className="
-        modal-box relative bg-base-100
-        dark:bg-base-300
-      ">
-        <button
-          type="button"
-          className="
-            btn btn-sm btn-circle absolute right-2 top-2 bg-base-200
-            hover:bg-base-300
-            dark:bg-base-200
-            dark:hover:bg-base-100
-          "
-          onClick={handleClose}
+    <AnimatePresence>
+      {isOpen && (
+        <div
+          className="modal modal-open"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
         >
-          ✕
-        </button>
+          <motion.div
+            className="
+              modal-box relative max-h-[calc(100dvh-2rem)] w-full max-w-[34rem]
+              overflow-y-auto border border-base-content/10 bg-base-100/95 p-0
+              shadow-2xl dark:bg-base-300/95
+            "
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <h2 id={titleId} className="sr-only">登录团剧共创账号</h2>
+            <button
+              type="button"
+              className="
+                btn btn-ghost btn-sm btn-circle absolute right-3 top-3 z-10
+                text-base-content/60 hover:bg-base-200 hover:text-base-content
+              "
+              onClick={handleClose}
+              aria-label="关闭登录弹窗"
+            >
+              <XIcon className="size-4" weight="bold" />
+            </button>
 
-        <div className="card-body px-0">
-          <h2 className="
-            card-title text-2xl font-bold text-center mb-6 justify-center w-full
-            text-base-content
-          ">
-            {isLoggedIn
-              ? "您已成功登录"
-              : isRegisterMode
-                ? "注册"
-                : isForgotMode
-                  ? "忘记密码"
-                  : "登录"}
-          </h2>
-
-          {isLoggedIn
-            ? (
-                <LoggedInView handleLogout={handleLogout} />
-              )
-            : isLoginMode
-              ? (
-                  <LoginForm
-                    username={username}
-                    setUsername={setUsername}
-                    password={password}
-                    setPassword={setPassword}
-                    handleSubmit={handleLoginSubmit}
-                    isLoading={loginMutation.isPending}
-                    loginMethod={loginMethod}
-                    setLoginMethod={setLoginMethod}
-                    turnstile={hasTurnstileSiteKey()
-                      ? (
-                          <TurnstileWidget
-                            token={loginTurnstile.token}
-                            onTokenChange={loginTurnstile.setToken}
-                            resetKey={loginTurnstile.resetKey}
-                          />
-                        )
-                      : null}
-                  />
-                )
-              : isRegisterMode
+            <div className="space-y-6 px-6 pb-6 pt-12 sm:px-8">
+              {isLoggedIn
                 ? (
-                    <RegisterForm
-                      username={username}
-                      setUsername={setUsername}
-                      email={email}
-                      setEmail={setEmail}
-                      inviteCode={registerInviteCode}
-                      setInviteCode={setRegisterInviteCode}
-                      verificationCode={registerVerificationCode}
-                      setVerificationCode={setRegisterVerificationCode}
-                      sendVerificationCode={handleSendRegisterVerificationCode}
-                      isSendingVerificationCode={sendRegisterCodeMutation.isPending}
-                      isVerificationCodeCoolingDown={registerCodeCooldown.isCoolingDown}
-                      verificationCodeCooldownSeconds={registerCodeCooldown.remainingSeconds}
-                      password={password}
-                      setPassword={setPassword}
-                      confirmPassword={confirmPassword}
-                      setConfirmPassword={setConfirmPassword}
-                      handleSubmit={handleRegisterSubmit}
-                      isLoading={registerMutation.isPending}
-                      turnstile={hasTurnstileSiteKey()
-                        ? (
-                            <TurnstileWidget
-                              token={registerTurnstile.token}
-                              onTokenChange={registerTurnstile.setToken}
-                              resetKey={registerTurnstile.resetKey}
-                            />
-                          )
-                        : null}
-                    />
+                    <LoggedInView handleLogout={handleLogout} />
                   )
-                : (
-                    <ForgotPasswordForm
-                      email={forgotEmail}
-                      setEmail={setForgotEmail}
-                      handleSubmit={handleForgotSubmit}
-                      isLoading={forgotPasswordMutation.isPending}
-                      turnstile={hasTurnstileSiteKey()
-                        ? (
-                            <TurnstileWidget
-                              token={forgotTurnstile.token}
-                              onTokenChange={forgotTurnstile.setToken}
-                              resetKey={forgotTurnstile.resetKey}
-                            />
-                          )
-                        : null}
-                    />
+                : isLoginMode
+                  ? (
+                      <LoginForm
+                        username={username}
+                        setUsername={setUsername}
+                        password={password}
+                        setPassword={setPassword}
+                        handleSubmit={handleLoginSubmit}
+                        isLoading={loginMutation.isPending}
+                        loginMethod={loginMethod}
+                        setLoginMethod={setLoginMethod}
+                        turnstile={hasTurnstileSiteKey()
+                          ? (
+                              <TurnstileWidget
+                                token={loginTurnstile.token}
+                                onTokenChange={loginTurnstile.setToken}
+                                resetKey={loginTurnstile.resetKey}
+                              />
+                            )
+                          : null}
+                      />
+                    )
+                  : isRegisterMode
+                    ? (
+                        <RegisterForm
+                          username={username}
+                          setUsername={setUsername}
+                          email={email}
+                          setEmail={setEmail}
+                          inviteCode={registerInviteCode}
+                          setInviteCode={setRegisterInviteCode}
+                          verificationCode={registerVerificationCode}
+                          setVerificationCode={setRegisterVerificationCode}
+                          sendVerificationCode={handleSendRegisterVerificationCode}
+                          isSendingVerificationCode={sendRegisterCodeMutation.isPending}
+                          isVerificationCodeCoolingDown={registerCodeCooldown.isCoolingDown}
+                          verificationCodeCooldownSeconds={registerCodeCooldown.remainingSeconds}
+                          password={password}
+                          setPassword={setPassword}
+                          confirmPassword={confirmPassword}
+                          setConfirmPassword={setConfirmPassword}
+                          handleSubmit={handleRegisterSubmit}
+                          isLoading={registerMutation.isPending}
+                          turnstile={hasTurnstileSiteKey()
+                            ? (
+                                <TurnstileWidget
+                                  token={registerTurnstile.token}
+                                  onTokenChange={registerTurnstile.setToken}
+                                  resetKey={registerTurnstile.resetKey}
+                                />
+                              )
+                            : null}
+                        />
+                      )
+                    : (
+                        <ForgotPasswordForm
+                          email={forgotEmail}
+                          setEmail={setForgotEmail}
+                          handleSubmit={handleForgotSubmit}
+                          isLoading={forgotPasswordMutation.isPending}
+                          turnstile={hasTurnstileSiteKey()
+                            ? (
+                                <TurnstileWidget
+                                  token={forgotTurnstile.token}
+                                  onTokenChange={forgotTurnstile.setToken}
+                                  resetKey={forgotTurnstile.resetKey}
+                                />
+                              )
+                            : null}
+                        />
+                      )}
+
+              {!isLoggedIn && (
+                <div className="border-t border-base-content/10 pt-4">
+                  {isLoginMode && (
+                    <div className="grid gap-2 text-center text-sm text-base-content/65">
+                      <p>
+                        还没有账号？
+                        <button
+                          type="button"
+                          onClick={() => switchMode("register")}
+                          className="link link-primary ml-1 font-medium"
+                        >
+                          立即注册
+                        </button>
+                      </p>
+                      <p>
+                        忘记密码？
+                        <button
+                          type="button"
+                          onClick={() => switchMode("forgot")}
+                          className="link link-primary ml-1 font-medium"
+                        >
+                          找回密码
+                        </button>
+                      </p>
+                    </div>
                   )}
 
-          {!isLoggedIn && (
-            <>
-              <div className="divider" />
+                  {isRegisterMode && (
+                    <p className="text-center text-sm text-base-content/65">
+                      已有账号？
+                      <button
+                        type="button"
+                        onClick={() => switchMode("login")}
+                        className="link link-primary ml-1 font-medium"
+                      >
+                        立即登录
+                      </button>
+                    </p>
+                  )}
 
-              {isLoginMode && (
-                <>
-                  <p className="text-center mt-2">
-                    还没有账号？
-                    <button
-                      type="button"
-                      onClick={() => switchMode("register")}
-                      className="link link-primary ml-1"
-                    >
-                      立即注册
-                    </button>
-                  </p>
-                  <p className="text-center mt-2">
-                    忘记密码？
-                    <button
-                      type="button"
-                      onClick={() => switchMode("forgot")}
-                      className="link link-primary ml-1"
-                    >
-                      找回密码
-                    </button>
-                  </p>
-                </>
+                  {isForgotMode && (
+                    <p className="text-center text-sm text-base-content/65">
+                      想起密码了？
+                      <button
+                        type="button"
+                        onClick={() => switchMode("login")}
+                        className="link link-primary ml-1 font-medium"
+                      >
+                        返回登录
+                      </button>
+                    </p>
+                  )}
+                </div>
               )}
+            </div>
+          </motion.div>
 
-              {isRegisterMode && (
-                <p className="text-center mt-2">
-                  已有账号？
-                  <button
-                    type="button"
-                    onClick={() => switchMode("login")}
-                    className="link link-primary ml-1"
-                  >
-                    立即登录
-                  </button>
-                </p>
-              )}
+          <AlertMessage
+            errorMessage={errorMessage}
+            successMessage={successMessage}
+          />
 
-              {isForgotMode && (
-                <p className="text-center mt-2">
-                  想起密码了？
-                  <button
-                    type="button"
-                    onClick={() => switchMode("login")}
-                    className="link link-primary ml-1"
-                  >
-                    返回登录
-                  </button>
-                </p>
-              )}
-            </>
-          )}
+          <motion.button
+            type="button"
+            aria-label="关闭登录弹窗"
+            className="
+              modal-backdrop bg-black/50
+              dark:bg-black/70
+            "
+            onClick={handleClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "linear" }}
+          />
         </div>
-      </div>
-
-      <AlertMessage
-        errorMessage={errorMessage}
-        successMessage={successMessage}
-      />
-
-      <button
-        type="button"
-        aria-label="关闭登录弹窗"
-        className="
-          modal-backdrop bg-black/50
-          dark:bg-black/70
-        "
-        onClick={handleClose}
-      />
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

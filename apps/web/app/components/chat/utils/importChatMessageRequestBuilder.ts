@@ -12,8 +12,13 @@ import { MessageType } from "../../../../api/wsModels";
 
 export type ImportChatRequestMessage = {
   roleId: number;
+  avatarId?: number;
   content: string;
   speakerName?: string;
+  messageType?: ChatMessageRequest["messageType"];
+  annotations?: ChatMessageRequest["annotations"];
+  extra?: ChatMessageRequest["extra"];
+  webgal?: ChatMessageRequest["webgal"];
   figurePosition?: Exclude<FigurePosition, undefined>;
   diceTurn?: ImportedDiceTurn;
 };
@@ -83,6 +88,13 @@ function isImportedDicerResultMessage(content: string) {
   return /掷出了|检定结果为|^\d*d\d+\s*=|[\s(,[，：:]\d*d\d+\s*=/i.test(normalized);
 }
 
+function getDiceTurnReplyContents(diceTurn: ImportedDiceTurn) {
+  const explicitReplies = diceTurn.replyContents
+    ?.map(content => String(content ?? "").trim())
+    .filter(Boolean);
+  return explicitReplies?.length ? explicitReplies : [diceTurn.replyContent];
+}
+
 export function buildImportedChatMessageRequests(
   messages: ImportChatRequestMessage[],
   context: ImportChatRequestBuildContext,
@@ -101,12 +113,15 @@ export function buildImportedChatMessageRequests(
     let roleId = message.roleId;
     let avatarId = -1;
     let content = message.content;
-    let messageType = MessageType.TEXT;
-    let extra: ChatMessageRequest["extra"] = {};
+    let messageType = message.messageType ?? MessageType.TEXT;
+    let extra: ChatMessageRequest["extra"] = message.extra ?? {};
 
     if (isSpectator) {
       roleId = -1;
       content = buildOutOfCharacterSpeechContent(message.content) ?? "";
+      avatarId = -1;
+      messageType = MessageType.TEXT;
+      extra = {};
     }
     else if (roleId === IMPORT_SPECIAL_ROLE_ID.DICER) {
       roleId = typeof dicerRoleId === "number" ? dicerRoleId : -1;
@@ -117,25 +132,29 @@ export function buildImportedChatMessageRequests(
       }
     }
     else {
-      avatarId = roleId > 0 ? fallbackAvatarId(resolveAvatarId(roleId)) : -1;
+      avatarId = roleId > 0 ? fallbackAvatarId(message.avatarId ?? resolveAvatarId(roleId)) : -1;
     }
 
     if (!isSpectator && message.diceTurn && messageType === MessageType.TEXT) {
-      const replyAvatarId = positiveAvatarId(
-        selectDicerAvatarId(message.diceTurn.replyContent, dicerAvatars, dicerAvatarId),
-      );
-      const dicerReply = {
-        content: message.diceTurn.replyContent,
-        ...(typeof dicerRoleId === "number" ? { roleId: dicerRoleId } : {}),
-        customRoleName: message.diceTurn.dicerSpeakerName,
-        ...(replyAvatarId != null ? { avatarId: replyAvatarId } : {}),
-      };
+      const diceTurn = message.diceTurn;
+      const dicerReplies = getDiceTurnReplyContents(diceTurn)
+        .map((replyContent) => {
+          const replyAvatarId = positiveAvatarId(
+            selectDicerAvatarId(replyContent, dicerAvatars, dicerAvatarId),
+          );
+          return {
+            content: replyContent,
+            ...(typeof dicerRoleId === "number" ? { roleId: dicerRoleId } : {}),
+            customRoleName: diceTurn.dicerSpeakerName,
+            ...(replyAvatarId != null ? { avatarId: replyAvatarId } : {}),
+          };
+        });
 
       messageType = MessageType.DICE;
       extra = {
         diceTurn: {
           command: message.content,
-          replies: [dicerReply],
+          replies: dicerReplies,
         },
       };
     }
@@ -157,6 +176,14 @@ export function buildImportedChatMessageRequests(
       messageType,
       extra,
     };
+
+    if (!isSpectator && Array.isArray(message.annotations) && message.annotations.length > 0) {
+      request.annotations = [...message.annotations];
+    }
+
+    if (!isSpectator && message.webgal && typeof message.webgal === "object") {
+      request.webgal = message.webgal;
+    }
 
     if (!isSpectator) {
       const importedSpeakerName = (message.speakerName ?? "").trim();

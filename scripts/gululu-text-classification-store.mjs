@@ -32,6 +32,21 @@ const PERFORMANCE_USES = new Set([
 
 const CONFIDENCE_VALUES = new Set(["high", "medium", "low"]);
 
+const BATTLE_PHASES = new Set([
+  "start",
+  "card",
+  "round",
+  "result",
+  "replay_marker",
+]);
+
+const BATTLE_EVENT_FIELDS = [
+  "battleId",
+  "battlePhase",
+  "battleTitle",
+  "battleSide",
+];
+
 function parseArgs(argv) {
   const options = new Map();
   const positional = [];
@@ -155,6 +170,18 @@ function validateEvent(event, floor) {
   if (event.confidence && !CONFIDENCE_VALUES.has(event.confidence)) {
     throw new Error(`floor ${floor}: invalid confidence ${event.confidence}`);
   }
+  if (event.battlePhase && !BATTLE_PHASES.has(event.battlePhase)) {
+    throw new Error(`floor ${floor}: invalid battlePhase ${event.battlePhase}`);
+  }
+}
+
+function appendOptionalEventFields(target, event) {
+  for (const field of BATTLE_EVENT_FIELDS) {
+    if (event[field]) {
+      target[field] = String(event[field]);
+    }
+  }
+  return target;
 }
 
 function normalizeFloorRecord(record, sourceInfo) {
@@ -168,7 +195,7 @@ function normalizeFloorRecord(record, sourceInfo) {
   const events = Array.isArray(record.events) ? record.events : [];
   for (const event of events) validateEvent(event, floor);
   return {
-    events: events.map((event, index) => ({
+    events: events.map((event, index) => appendOptionalEventFields({
       confidence: event.confidence ?? "high",
       kind: event.kind,
       notes: event.notes ?? "",
@@ -178,7 +205,7 @@ function normalizeFloorRecord(record, sourceInfo) {
       summary: event.summary ?? "",
       textRef: event.textRef ?? "",
       eventIndexInFloor: event.eventIndexInFloor ?? index + 1,
-    })),
+    }, event)),
     floor,
     notes: record.notes ?? "",
     partName: record.partName ?? sourceInfo?.partName ?? "",
@@ -326,6 +353,9 @@ function renderMarkdown(store, summary) {
       const speaker = event.speakerName ? ` speaker=${event.speakerName}` : "";
       const role = event.roleName ? ` role=${event.roleName}` : "";
       lines.push(`- [${event.kind}/${event.performanceUse}]${speaker}${role}: ${event.summary}`);
+      if (event.battleId) {
+        lines.push(`  - battle: ${[event.battleId, event.battlePhase, event.battleTitle, event.battleSide].filter(Boolean).join(" / ")}`);
+      }
       if (event.textRef) lines.push(`  - text: ${event.textRef}`);
       if (event.notes) lines.push(`  - notes: ${event.notes}`);
     }
@@ -356,10 +386,11 @@ function printHelp() {
     "  node scripts/gululu-text-classification-store.mjs show --root <sourceRoot> --from 1 --to 50",
     "",
     "Input schema for put-file:",
-    "  { floors: [{ floor, summary, notes, events: [{ kind, performanceUse, summary, speakerName, roleName, textRef, notes }] }] }",
+    "  { floors: [{ floor, summary, notes, events: [{ kind, performanceUse, summary, speakerName, roleName, textRef, notes, battleId, battlePhase, battleTitle, battleSide }] }] }",
     "",
     `Allowed kind: ${[...TEXT_KINDS].join(", ")}`,
     `Allowed performanceUse: ${[...PERFORMANCE_USES].join(", ")}`,
+    `Allowed battlePhase: ${[...BATTLE_PHASES].join(", ")}`,
   ].join("\n"));
 }
 

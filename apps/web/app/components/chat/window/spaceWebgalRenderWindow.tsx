@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 
 import type { WebgalPublishJobStatus } from "@/webGAL/publishClient";
 
+import { buildWebGALEditorUrl } from "@/components/chat/shared/webgal/webgalPreviewUrls";
 import {
   DEFAULT_ROOM_CONTENT_ALERT_THRESHOLD,
   MAX_ROOM_CONTENT_ALERT_THRESHOLD,
@@ -795,10 +796,12 @@ export default function SpaceWebgalRenderWindow({ spaceId }: SpaceWebgalRenderWi
     setRenderPortExpanded(prev => !prev);
   }, []);
   const webgalEditorUrl = useMemo(() => {
-    const match = realtimePreviewUrl?.match(/\/games\/([^/]+)/);
-    const gameDir = match?.[1] || `realtime_${spaceId}`;
-    return `${getTerreBaseUrl()}/#/game/${gameDir}`;
-  }, [realtimePreviewUrl, spaceId]);
+    return buildWebGALEditorUrl({
+      previewUrl: realtimePreviewUrl,
+      fallbackGameName: `realtime_${spaceId}`,
+      terreBaseUrl: getTerreBaseUrl(),
+    }) ?? `${getTerreBaseUrl()}/#/game/realtime_${spaceId}`;
+  }, [realtimePreviewUrl, spaceId, terrePort]);
 
   return (
     <div className="size-full overflow-y-auto">

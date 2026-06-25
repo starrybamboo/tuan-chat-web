@@ -81,7 +81,6 @@ type ChatToolbarProps = {
   showSendButton?: boolean;
   showWebgalControls?: boolean;
   showRunControls?: boolean;
-  showCopilotControl?: boolean;
 }
 
 function UnreadBadge({ count }: { count?: number }) {
@@ -137,7 +136,6 @@ function ChatToolbar({
   showSendButton = true,
   showWebgalControls = false,
   showRunControls = false,
-  showCopilotControl = false,
 }: ChatToolbarProps) {
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const emojiDropdownRef = useRef<HTMLDivElement>(null);
@@ -360,14 +358,24 @@ function ChatToolbar({
                   className="tooltip tooltip-top"
                   data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                 >
-                  <LinkFilled
-                    className={`
-                      size-6 cursor-pointer jump_icon
-                      md:mb-1
-                      ${webgalLinkMode ? `text-info` : ""}
-                    `}
+                  <button
+                    type="button"
+                    className="
+                      inline-flex appearance-none items-center justify-center
+                      border-0 bg-transparent p-0 text-inherit
+                    "
+                    aria-label={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
+                    title={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                     onClick={handleToggleWebgalLinkMode}
-                  />
+                  >
+                    <LinkFilled
+                      className={`
+                        size-6 cursor-pointer jump_icon
+                        md:mb-1
+                        ${webgalLinkMode ? `text-info` : ""}
+                      `}
+                    />
+                  </button>
                 </div>
               )}
 
@@ -417,13 +425,23 @@ function ChatToolbar({
                     className="tooltip tooltip-top"
                     data-tip={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                   >
-                    <LinkFilled
-                      className={`
-                        size-6 cursor-pointer jump_icon
-                        ${webgalLinkMode ? `text-info` : ""}
-                      `}
+                    <button
+                      type="button"
+                      className="
+                        inline-flex appearance-none items-center justify-center
+                        border-0 bg-transparent p-0 text-inherit
+                      "
+                      aria-label={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
+                      title={webgalLinkMode ? "关闭联动模式" : "开启联动模式（显示联动工具栏）"}
                       onClick={handleToggleWebgalLinkMode}
-                    />
+                    >
+                      <LinkFilled
+                        className={`
+                          size-6 cursor-pointer jump_icon
+                          ${webgalLinkMode ? `text-info` : ""}
+                        `}
+                      />
+                    </button>
                   </div>
                 )}
 
@@ -468,7 +486,7 @@ function ChatToolbar({
         )}
       </div>
 
-      {(showWebgalControls || showRunControls || showCopilotControl) && (
+      {(showWebgalControls || showRunControls) && (
         <div className={isInline ? "mt-1" : "mt-2"}>
           <ChatToolbarDock
             isInline={isInline}
@@ -482,7 +500,6 @@ function ChatToolbar({
             onOpenFullMessageDiff={onOpenFullMessageDiff}
             isFullMessageDiffOpen={isFullMessageDiffOpen}
             showRunControls={showRunControls}
-            showCopilotControl={showCopilotControl}
           />
         </div>
       )}

@@ -1,4 +1,5 @@
-import type { FigurePosition } from "@/types/voiceRenderTypes";
+import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
+import type { RglImportSourcesLoader, RglLocalAssetsImporter, RglMaterialAssetsImporter, RglRoleAssetsImporter } from "@/components/chat/window/importChatMessagesWindow";
 
 import RoomToastWindows from "@/components/chat/room/roomToastWindows";
 import ImportChatMessagesWindow from "@/components/chat/window/importChatMessagesWindow";
@@ -11,15 +12,11 @@ type RoomWindowOverlaysProps = {
   setIsImportChatTextOpen: (isOpen: boolean) => void;
   availableRoles: UserRole[];
   importInitialRawText?: string;
-  onImportChatText: (
-    items: Array<{
-      roleId: number;
-      content: string;
-      speakerName?: string;
-      figurePosition?: Exclude<FigurePosition, undefined>;
-    }>,
-    onProgress?: (sent: number, total: number) => void,
-  ) => Promise<void>;
+  loadRglImportSources?: RglImportSourcesLoader;
+  onImportRglLocalAssets?: RglLocalAssetsImporter;
+  onImportRglMaterialAssets?: RglMaterialAssetsImporter;
+  onImportRglRoleAssets?: RglRoleAssetsImporter;
+  onImportChatText: (items: ImportChatRequestMessage[], onProgress?: (sent: number, total: number) => void) => Promise<void>;
   onOpenRoleAddWindow: () => void;
   onOpenNpcAddWindow?: () => void;
 
@@ -36,6 +33,10 @@ export default function RoomWindowOverlays({
   setIsImportChatTextOpen,
   availableRoles,
   importInitialRawText,
+  loadRglImportSources,
+  onImportRglLocalAssets,
+  onImportRglMaterialAssets,
+  onImportRglRoleAssets,
   onImportChatText,
   onOpenRoleAddWindow,
   onOpenNpcAddWindow,
@@ -59,6 +60,10 @@ export default function RoomWindowOverlays({
         <ImportChatMessagesWindow
           availableRoles={availableRoles}
           initialRawText={importInitialRawText}
+          loadRglImportSources={loadRglImportSources}
+          onImportRglLocalAssets={onImportRglLocalAssets}
+          onImportRglMaterialAssets={onImportRglMaterialAssets}
+          onImportRglRoleAssets={onImportRglRoleAssets}
           onImport={onImportChatText}
           onClose={() => setIsImportChatTextOpen(false)}
           onOpenRoleAddWindow={onOpenRoleAddWindow}

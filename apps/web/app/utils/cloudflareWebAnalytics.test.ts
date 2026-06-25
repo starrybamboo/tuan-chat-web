@@ -6,6 +6,20 @@ import {
   shouldEnableCloudflareWebAnalytics,
 } from "./cloudflareWebAnalytics";
 
+function createAnalyticsConfig(mode: "production" | "test") {
+  return mode === "production"
+    ? {
+        environment: "production" as const,
+        hosts: new Set(["tuan.chat", "www.tuan.chat"]),
+        token: "ecffe13cc26a481880812c11e3489111",
+      }
+    : {
+        environment: "test" as const,
+        hosts: new Set(["test.tuan.chat", "www.test.tuan.chat"]),
+        token: "bd9e06f17e3b4f19bd7d6def90fdc7e5",
+      };
+}
+
 class FakeScript {
   id = "";
   src = "";
@@ -76,12 +90,15 @@ class FakeDocument {
 function createController(options: {
   hostname?: string;
   isProd?: boolean;
+  mode?: string;
   protocol?: string;
+  setTimeoutFn?: (handler: () => void, timeoutMs: number) => ReturnType<typeof setTimeout>;
   timeoutMs?: number;
 } = {}) {
   const runtimeDocument = new FakeDocument();
   const controller = createCloudflareWebAnalyticsController({
     isProd: options.isProd ?? true,
+    analyticsConfig: createAnalyticsConfig(options.mode === "production" ? "production" : "test"),
     timeoutMs: options.timeoutMs ?? 50,
     getDocument: () => runtimeDocument,
     getWindow: () => ({
@@ -90,7 +107,7 @@ function createController(options: {
         protocol: options.protocol ?? "https:",
       },
     }),
-    setTimeoutFn: setTimeout,
+    setTimeoutFn: options.setTimeoutFn ?? ((handler, timeoutMs) => setTimeout(handler, timeoutMs)),
   });
 
   return {
@@ -102,6 +119,7 @@ function createController(options: {
 describe("shouldEnableCloudflareWebAnalytics", () => {
   it("会在 https 的 tuan.chat 托管域名启用 beacon", () => {
     expect(shouldEnableCloudflareWebAnalytics({
+      analyticsConfig: createAnalyticsConfig("test"),
       hostname: "test.tuan.chat",
       isProd: true,
       protocol: "https:",
@@ -110,9 +128,19 @@ describe("shouldEnableCloudflareWebAnalytics", () => {
 
   it("会在本地开发地址禁用 beacon", () => {
     expect(shouldEnableCloudflareWebAnalytics({
+      analyticsConfig: createAnalyticsConfig("test"),
       hostname: "localhost",
       isProd: true,
       protocol: "http:",
+    })).toBe(false);
+  });
+
+  it("会在构建 mode 与托管域名不匹配时禁用 beacon", () => {
+    expect(shouldEnableCloudflareWebAnalytics({
+      analyticsConfig: createAnalyticsConfig("production"),
+      hostname: "test.tuan.chat",
+      isProd: true,
+      protocol: "https:",
     })).toBe(false);
   });
 });
@@ -120,6 +148,7 @@ describe("shouldEnableCloudflareWebAnalytics", () => {
 describe("resolveCloudflareWebAnalyticsConfig", () => {
   it("会为正式域名选择生产 Web Analytics token", () => {
     expect(resolveCloudflareWebAnalyticsConfig({
+      analyticsConfig: createAnalyticsConfig("production"),
       hostname: "tuan.chat",
       isProd: true,
       protocol: "https:",
@@ -131,6 +160,7 @@ describe("resolveCloudflareWebAnalyticsConfig", () => {
 
   it("会为测试域名选择测试 Web Analytics token", () => {
     expect(resolveCloudflareWebAnalyticsConfig({
+      analyticsConfig: createAnalyticsConfig("test"),
       hostname: "test.tuan.chat",
       isProd: true,
       protocol: "https:",
@@ -152,7 +182,11 @@ describe("createCloudflareWebAnalyticsController", () => {
     const loadingPromise = controller.ensureLoaded();
     const script = runtimeDocument.scripts[0];
 
-    expect(script?.getAttribute("data-cf-beacon")).toContain("bd9e06f17e3b4f19bd7d6def90fdc7e5");
+    expect(script?.getAttribute("data-cfasync")).toBe("false");
+    expect(script?.getAttribute("data-cf-beacon")).toBe(JSON.stringify({
+      token: "bd9e06f17e3b4f19bd7d6def90fdc7e5",
+      spa: true,
+    }));
 
     script.dispatch("load");
 
@@ -172,6 +206,21 @@ describe("createCloudflareWebAnalyticsController", () => {
 
     await expect(loadingPromise).resolves.toBe("blocked");
     expect(controller.getStatus()).toBe("blocked");
+  });
+
+  it("调度超时检测时不会依赖 window.setTimeout 的 this 绑定", async () => {
+    const { controller, runtimeDocument } = createController({
+      setTimeoutFn(handler, timeoutMs) {
+        expect(this).toBeUndefined();
+        return setTimeout(handler, timeoutMs);
+      },
+    });
+
+    const loadingPromise = controller.ensureLoaded();
+
+    runtimeDocument.scripts[0].dispatch("load");
+
+    await expect(loadingPromise).resolves.toBe("loaded");
   });
 
   it("会在非线上运行时直接禁用 beacon", async () => {

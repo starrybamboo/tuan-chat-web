@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   container: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl },
+  scrollContent: { paddingBottom: Spacing.xxl },
   currentBadge: {
     borderRadius: Radius.full,
     paddingHorizontal: Spacing.sm,
@@ -155,13 +156,35 @@ function CombatPanelContent({
     return Object.fromEntries(roomRoles.map(role => [role.roleId, role.roleName?.trim() || null]));
   }, [roomRoles]);
 
+  const activeStatesByRoleId = useMemo(() => {
+    const next = new Map<number, RoomStateRuntimeValue["activeStates"]>();
+    runtime.activeStates.forEach((state) => {
+      if (state.scope.kind !== "role") {
+        return;
+      }
+      const roleStates = next.get(state.scope.roleId);
+      if (roleStates) {
+        roleStates.push(state);
+      }
+      else {
+        next.set(state.scope.roleId, [state]);
+      }
+    });
+    return next;
+  }, [runtime.activeStates]);
+
+  const roomDisplayKeys = useMemo(
+    () => Object.keys(runtime.derivedDisplayValues.room),
+    [runtime.derivedDisplayValues.room],
+  );
+
   const rolesWithCombatState = useMemo(() => {
     return roomRoles
       .filter(role => role.state !== 1)
       .map((role) => {
         const baseValues = runtime.baseDisplayValues.rolesByRoleId[role.roleId] ?? {};
         const displayValues = runtime.derivedDisplayValues.rolesByRoleId[role.roleId] ?? {};
-        const activeStates = runtime.activeStates.filter(item => item.scope.kind === "role" && item.scope.roleId === role.roleId);
+        const activeStates = activeStatesByRoleId.get(role.roleId) ?? [];
         const keys = collectCombatDisplayKeys(runtime.recordedRoleValueKeysByRoleId[role.roleId] ?? [], activeStates);
         const initiative = displayValues.initiative ?? baseValues.initiative ?? null;
         return { activeStates, initiative, keys, role };
@@ -169,15 +192,15 @@ function CombatPanelContent({
       // 先攻不单独开区，但仍算作角色战斗状态，不能只落到辅助参与者列表。
       .filter(item => item.keys.length > 0 || item.activeStates.length > 0 || typeof item.initiative === "number");
   }, [
+    activeStatesByRoleId,
     roomRoles,
-    runtime.activeStates,
     runtime.baseDisplayValues.rolesByRoleId,
     runtime.derivedDisplayValues.rolesByRoleId,
     runtime.recordedRoleValueKeysByRoleId,
   ]);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <ThemedText style={styles.title}>战斗</ThemedText>
 
       <View style={styles.section}>
@@ -273,9 +296,9 @@ function CombatPanelContent({
             </ThemedText>
           </Pressable>
 
-          {Object.keys(runtime.derivedDisplayValues.room).length > 0 && (
+          {roomDisplayKeys.length > 0 && (
             <View style={styles.pillRow}>
-              {Object.keys(runtime.derivedDisplayValues.room).map(key => (
+              {roomDisplayKeys.map(key => (
                 <View key={key} style={[styles.pill, { backgroundColor: theme.surface }]}>
                   <ThemedText type="caption">
                     {formatStateKeyLabel(key)}

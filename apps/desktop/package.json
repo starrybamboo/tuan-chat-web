@@ -1,6 +1,6 @@
 {
   "name": "@tuanchat/desktop",
-  "version": "1.0.4",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./electron/main.js",

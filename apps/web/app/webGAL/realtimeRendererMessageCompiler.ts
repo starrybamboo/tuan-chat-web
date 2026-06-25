@@ -3,6 +3,7 @@ import type { WebgalDiceRenderPayload } from "@/types/webgalDice";
 
 import { stripDiceResultTokens } from "@/components/common/dicer/diceTable";
 import {
+  buildClearBackgroundLineFromAnnotations,
   getEffectDurationMs,
 } from "@/types/messageAnnotations";
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
@@ -57,6 +58,8 @@ export type RealtimeRenderMessageCompilerInput = {
   diceShowFigure?: boolean;
   vocalPart?: string;
   diceTrpgLines?: string[] | null;
+  /** 语音消息（配音台词）：messageType 为 SOUND，但按普通台词渲染并附加 -vocal。 */
+  isVoiceMessage?: boolean;
 };
 
 function appendLine(lines: string[], line: string | null | undefined): void {
@@ -76,6 +79,7 @@ function buildDialogLine(
   content: string,
   options: { useRoleLine?: boolean; forceNarrator?: boolean; useFigureId?: boolean } = {},
 ): string {
+  const vocalPart = input.vocalPart ?? "";
   const nextPart = input.dialogNext ? " -next" : "";
   const notendPart = !input.isNarrator && input.dialogNotend ? " -notend" : "";
   const concatPart = !input.isNarrator && input.dialogConcat ? " -concat" : "";
@@ -83,9 +87,9 @@ function buildDialogLine(
     ? input.dialogFigureIdPart
     : "";
   if (options.forceNarrator || input.isNarrator || !options.useRoleLine) {
-    return `:${content}${nextPart};`;
+    return `:${content}${vocalPart}${nextPart};`;
   }
-  return `${input.roleName}: ${content}${figureIdPart}${notendPart}${concatPart}${nextPart};`;
+  return `${input.roleName}: ${content}${vocalPart}${figureIdPart}${notendPart}${concatPart}${nextPart};`;
 }
 
 export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCompilerInput): string[] {
@@ -97,7 +101,7 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
   }
 
   if (input.shouldClearBackground && !input.isBackgroundImageMessage) {
-    appendLine(lines, "changeBg:none -next;");
+    appendLine(lines, buildClearBackgroundLineFromAnnotations(msg.annotations));
   }
   if (input.shouldClearBgm) {
     appendLine(lines, "bgm:none -next;");
@@ -117,6 +121,11 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
       return lines;
     }
     case MESSAGE_TYPE.SOUND: {
+      // 语音消息（配音台词）：跳过纯音频输出，落入下方对话渲染路径，
+      // 由 vocalPart 把配音通过 say -vocal 附加到台词上。
+      if (input.isVoiceMessage) {
+        break;
+      }
       appendLine(lines, input.bgmLine);
       appendLine(lines, input.soundLine);
       return lines;
@@ -220,6 +229,9 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
   }
 
   if (input.isIntroText) {
+    if (!input.processedContent.trim()) {
+      return lines;
+    }
     const introContent = input.processedContent.replace(/ +/g, "|");
     appendLine(lines, `intro:${introContent}${input.introHold ? " -hold" : ""};`);
     return lines;
@@ -249,6 +261,10 @@ export function compileRealtimeRenderMessageLines(input: RealtimeRenderMessageCo
   }
   else if (input.miniAvatarVisibleBefore || input.forceMiniAvatar || input.diceShowMiniAvatar === false) {
     appendLine(lines, "miniAvatar:none;");
+  }
+
+  if (!input.processedContent.trim()) {
+    return lines;
   }
 
   const dialogLine = input.isNarrator

@@ -7,13 +7,11 @@ import React, { use, useCallback, useEffect, useLayoutEffect, useRef, useState }
 import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
-import type { GalAuthoringLocalSnapshot, GalPatchProposal, GalPatchProposalApplyOptions } from "@/components/chat/galgameAi";
 
 // hooks (local)
 import { useClueFolderActions } from "@/components/chat/clues/useClueFolderActions";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import { SpaceContext } from "@/components/chat/core/spaceContext";
-import { buildGalPatchMutationPlan, executeGalPatchMutationPlan, galPatchProposalStore } from "@/components/chat/galgameAi";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/infra/localDb/useChatHistory";
 import { resolveMessageDiffBaseCommitId } from "@/components/chat/message/diff/messageVersionDiff";
@@ -45,24 +43,84 @@ import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMess
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
 import { createRoomUiStore, RoomUiStoreProvider } from "@/components/chat/stores/roomUiStore";
 import { useSideDrawerStore } from "@/components/chat/stores/sideDrawerStore";
+import { applyUploadedReplayAssetManifest } from "@/components/chat/utils/importRglAssetManifestApply";
+import {
+  buildReplayAssetUploadFileMap,
+  buildUploadedReplayAssetManifest,
+  createReplayAssetManifestUploadDepsFromUploadUtils,
+  findReplayLocalAssetManifestFile,
+  readReplayAssetManifestJsonFile,
+} from "@/components/chat/utils/importRglAssetManifestUpload";
+import { applyReplayMaterialPackageImport, buildReplayMaterialPackageFromAssetManifest } from "@/components/chat/utils/importRglMaterialManifest";
+import { applyReplayRoleAvatarImportPlan, buildReplayRoleAvatarImportPlanFromAssetManifest } from "@/components/chat/utils/importRglRoleManifest";
+import {
+  refreshRglMaterialImportSourceCaches,
+  refreshRglRoleAvatarImportSourceCaches,
+  rglMaterialImportPackagesQueryKey,
+} from "@/components/chat/utils/importRglSourceCache";
 import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
 import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useGlobalUserId, useGlobalWebSocket } from "@/components/globalContextProvider";
 import { resolveRoleVoiceUrl } from "@/components/Role/roleVoiceMedia";
 import { copyBytesToBlobPart } from "@/utils/blobParts";
+import { UploadUtils } from "@/utils/UploadUtils";
 import { tuanchat } from "api/instance";
 
-import type { ChatMessageRequest, ChatMessageResponse, Message } from "../../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMaterialPackageResponse } from "../../../../api";
 
 import {
+  roomNpcRoleQueryKey,
+  roomRoleQueryKey,
   useGetRoomInfoQuery,
   useGetSpaceInfoQuery,
   usePatchMessagesMutation,
   useSendMessageMutation,
 } from "../../../../api/hooks/chatQueryHooks";
 import { useRepositoryDetailByIdQuery } from "../../../../api/hooks/repositoryQueryHooks";
-import { fetchRoleAvatarWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
+import { fetchRoleAvatarWithCache, fetchRoleAvatarsWithCache, fetchRoleWithCache } from "../../../../api/hooks/RoleAndAvatarHooks";
+
+const RGL_IMPORT_MATERIAL_PAGE_SIZE = 100;
+
+async function fetchAllSpaceMaterialPackagesForRglImport(spaceId: number): Promise<SpaceMaterialPackageResponse[]> {
+  if (!Number.isFinite(spaceId) || spaceId <= 0) {
+    throw new Error("未找到当前空间，无法解析素材包");
+  }
+
+  const packages: SpaceMaterialPackageResponse[] = [];
+  let pageNo = 1;
+  for (let guard = 0; guard < 100; guard += 1) {
+    const response = await tuanchat.spaceMaterialPackageController.pagePackages({
+      spaceId,
+      pageNo,
+      pageSize: RGL_IMPORT_MATERIAL_PAGE_SIZE,
+    });
+    if (!response.success) {
+      throw new Error(response.errMsg?.trim() || "加载空间素材包失败");
+    }
+
+    const page = response.data;
+    packages.push(...(page?.list ?? []));
+    if (page?.isLast || !page?.list?.length) {
+      return packages;
+    }
+    pageNo = (page.pageNo ?? pageNo) + 1;
+  }
+
+  throw new Error("空间素材包分页过多，已停止导入解析");
+}
+
+async function findSpaceMaterialPackageByExactNameForRglImport(
+  spaceId: number,
+  name: string,
+): Promise<Pick<SpaceMaterialPackageResponse, "spacePackageId"> | null> {
+  const matches = (await fetchAllSpaceMaterialPackagesForRglImport(spaceId))
+    .filter(item => item.name?.trim() === name);
+  if (matches.length > 1) {
+    throw new Error(`存在多个同名局内素材包：${name}`);
+  }
+  return matches[0]?.spacePackageId ? { spacePackageId: matches[0].spacePackageId } : null;
+}
 
 const RealtimeRenderOrchestrator = React.lazy(() => import("@/components/chat/core/realtimeRenderOrchestrator"));
 const DOC_ROOM_TYPE = 4;
@@ -74,9 +132,6 @@ function RoomWindow({
   viewMode = false,
   hideSecondaryPanels = false,
   onCloseSubWindow,
-  galPatchProposal,
-  onGalPatchProposalApplied,
-  onGalPatchProposalDiscard,
 }: {
   roomId: number;
   spaceId: number;
@@ -84,9 +139,6 @@ function RoomWindow({
   viewMode?: boolean;
   hideSecondaryPanels?: boolean;
   onCloseSubWindow?: () => void;
-  galPatchProposal?: GalPatchProposal | null;
-  onGalPatchProposalApplied?: (proposal: GalPatchProposal) => void;
-  onGalPatchProposalDiscard?: (proposal: GalPatchProposal) => void;
 }) {
   const spaceContext = use(SpaceContext);
   const roomUiStoreRef = useRef<ReturnType<typeof createRoomUiStore> | null>(null);
@@ -95,6 +147,7 @@ function RoomWindow({
   }
   const roomUiStore = roomUiStoreRef.current;
   const queryClient = useQueryClient();
+  const rglAssetUploadUtilsRef = useRef(new UploadUtils());
 
   useEffect(() => {
     useAudioMessageAutoPlayStore.getState().setActiveRoomId(roomId);
@@ -166,7 +219,6 @@ function RoomWindow({
     curAvatarId,
     setCurAvatarId,
     ensureRuntimeAvatarIdForRole,
-    isRoleDataReady,
   } = useRoomRoleState({
     roomId,
     userId,
@@ -200,6 +252,7 @@ function RoomWindow({
   });
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
   const initialDocMessages = React.useMemo(() => {
     return mainHistoryMessages
       .map(item => item.message)
@@ -238,8 +291,9 @@ function RoomWindow({
   const canViewDocContent = Boolean(spaceContext.isSpaceOwner || hasHostPrivileges(curMember?.memberType));
   const handleToggleRoomContentMode = useCallback(() => {
     setSideDrawerState("none");
+    setWebgalOpen(false);
     setRoomContentMode(mode => (mode === "doc" ? "room" : "doc"));
-  }, [setSideDrawerState]);
+  }, [setSideDrawerState, setWebgalOpen]);
   const visibleRoleIdsForStateDrawer = React.useMemo(() => {
     if (sideDrawerState !== "combat" && sideDrawerState !== "initiative" && sideDrawerState !== "state") {
       return undefined;
@@ -314,54 +368,8 @@ function RoomWindow({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isApplyingMessageHistory, setIsApplyingMessageHistory] = useState(false);
-  const [isApplyingGalPatchProposal, setIsApplyingGalPatchProposal] = useState(false);
-  const [generatedGalPatchProposal, setGeneratedGalPatchProposal] = useState<GalPatchProposal | null>(null);
   const [isReloadingAllMessages, setIsReloadingAllMessages] = useState(false);
-  const isGalPatchProposalControlled = galPatchProposal !== undefined;
-  const activeGalPatchProposal = isGalPatchProposalControlled ? (galPatchProposal ?? null) : generatedGalPatchProposal;
   const noRole = curRoleId <= 0;
-
-  useEffect(() => {
-    if (isGalPatchProposalControlled) {
-      return;
-    }
-
-    let ignore = false;
-    void galPatchProposalStore.getActive(String(roomId)).then((proposal) => {
-      if (ignore) {
-        return;
-      }
-      setGeneratedGalPatchProposal(proposal?.status === "draft" ? proposal : null);
-    });
-
-    return () => {
-      ignore = true;
-    };
-  }, [isGalPatchProposalControlled, roomId]);
-
-  const handleGalPatchProposalGenerated = useCallback((proposal: GalPatchProposal) => {
-    if (!isGalPatchProposalControlled) {
-      setGeneratedGalPatchProposal(proposal);
-    }
-  }, [isGalPatchProposalControlled]);
-
-  const handleGalPatchProposalApplied = useCallback((proposal: GalPatchProposal) => {
-    void galPatchProposalStore.updateStatus(proposal.proposalId, "accepted");
-    void galPatchProposalStore.setActive(proposal.roomId, null);
-    if (!isGalPatchProposalControlled) {
-      setGeneratedGalPatchProposal(current => current?.proposalId === proposal.proposalId ? null : current);
-    }
-    onGalPatchProposalApplied?.(proposal);
-  }, [isGalPatchProposalControlled, onGalPatchProposalApplied]);
-
-  const handleGalPatchProposalDiscard = useCallback((proposal: GalPatchProposal) => {
-    void galPatchProposalStore.updateStatus(proposal.proposalId, "discarded");
-    void galPatchProposalStore.setActive(proposal.roomId, null);
-    if (!isGalPatchProposalControlled) {
-      setGeneratedGalPatchProposal(current => current?.proposalId === proposal.proposalId ? null : current);
-    }
-    onGalPatchProposalDiscard?.(proposal);
-  }, [isGalPatchProposalControlled, onGalPatchProposalDiscard]);
 
   const {
     containsCommandRequestAllToken,
@@ -476,6 +484,133 @@ function RoomWindow({
     roomId,
     handleImportChatText,
   });
+  const loadRglRoleAvatarSources = useCallback(async () => {
+    const roleIds = Array.from(new Set(
+      roomAllRoles
+        .map(role => role.roleId)
+        .filter(roleId => typeof roleId === "number" && Number.isFinite(roleId) && roleId > 0),
+    ));
+    const avatarEntries = await Promise.all(roleIds.map(async (roleId) => {
+      const avatars = (await fetchRoleAvatarsWithCache(queryClient, roleId)).data ?? [];
+      return [roleId, avatars] as const;
+    }));
+    return Object.fromEntries(avatarEntries);
+  }, [queryClient, roomAllRoles]);
+
+  const loadRglImportSources = useCallback(async () => {
+    const avatarsByRoleId = await loadRglRoleAvatarSources();
+    const materialPackages = await queryClient.fetchQuery({
+      queryKey: rglMaterialImportPackagesQueryKey(spaceId),
+      queryFn: () => fetchAllSpaceMaterialPackagesForRglImport(spaceId),
+      staleTime: 10_000,
+    });
+
+    return {
+      avatarsByRoleId,
+      materialPackages,
+    };
+  }, [loadRglRoleAvatarSources, queryClient, spaceId]);
+
+  const handleImportRglLocalAssets = useCallback(async (files: FileList) => {
+    const selectedFiles = Array.from(files ?? []);
+    if (selectedFiles.length === 0) {
+      throw new Error("未选择本地素材目录");
+    }
+
+    const manifestFile = findReplayLocalAssetManifestFile(selectedFiles);
+    const rawManifest = await readReplayAssetManifestJsonFile(manifestFile, "本地素材清单");
+    const uploadedManifest = await buildUploadedReplayAssetManifest(rawManifest, createReplayAssetManifestUploadDepsFromUploadUtils({
+      filesByPath: buildReplayAssetUploadFileMap(selectedFiles),
+      uploadUtils: rglAssetUploadUtilsRef.current,
+    }));
+    const applied = await applyUploadedReplayAssetManifest(uploadedManifest, {
+      spaceId,
+      loadRoleSources: async () => ({
+        roles: roomAllRoles,
+        avatarsByRoleId: await loadRglRoleAvatarSources(),
+      }),
+      materialDeps: {
+        findPackageByExactName: findSpaceMaterialPackageByExactNameForRglImport,
+        createPackage: request => tuanchat.spaceMaterialPackageController.createPackage(request),
+        updatePackage: request => tuanchat.spaceMaterialPackageController.updatePackage(request),
+      },
+      roleDeps: {
+        roomId,
+        addRoomRole: request => tuanchat.roomRoleController.addRole(request),
+        createRole: request => tuanchat.roleController.createRole(request),
+        setRoleAvatar: request => tuanchat.avatarController.setRoleAvatar(request),
+        updateRole: request => tuanchat.roleController.updateRole(request),
+        updateRoleAvatar: request => tuanchat.avatarController.updateRoleAvatar(request),
+      },
+    });
+    if (applied.material) {
+      await refreshRglMaterialImportSourceCaches(queryClient, spaceId);
+    }
+    if (applied.role) {
+      await refreshRglRoleAvatarImportSourceCaches(queryClient, applied.role.entries);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: roomRoleQueryKey(roomId) }),
+        queryClient.invalidateQueries({ queryKey: roomNpcRoleQueryKey(roomId) }),
+        queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
+        queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] }),
+        queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] }),
+      ]);
+    }
+
+    return {
+      ...(applied.material ? { material: applied.material } : {}),
+      ...(applied.role ? { role: applied.role.stats } : {}),
+    };
+  }, [loadRglRoleAvatarSources, queryClient, roomAllRoles, roomId, spaceId]);
+
+  const handleImportRglMaterialAssets = useCallback(async (file: File) => {
+    if (!file) {
+      throw new Error("未选择通用素材 manifest");
+    }
+
+    const rawManifest = await readReplayAssetManifestJsonFile(file, "通用素材 manifest");
+    const replayPackage = buildReplayMaterialPackageFromAssetManifest(rawManifest);
+    const result = await applyReplayMaterialPackageImport(spaceId, replayPackage, {
+      findPackageByExactName: findSpaceMaterialPackageByExactNameForRglImport,
+      createPackage: request => tuanchat.spaceMaterialPackageController.createPackage(request),
+      updatePackage: request => tuanchat.spaceMaterialPackageController.updatePackage(request),
+    });
+
+    await refreshRglMaterialImportSourceCaches(queryClient, spaceId);
+    return result;
+  }, [queryClient, spaceId]);
+
+  const handleImportRglRoleAssets = useCallback(async (file: File) => {
+    if (!file) {
+      throw new Error("未选择角色素材 manifest");
+    }
+
+    const rawManifest = await readReplayAssetManifestJsonFile(file, "角色素材 manifest");
+    const avatarsByRoleId = await loadRglRoleAvatarSources();
+    const plan = buildReplayRoleAvatarImportPlanFromAssetManifest(rawManifest, {
+      roles: roomAllRoles,
+      avatarsByRoleId,
+    });
+    const result = await applyReplayRoleAvatarImportPlan(plan, {
+      roomId,
+      addRoomRole: request => tuanchat.roomRoleController.addRole(request),
+      createRole: request => tuanchat.roleController.createRole(request),
+      setRoleAvatar: request => tuanchat.avatarController.setRoleAvatar(request),
+      updateRole: request => tuanchat.roleController.updateRole(request),
+      updateRoleAvatar: request => tuanchat.avatarController.updateRoleAvatar(request),
+    });
+
+    await refreshRglRoleAvatarImportSourceCaches(queryClient, result.entries);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: roomRoleQueryKey(roomId) }),
+      queryClient.invalidateQueries({ queryKey: roomNpcRoleQueryKey(roomId) }),
+      queryClient.invalidateQueries({ queryKey: ["getUserRoles"] }),
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByType"] }),
+      queryClient.invalidateQueries({ queryKey: ["getUserRolesByTypes"] }),
+    ]);
+
+    return result.stats;
+  }, [loadRglRoleAvatarSources, queryClient, roomAllRoles, roomId]);
   const [importInitialRawText, setImportInitialRawText] = useState<string | undefined>();
   const [pendingImportTextPaste, setPendingImportTextPaste] = useState<{
     insertAsPlainText: () => void;
@@ -997,81 +1132,8 @@ function RoomWindow({
     }
   }, [roomId, queryClient, backgroundUrl]);
 
-  const handleApplyGalPatchProposal = useCallback(async (
-    proposal: GalPatchProposal,
-    options?: GalPatchProposalApplyOptions,
-  ) => {
-    if (isApplyingGalPatchProposal) {
-      return;
-    }
-    if (proposal.status !== "draft") {
-      toast.error("只能应用草稿状态的 proposal");
-      return;
-    }
-
-    const currentMessages = (mainHistoryMessages ?? []).map(message => message.message);
-    const plan = buildGalPatchMutationPlan({
-      proposal,
-      currentMessages,
-      acceptedMessageIds: options?.acceptedMessageIds,
-    });
-
-    const totalChangeCount = plan.insertMessages.length + plan.updateMessages.length + plan.deleteMessageIds.length;
-    if (options?.acceptedMessageIds && options.acceptedMessageIds.length === 0) {
-      toast.error("请至少接受一行改动");
-      return;
-    }
-    if (totalChangeCount === 0) {
-      toast("没有可应用的变更", { icon: "ℹ️" });
-      handleGalPatchProposalApplied(proposal);
-      return;
-    }
-
-    setIsApplyingGalPatchProposal(true);
-    const toastId = toast.loading("正在应用 proposal...");
-    try {
-      const result = await executeGalPatchMutationPlan(plan, {
-        patchMessages: async (operations, mutationMeta) => {
-          const response = await patchMessagesMutation.mutateAsync({ operations, mutationMeta });
-          return response?.data ?? [];
-        },
-      });
-      handleGalPatchProposalApplied(proposal);
-      toast.success(`已应用：新增 ${result.inserted}，修改 ${result.updated}，删除 ${result.deleted}`, { id: toastId });
-      if (isRealtimeRenderActive) {
-        void rerenderHistoryInWebGAL();
-      }
-    }
-    catch (error) {
-      console.error("应用 Galgame proposal 失败", error);
-      toast.error("应用 proposal 失败，已保留当前预览", { id: toastId });
-    }
-    finally {
-      setIsApplyingGalPatchProposal(false);
-    }
-  }, [
-    isApplyingGalPatchProposal,
-    isRealtimeRenderActive,
-    mainHistoryMessages,
-    handleGalPatchProposalApplied,
-    rerenderHistoryInWebGAL,
-    patchMessagesMutation,
-  ]);
-
   const roomName = roomHeaderOverride?.title ?? room?.name;
   const spaceName = space?.name;
-  const galAuthoringLocalSnapshot = React.useMemo((): GalAuthoringLocalSnapshot => ({
-    ...(space ? { space } : {}),
-    ...(room ? { room } : {}),
-    ...(!chatHistory?.loading
-      ? {
-          messages: mainHistoryMessages
-            .map(message => message.message)
-            .filter((message): message is Message => Boolean(message)),
-        }
-      : {}),
-    ...(isRoleDataReady ? { roomRoles: roomAllRoles } : {}),
-  }), [chatHistory?.loading, isRoleDataReady, mainHistoryMessages, room, roomAllRoles, space]);
 
   const chatFrameProps = React.useMemo(() => ({
     virtuosoRef,
@@ -1087,18 +1149,10 @@ function RoomWindow({
     onCopyMessageToClueFolder: copyMessageToClueFolder,
     onExportPremiere: handleExportPremiere,
     showFullMessageDiff: isFullMessageDiffOpen,
-    galPatchProposal: activeGalPatchProposal,
-    isApplyingGalPatchProposal,
-    onApplyGalPatchProposal: handleApplyGalPatchProposal,
-    onDiscardGalPatchProposal: handleGalPatchProposalDiscard,
   }), [
-    activeGalPatchProposal,
-    handleGalPatchProposalDiscard,
-    handleApplyGalPatchProposal,
     handleExecuteCommandRequest,
     handleExportPremiere,
     isFullMessageDiffOpen,
-    isApplyingGalPatchProposal,
     isCommandRequestConsumed,
     setBackgroundUrl,
     setCombatVisualActive,
@@ -1204,16 +1258,18 @@ function RoomWindow({
               hideSecondaryPanels={hideSecondaryPanels}
               onClearAndReloadAllMessages={handleClearAndReloadAllMessages}
               isReloadingAllMessages={isReloadingAllMessages}
-              galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
-              onGalPatchProposalGenerated={handleGalPatchProposalGenerated}
             />
           </RoomDocRefDropLayer>
           {!viewMode && (
             <RoomWindowOverlays
               isImportChatTextOpen={canImportChatText && isImportChatTextOpen}
               setIsImportChatTextOpen={handleSetImportChatTextOpen}
-              availableRoles={roomRolesThatUserOwn}
+              availableRoles={roomAllRoles}
               importInitialRawText={importInitialRawText}
+              loadRglImportSources={loadRglImportSources}
+              onImportRglLocalAssets={handleImportRglLocalAssets}
+              onImportRglMaterialAssets={handleImportRglMaterialAssets}
+              onImportRglRoleAssets={handleImportRglRoleAssets}
               onImportChatText={handleImportChatItems}
               onOpenRoleAddWindow={openRoleAddWindow}
               onOpenNpcAddWindow={spaceContext.isSpaceOwner ? openNpcAddWindow : undefined}

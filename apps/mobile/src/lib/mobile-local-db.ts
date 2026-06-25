@@ -19,6 +19,7 @@ export const MOBILE_LOCAL_DB_NAME = "tuanchat-local.db";
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 let driverPromise: Promise<LocalDbSqliteDriver> | null = null;
 let operationQueue: Promise<unknown> = Promise.resolve();
+let transactionDepth = 0;
 let roomMessageRepositoryPromise: Promise<RoomMessageRepository> | null = null;
 let querySnapshotRepositoryPromise: Promise<QuerySnapshotRepository> | null = null;
 let keyValueRepositoryPromise: Promise<MobileKeyValueRepository> | null = null;
@@ -30,6 +31,10 @@ function enqueue<T>(task: () => Promise<T>): Promise<T> {
   return result;
 }
 
+function enqueueOrRun<T>(task: () => Promise<T>): Promise<T> {
+  return transactionDepth > 0 ? task() : enqueue(task);
+}
+
 export async function openMobileLocalDb(): Promise<SQLite.SQLiteDatabase> {
   dbPromise ??= SQLite.openDatabaseAsync(MOBILE_LOCAL_DB_NAME);
   return dbPromise;
@@ -39,9 +44,29 @@ export async function getMobileLocalDbDriver(): Promise<LocalDbSqliteDriver> {
   driverPromise ??= (async () => {
     const db = await openMobileLocalDb();
     return {
-      all: (sql, params = []) => enqueue(() => db.getAllAsync(sql, ...params)),
-      exec: sql => enqueue(() => db.execAsync(sql)),
-      run: (sql, params = []) => enqueue(() => db.runAsync(sql, ...params).then(() => undefined)),
+      all: (sql, params = []) => enqueueOrRun(() => db.getAllAsync(sql, ...params)),
+      exec: sql => enqueueOrRun(() => db.execAsync(sql)),
+      run: (sql, params = []) => enqueueOrRun(() => db.runAsync(sql, ...params).then(() => undefined)),
+      transaction: task => enqueue(async () => {
+        let result: Awaited<ReturnType<typeof task>>;
+        const runTask = async () => {
+          transactionDepth += 1;
+          try {
+            result = await task();
+          }
+          finally {
+            transactionDepth -= 1;
+          }
+        };
+
+        if (db.withTransactionAsync) {
+          await db.withTransactionAsync(runTask);
+        }
+        else {
+          await runTask();
+        }
+        return result!;
+      }),
     };
   })();
   return driverPromise;
@@ -71,6 +96,7 @@ export function resetMobileLocalDbForTests() {
   dbPromise = null;
   driverPromise = null;
   operationQueue = Promise.resolve();
+  transactionDepth = 0;
   roomMessageRepositoryPromise = null;
   querySnapshotRepositoryPromise = null;
   keyValueRepositoryPromise = null;

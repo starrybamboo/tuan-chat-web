@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
   listContent: {
     gap: Spacing.md,
     padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
   },
   clueCard: {
     borderRadius: Radius.md,

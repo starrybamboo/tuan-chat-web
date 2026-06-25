@@ -3,7 +3,7 @@ import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import { router } from "expo-router";
 import { Check, CheckCircle, DiceSix, MagnifyingGlass, Trash, UserCircle, X } from "phosphor-react-native";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1 },
   content: { gap: Spacing.xl, paddingBottom: 120, paddingHorizontal: Spacing.xxl, paddingTop: Spacing.xxxl },
+  listHeader: { gap: Spacing.xl },
   hero: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   searchToolbar: {
     alignItems: "center",
@@ -266,6 +267,14 @@ function matchesRoleSearch(role: UserRole, keyword: string) {
   ].some(value => (value ?? "").toLocaleLowerCase().includes(keyword));
 }
 
+type RoleListRow =
+  | { key: "pending"; type: "pending" }
+  | { key: "dice-header"; type: "diceHeader" }
+  | { key: "dice-empty"; type: "diceEmpty" }
+  | { key: "normal-header"; type: "normalHeader" }
+  | { key: "normal-empty"; type: "normalEmpty" }
+  | { key: string; role: UserRole; type: "diceRole" | "normalRole" };
+
 export default function RoleScreen() {
   const theme = useTheme();
   const { session } = useAuthSession();
@@ -295,13 +304,13 @@ export default function RoleScreen() {
   const [selectedRoleIds, setSelectedRoleIds] = useState<Set<number>>(() => new Set());
   const selectedRoleCount = selectedRoleIds.size;
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = useCallback(() => {
     router.push("/role-edit");
-  };
+  }, []);
 
-  const handleOpenTrash = () => {
+  const handleOpenTrash = useCallback(() => {
     router.push("/role-trash" as any);
-  };
+  }, []);
 
   const toggleRoleSelection = useCallback((roleId: number) => {
     setSelectedRoleIds((prev) => {
@@ -361,176 +370,224 @@ export default function RoleScreen() {
   const toggleRoles = useCallback(() => setRolesCollapsed(v => !v), []);
   const toggleDice = useCallback(() => setDiceCollapsed(v => !v), []);
 
+  const roleListRows = useMemo<RoleListRow[]>(() => {
+    if (myRolesQuery.isPending) {
+      return [{ key: "pending", type: "pending" }];
+    }
+
+    const rows: RoleListRow[] = [];
+    if (hasDiceRoles) {
+      rows.push({ key: "dice-header", type: "diceHeader" });
+      if (!diceCollapsed || isSearching) {
+        if (diceRoles.length === 0) {
+          rows.push({ key: "dice-empty", type: "diceEmpty" });
+        }
+        else {
+          diceRoles.forEach(role => rows.push({ key: `dice:${role.roleId}`, role, type: "diceRole" }));
+        }
+      }
+    }
+
+    rows.push({ key: "normal-header", type: "normalHeader" });
+    if (!rolesCollapsed || isSearching) {
+      if (normalRoles.length === 0) {
+        rows.push({ key: "normal-empty", type: "normalEmpty" });
+      }
+      else {
+        normalRoles.forEach(role => rows.push({ key: `normal:${role.roleId}`, role, type: "normalRole" }));
+      }
+    }
+    return rows;
+  }, [diceCollapsed, diceRoles, hasDiceRoles, isSearching, myRolesQuery.isPending, normalRoles, rolesCollapsed]);
+
+  const renderListHeader = useCallback(() => (
+    <View style={styles.listHeader}>
+      <View style={styles.hero}>
+        <View>
+          <ThemedText type="title">角色</ThemedText>
+          <ThemedText themeColor="textSecondary">我创建的所有角色</ThemedText>
+        </View>
+        <Pressable onPress={handleOpenCreate} style={[styles.createButton, { borderColor: theme.accent }]}>
+          <ThemedText themeColor="accent" type="small">+ 创建</ThemedText>
+        </Pressable>
+      </View>
+
+      <View style={styles.searchToolbar}>
+        <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+          <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
+          <TextInput
+            onChangeText={setSearchText}
+            placeholder="搜索角色、骰娘"
+            placeholderTextColor={theme.textSecondary}
+            style={[styles.searchInput, { color: theme.text }]}
+            value={searchText}
+          />
+          {searchText.length > 0
+            ? (
+                <Pressable
+                  accessibilityLabel="清空搜索"
+                  accessibilityRole="button"
+                  onPress={() => setSearchText("")}
+                  style={styles.clearSearchButton}
+                >
+                  <X color={theme.textSecondary} size={16} weight="bold" />
+                </Pressable>
+              )
+            : null}
+        </View>
+        {selectionMode
+          ? (
+              <View style={styles.toolbarActions}>
+                <Pressable
+                  accessibilityLabel="删除选中角色"
+                  accessibilityRole="button"
+                  disabled={selectedRoleCount === 0 || deleteRoleMutation.isPending}
+                  onPress={handleBatchDelete}
+                  style={[
+                    styles.toolbarActionButton,
+                    {
+                      backgroundColor: selectedRoleCount === 0 || deleteRoleMutation.isPending ? theme.backgroundElement : theme.dangerMuted,
+                      borderColor: selectedRoleCount === 0 || deleteRoleMutation.isPending ? theme.border : theme.danger,
+                      opacity: selectedRoleCount === 0 || deleteRoleMutation.isPending ? 0.5 : 1,
+                    },
+                  ]}
+                >
+                  {deleteRoleMutation.isPending
+                    ? <ActivityIndicator color={theme.danger} size="small" />
+                    : <Trash color={selectedRoleCount === 0 ? theme.textSecondary : theme.danger} size={20} weight="bold" />}
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="退出选择模式"
+                  accessibilityRole="button"
+                  onPress={exitSelectionMode}
+                  style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                >
+                  <X color={theme.text} size={20} weight="bold" />
+                </Pressable>
+              </View>
+            )
+          : (
+              <View style={styles.toolbarActions}>
+                <Pressable
+                  accessibilityLabel="打开角色回收站"
+                  accessibilityRole="button"
+                  onPress={handleOpenTrash}
+                  style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                >
+                  <Trash color={theme.textSecondary} size={20} weight="bold" />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="进入选择模式"
+                  accessibilityRole="button"
+                  onPress={enterSelectionMode}
+                  style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+                >
+                  <CheckCircle color={theme.text} size={24} weight="bold" />
+                </Pressable>
+              </View>
+            )}
+      </View>
+    </View>
+  ), [
+    deleteRoleMutation.isPending,
+    enterSelectionMode,
+    exitSelectionMode,
+    handleBatchDelete,
+    handleOpenCreate,
+    handleOpenTrash,
+    searchText,
+    selectedRoleCount,
+    selectionMode,
+    theme,
+  ]);
+
+  const renderRoleListRow = useCallback(({ item }: { item: RoleListRow }) => {
+    if (item.type === "pending") {
+      return (
+        <View style={styles.stateBlock}>
+          <ActivityIndicator color={theme.accent} />
+        </View>
+      );
+    }
+    if (item.type === "diceHeader") {
+      return (
+        <RoleSectionHeader
+          collapsed={diceCollapsed}
+          count={diceRoles.length}
+          Icon={DiceSix}
+          dividerColor={theme.border}
+          iconColor={theme.textSecondary}
+          onPress={toggleDice}
+          title="骰娘"
+        />
+      );
+    }
+    if (item.type === "diceEmpty") {
+      return (
+        <View style={[styles.emptyCard, { backgroundColor: diceCardBackground, borderColor: theme.border }]}>
+          <ThemedText themeColor="textSecondary" type="small">无匹配骰娘</ThemedText>
+        </View>
+      );
+    }
+    if (item.type === "normalHeader") {
+      return (
+        <RoleSectionHeader
+          collapsed={rolesCollapsed}
+          count={normalRoles.length}
+          Icon={UserCircle}
+          dividerColor={theme.border}
+          iconColor={theme.textSecondary}
+          onPress={toggleRoles}
+          title="角色"
+        />
+      );
+    }
+    if (item.type === "normalEmpty") {
+      return (
+        <View style={[styles.emptyCard, { backgroundColor: roleCardBackground, borderColor: theme.border }]}>
+          <ThemedText themeColor="textSecondary" type="small">{isSearching ? "无匹配角色" : "暂无角色"}</ThemedText>
+        </View>
+      );
+    }
+
+    const isDiceRole = item.type === "diceRole";
+    return (
+      <RoleListItem
+        backgroundColor={isDiceRole ? diceCardBackground : roleCardBackground}
+        borderColor={theme.border}
+        selected={selectedRoleIds.has(item.role.roleId)}
+        selectionMode={selectionMode}
+        role={item.role}
+        onPress={() => handleOpenEdit(item.role)}
+      />
+    );
+  }, [
+    diceCardBackground,
+    diceCollapsed,
+    diceRoles.length,
+    handleOpenEdit,
+    isSearching,
+    normalRoles.length,
+    roleCardBackground,
+    rolesCollapsed,
+    selectedRoleIds,
+    selectionMode,
+    theme,
+    toggleDice,
+    toggleRoles,
+  ]);
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.hero}>
-            <View>
-              <ThemedText type="title">角色</ThemedText>
-              <ThemedText themeColor="textSecondary">我创建的所有角色</ThemedText>
-            </View>
-            <Pressable onPress={handleOpenCreate} style={[styles.createButton, { borderColor: theme.accent }]}>
-              <ThemedText themeColor="accent" type="small">+ 创建</ThemedText>
-            </Pressable>
-          </View>
-
-          <View style={styles.searchToolbar}>
-            <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <MagnifyingGlass color={theme.textSecondary} size={18} weight="bold" />
-              <TextInput
-                onChangeText={setSearchText}
-                placeholder="搜索角色、骰娘"
-                placeholderTextColor={theme.textSecondary}
-                style={[styles.searchInput, { color: theme.text }]}
-                value={searchText}
-              />
-              {searchText.length > 0
-                ? (
-                    <Pressable
-                      accessibilityLabel="清空搜索"
-                      accessibilityRole="button"
-                      onPress={() => setSearchText("")}
-                      style={styles.clearSearchButton}
-                    >
-                      <X color={theme.textSecondary} size={16} weight="bold" />
-                    </Pressable>
-                  )
-                : null}
-            </View>
-            {selectionMode
-              ? (
-                  <View style={styles.toolbarActions}>
-                    <Pressable
-                      accessibilityLabel="删除选中角色"
-                      accessibilityRole="button"
-                      disabled={selectedRoleCount === 0 || deleteRoleMutation.isPending}
-                      onPress={handleBatchDelete}
-                      style={[
-                        styles.toolbarActionButton,
-                        {
-                          backgroundColor: selectedRoleCount === 0 || deleteRoleMutation.isPending ? theme.backgroundElement : theme.dangerMuted,
-                          borderColor: selectedRoleCount === 0 || deleteRoleMutation.isPending ? theme.border : theme.danger,
-                          opacity: selectedRoleCount === 0 || deleteRoleMutation.isPending ? 0.5 : 1,
-                        },
-                      ]}
-                    >
-                      {deleteRoleMutation.isPending
-                        ? <ActivityIndicator color={theme.danger} size="small" />
-                        : <Trash color={selectedRoleCount === 0 ? theme.textSecondary : theme.danger} size={20} weight="bold" />}
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel="退出选择模式"
-                      accessibilityRole="button"
-                      onPress={exitSelectionMode}
-                      style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-                    >
-                      <X color={theme.text} size={20} weight="bold" />
-                    </Pressable>
-                  </View>
-                )
-              : (
-                  <View style={styles.toolbarActions}>
-                    <Pressable
-                      accessibilityLabel="打开角色回收站"
-                      accessibilityRole="button"
-                      onPress={handleOpenTrash}
-                      style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-                    >
-                      <Trash color={theme.textSecondary} size={20} weight="bold" />
-                    </Pressable>
-                    <Pressable
-                      accessibilityLabel="进入选择模式"
-                      accessibilityRole="button"
-                      onPress={enterSelectionMode}
-                      style={[styles.toolbarActionButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
-                    >
-                      <CheckCircle color={theme.text} size={24} weight="bold" />
-                    </Pressable>
-                  </View>
-                )}
-          </View>
-
-          {myRolesQuery.isPending
-            ? (
-                <View style={styles.stateBlock}>
-                  <ActivityIndicator color={theme.accent} />
-                </View>
-              )
-            : (
-                <>
-                  {hasDiceRoles
-                    ? (
-                        <View style={styles.roleSection}>
-                          <RoleSectionHeader
-                            collapsed={diceCollapsed}
-                            count={diceRoles.length}
-                            Icon={DiceSix}
-                            dividerColor={theme.border}
-                            iconColor={theme.textSecondary}
-                            onPress={toggleDice}
-                            title="骰娘"
-                          />
-                          {(!diceCollapsed || isSearching) && (
-                            diceRoles.length === 0
-                              ? (
-                                  <View style={[styles.emptyCard, { backgroundColor: diceCardBackground, borderColor: theme.border }]}>
-                                    <ThemedText themeColor="textSecondary" type="small">无匹配骰娘</ThemedText>
-                                  </View>
-                                )
-                              : (
-                                  diceRoles.map(role => (
-                                    <RoleListItem
-                                      key={role.roleId}
-                                      backgroundColor={diceCardBackground}
-                                      borderColor={theme.border}
-                                      selected={selectedRoleIds.has(role.roleId)}
-                                      selectionMode={selectionMode}
-                                      role={role}
-                                      onPress={() => handleOpenEdit(role)}
-                                    />
-                                  ))
-                                )
-                          )}
-                        </View>
-                      )
-                    : null}
-
-                  <View style={styles.roleSection}>
-                    <RoleSectionHeader
-                      collapsed={rolesCollapsed}
-                      count={normalRoles.length}
-                      Icon={UserCircle}
-                      dividerColor={theme.border}
-                      iconColor={theme.textSecondary}
-                      onPress={toggleRoles}
-                      title="角色"
-                    />
-                    {(!rolesCollapsed || isSearching) && (
-                      normalRoles.length === 0
-                        ? (
-                            <View style={[styles.emptyCard, { backgroundColor: roleCardBackground, borderColor: theme.border }]}>
-                              <ThemedText themeColor="textSecondary" type="small">{isSearching ? "无匹配角色" : "暂无角色"}</ThemedText>
-                            </View>
-                          )
-                        : (
-                            normalRoles.map(role => (
-                              <RoleListItem
-                                key={role.roleId}
-                                backgroundColor={roleCardBackground}
-                                borderColor={theme.border}
-                                selected={selectedRoleIds.has(role.roleId)}
-                                selectionMode={selectionMode}
-                                role={role}
-                                onPress={() => handleOpenEdit(role)}
-                              />
-                            ))
-                          )
-                    )}
-                  </View>
-                </>
-              )}
-        </ScrollView>
+        <FlatList
+          contentContainerStyle={styles.content}
+          data={roleListRows}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={item => item.key}
+          ListHeaderComponent={renderListHeader}
+          renderItem={renderRoleListRow}
+        />
       </SafeAreaView>
     </ThemedView>
   );

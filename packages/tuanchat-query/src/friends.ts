@@ -36,6 +36,20 @@ export function getPendingReceivedFriendRequests(
   );
 }
 
+function removeFriendRequestFromList(old: unknown, friendReqId: number) {
+  if (!Array.isArray(old)) {
+    return old;
+  }
+  return old.filter((request: FriendReqResponse) => request?.id !== friendReqId);
+}
+
+function reconcileFriendRequestPageCaches(queryClient: ReturnType<typeof useQueryClient>, friendReqId: number) {
+  queryClient.setQueriesData(
+    { queryKey: ["friendRequests"] },
+    old => removeFriendRequestFromList(old, friendReqId),
+  );
+}
+
 export function useFriendsQuery(
   client: FriendClient,
   request: FriendListRequest = { pageNo: 1, pageSize: 100 },
@@ -101,11 +115,7 @@ export function useAcceptFriendRequestMutation(client: FriendClient) {
     onMutate: async (friendReqId) => {
       await queryClient.cancelQueries({ queryKey: ["friendRequests"] });
       const previousData = queryClient.getQueriesData({ queryKey: ["friendRequests"] });
-      queryClient.setQueriesData({ queryKey: ["friendRequests"] }, (old: any) => {
-        if (!Array.isArray(old))
-          return old;
-        return old.filter((r: any) => r?.id !== friendReqId);
-      });
+      reconcileFriendRequestPageCaches(queryClient, friendReqId);
       return { previousData };
     },
     onError: (_err, _vars, context) => {
@@ -115,7 +125,12 @@ export function useAcceptFriendRequestMutation(client: FriendClient) {
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_result, friendReqId) => {
+      reconcileFriendRequestPageCaches(queryClient, friendReqId);
+      queryClient.invalidateQueries({ queryKey: ["friends"] });
+      queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["friends"] });
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
     },
@@ -131,11 +146,7 @@ export function useRejectFriendRequestMutation(client: FriendClient) {
     onMutate: async (friendReqId) => {
       await queryClient.cancelQueries({ queryKey: ["friendRequests"] });
       const previousData = queryClient.getQueriesData({ queryKey: ["friendRequests"] });
-      queryClient.setQueriesData({ queryKey: ["friendRequests"] }, (old: any) => {
-        if (!Array.isArray(old))
-          return old;
-        return old.filter((r: any) => r?.id !== friendReqId);
-      });
+      reconcileFriendRequestPageCaches(queryClient, friendReqId);
       return { previousData };
     },
     onError: (_err, _vars, context) => {
@@ -145,7 +156,11 @@ export function useRejectFriendRequestMutation(client: FriendClient) {
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_result, friendReqId) => {
+      reconcileFriendRequestPageCaches(queryClient, friendReqId);
+      queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["friendRequests"] });
     },
   });

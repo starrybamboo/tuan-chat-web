@@ -47,6 +47,8 @@ function RoomHeaderBarImpl({
 }: RoomHeaderBarProps) {
   const sideDrawerState = useSideDrawerStore(state => state.state);
   const setSideDrawerState = useSideDrawerStore(state => state.setState);
+  const webgalOpen = useSideDrawerStore(state => state.webgalOpen);
+  const setWebgalOpen = useSideDrawerStore(state => state.setWebgalOpen);
   const useChatBubbleStyle = useRoomPreferenceStore(state => state.useChatBubbleStyle);
   const toggleUseChatBubbleStyle = useRoomPreferenceStore(state => state.toggleUseChatBubbleStyle);
   const isMobile = getScreenSize() === "sm";
@@ -55,7 +57,7 @@ function RoomHeaderBarImpl({
   const [isClearReloadConfirmOpen, setIsClearReloadConfirmOpen] = React.useState(false);
   const [isMobileToolsMenuOpen, setIsMobileToolsMenuOpen] = React.useState(false);
   const mobileToolsMenuRef = React.useRef<HTMLDivElement | null>(null);
-  const hasSideDrawerOpen = sideDrawerState !== "none";
+  const hasSideDrawerOpen = sideDrawerState !== "none" || webgalOpen;
   const canUseDevTools = Boolean(import.meta.env?.DEV) || import.meta.env.MODE === "test";
   const canClearAndReloadMessages = canUseDevTools && Boolean(onClearAndReloadAllMessages);
   const roomDescriptionPreview = room?.description?.trim() || "暂无房间描述";
@@ -94,6 +96,7 @@ function RoomHeaderBarImpl({
     // 语义对齐 QQ：在“成员/角色/跑团工具”等右侧面板中，返回应先回到群聊主聊天。
     if (hasSideDrawerOpen) {
       setSideDrawerState("none");
+      setWebgalOpen(false);
       blurActiveElement();
       return;
     }

@@ -25,6 +25,7 @@ if ([string]::IsNullOrWhiteSpace($architecturesName)) {
 }
 
 $variantOutputName = $variantName.ToLowerInvariant()
+$apkOutputDir = Join-Path $config.AndroidDir "app\build\outputs\apk\$variantOutputName"
 
 Write-Host "Android package build is starting..."
 Write-Host "  Workspace: $($config.WorkspaceRoot)"
@@ -42,6 +43,11 @@ Write-AndroidDevLocalProperties -Config $config
 $gradleWrapper = Join-Path $config.AndroidDir "gradlew.bat"
 if (-not (Test-Path $gradleWrapper)) {
     throw "gradlew.bat not found: $gradleWrapper"
+}
+
+if (Test-Path $apkOutputDir) {
+    # Avoid reporting a stale APK when Gradle decides a task is up-to-date.
+    Get-ChildItem -LiteralPath $apkOutputDir -Filter "*.apk" -File | Remove-Item -Force
 }
 
 Push-Location $config.AndroidDir
@@ -74,7 +80,6 @@ if ($gradleExitCode -ne 0) {
     exit $gradleExitCode
 }
 
-$apkOutputDir = Join-Path $config.AndroidDir "app\build\outputs\apk\$variantOutputName"
 $apkFiles = @()
 if (Test-Path $apkOutputDir) {
     $apkFiles = @(Get-ChildItem -LiteralPath $apkOutputDir -Filter "*.apk" -File | Sort-Object LastWriteTime -Descending)
@@ -83,6 +88,33 @@ if (Test-Path $apkOutputDir) {
 if ($apkFiles.Count -eq 0) {
     Write-Error "Could not find the generated APK."
     exit 1
+}
+
+$appJsonPath = Join-Path $config.MobileDir "app.json"
+$appJson = Get-Content -LiteralPath $appJsonPath -Raw -Encoding utf8 | ConvertFrom-Json
+$expectedVersionName = [string]$appJson.expo.version
+$expectedVersionCode = [string]$appJson.expo.android.versionCode
+
+$aapt2 = Get-ChildItem -LiteralPath (Join-Path $config.BuildAndroidSdkRoot "build-tools") -Recurse -Filter "aapt2.exe" |
+    Sort-Object FullName -Descending |
+    Select-Object -First 1
+if ($null -eq $aapt2) {
+    throw "aapt2.exe not found under $($config.BuildAndroidSdkRoot)\build-tools"
+}
+
+foreach ($apkFile in $apkFiles) {
+    $badging = (& $aapt2.FullName "dump" "badging" $apkFile.FullName | Select-Object -First 1)
+    if ($badging -notmatch "^package:\s+name='[^']+'\s+versionCode='([^']+)'\s+versionName='([^']+)'") {
+        throw "Could not read APK version from: $($apkFile.FullName)"
+    }
+
+    $actualVersionCode = $Matches[1]
+    $actualVersionName = $Matches[2]
+    if ($actualVersionCode -ne $expectedVersionCode -or $actualVersionName -ne $expectedVersionName) {
+        throw "Generated APK version mismatch. Expected versionCode=$expectedVersionCode versionName=$expectedVersionName, got versionCode=$actualVersionCode versionName=$actualVersionName."
+    }
+
+    Write-Host "APK Version: versionCode=$actualVersionCode versionName=$actualVersionName"
 }
 
 Write-Host "Android build finished successfully!"

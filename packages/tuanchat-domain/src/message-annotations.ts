@@ -9,27 +9,27 @@ export const ANNOTATION_IDS = {
   SE: "sys:se",
 } as const;
 
-type SceneEffectName = "rain" | "snow" | "sakura" | "none";
+type SceneEffectName = "rain" | "snow" | "cherryBlossoms" | "none";
 
 const SCENE_EFFECT_LABEL_MAP: Record<SceneEffectName, string> = {
   none: "停止特效",
   rain: "下雨",
-  sakura: "樱花",
+  cherryBlossoms: "樱花",
   snow: "下雪",
 };
 
 const SCENE_EFFECT_NAME_BY_ANNOTATION: Record<string, SceneEffectName> = {
   [ANNOTATION_IDS.SCENE_EFFECT_RAIN]: "rain",
-  [ANNOTATION_IDS.SCENE_EFFECT_SAKURA]: "sakura",
+  [ANNOTATION_IDS.SCENE_EFFECT_SAKURA]: "cherryBlossoms",
   [ANNOTATION_IDS.SCENE_EFFECT_SNOW]: "snow",
   [ANNOTATION_IDS.SCENE_EFFECT_STOP]: "none",
 };
 
 const SCENE_EFFECT_ALIAS_MAP: Record<string, SceneEffectName> = {
-  cherryblossoms: "sakura",
+  cherryblossoms: "cherryBlossoms",
   none: "none",
   rain: "rain",
-  sakura: "sakura",
+  sakura: "cherryBlossoms",
   snow: "snow",
   stop: "none",
 };

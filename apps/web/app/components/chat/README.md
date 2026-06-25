@@ -113,8 +113,8 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/drawerPreferenceStore.ts
 
-- userDrawerWidth / roleDrawerWidth / copilotDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / webgalDrawerWidth
-- 对应 localStorage key 与字段同名（保持兼容）
+- userDrawerWidth / roleDrawerWidth / initiativeDrawerWidth / mapDrawerWidth / exportDrawerWidth / subRoomWindowWidth / webgalRunSplitRatio
+- 对应 localStorage key 与字段同名；旧 `webgalDrawerWidth` 会迁移为 `subRoomWindowWidth`
 
 相关组件：
 
@@ -140,7 +140,8 @@ RealtimeRenderer 转换为 WebGAL 场景
 
 文件：app/components/chat/stores/sideDrawerStore.ts
 
-- state：当前右侧抽屉（none/user/role/search/initiative/map/export/webgal）
+- state：当前右侧抽屉（none/user/role/search/initiative/map/export）；跑团抽屉使用 map/combat/clue/initiative/state
+- webgalOpen：WebGAL 预览是否打开，可与跑团抽屉上下分屏显示
 - 仅在前端内存中维护，不再写入 URL
 
 ### 7) chatInputUiStore：输入框编辑态快照
@@ -617,7 +618,7 @@ export interface ChatInputAreaHandle {
    - WebGAL 联动模式开关
    - 自动回复模式开关
    - 立绘位置设置：左、中、右
-   - 对话参数：-notend（不停顿）、-concat（续接）
+   - 对话参数：-notend（自动续播下句）、-concat（续接上文）、-next（立即执行后续）
 
 4. **AI 重写功能**：
    ```typescript
@@ -944,8 +945,9 @@ function MyComponent() {
    `${roleName}:${content} -voice=${ttsUrl};`
    
    // 对话参数
-   `-notend`   // 此话不停顿
-   `-concat`   // 续接上段话
+   `-notend`   // 自动续播下句
+   `-concat`   // 续接上文
+   `-next`     // 立即执行后续 WebGAL 语句
    ```
 
 2. **图片消息**：
@@ -962,11 +964,11 @@ function MyComponent() {
    switch (effectName) {
      case "clearBackground":
        return "changeBg:none -next;";
-     case "none":
-       return "pixiInit -next;";  // 清除所有特效
-     default:
-       return `pixiPerform:${effectName} -next;`;  // rain, snow, sakura
-   }
+      case "none":
+        return "pixiInit -next;";  // 清除所有特效
+      default:
+        return `pixiPerform:${effectName} -next;`;  // rain, snow, cherryBlossoms
+    }
    ```
 
 4. **音频消息**：
@@ -1537,6 +1539,3 @@ await chatHistory.loadHistory(roomId, 100);
 参考链接
 
 - https://speakerdeck.com/steipete/building-a-sustainable-codebase-7-years-and-counting
-
-
-

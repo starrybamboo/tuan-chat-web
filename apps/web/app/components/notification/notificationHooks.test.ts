@@ -8,7 +8,7 @@ import {
   markAllNotificationsReadInPageData,
   markNotificationsReadInPageData,
   prependNotificationToPageData,
-} from "@/components/notification/notificationHooks";
+} from "api/notificationQueryCache";
 
 function createNotification(notificationId: number, overrides: Partial<UserNotificationItem> = {}): UserNotificationItem {
   return {

@@ -44,6 +44,12 @@ describe("textStyleSyntax", () => {
     });
   });
 
+  it("动画写入 style-alltext，并自动补 inline-block 让变形/动画生效", () => {
+    expect(buildTextStyleSyntax("文本", {
+      animation: "te-shake 0.6s ease-in-out infinite",
+    })).toBe("[文本](style-alltext=display:inline-block\\;animation:te-shake 0.6s ease-in-out infinite\\; style=color:inherit\\;)");
+  });
+
   it("清除 WebGAL 文本标记并保留可见文字", () => {
     expect(clearTextStyleSyntax("A[红字](style=color:#f00\\;)B[笑顔](えがお)")).toBe("A红字B笑顔");
   });

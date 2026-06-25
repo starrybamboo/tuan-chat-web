@@ -1,6 +1,8 @@
 import type { DocumentPickerAsset } from "expo-document-picker";
+import type { ImagePickerAsset } from "expo-image-picker";
 
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
 
 export const MOBILE_MESSAGE_ATTACHMENT_KIND = {
@@ -28,6 +30,15 @@ type DocumentLikeAsset = Pick<DocumentPickerAsset, "mimeType" | "name">;
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "heif"]);
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "m4v", "avi", "mkv", "wmv", "flv", "mpeg", "mpg", "webm"]);
 const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "m4a", "aac", "ogg", "webm", "opus", "flac"]);
+const EXTENSION_BY_IMAGE_MIME: Record<string, string> = {
+  "image/bmp": "bmp",
+  "image/gif": "gif",
+  "image/heic": "heic",
+  "image/heif": "heif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 function getFileExtension(fileName: string | undefined): string | null {
   if (!fileName) {
@@ -40,6 +51,44 @@ function getFileExtension(fileName: string | undefined): string | null {
 
 function createMessageAttachmentId(asset: DocumentPickerAsset): string {
   return `${asset.uri}::${asset.name}::${asset.lastModified}`;
+}
+
+function createImagePickerAttachmentId(asset: ImagePickerAsset, fileName: string): string {
+  return `${asset.assetId ?? asset.uri}::${fileName}::${asset.fileSize ?? 0}`;
+}
+
+function getFileNameFromUri(uri: string): string | null {
+  const [uriWithoutQuery] = uri.split("?", 1);
+  const rawName = uriWithoutQuery?.split("/").filter(Boolean).pop();
+  if (!rawName) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(rawName);
+  }
+  catch {
+    return rawName;
+  }
+}
+
+function getImageExtensionFromMimeType(mimeType: string | null | undefined): string {
+  const normalized = mimeType?.trim().toLowerCase();
+  return normalized ? EXTENSION_BY_IMAGE_MIME[normalized] ?? "jpg" : "jpg";
+}
+
+function getImagePickerFileName(asset: ImagePickerAsset, index: number): string {
+  const explicitFileName = asset.fileName?.trim();
+  if (explicitFileName) {
+    return explicitFileName;
+  }
+
+  const uriFileName = getFileNameFromUri(asset.uri);
+  if (uriFileName && getFileExtension(uriFileName)) {
+    return uriFileName;
+  }
+
+  return `image-${index + 1}.${getImageExtensionFromMimeType(asset.mimeType)}`;
 }
 
 function getPickerMimeTypes(kind: MobileMessageAttachmentKind): string[] {
@@ -110,6 +159,33 @@ async function mapPickedAssetToMessageAttachment(
   }
 
   return nextAttachment;
+}
+
+async function mapPickedImageToMessageAttachment(
+  asset: ImagePickerAsset,
+  index: number,
+): Promise<MobileMessageAttachment> {
+  if (asset.type && asset.type !== "image" && asset.type !== "livePhoto") {
+    throw new Error("所选文件不是图片。");
+  }
+
+  const fileName = getImagePickerFileName(asset, index);
+  const width = asset.width > 0 ? asset.width : undefined;
+  const height = asset.height > 0 ? asset.height : undefined;
+  const dimensions = width && height
+    ? { width, height }
+    : await resolveImageDimensions(asset.uri);
+
+  return {
+    fileName,
+    height: dimensions.height,
+    id: createImagePickerAttachmentId(asset, fileName),
+    kind: MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE,
+    mimeType: asset.mimeType,
+    size: asset.fileSize,
+    uri: asset.uri,
+    width: dimensions.width,
+  };
 }
 
 export function inferMobileMessageAttachmentKind(asset: DocumentLikeAsset): MobileMessageAttachmentKind | null {
@@ -184,6 +260,26 @@ export function getMobileMessageAttachmentKindLabel(kind: MobileMessageAttachmen
 export async function pickMobileMessageAttachments(
   kind: MobileMessageAttachmentKind,
 ): Promise<MobileMessageAttachment[]> {
+  if (kind === MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE) {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsMultipleSelection: true,
+      base64: false,
+      exif: false,
+      mediaTypes: ["images"],
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
+      quality: 1,
+      selectionLimit: 0,
+    });
+
+    if (result.canceled || !result.assets) {
+      return [];
+    }
+
+    return await Promise.all(result.assets.map(async (asset, index) => {
+      return await mapPickedImageToMessageAttachment(asset, index);
+    }));
+  }
+
   const result = await DocumentPicker.getDocumentAsync({
     type: getPickerMimeTypes(kind),
     copyToCacheDirectory: true,

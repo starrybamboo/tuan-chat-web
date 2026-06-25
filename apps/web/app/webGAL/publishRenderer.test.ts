@@ -79,6 +79,22 @@ function ensureTrailingNewline(content: string): string {
   return content.endsWith("\n") ? content : `${content}\n`;
 }
 
+function extractFigureTransform(content: string, linePrefix: string) {
+  const line = content.split(/\r?\n/).find(entry => entry.startsWith(linePrefix));
+  expect(line).toBeTruthy();
+  const transformMarker = " -transform=";
+  const transformStart = line!.indexOf(transformMarker);
+  expect(transformStart).toBeGreaterThanOrEqual(0);
+  const jsonStart = transformStart + transformMarker.length;
+  const nextCommandIndex = line!.indexOf(" -next;", jsonStart);
+  const jsonEnd = nextCommandIndex >= 0 ? nextCommandIndex : line!.lastIndexOf(";");
+  expect(jsonEnd).toBeGreaterThan(jsonStart);
+  return JSON.parse(line!.slice(jsonStart, jsonEnd)) as {
+    position: { x: number; y: number };
+    scale: { x: number; y: number };
+  };
+}
+
 function getFile(files: RenderedPackage["files"], path: string) {
   const file = files.find(item => item.path === path);
   expect(file).toBeTruthy();
@@ -123,15 +139,30 @@ describe("renderWebgalPublishPackage", () => {
       },
     });
 
-    const preset = getPublishTemplatePreset("none");
+    const preset = getPublishTemplatePreset(undefined);
     expect(getFileContent(pkg.files, "game/userStyleSheet.css")).toBe("");
-    expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toBe("[]\n");
+    expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toContain("\"position/enter\"");
+    expect(getFileContent(pkg.files, "game/animation/animationTable.json")).toContain("\"background/blur-in\"");
+    expect(getFileContent(pkg.files, "game/animation/position/ba-enter-from-left.json")).toContain("\"x\": -700");
+    expect(getFileContent(pkg.files, "game/animation/action/BA-shake.json")).toContain("\"x\": -6");
+    expect(getFileContent(pkg.files, "game/animation/background/blur-in-fast.json")).toContain("\"blur\": 20");
     expect(getFileContent(pkg.files, "game/template/template.json"))
       .toBe(ensureTrailingNewline(normalizeLineEndings(preset.templateJson)));
+    expect(getFileContent(pkg.files, "game/template/template.json")).toContain("团剧共创");
     expect(getFileContent(pkg.files, "game/template/UI/Title/title.scss"))
       .toBe(normalizeLineEndings(preset.titleScss));
     expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss"))
       .toBe(normalizeLineEndings(preset.textboxScss));
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("left: 215px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("left: 25px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("padding-left: 175px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("left: -175px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("left: 175px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("border-radius: 24px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("height: 286px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("bottom: 44px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("width: 286px;");
+    expect(getFileContent(pkg.files, "game/template/Stage/TextBox/textbox.scss")).toContain("object-fit: contain;");
     expect(getFileContent(pkg.files, "game/template/Stage/Choose/choose.scss"))
       .toBe(normalizeLineEndings(preset.chooseScss));
 
@@ -297,8 +328,13 @@ describe("renderWebgalPublishPackage", () => {
     });
 
     const content = getFileContent(pkg.files, "game/scene/room_10.txt");
-    expect(content).toContain(mediaFileUrl(2048, "image", "medium"));
+    const figureUrl = mediaFileUrl(2048, "image", "medium");
+    expect(content).toContain(figureUrl);
     expect(content).not.toContain(mediaFileUrl(2048, "image", "high"));
+    const transform = extractFigureTransform(content, `changeFigure:${figureUrl}`);
+    expect(transform.position.y).toBeCloseTo(-170);
+    expect(transform.scale.x).toBeCloseTo(0.6527777778);
+    expect(transform.scale.y).toBeCloseTo(0.6527777778);
   });
 
   it("renders a shown image as a figure without packaging the media", async () => {
@@ -384,7 +420,7 @@ describe("renderWebgalPublishPackage", () => {
     expect(paths).not.toContain("game/figure/role_1/sprite_12.webp");
   });
 
-  it("renders BGM as a direct URL command", async () => {
+  it("renders BGM as unlock and direct URL commands", async () => {
     const pkg = await renderWebgalPublishPackage({
       rooms: [room(10, "音乐")],
       messagesByRoomId: {
@@ -394,6 +430,7 @@ describe("renderWebgalPublishPackage", () => {
             extra: {
               soundMessage: {
                 source: { kind: "external", url: "https://cdn.example.com/bgm.webm" },
+                fileName: "Quiet Dawn.webm",
                 second: 12,
                 purpose: "bgm",
                 volume: 70,
@@ -405,7 +442,11 @@ describe("renderWebgalPublishPackage", () => {
     });
 
     const content = getFileContent(pkg.files, "game/scene/room_10.txt");
+    expect(content).toContain("unlockBgm:https://cdn.example.com/bgm.webm -name=Quiet_Dawn;");
     expect(content).toContain("bgm:https://cdn.example.com/bgm.webm -volume=70 -next;");
+    expect(content.indexOf("unlockBgm:https://cdn.example.com/bgm.webm")).toBeLessThan(
+      content.indexOf("bgm:https://cdn.example.com/bgm.webm"),
+    );
   });
 
   it("renders text messages as dialogue and narrator lines", async () => {

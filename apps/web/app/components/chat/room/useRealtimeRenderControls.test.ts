@@ -7,34 +7,34 @@ describe("useRealtimeRenderControls", () => {
     expect(shouldMountRealtimeRenderOrchestrator({
       isActive: false,
       isEnabled: false,
-      sideDrawerState: "none",
+      webgalOpen: false,
       loadRequested: false,
     })).toBe(false);
   });
 
-  it("用户请求、已启用、运行中或打开 WebGAL 侧栏时才挂载控制器", () => {
+  it("用户请求、已启用、运行中或打开 WebGAL 预览时才挂载控制器", () => {
     expect(shouldMountRealtimeRenderOrchestrator({
       isActive: false,
       isEnabled: false,
-      sideDrawerState: "none",
+      webgalOpen: false,
       loadRequested: true,
     })).toBe(true);
     expect(shouldMountRealtimeRenderOrchestrator({
       isActive: false,
       isEnabled: true,
-      sideDrawerState: "none",
+      webgalOpen: false,
       loadRequested: false,
     })).toBe(true);
     expect(shouldMountRealtimeRenderOrchestrator({
       isActive: true,
       isEnabled: false,
-      sideDrawerState: "none",
+      webgalOpen: false,
       loadRequested: false,
     })).toBe(true);
     expect(shouldMountRealtimeRenderOrchestrator({
       isActive: false,
       isEnabled: false,
-      sideDrawerState: "webgal",
+      webgalOpen: true,
       loadRequested: false,
     })).toBe(true);
   });

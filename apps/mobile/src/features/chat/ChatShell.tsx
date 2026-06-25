@@ -35,6 +35,7 @@ import {
 import {
   Alert,
   BackHandler,
+  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -87,7 +88,6 @@ import {
 import { buildEditedRoomMessage } from "@/features/messages/roomMessageEditPayload";
 import { useMobileCommandRequests } from "@/features/messages/useMobileCommandRequests";
 import { useDeleteRoomMessageMutation, useEditRoomMessageMutation } from "@/features/messages/useRoomMessageMutations";
-import { useRoomMessagesLiveSync } from "@/features/messages/useRoomMessagesLiveSync";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { useSendRoomMessageMutation } from "@/features/messages/useSendRoomMessageMutation";
 import { UserProfileSheet } from "@/features/profile/UserProfileSheet";
@@ -133,7 +133,6 @@ import {
 } from "./mobileRouteSelection";
 import { MobileStShowCardSheet } from "./MobileStShowCardSheet";
 import { RightDrawerPanel } from "./RightDrawerPanel";
-import { useRoomStateRuntime } from "./useRoomStateRuntime";
 
 function readSingleSearchParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
@@ -219,7 +218,7 @@ export default function ChatShell() {
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const currentUserId = session?.userId ?? null;
-  const { selectedSpaceId, selectedRoomId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
+  const { selectedSpaceId, selectedRoomId, setActiveDirectContactId, setChatTabBarHidden, setSelectedRoomId, setSelectedSpaceId } = useWorkspaceSession();
   const searchParams = useLocalSearchParams();
   const {
     panGesture,
@@ -246,17 +245,6 @@ export default function ChatShell() {
     [setIsOverlayInteractive],
   );
 
-  // 右侧抽屉关闭时直接卸载重面板，避免输入框每次改动都牵连隐藏抽屉重算。
-  useAnimatedReaction(
-    () => Math.abs(translateX.get()) > 4,
-    (isActive, prev) => {
-      if (isActive !== prev) {
-        runOnJS(setShouldRenderRightDrawer)(isActive);
-      }
-    },
-    [setShouldRenderRightDrawer],
-  );
-
   const spacesQuery = useUserActiveSpacesQuery();
   const roomsQuery = useUserRoomsQuery(selectedSpaceId);
   const spaceMembersQuery = useSpaceMembersQuery(selectedSpaceId);
@@ -267,7 +255,6 @@ export default function ChatShell() {
   const { refetch: refetchSpaceMembers } = spaceMembersQuery;
   const { refetch: refetchRoomMembers } = roomMembersQuery;
   const { refetch: refetchRoomMessages } = roomMessagesQuery;
-  useRoomMessagesLiveSync(selectedRoomId);
   const sendRoomMessageMutation = useSendRoomMessageMutation(selectedRoomId, session?.userId ?? 0);
   const copyMessageToClueFolderMutation = useCopyMessageToClueFolderMutation(mobileApiClient);
   const { editMessage } = useEditRoomMessageMutation(selectedRoomId);
@@ -312,6 +299,13 @@ export default function ChatShell() {
   const [profileSheetState, setProfileSheetState] = useState<ProfileSheetState | null>(null);
   const [stShowCardModel, setStShowCardModel] = useState<StShowCardModel | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+
+  useEffect(() => {
+    setActiveDirectContactId(currentContactId);
+    return () => {
+      setActiveDirectContactId(null);
+    };
+  }, [currentContactId, setActiveDirectContactId]);
 
   useEffect(() => {
     draftMessageRef.current = draftMessage;
@@ -439,12 +433,6 @@ export default function ChatShell() {
 
   const effectiveCurrentRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? 0;
   const noRole = effectiveCurrentRoleId <= 0 && !isSpaceOwner;
-  const roomStateRuntime = useRoomStateRuntime({
-    currentRoleId: effectiveCurrentRoleId > 0 ? effectiveCurrentRoleId : null,
-    messages: roomMessageModels,
-    roomRoles,
-    ruleId: selectedRuleId,
-  });
 
   const handleExecuteCommandFromRequest = useCallback(async (command: string, replyMessageId: number) => {
     const effectiveRoleId = draftRoleId ?? selectableRoomRoles[0]?.roleId ?? (isSpaceOwner ? -1 : 0);
@@ -625,6 +613,17 @@ export default function ChatShell() {
     setShouldRenderRightDrawer(true);
     open();
   }, [open]);
+
+  useEffect(() => {
+    if (!selectedRoomId || currentContactId) {
+      return undefined;
+    }
+
+    const task = InteractionManager.runAfterInteractions(() => {
+      setShouldRenderRightDrawer(true);
+    });
+    return () => task.cancel();
+  }, [currentContactId, selectedRoomId]);
 
   const handleLongPressMessage = useCallback((msg: Message) => {
     closeImmediately();
@@ -1568,7 +1567,6 @@ export default function ChatShell() {
                                 noRole={noRole}
                                 isCommandRequestConsumed={commandRequests.isConsumed}
                                 onExecuteCommandRequest={commandRequests.handleExecute}
-                                stateEventSummariesByMessageId={roomStateRuntime.messageSummariesByMessageId}
                               />
                               {multiSelectMode
                                 ? (
@@ -1654,7 +1652,7 @@ export default function ChatShell() {
                             onClose={close}
                           />
                         )
-                      : shouldRenderRightDrawer
+                      : shouldRenderRightDrawer && selectedRoomId
                         ? (
                           <RightDrawerPanel
                             activeTab={rightDrawerTab}
@@ -1673,7 +1671,6 @@ export default function ChatShell() {
                             onStartCombat={handleStartCombat}
                             roomId={selectedRoomId}
                             roomRoles={roomRoles}
-                            roomStateRuntime={roomStateRuntime}
                             ruleId={selectedRuleId}
                             isSendingCombatRoundEvent={isSendingCombatRoundEvent}
                             spaceId={selectedSpaceId}

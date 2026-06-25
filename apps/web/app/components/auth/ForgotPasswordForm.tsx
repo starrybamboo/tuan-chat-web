@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { ArrowRightIcon } from "@phosphor-icons/react";
+
 type ForgotPasswordFormProps = {
   email: string;
   setEmail: (value: string) => void;
@@ -15,51 +17,50 @@ export function ForgotPasswordForm({
   isLoading,
   turnstile,
 }: ForgotPasswordFormProps) {
+  const inputClassName = `
+    input input-bordered w-full bg-base-200 text-base-content
+    placeholder:text-base-content/55 transition-colors
+    focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+    dark:bg-base-300
+  `;
+
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="form-control w-full mt-2">
-        <label className="floating-label">
-          <span className="label-text">邮箱</span>
-          <input
-            type="email"
-            placeholder="请输入已绑定邮箱"
-            className="
-              input input-bordered w-full bg-base-200
-              dark:bg-base-300
-              text-base-content
-              placeholder:text-base-content/60
-            "
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-xs font-medium uppercase tracking-[0.08em] text-base-content/55">
+          邮箱
         </label>
+        <input
+          type="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          placeholder="请输入已绑定邮箱"
+          className={inputClassName}
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
       </div>
 
-      <p className="text-xs opacity-70 mt-3">
-        点击确认后，系统会把该邮箱绑定账号的 ID、用户名及重置指引发送到邮箱中（不包含原密码）。
-      </p>
-
-      <div className="form-control mt-6">
+      <div className="space-y-3 pt-2">
         {turnstile}
         <button
           type="submit"
-          className="
-            btn btn-primary
-            hover:brightness-110
-            transition-all
-          "
+          className="btn btn-primary w-full gap-2 shadow-sm hover:brightness-110"
           disabled={isLoading}
         >
           {isLoading
             ? (
                 <>
-                  <span className="loading loading-spinner"></span>
+                  <span className="loading loading-spinner loading-sm" />
                   提交中...
                 </>
               )
             : (
-                "确认"
+                <>
+                  <ArrowRightIcon className="size-4" weight="bold" />
+                  确认
+                </>
               )}
         </button>
       </div>

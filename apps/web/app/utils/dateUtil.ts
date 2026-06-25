@@ -8,6 +8,19 @@ export function formatLocalDateTime(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
+function parseDateInput(time: string | number): Date {
+  if (typeof time === "number") {
+    return new Date(time);
+  }
+
+  const nativeParsed = new Date(time);
+  if (!Number.isNaN(nativeParsed.getTime())) {
+    return nativeParsed;
+  }
+
+  return new Date(time.includes("-") ? time.replace(/-/g, "/") : time);
+}
+
 /**
  * 根据当前时间智能排版时间
  * @param time 可以是 2025-08-18 20:38:25 的格式 或者 是一个时间戳 1755519511000
@@ -15,7 +28,7 @@ export function formatLocalDateTime(date: Date): string {
  */
 export function formatTimeSmartly(time: string | number): string {
   // 确保输入的时间能被正确解析，特别是对于YYYY-MM-DD格式
-  const inputTime = new Date(typeof time === "string" && time.includes("-") ? time.replace(/-/g, "/") : time);
+  const inputTime = parseDateInput(time);
   if (Number.isNaN(inputTime.getTime())) {
     return "";
   }

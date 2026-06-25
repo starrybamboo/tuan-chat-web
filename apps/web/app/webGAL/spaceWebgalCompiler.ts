@@ -1,9 +1,13 @@
+import { resolveRenderedSoundMessagePurpose } from "@/components/chat/infra/audioMessage/audioMessagePurpose";
 import { resolveMessageMediaUrl } from "@/components/chat/message/messageMediaSource";
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 import {
   ANNOTATION_IDS,
+  buildBackgroundChangeBgArgsFromAnnotations,
+  buildClearBackgroundLineFromAnnotations,
   getFigureAnimationFromAnnotations,
   getFigurePositionFromAnnotations,
+  getSceneControlLinesFromAnnotations,
   hasAnnotation,
   hasClearBackgroundAnnotation,
   hasClearBgmAnnotation,
@@ -19,11 +23,16 @@ import type { ChatMessageResponse, RoleAvatar, Room, UserRole } from "../../api"
 import type { RealtimeGameConfig } from "./realtimeRendererConfig";
 import type { WorkflowGraph } from "./realtimeRendererWorkflow";
 import type { SpaceWebgalInputSnapshot } from "./spaceWebgalSnapshot";
+import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "../types/webgalChoose";
+import { BUILTIN_WEBGAL_ANIMATION_FILES } from "./publishAnimationPresets";
 import { getPublishTemplatePreset } from "./publishTemplatePresets";
 import {
+  buildClearFigureLines,
   buildFigureArgs,
+  buildFigureExitTransitionLines,
+  buildFigureTransitionLine,
   buildImageFigureTransformString,
   buildRoleFigureTransformString,
   DEFAULT_KEEP_OFFSET_PART,
@@ -45,7 +54,6 @@ import {
   buildWebgalFigureRenderAsset,
   resolveFigureCompositionCandidate,
 } from "./webgalFigureComposition";
-import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 export type WebgalPublishFile = {
   path: string;
@@ -86,10 +94,6 @@ const MINIMAL_RUNTIME_SUPPORT_FILES = [
   {
     path: `${GAME_DIR}/userStyleSheet.css`,
     content: "",
-  },
-  {
-    path: `${GAME_DIR}/animation/animationTable.json`,
-    content: "[]\n",
   },
 ] as const;
 
@@ -170,11 +174,17 @@ export function resolveProjectableMediaUrl(
 }
 
 function buildBaseRuntimeSupportFiles(): WebgalPublishFile[] {
-  return MINIMAL_RUNTIME_SUPPORT_FILES.map(file => ({
+  const minimalFiles = MINIMAL_RUNTIME_SUPPORT_FILES.map(file => ({
     path: file.path,
     content: file.content,
     contentType: resolvePublishFileContentType(file.path),
   }));
+  const animationFiles = BUILTIN_WEBGAL_ANIMATION_FILES.map(file => ({
+    path: `${GAME_DIR}/${file.path}`,
+    content: file.content,
+    contentType: resolvePublishFileContentType(`${GAME_DIR}/${file.path}`),
+  }));
+  return [...minimalFiles, ...animationFiles];
 }
 
 function buildTemplateRuntimeSupportFiles(baseTemplate: RealtimeGameConfig["baseTemplate"] | undefined): WebgalPublishFile[] {
@@ -352,9 +362,66 @@ function appendLine(context: { lines: string[] }, line: string | null | undefine
   context.lines.push(normalized);
 }
 
+function decodeFileNameSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  }
+  catch {
+    return segment;
+  }
+}
+
+function getFileStemFromPath(path: string): string {
+  const pathWithoutQuery = String(path ?? "").split(/[?#]/)[0] ?? "";
+  const normalizedPath = pathWithoutQuery.replace(/\\/g, "/");
+  const lastSegment = normalizedPath.slice(normalizedPath.lastIndexOf("/") + 1) || normalizedPath;
+  const decodedSegment = decodeFileNameSegment(lastSegment);
+  const dotIndex = decodedSegment.lastIndexOf(".");
+  return dotIndex > 0 ? decodedSegment.slice(0, dotIndex) : decodedSegment;
+}
+
+function sanitizeWebgalArgumentValue(value: string): string {
+  return String(value ?? "")
+    .replace(/[\r\n;]/g, " ")
+    .replace(/\s+/g, "_")
+    .trim();
+}
+
+export function buildUnlockBgmLine(
+  bgmPath: string,
+  soundMessage?: { fileName?: unknown } | null,
+): string | null {
+  const normalizedPath = String(bgmPath ?? "").trim();
+  if (!normalizedPath) {
+    return null;
+  }
+
+  const fileName = typeof soundMessage?.fileName === "string" && soundMessage.fileName.trim()
+    ? soundMessage.fileName.trim()
+    : normalizedPath;
+  const displayName = sanitizeWebgalArgumentValue(getFileStemFromPath(fileName));
+  const namePart = displayName ? ` -name=${displayName}` : "";
+  return `unlockBgm:${normalizedPath}${namePart};`;
+}
+
+function resolveClearFigureTransitionTargets(
+  context: PublishSceneContext,
+  annotations: string[] | undefined,
+): string[] {
+  const figurePosition = getFigurePositionFromAnnotations(annotations);
+  if (isFigurePosition(figurePosition)) {
+    return [resolveFigureSlot(figurePosition).id];
+  }
+  const renderedSlotIds = Array.from(context.renderedFigures.keys());
+  if (renderedSlotIds.length > 0) {
+    return renderedSlotIds;
+  }
+  return context.lastFigureSlotId ? [context.lastFigureSlotId] : [];
+}
+
 function appendClearCommands(context: PublishSceneContext, annotations: string[] | undefined): void {
   if (hasClearBackgroundAnnotation(annotations)) {
-    appendLine(context, "changeBg:none -next;");
+    appendLine(context, buildClearBackgroundLineFromAnnotations(annotations));
   }
   if (hasClearBgmAnnotation(annotations)) {
     appendLine(context, "bgm:none -next;");
@@ -363,11 +430,14 @@ function appendClearCommands(context: PublishSceneContext, annotations: string[]
     appendLine(context, `changeFigure:none -id=${IMAGE_MESSAGE_FIGURE_ID} -next;`);
   }
   if (hasClearFigureAnnotation(annotations)) {
-    appendLine(context, "changeFigure:none -id=1 -next;");
-    appendLine(context, "changeFigure:none -id=2 -next;");
-    appendLine(context, "changeFigure:none -id=3 -next;");
-    appendLine(context, "changeFigure:none -id=4 -next;");
-    appendLine(context, "changeFigure:none -id=5 -next;");
+    const transitionTargets = resolveClearFigureTransitionTargets(context, annotations);
+    const figureAnimation = getFigureAnimationFromAnnotations(annotations);
+    for (const line of buildFigureExitTransitionLines(transitionTargets, figureAnimation)) {
+      appendLine(context, line);
+    }
+    for (const line of buildClearFigureLines()) {
+      appendLine(context, line);
+    }
     context.lastFigureSlotId = undefined;
     context.renderedFigures.clear();
   }
@@ -398,7 +468,7 @@ function renderImageMessage(context: PublishSceneContext, message: ChatMessageRe
 
   const isBackground = isImageMessageBackground(payload.annotations, imageMessage);
   if (isBackground) {
-    appendLine(context, `changeBg:${imageUrl} -next;`);
+    appendLine(context, `changeBg:${imageUrl}${buildBackgroundChangeBgArgsFromAnnotations(payload.annotations)} -next;`);
   }
 
   if (hasAnnotation(payload.annotations, ANNOTATION_IDS.CG)) {
@@ -431,27 +501,75 @@ function renderVideoMessage(context: PublishSceneContext, message: ChatMessageRe
   return true;
 }
 
-function renderSoundMessage(context: PublishSceneContext, message: ChatMessageResponse): boolean {
+function renderSoundMessage(
+  context: PublishSceneContext,
+  message: ChatMessageResponse,
+  roleMap: Map<number, UserRole>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
+): boolean {
   const soundMessage = message.message.extra?.soundMessage;
   if (!soundMessage) {
     return false;
   }
 
   const soundUrl = resolveMessageMediaUrl(soundMessage, "low", "audio");
+  // 用途判定与前端其它位置一致：annotation 优先，其次 payload purpose，缺省为 voice。
+  const purpose = resolveRenderedSoundMessagePurpose({
+    annotations: message.message.annotations,
+    payloadPurpose: soundMessage.purpose,
+  });
+
+  if (purpose === "voice") {
+    // 语音消息渲染为带配音的台词：把配音通过 say -vocal=<url> 附加到对话行上。
+    // 没有配音 URL 时仍渲染台词，只是不挂 -vocal。
+    renderVoiceMessage(context, message, roleMap, avatarMap, soundUrl);
+    return true;
+  }
+
   if (!soundUrl) {
     return true;
   }
 
   const volumePart = typeof soundMessage.volume === "number" ? ` -volume=${soundMessage.volume}` : "";
-  if (soundMessage.purpose === "bgm") {
+  if (purpose === "bgm") {
+    appendLine(context, buildUnlockBgmLine(soundUrl, soundMessage));
     appendLine(context, `bgm:${soundUrl}${volumePart} -next;`);
     return true;
   }
-  if (soundMessage.purpose === "se") {
+  if (purpose === "se") {
     appendLine(context, `playEffect:${soundUrl}${volumePart} -next;`);
     return true;
   }
   return true;
+}
+
+function renderVoiceMessage(
+  context: PublishSceneContext,
+  message: ChatMessageResponse,
+  roleMap: Map<number, UserRole>,
+  avatarMap: Map<number, WebgalCompiledRoleAvatar>,
+  vocalUrl: string | null,
+): void {
+  const payload = message.message;
+  const processedContent = TextEnhanceSyntax.processContent(payload.content ?? "");
+  if (!processedContent.trim()) {
+    return;
+  }
+
+  const vocalPart = vocalUrl ? ` -vocal=${vocalUrl}` : "";
+  const roleId = payload.roleId ?? 0;
+  const nextPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_NEXT) ? " -next" : "";
+  if (roleId <= 0) {
+    appendLine(context, `:${processedContent}${vocalPart}${nextPart};`);
+    return;
+  }
+
+  const role = roleMap.get(roleId);
+  const roleName = payload.customRoleName || role?.roleName || `角色${roleId}`;
+  const figureIdPart = renderFigureCommands(context, message, avatarMap);
+  const notendPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_NOTEND) ? " -notend" : "";
+  const concatPart = hasAnnotation(payload.annotations, ANNOTATION_IDS.DIALOG_CONCAT) ? " -concat" : "";
+  appendLine(context, `${roleName}: ${processedContent}${vocalPart}${figureIdPart}${notendPart}${concatPart}${nextPart};`);
 }
 
 function renderChooseMessage(context: PublishSceneContext, message: ChatMessageResponse): boolean {
@@ -495,6 +613,7 @@ function renderFigureCommands(
   const figureSlot = resolveFigureSlot(figurePosition);
   const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0);
   const previous = context.renderedFigures.get(figureSlot.id);
+  const figureAnimation = getFigureAnimationFromAnnotations(payload.annotations);
   if (!previous || previous.fileName !== figureAsset.stateKey || previous.transform !== transform) {
     const figureArgs = buildFigureArgs(figureSlot.id, transform);
     if (figureAsset.composeLine) {
@@ -502,18 +621,11 @@ function renderFigureCommands(
     }
     const compositePart = figureAsset.composite ? " -composite" : "";
     appendLine(context, `changeFigure:${figureAsset.target}${compositePart} ${figureArgs} -next;`);
+    appendLine(context, buildFigureTransitionLine(figureSlot.id, figureAnimation));
     context.renderedFigures.set(figureSlot.id, { fileName: figureAsset.stateKey, transform });
   }
   context.lastFigureSlotId = figureSlot.id;
 
-  const figureAnimation = getFigureAnimationFromAnnotations(payload.annotations);
-  const animationName = figureAnimation?.enterAnimation ?? figureAnimation?.exitAnimation;
-  if (animationName) {
-    appendLine(
-      context,
-      `setAnimation:${animationName} -target=${figureSlot.id}${DEFAULT_KEEP_OFFSET_PART}${DEFAULT_RESTORE_TRANSFORM_PART} -next;`,
-    );
-  }
   if (figureAnimation?.animation) {
     appendLine(
       context,
@@ -622,6 +734,7 @@ function renderPublishMessage(
     return;
   }
 
+  getSceneControlLinesFromAnnotations(payload.annotations).forEach(line => appendLine(context, line));
   appendClearCommands(context, payload.annotations);
   if (renderImageMessage(context, message)) {
     return;
@@ -629,7 +742,7 @@ function renderPublishMessage(
   if (renderVideoMessage(context, message)) {
     return;
   }
-  if (renderSoundMessage(context, message)) {
+  if (renderSoundMessage(context, message, roleMap, avatarMap)) {
     return;
   }
   if (renderChooseMessage(context, message)) {

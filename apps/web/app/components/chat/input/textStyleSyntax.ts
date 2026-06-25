@@ -1,21 +1,39 @@
 import { extractTextEnhanceVisibleText } from "@/utils/textEnhanceSyntax";
 
 export type TextStyleSyntaxOptions = {
+  animation?: string;
   backgroundColor?: string;
   bold?: boolean;
+  border?: string;
+  borderRadius?: string;
   color?: string;
   customStyle?: string;
   customStyleAllText?: string;
+  filter?: string;
+  fontFamily?: string;
   fontSize?: string;
+  fontWeight?: string;
   headingLevel?: 1 | 2 | 3;
   italic?: boolean;
   letterSpacing?: string;
+  lineHeight?: string;
   margin?: string;
   opacity?: string;
   padding?: string;
   ruby?: string;
+  strikethrough?: boolean;
+  textAlign?: string;
+  /** 文字渐变：完整的 linear-gradient(...) 值，编码时自动补齐 background-clip 等声明。 */
+  textGradient?: string;
+  textDecorationColor?: string;
+  textDecorationStyle?: string;
+  textDecorationThickness?: string;
   textShadow?: string;
+  textStroke?: string;
+  textTransform?: string;
+  transform?: string;
   underline?: boolean;
+  wordSpacing?: string;
 };
 
 function normalizeCssDeclaration(declaration: string): string {
@@ -69,15 +87,38 @@ export function buildTextStyleSyntax(text: string, options: TextStyleSyntaxOptio
     ...(options.backgroundColor ? [`background-color:${options.backgroundColor}`] : []),
     ...normalizeCssDeclarations(options.customStyle),
   ];
+  const textDecoration = [
+    ...(options.underline ? ["underline"] : []),
+    ...(options.strikethrough ? ["line-through"] : []),
+  ].join(" ");
+  const hasDecoration = Boolean(textDecoration);
   const styleAllTextDeclarations = [
     ...getHeadingCssDeclarations(options.headingLevel),
     ...(options.italic ? ["font-style:italic"] : []),
     ...(options.bold ? ["font-weight:bold"] : []),
-    ...(options.underline ? ["text-decoration:underline"] : []),
+    ...(textDecoration ? [`text-decoration:${textDecoration}`] : []),
+    ...(hasDecoration && options.textDecorationStyle ? [`text-decoration-style:${options.textDecorationStyle}`] : []),
+    ...(hasDecoration && options.textDecorationColor ? [`text-decoration-color:${options.textDecorationColor}`] : []),
+    ...(hasDecoration && options.textDecorationThickness ? [`text-decoration-thickness:${options.textDecorationThickness}`] : []),
     ...(options.fontSize ? [`font-size:${options.fontSize}`] : []),
+    ...(options.fontWeight ? [`font-weight:${options.fontWeight}`] : []),
+    ...(options.fontFamily ? [`font-family:${options.fontFamily}`] : []),
+    ...(options.lineHeight ? [`line-height:${options.lineHeight}`] : []),
     ...(options.letterSpacing ? [`letter-spacing:${options.letterSpacing}`] : []),
+    ...(options.wordSpacing ? [`word-spacing:${options.wordSpacing}`] : []),
+    ...(options.textAlign ? [`text-align:${options.textAlign}`] : []),
+    ...(options.textTransform ? [`text-transform:${options.textTransform}`] : []),
+    ...(options.textGradient
+      ? [`background-image:${options.textGradient}`, "-webkit-background-clip:text", "background-clip:text", "-webkit-text-fill-color:transparent", "color:transparent"]
+      : []),
     ...(options.opacity ? [`opacity:${options.opacity}`] : []),
     ...(options.textShadow ? [`text-shadow:${options.textShadow}`] : []),
+    ...(options.textStroke ? [`-webkit-text-stroke:${options.textStroke}`] : []),
+    ...(options.filter ? [`filter:${options.filter}`] : []),
+    ...(options.transform ? [`display:inline-block`, `transform:${options.transform}`] : []),
+    ...(options.animation ? [`display:inline-block`, `animation:${options.animation}`] : []),
+    ...(options.border ? [`border:${options.border}`] : []),
+    ...(options.borderRadius ? [`border-radius:${options.borderRadius}`] : []),
     ...(options.margin ? [`margin:${options.margin}`] : []),
     ...(options.padding ? [`padding:${options.padding}`] : []),
     ...normalizeCssDeclarations(options.customStyleAllText),

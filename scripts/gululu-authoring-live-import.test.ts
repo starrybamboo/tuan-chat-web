@@ -255,7 +255,7 @@ describe("gululu-authoring-live-import", () => {
     ]);
     expect(plan.avatars).toEqual([
       expect.objectContaining({
-        avatarTitle: { label: "原文配图" },
+        avatarTitle: { label: "retsu.png" },
         imagePath: "gululu/retsu.png",
         key: "role:烈海王:image:gululu/retsu.png",
         sourceImagePaths: ["gululu/retsu.png"],
@@ -720,6 +720,136 @@ describe("gululu-authoring-live-import", () => {
       },
       messageType: MESSAGE_TYPE.DICE,
     });
+  });
+
+  it("apply 恢复已有头像时不会把旧通用标题复用到不同原文图", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "gululu-live-import-resume-"));
+    try {
+      await mkdir(path.join(tempDir, "images", "gululu"), { recursive: true });
+      await writeFile(path.join(tempDir, "images", "gululu", "retsu-raw.png"), "fixture", "utf8");
+      const cleanRoot = path.join(tempDir, "image-role-review-clean-vision-final");
+      await writeCleanIndex({
+        cleanRoot,
+        rows: [{
+          assetKind: "manga-avatar",
+          character: "勇伯",
+          outputRelPath: "avatars/勇伯/manga-avatar/01524__864_884480a40a72__8cde4f7a3ae1.jpg",
+          sourceRelPath: "gululu/864_884480a40a72.jpg",
+        }],
+      });
+
+      const plan = buildGululuLiveImportPlan({
+        messages: [
+          {
+            content: "为什么要露出这种表情，你是在质疑我吗？",
+            floor: 5,
+            imagePath: "gululu/864_884480a40a72.jpg",
+            kind: "dialog" as const,
+            roleName: "勇伯",
+          },
+          {
+            content: "烈海王在切换表情。",
+            floor: 5,
+            imagePath: "gululu/retsu-raw.png",
+            kind: "dialog" as const,
+            roleName: "烈海王",
+          },
+        ],
+        roles: [
+          {
+            avatarImages: [{ imagePath: "gululu/864_884480a40a72.jpg" }],
+            defaultAvatarPath: "gululu/864_884480a40a72.jpg",
+            name: "勇伯",
+          },
+          {
+            avatarImages: [{ imagePath: "gululu/retsu-raw.png" }],
+            defaultAvatarPath: "gululu/retsu-raw.png",
+            name: "烈海王",
+          },
+        ],
+        source: {
+          floorCount: 1,
+          fromFloor: 5,
+          title: "导入恢复复用测试",
+          toFloor: 5,
+        },
+      }, {
+        skipAvatarUpload: false,
+        sourceRoot: tempDir,
+        targetRoomId: 62,
+        targetSpaceId: 8801,
+      });
+
+      expect(plan.avatars).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          avatarTitle: { label: "01524__864_884480a40a72__8cde4f7a3ae1.jpg" },
+          key: "role:勇伯:image:image-role-review-clean-vision-final/avatars/勇伯/manga-avatar/01524__864_884480a40a72__8cde4f7a3ae1.jpg",
+          sourceImagePaths: ["gululu/864_884480a40a72.jpg"],
+        }),
+        expect.objectContaining({
+          avatarTitle: { label: "retsu-raw.png" },
+          key: "role:烈海王:image:gululu/retsu-raw.png",
+          sourceImagePaths: ["gululu/retsu-raw.png"],
+        }),
+      ]));
+
+      const client = {
+        avatarController: {
+          getRoleAvatars: vi.fn<MockFn>(async (roleId: number) => ({
+            data: [{
+              avatarFileId: roleId === 1001 ? 9001 : 9002,
+              avatarId: roleId === 1001 ? 2001 : 2002,
+              avatarTitle: { label: roleId === 1001 ? "原文漫画配图" : "原文配图" },
+              originFileId: roleId === 1001 ? 9001 : 9002,
+              roleId,
+              spriteFileId: roleId === 1001 ? 9001 : 9002,
+              spriteTransform: { alpha: 1, positionX: 0, positionY: 0, rotation: 0, scale: 0.4 },
+            }],
+            success: true,
+          })),
+          setRoleAvatar: vi.fn<MockFn>(async (request: { roleId?: number }) => ({
+            data: request.roleId === 1001 ? 3001 : 3002,
+            success: true,
+          })),
+          updateRoleAvatar: vi.fn<MockFn>(async request => ({ data: request, success: true })),
+        },
+        chatController: {
+          sendMessage1: vi.fn<MockFn>(async () => ({ data: { messageId: 1 }, success: true })),
+        },
+        roleController: {
+          createRole: vi.fn<MockFn>(),
+        },
+        roomRoleController: {
+          addRole: vi.fn<MockFn>(),
+          roomNpcRole: vi.fn<MockFn>(async () => ({
+            data: [
+              { roleId: 1001, roleName: "勇伯", type: 2 },
+              { roleId: 1002, roleName: "烈海王", type: 2 },
+            ],
+            success: true,
+          })),
+        },
+      };
+
+      const result = await applyGululuLiveImportPlan(plan, client, {
+        resumeExistingAvatars: true,
+        uploadAvatarImage: vi.fn<MockFn>(async ({ filePath }) => ({
+          mediaFileId: filePath.includes("01524__864") ? 4001 : 4002,
+          spriteTransform: { alpha: 1, positionX: 0, positionY: -12, rotation: 0, scale: 0.5 },
+        })),
+      });
+
+      expect(client.avatarController.setRoleAvatar).toHaveBeenCalledTimes(2);
+      expect(client.avatarController.updateRoleAvatar).toHaveBeenCalledTimes(2);
+      expect(result.avatars).toEqual(expect.arrayContaining([
+        expect.objectContaining({ action: "created", avatarFileId: 4001, avatarId: 3001 }),
+        expect.objectContaining({ action: "created", avatarFileId: 4002, avatarId: 3002 }),
+      ]));
+      expect(result.avatars.some(avatar => avatar.avatarId === 2001 || avatar.avatarId === 2002)).toBe(false);
+    }
+    finally {
+      await rm(tempDir, { recursive: true });
+    }
   });
 
   it("apply 会把立绘媒体同时写入头像字段和立绘字段，并使用立绘 transform", async () => {

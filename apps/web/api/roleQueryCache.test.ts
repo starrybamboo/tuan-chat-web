@@ -1,10 +1,14 @@
-﻿import { QueryClient } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
+import type { RoleAvatar } from "@tuanchat/openapi-client/models/RoleAvatar";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import {
+  optimisticPatchRoleAvatarTitleInListQueryCache,
+  optimisticRemoveRoleAvatarsFromListQueryCache,
   patchRoomRoleAvatarFieldsInListQueryCache,
   optimisticRemoveUserRolesFromListQueryCache,
   patchUserRoleAvatarFieldsInListQueryCache,
+  rollbackRoleAvatarListQueryCache,
   rollbackUserRoleListQueryCache,
   upsertUserRoleListQueryCache,
 } from "./roleQueryCache";
@@ -17,6 +21,14 @@ const makeRole = (overrides: Partial<UserRole>): UserRole => ({
   type: 0,
   diceMaiden: false,
   extra: {},
+  ...overrides,
+});
+
+const makeAvatar = (overrides: Partial<RoleAvatar>): RoleAvatar => ({
+  roleId: 1,
+  avatarId: 1,
+  avatarFileId: 101,
+  avatarTitle: { label: "avatar" },
   ...overrides,
 });
 
@@ -118,5 +130,46 @@ describe("roleQueryCache", () => {
     });
 
     expect(queryClient.getQueryData<UserRole[]>(["getUserRolesByType", 1, 0])?.map(role => role.roleId)).toEqual([8]);
+  });
+
+  it("会乐观移除角色头像列表并可回滚 wrapped response", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getRoleAvatars", 7], {
+      success: true,
+      data: [
+        makeAvatar({ avatarId: 11, avatarTitle: { label: "delete me" } }),
+        makeAvatar({ avatarId: 12, avatarTitle: { label: "keep me" } }),
+      ],
+    });
+
+    const snapshot = await optimisticRemoveRoleAvatarsFromListQueryCache(queryClient, 7, [11]);
+
+    expect(queryClient.getQueryData<any>(["getRoleAvatars", 7])?.data.map((avatar: RoleAvatar) => avatar.avatarId)).toEqual([12]);
+
+    rollbackRoleAvatarListQueryCache(queryClient, snapshot);
+
+    expect(queryClient.getQueryData<any>(["getRoleAvatars", 7])?.data.map((avatar: RoleAvatar) => avatar.avatarId)).toEqual([11, 12]);
+  });
+
+  it("会乐观更新角色头像标题并可回滚数组缓存", async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(["getRoleAvatars", 8], [
+      makeAvatar({ avatarId: 21, avatarTitle: { label: "old" } }),
+      makeAvatar({ avatarId: 22, avatarTitle: { label: "other" } }),
+    ]);
+
+    const snapshot = await optimisticPatchRoleAvatarTitleInListQueryCache(queryClient, 8, 21, "new");
+
+    expect(queryClient.getQueryData<RoleAvatar[]>(["getRoleAvatars", 8])).toEqual([
+      expect.objectContaining({ avatarId: 21, avatarTitle: { label: "new" } }),
+      expect.objectContaining({ avatarId: 22, avatarTitle: { label: "other" } }),
+    ]);
+
+    rollbackRoleAvatarListQueryCache(queryClient, snapshot);
+
+    expect(queryClient.getQueryData<RoleAvatar[]>(["getRoleAvatars", 8])).toEqual([
+      expect.objectContaining({ avatarId: 21, avatarTitle: { label: "old" } }),
+      expect.objectContaining({ avatarId: 22, avatarTitle: { label: "other" } }),
+    ]);
   });
 });
