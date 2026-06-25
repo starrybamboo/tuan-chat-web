@@ -21,14 +21,15 @@ import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/component
 import { applyRoomDndMapChange, roomDndMapQueryKey } from "@/components/chat/shared/map/roomDndMapApi";
 import { useAudioMessageAutoPlayStore } from "@/components/chat/stores/audioMessageAutoPlayStore";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
-import { prependNotificationToCaches } from "@/components/notification/notificationHooks";
 import { getSoundMessageExtra } from "@/types/messageExtra";
 import { handleUnauthorized } from "@/utils/auth/unauthorized";
-import { formatLocalDateTime } from "@/utils/dateUtil";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 import { useCallback } from "react";
 import { recoverAuthTokenFromSession } from "./authRecovery";
+import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "./feedbackQueryCache";
+import { prependNotificationToCaches } from "./notificationQueryCache";
 import { buildCommentPageQueryKey } from "./hooks/commentQueryHooks";
+import { spaceSidebarTreeQueryKey } from "./hooks/spaceSidebarTreeHooks";
 import { MessageType } from "./wsModels";
 import { invalidateMemberChangeQueries, invalidateRoleChangeQueries } from "./wsInvalidation";
 
@@ -126,9 +127,6 @@ export function useWebSocketMessageHandlers({
   }, [updateChatStatus]);
 
   const handleChatMessage = useCallback((chatMessageResponse: ChatMessageResponse) => {
-    if (!(chatMessageResponse?.message.createTime) && chatMessageResponse != undefined) {
-      chatMessageResponse.message.createTime = formatLocalDateTime(new Date());
-    }
     if (chatMessageResponse == undefined || !chatMessageResponse) {
       return;
     }
@@ -372,7 +370,7 @@ export function useWebSocketMessageHandlers({
         const event = message as SpaceSidebarTreeUpdatedPush;
         const spaceId = event?.data?.spaceId;
         if (typeof spaceId === "number" && Number.isFinite(spaceId) && spaceId > 0) {
-          queryClient.invalidateQueries({ queryKey: ["getSpaceSidebarTree", spaceId] });
+          queryClient.invalidateQueries({ queryKey: spaceSidebarTreeQueryKey(spaceId) });
         }
       },
       23: () => {
@@ -388,9 +386,9 @@ export function useWebSocketMessageHandlers({
           : (typeof notification.resourceId === "number" ? notification.resourceId : null);
         const hasCommentChange = typeof notification.payload?.commentId === "number";
 
-        queryClient.invalidateQueries({ queryKey: ["feedbackIssues"] });
+        queryClient.invalidateQueries({ queryKey: FEEDBACK_ISSUES_QUERY_KEY });
         if (feedbackIssueId != null && feedbackIssueId > 0) {
-          queryClient.invalidateQueries({ queryKey: ["feedbackIssueDetail", feedbackIssueId] });
+          queryClient.invalidateQueries({ queryKey: feedbackIssueDetailQueryKey(feedbackIssueId) });
           if (hasCommentChange) {
             queryClient.invalidateQueries({
               queryKey: buildCommentPageQueryKey({

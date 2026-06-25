@@ -11,8 +11,10 @@ import {
 } from "./workspaceStorage";
 
 type WorkspaceSessionContextValue = {
+  activeDirectContactId: number | null;
   selectedSpaceId: number | null;
   selectedRoomId: number | null;
+  setActiveDirectContactId: (contactId: number | null) => void;
   setSelectedSpaceId: (spaceId: number | null) => void;
   setSelectedRoomId: (roomId: number | null) => void;
   clearWorkspaceSelection: () => void;
@@ -26,6 +28,7 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
   const { isAuthenticated, isBootstrapping } = useAuthSession();
   const [selectedSpaceId, setSelectedSpaceIdState] = useState<number | null>(null);
   const [selectedRoomId, setSelectedRoomIdState] = useState<number | null>(null);
+  const [activeDirectContactId, setActiveDirectContactId] = useState<number | null>(null);
   const [hasHydratedSelection, setHasHydratedSelection] = useState(false);
   const [chatTabBarHidden, setChatTabBarHidden] = useState(false);
 
@@ -41,6 +44,7 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
     if (!isAuthenticated) {
       queueMicrotask(() => setSelectedSpaceIdState(null));
       queueMicrotask(() => setSelectedRoomIdState(null));
+      queueMicrotask(() => setActiveDirectContactId(null));
       queueMicrotask(() => setHasHydratedSelection(false));
       void clearStoredWorkspaceSelection();
       return () => {
@@ -97,14 +101,16 @@ export function WorkspaceSessionProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo<WorkspaceSessionContextValue>(() => ({
+    activeDirectContactId,
     selectedSpaceId,
     selectedRoomId,
+    setActiveDirectContactId,
     setSelectedSpaceId,
     setSelectedRoomId,
     clearWorkspaceSelection,
     chatTabBarHidden,
     setChatTabBarHidden,
-  }), [chatTabBarHidden, clearWorkspaceSelection, selectedRoomId, selectedSpaceId, setSelectedRoomId, setSelectedSpaceId]);
+  }), [activeDirectContactId, chatTabBarHidden, clearWorkspaceSelection, selectedRoomId, selectedSpaceId, setSelectedRoomId, setSelectedSpaceId]);
 
   return (
     <WorkspaceSessionContext value={value}>

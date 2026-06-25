@@ -18,6 +18,7 @@ import {
 import { useGetUserRolesQuery } from "api/hooks/RoleAndAvatarHooks";
 
 import { SpaceContext } from "../core/spaceContext";
+import { buildRoomSettingRoleView, canDisplayRoomSettingNpcRoles } from "./roomSettingRoles";
 
 function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }: {
   onClose: () => void;
@@ -85,6 +86,15 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
       spaceId,
     };
   }, [propRoomId, roomMembers, curMember, roomRolesThatUserOwn, useChatBubbleStyle, spaceId]);
+  const canViewNpcRoles = canDisplayRoomSettingNpcRoles({
+    isSpaceOwner: spaceContext?.isSpaceOwner,
+    memberType: spaceContext?.memberType,
+  });
+  const roleView = useMemo(() => buildRoomSettingRoleView({
+    canViewNpcRoles,
+    roomNpcRoles,
+    roomRoles,
+  }), [canViewNpcRoles, roomNpcRoles, roomRoles]);
 
   const pageTitle = useMemo(() => {
     switch (defaultTab) {
@@ -172,10 +182,19 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                       ">
                         <p>
                           房间角色 -
-                          {roomRoles.length}
+                          {roleView.totalRoleCount}
                         </p>
                       </div>
-                      <RoleList roles={roomRoles} />
+                      <RoleList roles={roomRoles} sourceRoomId={propRoomId} />
+                      {roleView.visibleNpcRoles.length > 0 && (
+                        <RoleList
+                          roles={roleView.visibleNpcRoles}
+                          isNpcRole={true}
+                          allowKickOut={true}
+                          kickOutByManagerOnly={true}
+                          sourceRoomId={propRoomId}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

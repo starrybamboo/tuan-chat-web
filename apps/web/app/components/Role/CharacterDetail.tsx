@@ -1,10 +1,9 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
-import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { invalidateDicerRoleResolveCache } from "@/components/common/dicer/utils/utils";
+import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { ROLE_DEFAULT_AVATAR_URL } from "@/constants/defaultAvatar";
 import { CloseIcon, SlidersIcon } from "@/icons";
 import {
@@ -66,7 +65,6 @@ function CharacterDetailInner({
   const { data: roleAvatarsResponse, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
   // 获取最新角色数据（用于判断类型）
   const { data: currentRoleData } = useGetRoleQuery(role.id);
-  const queryClient = useQueryClient();
 
   const displayRole = useMemo<Role>(() => {
     const queriedRole = currentRoleData?.data;
@@ -329,27 +327,6 @@ function CharacterDetailInner({
     setSelectedAvatarIdOverride(avatarId);
   };
 
-  // 处理头像删除 - 使用 React Query 的乐观更新
-  const handleAvatarDelete = (avatarId: number) => {
-    // 乐观更新:直接修改query cache
-    queryClient.setQueryData(
-      ["getRoleAvatars", role.id],
-      (old: any) => {
-        if (!old?.data)
-          return old;
-        return {
-          ...old,
-          data: old.data.filter((avatar: any) => avatar.avatarId !== avatarId),
-        };
-      },
-    );
-
-    // 如果删除的是当前选中的头像，重置为默认
-    if (avatarId === selectedAvatarId) {
-      setSelectedAvatarIdOverride(0);
-    }
-  };
-
   // 处理头像上传
   const handleAvatarUpload = (_data: any) => {
     // 上传完成后由查询缓存自动刷新，这里不再输出调试日志
@@ -580,7 +557,6 @@ function CharacterDetailInner({
                 onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
                 onAvatarChange={handleAvatarChange}
                 onAvatarSelect={handleAvatarSelect}
-                onAvatarDelete={handleAvatarDelete}
                 onAvatarUpload={handleAvatarUpload}
                 onAvatarTitleSave={handleAvatarTitleSave}
                 onBaseRoleSave={saveRoleBase}
@@ -616,7 +592,6 @@ function CharacterDetailInner({
                 onOpenDiceMaidenLinkModal={handleOpenDiceMaidenLinkModal}
                 onAvatarChange={handleAvatarChange}
                 onAvatarSelect={handleAvatarSelect}
-                onAvatarDelete={handleAvatarDelete}
                 onAvatarUpload={handleAvatarUpload}
                 onAvatarTitleSave={handleAvatarTitleSave}
                 onBaseRoleSave={saveRoleBase}

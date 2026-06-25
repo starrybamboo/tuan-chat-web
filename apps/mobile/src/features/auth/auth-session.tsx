@@ -4,6 +4,7 @@ import type { PropsWithChildren } from "react";
 import { extractOpenApiErrorMessage } from "@tuanchat/domain/open-api-result";
 import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 
+import { logNotificationTrace, logNotificationTraceError } from "@/features/notifications/notificationTrace";
 import { mobileApiClient } from "@/lib/api";
 import { mobileQueryClient } from "@/providers/query-client";
 
@@ -45,6 +46,11 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
     throw new Error("请输入账号和密码。");
   }
 
+  logNotificationTrace("auth.login.start", {
+    identifier,
+    method: input.method,
+  });
+
   const request: UserLoginRequest = { password };
   if (input.method === "username") {
     request.username = identifier;
@@ -58,6 +64,7 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
     tokenResponse = await mobileApiClient.userController.login(request);
   }
   catch (error) {
+    logNotificationTraceError("auth.login.error", error);
     throw new Error(extractOpenApiErrorMessage(error, "登录失败。"));
   }
 
@@ -67,6 +74,7 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
   }
 
   await writeStoredAuthSession({ token });
+  logNotificationTrace("auth.login.token-received");
 
   try {
     const me = await mobileApiClient.userController.getMyUserInfo();
@@ -76,10 +84,15 @@ async function performLogin(input: LoginInput): Promise<StoredAuthSession> {
       username: me.data?.username,
     };
     await writeStoredAuthSession(session);
+    logNotificationTrace("auth.login.done", {
+      userId: session.userId ?? null,
+      username: session.username ?? null,
+    });
     return session;
   }
   catch (error) {
     await clearStoredAuthSession();
+    logNotificationTraceError("auth.login.profile-error", error);
     const message = extractOpenApiErrorMessage(error, "登录成功，但获取当前用户信息失败。");
     throw new Error(message);
   }
@@ -150,6 +163,12 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
         storedSession = null;
       }
 
+      logNotificationTrace("auth.bootstrap.done", {
+        hasSession: Boolean(storedSession),
+        userId: storedSession?.userId ?? null,
+        username: storedSession?.username ?? null,
+      });
+
       if (!cancelled) {
         setSession(storedSession);
         setIsBootstrapping(false);
@@ -165,12 +184,17 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
     const normalizedSession = normalizeStoredAuthSession(nextSession);
 
     if (!normalizedSession) {
+      logNotificationTrace("auth.replace.clear");
       await clearStoredAuthSession();
       setSession(null);
       mobileQueryClient.clear();
       return;
     }
 
+    logNotificationTrace("auth.replace.persist", {
+      userId: normalizedSession.userId ?? null,
+      username: normalizedSession.username ?? null,
+    });
     await writeStoredAuthSession(normalizedSession);
     const enrichedSession = await enrichStoredAuthSession(normalizedSession);
     await writeStoredAuthSession(enrichedSession);
@@ -197,6 +221,7 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
       // best-effort：本地态清理成功即可。
     }
 
+    logNotificationTrace("auth.logout");
     await replaceSession(null);
   }, [replaceSession]);
   const contextValue = useMemo(() => ({

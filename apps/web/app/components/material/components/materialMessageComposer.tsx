@@ -13,6 +13,7 @@ import { openMessageAnnotationPicker } from "@/components/chat/message/annotatio
 import { isFileDrag } from "@/components/chat/utils/dndUpload";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { normalizeAnnotations, toggleAnnotation } from "@/types/messageAnnotations";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import MaterialComposerAttachmentsPreview from "./materialComposerAttachmentsPreview";
 import { useMaterialComposerContext } from "./materialComposerContext";
@@ -133,6 +134,7 @@ export default function MaterialMessageComposer({
   const handleOpenComposerAnnotations = useCallback(() => {
     openMessageAnnotationPicker({
       initialSelected: composerAnnotations,
+      messageType: MESSAGE_TYPE.TEXT,
       onChange: (next) => {
         setComposerAnnotations(normalizeAnnotations(next));
       },

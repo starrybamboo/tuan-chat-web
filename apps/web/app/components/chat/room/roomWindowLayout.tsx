@@ -3,7 +3,6 @@ import type { Room } from "@tuanchat/openapi-client/models/Room";
 import { motion, useReducedMotion } from "motion/react";
 import React from "react";
 
-import type { GalAuthoringLocalSnapshot, GalPatchProposal } from "@/components/chat/galgameAi";
 import type { UseChatHistoryReturn } from "@/components/chat/infra/localDb/useChatHistory";
 import type { RoomContentMode } from "@/components/chat/room/roomHeaderBar";
 
@@ -67,8 +66,6 @@ type RoomWindowLayoutProps = {
   hideSecondaryPanels?: boolean;
   onClearAndReloadAllMessages?: () => void | Promise<void>;
   isReloadingAllMessages?: boolean;
-  galAuthoringLocalSnapshot?: GalAuthoringLocalSnapshot;
-  onGalPatchProposalGenerated?: (proposal: GalPatchProposal) => void;
 }
 
 export default function RoomWindowLayout({
@@ -95,8 +92,6 @@ export default function RoomWindowLayout({
   hideSecondaryPanels = false,
   onClearAndReloadAllMessages,
   isReloadingAllMessages = false,
-  galAuthoringLocalSnapshot,
-  onGalPatchProposalGenerated,
 }: RoomWindowLayoutProps) {
   const shouldRenderEffectOverlay = Boolean(currentEffect && currentEffect !== "none");
   const prefersReducedMotion = useReducedMotion();
@@ -228,12 +223,7 @@ export default function RoomWindowLayout({
                     </div>
 
                     {!hideSecondaryPanels && (
-                      <RoomSideDrawers
-                        spaceId={spaceId}
-                        roomId={roomId}
-                        galAuthoringLocalSnapshot={galAuthoringLocalSnapshot}
-                        onGalPatchProposalGenerated={onGalPatchProposalGenerated}
-                      />
+                      <RoomSideDrawers />
                     )}
 
                     {!hideSecondaryPanels && <WebgalPreviewDrawer />}

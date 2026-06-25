@@ -34,10 +34,17 @@ type CloudflareWebAnalyticsWindow = {
 
 type CloudflareWebAnalyticsDeps = {
   isProd: boolean;
+  analyticsConfig: CloudflareWebAnalyticsConfig | null;
   getDocument: () => CloudflareWebAnalyticsDocument | null;
   getWindow: () => CloudflareWebAnalyticsWindow | null;
-  setTimeoutFn: typeof setTimeout;
+  setTimeoutFn: (handler: () => void, timeoutMs: number) => ReturnType<typeof setTimeout>;
   timeoutMs: number;
+};
+
+type CloudflareWebAnalyticsConfig = {
+  environment: "production" | "test";
+  hosts: ReadonlySet<string>;
+  token: string;
 };
 
 const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_ID = "tc-cloudflare-web-analytics";
@@ -45,35 +52,41 @@ const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC = "https://static.cloudflareinsights.c
 const CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN = "ecffe13cc26a481880812c11e3489111";
 const CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN = "bd9e06f17e3b4f19bd7d6def90fdc7e5";
 const CLOUDFLARE_WEB_ANALYTICS_SCRIPT_STATE_KEY = "tcCfAnalyticsState";
-const CLOUDFLARE_WEB_ANALYTICS_TOKENS_BY_HOST = new Map<string, string>([
-  ["tuan.chat", CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN],
-  ["www.tuan.chat", CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN],
-  ["test.tuan.chat", CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN],
-  ["www.test.tuan.chat", CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN],
-] as const);
-const CLOUDFLARE_WEB_ANALYTICS_HOSTS = new Set(CLOUDFLARE_WEB_ANALYTICS_TOKENS_BY_HOST.keys());
-const CLOUDFLARE_WEB_ANALYTICS_TEST_HOSTS = new Set([
-  "test.tuan.chat",
-  "www.test.tuan.chat",
-]);
 const DEFAULT_ANALYTICS_BLOCK_TIMEOUT_MS = 4000;
+
+function createDefaultCloudflareWebAnalyticsConfig(): CloudflareWebAnalyticsConfig | null {
+  if (import.meta.env.MODE === "production") {
+    return {
+      environment: "production",
+      token: CLOUDFLARE_WEB_ANALYTICS_PRODUCTION_TOKEN,
+      hosts: new Set(["tuan.chat", "www.tuan.chat"]),
+    };
+  }
+
+  if (import.meta.env.MODE === "test") {
+    return {
+      environment: "test",
+      token: CLOUDFLARE_WEB_ANALYTICS_TEST_TOKEN,
+      hosts: new Set(["test.tuan.chat", "www.test.tuan.chat"]),
+    };
+  }
+
+  return null;
+}
 
 function createDefaultDeps(): CloudflareWebAnalyticsDeps {
   return {
     isProd: import.meta.env.PROD,
+    analyticsConfig: createDefaultCloudflareWebAnalyticsConfig(),
     getDocument: () => (typeof document === "undefined" ? null : (document as unknown as CloudflareWebAnalyticsDocument)),
     getWindow: () => (typeof window === "undefined" ? null : (window as unknown as CloudflareWebAnalyticsWindow)),
-    setTimeoutFn: setTimeout,
+    setTimeoutFn: (handler, timeoutMs) => setTimeout(handler, timeoutMs),
     timeoutMs: DEFAULT_ANALYTICS_BLOCK_TIMEOUT_MS,
   };
 }
 
 function normalizeHostname(hostname: string | null | undefined) {
   return typeof hostname === "string" ? hostname.trim().toLowerCase() : "";
-}
-
-function resolveCloudflareWebAnalyticsToken(hostname: string | null | undefined) {
-  return CLOUDFLARE_WEB_ANALYTICS_TOKENS_BY_HOST.get(normalizeHostname(hostname)) ?? null;
 }
 
 function normalizeScriptUrl(rawUrl: string, baseURI: string | undefined) {
@@ -110,8 +123,10 @@ function applyCloudflareWebAnalyticsScriptAttrs(script: CloudflareWebAnalyticsSc
   script.id = CLOUDFLARE_WEB_ANALYTICS_SCRIPT_ID;
   script.src = CLOUDFLARE_WEB_ANALYTICS_SCRIPT_SRC;
   script.defer = true;
+  script.setAttribute("data-cfasync", "false");
   script.setAttribute("data-cf-beacon", JSON.stringify({
     token,
+    spa: true,
   }));
 }
 
@@ -142,16 +157,19 @@ function findExistingCloudflareWebAnalyticsScript(
 }
 
 export function shouldEnableCloudflareWebAnalytics(options: {
+  analyticsConfig: CloudflareWebAnalyticsConfig | null;
   hostname?: string | null | undefined;
   isProd: boolean;
   protocol?: string | null | undefined;
 }) {
   return options.isProd
     && options.protocol === "https:"
-    && CLOUDFLARE_WEB_ANALYTICS_HOSTS.has(normalizeHostname(options.hostname));
+    && !!options.analyticsConfig
+    && options.analyticsConfig.hosts.has(normalizeHostname(options.hostname));
 }
 
 export function resolveCloudflareWebAnalyticsConfig(options: {
+  analyticsConfig: CloudflareWebAnalyticsConfig | null;
   hostname?: string | null | undefined;
   isProd: boolean;
   protocol?: string | null | undefined;
@@ -161,14 +179,14 @@ export function resolveCloudflareWebAnalyticsConfig(options: {
   }
 
   const hostname = normalizeHostname(options.hostname);
-  const token = resolveCloudflareWebAnalyticsToken(hostname);
-  if (!token) {
+  const analyticsConfig = options.analyticsConfig;
+  if (!analyticsConfig || !analyticsConfig.hosts.has(hostname)) {
     return null;
   }
 
   return {
-    environment: CLOUDFLARE_WEB_ANALYTICS_TEST_HOSTS.has(hostname) ? "test" : "production",
-    token,
+    environment: analyticsConfig.environment,
+    token: analyticsConfig.token,
   } as const;
 }
 
@@ -195,6 +213,7 @@ export function createCloudflareWebAnalyticsController(rawDeps: Partial<Cloudfla
   const isEligibleRuntime = () => {
     const runtimeWindow = deps.getWindow();
     return shouldEnableCloudflareWebAnalytics({
+      analyticsConfig: deps.analyticsConfig,
       isProd: deps.isProd,
       protocol: runtimeWindow?.location.protocol,
       hostname: runtimeWindow?.location.hostname,
@@ -204,6 +223,7 @@ export function createCloudflareWebAnalyticsController(rawDeps: Partial<Cloudfla
   const ensureLoaded = async () => {
     const runtimeWindow = deps.getWindow();
     const analyticsConfig = resolveCloudflareWebAnalyticsConfig({
+      analyticsConfig: deps.analyticsConfig,
       isProd: deps.isProd,
       protocol: runtimeWindow?.location.protocol,
       hostname: runtimeWindow?.location.hostname,
@@ -270,7 +290,8 @@ export function createCloudflareWebAnalyticsController(rawDeps: Partial<Cloudfla
       script.addEventListener("error", markBlocked as EventListener, { once: true });
 
       // 广告拦截器有时会直接吞掉请求，不一定触发 error；超时后按被拦截处理。
-      deps.setTimeoutFn(() => {
+      const scheduleTimeout = deps.setTimeoutFn;
+      scheduleTimeout(() => {
         if (readCloudflareWebAnalyticsScriptState(script) === "loaded") {
           return;
         }

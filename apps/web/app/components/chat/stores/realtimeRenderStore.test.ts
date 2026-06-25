@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { RealtimeWebgalGameConfig } from "./realtimeRenderStore";
 
-import { buildRealtimeRenderCloudSettingsSnapshot } from "./realtimeRenderStore";
+import { buildRealtimeRenderCloudSettingsSnapshot, useRealtimeRenderStore } from "./realtimeRenderStore";
 
 function createGameConfig(overrides: Partial<RealtimeWebgalGameConfig> = {}): RealtimeWebgalGameConfig {
   return {
     allowOpenFullSettings: true,
-    baseTemplate: "none",
+    baseTemplate: "tuanchat",
     coverFromRoomAvatarEnabled: true,
     defaultLanguage: "",
     description: "",
@@ -41,6 +41,10 @@ function buildSnapshot(gameConfig: RealtimeWebgalGameConfig) {
 }
 
 describe("buildRealtimeRenderCloudSettingsSnapshot", () => {
+  it("默认使用团剧共创 WebGAL 模板", () => {
+    expect(useRealtimeRenderStore.getState().gameConfig.baseTemplate).toBe("tuanchat");
+  });
+
   it("同槽位存在 fileId 时不再把 legacy URL 写入云端配置", () => {
     const snapshot = buildSnapshot(createGameConfig({
       originalStartupLogoFileId: 1004,

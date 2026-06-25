@@ -1,4 +1,3 @@
-import type { StateEventMessageSummary } from "@tuanchat/domain/state-runtime";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 
 import { getDiceResultExtra, getDiceTurnExtra, getImageMessageExtra, getSoundMessageExtra } from "@tuanchat/domain/message-extra";
@@ -164,6 +163,7 @@ function getCompactMediaText(message: Message): string {
 }
 
 type ChatMessageItemProps = {
+  avatarUrl?: string | null;
   currentRoleId?: number;
   isCommandRequestConsumed?: (messageId: number) => boolean;
   isGrouped: boolean;
@@ -179,10 +179,10 @@ type ChatMessageItemProps = {
   replyAuthorName?: string | null;
   replyPreviewText?: string | null;
   roomRolesById: RoomRolesById;
-  stateEventSummary?: StateEventMessageSummary;
 };
 
 export const ChatMessageItem = memo(({
+  avatarUrl,
   currentRoleId = 0,
   isCommandRequestConsumed,
   isGrouped,
@@ -198,7 +198,6 @@ export const ChatMessageItem = memo(({
   replyAuthorName,
   replyPreviewText,
   roomRolesById,
-  stateEventSummary,
 }: ChatMessageItemProps) => {
   const theme = useTheme();
   const isOOC = isOutOfCharacterMessage(message);
@@ -284,6 +283,7 @@ export const ChatMessageItem = memo(({
       <MessageAvatar
         avatarFileId={message.avatarFileId}
         avatarId={message.avatarId}
+        avatarUrl={avatarUrl}
         displayName={displayName}
         preferUserAvatar={isOOC}
         roleId={message.roleId}
@@ -439,6 +439,7 @@ export const ChatMessageItem = memo(({
             : null}
           <MobileMessageMediaPreview
             content={message.content}
+            deferPlayableMedia
             extra={message.extra}
             messageType={message.messageType}
           />
@@ -448,7 +449,7 @@ export const ChatMessageItem = memo(({
               )
             : null}
           {message.messageType === MESSAGE_TYPE.STATE_EVENT
-            ? <StateEventCard message={message} roomRolesById={roomRolesById} summary={stateEventSummary} />
+            ? <StateEventCard message={message} roomRolesById={roomRolesById} />
             : null}
           {message.messageType === MESSAGE_TYPE.WEBGAL_CHOOSE
             ? <WebgalChooseCard content={message.content} extra={message.extra} />

@@ -98,6 +98,14 @@ function renderEvent(event, index) {
     `   - summary: ${cleanForMarkdown(event.summary)}`,
     `   - textRef: ${cleanForMarkdown(event.textRef)}`,
   ];
+  if (event.battleId) {
+    lines.push(`   - battle: ${[
+      event.battleId,
+      event.battlePhase,
+      event.battleTitle,
+      event.battleSide,
+    ].filter(Boolean).join(" / ")}`);
+  }
   if (event.notes) lines.push(`   - notes: ${cleanForMarkdown(event.notes)}`);
   return lines.join("\n");
 }

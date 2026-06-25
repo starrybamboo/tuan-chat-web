@@ -7,8 +7,10 @@ type TooltipPlacement = "right" | "left" | "top" | "bottom";
 
 type PortalTooltipProps = {
   label?: string;
+  content?: React.ReactNode;
   placement?: TooltipPlacement;
   gap?: number;
+  delayMs?: number;
   children: React.ReactNode;
   className?: string;
 }
@@ -18,8 +20,10 @@ const VIEWPORT_PADDING = 8;
 
 export default function PortalTooltip({
   label,
+  content,
   placement = "right",
   gap = DEFAULT_GAP,
+  delayMs = 0,
   children,
   className,
 }: PortalTooltipProps) {
@@ -27,6 +31,32 @@ export default function PortalTooltip({
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const anchorRef = useRef<HTMLSpanElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const openTimerRef = useRef<number | null>(null);
+
+  const clearOpenTimer = useCallback(() => {
+    if (openTimerRef.current) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+  }, []);
+
+  const openTooltip = useCallback(() => {
+    clearOpenTimer();
+    if (delayMs <= 0) {
+      setIsOpen(true);
+      return;
+    }
+    openTimerRef.current = window.setTimeout(() => {
+      openTimerRef.current = null;
+      setIsOpen(true);
+    }, delayMs);
+  }, [clearOpenTimer, delayMs]);
+
+  const closeTooltip = useCallback(() => {
+    clearOpenTimer();
+    setIsOpen(false);
+    setPos(null);
+  }, [clearOpenTimer]);
 
   const compute = useCallback(() => {
     const anchor = anchorRef.current;
@@ -105,7 +135,11 @@ export default function PortalTooltip({
     };
   }, [compute, isOpen]);
 
-  if (!label) {
+  useEffect(() => clearOpenTimer, [clearOpenTimer]);
+
+  const tooltipContent = content ?? label;
+
+  if (!tooltipContent) {
     return <>{children}</>;
   }
 
@@ -113,10 +147,10 @@ export default function PortalTooltip({
     <span
       ref={anchorRef}
       className="inline-flex"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-      onFocus={() => setIsOpen(true)}
-      onBlur={() => setIsOpen(false)}
+      onMouseEnter={openTooltip}
+      onMouseLeave={closeTooltip}
+      onFocus={openTooltip}
+      onBlur={closeTooltip}
     >
       {children}
       {isOpen && createPortal(
@@ -131,9 +165,10 @@ export default function PortalTooltip({
             position: "fixed",
             left: pos?.left ?? 0,
             top: pos?.top ?? 0,
+            visibility: pos ? "visible" : "hidden",
           }}
         >
-          <span className="whitespace-nowrap">{label}</span>
+          {content ?? <span className="whitespace-nowrap">{label}</span>}
         </div>,
         document.body,
       )}

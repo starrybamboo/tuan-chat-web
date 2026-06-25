@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { ArrowRightIcon } from "@phosphor-icons/react";
+
 type RegisterFormProps = {
   username?: string;
   setUsername: (value: string) => void;
@@ -49,11 +51,17 @@ export function RegisterForm({
   const verificationCodeInputId = "register-verification-code";
   const passwordInputId = "register-password";
   const confirmPasswordInputId = "register-confirm-password";
-  const fieldLabelClass = "mb-1 block text-xs font-medium text-base-content/70";
+  const fieldLabelClass = "text-xs font-medium uppercase tracking-[0.08em] text-base-content/55";
+  const inputClassName = `
+    input input-bordered w-full bg-base-200 text-base-content
+    placeholder:text-base-content/55 transition-colors
+    focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20
+    dark:bg-base-300
+  `;
 
   return (
-    <form onSubmit={handleSubmit} autoComplete="off">
-      <div className="form-control w-full mt-2">
+    <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
+      <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={usernameInputId}>
           用户名
         </label>
@@ -62,20 +70,17 @@ export function RegisterForm({
           name="registerUsername"
           type="text"
           autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
           placeholder="请输入用户名"
-          className="
-            input input-bordered w-full bg-base-200
-            dark:bg-base-300
-            text-base-content
-            placeholder:text-base-content/60
-          "
+          className={inputClassName}
           value={username}
           onChange={e => setUsername(e.target.value)}
           required
         />
       </div>
 
-      <div className="form-control w-full mt-2">
+      <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={emailInputId}>
           邮箱
         </label>
@@ -84,20 +89,16 @@ export function RegisterForm({
           name="registerEmail"
           type="email"
           autoComplete="email"
+          autoCapitalize="none"
           placeholder="请输入邮箱地址"
-          className="
-            input input-bordered w-full bg-base-200
-            dark:bg-base-300
-            text-base-content
-            placeholder:text-base-content/60
-          "
+          className={inputClassName}
           value={email}
           onChange={e => setEmail(e.target.value)}
           required
         />
       </div>
 
-      <div className="form-control w-full mt-2">
+      <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={inviteCodeInputId}>
           邀请码（选填）
         </label>
@@ -109,42 +110,32 @@ export function RegisterForm({
           autoCapitalize="none"
           spellCheck={false}
           placeholder="请输入邀请码"
-          className="
-            input input-bordered w-full bg-base-200
-            dark:bg-base-300
-            text-base-content
-            placeholder:text-base-content/60
-          "
+          className={inputClassName}
           value={inviteCode}
           onChange={e => setInviteCode(e.target.value)}
           maxLength={32}
         />
       </div>
 
-      <div className="form-control w-full mt-2">
+      <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={verificationCodeInputId}>
           邮箱验证码
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id={verificationCodeInputId}
             name="registerEmailVerificationCode"
             type="text"
             autoComplete="one-time-code"
             placeholder="请输入验证码"
-            className="
-              input input-bordered flex-1 bg-base-200
-              dark:bg-base-300
-              text-base-content
-              placeholder:text-base-content/60
-            "
+            className={`${inputClassName} sm:flex-1`}
             value={verificationCode}
             onChange={e => setVerificationCode(e.target.value)}
             required
           />
           <button
             type="button"
-            className="btn btn-outline whitespace-nowrap"
+            className="btn btn-outline w-full whitespace-nowrap sm:w-auto"
             onClick={sendVerificationCode}
             disabled={
               isSendingVerificationCode
@@ -161,7 +152,7 @@ export function RegisterForm({
         </div>
       </div>
 
-      <div className="form-control w-full mt-2">
+      <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={passwordInputId}>
           密码
         </label>
@@ -171,19 +162,14 @@ export function RegisterForm({
           type="password"
           autoComplete="new-password"
           placeholder="请输入密码"
-          className="
-            input input-bordered w-full bg-base-200
-            dark:bg-base-300
-            text-base-content
-            placeholder:text-base-content/60
-          "
+          className={inputClassName}
           value={password}
           onChange={e => setPassword(e.target.value)}
           required
         />
       </div>
 
-      <div className="form-control w-full mt-2">
+      <div className="space-y-2">
         <label className={fieldLabelClass} htmlFor={confirmPasswordInputId}>
           确认密码
         </label>
@@ -193,38 +179,32 @@ export function RegisterForm({
           type="password"
           autoComplete="new-password"
           placeholder="请再次输入密码"
-          className="
-            input input-bordered w-full bg-base-200
-            dark:bg-base-300
-            text-base-content
-            placeholder:text-base-content/60
-          "
+          className={inputClassName}
           value={confirmPassword}
           onChange={e => setConfirmPassword(e.target.value)}
           required
         />
       </div>
 
-      <div className="form-control mt-6">
+      <div className="space-y-3 pt-2">
         {turnstile}
         <button
           type="submit"
-          className="
-            btn btn-primary
-            hover:brightness-110
-            transition-all
-          "
+          className="btn btn-primary w-full gap-2 shadow-sm hover:brightness-110"
           disabled={isLoading}
         >
           {isLoading
             ? (
                 <>
-                  <span className="loading loading-spinner"></span>
+                  <span className="loading loading-spinner loading-sm" />
                   注册中...
                 </>
               )
             : (
-                "注册"
+                <>
+                  <ArrowRightIcon className="size-4" weight="bold" />
+                  注册
+                </>
               )}
         </button>
       </div>

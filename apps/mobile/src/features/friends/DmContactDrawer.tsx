@@ -2,6 +2,7 @@ import { useGetUserProfileQuery } from "@tuanchat/query/users";
 import { Trash } from "phosphor-react-native";
 import { useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
 import { ThemedText } from "@/components/themed-text";
@@ -84,6 +85,7 @@ type DmContactDrawerProps = {
 
 export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, onClose, onDeleted }: DmContactDrawerProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const profileQuery = useGetUserProfileQuery(mobileApiClient, contactId, {
     enabled: contactId > 0,
@@ -127,7 +129,7 @@ export function DmContactDrawer({ contactId, contactName, contactAvatarFileId, o
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { flexGrow: 1 }]}>
+      <ScrollView contentContainerStyle={[styles.content, { flexGrow: 1, paddingBottom: Spacing.xxl + insets.bottom }]}>
         <Pressable
           onPress={() => avatarUrl && setAvatarPreviewVisible(true)}
           accessibilityLabel="查看用户头像"

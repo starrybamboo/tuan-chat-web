@@ -21,10 +21,11 @@ import {
 import { useIsMobile } from "@/utils/getScreenSize";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 
-import type { UserRole } from "../../../../../api";
+import type { ChatMessageRequest, UserRole } from "../../../../../api";
 import type { RoomDndMapToken } from "./roomDndMapApi";
 
 import { useGetRoomNpcRoleQuery, useGetRoomRoleQuery } from "../../../../../api/hooks/chatQueryHooks";
+import { tuanchat } from "../../../../../api/instance";
 import { MessageType } from "../../../../../api/wsModels";
 import {
   fetchRoomDndMap,
@@ -39,6 +40,11 @@ import {
   resolveGridCellAtPoint,
   shouldCommitGridCellMove,
 } from "./roomDndMapGeometry";
+import {
+  buildMapConfigMessageUpdateOperation,
+  buildUpdatedMapConfigMessageResponse,
+  findLatestUpdatableMapConfigMessage,
+} from "./roomDndMapStateMessage";
 
 const GRID_COLOR_OPTIONS = [
   { value: "#64748b", label: "slate", className: "bg-slate-500 border-slate-500" },
@@ -252,6 +258,19 @@ function useContainedImageRect(mapImgUrl: string) {
 
 function buildCellKey(rowIndex: number, colIndex: number) {
   return `${rowIndex}-${colIndex}`;
+}
+
+function hasSameMapConfig(
+  left: EffectiveMapConfig | null | undefined,
+  right: EffectiveMapConfig | null | undefined,
+) {
+  if (!left || !right) {
+    return !left && !right;
+  }
+  return left.mapFileId === right.mapFileId
+    && left.gridRows === right.gridRows
+    && left.gridCols === right.gridCols
+    && left.gridColor === right.gridColor;
 }
 
 function readRoleRuntimeNumber(runtime: StateRuntimeContextValue, roleId: number, keys: string[]): number | null {
@@ -496,6 +515,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
   const draggingTokenRef = useRef<DraggingMapTokenState | null>(null);
   const migratedLegacyMapKeysRef = useRef(new Set<string>());
   const migratingLegacyMapKeyRef = useRef<string | null>(null);
+  const mapConfigUpdateChainRef = useRef<Promise<void>>(Promise.resolve());
   const suppressNextTokenClickRef = useRef(false);
 
   const { data: roomRolesData } = useGetRoomRoleQuery(roomId);
@@ -522,10 +542,22 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     }
     return map;
   }, [map, stateRuntime?.hasMapConfigState, stateRuntime?.mapConfig]);
-  const gridRows = effectiveMapConfig?.gridRows ?? DEFAULT_GRID_ROWS;
-  const gridCols = effectiveMapConfig?.gridCols ?? DEFAULT_GRID_COLS;
-  const gridColor = effectiveMapConfig?.gridColor ?? DEFAULT_GRID_COLOR;
-  const mapImageUrl = getRoomDndMapImageUrl(effectiveMapConfig);
+  const [draftMapConfig, setDraftMapConfig] = useState<EffectiveMapConfig | null>(null);
+
+  useEffect(() => {
+    setDraftMapConfig(effectiveMapConfig ? { ...effectiveMapConfig } : null);
+  }, [
+    effectiveMapConfig?.gridColor,
+    effectiveMapConfig?.gridCols,
+    effectiveMapConfig?.gridRows,
+    effectiveMapConfig?.mapFileId,
+  ]);
+
+  const editableMapConfig = draftMapConfig ?? effectiveMapConfig;
+  const gridRows = editableMapConfig?.gridRows ?? DEFAULT_GRID_ROWS;
+  const gridCols = editableMapConfig?.gridCols ?? DEFAULT_GRID_COLS;
+  const gridColor = editableMapConfig?.gridColor ?? DEFAULT_GRID_COLOR;
+  const mapImageUrl = getRoomDndMapImageUrl(editableMapConfig);
 
   const sharedMapTokens = useMemo(() => {
     if (!stateRuntime?.hasMapState) {
@@ -585,20 +617,28 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     return Math.max(minVisibleSize, Math.min(maxVisibleSize, Math.floor(size)));
   }, [gridCols, gridRows, rect.height, rect.width, isMobile]);
 
+  const buildMapStateMessageRequest = useCallback((events: StateEventAtom[], content: string): ChatMessageRequest | null => {
+    if (!roomId || roomId <= 0) {
+      return null;
+    }
+    return {
+      roomId,
+      roleId: roomContext.curRoleId ?? -1,
+      avatarId: roomContext.curAvatarId ?? -1,
+      content,
+      messageType: MessageType.STATE_EVENT,
+      extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", events)),
+    };
+  }, [roomContext.curAvatarId, roomContext.curRoleId, roomId]);
+
   const sendMapStateEvents = useCallback(async (events: StateEventAtom[], content: string) => {
-    if (!roomContext.sendMessageWithInsert || !roomId || roomId <= 0) {
+    const request = buildMapStateMessageRequest(events, content);
+    if (!request || !roomContext.sendMessageWithInsert) {
       toast.error("当前房间暂不能写入地图事件");
       return false;
     }
     try {
-      const createdMessage = await roomContext.sendMessageWithInsert({
-        roomId,
-        roleId: roomContext.curRoleId ?? -1,
-        avatarId: roomContext.curAvatarId ?? -1,
-        content,
-        messageType: MessageType.STATE_EVENT,
-        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", events)),
-      });
+      const createdMessage = await roomContext.sendMessageWithInsert(request);
       if (!createdMessage) {
         toast.error("写入地图事件失败");
         return false;
@@ -610,7 +650,76 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       toast.error("写入地图事件失败");
       return false;
     }
-  }, [roomContext, roomId]);
+  }, [buildMapStateMessageRequest, roomContext]);
+
+  const enqueueMapConfigUpdate = useCallback((task: () => Promise<boolean>) => {
+    const next = mapConfigUpdateChainRef.current.then(task, task);
+    mapConfigUpdateChainRef.current = next.then(() => undefined, () => undefined);
+    return next;
+  }, []);
+
+  const upsertMapConfigStateEvent = useCallback(async (event: StateEventAtom, content: string) => {
+    if (event.type !== "mapConfigUpsert") {
+      return await sendMapStateEvents([event], content);
+    }
+
+    return await enqueueMapConfigUpdate(async () => {
+      const request = buildMapStateMessageRequest([event], content);
+      if (!request) {
+        toast.error("当前房间暂不能写入地图事件");
+        return false;
+      }
+
+      const target = findLatestUpdatableMapConfigMessage(roomContext.chatHistory?.messages, roomId);
+      if (!target) {
+        return await sendMapStateEvents([event], content);
+      }
+
+      const nextResponse = buildUpdatedMapConfigMessageResponse(target, {
+        content,
+        extra: request.extra,
+      });
+      await roomContext.chatHistory?.addOrUpdateMessage(nextResponse);
+
+      const targetMessageId = target.message.messageId;
+      if (!Number.isFinite(targetMessageId) || targetMessageId <= 0) {
+        return true;
+      }
+
+      try {
+        const response = await tuanchat.chatController.patchRoomMessages({
+          roomId,
+          operations: [
+            buildMapConfigMessageUpdateOperation(target.message, {
+              content,
+              extra: request.extra,
+            }),
+          ],
+        });
+        const updatedMessage = response?.data?.[0];
+        if (!response?.success || !updatedMessage) {
+          throw new Error("patchRoomMessages returned empty map config update result");
+        }
+        await roomContext.chatHistory?.addOrUpdateMessage({
+          ...target,
+          message: updatedMessage,
+        });
+        return true;
+      }
+      catch (error) {
+        console.error("更新地图配置失败", error);
+        await roomContext.chatHistory?.addOrUpdateMessage(target);
+        toast.error("更新地图配置失败");
+        return false;
+      }
+    });
+  }, [
+    buildMapStateMessageRequest,
+    enqueueMapConfigUpdate,
+    roomContext.chatHistory,
+    roomId,
+    sendMapStateEvents,
+  ]);
 
   useEffect(() => {
     if (!mapQuery.isSuccess || !map || !stateRuntime || stateRuntime.hasMapConfigState) {
@@ -657,7 +766,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     gridColor?: string;
     clearTokens?: boolean;
   }): StateEventAtom | null => {
-    const mapFileId = patch.mapFileId ?? effectiveMapConfig?.mapFileId;
+    const mapFileId = patch.mapFileId ?? editableMapConfig?.mapFileId ?? effectiveMapConfig?.mapFileId;
     if (!mapFileId) {
       toast.error("请先上传地图");
       return null;
@@ -670,7 +779,7 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
       gridColor: patch.gridColor ?? gridColor,
       ...(patch.clearTokens ? { clearTokens: true } : {}),
     };
-  }, [effectiveMapConfig?.mapFileId, gridColor, gridCols, gridRows]);
+  }, [editableMapConfig?.mapFileId, effectiveMapConfig?.mapFileId, gridColor, gridCols, gridRows]);
 
   const handleUploadMap = async (file: File) => {
     if (!roomId || roomId <= 0) {
@@ -690,7 +799,13 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
         clearTokens: true,
       });
       if (event) {
-        void sendMapStateEvents([event], ".combat map-config");
+        setDraftMapConfig({
+          mapFileId: uploadedImage.fileId,
+          gridRows,
+          gridCols,
+          gridColor,
+        });
+        void upsertMapConfigStateEvent(event, ".combat map-config");
       }
     }
     catch (err) {
@@ -709,33 +824,53 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
     setSelectedRoleId(null);
   }, [sendMapStateEvents]);
 
+  const commitMapConfigDraft = useCallback((config?: EffectiveMapConfig | null) => {
+    const nextConfig = config ?? draftMapConfig;
+    if (!nextConfig?.mapFileId) {
+      toast.error("请先上传地图");
+      return;
+    }
+    if (hasSameMapConfig(effectiveMapConfig, nextConfig)) {
+      return;
+    }
+    const event = buildMapConfigUpsertEvent(nextConfig);
+    if (event) {
+      void upsertMapConfigStateEvent(event, ".combat map-grid");
+    }
+  }, [buildMapConfigUpsertEvent, draftMapConfig, effectiveMapConfig, upsertMapConfigStateEvent]);
+
   const handleGridChange = useCallback((nextRows: number, nextCols: number) => {
     if (!roomId || roomId <= 0) {
       return;
     }
-    const event = buildMapConfigUpsertEvent({
+    setDraftMapConfig({
+      mapFileId: editableMapConfig?.mapFileId ?? effectiveMapConfig?.mapFileId,
       gridRows: nextRows,
       gridCols: nextCols,
       gridColor,
     });
-    if (event) {
-      void sendMapStateEvents([event], ".combat map-grid");
-    }
-  }, [buildMapConfigUpsertEvent, gridColor, roomId, sendMapStateEvents]);
+  }, [editableMapConfig?.mapFileId, effectiveMapConfig?.mapFileId, gridColor, roomId]);
 
   const handleGridColorChange = useCallback((nextColor: string) => {
     if (!roomId || roomId <= 0) {
       return;
     }
-    const event = buildMapConfigUpsertEvent({
+    const nextConfig = {
+      mapFileId: editableMapConfig?.mapFileId ?? effectiveMapConfig?.mapFileId,
       gridRows,
       gridCols,
       gridColor: nextColor,
-    });
-    if (event) {
-      void sendMapStateEvents([event], ".combat map-grid");
-    }
-  }, [buildMapConfigUpsertEvent, gridCols, gridRows, roomId, sendMapStateEvents]);
+    };
+    setDraftMapConfig(nextConfig);
+    commitMapConfigDraft(nextConfig);
+  }, [
+    commitMapConfigDraft,
+    editableMapConfig?.mapFileId,
+    effectiveMapConfig?.mapFileId,
+    gridCols,
+    gridRows,
+    roomId,
+  ]);
 
   const handleRemoveRole = useCallback((roleId: number) => {
     if (!roomId || roomId <= 0) {
@@ -1101,6 +1236,12 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                   }
                   handleGridChange(clampGridDimension(next), gridCols);
                 }}
+                onBlur={() => commitMapConfigDraft()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
+                }}
                 className="
                   w-10 bg-transparent text-center text-sm outline-none
                   [appearance:textfield]
@@ -1120,6 +1261,12 @@ export default function DNDMap({ roomId: roomIdProp, variant = "embedded" }: DND
                     return;
                   }
                   handleGridChange(gridRows, clampGridDimension(next));
+                }}
+                onBlur={() => commitMapConfigDraft()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  }
                 }}
                 className="
                   w-10 bg-transparent text-center text-sm outline-none

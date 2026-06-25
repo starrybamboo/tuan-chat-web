@@ -1,9 +1,11 @@
 export {
   buildAnnotationMap,
   buildCustomAnnotationId,
+  filterAnnotationsForMessageType,
   getAnnotationCatalog,
   getAnnotationsByCategory,
   getFrequentAnnotations,
+  isAnnotationVisibleForMessageType,
   isValidAnnotation,
   normalizeAnnotations,
   toggleAnnotation,

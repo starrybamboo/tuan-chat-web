@@ -2,24 +2,28 @@
   "expo": {
     "name": "团剧共创",
     "slug": "tuanchat-mobile",
-    "version": "1.0.0",
+    "version": "0.1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tuanchat",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.tuanchat.mobile"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "com.tuanchat.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#313338",
         "backgroundImage": "./assets/images/android-icon-background.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tuanchat.mobile"
+      "package": "com.tuanchat.mobile",
+      "versionCode": 1000
     },
     "web": {
       "output": "static",
@@ -28,14 +32,14 @@
     "plugins": [
       "expo-router",
       "expo-notifications",
+      "./plugins/with-android-foreground-message-service.cjs",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
+          "backgroundColor": "#000000",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 120,
+          "resizeMode": "contain"
         }
       ]
     ],
@@ -45,6 +49,7 @@
     },
     "extra": {
       "router": {},
+      "productVersion": "0.1.0.0",
       "eas": {
         "projectId": "38ec1acc-f158-4509-80d3-c3a69c31b555"
       }

@@ -89,6 +89,7 @@ type GululuCleanIndexAvatarCatalog = {
 };
 
 type GululuReplayMessage = {
+  annotations?: string[];
   bgmName?: string;
   content?: string;
   diceDescription?: string;
@@ -101,6 +102,7 @@ type GululuReplayMessage = {
   rollText?: string;
   sourceTime?: string;
   speakerName?: string;
+  stage?: Record<string, unknown>;
 };
 
 type SidebarLeafNode = {
@@ -474,6 +476,21 @@ function resolveImportedSpriteLayoutPreset(
   return IMPORTED_FRAMED_CLOSEUP_SPRITE_LAYOUT;
 }
 
+function resolveWebgalBaseSpriteScale(
+  width: number,
+  height: number,
+  kind: ImportedSpriteKind,
+) {
+  const containScale = Math.min(WEBGAL_STAGE_WIDTH / width, WEBGAL_STAGE_HEIGHT / height);
+  const stageAspect = WEBGAL_STAGE_WIDTH / WEBGAL_STAGE_HEIGHT;
+  const imageAspect = width / height;
+  // WebGAL 对左右位的超宽图片按高度 cover 缩放；导入头像默认用于左右站位。
+  if (kind === "framed-avatar" && imageAspect > stageAspect) {
+    return WEBGAL_STAGE_HEIGHT / height;
+  }
+  return containScale;
+}
+
 function buildImportedSpriteFallbackTransform(): SpriteTransform {
   return {
     alpha: 1,
@@ -494,12 +511,12 @@ export function buildGululuImportedSpriteTransform(
     return buildImportedSpriteFallbackTransform();
   }
 
-  const containScale = Math.min(WEBGAL_STAGE_WIDTH / width, WEBGAL_STAGE_HEIGHT / height);
   const visibleBounds = normalizeVisibleBounds(input, width, height);
   const kind = resolveImportedSpriteKind(input, visibleBounds);
   const preset = resolveImportedSpriteLayoutPreset(kind, visibleBounds, options.renderKind ?? "avatar");
-  const renderedVisibleWidthAtScaleOne = visibleBounds.width * containScale;
-  const renderedVisibleHeightAtScaleOne = visibleBounds.height * containScale;
+  const webgalBaseScale = resolveWebgalBaseSpriteScale(width, height, kind);
+  const renderedVisibleWidthAtScaleOne = visibleBounds.width * webgalBaseScale;
+  const renderedVisibleHeightAtScaleOne = visibleBounds.height * webgalBaseScale;
   const scale = clampNumber(
     Math.min(
       preset.maxWidth / renderedVisibleWidthAtScaleOne,
@@ -509,19 +526,20 @@ export function buildGululuImportedSpriteTransform(
     preset.maxScale,
   );
 
-  // Transform origin is the whole image center, so align the visible bottom edge, not the file bounds.
-  const visibleBottomOffset = (visibleBounds.y + visibleBounds.height - height / 2) * containScale * scale;
-  const visibleTopOffset = (visibleBounds.y - height / 2) * containScale * scale;
-  let centerY = preset.bottomY - visibleBottomOffset;
-  const minCenterY = IMPORTED_SPRITE_SAFE_TOP_Y - visibleTopOffset;
-  if (centerY < minCenterY) {
-    centerY = minCenterY;
+  const baseRenderedHeight = height * webgalBaseScale;
+  const baseY = WEBGAL_STAGE_HEIGHT / 2 + Math.max(0, (WEBGAL_STAGE_HEIGHT - baseRenderedHeight) / 2);
+  const visibleBottomOffset = (visibleBounds.y + visibleBounds.height - height / 2) * webgalBaseScale * scale;
+  const visibleTopOffset = (visibleBounds.y - height / 2) * webgalBaseScale * scale;
+  let positionY = preset.bottomY - baseY - visibleBottomOffset;
+  const minPositionY = IMPORTED_SPRITE_SAFE_TOP_Y - baseY - visibleTopOffset;
+  if (positionY < minPositionY) {
+    positionY = minPositionY;
   }
 
   return {
     alpha: 1,
     positionX: 0,
-    positionY: roundTransformNumber(centerY - WEBGAL_STAGE_HEIGHT / 2),
+    positionY: roundTransformNumber(positionY),
     rotation: 0,
     scale: roundTransformNumber(scale),
   };
@@ -556,9 +574,11 @@ async function readVisibleAlphaBounds(image: Sharp): Promise<GululuImportedSprit
   };
 }
 
-export async function readGululuImportedSpriteImageMetadata(filePath: string): Promise<GululuImportedSpriteImageMetadata> {
+export async function readGululuImportedSpriteImageMetadata(
+  input: Buffer | string | Uint8Array,
+): Promise<GululuImportedSpriteImageMetadata> {
   const sharpModule = await import("sharp");
-  const image = sharpModule.default(filePath).rotate();
+  const image = sharpModule.default(input).rotate();
   const metadata = await image.metadata();
   const hasAlpha = metadata.hasAlpha === true;
   return {
@@ -1070,6 +1090,30 @@ function buildDiceExtra(message: GululuReplayMessage, options: GululuLiveImportA
   };
 }
 
+function messageAnnotations(message: GululuReplayMessage) {
+  const unique = new Set<string>();
+  for (const item of message.annotations ?? []) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const annotation = item.trim();
+    if (annotation) {
+      unique.add(annotation);
+    }
+  }
+  return Array.from(unique);
+}
+
+function withMessageAnnotations(
+  request: ChatMessageRequest,
+  message: GululuReplayMessage,
+): ChatMessageRequest {
+  const annotations = messageAnnotations(message);
+  return annotations.length > 0
+    ? { ...request, annotations }
+    : request;
+}
+
 function buildBgmText(message: GululuReplayMessage) {
   const name = message.bgmName || contentOrEmpty(message).replace(/^\s*BGM\s*[:：]\s*/i, "").trim();
   return name ? `[BGM] ${name}` : contentOrEmpty(message);
@@ -1231,7 +1275,7 @@ function namedAvatarTitle(item: GululuNamedAvatarCatalogItem) {
 
 function cleanIndexAvatarTitle(item: GululuCleanIndexAvatarCatalogItem) {
   return {
-    label: item.assetKind === "manga-avatar" ? "原文漫画配图" : "原文配图",
+    label: item.displayName || item.fileName,
   };
 }
 
@@ -1354,14 +1398,13 @@ function stageSpriteAvatarPlanForRole(
 function rawAvatarPlanForRole(
   rolePlan: GululuLiveImportRolePlan,
   imagePath: string,
-  index: number,
   options: GululuLiveImportArgs,
 ): GululuLiveImportAvatarPlan {
   const filePath = resolveImageFilePath(options.sourceRoot, imagePath);
   const fileExists = typeof filePath === "string" && existsSync(filePath);
   const fileName = path.basename(imagePath);
   return {
-    avatarTitle: { label: index === 0 ? "原文配图" : fileName },
+    avatarTitle: { label: fileName },
     fileName,
     ...(filePath ? { filePath } : {}),
     imagePath,
@@ -1427,7 +1470,7 @@ function collectAvatarPlansForRole(
       addPlan(cleanIndexAvatarPlanForRole(rolePlan, cleanItem, options));
       continue;
     }
-    addPlan(rawAvatarPlanForRole(rolePlan, sourceImagePath, plans.length, options));
+    addPlan(rawAvatarPlanForRole(rolePlan, sourceImagePath, options));
   }
 
   if (plans.length > 0) {
@@ -1440,8 +1483,8 @@ function collectAvatarPlansForRole(
   }
 
   return role
-    ? collectAvatarImagePaths(role, messages).map((imagePath, index) =>
-        rawAvatarPlanForRole(rolePlan, imagePath, index, options))
+    ? collectAvatarImagePaths(role, messages).map(imagePath =>
+        rawAvatarPlanForRole(rolePlan, imagePath, options))
     : [];
 }
 
@@ -1553,9 +1596,12 @@ export function buildGululuLiveImportPlan(
       if (!rolePlanKeys.has(nextRoleKey) || !nextAvatarKey || !avatarKeys.has(nextAvatarKey)) {
         plannedMessages.push({
           kind: "narration",
-          request: createNarrationRequest(
-            planRoomId,
-            safeMessageContent(`${message.speakerName ?? roleName}：${contentOrEmpty(message)}`, warnings, `第 ${eventIndex} 条对白`),
+          request: withMessageAnnotations(
+            createNarrationRequest(
+              planRoomId,
+              safeMessageContent(`${message.speakerName ?? roleName}：${contentOrEmpty(message)}`, warnings, `第 ${eventIndex} 条对白`),
+            ),
+            message,
           ),
           source: sourceInfo,
         });
@@ -1565,15 +1611,18 @@ export function buildGululuLiveImportPlan(
       plannedMessages.push({
         avatarKey: nextAvatarKey,
         kind: "dialog",
-        request: {
-          content: safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条对白`),
-          customRoleName: message.speakerName && message.speakerName !== roleName
-            ? message.speakerName
-            : undefined,
-          extra: {},
-          messageType: MESSAGE_TYPE.TEXT,
-          roomId: planRoomId,
-        },
+        request: withMessageAnnotations(
+          {
+            content: safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条对白`),
+            customRoleName: message.speakerName && message.speakerName !== roleName
+              ? message.speakerName
+              : undefined,
+            extra: {},
+            messageType: MESSAGE_TYPE.TEXT,
+            roomId: planRoomId,
+          },
+          message,
+        ),
         roleKey: nextRoleKey,
         source: sourceInfo,
       });
@@ -1604,7 +1653,7 @@ export function buildGululuLiveImportPlan(
           };
       plannedMessages.push({
         kind: "dice",
-        request,
+        request: withMessageAnnotations(request, message),
         source: sourceInfo,
       });
       return;
@@ -1613,15 +1662,18 @@ export function buildGululuLiveImportPlan(
     if (message.kind === "bgm") {
       plannedMessages.push({
         kind: "bgm",
-        request: {
-          avatarId: -1,
-          content: safeMessageContent(buildBgmText(message), warnings, `第 ${eventIndex} 条 BGM`),
-          customRoleName: "BGM",
-          extra: {},
-          messageType: MESSAGE_TYPE.TEXT,
-          roleId: -1,
-          roomId: planRoomId,
-        },
+        request: withMessageAnnotations(
+          {
+            avatarId: -1,
+            content: safeMessageContent(buildBgmText(message), warnings, `第 ${eventIndex} 条 BGM`),
+            customRoleName: "BGM",
+            extra: {},
+            messageType: MESSAGE_TYPE.TEXT,
+            roleId: -1,
+            roomId: planRoomId,
+          },
+          message,
+        ),
         source: sourceInfo,
       });
       warnings.push(`BGM 暂以文本事件保留：${message.bgmName ?? contentOrEmpty(message)}`);
@@ -1631,9 +1683,12 @@ export function buildGululuLiveImportPlan(
     if (message.kind === "role_card") {
       plannedMessages.push({
         kind: "role_card",
-        request: createRoleCardRequest(
-          planRoomId,
-          safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条角色卡`),
+        request: withMessageAnnotations(
+          createRoleCardRequest(
+            planRoomId,
+            safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条角色卡`),
+          ),
+          message,
         ),
         source: sourceInfo,
       });
@@ -1642,9 +1697,12 @@ export function buildGululuLiveImportPlan(
 
     plannedMessages.push({
       kind: "narration",
-      request: createNarrationRequest(
-        planRoomId,
-        safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条旁白`),
+      request: withMessageAnnotations(
+        createNarrationRequest(
+          planRoomId,
+          safeMessageContent(contentOrEmpty(message), warnings, `第 ${eventIndex} 条旁白`),
+        ),
+        message,
       ),
       source: sourceInfo,
     });

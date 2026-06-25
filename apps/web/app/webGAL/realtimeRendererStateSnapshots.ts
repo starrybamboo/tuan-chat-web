@@ -6,6 +6,7 @@ export type RoomFigureRenderState = {
 export type RoomRenderStateSnapshot = {
   figureStates: Array<[string, RoomFigureRenderState]>;
   lastFigureSlotId: string | null;
+  mapOverlayActive: boolean;
   miniAvatarVisible: boolean;
   spriteState: string[];
 };
@@ -20,6 +21,7 @@ export type RoomRenderStateStores = {
   lastFigureSlotIdMap: Map<number, string>;
   messageLineMap: Map<string, MessageLineRange>;
   messageRenderStateSnapshotMap: Map<string, RoomRenderStateSnapshot>;
+  mapOverlayActiveMap: Map<number, boolean>;
   renderedFigureStateMap: Map<number, Map<string, RoomFigureRenderState>>;
   renderedMiniAvatarVisibleMap: Map<number, boolean>;
 };
@@ -38,6 +40,7 @@ export function captureRoomRenderStateSnapshot(
       ? Array.from(renderedFigureState.entries()).map(([slotId, state]) => [slotId, { ...state }])
       : [],
     lastFigureSlotId: stores.lastFigureSlotIdMap.get(roomId) ?? null,
+    mapOverlayActive: stores.mapOverlayActiveMap.get(roomId) === true,
     miniAvatarVisible: stores.renderedMiniAvatarVisibleMap.get(roomId) === true,
     spriteState: Array.from(stores.currentSpriteStateMap.get(roomId) ?? []),
   };
@@ -51,6 +54,7 @@ export function applyRoomRenderStateSnapshot(
   if (!snapshot) {
     stores.renderedFigureStateMap.set(roomId, new Map());
     stores.lastFigureSlotIdMap.delete(roomId);
+    stores.mapOverlayActiveMap.delete(roomId);
     stores.renderedMiniAvatarVisibleMap.delete(roomId);
     stores.currentSpriteStateMap.set(roomId, new Set());
     return;
@@ -66,6 +70,7 @@ export function applyRoomRenderStateSnapshot(
   else {
     stores.lastFigureSlotIdMap.delete(roomId);
   }
+  stores.mapOverlayActiveMap.set(roomId, snapshot.mapOverlayActive);
   stores.renderedMiniAvatarVisibleMap.set(roomId, snapshot.miniAvatarVisible);
   stores.currentSpriteStateMap.set(roomId, new Set(snapshot.spriteState));
 }

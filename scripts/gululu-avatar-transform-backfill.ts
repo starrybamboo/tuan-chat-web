@@ -50,6 +50,7 @@ type BackfillPlanEntry = {
   imagePath?: string;
   key: string;
   mediaFileId?: number;
+  metadataSource?: "local-file" | "media-file";
   renderKind: "avatar" | "stage-sprite";
   roleId?: number;
   spriteTransform: NonNullable<RoleAvatar["spriteTransform"]>;
@@ -82,6 +83,7 @@ type GululuAvatarTransformBackfillClient = {
 };
 
 type BuildBackfillPlanOptions = {
+  readMediaImageMetadata?: (mediaFileId: number) => Promise<ImageMetadata>;
   readImageMetadata?: (filePath: string) => Promise<ImageMetadata>;
   sourceRoot?: string;
 };
@@ -175,11 +177,67 @@ async function readLocalImageMetadata(filePath: string): Promise<ImageMetadata> 
   return readGululuImportedSpriteImageMetadata(filePath);
 }
 
+function shardForMediaFileId(mediaFileId: number) {
+  return String(mediaFileId % 1000).padStart(3, "0");
+}
+
+async function readRemoteMediaImageMetadata(
+  mediaFileId: number,
+  args: GululuAvatarTransformBackfillArgs,
+): Promise<ImageMetadata> {
+  const authToken = args.authToken || env.TUANCHAT_AUTH_TOKEN;
+  if (!authToken) {
+    throw new Error("缺少 TUANCHAT_AUTH_TOKEN，无法读取实际媒体原图");
+  }
+  const baseUrl = (args.baseUrl ?? "http://127.0.0.1:8081").replace(/\/+$/, "");
+  const response = await fetch(`${baseUrl}/media/v1/files/${shardForMediaFileId(mediaFileId)}/${mediaFileId}/original`, {
+    headers: { Authorization: `Bearer ${authToken}` },
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+  }
+  return readGululuImportedSpriteImageMetadata(Buffer.from(await response.arrayBuffer()));
+}
+
+function describeError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function readBackfillImageMetadata(params: {
+  filePath: string;
+  key: string;
+  mediaFileId?: number;
+  readImageMetadata: (filePath: string) => Promise<ImageMetadata>;
+  readMediaImageMetadata?: (mediaFileId: number) => Promise<ImageMetadata>;
+  warnings: string[];
+}) {
+  const mediaFileId = Number(params.mediaFileId ?? 0);
+  if (Number.isInteger(mediaFileId) && mediaFileId > 0 && params.readMediaImageMetadata) {
+    try {
+      return {
+        metadata: await params.readMediaImageMetadata(mediaFileId),
+        metadataSource: "media-file" as const,
+      };
+    }
+    catch (error) {
+      params.warnings.push(
+        `读取实际媒体失败，回退本地源图：${params.key} -> media ${mediaFileId}: ${describeError(error)}`,
+      );
+    }
+  }
+
+  return {
+    metadata: await params.readImageMetadata(params.filePath),
+    metadataSource: "local-file" as const,
+  };
+}
+
 export async function buildGululuAvatarTransformBackfillPlan(
   liveResult: SourceLiveResult,
   options: BuildBackfillPlanOptions = {},
 ): Promise<GululuAvatarTransformBackfillPlan> {
   const warnings: string[] = [];
+  let skipped = 0;
   const readImageMetadata = options.readImageMetadata ?? readLocalImageMetadata;
   const planAvatarsByKey = new Map((liveResult.plan?.avatars ?? [])
     .filter(avatar => avatar.key)
@@ -190,12 +248,14 @@ export async function buildGululuAvatarTransformBackfillPlan(
     const key = avatar.key?.trim();
     if (!key || !Number.isInteger(avatar.avatarId) || avatar.avatarId! <= 0) {
       warnings.push(`跳过缺少 key/avatarId 的头像结果：${JSON.stringify(avatar)}`);
+      skipped++;
       continue;
     }
 
     const sourceAvatar = planAvatarsByKey.get(key);
     if (!sourceAvatar) {
       warnings.push(`跳过找不到源计划头像的结果：${key}`);
+      skipped++;
       continue;
     }
 
@@ -203,14 +263,24 @@ export async function buildGululuAvatarTransformBackfillPlan(
     const renderKind = resolveAvatarRenderKind(sourceAvatar);
     if (!filePath) {
       warnings.push(`跳过缺少本地图片路径的头像：${key}`);
+      skipped++;
       continue;
     }
     if (!existsSync(filePath)) {
       warnings.push(`跳过本地图片不存在的头像：${key} -> ${filePath}`);
+      skipped++;
       continue;
     }
 
-    const metadata = await readImageMetadata(filePath);
+    const mediaFileId = avatar.spriteFileId ?? avatar.mediaFileId;
+    const { metadata, metadataSource } = await readBackfillImageMetadata({
+      filePath,
+      key,
+      ...(mediaFileId ? { mediaFileId } : {}),
+      readImageMetadata,
+      readMediaImageMetadata: options.readMediaImageMetadata,
+      warnings,
+    });
     entries.push({
       avatarId: avatar.avatarId!,
       filePath,
@@ -218,7 +288,8 @@ export async function buildGululuAvatarTransformBackfillPlan(
         ? { imagePath: normalizeImagePath(sourceAvatar.spriteImagePath || sourceAvatar.imagePath) }
         : {}),
       key,
-      ...(avatar.spriteFileId ?? avatar.mediaFileId ? { mediaFileId: avatar.spriteFileId ?? avatar.mediaFileId } : {}),
+      ...(mediaFileId ? { mediaFileId } : {}),
+      metadataSource,
       renderKind,
       ...(avatar.roleId ? { roleId: avatar.roleId } : {}),
       spriteTransform: buildGululuImportedSpriteTransform(metadata, { renderKind }),
@@ -230,7 +301,7 @@ export async function buildGululuAvatarTransformBackfillPlan(
     source: liveResult.plan?.source,
     stats: {
       avatars: entries.length,
-      skipped: warnings.length,
+      skipped,
     },
     warnings,
   };
@@ -287,6 +358,9 @@ export async function runGululuAvatarTransformBackfill(argv: string[]) {
   const inputPath = path.resolve(args.input);
   const liveResult = await readJsonFile<SourceLiveResult>(inputPath);
   const plan = await buildGululuAvatarTransformBackfillPlan(liveResult, {
+    ...(args.authToken || env.TUANCHAT_AUTH_TOKEN
+      ? { readMediaImageMetadata: mediaFileId => readRemoteMediaImageMetadata(mediaFileId, args) }
+      : {}),
     sourceRoot: args.sourceRoot ? path.resolve(args.sourceRoot) : undefined,
   });
   const outputPath = path.resolve(args.out ?? buildDefaultOutPath(inputPath, args.apply));

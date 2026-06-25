@@ -22,6 +22,16 @@ export type PatchOptimisticMessageInput = Partial<Message> & {
 
 const OPTIMISTIC_RENDER_KEY_PREFIX = "room-message:optimistic:";
 
+function formatLocalMessageTime(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const hours = `${date.getHours()}`.padStart(2, "0");
+  const minutes = `${date.getMinutes()}`.padStart(2, "0");
+  const seconds = `${date.getSeconds()}`.padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export function getRoomMessageLocalRenderKey(message: RoomMessageSyncLike | null | undefined): string | null {
   const renderKey = message?.tcLocalRenderKey;
   return typeof renderKey === "string" && renderKey.trim() ? renderKey : null;
@@ -76,10 +86,10 @@ export function createOptimisticRoomMessage(
   request: ChatMessageRequest,
   options: CreateOptimisticRoomMessageOptions,
 ): ChatMessageResponse {
-  const nowIso = new Date().toISOString();
+  const now = formatLocalMessageTime(new Date());
   const optimisticMessage: ChatMessageResponse["message"] & RoomMessageSyncLike = {
     tcLocalSyncState: "optimistic",
-    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${options.optimisticId}:${nowIso}`,
+    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${options.optimisticId}:${now}`,
     messageId: options.optimisticId,
     syncId: options.optimisticId,
     roomId: request.roomId,
@@ -95,8 +105,8 @@ export function createOptimisticRoomMessage(
     messageType: request.messageType,
     position: typeof request.position === "number" ? request.position : options.position,
     extra: request.extra as Message["extra"],
-    createTime: nowIso,
-    updateTime: nowIso,
+    createTime: now,
+    updateTime: now,
   };
   return {
     message: optimisticMessage,
@@ -137,7 +147,7 @@ function toOptimisticPatchMessage(params: {
   syncId: number;
   status?: number;
 }): Message & RoomMessageSyncLike {
-  const nowIso = new Date().toISOString();
+  const now = formatLocalMessageTime(new Date());
   const messageId = params.messageId;
   const userId = toFiniteNumber(params.message.userId);
   const position = toFiniteNumber(params.message.position);
@@ -159,9 +169,9 @@ function toOptimisticPatchMessage(params: {
     messageType: messageType ?? MESSAGE_TYPE.TEXT,
     position: position ?? 1,
     ...(params.message.extra ? { extra: params.message.extra } : {}),
-    createTime: typeof params.message.createTime === "string" ? params.message.createTime : nowIso,
-    updateTime: nowIso,
-    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${messageId}:${nowIso}`,
+    createTime: typeof params.message.createTime === "string" ? params.message.createTime : now,
+    updateTime: now,
+    tcLocalRenderKey: `${OPTIMISTIC_RENDER_KEY_PREFIX}${messageId}:${now}`,
     tcLocalSyncState: "optimistic",
   };
 }

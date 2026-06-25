@@ -99,6 +99,35 @@ describe("gululu-avatar-transform-backfill", () => {
     }
   });
 
+  it("优先按实际 mediaFileId 的图片尺寸生成 transform", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "gululu-avatar-transform-"));
+    try {
+      const imagePath = path.join(tempDir, "source-wide.png");
+      await writeFile(imagePath, "fixture", "utf8");
+      const readImageMetadata = vi.fn<MockFn>(async () => ({ hasAlpha: false, height: 239, width: 580 }));
+      const readMediaImageMetadata = vi.fn<MockFn>(async () => ({ hasAlpha: false, height: 350, width: 503 }));
+
+      const plan = await buildGululuAvatarTransformBackfillPlan(createLiveResult(imagePath), {
+        readImageMetadata,
+        readMediaImageMetadata,
+      });
+
+      expect(readMediaImageMetadata).toHaveBeenCalledWith(30558);
+      expect(readImageMetadata).not.toHaveBeenCalled();
+      expect(plan.entries[0]).toMatchObject({
+        mediaFileId: 30558,
+        metadataSource: "media-file",
+        spriteTransform: {
+          positionY: -10,
+          scale: 0.389,
+        },
+      });
+    }
+    finally {
+      await rm(tempDir, { recursive: true });
+    }
+  });
+
   it("apply 只更新已有头像 transform 并保留已有媒体字段", async () => {
     const plan = {
       entries: [{

@@ -2,7 +2,6 @@ import type { QueryClient } from "@tanstack/react-query";
 
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type { ApiResultListSpaceMember } from "@tuanchat/openapi-client/models/ApiResultListSpaceMember";
 import type { RoomAddRequest } from "@tuanchat/openapi-client/models/RoomAddRequest";
 import type { SpaceMemberDeleteRequest } from "@tuanchat/openapi-client/models/SpaceMemberDeleteRequest";
 import type { SpaceMemberAddRequest } from "@tuanchat/openapi-client/models/SpaceMemberAddRequest";
@@ -21,7 +20,6 @@ import type { RoomExtraRequest } from "@tuanchat/openapi-client/models/RoomExtra
 import type { RoomExtraSetRequest } from "@tuanchat/openapi-client/models/RoomExtraSetRequest";
 import type { SpaceExtraSetRequest } from "@tuanchat/openapi-client/models/SpaceExtraSetRequest";
 import type { SpaceRole } from "@tuanchat/openapi-client/models/SpaceRole";
-import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { SpaceArchiveRequest } from "@tuanchat/openapi-client/models/SpaceArchiveRequest";
 import type { SpaceRecoverRequest } from "@tuanchat/openapi-client/models/SpaceRecoverRequest";
 import type { LeaderTransferRequest } from "@tuanchat/openapi-client/models/LeaderTransferRequest";
@@ -43,6 +41,18 @@ import {
     useGetUserSpacesQuery as useSharedGetUserSpacesQuery,
 } from "@tuanchat/query/spaces";
 import { createUniqueQuerySlots, mapUniqueQueryResults } from "./querySlots";
+import {
+    invalidateSpaceMemberTypeQueries,
+    optimisticSetSpaceMemberTypeQueryCache,
+    reconcileSpaceMemberTypeQueryCache,
+    rollbackSpaceMemberTypeQueryCache,
+} from "../spaceMemberQueryCache";
+import {
+    invalidateRoomRoleQueries,
+    optimisticAddRoomRoleQueryCache,
+    reconcileAddRoomRoleQueryCache,
+    rollbackAddRoomRoleQueryCache,
+} from "../roomRoleQueryCache";
 
 export const ROOM_INFO_STALE_TIME_MS = 300_000;
 export const SPACE_INFO_STALE_TIME_MS = 300_000;
@@ -244,64 +254,6 @@ export async function setRoomExtraWithCache(queryClient: QueryClient, request: R
     setExtraStringCache(queryClient, roomExtraQueryKey(request.roomId, request.key), request.value);
     void queryClient.invalidateQueries({ queryKey: roomExtraQueryKey(request.roomId, request.key) });
     return result;
-}
-
-function patchSpaceMemberListCache(
-    queryClient: QueryClient,
-    spaceId: number,
-    updater: (member: NonNullable<ApiResultListSpaceMember["data"]>[number]) => NonNullable<ApiResultListSpaceMember["data"]>[number],
-) {
-    if (!(spaceId > 0)) {
-        return;
-    }
-
-    queryClient.setQueryData<ApiResultListSpaceMember>(['getSpaceMemberList', spaceId], (oldData) => {
-        if (!oldData?.data) {
-            return oldData;
-        }
-
-        let changed = false;
-        const nextMembers = oldData.data.map((member) => {
-            const nextMember = updater(member);
-            if (nextMember !== member) {
-                changed = true;
-            }
-            return nextMember;
-        });
-
-        if (!changed) {
-            return oldData;
-        }
-
-        return {
-            ...oldData,
-            data: nextMembers,
-        };
-    });
-}
-
-function setCachedSpaceMemberType(
-    queryClient: QueryClient,
-    spaceId: number,
-    uidList: number[],
-    memberType: number,
-) {
-    const targetUserIds = new Set(uidList.filter(uid => Number.isFinite(uid) && uid > 0));
-    if (targetUserIds.size === 0) {
-        return;
-    }
-
-    patchSpaceMemberListCache(queryClient, spaceId, (member) => {
-        const userId = member.userId ?? -1;
-        if (!targetUserIds.has(userId) || member.memberType === memberType) {
-            return member;
-        }
-
-        return {
-            ...member,
-            memberType,
-        };
-    });
 }
 
 /**
@@ -715,25 +667,17 @@ export function useUpdateSpaceMemberTypeMutation() {
         mutationFn: updateSpaceMemberTypeWithSuccessGuard,
         mutationKey: ['updateSpaceMemberType'],
         onMutate: async (variables) => {
-            // 先打断旧的成员列表请求，避免过期结果回填，把刚点下去的权限变更又盖回去。
-            await queryClient.cancelQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
-
-            const previousSpaceMembers = queryClient.getQueryData<ApiResultListSpaceMember>(['getSpaceMemberList', variables.spaceId]);
-            setCachedSpaceMemberType(queryClient, variables.spaceId, variables.uidList ?? [], variables.memberType);
-
+            const previousSpaceMembers = await optimisticSetSpaceMemberTypeQueryCache(queryClient, variables);
             return { previousSpaceMembers };
         },
         onError: (_error, variables, context) => {
-            if (context?.previousSpaceMembers) {
-                queryClient.setQueryData(['getSpaceMemberList', variables.spaceId], context.previousSpaceMembers);
-                return;
-            }
-
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
+            rollbackSpaceMemberTypeQueryCache(queryClient, variables.spaceId, context?.previousSpaceMembers);
         },
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
-            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            reconcileSpaceMemberTypeQueryCache(queryClient, variables);
+        },
+        onSettled: (_data, _error, variables) => {
+            void invalidateSpaceMemberTypeQueries(queryClient, variables.spaceId);
         }
     });
 }
@@ -779,115 +723,18 @@ queryClient.invalidateQueries({ queryKey: ['getUserActiveSpaces'] });
 export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
 
-    const mergeRoleList = (existing: UserRole[], toAdd: UserRole[]) => {
-        if (toAdd.length === 0)
-            return existing;
-        const existingIds = new Set<number>(existing.map(r => r.roleId));
-        const deduped = toAdd.filter(r => !existingIds.has(r.roleId));
-        if (deduped.length === 0)
-            return existing;
-        return [...existing, ...deduped];
-    };
-
-    const getRoleListFromQueryData = (data: any): UserRole[] | null => {
-        if (!data)
-            return null;
-        if (Array.isArray(data))
-            return data as UserRole[];
-        if (Array.isArray(data.data))
-            return data.data as UserRole[];
-        return null;
-    };
-
-    const findCachedRoleById = (roleId: number): UserRole | null => {
-        const directRole = queryClient.getQueryData<any>(["getRole", roleId]);
-        const roleFromDirect = directRole?.data as UserRole | undefined;
-        if (roleFromDirect && roleFromDirect.roleId === roleId)
-            return roleFromDirect;
-
-        const candidateQueryGroups = [
-            queryClient.getQueriesData({ queryKey: ["getUserRoles"] }),
-            queryClient.getQueriesData({ queryKey: ["getUserRolesByTypes"] }),
-            queryClient.getQueriesData({ queryKey: ["spaceRole"] }),
-            queryClient.getQueriesData({ queryKey: ["spaceRepositoryRole"] }),
-        ];
-
-        for (const group of candidateQueryGroups) {
-            for (const [, data] of group) {
-                const list = getRoleListFromQueryData(data);
-                const found = list?.find(r => r.roleId === roleId);
-                if (found)
-                    return found;
-            }
-        }
-
-        return null;
-    };
-
     return useMutation({
         mutationFn: addRoomRoleWithSuccessGuard,
         mutationKey: ['addRole1'],
-        onMutate: async (variables) => {
-            const roomId = variables.roomId ?? -1;
-            const roleIds = Array.from(new Set((variables.roleIdList ?? []).filter(roleId => typeof roleId === "number" && roleId > 0)));
-            if (roomId <= 0 || roleIds.length === 0)
-                return;
-
-            await Promise.all([
-                queryClient.cancelQueries({ queryKey: ["roomRole", roomId] }),
-                queryClient.cancelQueries({ queryKey: ["roomNpcRole", roomId] }),
-            ]);
-
-            const previousRoomRole = queryClient.getQueryData(["roomRole", roomId]);
-            const previousRoomNpcRole = queryClient.getQueryData(["roomNpcRole", roomId]);
-
-            const roomRoleToAdd: UserRole[] = [];
-            const roomNpcRoleToAdd: UserRole[] = [];
-
-            for (const roleId of roleIds) {
-                const cached = findCachedRoleById(roleId);
-                const optimisticRole: UserRole = cached ?? ({ roleId, roleName: `角色${roleId}`, avatarId: -1 } as any);
-                if (cached?.type === 2)
-                    roomNpcRoleToAdd.push(optimisticRole);
-                else
-                    roomRoleToAdd.push(optimisticRole);
-            }
-
-            const patchCache = (queryKey: readonly unknown[], addList: UserRole[]) => {
-                if (addList.length === 0)
-                    return;
-                queryClient.setQueryData(queryKey, (old: any) => {
-                    if (!old)
-                        return { success: true, data: addList };
-
-                    if (Array.isArray(old))
-                        return mergeRoleList(old as UserRole[], addList);
-
-                    if (Array.isArray(old.data)) {
-                        return {
-                            ...old,
-                            data: mergeRoleList(old.data as UserRole[], addList),
-                        };
-                    }
-
-                    return old;
-                });
-            };
-
-            patchCache(["roomRole", roomId], roomRoleToAdd);
-            patchCache(["roomNpcRole", roomId], roomNpcRoleToAdd);
-
-            return { previousRoomRole, previousRoomNpcRole, roomId };
-        },
+        onMutate: variables => optimisticAddRoomRoleQueryCache(queryClient, variables),
         onError: (_error, _variables, context) => {
-            if (!context)
-                return;
-            queryClient.setQueryData(["roomRole", context.roomId], context.previousRoomRole);
-            queryClient.setQueryData(["roomNpcRole", context.roomId], context.previousRoomNpcRole);
+            rollbackAddRoomRoleQueryCache(queryClient, context);
+        },
+        onSuccess: (_data, variables) => {
+            reconcileAddRoomRoleQueryCache(queryClient, variables);
         },
         onSettled: (_data, _error, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["roomRole", variables.roomId] });
-            queryClient.invalidateQueries({ queryKey: ["roomNpcRole", variables.roomId] });
+            void invalidateRoomRoleQueries(queryClient, variables.roomId);
         },
     });
 }

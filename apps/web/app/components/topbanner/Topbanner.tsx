@@ -12,7 +12,6 @@ import { interactiveButtonMotionProps } from "@/components/common/motion/interac
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import NotificationBell from "@/components/notification/notificationBell";
-import UpdatesToastWindow from "@/components/topbanner/updatesWindow";
 import { QQIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus, logoutUser } from "@/utils/auth/authapi";
 import { exportDiagnosticConsoleFile } from "@/utils/diagnosticConsole";
@@ -536,7 +535,6 @@ export default function Topbar() {
           </div>
         )}
       </div>
-      <UpdatesToastWindow></UpdatesToastWindow>
 
       <ToastWindow isOpen={isBugQqOpen} onClose={() => setIsBugQqOpen(false)}>
         <div className="p-6 w-[92vw] max-w-md flex flex-col gap-4">

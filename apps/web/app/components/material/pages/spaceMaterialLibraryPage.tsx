@@ -2,12 +2,23 @@ import type { MaterialPackageContent } from "@tuanchat/openapi-client/models/Mat
 import type { SpaceMaterialPackageResponse } from "@tuanchat/openapi-client/models/SpaceMaterialPackageResponse";
 
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import type { MaterialItemDragPayload } from "@/components/chat/utils/materialItemDrag";
 
+import {
+  buildReplayAssetUploadFileMap,
+  buildUploadedReplayAssetManifest,
+  createReplayAssetManifestUploadDepsFromUploadUtils,
+  findReplayLocalAssetManifestFile,
+  readReplayAssetManifestJsonFile,
+  summarizeReplayAssetManifestSections,
+} from "@/components/chat/utils/importRglAssetManifestUpload";
+import { applyReplayMaterialPackageImport, buildReplayMaterialPackageFromAssetManifest } from "@/components/chat/utils/importRglMaterialManifest";
 import { appendPathQuery } from "@/utils/pathQuery";
+import { UploadUtils } from "@/utils/UploadUtils";
+import { tuanchat } from "api/instance";
 
 import {
   MATERIAL_PACKAGE_LIBRARY_PAGE_SIZE,
@@ -33,6 +44,43 @@ type SpaceMaterialLibraryPageProps = {
   embedded?: boolean;
 }
 
+const REPLAY_LOCAL_ASSET_DIRECTORY_INPUT_PROPS = {
+  directory: "",
+  webkitdirectory: "",
+} as Record<string, string>;
+
+async function findSpaceMaterialPackageByExactName(spaceId: number, name: string): Promise<SpaceMaterialPackageResponse | null> {
+  const matches: SpaceMaterialPackageResponse[] = [];
+  let pageNo = 1;
+  for (let guard = 0; guard < 100; guard += 1) {
+    const response = await tuanchat.spaceMaterialPackageController.pagePackages({
+      spaceId,
+      keyword: name,
+      pageNo,
+      pageSize: 100,
+    });
+    if (!response.success) {
+      throw new Error(response.errMsg?.trim() || "查询局内素材包失败");
+    }
+
+    const page = response.data;
+    for (const item of page?.list ?? []) {
+      if (item.name?.trim() === name) {
+        matches.push(item);
+      }
+    }
+    if (page?.isLast || !page?.list?.length) {
+      break;
+    }
+    pageNo = (page.pageNo ?? pageNo) + 1;
+  }
+
+  if (matches.length > 1) {
+    throw new Error(`存在多个同名局内素材包：${name}`);
+  }
+  return matches[0] ?? null;
+}
+
 export default function SpaceMaterialLibraryPage({
   spaceId,
   embedded = false,
@@ -43,6 +91,11 @@ export default function SpaceMaterialLibraryPage({
   const [keyword, setKeyword] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImportingReplayLocalAssets, setIsImportingReplayLocalAssets] = useState(false);
+  const [isImportingReplayManifest, setIsImportingReplayManifest] = useState(false);
+  const replayLocalAssetsInputRef = useRef<HTMLInputElement | null>(null);
+  const replayManifestInputRef = useRef<HTMLInputElement | null>(null);
+  const replayAssetUploadUtilsRef = useRef(new UploadUtils());
 
   const pageRequest = useMemo(() => ({
     pageNo: 1,
@@ -222,6 +275,100 @@ export default function SpaceMaterialLibraryPage({
     updateSelectedLocation(importedId);
   }, [updateSelectedLocation]);
 
+  const handlePickReplayManifest = () => {
+    if (isImportingReplayManifest) {
+      return;
+    }
+    replayManifestInputRef.current?.click();
+  };
+
+  const handlePickReplayLocalAssets = () => {
+    if (isImportingReplayLocalAssets) {
+      return;
+    }
+    replayLocalAssetsInputRef.current?.click();
+  };
+
+  const handleImportReplayLocalAssetsFile = async (files: FileList | null) => {
+    const selectedFiles = Array.from(files ?? []);
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    setIsImportingReplayLocalAssets(true);
+    try {
+      const manifestFile = findReplayLocalAssetManifestFile(selectedFiles);
+      const rawManifest = await readReplayAssetManifestJsonFile(manifestFile, "本地 Replay 素材清单");
+      const uploadedManifest = await buildUploadedReplayAssetManifest(rawManifest, createReplayAssetManifestUploadDepsFromUploadUtils({
+        filesByPath: buildReplayAssetUploadFileMap(selectedFiles),
+        uploadUtils: replayAssetUploadUtilsRef.current,
+      }), {
+        includeRoles: false,
+      });
+      const sections = summarizeReplayAssetManifestSections(uploadedManifest);
+      if (!sections.media) {
+        throw new Error("本地素材清单没有 media 通用素材；角色素材请在房间 RGL 导入窗口导入");
+      }
+
+      const replayPackage = buildReplayMaterialPackageFromAssetManifest(uploadedManifest);
+      const result = await applyReplayMaterialPackageImport(spaceId, replayPackage, {
+        findPackageByExactName: findSpaceMaterialPackageByExactName,
+        createPackage: request => createMutation.mutateAsync(request),
+        updatePackage: request => updateMutation.mutateAsync(request),
+      });
+
+      const savedId = result.spacePackageId ?? null;
+      toast.success(`${result.action === "update" ? "已重写" : "已创建"} Replay 导入素材包：${result.name}（${result.materialCount} 个素材）`);
+      setKeyword("");
+      setIsCreating(false);
+      updateSelectedLocation(savedId);
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "未知错误";
+      toast.error(`导入本地 Replay 素材失败：${message}`);
+    }
+    finally {
+      setIsImportingReplayLocalAssets(false);
+      if (replayLocalAssetsInputRef.current) {
+        replayLocalAssetsInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportReplayManifestFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setIsImportingReplayManifest(true);
+    try {
+      const rawManifest = await readReplayAssetManifestJsonFile(file, "asset-manifest.json");
+      const replayPackage = buildReplayMaterialPackageFromAssetManifest(rawManifest);
+      const result = await applyReplayMaterialPackageImport(spaceId, replayPackage, {
+        findPackageByExactName: findSpaceMaterialPackageByExactName,
+        createPackage: request => createMutation.mutateAsync(request),
+        updatePackage: request => updateMutation.mutateAsync(request),
+      });
+
+      const savedId = result.spacePackageId ?? null;
+      toast.success(`${result.action === "update" ? "已重写" : "已创建"} Replay 导入素材包：${result.name}（${result.materialCount} 个素材）`);
+      setKeyword("");
+      setIsCreating(false);
+      updateSelectedLocation(savedId);
+    }
+    catch (error) {
+      const message = error instanceof Error ? error.message : "未知错误";
+      toast.error(`导入 asset-manifest.json 失败：${message}`);
+    }
+    finally {
+      setIsImportingReplayManifest(false);
+      if (replayManifestInputRef.current) {
+        replayManifestInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleCloseEditor = () => {
     setIsCreating(false);
     updateSelectedLocation(null);
@@ -283,6 +430,20 @@ export default function SpaceMaterialLibraryPage({
       keyword={keyword}
       items={packageCardItems}
       headerActions={[
+        {
+          key: "import-replay-local-assets",
+          label: isImportingReplayLocalAssets ? "上传中..." : "上传本地 Replay 素材",
+          icon: "package",
+          variant: "secondary",
+          onClick: handlePickReplayLocalAssets,
+        },
+        {
+          key: "import-replay-manifest",
+          label: isImportingReplayManifest ? "导入中..." : "导入 asset-manifest.json",
+          icon: "package",
+          variant: "secondary",
+          onClick: handlePickReplayManifest,
+        },
         {
           key: "import-package",
           label: "从局外导入",
@@ -385,6 +546,21 @@ export default function SpaceMaterialLibraryPage({
         spaceId={spaceId}
         onClose={handleCloseImportModal}
         onImported={handleImportedPackage}
+      />
+      <input
+        ref={replayLocalAssetsInputRef}
+        type="file"
+        className="hidden"
+        multiple
+        {...REPLAY_LOCAL_ASSET_DIRECTORY_INPUT_PROPS}
+        onChange={event => void handleImportReplayLocalAssetsFile(event.target.files)}
+      />
+      <input
+        ref={replayManifestInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={event => void handleImportReplayManifestFile(event.target.files)}
       />
     </>
   );

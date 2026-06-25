@@ -28,13 +28,11 @@ import useChatPageSubWindow from "@/components/chat/hooks/useChatPageSubWindow";
 import useChatUnreadIndicators from "@/components/chat/hooks/useChatUnreadIndicators";
 import useSpaceDocMetaState from "@/components/chat/hooks/useSpaceDocMetaState";
 import useSpaceSidebarTreeActions from "@/components/chat/hooks/useSpaceSidebarTreeActions";
-import useTutorialOnboarding from "@/components/chat/hooks/useTutorialOnboarding";
 import { parseSpaceDocId } from "@/components/chat/infra/doc/space/spaceDocId";
 import { extractDocMetasFromSidebarTree } from "@/components/chat/room/sidebarTree";
 import { useDocHeaderOverrideStore } from "@/components/chat/stores/docHeaderOverrideStore";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { useEntityHeaderOverrideStore } from "@/components/chat/stores/entityHeaderOverrideStore";
-import TutorialUpdatePromptModal from "@/components/chat/tutorial/tutorialUpdatePromptModal";
 import { checkIsKpInSpaceMembers, resolveSubWindowDocPermission } from "@/components/chat/utils/subWindowDocPermission";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
@@ -150,17 +148,6 @@ export default function ChatPage() {
   const globalUserId = useGlobalUserId();
   const userId = globalUserId ?? -1;
   const webSocketUtils = useGlobalWebSocket();
-  const {
-    tutorialUpdatePrompt,
-    tutorialPromptType,
-    isPullingTutorialUpdate,
-    closeTutorialUpdatePrompt,
-    confirmTutorialUpdatePull,
-  } = useTutorialOnboarding({
-    userId,
-    enabled: !isPrivateChatMode,
-    navigate,
-  });
   const {
     orderedSpaces,
     orderedSpaceIds,
@@ -685,7 +672,7 @@ export default function ChatPage() {
     spaceDocMetas,
   });
 
-  useSearchParamsState<"none" | "user" | "role" | "copilot" | "search" | "combat" | "initiative" | "state" | "map">("rightSideDrawer", "none");
+  useSearchParamsState<"none" | "user" | "role" | "search" | "combat" | "initiative" | "state" | "map">("rightSideDrawer", "none");
 
   const { unreadMessagesNumber, privateEntryBadgeCount } = useChatUnreadIndicators({
     webSocketUtils,
@@ -940,15 +927,6 @@ export default function ChatPage() {
           modalsProps={modalsProps}
           contextMenuProps={contextMenuProps}
           spaceContextMenuProps={spaceContextMenuProps}
-        />
-        <TutorialUpdatePromptModal
-          open={!isPrivateChatMode && Boolean(tutorialUpdatePrompt)}
-          mode={tutorialPromptType}
-          latestCommitId={tutorialUpdatePrompt?.latestCommitId}
-          currentCommitId={tutorialUpdatePrompt?.currentCommitId}
-          isPulling={isPullingTutorialUpdate}
-          onClose={closeTutorialUpdatePrompt}
-          onConfirmPull={() => { void confirmTutorialUpdatePull(); }}
         />
       </ChatPageLayoutProvider>
     </SpaceContext>

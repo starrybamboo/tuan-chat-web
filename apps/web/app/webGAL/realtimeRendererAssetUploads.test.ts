@@ -1,15 +1,17 @@
 import type { RealtimeAssetUploadContext, RealtimeRoleAvatarSource } from "./realtimeRendererAssetUploads";
 
-import { uploadFile } from "./fileOperator";
+import { checkFileExist, uploadFile } from "./fileOperator";
 import {
   getAndUploadFigureAsset,
   getAndUploadMiniAvatarAsset,
   getAndUploadSpriteAsset,
   uploadImageFigureAsset,
   uploadMapImageAsset,
+  uploadVocalAsset,
 } from "./realtimeRendererAssetUploads";
 
 vi.mock("./fileOperator", () => ({
+  checkFileExist: vi.fn(async () => true),
   getFileExtensionFromUrl: vi.fn(() => "webp"),
   uploadFile: vi.fn(async (_url: string, _path: string, fileName?: string) => fileName ?? "uploaded.webp"),
 }));
@@ -25,6 +27,7 @@ function createContext(): RealtimeAssetUploadContext {
     uploadedVideosMap: new Map(),
     uploadedMiniAvatarsMap: new Map(),
     uploadedSoundEffectsMap: new Map(),
+    uploadedVocalsMap: new Map(),
   };
 }
 
@@ -45,6 +48,7 @@ function variantGroup(baseAvatarId = 5, x = 12) {
 describe("realtimeRendererAssetUploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(checkFileExist).mockResolvedValue(true);
   });
 
   it("上传立绘时不会把 avatarFileId 当作 sprite 兜底", async () => {
@@ -121,7 +125,7 @@ describe("realtimeRendererAssetUploads", () => {
     expect(String(vi.mocked(uploadFile).mock.calls[2][0])).toContain("6488");
   });
 
-  it("上传小头像仍然使用 avatarFileId", async () => {
+  it("上传小头像使用头像中清图而不是低清缩略图", async () => {
     const context = createContext();
     const avatar = {
       avatarId: 7,
@@ -135,7 +139,9 @@ describe("realtimeRendererAssetUploads", () => {
 
     expect(result).toBe("role_1/mini_7.webp");
     expect(uploadFile).toHaveBeenCalledOnce();
-    expect(String(vi.mocked(uploadFile).mock.calls[0][0])).toContain("9918");
+    const uploadedUrl = String(vi.mocked(uploadFile).mock.calls[0][0]);
+    expect(uploadedUrl).toContain("9918");
+    expect(uploadedUrl).not.toContain("low");
   });
 
   it("立绘组会上传 base sprite 和当前头像层并返回 composeFigure 资源", async () => {
@@ -240,6 +246,42 @@ describe("realtimeRendererAssetUploads", () => {
     expect(uploadFile).toHaveBeenCalledTimes(2);
   });
 
+  it("图片展示资源未指定目标名时按 URL 哈希生成唯一 WebP 文件名", async () => {
+    const context = createContext();
+    const firstUrl = "https://media.tuan.chat/media/v1/files/001/1001/image/medium.webp";
+    const secondUrl = "https://media.tuan.chat/media/v1/files/002/2002/image/medium.webp";
+
+    const first = await uploadImageFigureAsset(context, firstUrl);
+    const second = await uploadImageFigureAsset(context, secondUrl);
+
+    expect(first).toMatch(/^img_[a-z0-9]+\.webp$/);
+    expect(second).toMatch(/^img_[a-z0-9]+\.webp$/);
+    expect(first).not.toBe(second);
+    expect(uploadFile).toHaveBeenNthCalledWith(1, firstUrl, "games/realtime_1/game/figure/", first);
+    expect(uploadFile).toHaveBeenNthCalledWith(2, secondUrl, "games/realtime_1/game/figure/", second);
+  });
+
+  it("图片立绘缓存命中但文件丢失时会重新上传", async () => {
+    const context = createContext();
+    const url = "https://example.test/avatar.webp";
+    context.uploadedImageFiguresMap.set(`token_role_14562|${url}`, "token_role_14562.webp");
+    vi.mocked(checkFileExist).mockResolvedValueOnce(false);
+
+    const result = await uploadImageFigureAsset(context, url, "token_role_14562");
+
+    expect(result).toBe("token_role_14562.webp");
+    expect(checkFileExist).toHaveBeenCalledWith(
+      "games/realtime_1/game/figure/",
+      "token_role_14562.webp",
+    );
+    expect(uploadFile).toHaveBeenCalledWith(
+      url,
+      "games/realtime_1/game/figure/",
+      "token_role_14562.webp",
+    );
+    expect(context.uploadedImageFiguresMap.get(`token_role_14562|${url}`)).toBe("token_role_14562.webp");
+  });
+
   it("上传地图图片到 WebGAL 背景目录并返回本地资源名", async () => {
     const context = createContext();
 
@@ -252,6 +294,32 @@ describe("realtimeRendererAssetUploads", () => {
       "map_12.png",
     );
     expect(context.uploadedMapImagesMap.get("http://localhost:3001/map.png?sig=a=b")).toBe("map_12.png");
+  });
+
+  it("上传语音配音时按 URL 哈希生成唯一文件名，避免多个 low.webm 串音", async () => {
+    const context = createContext();
+    const firstUrl = "https://media.tuan.chat/media/v1/files/001/1001/audio/low.webm";
+    const secondUrl = "https://media.tuan.chat/media/v1/files/002/2002/audio/low.webm";
+
+    const first = await uploadVocalAsset(context, firstUrl);
+    const second = await uploadVocalAsset(context, secondUrl);
+
+    expect(first).toMatch(/^vocal_[a-z0-9]+\.webm$/);
+    expect(second).toMatch(/^vocal_[a-z0-9]+\.webm$/);
+    expect(first).not.toBe(second);
+    expect(uploadFile).toHaveBeenNthCalledWith(1, firstUrl, "games/realtime_1/game/vocal/", first);
+    expect(uploadFile).toHaveBeenNthCalledWith(2, secondUrl, "games/realtime_1/game/vocal/", second);
+  });
+
+  it("语音配音上传按完整 URL 缓存", async () => {
+    const context = createContext();
+    const url = "https://media.tuan.chat/media/v1/files/001/1001/audio/medium.webm";
+
+    const first = await uploadVocalAsset(context, url);
+    const second = await uploadVocalAsset(context, url);
+
+    expect(second).toBe(first);
+    expect(uploadFile).toHaveBeenCalledTimes(1);
   });
 
   it("头像不属于当前角色时不会上传立绘或小头像", async () => {

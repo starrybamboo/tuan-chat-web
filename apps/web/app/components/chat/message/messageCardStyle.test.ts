@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { getChatMessageHoverToolbarClass, getChatMessageMetaRowClass } from "./messageCardStyle";
 
 describe("messageCardStyle", () => {
-  it("keeps the full right padding when no side drawer is open", () => {
-    expect(getChatMessageMetaRowClass(false)).toContain("sm:pr-80");
-  });
+  it("does not reserve toolbar width in the message meta row", () => {
+    const className = getChatMessageMetaRowClass();
 
-  it("uses a tighter right padding when a side drawer is open", () => {
-    expect(getChatMessageMetaRowClass(true)).toContain("sm:pr-32");
+    expect(className).toContain("max-w-full");
+    expect(className).not.toContain("pr-80");
+    expect(className).not.toContain("pr-32");
   });
 
   it("keeps the message toolbar interactive on mobile without hover", () => {

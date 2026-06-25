@@ -1,6 +1,6 @@
 {
   "name": "@tuanchat/web",
-  "version": "1.0.4",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,7 +29,6 @@
     "@tanstack/react-router": "1.170.4",
     "@tanstack/react-router-devtools": "1.167.0",
     "@tuanchat/domain": "workspace:*",
-    "@tuanchat/galgame-ai-contract": "workspace:*",
     "@tuanchat/local-db": "workspace:*",
     "@tuanchat/openapi-client": "workspace:*",
     "@tuanchat/query": "workspace:*",

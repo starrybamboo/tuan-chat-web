@@ -839,6 +839,7 @@ function renderHtml(data) {
           "</div>" +
           "<p><strong>summary：</strong>" + escapeHtml(event.summary || "(空)") + "</p>" +
           "<p><strong>textRef：</strong>" + escapeHtml(event.textRef || "(空)") + "</p>" +
+          (event.battleId ? "<p><strong>battle：</strong>" + escapeHtml([event.battleId, event.battlePhase, event.battleTitle, event.battleSide].filter(Boolean).join(" / ")) + "</p>" : "") +
           (event.notes ? "<p><strong>notes：</strong>" + escapeHtml(event.notes) + "</p>" : "") +
           "<div class=\\"event-review\\">" +
             "<label>建议 kind<select class=\\"suggest-kind\\"><option value=\\"\\">不修改</option>" + kindOptions(review.suggestedKind) + "</select></label>" +

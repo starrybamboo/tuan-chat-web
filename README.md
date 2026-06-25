@@ -2,6 +2,12 @@
 
 团剧共创前端仓库包含 Web、Electron 桌面端和 Expo 移动端。Web 端以 React、TanStack Router、React Query、Tailwind CSS v4 为主；桌面端通过 Electron 打包；移动端位于 `apps/mobile`，通过 pnpm workspace 复用共享包。
 
+## 版本策略
+
+- 产品版本从 `0.1.0.0` 开始；每次迭代递增最后一位，例如 `0.1.0.1`。
+- npm workspace、Electron 等需要 SemVer 的 `package.json` 版本只记录前三段，例如 `0.1.0`。
+- Android 安装包使用四段 `versionName`，同时每次迭代递增 `versionCode`，保证设备可以覆盖安装。
+
 ## 环境要求
 
 - Node.js 22 或更高版本
@@ -42,16 +48,21 @@ pnpm openapi
 移动端常用入口：
 
 ```bash
-pnpm mobile:android
-pnpm mobile:android:start
-pnpm mobile:android:emulator
 pnpm mobile:start
+pnpm mobile:android
 pnpm mobile:web
-pnpm mobile:lint
 pnpm mobile:typecheck
+pnpm mobile:local-apk
+pnpm mobile:cloud-apk
+pnpm mobile:workflow:preview
+pnpm mobile:workflow:production
+pnpm mobile:ios:credentials
+pnpm mobile:ios:bootstrap-production
 ```
 
-移动端更细的 Android 调试约定见 `apps/mobile/README.md`。
+- `pnpm mobile:start`：启动 Expo 开发服务器，终端会显示二维码。
+- `pnpm mobile:android`：启动 Expo 开发服务器并尝试唤起 Android。
+- 其余 `mobile:*` 为发版和云端 EAS 相关入口。
 
 ## 环境变量
 
@@ -115,7 +126,6 @@ pnpm e2e:browser-auth-snippet -- --output .auth/e2e-browser-auth-snippet.js
 - `packages/tuanchat-query`：可在 Web / Mobile 之间复用的查询和缓存更新逻辑。
 - `packages/tuanchat-domain`：纯业务规则、消息草稿、消息类型、状态指令、骰子等可复用领域逻辑。
 - `packages/tuanchat-local-db`：本地数据库相关共享逻辑。
-- `packages/galgame-ai-contract`：Galgame AI 协议与 schema。
 
 后端接口变化后，优先同步 OpenAPI JSON，再运行：
 

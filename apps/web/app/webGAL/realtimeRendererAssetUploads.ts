@@ -3,16 +3,16 @@ import type { RoleAvatarMediaSource } from "@/components/Role/sprite/roleAvatarM
 import { resolveRoleAvatarMedia } from "@/components/Role/sprite/roleAvatarMedia";
 
 import type { RoleAvatar } from "../../api";
+import type { FigureCompositionCandidate, WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
-import { getFileExtensionFromUrl, uploadFile } from "./fileOperator";
-import { buildImageFileName, hasFileExtension, hashString } from "./realtimeRendererFileNames";
+import { checkFileExist, getFileExtensionFromUrl, uploadFile } from "./fileOperator";
+import { buildImageFileName, getSafeExtensionFromUrl, hasFileExtension, hashString } from "./realtimeRendererFileNames";
 import {
   buildOrdinaryFigureRenderAsset,
   buildWebgalFigureRenderAsset,
   getAvatarCropContextSignature,
   resolveFigureCompositionCandidate,
 } from "./webgalFigureComposition";
-import type { FigureCompositionCandidate, WebgalFigureRenderAsset } from "./webgalFigureComposition";
 
 export type RealtimeAssetUploadContext = {
   gameName: string;
@@ -24,6 +24,7 @@ export type RealtimeAssetUploadContext = {
   uploadedVideosMap: Map<string, string>;
   uploadedMiniAvatarsMap: Map<string, string>;
   uploadedSoundEffectsMap: Map<string, string>;
+  uploadedVocalsMap: Map<string, string>;
 };
 
 export type RealtimeRoleAvatarSource = Pick<
@@ -67,7 +68,8 @@ function resolveRoleAvatarLayerUrls(avatar: RealtimeRoleAvatarSource | undefined
 }
 
 function resolveRoleMiniAvatarUrl(avatar: RealtimeRoleAvatarSource | undefined): string {
-  return resolveRoleAvatarMedia(avatar).avatar.thumbUrl;
+  const media = resolveRoleAvatarMedia(avatar).avatar;
+  return media.url || media.originalUrl || media.thumbUrl;
 }
 
 export async function uploadSpriteAsset(
@@ -169,6 +171,11 @@ function buildCompositionAvatarTargetStem(candidate: FigureCompositionCandidate)
   return `avatar_${candidate.avatarId}_${candidate.avatarFileId}_${cropHash}`;
 }
 
+function buildVocalAssetFileName(url: string): string {
+  const fileExtension = getSafeExtensionFromUrl(url, "webm");
+  return `vocal_${hashString(url)}.${fileExtension}`;
+}
+
 export async function uploadBackgroundAsset(
   context: RealtimeAssetUploadContext,
   url: string,
@@ -218,12 +225,16 @@ export async function uploadImageFigureAsset(
   fileName?: string,
 ): Promise<string | null> {
   const cacheKey = `${fileName?.trim() || ""}|${url}`;
-  if (context.uploadedImageFiguresMap.has(cacheKey)) {
-    return context.uploadedImageFiguresMap.get(cacheKey) || null;
+  const path = `games/${context.gameName}/game/figure/`;
+  const cachedName = context.uploadedImageFiguresMap.get(cacheKey);
+  if (cachedName) {
+    if (await checkFileExist(path, cachedName)) {
+      return cachedName;
+    }
+    context.uploadedImageFiguresMap.delete(cacheKey);
   }
 
   try {
-    const path = `games/${context.gameName}/game/figure/`;
     const targetName = buildImageFileName(url, fileName, "img");
     const uploadedName = await uploadFile(url, path, targetName);
     context.uploadedImageFiguresMap.set(cacheKey, uploadedName);
@@ -297,6 +308,27 @@ export async function uploadSoundEffectAsset(
   }
   catch (error) {
     console.error("上传音效失败:", error);
+    return null;
+  }
+}
+
+export async function uploadVocalAsset(
+  context: RealtimeAssetUploadContext,
+  url: string,
+): Promise<string | null> {
+  if (context.uploadedVocalsMap.has(url)) {
+    return context.uploadedVocalsMap.get(url) || null;
+  }
+
+  try {
+    // 语音消息的配音也放在 WebGAL 的 vocal 文件夹，供 say -vocal=<file> 引用。
+    const path = `games/${context.gameName}/game/vocal/`;
+    const fileName = await uploadFile(url, path, buildVocalAssetFileName(url));
+    context.uploadedVocalsMap.set(url, fileName);
+    return fileName;
+  }
+  catch (error) {
+    console.error("上传配音失败:", error);
     return null;
   }
 }

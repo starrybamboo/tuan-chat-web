@@ -1,4 +1,5 @@
 import type { ClueFolderScope } from "@tuanchat/domain/clue-folder";
+import type { QueryClient } from "@tanstack/react-query";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { SpaceMember } from "@tuanchat/openapi-client/models/SpaceMember";
@@ -20,7 +21,7 @@ import type { RoomMessagesQueryData } from "./room-message-query-data";
 import { getAllRoomMessagesQueryKey, patchInsertMessages } from "./chat";
 import { getRoomMembersQueryKey } from "./members";
 import { getUserMessageSessionsQueryKey } from "./message-sessions";
-import { upsertRoomMessagesListData } from "./room-message";
+import { markRoomMessageDeletedData, replaceRoomMessageListData, upsertRoomMessagesListData } from "./room-message";
 import { updateRoomMessagesQueryData } from "./room-message-query-data";
 import { fetchUserRoomsWithCache, getUserRoomsQueryKey, upsertUserRoomQueryData } from "./spaces";
 
@@ -64,6 +65,45 @@ function toPositiveNumber(value: unknown): number | null {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
   return null;
+}
+
+export async function invalidateClueFolderMessageQueries(queryClient: QueryClient, roomId: number): Promise<void> {
+  await queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(roomId) });
+}
+
+export function patchClueMessageCreatedQueryCache(
+  queryClient: QueryClient,
+  roomId: number,
+  message: Message,
+): void {
+  const response = { message };
+  queryClient.setQueryData(
+    getAllRoomMessagesQueryKey(roomId),
+    (current: RoomMessagesQueryData) =>
+      updateRoomMessagesQueryData(current, currentMessages => upsertRoomMessagesListData(currentMessages, [response])),
+  );
+}
+
+export function patchClueMessageUpdatedQueryCache(queryClient: QueryClient, message: Message): void {
+  const response = { message };
+  const messageId = message.messageId;
+  queryClient.setQueryData(
+    getAllRoomMessagesQueryKey(message.roomId),
+    (current: RoomMessagesQueryData) =>
+      updateRoomMessagesQueryData(current, currentMessages => replaceRoomMessageListData(currentMessages, messageId, response)),
+  );
+}
+
+export function patchClueMessageDeletedQueryCache(
+  queryClient: QueryClient,
+  roomId: number,
+  messageId: number,
+): void {
+  queryClient.setQueryData(
+    getAllRoomMessagesQueryKey(roomId),
+    (current: RoomMessagesQueryData) =>
+      updateRoomMessagesQueryData(current, currentMessages => markRoomMessageDeletedData(currentMessages, messageId)),
+  );
 }
 
 export function useJoinPublicClueFolderMutation(client: ClueFolderClient) {
@@ -206,12 +246,7 @@ export function useCopyMessageToClueFolderMutation(client: ClueFolderClient) {
     mutationKey: ["copyMessageToClueFolder"],
     onSuccess: ({ messages, room }) => {
       if (messages.length > 0) {
-        const nextMessages = messages.map(message => ({ message }));
-        queryClient.setQueryData(
-          getAllRoomMessagesQueryKey(room.roomId),
-          (current: RoomMessagesQueryData) =>
-            updateRoomMessagesQueryData(current, currentMessages => upsertRoomMessagesListData(currentMessages, nextMessages)),
-        );
+        messages.forEach(message => patchClueMessageCreatedQueryCache(queryClient, room.roomId, message));
       }
       queryClient.invalidateQueries({ queryKey: getAllRoomMessagesQueryKey(room.roomId) });
       queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });

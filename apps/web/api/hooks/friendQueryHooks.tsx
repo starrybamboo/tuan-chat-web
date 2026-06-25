@@ -7,6 +7,16 @@ import type { FriendReqSendRequest } from "@tuanchat/openapi-client/models/Frien
 import type { PageBaseRequest } from "@tuanchat/openapi-client/models/PageBaseRequest";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
+import {
+  FRIEND_CHECK_QUERY_KEY,
+  FRIEND_LIST_QUERY_KEY,
+  FRIEND_REQUEST_PAGE_QUERY_KEY,
+  invalidateAcceptFriendRequestQueries,
+  invalidateRejectFriendRequestQueries,
+  optimisticRemoveFriendRequestFromPageCaches,
+  reconcileFriendRequestPageCaches,
+  rollbackFriendRequestPageCaches,
+} from "../friendQueryCache";
 
 /**
  * 获取当前登录用户的好友列表
@@ -50,7 +60,7 @@ export function useCheckFriendQuery(targetUserId: number, enabled = true) {
  */
 export function useGetFriendRequestPageQuery(requestBody: PageBaseRequest, enabled = true) {
   return useQuery({
-    queryKey: ["friendRequestPage", requestBody],
+    queryKey: [...FRIEND_REQUEST_PAGE_QUERY_KEY, requestBody],
     queryFn: () => tuanchat.friendController.getFriendRequestPage(requestBody),
     enabled,
     staleTime: 30000,
@@ -65,8 +75,8 @@ export function useSendFriendRequestMutation() {
   return useMutation({
     mutationFn: (requestBody: FriendReqSendRequest) => tuanchat.friendController.sendFriendRequest(requestBody),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["friendCheck", variables.targetUserId] });
-      queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
+      queryClient.invalidateQueries({ queryKey: [...FRIEND_CHECK_QUERY_KEY, variables.targetUserId] });
+      queryClient.invalidateQueries({ queryKey: FRIEND_REQUEST_PAGE_QUERY_KEY });
     },
   });
 }
@@ -79,31 +89,17 @@ export function useAcceptFriendRequestMutation() {
   return useMutation({
     mutationFn: (requestBody: FriendReqHandleRequest) => tuanchat.friendController.acceptFriendRequest(requestBody),
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ["friendRequestPage"] });
-      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequestPage"] });
-      queryClient.setQueriesData({ queryKey: ["friendRequestPage"] }, (old: any) => {
-        if (!old?.data?.list) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            list: old.data.list.filter((r: any) => r?.id !== variables.friendReqId),
-          },
-        };
-      });
-      return { previousData };
+      const snapshot = await optimisticRemoveFriendRequestFromPageCaches(queryClient, variables.friendReqId);
+      return { snapshot };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousData) {
-        for (const [key, data] of context.previousData) {
-          queryClient.setQueryData(key, data);
-        }
-      }
+      rollbackFriendRequestPageCaches(queryClient, context?.snapshot);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-      queryClient.invalidateQueries({ queryKey: ["friendList"] });
-      queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+    onSuccess: (_result, variables) => {
+      reconcileFriendRequestPageCaches(queryClient, variables.friendReqId);
+    },
+    onSettled: () => {
+      void invalidateAcceptFriendRequestQueries(queryClient);
     },
   });
 }
@@ -116,30 +112,17 @@ export function useRejectFriendRequestMutation() {
   return useMutation({
     mutationFn: (requestBody: FriendReqHandleRequest) => tuanchat.friendController.rejectFriendRequest(requestBody),
     onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ["friendRequestPage"] });
-      const previousData = queryClient.getQueriesData({ queryKey: ["friendRequestPage"] });
-      queryClient.setQueriesData({ queryKey: ["friendRequestPage"] }, (old: any) => {
-        if (!old?.data?.list) return old;
-        return {
-          ...old,
-          data: {
-            ...old.data,
-            list: old.data.list.filter((r: any) => r?.id !== variables.friendReqId),
-          },
-        };
-      });
-      return { previousData };
+      const snapshot = await optimisticRemoveFriendRequestFromPageCaches(queryClient, variables.friendReqId);
+      return { snapshot };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousData) {
-        for (const [key, data] of context.previousData) {
-          queryClient.setQueryData(key, data);
-        }
-      }
+      rollbackFriendRequestPageCaches(queryClient, context?.snapshot);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["friendRequestPage"] });
-      queryClient.invalidateQueries({ queryKey: ["friendCheck"] });
+    onSuccess: (_result, variables) => {
+      reconcileFriendRequestPageCaches(queryClient, variables.friendReqId);
+    },
+    onSettled: () => {
+      void invalidateRejectFriendRequestQueries(queryClient);
     },
   });
 }
@@ -188,4 +171,3 @@ export function useUnblockFriendMutation() {
     },
   });
 }
-

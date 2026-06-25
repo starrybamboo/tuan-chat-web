@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
@@ -164,6 +164,10 @@ describe("chatBubble annotations", () => {
     roomPreferenceState.draftCustomRoleNameMap = {};
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("跑团模式下会继续展示普通模式隐藏的注解", () => {
     roomPreferenceState.runModeEnabled = true;
 
@@ -182,6 +186,48 @@ describe("chatBubble annotations", () => {
     }));
 
     expect(html).toContain("data-normal-only=\"true\"");
+  });
+
+  it("编辑过的消息头不再展示已编辑标记", () => {
+    const response = createChatMessageResponse([]);
+    response.message.updateTime = "2026-05-21 10:05:00";
+
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: response,
+    }));
+
+    expect(html).toContain("【测试角色】");
+    expect(html).not.toContain("已编辑");
+  });
+
+  it("编辑过的消息头继续展示创建时间", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026/05/21 21:00:00"));
+    const response = createChatMessageResponse([]);
+    response.message.createTime = "2026-05-21 12:00:00";
+    response.message.updateTime = "2026-05-21 20:01:00";
+
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: response,
+    }));
+
+    expect(html).toContain("下午12:00");
+    expect(html).not.toContain("晚上8:01");
+  });
+
+  it("本地缓存 createTime 晚于 updateTime 时退回服务端时间", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026/05/21 21:00:00"));
+    const response = createChatMessageResponse([]);
+    response.message.createTime = "2026-05-21 20:01:00";
+    response.message.updateTime = "2026-05-21 12:00:00";
+
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: response,
+    }));
+
+    expect(html).toContain("下午12:00");
+    expect(html).not.toContain("晚上8:01");
   });
 
   it("线索正文会使用预览而不是空正文", () => {
@@ -250,6 +296,50 @@ describe("chatBubble annotations", () => {
 
     expect(html).toContain("data-testid=\"editable-content\"");
     expect(html).toContain("data-placeholder=\"添加图片说明\"");
+    expect(html).toContain("sr-only");
+  });
+
+  it("音频消息正文会渲染成可编辑文本", () => {
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: {
+        message: {
+          ...createChatMessageResponse([]).message,
+          content: "这是语音台词",
+          messageType: MESSAGE_TYPE.SOUND,
+          extra: {
+            soundMessage: {
+              source: { kind: "internal", fileId: 77 },
+              second: 3,
+            },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("data-testid=\"editable-content\"");
+    expect(html).toContain("data-can-edit=\"true\"");
+    expect(html).toContain("这是语音台词");
+  });
+
+  it("空音频正文也保留编辑入口并带占位提示", () => {
+    const html = renderToStaticMarkup(createElement(ChatBubble, {
+      chatMessageResponse: {
+        message: {
+          ...createChatMessageResponse([]).message,
+          content: "",
+          messageType: MESSAGE_TYPE.SOUND,
+          extra: {
+            soundMessage: {
+              source: { kind: "internal", fileId: 77 },
+              second: 3,
+            },
+          },
+        },
+      },
+    }));
+
+    expect(html).toContain("data-testid=\"editable-content\"");
+    expect(html).toContain("data-placeholder=\"添加语音文本\"");
     expect(html).toContain("sr-only");
   });
 });

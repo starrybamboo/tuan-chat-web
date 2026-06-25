@@ -26,6 +26,7 @@ import { hasHostPrivileges } from "@/components/chat/utils/memberPermissions";
 import { getDisplayRoleName } from "@/components/chat/utils/roleDisplayName";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { getFigurePositionFromAnnotations, hasClearFigureAnnotation, normalizeAnnotations, setFigurePositionAnnotation, toggleAnnotation } from "@/types/messageAnnotations";
+import { MESSAGE_TYPE } from "@/types/voiceRenderTypes";
 
 import type { UserRole } from "../../../../api";
 
@@ -368,6 +369,7 @@ function RoomComposerPanelImpl({
   const handleOpenComposerAnnotations = React.useCallback(() => {
     openMessageAnnotationPicker({
       initialSelected: composerAnnotations,
+      messageType: MESSAGE_TYPE.TEXT,
       onChange: (next) => {
         setComposerAnnotations(normalizeAnnotations(next));
       },
@@ -438,7 +440,6 @@ function RoomComposerPanelImpl({
       showSendButton={false}
       showWebgalControls={true}
       showRunControls={true}
-      showCopilotControl={true}
     />
   );
 

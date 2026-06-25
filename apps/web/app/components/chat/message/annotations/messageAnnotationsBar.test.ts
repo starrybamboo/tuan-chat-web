@@ -35,7 +35,8 @@ describe("messageAnnotationsBar", () => {
     }));
     const normalizedHtml = normalizeMarkup(html);
 
-    expect(html).toContain("title=\"下落\"");
+    expect(html).toContain("aria-label=\"下落\"");
+    expect(html).not.toContain("title=\"下落\"");
     expect(normalizedHtml).toContain(" h-6 ");
     expect(normalizedHtml).toContain(" w-6 ");
     expect(html).not.toContain("min-w-[36px]");

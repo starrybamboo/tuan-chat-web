@@ -12,6 +12,7 @@ type UsePersistedSidebarExpandedStateParams = {
 
 type UsePersistedSidebarExpandedStateResult = {
   expandedByKey: Record<string, boolean> | null;
+  setExpanded: (key: string, expanded: boolean) => void;
   toggleExpanded: (key: string) => void;
 };
 
@@ -64,45 +65,86 @@ export default function usePersistedSidebarExpandedState({
 }: UsePersistedSidebarExpandedStateParams): UsePersistedSidebarExpandedStateResult {
   const [expandedByKey, setExpandedByKey] = useState<Record<string, boolean> | null>(null);
   const lastStorageIdentityRef = useRef<string | null>(null);
+  const storedExpandedMapRef = useRef<Record<string, boolean> | null | undefined>(undefined);
+  const localWriteSeqRef = useRef(0);
+  const latestValidKeysRef = useRef(validKeys);
+  const latestInitialExpandedKeysRef = useRef(initialExpandedKeys);
+  const validKeysSignature = useMemo(() => validKeys.join("\u0000"), [validKeys]);
+  const initialExpandedKeysSignature = useMemo(() => (initialExpandedKeys ?? []).join("\u0000"), [initialExpandedKeys]);
   const normalizedInitialExpandedMap = useMemo(() => {
     return normalizeExpandedMap({
       raw: null,
       validKeys,
       initialExpandedKeys,
     });
-  }, [initialExpandedKeys, validKeys]);
+  }, [initialExpandedKeysSignature, validKeysSignature]);
   const validKeySet = useMemo(() => new Set(validKeys), [validKeys]);
+  const normalizeWithLatestKeys = useCallback((raw: Record<string, boolean> | null | undefined) => {
+    return normalizeExpandedMap({
+      raw,
+      validKeys: latestValidKeysRef.current,
+      initialExpandedKeys: latestInitialExpandedKeysRef.current,
+    });
+  }, []);
+
+  useEffect(() => {
+    latestValidKeysRef.current = validKeys;
+    latestInitialExpandedKeysRef.current = initialExpandedKeys;
+  }, [initialExpandedKeysSignature, validKeys, validKeysSignature, initialExpandedKeys]);
 
   useEffect(() => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
-      queueMicrotask(() => setExpandedByKey(null));
+      setExpandedByKey(null);
       lastStorageIdentityRef.current = null;
+      storedExpandedMapRef.current = undefined;
       return;
     }
 
     const storageIdentity = `${typeof currentUserId === "number" ? currentUserId : "anon"}:${activeSpaceId}:${storageScope}`;
     if (storageIdentity === lastStorageIdentityRef.current) {
+      if (storedExpandedMapRef.current !== undefined) {
+        setExpandedByKey(normalizeWithLatestKeys(storedExpandedMapRef.current));
+      }
       return;
     }
 
     lastStorageIdentityRef.current = storageIdentity;
-    queueMicrotask(() => setExpandedByKey(normalizedInitialExpandedMap));
+    storedExpandedMapRef.current = undefined;
+    setExpandedByKey(normalizeWithLatestKeys(null));
+    const readStartedAtWriteSeq = localWriteSeqRef.current;
     getSidebarExpandedMap({
       userId: currentUserId,
       spaceId: activeSpaceId,
       scope: storageScope,
     })
       .then((stored) => {
-        setExpandedByKey(normalizeExpandedMap({
-          raw: stored,
-          validKeys,
-          initialExpandedKeys,
-        }));
+        if (lastStorageIdentityRef.current !== storageIdentity) {
+          return;
+        }
+        if (localWriteSeqRef.current !== readStartedAtWriteSeq) {
+          return;
+        }
+        storedExpandedMapRef.current = stored;
+        setExpandedByKey(normalizeWithLatestKeys(stored));
       })
       .catch(() => {
-        setExpandedByKey(normalizedInitialExpandedMap);
+        if (lastStorageIdentityRef.current !== storageIdentity) {
+          return;
+        }
+        if (localWriteSeqRef.current !== readStartedAtWriteSeq) {
+          return;
+        }
+        storedExpandedMapRef.current = null;
+        setExpandedByKey(normalizeWithLatestKeys(null));
       });
-  }, [activeSpaceId, currentUserId, initialExpandedKeys, normalizedInitialExpandedMap, storageScope, validKeys]);
+  }, [
+    activeSpaceId,
+    currentUserId,
+    initialExpandedKeysSignature,
+    normalizeWithLatestKeys,
+    storageScope,
+    validKeysSignature,
+  ]);
 
   useEffect(() => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
@@ -120,16 +162,46 @@ export default function usePersistedSidebarExpandedState({
       return;
     }
 
-    queueMicrotask(() => setExpandedByKey(next));
-    setSidebarExpandedMap({
-      userId: currentUserId,
-      spaceId: activeSpaceId,
-      scope: storageScope,
-      expandedByKey: next,
-    }).catch(() => {
-      // ignore
+    setExpandedByKey(next);
+  }, [activeSpaceId, expandedByKey, validKeysSignature, validKeys]);
+
+  const setExpanded = useCallback((key: string, expanded: boolean) => {
+    if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
+      return;
+    }
+    if (!validKeySet.has(key)) {
+      return;
+    }
+
+    setExpandedByKey((prev) => {
+      const base = prev ?? normalizedInitialExpandedMap;
+      if (Boolean(base[key]) === expanded) {
+        return prev;
+      }
+
+      const nextRaw = { ...(storedExpandedMapRef.current ?? base) };
+      if (expanded) {
+        nextRaw[key] = true;
+      }
+      else {
+        delete nextRaw[key];
+      }
+      localWriteSeqRef.current += 1;
+      storedExpandedMapRef.current = nextRaw;
+      const next = normalizeWithLatestKeys(nextRaw);
+
+      setSidebarExpandedMap({
+        userId: currentUserId,
+        spaceId: activeSpaceId,
+        scope: storageScope,
+        expandedByKey: nextRaw,
+      }).catch(() => {
+        // ignore
+      });
+
+      return next;
     });
-  }, [activeSpaceId, currentUserId, expandedByKey, storageScope, validKeys]);
+  }, [activeSpaceId, currentUserId, normalizeWithLatestKeys, normalizedInitialExpandedMap, storageScope, validKeySet]);
 
   const toggleExpanded = useCallback((key: string) => {
     if (activeSpaceId == null || !Number.isFinite(activeSpaceId) || activeSpaceId <= 0) {
@@ -141,29 +213,33 @@ export default function usePersistedSidebarExpandedState({
 
     setExpandedByKey((prev) => {
       const base = prev ?? normalizedInitialExpandedMap;
-      const next = { ...base };
-      if (next[key]) {
-        delete next[key];
+      const nextRaw = { ...(storedExpandedMapRef.current ?? base) };
+      if (base[key]) {
+        delete nextRaw[key];
       }
       else {
-        next[key] = true;
+        nextRaw[key] = true;
       }
+      localWriteSeqRef.current += 1;
+      storedExpandedMapRef.current = nextRaw;
+      const next = normalizeWithLatestKeys(nextRaw);
 
       setSidebarExpandedMap({
         userId: currentUserId,
         spaceId: activeSpaceId,
         scope: storageScope,
-        expandedByKey: next,
+        expandedByKey: nextRaw,
       }).catch(() => {
         // ignore
       });
 
       return next;
     });
-  }, [activeSpaceId, currentUserId, normalizedInitialExpandedMap, storageScope, validKeySet]);
+  }, [activeSpaceId, currentUserId, normalizeWithLatestKeys, normalizedInitialExpandedMap, storageScope, validKeySet]);
 
   return {
     expandedByKey,
+    setExpanded,
     toggleExpanded,
   };
 }

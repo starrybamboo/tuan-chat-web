@@ -8,6 +8,7 @@ import type {CommentChildPageRequest} from "@tuanchat/openapi-client/models/Comm
 import type {CommentAddRequest} from "@tuanchat/openapi-client/models/CommentAddRequest";
 import type {CommentTimelinePageRequest} from "@tuanchat/openapi-client/models/CommentTimelinePageRequest";
 import { FEEDBACK_ISSUE_TARGET_TYPE } from "@/components/feedback/feedbackTypes";
+import { FEEDBACK_ISSUES_QUERY_KEY, feedbackIssueDetailQueryKey } from "../feedbackQueryCache";
 
 const COMMENT_PAGE_QUERY_KEY = ["pageComments"] as const;
 const COMMENT_CHILD_PAGE_QUERY_KEY = ["pageChildComments"] as const;
@@ -148,8 +149,8 @@ export async function invalidateCommentTargetQueries(queryClient: QueryClient, t
     }
 
     await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["feedbackIssues"] }),
-        queryClient.invalidateQueries({ queryKey: ["feedbackIssueDetail", normalizedTargetInfo.targetId] }),
+        queryClient.invalidateQueries({ queryKey: FEEDBACK_ISSUES_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: feedbackIssueDetailQueryKey(normalizedTargetInfo.targetId) }),
     ]);
 }
 

@@ -17,7 +17,7 @@ import { fetchWithUnifiedAuth } from "../../api/unifiedAuthFetch";
  * WebGAL 调试命令枚举
  * 用于通过 WebSocket 与 WebGAL 引擎通信
  */
-enum DebugCommand {
+export enum DebugCommand {
   // 跳转到指定场景的指定行
   JUMP,
   // 同步自客户端
@@ -28,12 +28,18 @@ enum DebugCommand {
   EXE_COMMAND,
   // 重新拉取模板样式文件
   REFETCH_TEMPLATE_FILES,
-  // 执行临时场景（单条命令）
-  TEMP_SCENE,
   // 设置组件可见性
   SET_COMPONENT_VISIBILITY,
+  // 执行临时场景（单条命令）
+  TEMP_SCENE,
   // 字体优化
-  SET_FONT_OPTIMIZATION,
+  FONT_OPTIMIZATION,
+  // 直接设置效果
+  SET_EFFECT,
+  // 实时预览快进超时
+  FAST_PREVIEW_TIMEOUT,
+  // 设置文本已读模式
+  SET_TEXT_READ_MODE,
 }
 
 type IFile = {

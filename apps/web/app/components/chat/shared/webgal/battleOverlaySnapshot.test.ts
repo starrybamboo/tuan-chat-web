@@ -133,7 +133,7 @@ describe("battleOverlaySnapshot", () => {
     expect(snapshot.roles[0]?.avatarUrl).toContain("100");
   });
 
-  it("非战斗轮只保留底图和角色元数据，不提前显示 overlay", () => {
+  it("非战斗轮只同步底图和角色元数据，不常驻显示 overlay", () => {
     const map: RoomDndMapSnapshot = {
       roomId: 12,
       mapFileId: 200,
@@ -197,6 +197,36 @@ describe("battleOverlaySnapshot", () => {
     });
     expect(snapshot.map?.imageUrl).toContain("200");
     expect(snapshot.roles.map(role => role.roleId)).toEqual([3]);
+  });
+
+  it("状态地图和 token 不依赖战斗轮开启也会同步给 WebGAL", () => {
+    const snapshot = buildBattleOverlaySnapshot({
+      roomId: 12,
+      roles: [{ roleId: 3, roleName: "露娜", userId: 1, type: 0 }],
+      runtime: createRuntime({
+        combatRoundActive: false,
+        hasMapState: true,
+        hasMapConfigState: true,
+        mapConfig: {
+          mapFileId: 200,
+          gridRows: 10,
+          gridCols: 10,
+          gridColor: "#64748b",
+        },
+        mapTokens: [{ roleId: 3, rowIndex: 6, colIndex: 2 }],
+        mapTokensByRoleId: {
+          3: { roleId: 3, rowIndex: 6, colIndex: 2 },
+        },
+      }),
+    });
+
+    expect(snapshot.visible).toBe(false);
+    expect(snapshot.round).toBeNull();
+    expect(snapshot.map).toMatchObject({
+      gridRows: 10,
+      gridCols: 10,
+      tokens: [{ roleId: 3, rowIndex: 6, colIndex: 2, name: "露娜" }],
+    });
   });
 
   it("优先使用状态运行时地图配置，并在清空配置后不回退旧房间地图", () => {
