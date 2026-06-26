@@ -198,6 +198,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.lg,
   },
+  contentLayer: { flex: 1 },
+  dmOverlayLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+  },
 });
 
 const RIGHT_DRAWER_SHORTCUTS = [
@@ -503,7 +508,10 @@ export default function ChatShell() {
   useEffect(() => {
     let consumedNotificationTarget = false;
     if (pendingTargetContactId != null) {
-      const nextDmState = resolveDmEntryNavigationState(pendingTargetContactId);
+      const nextDmState = resolveDmEntryNavigationState(
+        pendingTargetContactId,
+        selectedRoomId != null ? "room" : DEFAULT_DM_BACK_TARGET,
+      );
       setCurrentContactId(nextDmState.currentContactId);
       setActiveDmTab(nextDmState.activeDmTab);
       setDmBackTarget(nextDmState.backTarget);
@@ -590,6 +598,9 @@ export default function ChatShell() {
 
   const handleBackFromDmChat = useCallback(() => {
     setCurrentContactId(null);
+    if (dmBackTarget === "room") {
+      return;
+    }
     setActiveDmTab(getDmTabForBackTarget(dmBackTarget));
     setDrawerMode("dm");
   }, [dmBackTarget]);
@@ -1518,25 +1529,114 @@ export default function ChatShell() {
             : (
                 <View style={styles.panelContainer}>
                   <Animated.View style={[styles.center, centerStyle]}>
-                    {!currentContactId && !searchPageVisible && (
-                      <ChatHeader
-                        roomName={selectedRoom?.name ?? null}
-                        onBackToRoutePage={handleBackToRoutePage}
-                        onSearch={handleOpenSearch}
-                        unreadCount={currentRoomUnreadCount}
-                      />
-                    )}
-                    {searchPageVisible && !currentContactId
+                    {selectedRoomId != null
                       ? (
-                          <ChatSearchPage
-                            messages={roomMessages}
-                            onClose={handleCloseSearch}
-                            onScrollToMessage={handleScrollToSearchMessage}
-                            roomRolesById={roomRolesById}
-                          />
+                          <View style={styles.contentLayer} pointerEvents={currentContactId ? "none" : "auto"}>
+                            {!searchPageVisible && (
+                              <ChatHeader
+                                roomName={selectedRoom?.name ?? null}
+                                onBackToRoutePage={handleBackToRoutePage}
+                                onSearch={handleOpenSearch}
+                                unreadCount={currentRoomUnreadCount}
+                              />
+                            )}
+                            {searchPageVisible
+                              ? (
+                                  <ChatSearchPage
+                                    messages={roomMessages}
+                                    onClose={handleCloseSearch}
+                                    onScrollToMessage={handleScrollToSearchMessage}
+                                    roomRolesById={roomRolesById}
+                                  />
+                                )
+                              : (
+                                  <>
+                                    <ChatMessageList
+                                      messages={roomMessages}
+                                      multiSelectMode={multiSelectMode}
+                                      multiSelectedIds={multiSelectedIds}
+                                      selectedAnchorId={messageAnchorId}
+                                      onLongPressMessage={handleLongPressMessage}
+                                      onRetry={handleRetryRoomMessages}
+                                      onToggleMultiSelect={handleToggleMultiSelect}
+                                      isPending={roomMessagesQuery.isPending}
+                                      isError={roomMessagesQuery.isError}
+                                      error={roomMessagesQuery.error}
+                                      roomRoles={roomRoles}
+                                      currentRoleId={effectiveCurrentRoleId}
+                                      isSpaceOwner={isSpaceOwner}
+                                      noRole={noRole}
+                                      isCommandRequestConsumed={commandRequests.isConsumed}
+                                      onExecuteCommandRequest={commandRequests.handleExecute}
+                                    />
+                                    {multiSelectMode
+                                      ? (
+                                          <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
+                                            <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
+                                              已选
+                                              {" "}
+                                              {multiSelectedIds.size}
+                                              {" "}
+                                              条
+                                            </ThemedText>
+                                            <View style={{ flex: 1 }} />
+                                            <Pressable
+                                              onPress={handleCopyMultiSelectedMessages}
+                                              style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                            >
+                                              <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
+                                            </Pressable>
+                                            <Pressable
+                                              onPress={handleDeleteMultiSelectedMessages}
+                                              style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                            >
+                                              <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
+                                            </Pressable>
+                                            <Pressable
+                                              onPress={handleCancelMultiSelect}
+                                              style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
+                                            >
+                                              <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
+                                            </Pressable>
+                                          </View>
+                                        )
+                                      : (
+                                          <ChatComposer
+                                            anchorMessage={selectedAnchorMessage}
+                                            availableRoles={selectableRoomRoles}
+                                            canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
+                                            canUseExpressionPicker
+                                            currentRole={currentRole}
+                                            currentAvatarFileId={selectedAvatarFileId}
+                                            draftMessage={draftMessage}
+                                            draftRoleIdInput={draftRoleIdInput}
+                                            errorMessage={messageError}
+                                            isSubmitting={messageSendInFlight}
+                                            messageAttachments={messageAttachments}
+                                            messageMode={messageMode}
+                                            onChangeDraftMessage={setDraftMessage}
+                                            onChangeDraftRoleIdInput={setDraftRoleIdInput}
+                                            onClearAnchor={handleClearAnchor}
+                                            onClearAttachments={handleClearAttachments}
+                                            onOpenExpressionPicker={handleOpenExpressionPicker}
+                                            onOpenRoleSwitch={handleOpenRoleSwitch}
+                                            onPickAttachment={handlePickComposerAttachment}
+                                            onRemoveAttachment={handleRemoveComposerAttachment}
+                                            onSend={handleSendPress}
+                                            roomName={selectedRoom?.name}
+                                            ruleId={selectedRuleId}
+                                            safeAreaBottomInset={insets.bottom}
+                                            shortcutActions={rightDrawerShortcutActions}
+                                          />
+                                        )}
+                                  </>
+                                )}
+                          </View>
                         )
-                      : currentContactId
-                        ? (
+                      : null}
+                    {currentContactId
+                      ? (
+                          <View style={selectedRoomId != null ? styles.dmOverlayLayer : styles.contentLayer}>
                             <DmChatView
                               contactId={currentContactId}
                               contactName={currentDmContactName ?? `用户 #${currentContactId}`}
@@ -1547,89 +1647,9 @@ export default function ChatShell() {
                               onOpenContactDrawer={handleOpenDmContactDrawer}
                               safeAreaBottomInset={insets.bottom}
                             />
-                          )
-                        : (
-                            <>
-                              <ChatMessageList
-                                messages={roomMessages}
-                                multiSelectMode={multiSelectMode}
-                                multiSelectedIds={multiSelectedIds}
-                                selectedAnchorId={messageAnchorId}
-                                onLongPressMessage={handleLongPressMessage}
-                                onRetry={handleRetryRoomMessages}
-                                onToggleMultiSelect={handleToggleMultiSelect}
-                                isPending={roomMessagesQuery.isPending}
-                                isError={roomMessagesQuery.isError}
-                                error={roomMessagesQuery.error}
-                                roomRoles={roomRoles}
-                                currentRoleId={effectiveCurrentRoleId}
-                                isSpaceOwner={isSpaceOwner}
-                                noRole={noRole}
-                                isCommandRequestConsumed={commandRequests.isConsumed}
-                                onExecuteCommandRequest={commandRequests.handleExecute}
-                              />
-                              {multiSelectMode
-                                ? (
-                                    <View style={{ alignItems: "center", borderTopColor: theme.border, borderTopWidth: 1, flexDirection: "row", gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg }}>
-                                      <ThemedText style={{ color: theme.textSecondary, fontSize: 13 }}>
-                                        已选
-                                        {" "}
-                                        {multiSelectedIds.size}
-                                        {" "}
-                                        条
-                                      </ThemedText>
-                                      <View style={{ flex: 1 }} />
-                                      <Pressable
-                                        onPress={handleCopyMultiSelectedMessages}
-                                        style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                                      >
-                                        <ThemedText style={{ color: theme.accent, fontSize: 14 }}>复制</ThemedText>
-                                      </Pressable>
-                                      <Pressable
-                                        onPress={handleDeleteMultiSelectedMessages}
-                                        style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                                      >
-                                        <ThemedText style={{ color: theme.danger, fontSize: 14 }}>删除</ThemedText>
-                                      </Pressable>
-                                      <Pressable
-                                        onPress={handleCancelMultiSelect}
-                                        style={{ paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md }}
-                                      >
-                                        <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>取消</ThemedText>
-                                      </Pressable>
-                                    </View>
-                                  )
-                                : (
-                                    <ChatComposer
-                                      anchorMessage={selectedAnchorMessage}
-                                      availableRoles={selectableRoomRoles}
-                                      canUseAttachments={canMobileMessageModeUseAttachments(messageMode)}
-                                      canUseExpressionPicker
-                                      currentRole={currentRole}
-                                      currentAvatarFileId={selectedAvatarFileId}
-                                      draftMessage={draftMessage}
-                                      draftRoleIdInput={draftRoleIdInput}
-                                      errorMessage={messageError}
-                                      isSubmitting={messageSendInFlight}
-                                      messageAttachments={messageAttachments}
-                                      messageMode={messageMode}
-                                      onChangeDraftMessage={setDraftMessage}
-                                      onChangeDraftRoleIdInput={setDraftRoleIdInput}
-                                      onClearAnchor={handleClearAnchor}
-                                      onClearAttachments={handleClearAttachments}
-                                      onOpenExpressionPicker={handleOpenExpressionPicker}
-                                      onOpenRoleSwitch={handleOpenRoleSwitch}
-                                      onPickAttachment={handlePickComposerAttachment}
-                                      onRemoveAttachment={handleRemoveComposerAttachment}
-                                      onSend={handleSendPress}
-                                      roomName={selectedRoom?.name}
-                                      ruleId={selectedRuleId}
-                                      safeAreaBottomInset={insets.bottom}
-                                      shortcutActions={rightDrawerShortcutActions}
-                                    />
-                                  )}
-                            </>
-                          )}
+                          </View>
+                        )
+                      : null}
                     <GestureDetector gesture={panGesture}>
                       <View style={[styles.rightDrawerGestureEdge, { bottom: DRAWER_EDGE_GESTURE_COMPOSER_GUARD_HEIGHT + insets.bottom }]} />
                     </GestureDetector>
