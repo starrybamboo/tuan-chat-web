@@ -39,6 +39,16 @@ describe("dmNavigationState", () => {
     });
   });
 
+  it("房间来源进入私聊后返回房间，不强制切到私聊列表", () => {
+    expect(resolveDmEntryNavigationState(12, "room")).toEqual({
+      activeDmTab: "chat",
+      backTarget: "room",
+      currentContactId: 12,
+      shouldCloseDrawer: true,
+    });
+    expect(getDmTabForBackTarget("room")).toBe("chat");
+  });
+
   it("进入私聊详情时要求关闭抽屉位移，避免停留在高亮列表中间态", () => {
     expect(resolveDmEntryNavigationState(99, "conversation").shouldCloseDrawer).toBe(true);
     expect(resolveDmEntryNavigationState(100, "friend").shouldCloseDrawer).toBe(true);

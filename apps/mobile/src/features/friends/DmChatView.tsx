@@ -908,7 +908,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   ] as const;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <Pressable onPress={onBack} accessibilityLabel="返回" accessibilityRole="button">
           <CaretLeft size={20} color={theme.text} weight="bold" />
