@@ -1,4 +1,4 @@
-export function clampToMultipleOf64(value, fallback) {
+export function clampToMultipleOf64(value: unknown, fallback: number) {
   const num = Number(value);
   if (!Number.isFinite(num) || num <= 0)
     return fallback;

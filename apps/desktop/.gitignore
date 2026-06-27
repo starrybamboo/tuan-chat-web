@@ -1,3 +1,5 @@
 build/
+electron/main/
+electron/preload/
 extraResources/*
 !extraResources/readme.md

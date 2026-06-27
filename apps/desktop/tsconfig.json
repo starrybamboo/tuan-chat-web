@@ -1,11 +1,12 @@
 {
   "extends": "@tuanchat/typescript-config/library.json",
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true
   },
   "include": [
-    "electron/**/*",
+    "electron.vite.config.ts",
+    "src/**/*",
     "scripts/**/*"
   ]
 }

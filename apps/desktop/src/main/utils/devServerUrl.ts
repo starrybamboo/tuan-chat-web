@@ -1,8 +1,6 @@
-// 用于避免前端固定启动的端口被占用
-
-function uniqueStrings(items) {
-  const seen = new Set();
-  const out = [];
+function uniqueStrings(items: unknown[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
   for (const item of items) {
     const s = String(item || "").trim();
     if (!s || seen.has(s))
@@ -13,7 +11,7 @@ function uniqueStrings(items) {
   return out;
 }
 
-function withTimeout(signalMs) {
+function withTimeout(signalMs: number) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), signalMs);
   return {
@@ -22,8 +20,7 @@ function withTimeout(signalMs) {
   };
 }
 
-// 向前端发送请求
-async function fetchText(url, timeoutMs, acceptHeader = "text/html, */*") {
+async function fetchText(url: string, timeoutMs: number, acceptHeader = "text/html, */*") {
   const fetchImpl = globalThis.fetch;
   if (typeof fetchImpl !== "function")
     return { ok: false, status: 0, text: "" };
@@ -54,8 +51,8 @@ function makeNonce() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-async function isLikelyTuanChatDevServer(baseUrl, timeoutMs) {
-  const normalized = String(baseUrl || "").replace(/\/+$/, "");
+async function isLikelyTuanChatDevServer(baseUrl: string, timeoutMs: number) {
+  const normalized = baseUrl.replace(/\/+$/, "");
   if (!normalized)
     return false;
 
@@ -74,24 +71,21 @@ async function isLikelyTuanChatDevServer(baseUrl, timeoutMs) {
   }
 }
 
-async function isLikelyViteDevServer(baseUrl, timeoutMs) {
-  const normalized = String(baseUrl || "").replace(/\/+$/, "");
+async function isLikelyViteDevServer(baseUrl: string, timeoutMs: number) {
+  const normalized = baseUrl.replace(/\/+$/, "");
   if (!normalized)
     return false;
 
-  // Vite dev server always serves this module.
   const probeUrl = `${normalized}/@vite/client`;
   const res = await fetchText(probeUrl, timeoutMs);
   if (!res.ok)
     return false;
 
   const head = res.text.slice(0, 4000);
-  // Lightweight signature check; extremely unlikely for unrelated servers.
   return head.includes("createHotContext") || head.includes("import.meta.hot") || head.includes("__vite");
 }
 
-async function firstMatch(urls, tester, concurrency) {
-  const list = Array.isArray(urls) ? urls : [];
+async function firstMatch(urls: string[], tester: (url: string) => Promise<boolean>, concurrency: number) {
   const limit = Number.isFinite(concurrency) && concurrency > 0 ? Math.floor(concurrency) : 8;
 
   let index = 0;
@@ -101,29 +95,41 @@ async function firstMatch(urls, tester, concurrency) {
     while (!found) {
       const current = index;
       index++;
-      if (current >= list.length)
+      if (current >= urls.length)
         return;
 
-      const url = list[current];
+      const url = urls[current];
       const ok = await tester(url);
       if (ok) {
-        found = String(url).replace(/\/+$/, "");
+        found = url.replace(/\/+$/, "");
         return;
       }
     }
   };
 
-  const workers = Array.from({ length: Math.min(limit, list.length) }, () => worker());
+  const workers = Array.from({ length: Math.min(limit, urls.length) }, () => worker());
   await Promise.all(workers);
   return found;
 }
 
-export async function resolveDevServerUrl({ preferredUrl, host = "localhost", ports = [], timeoutMs = 800, concurrency = 8 } = {}) {
+export async function resolveDevServerUrl({
+  preferredUrl,
+  host = "localhost",
+  ports = [],
+  timeoutMs = 800,
+  concurrency = 8,
+}: {
+  preferredUrl?: string;
+  host?: string;
+  ports?: unknown[];
+  timeoutMs?: number;
+  concurrency?: number;
+} = {}) {
   const normalizedHost = String(host || "localhost").trim() || "localhost";
 
-  const candidates = [];
+  const candidates: string[] = [];
   if (preferredUrl)
-    candidates.push(String(preferredUrl));
+    candidates.push(preferredUrl);
 
   for (const p of ports) {
     const port = Number(p);
@@ -134,7 +140,6 @@ export async function resolveDevServerUrl({ preferredUrl, host = "localhost", po
 
   const urls = uniqueStrings(candidates);
 
-  // Phase 1: prefer our explicit ping endpoint (most accurate, and only 1 request per port).
   const pingMatched = await firstMatch(
     urls,
     url => isLikelyTuanChatDevServer(url, timeoutMs),
@@ -143,7 +148,6 @@ export async function resolveDevServerUrl({ preferredUrl, host = "localhost", po
   if (pingMatched)
     return pingMatched;
 
-  // Phase 2 (fallback): if ping endpoint is absent, still allow Vite signature (best-effort).
   const viteMatched = await firstMatch(
     urls,
     url => isLikelyViteDevServer(url, timeoutMs),
@@ -152,11 +156,19 @@ export async function resolveDevServerUrl({ preferredUrl, host = "localhost", po
   return viteMatched || "";
 }
 
-export function buildCandidatePorts({ preferredPorts = [], defaultPort = 5177, scanRange = 20 } = {}) {
-  const ports = [];
-  const seen = new Set();
+export function buildCandidatePorts({
+  preferredPorts = [],
+  defaultPort = 5177,
+  scanRange = 20,
+}: {
+  preferredPorts?: unknown[];
+  defaultPort?: number;
+  scanRange?: number;
+} = {}) {
+  const ports: number[] = [];
+  const seen = new Set<number>();
 
-  const pushPort = (value) => {
+  const pushPort = (value: unknown) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0 || seen.has(num))
       return;

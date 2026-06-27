@@ -1,71 +1,7 @@
-/* eslint-disable */
-// This declares a global interface for the electronAPI
-export type IElectronAPI = {
-  launchWebGAL: (payload?: {
-    gameDir?: string;
-  }) => Promise<{
-    ok: boolean;
-    port?: number;
-    error?: string;
-    openedUrl?: string;
-  }>;
-  novelaiGetClientSettings: (payload: {
-    token: string;
-    endpoint?: string;
-  }) => Promise<any>;
-  novelaiGenerateImage: (payload: {
-    token: string;
-    endpoint?: string;
-    mode?: "txt2img" | "img2img";
-    sourceImageBase64?: string;
-    prompt: string;
-    negativePrompt?: string;
-    model?: string;
-    width?: number;
-    height?: number;
-    steps?: number;
-    scale?: number;
-    sampler?: string;
-    noiseSchedule?: string;
-    cfgRescale?: number;
-    smea?: boolean;
-    smeaDyn?: boolean;
-    qualityToggle?: boolean;
-    strength?: number;
-    noise?: number;
-    seed?: number;
-  }) => Promise<{
-    dataUrl: string;
-    seed: number;
-    width: number;
-    height: number;
-    model: string;
-  }>;
-  saveAiImageDebugBundle?: (payload: {
-    category: "infill";
-    sourceDataUrl?: string;
-    uiMaskDataUrl?: string;
-    requestMaskDataUrl?: string;
-    requestBody: Record<string, unknown>;
-  }) => Promise<{
-    ok: boolean;
-    directory?: string;
-    error?: string;
-  }>;
-  showDesktopNotification?: (payload: {
-    title: string;
-    body: string;
-    icon?: string;
-    targetPath?: string;
-    tag?: string;
-    silent?: boolean;
-  }) => Promise<{
-    ok: boolean;
-    reason?: string;
-  }>;
-};
+import type { TuanChatElectronAPI } from "@tuanchat/electron-ipc";
 
-// This extends the global Window interface
+export type IElectronAPI = TuanChatElectronAPI;
+
 declare global {
   interface Window {
     electronAPI: IElectronAPI;

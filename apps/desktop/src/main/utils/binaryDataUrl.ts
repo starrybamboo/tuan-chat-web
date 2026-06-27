@@ -1,15 +1,13 @@
 import { unzipSync } from "fflate";
 import { Buffer } from "node:buffer";
 
-// 将字节数组编码为 Base64 数据 URL
-export function base64DataUrl(mime, bytes) {
+export function base64DataUrl(mime: string, bytes: Uint8Array) {
   const b64 = Buffer.from(bytes).toString("base64");
   return `data:${mime};base64,${b64}`;
 }
 
-// 根据文件名推断 MIME 类型
-function mimeFromFilename(name) {
-  const lower = String(name || "").toLowerCase();
+function mimeFromFilename(name: string) {
+  const lower = name.toLowerCase();
   if (lower.endsWith(".png"))
     return "image/png";
   if (lower.endsWith(".webp"))
@@ -19,27 +17,23 @@ function mimeFromFilename(name) {
   return "application/octet-stream";
 }
 
-// 从 ZIP 文件字节中提取第一张图片并返回其 Base64 数据 URL
-export function firstImageFromZip(zipBytes) {
+export function firstImageFromZip(zipBytes: Uint8Array) {
   const files = unzipSync(zipBytes);
   const names = Object.keys(files);
   if (!names.length)
     throw new Error("ZIP 解包失败：未找到任何文件");
 
-  const preferred = names.find(n => /\\.(?:png|webp|jpe?g)$/i.test(n)) || names[0];
-  const mime = mimeFromFilename(preferred);
-  return base64DataUrl(mime, files[preferred]);
+  const preferred = names.find(n => /\.(?:png|webp|jpe?g)$/i.test(n)) || names[0];
+  return base64DataUrl(mimeFromFilename(preferred), files[preferred]);
 }
 
-// 检查字节数组是否以指定前缀开头
-function startsWithBytes(bytes, prefix) {
+function startsWithBytes(bytes: Uint8Array, prefix: number[]) {
   if (!bytes || bytes.length < prefix.length)
     return false;
   return prefix.every((b, i) => bytes[i] === b);
 }
 
-// 检查字节数组是否看起来像一个 ZIP 文件
-export function looksLikeZip(bytes) {
+export function looksLikeZip(bytes: Uint8Array) {
   if (!bytes || bytes.length < 4)
     return false;
   return (
@@ -53,7 +47,7 @@ export function looksLikeZip(bytes) {
   );
 }
 
-export function detectBinaryDataUrl(bytes) {
+export function detectBinaryDataUrl(bytes: Uint8Array) {
   if (startsWithBytes(bytes, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))
     return base64DataUrl("image/png", bytes);
   if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF)

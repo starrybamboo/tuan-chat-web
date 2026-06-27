@@ -1,0 +1,6 @@
+{
+  "extends": "@tuanchat/typescript-config/library.json",
+  "include": [
+    "src/**/*"
+  ]
+}

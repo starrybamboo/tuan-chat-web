@@ -8,7 +8,7 @@
       "url": "https://tuan.chat/updates/"
     }
   ],
-  "files": ["./electron/**/*", "./build/**/*"],
+  "files": ["./electron/main/**/*", "./electron/preload/**/*", "./build/**/*"],
   "extraResources": [
     {
       "from": "./extraResources/",

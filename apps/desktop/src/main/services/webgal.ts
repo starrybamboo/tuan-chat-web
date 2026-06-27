@@ -1,15 +1,13 @@
-/* eslint-disable no-console, node/no-process-env */
-import electron from "electron";
-import { spawn } from "node:child_process";
+import type { WebGALLaunchRequest, WebGALLaunchResult } from "@tuanchat/electron-ipc";
+
+import { BrowserWindow, type App, type IpcMain } from "electron";
+import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const { BrowserWindow } = electron;
+import { ELECTRON_IPC_CHANNELS } from "../../common/ipc";
 
 const WEBGAL_EXE_CANDIDATES = ["WebGAL_Terre.exe", "WebGAL_Teree.exe"];
 const WEBGAL_PORT = 3001;
@@ -26,25 +24,24 @@ const WEBGAL_DEFAULT_ALLOWED_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://localhost:5177",
   "http://127.0.0.1:5177",
-  // Electron 安装版渲染进程源。
   "app://.",
   "app://",
 ];
 
-let webgalProcess = null;
-let webgalWindow = null;
+let webgalProcess: ChildProcess | null = null;
+let webgalWindow: BrowserWindow | null = null;
 
-function delay(ms) {
+function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function normalizeOrigin(origin) {
-  const normalized = String(origin || "").trim().replace(/\/+$/, "");
+function normalizeOrigin(origin: string) {
+  const normalized = origin.trim().replace(/\/+$/, "");
   return normalized.toLowerCase();
 }
 
 function buildWebgalAllowedOriginsEnv() {
-  const allowedOrigins = new Set();
+  const allowedOrigins = new Set<string>();
 
   const fromEnv = String(process.env.WEBGAL_ALLOWED_ORIGINS || "")
     .split(",")
@@ -64,11 +61,11 @@ function buildWebgalAllowedOriginsEnv() {
   return Array.from(allowedOrigins).join(",");
 }
 
-function getWebGALHealthcheckUrl(port) {
+function getWebGALHealthcheckUrl(port: number) {
   return `http://localhost:${port}${WEBGAL_HEALTHCHECK_PATH}`;
 }
 
-function normalizeGameDir(gameDir) {
+function normalizeGameDir(gameDir: unknown) {
   if (typeof gameDir !== "string")
     return "";
 
@@ -76,14 +73,13 @@ function normalizeGameDir(gameDir) {
   if (!normalized)
     return "";
 
-  // 限制为一级目录名，避免通过参数拼接到任意 hash 路径。
   if (normalized.includes("/") || normalized.includes("\\"))
     return "";
 
   return normalized;
 }
 
-function getWebGALLaunchUrl(port, options = {}) {
+function getWebGALLaunchUrl(port: number, options: WebGALLaunchRequest = {}) {
   const baseUrl = new URL(`http://localhost:${port}`);
   const gameDir = normalizeGameDir(options.gameDir);
   if (gameDir) {
@@ -92,17 +88,17 @@ function getWebGALLaunchUrl(port, options = {}) {
   return baseUrl.toString();
 }
 
-function getErrorMessage(error) {
+function getErrorMessage(error: unknown) {
   if (error instanceof Error)
     return error.message;
   return String(error);
 }
 
-function isPortAvailable(port, host = "127.0.0.1") {
-  return new Promise((resolve) => {
+function isPortAvailable(port: number, host = "127.0.0.1") {
+  return new Promise<boolean>((resolve) => {
     const server = createServer();
 
-    const finalize = (result) => {
+    const finalize = (result: boolean) => {
       try {
         server.close();
       }
@@ -129,7 +125,7 @@ function isPortAvailable(port, host = "127.0.0.1") {
   });
 }
 
-async function isWebGALHealthy(port) {
+async function isWebGALHealthy(port: number) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), WEBGAL_HEALTHCHECK_REQUEST_TIMEOUT_MS);
   try {
@@ -148,7 +144,7 @@ async function isWebGALHealthy(port) {
 }
 
 async function waitForWebGALHealthy(
-  port,
+  port: number,
   { timeoutMs = WEBGAL_BOOT_TIMEOUT_MS, intervalMs = WEBGAL_HEALTHCHECK_INTERVAL_MS } = {},
 ) {
   const deadline = Date.now() + timeoutMs;
@@ -160,15 +156,14 @@ async function waitForWebGALHealthy(
   return false;
 }
 
-function getWebGALBaseDir(app) {
+function getWebGALBaseDir(app: App) {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "extraResources");
   }
-  // __dirname = apps/desktop/electron/utils，所以回退两级到 desktop app 根目录。
-  return path.join(__dirname, "..", "..", "extraResources");
+  return path.join(app.getAppPath(), "extraResources");
 }
 
-function getWebGALPath(app) {
+function getWebGALPath(app: App) {
   const baseDir = getWebGALBaseDir(app);
   for (const exeName of WEBGAL_EXE_CANDIDATES) {
     const candidatePath = path.join(baseDir, exeName);
@@ -176,11 +171,10 @@ function getWebGALPath(app) {
       return candidatePath;
   }
 
-  // 默认返回标准命名，便于报错信息更直观。
   return path.join(baseDir, WEBGAL_EXE_CANDIDATES[0]);
 }
 
-function startWebGAL(app) {
+function startWebGAL(app: App) {
   const webgalPath = getWebGALPath(app);
   if (!existsSync(webgalPath)) {
     const message = `未找到 WebGAL 可执行文件：${webgalPath}`;
@@ -197,7 +191,7 @@ function startWebGAL(app) {
   const webgalDir = path.dirname(webgalPath);
 
   try {
-    webgalProcess = spawn(webgalPath, [], {
+    const child = spawn(webgalPath, [], {
       cwd: webgalDir,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -206,6 +200,7 @@ function startWebGAL(app) {
         WEBGAL_ALLOWED_ORIGINS: buildWebgalAllowedOriginsEnv(),
       },
     });
+    webgalProcess = child;
   }
   catch (error) {
     const message = `启动 WebGAL 子进程失败: ${getErrorMessage(error)}`;
@@ -213,25 +208,29 @@ function startWebGAL(app) {
     return { ok: false, error: message };
   }
 
-  webgalProcess.on("error", (err) => {
+  const currentProcess = webgalProcess;
+
+  currentProcess.on("error", (err) => {
     console.error("启动 WebGAL 子进程失败!", err);
   });
 
-  webgalProcess.stdout?.on("data", (data) => {
+  currentProcess.stdout?.on("data", (data) => {
     console.log(`[WebGAL stdout]: ${data}`);
   });
-  webgalProcess.stderr?.on("data", (data) => {
+  currentProcess.stderr?.on("data", (data) => {
     console.error(`[WebGAL stderr]: ${data}`);
   });
-  webgalProcess.on("close", (code) => {
+  currentProcess.on("close", (code) => {
     console.log(`WebGAL 进程已退出，退出码: ${code}`);
-    webgalProcess = null;
+    if (webgalProcess === currentProcess) {
+      webgalProcess = null;
+    }
   });
 
   return { ok: true, started: true };
 }
 
-async function openWebGALWindow(port, options = {}) {
+async function openWebGALWindow(port: number, options: WebGALLaunchRequest = {}) {
   const launchUrl = getWebGALLaunchUrl(port, options);
 
   if (webgalWindow && !webgalWindow.isDestroyed()) {
@@ -276,7 +275,7 @@ async function openWebGALWindow(port, options = {}) {
   return { ok: true, openedUrl: launchUrl };
 }
 
-async function launchWebGALAndOpen(app, options = {}) {
+async function launchWebGALAndOpen(app: App, options: WebGALLaunchRequest = {}): Promise<WebGALLaunchResult> {
   const port = WEBGAL_PORT;
 
   try {
@@ -324,13 +323,11 @@ export function stopWebGAL() {
   }
 }
 
-export function registerWebGalIpc({ ipcMain, app }) {
-  const handleLaunchWebGAL = async (_event, options) => launchWebGALAndOpen(app, options);
+export function registerWebGalIpc({ ipcMain, app }: { ipcMain: IpcMain; app: App }) {
+  const handleLaunchWebGAL = async (_event: unknown, options?: WebGALLaunchRequest) => launchWebGALAndOpen(app, options);
 
-  // 向后兼容旧的 send 用法（不关心返回值）。
-  ipcMain.on("launch-webgal", (_event, options) => {
+  ipcMain.on(ELECTRON_IPC_CHANNELS.launchWebGAL, (_event, options?: WebGALLaunchRequest) => {
     void handleLaunchWebGAL(_event, options);
   });
-  // 新调用方式：invoke，可让渲染进程拿到明确错误原因。
-  ipcMain.handle("launch-webgal", handleLaunchWebGAL);
+  ipcMain.handle(ELECTRON_IPC_CHANNELS.launchWebGAL, handleLaunchWebGAL);
 }
