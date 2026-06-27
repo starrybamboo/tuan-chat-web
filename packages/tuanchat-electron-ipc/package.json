@@ -1,0 +1,11 @@
+{
+  "name": "@tuanchat/electron-ipc",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@tuanchat/typescript-config": "workspace:*"
+  }
+}

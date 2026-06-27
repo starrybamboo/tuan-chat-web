@@ -65,6 +65,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@tuanchat/electron-ipc": "workspace:*",
     "@tuanchat/typescript-config": "workspace:*",
     "@babel/core": "7.29.0",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",

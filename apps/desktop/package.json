@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./electron/main.js",
+  "main": "./electron/main/index.js",
   "scripts": {
-    "dev": "node ./scripts/dev.mjs",
-    "dev:only": "electron .",
+    "dev": "pnpm -s compile && node ./scripts/dev.mjs",
+    "dev:only": "pnpm -s compile && electron .",
     "check:resources": "node ./scripts/prepare-electron-extra-resources.mjs --check",
     "prepare:resources": "node ./scripts/prepare-electron-extra-resources.mjs",
     "sync:web-build": "node ./scripts/sync-web-build.mjs",
-    "build:app": "pnpm -s prepare:resources && pnpm --filter @tuanchat/web run build && pnpm -s sync:web-build",
+    "compile": "electron-vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:app": "pnpm -s prepare:resources && pnpm --filter @tuanchat/web run build && pnpm -s sync:web-build && pnpm -s compile",
     "build": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json",
     "build:win:zip": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --win zip",
     "build:win:nsis": "pnpm -s build:app && pnpm exec electron-builder build --config electron-builder.json --win nsis",
@@ -19,6 +21,7 @@
     "lint": "oxlint . --config ./.oxlintrc.json --no-error-on-unmatched-pattern"
   },
   "dependencies": {
+    "@tuanchat/electron-ipc": "workspace:*",
     "electron-updater": "^6.7.3",
     "fflate": "0.8.2"
   },
@@ -27,6 +30,7 @@
     "detect-port": "^2.1.0",
     "electron": "^35.0.3",
     "electron-builder": "^26.0.12",
-    "electron-reload": "2.0.0-alpha.1"
+    "electron-reload": "2.0.0-alpha.1",
+    "electron-vite": "6.0.0-beta.1"
   }
 }
