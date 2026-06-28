@@ -203,6 +203,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 2,
   },
+  hiddenDmOverlayLayer: {
+    opacity: 0,
+  },
 });
 
 const RIGHT_DRAWER_SHORTCUTS = [
@@ -297,6 +300,9 @@ export default function ChatShell() {
   const [currentContactId, setCurrentContactId] = useState<number | null>(null);
   const [activeDmTab, setActiveDmTab] = useState(DEFAULT_DM_TAB);
   const [dmBackTarget, setDmBackTarget] = useState(DEFAULT_DM_BACK_TARGET);
+  const [dmOverlayHidden, setDmOverlayHidden] = useState(false);
+  const deferredDmCloseFrameRef = useRef<number | null>(null);
+  const deferredDmCloseTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
   const [expressionPickerVisible, setExpressionPickerVisible] = useState(false);
   const [mapSheetVisible, setMapSheetVisible] = useState(false);
   const [createSpaceVisible, setCreateSpaceVisible] = useState(false);
@@ -311,6 +317,29 @@ export default function ChatShell() {
       setActiveDirectContactId(null);
     };
   }, [currentContactId, setActiveDirectContactId]);
+
+  const cancelDeferredDmClose = useCallback(() => {
+    if (deferredDmCloseFrameRef.current != null) {
+      cancelAnimationFrame(deferredDmCloseFrameRef.current);
+      deferredDmCloseFrameRef.current = null;
+    }
+    if (deferredDmCloseTaskRef.current) {
+      deferredDmCloseTaskRef.current.cancel();
+      deferredDmCloseTaskRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentContactId != null) {
+      setDmOverlayHidden(false);
+    }
+  }, [currentContactId]);
+
+  useEffect(() => {
+    return () => {
+      cancelDeferredDmClose();
+    };
+  }, [cancelDeferredDmClose]);
 
   useEffect(() => {
     draftMessageRef.current = draftMessage;
@@ -508,6 +537,8 @@ export default function ChatShell() {
   useEffect(() => {
     let consumedNotificationTarget = false;
     if (pendingTargetContactId != null) {
+      cancelDeferredDmClose();
+      setDmOverlayHidden(false);
       const nextDmState = resolveDmEntryNavigationState(
         pendingTargetContactId,
         selectedRoomId != null ? "room" : DEFAULT_DM_BACK_TARGET,
@@ -536,6 +567,7 @@ export default function ChatShell() {
       router.replace("/(tabs)" as any);
     }
   }, [
+    cancelDeferredDmClose,
     closeImmediately,
     pendingTargetContactId,
     pendingTargetRoomId,
@@ -586,6 +618,8 @@ export default function ChatShell() {
   }, [setSelectedRoomId]);
 
   const handleSelectConversation = useCallback((contactId: number, source = DEFAULT_DM_BACK_TARGET) => {
+    cancelDeferredDmClose();
+    setDmOverlayHidden(false);
     const nextDmState = resolveDmEntryNavigationState(contactId, source);
     setCurrentContactId(nextDmState.currentContactId);
     setActiveDmTab(nextDmState.activeDmTab);
@@ -594,16 +628,28 @@ export default function ChatShell() {
     if (nextDmState.shouldCloseDrawer) {
       close();
     }
-  }, [close]);
+  }, [cancelDeferredDmClose, close]);
 
   const handleBackFromDmChat = useCallback(() => {
+    if (dmBackTarget === "room" && selectedRoomId != null) {
+      setDmOverlayHidden(true);
+      cancelDeferredDmClose();
+      deferredDmCloseFrameRef.current = requestAnimationFrame(() => {
+        deferredDmCloseFrameRef.current = null;
+        deferredDmCloseTaskRef.current = InteractionManager.runAfterInteractions(() => {
+          deferredDmCloseTaskRef.current = null;
+          setCurrentContactId(null);
+        });
+      });
+      return;
+    }
     setCurrentContactId(null);
     if (dmBackTarget === "room") {
       return;
     }
     setActiveDmTab(getDmTabForBackTarget(dmBackTarget));
     setDrawerMode("dm");
-  }, [dmBackTarget]);
+  }, [cancelDeferredDmClose, dmBackTarget, selectedRoomId]);
   const isRoutePage = !selectedRoomId && !currentContactId;
   const handleOpenRightDrawerTab = useCallback((tab: RightDrawerTabKey) => {
     Keyboard.dismiss();
@@ -1531,7 +1577,7 @@ export default function ChatShell() {
                   <Animated.View style={[styles.center, centerStyle]}>
                     {selectedRoomId != null
                       ? (
-                          <View style={styles.contentLayer} pointerEvents={currentContactId ? "none" : "auto"}>
+                          <View style={styles.contentLayer} pointerEvents={currentContactId && !dmOverlayHidden ? "none" : "auto"}>
                             {!searchPageVisible && (
                               <ChatHeader
                                 roomName={selectedRoom?.name ?? null}
@@ -1636,7 +1682,13 @@ export default function ChatShell() {
                       : null}
                     {currentContactId
                       ? (
-                          <View style={selectedRoomId != null ? styles.dmOverlayLayer : styles.contentLayer}>
+                          <View
+                            pointerEvents={dmOverlayHidden ? "none" : "auto"}
+                            style={[
+                              selectedRoomId != null ? styles.dmOverlayLayer : styles.contentLayer,
+                              dmOverlayHidden ? styles.hiddenDmOverlayLayer : null,
+                            ]}
+                          >
                             <DmChatView
                               contactId={currentContactId}
                               contactName={currentDmContactName ?? `用户 #${currentContactId}`}
