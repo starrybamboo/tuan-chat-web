@@ -35,7 +35,7 @@ if (autoMode) {
   console.log(`[build] Cloudflare Pages branch ${process.env.CF_PAGES_BRANCH ?? "(unknown)"} -> mode ${autoMode}`);
 }
 
-const child = spawn("pnpm", ["exec", ...args], {
+const child = spawn("corepack", ["pnpm", "exec", ...args], {
   env: process.env,
   shell: process.platform === "win32",
   stdio: "inherit",

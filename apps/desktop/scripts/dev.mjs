@@ -60,13 +60,16 @@ async function waitForElectronPing(baseUrl, { totalTimeoutMs = 30_000, perReques
   return false;
 }
 
-function resolveBin(name, baseDir = projectRoot) {
-  const bin = process.platform === "win32"
-    ? join(baseDir, "node_modules", ".bin", `${name}.cmd`)
-    : join(baseDir, "node_modules", ".bin", name);
+function resolveBin(name, baseDirs = [projectRoot]) {
+  const dirs = Array.isArray(baseDirs) ? baseDirs : [baseDirs];
+  for (const baseDir of dirs) {
+    const bin = process.platform === "win32"
+      ? join(baseDir, "node_modules", ".bin", `${name}.cmd`)
+      : join(baseDir, "node_modules", ".bin", name);
 
-  if (existsSync(bin))
-    return bin;
+    if (existsSync(bin))
+      return bin;
+  }
 
   return name;
 }
@@ -232,7 +235,7 @@ const port = hasPortArg && Number.isFinite(requestedPort) && requestedPort > 0
 
 const devServerUrl = `http://localhost:${port}`;
 
-const viteBin = resolveBin("vite", webRoot);
+const viteBin = resolveBin("vite", [webRoot, workspaceRoot]);
 const electronExecutable = resolveElectronExecutable();
 
 const devArgs = [];
