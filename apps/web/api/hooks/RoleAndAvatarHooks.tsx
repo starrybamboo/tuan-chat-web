@@ -37,8 +37,8 @@ import {
 } from "api";
 import type { Role } from '@/components/Role/types';
 import { ROLE_DEFAULT_AVATAR_URL } from '@/constants/defaultAvatar';
-import { uploadMediaFile } from "@/utils/media/mediaUpload";
 import { avatarThumbUrl as buildAvatarThumbUrl, avatarUrl as buildAvatarUrl } from "@/utils/media/mediaUrl";
+import { UploadUtils } from "@/utils/media/UploadUtils";
 import { shouldRetryRoleQueryError } from "@/utils/roleApiError";
 import {
   optimisticRemoveUserRolesFromListQueryCache,
@@ -59,6 +59,7 @@ export const ROLE_AVATARS_STALE_TIME_MS = 86_400_000;
 export const ROLE_AVATAR_STALE_TIME_MS = 86_400_000;
 export const ROLE_DETAIL_STALE_TIME_MS = 600_000;
 export const USER_ROLES_STALE_TIME_MS = 600_000;
+const uploadUtils = new UploadUtils();
 
 function invalidateRoleTrashQueries(queryClient: QueryClient): void {
   queryClient.invalidateQueries({ queryKey: ["getDeletedUserRolesPage"] });
@@ -1152,7 +1153,7 @@ export function useApplyCropMutation() {
           type: 'image/png'
         });
 
-        const newSprite = await uploadMediaFile(croppedFile);
+        const newSprite = await uploadUtils.uploadMediaFile(croppedFile, { scene: 3 });
 
         const finalSpriteTransform = transform
           ? toSpriteTransformPayload(transform)
@@ -1226,7 +1227,7 @@ export function useApplyCropAvatarMutation() {
           type: 'image/png'
         });
 
-        const newAvatar = await uploadMediaFile(croppedFile);
+        const newAvatar = await uploadUtils.uploadMediaFile(croppedFile, { scene: 3 });
 
         // 使用新的 avatarFileId 更新头像记录，保留原有立绘与 Transform。
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({

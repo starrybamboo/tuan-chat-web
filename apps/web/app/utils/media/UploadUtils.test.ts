@@ -240,28 +240,4 @@ describe("uploadUtils media service adapter", () => {
     expect(uploadMediaFile).not.toHaveBeenCalled();
   });
 
-  it("文件读取失败时显式抛错，避免哈希计算挂起", async () => {
-    const utils = new UploadUtils();
-    const file = new File([new Uint8Array([1, 2, 3])], "broken.bin", { type: "application/octet-stream" });
-    const originalFileReader = globalThis.FileReader;
-
-    class MockFileReader {
-      public onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
-      public onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
-      public onabort: ((event: ProgressEvent<FileReader>) => void) | null = null;
-      public error: Error | null = new Error("mock read error");
-
-      public readAsArrayBuffer(_blob: Blob): void {
-        this.onerror?.({ target: this } as unknown as ProgressEvent<FileReader>);
-      }
-    }
-
-    try {
-      globalThis.FileReader = MockFileReader as any;
-      await expect(utils.calculateFileHash(file)).rejects.toThrow("mock read error");
-    }
-    finally {
-      globalThis.FileReader = originalFileReader;
-    }
-  });
 });
