@@ -1,6 +1,6 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { CaretLeft } from "phosphor-react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
+import { readMobileFeedbackDraft } from "@/features/feedback/feedbackDraft";
 import { useTheme } from "@/hooks/use-theme";
 import {
   buildFeedbackLogContent,
@@ -40,8 +41,11 @@ const styles = StyleSheet.create({
 
 export default function FeedbackScreen() {
   const theme = useTheme();
-  const [description, setDescription] = useState("");
+  const searchParams = useLocalSearchParams<{ title?: string | string[]; content?: string | string[] }>();
+  const initialDraft = useMemo(() => readMobileFeedbackDraft(searchParams), [searchParams]);
+  const [description, setDescription] = useState(() => initialDraft?.content ?? "");
   const logs = getFormattedLogs();
+  const initialTitle = initialDraft?.title ?? "";
 
   const handleShare = async () => {
     const text = buildFeedbackLogContent(description);
@@ -98,7 +102,7 @@ export default function FeedbackScreen() {
           </View>
 
           <ThemedView type="backgroundElement" style={styles.card}>
-            <ThemedText type="smallBold">问题描述（可选）</ThemedText>
+            <ThemedText type="smallBold">{initialTitle || "问题描述（可选）"}</ThemedText>
             <TextInput
               value={description}
               onChangeText={setDescription}

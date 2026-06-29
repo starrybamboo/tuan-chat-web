@@ -5,10 +5,16 @@ import { resolveMobileNotificationRoute } from "./mobile-notification-routing";
 describe("mobile-notification-routing", () => {
   it("会把私聊通知路由到聊天页并携带联系人参数", () => {
     expect(resolveMobileNotificationRoute({ targetPath: "/chat/private/42" })).toBe("/(tabs)?contactId=42");
+    expect(resolveMobileNotificationRoute({ targetPath: "tuanchat://chat/private/42" })).toBe("/(tabs)?contactId=42");
   });
 
   it("会把房间通知路由到聊天页并携带空间与房间参数", () => {
     expect(resolveMobileNotificationRoute({ targetPath: "/chat/12/34" })).toBe("/(tabs)?spaceId=12&roomId=34");
+  });
+
+  it("会把仅含房间 ID 的旧群聊深链交给落地页补齐空间", () => {
+    expect(resolveMobileNotificationRoute({ targetPath: "/chat/room/10657" })).toBe("/chat/room/10657");
+    expect(resolveMobileNotificationRoute({ targetPath: "tuanchat://chat/room/10657" })).toBe("/chat/room/10657");
   });
 
   it("会把角色与通知页映射到对应的 tab", () => {

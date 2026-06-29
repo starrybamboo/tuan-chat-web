@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const shareMock = vi.fn();
+const sharingMock = vi.hoisted(() => ({
+  isAvailableAsync: vi.fn(async () => true),
+  shareAsync: vi.fn(async (_url: string, _options?: { dialogTitle?: string }) => undefined),
+}));
 const platformState = { OS: "ios" };
 const clipboardMock = vi.fn();
 
@@ -83,7 +87,12 @@ vi.mock("react-native", () => ({
   },
 }));
 
-vi.mock("@/lib/clipboard", () => ({
+vi.mock("expo-sharing", () => ({
+  isAvailableAsync: () => sharingMock.isAvailableAsync(),
+  shareAsync: (url: string, options?: { dialogTitle?: string }) => sharingMock.shareAsync(url, options),
+}));
+
+vi.mock("./clipboard", () => ({
   setStringAsync: (text: string) => clipboardMock(text),
 }));
 
@@ -92,6 +101,8 @@ describe("mobile logger", () => {
     vi.resetModules();
     vi.setSystemTime(new Date("2026-05-07T12:34:56.789Z"));
     shareMock.mockReset();
+    sharingMock.isAvailableAsync.mockClear();
+    sharingMock.shareAsync.mockClear();
     clipboardMock.mockReset();
     platformState.OS = "ios";
     fileSystemMock.directories.clear();
@@ -142,5 +153,33 @@ describe("mobile logger", () => {
     expect(fileSystemMock.MockDirectory.pickDirectoryAsync).toHaveBeenCalledWith("file:///mock/document");
     expect(result.uri).toBe("file:///picked/tuanchat-mobile-log-2026-05-07T12-34-56-789Z.txt");
     expect(fileSystemMock.files.get(result.uri)).toBe("picked logs");
+  });
+
+  it("会优先通过系统共享导出日志文件", async () => {
+    const { shareLogs } = await import("./logger");
+
+    await shareLogs("shared logs");
+
+    expect(sharingMock.isAvailableAsync).toHaveBeenCalledTimes(1);
+    expect(sharingMock.shareAsync).toHaveBeenCalledWith(
+      "file:///mock/document/feedback-logs/tuanchat-mobile-log-2026-05-07T12-34-56-789Z.txt",
+      { dialogTitle: "TuanChat 日志" },
+    );
+    expect(shareMock).not.toHaveBeenCalled();
+  });
+
+  it("共享不可用时会回退到文本分享", async () => {
+    const { shareLogs } = await import("./logger");
+    sharingMock.isAvailableAsync.mockResolvedValueOnce(false);
+
+    await shareLogs("fallback logs");
+
+    expect(sharingMock.shareAsync).not.toHaveBeenCalled();
+    expect(shareMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "fallback logs",
+        url: "file:///mock/document/feedback-logs/tuanchat-mobile-log-2026-05-07T12-34-56-789Z.txt",
+      }),
+    );
   });
 });
