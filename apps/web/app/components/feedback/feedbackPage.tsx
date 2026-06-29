@@ -4,6 +4,7 @@ import { startTransition, useDeferredValue, useMemo, useState } from "react";
 import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
 
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
+import { consumeFeedbackDraft } from "@/components/feedback/feedbackDraft";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
@@ -21,6 +22,7 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
   const router = useRouter();
   const userId = useGlobalUserId();
   const selectedIssueId = parseIssueId(rawIssueId);
+  const [initialDraft] = useState(() => selectedIssueId ? null : consumeFeedbackDraft());
 
   const [keywordInput, setKeywordInput] = useState("");
   const [filters, setFilters] = useState<FeedbackIssueListFilters>({
@@ -94,7 +96,7 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
                   </div>
                 </section>
 
-                <FeedbackComposer onCreated={handleCreated} />
+                <FeedbackComposer initialDraft={initialDraft} onCreated={handleCreated} />
 
                 <FeedbackIssueList
                   issues={feedbackIssues}
