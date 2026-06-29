@@ -15,7 +15,14 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { clearLogs, copyLogs, getFormattedLogs, shareLogs } from "@/lib/logger";
+import {
+  buildFeedbackLogContent,
+  clearLogs,
+  copyLogs,
+  exportLogsToPickedDirectory,
+  getFormattedLogs,
+  shareLogs,
+} from "@/lib/logger";
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -37,9 +44,7 @@ export default function FeedbackScreen() {
   const logs = getFormattedLogs();
 
   const handleShare = async () => {
-    const text = description.trim()
-      ? `【问题描述】\n${description.trim()}\n\n【日志】\n${logs}`
-      : logs;
+    const text = buildFeedbackLogContent(description);
     try {
       await shareLogs(text);
     }
@@ -49,15 +54,23 @@ export default function FeedbackScreen() {
   };
 
   const handleCopy = async () => {
-    const text = description.trim()
-      ? `【问题描述】\n${description.trim()}\n\n【日志】\n${logs}`
-      : logs;
+    const text = buildFeedbackLogContent(description);
     try {
       await copyLogs(text);
       Alert.alert("已复制", "日志已复制到剪贴板");
     }
     catch {
       Alert.alert("复制失败", "请稍后重试");
+    }
+  };
+
+  const handleExportFile = async () => {
+    try {
+      const file = await exportLogsToPickedDirectory(buildFeedbackLogContent(description));
+      Alert.alert("已导出", `日志文件已保存：${file.fileName}`);
+    }
+    catch {
+      Alert.alert("导出失败", "请稍后重试");
     }
   };
 
@@ -113,7 +126,13 @@ export default function FeedbackScreen() {
               <ThemedText>复制日志</ThemedText>
             </Pressable>
             <Pressable onPress={() => void handleShare()} style={[styles.btn, { backgroundColor: theme.accent }]}>
-              <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志</ThemedText>
+              <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志文本</ThemedText>
+            </Pressable>
+          </View>
+
+          <View style={styles.actions}>
+            <Pressable onPress={() => void handleExportFile()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+              <ThemedText>导出日志文件</ThemedText>
             </Pressable>
           </View>
         </ScrollView>

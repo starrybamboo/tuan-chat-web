@@ -1,10 +1,10 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { Colors, Radius, Spacing } from "@/constants/theme";
-import { copyLogs, getFormattedLogs, logError, shareLogs } from "@/lib/logger";
+import { copyLogs, exportLogsToPickedDirectory, getFormattedLogs, logError, shareLogs } from "@/lib/logger";
 
 const theme = Colors.dark;
 
@@ -39,6 +39,25 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
     this.setState({ hasError: false, error: undefined });
   };
 
+  handleShareLogs = async () => {
+    try {
+      await shareLogs();
+    }
+    catch {
+      Alert.alert("分享失败", "请稍后重试");
+    }
+  };
+
+  handleExportLogs = async () => {
+    try {
+      const file = await exportLogsToPickedDirectory();
+      Alert.alert("已导出", `日志文件已保存：${file.fileName}`);
+    }
+    catch {
+      Alert.alert("导出失败", "请稍后重试");
+    }
+  };
+
   render() {
     if (!this.state.hasError) {
       return this.props.children;
@@ -64,10 +83,14 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
             <Pressable onPress={() => void copyLogs()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
               <ThemedText>复制日志</ThemedText>
             </Pressable>
-            <Pressable onPress={() => void shareLogs()} style={[styles.btn, { backgroundColor: theme.accent }]}>
-              <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志</ThemedText>
+            <Pressable onPress={() => void this.handleShareLogs()} style={[styles.btn, { backgroundColor: theme.accent }]}>
+              <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志文本</ThemedText>
             </Pressable>
           </View>
+
+          <Pressable onPress={() => void this.handleExportLogs()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText>导出日志文件</ThemedText>
+          </Pressable>
 
           <Pressable onPress={this.handleRestart} style={[styles.btn, { backgroundColor: theme.backgroundElement }]}>
             <ThemedText themeColor="accent">重试</ThemedText>

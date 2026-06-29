@@ -12,13 +12,18 @@ import type { CloudflareWebAnalyticsStatus } from "@/utils/cloudflareWebAnalytic
 import { installMediaDebugBridge } from "@/components/chat/infra/media/mediaDebug";
 import { useDrawerPreferenceStore } from "@/components/chat/stores/drawerPreferenceStore";
 import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
+import { writeFeedbackDraft } from "@/components/feedback/feedbackDraft";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 import StartupNoticeCenter from "@/components/startupNotice/startupNoticeCenter";
 import { queryClient } from "@/queryClient";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { consumeAuthToast } from "@/utils/auth/unauthorized";
 import { cloudflareWebAnalytics } from "@/utils/cloudflareWebAnalytics";
-import { installDiagnosticConsoleCapture } from "@/utils/diagnosticConsole";
+import {
+  exportDiagnosticConsoleFile,
+  installDiagnosticConsoleCapture,
+  recordDiagnosticConsoleEntry,
+} from "@/utils/diagnosticConsole";
 import { createSeoMeta, getCanonicalHref } from "@/utils/seo";
 import "@/app.css";
 
@@ -307,6 +312,40 @@ function ErrorBoundary({ error }: { error: Error }) {
     stack = error.stack;
   }
 
+  React.useEffect(() => {
+    recordDiagnosticConsoleEntry("error", ["[route-error-boundary]", error]);
+  }, [error]);
+
+  const handleDownloadDiagnosticLog = React.useCallback(() => {
+    const result = exportDiagnosticConsoleFile();
+    if (!result.ok) {
+      toast.error(`诊断日志下载失败：${result.error}`);
+      return false;
+    }
+
+    toast.success(`已下载诊断日志：${result.fileName}`);
+    return true;
+  }, []);
+
+  const handleOpenFeedback = React.useCallback(() => {
+    handleDownloadDiagnosticLog();
+    writeFeedbackDraft({
+      title: `页面报错：${message}`,
+      content: [
+        "【问题现象】",
+        details,
+        "",
+        "【出错页面】",
+        typeof window === "undefined" ? "未知页面" : window.location.href,
+        "",
+        "【诊断日志】",
+        "已从报错页下载诊断日志文件，请在反馈中一并上传。",
+      ].join("\n"),
+      issueType: 1,
+    });
+    void navigate({ to: "/feedback" });
+  }, [details, handleDownloadDiagnosticLog, message, navigate]);
+
   return (
     <main className="
       min-h-screen bg-base-200 flex items-center justify-center p-4
@@ -352,7 +391,21 @@ function ErrorBoundary({ error }: { error: Error }) {
             </div>
           )}
 
-          <div className="card-actions justify-center mt-6">
+          <div className="card-actions justify-center mt-6 gap-3">
+            <button
+              className="btn btn-outline btn-wide"
+              onClick={handleDownloadDiagnosticLog}
+              type="button"
+            >
+              下载诊断日志
+            </button>
+            <button
+              className="btn btn-error btn-wide"
+              onClick={handleOpenFeedback}
+              type="button"
+            >
+              提交 Bug 反馈
+            </button>
             <button
               className="btn btn-primary btn-wide"
               // Use replace: true to avoid the error page in browser history
