@@ -1,4 +1,5 @@
 import { Directory, File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { Platform, Share } from "react-native";
 
 import { setStringAsync } from "./clipboard";
@@ -105,6 +106,18 @@ export async function copyLogs(content?: string): Promise<void> {
 export async function shareLogs(content?: string): Promise<void> {
   const text = content ?? getFormattedLogs();
   const file = writeLogFile(text);
+
+  // 优先走系统文件共享，这样手机端能直接拿到日志文件。
+  try {
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(file.uri, { dialogTitle: "TuanChat 日志" });
+      return;
+    }
+  }
+  catch {
+    // 继续走旧的文本共享兜底。
+  }
+
   await Share.share(
     Platform.OS === "ios"
       ? { message: text, url: file.uri }
