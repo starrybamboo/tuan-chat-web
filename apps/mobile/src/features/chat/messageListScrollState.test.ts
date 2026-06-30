@@ -44,4 +44,17 @@ describe("messageListScrollState", () => {
       shouldScrollToBottom: false,
     });
   });
+
+  it("离开底部主动发送新消息时强制贴底且不计未读", () => {
+    expect(resolveVisibleMessageAppendAction({
+      isAtBottom: false,
+      nextLength: 5,
+      previousLength: 4,
+      shouldForceScrollToBottom: true,
+    })).toEqual({
+      addedCount: 1,
+      shouldCountNewMessages: false,
+      shouldScrollToBottom: true,
+    });
+  });
 });

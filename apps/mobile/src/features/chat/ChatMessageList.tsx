@@ -2,6 +2,7 @@ import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
 import { useQueries } from "@tanstack/react-query";
+import { getRoomMessageLocalRenderKey, isOptimisticRoomMessage } from "@tuanchat/query/room-message-lifecycle";
 import { getUserInfoQueryKey, USER_INFO_STALE_TIME_MS } from "@tuanchat/query/users";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -162,6 +163,27 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getOptimisticMessageRenderKeys(messages: readonly ChatMessageListItem[]): Set<string> {
+  const keys = new Set<string>();
+  for (const item of messages) {
+    if (!isOptimisticRoomMessage(item.message)) {
+      continue;
+    }
+
+    const renderKey = getRoomMessageLocalRenderKey(item.message);
+    if (renderKey) {
+      keys.add(renderKey);
+      continue;
+    }
+
+    const messageId = item.message.messageId;
+    if (typeof messageId === "number" && Number.isFinite(messageId)) {
+      keys.add(`message:${messageId}`);
+    }
+  }
+  return keys;
+}
+
 function ChatMessageListInner({
   currentRoleId,
   error,
@@ -193,6 +215,7 @@ function ChatMessageListInner({
     [messages],
   );
   const prevLengthRef = useRef(messageListModel.visibleMessages.length);
+  const prevOptimisticMessageRenderKeysRef = useRef<Set<string>>(getOptimisticMessageRenderKeys(messageListModel.visibleMessages));
   const visibleMessageSignature = useMemo(
     () => getVisibleMessageListSignature(messageListModel.visibleMessages),
     [messageListModel.visibleMessages],
@@ -313,10 +336,14 @@ function ChatMessageListInner({
 
   useEffect(() => {
     const previousLength = prevLengthRef.current;
+    const optimisticMessageRenderKeys = getOptimisticMessageRenderKeys(messageListModel.visibleMessages);
+    const hasNewOptimisticMessage = [...optimisticMessageRenderKeys]
+      .some(key => !prevOptimisticMessageRenderKeysRef.current.has(key));
     const appendAction = resolveVisibleMessageAppendAction({
       isAtBottom: isAtBottomRef.current,
       nextLength: messageListModel.visibleMessages.length,
       previousLength,
+      shouldForceScrollToBottom: hasNewOptimisticMessage,
     });
     if (appendAction.shouldCountNewMessages) {
       setNewMessageCount(count => count + appendAction.addedCount);
@@ -325,6 +352,7 @@ function ChatMessageListInner({
       scheduleScrollToBottom(true);
     }
     prevLengthRef.current = messageListModel.visibleMessages.length;
+    prevOptimisticMessageRenderKeysRef.current = optimisticMessageRenderKeys;
   }, [messageListModel.visibleMessages.length, scheduleScrollToBottom, visibleMessageSignature]);
 
   useEffect(() => {
