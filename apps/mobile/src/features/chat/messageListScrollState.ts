@@ -20,6 +20,7 @@ export function resolveVisibleMessageAppendAction(params: {
   isAtBottom: boolean;
   nextLength: number;
   previousLength: number;
+  shouldForceScrollToBottom?: boolean;
 }): { addedCount: number; shouldCountNewMessages: boolean; shouldScrollToBottom: boolean } {
   const addedCount = Math.max(0, params.nextLength - params.previousLength);
   if (addedCount === 0) {
@@ -29,9 +30,10 @@ export function resolveVisibleMessageAppendAction(params: {
       shouldScrollToBottom: false,
     };
   }
+  const shouldForceScrollToBottom = params.shouldForceScrollToBottom === true;
   return {
     addedCount,
-    shouldCountNewMessages: !params.isAtBottom,
-    shouldScrollToBottom: params.isAtBottom,
+    shouldCountNewMessages: !params.isAtBottom && !shouldForceScrollToBottom,
+    shouldScrollToBottom: params.isAtBottom || shouldForceScrollToBottom,
   };
 }
