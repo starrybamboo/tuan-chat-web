@@ -13,11 +13,11 @@ export type RoleAvatar = {
     /**
      * 角色id
      */
-    roleId?: number;
+    roleId: number;
     /**
      * 头像id
      */
-    avatarId?: number;
+    avatarId: number;
     /**
      * 头像的标题
      */

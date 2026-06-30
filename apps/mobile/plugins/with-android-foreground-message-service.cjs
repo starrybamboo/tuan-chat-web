@@ -6,13 +6,43 @@ const { withDangerousMod } = require("@expo/config-plugins");
 const TEMPLATE_DIR = "android-foreground-message-service";
 const OKHTTP_DEPENDENCY = '    implementation("com.squareup.okhttp3:okhttp:4.12.0")';
 const PACKAGE_IMPORT = "import com.tuanchat.mobile.foreground.TuanChatForegroundMessageServicePackage";
+const SERVICE_IMPORT = "import com.tuanchat.mobile.foreground.TuanChatForegroundMessageService";
 const PACKAGE_REGISTRATION = "          add(TuanChatForegroundMessageServicePackage())";
+const VISIBILITY_REGISTRATION = "    TuanChatForegroundMessageService.registerAppVisibilityCallbacks(this)";
+const ACTIVITY_VISIBILITY_IMPORT = "import com.tuanchat.mobile.foreground.TuanChatForegroundMessageService";
+const ACTIVITY_VISIBILITY_HOOKS = `  override fun onResume() {
+    super.onResume()
+    TuanChatForegroundMessageService.markAppVisible("activity-resume")
+  }
+
+  override fun onPause() {
+    TuanChatForegroundMessageService.markAppHidden("activity-pause")
+    super.onPause()
+  }
+
+  override fun onUserLeaveHint() {
+    TuanChatForegroundMessageService.markAppHidden("activity-user-leave")
+    super.onUserLeaveHint()
+  }
+
+  override fun onWindowFocusChanged(hasFocus: Boolean) {
+    super.onWindowFocusChanged(hasFocus)
+    if (hasFocus) {
+      TuanChatForegroundMessageService.markAppVisible("activity-window-focus")
+    }
+    else {
+      TuanChatForegroundMessageService.markAppHidden("activity-window-blur")
+    }
+  }
+
+`;
 const SERVICE_DECLARATION = '    <service android:name=".foreground.TuanChatForegroundMessageService" android:exported="false" android:foregroundServiceType="dataSync"/>';
 
 const PERMISSIONS = [
   '  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>',
   '  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>',
   '  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>',
+  '  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>',
 ];
 
 function readFile(filePath) {
@@ -47,11 +77,23 @@ function patchMainApplication(androidRoot) {
       `import expo.modules.ExpoReactHostFactory\n${PACKAGE_IMPORT}\n`,
     );
   }
+  if (!content.includes(SERVICE_IMPORT)) {
+    content = content.replace(
+      `${PACKAGE_IMPORT}\n`,
+      `${PACKAGE_IMPORT}\n${SERVICE_IMPORT}\n`,
+    );
+  }
 
   if (!content.includes(PACKAGE_REGISTRATION)) {
     content = content.replace(
       "          // add(MyReactNativePackage())\n",
       `          // add(MyReactNativePackage())\n${PACKAGE_REGISTRATION}\n`,
+    );
+  }
+  if (!content.includes(VISIBILITY_REGISTRATION)) {
+    content = content.replace(
+      "    loadReactNative(this)\n",
+      `    loadReactNative(this)\n${VISIBILITY_REGISTRATION}\n`,
     );
   }
 
@@ -70,6 +112,27 @@ function patchAppBuildGradle(androidRoot) {
     `    implementation("com.facebook.react:react-android")\n${OKHTTP_DEPENDENCY}\n`,
   );
   writeFile(buildGradlePath, content);
+}
+
+function patchMainActivity(androidRoot) {
+  const mainActivityPath = path.join(androidRoot, "app/src/main/java/com/tuanchat/mobile/MainActivity.kt");
+  let content = readFile(mainActivityPath);
+
+  if (!content.includes(ACTIVITY_VISIBILITY_IMPORT)) {
+    content = content.replace(
+      "import expo.modules.ReactActivityDelegateWrapper\n",
+      `import expo.modules.ReactActivityDelegateWrapper\n${ACTIVITY_VISIBILITY_IMPORT}\n`,
+    );
+  }
+
+  if (!content.includes("activity-window-blur")) {
+    content = content.replace(
+      "class MainActivity : ReactActivity() {\n",
+      `class MainActivity : ReactActivity() {\n${ACTIVITY_VISIBILITY_HOOKS}`,
+    );
+  }
+
+  writeFile(mainActivityPath, content);
 }
 
 function patchAndroidManifest(androidRoot) {
@@ -109,6 +172,7 @@ module.exports = function withAndroidForegroundMessageService(config) {
         path.join(androidRoot, "app/src/main/res"),
       );
       patchMainApplication(androidRoot);
+      patchMainActivity(androidRoot);
       patchAppBuildGradle(androidRoot);
       patchAndroidManifest(androidRoot);
 

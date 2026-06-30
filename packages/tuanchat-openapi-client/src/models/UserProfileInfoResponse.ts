@@ -31,9 +31,5 @@ export type UserProfileInfoResponse = {
      * 性别: 隐藏(null) 男 女
      */
     gender?: string;
-    /**
-     * 公开扩展字段，JSON 格式（例如 gnsPreference）
-     */
-    extra?: Record<string, Record<string, any>>;
 };
 

@@ -3,6 +3,7 @@ import process from "node:process";
 
 const passthroughArgs = process.argv.slice(2);
 const args = ["--filter", "@tuanchat/web", "run", "start"];
+const useWindowsShell = process.platform === "win32";
 
 if (passthroughArgs.length > 0) {
   args.push("--", ...passthroughArgs);
@@ -10,7 +11,8 @@ if (passthroughArgs.length > 0) {
 
 const child = spawn("pnpm", args, {
   env: process.env,
-  shell: process.platform === "win32",
+  shell: useWindowsShell,
+  windowsHide: useWindowsShell,
   stdio: "inherit",
 });
 

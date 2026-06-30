@@ -4,10 +4,11 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Keyboard, StyleSheet, TextInput, View } from "react-native";
+import { Alert, FlatList, InteractionManager, Keyboard, StyleSheet, TextInput, View } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import Animated, { useAnimatedStyle, withSpring } from "react-native-reanimated";
 
@@ -46,6 +47,7 @@ const DM_LIST_MAINTAIN_VISIBLE_POSITION = { minIndexForVisible: 0 };
 const DM_KEYBOARD_LAYOUT_SETTLE_MS = 320;
 const DM_CHAT_VIEW_DEBUG_ENABLED = false;
 const DM_CHAT_VIEW_DEBUG_PREFIX = "[DmChatView]";
+const EMPTY_DIRECT_MESSAGES: MessageDirectResponse[] = [];
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -371,6 +373,9 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [contentReady, setContentReady] = useState(false);
+  const contentMountFrameRef = useRef<number | null>(null);
+  const contentMountTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
 
   const sendMutation = useSendDmMutation(currentUserId);
   const recallMutation = useRecallDmMutation(currentUserId);
@@ -381,9 +386,11 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     opacity: withSpring(isSending ? 0.6 : 1, SPRING_SNAPPY),
   }));
 
+  const renderMessages = contentReady ? messages : EMPTY_DIRECT_MESSAGES;
+
   const mergedMessages = useMemo(() => {
-    return mergeDirectMessages(messages);
-  }, [messages]);
+    return mergeDirectMessages(renderMessages);
+  }, [renderMessages]);
 
   const visibleTimelineMessages = useMemo(() => {
     return getVisibleDirectMessageTimeline(mergedMessages);
@@ -421,27 +428,61 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     logDmChatViewDebug("enter-contact", {
       contactId,
     });
-    setDraft("");
-    setInputHeight(COMPOSER_MIN_HEIGHT);
-    setAttachments([]);
-    setReplyMessage(null);
-    setErrorMessage(null);
+    if (contentMountFrameRef.current != null) {
+      cancelAnimationFrame(contentMountFrameRef.current);
+      contentMountFrameRef.current = null;
+    }
+    if (contentMountTaskRef.current) {
+      contentMountTaskRef.current.cancel();
+      contentMountTaskRef.current = null;
+    }
     sendInFlightRef.current = false;
-    setActionMenuMessage(null);
-    setActionMenuVisible(false);
-    setFailedMessageIds(new Set());
     isAtBottomRef.current = true;
-    setIsAtBottom(true);
-    setVisibleCount(PAGE_SIZE);
     readSyncRef.current = 0;
     scrollDebugCountRef.current = 0;
     previousPaginatedLengthRef.current = null;
+
+    const resetTimer = setTimeout(() => {
+      setContentReady(false);
+      setDraft("");
+      setInputHeight(COMPOSER_MIN_HEIGHT);
+      setAttachments([]);
+      setReplyMessage(null);
+      setErrorMessage(null);
+      setActionMenuMessage(null);
+      setActionMenuVisible(false);
+      setFailedMessageIds(new Set());
+      setIsAtBottom(true);
+      setVisibleCount(PAGE_SIZE);
+      contentMountFrameRef.current = requestAnimationFrame(() => {
+        contentMountFrameRef.current = null;
+        contentMountTaskRef.current = InteractionManager.runAfterInteractions(() => {
+          contentMountTaskRef.current = null;
+          setContentReady(true);
+        });
+      });
+    }, 0);
+    return () => {
+      clearTimeout(resetTimer);
+      if (contentMountFrameRef.current != null) {
+        cancelAnimationFrame(contentMountFrameRef.current);
+        contentMountFrameRef.current = null;
+      }
+      if (contentMountTaskRef.current) {
+        contentMountTaskRef.current.cancel();
+        contentMountTaskRef.current = null;
+      }
+    };
   }, [contactId]);
 
   useEffect(() => {
-    if (draft.length === 0) {
+    if (draft.length !== 0)
+      return undefined;
+
+    const resetTimer = setTimeout(() => {
       setInputHeight(COMPOSER_MIN_HEIGHT);
-    }
+    }, 0);
+    return () => clearTimeout(resetTimer);
   }, [draft]);
 
   useEffect(() => {
@@ -608,7 +649,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     setIsAtBottom(true);
     try {
       const uploaded = previousAttachments.length > 0
-        ? await uploadMobileMessageAttachments(mobileApiClient, previousAttachments)
+        ? await uploadMobileMessageAttachments(mobileApiClient, previousAttachments, { allowPartialSuccess: true })
         : null;
       const requests = buildDirectMessageSendRequestsFromUploadedMedia({
         inputText: previousDraft,
@@ -619,6 +660,16 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
         uploadedSoundMessage: uploaded?.uploadedSoundMessage ?? null,
         uploadedVideos: uploaded?.uploadedVideos ?? [],
       });
+      const successfulMediaRequestCount = requests.filter(request =>
+        request.messageType === MESSAGE_TYPE.IMG
+        || request.messageType === MESSAGE_TYPE.SOUND
+        || request.messageType === MESSAGE_TYPE.VIDEO,
+      ).length;
+
+      if (successfulMediaRequestCount === 0 && uploaded && uploaded.failedAttachments.length > 0) {
+        const firstFailure = uploaded.failedAttachments[0]?.error;
+        throw firstFailure ?? new Error("附件上传失败。");
+      }
 
       if (requests.length === 0) {
         throw new Error("消息内容不能为空。");
@@ -626,6 +677,12 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
 
       for (const request of requests) {
         await sendMutation.mutateAsync(request);
+      }
+
+      if (uploaded && uploaded.failedAttachments.length > 0) {
+        const failedAttachments = uploaded.failedAttachments.map(failure => failure.attachment);
+        setAttachments(failedAttachments);
+        setErrorMessage(`部分附件发送失败：成功 ${successfulMediaRequestCount} 个，失败 ${failedAttachments.length} 个，已保留失败项供重试。`);
       }
     }
     catch (error) {
@@ -908,7 +965,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   ] as const;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <Pressable onPress={onBack} accessibilityLabel="返回" accessibilityRole="button">
           <CaretLeft size={20} color={theme.text} weight="bold" />
@@ -936,141 +993,147 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
         </View>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={invertedMessages}
-        inverted
-        keyboardDismissMode="interactive"
-        keyboardShouldPersistTaps="handled"
-        keyExtractor={getDirectMessageListItemKey}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        initialNumToRender={DM_INITIAL_RENDER_COUNT}
-        ListFooterComponent={listFooter}
-        ListEmptyComponent={listEmpty}
-        maintainVisibleContentPosition={DM_LIST_MAINTAIN_VISIBLE_POSITION}
-        maxToRenderPerBatch={DM_RENDER_BATCH_SIZE}
-        onScroll={handleScroll}
-        onContentSizeChange={DM_CHAT_VIEW_DEBUG_ENABLED ? handleContentSizeChange : undefined}
-        // 倒置 DM 消息流需要稳定底部锚点，避免裁剪回收导致阅读位置跳动。
-        removeClippedSubviews={false}
-        scrollEventThrottle={100}
-        style={styles.list}
-        windowSize={DM_WINDOW_SIZE}
-      />
-
-      {!isAtBottom && paginatedMessages.length > 0
+      {contentReady
         ? (
-            <Pressable
-              onPress={handleScrollToBottom}
-              style={[styles.newMessagesPill, { backgroundColor: theme.accent }]}
-            >
-              <ThemedText style={{ color: "#fff", fontSize: 12 }}>新消息</ThemedText>
-            </Pressable>
-          )
-        : null}
+            <>
+              <FlatList
+                ref={flatListRef}
+                data={invertedMessages}
+                inverted
+                keyboardDismissMode="interactive"
+                keyboardShouldPersistTaps="handled"
+                keyExtractor={getDirectMessageListItemKey}
+                renderItem={renderItem}
+                contentContainerStyle={styles.listContent}
+                initialNumToRender={DM_INITIAL_RENDER_COUNT}
+                ListFooterComponent={listFooter}
+                ListEmptyComponent={listEmpty}
+                maintainVisibleContentPosition={DM_LIST_MAINTAIN_VISIBLE_POSITION}
+                maxToRenderPerBatch={DM_RENDER_BATCH_SIZE}
+                onScroll={handleScroll}
+                onContentSizeChange={DM_CHAT_VIEW_DEBUG_ENABLED ? handleContentSizeChange : undefined}
+                // 倒置 DM 消息流需要稳定底部锚点，避免裁剪回收导致阅读位置跳动。
+                removeClippedSubviews={false}
+                scrollEventThrottle={100}
+                style={styles.list}
+                windowSize={DM_WINDOW_SIZE}
+              />
 
-      <View
-        style={[
-          styles.composerContainer,
-          {
-            backgroundColor: theme.surface,
-            borderTopColor: theme.border,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            paddingBottom: Spacing.md + safeAreaBottomInset,
-          },
-        ]}
-      >
-        {replyMessage
-          ? (
-              <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
-                <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
-                  回复
-                  {" "}
-                  {getDirectMessagePreviewText(replyMessage)}
-                </ThemedText>
-                <Pressable onPress={() => setReplyMessage(null)} accessibilityLabel="取消回复">
-                  <X size={14} color={theme.textSecondary} />
-                </Pressable>
-              </View>
-            )
-          : null}
-
-        {attachments.length > 0
-          ? (
-              <View style={styles.attachmentRow}>
-                {attachments.map(attachment => (
-                  <View key={attachment.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
-                    <ThemedText type="caption" numberOfLines={1}>{attachment.fileName}</ThemedText>
-                    <Pressable onPress={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}>
-                      <XCircle size={14} color={theme.textSecondary} weight="fill" />
+              {!isAtBottom && paginatedMessages.length > 0
+                ? (
+                    <Pressable
+                      onPress={handleScrollToBottom}
+                      style={[styles.newMessagesPill, { backgroundColor: theme.accent }]}
+                    >
+                      <ThemedText style={{ color: "#fff", fontSize: 12 }}>新消息</ThemedText>
                     </Pressable>
-                  </View>
-                ))}
-                <Pressable onPress={() => setAttachments([])} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
-                </Pressable>
-              </View>
-            )
-          : null}
+                  )
+                : null}
 
-        {errorMessage
-          ? (
-              <View style={styles.errorBar}>
-                <Warning size={14} color={theme.danger} />
-                <ThemedText style={{ color: theme.danger, fontSize: 12, flex: 1 }}>
-                  {errorMessage}
-                </ThemedText>
-                <Pressable onPress={() => setErrorMessage(null)}>
-                  <X size={12} color={theme.danger} />
-                </Pressable>
-              </View>
-            )
-          : null}
+              <View
+                style={[
+                  styles.composerContainer,
+                  {
+                    backgroundColor: theme.surface,
+                    borderTopColor: theme.border,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    paddingBottom: Spacing.md + safeAreaBottomInset,
+                  },
+                ]}
+              >
+                {replyMessage
+                  ? (
+                      <View style={[styles.replyBar, { backgroundColor: theme.accentMuted, borderLeftColor: theme.accent }]}>
+                        <ThemedText type="small" style={styles.replyText} numberOfLines={1}>
+                          回复
+                          {" "}
+                          {getDirectMessagePreviewText(replyMessage)}
+                        </ThemedText>
+                        <Pressable onPress={() => setReplyMessage(null)} accessibilityLabel="取消回复">
+                          <X size={14} color={theme.textSecondary} />
+                        </Pressable>
+                      </View>
+                    )
+                  : null}
 
-        <View style={styles.inputRow}>
-          <TextInput
-            editable={!isSending}
-            multiline
-            value={draft}
-            onChangeText={handleChangeDraft}
-            onContentSizeChange={handleComposerContentSizeChange}
-            onBlur={() => {
-              startKeyboardLayoutGuard();
-              settleKeyboardLayoutGuard(true);
-            }}
-            onFocus={() => {
-              startKeyboardLayoutGuard();
-              settleKeyboardLayoutGuard(false);
-            }}
-            placeholder={`给 ${contactName}...`}
-            placeholderTextColor={theme.textSecondary}
-            scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                color: theme.text,
-                height: inputHeight,
-                textAlignVertical: "top",
-              },
-            ]}
-            accessibilityLabel="输入消息"
-          />
-          <Animated.View style={sendButtonStyle}>
-            <Pressable
-              disabled={!canSend}
-              onPress={() => void handleSend()}
-              style={styles.sendBtn}
-              accessibilityLabel="发送消息"
-              accessibilityRole="button"
-            >
-              <PaperPlaneTilt size={24} color={hasSendContent ? theme.accent : theme.textSecondary} weight="fill" />
-            </Pressable>
-          </Animated.View>
-        </View>
-      </View>
+                {attachments.length > 0
+                  ? (
+                      <View style={styles.attachmentRow}>
+                        {attachments.map(attachment => (
+                          <View key={attachment.id} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                            <ThemedText type="caption" numberOfLines={1}>{attachment.fileName}</ThemedText>
+                            <Pressable onPress={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}>
+                              <XCircle size={14} color={theme.textSecondary} weight="fill" />
+                            </Pressable>
+                          </View>
+                        ))}
+                        <Pressable onPress={() => setAttachments([])} style={[styles.attachmentChip, { backgroundColor: theme.backgroundElement }]}>
+                          <ThemedText type="caption" style={{ color: theme.danger }}>清空</ThemedText>
+                        </Pressable>
+                      </View>
+                    )
+                  : null}
+
+                {errorMessage
+                  ? (
+                      <View style={styles.errorBar}>
+                        <Warning size={14} color={theme.danger} />
+                        <ThemedText style={{ color: theme.danger, fontSize: 12, flex: 1 }}>
+                          {errorMessage}
+                        </ThemedText>
+                        <Pressable onPress={() => setErrorMessage(null)}>
+                          <X size={12} color={theme.danger} />
+                        </Pressable>
+                      </View>
+                    )
+                  : null}
+
+                <View style={styles.inputRow}>
+                  <TextInput
+                    editable={!isSending}
+                    multiline
+                    value={draft}
+                    onChangeText={handleChangeDraft}
+                    onContentSizeChange={handleComposerContentSizeChange}
+                    onBlur={() => {
+                      startKeyboardLayoutGuard();
+                      settleKeyboardLayoutGuard(true);
+                    }}
+                    onFocus={() => {
+                      startKeyboardLayoutGuard();
+                      settleKeyboardLayoutGuard(false);
+                    }}
+                    placeholder={`给 ${contactName}...`}
+                    placeholderTextColor={theme.textSecondary}
+                    scrollEnabled={inputHeight >= COMPOSER_MAX_HEIGHT}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                        height: inputHeight,
+                        textAlignVertical: "top",
+                      },
+                    ]}
+                    accessibilityLabel="输入消息"
+                  />
+                  <Animated.View style={sendButtonStyle}>
+                    <Pressable
+                      disabled={!canSend}
+                      onPress={() => void handleSend()}
+                      style={styles.sendBtn}
+                      accessibilityLabel="发送消息"
+                      accessibilityRole="button"
+                    >
+                      <PaperPlaneTilt size={24} color={hasSendContent ? theme.accent : theme.textSecondary} weight="fill" />
+                    </Pressable>
+                  </Animated.View>
+                </View>
+              </View>
+            </>
+          )
+        : <View style={styles.list} />}
 
       {actionMenuVisible
         ? (

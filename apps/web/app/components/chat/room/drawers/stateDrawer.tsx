@@ -46,7 +46,6 @@ import { buildEndCombatMessageRequest, buildStartCombatMessageRequest, executeAl
 import { InitiativeImportDialog } from "./initiativeImportDialog";
 import {
   extractAgilityFromQuery,
-  extractHpFromQuery,
 } from "./initiativeListAbilityExtractors";
 import {
   buildImportRoleInitiativeEvents,
@@ -58,6 +57,7 @@ import {
   collectCombatInitiativeRecords,
   collectRecordedRoleValueIds,
   compareCombatRoleRowsByInitiative,
+  HP_MAX_ROLE_VALUE_KEYS,
   isInitiativeRoleValueKey,
   isInlineRoleValueKey,
   parseCustomCombatStateKey,
@@ -205,6 +205,9 @@ function buildRoleValueRows(
 }
 
 function buildMaxKeyCandidates(baseKey: string): string[] {
+  if (normalizeStateKeyToken(baseKey) === "hp") {
+    return HP_MAX_ROLE_VALUE_KEYS;
+  }
   return [
     `max${baseKey}`,
     `${baseKey}max`,
@@ -560,8 +563,8 @@ export default function StateDrawer() {
       };
       const hp = readNumber(participant.derivedValues, ["hp"])
         ?? readNumber(participant.values, ["hp"]);
-      const maxHp = readNumber(stateValues, ["maxHp", "maxhp", "hpMax", "hpmax"])
-        ?? readNumber(participant.values, ["maxHp", "maxhp"]);
+      const maxHp = readNumber(stateValues, HP_MAX_ROLE_VALUE_KEYS)
+        ?? readNumber(participant.values, HP_MAX_ROLE_VALUE_KEYS);
       return {
         participantId: participant.participantId,
         name: participant.name,
@@ -670,11 +673,8 @@ export default function StateDrawer() {
 
     const ruleId = spaceContext.ruleId ?? undefined;
     const initiative = extractAgilityFromQuery(ruleId, query) ?? 0;
-    const hpData = extractHpFromQuery(ruleId, query);
     await sendCombatEvents(buildImportRoleInitiativeEvents({
-      hp: hpData?.hp ?? null,
       initiative,
-      maxHp: hpData?.maxHp ?? null,
       roleId,
       name,
     }), ".combat import");
@@ -1033,9 +1033,9 @@ export default function StateDrawer() {
           baseValues,
           derivedValues,
           fallbackAbility,
-          key: "maxHp",
+          key: HP_MAX_ROLE_VALUE_KEYS[0],
           recordValue: record.maxHp,
-          valueKeys: ["maxHp", "maxhp", "hpMax", "hpmax"],
+          valueKeys: HP_MAX_ROLE_VALUE_KEYS,
         }),
       ].filter((row): row is StateValueRow => Boolean(row));
       const { primaryStats, secondaryRows } = splitRoleRows(rows);

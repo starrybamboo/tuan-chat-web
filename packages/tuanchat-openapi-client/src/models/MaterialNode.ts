@@ -27,6 +27,7 @@ export type MaterialNode = {
      * 准备态消息列表，仅 material 节点使用
      */
     messages?: Array<MessageDraft>;
+    folder?: boolean;
 };
 export namespace MaterialNode {
     /**

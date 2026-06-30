@@ -1,11 +1,7 @@
-import { DEFAULT_TUANCHAT_API_BASE_URL } from "@/lib/api";
+import { DEFAULT_TUANCHAT_API_BASE_URL } from "../../lib/api";
 
 export function createMobileWebSocketUrl(token: string) {
-  const explicitWebSocketUrl = (globalThis as {
-    process?: {
-      env?: Record<string, string | undefined>;
-    };
-  }).process?.env?.EXPO_PUBLIC_TUANCHAT_API_WS_URL?.trim();
+  const explicitWebSocketUrl = process.env.EXPO_PUBLIC_TUANCHAT_API_WS_URL?.trim();
   const fallbackWebSocketUrl = DEFAULT_TUANCHAT_API_BASE_URL === "https://tuan.chat/api"
     ? "wss://tuan.chat/ws"
     : null;

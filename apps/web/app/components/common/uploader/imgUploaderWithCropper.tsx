@@ -12,11 +12,10 @@ import type { ImageCompressionPreset } from "@/utils/media/imgCompressUtils";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
+import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
+import { uploadMediaFile } from "@/utils/media/mediaUpload";
 import { imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/media/mediaUrl";
-import { UploadUtils } from "@/utils/media/UploadUtils";
 import "react-image-crop/dist/ReactCrop.css";
-
-const uploadUtils = new UploadUtils();
 
 // 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）
 function makeInitialFreeCrop(mediaWidth: number, mediaHeight: number) {
@@ -189,14 +188,15 @@ export function ImgUploaderWithCopper({
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    // 判断文件类型
-    if (!file || !file.type.startsWith("image/")) {
+    const imageFile = file ? await normalizeImageFileOrNull(file) : null;
+    if (!imageFile) {
+      e.target.value = "";
       return;
     }
 
     setIsOpen(true);
     // 保存文件引用
-    imgFile.current = file;
+    imgFile.current = imageFile;
 
     // 清理旧状态，避免旧图片残留
     setImgSrc("");
@@ -208,7 +208,7 @@ export function ImgUploaderWithCopper({
     const reader = new FileReader();
     reader.addEventListener("load", () =>
       setImgSrc(reader.result?.toString() || ""));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(imageFile);
   }
 
   async function handleSubmit() {
@@ -238,7 +238,7 @@ export function ImgUploaderWithCopper({
       let displayFileId: number | undefined;
       let copperedFileId: number | undefined;
       if (setOriginalDownloadUrl) {
-        originalFileId = (await uploadUtils.uploadMediaFile(fileWithNewName)).fileId;
+        originalFileId = (await uploadMediaFile(fileWithNewName)).fileId;
         originalDownloadUrl = imageOriginalUrl(originalFileId);
         setOriginalDownloadUrl(originalDownloadUrl);
       }
@@ -247,7 +247,7 @@ export function ImgUploaderWithCopper({
           displayFileId = originalFileId;
         }
         else {
-          displayFileId = (await uploadUtils.uploadMediaFile(fileWithNewName)).fileId;
+          displayFileId = (await uploadMediaFile(fileWithNewName)).fileId;
         }
         downloadUrl = imageMediumUrl(displayFileId);
         setDownloadUrl(downloadUrl);
@@ -255,7 +255,7 @@ export function ImgUploaderWithCopper({
       if (setCopperedDownloadUrl || mutate) {
         const copperedImgFile = await getCopperedImg();
         setStatusMessage("上传裁剪后图片中...");
-        copperedFileId = (await uploadUtils.uploadMediaFile(copperedImgFile)).fileId;
+        copperedFileId = (await uploadMediaFile(copperedImgFile)).fileId;
         copperedDownloadUrl = imageUrlByPreset(copperedFileId, copperedCompressionPreset);
         setCopperedDownloadUrl?.(copperedDownloadUrl);
       }

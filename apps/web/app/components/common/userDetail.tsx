@@ -5,7 +5,6 @@ import { FriendRequestButton } from "@/components/common/FriendRequestButton";
 import { MediaImage } from "@/components/common/mediaImage";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
-import TagManagement from "@/components/common/userTags";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { imageLowUrl } from "@/utils/media/mediaUrl";
 
@@ -127,11 +126,6 @@ export function UserDetail({ userId }: UserDetailProps) {
               className="h-7 min-h-7 shrink-0 rounded-full px-3 text-xs"
             />
           )}
-        </div>
-
-        {/* 用户标签 */}
-        <div className="pt-1">
-          <TagManagement userId={userId} size="compact" canEdit={false} />
         </div>
 
         {/* 统计 + 操作区域 */}

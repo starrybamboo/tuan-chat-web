@@ -64,9 +64,7 @@ homeTab.tsx
 │   ├── UserAvatar
 │   ├── UserProfile
 │   ├── FollowStats
-│   ├── TagManagement (已存在)
-│   ├── UserActions
-│   └── GNSSpiderChart (已存在)
+│   └── UserActions
 └── UserReadMe
 ```
 

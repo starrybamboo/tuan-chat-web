@@ -37,6 +37,7 @@ import {
   buildRoleFigureTransformString,
   DEFAULT_KEEP_OFFSET_PART,
   DEFAULT_RESTORE_TRANSFORM_PART,
+  getWebgalFigureTransformAlpha,
   IMAGE_MESSAGE_FIGURE_ID,
   resolveFigureSlot,
 } from "./realtimeRendererFigureLayout";
@@ -90,6 +91,7 @@ const GAME_DIR = "game";
 const DEFAULT_SHARED_ENGINE_URL = "https://tuanchat-galgame.pages.dev/engine/loader.js";
 const DEFAULT_MANIFEST_DISPLAY = "fullscreen";
 const DEFAULT_MANIFEST_ORIENTATION = "landscape";
+const DEFAULT_FIGURE_TRANSITION_DURATION_MS = 120;
 const MINIMAL_RUNTIME_SUPPORT_FILES = [
   {
     path: `${GAME_DIR}/userStyleSheet.css`,
@@ -611,11 +613,15 @@ function renderFigureCommands(
   }
 
   const figureSlot = resolveFigureSlot(figurePosition);
-  const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0);
+  const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0, {
+    alpha: getWebgalFigureTransformAlpha(payload.webgal),
+  });
   const previous = context.renderedFigures.get(figureSlot.id);
   const figureAnimation = getFigureAnimationFromAnnotations(payload.annotations);
   if (!previous || previous.fileName !== figureAsset.stateKey || previous.transform !== transform) {
-    const figureArgs = buildFigureArgs(figureSlot.id, transform);
+    const figureArgs = buildFigureArgs(figureSlot.id, transform, {
+      defaultTransitionDurationMs: DEFAULT_FIGURE_TRANSITION_DURATION_MS,
+    });
     if (figureAsset.composeLine) {
       appendLine(context, figureAsset.composeLine);
     }

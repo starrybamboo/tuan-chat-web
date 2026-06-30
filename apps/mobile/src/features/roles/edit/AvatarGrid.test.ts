@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { buildAvatarGridItems } from "./avatarGridItems";
 
 const avatars = [
-  { avatarId: 1, avatarFileId: 11 },
-  { avatarId: 2, avatarFileId: 22 },
+  { roleId: 1001, avatarId: 1, avatarFileId: 11 },
+  { roleId: 1001, avatarId: 2, avatarFileId: 22 },
 ] satisfies RoleAvatar[];
 
 describe("buildAvatarGridItems", () => {

@@ -5,8 +5,9 @@
 ## What Changes
 
 - 图片压缩并行化：low/medium 质量派生通过 `browser-image-compression` 的 Web Worker 真并行执行；metadata 提取与 original 压缩并行
-- GIF 光栅化并行化：使用 OffscreenCanvas Worker 替代主线程 canvas，实现 GIF → WebP 转换的真多线程并行
+- GIF 动图前端归一化：在前端媒体模块内将 GIF 统一编码为动画 WebP，作为图片上传的标准输入格式
 - 音频/视频并行转码：引入 `isolated` 模式，每次转码调用创建独立 FFmpeg WASM 实例（独立 worker），`Promise.all` 实现真并行；用完即销毁
+- 所有图片格式归一化仅在前端媒体模块内完成，后端不承担图片格式转换职责
 - **BREAKING** 去掉 `high` 质量档位：所有媒体类型统一为 original/low/medium 三档，`filesByQuality.high` 设为 `undefined`
 - **BREAKING** 调整图片渲染层派生状态语义：客户端可在已知派生图缺失时，于首次展示请求前直接改用 `original`，并以保守写入规则维护本地派生状态缓存
 - 批量上传两阶段策略：prepare 阶段（压缩 + 媒体上传）全部文件并行，commit 阶段（创建 avatar 记录）按原顺序串行

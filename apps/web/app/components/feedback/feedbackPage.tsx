@@ -1,9 +1,10 @@
 import { useRouter } from "@tanstack/react-router";
-import { startTransition, useDeferredValue, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import type { FeedbackIssueDetail, FeedbackIssueListFilters } from "@/components/feedback/feedbackTypes";
 
 import FeedbackComposer from "@/components/feedback/feedbackComposer";
+import { clearFeedbackDraft, readFeedbackDraft } from "@/components/feedback/feedbackDraft";
 import { useFeedbackIssuesInfiniteQuery } from "@/components/feedback/feedbackHooks";
 import FeedbackIssueDetailView from "@/components/feedback/feedbackIssueDetail";
 import FeedbackIssueList from "@/components/feedback/feedbackIssueList";
@@ -21,6 +22,7 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
   const router = useRouter();
   const userId = useGlobalUserId();
   const selectedIssueId = parseIssueId(rawIssueId);
+  const [initialDraft] = useState(() => selectedIssueId ? null : readFeedbackDraft());
 
   const [keywordInput, setKeywordInput] = useState("");
   const [filters, setFilters] = useState<FeedbackIssueListFilters>({
@@ -65,6 +67,15 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
     });
   };
 
+  useEffect(() => {
+    if (selectedIssueId == null) {
+      const timerId = window.setTimeout(() => {
+        clearFeedbackDraft();
+      }, 0);
+      return () => window.clearTimeout(timerId);
+    }
+  }, [selectedIssueId]);
+
   return (
     <div className="min-h-full bg-base-200">
       <div className="
@@ -94,7 +105,7 @@ export default function FeedbackPage({ rawIssueId }: { rawIssueId?: string }) {
                   </div>
                 </section>
 
-                <FeedbackComposer onCreated={handleCreated} />
+                <FeedbackComposer initialDraft={initialDraft} onCreated={handleCreated} />
 
                 <FeedbackIssueList
                   issues={feedbackIssues}

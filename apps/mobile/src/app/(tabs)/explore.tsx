@@ -23,13 +23,10 @@ import { useAuthSession } from "@/features/auth/auth-session";
 import { useCurrentUserQuery } from "@/features/auth/use-current-user-query";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND, pickMobileMessageAttachments } from "@/features/messages/mobileMessageAttachment";
 import { uploadMobileMessageAttachments } from "@/features/messages/mobileMessageAttachmentUpload";
-import { resolveMobileNotificationRoute } from "@/features/notifications/mobile-notification-routing";
 import { useMobileNotificationSession } from "@/features/notifications/mobileNotificationSessionContext";
+import { NotificationDeliveryDiagnosticsCard } from "@/features/notifications/NotificationDeliveryDiagnosticsCard";
 import { NotificationPreferencesCard } from "@/features/notifications/NotificationPreferencesCard";
-import { useMarkAllReadMutation, useMarkSingleReadMutation } from "@/features/notifications/useMarkReadMutation";
 import { useNotificationPreferences } from "@/features/notifications/useNotificationPreferences";
-import { useNotificationsQuery } from "@/features/notifications/useNotificationsQuery";
-import { useUnreadCountQuery } from "@/features/notifications/useUnreadCountQuery";
 import { useUpdateProfileMutation } from "@/features/profile/useUpdateProfileMutation";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
@@ -37,7 +34,6 @@ import { setStringAsync } from "@/lib/clipboard";
 import { avatarThumbUrl, mediaFileUrl } from "@/lib/media-url";
 
 const AVATAR_SIZE = 120;
-const NOTIFICATION_DOT_SIZE = 8;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -51,21 +47,10 @@ const styles = StyleSheet.create({
   fieldRow: { gap: Spacing.sm },
   fieldLabel: { fontSize: 12 },
   fieldInput: { borderRadius: Radius.md, borderWidth: 1, fontSize: 15, minHeight: 40, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  genderChip: { borderRadius: Radius.full, borderWidth: 1, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.sm },
   inviteCodeBox: { borderRadius: Radius.md, borderWidth: 1, gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg },
   inviteCodeText: { fontSize: 24, fontWeight: "700", letterSpacing: 2 },
   saveButton: { alignItems: "center", borderRadius: Radius.md, minHeight: 44, justifyContent: "center", paddingHorizontal: Spacing.xl },
-  notifRow: { borderRadius: Radius.md, gap: Spacing.xs, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg },
-  notifDot: {
-    borderRadius: NOTIFICATION_DOT_SIZE / 2,
-    flexShrink: 0,
-    height: NOTIFICATION_DOT_SIZE,
-    minHeight: NOTIFICATION_DOT_SIZE,
-    minWidth: NOTIFICATION_DOT_SIZE,
-    width: NOTIFICATION_DOT_SIZE,
-  },
   logoutButton: { alignItems: "center", borderRadius: Radius.md, minHeight: 48, justifyContent: "center" },
-  emptyText: { fontSize: 13, paddingVertical: Spacing.lg },
 });
 
 export default function ProfileScreen() {
@@ -76,18 +61,12 @@ export default function ProfileScreen() {
   const userId = user?.userId ?? session?.userId ?? null;
 
   const updateMutation = useUpdateProfileMutation();
-  const unreadQuery = useUnreadCountQuery(isAuthenticated);
-  const notificationsQuery = useNotificationsQuery(isAuthenticated);
-  const markAllReadMutation = useMarkAllReadMutation();
-  const markSingleReadMutation = useMarkSingleReadMutation();
   const notifPrefs = useNotificationPreferences();
   const { notificationPermissionStatus, refreshNotificationPermissionStatus } = useMobileNotificationSession();
 
   const [editing, setEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
-  const [notificationActionError, setNotificationActionError] = useState("");
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const [inviteShareFeedback, setInviteShareFeedback] = useState("");
@@ -144,44 +123,10 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleMarkAllRead = async () => {
-    setNotificationActionError("");
-    try {
-      await markAllReadMutation.mutateAsync();
-    }
-    catch (error) {
-      setNotificationActionError(error instanceof Error ? error.message : "批量标记已读失败，请稍后重试。");
-    }
-  };
-
-  const handleNotificationPress = async (notificationId: number, isRead: boolean, targetPath?: string | null, resourceType?: string | null, resourceId?: number | null) => {
-    setNotificationActionError("");
-    if (!isRead) {
-      try {
-        await markSingleReadMutation.mutateAsync(notificationId);
-      }
-      catch (error) {
-        setNotificationActionError(error instanceof Error ? error.message : "通知已读失败，请稍后重试。");
-      }
-    }
-
-    const href = resolveMobileNotificationRoute({ targetPath, resourceType, resourceId });
-    if (href) {
-      router.push(href as any);
-      return;
-    }
-    setNotificationActionError("通知目标暂不可打开，已停留在当前页面。");
-  };
-
   const avatarThumbSrc = avatarThumbUrl(user?.avatarFileId);
   const avatarPreviewSrc = user?.avatarFileId ? mediaFileUrl(user.avatarFileId, "image", "original") : "";
   const inviteCode = user?.inviteCode ?? "";
   const inviteRegisterLink = buildAccountInviteRegisterUrl(inviteCode, "https://tuan.chat");
-  const unreadCount = unreadQuery.data ?? 0;
-  const notifications = notificationsQuery.data ?? [];
-  const filteredNotifications = notifFilter === "unread"
-    ? notifications.filter(n => !n.isRead)
-    : notifications;
 
   const showInviteShareFeedback = (message: string) => {
     setInviteShareFeedback(message);
@@ -296,91 +241,6 @@ export default function ProfileScreen() {
               )
             : null}
 
-          {/* Notifications Card */}
-          <ThemedView type="backgroundElement" style={styles.card}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <ThemedText type="smallBold" style={styles.cardTitle}>
-                通知
-                {unreadCount > 0 ? ` (${unreadCount})` : ""}
-              </ThemedText>
-              {unreadCount > 0
-                ? (
-                    <Pressable onPress={() => void handleMarkAllRead()} disabled={markAllReadMutation.isPending}>
-                      <ThemedText themeColor="accent" type="small">全部已读</ThemedText>
-                    </Pressable>
-                  )
-                : null}
-            </View>
-
-            {notificationActionError
-              ? (
-                  <ThemedText style={{ color: theme.danger, fontSize: 12 }}>
-                    {notificationActionError}
-                  </ThemedText>
-                )
-              : null}
-
-            <View style={{ flexDirection: "row", gap: Spacing.md }}>
-              <Pressable
-                onPress={() => setNotifFilter("all")}
-                style={[styles.genderChip, { borderColor: notifFilter === "all" ? theme.accent : theme.border, backgroundColor: notifFilter === "all" ? theme.accentMuted : "transparent" }]}
-              >
-                <ThemedText type="small" themeColor={notifFilter === "all" ? "accent" : "textSecondary"}>全部</ThemedText>
-              </Pressable>
-              <Pressable
-                onPress={() => setNotifFilter("unread")}
-                style={[styles.genderChip, { borderColor: notifFilter === "unread" ? theme.accent : theme.border, backgroundColor: notifFilter === "unread" ? theme.accentMuted : "transparent" }]}
-              >
-                <ThemedText type="small" themeColor={notifFilter === "unread" ? "accent" : "textSecondary"}>未读</ThemedText>
-              </Pressable>
-            </View>
-
-            {notificationsQuery.isPending
-              ? (
-                  <ActivityIndicator />
-                )
-              : filteredNotifications.length === 0
-                ? (
-                    <ThemedText themeColor="textSecondary" style={styles.emptyText}>
-                      {notifFilter === "unread" ? "没有未读通知" : "暂无通知"}
-                    </ThemedText>
-                  )
-                : (
-                    filteredNotifications.slice(0, 20).map(notif => (
-                      <Pressable
-                        key={notif.notificationId}
-                        onPress={() => void handleNotificationPress(
-                          notif.notificationId!,
-                          notif.isRead ?? false,
-                          notif.targetPath,
-                          notif.resourceType,
-                          notif.resourceId,
-                        )}
-                      >
-                        <View style={[styles.notifRow, { backgroundColor: notif.isRead ? "transparent" : theme.accentMuted }]}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
-                            {!notif.isRead ? <View style={[styles.notifDot, { backgroundColor: theme.accent }]} /> : null}
-                            <ThemedText type="smallBold" numberOfLines={1}>{notif.title ?? "通知"}</ThemedText>
-                          </View>
-                          {notif.content
-                            ? (
-                                <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>{notif.content}</ThemedText>
-                              )
-                            : null}
-                        </View>
-                      </Pressable>
-                    ))
-                  )}
-          </ThemedView>
-
-          {/* Notification Preferences */}
-          <NotificationPreferencesCard
-            onRefreshPermissionStatus={refreshNotificationPermissionStatus}
-            prefs={notifPrefs.prefs}
-            permissionStatus={notificationPermissionStatus}
-            onUpdate={patch => void notifPrefs.update(patch)}
-          />
-
           {/* Edit Profile */}
           <ThemedView type="backgroundElement" style={styles.card}>
             <ThemedText type="smallBold" style={styles.cardTitle}>个人信息</ThemedText>
@@ -437,8 +297,20 @@ export default function ProfileScreen() {
                       <ThemedText>编辑</ThemedText>
                     </Pressable>
                   </View>
-                )}
+              )}
           </ThemedView>
+
+          <NotificationPreferencesCard
+            onRefreshPermissionStatus={refreshNotificationPermissionStatus}
+            prefs={notifPrefs.prefs}
+            permissionStatus={notificationPermissionStatus}
+            onUpdate={patch => void notifPrefs.update(patch)}
+          />
+
+          <NotificationDeliveryDiagnosticsCard
+            onRefreshPermissionStatus={refreshNotificationPermissionStatus}
+            permissionStatus={notificationPermissionStatus}
+          />
 
           {/* Account Security */}
           <ThemedView type="backgroundElement" style={styles.card}>

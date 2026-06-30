@@ -7,16 +7,19 @@ describe("messageEditorSpeakerAvatar", () => {
     const items = buildMessageEditorSpeakerAvatarMenuItems({
       avatars: [
         {
+          roleId: 7,
           avatarId: 1,
           avatarTitle: { label: "开心" },
           category: "表情",
         },
         {
+          roleId: 7,
           avatarId: 2,
           avatarTitle: { label: "默认" },
           category: "动作",
         },
         {
+          roleId: 7,
           avatarId: 3,
           avatarTitle: { label: "生气" },
           category: "动作",
@@ -46,11 +49,13 @@ describe("messageEditorSpeakerAvatar", () => {
     const items = buildMessageEditorSpeakerAvatarMenuItems({
       avatars: [
         {
+          roleId: 7,
           avatarId: 1,
           avatarTitle: { label: "开心" },
           category: "表情",
         },
         {
+          roleId: 7,
           avatarId: 2,
           avatarTitle: { label: "默认" },
           category: "动作",

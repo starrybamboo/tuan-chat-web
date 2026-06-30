@@ -38,6 +38,11 @@ export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificati
     return contactId ? buildRouteHref("/(tabs)", { contactId }) : "/(tabs)";
   }
 
+  if (normalizedPath.startsWith("/chat/room/")) {
+    const roomId = parsePositiveInteger(normalizedPath.split("/")[3]);
+    return roomId ? `/chat/room/${roomId}` : "/(tabs)";
+  }
+
   if (normalizedPath.startsWith("/chat/")) {
     const segments = normalizedPath.split("/").filter(Boolean);
     const spaceId = parsePositiveInteger(segments[1]);
@@ -56,16 +61,20 @@ export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificati
     return "/(tabs)/role";
   }
 
-  if (normalizedPath === "/notifications" || normalizedPath === "/profile") {
+  if (normalizedPath === "/notifications") {
+    return "/(tabs)";
+  }
+
+  if (normalizedPath === "/profile") {
     return "/(tabs)/explore";
   }
 
   if (normalizedTargetPath) {
-    return "/(tabs)/explore";
+    return "/(tabs)";
   }
 
   if (payload.resourceId != null || payload.resourceType) {
-    return "/(tabs)/explore";
+    return "/(tabs)";
   }
 
   return null;

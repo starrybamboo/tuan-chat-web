@@ -2,9 +2,7 @@ import React from "react";
 
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
-import TagManagement from "@/components/common/userTags";
 import { useGlobalUserId } from "@/components/globalContextProvider";
-import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
 
 import { useGetUserProfileQuery } from "../../../../api/hooks/UserHooks";
 import { FollowStats } from "./components/FollowStats";
@@ -82,10 +80,6 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             )}
           </div>
 
-          <div className="mb-4 mt-4">
-            <TagManagement userId={userId} />
-          </div>
-
           {/* 小屏幕编辑面板 */}
           <ProfileEditPanel
             isVisible={userId === loginUserId && profileEditing.isEditingProfile}
@@ -147,19 +141,7 @@ const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               variant="desktop"
             />
 
-            {/* 用户标签 */}
-            <div className="mb-4 mt-4">
-              <TagManagement userId={userId} canEdit={true} />
-            </div>
           </div>
-          {/* GNS雷达图 */}
-          {!userQuery.isLoading && (
-            <div className="mt-6 border border-base-300 rounded-lg w-full p-4">
-              <div className="w-full">
-                <GNSSpiderChart userId={userId} />
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

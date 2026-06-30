@@ -19,5 +19,6 @@ export type UploadUrlRequest = {
      * 去重预检：若对象已存在则返回 downloadUrl 且 uploadUrl 为空，前端可跳过实际上传
      */
     dedupCheck?: boolean;
+    dedupCheckRequested?: boolean;
 };
 

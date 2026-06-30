@@ -1,6 +1,6 @@
 import type { DmTab } from "./DmTopTabs";
 
-export type DmBackTarget = "conversation" | "friend";
+export type DmBackTarget = "conversation" | "friend" | "room";
 
 export type DmEntryNavigationState = {
   activeDmTab: DmTab;
@@ -13,6 +13,9 @@ export const DEFAULT_DM_TAB: DmTab = "chat";
 export const DEFAULT_DM_BACK_TARGET: DmBackTarget = "conversation";
 
 export function getDmTabForBackTarget(backTarget: DmBackTarget): DmTab {
+  if (backTarget === "room") {
+    return DEFAULT_DM_TAB;
+  }
   return backTarget === "friend" ? "friends" : "chat";
 }
 

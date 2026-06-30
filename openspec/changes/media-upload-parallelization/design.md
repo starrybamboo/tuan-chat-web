@@ -2,7 +2,7 @@
 
 当前媒体上传管道（`app/utils/mediaUpload.ts`）对每个文件生成多质量版本后上传到 OSS。现状：
 
-- **图片**：`browser-image-compression` 已内置 Web Worker（`useWebWorker: true`），但 GIF 光栅化走主线程 canvas；low/medium 派生此前串行执行
+- **图片**：`browser-image-compression` 已内置 Web Worker（`useWebWorker: true`），GIF 也要在客户端统一编码为动画 WebP；low/medium 派生此前串行执行
 - **音频/视频**：使用 `@ffmpeg/ffmpeg` WASM，全局单例模式——同一时刻只能执行一条 `ffmpeg.exec()` 命令，`Promise.all` 形同虚设
 - **质量档位**：图片已废弃 high（`high: undefined`），但音频/视频仍在生成 high 档位，浪费转码时间
 - **批量上传**：`avatarBatchUpload.ts` 已实现 prepare 并行 + commit 串行的两阶段策略
@@ -14,7 +14,7 @@
 **Goals:**
 - 所有媒体类型的多质量版本压缩/转码实现真并行（独立 Worker/WASM 实例）
 - 统一质量档位为 original/low/medium 三档，去掉 high
-- GIF 光栅化脱离主线程，不阻塞 UI
+- GIF 动图在前端媒体模块内统一编码为动画 WebP，不再保留 GIF 上传特例
 - 保持向后兼容：`filesByQuality.high` 字段保留为 `undefined`，不破坏类型签名
 - 错误隔离：单个质量版本转码失败不影响其他版本
 
@@ -34,13 +34,13 @@
 
 **替代方案**：自建 Worker Pool → 增加维护成本，且 `browser-image-compression` 已覆盖。
 
-### 2. GIF 光栅化：OffscreenCanvas Worker
+### 2. GIF 动图：前端媒体模块统一动画 WebP 编码
 
-**选择**：创建专用 Worker，使用 `OffscreenCanvas` + `convertToBlob()` 在 Worker 线程完成 GIF → WebP 转换。
+**选择**：GIF 不作为独立上传格式保留，前端媒体模块在生成 `original` 前将其统一编码为动画 WebP。
 
-**理由**：GIF 不走 `browser-image-compression`（需要取首帧），只能用 canvas。主线程 canvas 阻塞 UI，OffscreenCanvas 在 Worker 中可真并行。
+**理由**：媒体模块的最终约束是图片统一落到 WebP。GIF 只是输入格式，不应在上传链路里保留展示层或后端层特例。
 
-**兼容性**：Chrome 69+, Firefox 105+, Safari 16.4+。不支持时 fallback 到主线程 canvas。
+**边界**：Web 和移动端都在 prepare-upload 前完成同一语义的 GIF → WebP 编码；后端只接收已经归一化后的 WebP 图片。
 
 ### 3. 音频/视频并行：Isolated FFmpeg 实例
 
@@ -92,7 +92,6 @@
 
 - **内存峰值**：3 个并行 FFmpeg 实例 ≈ 90MB 额外内存 → 移动端低内存设备可能触发 OOM。缓解：可在低内存环境降级为串行（检测 `navigator.deviceMemory`）
 - **WASM 加载时间**：多实例并行加载 core 可能竞争网络带宽 → 缓解：WASM 文件走持久缓存（`resolvePersistentFfmpegAssetBlobUrl`），第二次起从 blob URL 加载
-- **OffscreenCanvas 兼容性**：Safari 16.4 以下不支持 → 缓解：运行时检测，fallback 到主线程 canvas
 - **后端 high 档位兼容**：如果后端 `uploadTargets` 仍返回 high 的上传 URL → 前端不上传该 URL 对应文件，需确认后端不会因缺少 high 文件而报错
 - **派生状态误写风险**：若把“重定向到 original 后的成功加载”误记为派生图 `available`，后续会继续请求不存在的派生对象。展示层必须使用保守写入语义，无法确认派生对象直出时宁可保持 `unknown`。
 
@@ -100,5 +99,4 @@
 
 - 后端 `prepare-upload` 返回的 `uploadTargets` 是否仍包含 `high`？如果包含，前端跳过不上传是否会导致 `complete` 失败？
 - 是否需要为低内存设备（`navigator.deviceMemory < 4`）自动降级为串行转码？
-- OffscreenCanvas Worker 是否需要支持 transform 参数（缩放/旋转），还是仅处理纯光栅化？
 - 媒体服务是否会长期采用缺失派生对象 308 到 `original`？如果会，前端需要权威元数据或可区分重定向的探测接口来安全写入 `available`。

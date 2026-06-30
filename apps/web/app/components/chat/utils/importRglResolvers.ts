@@ -1,4 +1,4 @@
-import type { RglImportCompileContext, RglMaterialResolveResult, RglRoleResolveResult } from "@/components/chat/utils/importRglText";
+import type { RglImportCompileContext, RglMaterialResolveResult, RglRoleNameResolveResult, RglRoleResolveResult } from "@/components/chat/utils/importRglText";
 
 import { normalizeSpeakerName } from "@/components/chat/utils/importChatText";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
@@ -119,14 +119,28 @@ function findUnique<T>(items: T[], describeMissing: () => string, describeDuplic
   return items[0]!;
 }
 
+function findRoleByName(sources: RglImportResolverSources, roleName: string) {
+  const normalizedRoleName = normalizeSpeakerName(roleName);
+  return findUnique(
+    sources.roles.filter(role => normalizeSpeakerName(role.roleName ?? "") === normalizedRoleName),
+    () => `找不到角色：${roleName}`,
+    () => `角色名重复：${roleName}`,
+  );
+}
+
+function buildRoleNameResolver(sources: RglImportResolverSources): NonNullable<RglImportCompileContext["resolveRole"]> {
+  return ({ roleName }): RglRoleNameResolveResult => {
+    const matchedRole = findRoleByName(sources, roleName);
+    return {
+      roleId: matchedRole.roleId,
+      speakerName: matchedRole.roleName ?? roleName,
+    };
+  };
+}
+
 function buildRoleResolver(sources: RglImportResolverSources): RglImportCompileContext["resolveRoleAvatar"] {
   return ({ roleName, avatarName }): RglRoleResolveResult => {
-    const normalizedRoleName = normalizeSpeakerName(roleName);
-    const matchedRole = findUnique(
-      sources.roles.filter(role => normalizeSpeakerName(role.roleName ?? "") === normalizedRoleName),
-      () => `找不到角色：${roleName}`,
-      () => `角色名重复：${roleName}`,
-    );
+    const matchedRole = findRoleByName(sources, roleName);
 
     const matchedAvatar = findUnique(
       getAvatarList(sources.avatarsByRoleId, matchedRole.roleId)
@@ -208,6 +222,7 @@ export function createRglImportCompileContextFromSources(
 ): RglImportCompileContext {
   return {
     resolveRoleAvatar: buildRoleResolver(sources),
+    resolveRole: buildRoleNameResolver(sources),
     resolveMaterial: buildMaterialResolver(sources),
   };
 }

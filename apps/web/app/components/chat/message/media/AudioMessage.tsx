@@ -1,7 +1,7 @@
 // 音频消息播放组件（WaveSurfer 波形播放器）。
 // 为了避免列表渲染/刷新时自动触发下载，WaveSurfer 仅在用户点击播放时才初始化与加载音频。
 import { PauseIcon, PlayIcon, TrashIcon } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   createBgmControllerId,
@@ -38,7 +38,6 @@ type AudioMessageProps = {
   deleteLabel?: string;
 }
 
-let audioMessageInstanceSeq = 0;
 const VISUAL_PLAYBACK_START_WAIT_MS = 2500;
 
 function formatTime(seconds: number): string {
@@ -168,11 +167,7 @@ export default function AudioMessage({
   const pendingAutoPlayAttemptRef = useRef<Promise<boolean> | null>(null);
   const mountedRef = useRef(false);
   const ensureTokenRef = useRef(0);
-  const instanceIdRef = useRef(0);
-  if (instanceIdRef.current === 0) {
-    audioMessageInstanceSeq += 1;
-    instanceIdRef.current = audioMessageInstanceSeq;
-  }
+  const instanceId = useId();
 
   const normalizedPurpose = useMemo(() => normalizePurpose(purpose), [purpose]);
   const roomIdNumber = typeof roomId === "number" && Number.isFinite(roomId) ? roomId : undefined;
@@ -307,7 +302,7 @@ export default function AudioMessage({
       mediaDebug("audio-message", "wave-play-failed", {
         cacheKey,
         url,
-        instanceId: instanceIdRef.current,
+        instanceId,
         reason,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -359,10 +354,10 @@ export default function AudioMessage({
     mediaDebug("audio-message", "cleanup-wave-surfer", {
       cacheKey,
       url,
-      instanceId: instanceIdRef.current,
+      instanceId,
       keepPlaying: Boolean(opts?.keepPlaying),
     });
-  }, [cacheKey, clearWaveSurferBindings, url]);
+  }, [cacheKey, clearWaveSurferBindings, instanceId, url]);
 
   const bindWaveSurfer = useCallback((ws: any) => {
     if (boundWaveSurferRef.current === ws) {
@@ -376,7 +371,7 @@ export default function AudioMessage({
       setIsReady(true);
       ensureNonLoopPlayback(ws);
       setWaveSurferVolume(ws, volumeRatioRef.current);
-      mediaDebug("audio-message", "event-ready", { cacheKey, url, instanceId: instanceIdRef.current });
+      mediaDebug("audio-message", "event-ready", { cacheKey, url, instanceId });
       const d = ws.getDuration?.();
       if (typeof d === "number" && Number.isFinite(d) && d > 0) {
         setResolvedDuration(d);
@@ -398,7 +393,7 @@ export default function AudioMessage({
       mediaDebug("audio-message", "event-play", {
         cacheKey,
         url,
-        instanceId: instanceIdRef.current,
+        instanceId,
         currentTime: ws.getCurrentTime?.(),
       });
     }));
@@ -409,7 +404,7 @@ export default function AudioMessage({
       mediaDebug("audio-message", "event-pause", {
         cacheKey,
         url,
-        instanceId: instanceIdRef.current,
+        instanceId,
         currentTime: ws.getCurrentTime?.(),
       });
     }));
@@ -418,7 +413,7 @@ export default function AudioMessage({
       isPlayingRef.current = false;
       setCurrentTime(0);
       notifyBgmStopped();
-      mediaDebug("audio-message", "event-finish", { cacheKey, url, instanceId: instanceIdRef.current });
+      mediaDebug("audio-message", "event-finish", { cacheKey, url, instanceId });
     }));
 
     const updateTime = () => {
@@ -436,7 +431,7 @@ export default function AudioMessage({
 
     unsubsRef.current = unsubs.filter(Boolean) as Array<() => void>;
     boundWaveSurferRef.current = ws;
-  }, [cacheKey, clearWaveSurferBindings, notifyBgmStopped, requestWavePlayback, url]);
+  }, [cacheKey, clearWaveSurferBindings, instanceId, notifyBgmStopped, requestWavePlayback, url]);
 
   const ensureWaveSurfer = useCallback(async () => {
     if (waveSurferRef.current) {
@@ -469,7 +464,7 @@ export default function AudioMessage({
         mediaDebug("audio-message", "ensure-wave-surfer-stale-release", {
           cacheKey,
           url,
-          instanceId: instanceIdRef.current,
+          instanceId,
           token,
         });
         return null;
@@ -478,7 +473,7 @@ export default function AudioMessage({
       mediaDebug("audio-message", "ensure-wave-surfer-acquired", {
         cacheKey,
         url,
-        instanceId: instanceIdRef.current,
+        instanceId,
         token,
       });
 
@@ -525,7 +520,7 @@ export default function AudioMessage({
         ensurePromiseRef.current = null;
       }
     }
-  }, [bindWaveSurfer, cacheKey, url]);
+  }, [bindWaveSurfer, cacheKey, instanceId, url]);
 
   const playCurrentMessage = useCallback(async (opts?: { fromStart?: boolean; waitForPlaybackStart?: boolean }) => {
     const ws = await ensureWaveSurfer();
@@ -613,7 +608,7 @@ export default function AudioMessage({
       mediaDebug("audio-message", "pending-auto-play-attempt", {
         cacheKey,
         url,
-        instanceId: instanceIdRef.current,
+        instanceId,
         roomId: roomIdNumber,
         messageId: messageIdNumber,
         purpose: pendingAutoPlayExpectedPurpose,
@@ -659,7 +654,7 @@ export default function AudioMessage({
     mediaDebug("audio-message", "effect-reset-on-key-change", {
       cacheKey,
       url,
-      instanceId: instanceIdRef.current,
+      instanceId,
     });
     const keepPlaying = shouldKeepWaveSurferAlive();
     cleanupWaveSurfer({ keepPlaying });
@@ -673,14 +668,14 @@ export default function AudioMessage({
     shouldPlayFromStartRef.current = false;
     pendingAutoPlayAttemptRef.current = null;
     setVolumeRatio(1);
-  }, [cleanupWaveSurfer, shouldKeepWaveSurferAlive, cacheKey, setVolumeRatio, url]);
+  }, [cleanupWaveSurfer, shouldKeepWaveSurferAlive, cacheKey, instanceId, setVolumeRatio, url]);
 
   useEffect(() => {
     mountedRef.current = true;
     mediaDebug("audio-message", "effect-mount", {
       cacheKey,
       url,
-      instanceId: instanceIdRef.current,
+      instanceId,
     });
     return () => {
       mountedRef.current = false;
@@ -708,7 +703,7 @@ export default function AudioMessage({
       mediaDebug("audio-message", "effect-unmount", {
         cacheKey,
         url,
-        instanceId: instanceIdRef.current,
+        instanceId,
         keepPlaying,
         shouldHandoverToFallback,
       });
@@ -724,6 +719,7 @@ export default function AudioMessage({
     getVolumeRatio,
     isBgmMessage,
     isWavePlaying,
+    instanceId,
     messageIdNumber,
     notifyBgmStopped,
     roomIdNumber,
@@ -746,10 +742,10 @@ export default function AudioMessage({
     mediaDebug("audio-message", "effect-rebind-existing-cache", {
       cacheKey,
       url,
-      instanceId: instanceIdRef.current,
+      instanceId,
     });
     void ensureWaveSurfer();
-  }, [cacheKey, ensureWaveSurfer, hasUrl, url]);
+  }, [cacheKey, ensureWaveSurfer, hasUrl, instanceId, url]);
 
   useEffect(() => {
     if (!isBgmMessage || roomIdNumber == null || messageIdNumber == null) {
@@ -842,7 +838,7 @@ export default function AudioMessage({
     mediaDebug("audio-message", "toggle-play-click", {
       cacheKey,
       url,
-      instanceId: instanceIdRef.current,
+      instanceId,
       isReady,
       isPlaying,
       purpose: normalizedPurpose,
@@ -864,7 +860,7 @@ export default function AudioMessage({
         mediaDebug("audio-message", "toggle-play-cancel-stale", {
           cacheKey,
           url,
-          instanceId: instanceIdRef.current,
+          instanceId,
         });
         return;
       }

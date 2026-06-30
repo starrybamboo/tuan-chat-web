@@ -11,5 +11,6 @@ export type SpaceArchiveRequest = {
      * 是否归档 true归档 false取消归档
      */
     archived: boolean;
+    archiveRequested?: boolean;
 };
 

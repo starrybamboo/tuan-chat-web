@@ -29,6 +29,7 @@ function resolveCloudflarePagesMode() {
 
 const autoMode = hasExplicitMode ? "" : resolveCloudflarePagesMode();
 const args = ["vite", "build", ...passthroughArgs];
+const useWindowsShell = process.platform === "win32";
 
 if (autoMode) {
   args.push("--mode", autoMode);
@@ -37,7 +38,8 @@ if (autoMode) {
 
 const child = spawn("corepack", ["pnpm", "exec", ...args], {
   env: process.env,
-  shell: process.platform === "win32",
+  shell: useWindowsShell,
+  windowsHide: useWindowsShell,
   stdio: "inherit",
   cwd: webRoot,
 });

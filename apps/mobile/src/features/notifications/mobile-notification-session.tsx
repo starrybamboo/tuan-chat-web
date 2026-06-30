@@ -322,8 +322,14 @@ export function MobileNotificationSessionProvider({ children }: PropsWithChildre
     }
 
     const foregroundServiceStatus = await getAndroidForegroundMessageServiceStatus();
-    if (Platform.OS === "android" && foregroundServiceStatus?.running && foregroundServiceStatus.connected) {
+    if (
+      Platform.OS === "android"
+      && foregroundServiceStatus?.running
+      && foregroundServiceStatus.connected
+      && foregroundServiceStatus.appActive === false
+    ) {
       logNotificationTrace("present.skip-native-foreground-service", {
+        appActive: foregroundServiceStatus.appActive ?? null,
         lastEvent: foregroundServiceStatus.lastEvent ?? null,
         lastMessageAt: foregroundServiceStatus.lastMessageAt ?? null,
         tag,

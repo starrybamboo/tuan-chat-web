@@ -6,6 +6,7 @@ import { AuthSessionProvider } from "@/features/auth/auth-session";
 import { MobileForegroundRefreshBridge } from "@/features/messages/MobileForegroundRefreshBridge";
 import { RoomMessagesLiveSyncBridge } from "@/features/messages/RoomMessagesLiveSyncBridge";
 import { AndroidForegroundMessageServiceBridge } from "@/features/notifications/AndroidForegroundMessageServiceBridge";
+import { BackgroundPushOnboardingBridge } from "@/features/notifications/BackgroundPushOnboardingBridge";
 import { MobileNotificationSessionProvider } from "@/features/notifications/mobile-notification-session";
 import { NotificationNavigationBridge } from "@/features/notifications/NotificationNavigationBridge";
 import { WorkspaceSessionProvider } from "@/features/workspace/workspace-session";
@@ -17,6 +18,7 @@ export function AppProviders({ children }: PropsWithChildren) {
       <AuthSessionProvider>
         <MobileNotificationSessionProvider>
           <AndroidForegroundMessageServiceBridge />
+          <BackgroundPushOnboardingBridge />
           <WorkspaceSessionProvider>
             <NotificationNavigationBridge />
             <MobileForegroundRefreshBridge />

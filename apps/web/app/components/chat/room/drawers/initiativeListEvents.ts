@@ -4,15 +4,15 @@ import { buildRoleStateEventScope, STATE_EVENT_VAR_OP } from "@/types/stateEvent
 
 import type { Initiative } from "./initiativeListTypes";
 
+import { HP_MAX_ROLE_VALUE_KEYS } from "./stateDrawerRoleRows";
+
 export function buildImportRoleInitiativeEvents(params: {
-  hp?: number | null;
   initiative: number;
-  maxHp?: number | null;
   name: string;
   roleId: number;
 }): StateEventAtom[] {
-  const { hp, initiative, maxHp, roleId } = params;
-  const events: StateEventAtom[] = [
+  const { initiative, roleId } = params;
+  return [
     {
       type: "varOp",
       scope: buildRoleStateEventScope(roleId),
@@ -21,25 +21,6 @@ export function buildImportRoleInitiativeEvents(params: {
       value: initiative,
     },
   ];
-  if (typeof hp === "number") {
-    events.push({
-      type: "varOp",
-      scope: buildRoleStateEventScope(roleId),
-      key: "hp",
-      op: STATE_EVENT_VAR_OP.SET,
-      value: hp,
-    });
-  }
-  if (typeof maxHp === "number") {
-    events.push({
-      type: "varOp",
-      scope: buildRoleStateEventScope(roleId),
-      key: "maxHp",
-      op: STATE_EVENT_VAR_OP.SET,
-      value: maxHp,
-    });
-  }
-  return events;
 }
 
 export function buildRemoveInitiativeEvents(item: Initiative): StateEventAtom[] {
@@ -91,7 +72,7 @@ export function buildUpdateInitiativeEvents(
       events.push({
         type: "varOp",
         scope: buildRoleStateEventScope(item.roleId),
-        key: "maxHp",
+        key: HP_MAX_ROLE_VALUE_KEYS[0],
         op: STATE_EVENT_VAR_OP.SET,
         value: patch.maxHp,
       });

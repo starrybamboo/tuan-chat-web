@@ -525,7 +525,7 @@ function applyImagePlacement(messages, roles, imageRoleIndex) {
     if (previous?.kind === "dialog" && previousRole === imageRole && !previous.imagePath) {
       previous.imagePath = imagePath;
       previous.stage = {
-        ...(previous.stage ?? {}),
+        ...previous.stage,
         imagePath,
       };
       ensureRoleAvatarEvidence(roles, imageRole, imagePath);
@@ -681,7 +681,7 @@ async function main() {
   const output = {
     ...importPackage,
     source: {
-      ...(importPackage.source ?? {}),
+      ...importPackage.source,
       generatedAt: new Date().toISOString(),
       generator: "gululu-stage-annotate-import-v1",
       stageAnnotatedFrom: inputPath,
@@ -689,7 +689,7 @@ async function main() {
     messages: annotatedMessages,
     roles,
     stats: {
-      ...(importPackage.stats ?? {}),
+      ...importPackage.stats,
       messages: annotatedMessages.length,
       annotatedMessages: annotatedMessages.filter(message => (message.annotations ?? []).length > 0).length,
       stageMessages: annotatedMessages.filter(message => message.stage).length,

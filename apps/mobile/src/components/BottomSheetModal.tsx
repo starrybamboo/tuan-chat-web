@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -72,8 +72,6 @@ export function BottomSheetModal({
   const [modalVisible, setModalVisible] = useState(visible);
   const [backdropOpacity] = useState(() => new Animated.Value(0));
   const [sheetTranslateY] = useState(() => new Animated.Value(getScreenHeight()));
-  const onCloseRef = useRef(onClose);
-  useEffect(() => { onCloseRef.current = onClose; });
   const resolvedMaxHeight = resolveMaxHeight(maxHeight);
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -86,7 +84,7 @@ export function BottomSheetModal({
     },
     onPanResponderRelease: (_, gestureState) => {
       if (gestureState.dy > DISMISS_THRESHOLD || gestureState.vy > 0.5) {
-        onCloseRef.current();
+        onClose();
       }
       else {
         Animated.spring(sheetTranslateY, {
@@ -98,9 +96,7 @@ export function BottomSheetModal({
         }).start();
       }
     },
-  }),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  []);
+  }), [onClose, sheetTranslateY]);
 
   useEffect(() => {
     if (visible) {

@@ -1,102 +1,74 @@
 import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllRoomMessagesQueryKey } from "@tuanchat/query/chat";
+import { getMaxRoomMessageSyncId } from "@tuanchat/query/room-message";
 import { mergeRoomMessagesForLocalState } from "@tuanchat/query/room-message-lifecycle";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import {
   clearCachedRoomMessages,
-  getCachedRoomMessagesMaxSyncId,
   readCachedRoomMessages,
   writeCachedRoomMessages,
 } from "@/features/messages/mobileRoomMessageCache";
 import {
-  getFetchedRoomMessagesToPersist,
+  mergeRoomMessagesForQueryCache,
+  shouldHydrateRoomMessagesFromDisk,
   shouldResetCachedRoomMessages,
 } from "@/features/messages/roomMessageCacheState";
 import { extractRoomMessagesFromQueryData } from "@/features/messages/roomMessagesQueryData";
 import { fetchRoomMessagesWithLocalSync } from "@/features/messages/roomMessageSync";
 import { mobileApiClient } from "@/lib/api";
 
-type CachedRoomMessagesState = {
-  messages: ChatMessageResponse[];
-  roomId: number | null;
-};
-
-function deferStateUpdate(update: () => void) {
-  void Promise.resolve().then(update);
-}
-
 export function useRoomMessagesQuery(
   roomId: number | null,
   options: { staleTime?: number } = {},
 ) {
   const { isAuthenticated } = useAuthSession();
-  const [cachedMessagesState, setCachedMessagesState] = useState<CachedRoomMessagesState>({
-    messages: [],
-    roomId: null,
-  });
+  const queryClient = useQueryClient();
   const hasValidRoomId = typeof roomId === "number" && roomId > 0;
+  const queryKey = useMemo(() => getAllRoomMessagesQueryKey(roomId ?? -1), [roomId]);
 
   const query = useQuery({
     enabled: isAuthenticated && hasValidRoomId,
     queryFn: async () => {
-      return fetchRoomMessagesWithLocalSync(roomId!, {
+      const currentMessages = extractRoomMessagesFromQueryData(
+        queryClient.getQueryData(queryKey),
+      );
+      const cachedMessages = await readCachedRoomMessages(roomId!);
+      const maxKnownSyncId = Math.max(
+        getMaxRoomMessageSyncId(currentMessages),
+        getMaxRoomMessageSyncId(cachedMessages),
+      );
+      const syncResult = await fetchRoomMessagesWithLocalSync(roomId!, {
         client: mobileApiClient,
-        getMaxCachedSyncId: getCachedRoomMessagesMaxSyncId,
+        getMaxCachedSyncId: async () => maxKnownSyncId,
+      });
+
+      if (shouldResetCachedRoomMessages(syncResult, true)) {
+        void clearCachedRoomMessages(roomId!);
+        return [];
+      }
+
+      if (syncResult.messages.length > 0) {
+        void writeCachedRoomMessages(roomId!, syncResult.messages);
+      }
+
+      return mergeRoomMessagesForQueryCache({
+        cachedMessages,
+        currentMessages,
+        fetchedMessages: syncResult.messages,
+        roomId: roomId!,
       });
     },
-    queryKey: getAllRoomMessagesQueryKey(roomId ?? -1),
+    queryKey,
     staleTime: options.staleTime,
   });
 
-  const networkMessages = useMemo(() => {
+  const messages = useMemo(() => {
     return extractRoomMessagesFromQueryData(query.data);
   }, [query.data]);
-
-  const cachedMessages = useMemo(() => {
-    if (!isAuthenticated || !hasValidRoomId || cachedMessagesState.roomId !== roomId) {
-      return [];
-    }
-    return cachedMessagesState.messages;
-  }, [cachedMessagesState, hasValidRoomId, isAuthenticated, roomId]);
-
-  const messages = useMemo(() => {
-    return mergeRoomMessagesForLocalState(cachedMessages, networkMessages);
-  }, [cachedMessages, networkMessages]);
-
-  useEffect(() => {
-    let disposed = false;
-
-    if (!isAuthenticated || typeof roomId !== "number" || roomId <= 0) {
-      deferStateUpdate(() => {
-        if (disposed) {
-          return;
-        }
-        setCachedMessagesState((currentState) => {
-          if (currentState.roomId === null && currentState.messages.length === 0) {
-            return currentState;
-          }
-          return { messages: [], roomId: null };
-        });
-      });
-      return () => {
-        disposed = true;
-      };
-    }
-
-    void readCachedRoomMessages(roomId).then((nextCachedMessages) => {
-      if (!disposed) {
-        setCachedMessagesState({ messages: nextCachedMessages, roomId });
-      }
-    });
-
-    return () => {
-      disposed = true;
-    };
-  }, [isAuthenticated, roomId]);
 
   useEffect(() => {
     let disposed = false;
@@ -105,33 +77,29 @@ export function useRoomMessagesQuery(
       return;
     }
 
-    if (shouldResetCachedRoomMessages(query.data, query.isSuccess)) {
-      deferStateUpdate(() => {
-        if (disposed) {
-          return;
-        }
-        setCachedMessagesState((currentState) => {
-          if (currentState.roomId === roomId && currentState.messages.length === 0) {
-            return currentState;
-          }
-          return { messages: [], roomId };
-        });
+    void readCachedRoomMessages(roomId).then((nextCachedMessages) => {
+      if (disposed || nextCachedMessages.length === 0) {
+        return;
+      }
+      const queryState = queryClient.getQueryState(queryKey);
+      // Query 已经成功时，磁盘只能作为恢复来源，不能再把旧快照灌回前台。
+      if (!shouldHydrateRoomMessagesFromDisk(queryState?.status, nextCachedMessages)) {
+        return;
+      }
+      queryClient.setQueryData<ChatMessageResponse[]>(queryKey, (currentData) => {
+        const currentMessages = extractRoomMessagesFromQueryData(currentData);
+        return mergeRoomMessagesForLocalState(nextCachedMessages, currentMessages);
       });
-      void clearCachedRoomMessages(roomId);
-      return () => {
-        disposed = true;
-      };
-    }
+    });
 
-    const fetchedMessagesToPersist = getFetchedRoomMessagesToPersist(query.data, query.isSuccess);
-    if (fetchedMessagesToPersist.length > 0) {
-      void writeCachedRoomMessages(roomId, fetchedMessagesToPersist);
-    }
-  }, [isAuthenticated, query.data, query.isSuccess, roomId]);
+    return () => {
+      disposed = true;
+    };
+  }, [isAuthenticated, queryClient, queryKey, roomId]);
 
   return {
     ...query,
-    isShowingCachedMessages: networkMessages.length === 0 && cachedMessages.length > 0,
+    isShowingCachedMessages: query.isFetching && messages.length > 0,
     messages,
   };
 }

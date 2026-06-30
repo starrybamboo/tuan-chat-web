@@ -8,6 +8,11 @@ describe("mobile-notification-types", () => {
     expect(normalizeNotificationTargetPath("/feedback/12#comment-3")).toBe("/feedback/12#comment-3");
   });
 
+  it("会把 App scheme 深链归一化为站内路径", () => {
+    expect(normalizeNotificationTargetPath("tuanchat://chat/room/10657")).toBe("/chat/room/10657");
+    expect(normalizeNotificationTargetPath("tuanchat://chat/private/42?from=push")).toBe("/chat/private/42?from=push");
+  });
+
   it("会过滤空值、外链样式和双斜杠路径", () => {
     expect(normalizeNotificationTargetPath(undefined)).toBeNull();
     expect(normalizeNotificationTargetPath("   ")).toBeNull();
