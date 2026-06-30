@@ -9,7 +9,7 @@ import { getMessagePreviewText } from "@tuanchat/domain/message-preview";
 import { getDirectInboxQueryKey, upsertDirectInboxMessagesData } from "@tuanchat/query/direct-message";
 import {
   bumpRoomSessionLatestSyncInCache,
-  markRoomSessionReadInCache,
+  getUserMessageSessionsQueryKey,
 } from "@tuanchat/query/message-sessions";
 import { getNotificationsUnreadCountQueryKey, prependNotificationToCaches } from "@tuanchat/query/notifications";
 import { useEffect, useMemo, useRef } from "react";
@@ -26,6 +26,13 @@ import {
 import { useMobileNotificationSession } from "@/features/notifications/mobileNotificationSessionContext";
 import { readNotificationPreferences } from "@/features/notifications/notificationPreferences";
 import { logNotificationTrace } from "@/features/notifications/notificationTrace";
+import {
+  clearRoomReadPositionSyncTimers,
+  markRoomReadOptimistically,
+  scheduleDebouncedRoomReadPositionSync,
+  shouldAutoMarkFocusedRoomRead,
+  type RoomReadPositionSyncState,
+} from "@/features/rooms/roomReadPositionSync";
 import { mobileApiClient } from "@/lib/api";
 
 import { createMobileWebSocketUrl, maskMobileWebSocketUrl } from "./mobileWebSocketUrl";
@@ -53,6 +60,7 @@ export type RoomMessagesLiveSyncOptions = {
   currentContactId?: number | null;
   currentRoomId?: number | null;
   currentSpaceId?: number | null;
+  isCurrentRoomFocused?: boolean;
   isChatRouteActive?: boolean;
 };
 
@@ -264,6 +272,7 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
     currentContactId = null,
     currentRoomId = null,
     currentSpaceId = null,
+    isCurrentRoomFocused = false,
     isChatRouteActive = false,
   } = options;
   const queryClient = useQueryClient();
@@ -278,20 +287,29 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // 看门狗定时器：周期性检查"最近是否收到过帧"，识别 readyState 仍为 OPEN 的僵尸连接。
   const watchdogTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const readPositionSyncStateRef = useRef<RoomReadPositionSyncState>({
+    pendingSyncIdsByRoom: {},
+    timersByRoom: {},
+  });
   // 最近一次从服务端收到任何帧（消息或 pong）的时间戳，看门狗据此判断连接是否假死。
   const lastReceivedAtRef = useRef(0);
   const directReceivedCountRef = useRef(0);
 
   // 当前会话/路由状态用 ref 读取，房间或页面切换时不重建 WebSocket 连接。
-  const optionsRef = useRef({ currentContactId, currentRoomId, currentSpaceId, isChatRouteActive });
+  const optionsRef = useRef({ currentContactId, currentRoomId, currentSpaceId, isChatRouteActive, isCurrentRoomFocused });
   const presentNotificationRef = useRef(presentNotification);
   const sessionRef = useRef(session);
 
   useEffect(() => {
-    optionsRef.current = { currentContactId, currentRoomId, currentSpaceId, isChatRouteActive };
+    optionsRef.current = { currentContactId, currentRoomId, currentSpaceId, isChatRouteActive, isCurrentRoomFocused };
     presentNotificationRef.current = presentNotification;
     sessionRef.current = session;
   });
+
+  useEffect(() => {
+    const syncState = readPositionSyncStateRef.current;
+    return () => clearRoomReadPositionSyncTimers(syncState);
+  }, []);
 
   const webSocketUrl = useMemo(() => {
     const token = session?.token?.trim();
@@ -759,8 +777,23 @@ export function useRoomMessagesLiveSync(options: RoomMessagesLiveSyncOptions = {
               writeCachedRoomMessages,
             });
           }
-          if (resolvedRoomId != null && typeof latestReadSyncId === "number") {
-            markRoomSessionReadInCache(queryClient, resolvedRoomId, latestReadSyncId);
+          if (resolvedRoomId != null && typeof latestReadSyncId === "number" && shouldAutoMarkFocusedRoomRead({
+            currentRoomId: resolvedRoomId,
+            isRoomFocused: appStateRef.current === "active" && optionsRef.current.isCurrentRoomFocused,
+            targetSyncId: latestReadSyncId,
+          })) {
+            markRoomReadOptimistically(queryClient, resolvedRoomId, latestReadSyncId);
+            scheduleDebouncedRoomReadPositionSync(
+              readPositionSyncStateRef.current,
+              resolvedRoomId,
+              latestReadSyncId,
+              (roomId, syncId) => {
+                void mobileApiClient.messageSession.updateReadPosition1({ roomId, syncId }).catch((error) => {
+                  console.warn("[useRoomMessagesLiveSync] 同步房间已读位置失败:", error);
+                  queryClient.invalidateQueries({ queryKey: getUserMessageSessionsQueryKey() });
+                });
+              },
+            );
           }
           void presentRoomMessagesNotification(messages).catch((error) => {
             console.warn("[useRoomMessagesLiveSync] 群聊本地通知失败:", error);

@@ -58,6 +58,7 @@ describe("roleListData", () => {
 
   it("能在没有侧边栏参与的情况下独立补齐角色头像", async () => {
     const cachedAvatar: RoleAvatar = {
+      roleId: 7,
       avatarId: 55,
       avatarFileId: 1001,
     };

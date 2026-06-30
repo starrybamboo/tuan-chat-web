@@ -20,7 +20,7 @@ import type { FigurePosition } from "@/types/voiceRenderTypes";
 
 import { IMPORT_SPECIAL_ROLE_ID, isDicerSpeakerName, normalizeSpeakerName, parseImportedChatText } from "@/components/chat/utils/importChatText";
 import { createRglImportCompileContextFromSources } from "@/components/chat/utils/importRglResolvers";
-import { compileRglImportEvents, parseRglImportText, summarizeRglImportEvents } from "@/components/chat/utils/importRglText";
+import { compileRglImportEventsWithLineNumbers, parseRglImportText, summarizeRglImportEvents } from "@/components/chat/utils/importRglText";
 import { FIGURE_POSITION_LABELS, FIGURE_POSITION_ORDER } from "@/types/voiceRenderTypes";
 
 import type { UserRole } from "../../../../api";
@@ -58,6 +58,7 @@ const RGL_EVENT_SUMMARY_ITEMS = [
   { key: "narration", label: "旁白" },
   { key: "material", label: "素材" },
   { key: "dice", label: "骰子" },
+  { key: "hitpoint", label: "状态" },
   { key: "control", label: "控制" },
 ] as const;
 const RGL_LOCAL_ASSET_DIRECTORY_INPUT_PROPS = {
@@ -365,8 +366,7 @@ export default function ImportChatMessagesWindow({
           roles: availableRoles,
           ...sources,
         });
-        resolved = compileRglImportEvents(rglParsed.events, context)
-          .map((message, index) => ({ ...message, lineNumber: rglParsed.events[index]?.lineNumber ?? index + 1 }));
+        resolved = compileRglImportEventsWithLineNumbers(rglParsed.events, context);
       }
       else {
         resolved = plainParsed.messages.map(m => ({
@@ -853,7 +853,7 @@ export default function ImportChatMessagesWindow({
                         </div>
                       )}
                       {activeMessageCount > 0 && (
-                        <div className="mt-3 grid grid-cols-5 gap-1">
+                        <div className="mt-3 grid grid-cols-6 gap-1">
                           {RGL_EVENT_SUMMARY_ITEMS.map(item => (
                             <div
                               key={item.key}
@@ -921,7 +921,7 @@ export default function ImportChatMessagesWindow({
                           <div className="min-w-0">
                             <div className="text-xs font-medium">角色素材</div>
                             <div className="mt-1 text-[11px] text-base-content/55">
-                              读取导入期 asset-manifest.json 的 roles 段，按现有房间角色更新 RoleAvatar。
+                              读取导入期 asset-manifest.json 的 roles 段；缺失角色会自动创建并加入当前房间，再创建或更新 RoleAvatar。
                             </div>
                           </div>
                           <button

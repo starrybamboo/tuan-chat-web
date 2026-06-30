@@ -3,6 +3,8 @@ import toast from "react-hot-toast";
 
 import type { RoleAvatarVariant } from "api";
 
+import { normalizeImageFileOrNull } from "@/utils/mediaMime";
+
 export type UploadVariantTarget =
   | { mode: "none" }
   | { mode: "existing"; variantId: number; variantGroup?: RoleAvatarVariant }
@@ -144,8 +146,9 @@ export function CharacterCopper({
     };
   }, [variantGroupById, variantTargetDraft]);
 
-  const handleFiles = useCallback((files: File[]) => {
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+  const handleFiles = useCallback(async (files: File[]) => {
+    const imageFiles = (await Promise.all(files.map(async file => await normalizeImageFileOrNull(file))))
+      .filter((file): file is File => Boolean(file));
     if (imageFiles.length === 0) {
       toast.error("请选择图片文件");
       return;
@@ -164,7 +167,7 @@ export function CharacterCopper({
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.currentTarget.files ?? []);
     if (files.length > 0) {
-      handleFiles(files);
+      void handleFiles(files);
     }
     event.currentTarget.value = "";
   }, [handleFiles]);
@@ -177,12 +180,15 @@ export function CharacterCopper({
       return;
     }
     externalFilesHandledRef.current = externalFilesBatchId;
-    try {
-      handleFiles(externalFiles);
+    void (async () => {
+      try {
+        await handleFiles(externalFiles);
+      }
+      finally {
+        onExternalFilesHandled?.();
+      }
     }
-    finally {
-      onExternalFilesHandled?.();
-    }
+    )();
   }, [externalFiles, externalFilesBatchId, handleFiles, onExternalFilesHandled]);
 
   const handleConfirmVariantTarget = useCallback(() => {

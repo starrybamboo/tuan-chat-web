@@ -1,3 +1,4 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 
@@ -124,11 +125,12 @@ type MobileClueFolderMessagesProps = {
   currentUserId: number | null;
   currentRoleId: number | null;
   currentRoomId: number | null;
+  currentRoomMessages: ChatMessageResponse[];
   folderRoom: Room;
   isKP: boolean;
 };
 
-function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRoomId, folderRoom, isKP }: MobileClueFolderMessagesProps) {
+function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRoomId, currentRoomMessages, folderRoom, isKP }: MobileClueFolderMessagesProps) {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const roomId = folderRoom.roomId ?? null;
@@ -138,7 +140,7 @@ function MobileClueFolderMessagesInner({ currentUserId, currentRoleId, currentRo
   const updateReadPosition = useUpdateRoomReadPositionMutation(mobileApiClient);
   const { editMessage } = useEditRoomMessageMutation(roomId);
   const { deleteMessage } = useDeleteRoomMessageMutation(roomId);
-  const sendRoomMessageMutation = useSendRoomMessageMutation(currentRoomId, currentUserId ?? 0);
+  const sendRoomMessageMutation = useSendRoomMessageMutation(currentRoomId, currentUserId ?? 0, currentRoomMessages);
   const [actionMenuMessage, setActionMenuMessage] = useState<Message | null>(null);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -393,11 +395,12 @@ type MobileCluePanelProps = {
   currentUserId: number | null;
   currentRoleId: number | null;
   currentRoomId: number | null;
+  currentRoomMessages: ChatMessageResponse[];
   isKP: boolean;
   spaceId: number | null;
 };
 
-function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, currentRoomId, isKP, spaceId }: MobileCluePanelProps) {
+function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, currentRoomId, currentRoomMessages, isKP, spaceId }: MobileCluePanelProps) {
   const theme = useTheme();
   const visibleFolders = clueRooms;
   const [firstFolder] = visibleFolders;
@@ -464,6 +467,7 @@ function MobileCluePanelInner({ clueRooms, currentUserId, currentRoleId, current
               currentUserId={currentUserId}
               currentRoleId={currentRoleId}
               currentRoomId={currentRoomId}
+              currentRoomMessages={currentRoomMessages}
               folderRoom={activeFolder}
               isKP={isKP}
             />

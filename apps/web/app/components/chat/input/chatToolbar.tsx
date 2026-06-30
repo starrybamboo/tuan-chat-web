@@ -15,7 +15,7 @@ import {
   LinkFilled,
   SendIcon,
 } from "@/icons";
-import { ALLOWED_IMG_TYPES } from "@/utils/allowedImgFiles";
+import { normalizeImageFileOrNull } from "@/utils/mediaMime";
 import { mediaFileUrl } from "@/utils/mediaUrl";
 
 type ChatToolbarProps = {
@@ -184,17 +184,18 @@ function ChatToolbar({
     };
   }, []);
 
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
       return;
     }
 
-    if (ALLOWED_IMG_TYPES.includes(file.type)) {
+    const imageFile = await normalizeImageFileOrNull(file);
+    if (imageFile) {
       updateImgFiles((draft) => {
-        draft.push(file);
+        draft.push(imageFile);
       });
-      preheatChatMediaPreprocess({ imageFiles: [file] });
+      preheatChatMediaPreprocess({ imageFiles: [imageFile] });
       onApplyImageTempAnnotations?.();
       e.target.value = "";
       return;

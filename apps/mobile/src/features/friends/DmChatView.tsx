@@ -4,6 +4,7 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { buildDirectMessageSendRequestsFromUploadedMedia, DIRECT_MESSAGE_READ_LINE_TYPE, getDirectMessagePreviewText, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { getFileMessageExtra, getImageMessageExtra, getSoundMessageExtra, getVideoMessageExtra } from "@tuanchat/domain/message-extra";
+import { MESSAGE_TYPE } from "@tuanchat/domain/message-type";
 import { getDirectInboxQueryKey } from "@tuanchat/query/direct-message";
 import { CaretLeft, Check, Checks, PaperPlaneTilt, Warning, X, XCircle } from "phosphor-react-native";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -435,30 +436,34 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
       contentMountTaskRef.current.cancel();
       contentMountTaskRef.current = null;
     }
-    setContentReady(false);
-    setDraft("");
-    setInputHeight(COMPOSER_MIN_HEIGHT);
-    setAttachments([]);
-    setReplyMessage(null);
-    setErrorMessage(null);
     sendInFlightRef.current = false;
-    setActionMenuMessage(null);
-    setActionMenuVisible(false);
-    setFailedMessageIds(new Set());
     isAtBottomRef.current = true;
-    setIsAtBottom(true);
-    setVisibleCount(PAGE_SIZE);
     readSyncRef.current = 0;
     scrollDebugCountRef.current = 0;
     previousPaginatedLengthRef.current = null;
-    contentMountFrameRef.current = requestAnimationFrame(() => {
-      contentMountFrameRef.current = null;
-      contentMountTaskRef.current = InteractionManager.runAfterInteractions(() => {
-        contentMountTaskRef.current = null;
-        setContentReady(true);
+
+    const resetTimer = setTimeout(() => {
+      setContentReady(false);
+      setDraft("");
+      setInputHeight(COMPOSER_MIN_HEIGHT);
+      setAttachments([]);
+      setReplyMessage(null);
+      setErrorMessage(null);
+      setActionMenuMessage(null);
+      setActionMenuVisible(false);
+      setFailedMessageIds(new Set());
+      setIsAtBottom(true);
+      setVisibleCount(PAGE_SIZE);
+      contentMountFrameRef.current = requestAnimationFrame(() => {
+        contentMountFrameRef.current = null;
+        contentMountTaskRef.current = InteractionManager.runAfterInteractions(() => {
+          contentMountTaskRef.current = null;
+          setContentReady(true);
+        });
       });
-    });
+    }, 0);
     return () => {
+      clearTimeout(resetTimer);
       if (contentMountFrameRef.current != null) {
         cancelAnimationFrame(contentMountFrameRef.current);
         contentMountFrameRef.current = null;
@@ -471,9 +476,13 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
   }, [contactId]);
 
   useEffect(() => {
-    if (draft.length === 0) {
+    if (draft.length !== 0)
+      return undefined;
+
+    const resetTimer = setTimeout(() => {
       setInputHeight(COMPOSER_MIN_HEIGHT);
-    }
+    }, 0);
+    return () => clearTimeout(resetTimer);
   }, [draft]);
 
   useEffect(() => {
@@ -640,7 +649,7 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
     setIsAtBottom(true);
     try {
       const uploaded = previousAttachments.length > 0
-        ? await uploadMobileMessageAttachments(mobileApiClient, previousAttachments)
+        ? await uploadMobileMessageAttachments(mobileApiClient, previousAttachments, { allowPartialSuccess: true })
         : null;
       const requests = buildDirectMessageSendRequestsFromUploadedMedia({
         inputText: previousDraft,
@@ -651,6 +660,16 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
         uploadedSoundMessage: uploaded?.uploadedSoundMessage ?? null,
         uploadedVideos: uploaded?.uploadedVideos ?? [],
       });
+      const successfulMediaRequestCount = requests.filter(request =>
+        request.messageType === MESSAGE_TYPE.IMG
+        || request.messageType === MESSAGE_TYPE.SOUND
+        || request.messageType === MESSAGE_TYPE.VIDEO,
+      ).length;
+
+      if (successfulMediaRequestCount === 0 && uploaded && uploaded.failedAttachments.length > 0) {
+        const firstFailure = uploaded.failedAttachments[0]?.error;
+        throw firstFailure ?? new Error("附件上传失败。");
+      }
 
       if (requests.length === 0) {
         throw new Error("消息内容不能为空。");
@@ -658,6 +677,12 @@ function DmChatViewInner({ contactId, contactName, contactAvatarFileId, currentU
 
       for (const request of requests) {
         await sendMutation.mutateAsync(request);
+      }
+
+      if (uploaded && uploaded.failedAttachments.length > 0) {
+        const failedAttachments = uploaded.failedAttachments.map(failure => failure.attachment);
+        setAttachments(failedAttachments);
+        setErrorMessage(`部分附件发送失败：成功 ${successfulMediaRequestCount} 个，失败 ${failedAttachments.length} 个，已保留失败项供重试。`);
       }
     }
     catch (error) {

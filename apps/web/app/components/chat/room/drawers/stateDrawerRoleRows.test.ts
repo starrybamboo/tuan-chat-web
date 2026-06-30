@@ -11,6 +11,7 @@ import {
   collectCombatInitiativeRecords,
   collectRecordedRoleValueIds,
   compareCombatRoleRowsByInitiative,
+  HP_MAX_ROLE_VALUE_KEYS,
   isInlineRoleValueKey,
   parseCustomCombatKvText,
   parseCustomCombatStateKey,
@@ -91,6 +92,36 @@ describe("stateDrawerRoleRows", () => {
     ]);
   });
 
+  it("先攻状态消息读取 hpm 作为 HP 上限记录", () => {
+    const messages = [{
+      message: {
+        messageId: 13,
+        status: 0,
+        messageType: MESSAGE_TYPE.STATE_EVENT,
+        extra: toApiMessageExtraWithStateEvent(buildCommandStateEventExtra("combat", [
+          {
+            type: "varOp",
+            scope: buildRoleStateEventScope(3),
+            key: "initiative",
+            op: STATE_EVENT_VAR_OP.SET,
+            value: 18,
+          },
+          {
+            type: "varOp",
+            scope: buildRoleStateEventScope(3),
+            key: "hpm",
+            op: STATE_EVENT_VAR_OP.SET,
+            value: 12,
+          },
+        ])),
+      },
+    } as any];
+
+    expect(collectCombatInitiativeRecords(messages)).toMatchObject([
+      { initiative: 18, maxHp: 12, roleId: 3 },
+    ]);
+  });
+
   it("先攻记录行优先显示角色卡实时 HP，而不是导入消息里的旧 HP", () => {
     expect(buildCombatRecordValueRow({
       baseValues: { hp: 18 },
@@ -103,6 +134,22 @@ describe("stateDrawerRoleRows", () => {
       key: "hp",
       baseValue: 18,
       displayValue: 15,
+    });
+  });
+
+  it("先攻记录行读取角色卡 hpm 作为 HP 上限", () => {
+    expect(HP_MAX_ROLE_VALUE_KEYS).toEqual(["hpm"]);
+    expect(buildCombatRecordValueRow({
+      baseValues: { hpm: 12 },
+      derivedValues: { hpm: 10 },
+      fallbackAbility: { ability: { hpm: "12" } },
+      key: "hpm",
+      recordValue: 30,
+      valueKeys: HP_MAX_ROLE_VALUE_KEYS,
+    })).toEqual({
+      key: "hpm",
+      baseValue: 12,
+      displayValue: 10,
     });
   });
 

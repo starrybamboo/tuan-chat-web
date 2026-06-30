@@ -37,7 +37,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: "center",
     minHeight: 40,
+    minWidth: 104,
     paddingHorizontal: Spacing.lg,
+  },
+  buttonText: {
+    textAlign: "center",
   },
   container: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl },
   scrollContent: { paddingBottom: Spacing.xxl },
@@ -82,14 +86,9 @@ const styles = StyleSheet.create({
 
 type CombatPanelProps = {
   currentRoleId: number | null;
-  isKP: boolean;
-  isSendingCombatRoundEvent: boolean;
   isStateCommandMode: boolean;
   messages: Message[];
-  onAdvanceTurn: () => void;
-  onEndCombat: () => void;
   onEnterStateCommandMode: () => void;
-  onStartCombat: () => void;
   roomRoles: UserRole[];
   roomStateRuntime?: RoomStateRuntimeValue;
   ruleId: number | null | undefined;
@@ -139,13 +138,8 @@ function CombatPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props 
 
 function CombatPanelContent({
   currentRoleId,
-  isKP,
-  isSendingCombatRoundEvent,
   isStateCommandMode,
-  onAdvanceTurn,
-  onEndCombat,
   onEnterStateCommandMode,
-  onStartCombat,
   runtime,
   roomRoles,
 }: CombatPanelContentProps) {
@@ -222,60 +216,6 @@ function CombatPanelContent({
                 </ThemedText>
               </View>
             </View>
-            <View style={{ gap: Spacing.sm }}>
-              {isKP
-                ? (
-                    <Pressable
-                      disabled={runtime.combatRoundActive || isSendingCombatRoundEvent}
-                      onPress={onStartCombat}
-                      style={[
-                        styles.button,
-                        {
-                          backgroundColor: runtime.combatRoundActive || isSendingCombatRoundEvent ? theme.surface : theme.accentMuted,
-                          borderColor: runtime.combatRoundActive || isSendingCombatRoundEvent ? theme.border : theme.accent,
-                          opacity: runtime.combatRoundActive || isSendingCombatRoundEvent ? 0.55 : 1,
-                        },
-                      ]}
-                    >
-                      <ThemedText style={{ color: runtime.combatRoundActive ? theme.textSecondary : theme.accent }} type="smallBold">
-                        {isSendingCombatRoundEvent ? "处理中..." : "开始战斗"}
-                      </ThemedText>
-                    </Pressable>
-                  )
-                : null}
-              <Pressable
-                disabled={!runtime.combatRoundActive || isSendingCombatRoundEvent}
-                onPress={onAdvanceTurn}
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.accentMuted : theme.surface,
-                    borderColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.accent : theme.border,
-                    opacity: runtime.combatRoundActive && !isSendingCombatRoundEvent ? 1 : 0.55,
-                  },
-                ]}
-              >
-                <ThemedText style={{ color: runtime.combatRoundActive ? theme.accent : theme.textSecondary }} type="smallBold">下一回合</ThemedText>
-              </Pressable>
-              {isKP
-                ? (
-                    <Pressable
-                      disabled={!runtime.combatRoundActive || isSendingCombatRoundEvent}
-                      onPress={onEndCombat}
-                      style={[
-                        styles.button,
-                        {
-                          backgroundColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.surface : theme.surface,
-                          borderColor: runtime.combatRoundActive && !isSendingCombatRoundEvent ? theme.danger : theme.border,
-                          opacity: runtime.combatRoundActive && !isSendingCombatRoundEvent ? 1 : 0.55,
-                        },
-                      ]}
-                    >
-                      <ThemedText style={{ color: runtime.combatRoundActive ? theme.danger : theme.textSecondary }} type="smallBold">结束战斗</ThemedText>
-                    </Pressable>
-                  )
-                : null}
-            </View>
           </View>
 
           <Pressable
@@ -289,7 +229,8 @@ function CombatPanelContent({
             ]}
           >
             <ThemedText
-              style={{ color: isStateCommandMode ? theme.accent : theme.textSecondary }}
+              numberOfLines={1}
+              style={[styles.buttonText, { color: isStateCommandMode ? theme.accent : theme.textSecondary }]}
               type="smallBold"
             >
               状态指令

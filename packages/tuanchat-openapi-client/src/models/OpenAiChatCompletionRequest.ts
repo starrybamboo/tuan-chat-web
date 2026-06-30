@@ -31,6 +31,7 @@ export type OpenAiChatCompletionRequest = {
      * 是否流式输出。/ai/gateway/v1/chat/completions 仍仅支持 false；/ai/gateway/v1/chat/stream 会按流式处理
      */
     stream?: boolean;
+    streamRequested?: boolean;
     /**
      * 核采样参数，范围 [0,1]，可选
      */

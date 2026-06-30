@@ -1,8 +1,9 @@
 import type { MessageDirectResponse } from "@tuanchat/openapi-client/models/MessageDirectResponse";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { groupDirectConversations, mergeDirectMessages } from "@tuanchat/domain/direct-message";
 import { useDirectInboxMessagesQuery } from "@tuanchat/query/direct-message";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { hasPersistableDirectInboxMessages } from "@/features/friends/dmInboxCacheState";
 import { mobileApiClient } from "@/lib/api";
@@ -22,15 +23,20 @@ export type DmConversation = {
   unreadCount: number;
 };
 
+export function mergeDirectInboxMessagesForQueryCache(
+  cachedMessages: readonly MessageDirectResponse[] | undefined,
+  currentMessages: readonly MessageDirectResponse[] | undefined,
+): MessageDirectResponse[] {
+  return mergeDirectMessages(cachedMessages, currentMessages);
+}
+
 export function useDmInboxQuery(currentUserId: number | null) {
-  const [cachedInbox, setCachedInbox] = useState<{
-    currentUserId: number;
-    messages: MessageDirectResponse[];
-  } | null>(null);
+  const queryClient = useQueryClient();
 
   const query = useDirectInboxMessagesQuery(mobileApiClient, currentUserId, {
     enabled: typeof currentUserId === "number" && currentUserId > 0,
   });
+  const queryKey = useMemo(() => ["dmInbox", currentUserId ?? null] as const, [currentUserId]);
 
   useEffect(() => {
     if (typeof currentUserId !== "number" || currentUserId <= 0) {
@@ -40,26 +46,29 @@ export function useDmInboxQuery(currentUserId: number | null) {
     let disposed = false;
     void readCachedDirectInboxMessages(currentUserId)
       .then((messages) => {
-        if (!disposed) {
-          setCachedInbox({ currentUserId, messages });
+        if (disposed || messages.length === 0) {
+          return;
         }
+
+        const queryState = queryClient.getQueryState(queryKey);
+        if (queryState?.status === "success") {
+          return;
+        }
+
+        queryClient.setQueryData<MessageDirectResponse[]>(queryKey, (currentMessages) => {
+          return mergeDirectInboxMessagesForQueryCache(messages, currentMessages);
+        });
       })
       .catch((error) => {
         if (!disposed) {
           console.warn("[useDmInboxQuery] 读取私聊磁盘缓存失败:", error);
-          setCachedInbox({ currentUserId, messages: [] });
         }
       });
 
     return () => {
       disposed = true;
     };
-  }, [currentUserId]);
-
-  const mergedMessages = useMemo(() => {
-    const cachedMessages = cachedInbox?.currentUserId === currentUserId ? cachedInbox.messages : [];
-    return mergeDirectMessages(cachedMessages, query.data);
-  }, [cachedInbox, currentUserId, query.data]);
+  }, [currentUserId, queryClient, queryKey]);
   const hasQueryMessagesToPersist = useMemo(() => {
     return hasPersistableDirectInboxMessages(query.data);
   }, [query.data]);
@@ -70,25 +79,20 @@ export function useDmInboxQuery(currentUserId: number | null) {
     }
 
     if (!hasQueryMessagesToPersist) {
-      queueMicrotask(() => setCachedInbox({ currentUserId, messages: [] }));
       void clearCachedDirectMessages(currentUserId).catch((error) => {
         console.warn("[useDmInboxQuery] 清理私聊磁盘缓存失败:", error);
       });
       return;
     }
 
-    if (mergedMessages.length === 0) {
-      return;
-    }
-
-    void writeCachedDirectMessages(currentUserId, mergedMessages).catch((error) => {
+    void writeCachedDirectMessages(currentUserId, query.data ?? []).catch((error) => {
       console.warn("[useDmInboxQuery] 写入私聊磁盘缓存失败:", error);
     });
-  }, [currentUserId, hasQueryMessagesToPersist, mergedMessages, query.isSuccess]);
+  }, [currentUserId, hasQueryMessagesToPersist, query.data, query.isSuccess]);
 
   const data = useMemo(
-    () => groupDirectConversations(mergedMessages, currentUserId) as DmConversation[],
-    [mergedMessages, currentUserId],
+    () => groupDirectConversations(query.data ?? [], currentUserId) as DmConversation[],
+    [currentUserId, query.data],
   );
 
   return { ...query, data };

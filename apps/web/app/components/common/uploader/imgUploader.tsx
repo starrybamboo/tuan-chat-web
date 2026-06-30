@@ -4,7 +4,7 @@
 
 import React, { useRef } from "react";
 
-import { ALLOWED_IMG_TYPES } from "@/utils/allowedImgFiles";
+import { normalizeImageFileOrNull } from "@/utils/mediaMime";
 
 type ImgUploaderProps = {
   // 一个函数, 如果useState的话就填set函数. 会在返回后将Img File作为参数传入
@@ -30,11 +30,12 @@ export function ImgUploader({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // 判断文件类型
-    if (!file || !ALLOWED_IMG_TYPES.includes(file?.type)) {
+    const imageFile = file ? await normalizeImageFileOrNull(file) : null;
+    if (!imageFile) {
+      e.target.value = "";
       return;
     }
-    setImg(file);
+    setImg(imageFile);
     if (e.target) {
       e.target.value = "";
     }

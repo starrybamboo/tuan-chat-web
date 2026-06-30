@@ -526,6 +526,8 @@ describe("realtimeRenderer shared compiler full render", () => {
     const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
     expect(sceneText).toContain("changeFigure:role_1/sprite_11.webp");
     expect(sceneText).toContain("changeFigure:role_1/sprite_12.webp");
+    expect(sceneText).toMatch(/changeFigure:role_1\/sprite_11\.webp .* -enterDuration=120 -exitDuration=120 -next;/);
+    expect(sceneText).toMatch(/changeFigure:role_1\/sprite_12\.webp .* -enterDuration=120 -exitDuration=120 -next;/);
     expect(sceneText).toContain("明日香: 笑脸差分 -figureId=1;");
   });
 
@@ -564,6 +566,7 @@ describe("realtimeRenderer shared compiler full render", () => {
     const lines = sceneText.trim().split("\n");
     const changeIndex = lines.findIndex(line => line.startsWith("changeFigure:role_1/sprite_11.webp"));
     expect(changeIndex).toBeGreaterThanOrEqual(0);
+    expect(lines[changeIndex]).toContain("-enterDuration=120 -exitDuration=120 -next;");
     expect(lines[changeIndex + 1]).toBe(
       "setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;",
     );
@@ -806,6 +809,7 @@ describe("realtimeRenderer shared compiler full render", () => {
         soundMessage: {
           source: { kind: "external", url: vocalUrl },
           purpose: "voice",
+          second: 1,
         },
       },
     }), 10, false);
@@ -999,6 +1003,36 @@ describe("realtimeRenderer shared compiler full render", () => {
     expect(fetchRoleAvatarWithCache).not.toHaveBeenCalledWith(queryClient, 22);
     expect(sceneText).toContain("changeFigure:role_2/sprite_22.webp");
     expect(sceneText).toContain("vector: 正常显示 -figureId=5;");
+  });
+
+  it("实时追加会把 message.webgal.transform.alpha 编译成立绘透明度", async () => {
+    const renderer = RealtimeRenderer.getInstance(42);
+    const queryClient = {
+      getQueryData: vi.fn(() => undefined),
+    };
+
+    renderer.setRooms([room(10, "序章")]);
+    renderer.setRoleCache([role(1, "明日香")]);
+    renderer.setQueryClient(queryClient as any);
+    renderer.setAutoFigureEnabled(false);
+    renderer.setMiniAvatarEnabled(false);
+    renderer.setTTSConfig({ enabled: false });
+
+    await renderer.appendMessage(message({
+      messageId: 3,
+      roomId: 10,
+      roleId: 1,
+      avatarId: 11,
+      content: "半透明登场",
+      messageType: MESSAGE_TYPE.TEXT,
+      annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+      webgal: { transform: { alpha: 0.6 } },
+    }), 10, false);
+
+    const sceneText = (renderer as any).sceneContextMap.get(10)?.text ?? "";
+    expect(sceneText).toContain("\"alpha\":0.6");
+    expect(sceneText).toContain("-enterDuration=120 -exitDuration=120 -next;");
+    expect(sceneText).not.toContain("\"rgl\"");
   });
 
   it("实时追加 TRPG 骰子时会生成 trpgDice 覆盖卡片", async () => {

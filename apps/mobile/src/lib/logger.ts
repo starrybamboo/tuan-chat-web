@@ -14,6 +14,7 @@ export type LogEntry = {
 const MAX_ENTRIES = 300;
 const LOG_EXPORT_DIR_NAME = "feedback-logs";
 const entries: LogEntry[] = [];
+const consoleProxy = globalThis.console;
 
 function push(entry: LogEntry) {
   entries.push(entry);
@@ -130,44 +131,44 @@ export function clearLogs(): void {
 }
 
 export function installGlobalHandlers(): void {
-  const originalConsoleError = console.error;
-  console.error = (...args: unknown[]) => {
+  const originalConsoleError = consoleProxy.error;
+  consoleProxy.error = (...args: unknown[]) => {
     push({
       timestamp: new Date().toISOString(),
       level: "error",
       message: formatConsoleArgs(args),
     });
-    originalConsoleError.apply(console, args);
+    originalConsoleError.apply(consoleProxy, args);
   };
 
-  const originalConsoleWarn = console.warn;
-  console.warn = (...args: unknown[]) => {
+  const originalConsoleWarn = consoleProxy.warn;
+  consoleProxy.warn = (...args: unknown[]) => {
     push({
       timestamp: new Date().toISOString(),
       level: "warn",
       message: formatConsoleArgs(args),
     });
-    originalConsoleWarn.apply(console, args);
+    originalConsoleWarn.apply(consoleProxy, args);
   };
 
-  const originalConsoleInfo = console.info;
-  console.info = (...args: unknown[]) => {
+  const originalConsoleInfo = consoleProxy.info;
+  consoleProxy.info = (...args: unknown[]) => {
     push({
       timestamp: new Date().toISOString(),
       level: "info",
       message: formatConsoleArgs(args),
     });
-    originalConsoleInfo.apply(console, args);
+    originalConsoleInfo.apply(consoleProxy, args);
   };
 
-  const originalConsoleLog = console.log;
-  console.log = (...args: unknown[]) => {
+  const originalConsoleLog = consoleProxy.log;
+  consoleProxy.log = (...args: unknown[]) => {
     push({
       timestamp: new Date().toISOString(),
       level: "info",
       message: formatConsoleArgs(args),
     });
-    originalConsoleLog.apply(console, args);
+    originalConsoleLog.apply(consoleProxy, args);
   };
 
   const handler = (event: { reason?: unknown }) => {

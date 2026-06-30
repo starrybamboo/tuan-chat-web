@@ -1,5 +1,5 @@
 import { Check, X } from "phosphor-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
 
 import type { MobileMessageAttachment } from "@/features/messages/mobileMessageAttachment";
@@ -158,7 +158,11 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
     () => avatars.map(avatar => avatar.avatarId).filter((avatarId): avatarId is number => typeof avatarId === "number" && avatarId > 0),
     [avatars],
   );
-  const allSelected = selectableAvatarIds.length > 0 && selectedAvatarIds.size === selectableAvatarIds.length;
+  const selectedVisibleAvatarIds = useMemo(() => {
+    const selectableAvatarIdSet = new Set(selectableAvatarIds);
+    return new Set([...selectedAvatarIds].filter(avatarId => selectableAvatarIdSet.has(avatarId)));
+  }, [selectableAvatarIds, selectedAvatarIds]);
+  const allSelected = selectableAvatarIds.length > 0 && selectedVisibleAvatarIds.size === selectableAvatarIds.length;
   const gridGap = Spacing.md;
   const avatarSize = gridWidth > 0
     ? Math.floor((gridWidth - gridGap * (GRID_COLUMNS - 1)) / GRID_COLUMNS)
@@ -167,28 +171,6 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
     () => buildAvatarGridItems(avatars, manageMode, selectionMode),
     [avatars, manageMode, selectionMode],
   );
-
-  useEffect(() => {
-    if (selectedAvatarIds.size === 0) {
-      return;
-    }
-
-    const validAvatarIds = new Set(selectableAvatarIds);
-    let changed = false;
-    const nextSelected = new Set<number>();
-    selectedAvatarIds.forEach((avatarId) => {
-      if (validAvatarIds.has(avatarId)) {
-        nextSelected.add(avatarId);
-      }
-      else {
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      setSelectedAvatarIds(nextSelected);
-    }
-  }, [selectableAvatarIds, selectedAvatarIds]);
 
   const handlePickImage = useCallback(async () => {
     if (uploading || cropSource) {
@@ -275,18 +257,18 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
   }, []);
 
   const handleBatchDelete = useCallback(() => {
-    if (selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending) {
+    if (selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending) {
       return;
     }
-    if (selectedAvatarIds.size >= selectableAvatarIds.length) {
+    if (selectedVisibleAvatarIds.size >= selectableAvatarIds.length) {
       Alert.alert("无法删除", "至少需要保留一个头像。");
       return;
     }
 
-    const avatarIdsToDelete = Array.from(selectedAvatarIds);
+    const avatarIdsToDelete = Array.from(selectedVisibleAvatarIds);
     const doDelete = async () => {
-      const nextAvatarId = avatars.find(avatar => avatar.avatarId && !selectedAvatarIds.has(avatar.avatarId))?.avatarId;
-      if (currentAvatarId && selectedAvatarIds.has(currentAvatarId) && nextAvatarId) {
+      const nextAvatarId = avatars.find(avatar => avatar.avatarId && !selectedVisibleAvatarIds.has(avatar.avatarId))?.avatarId;
+      if (currentAvatarId && selectedVisibleAvatarIds.has(currentAvatarId) && nextAvatarId) {
         onAvatarSelect?.(nextAvatarId);
       }
 
@@ -303,16 +285,16 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
     };
 
     if (Platform.OS === "web") {
-      if (window.confirm(`确定要删除选中的 ${selectedAvatarIds.size} 个头像吗？`))
+      if (window.confirm(`确定要删除选中的 ${selectedVisibleAvatarIds.size} 个头像吗？`))
         void doDelete();
     }
     else {
-      Alert.alert("删除头像", `确定要删除选中的 ${selectedAvatarIds.size} 个头像吗？`, [
+      Alert.alert("删除头像", `确定要删除选中的 ${selectedVisibleAvatarIds.size} 个头像吗？`, [
         { text: "取消", style: "cancel" },
         { text: "删除", style: "destructive", onPress: () => void doDelete() },
       ]);
     }
-  }, [avatars, currentAvatarId, deleteAvatarMutation, onAvatarSelect, roleId, selectableAvatarIds.length, selectedAvatarIds]);
+  }, [avatars, currentAvatarId, deleteAvatarMutation, onAvatarSelect, roleId, selectableAvatarIds.length, selectedVisibleAvatarIds]);
 
   const handleSingleDelete = useCallback((avatarId: number) => {
     if (!manageMode || deleteAvatarMutation.isPending) {
@@ -410,7 +392,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
 
     const avatar = item.avatar;
     const isCurrent = avatar.avatarId === currentAvatarId;
-    const isSelectedForDeletion = avatar.avatarId ? selectedAvatarIds.has(avatar.avatarId) : false;
+    const isSelectedForDeletion = avatar.avatarId ? selectedVisibleAvatarIds.has(avatar.avatarId) : false;
     return (
       <View style={styles.avatarWrapper}>
         {selectionMode && isSelectedForDeletion
@@ -483,7 +465,7 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
           : null}
       </View>
     );
-  }, [avatarSize, cropSource, currentAvatarId, handlePickImage, handleSingleDelete, manageMode, onAvatarSelect, selectableAvatarIds.length, selectedAvatarIds, selectionMode, theme.accent, theme.border, theme.danger, toggleAvatarSelection, uploading]);
+  }, [avatarSize, cropSource, currentAvatarId, handlePickImage, handleSingleDelete, manageMode, onAvatarSelect, selectableAvatarIds.length, selectedVisibleAvatarIds, selectionMode, theme.accent, theme.border, theme.danger, toggleAvatarSelection, uploading]);
 
   return (
     <View style={styles.section}>
@@ -503,12 +485,12 @@ export function AvatarGrid({ roleId, currentAvatarId, onAvatarSelect }: AvatarGr
                 </Pressable>
                 <Pressable
                   onPress={handleBatchDelete}
-                  disabled={selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending}
-                  style={{ opacity: selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending ? 0.5 : 1 }}
+                  disabled={selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending}
+                  style={{ opacity: selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending ? 0.5 : 1 }}
                   accessibilityLabel="删除选中头像"
                   accessibilityRole="button"
                 >
-                  <ThemedText style={{ color: selectedAvatarIds.size === 0 || deleteAvatarMutation.isPending ? theme.textSecondary : theme.danger }} type="small">
+                  <ThemedText style={{ color: selectedVisibleAvatarIds.size === 0 || deleteAvatarMutation.isPending ? theme.textSecondary : theme.danger }} type="small">
                     删除
                   </ThemedText>
                 </Pressable>

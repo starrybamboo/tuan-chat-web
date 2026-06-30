@@ -1,4 +1,5 @@
 import type { StateEventAtom } from "@tuanchat/domain/state-event";
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 import type { LayoutChangeEvent } from "react-native";
@@ -135,6 +136,7 @@ const styles = StyleSheet.create({
 type MapPanelProps = {
   currentRoleId: number | null;
   isKP: boolean;
+  messageResponses?: ChatMessageResponse[];
   messages: Message[];
   roomId: number | null;
   roomRoles: UserRole[];
@@ -295,7 +297,7 @@ function MapPanelWithRuntime({ roomStateRuntime: _roomStateRuntime, ...props }: 
   return <MapPanelContent {...props} runtime={runtime} />;
 }
 
-function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: MapPanelContentProps) {
+function MapPanelContent({ currentRoleId, isKP, messageResponses = [], runtime, roomId, roomRoles }: MapPanelContentProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -304,7 +306,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
     clearMapMutation,
     upsertMapMutation,
   } = useRoomDndMapMutations(roomId);
-  const sendRoomMessageMutation = useSendRoomMessageMutation(roomId);
+  const sendRoomMessageMutation = useSendRoomMessageMutation(roomId, 0, messageResponses);
 
   const map = roomDndMapQuery.data;
   const mapImageUrl = getRoomDndMapImageUrl(map);
@@ -533,7 +535,7 @@ function MapPanelContent({ currentRoleId, isKP, runtime, roomId, roomRoles }: Ma
       gridRows: rows,
       mapFileId: map.mapFileId,
     });
-  }, [map?.mapFileId, upsertMapMutation]);
+  }, [map, upsertMapMutation]);
 
   const handleGridRowsBlur = useCallback(() => {
     if (!gridRowsInput)

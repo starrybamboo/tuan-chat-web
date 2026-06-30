@@ -49,11 +49,11 @@ export function logNotificationTrace(event: string, detail?: TraceDetail): void 
   }
 
   if (detail === undefined) {
-    console.info(`[mobile-notify-chain] ${event}`);
+    console.warn(`[mobile-notify-chain] ${event}`);
     return;
   }
 
-  console.info(`[mobile-notify-chain] ${event}`, formatDetail(detail));
+  console.warn(`[mobile-notify-chain] ${event}`, formatDetail(detail));
 }
 
 export function logNotificationTraceError(event: string, error: unknown, detail?: TraceDetail): void {

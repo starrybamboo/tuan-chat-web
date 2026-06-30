@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { MediaImage } from "@/components/common/mediaImage";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useGetSpaceInfoQuery,
@@ -13,6 +15,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId);
   const setActiveSpaceId = spaceContext.setActiveSpaceId;
+  const spaceAvatarUploadId = useId().replace(/:/g, "");
 
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
@@ -86,6 +89,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   }, [space, buildSnapshot]);
 
   const updateSpaceMutation = useUpdateSpaceMutation();
+  const spaceAvatarPreview = formData.avatar || imageLowUrl(formData.avatarFileId) || undefined;
 
   const saveNow = async (params?: { data?: typeof formData }) => {
     if (!Number.isFinite(spaceId) || spaceId <= 0)
@@ -277,6 +281,51 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
               <div className="flex-1 min-w-0 min-h-0 overflow-y-auto p-4">
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+                  <div className="form-control">
+                    <div className="label">
+                      <span className="label-text">空间头像</span>
+                    </div>
+                    <ImgUploaderWithCopper
+                      mutate={(payload) => {
+                        if (typeof payload?.avatarFileId !== "number") {
+                          return;
+                        }
+                        setFormData(prev => ({
+                          ...prev,
+                          avatar: payload.avatarUrl || imageLowUrl(payload.avatarFileId),
+                          avatarFileId: payload.avatarFileId,
+                        }));
+                      }}
+                      fileName={`space-${spaceId}-avatar-${spaceAvatarUploadId}`}
+                      aspect={1}
+                      copperedCompressionPreset="avatarThumb"
+                    >
+                      <div className="
+                        group relative size-28 cursor-pointer overflow-hidden rounded-lg
+                        border border-base-300 bg-base-100 shadow-sm
+                      ">
+                        <MediaImage
+                          src={spaceAvatarPreview}
+                          alt={formData.name || "空间头像"}
+                          className="
+                            size-full object-cover transition duration-200
+                            group-hover:scale-105 group-hover:brightness-75
+                          "
+                          fallbackSrc="/favicon.ico"
+                        />
+                        <div className="
+                          absolute inset-0 flex items-center justify-center
+                          bg-black/20 opacity-0 transition duration-200
+                          group-hover:opacity-100
+                        ">
+                          <span className="rounded bg-base-100/85 px-2 py-1 text-xs font-medium text-base-content">
+                            更换头像
+                          </span>
+                        </div>
+                      </div>
+                    </ImgUploaderWithCopper>
+                  </div>
+
                   <label className="form-control">
                     <div className="label">
                       <span className="label-text">空间名称</span>

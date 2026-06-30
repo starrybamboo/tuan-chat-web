@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import type { RoomMessagesSyncResult } from "./roomMessageSync";
 
 import {
-  getFetchedRoomMessagesToPersist,
+  mergeRoomMessagesForQueryCache,
+  shouldHydrateRoomMessagesFromDisk,
   shouldResetCachedRoomMessages,
 } from "./roomMessageCacheState";
 
@@ -58,20 +59,42 @@ describe("useRoomMessagesQuery helpers", () => {
     expect(shouldResetCachedRoomMessages(nonEmptyResult, true)).toBe(false);
   });
 
-  it("仅持久化成功 fetch sync result 中的原始消息", () => {
-    const fetchedMessages = [createRoomMessage(1), createRoomMessage(2)];
-    const result: RoomMessagesSyncResult = {
-      messages: fetchedMessages,
-      mode: "delta",
-    };
+  it("query cache 会合并磁盘快照、当前 Query 和网络增量", () => {
+    const cached = createRoomMessage(1);
+    const current = createRoomMessage(2);
+    const fetched = createRoomMessage(3);
 
-    expect(getFetchedRoomMessagesToPersist(result, true)).toEqual(fetchedMessages);
-    expect(getFetchedRoomMessagesToPersist(result, false)).toEqual([]);
+    const merged = mergeRoomMessagesForQueryCache({
+      cachedMessages: [cached],
+      currentMessages: [current],
+      fetchedMessages: [fetched],
+      roomId: 7,
+    });
+
+    expect(merged.map(item => item.message.messageId)).toEqual([1, 2, 3]);
   });
 
-  it("query cache 合并后的数组形态不会再次触发完整历史落盘", () => {
-    const mergedMessages = [createRoomMessage(1), createRoomMessage(2), createRoomMessage(3)];
+  it("query cache 合并时忽略其他房间和未落库乐观消息", () => {
+    const existing = createRoomMessage(1);
+    const otherRoom = createRoomMessage(2);
+    otherRoom.message.roomId = 8;
+    const optimistic = createRoomMessage(-1);
+    optimistic.message.syncId = -1;
 
-    expect(getFetchedRoomMessagesToPersist(mergedMessages, true)).toEqual([]);
+    const merged = mergeRoomMessagesForQueryCache({
+      cachedMessages: [otherRoom, optimistic],
+      currentMessages: [existing],
+      fetchedMessages: [otherRoom, optimistic],
+      roomId: 7,
+    });
+
+    expect(merged).toBeInstanceOf(Array);
+    expect(merged.map(item => item.message.messageId)).toEqual([1]);
+  });
+
+  it("query 成功时不再从磁盘回灌旧缓存", () => {
+    expect(shouldHydrateRoomMessagesFromDisk("success", [createRoomMessage(1)])).toBe(false);
+    expect(shouldHydrateRoomMessagesFromDisk("pending", [createRoomMessage(1)])).toBe(true);
+    expect(shouldHydrateRoomMessagesFromDisk("error", [])).toBe(false);
   });
 });

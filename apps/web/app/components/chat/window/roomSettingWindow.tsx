@@ -1,4 +1,4 @@
-import { use, useCallback, useMemo, useState } from "react";
+import { use, useCallback, useId, useMemo, useState } from "react";
 
 import type { RoomSettingTab } from "@/components/chat/chatPage.types";
 import type { RoomContextType } from "@/components/chat/core/roomContext";
@@ -6,8 +6,11 @@ import type { RoomContextType } from "@/components/chat/core/roomContext";
 import { RoomContext } from "@/components/chat/core/roomContext";
 import MemberLists from "@/components/chat/shared/components/memberLists";
 import RoleList from "@/components/chat/shared/components/roleLists";
+import { MediaImage } from "@/components/common/mediaImage";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCropper";
 import { useGlobalUserId } from "@/components/globalContextProvider";
 import { BaselineArrowBackIosNew, MemberIcon, RoleListIcon, Setting } from "@/icons";
+import { imageLowUrl } from "@/utils/mediaUrl";
 import {
   useGetMemberListQuery,
   useGetRoomInfoQuery,
@@ -216,7 +219,7 @@ function RoomSettingWindow({ onClose, roomId: propRoomId, defaultTab = "role" }:
                                 roomId: propRoomId,
                                 name: draft.name.trim(),
                                 description: draft.description,
-                                avatarFileId: room.avatarFileId,
+                                avatarFileId: draft.avatarFileId,
                               }, {
                                 onSuccess: () => {
                                   if (opts?.closeAfter) {
@@ -257,10 +260,14 @@ function RoomSettingForm({
   onClose: () => void;
   onSave: (draft: { name: string; description: string; avatarFileId?: number }, opts?: { closeAfter?: boolean }) => void;
 }) {
+  const roomAvatarUploadId = useId().replace(/:/g, "");
   const [roomDraft, setRoomDraft] = useState({
     name: initialName,
     description: initialDescription,
+    avatar: imageLowUrl(avatarFileId),
+    avatarFileId,
   });
+  const roomAvatarPreview = roomDraft.avatar || imageLowUrl(roomDraft.avatarFileId) || undefined;
 
   const flushRoomRedundant = useCallback((opts?: { closeAfter?: boolean }) => {
     if (!roomId || !Number.isFinite(roomId) || roomId <= 0) {
@@ -269,12 +276,56 @@ function RoomSettingForm({
     onSave({
       name: roomDraft.name,
       description: roomDraft.description,
-      avatarFileId,
+      avatarFileId: roomDraft.avatarFileId,
     }, opts);
-  }, [avatarFileId, onSave, roomDraft.description, roomDraft.name, roomId]);
+  }, [onSave, roomDraft.avatarFileId, roomDraft.description, roomDraft.name, roomId]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <div className="form-control">
+        <div className="label">
+          <span className="label-text">房间头像</span>
+        </div>
+        <ImgUploaderWithCopper
+          mutate={(payload) => {
+            if (typeof payload?.avatarFileId !== "number") {
+              return;
+            }
+            setRoomDraft(prev => ({
+              ...prev,
+              avatar: payload.avatarUrl || imageLowUrl(payload.avatarFileId),
+              avatarFileId: payload.avatarFileId,
+            }));
+          }}
+          fileName={`room-${roomId ?? "draft"}-avatar-${roomAvatarUploadId}`}
+          aspect={1}
+          copperedCompressionPreset="avatarThumb"
+        >
+          <div className="
+            group relative size-28 cursor-pointer overflow-hidden rounded-lg
+            border border-base-300 bg-base-100 shadow-sm
+          ">
+            <MediaImage
+              src={roomAvatarPreview}
+              alt={roomDraft.name || "房间头像"}
+              className="
+                size-full object-cover transition duration-200
+                group-hover:scale-105 group-hover:brightness-75
+              "
+              fallbackSrc="/favicon.ico"
+            />
+            <div className="
+              absolute inset-0 flex items-center justify-center bg-black/20
+              opacity-0 transition duration-200 group-hover:opacity-100
+            ">
+              <span className="rounded bg-base-100/85 px-2 py-1 text-xs font-medium text-base-content">
+                更换头像
+              </span>
+            </div>
+          </div>
+        </ImgUploaderWithCopper>
+      </div>
+
       <label className="form-control">
         <div className="label">
           <span className="label-text">房间名称</span>

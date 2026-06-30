@@ -1,21 +1,36 @@
 import type { ImportChatRequestMessage } from "@/components/chat/utils/importChatMessageRequestBuilder";
+import type { StateEventAtom, StateEventVarOpKind } from "@/types/stateEvent";
 
 import { IMPORT_SPECIAL_ROLE_ID, normalizeSpeakerName } from "@/components/chat/utils/importChatText";
 import { ANNOTATION_IDS } from "@/types/messageAnnotations";
+import { buildCommandStateEventExtra, buildRoleStateEventScope, STATE_EVENT_VAR_OP, toApiMessageExtraWithStateEvent } from "@/types/stateEvent";
 
 import { MessageType } from "../../../../api/wsModels";
-
-type RglRoleRef = {
-  roleName: string;
-  avatarName: string;
-  speakerName?: string;
-};
+import {
+  DEFAULT_MULTI_DIALOG_POSITIONS,
+  FIGURE_POSITION_ANNOTATION_IDS,
+  buildHitpointContent,
+  extractTrailingAudioBoxes,
+  formatRglNumber,
+  isHpKey,
+  parseFiniteNumberText,
+  parseHitpointValue,
+  parsePositiveIntegerText,
+  type RglRoleRef,
+  readAnnotationPrefix,
+  resolveAnimationPayloadAnnotations,
+  resolveClearTargetAnnotations,
+  splitRglTuplePayload,
+  splitRoleRefs,
+  validateAnnotations,
+} from "./importRglCompatibility";
 
 type RglDialogEvent = {
   kind: "dialog";
   lineNumber: number;
   raw: string;
   role: RglRoleRef;
+  companionRoles?: RglRoleRef[];
   annotations: string[];
   content: string;
 };
@@ -54,7 +69,18 @@ type RglDiceEvent = {
   replyContents: string[];
 };
 
-export type RglImportEvent = RglDialogEvent | RglNarrationEvent | RglMaterialEvent | RglControlEvent | RglDiceEvent;
+type RglHitpointEvent = {
+  kind: "hitpoint";
+  lineNumber: number;
+  raw: string;
+  roleName: string;
+  op: StateEventVarOpKind;
+  value: number;
+  maxValue?: number;
+  content: string;
+};
+
+export type RglImportEvent = RglDialogEvent | RglNarrationEvent | RglMaterialEvent | RglControlEvent | RglDiceEvent | RglHitpointEvent;
 
 export type RglImportParseResult = {
   events: RglImportEvent[];
@@ -69,16 +95,22 @@ export type RglRoleResolveResult = {
   speakerName?: string;
 };
 
+export type RglRoleNameResolveResult = Pick<RglRoleResolveResult, "roleId" | "speakerName">;
+
 export type RglMaterialResolveResult = Pick<ImportChatRequestMessage, "content" | "messageType" | "extra" | "webgal" | "annotations">;
 
 export type RglImportCompileContext = {
   resolveRoleAvatar: (ref: RglRoleRef) => RglRoleResolveResult;
+  resolveRole?: (ref: { roleName: string }) => RglRoleNameResolveResult;
   resolveMaterial: (ref: { annotationId: string; materialName: string }) => RglMaterialResolveResult;
+};
+
+export type RglCompiledImportMessage = ImportChatRequestMessage & {
+  lineNumber: number;
 };
 
 type RglTextEvent = RglDialogEvent | RglNarrationEvent;
 
-const KNOWN_ANNOTATION_IDS = new Set<string>(Object.values(ANNOTATION_IDS));
 const MATERIAL_ANNOTATION_IDS = new Set<string>([
   ANNOTATION_IDS.BACKGROUND,
   ANNOTATION_IDS.BGM,
@@ -95,42 +127,6 @@ const EMPTY_PAYLOAD_CONTROL_ANNOTATION_IDS = new Set<string>([
   ANNOTATION_IDS.SCENE_EFFECT_SNOW,
   ANNOTATION_IDS.SCENE_EFFECT_SAKURA,
   ANNOTATION_IDS.SCENE_EFFECT_STOP,
-]);
-
-const RGL_ANNOTATION_ALIASES = new Map<string, string>([
-  ["background", ANNOTATION_IDS.BACKGROUND],
-  ["bg", ANNOTATION_IDS.BACKGROUND],
-  ["bgm", ANNOTATION_IDS.BGM],
-  ["music", ANNOTATION_IDS.BGM],
-  ["se", ANNOTATION_IDS.SE],
-  ["sound", ANNOTATION_IDS.SE],
-  ["cg", ANNOTATION_IDS.CG],
-  ["image", ANNOTATION_IDS.IMAGE_SHOW],
-  ["image.show", ANNOTATION_IDS.IMAGE_SHOW],
-  ["enter", ANNOTATION_IDS.FIGURE_ANIM_ENTER],
-  ["exit", ANNOTATION_IDS.FIGURE_ANIM_EXIT],
-  ["shake", ANNOTATION_IDS.FIGURE_ANIM_BA_SHAKE],
-  ["bigshake", ANNOTATION_IDS.FIGURE_ANIM_BA_BIGSHAKE],
-  ["jump", ANNOTATION_IDS.FIGURE_ANIM_BA_JUMP],
-  ["jump2", ANNOTATION_IDS.FIGURE_ANIM_BA_JUMP_TWICE],
-  ["down", ANNOTATION_IDS.FIGURE_ANIM_BA_DOWN],
-  ["left-falldown", ANNOTATION_IDS.FIGURE_ANIM_BA_LEFT_FALLDOWN],
-  ["right-falldown", ANNOTATION_IDS.FIGURE_ANIM_BA_RIGHT_FALLDOWN],
-  ["left", ANNOTATION_IDS.FIGURE_POS_LEFT],
-  ["left-center", ANNOTATION_IDS.FIGURE_POS_LEFT_CENTER],
-  ["center", ANNOTATION_IDS.FIGURE_POS_CENTER],
-  ["right-center", ANNOTATION_IDS.FIGURE_POS_RIGHT_CENTER],
-  ["right", ANNOTATION_IDS.FIGURE_POS_RIGHT],
-  ["clear", ANNOTATION_IDS.FIGURE_CLEAR],
-  ["clearfigure", ANNOTATION_IDS.FIGURE_CLEAR],
-  ["clearbg", ANNOTATION_IDS.BACKGROUND_CLEAR],
-  ["clearbackground", ANNOTATION_IDS.BACKGROUND_CLEAR],
-  ["clearbgm", ANNOTATION_IDS.BGM_CLEAR],
-  ["clearimage", ANNOTATION_IDS.IMAGE_CLEAR],
-  ["rain", ANNOTATION_IDS.SCENE_EFFECT_RAIN],
-  ["snow", ANNOTATION_IDS.SCENE_EFFECT_SNOW],
-  ["sakura", ANNOTATION_IDS.SCENE_EFFECT_SAKURA],
-  ["stop", ANNOTATION_IDS.SCENE_EFFECT_STOP],
 ]);
 
 function normalizeLineBreaks(text: string) {
@@ -150,71 +146,37 @@ function isRglSeparatorLine(value: string) {
   return /^-{3,}$/.test(value.trim());
 }
 
-function splitRoleRef(value: string): RglRoleRef | null {
-  const normalized = value.trim();
-  const aliasSeparatorIndex = normalized.indexOf("=");
-  if (aliasSeparatorIndex === 0) {
-    return null;
-  }
-  const speakerName = aliasSeparatorIndex > 0
-    ? normalized.slice(0, aliasSeparatorIndex).trim()
-    : undefined;
-  const roleRefText = aliasSeparatorIndex > 0
-    ? normalized.slice(aliasSeparatorIndex + 1).trim()
-    : normalized;
-  if (aliasSeparatorIndex > 0 && !speakerName) {
-    return null;
-  }
-
-  const roleRef = splitBoundRoleRef(roleRefText);
-  return roleRef ? { ...roleRef, ...(speakerName ? { speakerName } : {}) } : null;
-}
-
-function splitBoundRoleRef(value: string): Pick<RglRoleRef, "roleName" | "avatarName"> | null {
-  const normalized = value.trim();
-  const separatorIndex = normalized.lastIndexOf(".");
-  if (separatorIndex <= 0 || separatorIndex >= normalized.length - 1) {
-    return null;
-  }
-  const roleName = normalized.slice(0, separatorIndex).trim();
-  const avatarName = normalized.slice(separatorIndex + 1).trim();
-  return roleName && avatarName ? { roleName, avatarName } : null;
-}
-
-function normalizeRglAnnotationToken(annotationId: string) {
-  const normalized = annotationId.trim();
-  const alias = RGL_ANNOTATION_ALIASES.get(normalized.toLowerCase());
-  return alias ?? normalized;
-}
-
-function readAnnotationPrefix(text: string): { annotations: string[]; rest: string } | null {
-  let rest = text.trimStart();
-  const annotations: string[] = [];
-  while (rest.startsWith("<")) {
-    const closeIndex = rest.indexOf(">");
-    if (closeIndex <= 1) {
-      return null;
-    }
-    const annotationId = rest.slice(1, closeIndex).trim();
-    if (!annotationId) {
-      return null;
-    }
-    annotations.push(normalizeRglAnnotationToken(annotationId));
-    rest = rest.slice(closeIndex + 1).trimStart();
-  }
-  return { annotations, rest };
-}
-
-function validateAnnotations(annotations: string[]) {
-  return annotations.find(annotationId => !KNOWN_ANNOTATION_IDS.has(annotationId)) ?? null;
-}
-
 function parseColonPayload(rest: string): string | null {
   const trimmed = rest.trimStart();
   if (trimmed[0] !== ":" && trimmed[0] !== "：") {
     return null;
   }
   return trimmed.slice(1).trimStart();
+}
+
+function expandInlineAudioBoxEvents(events: RglImportEvent[]) {
+  const expanded: RglImportEvent[] = [];
+  for (const event of events) {
+    if (!isTextEvent(event)) {
+      expanded.push(event);
+      continue;
+    }
+
+    const extracted = extractTrailingAudioBoxes(event.content);
+    event.content = extracted.content;
+    expanded.push(event);
+    for (const audioRef of extracted.audioRefs) {
+      expanded.push({
+        kind: "material",
+        lineNumber: event.lineNumber,
+        raw: event.raw,
+        annotationId: ANNOTATION_IDS.SE,
+        annotations: [ANNOTATION_IDS.SE],
+        materialName: audioRef.materialName,
+      });
+    }
+  }
+  return expanded;
 }
 
 function hasExplicitSpeakerPrefix(content: string, roleName: string) {
@@ -258,7 +220,7 @@ function startsBracketStatement(line: string) {
     return false;
   }
   const roleToken = line.slice(1, closeIndex).trim();
-  if (!splitRoleRef(roleToken) && !isNarratorRoleName(roleToken)) {
+  if (!splitRoleRefs(roleToken) && !isNarratorRoleName(roleToken)) {
     return false;
   }
   const parsedAnnotations = readAnnotationPrefix(line.slice(closeIndex + 1));
@@ -310,6 +272,84 @@ function parseDiceReplyContents(lines: string[]) {
     .filter(Boolean);
 }
 
+function buildNativeDiceEvent(raw: string, lineNumber: number, payload: string): RglDiceEvent | { error: string } {
+  const parts = splitRglTuplePayload(payload);
+  if (parts.length !== 4) {
+    return { error: "原生 <dice> 需要写成 <dice>:(描述,面数,检定值,出目)" };
+  }
+  const [description = "", sidesText = "", checkText = "", rollText = ""] = parts;
+  const sides = parsePositiveIntegerText(sidesText);
+  const roll = parseFiniteNumberText(rollText);
+  if (!sides || roll == null) {
+    return { error: "原生 <dice> 的面数和出目必须是数字" };
+  }
+
+  const check = parseFiniteNumberText(checkText);
+  const command = [
+    description,
+    `【1d${sides}：】`,
+    check != null ? `检定值：${formatRglNumber(check)}` : undefined,
+  ].filter(Boolean).join("\n");
+  const resultParts = [`【1d${sides}:${formatRglNumber(roll)}】`];
+  if (check != null) {
+    resultParts.push(`目标 ${formatRglNumber(check)}`);
+    resultParts.push(roll <= check ? "成功" : "失败");
+  }
+  const replyContent = resultParts.join("；");
+  return {
+    kind: "dice",
+    lineNumber,
+    raw,
+    dicerSpeakerName: "骰娘",
+    command,
+    replyContent,
+    replyContents: [replyContent],
+  };
+}
+
+function buildHitpointEvent(raw: string, lineNumber: number, payload: string): RglHitpointEvent | { error: string } {
+  const parts = splitRglTuplePayload(payload);
+  if (parts.length < 2) {
+    return { error: "原生 <hitpoint> 至少需要角色和 HP 值" };
+  }
+
+  const roleName = parts[0] ?? "";
+  let parsedValue: ReturnType<typeof parseHitpointValue> = null;
+  if (parts.length >= 3 && isHpKey(parts[1] ?? "")) {
+    parsedValue = parseHitpointValue(parts[2] ?? "");
+    const maxValue = parts[3] ? parseFiniteNumberText(parts[3]) : null;
+    if (parsedValue && maxValue != null) {
+      parsedValue = { ...parsedValue, maxValue };
+    }
+  }
+  else if (parts.length >= 3 && parseFiniteNumberText(parts[1] ?? "") != null && parseFiniteNumberText(parts[2] ?? "") != null) {
+    const hp = parseFiniteNumberText(parts[1] ?? "")!;
+    const maxValue = parseFiniteNumberText(parts[2] ?? "")!;
+    parsedValue = { op: STATE_EVENT_VAR_OP.SET, value: hp, maxValue };
+  }
+  else {
+    parsedValue = parseHitpointValue(parts[1] ?? "");
+  }
+
+  if (!roleName.trim()) {
+    return { error: "原生 <hitpoint> 的角色不能为空" };
+  }
+  if (!parsedValue) {
+    return { error: "原生 <hitpoint> 的 HP 值无法解析" };
+  }
+
+  return {
+    kind: "hitpoint",
+    lineNumber,
+    raw,
+    roleName: roleName.trim(),
+    op: parsedValue.op,
+    value: parsedValue.value,
+    ...(parsedValue.maxValue != null ? { maxValue: parsedValue.maxValue } : {}),
+    content: buildHitpointContent(roleName.trim(), parsedValue),
+  };
+}
+
 function parseDialogLine(raw: string, lineNumber: number): RglDialogEvent | RglNarrationEvent | { error: string } | null {
   const trimmed = raw.trim();
   if (!trimmed.startsWith("[")) {
@@ -322,7 +362,8 @@ function parseDialogLine(raw: string, lineNumber: number): RglDialogEvent | RglN
   }
 
   const roleToken = trimmed.slice(1, closeIndex).trim();
-  const role = splitRoleRef(roleToken);
+  const roles = splitRoleRefs(roleToken);
+  const role = roles?.[0] ?? null;
   const isNarrator = !role && isNarratorRoleName(roleToken);
   if (!role && !isNarrator) {
     return { error: "角色标记必须使用 角色.差分；旁白可写 [旁白]" };
@@ -360,12 +401,13 @@ function parseDialogLine(raw: string, lineNumber: number): RglDialogEvent | RglN
     lineNumber,
     raw,
     role: role!,
+    ...(roles && roles.length > 1 ? { companionRoles: roles.slice(1) } : {}),
     annotations: parsedAnnotations.annotations,
     content,
   };
 }
 
-function parseAngleLine(raw: string, lineNumber: number): RglMaterialEvent | RglControlEvent | { error: string } | null {
+function parseAngleLine(raw: string, lineNumber: number): RglMaterialEvent | RglControlEvent | RglDiceEvent | RglHitpointEvent | RglNarrationEvent | { error: string } | null {
   const trimmed = raw.trim();
   if (!trimmed.startsWith("<")) {
     return null;
@@ -376,8 +418,46 @@ function parseAngleLine(raw: string, lineNumber: number): RglMaterialEvent | Rgl
     return { error: "annotation 格式错误" };
   }
 
+  const payload = parseColonPayload(parsedAnnotations.rest);
+  if (payload == null) {
+    return { error: "缺少冒号分隔素材名" };
+  }
+
   if (parsedAnnotations.annotations.includes("dice")) {
-    return { error: "<dice>: 必须按骰子块解析" };
+    if (isBlank(payload)) {
+      return { error: "<dice>: 必须按骰子块解析" };
+    }
+    return buildNativeDiceEvent(raw, lineNumber, payload);
+  }
+
+  if (parsedAnnotations.annotations.includes("hitpoint")) {
+    return buildHitpointEvent(raw, lineNumber, payload);
+  }
+
+  if (parsedAnnotations.annotations.includes("bubble")) {
+    if (isBlank(payload)) {
+      return { error: "<bubble> 需要正文" };
+    }
+    return {
+      kind: "narration",
+      lineNumber,
+      raw,
+      annotations: [],
+      content: payload.trim(),
+    };
+  }
+
+  if (parsedAnnotations.annotations.includes("animation")) {
+    const resolved = resolveAnimationPayloadAnnotations(payload);
+    if ("error" in resolved) {
+      return resolved;
+    }
+    return {
+      kind: "control",
+      lineNumber,
+      raw,
+      annotations: resolved.annotations,
+    };
   }
 
   const unknownAnnotation = validateAnnotations(parsedAnnotations.annotations);
@@ -385,13 +465,14 @@ function parseAngleLine(raw: string, lineNumber: number): RglMaterialEvent | Rgl
     return { error: `未知 annotation：${unknownAnnotation}` };
   }
 
-  const payload = parseColonPayload(parsedAnnotations.rest);
-  if (payload == null) {
-    return { error: "缺少冒号分隔素材名" };
-  }
-
   const firstAnnotation = parsedAnnotations.annotations[0] ?? "";
   if (!isBlank(payload)) {
+    if (firstAnnotation === ANNOTATION_IDS.FIGURE_CLEAR) {
+      const clearAnnotations = resolveClearTargetAnnotations(payload);
+      return clearAnnotations
+        ? { kind: "control", lineNumber, raw, annotations: clearAnnotations }
+        : { error: `未知 clear 对象：${payload.trim()}` };
+    }
     if (!MATERIAL_ANNOTATION_IDS.has(firstAnnotation)) {
       return { error: `annotation 不支持素材引用：${firstAnnotation}` };
     }
@@ -548,7 +629,7 @@ export function parseRglImportText(text: string): RglImportParseResult {
     index += 1;
   }
 
-  return { events, invalidLines };
+  return { events: expandInlineAudioBoxEvents(events), invalidLines };
 }
 
 export function summarizeRglImportEvents(events: RglImportEvent[]): RglImportEventSummary {
@@ -558,6 +639,7 @@ export function summarizeRglImportEvents(events: RglImportEvent[]): RglImportEve
     material: 0,
     control: 0,
     dice: 0,
+    hitpoint: 0,
   };
   for (const event of events) {
     summary[event.kind] += 1;
@@ -577,64 +659,169 @@ function mergeAnnotations(...annotationLists: Array<string[] | undefined>) {
   return result;
 }
 
+function withoutFigurePositionAnnotations(annotations: string[]) {
+  return annotations.filter(annotation => !FIGURE_POSITION_ANNOTATION_IDS.has(annotation));
+}
+
+function findFigurePositionAnnotation(annotations: string[]) {
+  for (let index = annotations.length - 1; index >= 0; index -= 1) {
+    const annotation = annotations[index];
+    if (annotation && FIGURE_POSITION_ANNOTATION_IDS.has(annotation)) {
+      return annotation;
+    }
+  }
+  return undefined;
+}
+
+function ensureAnnotations(annotations: string[], ...required: string[]) {
+  return mergeAnnotations(annotations, required.filter(Boolean));
+}
+
+function buildDialogWebgal(role: RglRoleRef) {
+  return role.opacity != null
+    ? { transform: { alpha: role.opacity } }
+    : undefined;
+}
+
+function buildDialogMessages(event: RglDialogEvent, context: RglImportCompileContext): ImportChatRequestMessage[] {
+  const hasExplicitPosition = Boolean(findFigurePositionAnnotation(event.annotations));
+  const shouldAssignDefaultPositions = Boolean(event.companionRoles?.length);
+  const mainAnnotations = shouldAssignDefaultPositions && !hasExplicitPosition
+    ? ensureAnnotations(event.annotations, DEFAULT_MULTI_DIALOG_POSITIONS[0] ?? ANNOTATION_IDS.FIGURE_POS_LEFT_CENTER)
+    : event.annotations;
+  const messages: ImportChatRequestMessage[] = [];
+
+  event.companionRoles?.forEach((role, companionIndex) => {
+    const resolved = context.resolveRoleAvatar(role);
+    const position = DEFAULT_MULTI_DIALOG_POSITIONS[companionIndex + 1]
+      ?? DEFAULT_MULTI_DIALOG_POSITIONS[DEFAULT_MULTI_DIALOG_POSITIONS.length - 1]
+      ?? ANNOTATION_IDS.FIGURE_POS_RIGHT;
+    messages.push({
+      roleId: resolved.roleId,
+      avatarId: resolved.avatarId,
+      speakerName: role.speakerName ?? resolved.speakerName ?? role.roleName,
+      content: "",
+      annotations: ensureAnnotations(withoutFigurePositionAnnotations(event.annotations), position, ANNOTATION_IDS.DIALOG_NEXT),
+      webgal: buildDialogWebgal(role),
+    });
+  });
+
+  const resolved = context.resolveRoleAvatar(event.role);
+  messages.push({
+    roleId: resolved.roleId,
+    avatarId: resolved.avatarId,
+    speakerName: event.role.speakerName ?? resolved.speakerName ?? event.role.roleName,
+    content: event.content,
+    annotations: mainAnnotations,
+    webgal: buildDialogWebgal(event.role),
+  });
+  return messages;
+}
+
+function resolveRoleByName(context: RglImportCompileContext, roleName: string): RglRoleNameResolveResult {
+  if (!context.resolveRole) {
+    throw new Error("当前 RGL 编译上下文不支持角色名解析");
+  }
+  return context.resolveRole({ roleName });
+}
+
+function buildHitpointStateEvents(event: RglHitpointEvent, roleId: number): StateEventAtom[] {
+  const events: StateEventAtom[] = [{
+    type: "varOp",
+    scope: buildRoleStateEventScope(roleId),
+    key: "hp",
+    op: event.op,
+    value: event.value,
+  }];
+  if (event.maxValue != null) {
+    events.push({
+      type: "varOp",
+      scope: buildRoleStateEventScope(roleId),
+      key: "hpm",
+      op: STATE_EVENT_VAR_OP.SET,
+      value: event.maxValue,
+    });
+  }
+  return events;
+}
+
+function compileRglImportEvent(
+  event: RglImportEvent,
+  context: RglImportCompileContext,
+): ImportChatRequestMessage[] {
+  switch (event.kind) {
+    case "dialog":
+      return buildDialogMessages(event, context);
+    case "narration":
+      return [{
+        roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
+        content: event.content,
+        messageType: MessageType.TEXT,
+        extra: {},
+        annotations: event.annotations,
+      }];
+    case "material": {
+      const resolved = context.resolveMaterial({
+        annotationId: event.annotationId,
+        materialName: event.materialName,
+      });
+      return [{
+        roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
+        content: resolved.content ?? "",
+        messageType: resolved.messageType,
+        extra: resolved.extra,
+        annotations: mergeAnnotations(event.annotations, resolved.annotations),
+        webgal: resolved.webgal,
+      }];
+    }
+    case "control":
+      return [{
+        roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
+        content: "",
+        messageType: MessageType.TEXT,
+        extra: {},
+        annotations: event.annotations,
+      }];
+    case "dice":
+      return [{
+        roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
+        content: event.command,
+        diceTurn: {
+          replyContent: event.replyContent,
+          replyContents: event.replyContents,
+          dicerSpeakerName: event.dicerSpeakerName,
+        },
+      }];
+    case "hitpoint": {
+      const resolved = resolveRoleByName(context, event.roleName);
+      return [{
+        roleId: resolved.roleId,
+        speakerName: resolved.speakerName ?? event.roleName,
+        content: event.content,
+        messageType: MessageType.STATE_EVENT,
+        extra: toApiMessageExtraWithStateEvent(
+          buildCommandStateEventExtra("hitpoint", buildHitpointStateEvents(event, resolved.roleId)),
+        ),
+      }];
+    }
+  }
+}
+
 export function compileRglImportEvents(
   events: RglImportEvent[],
   context: RglImportCompileContext,
 ): ImportChatRequestMessage[] {
-  return events.map((event) => {
-    switch (event.kind) {
-      case "dialog": {
-        const resolved = context.resolveRoleAvatar(event.role);
-        return {
-          roleId: resolved.roleId,
-          avatarId: resolved.avatarId,
-          speakerName: event.role.speakerName ?? resolved.speakerName ?? event.role.roleName,
-          content: event.content,
-          annotations: event.annotations,
-        };
-      }
-      case "narration":
-        return {
-          roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
-          content: event.content,
-          messageType: MessageType.TEXT,
-          extra: {},
-          annotations: event.annotations,
-        };
-      case "material": {
-        const resolved = context.resolveMaterial({
-          annotationId: event.annotationId,
-          materialName: event.materialName,
-        });
-        return {
-          roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
-          content: resolved.content ?? "",
-          messageType: resolved.messageType,
-          extra: resolved.extra,
-          annotations: mergeAnnotations(event.annotations, resolved.annotations),
-          webgal: resolved.webgal,
-        };
-      }
-      case "control":
-        return {
-          roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
-          content: "",
-          messageType: MessageType.TEXT,
-          extra: {},
-          annotations: event.annotations,
-        };
-      case "dice":
-        return {
-          roleId: IMPORT_SPECIAL_ROLE_ID.NARRATOR,
-          content: event.command,
-          diceTurn: {
-            replyContent: event.replyContent,
-            replyContents: event.replyContents,
-            dicerSpeakerName: event.dicerSpeakerName,
-          },
-        };
-    }
-  });
+  return events.flatMap(event => compileRglImportEvent(event, context));
+}
+
+export function compileRglImportEventsWithLineNumbers(
+  events: RglImportEvent[],
+  context: RglImportCompileContext,
+): RglCompiledImportMessage[] {
+  return events.flatMap(event =>
+    compileRglImportEvent(event, context)
+      .map(message => ({ ...message, lineNumber: event.lineNumber })),
+  );
 }
 
 export function parseAndCompileRglImportText(
