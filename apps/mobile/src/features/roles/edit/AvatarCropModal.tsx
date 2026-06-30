@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import { useCallback, useState } from "react";
 import { Dimensions, Modal, Pressable, StyleSheet, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -26,6 +26,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.85)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  modalRoot: {
+    flex: 1,
   },
   imageContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -240,45 +243,47 @@ export function AvatarCropModal({
 
   return (
     <Modal visible={visible} animationType="fade" statusBarTranslucent>
-      <View style={styles.overlay}>
-        <GestureDetector gesture={composedGesture}>
-          <Animated.View style={[styles.imageContainer]}>
-            <Animated.View style={animatedStyle}>
-              <Image
-                source={{ uri: imageUri }}
-                style={{ width: "100%", height: "100%" }}
-                contentFit="fill"
-              />
+      <GestureHandlerRootView style={styles.modalRoot}>
+        <View style={styles.overlay}>
+          <GestureDetector gesture={composedGesture}>
+            <Animated.View style={[styles.imageContainer]}>
+              <Animated.View style={animatedStyle}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="fill"
+                />
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
-        </GestureDetector>
+          </GestureDetector>
 
-        <View style={styles.maskTop} pointerEvents="none" />
-        <View style={styles.maskBottom} pointerEvents="none" />
-        <View style={styles.maskLeft} pointerEvents="none" />
-        <View style={styles.maskRight} pointerEvents="none" />
-        <View style={styles.cropFrame} pointerEvents="none" />
+          <View style={styles.maskTop} pointerEvents="none" />
+          <View style={styles.maskBottom} pointerEvents="none" />
+          <View style={styles.maskLeft} pointerEvents="none" />
+          <View style={styles.maskRight} pointerEvents="none" />
+          <View style={styles.cropFrame} pointerEvents="none" />
 
-        <View style={styles.actions}>
-          <Pressable disabled={isProcessing} onPress={handleCancel} style={styles.actionButton}>
-            <ThemedText style={{ color: isProcessing ? "rgba(255,255,255,0.45)" : "#fff" }}>取消</ThemedText>
-          </Pressable>
-          <Pressable disabled={isProcessing} onPress={handleConfirm} style={styles.actionButton}>
-            <ThemedText style={{ color: isProcessing ? theme.textSecondary : theme.accent }}>
-              {isProcessing ? "处理中…" : "确认"}
-            </ThemedText>
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable disabled={isProcessing} onPress={handleCancel} style={styles.actionButton}>
+              <ThemedText style={{ color: isProcessing ? "rgba(255,255,255,0.45)" : "#fff" }}>取消</ThemedText>
+            </Pressable>
+            <Pressable disabled={isProcessing} onPress={handleConfirm} style={styles.actionButton}>
+              <ThemedText style={{ color: isProcessing ? theme.textSecondary : theme.accent }}>
+                {isProcessing ? "处理中…" : "确认"}
+              </ThemedText>
+            </Pressable>
+          </View>
+          {errorMessage
+            ? (
+                <View style={{ bottom: 120, left: Spacing.xxl, position: "absolute", right: Spacing.xxl }}>
+                  <ThemedText style={{ color: "#fca5a5", textAlign: "center" }}>
+                    {errorMessage}
+                  </ThemedText>
+                </View>
+              )
+            : null}
         </View>
-        {errorMessage
-          ? (
-              <View style={{ bottom: 120, left: Spacing.xxl, position: "absolute", right: Spacing.xxl }}>
-                <ThemedText style={{ color: "#fca5a5", textAlign: "center" }}>
-                  {errorMessage}
-                </ThemedText>
-              </View>
-            )
-          : null}
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
