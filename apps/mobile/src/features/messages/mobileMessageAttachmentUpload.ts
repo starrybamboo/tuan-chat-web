@@ -4,6 +4,7 @@ import type {
   UploadedSoundMessageDraftAsset,
   UploadedVideoMessageDraftAsset,
 } from "@tuanchat/domain/message-draft";
+import type { MediaCompleteUploadRequest } from "@tuanchat/openapi-client/models/MediaCompleteUploadRequest";
 import type { MediaPrepareUploadResponse } from "@tuanchat/openapi-client/models/MediaPrepareUploadResponse";
 import type { MediaUploadTarget } from "@tuanchat/openapi-client/models/MediaUploadTarget";
 import type { TuanChat } from "@tuanchat/openapi-client/TuanChat";
@@ -16,6 +17,7 @@ import type { MobileMediaType as MediaType } from "../../lib/media-url";
 import type { ImageDerivativeResult } from "../../lib/mobile-image-compress";
 import type { MobileMessageAttachment } from "./mobileMessageAttachment";
 
+import { convertGifAttachmentToAnimatedWebp, isGifAttachment } from "../../lib/mobile-gif-to-webp";
 import { compressImageToWebp, IMAGE_COMPRESS_PROFILES } from "../../lib/mobile-image-compress";
 import { MOBILE_MESSAGE_ATTACHMENT_KIND } from "./mobileMessageAttachment";
 
@@ -25,6 +27,7 @@ const CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY = "originalCopy";
 type MediaUploadClient = Pick<TuanChat, "mediaController">;
 
 type UploadedMobileMessageAttachments = {
+  failedAttachments: MobileMessageAttachmentUploadFailure[];
   uploadedFiles: UploadedFileMessageDraftAsset[];
   uploadedImages: UploadedImageMessageDraftAsset[];
   uploadedSoundMessage: UploadedSoundMessageDraftAsset | null;
@@ -35,14 +38,49 @@ type UploadedMobileMessageAttachments = {
 export type MobileAttachmentUploadScene = 1 | 2 | 3 | 4;
 
 export type UploadMobileMessageAttachmentsOptions = {
+  /** 允许消息附件批次部分成功；头像、地图等有序单图调用默认保持原子失败。 */
+  allowPartialSuccess?: boolean;
   /** 上传业务场景：1 聊天室，2 表情包，3 角色差分，4 仓库图片。 */
   scene?: MobileAttachmentUploadScene;
 };
 
+export type MobileMessageAttachmentUploadFailure = {
+  attachment: MobileMessageAttachment;
+  error: Error;
+};
+
 type AttachmentUploadPayload = {
+  fileName: string;
+  mimeType: string;
   sha256: string;
   size: number;
+  uri: string;
   webBlob?: Blob;
+};
+
+type ResolvedUploadMedia = {
+  derivatives: ImageDerivatives | null;
+  original: AttachmentUploadPayload;
+  uploadedQualities?: string[];
+};
+
+type UploadTargetRetryPolicy = {
+  baseDelayMs: number;
+  maxAttempts: number;
+  maxDelayMs: number;
+};
+
+type FailedUploadTarget = {
+  credentialExpired?: boolean;
+  error: string;
+  quality: string;
+  retryable: boolean;
+};
+
+const DEFAULT_UPLOAD_TARGET_RETRY_POLICY: UploadTargetRetryPolicy = {
+  baseDelayMs: 300,
+  maxAttempts: 3,
+  maxDelayMs: 3000,
 };
 
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -135,6 +173,24 @@ const SHA256_K = [
   0xC67178F2,
 ];
 
+class MobileTargetUploadError extends Error {
+  public readonly credentialExpired: boolean;
+  public readonly retryable: boolean;
+  public readonly status?: number;
+
+  constructor(message: string, options: {
+    credentialExpired?: boolean;
+    retryable?: boolean;
+    status?: number;
+  } = {}) {
+    super(message);
+    this.name = "MobileTargetUploadError";
+    this.credentialExpired = options.credentialExpired ?? false;
+    this.retryable = options.retryable ?? false;
+    this.status = options.status;
+  }
+}
+
 function getFileExtension(fileName: string): string | null {
   const matchedExtension = fileName.toLowerCase().match(/\.([a-z0-9]+)$/);
   return matchedExtension?.[1] ?? null;
@@ -223,9 +279,13 @@ async function readAttachmentWebBlob(attachment: MobileMessageAttachment): Promi
 async function resolveWebAttachmentUploadPayload(attachment: MobileMessageAttachment): Promise<AttachmentUploadPayload> {
   const webBlob = await readAttachmentWebBlob(attachment);
   const bytes = new Uint8Array(await webBlob.arrayBuffer());
+  const mimeType = resolveAttachmentMimeType(attachment);
   return {
+    fileName: attachment.fileName,
+    mimeType,
     sha256: await calculateSha256(bytes),
     size: assertPositiveSize(webBlob.size),
+    uri: attachment.uri,
     webBlob,
   };
 }
@@ -239,9 +299,13 @@ async function resolveNativeAttachmentUploadPayload(attachment: MobileMessageAtt
     throw new Error("附件文件不存在。");
   }
 
+  const mimeType = resolveAttachmentMimeType(attachment);
   return {
+    fileName: attachment.fileName,
+    mimeType,
     sha256: await calculateSha256(base64ToBytes(base64)),
     size: assertPositiveSize(info.size),
+    uri: attachment.uri,
   };
 }
 
@@ -401,7 +465,7 @@ async function uploadAttachmentBinary(
       body: blob,
     });
     if (!response.ok) {
-      throw new Error(`文件传输失败: ${response.status}`);
+      throw createUploadStatusError(response.status);
     }
     return;
   }
@@ -412,25 +476,90 @@ async function uploadAttachmentBinary(
     uploadType: FileSystemUploadType.BINARY_CONTENT,
   });
   if (!response || response.status < 200 || response.status >= 300) {
-    throw new Error(`文件传输失败: ${response?.status ?? "unknown"}`);
+    throw createUploadStatusError(response?.status);
   }
+}
+
+function createUploadStatusError(status: number | undefined): MobileTargetUploadError {
+  const credentialExpired = status === 401 || status === 403;
+  return new MobileTargetUploadError(`文件传输失败: ${status ?? "unknown"}`, {
+    credentialExpired,
+    retryable: !credentialExpired && isRetryableUploadStatus(status),
+    status,
+  });
+}
+
+function isRetryableUploadStatus(status: number | undefined): boolean {
+  return status === 408 || status === 429 || (typeof status === "number" && status >= 500);
+}
+
+function normalizeTargetUploadError(error: unknown): MobileTargetUploadError {
+  if (error instanceof MobileTargetUploadError) {
+    return error;
+  }
+  if (error instanceof Error) {
+    return new MobileTargetUploadError(error.message || "文件传输失败", { retryable: false });
+  }
+  return new MobileTargetUploadError(String(error || "文件传输失败"), { retryable: false });
+}
+
+async function sleepRetryDelay(delayMs: number): Promise<void> {
+  if (delayMs <= 0) {
+    return;
+  }
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+}
+
+function resolveRetryDelayMs(failedAttempt: number, policy: UploadTargetRetryPolicy): number {
+  const exponentialDelay = policy.baseDelayMs * 2 ** Math.max(0, failedAttempt - 1);
+  return Math.min(policy.maxDelayMs, exponentialDelay);
+}
+
+async function uploadAttachmentBinaryWithRetry(
+  target: MediaUploadTarget,
+  fileUri: string,
+  options: { retryPolicy?: UploadTargetRetryPolicy; webBlob?: Blob } = {},
+): Promise<void> {
+  const retryPolicy = options.retryPolicy ?? DEFAULT_UPLOAD_TARGET_RETRY_POLICY;
+  let lastError: MobileTargetUploadError | null = null;
+  for (let attempt = 1; attempt <= retryPolicy.maxAttempts; attempt++) {
+    try {
+      await uploadAttachmentBinary(target, fileUri, { webBlob: options.webBlob });
+      return;
+    }
+    catch (error) {
+      const uploadError = normalizeTargetUploadError(error);
+      lastError = uploadError;
+      const canRetryOldUrl = uploadError.retryable
+        && !uploadError.credentialExpired
+        && attempt < retryPolicy.maxAttempts;
+      if (!canRetryOldUrl) {
+        throw uploadError;
+      }
+      await sleepRetryDelay(resolveRetryDelayMs(attempt, retryPolicy));
+    }
+  }
+  throw lastError ?? new MobileTargetUploadError("文件传输失败", { retryable: false });
 }
 
 async function prepareMediaUpload(
   client: MediaUploadClient,
-  attachment: MobileMessageAttachment,
   payload: AttachmentUploadPayload,
   mimeType: string,
   scene: MobileAttachmentUploadScene,
   useOriginalCopy: boolean,
+  uploadedQualities?: string[],
 ): Promise<MediaPrepareUploadResponse> {
   try {
     const metadata: Record<string, unknown> = { clientPlatform: Platform.OS };
     if (useOriginalCopy) {
       metadata.clientVariantStrategy = CLIENT_VARIANT_STRATEGY_ORIGINAL_COPY;
     }
+    if (uploadedQualities?.length) {
+      metadata.uploadedQualities = uploadedQualities;
+    }
     const result = await client.mediaController.prepareUpload({
-      fileName: attachment.fileName,
+      fileName: payload.fileName,
       scene,
       sha256: payload.sha256,
       sizeBytes: payload.size,
@@ -449,9 +578,13 @@ async function prepareMediaUpload(
   }
 }
 
-async function completeMediaUpload(client: MediaUploadClient, sessionId: number): Promise<void> {
+async function completeMediaUpload(
+  client: MediaUploadClient,
+  sessionId: number,
+  request: MediaCompleteUploadRequest,
+): Promise<void> {
   try {
-    const result = await client.mediaController.completeUpload(sessionId);
+    const result = await client.mediaController.completeUpload(sessionId, request);
     if (!result.success) {
       throw new Error(result.errMsg || "完成媒体上传失败。");
     }
@@ -466,12 +599,183 @@ type ImageDerivatives = {
   medium: ImageDerivativeResult;
 };
 
+type UploadableTarget = {
+  quality: string;
+  target: MediaUploadTarget;
+  uri: string;
+  webBlob?: Blob;
+};
+
 async function generateImageDerivatives(uri: string): Promise<ImageDerivatives> {
   const [low, medium] = await Promise.all([
-    compressImageToWebp(uri, IMAGE_COMPRESS_PROFILES.low),
-    compressImageToWebp(uri, IMAGE_COMPRESS_PROFILES.medium),
+    compressImageToWebp(uri, IMAGE_COMPRESS_PROFILES.low, { quality: "low" }),
+    compressImageToWebp(uri, IMAGE_COMPRESS_PROFILES.medium, { quality: "medium" }),
   ]);
   return { low, medium };
+}
+
+async function resolveWebImagePayload(result: ImageDerivativeResult): Promise<AttachmentUploadPayload> {
+  const webBlob = await readWebBlob(result.uri);
+  const bytes = new Uint8Array(await webBlob.arrayBuffer());
+  return {
+    fileName: result.fileName,
+    mimeType: result.mimeType,
+    sha256: await calculateSha256(bytes),
+    size: assertPositiveSize(webBlob.size),
+    uri: result.uri,
+    webBlob,
+  };
+}
+
+async function resolveNativeImagePayload(result: ImageDerivativeResult): Promise<AttachmentUploadPayload> {
+  const base64 = await readAsStringAsync(result.uri, { encoding: EncodingType.Base64 });
+  return {
+    fileName: result.fileName,
+    mimeType: result.mimeType,
+    sha256: await calculateSha256(base64ToBytes(base64)),
+    size: assertPositiveSize(result.size),
+    uri: result.uri,
+  };
+}
+
+async function resolveImagePayload(result: ImageDerivativeResult): Promise<AttachmentUploadPayload> {
+  if (Platform.OS === "web") {
+    return await resolveWebImagePayload(result);
+  }
+  return await resolveNativeImagePayload(result);
+}
+
+async function resolveUploadMedia(attachment: MobileMessageAttachment): Promise<ResolvedUploadMedia> {
+  const mimeType = resolveAttachmentMimeType(attachment);
+  const mediaType = inferMediaTypeFromMimeType(mimeType);
+  if (mediaType !== "image") {
+    return {
+      original: await resolveAttachmentUploadPayload(attachment),
+      derivatives: null,
+    };
+  }
+
+  if (isGifAttachment({ fileName: attachment.fileName, mimeType })) {
+    const original = await convertGifAttachmentToAnimatedWebp(attachment);
+    return {
+      original: await resolveImagePayload(original),
+      derivatives: null,
+      uploadedQualities: ["original"],
+    };
+  }
+
+  const original = await compressImageToWebp(attachment.uri, IMAGE_COMPRESS_PROFILES.original, {
+    fileName: attachment.fileName,
+    quality: "original",
+  });
+  const payloadPromise = resolveImagePayload(original);
+  const derivativesPromise = generateImageDerivatives(original.uri);
+  const [payload, derivatives] = await Promise.all([payloadPromise, derivativesPromise]);
+
+  return {
+    original: payload,
+    derivatives,
+    uploadedQualities: ["original", "low", "medium"],
+  };
+}
+
+function resolveUploadableTargets(
+  uploadTargets: Record<string, MediaUploadTarget>,
+  payload: AttachmentUploadPayload,
+  derivatives: ImageDerivatives | null,
+  uploadedQualities?: string[],
+): UploadableTarget[] {
+  const allowedQualities = uploadedQualities?.length ? new Set(uploadedQualities) : null;
+  return Object.entries(uploadTargets).flatMap(([quality, target]) => {
+    if (allowedQualities && !allowedQualities.has(quality)) {
+      return [];
+    }
+    if (derivatives && (quality === "low" || quality === "medium")) {
+      return [{
+        quality,
+        target,
+        uri: derivatives[quality].uri,
+      }];
+    }
+    if (derivatives && quality !== "original") {
+      return [];
+    }
+    return [{
+      quality,
+      target,
+      uri: payload.uri,
+      webBlob: payload.webBlob,
+    }];
+  });
+}
+
+function resolvePrimaryTarget(targets: UploadableTarget[]): UploadableTarget {
+  return targets.find(target => target.quality === "original") ?? targets[0]!;
+}
+
+async function uploadDerivativeTarget(target: UploadableTarget): Promise<
+  | { status: "succeeded"; quality: string }
+  | { failedTarget: FailedUploadTarget; status: "failed"; quality: string }
+> {
+  try {
+    await uploadAttachmentBinaryWithRetry(target.target, target.uri, { webBlob: target.webBlob });
+    return { status: "succeeded", quality: target.quality };
+  }
+  catch (error) {
+    const uploadError = normalizeTargetUploadError(error);
+    return {
+      status: "failed",
+      quality: target.quality,
+      failedTarget: {
+        credentialExpired: uploadError.credentialExpired || undefined,
+        error: uploadError.message,
+        quality: target.quality,
+        retryable: uploadError.retryable,
+      },
+    };
+  }
+}
+
+async function uploadPreparedTargetsAndComplete(
+  client: MediaUploadClient,
+  sessionId: number,
+  targets: UploadableTarget[],
+): Promise<void> {
+  if (targets.length === 0) {
+    throw new Error("媒体上传响应缺少上传目标。");
+  }
+
+  const primary = resolvePrimaryTarget(targets);
+  await uploadAttachmentBinaryWithRetry(primary.target, primary.uri, { webBlob: primary.webBlob });
+
+  const availableQualities = [primary.quality];
+  const pendingQualities: string[] = [];
+  const failedQualities: string[] = [];
+  const failedTargets: FailedUploadTarget[] = [];
+  const derivativeResults = await Promise.all(targets
+    .filter(target => target !== primary)
+    .map(uploadDerivativeTarget));
+
+  for (const result of derivativeResults) {
+    if (result.status === "succeeded") {
+      availableQualities.push(result.quality);
+      continue;
+    }
+    failedTargets.push(result.failedTarget);
+    if (result.failedTarget.retryable || result.failedTarget.credentialExpired) {
+      pendingQualities.push(result.quality);
+      continue;
+    }
+    failedQualities.push(result.quality);
+  }
+
+  await completeMediaUpload(client, sessionId, {
+    availableQualities,
+    pendingQualities,
+    failedQualities,
+    degraded: pendingQualities.length > 0 || failedQualities.length > 0,
+    failedTargets,
+  });
 }
 
 async function uploadAttachmentThroughMediaService(
@@ -479,31 +783,21 @@ async function uploadAttachmentThroughMediaService(
   attachment: MobileMessageAttachment,
   scene: MobileAttachmentUploadScene,
 ): Promise<{ fileId: number; mediaType: MediaType; size: number }> {
-  const mimeType = resolveAttachmentMimeType(attachment);
-  const payload = await resolveAttachmentUploadPayload(attachment);
-  const mediaType = inferMediaTypeFromMimeType(mimeType);
-  const isImage = mediaType === "image";
+  const { derivatives, original: payload, uploadedQualities } = await resolveUploadMedia(attachment);
 
-  const derivatives = isImage ? await generateImageDerivatives(attachment.uri) : null;
-
-  const prepared = await prepareMediaUpload(client, attachment, payload, mimeType, scene, false);
+  const prepared = await prepareMediaUpload(client, payload, payload.mimeType, scene, false, uploadedQualities);
   const fileId = prepared.fileId!;
-  const resolvedMediaType = normalizeMediaType(prepared.mediaType, mimeType);
+  const resolvedMediaType = normalizeMediaType(prepared.mediaType, payload.mimeType);
 
   if (prepared.uploadRequired) {
     if (!prepared.sessionId || !prepared.uploadTargets) {
       throw new Error("媒体上传响应缺少上传会话。");
     }
-    await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
-      if (isImage && derivatives && (quality === "low" || quality === "medium")) {
-        const derivativeUri = derivatives[quality].uri;
-        await uploadAttachmentBinary(target, derivativeUri);
-      }
-      else {
-        await uploadAttachmentBinary(target, attachment.uri, { webBlob: payload.webBlob });
-      }
-    }));
-    await completeMediaUpload(client, prepared.sessionId);
+    await uploadPreparedTargetsAndComplete(
+      client,
+      prepared.sessionId,
+      resolveUploadableTargets(prepared.uploadTargets, payload, derivatives, uploadedQualities),
+    );
   }
 
   return {
@@ -519,6 +813,7 @@ export async function uploadMobileMessageAttachments(
   attachments: MobileMessageAttachment[],
   options: UploadMobileMessageAttachmentsOptions = {},
 ): Promise<UploadedMobileMessageAttachments> {
+  const failedAttachments: MobileMessageAttachmentUploadFailure[] = [];
   const uploadedFiles: UploadedFileMessageDraftAsset[] = [];
   const uploadedImages: UploadedImageMessageDraftAsset[] = [];
   const uploadedVideos: UploadedVideoMessageDraftAsset[] = [];
@@ -526,13 +821,29 @@ export async function uploadMobileMessageAttachments(
 
   const scene = options.scene ?? DEFAULT_ATTACHMENT_UPLOAD_SCENE;
   const uploadedAttachments = await Promise.all(attachments.map(async (attachment) => {
-    return {
-      attachment,
-      uploaded: await uploadAttachmentThroughMediaService(client, attachment, scene),
-    };
+    try {
+      return {
+        attachment,
+        uploaded: await uploadAttachmentThroughMediaService(client, attachment, scene),
+      };
+    }
+    catch (error) {
+      if (!options.allowPartialSuccess) {
+        throw error;
+      }
+      failedAttachments.push({
+        attachment,
+        error: error instanceof Error ? error : new Error(String(error || "附件上传失败。")),
+      });
+      return null;
+    }
   }));
 
-  for (const { attachment, uploaded } of uploadedAttachments) {
+  for (const item of uploadedAttachments) {
+    if (!item) {
+      continue;
+    }
+    const { attachment, uploaded } = item;
     if (attachment.kind === MOBILE_MESSAGE_ATTACHMENT_KIND.IMAGE) {
       if (!(attachment.width && attachment.width > 0) || !(attachment.height && attachment.height > 0)) {
         throw new Error("读取图片尺寸失败。");
@@ -575,6 +886,7 @@ export async function uploadMobileMessageAttachments(
   }
 
   return {
+    failedAttachments,
     uploadedFiles,
     uploadedImages,
     uploadedSoundMessage,

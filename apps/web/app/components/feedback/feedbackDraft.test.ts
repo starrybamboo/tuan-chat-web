@@ -1,13 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { consumeFeedbackDraft, writeFeedbackDraft } from "@/components/feedback/feedbackDraft";
+import {
+  clearFeedbackDraft,
+  consumeFeedbackDraft,
+  readFeedbackDraft,
+  writeFeedbackDraft,
+} from "@/components/feedback/feedbackDraft";
 
 describe("feedbackDraft", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("把错误反馈草稿写入 sessionStorage，并在读取后清除", () => {
+  it("把错误反馈草稿写入 sessionStorage，并支持单独读取和清除", () => {
     const storage = new Map<string, string>();
     vi.stubGlobal("window", {
       sessionStorage: {
@@ -23,11 +28,14 @@ describe("feedbackDraft", () => {
       issueType: 1,
     })).toBe(true);
 
-    expect(consumeFeedbackDraft()).toEqual({
+    expect(readFeedbackDraft()).toEqual({
       title: "页面报错",
       content: "已下载诊断日志",
       issueType: 1,
     });
+
+    clearFeedbackDraft();
+    expect(readFeedbackDraft()).toBeNull();
     expect(consumeFeedbackDraft()).toBeNull();
   });
 

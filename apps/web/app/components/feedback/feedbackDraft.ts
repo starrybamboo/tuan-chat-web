@@ -33,14 +33,13 @@ export function writeFeedbackDraft(draft: FeedbackDraft): boolean {
   }
 }
 
-export function consumeFeedbackDraft(): FeedbackDraft | null {
+export function readFeedbackDraft(): FeedbackDraft | null {
   if (typeof window === "undefined") {
     return null;
   }
 
   try {
     const rawDraft = window.sessionStorage.getItem(FEEDBACK_DRAFT_STORAGE_KEY);
-    window.sessionStorage.removeItem(FEEDBACK_DRAFT_STORAGE_KEY);
     if (!rawDraft) {
       return null;
     }
@@ -51,4 +50,23 @@ export function consumeFeedbackDraft(): FeedbackDraft | null {
   catch {
     return null;
   }
+}
+
+export function clearFeedbackDraft(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(FEEDBACK_DRAFT_STORAGE_KEY);
+  }
+  catch {
+    // ignore
+  }
+}
+
+export function consumeFeedbackDraft(): FeedbackDraft | null {
+  const draft = readFeedbackDraft();
+  clearFeedbackDraft();
+  return draft;
 }

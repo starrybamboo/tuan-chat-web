@@ -29,11 +29,9 @@ const currentList: Initiative[] = [
 ];
 
 describe("initiativeListEvents", () => {
-  it("导入角色时生成先攻、角色 HP 变量事件", () => {
+  it("导入角色时只生成先攻变量事件", () => {
     const events = buildImportRoleInitiativeEvents({
-      hp: 21,
       initiative: 18,
-      maxHp: 30,
       name: "艾拉",
       roleId: 3,
     });
@@ -45,20 +43,6 @@ describe("initiativeListEvents", () => {
         key: "initiative",
         op: STATE_EVENT_VAR_OP.SET,
         value: 18,
-      },
-      {
-        type: "varOp",
-        scope: buildRoleStateEventScope(3),
-        key: "hp",
-        op: STATE_EVENT_VAR_OP.SET,
-        value: 21,
-      },
-      {
-        type: "varOp",
-        scope: buildRoleStateEventScope(3),
-        key: "maxHp",
-        op: STATE_EVENT_VAR_OP.SET,
-        value: 30,
       },
     ]);
   });
@@ -87,6 +71,18 @@ describe("initiativeListEvents", () => {
         key: "hp",
         op: STATE_EVENT_VAR_OP.SET,
         value: 9,
+      },
+    ]);
+  });
+
+  it("编辑角色绑定参与者 HP 上限时写入 hpm", () => {
+    expect(buildUpdateInitiativeEvents(currentList[1], { maxHp: 14 })).toEqual([
+      {
+        type: "varOp",
+        scope: buildRoleStateEventScope(3),
+        key: "hpm",
+        op: STATE_EVENT_VAR_OP.SET,
+        value: 14,
       },
     ]);
   });

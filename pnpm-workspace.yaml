@@ -1,3 +1,16 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+nodeLinker: hoisted
+virtualStoreDir: .pnpm
+
+allowBuilds:
+  dtrace-provider: true
+  electron: true
+  electron-winstaller: true
+  esbuild: true
+  sharp: true
+
+overrides:
+  "@electron/node-gyp": "10.2.0-electron.1"

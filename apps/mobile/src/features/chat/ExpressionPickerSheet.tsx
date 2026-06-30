@@ -17,6 +17,7 @@ import { AvatarCropModal } from "@/features/roles/edit/AvatarCropModal";
 import { useTheme } from "@/hooks/use-theme";
 import { mobileApiClient } from "@/lib/api";
 import { mediaFileUrl } from "@/lib/media-url";
+import { isGifAttachment } from "@/lib/mobile-gif-to-webp";
 
 import { buildStickerCreateRequest, createStickerCropFileName, getStickerUploadErrorMessage } from "./expressionStickerUpload";
 import { useCreateStickerMutation } from "./useStickerMutations";
@@ -109,6 +110,28 @@ export function ExpressionPickerSheet({
         return;
       }
 
+      if (isGifAttachment(picked)) {
+        setUploading(true);
+        try {
+          const uploaded = await uploadMobileMessageAttachments(mobileApiClient, [picked], { scene: STICKER_UPLOAD_SCENE });
+          const uploadedImage = uploaded.uploadedImages[0];
+          if (!uploadedImage) {
+            throw new Error("表情包上传失败。");
+          }
+
+          await createStickerMutation.mutateAsync(buildStickerCreateRequest(
+            { fileName: picked.fileName, mimeType: "image/webp" },
+            { ...uploadedImage, fileName: picked.fileName },
+          ));
+          setUploadStatusMessage("上传完成，正在刷新");
+          await userStickersQuery.refetch();
+        }
+        finally {
+          setUploading(false);
+        }
+        return;
+      }
+
       setCropSource({
         ...picked,
         width: Math.max(1, picked.width ?? STICKER_CROP_SIZE),
@@ -118,7 +141,7 @@ export function ExpressionPickerSheet({
     catch (error) {
       setUploadErrorMessage(getStickerUploadErrorMessage(error));
     }
-  }, [cropSource, uploading]);
+  }, [createStickerMutation, cropSource, uploading, userStickersQuery]);
 
   const handleCropCancel = useCallback(() => {
     if (!uploading) {

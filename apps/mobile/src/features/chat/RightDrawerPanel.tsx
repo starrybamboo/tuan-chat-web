@@ -1,3 +1,4 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { Room } from "@tuanchat/openapi-client/models/Room";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
@@ -62,15 +63,12 @@ type RightDrawerPanelProps = {
   currentUserId: number | null;
   currentRoleId: number | null;
   isKP: boolean;
-  isSendingCombatRoundEvent: boolean;
   isStateCommandMode: boolean;
+  messageResponses: ChatMessageResponse[];
   messages: Message[];
-  onAdvanceTurn: () => void;
   onClose: () => void;
   onChangeActiveTab: (tab: RightDrawerTabKey) => void;
-  onEndCombat: () => void;
   onEnterStateCommandMode: () => void;
-  onStartCombat: () => void;
   roomId: number | null;
   roomRoles: UserRole[];
   roomStateRuntime?: RoomStateRuntimeValue;
@@ -99,15 +97,12 @@ function RightDrawerPanelWithRuntime({
   currentRoleId,
   currentUserId,
   isKP,
-  isSendingCombatRoundEvent,
   isStateCommandMode,
+  messageResponses,
   messages,
-  onAdvanceTurn,
   onChangeActiveTab,
   onClose,
-  onEndCombat,
   onEnterStateCommandMode,
-  onStartCombat,
   roomId,
   roomRoles,
   ruleId,
@@ -128,15 +123,12 @@ function RightDrawerPanelWithRuntime({
       currentRoleId={currentRoleId}
       currentUserId={currentUserId}
       isKP={isKP}
-      isSendingCombatRoundEvent={isSendingCombatRoundEvent}
       isStateCommandMode={isStateCommandMode}
+      messageResponses={messageResponses}
       messages={messages}
-      onAdvanceTurn={onAdvanceTurn}
       onChangeActiveTab={onChangeActiveTab}
       onClose={onClose}
-      onEndCombat={onEndCombat}
       onEnterStateCommandMode={onEnterStateCommandMode}
-      onStartCombat={onStartCombat}
       roomId={roomId}
       roomRoles={roomRoles}
       roomStateRuntime={roomStateRuntime}
@@ -153,15 +145,12 @@ function RightDrawerPanelContent({
   currentUserId,
   currentRoleId,
   isKP,
-  isSendingCombatRoundEvent,
   isStateCommandMode,
+  messageResponses,
   messages,
-  onAdvanceTurn,
   onChangeActiveTab,
   onClose: _onClose,
-  onEndCombat,
   onEnterStateCommandMode,
-  onStartCombat,
   roomId,
   roomRoles,
   roomStateRuntime,
@@ -184,6 +173,7 @@ function RightDrawerPanelContent({
           <MapPanel
             currentRoleId={currentRoleId}
             isKP={isKP}
+            messageResponses={messageResponses}
             messages={messages}
             roomId={roomId}
             roomRoles={roomRoles}
@@ -197,14 +187,9 @@ function RightDrawerPanelContent({
         >
           <CombatPanel
             currentRoleId={currentRoleId}
-            isKP={isKP}
-            isSendingCombatRoundEvent={isSendingCombatRoundEvent}
             isStateCommandMode={isStateCommandMode}
             messages={messages}
-            onAdvanceTurn={onAdvanceTurn}
-            onEndCombat={onEndCombat}
             onEnterStateCommandMode={onEnterStateCommandMode}
-            onStartCombat={onStartCombat}
             roomRoles={roomRoles}
             roomStateRuntime={roomStateRuntime}
             ruleId={ruleId}
@@ -219,6 +204,7 @@ function RightDrawerPanelContent({
             currentUserId={currentUserId}
             currentRoleId={currentRoleId}
             currentRoomId={roomId}
+            currentRoomMessages={messageResponses}
             isKP={isKP}
             spaceId={spaceId}
           />

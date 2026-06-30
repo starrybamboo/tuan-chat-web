@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 
 import type { RoomContextType } from "@/components/chat/core/roomContext";
 import type { RoomUiStoreApi } from "@/components/chat/stores/roomUiStore";
+import type { ComposerAttachmentUploadFailure } from "@/components/chat/utils/messageDraftBuilder";
 
 import { resolveAudioAutoPlayPurposeFromAnnotationTransition } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayPolicy";
 import { triggerAudioAutoPlay } from "@/components/chat/infra/audioMessage/audioMessageAutoPlayRuntime";
@@ -14,7 +15,7 @@ import { parseSimpleStateCommand } from "@/components/chat/state/stateCommandPar
 import { useChatComposerStore } from "@/components/chat/stores/chatComposerStore";
 import { useChatInputUiStore } from "@/components/chat/stores/chatInputUiStore";
 import { useRoomPreferenceStore } from "@/components/chat/stores/roomPreferenceStore";
-import { buildMessageDraftsFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
+import { buildMessageDraftUploadResultFromComposerSnapshot } from "@/components/chat/utils/messageDraftBuilder";
 import { buildOutOfCharacterSpeechContent } from "@/components/chat/utils/outOfCharacterSpeech";
 import { isRoomJumpCommandText, parseRoomJumpCommand } from "@/components/chat/utils/roomJump";
 import { isCommand } from "@/components/common/dicer/cmdPre";
@@ -87,6 +88,13 @@ type SubmittedComposerSnapshot = {
   tempAnnotations: string[];
 };
 
+type FailedComposerSnapshot = {
+  audioFile: File | null;
+  fileAttachments: File[];
+  imgFiles: File[];
+  tempAnnotations: string[];
+};
+
 type LocalOptimisticImageMessage = NonNullable<ChatMessageRequest["extra"]["imageMessage"]> & {
   localFile: File;
 };
@@ -131,6 +139,57 @@ function resolvePendingMediaContent(inputText: string) {
 
 function positiveOrFallback(value: number | undefined, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function isMediaDraftMessageType(messageType: MessageType | undefined): boolean {
+  return messageType === MessageType.IMG
+    || messageType === MessageType.SOUND
+    || messageType === MessageType.VIDEO;
+}
+
+function countMediaDrafts(drafts: Array<{ messageType?: MessageType }>): number {
+  return drafts.filter(draft => isMediaDraftMessageType(draft.messageType)).length;
+}
+
+function buildFailedComposerSnapshot(
+  submittedComposerSnapshot: SubmittedComposerSnapshot,
+  failedAttachments: ComposerAttachmentUploadFailure[],
+): FailedComposerSnapshot {
+  const failedImages = new Set(failedAttachments
+    .filter(failure => failure.kind === "image")
+    .map(failure => failure.file));
+  const failedVideos = new Set(failedAttachments
+    .filter(failure => failure.kind === "video")
+    .map(failure => failure.file));
+  const failedAudio = failedAttachments.find(failure => failure.kind === "audio")?.file ?? null;
+
+  return {
+    audioFile: submittedComposerSnapshot.audioFile === failedAudio ? submittedComposerSnapshot.audioFile : null,
+    fileAttachments: submittedComposerSnapshot.fileAttachments.filter(file => failedVideos.has(file)),
+    imgFiles: submittedComposerSnapshot.imgFiles.filter(file => failedImages.has(file)),
+    tempAnnotations: failedAttachments.length > 0 ? submittedComposerSnapshot.tempAnnotations : [],
+  };
+}
+
+function hasFailedComposerPayload(snapshot: FailedComposerSnapshot): boolean {
+  return snapshot.imgFiles.length > 0
+    || snapshot.fileAttachments.length > 0
+    || snapshot.audioFile != null
+    || snapshot.tempAnnotations.length > 0;
+}
+
+function buildAttachmentFailureMessage(failedAttachments: ComposerAttachmentUploadFailure[]): string {
+  if (failedAttachments.length <= 0) {
+    return "附件上传失败";
+  }
+  if (failedAttachments.length === 1) {
+    return failedAttachments[0]!.error.message || "附件上传失败";
+  }
+  return `部分附件上传失败（${failedAttachments.length} 个），已保留失败项供重试`;
+}
+
+function buildPartialAttachmentFailureMessage(successCount: number, failedCount: number): string {
+  return `部分附件发送失败：成功 ${successCount} 个，失败 ${failedCount} 个，已保留失败项供重试`;
 }
 
 function applyRequestContext(
@@ -400,6 +459,7 @@ export default function useChatMessageSubmit({
     let didUseLocalOptimisticBatch = false;
     let pendingAttachmentOptimisticHandled = false;
     let pendingAttachmentOptimisticMessages: ChatMessageResponse[] = [];
+    let failedComposerSnapshot: FailedComposerSnapshot | null = null;
 
     try {
       const {
@@ -643,7 +703,7 @@ export default function useChatMessageSubmit({
         pendingAttachmentOptimisticMessages = insertLocalOptimisticMessages(pendingAttachmentRequests);
       }
 
-      const regularDrafts = await buildMessageDraftsFromComposerSnapshot({
+      const regularDraftResult = await buildMessageDraftUploadResultFromComposerSnapshot({
         inputText: regularInputText,
         imgFiles,
         emojiUrls,
@@ -655,6 +715,13 @@ export default function useChatMessageSubmit({
         uploadUtils: uploadUtilsRef.current,
         allowEmptyTextMessage: false,
       });
+      const regularDrafts = regularDraftResult.drafts;
+      if (regularDraftResult.failedAttachments.length > 0) {
+        failedComposerSnapshot = buildFailedComposerSnapshot(submittedComposerSnapshot, regularDraftResult.failedAttachments);
+        if (countMediaDrafts(regularDrafts) <= 0) {
+          throw new Error(buildAttachmentFailureMessage(regularDraftResult.failedAttachments));
+        }
+      }
 
       const regularRequests = regularDrafts.map((draft, index) => buildChatMessageRequestFromDraft(draft, {
         roomId,
@@ -703,6 +770,28 @@ export default function useChatMessageSubmit({
 
       if (regularRequests.length > 0) {
         hasConsumedFirstMessage = true;
+      }
+
+      if (failedComposerSnapshot && hasFailedComposerPayload(failedComposerSnapshot)) {
+        const currentComposerState = useChatComposerStore.getState();
+        const composerCanRestore = shouldRestoreOptimisticallyClearedComposer({
+          imgFiles: currentComposerState.imgFiles,
+          emojiUrls: currentComposerState.emojiUrls,
+          emojiMetaByUrl: currentComposerState.emojiMetaByUrl,
+          fileAttachments: currentComposerState.fileAttachments,
+          audioFile: currentComposerState.audioFile,
+          tempAnnotations: currentComposerState.tempAnnotations,
+        });
+        if (composerCanRestore) {
+          setImgFiles(failedComposerSnapshot.imgFiles);
+          setFileAttachments(failedComposerSnapshot.fileAttachments);
+          setAudioFile(failedComposerSnapshot.audioFile);
+          setTempAnnotations(failedComposerSnapshot.tempAnnotations);
+        }
+        toast.error(
+          buildPartialAttachmentFailureMessage(countMediaDrafts(regularDrafts), regularDraftResult.failedAttachments.length),
+          { duration: 3000 },
+        );
       }
 
       createdRegularMessages.forEach((createdMessage, index) => {

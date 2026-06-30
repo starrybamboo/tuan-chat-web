@@ -26,6 +26,7 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
+import { normalizeImageFileOrNull } from "@/utils/mediaMime";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { imageOriginalUrlFromUrl } from "@/utils/mediaUrl";
 import {
@@ -877,7 +878,8 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    const imageFiles = (await Promise.all(files.map(async file => await normalizeImageFileOrNull(file))))
+      .filter((file): file is File => Boolean(file));
     if (imageFiles.length === 0) {
       toast.error("请选择图片文件");
       return;

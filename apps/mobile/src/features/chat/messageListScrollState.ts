@@ -15,3 +15,23 @@ export function resolveBottomThresholdTransition(
     isAtBottom,
   };
 }
+
+export function resolveVisibleMessageAppendAction(params: {
+  isAtBottom: boolean;
+  nextLength: number;
+  previousLength: number;
+}): { addedCount: number; shouldCountNewMessages: boolean; shouldScrollToBottom: boolean } {
+  const addedCount = Math.max(0, params.nextLength - params.previousLength);
+  if (addedCount === 0) {
+    return {
+      addedCount: 0,
+      shouldCountNewMessages: false,
+      shouldScrollToBottom: false,
+    };
+  }
+  return {
+    addedCount,
+    shouldCountNewMessages: !params.isAtBottom,
+    shouldScrollToBottom: params.isAtBottom,
+  };
+}

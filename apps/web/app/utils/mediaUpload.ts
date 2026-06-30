@@ -26,6 +26,16 @@ type MediaPrepareUploadResponse = {
   uploadTargets?: Record<string, MediaUploadTarget>;
 };
 
+type MediaCompleteUploadResponse = {
+  fileId?: number;
+  mediaType?: MediaType;
+  status?: string;
+  availableQualities?: string[];
+  pendingQualities?: string[];
+  failedQualities?: string[];
+  degraded?: boolean;
+};
+
 type ApiResult<T> = {
   success?: boolean;
   errMsg?: string;
@@ -44,22 +54,86 @@ export type UploadedMediaFile = {
   fileId: number;
   mediaType: MediaType;
   uploadRequired: boolean;
+  availableQualities?: string[];
+  pendingQualities?: string[];
+  failedQualities?: string[];
+  degraded?: boolean;
+  failedTargets?: FailedUploadTarget[];
 };
 
 export type UploadMediaFileOptions = {
+  retryPolicy?: Partial<UploadTargetRetryPolicy>;
   scene?: number;
   signal?: AbortSignal;
+};
+
+export type FailedUploadTarget = {
+  quality: string;
+  error: string;
+  retryable: boolean;
+  credentialExpired?: boolean;
+};
+
+export type BatchUploadItemStatus = "queued" | "uploading" | "succeeded" | "failed";
+
+export type BatchUploadItem = {
+  localId: string;
+  fileName: string;
+  file: File;
+  status: BatchUploadItemStatus;
+  fileId?: number;
+  error?: string;
+  retryCount: number;
+};
+
+type MediaCompleteUploadRequest = {
+  availableQualities: string[];
+  pendingQualities: string[];
+  failedQualities: string[];
+  degraded: boolean;
+  failedTargets?: FailedUploadTarget[];
+};
+
+type UploadTargetRetryPolicy = {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  jitter: boolean;
 };
 
 const IMAGE_ORIGINAL_MAX_BYTES = 3 * 1024 * 1024;
 const AUDIO_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
 const VIDEO_ORIGINAL_MAX_BYTES = 200 * 1024 * 1024;
 const OTHER_ORIGINAL_MAX_BYTES = 20 * 1024 * 1024;
+const DEFAULT_UPLOAD_TARGET_RETRY_POLICY: UploadTargetRetryPolicy = {
+  maxAttempts: 3,
+  baseDelayMs: 300,
+  maxDelayMs: 3000,
+  jitter: true,
+};
 type ImageMediaProfile = (typeof MEDIA_COMPRESSION_PROFILES.image)[keyof typeof MEDIA_COMPRESSION_PROFILES.image];
 type RasterizeImageWorkerResponse = {
   blob?: Blob;
   error?: string;
 };
+
+class MediaTargetUploadError extends Error {
+  public readonly status?: number;
+  public readonly retryable: boolean;
+  public readonly credentialExpired: boolean;
+
+  constructor(message: string, options: {
+    credentialExpired?: boolean;
+    retryable?: boolean;
+    status?: number;
+  } = {}) {
+    super(message);
+    this.name = "MediaTargetUploadError";
+    this.status = options.status;
+    this.retryable = options.retryable ?? false;
+    this.credentialExpired = options.credentialExpired ?? false;
+  }
+}
 
 function isChatroomUploadScene(scene: number | undefined): boolean {
   return scene === 1;
@@ -72,6 +146,24 @@ function createUploadAbortError(): Error {
   const error = new Error("媒体上传已取消");
   error.name = "AbortError";
   return error;
+}
+
+export function createBatchUploadItems(files: File[]): BatchUploadItem[] {
+  return files.map((file, index) => ({
+    localId: createBatchUploadLocalId(file, index),
+    fileName: file.name || `file-${index + 1}`,
+    file,
+    status: "queued",
+    retryCount: 0,
+  }));
+}
+
+function createBatchUploadLocalId(file: File, index: number): string {
+  const randomId = globalThis.crypto?.randomUUID?.();
+  if (randomId) {
+    return randomId;
+  }
+  return `${Date.now()}-${index}-${file.name || "file"}-${file.size}-${file.lastModified}`;
 }
 
 function throwIfUploadAborted(signal?: AbortSignal): void {
@@ -522,30 +614,161 @@ export async function uploadGeneratedMediaFiles(payload: GeneratedMediaUploadFil
       fileId: prepared.fileId!,
       mediaType: prepared.mediaType!,
       uploadRequired: false,
+      degraded: false,
     };
   }
   if (!prepared.sessionId || !prepared.uploadTargets) {
     throw new Error("媒体上传响应缺少上传会话");
   }
 
-  await Promise.all(Object.entries(prepared.uploadTargets).map(async ([quality, target]) => {
-    const fileForQuality = payload.filesByQuality[quality as MediaQuality];
-    if (!fileForQuality) {
-      if (quality === "high") {
-        return;
-      }
-      throw new Error(`缺少 ${quality} 上传文件`);
+  const retryPolicy = normalizeRetryPolicy(options.retryPolicy);
+  const targetEntries = Object.entries(prepared.uploadTargets);
+  const primaryQuality = resolvePrimaryUploadQuality(payload, targetEntries);
+  const availableQualities: string[] = [];
+  const pendingQualities: string[] = [];
+  const failedQualities: string[] = [];
+  const failedTargets: FailedUploadTarget[] = [];
+
+  const primaryTarget = prepared.uploadTargets[primaryQuality];
+  const primaryFile = payload.filesByQuality[primaryQuality as MediaQuality];
+  if (!primaryTarget || !primaryFile) {
+    throw new Error(`缺少 ${primaryQuality} 上传文件`);
+  }
+  await putMediaTargetWithRetry(primaryTarget, primaryFile, primaryQuality, options.signal, retryPolicy);
+  availableQualities.push(primaryQuality);
+
+  const derivativeResults = await Promise.all(targetEntries
+    .filter(([quality]) => quality !== primaryQuality)
+    .map(async ([quality, target]) => uploadDerivativeTarget({
+      file: payload.filesByQuality[quality as MediaQuality],
+      quality,
+      retryPolicy,
+      signal: options.signal,
+      target,
+    })));
+
+  for (const result of derivativeResults) {
+    if (result.status === "succeeded") {
+      availableQualities.push(result.quality);
+      continue;
     }
-    await putMediaTarget(target, fileForQuality, options.signal);
-  }));
+    if (result.status === "skipped") {
+      continue;
+    }
+    failedTargets.push(result.failedTarget);
+    if (result.failedTarget.retryable || result.failedTarget.credentialExpired) {
+      pendingQualities.push(result.quality);
+    }
+    else {
+      failedQualities.push(result.quality);
+    }
+  }
+
   throwIfUploadAborted(options.signal);
-  await completeMediaUpload(prepared.sessionId, options.signal);
+  const completeRequest: MediaCompleteUploadRequest = {
+    availableQualities,
+    pendingQualities,
+    failedQualities,
+    degraded: pendingQualities.length > 0 || failedQualities.length > 0,
+    failedTargets,
+  };
+  const completeResponse = await completeMediaUpload(prepared.sessionId, completeRequest, options.signal);
 
   return {
     fileId: prepared.fileId!,
     mediaType: prepared.mediaType!,
     uploadRequired: true,
+    availableQualities: completeResponse.availableQualities ?? availableQualities,
+    pendingQualities: completeResponse.pendingQualities ?? pendingQualities,
+    failedQualities: completeResponse.failedQualities ?? failedQualities,
+    degraded: completeResponse.degraded ?? completeRequest.degraded,
+    failedTargets,
   };
+}
+
+async function uploadDerivativeTarget({
+  file,
+  quality,
+  retryPolicy,
+  signal,
+  target,
+}: {
+  file?: File;
+  quality: string;
+  retryPolicy: UploadTargetRetryPolicy;
+  signal?: AbortSignal;
+  target: MediaUploadTarget;
+}): Promise<
+  | { status: "succeeded"; quality: string }
+  | { status: "skipped"; quality: string }
+  | { status: "failed"; quality: string; failedTarget: FailedUploadTarget }
+> {
+  if (!file) {
+    if (quality === "high") {
+      return { status: "skipped", quality };
+    }
+    return {
+      status: "failed",
+      quality,
+      failedTarget: {
+        quality,
+        error: `缺少 ${quality} 上传文件`,
+        retryable: false,
+      },
+    };
+  }
+
+  try {
+    await putMediaTargetWithRetry(target, file, quality, signal, retryPolicy);
+    return { status: "succeeded", quality };
+  }
+  catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+    const uploadError = normalizeUploadTargetError(error);
+    return {
+      status: "failed",
+      quality,
+      failedTarget: {
+        quality,
+        error: uploadError.message,
+        retryable: uploadError.retryable,
+        credentialExpired: uploadError.credentialExpired || undefined,
+      },
+    };
+  }
+}
+
+async function putMediaTargetWithRetry(
+  target: MediaUploadTarget,
+  file: File,
+  quality: string,
+  signal: AbortSignal | undefined,
+  retryPolicy: UploadTargetRetryPolicy,
+) {
+  let lastError: MediaTargetUploadError | null = null;
+  for (let attempt = 1; attempt <= retryPolicy.maxAttempts; attempt++) {
+    try {
+      await putMediaTarget(target, file, signal);
+      return;
+    }
+    catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      const uploadError = normalizeUploadTargetError(error);
+      lastError = uploadError;
+      const canRetryOldUrl = uploadError.retryable
+        && !uploadError.credentialExpired
+        && attempt < retryPolicy.maxAttempts;
+      if (!canRetryOldUrl) {
+        throw uploadError;
+      }
+      await sleepUploadRetryDelay(resolveRetryDelayMs(attempt, retryPolicy), signal);
+    }
+  }
+  throw lastError ?? new MediaTargetUploadError(`${quality} 上传失败`, { retryable: false });
 }
 
 async function putMediaTarget(target: MediaUploadTarget, file: File, signal?: AbortSignal) {
@@ -554,16 +777,98 @@ async function putMediaTarget(target: MediaUploadTarget, file: File, signal?: Ab
     throw new Error("上传目标缺少 uploadUrl");
   }
   const { targetUrl, headers } = resolveOssUploadTarget(target.uploadUrl, file, target.uploadHeaders);
-  const response = await fetch(targetUrl, {
-    method: "PUT",
-    body: file,
-    headers,
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, {
+      method: "PUT",
+      body: file,
+      headers,
+      signal,
+    });
+  }
+  catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+    throw new MediaTargetUploadError("媒体文件上传失败: 网络错误", { retryable: true });
+  }
   throwIfUploadAborted(signal);
   if (!response.ok) {
-    throw new Error(`媒体文件上传失败: ${response.status}`);
+    const credentialExpired = response.status === 401 || response.status === 403;
+    throw new MediaTargetUploadError(`媒体文件上传失败: ${response.status}`, {
+      credentialExpired,
+      retryable: !credentialExpired && isRetryableUploadStatus(response.status),
+      status: response.status,
+    });
   }
+}
+
+function resolvePrimaryUploadQuality(
+  payload: GeneratedMediaUploadFiles,
+  targetEntries: Array<[string, MediaUploadTarget]>,
+): string {
+  if (targetEntries.some(([quality]) => quality === "original")) {
+    return "original";
+  }
+  const firstWithFile = targetEntries.find(([quality]) => Boolean(payload.filesByQuality[quality as MediaQuality]));
+  return firstWithFile?.[0] ?? targetEntries[0]?.[0] ?? "original";
+}
+
+function isRetryableUploadStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+function normalizeUploadTargetError(error: unknown): MediaTargetUploadError {
+  if (error instanceof MediaTargetUploadError) {
+    return error;
+  }
+  if (error instanceof Error) {
+    return new MediaTargetUploadError(error.message || "媒体文件上传失败", { retryable: false });
+  }
+  return new MediaTargetUploadError(String(error || "媒体文件上传失败"), { retryable: false });
+}
+
+function normalizeRetryPolicy(policy?: Partial<UploadTargetRetryPolicy>): UploadTargetRetryPolicy {
+  const maxAttempts = Math.max(1, Math.floor(policy?.maxAttempts ?? DEFAULT_UPLOAD_TARGET_RETRY_POLICY.maxAttempts));
+  return {
+    maxAttempts,
+    baseDelayMs: Math.max(0, policy?.baseDelayMs ?? DEFAULT_UPLOAD_TARGET_RETRY_POLICY.baseDelayMs),
+    maxDelayMs: Math.max(0, policy?.maxDelayMs ?? DEFAULT_UPLOAD_TARGET_RETRY_POLICY.maxDelayMs),
+    jitter: policy?.jitter ?? DEFAULT_UPLOAD_TARGET_RETRY_POLICY.jitter,
+  };
+}
+
+function resolveRetryDelayMs(failedAttempt: number, policy: UploadTargetRetryPolicy): number {
+  const exponentialDelay = policy.baseDelayMs * 2 ** Math.max(0, failedAttempt - 1);
+  const cappedDelay = Math.min(policy.maxDelayMs, exponentialDelay);
+  if (!policy.jitter || cappedDelay <= 0) {
+    return cappedDelay;
+  }
+  return Math.floor(cappedDelay * (0.75 + Math.random() * 0.5));
+}
+
+async function sleepUploadRetryDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
+  throwIfUploadAborted(signal);
+  if (delayMs <= 0) {
+    return;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const timeout = globalThis.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = () => {
+      globalThis.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbort);
+      reject(createUploadAbortError());
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function isAbortError(error: unknown): boolean {
+  return typeof DOMException !== "undefined" && error instanceof DOMException && error.name === "AbortError"
+    || error instanceof Error && error.name === "AbortError";
 }
 
 async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: UploadMediaFileOptions = {}) {
@@ -590,16 +895,19 @@ async function prepareMediaUpload(payload: GeneratedMediaUploadFiles, options: U
   return result.data;
 }
 
-async function completeMediaUpload(sessionId: number, signal?: AbortSignal) {
+async function completeMediaUpload(sessionId: number, request: MediaCompleteUploadRequest, signal?: AbortSignal) {
   throwIfUploadAborted(signal);
-  const result = await tuanchat.request.request<ApiResult<unknown>>({
+  const result = await tuanchat.request.request<ApiResult<MediaCompleteUploadResponse>>({
     method: "POST",
     url: `/media/upload-sessions/${sessionId}/complete`,
+    body: request,
+    mediaType: "application/json",
   });
   throwIfUploadAborted(signal);
   if (!result.success) {
     throw new Error(result.errMsg || "完成媒体上传失败");
   }
+  return result.data ?? {};
 }
 
 export async function uploadMediaFile(file: File, options: UploadMediaFileOptions = {}): Promise<UploadedMediaFile> {

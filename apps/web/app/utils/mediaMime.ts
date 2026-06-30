@@ -224,3 +224,10 @@ export async function normalizeFileMimeType(
     lastModified: file.lastModified,
   });
 }
+
+export async function normalizeImageFileOrNull(file: File): Promise<File | null> {
+  const normalizedFile = await normalizeFileMimeType(file, { expectedMediaType: "image" });
+  return inferMediaTypeFromMimeType(normalizedFile.type) === "image"
+    ? normalizedFile
+    : null;
+}

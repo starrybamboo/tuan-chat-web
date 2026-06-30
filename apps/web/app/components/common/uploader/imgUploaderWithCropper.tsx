@@ -12,6 +12,7 @@ import type { ImageCompressionPreset } from "@/utils/imgCompressUtils";
 import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponent";
 import { canvasPreview, createCenteredAspectCrop, getCroppedImageFile, useDebounceEffect } from "@/utils/imgCropper";
+import { normalizeImageFileOrNull } from "@/utils/mediaMime";
 import { uploadMediaFile } from "@/utils/mediaUpload";
 import { imageLowUrl, imageMediumUrl, imageOriginalUrl } from "@/utils/mediaUrl";
 import "react-image-crop/dist/ReactCrop.css";
@@ -187,14 +188,15 @@ export function ImgUploaderWithCopper({
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    // 判断文件类型
-    if (!file || !file.type.startsWith("image/")) {
+    const imageFile = file ? await normalizeImageFileOrNull(file) : null;
+    if (!imageFile) {
+      e.target.value = "";
       return;
     }
 
     setIsOpen(true);
     // 保存文件引用
-    imgFile.current = file;
+    imgFile.current = imageFile;
 
     // 清理旧状态，避免旧图片残留
     setImgSrc("");
@@ -206,7 +208,7 @@ export function ImgUploaderWithCopper({
     const reader = new FileReader();
     reader.addEventListener("load", () =>
       setImgSrc(reader.result?.toString() || ""));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(imageFile);
   }
 
   async function handleSubmit() {

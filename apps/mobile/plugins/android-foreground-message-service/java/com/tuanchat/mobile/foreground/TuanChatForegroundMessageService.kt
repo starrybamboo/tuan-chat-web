@@ -4,16 +4,20 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Activity
+import android.app.Application
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.NotificationCompat
 import com.tuanchat.mobile.MainActivity
 import com.tuanchat.mobile.R
@@ -54,8 +58,8 @@ class TuanChatForegroundMessageService : Service() {
         return START_NOT_STICKY
       }
       ACTION_SET_APP_ACTIVE -> {
-        appActive = intent.getBooleanExtra(EXTRA_APP_ACTIVE, appActive)
-        trace("fg-ws.app-active", "active=$appActive")
+        jsAppActive = intent.getBooleanExtra(EXTRA_APP_ACTIVE, jsAppActive)
+        trace("fg-ws.app-active", "jsActive=$jsAppActive nativeActive=$appActive")
         if (!shouldRun) {
           stopSelf(startId)
         }
@@ -71,7 +75,7 @@ class TuanChatForegroundMessageService : Service() {
 
         nextConfig.persist(this)
         config = nextConfig
-        appActive = intent.getBooleanExtra(EXTRA_APP_ACTIVE, appActive)
+        jsAppActive = intent.getBooleanExtra(EXTRA_APP_ACTIVE, jsAppActive)
         shouldRun = true
         running = true
         recordEvent("fg-ws.service.start")
@@ -133,6 +137,7 @@ class TuanChatForegroundMessageService : Service() {
 
       override fun onMessage(webSocket: WebSocket, text: String) {
         lastMessageAt = System.currentTimeMillis()
+        receivedFrameCount += 1
         handleIncomingFrame(text)
       }
 
@@ -227,6 +232,10 @@ class TuanChatForegroundMessageService : Service() {
     }
 
     val type = root.optInt("type", -1)
+    lastFrameType = type
+    if (type != HEARTBEAT_PUSH_TYPE) {
+      lastBusinessFrameType = type
+    }
     trace("fg-ws.message", "type=$type rawLength=${text.length} appActive=$appActive")
     when (type) {
       DIRECT_MESSAGE_PUSH_TYPE -> handleDirectMessage(root.optJSONObject("data"))
@@ -258,14 +267,17 @@ class TuanChatForegroundMessageService : Service() {
 
     if (appActive) {
       trace("fg-ws.dm.skip-active", "messageId=${messageId ?: "null"}")
+      lastSkipReason = "dm.active"
       return
     }
     if (messageType == READ_LINE_MESSAGE_TYPE || status == DELETED_MESSAGE_STATUS) {
       trace("fg-ws.dm.skip-state", "messageId=${messageId ?: "null"} messageType=$messageType status=$status")
+      lastSkipReason = "dm.state"
       return
     }
     if (currentUserId != null && senderId == currentUserId) {
       trace("fg-ws.dm.skip-self", "messageId=${messageId ?: "null"}")
+      lastSkipReason = "dm.self"
       return
     }
 
@@ -306,6 +318,12 @@ class TuanChatForegroundMessageService : Service() {
       || status == DELETED_MESSAGE_STATUS
       || (currentUserId != null && senderId == currentUserId)
     ) {
+      lastSkipReason = when {
+        appActive -> "room.active"
+        messageType == READ_LINE_MESSAGE_TYPE || status == DELETED_MESSAGE_STATUS -> "room.state"
+        currentUserId != null && senderId == currentUserId -> "room.self"
+        else -> "room.unknown"
+      }
       return
     }
 
@@ -332,6 +350,7 @@ class TuanChatForegroundMessageService : Service() {
 
   private fun handleUserNotification(data: JSONObject?) {
     if (data == null || appActive) {
+      lastSkipReason = if (data == null) "system.empty" else "system.active"
       return
     }
     val title = data.optCleanString("title") ?: "团剧通知"
@@ -364,6 +383,14 @@ class TuanChatForegroundMessageService : Service() {
 
   private fun showMessageNotification(notificationKey: String, title: String, body: String, deepLink: String) {
     val manager = getSystemService(NotificationManager::class.java)
+    if (!areMessageNotificationsEnabled()) {
+      lastSkipReason = if (!notificationsEnabled) "notification.disabled" else "notification.channel-none"
+      trace(
+        "fg-ws.notification.skip-disabled",
+        "enabled=$notificationsEnabled channelImportance=$messageChannelImportance key=$notificationKey"
+      )
+      return
+    }
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLink), this, MainActivity::class.java).apply {
       flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
     }
@@ -386,7 +413,15 @@ class TuanChatForegroundMessageService : Service() {
       .build()
     val notificationId = abs(notificationKey.hashCode())
     manager.notify(notificationId, notification)
+    shownNotificationCount += 1
+    lastShownNotificationAt = System.currentTimeMillis()
+    lastSkipReason = null
     trace("fg-ws.notification.show", "key=$notificationKey deepLink=$deepLink")
+  }
+
+  private fun areMessageNotificationsEnabled(): Boolean {
+    refreshNotificationState(this)
+    return notificationsEnabled && messageChannelImportance != NotificationManager.IMPORTANCE_NONE
   }
 
   private fun startAsForeground(text: String) {
@@ -531,12 +566,83 @@ class TuanChatForegroundMessageService : Service() {
 
     @Volatile var running = false
     @Volatile var connected = false
-    @Volatile var appActive = true
+    @Volatile var appActive = false
+    @Volatile var jsAppActive = false
     @Volatile var lastEvent = "idle"
     @Volatile var lastMessageAt = 0L
+    @Volatile var receivedFrameCount = 0L
+    @Volatile var shownNotificationCount = 0L
+    @Volatile var lastShownNotificationAt = 0L
+    @Volatile var lastSkipReason: String? = null
+    @Volatile var lastFrameType = -1
+    @Volatile var lastBusinessFrameType = -1
+    @Volatile var notificationsEnabled = true
+    @Volatile var messageChannelImportance = NotificationManager.IMPORTANCE_DEFAULT
 
     fun clearPersistedConfig(context: Context) {
       context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
+    fun refreshNotificationState(context: Context) {
+      val manager = context.getSystemService(NotificationManager::class.java)
+      notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+      messageChannelImportance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        manager.getNotificationChannel(MESSAGE_CHANNEL_ID)?.importance ?: NotificationManager.IMPORTANCE_DEFAULT
+      } else {
+        NotificationManager.IMPORTANCE_DEFAULT
+      }
+    }
+
+    @Synchronized
+    fun registerAppVisibilityCallbacks(application: Application) {
+      if (visibilityCallbacksRegistered) {
+        return
+      }
+      visibilityCallbacksRegistered = true
+      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+        override fun onActivityStarted(activity: Activity) = Unit
+
+        override fun onActivityResumed(activity: Activity) {
+          resumedActivityCount += 1
+          markAppVisible("lifecycle-resumed")
+        }
+
+        override fun onActivityPaused(activity: Activity) {
+          resumedActivityCount = (resumedActivityCount - 1).coerceAtLeast(0)
+          if (resumedActivityCount == 0) {
+            markAppHidden("lifecycle-paused")
+          }
+        }
+
+        override fun onActivityStopped(activity: Activity) {
+          if (resumedActivityCount == 0) {
+            markAppHidden("lifecycle-stopped")
+          }
+        }
+
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+        override fun onActivityDestroyed(activity: Activity) = Unit
+      })
+    }
+
+    fun markAppVisible(source: String) {
+      appActive = true
+      traceVisibility(source)
+    }
+
+    fun markAppHidden(source: String) {
+      appActive = false
+      traceVisibility(source)
+    }
+
+    private fun traceVisibility(source: String) {
+      Log.i(
+        LOG_TAG,
+        "[mobile-notify-chain] fg-ws.app-visible source=$source nativeActive=$appActive jsActive=$jsAppActive resumed=$resumedActivityCount"
+      )
     }
 
     private const val LOG_TAG = "TuanChatFgWs"
@@ -558,6 +664,8 @@ class TuanChatForegroundMessageService : Service() {
     private const val HEARTBEAT_INTERVAL_MS = 25_000L
     private const val WATCHDOG_INTERVAL_MS = 10_000L
     private const val CONNECTION_STALE_TIMEOUT_MS = 60_000L
+    private var visibilityCallbacksRegistered = false
+    private var resumedActivityCount = 0
   }
 }
 

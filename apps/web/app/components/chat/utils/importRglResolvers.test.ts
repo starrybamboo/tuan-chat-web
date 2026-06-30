@@ -128,6 +128,36 @@ describe("createRglImportCompileContextFromSources", () => {
       .toThrow("找不到角色：烈");
   });
 
+  it("hitpoint 按当前房间角色名解析，角色不存在时失败", () => {
+    const context = createRglImportCompileContextFromSources({
+      roles: [role(10, "烈")],
+      avatarsByRoleId: {},
+      materialPackages: [],
+    });
+
+    const result = parseAndCompileRglImportText("<hitpoint>:(烈,hp,-2)", context);
+    expect(result.messages).toMatchObject([
+      {
+        roleId: 10,
+        messageType: MessageType.STATE_EVENT,
+        extra: {
+          stateEvent: {
+            events: [{
+              type: "varOp",
+              scope: { kind: "role", roleId: 10 },
+              key: "hp",
+              op: "sub",
+              value: 2,
+            }],
+          },
+        },
+      },
+    ]);
+
+    expect(() => parseAndCompileRglImportText("<hitpoint>:(勇伯,hp,-2)", context))
+      .toThrow("找不到角色：勇伯");
+  });
+
   it("显示名和绑定角色名分离时，按绑定角色解析并保留显示名", () => {
     const context = createRglImportCompileContextFromSources({
       roles: [role(10, "八意永琳")],

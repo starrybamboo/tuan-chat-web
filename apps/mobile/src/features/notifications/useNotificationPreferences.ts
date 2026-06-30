@@ -4,7 +4,6 @@ import type { NotificationPreferences } from "./notificationPreferences";
 
 import {
   getDefaultPreferences,
-
   readNotificationPreferences,
   writeNotificationPreferences,
 } from "./notificationPreferences";

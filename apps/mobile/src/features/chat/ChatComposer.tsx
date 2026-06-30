@@ -204,13 +204,11 @@ type ChatComposerProps = {
   currentRole: UserRole | null;
   currentAvatarFileId?: number;
   draftMessage: string;
-  draftRoleIdInput: string;
   errorMessage: string | null;
   isSubmitting: boolean;
   messageAttachments: MobileMessageAttachment[];
   messageMode: MobileMessageMode;
   onChangeDraftMessage: (v: string) => void;
-  onChangeDraftRoleIdInput: (v: string) => void;
   onClearAnchor: () => void;
   onClearAttachments: () => void;
   onOpenExpressionPicker?: () => void;
@@ -239,13 +237,11 @@ function ChatComposerInner({
   currentRole,
   currentAvatarFileId,
   draftMessage,
-  draftRoleIdInput,
   errorMessage,
   isSubmitting,
   messageAttachments,
   messageMode,
   onChangeDraftMessage,
-  onChangeDraftRoleIdInput,
   onClearAnchor,
   onClearAttachments,
   onOpenExpressionPicker,
@@ -466,26 +462,6 @@ function ChatComposerInner({
               </Pressable>
             );
           })}
-
-          {messageMode === MOBILE_MESSAGE_MODE.STATE_EVENT
-            ? (
-                <TextInput
-                  editable={!isSubmitting}
-                  keyboardType="number-pad"
-                  onChangeText={onChangeDraftRoleIdInput}
-                  placeholder="角色 ID"
-                  placeholderTextColor={theme.textSecondary}
-                  style={[
-                    styles.roleIdInput,
-                    {
-                      backgroundColor: theme.surface,
-                      color: theme.text,
-                    },
-                  ]}
-                  value={draftRoleIdInput}
-                />
-              )
-            : null}
 
           <View style={{ flex: 1 }} />
 

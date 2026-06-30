@@ -37,7 +37,13 @@ vi.mock("react-hot-toast", () => ({
 }));
 
 vi.mock("@/components/chat/utils/messageDraftBuilder", () => ({
-  buildMessageDraftsFromComposerSnapshot: mocks.buildMessageDraftsFromComposerSnapshotMock,
+  buildMessageDraftUploadResultFromComposerSnapshot: async (...args: unknown[]) => {
+    const result = await mocks.buildMessageDraftsFromComposerSnapshotMock(...args);
+    if (Array.isArray(result)) {
+      return { drafts: result, failedAttachments: [] };
+    }
+    return result;
+  },
 }));
 
 vi.mock("@/components/chat/utils/roomJump", () => ({
@@ -398,6 +404,157 @@ describe("useChatMessageSubmit", () => {
     );
     expect(sendMessageBatch).not.toHaveBeenCalled();
     expect(sendMessageWithInsert).not.toHaveBeenCalled();
+  });
+
+  it("多附件部分上传成功时提交成功附件并只回填失败附件", async () => {
+    const okImage = new File(["ok"], "ok.png", { type: "image/png" });
+    const failedImage = new File(["failed"], "failed.png", { type: "image/png" });
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue({
+      drafts: [
+        {
+          content: "图片说明",
+          messageType: MessageType.IMG,
+          extra: {
+            imageMessage: {
+              source: { kind: "internal", fileId: 101 },
+              fileName: "ok.png",
+              size: 5,
+              width: 640,
+              height: 480,
+              background: false,
+            },
+          },
+        },
+      ],
+      failedAttachments: [
+        {
+          error: new Error("failed.png 上传失败"),
+          file: failedImage,
+          kind: "image",
+        },
+      ],
+    });
+    useChatInputUiStore.setState({
+      plainText: "图片说明",
+      textWithoutMentions: "图片说明",
+      mentionedRoles: [],
+    });
+    useChatComposerStore.setState({
+      imgFiles: [okImage, failedImage],
+      tempAnnotations: [ANNOTATION_IDS.CG],
+    });
+
+    const optimisticMessages: ChatMessageResponse[] = [
+      { message: { ...createMessage(-1), messageType: MessageType.IMG } },
+      { message: { ...createMessage(-2), messageType: MessageType.IMG } },
+    ];
+    const discardLocalOptimisticMessages = vi.fn(async () => {});
+    const insertLocalOptimisticMessages = vi.fn((_requests: ChatMessageRequest[]) => optimisticMessages);
+    const sendMessageWithInsert = vi.fn(async () => createMessage(61));
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      discardLocalOptimisticMessages,
+      insertLocalOptimisticMessages,
+      sendMessageBatchWithLocalOptimistic: vi.fn(async () => []),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(discardLocalOptimisticMessages).toHaveBeenCalledWith(optimisticMessages);
+    expect(sendMessageWithInsert).toHaveBeenCalledTimes(1);
+    expect(sendMessageWithInsert).toHaveBeenCalledWith(expect.objectContaining({
+      content: "图片说明",
+      messageType: MessageType.IMG,
+    }));
+    expect(useChatComposerStore.getState().imgFiles).toEqual([failedImage]);
+    expect(useChatComposerStore.getState().tempAnnotations).toEqual([ANNOTATION_IDS.CG]);
+    expect(useChatInputUiStore.getState().plainText).toBe("");
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("部分附件发送失败：成功 1 个，失败 1 个，已保留失败项供重试", { duration: 3000 });
+  });
+
+  it("多附件全部上传失败时恢复原输入并不提交文本或空附件消息", async () => {
+    const failedImage = new File(["failed"], "failed.png", { type: "image/png" });
+    mocks.buildMessageDraftsFromComposerSnapshotMock.mockResolvedValue({
+      drafts: [
+        {
+          content: "图片说明",
+          messageType: MessageType.TEXT,
+          extra: {},
+        },
+      ],
+      failedAttachments: [
+        {
+          error: new Error("failed.png 上传失败"),
+          file: failedImage,
+          kind: "image",
+        },
+      ],
+    });
+    useChatInputUiStore.setState({
+      plainText: "图片说明",
+      textWithoutMentions: "图片说明",
+      mentionedRoles: [],
+    });
+    useChatComposerStore.setState({
+      imgFiles: [failedImage],
+    });
+
+    const optimisticMessages: ChatMessageResponse[] = [
+      { message: { ...createMessage(-1), messageType: MessageType.IMG } },
+    ];
+    const discardLocalOptimisticMessages = vi.fn(async () => {});
+    const sendMessageWithInsert = vi.fn(async () => createMessage(62));
+    const roomUiStoreApi = createRoomUiStore();
+    const setInputText = createSetInputTextMock();
+
+    const { handleMessageSubmit } = useChatMessageSubmit({
+      roomId: 1,
+      spaceId: 2,
+      isSpaceOwner: false,
+      curRoleId: 3,
+      notMember: false,
+      noRole: false,
+      isSubmitting: false,
+      setIsSubmitting: vi.fn(),
+      discardLocalOptimisticMessages,
+      insertLocalOptimisticMessages: vi.fn(() => optimisticMessages),
+      sendMessageWithInsert,
+      sendMessageBatch: vi.fn(async () => []),
+      ensureRuntimeAvatarIdForRole: vi.fn(async () => 7),
+      commandExecutor: vi.fn(),
+      containsCommandRequestAllToken: vi.fn(() => false),
+      stripCommandRequestAllToken: vi.fn((text: string) => text),
+      extractFirstCommandText: vi.fn(() => null),
+      setInputText,
+      roomUiStoreApi,
+    });
+
+    await handleMessageSubmit();
+
+    expect(discardLocalOptimisticMessages).toHaveBeenCalledWith(optimisticMessages);
+    expect(sendMessageWithInsert).not.toHaveBeenCalled();
+    expect(useChatInputUiStore.getState().plainText).toBe("图片说明");
+    expect(useChatComposerStore.getState().imgFiles).toEqual([failedImage]);
+    expect(mocks.toastErrorMock).toHaveBeenCalledWith("failed.png 上传失败", { duration: 3000 });
   });
 
   it("发送失败时会回填原始输入框内容", async () => {

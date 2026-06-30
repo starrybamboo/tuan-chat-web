@@ -44,9 +44,14 @@ Write-AndroidDevLocalProperties -Config $config
 
 if (-not $SkipPrebuild) {
     Write-Host "Syncing Expo Android native project..."
+    $expoCliPath = Join-Path $config.WorkspaceRoot "node_modules\expo\bin\cli"
+    if (-not (Test-Path $expoCliPath)) {
+        throw "Expo CLI was not found: $expoCliPath"
+    }
+
     Push-Location $config.MobileDir
     try {
-        & corepack pnpm exec expo prebuild --platform android --no-install | Out-Host
+        & node $expoCliPath prebuild --platform android --no-install | Out-Host
         $prebuildExitCode = $LASTEXITCODE
     }
     finally {

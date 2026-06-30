@@ -2,7 +2,7 @@
 
 ### Requirement: Image uploads SHALL normalize into a WebP original plus sparse derived tiers
 
-The system SHALL normalize every uploaded image into a WebP `original` asset, and SHALL treat `low`, `medium`, and `high` as optional derived tiers. The client SHALL generate and upload a derived tier only when the normalized `original` still exceeds that tier's byte budget. The actual uploaded image tier set SHALL be recorded in `metadata.uploadedQualities`, and the media service SHALL honor that set when issuing upload targets.
+The system SHALL normalize every uploaded image into a WebP `original` asset on the client, and SHALL treat `low`, `medium`, and `high` as optional derived tiers. The media service SHALL receive image uploads only after that client-side normalization has completed, and SHALL NOT perform image-format conversion or maintain a GIF-specific upload path. Animated GIF inputs SHALL be re-encoded to animated WebP on the client before prepare-upload. The client SHALL generate and upload a derived tier only when the normalized `original` still exceeds that tier's byte budget. The actual uploaded image tier set SHALL be recorded in `metadata.uploadedQualities`, and the media service SHALL honor that set when issuing upload targets.
 
 - **original**: maxWidthOrHeight=2560, maxSizeKB=3072, quality=1, WebP, preserve NovelAI metadata
 - **low**: maxWidthOrHeight=200, maxSizeKB=40, quality=1, WebP, do not preserve NovelAI metadata
@@ -26,6 +26,12 @@ The system SHALL normalize every uploaded image into a WebP `original` asset, an
 - **AND** the normalized `original` is less than or equal to 40KB
 - **THEN** the system SHALL upload only `original`
 - **AND** `metadata.uploadedQualities` SHALL equal `["original"]`
+
+#### Scenario: Animated GIF image upload
+- **WHEN** a user uploads a GIF image
+- **THEN** the client SHALL re-encode it into an animated WebP `original` before prepare-upload
+- **AND** the upload request SHALL declare the resulting image as `image/webp`
+- **AND** the media service SHALL treat it as a normal WebP image upload without any GIF-specific special case
 
 #### Scenario: Chatroom image upload uses the same sparse image rules
 - **WHEN** a user uploads an image in a chat room

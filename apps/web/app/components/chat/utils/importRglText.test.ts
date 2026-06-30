@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { MessageType } from "../../../../api/wsModels";
-import { compileRglImportEvents, parseAndCompileRglImportText, parseRglImportText, summarizeRglImportEvents } from "./importRglText";
+import { compileRglImportEvents, compileRglImportEventsWithLineNumbers, parseAndCompileRglImportText, parseRglImportText, summarizeRglImportEvents } from "./importRglText";
 
 describe("parseRglImportText", () => {
   it("解析角色差分、底层 annotation、素材引用和清场行", () => {
@@ -443,6 +443,113 @@ describe("parseRglImportText", () => {
     ]);
   });
 
+  it("兼容 set 行和背景切换参数", () => {
+    const result = parseRglImportText([
+      "<set:BGM>:战斗曲",
+      "<background><replace=30>:永远亭夜晚",
+    ].join("\n"));
+
+    expect(result.invalidLines).toEqual([]);
+    expect(result.events).toMatchObject([
+      {
+        kind: "material",
+        annotationId: "sys:bgm",
+        materialName: "战斗曲",
+        annotations: ["sys:bgm"],
+      },
+      {
+        kind: "material",
+        annotationId: "sys:bg",
+        materialName: "永远亭夜晚",
+        annotations: ["sys:bg", "background.anim.enter", "background.speed.normal"],
+      },
+    ]);
+  });
+
+  it("解析原生 dice、hitpoint、bubble、animation 和 clear 对象参数", () => {
+    const result = parseRglImportText([
+      "<dice>:(力量检定,20,12,7)",
+      "<hitpoint>:(烈,hp,-2)",
+      "<bubble>:旁边冒出一句气泡文本。",
+      "<animation>:shake,left-center",
+      "<clear>:bg",
+      "<clear>:all",
+    ].join("\n"));
+
+    expect(result.invalidLines).toEqual([]);
+    expect(result.events).toMatchObject([
+      {
+        kind: "dice",
+        command: "力量检定\n【1d20：】\n检定值：12",
+        replyContent: "【1d20:7】；目标 12；成功",
+      },
+      {
+        kind: "hitpoint",
+        roleName: "烈",
+        op: "sub",
+        value: 2,
+        content: "状态更新：烈 HP -2",
+      },
+      {
+        kind: "narration",
+        annotations: [],
+        content: "旁边冒出一句气泡文本。",
+      },
+      {
+        kind: "control",
+        annotations: ["figure.anim.ba-shake", "figure.pos.left-center"],
+      },
+      {
+        kind: "control",
+        annotations: ["background.clear"],
+      },
+      {
+        kind: "control",
+        annotations: ["figure.clear", "background.clear", "bgm.clear", "image.clear"],
+      },
+    ]);
+  });
+
+  it("解析回声工坊花括号音频盒并剥离正文占位", () => {
+    const result = parseRglImportText([
+      "[烈.震惊]:挥拳。{挥刀;*0.5}",
+      "[旁白]:没有配音占位。{*}",
+    ].join("\n"));
+
+    expect(result.invalidLines).toEqual([]);
+    expect(result.events).toMatchObject([
+      {
+        kind: "dialog",
+        content: "挥拳。",
+      },
+      {
+        kind: "material",
+        annotationId: "sys:se",
+        materialName: "挥刀",
+        annotations: ["sys:se"],
+      },
+      {
+        kind: "narration",
+        content: "没有配音占位。",
+      },
+    ]);
+  });
+
+  it("解析多角色同框对白和角色透明度参数", () => {
+    const result = parseRglImportText("[烈(60).震惊,丰聪耳神子.闭眼平静]<enter>:同时登场。");
+
+    expect(result.invalidLines).toEqual([]);
+    expect(result.events).toMatchObject([
+      {
+        kind: "dialog",
+        role: { roleName: "烈", avatarName: "震惊", opacity: 0.6 },
+        companionRoles: [{ roleName: "丰聪耳神子", avatarName: "闭眼平静" }],
+        annotations: ["figure.anim.enter"],
+        content: "同时登场。",
+      },
+    ]);
+  });
+
   it("拒绝未知 annotation 或未知别名", () => {
     const result = parseRglImportText("<unknownAlias>:永远亭夜晚");
 
@@ -519,6 +626,7 @@ describe("summarizeRglImportEvents", () => {
       "<dice>:",
       "cmd: 【1d10：】",
       "=> 【1d10:2】；2 直接行动",
+      "<hitpoint>:(烈,hp,-2)",
     ].join("\n"));
 
     expect(summarizeRglImportEvents(parsed.events)).toEqual({
@@ -527,6 +635,7 @@ describe("summarizeRglImportEvents", () => {
       material: 1,
       control: 1,
       dice: 1,
+      hitpoint: 1,
     });
   });
 });
@@ -620,6 +729,89 @@ describe("compileRglImportEvents", () => {
         avatarId: 20,
         speakerName: "师匠",
         content: "喝茶。",
+      },
+    ]);
+  });
+
+  it("把多角色同框对白编译为陪同角色空白切换加主对白", () => {
+    const parsed = parseRglImportText("[烈(60).震惊,丰聪耳神子.闭眼平静]<enter>:同时登场。");
+    const resolveRoleAvatar = vi.fn((role: { roleName: string; avatarName: string }) => {
+      if (role.roleName === "烈") {
+        return { roleId: 10, avatarId: 20, speakerName: "烈" };
+      }
+      return { roleId: 11, avatarId: 21, speakerName: "丰聪耳神子" };
+    });
+
+    const messages = compileRglImportEventsWithLineNumbers(parsed.events, {
+      resolveRoleAvatar,
+      resolveMaterial: () => {
+        throw new Error("不应解析素材");
+      },
+    });
+
+    expect(messages).toMatchObject([
+      {
+        lineNumber: 1,
+        roleId: 11,
+        avatarId: 21,
+        content: "",
+        annotations: ["figure.anim.enter", "figure.pos.right-center", "dialog.next"],
+      },
+      {
+        lineNumber: 1,
+        roleId: 10,
+        avatarId: 20,
+        content: "同时登场。",
+        annotations: ["figure.anim.enter", "figure.pos.left-center"],
+        webgal: { transform: { alpha: 0.6 } },
+      },
+    ]);
+  });
+
+  it("把 RGL hitpoint 编译为状态事件消息", () => {
+    const parsed = parseRglImportText("<hitpoint>:(烈,10,20)");
+
+    const messages = compileRglImportEvents(parsed.events, {
+      resolveRoleAvatar: () => {
+        throw new Error("不应解析角色差分");
+      },
+      resolveRole: () => ({ roleId: 10, speakerName: "烈" }),
+      resolveMaterial: () => {
+        throw new Error("不应解析素材");
+      },
+    });
+
+    expect(messages).toMatchObject([
+      {
+        roleId: 10,
+        speakerName: "烈",
+        content: "状态更新：烈 HP = 10/20",
+        messageType: MessageType.STATE_EVENT,
+        extra: {
+          stateEvent: {
+            source: {
+              kind: "command",
+              commandName: "hitpoint",
+              parserVersion: "state-event-v1",
+            },
+            events: [
+              {
+                type: "varOp",
+                scope: { kind: "role", roleId: 10 },
+                key: "hp",
+                op: "set",
+                value: 10,
+              },
+              {
+                type: "varOp",
+                scope: { kind: "role", roleId: 10 },
+                key: "hpm",
+                op: "set",
+                value: 20,
+              },
+            ],
+          },
+        },
       },
     ]);
   });

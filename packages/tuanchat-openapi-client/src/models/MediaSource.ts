@@ -22,5 +22,6 @@ export type MediaSource = {
      * 外部来源标识，如 cq
      */
     provider?: string;
+    internalFile?: boolean;
 };
 

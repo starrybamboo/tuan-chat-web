@@ -15,7 +15,9 @@ export type ChatMessageListModel = {
 };
 
 export function isVisibleRoomMessage(message: Message): boolean {
-  return message.status !== 1 && message.messageType !== MESSAGE_TYPE.EFFECT;
+  return message.status !== 1
+    && message.messageType !== MESSAGE_TYPE.EFFECT
+    && message.messageType !== MESSAGE_TYPE.STATE_EVENT;
 }
 
 export function getVisibleMessageItems(messages: readonly ChatMessageListItem[]): ChatMessageListItem[] {
@@ -70,6 +72,26 @@ export function getMessageListItemKey(message: Message, index: number): string {
     index,
   ];
   return `fallback:${fallbackParts.map(value => value ?? "").join(":")}`;
+}
+
+export function getVisibleMessageListSignature(messages: readonly ChatMessageListItem[]): string {
+  return messages.map((item, index) => {
+    const { message } = item;
+    const identity = getRoomMessageLocalRenderKey(message)
+      ?? (typeof message.messageId === "number" && Number.isFinite(message.messageId)
+        ? `message:${message.messageId}`
+        : typeof message.syncId === "number" && Number.isFinite(message.syncId)
+          ? `sync:${message.syncId}`
+          : `index:${index}`);
+    return [
+      identity,
+      message.messageId ?? "",
+      message.syncId ?? "",
+      message.status ?? "",
+      message.position ?? "",
+      message.updateTime ?? "",
+    ].join(",");
+  }).join("|");
 }
 
 export function buildVisibleMessageMap(messages: readonly ChatMessageListItem[]): Map<number, Message> {

@@ -21,6 +21,7 @@ finalArgs.push(...args);
 
 const legacyCacheDir = join(workspaceRoot, "node_modules", ".vite");
 const isolatedCacheDir = join(workspaceRoot, "node_modules", ".vite-tuan-chat-web");
+const useWindowsShell = process.platform === "win32";
 
 function removeDirIfExists(dirPath) {
   if (!existsSync(dirPath))
@@ -38,7 +39,8 @@ if (args.includes("--force"))
 
 const child = spawn("pnpm", ["exec", "vite", ...finalArgs], {
   stdio: "inherit",
-  shell: process.platform === "win32",
+  shell: useWindowsShell,
+  windowsHide: useWindowsShell,
   cwd: projectRoot,
   env: process.env,
 });

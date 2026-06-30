@@ -61,16 +61,20 @@ export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificati
     return "/(tabs)/role";
   }
 
-  if (normalizedPath === "/notifications" || normalizedPath === "/profile") {
+  if (normalizedPath === "/notifications") {
+    return "/(tabs)";
+  }
+
+  if (normalizedPath === "/profile") {
     return "/(tabs)/explore";
   }
 
   if (normalizedTargetPath) {
-    return "/(tabs)/explore";
+    return "/(tabs)";
   }
 
   if (payload.resourceId != null || payload.resourceType) {
-    return "/(tabs)/explore";
+    return "/(tabs)";
   }
 
   return null;

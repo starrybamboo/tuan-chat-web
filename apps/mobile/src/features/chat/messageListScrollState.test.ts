@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { isWithinBottomThreshold, resolveBottomThresholdTransition } from "./messageListScrollState";
+import {
+  isWithinBottomThreshold,
+  resolveBottomThresholdTransition,
+  resolveVisibleMessageAppendAction,
+} from "./messageListScrollState";
 
 describe("messageListScrollState", () => {
   it("按阈值判断是否仍在底部区域", () => {
@@ -15,5 +19,29 @@ describe("messageListScrollState", () => {
     expect(resolveBottomThresholdTransition(true, 80)).toEqual({ changed: true, isAtBottom: false });
     expect(resolveBottomThresholdTransition(false, 120)).toEqual({ changed: false, isAtBottom: false });
     expect(resolveBottomThresholdTransition(false, 0)).toEqual({ changed: true, isAtBottom: true });
+  });
+
+  it("底部收到新消息时应保持贴底", () => {
+    expect(resolveVisibleMessageAppendAction({
+      isAtBottom: true,
+      nextLength: 4,
+      previousLength: 3,
+    })).toEqual({
+      addedCount: 1,
+      shouldCountNewMessages: false,
+      shouldScrollToBottom: true,
+    });
+  });
+
+  it("离开底部收到新消息时只计数不强制跳底", () => {
+    expect(resolveVisibleMessageAppendAction({
+      isAtBottom: false,
+      nextLength: 6,
+      previousLength: 4,
+    })).toEqual({
+      addedCount: 2,
+      shouldCountNewMessages: true,
+      shouldScrollToBottom: false,
+    });
   });
 });
