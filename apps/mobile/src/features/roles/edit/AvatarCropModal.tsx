@@ -142,28 +142,28 @@ export function AvatarCropModal({
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
-      scale.value = Math.max(1, Math.min(5, savedScale.value * e.scale));
+      scale.set(Math.max(1, Math.min(5, savedScale.get() * e.scale)));
     })
     .onEnd(() => {
-      savedScale.value = scale.value;
-      const clamped = clampTranslation(translateX.value, translateY.value, scale.value);
-      translateX.value = withTiming(clamped.x, { duration: 150 });
-      translateY.value = withTiming(clamped.y, { duration: 150 });
-      savedTranslateX.value = clamped.x;
-      savedTranslateY.value = clamped.y;
+      savedScale.set(scale.get());
+      const clamped = clampTranslation(translateX.get(), translateY.get(), scale.get());
+      translateX.set(withTiming(clamped.x, { duration: 150 }));
+      translateY.set(withTiming(clamped.y, { duration: 150 }));
+      savedTranslateX.set(clamped.x);
+      savedTranslateY.set(clamped.y);
     });
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      translateX.value = savedTranslateX.value + e.translationX;
-      translateY.value = savedTranslateY.value + e.translationY;
+      translateX.set(savedTranslateX.get() + e.translationX);
+      translateY.set(savedTranslateY.get() + e.translationY);
     })
     .onEnd(() => {
-      const clamped = clampTranslation(translateX.value, translateY.value, scale.value);
-      translateX.value = withTiming(clamped.x, { duration: 150 });
-      translateY.value = withTiming(clamped.y, { duration: 150 });
-      savedTranslateX.value = clamped.x;
-      savedTranslateY.value = clamped.y;
+      const clamped = clampTranslation(translateX.get(), translateY.get(), scale.get());
+      translateX.set(withTiming(clamped.x, { duration: 150 }));
+      translateY.set(withTiming(clamped.y, { duration: 150 }));
+      savedTranslateX.set(clamped.x);
+      savedTranslateY.set(clamped.y);
     });
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
@@ -172,9 +172,9 @@ export function AvatarCropModal({
     width: displayWidth,
     height: displayHeight,
     transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
+      { translateX: translateX.get() },
+      { translateY: translateY.get() },
+      { scale: scale.get() },
     ],
   }));
 
@@ -185,9 +185,9 @@ export function AvatarCropModal({
     setErrorMessage(null);
     setIsProcessing(true);
     try {
-      const currentScale = scale.value * baseScale;
-      const currentTx = translateX.value;
-      const currentTy = translateY.value;
+      const currentScale = scale.get() * baseScale;
+      const currentTx = translateX.get();
+      const currentTy = translateY.get();
 
       const cropX = (imageWidth / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTx / currentScale);
       const cropY = (imageHeight / 2) - (CROP_SIZE / (2 * currentScale)) - (currentTy / currentScale);
@@ -225,12 +225,12 @@ export function AvatarCropModal({
     if (isProcessing) {
       return;
     }
-    scale.value = 1;
-    savedScale.value = 1;
-    translateX.value = 0;
-    translateY.value = 0;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
+    scale.set(1);
+    savedScale.set(1);
+    translateX.set(0);
+    translateY.set(0);
+    savedTranslateX.set(0);
+    savedTranslateY.set(0);
     setErrorMessage(null);
     onCancel();
   }, [onCancel, scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY, isProcessing]);

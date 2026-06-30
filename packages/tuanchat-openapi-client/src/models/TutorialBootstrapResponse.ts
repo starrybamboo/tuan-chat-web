@@ -27,16 +27,6 @@ export type TutorialBootstrapResponse = {
      */
     currentCommitId?: number;
     /**
-     * 废弃：当前方案不再由 bootstrap 自动克隆，固定为 false
-     * @deprecated
-     */
-    autoCloned?: boolean;
-    /**
-     * 废弃：当前方案不再由 bootstrap 自动克隆，固定为空
-     * @deprecated
-     */
-    newSpaceId?: number;
-    /**
      * 是否缺少教程空间（需要提示用户是否克隆）
      */
     missingTutorial?: boolean;

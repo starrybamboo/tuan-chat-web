@@ -16,8 +16,8 @@ import {
   useSendMessageMutation as useSharedSendMessageMutation,
 } from "@tuanchat/query/chat";
 import {
-  roleAbilityByRuleQueryKey,
   readSuccessfulAbilityApiResultData,
+  roleAbilityByRuleQueryKey,
 } from "@tuanchat/query/role-abilities";
 import {
   commitOptimisticRoomMessageInList,
@@ -33,13 +33,16 @@ import type { RoomMessagesQueryData } from "./roomMessagesQueryData";
 
 import { mobileApiClient } from "../../lib/api";
 import { writeCachedRoomMessages } from "./mobileRoomMessageCache";
+import {
+  withStableRoomMessagePosition,
+  withStableRoomMessagePositions,
+} from "./roomMessagePosition";
 import { extractRoomMessagesFromQueryData, updateRoomMessagesQueryData } from "./roomMessagesQueryData";
 import {
   mergeStateEventRoleVarSnapshots,
   refreshChangedRoleAbilityCaches,
 } from "./sendRoomMessageMutationHelpers";
-
-export { mergeStateEventRoleVarSnapshots, setChangedRoleAbilityCaches } from "./sendRoomMessageMutationHelpers";
+export { withStableRoomMessagePosition, withStableRoomMessagePositions } from "./roomMessagePosition";
 
 type SendMessageContext = {
   annotations?: string[];
@@ -67,7 +70,11 @@ function requireNonEmptyContent(content: string, fallback = "消息内容不能�
   return trimmed;
 }
 
-export function useSendRoomMessageMutation(roomId: number | null, currentUserId: number = 0, _pageSize: number = 20) {
+export function useSendRoomMessageMutation(
+  roomId: number | null,
+  currentUserId: number = 0,
+  currentMessagesForPosition: readonly ChatMessageResponse[] = [],
+) {
   const queryClient = useQueryClient();
   const mutation = useSharedSendMessageMutation(mobileApiClient, roomId ?? -1);
   const optimisticIdRef = useRef(-1);
@@ -82,9 +89,10 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
     const resolvedRoomId = roomId ?? -1;
     if (resolvedRoomId <= 0)
       return [];
-    return extractRoomMessagesFromQueryData(
+    const queryMessages = extractRoomMessagesFromQueryData(
       queryClient.getQueryData<RoomMessagesQueryData>(getAllRoomMessagesQueryKey(resolvedRoomId)),
     );
+    return mergeRoomMessagesForLocalState([...currentMessagesForPosition], queryMessages);
   };
 
   const updateQueryCache = (updater: (current: ChatMessageResponse[] | undefined) => ChatMessageResponse[]) => {
@@ -167,9 +175,10 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
 
   const sendRequest = async (request: ChatMessageRequest) => {
     requirePositiveRoomId(roomId);
-    const optimistic = insertOptimistic(request);
+    const requestWithStablePosition = withStableRoomMessagePosition(request, getCurrentMessages());
+    const optimistic = insertOptimistic(requestWithStablePosition);
     try {
-      const result = await mutateRequest(request);
+      const result = await mutateRequest(requestWithStablePosition);
       if (result?.success && result.data) {
         commitOptimistic(optimistic.message.messageId, result.data);
       }
@@ -190,14 +199,15 @@ export function useSendRoomMessageMutation(roomId: number | null, currentUserId:
       return [];
     }
 
-    const optimistics = insertOptimisticBatch(requests);
+    const requestsWithStablePositions = withStableRoomMessagePositions(requests, getCurrentMessages());
+    const optimistics = insertOptimisticBatch(requestsWithStablePositions);
     const results = [];
     const failedIds: number[] = [];
 
     try {
-      for (let i = 0; i < requests.length; i++) {
+      for (let i = 0; i < requestsWithStablePositions.length; i++) {
         try {
-          const result = await mutateRequest(requests[i]);
+          const result = await mutateRequest(requestsWithStablePositions[i]);
           if (result?.success && result.data) {
             commitOptimistic(optimistics[i].message.messageId, result.data);
           }

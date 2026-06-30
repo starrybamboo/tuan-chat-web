@@ -2,65 +2,79 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getMaxRoomMessageSyncId,
   getRoomUnreadCountsFromSessions,
-  getUserMessageSessionsQueryKey,
-  markRoomSessionReadInCache,
   useUpdateRoomReadPositionMutation,
   useUserMessageSessionsQuery,
 } from "@tuanchat/query";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AppState } from "react-native";
 
 import { useAuthSession } from "@/features/auth/auth-session";
 import { useRoomMessagesQuery } from "@/features/messages/useRoomMessagesQuery";
 import { mobileApiClient } from "@/lib/api";
+
 import {
-  canUseMobileUserScopedSnapshot,
-  createMobileQuerySnapshotKey,
-  useMobileQuerySnapshot,
-} from "@/lib/use-mobile-query-snapshot";
+  clearRoomReadPositionSyncTimers,
+  markRoomReadOptimistically,
+  scheduleDebouncedRoomReadPositionSync,
+  shouldAutoMarkFocusedRoomRead,
+  type RoomReadPositionSyncState,
+} from "./roomReadPositionSync";
 
-const MESSAGE_SESSIONS_SNAPSHOT_TTL_MS = 2 * 60_000;
-
-export function useRoomUnreadCounts(currentRoomId?: number | null): Record<number, number> {
-  const { isAuthenticated, session } = useAuthSession();
+export function useRoomUnreadCounts(
+  currentRoomId?: number | null,
+  options: { isRoomFocused?: boolean } = {},
+): Record<number, number> {
+  const { isAuthenticated } = useAuthSession();
   const queryClient = useQueryClient();
-  const rawSessionsQuery = useUserMessageSessionsQuery(mobileApiClient, { enabled: isAuthenticated });
-  const sessionsQuery = useMobileQuerySnapshot(rawSessionsQuery, {
-    enabled: canUseMobileUserScopedSnapshot({
-      isAuthenticated,
-      userId: session?.userId,
-    }),
-    key: createMobileQuerySnapshotKey(getUserMessageSessionsQueryKey()),
-    scope: "message-sessions",
-    ttlMs: MESSAGE_SESSIONS_SNAPSHOT_TTL_MS,
-    userId: session?.userId,
-  });
+  const [appState, setAppState] = useState(AppState.currentState);
+  const sessionsQuery = useUserMessageSessionsQuery(mobileApiClient, { enabled: isAuthenticated });
   const { mutate: updateReadPosition } = useUpdateRoomReadPositionMutation(mobileApiClient);
   const currentRoomMessagesQuery = useRoomMessagesQuery(currentRoomId ?? null);
-  const lastSentSyncIdRef = useRef<Record<number, number>>({});
+  const syncStateRef = useRef<RoomReadPositionSyncState>({
+    pendingSyncIdsByRoom: {},
+    timersByRoom: {},
+  });
 
   const unreadCounts = useMemo(() => {
     return getRoomUnreadCountsFromSessions(sessionsQuery.data?.data);
   }, [sessionsQuery.data?.data]);
 
   useEffect(() => {
-    if (!currentRoomId || currentRoomId <= 0) {
-      return;
-    }
+    const syncState = syncStateRef.current;
+    return () => clearRoomReadPositionSyncTimers(syncState);
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", setAppState);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
     const latestMessageSyncId = getMaxRoomMessageSyncId(currentRoomMessagesQuery.messages);
     const session = sessionsQuery.data?.data?.find(item => item.roomId === currentRoomId);
     const targetSyncId = Math.max(latestMessageSyncId, session?.latestSyncId ?? 0);
-    if (targetSyncId <= 0 || targetSyncId <= (session?.lastReadSyncId ?? 0)) {
+    if (!shouldAutoMarkFocusedRoomRead({
+      currentRoomId,
+      isRoomFocused: appState === "active" && options.isRoomFocused,
+      targetSyncId,
+    })) {
       return;
     }
-    if (lastSentSyncIdRef.current[currentRoomId] === targetSyncId) {
+    if (targetSyncId <= (session?.lastReadSyncId ?? 0)) {
       return;
     }
-    lastSentSyncIdRef.current[currentRoomId] = targetSyncId;
-    markRoomSessionReadInCache(queryClient, currentRoomId, targetSyncId);
-    updateReadPosition({ roomId: currentRoomId, syncId: targetSyncId });
+    markRoomReadOptimistically(queryClient, currentRoomId!, targetSyncId);
+    scheduleDebouncedRoomReadPositionSync(
+      syncStateRef.current,
+      currentRoomId!,
+      targetSyncId,
+      (roomId, syncId) => updateReadPosition({ roomId, syncId }),
+    );
   }, [
     currentRoomId,
     currentRoomMessagesQuery.messages,
+    appState,
+    options.isRoomFocused,
     sessionsQuery.data?.data,
     updateReadPosition,
     queryClient,

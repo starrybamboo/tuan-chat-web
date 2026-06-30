@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import type { UploadUtils } from "@/utils/media/UploadUtils";
 
 import { MessageType } from "../../../../api/wsModels";
-import { buildMessageDraftsFromComposerSnapshot, resolveEmojiImageMeta } from "./messageDraftBuilder";
+import { buildMessageDraftsFromComposerSnapshot, buildMessageDraftUploadResultFromComposerSnapshot, resolveEmojiImageMeta } from "./messageDraftBuilder";
 
 const { getImageSizeMock } = vi.hoisted(() => ({
   getImageSizeMock: vi.fn(),
@@ -252,6 +252,69 @@ describe("messageDraftBuilder", () => {
         size: 2345,
       },
     });
+  });
+
+  it("多张图片部分上传失败时返回成功草稿和失败附件列表", async () => {
+    const uploadUtils = createUploadUtilsMock();
+    const fileA = new File(["a"], "a.png", { type: "image/png" });
+    const fileB = new File(["b"], "b.png", { type: "image/png" });
+    uploadUtils.uploadDualImage.mockImplementation(async (file: File) => {
+      if (file === fileB) {
+        throw new Error("b.png 上传失败");
+      }
+      return {
+        fileId: 101,
+        mediaType: "image",
+        originalSize: file.size,
+        originalUrl: "https://example.com/a.png/original",
+        url: "https://example.com/a.png/medium",
+      };
+    });
+
+    const result = await buildMessageDraftUploadResultFromComposerSnapshot({
+      inputText: "",
+      imgFiles: [fileA, fileB],
+      emojiUrls: [],
+      emojiMetaByUrl: {},
+      fileAttachments: [],
+      audioFile: null,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    });
+
+    expect(result.drafts).toHaveLength(1);
+    expect(result.drafts[0]?.extra).toMatchObject({
+      imageMessage: {
+        source: { kind: "internal", fileId: 101 },
+        fileName: "a.png",
+      },
+    });
+    expect(result.failedAttachments).toEqual([
+      expect.objectContaining({
+        file: fileB,
+        kind: "image",
+        error: expect.objectContaining({ message: "b.png 上传失败" }),
+      }),
+    ]);
+  });
+
+  it("兼容旧草稿构建入口：存在失败附件时继续抛出首个错误", async () => {
+    const uploadUtils = createUploadUtilsMock();
+    const file = new File(["b"], "b.png", { type: "image/png" });
+    uploadUtils.uploadDualImage.mockRejectedValueOnce(new Error("b.png 上传失败"));
+
+    await expect(buildMessageDraftsFromComposerSnapshot({
+      inputText: "",
+      imgFiles: [file],
+      emojiUrls: [],
+      emojiMetaByUrl: {},
+      fileAttachments: [],
+      audioFile: null,
+      composerAnnotations: [],
+      tempAnnotations: [],
+      uploadUtils,
+    })).rejects.toThrow("b.png 上传失败");
   });
 
   it("表情消息会保留内部媒体 source", async () => {

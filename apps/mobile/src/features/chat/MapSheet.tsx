@@ -1,3 +1,4 @@
+import type { ChatMessageResponse } from "@tuanchat/openapi-client/models/ChatMessageResponse";
 import type { Message } from "@tuanchat/openapi-client/models/Message";
 import type { UserRole } from "@tuanchat/openapi-client/models/UserRole";
 
@@ -9,6 +10,7 @@ import { MapPanel } from "./MapPanel";
 type MapSheetProps = {
   currentRoleId: number | null;
   isKP: boolean;
+  messageResponses?: ChatMessageResponse[];
   messages: Message[];
   onClose: () => void;
   roomId: number | null;
@@ -20,6 +22,7 @@ type MapSheetProps = {
 export function MapSheet({
   currentRoleId,
   isKP,
+  messageResponses,
   messages,
   onClose,
   roomId,
@@ -40,6 +43,7 @@ export function MapSheet({
       <MapPanel
         currentRoleId={currentRoleId}
         isKP={isKP}
+        messageResponses={messageResponses}
         messages={messages}
         roomId={roomId}
         roomRoles={roomRoles}

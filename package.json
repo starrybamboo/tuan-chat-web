@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.6.0",
+  "packageManager": "pnpm@11.7.0",
   "author": "Tuan Chat",
   "scripts": {
     "build": "node ./scripts/build.mjs",
@@ -16,6 +16,7 @@
     "start": "node ./scripts/start.mjs",
     "web:start": "pnpm --filter @tuanchat/web run start",
     "mobile:local-apk": "powershell -ExecutionPolicy Bypass -File ./scripts/mobile-android-release.ps1",
+    "mobile:emulator-apk": "powershell -ExecutionPolicy Bypass -File ./scripts/mobile-android-emulator-apk.ps1",
     "mobile:cloud-apk": "cd apps/mobile && pnpm exec eas build -p android --profile preview",
     "mobile:workflow:preview": "cd apps/mobile && pnpm exec eas workflow:run .eas/workflows/build-main-preview-builds.yml",
     "mobile:workflow:production": "cd apps/mobile && pnpm exec eas workflow:run .eas/workflows/create-production-builds.yml",
@@ -92,11 +93,6 @@
     "typescript": "5.8.2",
     "undici": "^6.21.0",
     "vitest": "^4.1.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "@electron/node-gyp": "10.2.0-electron.1"
-    }
   },
   "lint-staged": {
     "apps/web/**/*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint --fix --fix-suggestions --config apps/web/.oxlintrc.json --no-error-on-unmatched-pattern",

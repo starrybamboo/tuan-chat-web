@@ -9,11 +9,14 @@ export type ImageCompressProfile = {
 };
 
 export const IMAGE_COMPRESS_PROFILES = {
+  original: { maxWidthOrHeight: 2560, maxSizeKB: 3072, quality: 1 },
   low: { maxWidthOrHeight: 200, maxSizeKB: 40, quality: 1 },
   medium: { maxWidthOrHeight: 512, maxSizeKB: 150, quality: 1 },
 } as const satisfies Record<string, ImageCompressProfile>;
 
 export type ImageDerivativeResult = {
+  fileName: string;
+  mimeType: "image/webp";
   uri: string;
   size: number;
 };
@@ -22,6 +25,19 @@ type ImageDimensions = {
   height: number;
   width: number;
 };
+
+type CompressImageToWebpOptions = {
+  fileName?: string;
+  quality?: string;
+};
+
+const WEBP_MIME_TYPE = "image/webp";
+
+function createWebpFileName(fileName: string | undefined, quality: string | undefined): string {
+  const rawBaseName = fileName?.trim().replace(/\.[^.]+$/, "") || "image";
+  const suffix = quality && quality !== "original" ? `_${quality}` : "";
+  return `${rawBaseName}${suffix}.webp`;
+}
 
 function resolveImageDimensions(uri: string): Promise<ImageDimensions> {
   return new Promise((resolve, reject) => {
@@ -68,11 +84,13 @@ async function getFileSize(uri: string): Promise<number> {
 export async function compressImageToWebp(
   uri: string,
   profile: ImageCompressProfile,
+  options: CompressImageToWebpOptions = {},
 ): Promise<ImageDerivativeResult> {
   const maxRounds = 5;
   let currentUri = uri;
   let currentQuality = profile.quality;
   let currentMaxDimension = profile.maxWidthOrHeight;
+  const fileName = createWebpFileName(options.fileName, options.quality);
 
   for (let round = 0; round < maxRounds; round++) {
     const sourceDimensions = await resolveImageDimensions(currentUri);
@@ -85,7 +103,7 @@ export async function compressImageToWebp(
 
     const size = await getFileSize(result.uri);
     if (size <= profile.maxSizeKB * 1024) {
-      return { uri: result.uri, size };
+      return { fileName, mimeType: WEBP_MIME_TYPE, uri: result.uri, size };
     }
 
     currentUri = result.uri;
@@ -103,5 +121,5 @@ export async function compressImageToWebp(
     { compress: 0.2, format: ImageManipulator.SaveFormat.WEBP },
   );
   const fallbackSize = await getFileSize(fallback.uri);
-  return { uri: fallback.uri, size: fallbackSize };
+  return { fileName, mimeType: WEBP_MIME_TYPE, uri: fallback.uri, size: fallbackSize };
 }

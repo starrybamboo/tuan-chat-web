@@ -55,9 +55,17 @@ describe("mobile image compression", () => {
     imageManipulatorMock.manipulateAsync.mockResolvedValueOnce({ uri: "file:///cache/avatar-low.webp" });
     fileSystemMock.getInfoAsync.mockResolvedValueOnce({ exists: true, size: 32 * 1024 });
 
-    const result = await compressImageToWebp("file:///source/avatar.png", IMAGE_COMPRESS_PROFILES.low);
+    const result = await compressImageToWebp("file:///source/avatar.png", IMAGE_COMPRESS_PROFILES.low, {
+      fileName: "avatar.png",
+      quality: "low",
+    });
 
-    expect(result).toEqual({ uri: "file:///cache/avatar-low.webp", size: 32 * 1024 });
+    expect(result).toEqual({
+      fileName: "avatar_low.webp",
+      mimeType: "image/webp",
+      uri: "file:///cache/avatar-low.webp",
+      size: 32 * 1024,
+    });
     expect(imageManipulatorMock.manipulateAsync).toHaveBeenCalledWith(
       "file:///source/avatar.png",
       [{ resize: { width: 200, height: 150 } }],
@@ -76,7 +84,12 @@ describe("mobile image compression", () => {
 
     const result = await compressImageToWebp("file:///source/sprite.png", IMAGE_COMPRESS_PROFILES.medium);
 
-    expect(result).toEqual({ uri: "file:///cache/round-2.webp", size: 120 * 1024 });
+    expect(result).toEqual({
+      fileName: "image.webp",
+      mimeType: "image/webp",
+      uri: "file:///cache/round-2.webp",
+      size: 120 * 1024,
+    });
     expect(imageManipulatorMock.manipulateAsync).toHaveBeenNthCalledWith(
       2,
       "file:///cache/round-1.webp",
@@ -106,7 +119,12 @@ describe("mobile image compression", () => {
 
     const result = await compressImageToWebp("blob://source-preview", IMAGE_COMPRESS_PROFILES.low);
 
-    expect(result).toEqual({ uri: "blob://compressed-preview", size: 12 });
+    expect(result).toEqual({
+      fileName: "image.webp",
+      mimeType: "image/webp",
+      uri: "blob://compressed-preview",
+      size: 12,
+    });
     expect(fetchMock).toHaveBeenCalledWith("blob://compressed-preview");
     expect(fileSystemMock.getInfoAsync).not.toHaveBeenCalled();
   });

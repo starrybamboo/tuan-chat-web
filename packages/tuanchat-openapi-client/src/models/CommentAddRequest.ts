@@ -26,5 +26,6 @@ export type CommentAddRequest = {
      * 评论内容
      */
     content: string;
+    topLevelComment?: boolean;
 };
 

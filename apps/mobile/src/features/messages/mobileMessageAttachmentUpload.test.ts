@@ -22,9 +22,17 @@ const fileSystemMock = vi.hoisted(() => ({
 const imageCompressMock = vi.hoisted(() => ({
   compressImageToWebp: vi.fn(),
   IMAGE_COMPRESS_PROFILES: {
+    original: { maxWidthOrHeight: 2560, maxSizeKB: 3072, quality: 1 },
     low: { maxWidthOrHeight: 200, maxSizeKB: 40, quality: 1 },
     medium: { maxWidthOrHeight: 512, maxSizeKB: 150, quality: 1 },
   },
+}));
+
+const mobileGifToWebpMock = vi.hoisted(() => ({
+  convertGifAttachmentToAnimatedWebp: vi.fn(),
+  isGifAttachment: vi.fn((attachment: { fileName: string; mimeType?: string }) => {
+    return attachment.mimeType === "image/gif" || attachment.fileName.toLowerCase().endsWith(".gif");
+  }),
 }));
 
 vi.mock("react-native", () => ({
@@ -42,6 +50,11 @@ vi.mock("expo-file-system/legacy", () => ({
 vi.mock("../../lib/mobile-image-compress", () => ({
   IMAGE_COMPRESS_PROFILES: imageCompressMock.IMAGE_COMPRESS_PROFILES,
   compressImageToWebp: imageCompressMock.compressImageToWebp,
+}));
+
+vi.mock("../../lib/mobile-gif-to-webp", () => ({
+  convertGifAttachmentToAnimatedWebp: mobileGifToWebpMock.convertGifAttachmentToAnimatedWebp,
+  isGifAttachment: mobileGifToWebpMock.isGifAttachment,
 }));
 
 vi.mock("./mobileMessageAttachment", () => ({
@@ -87,6 +100,15 @@ function createApiResultError(message: string) {
   }, message);
 }
 
+function createWebpResult(uri: string, size: number, fileName = "image.webp") {
+  return {
+    fileName,
+    mimeType: "image/webp",
+    uri,
+    size,
+  };
+}
+
 describe("uploadMobileMessageAttachments", () => {
   beforeEach(() => {
     platformMock.OS = "ios";
@@ -94,12 +116,18 @@ describe("uploadMobileMessageAttachments", () => {
     fileSystemMock.readAsStringAsync.mockReset();
     fileSystemMock.uploadAsync.mockReset();
     imageCompressMock.compressImageToWebp.mockReset();
+    mobileGifToWebpMock.convertGifAttachmentToAnimatedWebp.mockReset();
+    mobileGifToWebpMock.isGifAttachment.mockClear();
     fileSystemMock.getInfoAsync.mockResolvedValue({ exists: true, size: 5 });
     fileSystemMock.readAsStringAsync.mockResolvedValue("AQIDBAU=");
     fileSystemMock.uploadAsync.mockResolvedValue({ status: 200 });
     imageCompressMock.compressImageToWebp
-      .mockResolvedValueOnce({ uri: "file:///cache/image-low.webp", size: 10 })
-      .mockResolvedValueOnce({ uri: "file:///cache/image-medium.webp", size: 20 });
+      .mockResolvedValueOnce(createWebpResult("file:///cache/image-original.webp", 5))
+      .mockResolvedValueOnce(createWebpResult("file:///cache/image-low.webp", 10, "image_low.webp"))
+      .mockResolvedValueOnce(createWebpResult("file:///cache/image-medium.webp", 20, "image_medium.webp"));
+    mobileGifToWebpMock.convertGifAttachmentToAnimatedWebp.mockResolvedValue(
+      createWebpResult("file:///cache/animated-sticker.webp", 88, "animated-sticker.webp"),
+    );
   });
 
   afterEach(() => {
@@ -147,12 +175,15 @@ describe("uploadMobileMessageAttachments", () => {
       "width",
     ]);
     expect(client.mediaController.prepareUpload).toHaveBeenCalledWith(expect.objectContaining({
-      fileName: "photo.jpg",
+      fileName: "image.webp",
       scene: 1,
       sizeBytes: 5,
-      mimeType: "image/jpeg",
-      contentType: "image/jpeg",
-      metadata: expect.objectContaining({ clientPlatform: "ios" }),
+      mimeType: "image/webp",
+      contentType: "image/webp",
+      metadata: expect.objectContaining({
+        clientPlatform: "ios",
+        uploadedQualities: ["original", "low", "medium"],
+      }),
     }));
     expect(fileSystemMock.uploadAsync).toHaveBeenCalledWith(
       "https://oss.example.com/low",
@@ -164,7 +195,13 @@ describe("uploadMobileMessageAttachments", () => {
       "file:///cache/image-medium.webp",
       expect.objectContaining({ uploadType: "binary" }),
     );
-    expect(client.mediaController.completeUpload).toHaveBeenCalledWith(77);
+    expect(client.mediaController.completeUpload).toHaveBeenCalledWith(77, {
+      availableQualities: ["low", "medium"],
+      pendingQualities: [],
+      failedQualities: [],
+      degraded: false,
+      failedTargets: [],
+    });
   });
 
   it("allows sticker uploads to use the sticker media scene", async () => {
@@ -189,11 +226,11 @@ describe("uploadMobileMessageAttachments", () => {
 
     expect(result.uploadedImages[0]?.fileId).toBe(432);
     expect(client.mediaController.prepareUpload).toHaveBeenCalledWith(expect.objectContaining({
-      fileName: "sticker.png",
+      fileName: "image.webp",
       scene: 2,
       sizeBytes: 5,
-      mimeType: "image/png",
-      contentType: "image/png",
+      mimeType: "image/webp",
+      contentType: "image/webp",
     }));
     expect(fileSystemMock.uploadAsync).not.toHaveBeenCalled();
     expect(client.mediaController.completeUpload).not.toHaveBeenCalled();
@@ -224,8 +261,9 @@ describe("uploadMobileMessageAttachments", () => {
     vi.stubGlobal("fetch", fetchMock);
     imageCompressMock.compressImageToWebp.mockReset();
     imageCompressMock.compressImageToWebp
-      .mockResolvedValueOnce({ uri: "blob://sticker-low", size: 3 })
-      .mockResolvedValueOnce({ uri: "blob://sticker-medium", size: 6 });
+      .mockResolvedValueOnce(createWebpResult("blob://sticker-webp", stickerBlob.size, "sticker.webp"))
+      .mockResolvedValueOnce(createWebpResult("blob://sticker-low", 3, "sticker_low.webp"))
+      .mockResolvedValueOnce(createWebpResult("blob://sticker-medium", 6, "sticker_medium.webp"));
     const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
     const client = createMediaClient({
       data: {
@@ -262,6 +300,67 @@ describe("uploadMobileMessageAttachments", () => {
     expect(uploadedBodies.get("https://oss.example.com/sticker-medium")).toBe(mediumBlob);
   });
 
+  it("converts gif stickers to animated webp original without static derivatives", async () => {
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    const client = createMediaClient({
+      data: {
+        fileId: 778,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 100,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/gif-original" },
+          low: { uploadUrl: "https://oss.example.com/gif-low" },
+          medium: { uploadUrl: "https://oss.example.com/gif-medium" },
+        },
+      },
+    });
+
+    const result = await uploadMobileMessageAttachments(client as any, [{
+      id: "gif-sticker",
+      uri: "file:///tmp/sticker.gif",
+      fileName: "sticker.gif",
+      mimeType: "image/gif",
+      kind: "image",
+      width: 96,
+      height: 96,
+    }], { scene: 2 });
+
+    expect(result.uploadedImages[0]).toEqual(expect.objectContaining({
+      fileId: 778,
+      fileName: "sticker.gif",
+      size: 88,
+    }));
+    expect(mobileGifToWebpMock.convertGifAttachmentToAnimatedWebp).toHaveBeenCalledWith(expect.objectContaining({
+      fileName: "sticker.gif",
+      uri: "file:///tmp/sticker.gif",
+    }));
+    expect(imageCompressMock.compressImageToWebp).not.toHaveBeenCalled();
+    expect(client.mediaController.prepareUpload).toHaveBeenCalledWith(expect.objectContaining({
+      fileName: "animated-sticker.webp",
+      scene: 2,
+      sizeBytes: 88,
+      mimeType: "image/webp",
+      contentType: "image/webp",
+      metadata: expect.objectContaining({
+        uploadedQualities: ["original"],
+      }),
+    }));
+    expect(fileSystemMock.uploadAsync).toHaveBeenCalledTimes(1);
+    expect(fileSystemMock.uploadAsync).toHaveBeenCalledWith(
+      "https://oss.example.com/gif-original",
+      "file:///cache/animated-sticker.webp",
+      expect.objectContaining({ uploadType: "binary" }),
+    );
+    expect(client.mediaController.completeUpload).toHaveBeenCalledWith(100, {
+      availableQualities: ["original"],
+      pendingQualities: [],
+      failedQualities: [],
+      degraded: false,
+      failedTargets: [],
+    });
+  });
+
   it("uploads web image derivatives from their own blob URIs", async () => {
     platformMock.OS = "web";
     const originalBlob = new Blob(["original"]);
@@ -276,6 +375,7 @@ describe("uploadMobileMessageAttachments", () => {
       }
       const blobByUrl: Record<string, Blob> = {
         "blob://original": originalBlob,
+        "blob://original-webp": originalBlob,
         "blob://low": lowBlob,
         "blob://medium": mediumBlob,
       };
@@ -287,8 +387,9 @@ describe("uploadMobileMessageAttachments", () => {
     vi.stubGlobal("fetch", fetchMock);
     imageCompressMock.compressImageToWebp.mockReset();
     imageCompressMock.compressImageToWebp
-      .mockResolvedValueOnce({ uri: "blob://low", size: 3 })
-      .mockResolvedValueOnce({ uri: "blob://medium", size: 6 });
+      .mockResolvedValueOnce(createWebpResult("blob://original-webp", 9, "web-photo.webp"))
+      .mockResolvedValueOnce(createWebpResult("blob://low", 3, "web-photo_low.webp"))
+      .mockResolvedValueOnce(createWebpResult("blob://medium", 6, "web-photo_medium.webp"));
     const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
     const client = createMediaClient({
       data: {
@@ -319,6 +420,118 @@ describe("uploadMobileMessageAttachments", () => {
     expect(uploadedBodies.get("https://oss.example.com/medium")).toBe(mediumBlob);
     expect(fetchMock).toHaveBeenCalledWith("blob://low");
     expect(fetchMock).toHaveBeenCalledWith("blob://medium");
+  });
+
+  it("completes degraded image upload when a derivative target keeps failing", async () => {
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    const client = createMediaClient({
+      data: {
+        fileId: 655,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 89,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+          low: { uploadUrl: "https://oss.example.com/low" },
+          medium: { uploadUrl: "https://oss.example.com/medium" },
+        },
+      },
+    });
+    fileSystemMock.uploadAsync.mockImplementation(async (url: string) => {
+      if (url === "https://oss.example.com/low") {
+        return { status: 500 };
+      }
+      return { status: 200 };
+    });
+
+    const result = await uploadMobileMessageAttachments(client as any, [{
+      id: "photo",
+      uri: "file:///tmp/photo.jpg",
+      fileName: "photo.jpg",
+      mimeType: "image/jpeg",
+      kind: "image",
+      width: 100,
+      height: 80,
+    }]);
+
+    expect(result.uploadedImages[0]?.fileId).toBe(655);
+    expect(fileSystemMock.uploadAsync).toHaveBeenCalledWith(
+      "https://oss.example.com/original",
+      "file:///cache/image-original.webp",
+      expect.objectContaining({ uploadType: "binary" }),
+    );
+    expect(fileSystemMock.uploadAsync).toHaveBeenCalledWith(
+      "https://oss.example.com/low",
+      "file:///cache/image-low.webp",
+      expect.objectContaining({ uploadType: "binary" }),
+    );
+    expect(fileSystemMock.uploadAsync).toHaveBeenCalledTimes(5);
+    expect(client.mediaController.completeUpload).toHaveBeenCalledWith(89, {
+      availableQualities: ["original", "medium"],
+      pendingQualities: ["low"],
+      failedQualities: [],
+      degraded: true,
+      failedTargets: [expect.objectContaining({
+        quality: "low",
+        retryable: true,
+      })],
+    });
+  });
+
+  it("returns failed attachments without blocking successful attachments when partial success is enabled", async () => {
+    const { uploadMobileMessageAttachments } = await import("./mobileMessageAttachmentUpload");
+    imageCompressMock.compressImageToWebp.mockReset();
+    imageCompressMock.compressImageToWebp.mockImplementation(async (uri: string, profile: { maxSizeKB: number }, options?: { quality?: string }) => {
+      const quality = options?.quality ?? String(profile.maxSizeKB);
+      return createWebpResult(`${uri}-${quality}.webp`, profile.maxSizeKB, `${quality}.webp`);
+    });
+    const client = createMediaClient({
+      data: {
+        fileId: 700,
+        mediaType: "image",
+        uploadRequired: true,
+        sessionId: 90,
+        uploadTargets: {
+          original: { uploadUrl: "https://oss.example.com/original" },
+        },
+      },
+    });
+    fileSystemMock.uploadAsync
+      .mockResolvedValueOnce({ status: 200 })
+      .mockResolvedValueOnce({ status: 500 })
+      .mockResolvedValueOnce({ status: 500 })
+      .mockResolvedValueOnce({ status: 500 });
+
+    const okAttachment = {
+      id: "ok",
+      uri: "file:///tmp/ok.png",
+      fileName: "ok.png",
+      mimeType: "image/png",
+      kind: "image" as const,
+      width: 10,
+      height: 10,
+    };
+    const failedAttachment = {
+      id: "failed",
+      uri: "file:///tmp/failed.png",
+      fileName: "failed.png",
+      mimeType: "image/png",
+      kind: "image" as const,
+      width: 12,
+      height: 12,
+    };
+
+    const result = await uploadMobileMessageAttachments(client as any, [okAttachment, failedAttachment], { allowPartialSuccess: true });
+
+    expect(result.uploadedImages).toEqual([expect.objectContaining({
+      fileId: 700,
+      fileName: "ok.png",
+    })]);
+    expect(result.failedAttachments).toEqual([expect.objectContaining({
+      attachment: failedAttachment,
+      error: expect.objectContaining({ message: "文件传输失败: 500" }),
+    })]);
+    expect(client.mediaController.completeUpload).toHaveBeenCalledTimes(1);
   });
 
   it("propagates prepare failures before uploading any binary", async () => {

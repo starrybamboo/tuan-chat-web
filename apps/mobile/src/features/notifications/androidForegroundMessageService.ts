@@ -1,16 +1,36 @@
 import { NativeModules, Platform } from "react-native";
 
+import type { AndroidBackgroundPushDiagnostics } from "./androidBackgroundPushGuidance";
+
 import { logNotificationTrace, logNotificationTraceError } from "./notificationTrace";
 
-type NativeForegroundMessageServiceStatus = {
+export type AndroidBackgroundPushSettingTarget =
+  | "appDetails"
+  | "batteryOptimization"
+  | "manufacturerBackground"
+  | "notificationSettings";
+
+export type AndroidForegroundMessageServiceStatus = {
+  appActive?: boolean;
   connected?: boolean;
+  jsAppActive?: boolean;
+  lastBusinessFrameType?: number;
   lastEvent?: string;
+  lastFrameType?: number;
   lastMessageAt?: number;
+  lastShownNotificationAt?: number;
+  lastSkipReason?: string | null;
+  messageChannelImportance?: number;
+  notificationsEnabled?: boolean;
+  receivedFrameCount?: number;
   running?: boolean;
+  shownNotificationCount?: number;
 };
 
 type NativeForegroundMessageServiceModule = {
-  getStatus: () => Promise<NativeForegroundMessageServiceStatus>;
+  getBackgroundPushDiagnostics?: () => Promise<AndroidBackgroundPushDiagnostics>;
+  getStatus: () => Promise<AndroidForegroundMessageServiceStatus>;
+  openBackgroundPushSetting?: (target: AndroidBackgroundPushSettingTarget) => Promise<boolean>;
   setAppActive: (active: boolean) => Promise<boolean>;
   start: (config: {
     appActive: boolean;
@@ -28,6 +48,10 @@ const nativeModule = Platform.OS === "android"
 
 export function isAndroidForegroundMessageServiceSupported() {
   return Platform.OS === "android" && Boolean(nativeModule);
+}
+
+export function isAndroidBackgroundPushDiagnosticsSupported() {
+  return Platform.OS === "android" && Boolean(nativeModule?.getBackgroundPushDiagnostics);
 }
 
 export async function startAndroidForegroundMessageService(config: {
@@ -103,5 +127,36 @@ export async function getAndroidForegroundMessageServiceStatus() {
   catch (error) {
     logNotificationTraceError("fg-service.status.error", error);
     return null;
+  }
+}
+
+export async function getAndroidBackgroundPushDiagnostics() {
+  if (!nativeModule?.getBackgroundPushDiagnostics) {
+    return null;
+  }
+
+  try {
+    return await nativeModule.getBackgroundPushDiagnostics();
+  }
+  catch (error) {
+    logNotificationTraceError("fg-service.background-diagnostics.error", error);
+    return null;
+  }
+}
+
+export async function openAndroidBackgroundPushSetting(target: AndroidBackgroundPushSettingTarget) {
+  if (!nativeModule?.openBackgroundPushSetting) {
+    logNotificationTrace("fg-service.background-setting.skip-unavailable", { target });
+    return false;
+  }
+
+  try {
+    const result = await nativeModule.openBackgroundPushSetting(target);
+    logNotificationTrace("fg-service.background-setting.done", { result, target });
+    return result;
+  }
+  catch (error) {
+    logNotificationTraceError("fg-service.background-setting.error", error, { target });
+    return false;
   }
 }

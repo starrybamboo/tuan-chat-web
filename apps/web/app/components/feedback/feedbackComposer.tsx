@@ -21,14 +21,20 @@ function readErrorMessage(error: unknown) {
 }
 
 export default function FeedbackComposer({
+  initialDraft,
   onCreated,
 }: {
+  initialDraft?: {
+    title: string;
+    content: FeedbackIssueContent;
+    issueType: FeedbackIssueType;
+  } | null;
   onCreated?: (issue: FeedbackIssueDetail) => void;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState<FeedbackIssueContent>("");
-  const [issueType, setIssueType] = useState<FeedbackIssueType>(1);
+  const [isExpanded, setIsExpanded] = useState(() => initialDraft != null);
+  const [title, setTitle] = useState(() => initialDraft?.title ?? "");
+  const [content, setContent] = useState<FeedbackIssueContent>(() => initialDraft?.content ?? "");
+  const [issueType, setIssueType] = useState<FeedbackIssueType>(() => initialDraft?.issueType ?? 1);
   const createMutation = useCreateFeedbackIssueMutation();
 
   const resetForm = () => {

@@ -110,6 +110,7 @@ import {
   EFFECT_SCREEN_WIDTH,
   EFFECT_SCREEN_Y,
   IMAGE_MESSAGE_FIGURE_ID,
+  getWebgalFigureTransformAlpha,
   resolveFigureSlot,
   resolveSlotOffsetById,
 } from "./realtimeRendererFigureLayout";
@@ -160,13 +161,14 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v31";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v33";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
 const TUANCHAT_TEMPLATE_DIR = "WebGAL TuanChat";
 const TUANCHAT_TEMPLATE_ID = "7e10b9f3-40b9-43c3-a2b8-5335740b9d5d";
+const DEFAULT_FIGURE_TRANSITION_DURATION_MS = 120;
 
 function extractRoleAvatarFromQueryValue(value: unknown): RoleAvatar | undefined {
   const outer = (value as any)?.data ?? value;
@@ -2632,7 +2634,9 @@ export class RealtimeRenderer {
       // 不再自动清除立绘，立绘需要手动清除
         const figureSlot = resolveFigureSlot(figurePosition);
         this.lastFigureSlotIdMap.set(targetRoomId, figureSlot.id);
-        const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0);
+        const transform = buildRoleFigureTransformString(avatar, figureSlot.offsetX, 0, {
+          alpha: getWebgalFigureTransformAlpha(msg.webgal),
+        });
         const renderedState = this.getRenderedFigureState(targetRoomId);
         const previous = renderedState.get(figureSlot.id);
         const shouldUpdateFigure
@@ -2640,7 +2644,9 @@ export class RealtimeRenderer {
             || previous.fileName !== figureAsset.stateKey
             || previous.transform !== transform;
         if (shouldUpdateFigure) {
-          const figureArgs = buildFigureArgs(figureSlot.id, transform);
+          const figureArgs = buildFigureArgs(figureSlot.id, transform, {
+            defaultTransitionDurationMs: DEFAULT_FIGURE_TRANSITION_DURATION_MS,
+          });
           if (figureAsset.composeLine) {
             await this.appendLine(targetRoomId, figureAsset.composeLine, syncToFile);
           }

@@ -144,7 +144,11 @@ export function clampImageFigureLayoutToSafeZone(
   };
 }
 
-export function buildFigureArgs(id: string, transform: string): string {
+export function buildFigureArgs(
+  id: string,
+  transform: string,
+  options: { defaultTransitionDurationMs?: number } = {},
+): string {
   const parts: string[] = [];
   const trimmedId = id.trim();
   if (trimmedId) {
@@ -153,7 +157,29 @@ export function buildFigureArgs(id: string, transform: string): string {
   if (transform) {
     parts.push(transform);
   }
+  if (typeof options.defaultTransitionDurationMs === "number" && Number.isFinite(options.defaultTransitionDurationMs)) {
+    const duration = Math.max(0, Math.floor(options.defaultTransitionDurationMs));
+    parts.push(`-enterDuration=${duration}`, `-exitDuration=${duration}`);
+  }
   return parts.join(" ");
+}
+
+export function normalizeWebgalFigureOpacity(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return Math.max(0, Math.min(1, value));
+}
+
+export function getWebgalFigureTransformAlpha(webgal: unknown): number | undefined {
+  if (!webgal || typeof webgal !== "object") {
+    return undefined;
+  }
+  const transform = (webgal as { transform?: unknown }).transform;
+  if (!transform || typeof transform !== "object") {
+    return undefined;
+  }
+  return normalizeWebgalFigureOpacity((transform as { alpha?: unknown }).alpha);
 }
 
 export function buildFigureTransitionLine(
@@ -211,6 +237,7 @@ export function buildRoleFigureTransformString(
   avatar: RoleAvatar | undefined,
   offsetX = 0,
   offsetY = 0,
+  options: { alpha?: number } = {},
 ): string {
   if (!avatar && offsetX === 0 && offsetY === 0) {
     return "";
@@ -230,7 +257,7 @@ export function buildRoleFigureTransformString(
       x: spriteTransform?.scale ?? 1,
       y: spriteTransform?.scale ?? 1,
     },
-    alpha: spriteTransform?.alpha ?? 1,
+    alpha: normalizeWebgalFigureOpacity(options.alpha) ?? spriteTransform?.alpha ?? 1,
     rotation: rotationRad,
   };
   return `-transform=${JSON.stringify(transform)}`;

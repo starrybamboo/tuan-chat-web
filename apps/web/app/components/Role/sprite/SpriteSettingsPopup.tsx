@@ -26,8 +26,9 @@ import { ToastWindow } from "@/components/common/toastWindow/ToastWindowComponen
 import { ensureRoleAvatarDefaultMedia } from "@/components/Role/RoleCreation/hooks/createRoleDefaultAvatar";
 import { isMobileScreen } from "@/utils/getScreenSize";
 import { canvasPreview, canvasToBlob } from "@/utils/imgCropper";
+import { normalizeImageFileOrNull } from "@/utils/media/mediaMime";
+import { uploadMediaFile } from "@/utils/media/mediaUpload";
 import { imageOriginalUrlFromUrl } from "@/utils/media/mediaUrl";
-import { UploadUtils } from "@/utils/media/UploadUtils";
 import {
   useApplyCropAvatarMutation,
   useApplyCropMutation,
@@ -70,7 +71,6 @@ export type SettingsTab = "cropper" | "avatarCropper" | "setting" | "trash";
 
 const UNGROUPED_VARIANT_KEY = "__ungrouped__";
 const DEFAULT_VARIANT = "未分组";
-const uploadUtils = new UploadUtils();
 // 头像优先随左栏缩小；缩到下限后再减少列数，避免出现半列空白。
 const AVATAR_LIST_GRID_TEMPLATE_COLUMNS = "repeat(auto-fit, minmax(min(5.75rem, 100%), 1fr))";
 const AVATAR_FOLDER_GRID_TEMPLATE_COLUMNS = "repeat(auto-fill, minmax(min(5.75rem, 100%), 1fr))";
@@ -878,7 +878,8 @@ export function SpriteSettingsPopup({
       return;
     }
 
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    const imageFiles = (await Promise.all(files.map(async file => await normalizeImageFileOrNull(file))))
+      .filter((file): file is File => Boolean(file));
     if (imageFiles.length === 0) {
       toast.error("请选择图片文件");
       return;
@@ -894,7 +895,7 @@ export function SpriteSettingsPopup({
       toast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
       await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
         try {
-          const originFile = await uploadUtils.uploadMediaFile(file, { scene: 3 });
+          const originFile = await uploadMediaFile(file, { scene: 3 });
           const uploadRes = await uploadAvatar({
             roleId: role.id,
             originFileId: originFile.fileId,

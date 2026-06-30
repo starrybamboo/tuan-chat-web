@@ -13,11 +13,13 @@ export function RoomMessagesLiveSyncBridge() {
 
   // 聊天 tab 为根路由 "/"；只有它在前台时才抑制当前会话的通知。
   const isChatRouteActive = pathname === "/";
+  const isCurrentRoomFocused = isChatRouteActive && activeDirectContactId == null && selectedRoomId != null;
 
   useRoomMessagesLiveSync({
     currentContactId: activeDirectContactId,
     currentRoomId: selectedRoomId,
     currentSpaceId: selectedSpaceId,
+    isCurrentRoomFocused,
     isChatRouteActive,
   });
 

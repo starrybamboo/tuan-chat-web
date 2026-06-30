@@ -1,6 +1,6 @@
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { CaretLeft } from "phosphor-react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -14,8 +14,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Radius, Spacing } from "@/constants/theme";
+import { readMobileFeedbackDraft } from "@/features/feedback/feedbackDraft";
 import { useTheme } from "@/hooks/use-theme";
-import { clearLogs, copyLogs, getFormattedLogs, shareLogs } from "@/lib/logger";
+import {
+  buildFeedbackLogContent,
+  clearLogs,
+  copyLogs,
+  exportLogsToPickedDirectory,
+  getFormattedLogs,
+  shareLogs,
+} from "@/lib/logger";
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
@@ -33,13 +41,14 @@ const styles = StyleSheet.create({
 
 export default function FeedbackScreen() {
   const theme = useTheme();
-  const [description, setDescription] = useState("");
+  const searchParams = useLocalSearchParams<{ title?: string | string[]; content?: string | string[] }>();
+  const initialDraft = useMemo(() => readMobileFeedbackDraft(searchParams), [searchParams]);
+  const [description, setDescription] = useState(() => initialDraft?.content ?? "");
   const logs = getFormattedLogs();
+  const initialTitle = initialDraft?.title ?? "";
 
   const handleShare = async () => {
-    const text = description.trim()
-      ? `【问题描述】\n${description.trim()}\n\n【日志】\n${logs}`
-      : logs;
+    const text = buildFeedbackLogContent(description);
     try {
       await shareLogs(text);
     }
@@ -49,15 +58,23 @@ export default function FeedbackScreen() {
   };
 
   const handleCopy = async () => {
-    const text = description.trim()
-      ? `【问题描述】\n${description.trim()}\n\n【日志】\n${logs}`
-      : logs;
+    const text = buildFeedbackLogContent(description);
     try {
       await copyLogs(text);
       Alert.alert("已复制", "日志已复制到剪贴板");
     }
     catch {
       Alert.alert("复制失败", "请稍后重试");
+    }
+  };
+
+  const handleExportFile = async () => {
+    try {
+      const file = await exportLogsToPickedDirectory(buildFeedbackLogContent(description));
+      Alert.alert("已导出", `日志文件已保存：${file.fileName}`);
+    }
+    catch {
+      Alert.alert("导出失败", "请稍后重试");
     }
   };
 
@@ -85,7 +102,7 @@ export default function FeedbackScreen() {
           </View>
 
           <ThemedView type="backgroundElement" style={styles.card}>
-            <ThemedText type="smallBold">问题描述（可选）</ThemedText>
+            <ThemedText type="smallBold">{initialTitle || "问题描述（可选）"}</ThemedText>
             <TextInput
               value={description}
               onChangeText={setDescription}
@@ -113,7 +130,13 @@ export default function FeedbackScreen() {
               <ThemedText>复制日志</ThemedText>
             </Pressable>
             <Pressable onPress={() => void handleShare()} style={[styles.btn, { backgroundColor: theme.accent }]}>
-              <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志</ThemedText>
+              <ThemedText style={{ color: "#fff", fontWeight: "600" }}>分享日志文本</ThemedText>
+            </Pressable>
+          </View>
+
+          <View style={styles.actions}>
+            <Pressable onPress={() => void handleExportFile()} style={[styles.btn, { backgroundColor: theme.backgroundSelected }]}>
+              <ThemedText>导出日志文件</ThemedText>
             </Pressable>
           </View>
         </ScrollView>

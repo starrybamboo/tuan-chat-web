@@ -209,16 +209,6 @@ function getAvatarTitleLabels(avatar: Pick<RoleAvatar, "avatarTitle">) {
     .filter(Boolean);
 }
 
-function findUnique<T>(items: T[], describeMissing: () => string, describeDuplicate: () => string) {
-  if (items.length === 0) {
-    throw new Error(describeMissing());
-  }
-  if (items.length > 1) {
-    throw new Error(describeDuplicate());
-  }
-  return items[0]!;
-}
-
 function resolveExistingRole(roleName: string, roles: ReplayRoleAvatarImportSources["roles"]) {
   const normalizedRoleName = normalizeSpeakerName(roleName);
   const matched = roles.filter(role => normalizeSpeakerName(role.roleName ?? "") === normalizedRoleName);

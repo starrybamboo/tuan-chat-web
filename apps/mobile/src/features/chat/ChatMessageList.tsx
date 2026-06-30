@@ -7,6 +7,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  InteractionManager,
   Pressable,
   StyleSheet,
   View,
@@ -29,9 +30,10 @@ import { getMobileMessageAuthorLabel, isOutOfCharacterMessage } from "./messageA
 import {
   buildChatMessageListModel,
   getMessageListItemKey,
+  getVisibleMessageListSignature,
   getReplyPreviewText,
 } from "./messageListModel";
-import { resolveBottomThresholdTransition } from "./messageListScrollState";
+import { resolveBottomThresholdTransition, resolveVisibleMessageAppendAction } from "./messageListScrollState";
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -183,12 +185,18 @@ function ChatMessageListInner({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const isAtBottomRef = useRef(true);
   const [newMessageCount, setNewMessageCount] = useState(0);
+  const scrollToBottomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollToBottomTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
   const roomRolesById = useMemo(() => buildRoomRolesById(roomRoles), [roomRoles]);
   const messageListModel = useMemo(
     () => buildChatMessageListModel(messages),
     [messages],
   );
   const prevLengthRef = useRef(messageListModel.visibleMessages.length);
+  const visibleMessageSignature = useMemo(
+    () => getVisibleMessageListSignature(messageListModel.visibleMessages),
+    [messageListModel.visibleMessages],
+  );
 
   const roleAvatarIds = useMemo(
     () => collectUnresolvedRoleAvatarIds(messageListModel.visibleChatMessages, roomRolesById),
@@ -275,13 +283,49 @@ function ChatMessageListInner({
     }
   }, [commitBottomState]);
 
+  const cancelScheduledScrollToBottom = useCallback(() => {
+    if (scrollToBottomTimerRef.current) {
+      clearTimeout(scrollToBottomTimerRef.current);
+      scrollToBottomTimerRef.current = null;
+    }
+    if (scrollToBottomTaskRef.current) {
+      scrollToBottomTaskRef.current.cancel();
+      scrollToBottomTaskRef.current = null;
+    }
+  }, []);
+
+  const scheduleScrollToBottom = useCallback((animated: boolean) => {
+    cancelScheduledScrollToBottom();
+    scrollToBottomTaskRef.current = InteractionManager.runAfterInteractions(() => {
+      scrollToBottomTaskRef.current = null;
+      scrollToBottomTimerRef.current = setTimeout(() => {
+        scrollToBottomTimerRef.current = null;
+        flatListRef.current?.scrollToOffset({ offset: 0, animated });
+      }, 30);
+    });
+  }, [cancelScheduledScrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      cancelScheduledScrollToBottom();
+    };
+  }, [cancelScheduledScrollToBottom]);
+
   useEffect(() => {
     const previousLength = prevLengthRef.current;
-    if (messageListModel.visibleMessages.length > previousLength && !isAtBottomRef.current) {
-      setNewMessageCount(count => count + (messageListModel.visibleMessages.length - previousLength));
+    const appendAction = resolveVisibleMessageAppendAction({
+      isAtBottom: isAtBottomRef.current,
+      nextLength: messageListModel.visibleMessages.length,
+      previousLength,
+    });
+    if (appendAction.shouldCountNewMessages) {
+      setNewMessageCount(count => count + appendAction.addedCount);
+    }
+    if (appendAction.shouldScrollToBottom) {
+      scheduleScrollToBottom(true);
     }
     prevLengthRef.current = messageListModel.visibleMessages.length;
-  }, [messageListModel.visibleMessages.length]);
+  }, [messageListModel.visibleMessages.length, scheduleScrollToBottom, visibleMessageSignature]);
 
   useEffect(() => {
     if (prefetchUrls.length === 0)
@@ -290,11 +334,12 @@ function ChatMessageListInner({
   }, [prefetchUrls]);
 
   const scrollToBottom = useCallback(() => {
+    cancelScheduledScrollToBottom();
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     isAtBottomRef.current = true;
     setIsAtBottom(true);
     setNewMessageCount(0);
-  }, []);
+  }, [cancelScheduledScrollToBottom]);
 
   const renderItem = useCallback(({ item, index }: { item: ChatMessageListItem; index: number }) => {
     const nextItem = messageListModel.invertedData[index + 1];
@@ -377,6 +422,7 @@ function ChatMessageListInner({
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
+        extraData={visibleMessageSignature}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         initialNumToRender={MESSAGE_INITIAL_RENDER_COUNT}

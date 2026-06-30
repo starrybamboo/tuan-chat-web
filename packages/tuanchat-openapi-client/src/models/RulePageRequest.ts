@@ -15,7 +15,7 @@ export type RulePageRequest = {
      */
     pageSize?: number;
     /**
-     * 搜索关键词（可选）TODO
+     * 搜索关键词（可选）
      */
     keyword?: string;
     /**

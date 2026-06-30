@@ -297,11 +297,59 @@ describe("spaceWebgalCompiler", () => {
     const lines = scene.content.trim().split("\n");
     const changeIndex = lines.findIndex(line => line.startsWith("changeFigure:role_1/sprite_11.webp"));
     expect(changeIndex).toBeGreaterThanOrEqual(0);
+    expect(lines[changeIndex]).toContain("-enterDuration=120 -exitDuration=120 -next;");
     expect(lines[changeIndex + 1]).toBe(
       "setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;",
     );
     expect(lines[changeIndex + 2]).toBe("setAnimation:action/BA-shake -target=1 -keepOffset -restoreTransform -next;");
     expect(scene.content).not.toContain("setAnimation:position/");
+  });
+
+  it("静态场景编译会把 message.webgal.transform.alpha 写入立绘 transform", () => {
+    const room = { roomId: 10, name: "序章", status: 0 } as Room;
+    const roomMap = new Map([[10, room]]);
+    const roleMap = new Map<number, UserRole>([[1, { roleId: 1, userId: 1, roleName: "明日香", avatarId: 11, type: 0 }]]);
+    const avatarMap = new Map<number, RoleAvatar>([[11, {
+      avatarId: 11,
+      roleId: 1,
+      spriteFileId: 2048,
+      avatarFileId: 3001,
+      webgalSpritePath: "role_1/sprite_11.webp",
+    } as RoleAvatar]]);
+
+    const scene = buildRoomSceneCompilation(
+      room,
+      [{
+        message: {
+          messageId: 1,
+          syncId: 1,
+          roomId: 10,
+          userId: 1,
+          roleId: 1,
+          avatarId: 11,
+          content: "半透明登场",
+          status: 0,
+          messageType: MESSAGE_TYPE.TEXT,
+          position: 1,
+          annotations: [ANNOTATION_IDS.FIGURE_POS_LEFT],
+          webgal: { transform: { alpha: 0.6 } },
+        },
+      }],
+      {
+        startRoomIds: [],
+        links: {},
+        endNodeIds: [],
+        endNodeIncomingRoomIds: {},
+      },
+      roomMap,
+      roomId => buildWebgalSceneName(roomId, "序章"),
+      roleMap,
+      avatarMap,
+    );
+
+    expect(scene.content).toContain("\"alpha\":0.6");
+    expect(scene.content).toContain("-enterDuration=120 -exitDuration=120 -next;");
+    expect(scene.content).not.toContain("\"rgl\"");
   });
 
   it("静态场景编译会在清除立绘前应用出场 transition", () => {

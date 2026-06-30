@@ -14585,7 +14585,6 @@
             "format": "int64"
           },
           "operations": {
-            "maxItems": 200,
             "minItems": 0,
             "type": "array",
             "description": "消息级变更操作列表",

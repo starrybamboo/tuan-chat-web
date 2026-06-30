@@ -38,7 +38,6 @@ import { SpaceRepositoryControllerService } from './services/SpaceRepositoryCont
 import { SpaceSidebarTreeControllerService } from './services/SpaceSidebarTreeControllerService';
 import { SpaceTutorialControllerService } from './services/SpaceTutorialControllerService';
 import { StickerControllerService } from './services/StickerControllerService';
-import { TagControllerService } from './services/TagControllerService';
 import { UserControllerService } from './services/UserControllerService';
 import { UserFollowControllerService } from './services/UserFollowControllerService';
 import { UserSecurityControllerService } from './services/UserSecurityControllerService';
@@ -79,7 +78,6 @@ export class TuanChat {
     public readonly spaceSidebarTreeController: SpaceSidebarTreeControllerService;
     public readonly spaceTutorialController: SpaceTutorialControllerService;
     public readonly stickerController: StickerControllerService;
-    public readonly tagController: TagControllerService;
     public readonly userController: UserControllerService;
     public readonly userFollowController: UserFollowControllerService;
     public readonly userSecurityController: UserSecurityControllerService;
@@ -131,7 +129,6 @@ export class TuanChat {
         this.spaceSidebarTreeController = new SpaceSidebarTreeControllerService(this.request);
         this.spaceTutorialController = new SpaceTutorialControllerService(this.request);
         this.stickerController = new StickerControllerService(this.request);
-        this.tagController = new TagControllerService(this.request);
         this.userController = new UserControllerService(this.request);
         this.userFollowController = new UserFollowControllerService(this.request);
         this.userSecurityController = new UserSecurityControllerService(this.request);

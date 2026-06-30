@@ -64,6 +64,7 @@ type RoleAbilityValueSections = {
 };
 
 const INITIATIVE_ROLE_VALUE_KEYS = ["initiative", "init", "先攻", "先攻值"];
+export const HP_MAX_ROLE_VALUE_KEYS = ["hpm"];
 const CUSTOM_COMBAT_STATE_KEY_PREFIX = "customCombat";
 
 function normalizeRoleValueKey(key: string): string {
@@ -312,7 +313,7 @@ export function collectCombatInitiativeRecords(messages: ChatMessageResponse[] |
         latestRecordByRoleId.set(event.scope.roleId, {
           hp: findRoleVarValue(events, event.scope.roleId, ["hp"]),
           initiative: event.value,
-          maxHp: findRoleVarValue(events, event.scope.roleId, ["maxhp", "hpmax"]),
+          maxHp: findRoleVarValue(events, event.scope.roleId, HP_MAX_ROLE_VALUE_KEYS),
           recordId: `${message.messageId}:${event.scope.roleId}:${index}`,
           roleId: event.scope.roleId,
           sourceMessageId: message.messageId,
