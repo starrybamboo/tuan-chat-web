@@ -32,6 +32,8 @@ export type RealtimeRenderCloudSettings = {
   defaultLanguage?: string;
   enableAppreciation?: boolean;
   typingSoundEnabled?: boolean;
+  figureDefaultEnterDuration?: number;
+  figureDefaultExitDuration?: number;
   typingSoundInterval?: number;
   typingSoundPunctuationPause?: number;
   typingSoundSeUrl?: string;

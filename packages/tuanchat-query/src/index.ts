@@ -14,6 +14,7 @@ export * from "./room-message-lifecycle";
 export * from "./room-message-query-data";
 export * from "./room-roles";
 export * from "./rules";
+export * from "./sidebar-tree";
 export * from "./spaces";
 export * from "./stickers";
 export * from "./users";

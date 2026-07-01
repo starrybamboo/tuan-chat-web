@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import toast from "react-hot-toast";
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
+import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
 import ConfirmModal from "@/components/common/comfirmModel";
 
 import { useDissolveSpaceMutation, useExitSpaceMutation, useRecoverSpaceMutation, useUpdateSpaceArchiveStatusMutation } from "../../../../../api/hooks/chatQueryHooks";
@@ -26,6 +27,12 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   const archiveActionLabel = isArchived
     ? (recoverSpace.isPending ? "恢复中..." : "恢复编辑")
     : (updateArchiveStatus.isPending ? "归档中..." : "归档空间");
+  const archiveActionDisabledReason = getSpaceArchiveActionDisabledReason({
+    spaceId: contextMenu?.spaceId ?? -1,
+    isArchived,
+    isPending: archiveActionPending,
+  });
+  const archiveActionDisabled = archiveActionDisabledReason != null;
 
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
   const [dissolveTargetSpaceId, setDissolveTargetSpaceId] = useState<number | null>(null);
@@ -52,7 +59,11 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   };
 
   const handleToggleArchive = async (spaceId: number, nextArchived: boolean) => {
-    if (archiveActionPending) {
+    if (getSpaceArchiveActionDisabledReason({
+      spaceId,
+      isArchived: !nextArchived,
+      isPending: archiveActionPending,
+    }) != null) {
       return;
     }
     const toastId = `space-archive-${spaceId}`;
@@ -75,7 +86,11 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
   };
 
   const handleArchiveAction = (spaceId: number) => {
-    if (archiveActionPending) {
+    if (getSpaceArchiveActionDisabledReason({
+      spaceId,
+      isArchived,
+      isPending: archiveActionPending,
+    }) != null) {
       return;
     }
     const nextArchived = !isArchived;
@@ -105,10 +120,12 @@ export default function SpaceContextMenu({ contextMenu, isSpaceOwner, isArchived
                     <li
                       className={`
                         relative group
-                        ${archiveActionPending ? `
-                          opacity-60 pointer-events-none
+                        ${archiveActionDisabled ? `
+                          opacity-60 cursor-not-allowed
                         ` : ""}
                       `}
+                      aria-disabled={archiveActionDisabled}
+                      title={archiveActionDisabledReason ?? archiveActionLabel}
                       onClick={() => {
                         handleArchiveAction(contextMenu.spaceId);
                       }}

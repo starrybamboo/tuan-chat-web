@@ -1,19 +1,27 @@
-import { CheckCircle, UserCircle } from "@phosphor-icons/react";
+import type { RoleAvatar, RoleAvatarVariant } from "api";
+import type { ReactNode } from "react";
+
+import { CheckCircle, ImageSquare, UserCircle } from "@phosphor-icons/react";
+import { useSetDefaultRoleAvatarMutation, useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
-
-import type { RoleAvatar, RoleAvatarVariant } from "api";
 
 import { DoubleClickEditableText } from "@/components/common/DoubleClickEditableText";
 import { MediaImage } from "@/components/common/mediaImage";
 import { DisplayChatBubble } from "@/components/Role/Preview/displayChatBubble";
 import { RenderPreview } from "@/components/Role/Preview/RenderPreview";
 import { canvasPreview, createFullImageCrop } from "@/utils/imgCropper";
-import { useSetDefaultRoleAvatarMutation, useUpdateRoleAvatarMutation } from "api/hooks/RoleAndAvatarHooks";
 
 import type { Transform } from "../TransformControl";
 
-import { getEffectiveAvatarUrl, getEffectiveSpriteOriginalUrl, getEffectiveSpriteUrl, parseTransformFromAvatar } from "../utils";
+import {
+  getEffectiveAvatarUrl,
+  getEffectiveOriginUrl,
+  getEffectiveSpriteOriginalUrl,
+  getEffectiveSpriteUrl,
+  getSpriteCropSourceUrl,
+  parseTransformFromAvatar,
+} from "../utils";
 
 type AvatarSettingsTabProps = {
   /** 有立绘的头像列表 */
@@ -38,6 +46,18 @@ type AvatarSettingsTabProps = {
   onUnassignVariant?: (avatar: RoleAvatar) => Promise<boolean>;
   /** 将当前头像归入目标立绘组，并按立绘组上下文重建裁剪结果 */
   onAssignVariant?: (avatar: RoleAvatar, variantId: number) => Promise<boolean>;
+  /** 从立绘预览进入立绘校正 */
+  onOpenSpriteCropper?: () => void;
+  /** 从聊天头像预览进入头像校正 */
+  onOpenAvatarCropper?: () => void;
+  /** 当前头像是否有可用于立绘校正的原图 */
+  canOpenSpriteCropper?: boolean;
+  /** 当前头像是否有可用于头像校正的立绘源图 */
+  canOpenAvatarCropper?: boolean;
+  /** 替换当前头像源图，替换后进入立绘校正 */
+  onReplaceAvatarSource?: (avatar: RoleAvatar, file: File) => Promise<void>;
+  /** 当前是否正在替换头像源图 */
+  isReplacingAvatarSource?: boolean;
 }
 
 type PreviewProps = {
@@ -49,8 +69,43 @@ type SpritePreviewProps = PreviewProps & {
   transform: Transform;
 }
 
+type CalibrationPreviewShellProps = {
+  title: string;
+  actionLabel: string;
+  disabledLabel: string;
+  canOpen: boolean;
+  onOpen?: () => void;
+  children: ReactNode;
+}
+
+type AvatarCalibrationStepStatus = "complete" | "actionable" | "blocked";
+
+export type AvatarCalibrationStepProgress = {
+  status: AvatarCalibrationStepStatus;
+  completeCount: number;
+  sourceCount: number;
+  totalCount: number;
+}
+
+export type AvatarCalibrationWorkflowProgress = {
+  sprite: AvatarCalibrationStepProgress;
+  avatar: AvatarCalibrationStepProgress;
+}
+
+export type AvatarCalibrationPreviewPanelProps = {
+  characterName: string;
+  spriteImageUrl: string;
+  avatarImageUrl: string;
+  spriteTransform: Transform;
+  workflowProgress: AvatarCalibrationWorkflowProgress;
+  canOpenSpriteCropper: boolean;
+  canOpenAvatarCropper: boolean;
+  onOpenSpriteCropper?: () => void;
+  onOpenAvatarCropper?: () => void;
+}
+
 const AVATAR_PREVIEW_MESSAGES = ["这是使用新头像的\n聊天消息！"];
-const PREVIEW_GROUP_CLASS_NAME = "w-full max-w-[40rem]";
+const PREVIEW_GROUP_CLASS_NAME = "w-full max-w-[43rem]";
 const WEBGAL_STAGE_CLASS_NAME = "w-full overflow-hidden";
 const DEFAULT_CATEGORY = "默认";
 const UNGROUPED_VARIANT_VALUE = "";
@@ -69,6 +124,58 @@ function getVariantLabel(variant: RoleAvatarVariant) {
   return String(variant.name ?? "").trim() || `立绘组 ${id ?? ""}`;
 }
 
+function hasPositiveId(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function hasUsableCrop(crop: { width?: number; height?: number } | null | undefined) {
+  return Boolean(crop?.width && crop.height);
+}
+
+function hasSpriteCalibration(avatar: RoleAvatar) {
+  return hasUsableCrop(avatar.spriteCropContext?.crop) || hasPositiveId(avatar.spriteFileId);
+}
+
+function hasAvatarCalibration(avatar: RoleAvatar) {
+  return hasUsableCrop(avatar.avatarCropContext?.crop) || hasPositiveId(avatar.avatarFileId);
+}
+
+function resolveStepProgress(
+  avatars: RoleAvatar[],
+  hasComplete: (avatar: RoleAvatar) => boolean,
+  hasSource: (avatar: RoleAvatar) => boolean,
+): AvatarCalibrationStepProgress {
+  const totalCount = avatars.length;
+  const completeCount = avatars.filter(hasComplete).length;
+  const sourceCount = avatars.filter(hasSource).length;
+  const actionableCount = avatars.filter(avatar => !hasComplete(avatar) && hasSource(avatar)).length;
+
+  if (totalCount > 0 && completeCount >= totalCount) {
+    return { status: "complete", completeCount, sourceCount, totalCount };
+  }
+  if (actionableCount > 0) {
+    return { status: "actionable", completeCount, sourceCount, totalCount };
+  }
+  return { status: "blocked", completeCount, sourceCount, totalCount };
+}
+
+export function buildAvatarCalibrationWorkflowProgress(
+  avatars: RoleAvatar[],
+): AvatarCalibrationWorkflowProgress {
+  return {
+    sprite: resolveStepProgress(
+      avatars,
+      hasSpriteCalibration,
+      avatar => Boolean(getEffectiveOriginUrl(avatar)),
+    ),
+    avatar: resolveStepProgress(
+      avatars,
+      hasAvatarCalibration,
+      avatar => Boolean(getSpriteCropSourceUrl(avatar)),
+    ),
+  };
+}
+
 function EmptyPreviewImage({ label }: { label: string }) {
   return (
     <div className="
@@ -77,6 +184,152 @@ function EmptyPreviewImage({ label }: { label: string }) {
     ">
       {label}
     </div>
+  );
+}
+
+function CalibrationPreviewShell({
+  title,
+  actionLabel,
+  disabledLabel,
+  canOpen,
+  onOpen,
+  children,
+}: CalibrationPreviewShellProps) {
+  const isInteractive = canOpen && Boolean(onOpen);
+
+  return (
+    <div
+      role="button"
+      className={`
+        group relative block w-full overflow-hidden rounded-md text-left
+        outline-none transition
+        ${isInteractive
+        ? "cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
+        : "cursor-default"}
+      `}
+      onClick={() => {
+        if (isInteractive) {
+          onOpen?.();
+        }
+      }}
+      onKeyDown={(event) => {
+        if (!isInteractive || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+        event.preventDefault();
+        onOpen?.();
+      }}
+      aria-disabled={!isInteractive}
+      tabIndex={isInteractive ? 0 : -1}
+      title={isInteractive ? actionLabel : disabledLabel}
+      aria-label={isInteractive ? actionLabel : disabledLabel}
+    >
+      <span className="pointer-events-none block">{children}</span>
+      <span
+        className={`
+          pointer-events-none absolute inset-0 flex items-center justify-center
+          bg-black/0 opacity-0 transition
+          ${isInteractive ? "group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100" : ""}
+        `}
+      >
+        {isInteractive && (
+          <span className="
+            inline-flex items-center gap-2 rounded-md border border-white/25
+            bg-black/65 px-3 py-2 text-sm font-medium text-white shadow-lg
+          ">
+            <span>{actionLabel}</span>
+          </span>
+        )}
+      </span>
+      <span className="
+        pointer-events-none absolute left-2 top-2 rounded-md bg-black/50
+        px-2 py-1 text-xs font-medium text-white/90 opacity-0 transition
+        group-hover:opacity-100 group-focus-visible:opacity-100
+      ">
+        {title}
+      </span>
+    </div>
+  );
+}
+
+function getStepStatusLabel(
+  progress: AvatarCalibrationStepProgress,
+  blockedLabel: string,
+) {
+  if (progress.totalCount > 1) {
+    if (progress.status === "complete") {
+      return "全部完成";
+    }
+    if (progress.completeCount > 0) {
+      return `${progress.completeCount}/${progress.totalCount} 已完成`;
+    }
+    if (progress.status === "actionable") {
+      return `${progress.sourceCount}/${progress.totalCount} 可校正`;
+    }
+  }
+  if (progress.status === "complete") {
+    return "已完成";
+  }
+  if (progress.status === "actionable") {
+    return "待校正";
+  }
+  return blockedLabel;
+}
+
+const CHEVRON_STEP_CUT = "16px";
+const CHEVRON_STEP_CLIP_PATHS = [
+  `polygon(0 0, 100% 0, 100% calc(100% - ${CHEVRON_STEP_CUT}), 50% 100%, 0 calc(100% - ${CHEVRON_STEP_CUT}))`,
+  `polygon(0 0, 50% ${CHEVRON_STEP_CUT}, 100% 0, 100% calc(100% - ${CHEVRON_STEP_CUT}), 50% 100%, 0 calc(100% - ${CHEVRON_STEP_CUT}))`,
+] as const;
+
+function isCalibrationStepReady(progress: AvatarCalibrationStepProgress) {
+  return progress.totalCount > 0 && progress.completeCount >= progress.totalCount;
+}
+
+function getChevronStepToneClassName(isReady: boolean) {
+  return isReady
+    ? "bg-emerald-500/85 shadow-emerald-950/25"
+    : "bg-rose-500/85 shadow-rose-950/25";
+}
+
+function ChevronFlowStep({
+  progress,
+  title,
+  blockedLabel,
+  readyLabel,
+  shape,
+  className = "",
+}: {
+  progress: AvatarCalibrationStepProgress;
+  title: string;
+  blockedLabel: string;
+  readyLabel: string;
+  shape: 0 | 1;
+  className?: string;
+}) {
+  const isReady = isCalibrationStepReady(progress);
+  const statusLabel = isReady ? readyLabel : getStepStatusLabel(progress, blockedLabel);
+  const style = shape === 1
+    ? {
+        clipPath: CHEVRON_STEP_CLIP_PATHS[shape],
+        height: `calc(100% + ${CHEVRON_STEP_CUT})`,
+        marginTop: `-${CHEVRON_STEP_CUT}`,
+      }
+    : { clipPath: CHEVRON_STEP_CLIP_PATHS[shape] };
+
+  return (
+    <div
+      role="img"
+      className={`
+        hidden h-full min-h-24 w-5 shrink-0 self-stretch shadow-sm
+        transition-colors md:block
+        ${getChevronStepToneClassName(isReady)}
+        ${className}
+      `}
+      style={style}
+      title={`${title}：${statusLabel}`}
+      aria-label={`${title}：${statusLabel}`}
+    />
   );
 }
 
@@ -187,6 +440,76 @@ function ChatAvatarPreview({ characterName, imageUrl }: PreviewProps) {
 }
 
 /**
+ * 单头像与立绘组设置共用的预览规范；组模式只在外层增加组级操作。
+ */
+export function AvatarCalibrationPreviewPanel({
+  characterName,
+  spriteImageUrl,
+  avatarImageUrl,
+  spriteTransform,
+  workflowProgress,
+  canOpenSpriteCropper,
+  canOpenAvatarCropper,
+  onOpenSpriteCropper,
+  onOpenAvatarCropper,
+}: AvatarCalibrationPreviewPanelProps) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className={`
+        ${PREVIEW_GROUP_CLASS_NAME} grid min-h-0 min-w-0 flex-1
+        grid-cols-1 gap-x-2 md:grid-cols-[1.25rem_minmax(0,1fr)]
+      `}>
+        <ChevronFlowStep
+          progress={workflowProgress.sprite}
+          title="立绘校正"
+          readyLabel="有立绘"
+          blockedLabel="无立绘"
+          shape={0}
+          className="z-[1] md:col-start-1 md:row-start-1"
+        />
+        <div className="min-w-0 md:col-start-2 md:row-start-1">
+          <CalibrationPreviewShell
+            title="立绘预览"
+            actionLabel="进入立绘校正"
+            disabledLabel="当前头像缺少可用于立绘校正的原图"
+            canOpen={canOpenSpriteCropper}
+            onOpen={onOpenSpriteCropper}
+          >
+            <WebgalSpritePreview
+              characterName={characterName}
+              imageUrl={spriteImageUrl}
+              transform={spriteTransform}
+            />
+          </CalibrationPreviewShell>
+        </div>
+        <ChevronFlowStep
+          progress={workflowProgress.avatar}
+          title="头像校正"
+          readyLabel="有头像"
+          blockedLabel="缺头像"
+          shape={1}
+          className="md:col-start-1 md:row-start-2"
+        />
+        <div className="min-w-0 md:col-start-2 md:row-start-2">
+          <CalibrationPreviewShell
+            title="聊天头像预览"
+            actionLabel="进入头像校正"
+            disabledLabel="当前头像缺少可用于头像校正的立绘源图"
+            canOpen={canOpenAvatarCropper}
+            onOpen={onOpenAvatarCropper}
+          >
+            <ChatAvatarPreview
+              characterName={characterName}
+              imageUrl={avatarImageUrl}
+            />
+          </CalibrationPreviewShell>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * 头像设置 Tab 内容组件
  * 使用外部（左侧）的头像列表，编辑头像基础信息。
  */
@@ -201,7 +524,14 @@ export function AvatarSettingsTab({
   showUnassignVariantAction = false,
   onUnassignVariant,
   onAssignVariant,
+  onOpenSpriteCropper,
+  onOpenAvatarCropper,
+  canOpenSpriteCropper = false,
+  canOpenAvatarCropper = false,
+  onReplaceAvatarSource,
+  isReplacingAvatarSource = false,
 }: AvatarSettingsTabProps) {
+  const replaceAvatarInputRef = useRef<HTMLInputElement | null>(null);
   // 当前选中的头像（从完整列表中根据 spritesAvatars 的 avatarId 查找）
   const currentSpriteAvatar = spritesAvatars[selectedIndex];
   const currentAvatar = useMemo(() => {
@@ -214,6 +544,7 @@ export function AvatarSettingsTab({
   const [editingCategory, setEditingCategory] = useState("");
   const [localDefaultAvatarId, setLocalDefaultAvatarId] = useState(defaultAvatarId);
   const [isUnassigningVariant, setIsUnassigningVariant] = useState(false);
+  const [isLocalReplacingAvatarSource, setIsLocalReplacingAvatarSource] = useState(false);
   const roleIdForMutation = currentAvatar?.roleId ?? currentSpriteAvatar?.roleId ?? 0;
   const { mutateAsync: updateAvatar, isPending: isSaving } = useUpdateRoleAvatarMutation(roleIdForMutation);
   const {
@@ -371,6 +702,9 @@ export function AvatarSettingsTab({
   const spritePreviewTransform = useMemo(() => (
     parseTransformFromAvatar(currentAvatar)
   ), [currentAvatar]);
+  const workflowProgress = useMemo(() => (
+    buildAvatarCalibrationWorkflowProgress(currentAvatar ? [currentAvatar] : [])
+  ), [currentAvatar]);
   const isCurrentDefaultAvatar = Boolean(
     currentAvatar?.avatarId
     && localDefaultAvatarId
@@ -383,6 +717,8 @@ export function AvatarSettingsTab({
     && currentAvatar?.avatarId
     && currentVariantId,
   );
+  const isReplacingSource = isReplacingAvatarSource || isLocalReplacingAvatarSource;
+  const canReplaceAvatarSource = Boolean(currentAvatar?.avatarId && onReplaceAvatarSource);
 
   const handleSetDefaultAvatar = useCallback(async () => {
     if (!currentAvatar?.avatarId || !roleIdForMutation) {
@@ -434,6 +770,34 @@ export function AvatarSettingsTab({
     }
   }, [currentAvatar, currentVariantId, isUnassigningVariant, onUnassignVariant]);
 
+  const handleReplaceAvatarFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) {
+      return;
+    }
+    if (!currentAvatar?.avatarId || !onReplaceAvatarSource) {
+      toast.error("头像信息缺失，无法替换头像");
+      return;
+    }
+    if (isReplacingSource) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        setIsLocalReplacingAvatarSource(true);
+        await onReplaceAvatarSource(currentAvatar, file);
+      }
+      catch (error) {
+        console.error("替换头像失败:", error);
+      }
+      finally {
+        setIsLocalReplacingAvatarSource(false);
+      }
+    })();
+  }, [currentAvatar, isReplacingSource, onReplaceAvatarSource]);
+
   return (
     <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
       {currentAvatar && (
@@ -441,6 +805,13 @@ export function AvatarSettingsTab({
           mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 border-b
           border-base-300/70 pb-3
         ">
+          <input
+            ref={replaceAvatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleReplaceAvatarFileChange}
+          />
           <div className="
             flex min-w-0 flex-1 flex-wrap items-center gap-2
           ">
@@ -508,6 +879,19 @@ export function AvatarSettingsTab({
           <div className="
             ml-auto flex min-w-0 shrink-0 items-center gap-2
           ">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3"
+              onClick={() => replaceAvatarInputRef.current?.click()}
+              disabled={!canReplaceAvatarSource || isSaving || isReplacingSource}
+              title={canReplaceAvatarSource ? "替换当前头像的源图" : "当前头像无法替换源图"}
+            >
+              {isReplacingSource
+                ? <span className="loading loading-spinner loading-xs" aria-hidden="true" />
+                : <ImageSquare className="size-4 shrink-0" aria-hidden="true" />}
+              <span>{isReplacingSource ? "替换中" : "替换头像"}</span>
+            </button>
+
             <button
               type="button"
               className={`
@@ -595,21 +979,17 @@ export function AvatarSettingsTab({
         <div className="absolute inset-0 overflow-auto p-3 xl:overflow-hidden">
           {currentAvatar
             ? (
-                <div className="flex min-w-0 flex-1 items-start">
-                  <div className={`
-                    ${PREVIEW_GROUP_CLASS_NAME} flex flex-col overflow-hidden
-                  `}>
-                    <WebgalSpritePreview
-                      characterName={previewCharacterName}
-                      imageUrl={spriteDisplayUrl}
-                      transform={spritePreviewTransform}
-                    />
-                    <ChatAvatarPreview
-                      characterName={previewCharacterName}
-                      imageUrl={avatarDisplayUrl}
-                    />
-                  </div>
-                </div>
+                <AvatarCalibrationPreviewPanel
+                  characterName={previewCharacterName}
+                  spriteImageUrl={spriteDisplayUrl}
+                  avatarImageUrl={avatarDisplayUrl}
+                  spriteTransform={spritePreviewTransform}
+                  workflowProgress={workflowProgress}
+                  canOpenSpriteCropper={canOpenSpriteCropper}
+                  canOpenAvatarCropper={canOpenAvatarCropper}
+                  onOpenSpriteCropper={onOpenSpriteCropper}
+                  onOpenAvatarCropper={onOpenAvatarCropper}
+                />
               )
             : (
                 <div className="

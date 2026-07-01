@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import type { FeedbackIssueContent, FeedbackIssueDetail, FeedbackIssueType } from "@/components/feedback/feedbackTypes";
@@ -10,8 +10,15 @@ import {
   normalizeMediaContent,
 } from "@/components/common/content/mediaContent";
 import TextMediaEditor from "@/components/common/markdown/textMediaEditor";
+import {
+  appendFeedbackAttachmentTokens,
+  formatFeedbackAttachmentSize,
+  uploadFeedbackAttachments,
+} from "@/components/feedback/feedbackAttachments";
+import { consumeFeedbackAttachmentDraft } from "@/components/feedback/feedbackAttachmentDraft";
 import { useCreateFeedbackIssueMutation } from "@/components/feedback/feedbackHooks";
 import { FEEDBACK_ISSUE_TYPE_OPTIONS } from "@/components/feedback/feedbackTypes";
+import { UploadUtils } from "@/utils/UploadUtils";
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -35,12 +42,17 @@ export default function FeedbackComposer({
   const [title, setTitle] = useState(() => initialDraft?.title ?? "");
   const [content, setContent] = useState<FeedbackIssueContent>(() => initialDraft?.content ?? "");
   const [issueType, setIssueType] = useState<FeedbackIssueType>(() => initialDraft?.issueType ?? 1);
+  const [attachments, setAttachments] = useState(() => consumeFeedbackAttachmentDraft()?.files ?? []);
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
+  const uploadUtilsRef = useRef(new UploadUtils());
   const createMutation = useCreateFeedbackIssueMutation();
+  const isSubmitting = createMutation.isPending || isUploadingAttachments;
 
   const resetForm = () => {
     setTitle("");
     setContent("");
     setIssueType(1);
+    setAttachments([]);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -52,15 +64,23 @@ export default function FeedbackComposer({
     }
 
     const normalizedContent = normalizeMediaContent(content);
-    if (!hasMeaningfulMediaContent(normalizedContent)) {
+    if (!hasMeaningfulMediaContent(normalizedContent) && attachments.length === 0) {
       toast.error("内容不能为空");
       return;
     }
 
+    setIsUploadingAttachments(true);
     try {
+      const uploadedAttachments = await uploadFeedbackAttachments(attachments, uploadUtilsRef.current);
+      const contentWithAttachments = appendFeedbackAttachmentTokens(normalizedContent, uploadedAttachments);
+      if (!hasMeaningfulMediaContent(contentWithAttachments)) {
+        toast.error("内容不能为空");
+        return;
+      }
+
       const issue = await createMutation.mutateAsync({
         title: title.trim(),
-        content: normalizedContent,
+        content: contentWithAttachments,
         issueType,
       });
       toast.success("反馈已提交");
@@ -70,6 +90,9 @@ export default function FeedbackComposer({
     }
     catch (error) {
       toast.error(readErrorMessage(error));
+    }
+    finally {
+      setIsUploadingAttachments(false);
     }
   };
 
@@ -147,7 +170,7 @@ export default function FeedbackComposer({
                 ))}
               </div>
               <div className="text-xs text-base-content/55">
-                纯文本输入，支持图片上传、截图粘贴和视频上传。
+                纯文本输入，支持图片上传、截图粘贴、视频上传和附件。
               </div>
             </div>
 
@@ -156,11 +179,45 @@ export default function FeedbackComposer({
               <TextMediaEditor value={content} onChange={setContent} />
             </div>
 
+            {attachments.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-base-content">附件</div>
+                <div className="rounded-md border border-base-300 bg-base-200/40">
+                  {attachments.map(attachment => (
+                    <div
+                      key={attachment.id}
+                      className="
+                        flex items-center justify-between gap-3 border-b border-base-300 px-3 py-2
+                        last:border-b-0
+                      "
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-base-content">
+                          {attachment.file.name || "未命名附件"}
+                        </div>
+                        <div className="text-xs text-base-content/55">
+                          {formatFeedbackAttachmentSize(attachment.file.size)}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        disabled={isSubmitting}
+                        onClick={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
-                disabled={createMutation.isPending}
+                disabled={isSubmitting}
                 onClick={() => {
                   resetForm();
                   setIsExpanded(false);
@@ -171,9 +228,9 @@ export default function FeedbackComposer({
               <button
                 type="submit"
                 className="btn btn-primary btn-sm"
-                disabled={createMutation.isPending}
+                disabled={isSubmitting}
               >
-                {createMutation.isPending ? "提交中..." : "提交反馈"}
+                {isSubmitting ? "提交中..." : "提交反馈"}
               </button>
             </div>
           </form>

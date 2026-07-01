@@ -40,7 +40,7 @@ export function resolveMobileNotificationRoute(payload: Pick<NativeAppNotificati
 
   if (normalizedPath.startsWith("/chat/room/")) {
     const roomId = parsePositiveInteger(normalizedPath.split("/")[3]);
-    return roomId ? `/chat/room/${roomId}` : "/(tabs)";
+    return roomId ? buildRouteHref("/(tabs)", { roomId }) : "/(tabs)";
   }
 
   if (normalizedPath.startsWith("/chat/")) {

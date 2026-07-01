@@ -5,6 +5,7 @@ import {
   getMobileNavigableRooms,
   getMobileVisibleClueRooms,
   resolveAutoSelectedSpaceId,
+  resolveRoomOnlyTargetSpaceId,
   shouldClearStaleRouteRoom,
 } from "./mobileRouteSelection";
 
@@ -22,6 +23,7 @@ describe("mobileRouteSelection", () => {
     expect(resolveAutoSelectedSpaceId({
       activeSpaces: [{ spaceId: 1 }, { spaceId: 2 }],
       hasExplicitTarget: false,
+      selectedRoomId: null,
       selectedSpaceId: 2,
     })).toBeUndefined();
   });
@@ -30,6 +32,7 @@ describe("mobileRouteSelection", () => {
     expect(resolveAutoSelectedSpaceId({
       activeSpaces: [{ spaceId: 3 }, { spaceId: 4 }],
       hasExplicitTarget: false,
+      selectedRoomId: null,
       selectedSpaceId: 9,
     })).toBe(3);
   });
@@ -38,14 +41,59 @@ describe("mobileRouteSelection", () => {
     expect(resolveAutoSelectedSpaceId({
       activeSpaces: [],
       hasExplicitTarget: false,
+      selectedRoomId: null,
       selectedSpaceId: 9,
     })).toBeNull();
 
     expect(resolveAutoSelectedSpaceId({
       activeSpaces: [{ spaceId: 3 }],
       hasExplicitTarget: true,
+      selectedRoomId: null,
       selectedSpaceId: 9,
     })).toBeUndefined();
+  });
+
+  it("已有房间目标时不自动选择首个空间覆盖房间", () => {
+    expect(resolveAutoSelectedSpaceId({
+      activeSpaces: [{ spaceId: 3 }],
+      hasExplicitTarget: false,
+      selectedRoomId: 9,
+      selectedSpaceId: null,
+    })).toBeUndefined();
+  });
+
+  it("只有 roomId 的通知目标会尽量推导所属空间", () => {
+    expect(resolveRoomOnlyTargetSpaceId({
+      activeSpaces: [{ spaceId: 1 }, { spaceId: 2 }],
+      availableRooms: [{ roomId: 8 }, { roomId: 9 }],
+      pendingTargetRoomId: 9,
+      pendingTargetSpaceId: null,
+      selectedSpaceId: 2,
+    })).toBe(2);
+
+    expect(resolveRoomOnlyTargetSpaceId({
+      activeSpaces: [{ spaceId: 7 }],
+      availableRooms: [],
+      pendingTargetRoomId: 9,
+      pendingTargetSpaceId: null,
+      selectedSpaceId: null,
+    })).toBe(7);
+
+    expect(resolveRoomOnlyTargetSpaceId({
+      activeSpaces: [{ spaceId: 1 }, { spaceId: 2 }],
+      availableRooms: [],
+      pendingTargetRoomId: 9,
+      pendingTargetSpaceId: null,
+      selectedSpaceId: null,
+    })).toBeNull();
+
+    expect(resolveRoomOnlyTargetSpaceId({
+      activeSpaces: [{ spaceId: 1 }, { spaceId: 2 }],
+      availableRooms: [],
+      pendingTargetRoomId: 9,
+      pendingTargetSpaceId: 5,
+      selectedSpaceId: null,
+    })).toBe(5);
   });
 
   it("rooms 查询完成且当前 room 不可见时才清理 room 选择", () => {

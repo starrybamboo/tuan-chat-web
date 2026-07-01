@@ -33,7 +33,7 @@ content=默认表情
 B:
 
 ```webgal
-changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -enterDuration=120 -exitDuration=120 -next;
+changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -next;
 明日香: 默认表情 -figureId=1;
 ```
 
@@ -42,7 +42,7 @@ changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -enterDuration=120 -ex
 - `changeFigure` 先切差分，再说台词。
 - `-figureId=1` 来自 `figure.pos.left`。
 - `-transform={...}` 由头像自身的 `spriteTransform` 和槽位偏移合成。
-- 角色立绘默认追加较短的 `-enterDuration=120 -exitDuration=120`，压住 WebGAL 默认长动画但不做硬切；显式入退场标注仍由紧随其后的 `setTransition` 覆盖。
+- 角色立绘默认时长由 `config.txt` 的 `Figure_Default_Enter_Duration=100` / `Figure_Default_Exit_Duration=100` 控制，不再逐句追加默认时长参数；显式入退场标注仍由紧随其后的 `setTransition` 覆盖。
 - 位置只来自 `annotations` 的 `figure.pos.*`；缺少消息 `avatarId` 时不输出 `changeFigure` 和 `-figureId`。
 
 ### 2. 同一角色切差分
@@ -60,7 +60,7 @@ content=笑脸差分
 B:
 
 ```webgal
-changeFigure:role_1/sprite_12.webp -id=1 -transform={...} -enterDuration=120 -exitDuration=120 -next;
+changeFigure:role_1/sprite_12.webp -id=1 -transform={...} -next;
 明日香: 笑脸差分 -figureId=1;
 ```
 
@@ -123,7 +123,7 @@ figure.anim.ba-exit-to-right
 B:
 
 ```webgal
-changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -enterDuration=120 -exitDuration=120 -next;
+changeFigure:role_1/sprite_11.webp -id=1 -transform={...} -next;
 setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;
 明日香: 内容 -figureId=1;
 ```

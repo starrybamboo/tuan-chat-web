@@ -82,7 +82,7 @@ import {
   uploadVideoAsset,
   uploadVocalAsset,
 } from "./realtimeRendererAssetUploads";
-import { DEFAULT_REALTIME_GAME_CONFIG } from "./realtimeRendererConfig";
+import { DEFAULT_REALTIME_GAME_CONFIG, normalizeFigureDefaultTransitionDuration } from "./realtimeRendererConfig";
 import {
   buildMergedTrpgDiceMessage,
   buildPlayEffectLine,
@@ -161,14 +161,13 @@ export type { RealtimeGameConfig, RealtimeTTSConfig } from "./realtimeRendererCo
 // 不能使用点文件名；Terre 当前通过 Express serve-static 暴露 /games/...，
 // dotfile 默认会返回 404，导致版本探测持续误判。
 const REALTIME_GAME_ENGINE_MARKER_FILE = "tuanchat_engine_marker.txt";
-const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v33";
+const REALTIME_GAME_ENGINE_MARKER_VERSION = "realtime-tuanchat-shared-local-assets-v36";
 const REALTIME_RENDERER_INIT_ABORT_ERROR = "__tc_realtime_init_aborted__";
 const DEFAULT_TYPING_SOUND_SE_FILE = "select07.mp3";
 const BLACK_TEMPLATE_DIR = "WebGAL Black";
 const BLACK_TEMPLATE_ID = "805c5f5a-8f52-461f-8931-613676d6a086";
 const TUANCHAT_TEMPLATE_DIR = "WebGAL TuanChat";
 const TUANCHAT_TEMPLATE_ID = "7e10b9f3-40b9-43c3-a2b8-5335740b9d5d";
-const DEFAULT_FIGURE_TRANSITION_DURATION_MS = 120;
 
 function extractRoleAvatarFromQueryValue(value: unknown): RoleAvatar | undefined {
   const outer = (value as any)?.data ?? value;
@@ -1215,8 +1214,12 @@ export class RealtimeRenderer {
     upsertGameConfigEntry(configEntries, "Default_Language", this.gameConfig.defaultLanguage);
     upsertGameConfigEntry(configEntries, "Enable_Appreciation", this.gameConfig.enableAppreciation ? "true" : "false");
     upsertGameConfigEntry(configEntries, "TypingSoundEnabled", this.gameConfig.typingSoundEnabled ? "true" : "false");
+    const figureDefaultEnterDuration = normalizeFigureDefaultTransitionDuration(this.gameConfig.figureDefaultEnterDuration);
+    const figureDefaultExitDuration = normalizeFigureDefaultTransitionDuration(this.gameConfig.figureDefaultExitDuration);
     const typingSoundInterval = Math.max(0.1, Number(this.gameConfig.typingSoundInterval || 1.5));
     const typingSoundPunctuationPause = Math.max(0, Math.floor(Number(this.gameConfig.typingSoundPunctuationPause || 100)));
+    upsertGameConfigEntry(configEntries, "Figure_Default_Enter_Duration", String(figureDefaultEnterDuration));
+    upsertGameConfigEntry(configEntries, "Figure_Default_Exit_Duration", String(figureDefaultExitDuration));
     upsertGameConfigEntry(configEntries, "TypingSoundInterval", String(typingSoundInterval));
     upsertGameConfigEntry(configEntries, "TypingSoundPunctuationPause", String(typingSoundPunctuationPause));
 
@@ -2644,9 +2647,7 @@ export class RealtimeRenderer {
             || previous.fileName !== figureAsset.stateKey
             || previous.transform !== transform;
         if (shouldUpdateFigure) {
-          const figureArgs = buildFigureArgs(figureSlot.id, transform, {
-            defaultTransitionDurationMs: DEFAULT_FIGURE_TRANSITION_DURATION_MS,
-          });
+          const figureArgs = buildFigureArgs(figureSlot.id, transform);
           if (figureAsset.composeLine) {
             await this.appendLine(targetRoomId, figureAsset.composeLine, syncToFile);
           }

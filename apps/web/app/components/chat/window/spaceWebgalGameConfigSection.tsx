@@ -18,6 +18,8 @@ type SpaceWebgalGameConfigSectionProps = {
   gameConfig: RealtimeGameConfig;
   descriptionInput: string;
   packageNameInput: string;
+  figureDefaultEnterDurationInput: string;
+  figureDefaultExitDurationInput: string;
   typingSoundIntervalInput: string;
   typingSoundPunctuationPauseInput: string;
   typingSoundDetailExpanded: boolean;
@@ -31,11 +33,15 @@ type SpaceWebgalGameConfigSectionProps = {
   setGameConfig: (config: Partial<RealtimeGameConfig>) => void;
   setDescriptionInput: (value: string) => void;
   setPackageNameInput: (value: string) => void;
+  setFigureDefaultEnterDurationInput: (value: string) => void;
+  setFigureDefaultExitDurationInput: (value: string) => void;
   setTypingSoundIntervalInput: (value: string) => void;
   setTypingSoundPunctuationPauseInput: (value: string) => void;
   setTypingSoundDetailExpanded: Dispatch<SetStateAction<boolean>>;
   handleSaveDescription: () => void;
   handleSavePackageName: () => void;
+  handleSaveFigureDefaultEnterDuration: () => void;
+  handleSaveFigureDefaultExitDuration: () => void;
   handleSaveTypingSoundInterval: () => void;
   handleSaveTypingSoundPunctuationPause: () => void;
   handlePickTypingSoundSe: () => void;
@@ -54,6 +60,8 @@ export function SpaceWebgalGameConfigSection({
   gameConfig,
   descriptionInput,
   packageNameInput,
+  figureDefaultEnterDurationInput,
+  figureDefaultExitDurationInput,
   typingSoundIntervalInput,
   typingSoundPunctuationPauseInput,
   typingSoundDetailExpanded,
@@ -67,11 +75,15 @@ export function SpaceWebgalGameConfigSection({
   setGameConfig,
   setDescriptionInput,
   setPackageNameInput,
+  setFigureDefaultEnterDurationInput,
+  setFigureDefaultExitDurationInput,
   setTypingSoundIntervalInput,
   setTypingSoundPunctuationPauseInput,
   setTypingSoundDetailExpanded,
   handleSaveDescription,
   handleSavePackageName,
+  handleSaveFigureDefaultEnterDuration,
+  handleSaveFigureDefaultExitDuration,
   handleSaveTypingSoundInterval,
   handleSaveTypingSoundPunctuationPause,
   handlePickTypingSoundSe,
@@ -362,6 +374,75 @@ export function SpaceWebgalGameConfigSection({
                   </div>
                 </div>
               )}
+            </div>
+            <div className="
+              rounded-md border border-base-300 px-3 py-2
+              md:col-span-2
+            ">
+              <div className="mb-2 flex items-center gap-1 text-sm">
+                <span>立绘默认进出场时长</span>
+                <ConfigHelpButton
+                  label="立绘默认进出场时长"
+                  description="写入 WebGAL config.txt，控制没有在单条脚本里显式指定 enterDuration / exitDuration 时的默认立绘过渡。0 表示硬切。"
+                />
+              </div>
+              <div className="
+                grid gap-2
+                md:grid-cols-2
+              ">
+                <div>
+                  <div className="mb-1 text-xs text-base-content/70">默认入场（毫秒）</div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={5000}
+                      step={10}
+                      className="input input-bordered input-sm flex-1"
+                      value={figureDefaultEnterDurationInput}
+                      onChange={event => setFigureDefaultEnterDurationInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          handleSaveFigureDefaultEnterDuration();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={handleSaveFigureDefaultEnterDuration}
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 text-xs text-base-content/70">默认出场（毫秒）</div>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={5000}
+                      step={10}
+                      className="input input-bordered input-sm flex-1"
+                      value={figureDefaultExitDurationInput}
+                      onChange={event => setFigureDefaultExitDurationInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          handleSaveFigureDefaultExitDuration();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline"
+                      onClick={handleSaveFigureDefaultExitDuration}
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             <label className="
               flex items-center justify-between gap-2 rounded-md border

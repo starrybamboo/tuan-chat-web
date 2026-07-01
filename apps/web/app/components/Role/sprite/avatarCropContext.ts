@@ -1,6 +1,6 @@
 import type { Crop, PixelCrop } from "react-image-crop";
 
-import type { AvatarCropContext, RoleAvatarVariantCompositionConfig, SpriteCropContext, SpriteTransform } from "api";
+import type { AvatarCropContext, RoleAvatar, RoleAvatarVariantCompositionConfig, SpriteCropContext, SpriteTransform } from "api";
 
 type ImageDimensions = {
   naturalWidth: number;
@@ -8,6 +8,13 @@ type ImageDimensions = {
   width: number;
   height: number;
 };
+
+type ReusableVariantAvatar = Pick<
+  RoleAvatar,
+  "avatarCropContext" | "avatarFileId" | "spriteCropContext" | "spriteFileId" | "spriteTransform"
+>;
+
+const CONTEXT_MATCH_EPSILON = 0.0001;
 
 export function createAvatarCropContextFromImage(
   crop: PixelCrop | undefined,
@@ -170,6 +177,19 @@ export function createSpriteTransformFromVariantConfig(
   return normalizeVariantSpriteTransform(config?.spriteTransform);
 }
 
+export function canReuseAvatarMediaForVariantConfig(
+  avatar: ReusableVariantAvatar | undefined | null,
+  config: RoleAvatarVariantCompositionConfig | undefined,
+): boolean {
+  if (!avatar?.avatarFileId || !avatar.spriteFileId) {
+    return false;
+  }
+
+  return matchesAvatarCropContext(config, avatar.avatarCropContext)
+    && matchesSpriteCropContext(config, avatar.spriteCropContext)
+    && matchesSpriteTransform(config, avatar.spriteTransform);
+}
+
 export function getVariantSpriteOutputSize(config: RoleAvatarVariantCompositionConfig | undefined) {
   const canvas = normalizeVariantCanvas(config);
   if (!canvas) {
@@ -263,6 +283,61 @@ export function createPixelCropFromVariantConfig(
     },
     pixelCrop,
   };
+}
+
+function matchesAvatarCropContext(
+  config: RoleAvatarVariantCompositionConfig | undefined,
+  context: AvatarCropContext | undefined,
+) {
+  const canvas = normalizeVariantCanvas(config);
+  const slot = normalizeVariantAvatarSlot(config);
+  const crop = normalizeContextCrop(context?.crop);
+  if (!canvas || !slot || !crop || !context?.sourceWidth || !context.sourceHeight) {
+    return false;
+  }
+
+  return sameNumber(canvas.width, context.sourceWidth)
+    && sameNumber(canvas.height, context.sourceHeight)
+    && sameNumber(slot.x, crop.x)
+    && sameNumber(slot.y, crop.y)
+    && sameNumber(slot.width, crop.width)
+    && sameNumber(slot.height, crop.height);
+}
+
+function matchesSpriteCropContext(
+  config: RoleAvatarVariantCompositionConfig | undefined,
+  context: SpriteCropContext | undefined,
+) {
+  const spriteCrop = normalizeVariantSpriteCrop(config);
+  const crop = normalizeContextCrop(context?.crop);
+  if (!spriteCrop || !crop || !context?.sourceWidth || !context.sourceHeight) {
+    return false;
+  }
+
+  const outputWidth = normalizePositiveInteger(context.outputWidth) ?? Math.round(crop.width);
+  const outputHeight = normalizePositiveInteger(context.outputHeight) ?? Math.round(crop.height);
+
+  return sameNumber(spriteCrop.sourceWidth, context.sourceWidth)
+    && sameNumber(spriteCrop.sourceHeight, context.sourceHeight)
+    && sameNumber(spriteCrop.crop.x, crop.x)
+    && sameNumber(spriteCrop.crop.y, crop.y)
+    && sameNumber(spriteCrop.crop.width, crop.width)
+    && sameNumber(spriteCrop.crop.height, crop.height)
+    && sameNumber(spriteCrop.outputWidth, outputWidth)
+    && sameNumber(spriteCrop.outputHeight, outputHeight);
+}
+
+function matchesSpriteTransform(
+  config: RoleAvatarVariantCompositionConfig | undefined,
+  transform: SpriteTransform | undefined,
+) {
+  const expected = normalizeVariantSpriteTransform(config?.spriteTransform);
+  const actual = normalizeVariantSpriteTransform(transform);
+  return sameNumber(expected.positionX, actual.positionX)
+    && sameNumber(expected.positionY, actual.positionY)
+    && sameNumber(expected.scale, actual.scale)
+    && sameNumber(expected.alpha, actual.alpha)
+    && sameNumber(expected.rotation, actual.rotation);
 }
 
 function normalizeVariantCanvas(config: RoleAvatarVariantCompositionConfig | undefined) {
@@ -364,6 +439,13 @@ function normalizeFiniteNumber(value: unknown): number | undefined {
     return undefined;
   }
   return normalizeCropNumber(raw);
+}
+
+function sameNumber(left: number | undefined, right: number | undefined): boolean {
+  if (left == null || right == null) {
+    return left === right;
+  }
+  return Math.abs(left - right) <= CONTEXT_MATCH_EPSILON;
 }
 
 function normalizeCropNumber(value: number): number {

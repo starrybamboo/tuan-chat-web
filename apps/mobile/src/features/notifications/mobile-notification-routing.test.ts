@@ -12,9 +12,9 @@ describe("mobile-notification-routing", () => {
     expect(resolveMobileNotificationRoute({ targetPath: "/chat/12/34" })).toBe("/(tabs)?spaceId=12&roomId=34");
   });
 
-  it("会把仅含房间 ID 的旧群聊深链交给落地页补齐空间", () => {
-    expect(resolveMobileNotificationRoute({ targetPath: "/chat/room/10657" })).toBe("/chat/room/10657");
-    expect(resolveMobileNotificationRoute({ targetPath: "tuanchat://chat/room/10657" })).toBe("/chat/room/10657");
+  it("会把仅含房间 ID 的旧群聊深链直接交给聊天页", () => {
+    expect(resolveMobileNotificationRoute({ targetPath: "/chat/room/10657" })).toBe("/(tabs)?roomId=10657");
+    expect(resolveMobileNotificationRoute({ targetPath: "tuanchat://chat/room/10657" })).toBe("/(tabs)?roomId=10657");
   });
 
   it("会把角色与个人页映射到对应的 tab", () => {

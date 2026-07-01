@@ -23,6 +23,8 @@ function createGameConfig(overrides: Partial<RealtimeWebgalGameConfig> = {}): Re
     startupLogoUrl: "",
     titleImageUrl: "",
     typingSoundEnabled: false,
+    figureDefaultEnterDuration: 100,
+    figureDefaultExitDuration: 100,
     typingSoundInterval: 1.5,
     typingSoundPunctuationPause: 100,
     typingSoundSeUrl: "",
@@ -43,6 +45,11 @@ function buildSnapshot(gameConfig: RealtimeWebgalGameConfig) {
 describe("buildRealtimeRenderCloudSettingsSnapshot", () => {
   it("默认使用团剧共创 WebGAL 模板", () => {
     expect(useRealtimeRenderStore.getState().gameConfig.baseTemplate).toBe("tuanchat");
+  });
+
+  it("默认使用 100ms 立绘进出场配置", () => {
+    expect(useRealtimeRenderStore.getState().gameConfig.figureDefaultEnterDuration).toBe(100);
+    expect(useRealtimeRenderStore.getState().gameConfig.figureDefaultExitDuration).toBe(100);
   });
 
   it("同槽位存在 fileId 时不再把 legacy URL 写入云端配置", () => {

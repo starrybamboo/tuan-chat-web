@@ -8,6 +8,7 @@ import type { OpenSpaceDetailPanelOptions, SpaceDetailTab } from "@/components/c
 
 import { SpaceContext } from "@/components/chat/core/spaceContext";
 import { prepareSpaceDocsForArchive } from "@/components/chat/infra/doc/space/prepareSpaceDocsForArchive";
+import { getSpaceArchiveActionDisabledReason } from "@/components/chat/space/spaceArchiveActionPolicy";
 import { canInviteSpectators } from "@/components/chat/utils/memberPermissions";
 import { canViewSpaceDetailTab } from "@/components/chat/utils/spaceDetailPermissions";
 import ConfirmModal from "@/components/common/comfirmModel";
@@ -63,6 +64,12 @@ export default function SpaceHeaderBar({
   const archiveActionLabel = archived
     ? (recoverSpace.isPending ? "恢复中..." : "恢复编辑")
     : (updateArchiveStatus.isPending ? "归档中..." : "归档空间");
+  const archiveActionDisabledReason = getSpaceArchiveActionDisabledReason({
+    spaceId,
+    isArchived: archived,
+    isPending: archiveActionPending,
+  });
+  const archiveActionDisabled = archiveActionDisabledReason != null;
   const leftDrawerLabel = isLeftDrawerOpen ? "收起侧边栏" : "展开侧边栏";
   const canResetSidebarTree = isDevOrTest && isSpaceOwner && Boolean(onResetSidebarTreeToDefault);
   const canViewMembersDetail = canViewSpaceDetailTab("members", spaceContext.memberType);
@@ -110,7 +117,11 @@ export default function SpaceHeaderBar({
   }, [isOptionsMenuOpen]);
 
   const handleToggleArchive = async (targetSpaceId: number, nextArchived: boolean) => {
-    if (archiveActionPending) {
+    if (getSpaceArchiveActionDisabledReason({
+      spaceId: targetSpaceId,
+      isArchived: !nextArchived,
+      isPending: archiveActionPending,
+    }) != null) {
       return;
     }
     const toastId = `space-archive-${targetSpaceId}`;
@@ -131,7 +142,7 @@ export default function SpaceHeaderBar({
   };
 
   const handleArchiveAction = () => {
-    if (spaceId <= 0 || archiveActionPending) {
+    if (archiveActionDisabled) {
       return;
     }
     const nextArchived = !archived;
@@ -370,7 +381,8 @@ export default function SpaceHeaderBar({
                     <button
                       type="button"
                       className="gap-3"
-                      disabled={spaceId <= 0 || archiveActionPending}
+                      disabled={archiveActionDisabled}
+                      title={archiveActionDisabledReason ?? archiveActionLabel}
                       onClick={() => {
                         setIsOptionsMenuOpen(false);
                         handleArchiveAction();

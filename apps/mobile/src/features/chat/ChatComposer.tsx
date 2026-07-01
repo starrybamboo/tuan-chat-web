@@ -18,7 +18,6 @@ import {
   MOBILE_MESSAGE_ATTACHMENT_KIND,
 } from "@/features/messages/mobileMessageAttachment";
 import {
-  getMobileMessageInputPlaceholder,
   MOBILE_MESSAGE_MODE,
 } from "@/features/messages/mobileMessageComposer";
 import { useTheme } from "@/hooks/use-theme";
@@ -260,7 +259,7 @@ function ChatComposerInner({
   const canSend = draftMessage.trim().length > 0 || messageAttachments.length > 0;
   const inputPlaceholder = messageMode === MOBILE_MESSAGE_MODE.TEXT
     ? `给 #${roomName ?? "频道"}...`
-    : getMobileMessageInputPlaceholder(messageMode);
+    : "输入先攻指令，例如 .ri";
 
   // @mention logic
   const mentionQuery = getMentionQuery(draftMessage);

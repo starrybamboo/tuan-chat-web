@@ -82,7 +82,27 @@ describe("spaceWebgalCompiler", () => {
     expect(projectedConfig).toContain("Game_name:测试空间_42;");
     expect(projectedConfig).toContain(`Title_img:${mediaFileUrl(1001, "image", "medium")};`);
     expect(projectedConfig).toContain(`Game_Logo:${mediaFileUrl(1002, "image", "medium")};`);
+    expect(projectedConfig).toContain("Figure_Default_Enter_Duration:100;");
+    expect(projectedConfig).toContain("Figure_Default_Exit_Duration:100;");
     expect(projectedConfig).toContain(`TypingSoundSe:${mediaFileUrl(1003, "audio", "low")};`);
+  });
+
+  it("会把自定义立绘默认进出场时长写入 config", () => {
+    const snapshot = buildSpaceWebgalInputSnapshot({
+      spaceId: 42,
+      spaceName: "测试空间",
+      rooms: [{ roomId: 10, name: "序章", status: 0 }],
+      messagesByRoomId: { 10: [] },
+      gameConfig: {
+        figureDefaultEnterDuration: 90,
+        figureDefaultExitDuration: 150,
+      },
+    });
+
+    const projectedConfig = buildConfigContent(snapshot);
+
+    expect(projectedConfig).toContain("Figure_Default_Enter_Duration:90;");
+    expect(projectedConfig).toContain("Figure_Default_Exit_Duration:150;");
   });
 
   it("语音消息（SOUND voice）会编译为带配音的角色台词", () => {
@@ -297,7 +317,9 @@ describe("spaceWebgalCompiler", () => {
     const lines = scene.content.trim().split("\n");
     const changeIndex = lines.findIndex(line => line.startsWith("changeFigure:role_1/sprite_11.webp"));
     expect(changeIndex).toBeGreaterThanOrEqual(0);
-    expect(lines[changeIndex]).toContain("-enterDuration=120 -exitDuration=120 -next;");
+    expect(lines[changeIndex]).toContain("-next;");
+    expect(lines[changeIndex]).not.toContain("-enterDuration=");
+    expect(lines[changeIndex]).not.toContain("-exitDuration=");
     expect(lines[changeIndex + 1]).toBe(
       "setTransition: -target=1 -enter=position/ba-enter-from-left -exit=position/ba-exit-to-right -keepOffset -next;",
     );
@@ -348,7 +370,9 @@ describe("spaceWebgalCompiler", () => {
     );
 
     expect(scene.content).toContain("\"alpha\":0.6");
-    expect(scene.content).toContain("-enterDuration=120 -exitDuration=120 -next;");
+    expect(scene.content).toContain("changeFigure:role_1/sprite_11.webp");
+    expect(scene.content).not.toContain("-enterDuration=");
+    expect(scene.content).not.toContain("-exitDuration=");
     expect(scene.content).not.toContain("\"rgl\"");
   });
 

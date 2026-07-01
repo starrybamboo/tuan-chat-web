@@ -141,6 +141,68 @@ describe("mobileDiceCommandExecutor", () => {
     expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
   });
 
+  it("执行 .next 时通过普通命令通路发送状态事件", async () => {
+    const params = createParams({ command: ".next" });
+
+    await executeMobileDicerCommand(params);
+
+    expect(params.sendRoomMessageMutation.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+      content: "下一回合",
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      roleId: actorRole.roleId,
+      extra: {
+        stateEvent: {
+          source: {
+            commandName: "next",
+            kind: "command",
+            parserVersion: "state-event-v1",
+          },
+          events: [{ type: "nextTurn" }],
+        },
+      },
+    }));
+    expect(params.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+  });
+
+  it("执行 .combat start/end 时通过普通命令通路发送战斗状态事件", async () => {
+    const startParams = createParams({ command: ".combat start" });
+    const endParams = createParams({ command: ".combat end" });
+
+    await executeMobileDicerCommand(startParams);
+    await executeMobileDicerCommand(endParams);
+
+    expect(startParams.sendRoomMessageMutation.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+      content: "战斗开始",
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: {
+            commandName: "combat",
+            kind: "command",
+            parserVersion: "state-event-v1",
+          },
+          events: [{ type: "combatRoundStart" }],
+        },
+      },
+    }));
+    expect(endParams.sendRoomMessageMutation.sendRequest).toHaveBeenCalledWith(expect.objectContaining({
+      content: "战斗结束：回合归零",
+      messageType: MESSAGE_TYPE.STATE_EVENT,
+      extra: {
+        stateEvent: {
+          source: {
+            commandName: "combat",
+            kind: "command",
+            parserVersion: "state-event-v1",
+          },
+          events: [{ type: "combatRoundEnd" }],
+        },
+      },
+    }));
+    expect(startParams.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+    expect(endParams.sendRoomMessageMutation.sendRequests).not.toHaveBeenCalled();
+  });
+
   it("角色绑定骰娘优先于空间默认骰娘", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const params = createParams({

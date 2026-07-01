@@ -28,6 +28,7 @@ import type { WebgalFigureRenderAsset } from "./webgalFigureComposition";
 import { buildWebgalChooseScriptLines, extractWebgalChoosePayload } from "../types/webgalChoose";
 import { BUILTIN_WEBGAL_ANIMATION_FILES } from "./publishAnimationPresets";
 import { getPublishTemplatePreset } from "./publishTemplatePresets";
+import { normalizeFigureDefaultTransitionDuration } from "./realtimeRendererConfig";
 import {
   buildClearFigureLines,
   buildFigureArgs,
@@ -91,7 +92,6 @@ const GAME_DIR = "game";
 const DEFAULT_SHARED_ENGINE_URL = "https://tuanchat-galgame.pages.dev/engine/loader.js";
 const DEFAULT_MANIFEST_DISPLAY = "fullscreen";
 const DEFAULT_MANIFEST_ORIENTATION = "landscape";
-const DEFAULT_FIGURE_TRANSITION_DURATION_MS = 120;
 const MINIMAL_RUNTIME_SUPPORT_FILES = [
   {
     path: `${GAME_DIR}/userStyleSheet.css`,
@@ -251,6 +251,8 @@ export function buildConfigContent(snapshot: SpaceWebgalInputSnapshot): string {
   upsertGameConfigEntry(entries, "Default_Language", gameConfig.defaultLanguage || "");
   upsertGameConfigEntry(entries, "Enable_Appreciation", gameConfig.enableAppreciation === false ? "false" : "true");
   upsertGameConfigEntry(entries, "TypingSoundEnabled", gameConfig.typingSoundEnabled ? "true" : "false");
+  upsertGameConfigEntry(entries, "Figure_Default_Enter_Duration", String(normalizeFigureDefaultTransitionDuration(gameConfig.figureDefaultEnterDuration)));
+  upsertGameConfigEntry(entries, "Figure_Default_Exit_Duration", String(normalizeFigureDefaultTransitionDuration(gameConfig.figureDefaultExitDuration)));
   upsertGameConfigEntry(entries, "TypingSoundInterval", String(gameConfig.typingSoundInterval ?? 1.5));
   upsertGameConfigEntry(entries, "TypingSoundPunctuationPause", String(gameConfig.typingSoundPunctuationPause ?? 100));
   upsertGameConfigEntry(entries, "Title_img", titleImageUrl);
@@ -619,9 +621,7 @@ function renderFigureCommands(
   const previous = context.renderedFigures.get(figureSlot.id);
   const figureAnimation = getFigureAnimationFromAnnotations(payload.annotations);
   if (!previous || previous.fileName !== figureAsset.stateKey || previous.transform !== transform) {
-    const figureArgs = buildFigureArgs(figureSlot.id, transform, {
-      defaultTransitionDurationMs: DEFAULT_FIGURE_TRANSITION_DURATION_MS,
-    });
+    const figureArgs = buildFigureArgs(figureSlot.id, transform);
     if (figureAsset.composeLine) {
       appendLine(context, figureAsset.composeLine);
     }

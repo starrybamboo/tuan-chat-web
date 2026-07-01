@@ -17,9 +17,10 @@ function getPositiveIds<T>(items: readonly T[], getId: (item: T) => number | nul
 export function resolveAutoSelectedSpaceId(params: {
   activeSpaces: readonly MobileRouteSpaceLike[];
   hasExplicitTarget: boolean;
+  selectedRoomId: number | null;
   selectedSpaceId: number | null;
 }): number | null | undefined {
-  if (params.hasExplicitTarget) {
+  if (params.hasExplicitTarget || params.selectedRoomId != null) {
     return undefined;
   }
 
@@ -33,6 +34,31 @@ export function resolveAutoSelectedSpaceId(params: {
   }
 
   return spaceIds[0];
+}
+
+export function resolveRoomOnlyTargetSpaceId(params: {
+  activeSpaces: readonly MobileRouteSpaceLike[];
+  availableRooms: readonly MobileRouteRoomLike[];
+  pendingTargetRoomId: number | null;
+  pendingTargetSpaceId: number | null;
+  selectedSpaceId: number | null;
+}): number | null {
+  if (params.pendingTargetSpaceId != null) {
+    return params.pendingTargetSpaceId;
+  }
+
+  if (params.pendingTargetRoomId == null) {
+    return null;
+  }
+
+  const selectedSpaceHasRoom = params.selectedSpaceId != null
+    && params.availableRooms.some(room => room.roomId === params.pendingTargetRoomId);
+  if (selectedSpaceHasRoom) {
+    return params.selectedSpaceId;
+  }
+
+  const singleSpaceId = getPositiveIds(params.activeSpaces, space => space.spaceId);
+  return singleSpaceId.length === 1 ? singleSpaceId[0] : null;
 }
 
 export function shouldClearStaleRouteRoom(params: {

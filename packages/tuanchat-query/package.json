@@ -20,6 +20,7 @@
     "./room-message-lifecycle": "./src/room-message-lifecycle.ts",
     "./room-roles": "./src/room-roles.ts",
     "./rules": "./src/rules.ts",
+    "./sidebar-tree": "./src/sidebar-tree.ts",
     "./spaces": "./src/spaces.ts",
     "./stickers": "./src/stickers.ts",
     "./users": "./src/users.ts"

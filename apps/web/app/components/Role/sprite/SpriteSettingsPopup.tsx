@@ -48,6 +48,7 @@ import type { Role } from "../types";
 import type { BatchSpriteCropApplyResult, VariantInitializationCropResult } from "./Tabs/SpriteCropper";
 
 import {
+  canReuseAvatarMediaForVariantConfig,
   createAvatarCropContextFromVariantConfig,
   createPixelSpriteCropFromVariantConfig,
   createPixelCropFromVariantConfig,
@@ -55,14 +56,22 @@ import {
   isOriginImageCompatibleWithVariantConfig,
 } from "./avatarCropContext";
 import { resolveAvatarUploadName } from "./avatarUploadName";
+import { uploadOriginAndDefaultSpriteMedia } from "./defaultSpriteMedia";
 import { useAvatarDeletion } from "./hooks/useAvatarDeletion";
-import { AvatarSettingsTab } from "./Tabs/AvatarSettingsTab";
+import {
+  AvatarCalibrationPreviewPanel,
+  AvatarSettingsTab,
+  buildAvatarCalibrationWorkflowProgress,
+} from "./Tabs/AvatarSettingsTab";
 import { SpriteCropper } from "./Tabs/SpriteCropper";
 import { SpriteListGrid } from "./Tabs/SpriteListGrid";
 import {
   getEffectiveAvatarUrl,
   getEffectiveOriginUrl,
+  getEffectiveSpriteOriginalUrl,
+  getEffectiveSpriteUrl,
   getSpriteCropSourceUrl,
+  parseTransformFromAvatar,
   parseTransformFromVariantConfig,
   toSpriteTransformPayload,
 } from "./utils";
@@ -866,6 +875,10 @@ export function SpriteSettingsPopup({
   const currentAvatarCropSourceUrl = canShowCurrentAvatarCropper && currentAvatarCropperAvatar
     ? (getSpriteCropSourceUrl(currentAvatarCropperAvatar) || null)
     : null;
+  const currentAvatarSpriteSourceUrl = currentAvatar ? getEffectiveOriginUrl(currentAvatar) : "";
+  const currentAvatarCropperSourceUrl = currentAvatar ? getSpriteCropSourceUrl(currentAvatar) : "";
+  const canOpenCurrentSpriteCropper = Boolean(currentAvatarSpriteSourceUrl);
+  const canOpenCurrentAvatarCropper = Boolean(currentAvatarCropperSourceUrl);
 
   // ========== 上传和删除功能 ==========
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
@@ -895,10 +908,12 @@ export function SpriteSettingsPopup({
       toast.loading(`正在导入原图：0/${imageFiles.length}`, { id: toastId });
       await runWithConcurrencyLimit(imageFiles, 4, async (file, index) => {
         try {
-          const originFile = await uploadMediaFile(file, { scene: 3 });
+          const defaultSpriteMedia = await uploadOriginAndDefaultSpriteMedia(file, { scene: 3 });
           const uploadRes = await uploadAvatar({
             roleId: role.id,
-            originFileId: originFile.fileId,
+            originFileId: defaultSpriteMedia.origin.fileId,
+            spriteFileId: defaultSpriteMedia.sprite.fileId,
+            spriteCropContext: defaultSpriteMedia.spriteCropContext,
             avatarName: resolveAvatarUploadName(file.name),
             autoApply: false,
             autoNameFirst: true,
@@ -960,6 +975,73 @@ export function SpriteSettingsPopup({
     role?.id,
     updateRoleAvatarMutation,
     uploadAvatar,
+  ]);
+
+  const handleReplaceAvatarSource = useCallback(async (avatar: RoleAvatar, file: File) => {
+    const roleId = role?.id ?? avatar.roleId;
+    if (!roleId || !avatar.avatarId) {
+      throw new Error("头像信息缺失，无法替换头像");
+    }
+
+    const imageFile = await normalizeImageFileOrNull(file);
+    if (!imageFile) {
+      throw new Error("请选择图片文件");
+    }
+
+    const toastId = `avatar-source-replace-${avatar.avatarId}`;
+    toast.loading("正在替换头像源图...", { id: toastId });
+    try {
+      const defaultSpriteMedia = await uploadOriginAndDefaultSpriteMedia(imageFile, { scene: 3 });
+      const updateRes = await updateRoleAvatarMutation.mutateAsync({
+        ...avatar,
+        roleId,
+        avatarId: avatar.avatarId,
+        originFileId: defaultSpriteMedia.origin.fileId,
+        spriteFileId: defaultSpriteMedia.sprite.fileId,
+        avatarFileId: null,
+        spriteCropContext: defaultSpriteMedia.spriteCropContext,
+        spriteTransform: toSpriteTransformPayload({
+          positionX: 0,
+          positionY: 0,
+          scale: 1,
+          alpha: 1,
+          rotation: 0,
+        }),
+        avatarCropContext: null,
+        variantId: null,
+        variantGroup: undefined,
+      } as unknown as RoleAvatar);
+      if (!updateRes?.success) {
+        throw new Error(updateRes?.errMsg || "替换头像失败");
+      }
+
+      const nextIndex = spritesAvatars.findIndex(item => item.avatarId === avatar.avatarId);
+      if (nextIndex >= 0) {
+        setInternalIndex(nextIndex);
+        setSelectedIndices(new Set([nextIndex]));
+      }
+      else {
+        setSelectedIndices(new Set());
+      }
+      setIsMultiSelectMode(false);
+      setPendingUploadAvatarWorkflow(null);
+      setPendingUploadSpriteCalibration(null);
+      setPendingVariantInitialization(null);
+      setActiveTab("cropper");
+      if (isMobile) {
+        setIsMobileControlDrawerOpen(false);
+      }
+      toast.success("已替换源图，请继续立绘校正", { id: toastId });
+    }
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : "替换头像失败，请稍后重试", { id: toastId });
+      throw error;
+    }
+  }, [
+    isMobile,
+    role?.id,
+    spritesAvatars,
+    updateRoleAvatarMutation,
   ]);
 
   // 内部索引变更处理
@@ -1411,6 +1493,21 @@ export function SpriteSettingsPopup({
     }
   }, [effectiveSelectedAvatarItems, isMobile]);
 
+  const handleOpenSpriteCropperForCurrentAvatar = useCallback(() => {
+    if (!currentAvatar) {
+      toast.error("请先选择头像");
+      return;
+    }
+    if (!currentAvatarSpriteSourceUrl) {
+      toast.error("当前头像缺少可用于立绘校正的原图");
+      return;
+    }
+    setActiveTab("cropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [currentAvatar, currentAvatarSpriteSourceUrl, isMobile]);
+
   const handleOpenAvatarCropperForSelection = useCallback(() => {
     if (effectiveSelectedAvatarItems.length === 0) {
       toast.error("请先选择头像");
@@ -1427,6 +1524,21 @@ export function SpriteSettingsPopup({
       setIsMobileControlDrawerOpen(false);
     }
   }, [effectiveSelectedAvatarItems, isMobile]);
+
+  const handleOpenAvatarCropperForCurrentAvatar = useCallback(() => {
+    if (!currentAvatar) {
+      toast.error("请先选择头像");
+      return;
+    }
+    if (!currentAvatarCropperSourceUrl) {
+      toast.error("当前头像缺少可裁剪的立绘源图");
+      return;
+    }
+    setActiveTab("avatarCropper");
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+  }, [currentAvatar, currentAvatarCropperSourceUrl, isMobile]);
 
   const handleBatchSpriteCropApplied = useCallback((result: BatchSpriteCropApplyResult) => {
     if (result.successCount <= 0) {
@@ -1543,6 +1655,35 @@ export function SpriteSettingsPopup({
     spritesAvatars,
     variantGroups.length,
   ]);
+
+  const handleAvatarCropApplied = useCallback((result: BatchSpriteCropApplyResult) => {
+    if (result.successCount <= 0) {
+      return;
+    }
+    const updatedAvatarIds = new Set(
+      result.avatars
+        .map(avatar => avatar.avatarId)
+        .filter((avatarId): avatarId is number => typeof avatarId === "number"),
+    );
+    const nextIndex = spritesAvatars.findIndex(avatar => (
+      avatar.avatarId && updatedAvatarIds.has(avatar.avatarId)
+    ));
+    if (nextIndex >= 0) {
+      setInternalIndex(nextIndex);
+    }
+    setPendingVariantInitialization(null);
+    setActiveTab("setting");
+    if (!isVariantBatchSelection) {
+      setIsMultiSelectMode(false);
+      setSelectedIndices(new Set());
+    }
+    if (isMobile) {
+      setIsMobileControlDrawerOpen(false);
+    }
+    toast.success(result.totalCount > 1
+      ? `头像校正完成：成功 ${result.successCount}/${result.totalCount}`
+      : "头像校正完成");
+  }, [isMobile, isVariantBatchSelection, spritesAvatars]);
 
   const handleCancelBatchVariantCreation = useCallback(() => {
     setBatchVariantCreationPrompt(null);
@@ -1772,6 +1913,22 @@ export function SpriteSettingsPopup({
             throw new Error("头像信息缺失");
           }
 
+          if (canReuseAvatarMediaForVariantConfig(avatar, variantGroup.compositionConfig)) {
+            const updateRes = await updateRoleAvatarMutation.mutateAsync({
+              ...avatar,
+              roleId,
+              avatarId: avatar.avatarId,
+              variantId,
+              variantGroup: undefined,
+              spriteTransform: variantSpriteTransform ?? avatar.spriteTransform,
+            } as RoleAvatar);
+            if (!updateRes?.success) {
+              throw new Error(updateRes?.errMsg || "绑定立绘组失败");
+            }
+            successCount += 1;
+            return;
+          }
+
           const croppedResult = await createCroppedSpriteAndAvatarByVariantConfig(
             avatar,
             variantGroup.compositionConfig!,
@@ -1845,6 +2002,7 @@ export function SpriteSettingsPopup({
     applyCropAvatarMutation,
     applyCropMutation,
     role?.id,
+    updateRoleAvatarMutation,
     variantGroupById,
   ]);
 
@@ -2023,6 +2181,7 @@ export function SpriteSettingsPopup({
     setVariantFilter(String(Math.floor(variantId)));
     setIsMultiSelectMode(false);
     setSelectedIndices(new Set());
+    setActiveTab("setting");
     toast.success(`已初始化立绘组，绑定 ${result.croppedAvatars.length} 个头像`);
   }, [
     createVariantMutation,
@@ -2151,102 +2310,86 @@ export function SpriteSettingsPopup({
     const variant = variantGroupById.get(variantId);
     return variant ? getVariantDisplayName(variant) : "选择立绘组";
   })();
+  const batchPreviewBaseAvatarId = normalizeVariantId(editingVariantGroup?.baseAvatarId);
+  const batchPreviewItem = (
+    batchPreviewBaseAvatarId
+      ? effectiveSelectedAvatarItems.find(({ avatar }) => normalizeVariantId(avatar.avatarId) === batchPreviewBaseAvatarId)
+      : undefined
+  )
+    ?? effectiveSelectedAvatarItems.find(({ avatar }) => getEffectiveAvatarUrl(avatar) || getEffectiveSpriteUrl(avatar))
+    ?? effectiveSelectedAvatarItems[0]
+    ?? (currentAvatar ? { index: internalIndex, avatar: currentAvatar } : null);
+  const batchPreviewAvatar = batchPreviewItem?.avatar ?? null;
+  const batchPreviewSpriteUrl = batchPreviewAvatar
+    ? getEffectiveSpriteOriginalUrl(batchPreviewAvatar) || getEffectiveSpriteUrl(batchPreviewAvatar)
+    : "";
+  const batchPreviewAvatarUrl = batchPreviewAvatar ? getEffectiveAvatarUrl(batchPreviewAvatar) : "";
+  const batchPreviewTransform = editingVariantGroup?.compositionConfig
+    ? parseTransformFromVariantConfig(editingVariantGroup.compositionConfig)
+    : parseTransformFromAvatar(batchPreviewAvatar);
+  const batchWorkflowProgress = buildAvatarCalibrationWorkflowProgress(
+    effectiveSelectedAvatarItems.map(({ avatar }) => avatar),
+  );
+  const canOpenBatchSpriteCropper = effectiveSelectedAvatarItems.some(({ avatar }) => getEffectiveOriginUrl(avatar));
+  const canOpenBatchAvatarCropper = effectiveSelectedAvatarItems.some(({ avatar }) => getSpriteCropSourceUrl(avatar));
+  const batchHeaderTitle = isVariantBatchSelection ? selectedVariantSummary : "批量设置";
+  const batchHeaderSubtitle = isVariantBatchSelection ? "立绘组" : "已选";
+  const batchHeaderId = normalizeVariantId(editingVariantGroup?.variantId);
+  const batchHeaderIdLabel = batchHeaderId
+    ? `#${batchHeaderId}`
+    : selectedAvatarIds.length > 0
+      ? `#${selectedAvatarIds.slice(0, 3).join(" #")}${selectedAvatarIds.length > 3 ? " ..." : ""}`
+      : "#-";
 
   const batchSettingsPanel = (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-4 overflow-auto">
+    <div className="mx-auto flex h-full w-full max-w-7xl flex-col">
       <div className="
-        flex shrink-0 flex-col gap-3 border-b border-base-300/70 pb-4
-        lg:flex-row lg:items-center lg:justify-between
+        mb-3 flex w-full shrink-0 flex-wrap items-center gap-2 border-b
+        border-base-300/70 pb-3
       ">
-        <div className="min-w-0">
-          <h3 className="text-lg font-semibold">
-            {isVariantBatchSelection ? "立绘组设置" : "批量设置"}
-          </h3>
-          <p className="mt-1 text-sm text-base-content/60">
-            {isVariantBatchSelection ? "组内" : "已选"}
+        <div className="
+          flex min-w-0 flex-1 flex-wrap items-center gap-2
+        ">
+          <span className="
+            block min-w-0 max-w-[22rem] truncate rounded-md px-1 py-1
+            text-base font-semibold text-base-content
+          ">
+            {batchHeaderTitle}
+          </span>
+          <span className="
+            inline-flex max-w-[9rem] shrink-0 truncate rounded-md
+            bg-base-200/60 px-2 py-1 text-xs font-medium text-base-content/70
+          ">
+            {batchHeaderSubtitle}
             {" "}
-            <span className="font-medium text-base-content">{effectiveSelectedAvatarCount}</span>
+            {effectiveSelectedAvatarCount}
             {" "}
             个头像
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
-          <span className="rounded-md border border-base-300 bg-base-200/50 px-2 py-1">
-            {selectedVariantSummary}
           </span>
           {selectedMissingCropContextCount > 0 && (
-            <span className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-warning-content">
+            <span className="
+              inline-flex shrink-0 rounded-md border border-warning/30
+              bg-warning/10 px-2 py-1 text-xs font-medium text-warning-content
+            ">
               {selectedMissingCropContextCount}
               {" "}
               个头像将自动校正
             </span>
           )}
-          {selectedAvatarIds.length > 0 && (
-            <span className="rounded-md border border-base-300 bg-base-200/50 px-2 py-1 font-mono">
-              #
-              {selectedAvatarIds.slice(0, 3).join(" #")}
-              {selectedAvatarIds.length > 3 ? " ..." : ""}
-            </span>
-          )}
         </div>
-      </div>
 
-      <section className="rounded-md border border-base-300 bg-base-100 p-4">
-        <div className="flex items-start gap-3">
-          <CropIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
-          <div className="min-w-0 flex-1">
-            <h4 className="font-medium">立绘校正</h4>
-            <p className="mt-1 text-sm text-base-content/60">
-              先批量裁剪并上传立绘；完成后可继续创建新的立绘组。
-            </p>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm mt-3"
-              onClick={handleOpenSpriteCropperForSelection}
-              disabled={effectiveSelectedAvatarCount === 0}
-            >
-              进入立绘校正
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-md border border-base-300 bg-base-100 p-4">
-        <div className="flex items-start gap-3">
-          <UserFocusIcon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
-          <div className="min-w-0 flex-1">
-            <h4 className="font-medium">头像校正</h4>
-            <p className="mt-1 text-sm text-base-content/60">
-              对所选头像批量裁剪，或应用已有立绘组的头像槽位。
-            </p>
-            <button
-              type="button"
-              className="btn btn-outline btn-sm mt-3"
-              onClick={handleOpenAvatarCropperForSelection}
-              disabled={effectiveSelectedAvatarCount === 0}
-            >
-              进入头像校正
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {!isVariantGroupView && !isVariantFolderSelected && (
-        <section className="rounded-md border border-base-300 bg-base-100 p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <h4 className="font-medium">绑定到已有立绘组</h4>
-              <p className="mt-1 text-sm text-base-content/60">
-                自动按所选立绘组的头像槽位补齐校正并绑定。
-              </p>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-              <div className="dropdown dropdown-end w-full sm:w-56">
+        <div className="
+          ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2
+        ">
+          {!isVariantBatchSelection && (
+            <>
+              <div className="dropdown dropdown-end w-44">
                 <button
                   type="button"
                   tabIndex={0}
                   className="
-                    btn btn-outline btn-sm w-full justify-between gap-2 rounded-md px-3
+                    btn btn-outline btn-sm h-8 min-h-8 w-full justify-between
+                    gap-2 rounded-md px-3
                   "
                   disabled={isVariantMutationPending || bindableVariantGroups.length === 0}
                   title={`目标立绘组：${batchTargetVariantLabel}`}
@@ -2287,7 +2430,7 @@ export function SpriteSettingsPopup({
               </div>
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm h-8 min-h-8 rounded-md px-3"
                 onClick={handleBatchAssignVariant}
                 disabled={
                   isVariantMutationPending
@@ -2295,59 +2438,71 @@ export function SpriteSettingsPopup({
                   || !batchTargetVariantId
                 }
               >
-                {isVariantMutationPending ? "绑定中..." : "绑定"}
+                {isVariantMutationPending ? "绑定中" : "绑定"}
               </button>
-            </div>
-          </div>
-        </section>
-      )}
+            </>
+          )}
 
-      <section className="rounded-md border border-base-300 bg-base-100 p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <h4 className="font-medium">{isVariantBatchSelection ? "管理组内头像" : "管理所选头像"}</h4>
-            <p className="mt-1 text-sm text-base-content/60">
-              {isVariantGroupView
-                ? "可将组内头像移回未分组，再重新校正或绑定。"
-                : isVariantFolderSelected
-                  ? "进入组内后可按分类查看、上传或整理头像；当前校正会批量作用于整个立绘组。"
-                  : "已绑定立绘组的头像可先移出，再重新校正或绑定。"}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {isVariantFolderSelected && (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm gap-1.5"
-                onClick={handleEnterSelectedVariantGroup}
-              >
-                <FolderOpenIcon className="size-4" aria-hidden="true" />
-                <span>进入组内管理</span>
-              </button>
-            )}
+          {isVariantFolderSelected && (
             <button
               type="button"
-              className="btn btn-error btn-sm"
-              onClick={handleRequestVariantRemoval}
-              disabled={isVariantMutationPending || selectedWithVariantCount === 0}
+              className="btn btn-outline btn-sm h-8 min-h-8 gap-1.5 rounded-md px-3"
+              onClick={handleEnterSelectedVariantGroup}
             >
-              {isVariantMutationPending
-                ? "处理中..."
-                : isVariantBatchSelection ? "解散立绘组" : "移回未分组"}
+              <FolderOpenIcon className="size-4" aria-hidden="true" />
+              <span>进入组内管理</span>
             </button>
-            {!isVariantGroupView && !isVariantFolderSelected && (
-              <button
-                type="button"
-                className="btn btn-error btn-sm"
-                onClick={handleBatchDeleteRequest}
-                disabled={selectedAvatarCount === 0}
-              >
-                删除所选
-              </button>
-            )}
-          </div>
+          )}
+
+          <button
+            type="button"
+            className="btn btn-error btn-sm h-8 min-h-8 rounded-md px-3"
+            onClick={handleRequestVariantRemoval}
+            disabled={isVariantMutationPending || selectedWithVariantCount === 0}
+          >
+            {isVariantMutationPending
+              ? "处理中"
+              : isVariantBatchSelection ? "解散立绘组" : "移回未分组"}
+          </button>
+          {!isVariantGroupView && !isVariantFolderSelected && (
+            <button
+              type="button"
+              className="btn btn-error btn-sm h-8 min-h-8 rounded-md px-3"
+              onClick={handleBatchDeleteRequest}
+              disabled={selectedAvatarCount === 0}
+            >
+              删除所选
+            </button>
+          )}
+          <span
+            className="
+              flex h-8 shrink-0 items-center rounded-md bg-base-200/60
+              px-2.5 font-mono text-xs text-base-content/55
+            "
+            title={isVariantBatchSelection ? `立绘组 ID：${batchHeaderId ?? "-"}` : "所选头像 ID"}
+          >
+            {batchHeaderIdLabel}
+          </span>
         </div>
-      </section>
+      </div>
+
+      <div className="
+        flex-1 min-h-0 relative overflow-hidden
+      ">
+        <div className="absolute inset-0 overflow-auto p-3 xl:overflow-hidden">
+          <AvatarCalibrationPreviewPanel
+            characterName={roleDisplayName}
+            spriteImageUrl={batchPreviewSpriteUrl}
+            avatarImageUrl={batchPreviewAvatarUrl}
+            spriteTransform={batchPreviewTransform}
+            workflowProgress={batchWorkflowProgress}
+            canOpenSpriteCropper={canOpenBatchSpriteCropper}
+            canOpenAvatarCropper={canOpenBatchAvatarCropper}
+            onOpenSpriteCropper={handleOpenSpriteCropperForSelection}
+            onOpenAvatarCropper={handleOpenAvatarCropperForSelection}
+          />
+        </div>
+      </div>
     </div>
   );
 
@@ -2512,60 +2667,6 @@ export function SpriteSettingsPopup({
           <span>头像设置</span>
         </button>
 
-        {/* 立绘校正 Tab */}
-        <button
-          type="button"
-          onClick={() => handleTabChange("cropper")}
-          className={`
-            flex items-center gap-1.5
-            sm:gap-2
-            px-2.5 py-2
-            sm:px-3
-            rounded-lg text-xs
-            sm:text-sm
-            transition-colors whitespace-nowrap
-            ${
-            activeTab === "cropper"
-              ? "bg-primary text-primary-content"
-              : "hover:bg-base-300"
-          }
-          `}
-        >
-          <CropIcon className="
-            size-4
-            sm:size-5
-            shrink-0
-          " aria-hidden="true" />
-          <span>立绘校正</span>
-        </button>
-
-        {/* 头像校正 Tab */}
-        <button
-          type="button"
-          onClick={() => handleTabChange("avatarCropper")}
-          className={`
-            flex items-center gap-1.5
-            sm:gap-2
-            px-2.5 py-2
-            sm:px-3
-            rounded-lg text-xs
-            sm:text-sm
-            transition-colors whitespace-nowrap
-            ${
-            activeTab === "avatarCropper"
-              ? "bg-primary text-primary-content"
-              : "hover:bg-base-300"
-          }
-          `}
-        >
-          <UserFocusIcon className="
-            size-4
-            sm:size-5
-            shrink-0
-          " aria-hidden="true" />
-          <span>头像校正</span>
-        </button>
-
         {/* 回收站 Tab */}
         <button
           type="button"
@@ -2600,6 +2701,30 @@ export function SpriteSettingsPopup({
       </nav>
     </div>
   );
+
+  const cropperReturnBar = activeTab === "cropper" || activeTab === "avatarCropper"
+    ? (
+        <div className="
+          flex shrink-0 items-center justify-between gap-3 rounded-md border
+          border-base-300 bg-base-100/70 px-3 py-2
+        ">
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            {activeTab === "cropper"
+              ? <CropIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
+              : <UserFocusIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />}
+            <span className="min-w-0 truncate font-medium">{activeTabLabel}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm h-8 min-h-8 gap-1.5 rounded-md px-2.5"
+            onClick={() => handleTabChange("setting")}
+          >
+            <ArrowLeftIcon className="size-4" aria-hidden="true" />
+            <span>返回头像设置</span>
+          </button>
+        </div>
+      )
+    : null;
 
   if (!isOpen)
     return null;
@@ -2688,6 +2813,7 @@ export function SpriteSettingsPopup({
                 {currentSpriteUrl
                   ? (
                       <div className="flex h-full min-h-0 flex-col gap-2">
+                        {cropperReturnBar}
                         {pendingUploadSpriteCalibration && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
@@ -2750,8 +2876,9 @@ export function SpriteSettingsPopup({
                             selectedIndices={effectiveSpriteCropperSelectedIndices}
                             isMultiSelectMode={effectiveSpriteCropperMultiSelectMode}
                             availableVariants={variantGroups}
-                            allowVariantGroupEditing={isVariantFolderSelected}
+                            allowVariantGroupEditing={isVariantBatchSelection}
                             editingVariantGroup={editingVariantGroup}
+                            forceBatchMode={isVariantBatchSelection}
                             onBatchSpriteCropApplied={handleBatchSpriteCropApplied}
                             onSingleSpriteCropApplied={handleBatchSpriteCropApplied}
                           />
@@ -2759,12 +2886,15 @@ export function SpriteSettingsPopup({
                       </div>
                     )
                   : (
-                      <div className="
-                        flex flex-col items-center justify-center h-full
-                        text-base-content/70
-                      ">
-                        <ImageIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
-                        <p>当前没有可用的立绘进行校正</p>
+                      <div className="flex h-full min-h-0 flex-col gap-2">
+                        {cropperReturnBar}
+                        <div className="
+                          flex flex-1 flex-col items-center justify-center
+                          text-base-content/70
+                        ">
+                          <ImageIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
+                          <p>当前没有可用的立绘进行校正</p>
+                        </div>
                       </div>
                     )}
               </div>
@@ -2776,6 +2906,7 @@ export function SpriteSettingsPopup({
                 {currentAvatarCropSourceUrl
                   ? (
                       <div className="flex h-full min-h-0 flex-col gap-2">
+                        {cropperReturnBar}
                         {pendingVariantInitialization && (
                           <div className="
                             flex shrink-0 items-center justify-between gap-3
@@ -2811,8 +2942,10 @@ export function SpriteSettingsPopup({
                             selectedIndices={effectiveAvatarCropperSelectedIndices}
                             isMultiSelectMode={effectiveAvatarCropperMultiSelectMode}
                             availableVariants={variantGroups}
-                            allowVariantGroupEditing={isVariantFolderSelected}
+                            allowVariantGroupEditing={isVariantBatchSelection}
                             editingVariantGroup={editingVariantGroup}
+                            forceBatchMode={isVariantBatchSelection}
+                            onAvatarCropApplied={handleAvatarCropApplied}
                             variantInitialization={pendingVariantInitialization
                               ? {
                                   active: true,
@@ -2826,12 +2959,15 @@ export function SpriteSettingsPopup({
                       </div>
                     )
                   : (
-                      <div className="
-                        flex flex-col items-center justify-center h-full
-                        text-base-content/70
-                      ">
-                        <UserCircleIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
-                        <p>当前没有可用的立绘进行头像裁剪，请先完成立绘裁剪。</p>
+                      <div className="flex h-full min-h-0 flex-col gap-2">
+                        {cropperReturnBar}
+                        <div className="
+                          flex flex-1 flex-col items-center justify-center
+                          text-base-content/70
+                        ">
+                          <UserCircleIcon className="size-12 mb-2" weight="duotone" aria-hidden="true" />
+                          <p>当前没有可用的立绘进行头像裁剪，请先完成立绘裁剪。</p>
+                        </div>
                       </div>
                     )}
               </div>
@@ -2861,6 +2997,12 @@ export function SpriteSettingsPopup({
                           actionLabel: "绑定立绘组",
                         },
                       )}
+                      onOpenSpriteCropper={handleOpenSpriteCropperForCurrentAvatar}
+                      onOpenAvatarCropper={handleOpenAvatarCropperForCurrentAvatar}
+                      canOpenSpriteCropper={canOpenCurrentSpriteCropper}
+                      canOpenAvatarCropper={canOpenCurrentAvatarCropper}
+                      onReplaceAvatarSource={handleReplaceAvatarSource}
+                      isReplacingAvatarSource={updateRoleAvatarMutation.isPending}
                     />
                   )
             )}
@@ -3014,7 +3156,7 @@ export function SpriteSettingsPopup({
               <div className="flex items-center justify-between px-3 py-2">
                 <Drawer.Title className="text-base font-semibold">头像与工具</Drawer.Title>
                 <Drawer.Description className="sr-only">
-                  在移动端查看头像列表并切换预览、设置、回收站等工具面板。
+                  在移动端查看头像列表并切换头像设置或回收站。
                 </Drawer.Description>
                 <button
                   type="button"
